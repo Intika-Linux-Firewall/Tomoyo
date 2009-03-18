@@ -1586,6 +1586,264 @@ int ccs_check_2path_perm(const u8 operation,
 	return error;
 }
 
+/**
+ * ccs_audit_ioctl_log - Audit ioctl related request log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @cmd:        The ioctl number.
+ * @filename:   Pathname.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_ioctl_log(struct ccs_request_info *r,
+			       const unsigned int cmd, const char *filename,
+			       const bool is_granted)
+{
+	return ccs_write_audit_log(is_granted, r, "allow_ioctl %s %u\n",
+				   filename, cmd);
+}
+
+/**
+ * ccs_update_ioctl_acl - Update file's ioctl ACL.
+ *
+ * @filename:  Filename.
+ * @cmd_min:   Minimum ioctl command number.
+ * @cmd_max:   Maximum ioctl command number.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ */
+static int ccs_update_ioctl_acl(const char *filename,
+				const unsigned int cmd_min,
+				const unsigned int cmd_max,
+				struct domain_info * const domain,
+				const struct ccs_condition_list *condition,
+				const bool is_delete)
+{
+	static DEFINE_MUTEX(lock);
+	const struct ccs_path_info *saved_filename;
+	struct ccs_acl_info *ptr;
+	struct ccs_ioctl_acl_record *acl;
+	int error = -ENOMEM;
+	bool is_group = false;
+	if (!domain)
+		return -EINVAL;
+	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
+		return -EINVAL;
+	if (filename[0] == '@') {
+		/*
+		 * This cast is OK because I don't dereference
+		 * in this function.
+		 */
+		saved_filename = (struct ccs_path_info *)
+			ccs_find_or_assign_new_path_group(filename + 1);
+		is_group = true;
+	} else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+		if (!strcmp(filename, "pipe:"))
+			filename = "pipe:[\\$]";
+#endif
+		saved_filename = ccs_save_name(filename);
+	}
+	if (!saved_filename)
+		return -ENOMEM;
+	mutex_lock(&lock);
+	if (is_delete)
+		goto delete;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
+		if (acl->u.filename != saved_filename ||
+		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
+			continue;
+		error = ccs_add_domain_acl(NULL, ptr);
+		goto out;
+	}
+	/* Not found. Append it to the tail. */
+	acl = ccs_alloc_acl_element(TYPE_IOCTL_ACL, condition);
+	if (!acl)
+		goto out;
+	acl->u_is_group = is_group;
+	acl->u.filename = saved_filename;
+	acl->cmd_min = cmd_min;
+	acl->cmd_max = cmd_max;
+	error = ccs_add_domain_acl(domain, &acl->head);
+	goto out;
+ delete:
+	error = -ENOENT;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
+			continue;
+		if (ccs_get_condition_part(ptr) != condition)
+			continue;
+		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
+		if (acl->u.filename != saved_filename ||
+		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
+			continue;
+		error = ccs_del_domain_acl(ptr);
+		break;
+	}
+ out:
+	mutex_unlock(&lock);
+	return error;
+}
+
+/**
+ * ccs_check_ioctl_acl - Check permission for ioctl operation.
+ *
+ * @r:        Pointer to "struct ccs_request_info".
+ * @filename: Filename to check.
+ * @cmd:      Ioctl command number.
+ *
+ * Returns 0 on success, -EPERM otherwise.
+ */
+static int ccs_check_ioctl_acl(struct ccs_request_info *r,
+			       const struct ccs_path_info *filename,
+			       const unsigned int cmd)
+{
+	struct domain_info *domain = r->domain;
+	struct ccs_acl_info *ptr;
+	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_ioctl_acl_record *acl;
+		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
+			continue;
+		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
+		if (acl->cmd_min > cmd || acl->cmd_max < cmd ||
+		    !ccs_check_condition(r, ptr))
+			continue;
+		if (acl->u_is_group) {
+			if (!ccs_path_matches_group(filename, acl->u.group,
+						    true))
+				continue;
+		} else {
+			if (!ccs_path_matches_pattern(filename,
+						      acl->u.filename))
+				continue;
+		}
+		r->cond = ccs_get_condition_part(ptr);
+		return 0;
+	}
+	return -EPERM;
+}
+
+/**
+ * ccs_check_ioctl_perm - Check permission for ioctl.
+ *
+ * @r:         Pointer to "strct ccs_request_info".
+ * @filename:  Filename to check.
+ * @cmd:       Ioctl command number.
+ *
+ * Returns 0 on success, 1 on retry, negative value otherwise.
+ */
+static int ccs_check_ioctl_perm(struct ccs_request_info *r,
+				const struct ccs_path_info *filename,
+				const unsigned int cmd)
+{
+	const bool is_enforce = (r->mode == 3);
+	int error = 0;
+	if (!filename)
+		return 0;
+ retry:
+	error = ccs_check_ioctl_acl(r, filename, cmd);
+	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
+	if (!error)
+		return 0;
+	if (ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
+		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
+		       cmd, ccs_get_last_name(r->domain));
+	if (is_enforce) {
+		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
+					       filename->name, cmd);
+		if (err == 1)
+			goto retry;
+		return err;
+	}
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
+		ccs_update_ioctl_acl(ccs_get_file_pattern(filename), cmd, cmd,
+				     r->domain, ccs_handler_cond(), false);
+	return 0;
+}
+
+/**
+ * ccs_write_ioctl_policy - Update ioctl related list.
+ *
+ * @data:      String to parse.
+ * @domain:    Pointer to "struct domain_info".
+ * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
+			   const struct ccs_condition_list *condition,
+			   const bool is_delete)
+{
+	char *cmd = strchr(data, ' ');
+	unsigned int cmd_min;
+	unsigned int cmd_max;
+	if (!cmd)
+		return -EINVAL;
+	*cmd++ = '\0';
+	switch (sscanf(cmd, "%u-%u", &cmd_min, &cmd_max)) {
+	case 1:
+		cmd_max = cmd_min;
+		break;
+	case 2:
+		if (cmd_min <= cmd_max)
+			break;
+		/* fall through */
+	default:
+		return -EINVAL;
+	}
+	return ccs_update_ioctl_acl(data, cmd_min, cmd_max, domain, condition,
+				    is_delete);
+}
+
+/**
+ * ccs_check_ioctl_permission - Check permission for "ioctl".
+ *
+ * @file: Pointer to "struct file".
+ * @cmd:  Ioctl command number.
+ * @arg:  Param for @cmd .
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
+			       unsigned long arg)
+{
+	struct ccs_request_info r;
+	struct ccs_obj_info obj;
+	int error = -ENOMEM;
+	struct ccs_path_info *buf;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, current->domain_info,
+			      CCS_TOMOYO_MAC_FOR_IOCTL);
+	if (!r.mode || !filp->f_vfsmnt)
+		return 0;
+	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
+	if (!buf)
+		goto out;
+	memset(&obj, 0, sizeof(obj));
+	obj.path1_dentry = filp->f_dentry;
+	obj.path1_vfsmnt = filp->f_vfsmnt;
+	r.obj = &obj;
+	error = ccs_check_ioctl_perm(&r, buf, cmd);
+ out:
+	ccs_free(buf);
+	if (r.mode != 3)
+		error = 0;
+	return error;
+}
+
 /*
  * Below part contains copy of some of VFS helper functions.
  *

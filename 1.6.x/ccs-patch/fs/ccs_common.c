@@ -77,6 +77,7 @@ static struct {
 	const unsigned int max_value;
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
 	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
+	[CCS_TOMOYO_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
 	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
@@ -1613,6 +1614,8 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		return ccs_write_argv0_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
 		return ccs_write_env_policy(data, domain, cond, is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
+		return ccs_write_ioctl_policy(data, domain, cond, is_delete);
 	else
 		return ccs_write_file_policy(data, domain, cond, is_delete);
 }
@@ -1713,6 +1716,44 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 	return true;
  out:
 	head->read_bit = bit;
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * ccs_print_ioctl_acl - Print an ioctl ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_ioctl_acl_record".
+ * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_ioctl_acl(struct ccs_io_buffer *head,
+				struct ccs_ioctl_acl_record *ptr,
+				const struct ccs_condition_list *cond)
+{
+	int pos = head->read_avail;
+	const char *atmark = "";
+	const char *filename;
+	const unsigned int cmd_min = ptr->cmd_min;
+	const unsigned int cmd_max = ptr->cmd_max;
+	if (ptr->u_is_group) {
+		atmark = "@";
+		filename = ptr->u.group->group_name->name;
+	} else {
+		filename = ptr->u.filename->name;
+	}
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_IOCTL "%s%s ", atmark, filename))
+		goto out;
+	if (!ccs_io_printf(head, "%u", cmd_min))
+		goto out;
+	if (cmd_min != cmd_max && !ccs_io_printf(head, "-%u", cmd_max))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
 	head->read_avail = pos;
 	return false;
 }
@@ -1982,6 +2023,11 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			= container_of(ptr, struct ccs_double_path_acl_record,
 				       head);
 		return ccs_print_double_path_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_IOCTL_ACL) {
+		struct ccs_ioctl_acl_record *acl
+			= container_of(ptr, struct ccs_ioctl_acl_record, head);
+		return ccs_print_ioctl_acl(head, acl, cond);
 	}
 	if (acl_type == TYPE_ARGV0_ACL) {
 		struct ccs_argv0_acl_record *acl
@@ -3336,6 +3382,9 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 		break;
 	case TYPE_DOUBLE_PATH_ACL:
 		len = sizeof(struct ccs_double_path_acl_record);
+		break;
+	case TYPE_IOCTL_ACL:
+		len = sizeof(struct ccs_ioctl_acl_record);
 		break;
 	case TYPE_ARGV0_ACL:
 		len = sizeof(struct ccs_argv0_acl_record);

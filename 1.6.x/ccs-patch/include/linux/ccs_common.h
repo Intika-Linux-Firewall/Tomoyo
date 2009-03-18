@@ -278,6 +278,7 @@ struct ccs_acl_info {
 enum ccs_acl_entry_type_index {
 	TYPE_SINGLE_PATH_ACL,
 	TYPE_DOUBLE_PATH_ACL,
+	TYPE_IOCTL_ACL,
 	TYPE_ARGV0_ACL,
 	TYPE_ENV_ACL,
 	TYPE_CAPABILITY_ACL,
@@ -381,6 +382,20 @@ struct ccs_double_path_acl_record {
 	} u2;
 };
 
+/* Structure for "allow_ioctl" directive. */
+struct ccs_ioctl_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_IOCTL_ACL */
+	unsigned int cmd_min;
+	unsigned int cmd_max;
+	bool u_is_group; /* True if u points to "path_group" directive. */
+	union {
+		/* Pointer to single pathname. */
+		const struct ccs_path_info *filename;
+		/* Pointer to pathname group. */
+		const struct ccs_path_group_entry *group;
+	} u;
+};
+
 /* Structure for "allow_argv0" directive. */
 struct ccs_argv0_acl_record {
 	struct ccs_acl_info head;             /* type = TYPE_ARGV0_ACL       */
@@ -471,6 +486,7 @@ enum ccs_ip_record_type {
 #define KEYWORD_ALLOW_CAPABILITY          "allow_capability "
 #define KEYWORD_ALLOW_CHROOT              "allow_chroot "
 #define KEYWORD_ALLOW_ENV                 "allow_env "
+#define KEYWORD_ALLOW_IOCTL               "allow_ioctl "
 #define KEYWORD_ALLOW_MOUNT               "allow_mount "
 #define KEYWORD_ALLOW_NETWORK             "allow_network "
 #define KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
@@ -501,6 +517,7 @@ enum ccs_ip_record_type {
 /* Index numbers for Access Controls. */
 enum ccs_profile_index {
 	CCS_TOMOYO_MAC_FOR_FILE,          /* domain_policy.conf */
+	CCS_TOMOYO_MAC_FOR_IOCTL,         /* domain_policy.conf */
 	CCS_TOMOYO_MAC_FOR_ARGV0,         /* domain_policy.conf */
 	CCS_TOMOYO_MAC_FOR_ENV,           /* domain_policy.conf */
 	CCS_TOMOYO_MAC_FOR_NETWORK,       /* domain_policy.conf */
@@ -735,6 +752,10 @@ int ccs_write_file_policy(char *data, struct domain_info *domain,
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 /* Create "allow_env" entry in exception policy. */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
+/* Create "allow_ioctl" entry in domain policy. */
+int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
+			   const struct ccs_condition_list *condition,
+			   const bool is_delete);
 /* Create "allow_mount" entry in system policy. */
 int ccs_write_mount_policy(char *data, const bool is_delete);
 /* Create "allow_network" entry in domain policy. */
