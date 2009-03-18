@@ -21,7 +21,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 ++++
+ kernel/ptrace.c                 |   11 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 ++++++
  kernel/sys.c                    |   21 ++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/ipv4/udp.c                  |    8 ++
  net/socket.c                    |   41 +++++++++++
  net/unix/af_unix.c              |   16 ++++
- 32 files changed, 605 insertions(+), 3 deletions(-)
+ 32 files changed, 601 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29-rc8.orig/fs/Kconfig
 +++ linux-2.6.29-rc8/fs/Kconfig
@@ -839,28 +839,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  
  /*
-@@ -578,6 +581,12 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -578,6 +581,10 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -701,6 +710,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -701,6 +708,10 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/*

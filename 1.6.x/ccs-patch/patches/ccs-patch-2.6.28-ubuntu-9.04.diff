@@ -21,7 +21,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 +++++
+ kernel/ptrace.c                 |   11 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
  kernel/sys.c                    |   21 +++++++
@@ -34,7 +34,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/ipv4/udp.c                  |    9 ++-
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 32 files changed, 587 insertions(+), 3 deletions(-)
+ 32 files changed, 583 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-9.30.orig/fs/Kconfig
 +++ linux-2.6.28-9.30/fs/Kconfig
@@ -811,28 +811,24 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -549,6 +552,12 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -549,6 +552,10 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -672,6 +681,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -672,6 +679,10 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/*

@@ -2,32 +2,32 @@ This is TOMOYO Linux patch for CentOS 4.7.
 
 Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS/kernel-2.6.9-78.0.13.EL.src.rpm
 ---
- arch/alpha/kernel/ptrace.c         |    9 ++
- arch/arm/kernel/ptrace.c           |    9 ++
- arch/arm26/kernel/ptrace.c         |    9 ++
- arch/cris/arch-v10/kernel/ptrace.c |    9 ++
- arch/h8300/kernel/ptrace.c         |    9 ++
- arch/i386/kernel/ptrace.c          |    9 ++
- arch/ia64/ia32/sys_ia32.c          |    9 ++
- arch/ia64/kernel/ptrace.c          |    9 ++
- arch/m32r/kernel/ptrace.c          |    9 ++
- arch/m68k/kernel/ptrace.c          |    9 ++
- arch/m68knommu/kernel/ptrace.c     |    9 ++
- arch/mips/kernel/ptrace.c          |    9 ++
- arch/mips/kernel/ptrace32.c        |    9 ++
- arch/parisc/kernel/ptrace.c        |    9 ++
- arch/ppc/kernel/ptrace.c           |    9 ++
- arch/ppc64/kernel/ptrace.c         |    9 ++
- arch/ppc64/kernel/ptrace32.c       |    9 ++
- arch/s390/kernel/ptrace.c          |    9 ++
- arch/sh/kernel/ptrace.c            |    9 ++
- arch/sh64/kernel/ptrace.c          |    9 ++
- arch/sparc/kernel/ptrace.c         |   11 +++
- arch/sparc64/kernel/ptrace.c       |   11 +++
- arch/um/kernel/ptrace.c            |    9 ++
- arch/v850/kernel/ptrace.c          |    9 ++
- arch/x86_64/ia32/ptrace32.c        |    9 ++
- arch/x86_64/kernel/ptrace.c        |    9 ++
+ arch/alpha/kernel/ptrace.c         |    7 ++
+ arch/arm/kernel/ptrace.c           |    7 ++
+ arch/arm26/kernel/ptrace.c         |    7 ++
+ arch/cris/arch-v10/kernel/ptrace.c |    7 ++
+ arch/h8300/kernel/ptrace.c         |    7 ++
+ arch/i386/kernel/ptrace.c          |    7 ++
+ arch/ia64/ia32/sys_ia32.c          |    7 ++
+ arch/ia64/kernel/ptrace.c          |    7 ++
+ arch/m32r/kernel/ptrace.c          |    7 ++
+ arch/m68k/kernel/ptrace.c          |    7 ++
+ arch/m68knommu/kernel/ptrace.c     |    7 ++
+ arch/mips/kernel/ptrace.c          |    7 ++
+ arch/mips/kernel/ptrace32.c        |    7 ++
+ arch/parisc/kernel/ptrace.c        |    7 ++
+ arch/ppc/kernel/ptrace.c           |    7 ++
+ arch/ppc64/kernel/ptrace.c         |    7 ++
+ arch/ppc64/kernel/ptrace32.c       |    7 ++
+ arch/s390/kernel/ptrace.c          |    7 ++
+ arch/sh/kernel/ptrace.c            |    7 ++
+ arch/sh64/kernel/ptrace.c          |    7 ++
+ arch/sparc/kernel/ptrace.c         |    9 ++
+ arch/sparc64/kernel/ptrace.c       |    9 ++
+ arch/um/kernel/ptrace.c            |    7 ++
+ arch/v850/kernel/ptrace.c          |    7 ++
+ arch/x86_64/ia32/ptrace32.c        |    7 ++
+ arch/x86_64/kernel/ptrace.c        |    7 ++
  fs/Kconfig                         |    2 
  fs/Makefile                        |    1 
  fs/attr.c                          |   19 +++++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  net/ipv6/udp.c                     |   10 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 55 files changed, 835 insertions(+), 11 deletions(-)
+ 55 files changed, 783 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-78.0.13.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.0.13.EL/arch/alpha/kernel/ptrace.c
@@ -71,15 +71,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #include "proto.h"
  
-@@ -260,6 +263,12 @@ do_sys_ptrace(long request, long pid, lo
+@@ -260,6 +263,10 @@ do_sys_ptrace(long request, long pid, lo
  	unsigned long tmp;
  	size_t copied;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -96,15 +94,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #include "ptrace.h"
  
-@@ -731,6 +734,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -731,6 +734,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -121,15 +117,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #include "ptrace.h"
  
-@@ -668,6 +671,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -668,6 +671,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -146,15 +140,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* 
   * Determines which bits in DCCR the user has access to.
-@@ -50,6 +53,12 @@ sys_ptrace(long request, long pid, long 
+@@ -50,6 +53,10 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -171,15 +163,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
-@@ -60,6 +63,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -60,6 +63,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -196,15 +186,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -237,6 +240,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -237,6 +240,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct user * dummy = NULL;
  	int i, ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -221,15 +209,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #include "ia32priv.h"
  
-@@ -1769,6 +1772,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1769,6 +1772,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -246,15 +232,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #include "entry.h"
  
-@@ -1299,6 +1302,12 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1299,6 +1302,10 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -271,15 +255,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * Get the address of the live pt_regs for the specified task.
-@@ -787,6 +790,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -787,6 +790,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -296,15 +278,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -120,6 +123,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -120,6 +123,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -321,15 +301,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -346,15 +324,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -49,6 +52,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -49,6 +52,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -371,15 +347,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * Tracing a 32-bit process with a 64-bit strace and vice versa will not
-@@ -42,6 +45,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -42,6 +45,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -396,15 +370,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* PSW bits we allow the debugger to modify */
  #define USER_PSW_BITS	(PSW_N | PSW_V | PSW_CB)
-@@ -84,6 +87,12 @@ long sys_ptrace(long request, pid_t pid,
+@@ -84,6 +87,10 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -421,15 +393,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -239,6 +242,12 @@ int sys_ptrace(long request, long pid, l
+@@ -239,6 +242,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -446,15 +416,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -54,6 +57,12 @@ int sys_ptrace(long request, long pid, l
+@@ -54,6 +57,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -471,15 +439,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -42,6 +45,12 @@ int sys32_ptrace(long request, long pid,
+@@ -42,6 +45,10 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -496,15 +462,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #ifdef CONFIG_S390_SUPPORT
  #include "compat_ptrace.h"
-@@ -733,6 +736,12 @@ sys_ptrace(long request, long pid, long 
+@@ -733,6 +736,10 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -521,15 +485,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -85,6 +88,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -85,6 +88,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -546,15 +508,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -124,6 +127,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -124,6 +127,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -571,17 +531,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -266,6 +269,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -266,6 +269,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -598,17 +556,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -112,6 +115,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -112,6 +115,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	if (test_thread_flag(TIF_32BIT)) {
@@ -625,16 +581,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -28,6 +31,12 @@ int sys_ptrace(long request, long pid, l
+@@ -28,6 +31,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int i, ret;
-+/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
++	/***** TOMOYO Linux start. *****/
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
-+/***** TOMOYO Linux end. *****/
++	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	ret = -EPERM;
@@ -650,15 +604,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
-@@ -116,6 +119,12 @@ int sys_ptrace(long request, long pid, l
+@@ -116,6 +119,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int rval;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -675,15 +627,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -240,6 +243,12 @@ asmlinkage long sys32_ptrace(long reques
+@@ -240,6 +243,10 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
@@ -700,15 +650,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -193,6 +196,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -193,6 +196,10 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	long i, ret;
  	unsigned ui;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/* This lock_kernel fixes a subtle race with suid exec */

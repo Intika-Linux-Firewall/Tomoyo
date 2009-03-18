@@ -2,14 +2,14 @@ This is TOMOYO Linux patch for Gentoo Linux.
 
 Source code for this patch is "emerge gentoo-sources"
 ---
- arch/ia64/ia32/sys_ia32.c       |    9 +++
- arch/ia64/kernel/ptrace.c       |    9 +++
- arch/mips/kernel/ptrace32.c     |    9 +++
- arch/powerpc/kernel/ptrace32.c  |    9 +++
- arch/s390/kernel/ptrace.c       |    9 +++
- arch/sparc/kernel/ptrace.c      |   11 +++
- arch/sparc64/kernel/ptrace.c    |   11 +++
- arch/x86/ia32/ptrace32.c        |    9 +++
+ arch/ia64/ia32/sys_ia32.c       |    7 ++
+ arch/ia64/kernel/ptrace.c       |    7 ++
+ arch/mips/kernel/ptrace32.c     |    7 ++
+ arch/powerpc/kernel/ptrace32.c  |    7 ++
+ arch/s390/kernel/ptrace.c       |    7 ++
+ arch/sparc/kernel/ptrace.c      |    9 +++
+ arch/sparc64/kernel/ptrace.c    |    9 +++
+ arch/x86/ia32/ptrace32.c        |    7 ++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
@@ -29,7 +29,7 @@ Source code for this patch is "emerge gentoo-sources"
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |    9 +++
+ kernel/ptrace.c                 |    7 ++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
  kernel/sys.c                    |   21 +++++++
@@ -43,7 +43,7 @@ Source code for this patch is "emerge gentoo-sources"
  net/ipv6/inet6_hashtables.c     |    7 ++
  net/socket.c                    |   41 ++++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 41 files changed, 656 insertions(+), 2 deletions(-)
+ 41 files changed, 638 insertions(+), 2 deletions(-)
 
 --- linux-2.6.24-gentoo-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-gentoo-r8/arch/ia64/ia32/sys_ia32.c
@@ -57,15 +57,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  #include "ia32priv.h"
  
-@@ -1758,6 +1761,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1758,6 +1761,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -82,15 +80,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  #include "entry.h"
  
-@@ -1422,6 +1425,12 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1422,6 +1425,10 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -107,15 +103,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  int ptrace_getregs(struct task_struct *child, __s64 __user *data);
  int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +53,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -132,15 +126,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -89,6 +92,12 @@ long compat_sys_ptrace(int request, int 
+@@ -89,6 +92,10 @@ long compat_sys_ptrace(int request, int 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -157,15 +149,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -701,6 +704,12 @@ sys_ptrace(long request, long pid, long 
+@@ -701,6 +704,10 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -182,17 +172,15 @@ Source code for this patch is "emerge gentoo-sources"
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -267,6 +270,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -267,6 +270,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -209,17 +197,15 @@ Source code for this patch is "emerge gentoo-sources"
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
-@@ -180,6 +183,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -180,6 +183,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	if (test_thread_flag(TIF_32BIT)) {
@@ -236,15 +222,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  /*
   * Determines which flags the user has access to [1 = access, 0 = no access].
-@@ -235,6 +238,12 @@ asmlinkage long sys32_ptrace(long reques
+@@ -235,6 +238,10 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
@@ -1026,15 +1010,13 @@ Source code for this patch is "emerge gentoo-sources"
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -467,6 +470,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -467,6 +470,10 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
