@@ -2,8 +2,8 @@ This is TOMOYO Linux patch for Debian Lenny.
 
 Source code for this patch is "apt-get install linux-source-2.6.26"
 ---
- arch/ia64/ia32/sys_ia32.c       |    9 +++
- arch/mips/kernel/ptrace32.c     |    9 +++
+ arch/ia64/ia32/sys_ia32.c       |    7 ++
+ arch/mips/kernel/ptrace32.c     |    7 ++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
@@ -23,7 +23,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 +++++
+ kernel/ptrace.c                 |   11 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
  kernel/sys.c                    |   21 +++++++
@@ -36,7 +36,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 34 files changed, 606 insertions(+), 2 deletions(-)
+ 34 files changed, 598 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26-13.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26-13/arch/ia64/ia32/sys_ia32.c
@@ -50,15 +50,13 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  #include "ia32priv.h"
  
-@@ -1754,6 +1757,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1754,6 +1757,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -75,15 +73,13 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  int ptrace_getregs(struct task_struct *child, __s64 __user *data);
  int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +53,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -873,28 +869,24 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -542,6 +545,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -542,6 +545,10 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -665,6 +674,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -665,6 +672,10 @@ asmlinkage long compat_sys_ptrace(compat
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {

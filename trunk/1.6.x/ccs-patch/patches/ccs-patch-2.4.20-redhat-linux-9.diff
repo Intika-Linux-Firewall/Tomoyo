@@ -3,26 +3,26 @@ This is TOMOYO Linux patch for RedHat Linux 9.
 Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/updates/i386/kernel-source-2.4.20-46.9.legacy.i386.rpm
 ---
  Documentation/Configure.help |   86 +++++++++++++++++++++++++++++
- arch/alpha/kernel/ptrace.c   |    9 +++
- arch/arm/kernel/ptrace.c     |    9 +++
- arch/cris/kernel/ptrace.c    |    9 +++
- arch/i386/kernel/ptrace.c    |    9 +++
- arch/ia64/ia32/sys_ia32.c    |    9 +++
- arch/ia64/kernel/ptrace.c    |    9 +++
- arch/m68k/kernel/ptrace.c    |    9 +++
- arch/mips/kernel/ptrace.c    |    9 +++
- arch/mips64/kernel/ptrace.c  |   15 +++++
- arch/parisc/kernel/ptrace.c  |    9 +++
- arch/ppc/kernel/ptrace.c     |    9 +++
- arch/ppc64/kernel/ptrace.c   |    9 +++
- arch/ppc64/kernel/ptrace32.c |    9 +++
- arch/s390/kernel/ptrace.c    |    9 +++
- arch/s390x/kernel/ptrace.c   |    9 +++
- arch/sh/kernel/ptrace.c      |    9 +++
- arch/sparc/kernel/ptrace.c   |   11 +++
- arch/sparc64/kernel/ptrace.c |   11 +++
- arch/x86_64/ia32/ptrace32.c  |    9 +++
- arch/x86_64/kernel/ptrace.c  |    9 +++
+ arch/alpha/kernel/ptrace.c   |    7 ++
+ arch/arm/kernel/ptrace.c     |    7 ++
+ arch/cris/kernel/ptrace.c    |    7 ++
+ arch/i386/kernel/ptrace.c    |    7 ++
+ arch/ia64/ia32/sys_ia32.c    |    7 ++
+ arch/ia64/kernel/ptrace.c    |    7 ++
+ arch/m68k/kernel/ptrace.c    |    7 ++
+ arch/mips/kernel/ptrace.c    |    7 ++
+ arch/mips64/kernel/ptrace.c  |   11 +++
+ arch/parisc/kernel/ptrace.c  |    7 ++
+ arch/ppc/kernel/ptrace.c     |    7 ++
+ arch/ppc64/kernel/ptrace.c   |    7 ++
+ arch/ppc64/kernel/ptrace32.c |    7 ++
+ arch/s390/kernel/ptrace.c    |    7 ++
+ arch/s390x/kernel/ptrace.c   |    7 ++
+ arch/sh/kernel/ptrace.c      |    7 ++
+ arch/sparc/kernel/ptrace.c   |    9 +++
+ arch/sparc64/kernel/ptrace.c |    9 +++
+ arch/x86_64/ia32/ptrace32.c  |    7 ++
+ arch/x86_64/kernel/ptrace.c  |    7 ++
  fs/Config.in                 |    3 +
  fs/Makefile                  |    1 
  fs/attr.c                    |   10 +++
@@ -49,7 +49,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   38 ++++++++++++
  net/unix/af_unix.c           |   15 +++++
- 47 files changed, 854 insertions(+), 2 deletions(-)
+ 47 files changed, 812 insertions(+), 2 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -158,15 +158,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #include "proto.h"
  
-@@ -249,6 +252,12 @@ sys_ptrace(long request, long pid, long 
+@@ -249,6 +252,10 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -183,15 +181,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #include "ptrace.h"
  
-@@ -576,6 +579,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -576,6 +579,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -208,15 +204,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -108,6 +111,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -108,6 +111,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -233,15 +227,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -233,6 +236,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -233,6 +236,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -258,15 +250,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define DEBUG	0
  
-@@ -3065,6 +3068,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -3065,6 +3068,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -283,15 +273,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Bits in the PSR that we allow ptrace() to change:
-@@ -1153,6 +1156,12 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1153,6 +1156,10 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -308,15 +296,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -333,15 +319,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -43,6 +46,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -43,6 +46,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	int ret;
  	extern void save_fp(struct task_struct *);
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -358,28 +342,24 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -48,6 +51,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -48,6 +51,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	ret = -EPERM;
-@@ -314,6 +323,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -314,6 +321,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -396,15 +376,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /* These are used in entry.S, syscall_restore_rfi.  We need to record the
   * current stepping mode somewhere other than in PSW, because there is no
-@@ -94,6 +97,12 @@ long sys_ptrace(long request, pid_t pid,
+@@ -94,6 +97,10 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -421,15 +399,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -161,6 +164,12 @@ int sys_ptrace(long request, long pid, l
+@@ -161,6 +164,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -446,15 +422,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -98,6 +101,12 @@ int sys_ptrace(long request, long pid, l
+@@ -98,6 +101,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -471,15 +445,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -87,6 +90,12 @@ int sys32_ptrace(long request, long pid,
+@@ -87,6 +90,10 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -496,15 +468,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -221,6 +224,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -221,6 +224,10 @@ asmlinkage int sys_ptrace(long request, 
  	unsigned long tmp;
  	int copied;
  	ptrace_area   parea; 
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -521,15 +491,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -431,6 +434,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -431,6 +434,10 @@ asmlinkage int sys_ptrace(long request, 
  #define sizeof_parent_long 8
  #define dataptr (u8 *)&data
  #endif
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
@@ -546,15 +514,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -162,6 +165,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -162,6 +165,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child, *tsk = current;
  	struct user * dummy = NULL;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -571,17 +537,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -262,6 +265,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -262,6 +265,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -598,17 +562,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -108,6 +111,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -108,6 +111,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
@@ -625,15 +587,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  #define R32(l,q) \
  	case offsetof(struct user32, regs.l): stack[offsetof(struct pt_regs, q)/8] = val; break
-@@ -199,6 +202,12 @@ asmlinkage long sys32_ptrace(long reques
+@@ -199,6 +202,10 @@ asmlinkage long sys32_ptrace(long reques
  	struct pt_regs *childregs; 
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
@@ -650,15 +610,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -175,6 +178,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -175,6 +178,10 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/* This lock_kernel fixes a subtle race with suid exec */

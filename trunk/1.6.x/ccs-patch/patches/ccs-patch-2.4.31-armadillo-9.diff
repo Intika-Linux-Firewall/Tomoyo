@@ -3,35 +3,35 @@ This is TOMOYO Linux patch for Armadillo-9.
 Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.4.31-a9-3.tar.gz
 ---
  Documentation/Configure.help    |   86 +++++++++++++++++++++++++++
- arch/alpha/kernel/ptrace.c      |    9 ++
- arch/arm/kernel/ptrace.c        |    9 ++
- arch/armnommu/kernel/ptrace.c   |    9 ++
- arch/blackfin/kernel/ptrace.c   |    9 ++
- arch/cris/kernel/ptrace.c       |    9 ++
- arch/frv/kernel/ptrace.c        |    9 ++
- arch/h8300/kernel/ptrace.c      |    9 ++
- arch/i386/kernel/ptrace.c       |    9 ++
- arch/ia64/ia32/sys_ia32.c       |    9 ++
- arch/ia64/kernel/ptrace.c       |    9 ++
- arch/m68k/kernel/ptrace.c       |    9 ++
- arch/m68knommu/kernel/ptrace.c  |    9 ++
- arch/microblaze/kernel/ptrace.c |    9 ++
- arch/mips/kernel/ptrace.c       |    9 ++
- arch/mips64/kernel/ptrace.c     |   15 ++++
- arch/niosnommu/kernel/ptrace.c  |   11 +++
- arch/parisc/kernel/ptrace.c     |    9 ++
- arch/ppc/kernel/ptrace.c        |    9 ++
- arch/ppc64/kernel/ptrace.c      |    9 ++
- arch/ppc64/kernel/ptrace32.c    |    9 ++
- arch/s390/kernel/ptrace.c       |    9 ++
- arch/s390x/kernel/ptrace.c      |    9 ++
- arch/sh/kernel/ptrace.c         |    9 ++
- arch/sh64/kernel/ptrace.c       |    9 ++
- arch/sparc/kernel/ptrace.c      |   11 +++
- arch/sparc64/kernel/ptrace.c    |   11 +++
- arch/v850/kernel/ptrace.c       |    9 ++
- arch/x86_64/ia32/ptrace32.c     |    9 ++
- arch/x86_64/kernel/ptrace.c     |    9 ++
+ arch/alpha/kernel/ptrace.c      |    7 ++
+ arch/arm/kernel/ptrace.c        |    7 ++
+ arch/armnommu/kernel/ptrace.c   |    7 ++
+ arch/blackfin/kernel/ptrace.c   |    7 ++
+ arch/cris/kernel/ptrace.c       |    7 ++
+ arch/frv/kernel/ptrace.c        |    7 ++
+ arch/h8300/kernel/ptrace.c      |    7 ++
+ arch/i386/kernel/ptrace.c       |    7 ++
+ arch/ia64/ia32/sys_ia32.c       |    7 ++
+ arch/ia64/kernel/ptrace.c       |    7 ++
+ arch/m68k/kernel/ptrace.c       |    7 ++
+ arch/m68knommu/kernel/ptrace.c  |    7 ++
+ arch/microblaze/kernel/ptrace.c |    7 ++
+ arch/mips/kernel/ptrace.c       |    7 ++
+ arch/mips64/kernel/ptrace.c     |   11 +++
+ arch/niosnommu/kernel/ptrace.c  |    9 ++
+ arch/parisc/kernel/ptrace.c     |    7 ++
+ arch/ppc/kernel/ptrace.c        |    7 ++
+ arch/ppc64/kernel/ptrace.c      |    7 ++
+ arch/ppc64/kernel/ptrace32.c    |    7 ++
+ arch/s390/kernel/ptrace.c       |    7 ++
+ arch/s390x/kernel/ptrace.c      |    7 ++
+ arch/sh/kernel/ptrace.c         |    7 ++
+ arch/sh64/kernel/ptrace.c       |    7 ++
+ arch/sparc/kernel/ptrace.c      |    9 ++
+ arch/sparc64/kernel/ptrace.c    |    9 ++
+ arch/v850/kernel/ptrace.c       |    7 ++
+ arch/x86_64/ia32/ptrace32.c     |    7 ++
+ arch/x86_64/kernel/ptrace.c     |    7 ++
  fs/Config.in                    |    3 
  fs/Makefile                     |    2 
  fs/attr.c                       |   10 +++
@@ -58,7 +58,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   16 ++++-
  net/socket.c                    |   40 +++++++++++-
  net/unix/af_unix.c              |   15 ++++
- 56 files changed, 942 insertions(+), 8 deletions(-)
+ 56 files changed, 882 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Documentation/Configure.help
 +++ linux-2.4.31-a9-3/Documentation/Configure.help
@@ -167,15 +167,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include "proto.h"
  
-@@ -251,6 +254,12 @@ sys_ptrace(long request, long pid, long 
+@@ -251,6 +254,10 @@ sys_ptrace(long request, long pid, long 
  {
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -192,15 +190,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include "ptrace.h"
  
-@@ -695,6 +698,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -695,6 +698,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -217,15 +213,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include "ptrace.h"
  
-@@ -633,6 +636,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -633,6 +636,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -242,15 +236,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*   Changes for FRIO made by TONY & AKBAR HUSSAIN   Lineo Inc. */
  
-@@ -111,6 +114,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -111,6 +114,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	unsigned long flags = 0;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -267,15 +259,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -292,15 +282,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -116,6 +119,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -116,6 +119,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	unsigned long tmp;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -317,15 +305,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
-@@ -60,6 +63,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -60,6 +63,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -342,15 +328,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -152,6 +155,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -152,6 +155,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -367,15 +351,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #define DEBUG	0
  
-@@ -3127,6 +3130,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -3127,6 +3130,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -392,15 +374,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #define offsetof(type,field)    ((unsigned long) &((type *) 0)->field)
  
-@@ -1273,6 +1276,12 @@ sys_ptrace (long request, pid_t pid, uns
+@@ -1273,6 +1276,10 @@ sys_ptrace (long request, pid_t pid, uns
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -417,15 +397,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -442,15 +420,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -104,6 +107,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -104,6 +107,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -467,15 +443,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #if 0
  #define DBPRINTK(...) printk(__VA_ARGS__)
-@@ -105,6 +108,12 @@ int sys_ptrace(long request, long pid, l
+@@ -105,6 +108,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int rval;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -492,15 +466,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -43,6 +46,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -43,6 +46,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -517,28 +489,24 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * Called by kernel/ptrace.c when detaching..
-@@ -49,6 +52,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -49,6 +52,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
  	ret = -EPERM;
-@@ -288,6 +297,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -288,6 +295,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -555,17 +523,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #if 0
  /* Returning from ptrace is a bit tricky because the syscall return
-@@ -216,6 +219,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -216,6 +219,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #ifdef DEBUG_PTRACE
@@ -582,15 +548,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* These are used in entry.S, syscall_restore_rfi.  We need to record the
   * current stepping mode somewhere other than in PSW, because there is no
-@@ -94,6 +97,12 @@ long sys_ptrace(long request, pid_t pid,
+@@ -94,6 +97,10 @@ long sys_ptrace(long request, pid_t pid,
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -607,15 +571,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -171,6 +174,12 @@ int sys_ptrace(long request, long pid, l
+@@ -171,6 +174,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -632,15 +594,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
-@@ -120,6 +123,12 @@ int sys_ptrace(long request, long pid, l
+@@ -120,6 +123,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -657,15 +617,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #ifdef CONFIG_ALTIVEC
  /*
-@@ -121,6 +124,12 @@ int sys32_ptrace(long request, long pid,
+@@ -121,6 +124,10 @@ int sys32_ptrace(long request, long pid,
  {
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -682,15 +640,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -221,6 +224,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -221,6 +224,10 @@ asmlinkage int sys_ptrace(long request, 
  	unsigned long tmp;
  	int copied;
  	ptrace_area   parea; 
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -707,15 +663,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  
  void FixPerRegisters(struct task_struct *task)
-@@ -431,6 +434,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -431,6 +434,10 @@ asmlinkage int sys_ptrace(long request, 
  #define sizeof_parent_long 8
  #define dataptr (u8 *)&data
  #endif
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) 
@@ -732,15 +686,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -144,6 +147,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -144,6 +147,10 @@ asmlinkage int sys_ptrace(long request, 
  	struct task_struct *child, *tsk = current;
  	struct user * dummy = NULL;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -757,15 +709,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
-@@ -122,6 +125,12 @@ asmlinkage int sys_ptrace(long request, 
+@@ -122,6 +125,10 @@ asmlinkage int sys_ptrace(long request, 
  {
  	struct task_struct *child, *tsk = current;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -782,17 +732,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -262,6 +265,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -262,6 +265,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -809,17 +757,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #define MAGIC_CONSTANT 0x80000000
  
-@@ -108,6 +111,14 @@ asmlinkage void do_ptrace(struct pt_regs
+@@ -108,6 +111,12 @@ asmlinkage void do_ptrace(struct pt_regs
  	unsigned long data = regs->u_regs[UREG_I3];
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	if (current->thread.flags & SPARC_FLAG_32BIT) {
@@ -836,15 +782,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
-@@ -116,6 +119,12 @@ int sys_ptrace(long request, long pid, l
+@@ -116,6 +119,10 @@ int sys_ptrace(long request, long pid, l
  {
  	struct task_struct *child;
  	int rval;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -861,15 +805,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
-@@ -203,6 +206,12 @@ asmlinkage long sys32_ptrace(long reques
+@@ -203,6 +206,10 @@ asmlinkage long sys32_ptrace(long reques
  	struct pt_regs *childregs; 
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) { 
@@ -886,15 +828,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * does not yet catch signals sent when the child dies.
-@@ -175,6 +178,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -175,6 +178,10 @@ asmlinkage long sys_ptrace(long request,
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	/* This lock_kernel fixes a subtle race with suid exec */

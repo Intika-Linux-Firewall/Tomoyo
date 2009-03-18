@@ -2,10 +2,10 @@ This is TOMOYO Linux patch for kernel 2.6.25.20.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.25.20.tar.bz2
 ---
- arch/ia64/ia32/sys_ia32.c       |    9 ++
- arch/mips/kernel/ptrace32.c     |    9 ++
- arch/s390/kernel/ptrace.c       |    9 ++
- arch/x86/kernel/ptrace.c        |    9 ++
+ arch/ia64/ia32/sys_ia32.c       |    7 ++
+ arch/mips/kernel/ptrace32.c     |    7 ++
+ arch/s390/kernel/ptrace.c       |    7 ++
+ arch/x86/kernel/ptrace.c        |    7 ++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
@@ -25,7 +25,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/kexec.c                  |    7 ++
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   15 ++++
+ kernel/ptrace.c                 |   11 +++
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 ++++++
  kernel/sys.c                    |   21 ++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 ++++
- 36 files changed, 626 insertions(+), 2 deletions(-)
+ 36 files changed, 614 insertions(+), 2 deletions(-)
 
 --- linux-2.6.25.20.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20/arch/ia64/ia32/sys_ia32.c
@@ -52,15 +52,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #include "ia32priv.h"
  
-@@ -1753,6 +1756,12 @@ sys32_ptrace (int request, pid_t pid, un
+@@ -1753,6 +1756,10 @@ sys32_ptrace (int request, pid_t pid, un
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();
@@ -77,15 +75,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int ptrace_getregs(struct task_struct *child, __s64 __user *data);
  int ptrace_setregs(struct task_struct *child, __s64 __user *data);
-@@ -50,6 +53,12 @@ asmlinkage int sys32_ptrace(int request,
+@@ -50,6 +53,10 @@ asmlinkage int sys32_ptrace(int request,
  {
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  #if 0
@@ -102,15 +98,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_COMPAT
  #include "compat_ptrace.h"
-@@ -698,6 +701,12 @@ sys_ptrace(long request, long pid, long 
+@@ -698,6 +701,10 @@ sys_ptrace(long request, long pid, long 
  	struct task_struct *child;
  	int ret;
  
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -127,15 +121,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #include "tls.h"
  
-@@ -1240,6 +1243,12 @@ asmlinkage long sys32_ptrace(long reques
+@@ -1240,6 +1243,10 @@ asmlinkage long sys32_ptrace(long reques
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  
  	switch (request) {
@@ -927,28 +919,24 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -548,6 +551,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -548,6 +551,10 @@ asmlinkage long sys_ptrace(long request,
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -655,6 +664,12 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -655,6 +662,10 @@ asmlinkage long compat_sys_ptrace(compat
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
 +	/***** TOMOYO Linux start. *****/
-+#ifdef TOMOYO_SYS_PTRACE
 +	if (!ccs_capable(TOMOYO_SYS_PTRACE))
 +		return -EPERM;
-+#endif
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
