@@ -33,7 +33,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  fs/compat.c                        |   11 +++
  fs/exec.c                          |   21 ++++++
  fs/fcntl.c                         |    8 ++
- fs/ioctl.c                         |    7 ++
+ fs/ioctl.c                         |   13 ++++
  fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   54 ++++++++++++++++
  fs/open.c                          |   28 ++++++++
@@ -55,7 +55,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  net/ipv6/udp.c                     |   11 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 53 files changed, 764 insertions(+), 10 deletions(-)
+ 53 files changed, 770 insertions(+), 10 deletions(-)
 
 --- linux-2.6.8-17sarge1.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-17sarge1/arch/alpha/kernel/ptrace.c
@@ -816,17 +816,30 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -60,6 +63,10 @@ asmlinkage long sys_ioctl(unsigned int f
- 	filp = fget(fd);
- 	if (!filp)
+@@ -62,6 +65,10 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_IOCTL))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
  
  	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
  	if (error) {
+                 fput(filp);
+                 goto out;
+@@ -123,6 +130,12 @@ asmlinkage long sys_ioctl(unsigned int f
+ 				error = -ENOTTY;
+ 			break;
+ 		default:
++			/***** TOMOYO Linux start. *****/
++			if (!ccs_capable(TOMOYO_SYS_IOCTL)) {
++				error = -EPERM;
++				break;
++			}
++			/***** TOMOYO Linux end. *****/
+ 			error = -ENOTTY;
+ 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
+ 				error = file_ioctl(filp, cmd, arg);
 --- linux-2.6.8-17sarge1.orig/fs/namei.c
 +++ linux-2.6.8-17sarge1/fs/namei.c
 @@ -32,6 +32,10 @@
@@ -1271,7 +1284,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }

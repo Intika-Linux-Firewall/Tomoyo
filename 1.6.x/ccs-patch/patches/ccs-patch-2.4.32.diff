@@ -29,7 +29,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/attr.c                    |   10 +++
  fs/exec.c                    |   21 ++++++-
  fs/fcntl.c                   |    8 ++
- fs/ioctl.c                   |    9 +++
+ fs/ioctl.c                   |   14 ++++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   58 +++++++++++++++++++
  fs/open.c                    |   29 +++++++++
@@ -50,7 +50,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 48 files changed, 820 insertions(+), 7 deletions(-)
+ 48 files changed, 825 insertions(+), 7 deletions(-)
 
 --- linux-2.4.32.orig/Documentation/Configure.help
 +++ linux-2.4.32/Documentation/Configure.help
@@ -777,7 +777,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -112,6 +115,12 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -55,6 +58,11 @@ asmlinkage long sys_ioctl(unsigned int f
+ 	filp = fget(fd);
+ 	if (!filp)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_ioctl_permission(filp, cmd, arg);
++	if (error)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 	error = 0;
+ 	lock_kernel();
+ 	switch (cmd) {
+@@ -112,6 +120,12 @@ asmlinkage long sys_ioctl(unsigned int f
  				error = -ENOTTY;
  			break;
  		default:
@@ -1249,7 +1261,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.32 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.4.32 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }
