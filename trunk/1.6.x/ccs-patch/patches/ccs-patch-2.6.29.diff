@@ -6,10 +6,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/Makefile                     |    2 
  fs/attr.c                       |   10 ++
  fs/compat.c                     |    5 +
- fs/compat_ioctl.c               |    9 ++
+ fs/compat_ioctl.c               |   13 +++
  fs/exec.c                       |   20 +++++
  fs/fcntl.c                      |    9 ++
- fs/ioctl.c                      |    7 ++
+ fs/ioctl.c                      |   11 +++
  fs/namei.c                      |  139 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 ++++++++++++++
  fs/open.c                       |   28 ++++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/ipv4/udp.c                  |    8 ++
  net/socket.c                    |   41 +++++++++++
  net/unix/af_unix.c              |   16 ++++
- 32 files changed, 601 insertions(+), 3 deletions(-)
+ 32 files changed, 609 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29-rc8.orig/fs/Kconfig
 +++ linux-2.6.29-rc8/fs/Kconfig
@@ -112,7 +112,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2815,6 +2818,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2791,6 +2794,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -2815,6 +2822,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -223,6 +234,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -553,6 +560,10 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
 --- linux-2.6.29-rc8.orig/fs/namei.c
 +++ linux-2.6.29-rc8/fs/namei.c
 @@ -35,6 +35,10 @@
@@ -689,7 +711,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29-rc8 2009/03/13\n");
++	printk(KERN_INFO "Hook version: 2.6.29-rc8 2009/03/18\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

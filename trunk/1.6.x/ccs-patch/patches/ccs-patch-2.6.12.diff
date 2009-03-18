@@ -32,10 +32,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/Kconfig                         |    2 
  fs/Makefile                        |    2 
  fs/attr.c                          |   19 +++++
- fs/compat.c                        |   11 +++
+ fs/compat.c                        |   15 ++++
  fs/exec.c                          |   21 ++++++
  fs/fcntl.c                         |    8 ++
- fs/ioctl.c                         |    7 ++
+ fs/ioctl.c                         |   11 +++
  fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   54 ++++++++++++++++
  fs/open.c                          |   28 ++++++++
@@ -58,7 +58,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                     |   16 ++++-
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 56 files changed, 795 insertions(+), 12 deletions(-)
+ 56 files changed, 803 insertions(+), 12 deletions(-)
 
 --- linux-2.6.12.6.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.6/arch/alpha/kernel/ptrace.c
@@ -756,7 +756,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * Not all architectures have sys_utime, so implement this in terms
-@@ -466,6 +469,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -442,6 +445,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -466,6 +473,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -769,7 +780,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-@@ -1557,7 +1566,7 @@ int compat_do_execve(char * filename,
+@@ -1557,7 +1570,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -876,6 +887,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -167,6 +174,10 @@ asmlinkage long sys_ioctl(unsigned int f
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
 --- linux-2.6.12.6.orig/fs/namei.c
 +++ linux-2.6.12.6/fs/namei.c
 @@ -33,6 +33,10 @@
@@ -1320,7 +1342,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.12.6 2008/10/30\n");
++	printk(KERN_INFO "Hook version: 2.6.12.6 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }

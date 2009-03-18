@@ -34,7 +34,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  fs/compat.c                        |   16 ++++-
  fs/exec.c                          |   26 +++++++-
  fs/fcntl.c                         |    8 ++
- fs/ioctl.c                         |    7 ++
+ fs/ioctl.c                         |   13 ++++
  fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   53 ++++++++++++++++
  fs/open.c                          |   28 ++++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  net/ipv6/udp.c                     |   10 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 55 files changed, 783 insertions(+), 11 deletions(-)
+ 55 files changed, 789 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-78.0.13.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.0.13.EL/arch/alpha/kernel/ptrace.c
@@ -866,17 +866,30 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -60,6 +63,10 @@ asmlinkage long sys_ioctl(unsigned int f
- 	filp = fget(fd);
- 	if (!filp)
+@@ -62,6 +65,10 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_IOCTL))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
  
  	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
  	if (error) {
+                 fput(filp);
+                 goto out;
+@@ -123,6 +130,12 @@ asmlinkage long sys_ioctl(unsigned int f
+ 				error = -ENOTTY;
+ 			break;
+ 		default:
++			/***** TOMOYO Linux start. *****/
++			if (!ccs_capable(TOMOYO_SYS_IOCTL)) {
++				error = -EPERM;
++				break;
++			}
++			/***** TOMOYO Linux end. *****/
+ 			error = -ENOTTY;
+ 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
+ 				error = file_ioctl(filp, cmd, arg);
 --- linux-2.6.9-78.0.13.EL.orig/fs/namei.c
 +++ linux-2.6.9-78.0.13.EL/fs/namei.c
 @@ -32,6 +32,10 @@
@@ -1320,7 +1333,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/01/16\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }

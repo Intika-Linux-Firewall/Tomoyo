@@ -8,10 +8,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
  fs/compat.c                     |    5 +
- fs/compat_ioctl.c               |    9 +++
+ fs/compat_ioctl.c               |   13 ++++
  fs/exec.c                       |   21 ++++++-
  fs/fcntl.c                      |    9 +++
- fs/ioctl.c                      |    7 ++
+ fs/ioctl.c                      |   11 +++
  fs/namei.c                      |  120 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   49 ++++++++++++++++
  fs/open.c                       |   28 +++++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  net/ipv4/udp.c                  |   10 +++
  net/socket.c                    |   41 +++++++++++++
  net/unix/af_unix.c              |   15 +++++
- 34 files changed, 598 insertions(+), 2 deletions(-)
+ 34 files changed, 606 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.19-78.2.30.fc9.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.19-78.2.30.fc9/arch/ia64/ia32/sys_ia32.c
@@ -175,7 +175,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2810,6 +2813,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2786,6 +2789,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -2810,6 +2817,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -287,6 +298,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -206,6 +213,10 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
 --- linux-2.6.27.19-78.2.30.fc9.orig/fs/namei.c
 +++ linux-2.6.27.19-78.2.30.fc9/fs/namei.c
 @@ -35,6 +35,10 @@
@@ -721,7 +743,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.19-78.2.30.fc9 2009/03/03\n");
++	printk(KERN_INFO "Hook version: 2.6.27.19-78.2.30.fc9 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }

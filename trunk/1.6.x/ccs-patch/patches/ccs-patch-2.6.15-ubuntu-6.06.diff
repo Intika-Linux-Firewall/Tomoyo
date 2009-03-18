@@ -15,10 +15,10 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
- fs/compat.c                     |   11 +++
+ fs/compat.c                     |   15 ++++-
  fs/exec.c                       |   21 ++++++-
  fs/fcntl.c                      |    8 ++
- fs/ioctl.c                      |    7 ++
+ fs/ioctl.c                      |   11 +++
  fs/namei.c                      |  118 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   50 ++++++++++++++++
  fs/open.c                       |   29 +++++++++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 42 files changed, 683 insertions(+), 9 deletions(-)
+ 42 files changed, 691 insertions(+), 9 deletions(-)
 
 --- linux-2.6.15-53.75.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-53.75/arch/alpha/kernel/ptrace.c
@@ -351,7 +351,18 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  /*
   * Not all architectures have sys_utime, so implement this in terms
-@@ -377,6 +380,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -353,6 +356,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -377,6 +384,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -364,7 +375,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-@@ -1480,7 +1489,7 @@ int compat_do_execve(char * filename,
+@@ -1480,7 +1493,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -471,6 +482,17 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -167,6 +174,10 @@ asmlinkage long sys_ioctl(unsigned int f
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
 --- linux-2.6.15-53.75.orig/fs/namei.c
 +++ linux-2.6.15-53.75/fs/namei.c
 @@ -34,6 +34,10 @@
@@ -905,7 +927,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.15-53.75 2009/01/29\n");
++	printk(KERN_INFO "Hook version: 2.6.15-53.75 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }

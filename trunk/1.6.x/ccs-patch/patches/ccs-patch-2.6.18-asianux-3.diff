@@ -10,10 +10,10 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
- fs/compat.c                     |   11 +++
+ fs/compat.c                     |   15 ++++-
  fs/exec.c                       |   21 ++++++-
  fs/fcntl.c                      |    9 +++
- fs/ioctl.c                      |    7 ++
+ fs/ioctl.c                      |   11 +++
  fs/namei.c                      |  118 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   50 ++++++++++++++++
  fs/open.c                       |   27 +++++++++
@@ -39,7 +39,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/udp.c                  |   11 +++
  net/socket.c                    |   43 +++++++++++++-
  net/unix/af_unix.c              |   15 +++++
- 37 files changed, 648 insertions(+), 8 deletions(-)
+ 37 files changed, 656 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-53.19AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-53.19AXS3/arch/alpha/kernel/ptrace.c
@@ -229,7 +229,18 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  extern void sigset_from_compat(sigset_t *set, compat_sigset_t *compat);
  
-@@ -421,6 +424,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -397,6 +400,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -421,6 +428,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -242,7 +253,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-@@ -1575,7 +1584,7 @@ int compat_do_execve(char * filename,
+@@ -1575,7 +1588,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -350,6 +361,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -167,6 +174,10 @@ asmlinkage long sys_ioctl(unsigned int f
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
 --- linux-2.6.18-53.19AXS3.orig/fs/namei.c
 +++ linux-2.6.18-53.19AXS3/fs/namei.c
 @@ -37,6 +37,10 @@
@@ -782,7 +804,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-53.19AXS3 2009/02/13\n");
++	printk(KERN_INFO "Hook version: 2.6.18-53.19AXS3 2009/03/18\n");
 +#endif
 +	/***** CCS end. *****/
  }
