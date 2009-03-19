@@ -166,7 +166,7 @@ struct ccs_execve_entry;
 
 /* Structure for request info. */
 struct ccs_request_info {
-	struct domain_info *domain;
+	struct ccs_domain_info *domain;
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
 	const struct ccs_condition_list *cond;
@@ -207,7 +207,7 @@ struct ccs_execve_entry {
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	/* For calculating domain to transit to. */
-	struct domain_info *next_domain; /* Initialized to NULL. */
+	struct ccs_domain_info *next_domain; /* Initialized to NULL. */
 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
@@ -294,7 +294,7 @@ enum ccs_acl_entry_type_index {
 #define ACL_WITH_CONDITION 0x40
 
 /* Structure for domain information. */
-struct domain_info {
+struct ccs_domain_info {
 	struct list1_head list;
 	struct list1_head acl_info_list;
 	/* Name of this domain. Never NULL.          */
@@ -516,24 +516,24 @@ enum ccs_ip_record_type {
 
 /* Index numbers for Access Controls. */
 enum ccs_profile_index {
-	CCS_TOMOYO_MAC_FOR_FILE,          /* domain_policy.conf */
-	CCS_TOMOYO_MAC_FOR_IOCTL,         /* domain_policy.conf */
-	CCS_TOMOYO_MAC_FOR_ARGV0,         /* domain_policy.conf */
-	CCS_TOMOYO_MAC_FOR_ENV,           /* domain_policy.conf */
-	CCS_TOMOYO_MAC_FOR_NETWORK,       /* domain_policy.conf */
-	CCS_TOMOYO_MAC_FOR_SIGNAL,        /* domain_policy.conf */
-	CCS_SAKURA_DENY_CONCEAL_MOUNT,
-	CCS_SAKURA_RESTRICT_CHROOT,       /* system_policy.conf */
-	CCS_SAKURA_RESTRICT_MOUNT,        /* system_policy.conf */
-	CCS_SAKURA_RESTRICT_UNMOUNT,      /* system_policy.conf */
-	CCS_SAKURA_RESTRICT_PIVOT_ROOT,   /* system_policy.conf */
-	CCS_SAKURA_RESTRICT_AUTOBIND,     /* system_policy.conf */
-	CCS_TOMOYO_MAX_ACCEPT_ENTRY,
+	CCS_MAC_FOR_FILE,          /* domain_policy.conf */
+	CCS_MAC_FOR_IOCTL,         /* domain_policy.conf */
+	CCS_MAC_FOR_ARGV0,         /* domain_policy.conf */
+	CCS_MAC_FOR_ENV,           /* domain_policy.conf */
+	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
+	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
+	CCS_DENY_CONCEAL_MOUNT,
+	CCS_RESTRICT_CHROOT,       /* system_policy.conf */
+	CCS_RESTRICT_MOUNT,        /* system_policy.conf */
+	CCS_RESTRICT_UNMOUNT,      /* system_policy.conf */
+	CCS_RESTRICT_PIVOT_ROOT,   /* system_policy.conf */
+	CCS_RESTRICT_AUTOBIND,     /* system_policy.conf */
+	CCS_MAX_ACCEPT_ENTRY,
 #ifdef CONFIG_TOMOYO_AUDIT
-	CCS_TOMOYO_MAX_GRANT_LOG,
-	CCS_TOMOYO_MAX_REJECT_LOG,
+	CCS_MAX_GRANT_LOG,
+	CCS_MAX_REJECT_LOG,
 #endif
-	CCS_TOMOYO_VERBOSE,
+	CCS_VERBOSE,
 	CCS_SLEEP_PERIOD,
 	CCS_MAX_CONTROL_INDEX
 };
@@ -565,7 +565,7 @@ struct ccs_io_buffer {
 	/* Extra variables for reading.         */
 	struct list1_head *read_var2;
 	/* The position currently writing to.   */
-	struct domain_info *write_var1;
+	struct ccs_domain_info *write_var1;
 	/* The step for reading.                */
 	int read_step;
 	/* Buffer for reading.                  */
@@ -597,7 +597,7 @@ struct ccs_condition_list;
 bool ccs_check_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl);
 /* Check whether the domain has too many ACL entries to hold. */
-bool ccs_domain_quota_ok(struct domain_info * const domain);
+bool ccs_domain_quota_ok(struct ccs_domain_info * const domain);
 /* Dump a page to buffer. */
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
@@ -653,7 +653,7 @@ bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head);
 /* Read "deny_autobind" entry in system policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 /* Write domain policy violation warning message to console? */
-bool ccs_verbose_mode(const struct domain_info *domain);
+bool ccs_verbose_mode(const struct ccs_domain_info *domain);
 /* Allocate buffer for domain policy auditing. */
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 /* Convert capability index to capability name. */
@@ -663,7 +663,7 @@ const char *ccs_dp2keyword(const u8 operation);
 /* Get the pathname of current process. */
 const char *ccs_get_exe(void);
 /* Get the last component of the given domainname. */
-const char *ccs_get_last_name(const struct domain_info *domain);
+const char *ccs_get_last_name(const struct ccs_domain_info *domain);
 /* Get warning message. */
 const char *ccs_get_msg(const bool is_enforce);
 /* Convert network operation index to operation name. */
@@ -671,14 +671,15 @@ const char *ccs_net2keyword(const u8 operation);
 /* Convert single path operation to operation name. */
 const char *ccs_sp2keyword(const u8 operation);
 /* Fetch next_domain from the list. */
-struct domain_info *ccs_fetch_next_domain(void);
+struct ccs_domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
 const struct ccs_condition_list *
 ccs_find_or_assign_new_condition(char * const condition);
 /* Create conditional part for execute_handler process. */
 const struct ccs_condition_list *ccs_handler_cond(void);
 /* Add an ACL entry to domain's ACL list. */
-int ccs_add_domain_acl(struct domain_info *domain, struct ccs_acl_info *acl);
+int ccs_add_domain_acl(struct ccs_domain_info *domain,
+		       struct ccs_acl_info *acl);
 /* Ask supervisor's opinion. */
 int ccs_check_supervisor(struct ccs_request_info *r,
 			 const char *fmt, ...)
@@ -711,7 +712,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete);
 /* Create "alias" entry in exception policy. */
 int ccs_write_alias_policy(char *data, const bool is_delete);
 /* Create "allow_argv0" entry in domain policy. */
-int ccs_write_argv0_policy(char *data, struct domain_info *domain,
+int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete);
 /* Write an audit log. */
@@ -719,7 +720,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
 /* Create "allow_capability" entry in domain policy. */
-int ccs_write_capability_policy(char *data, struct domain_info *domain,
+int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				const struct ccs_condition_list *condition,
 				const bool is_delete);
 /* Create "allow_chroot" entry in system policy. */
@@ -734,7 +735,7 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
 int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 				   const bool is_delete);
 /* Create "allow_env" entry in domain policy. */
-int ccs_write_env_policy(char *data, struct domain_info *domain,
+int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 const struct ccs_condition_list *condition,
 			 const bool is_delete);
 /*
@@ -745,7 +746,7 @@ int ccs_write_env_policy(char *data, struct domain_info *domain,
  * "allow_link", "execute_handler" and "denied_execute_handler"
  * entry in domain policy.
  */
-int ccs_write_file_policy(char *data, struct domain_info *domain,
+int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  const struct ccs_condition_list *condition,
 			  const bool is_delete);
 /* Create "allow_read" entry in exception policy. */
@@ -753,13 +754,13 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 /* Create "allow_env" entry in exception policy. */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 /* Create "allow_ioctl" entry in domain policy. */
-int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
+int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete);
 /* Create "allow_mount" entry in system policy. */
 int ccs_write_mount_policy(char *data, const bool is_delete);
 /* Create "allow_network" entry in domain policy. */
-int ccs_write_network_policy(char *data, struct domain_info *domain,
+int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     const struct ccs_condition_list *condition,
 			     const bool is_delete);
 /* Create "deny_rewrite" entry in exception policy. */
@@ -775,21 +776,22 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete);
 /* Create "deny_autobind" entry in system policy. */
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 /* Create "allow_signal" entry in domain policy. */
-int ccs_write_signal_policy(char *data, struct domain_info *domain,
+int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    const struct ccs_condition_list *condition,
 			    const bool is_delete);
 /* Write operation for /proc/ccs/ interface. */
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
 /* Find a domain by the given name. */
-struct domain_info *ccs_find_domain(const char *domainname);
+struct ccs_domain_info *ccs_find_domain(const char *domainname);
 /* Find or create a domain by the given name. */
-struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
+struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile);
 /* Undelete a domain. */
-struct domain_info *ccs_undelete_domain(const char *domainname);
+struct ccs_domain_info *ccs_undelete_domain(const char *domainname);
 /* Check mode for specified functionality. */
-unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index);
+unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
+			     const u8 index);
 /* Check whether it is safe to sleep. */
 bool ccs_can_sleep(void);
 /* Allocate memory for structures. */
@@ -799,14 +801,14 @@ void *ccs_alloc_acl_element(const u8 acl_type,
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 /* Fill in "struct ccs_request_info" members. */
 void ccs_init_request_info(struct ccs_request_info *r,
-			   struct domain_info *domain, const u8 index);
+			   struct ccs_domain_info *domain, const u8 index);
 /* Run policy loader when /sbin/init starts. */
 void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */
 void ccs_print_ipv6(char *buffer, const int buffer_len,
 		    const struct in6_addr *ip);
-/* Change "struct domain_info"->flags. */
-void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
+/* Change "struct ccs_domain_info"->flags. */
+void ccs_set_domain_flag(struct ccs_domain_info *domain, const bool is_delete,
 			 const u8 flags);
 /* Update the policy change counter. */
 void ccs_update_counter(const unsigned char index);
@@ -861,7 +863,7 @@ extern bool ccs_policy_loaded;
 /* Log level for printk(). */
 extern const char *ccs_log_level;
 /* The kernel's domain. */
-extern struct domain_info KERNEL_DOMAIN;
+extern struct ccs_domain_info ccs_kernel_domain;
 
 #include <linux/dcache.h>
 extern spinlock_t vfsmount_lock;
@@ -904,5 +906,19 @@ static inline void ccs_realpath_unlock(void)
 }
 
 #endif
+
+static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
+{
+	return task->ccs_domain_info ?
+		task->ccs_domain_info : &ccs_kernel_domain;
+}
+
+static inline struct ccs_domain_info *ccs_current_domain(void)
+{
+	struct task_struct *task = current;
+	if (!task->ccs_domain_info)
+		task->ccs_domain_info = &ccs_kernel_domain;
+	return task->ccs_domain_info;
+}
 
 #endif

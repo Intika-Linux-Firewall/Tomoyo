@@ -94,7 +94,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 	bool found = false;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_UNMOUNT);
+	ccs_init_request_info(&r, NULL, CCS_RESTRICT_UNMOUNT);
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;

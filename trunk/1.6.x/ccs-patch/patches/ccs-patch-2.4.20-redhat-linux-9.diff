@@ -34,7 +34,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/open.c                    |   29 +++++++++
  fs/proc/Makefile             |    4 +
  fs/proc/proc_misc.c          |    5 +
- include/linux/sched.h        |   13 ++++
+ include/linux/sched.h        |   12 ++++
  kernel/kmod.c                |    5 +
  kernel/module.c              |   15 +++++
  kernel/sched.c               |    7 ++
@@ -49,7 +49,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   38 ++++++++++++
  net/unix/af_unix.c           |   15 +++++
- 47 files changed, 817 insertions(+), 2 deletions(-)
+ 47 files changed, 816 insertions(+), 2 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -163,7 +163,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -186,7 +186,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -209,7 +209,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -232,7 +232,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct user * dummy = NULL;
  	int i, ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -255,7 +255,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	unsigned int value, tmp;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -278,7 +278,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct switch_stack *sw;
  	long ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -301,7 +301,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -324,7 +324,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	int ret;
  	extern void save_fp(struct task_struct *);
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -347,7 +347,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -358,7 +358,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -381,7 +381,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	long oaddr=addr, odata=data;
  #endif
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -404,7 +404,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -427,7 +427,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -450,7 +450,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct task_struct *child;
  	int ret = -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -473,7 +473,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	int copied;
  	ptrace_area   parea; 
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -496,7 +496,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #define dataptr (u8 *)&data
  #endif
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -519,7 +519,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct user * dummy = NULL;
  	int ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -542,7 +542,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(CCS_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -567,7 +567,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE)) {
++	if (!ccs_capable(CCS_SYS_PTRACE)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -592,7 +592,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	int ret;
  	__u32 val;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -615,7 +615,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct user * dummy = NULL;
  	long i, ret;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PTRACE))
++	if (!ccs_capable(CCS_SYS_PTRACE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -656,10 +656,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!(ia_valid & ATTR_MTIME_SET))
  		attr->ia_mtime = now;
 +	/***** TOMOYO Linux start. *****/
-+	if ((ia_valid & ATTR_MODE) && !ccs_capable(TOMOYO_SYS_CHMOD))
++	if ((ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
 +		return -EPERM;
 +	if ((ia_valid & (ATTR_UID | ATTR_GID)) &&
-+	    !ccs_capable(TOMOYO_SYS_CHOWN))
++	    !ccs_capable(CCS_SYS_CHOWN))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -697,8 +697,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->tomoyo_flags &
-+				     TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
++			if (!err && (current->ccs_flags &
++				     CCS_CHECK_READ_FOR_OPEN_EXEC))
 +				/* 01 means "read". */
 +				err = ccs_check_open_permission(nd.dentry,
 +								nd.mnt, 01);
@@ -768,7 +768,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			break;
  		default:
 +			/***** TOMOYO Linux start. *****/
-+			if (!ccs_capable(TOMOYO_SYS_IOCTL)) {
++			if (!ccs_capable(CCS_SYS_IOCTL)) {
 +				error = -EPERM;
 +				break;
 +			}
@@ -833,13 +833,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (S_ISDIR(mode))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(TOMOYO_CREATE_CHAR_DEV))
++	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
 +		return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(TOMOYO_CREATE_BLOCK_DEV))
++	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
 +		return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(TOMOYO_CREATE_FIFO))
++	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
 +		return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET))
++	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +
@@ -913,7 +913,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct dentry *dentry;
  	struct nameidata nd;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_UNLINK))
++	if (!ccs_capable(CCS_SYS_UNLINK))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -939,7 +939,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SYMLINK))
++	if (!ccs_capable(CCS_SYS_SYMLINK))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -964,7 +964,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	int error;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_LINK))
++	if (!ccs_capable(CCS_SYS_LINK))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1014,7 +1014,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	char * from;
  	char * to;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_RENAME))
++	if (!ccs_capable(CCS_SYS_RENAME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1052,7 +1052,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	struct nameidata nd;
  	int retval;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_UMOUNT))
++	if (!ccs_capable(CCS_SYS_UMOUNT))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1111,7 +1111,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		return -EINVAL;
  
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_MOUNT))
++	if (!ccs_capable(CCS_SYS_MOUNT))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
@@ -1129,7 +1129,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_PIVOT_ROOT))
++	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1194,7 +1194,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_CHROOT))
++	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
 +	/***** TOMOYO Linux end. *****/
 +	/***** SAKURA Linux start. *****/
@@ -1209,7 +1209,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  asmlinkage long sys_vhangup(void)
  {
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_VHANGUP))
++	if (!ccs_capable(CCS_SYS_VHANGUP))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
@@ -1240,36 +1240,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
-@@ -33,6 +33,11 @@ extern unsigned long event;
+@@ -33,6 +33,10 @@ extern unsigned long event;
  struct exec_domain;
  extern int panic_timeout;
  
 +/***** TOMOYO Linux start. *****/
-+struct domain_info;
-+extern struct domain_info KERNEL_DOMAIN;
++struct ccs_domain_info;
 +/***** TOMOYO Linux end. *****/
 +
  /*
   * cloning flags:
   */
-@@ -522,6 +527,10 @@ struct task_struct {
+@@ -522,6 +526,10 @@ struct task_struct {
  
  	unsigned long ptrace_message;
  	siginfo_t *last_siginfo; /* For ptrace use.  */
 +	/***** TOMOYO Linux start. *****/
-+	struct domain_info *domain_info;
-+	u32 tomoyo_flags;
++	struct ccs_domain_info *ccs_domain_info;
++	u32 ccs_flags;
 +	/***** TOMOYO Linux end. *****/
  };
  
  /*
-@@ -674,6 +683,10 @@ extern struct exec_domain	default_exec_d
+@@ -674,6 +682,10 @@ extern struct exec_domain	default_exec_d
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      switch_lock:        SPIN_LOCK_UNLOCKED,                             \
      journal_info:	NULL,						\
 +	/***** TOMOYO Linux start. *****/ \
-+	domain_info: &KERNEL_DOMAIN,      \
-+	tomoyo_flags: 0                   \
++	ccs_domain_info: NULL,            \
++	ccs_flags: 0                      \
 +	/***** TOMOYO Linux end. *****/   \
  }
  
@@ -1281,8 +1280,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	set_fs(KERNEL_DS);
  
 +	/***** TOMOYO Linux start. *****/
-+	current->domain_info = &KERNEL_DOMAIN;
-+	current->tomoyo_flags = 0;
++	current->ccs_domain_info = NULL;
++	current->ccs_flags = 0;
 +	/***** TOMOYO Linux end. *****/
 +
  	/* Go, go, go... */
@@ -1305,7 +1304,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -1316,7 +1315,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	lock_kernel();
@@ -1327,7 +1326,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_USE_KERNEL_MODULE))
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1350,7 +1349,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  {
  	long nice;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE))
++	if (!ccs_capable(CCS_SYS_NICE))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1373,7 +1372,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
++	if (sig && !ccs_capable(CCS_SYS_KILL))
 +		return -EPERM;
 +	if (sig && ccs_check_signal_acl(sig, pid))
 +		return -EPERM;
@@ -1386,7 +1385,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (pid <= 0)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (sig && !ccs_capable(TOMOYO_SYS_KILL))
++	if (sig && !ccs_capable(CCS_SYS_KILL))
 +		return -EPERM;
 +	if (sig && ccs_check_signal_acl(sig, pid))
 +		return -EPERM;
@@ -1411,7 +1410,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (which > 2 || which < 0)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_NICE)) {
++	if (!ccs_capable(CCS_SYS_NICE)) {
 +		error = -EPERM;
 +		goto out;
 +	}
@@ -1424,7 +1423,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			magic2 != LINUX_REBOOT_MAGIC2B))
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_REBOOT))
++	if (!ccs_capable(CCS_SYS_REBOOT))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1435,7 +1434,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME))
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	down_write(&uts_sem);
@@ -1446,7 +1445,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETHOSTNAME))
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  
@@ -1619,7 +1618,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETTIME))
++	if (!ccs_capable(CCS_SYS_SETTIME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  	if (get_user(value, tptr))
@@ -1630,7 +1629,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (!capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_SETTIME))
++	if (!ccs_capable(CCS_SYS_SETTIME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
@@ -1641,7 +1640,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (txc->modes && !capable(CAP_SYS_TIME))
  		return -EPERM;
 +	/***** TOMOYO Linux start. *****/
-+	if (txc->modes && !ccs_capable(TOMOYO_SYS_SETTIME))
++	if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
  		
@@ -1905,7 +1904,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	}
 +	/***** TOMOYO Linux start. *****/
 +	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(TOMOYO_CREATE_UNIX_SOCKET))
++	if (sunaddr->sun_path[0] && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
 +		goto out;
 +	/***** TOMOYO Linux end. *****/
  

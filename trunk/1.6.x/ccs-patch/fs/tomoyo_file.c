@@ -137,12 +137,12 @@ static struct ccs_path_info *ccs_get_path(struct dentry *dentry,
 
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
-				      struct domain_info * const domain,
+				      struct ccs_domain_info * const domain,
 				      const struct ccs_condition_list *
 				      condition,
 				      const bool is_delete);
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
-				      struct domain_info * const domain,
+				      struct ccs_domain_info * const domain,
 				      const struct ccs_condition_list *
 				      condition,
 				      const bool is_delete);
@@ -679,7 +679,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  *
  * @filename:  Filename.
  * @perm:      Permission (between 1 to 7).
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
@@ -691,7 +691,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  * "allow_execute" instead of "1".
  */
 static int ccs_update_file_acl(const char *filename, u8 perm,
-			       struct domain_info * const domain,
+			       struct ccs_domain_info * const domain,
 			       const struct ccs_condition_list *condition,
 			       const bool is_delete)
 {
@@ -733,7 +733,7 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 				      const u16 perm,
 				      const bool may_use_pattern)
 {
-	struct domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
@@ -851,13 +851,13 @@ static int ccs_check_file_perm2(struct ccs_request_info *r,
  *
  * @type:      Type of execute handler.
  * @filename:  Pathname to the execute handler.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_execute_handler(const u8 type, const char *filename,
-				      struct domain_info * const domain,
+				      struct ccs_domain_info * const domain,
 				      const bool is_delete)
 {
 	static DEFINE_MUTEX(lock);
@@ -925,13 +925,13 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
  * ccs_write_file_policy - Update file related list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_file_policy(char *data, struct domain_info *domain,
+int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  const struct ccs_condition_list *condition,
 			  const bool is_delete)
 {
@@ -981,14 +981,14 @@ int ccs_write_file_policy(char *data, struct domain_info *domain,
  *
  * @type:      Type of operation.
  * @filename:  Filename.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
-				      struct domain_info * const domain,
+				      struct ccs_domain_info * const domain,
 				      const struct ccs_condition_list *
 				      condition,
 				      const bool is_delete)
@@ -1087,7 +1087,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
  * @type:      Type of operation.
  * @filename1: First filename.
  * @filename2: Second filename.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
@@ -1095,7 +1095,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
  */
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
-				      struct domain_info * const domain,
+				      struct ccs_domain_info * const domain,
 				      const struct ccs_condition_list *
 				      condition,
 				      const bool is_delete)
@@ -1221,7 +1221,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename1,
 				     const struct ccs_path_info *filename2)
 {
-	const struct domain_info *domain = r->domain;
+	const struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1328,7 +1328,7 @@ int ccs_check_file_perm(const char *filename, const u8 perm,
 	struct ccs_request_info r;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	if (!r.mode)
 		return 0;
 	name.name = filename;
@@ -1373,10 +1373,10 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_path_info *buf;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, current->tomoyo_flags &
-			      TOMOYO_CHECK_READ_FOR_OPEN_EXEC ?
-			      ccs_fetch_next_domain() : current->domain_info,
-			      CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, current->ccs_flags &
+			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
+			      ccs_fetch_next_domain() : ccs_current_domain(),
+			      CCS_MAC_FOR_FILE);
 	if (!r.mode || !mnt)
 		return 0;
 	if (acc_mode == 0)
@@ -1435,7 +1435,7 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	bool is_enforce;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt)
 		return 0;
@@ -1480,7 +1480,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	struct ccs_path_info *buf;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !filp->f_vfsmnt)
 		return 0;
@@ -1527,7 +1527,7 @@ int ccs_check_2path_perm(const u8 operation,
 	struct ccs_obj_info obj;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt1 || !mnt2)
 		return 0;
@@ -1610,7 +1610,7 @@ static int ccs_audit_ioctl_log(struct ccs_request_info *r,
  * @filename:  Filename.
  * @cmd_min:   Minimum ioctl command number.
  * @cmd_max:   Maximum ioctl command number.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
@@ -1620,7 +1620,7 @@ static int ccs_audit_ioctl_log(struct ccs_request_info *r,
 static int ccs_update_ioctl_acl(const char *filename,
 				const unsigned int cmd_min,
 				const unsigned int cmd_max,
-				struct domain_info * const domain,
+				struct ccs_domain_info * const domain,
 				const struct ccs_condition_list *condition,
 				const bool is_delete)
 {
@@ -1708,7 +1708,7 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
 			       const unsigned int cmd)
 {
-	struct domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
@@ -1776,13 +1776,13 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
  * ccs_write_ioctl_policy - Update ioctl related list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_ioctl_policy(char *data, struct domain_info *domain,
+int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete)
 {
@@ -1825,8 +1825,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	struct ccs_path_info *buf;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, current->domain_info,
-			      CCS_TOMOYO_MAC_FOR_IOCTL);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
 	if (!r.mode || !filp->f_vfsmnt)
 		return 0;
 	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);

@@ -236,9 +236,9 @@ search_binary_handler_with_transition(struct linux_binprm *bprm,
 	return retval;
 }
 
-#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC 1
+#define CCS_CHECK_READ_FOR_OPEN_EXEC    1
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
-#define TOMOYO_TASK_IS_EXECUTE_HANDLER  4
+#define CCS_TASK_IS_EXECUTE_HANDLER     4
 #define CCS_TASK_IS_POLICY_MANAGER      8
 
 /* Index numbers for File Controls. */
@@ -280,72 +280,69 @@ enum ccs_double_path_acl_index {
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
 	/* socket(PF_INET or PF_INET6, SOCK_STREAM, *)                 */
-	TOMOYO_INET_STREAM_SOCKET_CREATE,
+	CCS_INET_STREAM_SOCKET_CREATE,
 	/* listen() for PF_INET or PF_INET6, SOCK_STREAM               */
-	TOMOYO_INET_STREAM_SOCKET_LISTEN,
+	CCS_INET_STREAM_SOCKET_LISTEN,
 	/* connect() for PF_INET or PF_INET6, SOCK_STREAM              */
-	TOMOYO_INET_STREAM_SOCKET_CONNECT,
+	CCS_INET_STREAM_SOCKET_CONNECT,
 	/* socket(PF_INET or PF_INET6, SOCK_DGRAM, *)                  */
-	TOMOYO_USE_INET_DGRAM_SOCKET,
+	CCS_USE_INET_DGRAM_SOCKET,
 	/* socket(PF_INET or PF_INET6, SOCK_RAW, *)                    */
-	TOMOYO_USE_INET_RAW_SOCKET,
+	CCS_USE_INET_RAW_SOCKET,
 	/* socket(PF_ROUTE, *, *)                                      */
-	TOMOYO_USE_ROUTE_SOCKET,
+	CCS_USE_ROUTE_SOCKET,
 	/* socket(PF_PACKET, *, *)                                     */
-	TOMOYO_USE_PACKET_SOCKET,
+	CCS_USE_PACKET_SOCKET,
 	/* sys_mount()                                                 */
-	TOMOYO_SYS_MOUNT,
+	CCS_SYS_MOUNT,
 	/* sys_umount()                                                */
-	TOMOYO_SYS_UMOUNT,
+	CCS_SYS_UMOUNT,
 	/* sys_reboot()                                                */
-	TOMOYO_SYS_REBOOT,
+	CCS_SYS_REBOOT,
 	/* sys_chroot()                                                */
-	TOMOYO_SYS_CHROOT,
+	CCS_SYS_CHROOT,
 	/* sys_kill(), sys_tkill(), sys_tgkill()                       */
-	TOMOYO_SYS_KILL,
+	CCS_SYS_KILL,
 	/* sys_vhangup()                                               */
-	TOMOYO_SYS_VHANGUP,
+	CCS_SYS_VHANGUP,
 	/* do_settimeofday(), sys_adjtimex()                           */
-	TOMOYO_SYS_SETTIME,
+	CCS_SYS_SETTIME,
 	/* sys_nice(), sys_setpriority()                               */
-	TOMOYO_SYS_NICE,
+	CCS_SYS_NICE,
 	/* sys_sethostname(), sys_setdomainname()                      */
-	TOMOYO_SYS_SETHOSTNAME,
+	CCS_SYS_SETHOSTNAME,
 	/* sys_create_module(), sys_init_module(), sys_delete_module() */
-	TOMOYO_USE_KERNEL_MODULE,
+	CCS_USE_KERNEL_MODULE,
 	/* sys_mknod(S_IFIFO)                                          */
-	TOMOYO_CREATE_FIFO,
+	CCS_CREATE_FIFO,
 	/* sys_mknod(S_IFBLK)                                          */
-	TOMOYO_CREATE_BLOCK_DEV,
+	CCS_CREATE_BLOCK_DEV,
 	/* sys_mknod(S_IFCHR)                                          */
-	TOMOYO_CREATE_CHAR_DEV,
+	CCS_CREATE_CHAR_DEV,
 	/* sys_mknod(S_IFSOCK)                                         */
-	TOMOYO_CREATE_UNIX_SOCKET,
+	CCS_CREATE_UNIX_SOCKET,
 	/* sys_link()                                                  */
-	TOMOYO_SYS_LINK,
+	CCS_SYS_LINK,
 	/* sys_symlink()                                               */
-	TOMOYO_SYS_SYMLINK,
+	CCS_SYS_SYMLINK,
 	/* sys_rename()                                                */
-	TOMOYO_SYS_RENAME,
+	CCS_SYS_RENAME,
 	/* sys_unlink()                                                */
-	TOMOYO_SYS_UNLINK,
+	CCS_SYS_UNLINK,
 	/* sys_chmod(), sys_fchmod()                                   */
-	TOMOYO_SYS_CHMOD,
+	CCS_SYS_CHMOD,
 	/* sys_chown(), sys_fchown(), sys_lchown()                     */
-	TOMOYO_SYS_CHOWN,
+	CCS_SYS_CHOWN,
 	/* sys_ioctl(), compat_sys_ioctl()                             */
-	TOMOYO_SYS_IOCTL,
+	CCS_SYS_IOCTL,
 	/* sys_kexec_load()                                            */
-	TOMOYO_SYS_KEXEC_LOAD,
+	CCS_SYS_KEXEC_LOAD,
 	/* sys_pivot_root()                                            */
-	TOMOYO_SYS_PIVOT_ROOT,
+	CCS_SYS_PIVOT_ROOT,
 	/* sys_ptrace()                                                */
-	TOMOYO_SYS_PTRACE,
-	TOMOYO_MAX_CAPABILITY_INDEX
+	CCS_SYS_PTRACE,
+	CCS_MAX_CAPABILITY_INDEX
 };
-
-/* ccs-patch-\*.diff uses '#ifdef TOMOYO_SYS_PTRACE' .*/
-#define TOMOYO_SYS_PTRACE TOMOYO_SYS_PTRACE
 
 #define pre_vfs_create  ccs_pre_vfs_create
 #define pre_vfs_mknod   ccs_pre_vfs_mknod

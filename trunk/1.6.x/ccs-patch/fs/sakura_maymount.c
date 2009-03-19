@@ -125,7 +125,7 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 #endif
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_SAKURA_DENY_CONCEAL_MOUNT);
+	ccs_init_request_info(&r, NULL, CCS_DENY_CONCEAL_MOUNT);
 	if (!r.mode)
 		return 0;
 	if (!namespace)

@@ -109,7 +109,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	char *new_root;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_PIVOT_ROOT);
+	ccs_init_request_info(&r, NULL, CCS_RESTRICT_PIVOT_ROOT);
 	if (!r.mode)
 		return 0;
  retry:

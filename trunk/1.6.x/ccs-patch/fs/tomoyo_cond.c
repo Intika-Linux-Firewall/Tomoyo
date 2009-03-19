@@ -449,9 +449,9 @@ enum ccs_conditions_index {
 	TASK_PPID,            /* sys_getppid()  */
 	EXEC_ARGC,            /* "struct linux_binprm *"->argc */
 	EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	TASK_STATE_0,         /* (u8) (current->tomoyo_flags >> 24) */
-	TASK_STATE_1,         /* (u8) (current->tomoyo_flags >> 16) */
-	TASK_STATE_2,         /* (u8) (task->tomoyo_flags >> 8)     */
+	TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
+	TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
+	TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
 	TYPE_SOCKET,          /* S_IFSOCK */
 	TYPE_SYMLINK,         /* S_IFLNK */
 	TYPE_FILE,            /* S_IFREG */
@@ -471,9 +471,9 @@ enum ccs_conditions_index {
 	MODE_OTHERS_READ,     /* S_IROTH */
 	MODE_OTHERS_WRITE,    /* S_IWOTH */
 	MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-	TASK_TYPE,            /* ((u8) task->tomoyo_flags) &
-				 TOMOYO_TASK_IS_EXECUTE_HANDLER */
-	TASK_EXECUTE_HANDLER, /* TOMOYO_TASK_IS_EXECUTE_HANDLER */
+	TASK_TYPE,            /* ((u8) task->ccs_flags) &
+				 CCS_TASK_IS_EXECUTE_HANDLER */
+	TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
 	PATH1_UID,
 	PATH1_GID,
 	PATH1_INO,
@@ -1201,20 +1201,20 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				i++;
 				break;
 			case TASK_STATE_0:
-				max_v = (u8) (task->tomoyo_flags >> 24);
+				max_v = (u8) (task->ccs_flags >> 24);
 				break;
 			case TASK_STATE_1:
-				max_v = (u8) (task->tomoyo_flags >> 16);
+				max_v = (u8) (task->ccs_flags >> 16);
 				break;
 			case TASK_STATE_2:
-				max_v = (u8) (task->tomoyo_flags >> 8);
+				max_v = (u8) (task->ccs_flags >> 8);
 				break;
 			case TASK_TYPE:
-				max_v = ((u8) task->tomoyo_flags)
-					& TOMOYO_TASK_IS_EXECUTE_HANDLER;
+				max_v = ((u8) task->ccs_flags)
+					& CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
 			case TASK_EXECUTE_HANDLER:
-				max_v = TOMOYO_TASK_IS_EXECUTE_HANDLER;
+				max_v = CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
 			case MAX_KEYWORD:
 				max_v = *ptr;
@@ -1525,7 +1525,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 const struct ccs_condition_list *ccs_handler_cond(void)
 {
 	static const struct ccs_condition_list *ccs_cond;
-	if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER))
+	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
 	if (!ccs_cond) {
 		static u8 counter = 20;

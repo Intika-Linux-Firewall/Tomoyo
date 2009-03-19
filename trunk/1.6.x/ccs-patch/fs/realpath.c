@@ -582,11 +582,11 @@ static int __init ccs_realpath_init(void)
 		panic("Can't create cache.\n");
 	for (i = 0; i < MAX_HASH; i++)
 		INIT_LIST1_HEAD(&ccs_name_list[i]);
-	INIT_LIST1_HEAD(&KERNEL_DOMAIN.acl_info_list);
-	KERNEL_DOMAIN.domainname = ccs_save_name(ROOT_NAME);
-	list1_add_tail_mb(&KERNEL_DOMAIN.list, &ccs_domain_list);
-	if (ccs_find_domain(ROOT_NAME) != &KERNEL_DOMAIN)
-		panic("Can't register KERNEL_DOMAIN");
+	INIT_LIST1_HEAD(&ccs_kernel_domain.acl_info_list);
+	ccs_kernel_domain.domainname = ccs_save_name(ROOT_NAME);
+	list1_add_tail_mb(&ccs_kernel_domain.list, &ccs_domain_list);
+	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
+		panic("Can't register ccs_kernel_domain");
 	return 0;
 }
 

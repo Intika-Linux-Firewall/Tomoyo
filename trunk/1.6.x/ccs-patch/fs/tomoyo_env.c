@@ -148,13 +148,13 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  * ccs_update_env_entry - Update "struct ccs_env_acl_record" list.
  *
  * @env:       The name of environment variable.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_env_entry(const char *env, struct domain_info *domain,
+static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 				const struct ccs_condition_list *condition,
 				const bool is_delete)
 {
@@ -218,7 +218,7 @@ static int ccs_update_env_entry(const char *env, struct domain_info *domain,
  */
 static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 {
-	const struct domain_info *domain = r->domain;
+	const struct ccs_domain_info *domain = r->domain;
 	int error = -EPERM;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;
@@ -283,13 +283,13 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
  * ccs_write_env_policy - Write "struct ccs_env_acl_record" list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_env_policy(char *data, struct domain_info *domain,
+int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 const struct ccs_condition_list *condition,
 			 const bool is_delete)
 {
