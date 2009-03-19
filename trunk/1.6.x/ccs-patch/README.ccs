@@ -1866,7 +1866,17 @@ Fix 2009/03/18
       access control. Therefore, I modified to represent socket's pathname as
       "socket:[family=\$:type=\$:protocol=\$]" format.
 
-      This will help administrator control ioctl() against sockets more
+      This will help administrator to control ioctl() against sockets more
       precisely.
+
+    @ Fix misplaced ccs_capable() call.  (only 2.6.8-\* and 2.6.9-\*)
+
+      Location to insert ccs_capable(TOMOYO_SYS_IOCTL) in sys_ioctl() was
+      wrong since version 1.1 .
+
+    @ Insert ccs_check_ioctl_permission() call.
+
+      To enable MAC_FOR_IOCTL functionality work, I inserted
+      ccs_check_ioctl_permission() call into ccs-patch-\*.diff .
 
 Version 1.6.7 2009/??/??   Feature enhancement release.

@@ -185,13 +185,6 @@ static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 
 #define SOCKFS_MAGIC 0x534F434B
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-static inline struct socket *SOCKET_I(struct inode *inode)
-{
-	return inode->i_sock ? &inode->u.socket_i : NULL;
-}
-#endif
-
 /**
  * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
  *
