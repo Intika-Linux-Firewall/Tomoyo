@@ -76,72 +76,72 @@ static struct {
 	unsigned int current_value;
 	const unsigned int max_value;
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
-	[CCS_TOMOYO_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
-	[CCS_TOMOYO_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
-	[CCS_TOMOYO_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
-	[CCS_TOMOYO_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
-	[CCS_TOMOYO_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
-	[CCS_TOMOYO_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
-	[CCS_SAKURA_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
-	[CCS_SAKURA_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
-	[CCS_SAKURA_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
-	[CCS_SAKURA_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
-	[CCS_SAKURA_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
-	[CCS_SAKURA_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
-	[CCS_TOMOYO_MAX_ACCEPT_ENTRY]
+	[CCS_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
+	[CCS_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
+	[CCS_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
+	[CCS_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
+	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
+	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
+	[CCS_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
+	[CCS_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
+	[CCS_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
+	[CCS_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
+	[CCS_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
+	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
+	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
 #ifdef CONFIG_TOMOYO_AUDIT
-	[CCS_TOMOYO_MAX_GRANT_LOG]
+	[CCS_MAX_GRANT_LOG]
 	= { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
-	[CCS_TOMOYO_MAX_REJECT_LOG]
+	[CCS_MAX_REJECT_LOG]
 	= { "MAX_REJECT_LOG",      MAX_REJECT_LOG, INT_MAX },
 #endif
-	[CCS_TOMOYO_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
+	[CCS_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
 	[CCS_SLEEP_PERIOD]
 	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
 };
 
 #ifdef CONFIG_TOMOYO
 /* Capability name used by domain policy. */
-static const char *ccs_capability_control_keyword[TOMOYO_MAX_CAPABILITY_INDEX]
+static const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
 = {
-	[TOMOYO_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
-	[TOMOYO_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
-	[TOMOYO_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
-	[TOMOYO_USE_INET_DGRAM_SOCKET]      = "use_inet_udp",
-	[TOMOYO_USE_INET_RAW_SOCKET]        = "use_inet_ip",
-	[TOMOYO_USE_ROUTE_SOCKET]           = "use_route",
-	[TOMOYO_USE_PACKET_SOCKET]          = "use_packet",
-	[TOMOYO_SYS_MOUNT]                  = "SYS_MOUNT",
-	[TOMOYO_SYS_UMOUNT]                 = "SYS_UMOUNT",
-	[TOMOYO_SYS_REBOOT]                 = "SYS_REBOOT",
-	[TOMOYO_SYS_CHROOT]                 = "SYS_CHROOT",
-	[TOMOYO_SYS_KILL]                   = "SYS_KILL",
-	[TOMOYO_SYS_VHANGUP]                = "SYS_VHANGUP",
-	[TOMOYO_SYS_SETTIME]                = "SYS_TIME",
-	[TOMOYO_SYS_NICE]                   = "SYS_NICE",
-	[TOMOYO_SYS_SETHOSTNAME]            = "SYS_SETHOSTNAME",
-	[TOMOYO_USE_KERNEL_MODULE]          = "use_kernel_module",
-	[TOMOYO_CREATE_FIFO]                = "create_fifo",
-	[TOMOYO_CREATE_BLOCK_DEV]           = "create_block_dev",
-	[TOMOYO_CREATE_CHAR_DEV]            = "create_char_dev",
-	[TOMOYO_CREATE_UNIX_SOCKET]         = "create_unix_socket",
-	[TOMOYO_SYS_LINK]                   = "SYS_LINK",
-	[TOMOYO_SYS_SYMLINK]                = "SYS_SYMLINK",
-	[TOMOYO_SYS_RENAME]                 = "SYS_RENAME",
-	[TOMOYO_SYS_UNLINK]                 = "SYS_UNLINK",
-	[TOMOYO_SYS_CHMOD]                  = "SYS_CHMOD",
-	[TOMOYO_SYS_CHOWN]                  = "SYS_CHOWN",
-	[TOMOYO_SYS_IOCTL]                  = "SYS_IOCTL",
-	[TOMOYO_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
-	[TOMOYO_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
-	[TOMOYO_SYS_PTRACE]                 = "SYS_PTRACE",
+	[CCS_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
+	[CCS_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
+	[CCS_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
+	[CCS_USE_INET_DGRAM_SOCKET]      = "use_inet_udp",
+	[CCS_USE_INET_RAW_SOCKET]        = "use_inet_ip",
+	[CCS_USE_ROUTE_SOCKET]           = "use_route",
+	[CCS_USE_PACKET_SOCKET]          = "use_packet",
+	[CCS_SYS_MOUNT]                  = "SYS_MOUNT",
+	[CCS_SYS_UMOUNT]                 = "SYS_UMOUNT",
+	[CCS_SYS_REBOOT]                 = "SYS_REBOOT",
+	[CCS_SYS_CHROOT]                 = "SYS_CHROOT",
+	[CCS_SYS_KILL]                   = "SYS_KILL",
+	[CCS_SYS_VHANGUP]                = "SYS_VHANGUP",
+	[CCS_SYS_SETTIME]                = "SYS_TIME",
+	[CCS_SYS_NICE]                   = "SYS_NICE",
+	[CCS_SYS_SETHOSTNAME]            = "SYS_SETHOSTNAME",
+	[CCS_USE_KERNEL_MODULE]          = "use_kernel_module",
+	[CCS_CREATE_FIFO]                = "create_fifo",
+	[CCS_CREATE_BLOCK_DEV]           = "create_block_dev",
+	[CCS_CREATE_CHAR_DEV]            = "create_char_dev",
+	[CCS_CREATE_UNIX_SOCKET]         = "create_unix_socket",
+	[CCS_SYS_LINK]                   = "SYS_LINK",
+	[CCS_SYS_SYMLINK]                = "SYS_SYMLINK",
+	[CCS_SYS_RENAME]                 = "SYS_RENAME",
+	[CCS_SYS_UNLINK]                 = "SYS_UNLINK",
+	[CCS_SYS_CHMOD]                  = "SYS_CHMOD",
+	[CCS_SYS_CHOWN]                  = "SYS_CHOWN",
+	[CCS_SYS_IOCTL]                  = "SYS_IOCTL",
+	[CCS_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
+	[CCS_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
+	[CCS_SYS_PTRACE]                 = "SYS_PTRACE",
 };
 #endif
 
 #ifdef CONFIG_TOMOYO
 static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX +
-				   TOMOYO_MAX_CAPABILITY_INDEX + 1];
+				   CCS_MAX_CAPABILITY_INDEX + 1];
 #else
 static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX + 1];
 #endif
@@ -151,7 +151,7 @@ static struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
 #ifdef CONFIG_TOMOYO
-	unsigned char capability_value[TOMOYO_MAX_CAPABILITY_INDEX];
+	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
 #endif
 } *ccs_profile_ptr[MAX_PROFILES];
 
@@ -162,7 +162,7 @@ static bool ccs_manage_by_non_root;
 
 #ifdef CONFIG_TOMOYO
 /**
- * ccs_quiet_setup - Set TOMOYO_VERBOSE=0 by default.
+ * ccs_quiet_setup - Set CCS_VERBOSE=0 by default.
  *
  * @str: Unused.
  *
@@ -170,11 +170,11 @@ static bool ccs_manage_by_non_root;
  */
 static int __init ccs_quiet_setup(char *str)
 {
-	ccs_control_array[CCS_TOMOYO_VERBOSE].current_value = 0;
+	ccs_control_array[CCS_VERBOSE].current_value = 0;
 	return 0;
 }
 
-__setup("TOMOYO_QUIET", ccs_quiet_setup);
+__setup("CCS_QUIET", ccs_quiet_setup);
 #endif
 
 /**
@@ -468,11 +468,11 @@ bool ccs_is_domain_def(const unsigned char *buffer)
  *
  * @domainname: The domainname to find.
  *
- * Returns pointer to "struct domain_info" if found, NULL otherwise.
+ * Returns pointer to "struct ccs_domain_info" if found, NULL otherwise.
  */
-struct domain_info *ccs_find_domain(const char *domainname)
+struct ccs_domain_info *ccs_find_domain(const char *domainname)
 {
-	struct domain_info *domain;
+	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
@@ -894,16 +894,17 @@ bool ccs_can_sleep(void)
 /**
  * ccs_check_flags - Check mode for specified functionality.
  *
- * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  The functionality to check mode.
  *
  * Returns the mode of specified functionality.
  */
-unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index)
+unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
+			     const u8 index)
 {
 	u8 profile;
 	if (!domain)
-		domain = current->domain_info;
+		domain = ccs_current_domain();
 	profile = domain->profile;
 	return ccs_policy_loaded && index < CCS_MAX_CONTROL_INDEX
 #if MAX_PROFILES != 256
@@ -917,17 +918,17 @@ unsigned int ccs_check_flags(const struct domain_info *domain, const u8 index)
 /**
  * ccs_check_capability_flags - Check mode for specified capability.
  *
- * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  The capability to check mode.
  *
  * Returns the mode of specified capability.
  */
-static u8 ccs_check_capability_flags(const struct domain_info *domain,
+static u8 ccs_check_capability_flags(const struct ccs_domain_info *domain,
 				     const u8 index)
 {
 	const u8 profile = domain ? domain->profile :
-		current->domain_info->profile;
-	return ccs_policy_loaded && index < TOMOYO_MAX_CAPABILITY_INDEX
+		ccs_current_domain()->profile;
+	return ccs_policy_loaded && index < CCS_MAX_CAPABILITY_INDEX
 #if MAX_PROFILES != 256
 		&& profile < MAX_PROFILES
 #endif
@@ -944,7 +945,7 @@ static u8 ccs_check_capability_flags(const struct domain_info *domain,
  */
 const char *ccs_cap2keyword(const u8 operation)
 {
-	return operation < TOMOYO_MAX_CAPABILITY_INDEX
+	return operation < CCS_MAX_CAPABILITY_INDEX
 		? ccs_capability_control_keyword[operation] : NULL;
 }
 
@@ -954,15 +955,15 @@ const char *ccs_cap2keyword(const u8 operation)
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
  * @r:      Pointer to "struct ccs_request_info" to initialize.
- * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  Index number of functionality.
  */
 void ccs_init_request_info(struct ccs_request_info *r,
-			   struct domain_info *domain, const u8 index)
+			   struct ccs_domain_info *domain, const u8 index)
 {
 	memset(r, 0, sizeof(*r));
 	if (!domain)
-		domain = current->domain_info;
+		domain = ccs_current_domain();
 	r->domain = domain;
 	r->profile = domain->profile;
 	if (index < CCS_MAX_CONTROL_INDEX)
@@ -977,24 +978,24 @@ void ccs_init_request_info(struct ccs_request_info *r,
 /**
  * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
  *
- * @domain: Pointer to "struct domain_info". NULL for current->domain_info.
+ * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  *
  * Returns true if domain policy violation warning should be printed to
  * console.
  */
-bool ccs_verbose_mode(const struct domain_info *domain)
+bool ccs_verbose_mode(const struct ccs_domain_info *domain)
 {
-	return ccs_check_flags(domain, CCS_TOMOYO_VERBOSE) != 0;
+	return ccs_check_flags(domain, CCS_VERBOSE) != 0;
 }
 
 /**
  * ccs_domain_quota_ok - Check for domain's quota.
  *
- * @domain: Pointer to "struct domain_info".
+ * @domain: Pointer to "struct ccs_domain_info".
  *
  * Returns true if the domain is not exceeded quota, false otherwise.
  */
-bool ccs_domain_quota_ok(struct domain_info * const domain)
+bool ccs_domain_quota_ok(struct ccs_domain_info * const domain)
 {
 	unsigned int count = 0;
 	struct ccs_acl_info *ptr;
@@ -1057,7 +1058,7 @@ bool ccs_domain_quota_ok(struct domain_info * const domain)
 			count++;
 		}
 	}
-	if (count < ccs_check_flags(domain, CCS_TOMOYO_MAX_ACCEPT_ENTRY))
+	if (count < ccs_check_flags(domain, CCS_MAX_ACCEPT_ENTRY))
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
@@ -1151,7 +1152,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		}
 		if (value > 3)
 			value = 3;
-		for (i = 0; i < TOMOYO_MAX_CAPABILITY_INDEX; i++) {
+		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
 			if (strcmp(data, ccs_capability_control_keyword[i]))
 				continue;
 			ccs_profile->capability_value[i] = value;
@@ -1169,8 +1170,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			int j;
 			const char **modes;
 			switch (i) {
-			case CCS_SAKURA_RESTRICT_AUTOBIND:
-			case CCS_TOMOYO_VERBOSE:
+			case CCS_RESTRICT_AUTOBIND:
+			case CCS_VERBOSE:
 				modes = ccs_mode_2;
 				break;
 			default:
@@ -1189,8 +1190,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			value = ccs_control_array[i].max_value;
 		}
 		switch (i) {
-		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-		case CCS_SAKURA_RESTRICT_UNMOUNT:
+		case CCS_DENY_CONCEAL_MOUNT:
+		case CCS_RESTRICT_UNMOUNT:
 			if (value == 1)
 				value = 2; /* learning mode is not supported. */
 		}
@@ -1211,7 +1212,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 static int ccs_read_profile(struct ccs_io_buffer *head)
 {
 	static const int ccs_total
-		= CCS_MAX_CONTROL_INDEX + TOMOYO_MAX_CAPABILITY_INDEX + 1;
+		= CCS_MAX_CONTROL_INDEX + CCS_MAX_CAPABILITY_INDEX + 1;
 	int step;
 	if (head->read_eof)
 		return 0;
@@ -1225,21 +1226,21 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 #if !defined(CONFIG_SAKURA) || !defined(CONFIG_TOMOYO)
 		switch (type - 1) {
 #ifndef CONFIG_SAKURA
-		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
-		case CCS_SAKURA_RESTRICT_CHROOT:
-		case CCS_SAKURA_RESTRICT_MOUNT:
-		case CCS_SAKURA_RESTRICT_UNMOUNT:
-		case CCS_SAKURA_RESTRICT_PIVOT_ROOT:
-		case CCS_SAKURA_RESTRICT_AUTOBIND:
+		case CCS_DENY_CONCEAL_MOUNT:
+		case CCS_RESTRICT_CHROOT:
+		case CCS_RESTRICT_MOUNT:
+		case CCS_RESTRICT_UNMOUNT:
+		case CCS_RESTRICT_PIVOT_ROOT:
+		case CCS_RESTRICT_AUTOBIND:
 #endif
 #ifndef CONFIG_TOMOYO
-		case CCS_TOMOYO_MAC_FOR_FILE:
-		case CCS_TOMOYO_MAC_FOR_ARGV0:
-		case CCS_TOMOYO_MAC_FOR_ENV:
-		case CCS_TOMOYO_MAC_FOR_NETWORK:
-		case CCS_TOMOYO_MAC_FOR_SIGNAL:
-		case CCS_TOMOYO_MAX_ACCEPT_ENTRY:
-		case CCS_TOMOYO_VERBOSE:
+		case CCS_MAC_FOR_FILE:
+		case CCS_MAC_FOR_ARGV0:
+		case CCS_MAC_FOR_ENV:
+		case CCS_MAC_FOR_NETWORK:
+		case CCS_MAC_FOR_SIGNAL:
+		case CCS_MAX_ACCEPT_ENTRY:
+		case CCS_VERBOSE:
 #endif
 			continue;
 		}
@@ -1411,11 +1412,12 @@ static bool ccs_is_policy_manager(void)
 	struct ccs_policy_manager_entry *ptr;
 	const char *exe;
 	struct task_struct *task = current;
-	const struct ccs_path_info *domainname = task->domain_info->domainname;
+	const struct ccs_path_info *domainname
+		= ccs_current_domain()->domainname;
 	bool found = false;
 	if (!ccs_policy_loaded)
 		return true;
-	if (task->tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER)
+	if (task->ccs_flags & CCS_TASK_IS_POLICY_MANAGER)
 		return true;
 	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
 		return false;
@@ -1423,7 +1425,7 @@ static bool ccs_is_policy_manager(void)
 		if (!ptr->is_deleted && ptr->is_domain
 		    && !ccs_pathcmp(domainname, ptr->manager)) {
 			/* Set manager flag. */
-			task->tomoyo_flags |= CCS_TASK_IS_POLICY_MANAGER;
+			task->ccs_flags |= CCS_TASK_IS_POLICY_MANAGER;
 			return true;
 		}
 	}
@@ -1435,7 +1437,7 @@ static bool ccs_is_policy_manager(void)
 		    && !strcmp(exe, ptr->manager->name)) {
 			found = true;
 			/* Set manager flag. */
-			task->tomoyo_flags |= CCS_TASK_IS_POLICY_MANAGER;
+			task->ccs_flags |= CCS_TASK_IS_POLICY_MANAGER;
 			break;
 		}
 	}
@@ -1492,7 +1494,7 @@ static char *ccs_find_condition_part(char *data)
 static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
-	struct domain_info *domain = NULL;
+	struct ccs_domain_info *domain = NULL;
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
@@ -1503,7 +1505,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 		read_lock(&tasklist_lock);
 		p = find_task_by_pid(pid);
 		if (p)
-			domain = p->domain_info;
+			domain = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
 	} else if (!strncmp(data, "domain=", 7)) {
@@ -1520,7 +1522,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	head->read_single_domain = true;
 	head->read_eof = !domain;
 	if (domain) {
-		struct domain_info *d;
+		struct ccs_domain_info *d;
 		head->read_var1 = NULL;
 		list1_for_each_entry(d, &ccs_domain_list, list) {
 			if (d == domain)
@@ -1546,7 +1548,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	struct domain_info *domain = head->write_var1;
+	struct ccs_domain_info *domain = head->write_var1;
 	bool is_delete = false;
 	bool is_select = false;
 	bool is_undelete = false;
@@ -2079,12 +2081,12 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 	if (head->read_step == 0)
 		head->read_step = 1;
 	list1_for_each_cookie(dpos, head->read_var1, &ccs_domain_list) {
-		struct domain_info *domain;
+		struct ccs_domain_info *domain;
 		const char *quota_exceeded = "";
 		const char *transition_failed = "";
 		const char *ignore_global_allow_read = "";
 		const char *ignore_global_allow_env = "";
-		domain = list1_entry(dpos, struct domain_info, list);
+		domain = list1_entry(dpos, struct ccs_domain_info, list);
 		if (head->read_step != 1)
 			goto acl_loop;
 		if (domain->is_deleted && !head->read_single_domain)
@@ -2149,7 +2151,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	char *cp = strchr(data, ' ');
-	struct domain_info *domain;
+	struct ccs_domain_info *domain;
 	unsigned int profile;
 	if (!cp)
 		return -EINVAL;
@@ -2183,8 +2185,8 @@ static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 	if (head->read_eof)
 		return 0;
 	list1_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
-		struct domain_info *domain;
-		domain = list1_entry(pos, struct domain_info, list);
+		struct ccs_domain_info *domain;
+		domain = list1_entry(pos, struct ccs_domain_info, list);
 		if (domain->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
@@ -2223,8 +2225,8 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	bool task_info = false;
 	unsigned int pid;
 	struct task_struct *p;
-	struct domain_info *domain = NULL;
-	u32 tomoyo_flags = 0;
+	struct ccs_domain_info *domain = NULL;
+	u32 ccs_flags = 0;
 	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
 		goto done; /* Do nothing if open(O_RDONLY). */
@@ -2238,8 +2240,8 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	read_lock(&tasklist_lock);
 	p = find_task_by_pid(pid);
 	if (p) {
-		domain = p->domain_info;
-		tomoyo_flags = p->tomoyo_flags;
+		domain = ccs_task_domain(p);
+		ccs_flags = p->ccs_flags;
 	}
 	read_unlock(&tasklist_lock);
 	/***** CRITICAL SECTION END *****/
@@ -2251,13 +2253,13 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	else
 		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
 			      "state[0]=%u state[1]=%u state[2]=%u", pid,
-			      tomoyo_flags & CCS_TASK_IS_POLICY_MANAGER ?
+			      ccs_flags & CCS_TASK_IS_POLICY_MANAGER ?
 			      "yes" : "no",
-			      tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER ?
+			      ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ?
 			      "yes" : "no",
-			      (u8) (tomoyo_flags >> 24),
-			      (u8) (tomoyo_flags >> 16),
-			      (u8) (tomoyo_flags >> 8));
+			      (u8) (ccs_flags >> 24),
+			      (u8) (ccs_flags >> 16),
+			      (u8) (ccs_flags >> 8));
  done:
 	return 0;
 }
@@ -2615,7 +2617,7 @@ void ccs_load_policy(const char *filename)
 	ccs_policy_loaded = true;
 	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
-		struct domain_info *domain;
+		struct ccs_domain_info *domain;
 		list1_for_each_entry(domain, &ccs_domain_list, list) {
 			const u8 profile = domain->profile;
 			if (ccs_profile_ptr[profile])
@@ -2669,10 +2671,10 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	struct ccs_query_entry *ccs_query_entry = NULL;
 	char *header;
 	if (!r->domain)
-		r->domain = current->domain_info;
+		r->domain = ccs_current_domain();
 	if (!atomic_read(&ccs_query_observers)) {
 		int i;
-		if (current->tomoyo_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
 		for (i = 0; i < ccs_check_flags(r->domain, CCS_SLEEP_PERIOD);
 		     i++) {
@@ -3067,12 +3069,12 @@ static int ccs_read_self_domain(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
 		/*
-		 * current->domain_info->domainname != NULL
+		 * ccs_current_domain()->domainname != NULL
 		 * because every process belongs to a domain and
 		 * the domain's name cannot be NULL.
 		 */
 		ccs_io_printf(head, "%s",
-			      current->domain_info->domainname->name);
+			      ccs_current_domain()->domainname->name);
 		head->read_eof = true;
 	}
 	return 0;
@@ -3128,7 +3130,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		break;
 	case CCS_EXECUTE_HANDLER: /* /proc/ccs/.execute_handler */
 		/* Allow execute_handler to read process's status. */
-		if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
+		if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
 			ccs_free(head);
 			return -EPERM;
 		}

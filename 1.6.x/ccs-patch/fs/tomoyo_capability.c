@@ -25,45 +25,45 @@
  */
 static const char *ccs_cap2name(const u8 operation)
 {
-	static const char *ccs_capability_name[TOMOYO_MAX_CAPABILITY_INDEX] = {
-		[TOMOYO_INET_STREAM_SOCKET_CREATE]  =
+	static const char *ccs_capability_name[CCS_MAX_CAPABILITY_INDEX] = {
+		[CCS_INET_STREAM_SOCKET_CREATE]  =
 		"socket(PF_INET, SOCK_STREAM)",
-		[TOMOYO_INET_STREAM_SOCKET_LISTEN]  =
+		[CCS_INET_STREAM_SOCKET_LISTEN]  =
 		"listen(PF_INET, SOCK_STREAM)",
-		[TOMOYO_INET_STREAM_SOCKET_CONNECT] =
+		[CCS_INET_STREAM_SOCKET_CONNECT] =
 		"connect(PF_INET, SOCK_STREAM)",
-		[TOMOYO_USE_INET_DGRAM_SOCKET]      =
+		[CCS_USE_INET_DGRAM_SOCKET]      =
 		"socket(PF_INET, SOCK_DGRAM)",
-		[TOMOYO_USE_INET_RAW_SOCKET]        =
+		[CCS_USE_INET_RAW_SOCKET]        =
 		"socket(PF_INET, SOCK_RAW)",
-		[TOMOYO_USE_ROUTE_SOCKET]           = "socket(PF_ROUTE)",
-		[TOMOYO_USE_PACKET_SOCKET]          = "socket(PF_PACKET)",
-		[TOMOYO_SYS_MOUNT]                  = "sys_mount()",
-		[TOMOYO_SYS_UMOUNT]                 = "sys_umount()",
-		[TOMOYO_SYS_REBOOT]                 = "sys_reboot()",
-		[TOMOYO_SYS_CHROOT]                 = "sys_chroot()",
-		[TOMOYO_SYS_KILL]                   = "sys_kill()",
-		[TOMOYO_SYS_VHANGUP]                = "sys_vhangup()",
-		[TOMOYO_SYS_SETTIME]                = "sys_settimeofday()",
-		[TOMOYO_SYS_NICE]                   = "sys_nice()",
-		[TOMOYO_SYS_SETHOSTNAME]            = "sys_sethostname()",
-		[TOMOYO_USE_KERNEL_MODULE]          = "kernel_module",
-		[TOMOYO_CREATE_FIFO]                = "mknod(FIFO)",
-		[TOMOYO_CREATE_BLOCK_DEV]           = "mknod(BDEV)",
-		[TOMOYO_CREATE_CHAR_DEV]            = "mknod(CDEV)",
-		[TOMOYO_CREATE_UNIX_SOCKET]         = "mknod(SOCKET)",
-		[TOMOYO_SYS_LINK]                   = "sys_link()",
-		[TOMOYO_SYS_SYMLINK]                = "sys_symlink()",
-		[TOMOYO_SYS_RENAME]                 = "sys_rename()",
-		[TOMOYO_SYS_UNLINK]                 = "sys_unlink()",
-		[TOMOYO_SYS_CHMOD]                  = "sys_chmod()",
-		[TOMOYO_SYS_CHOWN]                  = "sys_chown()",
-		[TOMOYO_SYS_IOCTL]                  = "sys_ioctl()",
-		[TOMOYO_SYS_KEXEC_LOAD]             = "sys_kexec_load()",
-		[TOMOYO_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
-		[TOMOYO_SYS_PTRACE]                 = "sys_ptrace()",
+		[CCS_USE_ROUTE_SOCKET]           = "socket(PF_ROUTE)",
+		[CCS_USE_PACKET_SOCKET]          = "socket(PF_PACKET)",
+		[CCS_SYS_MOUNT]                  = "sys_mount()",
+		[CCS_SYS_UMOUNT]                 = "sys_umount()",
+		[CCS_SYS_REBOOT]                 = "sys_reboot()",
+		[CCS_SYS_CHROOT]                 = "sys_chroot()",
+		[CCS_SYS_KILL]                   = "sys_kill()",
+		[CCS_SYS_VHANGUP]                = "sys_vhangup()",
+		[CCS_SYS_SETTIME]                = "sys_settimeofday()",
+		[CCS_SYS_NICE]                   = "sys_nice()",
+		[CCS_SYS_SETHOSTNAME]            = "sys_sethostname()",
+		[CCS_USE_KERNEL_MODULE]          = "kernel_module",
+		[CCS_CREATE_FIFO]                = "mknod(FIFO)",
+		[CCS_CREATE_BLOCK_DEV]           = "mknod(BDEV)",
+		[CCS_CREATE_CHAR_DEV]            = "mknod(CDEV)",
+		[CCS_CREATE_UNIX_SOCKET]         = "mknod(SOCKET)",
+		[CCS_SYS_LINK]                   = "sys_link()",
+		[CCS_SYS_SYMLINK]                = "sys_symlink()",
+		[CCS_SYS_RENAME]                 = "sys_rename()",
+		[CCS_SYS_UNLINK]                 = "sys_unlink()",
+		[CCS_SYS_CHMOD]                  = "sys_chmod()",
+		[CCS_SYS_CHOWN]                  = "sys_chown()",
+		[CCS_SYS_IOCTL]                  = "sys_ioctl()",
+		[CCS_SYS_KEXEC_LOAD]             = "sys_kexec_load()",
+		[CCS_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
+		[CCS_SYS_PTRACE]                 = "sys_ptrace()",
 	};
-	if (operation < TOMOYO_MAX_CAPABILITY_INDEX)
+	if (operation < CCS_MAX_CAPABILITY_INDEX)
 		return ccs_capability_name[operation];
 	return NULL;
 }
@@ -88,14 +88,14 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
  * ccs_update_capability_acl - Update "struct ccs_capability_acl_record" list.
  *
  * @operation: Type of operation.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_capability_acl(const u8 operation,
-				     struct domain_info *domain,
+				     struct ccs_domain_info *domain,
 				     const struct ccs_condition_list *condition,
 				     const bool is_delete)
 {
@@ -202,18 +202,18 @@ EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
  * ccs_write_capability_policy - Write "struct ccs_capability_acl_record" list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_capability_policy(char *data, struct domain_info *domain,
+int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				const struct ccs_condition_list *condition,
 				const bool is_delete)
 {
 	u8 capability;
-	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX;
+	for (capability = 0; capability < CCS_MAX_CAPABILITY_INDEX;
 	     capability++) {
 		if (strcmp(data, ccs_cap2keyword(capability)))
 			continue;

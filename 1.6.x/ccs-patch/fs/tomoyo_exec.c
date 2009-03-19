@@ -38,14 +38,14 @@ static int ccs_audit_argv0_log(struct ccs_request_info *r, const char *filename,
  *
  * @filename:  The fullpath of the program.
  * @argv0:     The basename of argv[0].
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_argv0_entry(const char *filename, const char *argv0,
-				  struct domain_info *domain,
+				  struct ccs_domain_info *domain,
 				  const struct ccs_condition_list *condition,
 				  const bool is_delete)
 {
@@ -119,7 +119,7 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 			       const char *argv0)
 {
 	int error = -EPERM;
-	struct domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info argv_0;
 	argv_0.name = argv0;
@@ -180,13 +180,13 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
  * ccs_write_argv0_policy - Write "struct ccs_argv0_acl_record" list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_argv0_policy(char *data, struct domain_info *domain,
+int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
 			   const struct ccs_condition_list *condition,
 			   const bool is_delete)
 {

@@ -29,9 +29,9 @@
 /* Variables definitions.*/
 
 /* The initial domain. */
-struct domain_info KERNEL_DOMAIN;
+struct ccs_domain_info ccs_kernel_domain;
 
-/* The list for "struct domain_info". */
+/* The list for "struct ccs_domain_info". */
 LIST1_HEAD(ccs_domain_list);
 
 #ifdef CONFIG_TOMOYO
@@ -78,13 +78,13 @@ struct ccs_alias_entry {
 /**
  * ccs_set_domain_flag - Set or clear domain's attribute flags.
  *
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @is_delete: True if it is a delete request.
  * @flags:     Flags to set or clear.
  *
  * Returns nothing.
  */
-void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
+void ccs_set_domain_flag(struct ccs_domain_info *domain, const bool is_delete,
 			 const u8 flags)
 {
 	/* We need to serialize because this is bitfield operation. */
@@ -102,11 +102,11 @@ void ccs_set_domain_flag(struct domain_info *domain, const bool is_delete,
 /**
  * ccs_get_last_name - Get last component of a domainname.
  *
- * @domain: Pointer to "struct domain_info".
+ * @domain: Pointer to "struct ccs_domain_info".
  *
  * Returns the last component of the domainname.
  */
-const char *ccs_get_last_name(const struct domain_info *domain)
+const char *ccs_get_last_name(const struct ccs_domain_info *domain)
 {
 	const char *cp0 = domain->domainname->name;
 	const char *cp1 = strrchr(cp0, ' ');
@@ -118,12 +118,12 @@ const char *ccs_get_last_name(const struct domain_info *domain)
 /**
  * ccs_add_domain_acl - Add the given ACL to the given domain.
  *
- * @domain: Pointer to "struct domain_info". May be NULL.
+ * @domain: Pointer to "struct ccs_domain_info". May be NULL.
  * @acl:    Pointer to "struct ccs_acl_info".
  *
  * Returns 0.
  */
-int ccs_add_domain_acl(struct domain_info *domain, struct ccs_acl_info *acl)
+int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
 {
 	if (domain) {
 		/*
@@ -171,7 +171,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 {
 	struct ccs_request_info *r = &ee->r;
 	const char *handler = ee->handler->name;
-	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_FILE);
+	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_FILE);
 	return ccs_write_audit_log(true, r, "%s %s\n",
 				   is_default ? KEYWORD_EXECUTE_HANDLER :
 				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
@@ -180,14 +180,14 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 /**
  * ccs_audit_domain_creation_log - Audit domain creation log.
  *
- * @domain:  Pointer to "struct domain_info".
+ * @domain:  Pointer to "struct ccs_domain_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_domain_creation_log(struct domain_info *domain)
+static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
 {
 	struct ccs_request_info r;
-	ccs_init_request_info(&r, domain, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&r, domain, CCS_MAC_FOR_FILE);
 	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 }
 
@@ -718,7 +718,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete)
  */
 int ccs_delete_domain(char *domainname)
 {
-	struct domain_info *domain;
+	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
@@ -733,9 +733,9 @@ int ccs_delete_domain(char *domainname)
 #endif
 	/* Is there an active domain? */
 	list1_for_each_entry(domain, &ccs_domain_list, list) {
-		struct domain_info *domain2;
-		/* Never delete KERNEL_DOMAIN */
-		if (domain == &KERNEL_DOMAIN)
+		struct ccs_domain_info *domain2;
+		/* Never delete ccs_kernel_domain */
+		if (domain == &ccs_kernel_domain)
 			continue;
 		if (domain->is_deleted ||
 		    ccs_pathcmp(domain->domainname, &name))
@@ -769,12 +769,12 @@ int ccs_delete_domain(char *domainname)
  *
  * @domainname: The name of domain.
  *
- * Returns pointer to "struct domain_info" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  */
-struct domain_info *ccs_undelete_domain(const char *domainname)
+struct ccs_domain_info *ccs_undelete_domain(const char *domainname)
 {
-	struct domain_info *domain;
-	struct domain_info *candidate_domain = NULL;
+	struct ccs_domain_info *domain;
+	struct ccs_domain_info *candidate_domain = NULL;
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
@@ -819,12 +819,12 @@ struct domain_info *ccs_undelete_domain(const char *domainname)
  * @domainname: The name of domain.
  * @profile:    Profile number to assign if the domain was newly created.
  *
- * Returns pointer to "struct domain_info" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  */
-struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
+struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile)
 {
-	struct domain_info *domain = NULL;
+	struct ccs_domain_info *domain = NULL;
 	const struct ccs_path_info *saved_domainname;
 	mutex_lock(&ccs_domain_list_lock);
 	domain = ccs_find_domain(domainname);
@@ -847,7 +847,7 @@ struct domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		for_each_process(p) {
-			if (p->domain_info != domain)
+			if (ccs_task_domain(p) != domain)
 				continue;
 			flag = true;
 			break;
@@ -949,12 +949,12 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_path_info *handler = ee->handler;
-	struct domain_info *domain = NULL;
+	struct ccs_domain_info *domain = NULL;
 	const char *old_domain_name = r->domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
-	const u32 tomoyo_flags = current->tomoyo_flags;
+	const u32 ccs_flags = current->ccs_flags;
 	char *new_domain_name = NULL;
 	struct ccs_path_info rn; /* real name */
 	struct ccs_path_info sn; /* symlink name */
@@ -979,7 +979,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 
  retry:
-	current->tomoyo_flags = tomoyo_flags;
+	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
 	/* Get realpath of program and symbolic link. */
 	retval = ccs_realpath_both(bprm->filename, ee);
@@ -1025,7 +1025,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	/* sn will be overwritten after here. */
 
 	/* Compare basename of program_path and argv[0] */
-	r->mode = ccs_check_flags(r->domain, CCS_TOMOYO_MAC_FOR_ARGV0);
+	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_ARGV0);
 	if (bprm->argc > 0 && r->mode) {
 		char *base_argv0 = ee->tmp;
 		const char *base_filename;
@@ -1072,10 +1072,10 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
  calculate_domain:
 	new_domain_name = ee->tmp;
 	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
-		/* Transit to the child of KERNEL_DOMAIN domain. */
+		/* Transit to the child of ccs_kernel_domain domain. */
 		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
 			 ROOT_NAME " " "%s", ee->program_path);
-	} else if (r->domain == &KERNEL_DOMAIN && !ccs_policy_loaded) {
+	} else if (r->domain == &ccs_kernel_domain && !ccs_policy_loaded) {
 		/*
 		 * Needn't to transit from kernel domain before starting
 		 * /sbin/init. But transit from kernel domain if executing
@@ -1406,7 +1406,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	 * modified bprm->argv[0]
 	 *    = the program's name specified by execute_handler
 	 * modified bprm->argv[1]
-	 *    = current->domain_info->domainname->name
+	 *    = ccs_current_domain()->domainname->name
 	 * modified bprm->argv[2]
 	 *    = the current process's name
 	 * modified bprm->argv[3]
@@ -1478,7 +1478,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	/* Set argv[3] */
 	{
 		char *cp = ee->tmp;
-		const u32 tomoyo_flags = task->tomoyo_flags;
+		const u32 ccs_flags = task->ccs_flags;
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
 			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
@@ -1486,8 +1486,8 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			 (pid_t) sys_getpid(), current_uid(), current_gid(),
 			 current_euid(), current_egid(), current_suid(),
 			 current_sgid(), current_fsuid(), current_fsgid(),
-			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
-			 (u8) (tomoyo_flags >> 8));
+			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
+			 (u8) (ccs_flags >> 8));
 		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
@@ -1513,7 +1513,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	/* Set argv[1] */
 	{
 		char *cp = ee->tmp;
-		strncpy(ee->tmp, task->domain_info->domainname->name,
+		strncpy(ee->tmp, ccs_current_domain()->domainname->name,
 			CCS_EXEC_TMPSIZE - 1);
 		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
@@ -1580,9 +1580,9 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 		bprm->interp = bprm->filename;
 #endif
-		task->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		retval = ccs_find_next_domain(ee);
-		task->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 		/* Restore ee->program_path for search_binary_handler(). */
 		memmove(ee->program_path, cp, len);
 		bprm->filename = ee->program_path;
@@ -1607,13 +1607,13 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 				     const u8 type)
 {
 	struct task_struct *task = current;
-	const struct domain_info *domain = task->domain_info;
+	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
 	 */
-	if (task->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)
+	if (task->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
 	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
@@ -1675,17 +1675,17 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 /**
  * ccs_fetch_next_domain - Fetch next_domain from the list.
  *
- * Returns pointer to "struct domain_info" which will be used if execve()
+ * Returns pointer to "struct ccs_domain_info" which will be used if execve()
  * succeeds. This function does not return NULL.
  */
-struct domain_info *ccs_fetch_next_domain(void)
+struct ccs_domain_info *ccs_fetch_next_domain(void)
 {
 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
-	struct domain_info *next_domain = NULL;
+	struct ccs_domain_info *next_domain = NULL;
 	if (ee)
 		next_domain = ee->next_domain;
 	if (!next_domain)
-		next_domain = current->domain_info;
+		next_domain = ccs_current_domain();
 	return next_domain;
 }
 
@@ -1705,14 +1705,14 @@ int ccs_start_execve(struct linux_binprm *bprm)
 		ccs_load_policy(bprm->filename);
 	if (!ee)
 		return -ENOMEM;
-	ccs_init_request_info(&ee->r, NULL, CCS_TOMOYO_MAC_FOR_FILE);
+	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FOR_FILE);
 	ee->r.ee = ee;
 	ee->bprm = bprm;
 	ee->r.obj = &ee->obj;
 	ee->obj.path1_dentry = bprm->file->f_dentry;
 	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 	/* Clear manager flag. */
-	task->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	if (ccs_find_execute_handler(ee, TYPE_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(ee);
 		if (!retval)
@@ -1730,12 +1730,12 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
-	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_TOMOYO_MAC_FOR_ENV);
+	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
 	retval = ccs_check_environ(ee);
 	if (retval < 0)
 		goto out;
 	ee->next_domain = ee->r.domain;
-	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+	task->ccs_flags |= CCS_CHECK_READ_FOR_OPEN_EXEC;
 	retval = 0;
  out:
 	if (retval)
@@ -1752,20 +1752,20 @@ void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
-	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
+	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 	if (!ee)
 		return;
 	if (retval < 0)
 		goto out;
 	/* Proceed to next domain if execution suceeded. */
-	task->domain_info = ee->r.domain;
+	task->ccs_domain_info = ee->r.domain;
 	mb(); /* Make domain transition visible to other CPUs. */
 	/* Mark the current process as execute handler. */
 	if (ee->handler)
-		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
+		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
 	/* Mark the current process as normal process. */
 	else
-		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
+		task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
  out:
 	ccs_free_execve_entry(ee);
 }
@@ -1783,7 +1783,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
 {
 #ifdef CONFIG_SAKURA
 	/* Clear manager flag. */
-	current->tomoyo_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+	current->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	if (!ccs_policy_loaded)
 		ccs_load_policy(bprm->filename);
 #endif

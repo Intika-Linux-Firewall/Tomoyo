@@ -44,14 +44,14 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
  *
  * @sig:          Signal number.
  * @dest_pattern: Destination domainname.
- * @domain:       Pointer to "struct domain_info".
+ * @domain:       Pointer to "struct ccs_domain_info".
  * @condition:    Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete:    True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
-				 struct domain_info *domain,
+				 struct ccs_domain_info *domain,
 				 const struct ccs_condition_list *condition,
 				 const bool is_delete)
 {
@@ -121,7 +121,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 int ccs_check_signal_acl(const int sig, const int pid)
 {
 	struct ccs_request_info r;
-	struct domain_info *dest = NULL;
+	struct ccs_domain_info *dest = NULL;
 	const char *dest_pattern;
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
@@ -129,7 +129,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	bool found = false;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_SIGNAL);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
@@ -148,11 +148,11 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		else if (pid == 0)
 			p = current;
 		else if (pid == -1)
-			dest = &KERNEL_DOMAIN;
+			dest = &ccs_kernel_domain;
 		else
 			p = find_task_by_pid((pid_t) -pid);
 		if (p)
-			dest = p->domain_info;
+			dest = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
 	}
@@ -209,13 +209,13 @@ int ccs_check_signal_acl(const int sig, const int pid)
  * ccs_write_signal_policy - Write "struct ccs_signal_acl_record" list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_signal_policy(char *data, struct domain_info *domain,
+int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    const struct ccs_condition_list *condition,
 			    const bool is_delete)
 {

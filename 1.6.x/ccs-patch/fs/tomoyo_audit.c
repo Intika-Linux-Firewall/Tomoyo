@@ -132,10 +132,10 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	char *buf;
 	char *bprm_info = "";
 	struct timeval tv;
-	u32 tomoyo_flags = current->tomoyo_flags;
+	u32 ccs_flags = current->ccs_flags;
 	const char *domainname;
 	if (!r->domain)
-		r->domain = current->domain_info;
+		r->domain = ccs_current_domain();
 	domainname = r->domain->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
@@ -156,8 +156,8 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 (pid_t) sys_getpid(), current_uid(), current_gid(),
 			 current_euid(), current_egid(), current_suid(),
 			 current_sgid(), current_fsuid(), current_fsgid(),
-			 (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
-			 (u8) (tomoyo_flags >> 8), bprm_info, domainname);
+			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
+			 (u8) (ccs_flags >> 8), bprm_info, domainname);
 	if (r->ee)
 		ccs_free(bprm_info);
 	return buf;
@@ -172,27 +172,27 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 {
 	/*
 	 * Don't change the lowest byte because it is reserved for
-	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
-	 * TOMOYO_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
+	 * CCS_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
+	 * CCS_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
 	 */
 	const struct ccs_condition_list *ptr = r->cond;
 	if (ptr) {
 		struct task_struct *task = current;
 		const u8 flags = ptr->post_state[3];
-		u32 tomoyo_flags = task->tomoyo_flags;
+		u32 ccs_flags = task->ccs_flags;
 		if (flags & 1) {
-			tomoyo_flags &= ~0xFF000000;
-			tomoyo_flags |= ptr->post_state[0] << 24;
+			ccs_flags &= ~0xFF000000;
+			ccs_flags |= ptr->post_state[0] << 24;
 		}
 		if (flags & 2) {
-			tomoyo_flags &= ~0x00FF0000;
-			tomoyo_flags |= ptr->post_state[1] << 16;
+			ccs_flags &= ~0x00FF0000;
+			ccs_flags |= ptr->post_state[1] << 16;
 		}
 		if (flags & 4) {
-			tomoyo_flags &= ~0x0000FF00;
-			tomoyo_flags |= ptr->post_state[2] << 8;
+			ccs_flags &= ~0x0000FF00;
+			ccs_flags |= ptr->post_state[2] << 8;
 		}
-		task->tomoyo_flags = tomoyo_flags;
+		task->ccs_flags = ccs_flags;
 		r->cond = NULL;
 	}
 }
@@ -240,19 +240,20 @@ static int ccs_reject_log_count;
 /**
  * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
  *
- * @domain:     Pointer to "struct domain_info". NULL for current->domain_info.
+ * @domain:     Pointer to "struct ccs_domain_info".
+ *              NULL for ccs_current_domain().
  * @is_granted: True if this is a granted log.
  *
  * Returns true if the kernel can save, false otherwise.
  */
-static bool ccs_can_save_audit_log(const struct domain_info *domain,
+static bool ccs_can_save_audit_log(const struct ccs_domain_info *domain,
 				   const bool is_granted)
 {
 	if (is_granted)
 		return ccs_grant_log_count
-			< ccs_check_flags(domain, CCS_TOMOYO_MAX_GRANT_LOG);
+			< ccs_check_flags(domain, CCS_MAX_GRANT_LOG);
 	return ccs_reject_log_count
-		< ccs_check_flags(domain, CCS_TOMOYO_MAX_REJECT_LOG);
+		< ccs_check_flags(domain, CCS_MAX_REJECT_LOG);
 }
 
 /**
@@ -274,7 +275,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	char *buf;
 	struct ccs_log_entry *new_entry;
 	if (!r->domain)
-		r->domain = current->domain_info;
+		r->domain = ccs_current_domain();
 	if (!ccs_can_save_audit_log(r->domain, is_granted))
 		goto out;
 	va_start(args, fmt);

@@ -126,7 +126,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	char *root_name;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_SAKURA_RESTRICT_CHROOT);
+	ccs_init_request_info(&r, NULL, CCS_RESTRICT_CHROOT);
 	if (!r.mode)
 		return 0;
  retry:

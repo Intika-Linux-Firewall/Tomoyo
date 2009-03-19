@@ -472,7 +472,7 @@ const char *ccs_net2keyword(const u8 operation)
  * @max_address: End of IPv4 or IPv6 address range.
  * @min_port:    Start of port number range.
  * @max_port:    End of port number range.
- * @domain:      Pointer to "struct domain_info".
+ * @domain:      Pointer to "struct ccs_domain_info".
  * @condition:   Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete:   True if it is a delete request.
  *
@@ -483,7 +483,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    const u32 *min_address,
 				    const u32 *max_address,
 				    const u16 min_port, const u16 max_port,
-				    struct domain_info *domain,
+				    struct ccs_domain_info *domain,
 				    const struct ccs_condition_list *condition,
 				    const bool is_delete)
 {
@@ -609,7 +609,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 	char buf[64];
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_TOMOYO_MAC_FOR_NETWORK);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK);
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
@@ -674,13 +674,13 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
  * ccs_write_network_policy - Write "struct ccs_ip_network_acl_record" list.
  *
  * @data:      String to parse.
- * @domain:    Pointer to "struct domain_info".
+ * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition_list". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_network_policy(char *data, struct domain_info *domain,
+int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     const struct ccs_condition_list *condition,
 			     const bool is_delete)
 {
@@ -863,10 +863,10 @@ static inline int ccs_check_network_accept_acl(const bool is_ipv6,
 					       const u16 port)
 {
 	int retval;
-	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	retval = ccs_check_network_entry(is_ipv6, NETWORK_ACL_TCP_ACCEPT,
 					 (const u32 *) address, ntohs(port));
-	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
 
@@ -913,10 +913,10 @@ static inline int ccs_check_network_recvmsg_acl(const bool is_ipv6,
 	const u8 operation
 		= (sock_type == SOCK_DGRAM) ?
 		NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT;
-	current->tomoyo_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	retval = ccs_check_network_entry(is_ipv6, operation,
 					 (const u32 *) address, ntohs(port));
-	current->tomoyo_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
 
@@ -929,23 +929,23 @@ int ccs_socket_create_permission(int family, int type, int protocol)
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
-	if (family == PF_PACKET && !ccs_capable(TOMOYO_USE_PACKET_SOCKET))
+	if (family == PF_PACKET && !ccs_capable(CCS_USE_PACKET_SOCKET))
 		return -EPERM;
-	if (family == PF_ROUTE && !ccs_capable(TOMOYO_USE_ROUTE_SOCKET))
+	if (family == PF_ROUTE && !ccs_capable(CCS_USE_ROUTE_SOCKET))
 		return -EPERM;
 	if (family != PF_INET && family != PF_INET6)
 		return 0;
 	switch (type) {
 	case SOCK_STREAM:
-		if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_CREATE))
+		if (!ccs_capable(CCS_INET_STREAM_SOCKET_CREATE))
 			error = -EPERM;
 		break;
 	case SOCK_DGRAM:
-		if (!ccs_capable(TOMOYO_USE_INET_DGRAM_SOCKET))
+		if (!ccs_capable(CCS_USE_INET_DGRAM_SOCKET))
 			error = -EPERM;
 		break;
 	case SOCK_RAW:
-		if (!ccs_capable(TOMOYO_USE_INET_RAW_SOCKET))
+		if (!ccs_capable(CCS_USE_INET_RAW_SOCKET))
 			error = -EPERM;
 		break;
 	}
@@ -970,7 +970,7 @@ int ccs_socket_listen_permission(struct socket *sock)
 	default:
 		return 0;
 	}
-	if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_LISTEN))
+	if (!ccs_capable(CCS_INET_STREAM_SOCKET_LISTEN))
 		return -EPERM;
 	if (sock->ops->getname(sock, (struct sockaddr *) addr, &addr_len, 0))
 		return -EPERM;
@@ -1044,7 +1044,7 @@ int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 	switch (sock->sk->sk_family) {
 	case PF_INET:
 	case PF_INET6:
-		if (!ccs_capable(TOMOYO_INET_STREAM_SOCKET_CONNECT))
+		if (!ccs_capable(CCS_INET_STREAM_SOCKET_CONNECT))
 			error = -EPERM;
 		break;
 	}
