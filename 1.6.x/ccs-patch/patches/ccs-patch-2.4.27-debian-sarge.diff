@@ -29,7 +29,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  fs/attr.c                    |   10 +++
  fs/exec.c                    |   21 ++++++-
  fs/fcntl.c                   |    8 ++
- fs/ioctl.c                   |   14 ++++
+ fs/ioctl.c                   |   16 +++++
  fs/namei.c                   |  127 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   58 +++++++++++++++++++
  fs/open.c                    |   29 +++++++++
@@ -50,7 +50,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |   11 +++
  net/socket.c                 |   40 ++++++++++++-
  net/unix/af_unix.c           |   15 +++++
- 48 files changed, 822 insertions(+), 6 deletions(-)
+ 48 files changed, 824 insertions(+), 6 deletions(-)
 
 --- linux-2.4.27-10sarge7.orig/Documentation/Configure.help
 +++ linux-2.4.27-10sarge7/Documentation/Configure.help
@@ -777,19 +777,21 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -55,6 +58,11 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -55,6 +58,13 @@ asmlinkage long sys_ioctl(unsigned int f
  	filp = fget(fd);
  	if (!filp)
  		goto out;
 +	/***** TOMOYO Linux start. *****/
 +	error = ccs_check_ioctl_permission(filp, cmd, arg);
-+	if (error)
++	if (error) {
++		fput(filp);
 +		goto out;
++	}
 +	/***** TOMOYO Linux end. *****/
  	error = 0;
  	lock_kernel();
  	switch (cmd) {
-@@ -112,6 +120,12 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -112,6 +122,12 @@ asmlinkage long sys_ioctl(unsigned int f
  				error = -ENOTTY;
  			break;
  		default:
