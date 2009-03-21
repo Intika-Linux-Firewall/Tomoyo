@@ -114,6 +114,26 @@ int ccs_may_create(struct inode *dir, struct dentry *dentry);
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 #endif
 
+int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt, int mode, unsigned dev);
+int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt, int mode);
+int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt);
+int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
+				struct vfsmount *mnt);
+int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
+				 struct vfsmount *mnt, char *from);
+int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  loff_t length, unsigned int time_attrs);
+int ccs_check_rename_permission(struct inode *old_dir,
+				struct dentry *old_dentry,
+				struct inode *new_dir,
+				struct dentry *new_dentry,
+				struct vfsmount *mnt);
+int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
+			      struct dentry *new_dentry, struct vfsmount *mnt);
+
 #else
 
 static inline int ccs_check_file_perm(const char *filename, const u8 perm,
@@ -213,6 +233,68 @@ static inline int ccs_pre_vfs_rename(struct inode *old_dir,
 				     struct dentry *old_dentry,
 				     struct inode *new_dir,
 				     struct dentry *new_dentry)
+{
+	return 0;
+}
+
+static inline int ccs_check_mknod_permission(struct inode *dir,
+					     struct dentry *dentry,
+					     struct vfsmount *mnt, int mode,
+					     unsigned dev)
+{
+	return 0;
+}
+
+static inline int ccs_check_mkdir_permission(struct inode *dir,
+					     struct dentry *dentry,
+					     struct vfsmount *mnt, int mode)
+{
+	return 0;
+}
+
+static inline int ccs_check_rmdir_permission(struct inode *dir,
+					     struct dentry *dentry,
+					     struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_check_unlink_permission(struct inode *dir,
+					      struct dentry *dentry,
+					      struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_check_symlink_permission(struct inode *dir,
+					       struct dentry *dentry,
+					       struct vfsmount *mnt,
+					       char *from)
+{
+	return 0;
+}
+
+static inline int ccs_check_truncate_permission(struct dentry *dentry,
+						struct vfsmount *mnt,
+						loff_t length,
+						unsigned int time_attrs)
+{
+	return 0;
+}
+
+static inline int ccs_check_rename_permission(struct inode *old_dir,
+					      struct dentry *old_dentry,
+					      struct inode *new_dir,
+					      struct dentry *new_dentry,
+					      struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_check_link_permission(struct dentry *old_dentry,
+					    struct inode *new_dir,
+					    struct dentry *new_dentry,
+					    struct vfsmount *mnt)
 {
 	return 0;
 }
