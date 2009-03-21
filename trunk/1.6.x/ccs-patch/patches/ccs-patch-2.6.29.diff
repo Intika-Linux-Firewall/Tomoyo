@@ -4,37 +4,37 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 ---
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
- fs/attr.c                       |   10 ++
- fs/compat.c                     |    5 +
- fs/compat_ioctl.c               |   13 +++
- fs/exec.c                       |   20 +++++
- fs/fcntl.c                      |    9 ++
- fs/ioctl.c                      |   11 +++
- fs/namei.c                      |  139 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   49 ++++++++++++++
- fs/open.c                       |   28 ++++++++
- fs/proc/Makefile                |    3 
- fs/proc/version.c               |   11 +++
+ fs/attr.c                       |   10 ++++
+ fs/compat.c                     |    5 +-
+ fs/compat_ioctl.c               |   13 +++++
+ fs/exec.c                       |   20 ++++++++
+ fs/fcntl.c                      |    9 +++
+ fs/ioctl.c                      |   11 ++++
+ fs/namei.c                      |   59 ++++++++++++++++++++++++
+ fs/namespace.c                  |   49 ++++++++++++++++++++
+ fs/open.c                       |   29 ++++++++++++
+ fs/proc/Makefile                |    3 +
+ fs/proc/version.c               |   11 ++++
  include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    8 ++
+ include/linux/sched.h           |    8 +++
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
- kernel/kmod.c                   |    5 +
- kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   11 +++
+ kernel/kmod.c                   |    5 ++
+ kernel/module.c                 |   11 ++++
+ kernel/ptrace.c                 |   11 ++++
  kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 ++++++
- kernel/sys.c                    |   21 ++++++
- kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++
- kernel/time.c                   |   11 +++
- kernel/time/ntp.c               |   11 +++
- net/core/datagram.c             |   11 +++
+ kernel/signal.c                 |   21 ++++++++
+ kernel/sys.c                    |   21 ++++++++
+ kernel/sysctl.c                 |   95 ++++++++++++++++++++++++++++++++++++++++
+ kernel/time.c                   |   11 ++++
+ kernel/time/ntp.c               |   11 ++++
+ net/core/datagram.c             |   11 ++++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |    8 ++
- net/socket.c                    |   41 +++++++++++
- net/unix/af_unix.c              |   16 ++++
- 32 files changed, 608 insertions(+), 3 deletions(-)
+ net/ipv4/udp.c                  |    8 ++-
+ net/socket.c                    |   41 +++++++++++++++++
+ net/unix/af_unix.c              |    9 +++
+ 32 files changed, 522 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29-rc8.orig/fs/Kconfig
 +++ linux-2.6.29-rc8/fs/Kconfig
@@ -272,41 +272,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1560,6 +1571,18 @@ int may_open(struct path *path, int acc_
- 	return 0;
- }
- 
-+/***** TOMOYO Linux start. *****/
-+static int pre_vfs_create(struct inode *dir, struct dentry *dentry)
-+{
-+	int error = may_create(dir, dentry);
-+	if (error)
-+		return error;
-+	if (!dir->i_op || !dir->i_op->create)
-+		return -EACCES;	/* shouldn't it be ENOSYS? */
-+	return 0;
-+}
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  * Be careful about ever adding any more callers of this
-  * function.  Its flags must be in the namei format, not
-@@ -1574,6 +1597,14 @@ static int __open_namei_create(struct na
+@@ -1574,6 +1585,11 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_create(dir->d_inode, path->dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_CREATE_ACL,
-+					     path->dentry,
-+					     nd->path.mnt);
++		error = ccs_check_mknod_permission(dir->d_inode, path->dentry,
++						   nd->path.mnt, mode, 0);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1587,6 +1618,9 @@ out_unlock:
+@@ -1587,6 +1603,9 @@ out_unlock:
  	return may_open(&nd->path, 0, flag & ~O_TRUNC);
  }
  
@@ -316,198 +294,91 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1947,6 +1981,16 @@ int vfs_mknod(struct inode *dir, struct 
- 
- static int may_mknod(mode_t mode)
- {
+@@ -1991,6 +2010,12 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+ 	if (error)
+ 		goto out_dput;
+ 	error = security_path_mknod(&nd.path, dentry, mode, dev);
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
-+		return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
-+		return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
-+		return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		return -EPERM;
++	if (!error)
++		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt, mode,
++						   new_decode_dev(dev));
 +	/***** TOMOYO Linux end. *****/
- 	switch (mode & S_IFMT) {
- 	case S_IFREG:
- 	case S_IFCHR:
-@@ -1995,13 +2039,46 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+ 	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
- 		case 0: case S_IFREG:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_create(nd.path.dentry->d_inode, dentry);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
-+						     nd.path.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
- 			break;
- 		case S_IFCHR: case S_IFBLK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
-+					      mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISCHR(mode) ?
-+						     TYPE_MKCHAR_ACL :
-+						     TYPE_MKBLOCK_ACL,
-+						     dentry, nd.path.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,
- 					new_decode_dev(dev));
- 			break;
- 		case S_IFIFO: case S_IFSOCK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
-+					      mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISFIFO(mode) ?
-+						     TYPE_MKFIFO_ACL :
-+						     TYPE_MKSOCK_ACL,
-+						     dentry, nd.path.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
- 			break;
- 	}
-@@ -2066,6 +2143,13 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2066,6 +2091,11 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_mkdir(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry,
-+					     nd.path.mnt);
++		error = ccs_check_mkdir_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt, mode);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2180,6 +2264,13 @@ static long do_rmdir(int dfd, const char
+@@ -2180,6 +2210,11 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_rmdir(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
-+					     nd.path.mnt);
++		error = ccs_check_rmdir_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2244,6 +2335,10 @@ static long do_unlinkat(int dfd, const c
- 	struct dentry *dentry;
- 	struct nameidata nd;
- 	struct inode *inode = NULL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_UNLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_parent(dfd, pathname, &nd, &name);
- 	if (error)
-@@ -2269,6 +2364,13 @@ static long do_unlinkat(int dfd, const c
+@@ -2269,6 +2304,12 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
 +		/***** TOMOYO Linux start. *****/
 +		if (!error)
-+			error = pre_vfs_unlink(nd.path.dentry->d_inode, dentry);
-+		if (!error)
-+			error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry,
-+						     nd.path.mnt);
++			error = ccs_check_unlink_permission(nd.path.dentry
++							    ->d_inode, dentry,
++							    nd.path.mnt);
 +		/***** TOMOYO Linux end. *****/
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2336,6 +2438,10 @@ SYSCALL_DEFINE3(symlinkat, const char __
- 	char *to;
- 	struct dentry *dentry;
- 	struct nameidata nd;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_SYMLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if (IS_ERR(from))
-@@ -2354,6 +2460,13 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2354,6 +2395,11 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_symlink(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry,
-+					     nd.path.mnt);
++		error = ccs_check_symlink_permission(nd.path.dentry->d_inode,
++						     dentry, nd.path.mnt, from);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2433,6 +2546,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
- 
- 	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
- 		return -EINVAL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_LINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_at(olddfd, oldname,
- 			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2454,6 +2571,15 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2454,6 +2500,12 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_link(old_path.dentry, nd.path.dentry->d_inode,
-+				     new_dentry);
-+	if (!error)
-+		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_path.dentry,
-+					     old_path.mnt, new_dentry,
-+					     nd.path.mnt);
++		error = ccs_check_link_permission(old_path.dentry,
++						  nd.path.dentry->d_inode,
++						  new_dentry, nd.path.mnt);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2633,6 +2759,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
- 	char *from;
- 	char *to;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_RENAME))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_parent(olddfd, oldname, &oldnd, &from);
- 	if (error)
-@@ -2695,6 +2825,15 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2695,6 +2747,13 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = pre_vfs_rename(old_dir->d_inode, old_dentry,
-+				       new_dir->d_inode, new_dentry);
-+	if (!error)
-+		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
-+					     oldnd.path.mnt, new_dentry,
-+					     newnd.path.mnt);
++		error = ccs_check_rename_permission(old_dir->d_inode,
++						    old_dentry,
++						    new_dir->d_inode,
++						    new_dentry, newnd.path.mnt);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto exit6;
@@ -647,25 +518,26 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		error = security_path_truncate(&path, length, 0);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, path.dentry,
-+					     path.mnt);
++		error = ccs_check_truncate_permission(path.dentry, path.mnt,
++						      length, 0);
 +	/***** TOMOYO Linux end. *****/
  	if (!error) {
  		DQUOT_INIT(inode);
  		error = do_truncate(path.dentry, length, 0, NULL);
-@@ -331,6 +342,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -331,6 +342,12 @@ static long do_sys_ftruncate(unsigned in
  	if (!error)
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
 +	/***** TOMOYO Linux start. *****/
 +	if (!error)
-+		error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry,
-+					     file->f_vfsmnt);
++		error = ccs_check_truncate_permission(dentry, file->f_vfsmnt,
++						      length,
++						      ATTR_MTIME|ATTR_CTIME);
 +	/***** TOMOYO Linux end. *****/
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
-@@ -585,6 +601,14 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -585,6 +602,14 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -680,7 +552,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1156,6 +1180,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1156,6 +1181,10 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -1398,29 +1270,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
  static DEFINE_SPINLOCK(unix_table_lock);
-@@ -790,6 +793,11 @@ static int unix_bind(struct socket *sock
- 		err = unix_autobind(sock);
- 		goto out;
- 	}
-+	/***** TOMOYO Linux start. *****/
-+	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		goto out;
-+	/***** TOMOYO Linux end. *****/
- 
- 	err = unix_mkname(sunaddr, addr_len, &hash);
- 	if (err < 0)
-@@ -837,6 +845,14 @@ static int unix_bind(struct socket *sock
+@@ -837,6 +840,12 @@ static int unix_bind(struct socket *sock
  		if (err)
  			goto out_mknod_dput;
  		err = security_path_mknod(&nd.path, dentry, mode, 0);
 +		/***** TOMOYO Linux start. *****/
 +		if (!err)
-+			err = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
-+					    mode);
-+		if (!err)
-+			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
-+						   nd.path.mnt);
++			err = ccs_check_mknod_permission(nd.path.dentry
++							 ->d_inode, dentry,
++							 nd.path.mnt, mode, 0);
 +		/***** TOMOYO Linux end. *****/
  		if (err)
  			goto out_mknod_drop_write;

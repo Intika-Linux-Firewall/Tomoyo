@@ -12628,39 +12628,6 @@ diff -upr before/vanilla/linux-2.4.36.9/net/unix/af_unix.c after/vanilla/linux-2
  		if (!err)
  		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
-diff -upr before/vanilla/linux-2.4.37/fs/namei.c after/vanilla/linux-2.4.37/fs/namei.c
---- before/vanilla/linux-2.4.37/fs/namei.c	2009-03-19 16:55:11.000000000 +0900
-+++ after/vanilla/linux-2.4.37/fs/namei.c	2009-03-20 02:26:21.000000000 +0900
-@@ -1330,8 +1330,7 @@ asmlinkage long sys_mknod(const char * f
- 		/***** TOMOYO Linux start. *****/
- 		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
- 						   nd.mnt, mode, dev);
--		if (error)
--			goto out_dput;
-+		if (!error)
- 		/***** TOMOYO Linux end. *****/
- 		switch (mode & S_IFMT) {
- 		case 0: case S_IFREG:
-@@ -1346,9 +1345,6 @@ asmlinkage long sys_mknod(const char * f
- 		default:
- 			error = -EINVAL;
- 		}
--		/***** TOMOYO Linux start. *****/
--out_dput:
--		/***** TOMOYO Linux end. *****/
- 		dput(dentry);
- 	}
- 	up(&nd.dentry->d_inode->i_sem);
-@@ -1594,8 +1590,7 @@ asmlinkage long sys_unlink(const char * 
- 		/***** TOMOYO Linux start. *****/
- 		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
- 						    nd.mnt);
--		if (error)
--			goto exit2;
-+		if (!error)
- 		/***** TOMOYO Linux end. *****/
- 		error = vfs_unlink(nd.dentry->d_inode, dentry);
- 	exit2:
 diff -upr before/vanilla/linux-2.6.11.12/fs/namei.c after/vanilla/linux-2.6.11.12/fs/namei.c
 --- before/vanilla/linux-2.6.11.12/fs/namei.c	2009-03-19 11:24:24.000000000 +0900
 +++ after/vanilla/linux-2.6.11.12/fs/namei.c	2009-03-20 01:35:36.000000000 +0900
@@ -17603,15 +17570,3 @@ diff -upr before/vanilla/linux-2.6.28.8/net/unix/af_unix.c after/vanilla/linux-2
  		if (!err)
  		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
-diff -upr before/vanilla/linux-2.6.29-rc8/fs/namei.c after/vanilla/linux-2.6.29-rc8/fs/namei.c
---- before/vanilla/linux-2.6.29-rc8/fs/namei.c	2009-03-19 16:34:58.000000000 +0900
-+++ after/vanilla/linux-2.6.29-rc8/fs/namei.c	2009-03-20 00:44:16.000000000 +0900
-@@ -2014,7 +2014,7 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
- 	if (!error)
- 		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
- 						   dentry, nd.path.mnt, mode,
--						   dev);
-+						   new_decode_dev(dev));
- 	/***** TOMOYO Linux end. *****/
- 	if (error)
- 		goto out_drop_write;

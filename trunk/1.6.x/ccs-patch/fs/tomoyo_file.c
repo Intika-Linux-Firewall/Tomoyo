@@ -2084,6 +2084,29 @@ int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 #define HAVE_IS_DIR_FOR_MAY_CREATE
 #endif
 
+/* Permission checks before security_inode_create() is called. */
+static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = ccs_may_create(dir, dentry, NULL, 0);
+#else
+	int error = ccs_may_create(dir, dentry, NULL);
+#endif
+#else
+#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
+	int error = ccs_may_create(dir, dentry, 0);
+#else
+	int error = ccs_may_create(dir, dentry);
+#endif
+#endif
+        if (error)
+                return error;
+        if (!dir->i_op || !dir->i_op->create)
+                return -EACCES; /* shouldn't it be ENOSYS? */
+        return 0;
+}
+
 /*
  * Permission checks before security_inode_mknod() is called.
  *
@@ -2268,3 +2291,139 @@ int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 }
 
 #endif
+
+/*
+ * Permission checks before security_inode_mknod() is called.
+ *
+ * This function is exported because
+ * vfs_mknod() is called from net/unix/af_unix.c.
+ */
+int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt, int mode, unsigned dev)
+{
+	int error;
+	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
+		return -EPERM;
+	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
+		return -EPERM;
+	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
+		return -EPERM;
+	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
+		return -EPERM;
+	switch (mode & S_IFMT) {
+	case 0:
+	case S_IFREG:
+		error = ccs_pre_vfs_create(dir, dentry);
+		if (!error)
+			error = ccs_check_1path_perm(TYPE_CREATE_ACL,
+						     dentry, mnt);
+		return error;
+	}
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+	error = ccs_pre_vfs_mknod(dir, dentry);
+#else
+	error = ccs_pre_vfs_mknod(dir, dentry, mode);
+#endif
+	if (error)
+		return error;
+	switch (mode & S_IFMT) {
+	case S_IFCHR:
+                error = ccs_check_1path_perm(TYPE_MKCHAR_ACL, dentry, mnt);
+		break;
+	case S_IFBLK:
+                error = ccs_check_1path_perm(TYPE_MKBLOCK_ACL, dentry, mnt);
+		break;
+	case S_IFIFO:
+		error = ccs_check_1path_perm(TYPE_MKFIFO_ACL, dentry, mnt);
+		break;
+	case S_IFSOCK:
+		error = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, mnt);
+		break;
+	}
+	return error;
+}
+EXPORT_SYMBOL(ccs_check_mknod_permission);
+
+/* Permission checks before security_inode_mkdir() is called. */
+int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt, int mode)
+{
+	int error = ccs_pre_vfs_mkdir(dir, dentry);
+        if (!error)
+                error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt);
+	return error;
+}
+
+/* Permission checks before security_inode_rmdir() is called. */
+int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
+			       struct vfsmount *mnt)
+{
+        int error = ccs_pre_vfs_rmdir(dir, dentry);
+        if (!error)
+                error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt);
+	return error;
+}
+
+/* Permission checks before security_inode_unlink() is called. */
+int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
+				struct vfsmount *mnt)
+{
+	int error;
+	if (!ccs_capable(CCS_SYS_UNLINK))
+		return -EPERM;
+	error = ccs_pre_vfs_unlink(dir, dentry);
+	if (!error)
+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt);
+	return error;
+}
+
+/* Permission checks before security_inode_symlink() is called. */
+int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
+				 struct vfsmount *mnt, char *from)
+{
+	int error;
+	if (!ccs_capable(CCS_SYS_SYMLINK))
+		return -EPERM;
+	error = ccs_pre_vfs_symlink(dir, dentry);
+	if (!error)
+		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt);
+	return error;
+}
+
+/* Permission checks before security_inode_setattr() is called. */
+int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
+				  loff_t length,unsigned int time_attrs)
+{
+	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt);
+}
+
+/* Permission checks before security_inode_rename() is called. */
+int ccs_check_rename_permission(struct inode *old_dir,
+				struct dentry *old_dentry,
+				struct inode *new_dir,
+				struct dentry *new_dentry,
+				struct vfsmount *mnt)
+{
+	int error;
+	if (!ccs_capable(CCS_SYS_RENAME))
+		return -EPERM;
+	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
+	if (!error)
+		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
+					     mnt, new_dentry, mnt);
+	return error;
+}
+
+/* Permission checks before security_inode_link() is called. */
+int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
+			      struct dentry *new_dentry, struct vfsmount *mnt)
+{
+	int error;
+	if (!ccs_capable(CCS_SYS_LINK))
+		return -EPERM;
+	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
+	if (!error)
+		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_dentry,
+					     mnt, new_dentry, mnt);
+	return error;
+}
