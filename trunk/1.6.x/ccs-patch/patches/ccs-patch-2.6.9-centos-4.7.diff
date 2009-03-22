@@ -30,14 +30,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  arch/x86_64/kernel/ptrace.c        |    7 ++
  fs/Kconfig                         |    2 
  fs/Makefile                        |    1 
- fs/attr.c                          |   19 +++++
+ fs/attr.c                          |   19 ++++++
  fs/compat.c                        |   16 ++++-
  fs/exec.c                          |   26 +++++++-
  fs/fcntl.c                         |    8 ++
  fs/ioctl.c                         |   13 ++++
- fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   53 ++++++++++++++++
- fs/open.c                          |   28 ++++++++
+ fs/namei.c                         |   60 +++++++++++++++++++
+ fs/namespace.c                     |   53 +++++++++++++++++
+ fs/open.c                          |   29 +++++++++
  fs/proc/Makefile                   |    3 
  fs/proc/proc_misc.c                |    5 +
  include/linux/init_task.h          |    4 +
@@ -46,18 +46,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  kernel/kmod.c                      |    5 +
  kernel/module.c                    |   13 +++-
  kernel/sched.c                     |    7 ++
- kernel/signal.c                    |   22 ++++++
+ kernel/signal.c                    |   22 +++++++
  kernel/sys.c                       |   21 ++++++
- kernel/sysctl.c                    |  113 +++++++++++++++++++++++++++++++++++
+ kernel/sysctl.c                    |  113 ++++++++++++++++++++++++++++++++++++-
  kernel/time.c                      |   15 ++++
  net/core/datagram.c                |   10 +++
  net/ipv4/tcp_ipv4.c                |   11 +++
  net/ipv4/udp.c                     |   10 +++
  net/ipv6/tcp_ipv6.c                |    7 ++
  net/ipv6/udp.c                     |   10 +++
- net/socket.c                       |   43 ++++++++++++-
- net/unix/af_unix.c                 |   15 ++++
- 55 files changed, 788 insertions(+), 11 deletions(-)
+ net/socket.c                       |   43 +++++++++++++-
+ net/unix/af_unix.c                 |    8 ++
+ 55 files changed, 724 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-78.0.13.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.0.13.EL/arch/alpha/kernel/ptrace.c
@@ -903,21 +903,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1324,6 +1328,13 @@ int vfs_create(struct inode *dir, struct
- 	error = security_inode_create(dir, dentry, mode);
- 	if (error)
- 		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if (nd) {
-+		error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt);
-+		if (error)
-+			return error;
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	DQUOT_INIT(dir);
- 	error = dir->i_op->create(dir, dentry, mode, nd);
- 	if (!error) {
-@@ -1382,6 +1393,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1382,6 +1386,13 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -931,7 +917,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1413,6 +1431,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1413,6 +1424,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -941,191 +927,108 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  /*
   *	open_namei()
   *
-@@ -1666,6 +1687,16 @@ asmlinkage long sys_mknod(const char __u
- 
- 	if (S_ISDIR(mode))
- 		return -EPERM;
-+	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
-+		return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
-+		return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
-+		return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 	tmp = getname(filename);
- 	if (IS_ERR(tmp))
- 		return PTR_ERR(tmp);
-@@ -1684,10 +1715,32 @@ asmlinkage long sys_mknod(const char __u
+@@ -1492,6 +1506,11 @@ do_last:
+ 	if (!dentry->d_inode) {
+ 		if (!IS_POSIXACL(dir->d_inode))
+ 			mode &= ~current->fs->umask;
++		/***** TOMOYO Linux start. *****/
++		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
++						   nd->path.mnt, mode, 0);
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		error = vfs_create(dir->d_inode, dentry, mode, nd);
+ 		up(&dir->d_inode->i_sem);
+ 		dput(nd->dentry);
+@@ -1679,6 +1698,12 @@ asmlinkage long sys_mknod(const char __u
+ 	if (!IS_POSIXACL(nd.dentry->d_inode))
+ 		mode &= ~current->fs->umask;
+ 	if (!IS_ERR(dentry)) {
++		/***** TOMOYO Linux start. *****/
++		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt, mode,
++						   new_decode_dev(dev));
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		switch (mode & S_IFMT) {
+ 		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
- 			break;
- 		case S_IFCHR: case S_IFBLK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISCHR(mode) ?
-+						     TYPE_MKCHAR_ACL :
-+						     TYPE_MKBLOCK_ACL,
-+						     dentry, nd.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
- 					new_decode_dev(dev));
- 			break;
- 		case S_IFIFO: case S_IFSOCK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISFIFO(mode) ?
-+						     TYPE_MKFIFO_ACL :
-+						     TYPE_MKSOCK_ACL,
-+						     dentry, nd.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
- 			break;
- 		case S_IFDIR:
-@@ -1750,6 +1803,13 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1750,6 +1775,12 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
 +			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mkdir(nd.dentry->d_inode, dentry);
-+			if (!error)
-+				error = ccs_check_1path_perm(TYPE_MKDIR_ACL,
-+							     dentry, nd.mnt);
++			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
++							   dentry, nd.mnt,
++							   mode);
 +			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1858,6 +1918,13 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1858,6 +1889,11 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_rmdir(nd.dentry->d_inode, dentry);
-+		if (!error)
-+			error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
-+						     nd.mnt);
++		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
++						   nd.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1912,6 +1979,10 @@ asmlinkage long sys_unlink(const char __
- 	struct dentry *dentry;
- 	struct nameidata nd;
- 	struct inode *inode = NULL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_UNLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	name = getname(pathname);
- 	if(IS_ERR(name))
-@@ -1933,6 +2004,14 @@ asmlinkage long sys_unlink(const char __
+@@ -1933,6 +1969,11 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_unlink(nd.dentry->d_inode, dentry);
-+		if (error)
-+			goto exit2;
-+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt);
-+		if (error)
-+			goto exit2;
++		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
++						    nd.mnt);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1981,6 +2060,10 @@ asmlinkage long sys_symlink(const char _
- 	int error = 0;
- 	char * from;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_SYMLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if(IS_ERR(from))
-@@ -1997,6 +2080,13 @@ asmlinkage long sys_symlink(const char _
+@@ -1997,6 +2038,12 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_symlink(nd.dentry->d_inode, dentry);
-+			if (!error)
-+				error = ccs_check_1path_perm(TYPE_SYMLINK_ACL,
-+							     dentry, nd.mnt);
++			error = ccs_check_symlink_permission(nd.dentry->d_inode,
++							     dentry, nd.mnt,
++							     from);
 +			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2065,6 +2155,10 @@ asmlinkage long sys_link(const char __us
- 	struct nameidata nd, old_nd;
- 	int error;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_LINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	to = getname(newname);
- 	if (IS_ERR(to))
-@@ -2082,6 +2176,15 @@ asmlinkage long sys_link(const char __us
+@@ -2082,6 +2129,12 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode,
-+				     new_dentry);
-+		if (!error)
-+			error = ccs_check_2path_perm(TYPE_LINK_ACL,
-+						     old_nd.dentry, old_nd.mnt,
-+						     new_dentry, nd.mnt);
++		error = ccs_check_link_permission(old_nd.dentry,
++						  nd.dentry->d_inode,
++						  new_dentry, nd.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2306,6 +2409,17 @@ static inline int do_rename(const char *
+@@ -2306,6 +2359,13 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
-+			       new_dir->d_inode, new_dentry);
-+	if (error)
-+		goto exit5;
-+	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
-+				     new_dentry, newnd.mnt);
-+	if (error)
-+		goto exit5;
++	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
++					    new_dir->d_inode, new_dentry,
++					    newnd.mnt);
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
 +
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2327,6 +2441,10 @@ asmlinkage long sys_rename(const char __
- 	int error;
- 	char * from;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_RENAME))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if(IS_ERR(from))
 --- linux-2.6.9-78.0.13.EL.orig/fs/namespace.c
 +++ linux-2.6.9-78.0.13.EL/fs/namespace.c
 @@ -23,6 +23,12 @@
@@ -1272,25 +1175,26 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
++	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -313,6 +324,11 @@ static inline long do_sys_ftruncate(unsi
+@@ -313,6 +324,12 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
++	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
++					      0);
 +	if (error)
 +		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
-@@ -587,6 +603,14 @@ asmlinkage long sys_chroot(const char __
+@@ -587,6 +604,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1305,7 +1209,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1082,6 +1106,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1082,6 +1107,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1333,7 +1237,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/03/22\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -2030,27 +1934,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -742,6 +745,11 @@ static int unix_bind(struct socket *sock
- 		err = unix_autobind(sock);
- 		goto out;
- 	}
-+	/***** TOMOYO Linux start. *****/
-+	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		goto out;
-+	/***** TOMOYO Linux end. *****/
- 
- 	err = unix_mkname(sunaddr, addr_len, &hash);
- 	if (err < 0)
-@@ -806,6 +814,13 @@ static int unix_bind(struct socket *sock
+@@ -806,6 +809,11 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+		if (!err)
-+			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
-+						   nd.mnt);
++		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
++						 nd.mnt, mode, 0);
 +		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
