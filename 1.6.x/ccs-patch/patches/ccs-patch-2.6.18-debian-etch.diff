@@ -15,13 +15,13 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
  fs/attr.c                       |   19 ++++++
- fs/compat.c                     |   15 ++++-
- fs/exec.c                       |   21 ++++++-
+ fs/compat.c                     |   15 +++++
+ fs/exec.c                       |   21 +++++++
  fs/fcntl.c                      |    9 +++
  fs/ioctl.c                      |   11 +++
- fs/namei.c                      |  118 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   50 ++++++++++++++++
- fs/open.c                       |   27 +++++++++
+ fs/namei.c                      |   60 +++++++++++++++++++++
+ fs/namespace.c                  |   50 +++++++++++++++++-
+ fs/open.c                       |   28 ++++++++++
  fs/proc/Makefile                |    3 +
  fs/proc/proc_misc.c             |    5 +
  include/linux/init_task.h       |    4 +
@@ -34,7 +34,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  kernel/sched.c                  |    7 ++
  kernel/signal.c                 |   21 +++++++
  kernel/sys.c                    |   21 +++++++
- kernel/sysctl.c                 |  111 +++++++++++++++++++++++++++++++++++++
+ kernel/sysctl.c                 |  111 ++++++++++++++++++++++++++++++++++++++++
  kernel/time.c                   |   15 +++++
  net/core/datagram.c             |   11 +++
  net/ipv4/inet_connection_sock.c |    7 ++
@@ -42,12 +42,12 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/ipv4/udp.c                  |   11 +++
  net/ipv6/inet6_hashtables.c     |    9 ++-
  net/ipv6/udp.c                  |   11 +++
- net/socket.c                    |   43 +++++++++++++-
- net/unix/af_unix.c              |   15 +++++
- 42 files changed, 688 insertions(+), 8 deletions(-)
+ net/socket.c                    |   43 ++++++++++++++-
+ net/unix/af_unix.c              |    8 ++
+ 42 files changed, 624 insertions(+), 8 deletions(-)
 
---- linux-2.6.18-23etch1.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-24/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -69,8 +69,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-23etch1.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-23etch1/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-24.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-24/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -92,8 +92,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-23etch1.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/ia64/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.18-24/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -115,8 +115,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.18-23etch1.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-24/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -138,8 +138,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-23etch1.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-23etch1/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-24.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-24/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -161,8 +161,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-23etch1.orig/arch/powerpc/kernel/ptrace32.c
-+++ linux-2.6.18-23etch1/arch/powerpc/kernel/ptrace32.c
+--- linux-2.6.18-24.orig/arch/powerpc/kernel/ptrace32.c
++++ linux-2.6.18-24/arch/powerpc/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -184,8 +184,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-23etch1.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/s390/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.18-24/arch/s390/kernel/ptrace.c
 @@ -41,6 +41,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -207,8 +207,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		 ret = ptrace_traceme();
---- linux-2.6.18-23etch1.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-24/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -232,8 +232,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-23etch1.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.18-24.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.18-24/arch/sparc64/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/spitfire.h>
  #include <asm/page.h>
@@ -257,8 +257,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.18-23etch1.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.18-23etch1/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.18-24.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.18-24/arch/x86_64/ia32/ptrace32.c
 @@ -26,6 +26,9 @@
  #include <asm/i387.h>
  #include <asm/fpu32.h>
@@ -280,8 +280,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.18-23etch1.orig/fs/Kconfig
-+++ linux-2.6.18-23etch1/fs/Kconfig
+--- linux-2.6.18-24.orig/fs/Kconfig
++++ linux-2.6.18-24/fs/Kconfig
 @@ -1931,5 +1931,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -290,16 +290,16 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
 +
  endmenu
  
---- linux-2.6.18-23etch1.orig/fs/Makefile
-+++ linux-2.6.18-23etch1/fs/Makefile
+--- linux-2.6.18-24.orig/fs/Makefile
++++ linux-2.6.18-24/fs/Makefile
 @@ -102,3 +102,5 @@ obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18-23etch1.orig/fs/attr.c
-+++ linux-2.6.18-23etch1/fs/attr.c
+--- linux-2.6.18-24.orig/fs/attr.c
++++ linux-2.6.18-24/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -339,8 +339,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18-23etch1.orig/fs/compat.c
-+++ linux-2.6.18-23etch1/fs/compat.c
+--- linux-2.6.18-24.orig/fs/compat.c
++++ linux-2.6.18-24/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -384,8 +384,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18-23etch1.orig/fs/exec.c
-+++ linux-2.6.18-23etch1/fs/exec.c
+--- linux-2.6.18-24.orig/fs/exec.c
++++ linux-2.6.18-24/fs/exec.c
 @@ -57,6 +57,10 @@
  #include <linux/kmod.h>
  #endif
@@ -435,8 +435,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (retval >= 0) {
  		free_arg_pages(bprm);
  
---- linux-2.6.18-23etch1.orig/fs/fcntl.c
-+++ linux-2.6.18-23etch1/fs/fcntl.c
+--- linux-2.6.18-24.orig/fs/fcntl.c
++++ linux-2.6.18-24/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -460,8 +460,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-23etch1.orig/fs/ioctl.c
-+++ linux-2.6.18-23etch1/fs/ioctl.c
+--- linux-2.6.18-24.orig/fs/ioctl.c
++++ linux-2.6.18-24/fs/ioctl.c
 @@ -15,6 +15,9 @@
  
  #include <asm/uaccess.h>
@@ -494,8 +494,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.18-23etch1.orig/fs/namei.c
-+++ linux-2.6.18-23etch1/fs/namei.c
+--- linux-2.6.18-24.orig/fs/namei.c
++++ linux-2.6.18-24/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -507,21 +507,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1481,6 +1485,13 @@ int vfs_create(struct inode *dir, struct
- 	error = security_inode_create(dir, dentry, mode);
- 	if (error)
- 		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if (nd) {
-+		error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry, nd->mnt);
-+		if (error)
-+			return error;
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	DQUOT_INIT(dir);
- 	error = dir->i_op->create(dir, dentry, mode, nd);
- 	if (!error)
-@@ -1536,6 +1547,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1536,6 +1540,13 @@ int may_open(struct nameidata *nd, int a
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
  			return -EPERM;
  
@@ -535,7 +521,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1567,6 +1585,9 @@ int may_open(struct nameidata *nd, int a
+@@ -1567,6 +1578,9 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
@@ -545,193 +531,110 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  /*
   *	open_namei()
   *
-@@ -1835,6 +1856,16 @@ asmlinkage long sys_mknodat(int dfd, con
- 
- 	if (S_ISDIR(mode))
- 		return -EPERM;
-+	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
-+		return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
-+		return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
-+		return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 	tmp = getname(filename);
- 	if (IS_ERR(tmp))
- 		return PTR_ERR(tmp);
-@@ -1853,10 +1884,32 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1650,6 +1664,11 @@ do_last:
+ 	if (!path.dentry->d_inode) {
+ 		if (!IS_POSIXACL(dir->d_inode))
+ 			mode &= ~current->fs->umask;
++		/***** TOMOYO Linux start. *****/
++		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
++						   nd->path.mnt, mode, 0);
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
+ 		mutex_unlock(&dir->d_inode->i_mutex);
+ 		dput(nd->dentry);
+@@ -1848,6 +1867,12 @@ asmlinkage long sys_mknodat(int dfd, con
+ 	if (!IS_POSIXACL(nd.dentry->d_inode))
+ 		mode &= ~current->fs->umask;
+ 	if (!IS_ERR(dentry)) {
++		/***** TOMOYO Linux start. *****/
++		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
++						   dentry, nd.path.mnt, mode,
++						   new_decode_dev(dev));
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		switch (mode & S_IFMT) {
+ 		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
- 			break;
- 		case S_IFCHR: case S_IFBLK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISCHR(mode) ?
-+						     TYPE_MKCHAR_ACL :
-+						     TYPE_MKBLOCK_ACL,
-+						     dentry, nd.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,
- 					new_decode_dev(dev));
- 			break;
- 		case S_IFIFO: case S_IFSOCK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISFIFO(mode) ?
-+						     TYPE_MKFIFO_ACL :
-+						     TYPE_MKSOCK_ACL,
-+						     dentry, nd.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
- 			break;
- 		case S_IFDIR:
-@@ -1921,6 +1974,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1921,6 +1946,12 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
 +			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mkdir(nd.dentry->d_inode, dentry);
-+			if (!error)
-+				error = ccs_check_1path_perm(TYPE_MKDIR_ACL,
-+							     dentry, nd.mnt);
++			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
++							   dentry, nd.mnt,
++							   mode);
 +			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2029,6 +2089,13 @@ static long do_rmdir(int dfd, const char
+@@ -2029,6 +2060,11 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_rmdir(nd.dentry->d_inode, dentry);
-+		if (!error)
-+			error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
-+						     nd.mnt);
++		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
++						   nd.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2088,6 +2155,10 @@ static long do_unlinkat(int dfd, const c
- 	struct dentry *dentry;
- 	struct nameidata nd;
- 	struct inode *inode = NULL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_UNLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	name = getname(pathname);
- 	if(IS_ERR(name))
-@@ -2109,6 +2180,14 @@ static long do_unlinkat(int dfd, const c
+@@ -2109,6 +2145,11 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_unlink(nd.dentry->d_inode, dentry);
-+		if (error)
-+			goto exit2;
-+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, nd.mnt);
-+		if (error)
-+			goto exit2;
++		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
++						    nd.mnt);
++		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2171,6 +2250,10 @@ asmlinkage long sys_symlinkat(const char
- 	int error = 0;
- 	char * from;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_SYMLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if(IS_ERR(from))
-@@ -2187,6 +2270,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2187,6 +2228,12 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
 +			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_symlink(nd.dentry->d_inode, dentry);
-+			if (!error)
-+				error = ccs_check_1path_perm(TYPE_SYMLINK_ACL,
-+							     dentry, nd.mnt);
++			error = ccs_check_symlink_permission(nd.dentry->d_inode,
++							     dentry, nd.mnt,
++							     from);
 +			if (!error)
 +			/***** TOMOYO Linux end. *****/
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2259,6 +2349,10 @@ asmlinkage long sys_linkat(int olddfd, c
- 	struct nameidata nd, old_nd;
- 	int error;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_LINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
- 		return -EINVAL;
-@@ -2281,6 +2375,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2281,6 +2328,12 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_link(old_nd.dentry, nd.dentry->d_inode,
-+				     new_dentry);
-+		if (!error)
-+			error = ccs_check_2path_perm(TYPE_LINK_ACL,
-+						     old_nd.dentry, old_nd.mnt,
-+						     new_dentry, nd.mnt);
++		error = ccs_check_link_permission(old_nd.dentry,
++						  nd.dentry->d_inode,
++						  new_dentry, nd.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2507,6 +2610,17 @@ static int do_rename(int olddfd, const c
+@@ -2507,6 +2560,13 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
-+			       new_dir->d_inode, new_dentry);
-+	if (error)
-+		goto exit5;
-+	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry, oldnd.mnt,
-+				     new_dentry, newnd.mnt);
-+	if (error)
-+		goto exit5;
++	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
++					    new_dir->d_inode, new_dentry,
++					    newnd.mnt);
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
 +
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2529,6 +2643,10 @@ asmlinkage long sys_renameat(int olddfd,
- 	int error;
- 	char * from;
- 	char * to;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_RENAME))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if(IS_ERR(from))
---- linux-2.6.18-23etch1.orig/fs/namespace.c
-+++ linux-2.6.18-23etch1/fs/namespace.c
+--- linux-2.6.18-24.orig/fs/namespace.c
++++ linux-2.6.18-24/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -845,8 +748,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-23etch1.orig/fs/open.c
-+++ linux-2.6.18-23etch1/fs/open.c
+--- linux-2.6.18-24.orig/fs/open.c
++++ linux-2.6.18-24/fs/open.c
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  
@@ -865,25 +768,26 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		goto dput_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt);
++	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -320,6 +330,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -320,6 +330,12 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
++	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
++					      0);
 +	if (error)
 +		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -608,6 +623,14 @@ asmlinkage long sys_chroot(const char __
+@@ -608,6 +624,14 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -898,7 +802,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1199,6 +1222,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1199,6 +1223,10 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -909,8 +813,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-23etch1.orig/fs/proc/Makefile
-+++ linux-2.6.18-23etch1/fs/proc/Makefile
+--- linux-2.6.18-24.orig/fs/proc/Makefile
++++ linux-2.6.18-24/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -918,8 +822,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18-23etch1.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-23etch1/fs/proc/proc_misc.c
+--- linux-2.6.18-24.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-24/fs/proc/proc_misc.c
 @@ -723,4 +723,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
@@ -930,8 +834,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.18-23etch1.orig/include/linux/init_task.h
-+++ linux-2.6.18-23etch1/include/linux/init_task.h
+--- linux-2.6.18-24.orig/include/linux/init_task.h
++++ linux-2.6.18-24/include/linux/init_task.h
 @@ -128,6 +128,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -943,8 +847,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  }
  
  
---- linux-2.6.18-23etch1.orig/include/linux/sched.h
-+++ linux-2.6.18-23etch1/include/linux/sched.h
+--- linux-2.6.18-24.orig/include/linux/sched.h
++++ linux-2.6.18-24/include/linux/sched.h
 @@ -25,6 +25,10 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -967,8 +871,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-23etch1.orig/kernel/compat.c
-+++ linux-2.6.18-23etch1/kernel/compat.c
+--- linux-2.6.18-24.orig/kernel/compat.c
++++ linux-2.6.18-24/kernel/compat.c
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -990,8 +894,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-23etch1.orig/kernel/kexec.c
-+++ linux-2.6.18-23etch1/kernel/kexec.c
+--- linux-2.6.18-24.orig/kernel/kexec.c
++++ linux-2.6.18-24/kernel/kexec.c
 @@ -26,6 +26,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -1013,8 +917,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-23etch1.orig/kernel/kmod.c
-+++ linux-2.6.18-23etch1/kernel/kmod.c
+--- linux-2.6.18-24.orig/kernel/kmod.c
++++ linux-2.6.18-24/kernel/kmod.c
 @@ -148,6 +148,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1027,8 +931,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.18-23etch1.orig/kernel/module.c
-+++ linux-2.6.18-23etch1/kernel/module.c
+--- linux-2.6.18-24.orig/kernel/module.c
++++ linux-2.6.18-24/kernel/module.c
 @@ -44,6 +44,9 @@
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
@@ -1063,8 +967,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-23etch1.orig/kernel/ptrace.c
-+++ linux-2.6.18-23etch1/kernel/ptrace.c
+--- linux-2.6.18-24.orig/kernel/ptrace.c
++++ linux-2.6.18-24/kernel/ptrace.c
 @@ -21,6 +21,9 @@
  
  #include <asm/pgtable.h>
@@ -1086,8 +990,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.18-23etch1.orig/kernel/sched.c
-+++ linux-2.6.18-23etch1/kernel/sched.c
+--- linux-2.6.18-24.orig/kernel/sched.c
++++ linux-2.6.18-24/kernel/sched.c
 @@ -55,6 +55,9 @@
  #include <asm/tlb.h>
  
@@ -1109,8 +1013,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-23etch1.orig/kernel/signal.c
-+++ linux-2.6.18-23etch1/kernel/signal.c
+--- linux-2.6.18-24.orig/kernel/signal.c
++++ linux-2.6.18-24/kernel/signal.c
 @@ -28,6 +28,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -1160,8 +1064,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18-23etch1.orig/kernel/sys.c
-+++ linux-2.6.18-23etch1/kernel/sys.c
+--- linux-2.6.18-24.orig/kernel/sys.c
++++ linux-2.6.18-24/kernel/sys.c
 @@ -36,6 +36,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1218,8 +1122,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-23etch1.orig/kernel/sysctl.c
-+++ linux-2.6.18-23etch1/kernel/sysctl.c
+--- linux-2.6.18-24.orig/kernel/sysctl.c
++++ linux-2.6.18-24/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1359,8 +1263,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-23etch1.orig/kernel/time.c
-+++ linux-2.6.18-23etch1/kernel/time.c
+--- linux-2.6.18-24.orig/kernel/time.c
++++ linux-2.6.18-24/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1404,8 +1308,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-23etch1.orig/net/core/datagram.c
-+++ linux-2.6.18-23etch1/net/core/datagram.c
+--- linux-2.6.18-24.orig/net/core/datagram.c
++++ linux-2.6.18-24/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1431,8 +1335,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		if (skb)
  			return skb;
  
---- linux-2.6.18-23etch1.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.18-23etch1/net/ipv4/inet_connection_sock.c
+--- linux-2.6.18-24.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.18-24/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1454,8 +1358,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.18-23etch1.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.18-23etch1/net/ipv4/inet_hashtables.c
+--- linux-2.6.18-24.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.18-24/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1477,8 +1381,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-23etch1.orig/net/ipv4/udp.c
-+++ linux-2.6.18-23etch1/net/ipv4/udp.c
+--- linux-2.6.18-24.orig/net/ipv4/udp.c
++++ linux-2.6.18-24/net/ipv4/udp.c
 @@ -108,6 +108,9 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1511,8 +1415,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18-23etch1.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18-23etch1/net/ipv6/inet6_hashtables.c
+--- linux-2.6.18-24.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-24/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1543,8 +1447,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-23etch1.orig/net/ipv6/udp.c
-+++ linux-2.6.18-23etch1/net/ipv6/udp.c
+--- linux-2.6.18-24.orig/net/ipv6/udp.c
++++ linux-2.6.18-24/net/ipv6/udp.c
 @@ -58,6 +58,9 @@
  
  #include <linux/proc_fs.h>
@@ -1577,8 +1481,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  			if (!udp_lport_inuse(result))
  				break;
  		}
---- linux-2.6.18-23etch1.orig/net/socket.c
-+++ linux-2.6.18-23etch1/net/socket.c
+--- linux-2.6.18-24.orig/net/socket.c
++++ linux-2.6.18-24/net/socket.c
 @@ -94,6 +94,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1671,8 +1575,8 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-23etch1.orig/net/unix/af_unix.c
-+++ linux-2.6.18-23etch1/net/unix/af_unix.c
+--- linux-2.6.18-24.orig/net/unix/af_unix.c
++++ linux-2.6.18-24/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1683,27 +1587,13 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  int sysctl_unix_max_dgram_qlen = 10;
  
-@@ -764,6 +767,11 @@ static int unix_bind(struct socket *sock
- 		err = unix_autobind(sock);
- 		goto out;
- 	}
-+	/***** TOMOYO Linux start. *****/
-+	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		goto out;
-+	/***** TOMOYO Linux end. *****/
- 
- 	err = unix_mkname(sunaddr, addr_len, &hash);
- 	if (err < 0)
-@@ -807,6 +815,13 @@ static int unix_bind(struct socket *sock
+@@ -807,6 +810,11 @@ static int unix_bind(struct socket *sock
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
 +		/***** TOMOYO Linux start. *****/
-+		err = pre_vfs_mknod(nd.dentry->d_inode, dentry, mode);
-+		if (!err)
-+			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
-+						   nd.mnt);
++		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
++						 nd.mnt, mode, 0);
 +		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);

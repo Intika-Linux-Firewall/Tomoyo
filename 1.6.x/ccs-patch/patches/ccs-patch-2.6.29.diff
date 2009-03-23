@@ -302,7 +302,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +	if (!error)
 +		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
 +						   dentry, nd.path.mnt, mode,
-+						   new_decode_dev(dev));
++						   dev);
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_drop_write;
