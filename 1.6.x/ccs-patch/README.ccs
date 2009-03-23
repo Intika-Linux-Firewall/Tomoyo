@@ -1856,8 +1856,6 @@ Fix 2009/03/18
       functionality.
 
       This functionality requires modification of ccs-patch-\*.diff .
-      Therefore, this functionality will not work if you are using old
-      ccs-patch-\*.diff .
 
     @ Use better name for socket's pathname.
 
@@ -1878,5 +1876,16 @@ Fix 2009/03/18
 
       To enable MAC_FOR_IOCTL functionality work, I inserted
       ccs_check_ioctl_permission() call into ccs-patch-\*.diff .
+
+Fix 2009/03/23
+
+    @ Move sysctl()'s check from ccs-patch-\*.diff to fs/tomoyo_file.c .
+
+      Since try_parse_table() in kernel/sysctl.c is almost identical between
+      all versions, I moved that function to fs/tomoyo_file.c .
+
+    @ Relocate definitions and functions.
+
+      To reduce exposed symbols, I relocated some definitions and functions.
 
 Version 1.6.7 2009/??/??   Feature enhancement release.

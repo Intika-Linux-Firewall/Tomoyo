@@ -2,63 +2,63 @@ This is TOMOYO Linux patch for kernel 2.6.12.6.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.12.6.tar.bz2
 ---
- arch/alpha/kernel/ptrace.c         |    7 ++
- arch/arm/kernel/ptrace.c           |    7 ++
- arch/arm26/kernel/ptrace.c         |    7 ++
- arch/cris/arch-v10/kernel/ptrace.c |    7 ++
- arch/frv/kernel/ptrace.c           |    7 ++
- arch/h8300/kernel/ptrace.c         |    7 ++
- arch/i386/kernel/ptrace.c          |    7 ++
- arch/ia64/ia32/sys_ia32.c          |    7 ++
- arch/ia64/kernel/ptrace.c          |    7 ++
- arch/m32r/kernel/ptrace.c          |    7 ++
- arch/m68k/kernel/ptrace.c          |    7 ++
- arch/m68knommu/kernel/ptrace.c     |    7 ++
- arch/mips/kernel/ptrace.c          |    7 ++
- arch/mips/kernel/ptrace32.c        |    7 ++
- arch/parisc/kernel/ptrace.c        |    7 ++
- arch/ppc/kernel/ptrace.c           |    7 ++
- arch/ppc64/kernel/ptrace.c         |    7 ++
- arch/ppc64/kernel/ptrace32.c       |    7 ++
- arch/s390/kernel/ptrace.c          |    7 ++
- arch/sh/kernel/ptrace.c            |    7 ++
- arch/sh64/kernel/ptrace.c          |    7 ++
- arch/sparc/kernel/ptrace.c         |    9 ++
- arch/sparc64/kernel/ptrace.c       |    9 ++
- arch/um/kernel/ptrace.c            |    7 ++
- arch/v850/kernel/ptrace.c          |    7 ++
- arch/x86_64/ia32/ptrace32.c        |    7 ++
- arch/x86_64/kernel/ptrace.c        |    7 ++
- fs/Kconfig                         |    2 
- fs/Makefile                        |    2 
- fs/attr.c                          |   19 ++++++
- fs/compat.c                        |   15 ++++
- fs/exec.c                          |   21 ++++++
- fs/fcntl.c                         |    8 ++
- fs/ioctl.c                         |   11 +++
- fs/namei.c                         |   60 +++++++++++++++++++
- fs/namespace.c                     |   54 ++++++++++++++++-
- fs/open.c                          |   29 +++++++++
- fs/proc/Makefile                   |    3 
- fs/proc/proc_misc.c                |    5 +
- include/linux/init_task.h          |    4 +
- include/linux/sched.h              |    8 ++
- kernel/compat.c                    |    7 ++
- kernel/kmod.c                      |    5 +
- kernel/module.c                    |   13 +++-
- kernel/sched.c                     |    7 ++
- kernel/signal.c                    |   22 +++++++
- kernel/sys.c                       |   21 ++++++
- kernel/sysctl.c                    |  116 ++++++++++++++++++++++++++++++++++++-
- kernel/time.c                      |   15 ++++
- net/core/datagram.c                |   10 +++
- net/ipv4/tcp_ipv4.c                |   11 +++
- net/ipv4/udp.c                     |   11 +++
- net/ipv6/tcp_ipv6.c                |   11 +++
- net/ipv6/udp.c                     |   16 ++++-
- net/socket.c                       |   43 ++++++++++++-
- net/unix/af_unix.c                 |    8 ++
- 56 files changed, 738 insertions(+), 12 deletions(-)
+ arch/alpha/kernel/ptrace.c         |    7 ++++
+ arch/arm/kernel/ptrace.c           |    7 ++++
+ arch/arm26/kernel/ptrace.c         |    7 ++++
+ arch/cris/arch-v10/kernel/ptrace.c |    7 ++++
+ arch/frv/kernel/ptrace.c           |    7 ++++
+ arch/h8300/kernel/ptrace.c         |    7 ++++
+ arch/i386/kernel/ptrace.c          |    7 ++++
+ arch/ia64/ia32/sys_ia32.c          |    7 ++++
+ arch/ia64/kernel/ptrace.c          |    7 ++++
+ arch/m32r/kernel/ptrace.c          |    7 ++++
+ arch/m68k/kernel/ptrace.c          |    7 ++++
+ arch/m68knommu/kernel/ptrace.c     |    7 ++++
+ arch/mips/kernel/ptrace.c          |    7 ++++
+ arch/mips/kernel/ptrace32.c        |    7 ++++
+ arch/parisc/kernel/ptrace.c        |    7 ++++
+ arch/ppc/kernel/ptrace.c           |    7 ++++
+ arch/ppc64/kernel/ptrace.c         |    7 ++++
+ arch/ppc64/kernel/ptrace32.c       |    7 ++++
+ arch/s390/kernel/ptrace.c          |    7 ++++
+ arch/sh/kernel/ptrace.c            |    7 ++++
+ arch/sh64/kernel/ptrace.c          |    7 ++++
+ arch/sparc/kernel/ptrace.c         |    9 +++++
+ arch/sparc64/kernel/ptrace.c       |    9 +++++
+ arch/um/kernel/ptrace.c            |    7 ++++
+ arch/v850/kernel/ptrace.c          |    7 ++++
+ arch/x86_64/ia32/ptrace32.c        |    7 ++++
+ arch/x86_64/kernel/ptrace.c        |    7 ++++
+ fs/Kconfig                         |    2 +
+ fs/Makefile                        |    2 +
+ fs/attr.c                          |   19 +++++++++++
+ fs/compat.c                        |   15 ++++++++-
+ fs/exec.c                          |   21 ++++++++++++
+ fs/fcntl.c                         |    8 ++++
+ fs/ioctl.c                         |   11 ++++++
+ fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                     |   54 ++++++++++++++++++++++++++++++++-
+ fs/open.c                          |   29 +++++++++++++++++
+ fs/proc/Makefile                   |    3 +
+ fs/proc/proc_misc.c                |    5 +++
+ include/linux/init_task.h          |    4 ++
+ include/linux/sched.h              |    8 ++++
+ kernel/compat.c                    |    7 ++++
+ kernel/kmod.c                      |    5 +++
+ kernel/module.c                    |   13 ++++++--
+ kernel/sched.c                     |    7 ++++
+ kernel/signal.c                    |   22 +++++++++++++
+ kernel/sys.c                       |   21 ++++++++++++
+ kernel/sysctl.c                    |   22 ++++++++++++-
+ kernel/time.c                      |   15 +++++++++
+ net/core/datagram.c                |   10 ++++++
+ net/ipv4/tcp_ipv4.c                |   11 ++++++
+ net/ipv4/udp.c                     |   11 ++++++
+ net/ipv6/tcp_ipv6.c                |   11 ++++++
+ net/ipv6/udp.c                     |   16 +++++++++
+ net/socket.c                       |   43 ++++++++++++++++++++++++--
+ net/unix/af_unix.c                 |    8 ++++
+ 56 files changed, 644 insertions(+), 12 deletions(-)
 
 --- linux-2.6.12.6.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.6/arch/alpha/kernel/ptrace.c
@@ -1505,115 +1505,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
-@@ -971,6 +974,100 @@ void __init sysctl_init(void)
- #endif
- }
- 
-+/***** TOMOYO Linux start. *****/
-+static int try_parse_table(int __user *name, int nlen, void __user *oldval,
-+			   void __user *newval, ctl_table *table)
-+{
-+	int n;
-+	int error = -ENOMEM;
-+	int op = 0;
-+	char *buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (oldval)
-+		op |= 004;
-+	if (newval)
-+		op |= 002;
-+	if (!op) { /* Neither read nor write */
-+		error = 0;
-+		goto out;
-+	}
-+	if (!buffer)
-+		goto out;
-+	memset(buffer, 0, PAGE_SIZE);
-+	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
-+ repeat:
-+	if (!nlen) {
-+		error = -ENOTDIR;
-+		goto out;
-+	}
-+	if (get_user(n, name)) {
-+		error = -EFAULT;
-+		goto out;
-+	}
-+	for ( ; table->ctl_name; table++) {
-+		if (n == table->ctl_name || table->ctl_name == CTL_ANY) {
-+			int pos = strlen(buffer);
-+			const char *cp = table->procname;
-+			error = -ENOMEM;
-+			if (cp) {
-+				if (pos + 1 >= PAGE_SIZE - 1)
-+					goto out;
-+				buffer[pos++] = '/';
-+				while (*cp) {
-+					const unsigned char c
-+						= *(const unsigned char *) cp;
-+					if (c == '\\') {
-+						if (pos + 2 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = '\\';
-+						buffer[pos++] = '\\';
-+					} else if (c > ' ' && c < 127) {
-+						if (pos + 1 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = c;
-+					} else {
-+						if (pos + 4 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = '\\';
-+						buffer[pos++] = (c >> 6) + '0';
-+						buffer[pos++] = ((c >> 3) & 7)
-+							+ '0';
-+						buffer[pos++] = (c & 7) + '0';
-+					}
-+					cp++;
-+				}
-+			} else {
-+				/* Assume nobody assigns "=\$=" for procname. */
-+				snprintf(buffer + pos, PAGE_SIZE - pos - 1,
-+					 "/=%d=", table->ctl_name);
-+				if (!memchr(buffer, '\0', PAGE_SIZE - 2))
-+					goto out;
-+			}
-+			if (table->child) {
-+				if (table->strategy) {
-+					/* printk("sysctl='%s'\n", buffer); */
-+					if (ccs_check_file_perm(buffer, op,
-+								"sysctl")) {
-+						error = -EPERM;
-+						goto out;
-+					}
-+				}
-+				name++;
-+				nlen--;
-+				table = table->child;
-+				goto repeat;
-+			}
-+			/* printk("sysctl='%s'\n", buffer); */
-+			error = ccs_check_file_perm(buffer, op, "sysctl");
-+			goto out;
-+		}
-+	}
-+	error = -ENOTDIR;
-+ out:
-+	kfree(buffer);
-+	return error;
-+}
-+/***** TOMOYO Linux end. *****/
-+
- int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
- 	       void __user *newval, size_t newlen)
- {
-@@ -988,7 +1085,13 @@ int do_sysctl(int __user *name, int nlen
+@@ -988,7 +991,13 @@ int do_sysctl(int __user *name, int nlen
  		struct ctl_table_header *head =
  			list_entry(tmp, struct ctl_table_header, ctl_entry);
  		void *context = NULL;
 -		int error = parse_table(name, nlen, oldval, oldlenp, 
 +		int error;
 +		/***** TOMOYO Linux start. *****/
-+		error = try_parse_table(name, nlen, oldval, newval,
++		error = ccs_parse_table(name, nlen, oldval, newval,
 +					head->ctl_table);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
@@ -1621,7 +1520,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					newval, newlen, head->ctl_table,
  					&context);
  		if (context)
-@@ -1058,6 +1161,15 @@ repeat:
+@@ -1058,6 +1067,15 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -1637,7 +1536,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-@@ -2116,7 +2228,7 @@ int sysctl_string(ctl_table *table, int 
+@@ -2116,7 +2134,7 @@ int sysctl_string(ctl_table *table, int 
  			len--;
  		((char *) table->data)[len] = 0;
  	}

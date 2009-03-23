@@ -2,39 +2,39 @@ This is TOMOYO Linux patch for kernel 2.6.28.8.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.8.tar.bz2
 ---
- fs/Kconfig                      |    2 
- fs/Makefile                     |    2 
- fs/attr.c                       |   10 ++++
- fs/compat.c                     |    5 +-
- fs/compat_ioctl.c               |   13 +++++
- fs/exec.c                       |   21 ++++++++
- fs/fcntl.c                      |    9 +++
- fs/ioctl.c                      |   11 ++++
- fs/namei.c                      |   57 ++++++++++++++++++++++++
- fs/namespace.c                  |   49 ++++++++++++++++++++
- fs/open.c                       |   29 ++++++++++++
- fs/proc/Makefile                |    3 +
- fs/proc/version.c               |   11 ++++
- include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    8 +++
- kernel/compat.c                 |    7 ++
- kernel/kexec.c                  |    7 ++
- kernel/kmod.c                   |    5 ++
- kernel/module.c                 |   11 ++++
- kernel/ptrace.c                 |   11 ++++
- kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 ++++++++
- kernel/sys.c                    |   21 ++++++++
- kernel/sysctl.c                 |   95 ++++++++++++++++++++++++++++++++++++++++
- kernel/time.c                   |   11 ++++
- kernel/time/ntp.c               |   11 ++++
- net/core/datagram.c             |   11 ++++
- net/ipv4/inet_connection_sock.c |    7 ++
- net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |    9 +++
- net/socket.c                    |   41 +++++++++++++++++
- net/unix/af_unix.c              |    8 +++
- 32 files changed, 521 insertions(+), 3 deletions(-)
+ fs/Kconfig                      |    2 +
+ fs/Makefile                     |    2 +
+ fs/attr.c                       |   10 +++++++
+ fs/compat.c                     |    5 ++-
+ fs/compat_ioctl.c               |   13 +++++++++
+ fs/exec.c                       |   21 ++++++++++++++
+ fs/fcntl.c                      |    9 ++++++
+ fs/ioctl.c                      |   11 +++++++
+ fs/namei.c                      |   57 ++++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   49 ++++++++++++++++++++++++++++++++++
+ fs/open.c                       |   29 ++++++++++++++++++++
+ fs/proc/Makefile                |    3 ++
+ fs/proc/version.c               |   11 +++++++
+ include/linux/init_task.h       |    4 ++
+ include/linux/sched.h           |    8 +++++
+ kernel/compat.c                 |    7 ++++
+ kernel/kexec.c                  |    7 ++++
+ kernel/kmod.c                   |    5 +++
+ kernel/module.c                 |   11 +++++++
+ kernel/ptrace.c                 |   11 +++++++
+ kernel/sched.c                  |    7 ++++
+ kernel/signal.c                 |   21 ++++++++++++++
+ kernel/sys.c                    |   21 ++++++++++++++
+ kernel/sysctl.c                 |    8 +++++
+ kernel/time.c                   |   11 +++++++
+ kernel/time/ntp.c               |   11 +++++++
+ net/core/datagram.c             |   11 +++++++
+ net/ipv4/inet_connection_sock.c |    7 ++++
+ net/ipv4/inet_hashtables.c      |    7 ++++
+ net/ipv4/udp.c                  |    9 +++++-
+ net/socket.c                    |   41 ++++++++++++++++++++++++++++
+ net/unix/af_unix.c              |    8 +++++
+ 32 files changed, 434 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28.8.orig/fs/Kconfig
 +++ linux-2.6.28.8/fs/Kconfig
@@ -897,106 +897,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1596,6 +1599,93 @@ repeat:
- 	return -ENOTDIR;
- }
- 
-+
-+/***** TOMOYO Linux start. *****/
-+static int try_parse_table(int __user *name, int nlen, void __user *oldval,
-+			   void __user *newval, ctl_table *table)
-+{
-+	int n;
-+	int error = -ENOMEM;
-+	int op = 0;
-+	char *buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (oldval)
-+		op |= 004;
-+	if (newval)
-+		op |= 002;
-+	if (!op) { /* Neither read nor write */
-+		error = 0;
-+		goto out;
-+	}
-+	if (!buffer)
-+		goto out;
-+	memset(buffer, 0, PAGE_SIZE);
-+	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
-+ repeat:
-+	if (!nlen) {
-+		error = -ENOTDIR;
-+		goto out;
-+	}
-+	if (get_user(n, name)) {
-+		error = -EFAULT;
-+		goto out;
-+	}
-+	for ( ; table->ctl_name || table->procname; table++) {
-+		if (n == table->ctl_name && n) {
-+			int pos = strlen(buffer);
-+			const char *cp = table->procname;
-+			error = -ENOMEM;
-+			if (cp) {
-+				if (pos + 1 >= PAGE_SIZE - 1)
-+					goto out;
-+				buffer[pos++] = '/';
-+				while (*cp) {
-+					const unsigned char c
-+						= *(const unsigned char *) cp;
-+					if (c == '\\') {
-+						if (pos + 2 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = '\\';
-+						buffer[pos++] = '\\';
-+					} else if (c > ' ' && c < 127) {
-+						if (pos + 1 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = c;
-+					} else {
-+						if (pos + 4 >= PAGE_SIZE - 1)
-+							goto out;
-+						buffer[pos++] = '\\';
-+						buffer[pos++] = (c >> 6) + '0';
-+						buffer[pos++] = ((c >> 3) & 7)
-+							+ '0';
-+						buffer[pos++] = (c & 7) + '0';
-+					}
-+					cp++;
-+				}
-+			} else {
-+				/* Assume nobody assigns "=\$=" for procname. */
-+				snprintf(buffer + pos, PAGE_SIZE - pos - 1,
-+					 "/=%d=", n);
-+				if (!memchr(buffer, '\0', PAGE_SIZE - 2))
-+					goto out;
-+			}
-+			if (table->child) {
-+				name++;
-+				nlen--;
-+				table = table->child;
-+				goto repeat;
-+			}
-+			/* printk("sysctl='%s'\n", buffer); */
-+			error = ccs_check_file_perm(buffer, op, "sysctl");
-+			goto out;
-+		}
-+	}
-+	error = -ENOTDIR;
-+ out:
-+	kfree(buffer);
-+	return error;
-+}
-+/***** TOMOYO Linux end. *****/
-+
- int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
- 	       void __user *newval, size_t newlen)
- {
-@@ -1612,6 +1702,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1612,6 +1615,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = try_parse_table(name, nlen, oldval, newval,
++		error = ccs_parse_table(name, nlen, oldval, newval,
 +					head->ctl_table);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
