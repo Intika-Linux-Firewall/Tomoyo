@@ -1235,6 +1235,7 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 #endif
 #ifndef CONFIG_TOMOYO
 		case CCS_MAC_FOR_FILE:
+		case CCS_MAC_FOR_IOCTL:
 		case CCS_MAC_FOR_ARGV0:
 		case CCS_MAC_FOR_ENV:
 		case CCS_MAC_FOR_NETWORK:
