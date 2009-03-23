@@ -41,8 +41,7 @@ int ccs_may_create(struct inode *dir, struct dentry *dentry,
 	return may_create(dir, dentry, nd, is_dir);
 }
 #else
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   int is_dir)
+int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
 {
 	return may_create(dir, dentry, is_dir);
 }

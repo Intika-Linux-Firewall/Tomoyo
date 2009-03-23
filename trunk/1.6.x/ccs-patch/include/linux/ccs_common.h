@@ -472,6 +472,42 @@ struct ccs_ip_network_acl_record {
 	} u;
 };
 
+/* Index numbers for File Controls. */
+
+/*
+ * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
+ * if both TYPE_READ_ACL and TYPE_WRITE_ACL are set. Both TYPE_READ_ACL and
+ * TYPE_WRITE_ACL are automatically set if TYPE_READ_WRITE_ACL is set.
+ * TYPE_READ_WRITE_ACL is automatically cleared if either TYPE_READ_ACL or
+ * TYPE_WRITE_ACL is cleared. Both TYPE_READ_ACL and TYPE_WRITE_ACL are
+ * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
+ */
+
+enum ccs_single_path_acl_index {
+	TYPE_READ_WRITE_ACL,
+	TYPE_EXECUTE_ACL,
+	TYPE_READ_ACL,
+	TYPE_WRITE_ACL,
+	TYPE_CREATE_ACL,
+	TYPE_UNLINK_ACL,
+	TYPE_MKDIR_ACL,
+	TYPE_RMDIR_ACL,
+	TYPE_MKFIFO_ACL,
+	TYPE_MKSOCK_ACL,
+	TYPE_MKBLOCK_ACL,
+	TYPE_MKCHAR_ACL,
+	TYPE_TRUNCATE_ACL,
+	TYPE_SYMLINK_ACL,
+	TYPE_REWRITE_ACL,
+	MAX_SINGLE_PATH_OPERATION
+};
+
+enum ccs_double_path_acl_index {
+	TYPE_LINK_ACL,
+	TYPE_RENAME_ACL,
+	MAX_DOUBLE_PATH_OPERATION
+};
+
 enum ccs_ip_record_type {
 	IP_RECORD_TYPE_ADDRESS_GROUP,
 	IP_RECORD_TYPE_IPv4,

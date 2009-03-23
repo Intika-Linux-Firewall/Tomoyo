@@ -41,78 +41,24 @@ struct nameidata;
 struct inode;
 struct linux_binprm;
 struct pt_regs;
+struct file;
+struct ctl_table;
 
 #if defined(CONFIG_TOMOYO)
 
-int ccs_check_file_perm(const char *filename, const u8 perm,
-			const char *operation);
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag);
-int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
-			 struct vfsmount *mnt);
-int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
-			 struct vfsmount *mnt1, struct dentry *dentry2,
-			 struct vfsmount *mnt2);
 int ccs_check_rewrite_permission(struct file *filp);
 int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 			       unsigned long arg);
+int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
+		    void __user *newval, struct ctl_table *table);
 
 /* Check whether the given signal is allowed to use. */
 int ccs_check_signal_acl(const int sig, const int pid);
 
 /* Check whether the given capability is allowed to use. */
 _Bool ccs_capable(const u8 operation);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-/* Some of permission checks from vfs_create(). */
-int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry);
-/* Some of permission checks from vfs_mknod(). */
-int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry);
-#else
-/* Some of permission checks from vfs_mknod(). */
-int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode);
-#endif
-/* Some of permission checks from vfs_mkdir(). */
-int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry);
-/* Some of permission checks from vfs_rmdir(). */
-int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry);
-/* Some of permission checks from vfs_unlink(). */
-int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry);
-/* Permission checks from vfs_symlink(). */
-int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry);
-/* Some of permission checks from vfs_link(). */
-int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		     struct dentry *new_dentry);
-/* Some of permission checks from vfs_rename(). */
-int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		       struct inode *new_dir, struct dentry *new_dentry);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-int ccs_may_create(struct inode *dir, struct dentry *dentry);
-int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
-
-#else
-
-/* SUSE 11.0 adds is_dir for may_create(). */
-#ifdef MS_WITHAPPEND
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd, int is_dir);
-#else
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   int is_dir);
-#endif
-#else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd);
-#else
-int ccs_may_create(struct inode *dir, struct dentry *dentry);
-#endif
-#endif
-int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
-#endif
 
 int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt, int mode, unsigned dev);
@@ -136,28 +82,9 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 
 #else
 
-static inline int ccs_check_file_perm(const char *filename, const u8 perm,
-				      const char *operation)
-{
-	return 0;
-}
 static inline int ccs_check_open_permission(struct dentry *dentry,
 					    struct vfsmount *mnt,
 					    const int flag)
-{
-	return 0;
-}
-static inline int ccs_check_1path_perm(const u8 operation,
-				       struct dentry *dentry,
-				       struct vfsmount *mnt)
-{
-	return 0;
-}
-static inline int ccs_check_2path_perm(const u8 operation,
-				       struct dentry *dentry1,
-				       struct vfsmount *mnt1,
-				       struct dentry *dentry2,
-				       struct vfsmount *mnt2)
 {
 	return 0;
 }
@@ -172,6 +99,13 @@ static inline int ccs_check_ioctl_permission(struct file *filp,
 	return 0;
 }
 
+static inline int ccs_parse_table(int __user *name, int nlen,
+				  void __user *oldval, void __user *newval,
+				  ctl_table *table)
+{
+	return 0;
+}
+
 static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
@@ -179,62 +113,6 @@ static inline int ccs_check_signal_acl(const int sig, const int pid)
 static inline _Bool ccs_capable(const u8 operation)
 {
 	return 1;
-}
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-#else
-
-static inline int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
-				    int mode)
-{
-	return 0;
-}
-
-#endif
-
-static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-				   struct dentry *new_dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
-{
-	return 0;
-}
-
-static inline int ccs_pre_vfs_rename(struct inode *old_dir,
-				     struct dentry *old_dentry,
-				     struct inode *new_dir,
-				     struct dentry *new_dentry)
-{
-	return 0;
 }
 
 static inline int ccs_check_mknod_permission(struct inode *dir,
@@ -301,6 +179,29 @@ static inline int ccs_check_link_permission(struct dentry *old_dentry,
 
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+int ccs_may_create(struct inode *dir, struct dentry *dentry);
+int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
+#else
+/* SUSE 11.0 adds is_dir for may_create(). */
+#ifdef MS_WITHAPPEND
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+int ccs_may_create(struct inode *dir, struct dentry *dentry,
+		   struct nameidata *nd, int is_dir);
+#else
+int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir);
+#endif
+#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+int ccs_may_create(struct inode *dir, struct dentry *dentry,
+		   struct nameidata *nd);
+#else
+int ccs_may_create(struct inode *dir, struct dentry *dentry);
+#endif
+#endif
+int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
+#endif
+
 int ccs_start_execve(struct linux_binprm *bprm);
 void ccs_finish_execve(int retval);
 
@@ -322,42 +223,6 @@ search_binary_handler_with_transition(struct linux_binprm *bprm,
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 #define CCS_TASK_IS_EXECUTE_HANDLER     4
 #define CCS_TASK_IS_POLICY_MANAGER      8
-
-/* Index numbers for File Controls. */
-
-/*
- * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
- * if both TYPE_READ_ACL and TYPE_WRITE_ACL are set. Both TYPE_READ_ACL and
- * TYPE_WRITE_ACL are automatically set if TYPE_READ_WRITE_ACL is set.
- * TYPE_READ_WRITE_ACL is automatically cleared if either TYPE_READ_ACL or
- * TYPE_WRITE_ACL is cleared. Both TYPE_READ_ACL and TYPE_WRITE_ACL are
- * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
- */
-
-enum ccs_single_path_acl_index {
-	TYPE_READ_WRITE_ACL,
-	TYPE_EXECUTE_ACL,
-	TYPE_READ_ACL,
-	TYPE_WRITE_ACL,
-	TYPE_CREATE_ACL,
-	TYPE_UNLINK_ACL,
-	TYPE_MKDIR_ACL,
-	TYPE_RMDIR_ACL,
-	TYPE_MKFIFO_ACL,
-	TYPE_MKSOCK_ACL,
-	TYPE_MKBLOCK_ACL,
-	TYPE_MKCHAR_ACL,
-	TYPE_TRUNCATE_ACL,
-	TYPE_SYMLINK_ACL,
-	TYPE_REWRITE_ACL,
-	MAX_SINGLE_PATH_OPERATION
-};
-
-enum ccs_double_path_acl_index {
-	TYPE_LINK_ACL,
-	TYPE_RENAME_ACL,
-	MAX_DOUBLE_PATH_OPERATION
-};
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
@@ -425,14 +290,5 @@ enum ccs_capability_acl_index {
 	CCS_SYS_PTRACE,
 	CCS_MAX_CAPABILITY_INDEX
 };
-
-#define pre_vfs_create  ccs_pre_vfs_create
-#define pre_vfs_mknod   ccs_pre_vfs_mknod
-#define pre_vfs_mkdir   ccs_pre_vfs_mkdir
-#define pre_vfs_rmdir   ccs_pre_vfs_rmdir
-#define pre_vfs_unlink  ccs_pre_vfs_unlink
-#define pre_vfs_symlink ccs_pre_vfs_symlink
-#define pre_vfs_link    ccs_pre_vfs_link
-#define pre_vfs_rename  ccs_pre_vfs_rename
 
 #endif

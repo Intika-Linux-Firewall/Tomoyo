@@ -6,37 +6,37 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  arch/mips/kernel/ptrace32.c     |    7 ++
  fs/Kconfig                      |    2 
  fs/Makefile                     |    2 
- fs/attr.c                       |   19 ++++++
- fs/compat.c                     |    5 +
- fs/compat_ioctl.c               |   13 ++++
- fs/exec.c                       |   21 ++++++-
+ fs/attr.c                       |   19 ++++++++
+ fs/compat.c                     |    5 +-
+ fs/compat_ioctl.c               |   13 +++++
+ fs/exec.c                       |   21 ++++++++
  fs/fcntl.c                      |    9 +++
- fs/ioctl.c                      |   11 +++
- fs/namei.c                      |  120 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   49 ++++++++++++++++
- fs/open.c                       |   28 +++++++++
+ fs/ioctl.c                      |   11 ++++
+ fs/namei.c                      |   57 ++++++++++++++++++++++++
+ fs/namespace.c                  |   49 ++++++++++++++++++++
+ fs/open.c                       |   29 ++++++++++++
  fs/proc/Makefile                |    3 +
- fs/proc/proc_misc.c             |    5 +
+ fs/proc/proc_misc.c             |    5 ++
  include/linux/init_task.h       |    4 +
- include/linux/sched.h           |    8 ++
+ include/linux/sched.h           |    8 +++
  kernel/compat.c                 |    7 ++
  kernel/kexec.c                  |    7 ++
- kernel/kmod.c                   |    5 +
- kernel/module.c                 |   11 +++
- kernel/ptrace.c                 |   11 +++
+ kernel/kmod.c                   |    5 ++
+ kernel/module.c                 |   11 ++++
+ kernel/ptrace.c                 |   11 ++++
  kernel/sched.c                  |    7 ++
- kernel/signal.c                 |   21 +++++++
- kernel/sys.c                    |   21 +++++++
- kernel/sysctl.c                 |   95 +++++++++++++++++++++++++++++++
- kernel/time.c                   |   11 +++
+ kernel/signal.c                 |   21 ++++++++
+ kernel/sys.c                    |   21 ++++++++
+ kernel/sysctl.c                 |   95 ++++++++++++++++++++++++++++++++++++++++
+ kernel/time.c                   |   11 ++++
  kernel/time/ntp.c               |    7 ++
- net/core/datagram.c             |   11 +++
+ net/core/datagram.c             |   11 ++++
  net/ipv4/inet_connection_sock.c |    7 ++
  net/ipv4/inet_hashtables.c      |    7 ++
- net/ipv4/udp.c                  |   10 +++
- net/socket.c                    |   41 +++++++++++++
- net/unix/af_unix.c              |   15 +++++
- 34 files changed, 605 insertions(+), 2 deletions(-)
+ net/ipv4/udp.c                  |   10 ++++
+ net/socket.c                    |   41 +++++++++++++++++
+ net/unix/af_unix.c              |    8 +++
+ 34 files changed, 536 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -322,22 +322,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1531,6 +1535,14 @@ int vfs_create(struct inode *dir, struct
- 	error = security_inode_create(dir, dentry, mode);
- 	if (error)
- 		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if (nd) {
-+		error = ccs_check_1path_perm(TYPE_CREATE_ACL, dentry,
-+					     nd->path.mnt);
-+		if (error)
-+			return error;
-+	}
-+	/***** TOMOYO Linux end. *****/
- 	DQUOT_INIT(dir);
- 	error = dir->i_op->create(dir, dentry, mode, nd);
- 	if (!error)
-@@ -1585,6 +1597,13 @@ int may_open(struct nameidata *nd, int a
+@@ -1585,6 +1589,13 @@ int may_open(struct nameidata *nd, int a
  		if (!is_owner_or_cap(inode))
  			return -EPERM;
  
@@ -351,7 +336,19 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1649,6 +1668,9 @@ out_unlock_dput:
+@@ -1636,6 +1647,11 @@ static int __open_namei_create(struct na
+ 
+ 	if (!IS_POSIXACL(dir->d_inode))
+ 		mode &= ~current->fs->umask;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_mknod_permission(dir->d_inode, path->dentry,
++					   nd->path.mnt, mode, 0);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
+ 	if (!error)
+ 		gr_handle_create(path->dentry, nd->path.mnt);
+@@ -1649,6 +1665,9 @@ out_unlock_dput:
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
@@ -361,192 +358,93 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -2031,6 +2053,16 @@ int vfs_mknod(struct inode *dir, struct 
+@@ -2086,6 +2105,12 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+ 	if (error)
+ 		goto out_dput;
  
- static int may_mknod(mode_t mode)
- {
 +	/***** TOMOYO Linux start. *****/
-+	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
-+		return -EPERM;
-+	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
-+		return -EPERM;
-+	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
-+		return -EPERM;
-+	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		return -EPERM;
++	error = ccs_check_mknod_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt, mode,
++					   new_decode_dev(dev));
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	switch (mode & S_IFMT) {
- 	case S_IFREG:
- 	case S_IFCHR:
-@@ -2091,10 +2123,34 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+ 		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
- 			break;
- 		case S_IFCHR: case S_IFBLK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
-+					      mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISCHR(mode) ?
-+						     TYPE_MKCHAR_ACL :
-+						     TYPE_MKBLOCK_ACL,
-+						     dentry, nd.path.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,
- 					new_decode_dev(dev));
- 			break;
- 		case S_IFIFO: case S_IFSOCK:
-+			/***** TOMOYO Linux start. *****/
-+			error = pre_vfs_mknod(nd.path.dentry->d_inode, dentry,
-+					      mode);
-+			if (error)
-+				break;
-+			error = ccs_check_1path_perm(S_ISFIFO(mode) ?
-+						     TYPE_MKFIFO_ACL :
-+						     TYPE_MKSOCK_ACL,
-+						     dentry, nd.path.mnt);
-+			if (error)
-+				break;
-+			/***** TOMOYO Linux end. *****/
- 			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
- 			break;
- 	}
-@@ -2165,6 +2221,13 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2165,6 +2190,11 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_mkdir(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry,
-+					     nd.path.mnt);
++	error = ccs_check_mkdir_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt, mode);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  
-@@ -2291,6 +2354,13 @@ static long do_rmdir(int dfd, const char
+@@ -2291,6 +2321,11 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rmdir(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry,
-+					     nd.path.mnt);
++	error = ccs_check_rmdir_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  	if (!error && (saved_dev || saved_ino))
-@@ -2356,6 +2426,10 @@ static long do_unlinkat(int dfd, const c
- 	struct inode *inode = NULL;
- 	ino_t saved_ino = 0;
- 	dev_t saved_dev = 0;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_UNLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_parent(dfd, pathname, &nd, &name);
- 	if (error)
-@@ -2388,6 +2462,13 @@ static long do_unlinkat(int dfd, const c
+@@ -2388,6 +2423,11 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
 +		/***** TOMOYO Linux start. *****/
-+		error = pre_vfs_unlink(nd.path.dentry->d_inode, dentry);
-+		if (!error)
-+			error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry,
-+						     nd.path.mnt);
++		error = ccs_check_unlink_permission(nd.path.dentry->d_inode,
++						    dentry, nd.path.mnt);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		if (!error && (saved_ino || saved_dev))
  			gr_handle_delete(saved_ino, saved_dev);
-@@ -2454,6 +2535,10 @@ SYSCALL_DEFINE3(symlinkat, const char __
- 	char *to;
- 	struct dentry *dentry;
- 	struct nameidata nd;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_SYMLINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	from = getname(oldname);
- 	if (IS_ERR(from))
-@@ -2476,6 +2561,13 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2476,6 +2516,11 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_symlink(nd.path.dentry->d_inode, dentry);
-+	if (!error)
-+		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry,
-+					     nd.path.mnt);
++	error = ccs_check_symlink_permission(nd.path.dentry->d_inode, dentry,
++					     nd.path.mnt, from);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
  	if (!error)
  		gr_handle_create(dentry, nd.path.mnt);
-@@ -2554,6 +2646,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
- 
- 	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
- 		return -EINVAL;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_LINK))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_at(olddfd, oldname,
- 			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2588,6 +2684,15 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2588,6 +2633,12 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_link(old_path.dentry, nd.path.dentry->d_inode,
-+			     new_dentry);
-+	if (!error)
-+		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_path.dentry,
-+					     old_path.mnt, new_dentry,
-+					     nd.path.mnt);
++	error = ccs_check_link_permission(old_path.dentry,
++					  nd.path.dentry->d_inode, new_dentry,
++					  nd.path.mnt);
 +	if (!error)
 +	/***** TOMOYO Linux end. *****/
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	if (!error)
  		gr_handle_create(new_dentry, nd.path.mnt);
-@@ -2768,6 +2873,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
- 	char *from;
- 	char *to;
- 	int error;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(CCS_SYS_RENAME))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = user_path_parent(olddfd, oldname, &oldnd, &from);
+@@ -2830,6 +2881,12 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+ 	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
-@@ -2820,6 +2929,17 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
- 	error = -ENOTEMPTY;
- 	if (new_dentry == trap)
  		goto exit5;
 +	/***** TOMOYO Linux start. *****/
-+	error = pre_vfs_rename(old_dir->d_inode, old_dentry,
-+			       new_dir->d_inode, new_dentry);
-+	if (error)
-+		goto exit5;
-+	error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
-+				     oldnd.path.mnt, new_dentry,
-+				     newnd.path.mnt);
-+	if (error)
-+		goto exit5;
++	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
++					    new_dir->d_inode, new_dentry,
++					    newnd.path.mnt);
++	if (!error)
 +	/***** TOMOYO Linux end. *****/
- 
- 	error = gr_acl_handle_rename(new_dentry, new_dir, newnd.path.mnt,
- 				     old_dentry, old_dir->d_inode, oldnd.path.mnt,
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+ 				   new_dir->d_inode, new_dentry);
+ 	if (!error)
 --- linux-2.6.27-hardened-r8.orig/fs/namespace.c
 +++ linux-2.6.27-hardened-r8/fs/namespace.c
 @@ -32,6 +32,12 @@
@@ -681,26 +579,27 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  		goto put_write_and_out;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, path.dentry, path.mnt);
++	error = ccs_check_truncate_permission(path.dentry, path.mnt, length, 0);
 +	if (error)
 +		goto put_write_and_out;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -329,6 +340,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -329,6 +340,12 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt);
++	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
++					      0);
 +	if (error)
 +		goto out_putf;
 +	/***** TOMOYO Linux end. *****/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -606,6 +622,14 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -606,6 +623,14 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -715,7 +614,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -1212,6 +1236,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1212,6 +1237,10 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -1429,27 +1328,13 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
  static DEFINE_SPINLOCK(unix_table_lock);
-@@ -795,6 +798,11 @@ static int unix_bind(struct socket *sock
- 		err = unix_autobind(sock);
- 		goto out;
- 	}
-+	/***** TOMOYO Linux start. *****/
-+	err = -EPERM;
-+	if (sunaddr->sun_path[0] && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-+		goto out;
-+	/***** TOMOYO Linux end. *****/
- 
- 	err = unix_mkname(sunaddr, addr_len, &hash);
- 	if (err < 0)
-@@ -848,6 +856,13 @@ static int unix_bind(struct socket *sock
+@@ -848,6 +851,11 @@ static int unix_bind(struct socket *sock
  			goto out_mknod_dput;
  		}
  
 +		/***** TOMOYO Linux start. *****/
-+		err = pre_vfs_mknod(nd.path.dentry->d_inode, dentry, mode);
-+		if (!err)
-+			err = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry,
-+						   nd.path.mnt);
++		err = ccs_check_mknod_permission(nd.path.dentry->d_inode,
++						 dentry, nd.path.mnt, mode, 0);
 +		if (!err)
 +		/***** TOMOYO Linux end. *****/
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);

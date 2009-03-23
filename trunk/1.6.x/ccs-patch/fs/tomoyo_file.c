@@ -788,7 +788,7 @@ static inline int ccs_check_file_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_file_perm2 - Check permission for opening files.
+ * ccs_check_file_perm - Check permission for opening files.
  *
  * @r:         Pointer to "strct ccs_request_info".
  * @filename:  Filename to check.
@@ -797,9 +797,9 @@ static inline int ccs_check_file_acl(struct ccs_request_info *r,
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  */
-static int ccs_check_file_perm2(struct ccs_request_info *r,
-				const struct ccs_path_info *filename,
-				const u8 perm, const char *operation)
+static int ccs_check_file_perm(struct ccs_request_info *r,
+			       const struct ccs_path_info *filename,
+			       const u8 perm, const char *operation)
 {
 	const bool is_enforce = (r->mode == 3);
 	const char *msg = "<unknown>";
@@ -1313,30 +1313,6 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_file_perm - Check permission for sysctl()'s "read" and "write".
- *
- * @filename:  Filename to check.
- * @perm:      Mode ("read" or "write" or "read/write").
- * @operation: Always "sysctl".
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_check_file_perm(const char *filename, const u8 perm,
-			const char *operation)
-{
-	struct ccs_path_info name;
-	struct ccs_request_info r;
-	if (!ccs_can_sleep())
-		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	if (!r.mode)
-		return 0;
-	name.name = filename;
-	ccs_fill_path_info(&name);
-	return ccs_check_file_perm2(&r, &name, perm, operation);
-}
-
-/**
  * ccs_check_exec_perm - Check permission for "execute".
  *
  * @r:        Pointer to "struct ccs_request_info".
@@ -1351,7 +1327,7 @@ int ccs_check_exec_perm(struct ccs_request_info *r,
 		return 0;
 	if (!r->mode)
 		return 0;
-	return ccs_check_file_perm2(r, filename, 1, "do_execve");
+	return ccs_check_file_perm(r, filename, 1, "do_execve");
 }
 
 /**
@@ -1405,7 +1381,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL,
 							  buf);
 	if (!error)
-		error = ccs_check_file_perm2(&r, buf, acc_mode, "open");
+		error = ccs_check_file_perm(&r, buf, acc_mode, "open");
 	if (!error && (flag & O_TRUNC))
 		error = ccs_check_single_path_permission2(&r, TYPE_TRUNCATE_ACL,
 							  buf);
@@ -1425,8 +1401,8 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
-			 struct vfsmount *mnt)
+static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
+				struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
@@ -1462,7 +1438,6 @@ int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		error = 0;
 	return error;
 }
-EXPORT_SYMBOL(ccs_check_1path_perm); /* for net/unix/af_unix.c  */
 
 /**
  * ccs_check_rewrite_permission - Check permission for "rewrite".
@@ -1508,15 +1483,13 @@ int ccs_check_rewrite_permission(struct file *filp)
  *
  * @operation: Type of operation.
  * @dentry1:   Pointer to "struct dentry".
- * @mnt1:      Pointer to "struct vfsmount".
  * @dentry2:   Pointer to "struct dentry".
- * @mnt2:      Pointer to "struct vfsmount".
+ * @mnt:       Pointer to "struct vfsmount".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_2path_perm(const u8 operation,
-			 struct dentry *dentry1, struct vfsmount *mnt1,
-			 struct dentry *dentry2, struct vfsmount *mnt2)
+static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
+				struct dentry *dentry2, struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
@@ -1529,10 +1502,10 @@ int ccs_check_2path_perm(const u8 operation,
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt1 || !mnt2)
+	if (!r.mode || !mnt)
 		return 0;
-	buf1 = ccs_get_path(dentry1, mnt1);
-	buf2 = ccs_get_path(dentry2, mnt2);
+	buf1 = ccs_get_path(dentry1, mnt);
+	buf2 = ccs_get_path(dentry2, mnt);
 	if (!buf1 || !buf2)
 		goto out;
 	if (operation == TYPE_RENAME_ACL) {
@@ -1551,9 +1524,9 @@ int ccs_check_2path_perm(const u8 operation,
 	}
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry1;
-	obj.path1_vfsmnt = mnt1;
+	obj.path1_vfsmnt = mnt;
 	obj.path2_dentry = dentry2;
-	obj.path2_vfsmnt = mnt2;
+	obj.path2_vfsmnt = mnt;
 	r.obj = &obj;
  retry:
 	error = ccs_check_double_path_acl(&r, operation, buf1, buf2);
@@ -1861,7 +1834,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
 /* Some of permission checks from vfs_create(). */
-int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1872,13 +1845,8 @@ int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/*
- * Some of permission checks from vfs_mknod().
- *
- * This function is exported because
- * vfs_mknod() is called from net/unix/af_unix.c .
- */
-int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+/* Some of permission checks from vfs_mknod(). */
+static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1888,10 +1856,9 @@ int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 	up(&dir->i_zombie);
 	return error;
 }
-EXPORT_SYMBOL(ccs_pre_vfs_mknod);
 
 /* Some of permission checks from vfs_mkdir(). */
-int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1903,7 +1870,7 @@ int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_rmdir(). */
-int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
 	if (!error && (!dir->i_op || !dir->i_op->rmdir))
@@ -1912,7 +1879,7 @@ int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_unlink(). */
-int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	int error;
@@ -1941,7 +1908,7 @@ int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_symlink(). */
-int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -1956,8 +1923,8 @@ int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks from vfs_link(). */
-int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		     struct dentry *new_dentry)
+static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+			    struct dentry *new_dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	struct inode *inode;
@@ -2062,8 +2029,8 @@ static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
 }
 
 /* Some of permission checks from vfs_rename(). */
-int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		       struct inode *new_dir, struct dentry *new_dentry)
+static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+			      struct inode *new_dir, struct dentry *new_dentry)
 {
 	int error;
 	lock_kernel(); /* From do_rename(). */
@@ -2107,13 +2074,9 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
         return 0;
 }
 
-/*
- * Permission checks before security_inode_mknod() is called.
- *
- * This function is exported because
- * vfs_mknod() is called from net/unix/af_unix.c.
- */
-int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
+/* Permission checks before security_inode_mknod() is called. */
+static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
+			     int mode)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -2136,10 +2099,9 @@ int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry, int mode)
 		return -EPERM;
 	return 0;
 }
-EXPORT_SYMBOL(ccs_pre_vfs_mknod);
 
 /* Permission checks before security_inode_mkdir() is called. */
-int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -2162,7 +2124,7 @@ int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks before security_inode_rmdir() is called. */
-int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
 	if (error)
@@ -2173,7 +2135,7 @@ int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Some of permission checks before security_inode_unlink() is called. */
-int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 0);
 	if (error)
@@ -2184,8 +2146,8 @@ int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks before security_inode_link() is called. */
-int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-		     struct dentry *new_dentry)
+static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
+			    struct dentry *new_dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
 	int error;
@@ -2218,7 +2180,7 @@ int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks before security_inode_symlink() is called. */
-int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
@@ -2241,8 +2203,8 @@ int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks before security_inode_rename() is called. */
-int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-		       struct inode *new_dir, struct dentry *new_dentry)
+static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
+			      struct inode *new_dir, struct dentry *new_dentry)
 {
 	int error;
 	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
@@ -2410,7 +2372,7 @@ int ccs_check_rename_permission(struct inode *old_dir,
 	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (!error)
 		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
-					     mnt, new_dentry, mnt);
+					     new_dentry, mnt);
 	return error;
 }
 
@@ -2424,6 +2386,124 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
 	if (!error)
 		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_dentry,
-					     mnt, new_dentry, mnt);
+					     new_dentry, mnt);
 	return error;
 }
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)
+
+#include <linux/sysctl.h>
+
+/* Permission checks before parse_table() is called. */
+int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
+		    void __user *newval, struct ctl_table *table)
+{
+	int n;
+	int error = -ENOMEM;
+	int op = 0;
+	struct ccs_path_info_with_data *buf;
+	struct ccs_request_info r;
+	if (oldval)
+		op |= 004;
+	if (newval)
+		op |= 002;
+	if (!op) /* Neither read nor write */
+		return 0;
+	if (!ccs_can_sleep())
+		return 0;
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
+	if (!r.mode)
+		return 0;
+	buf = ccs_alloc(sizeof(*buf), false);
+	if (!buf)
+		return -ENOMEM;
+	buf->head.name = buf->body;
+	snprintf(buf->body, sizeof(buf->body) - 1, "/proc/sys");
+ repeat:
+	if (!nlen) {
+		error = -ENOTDIR;
+		goto out;
+	}
+	if (get_user(n, name)) {
+		error = -EFAULT;
+		goto out;
+	}
+	for ( ; table->ctl_name
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 21)
+		      || table->procname
+#endif
+		      ; table++) {
+		int pos;
+		const char *cp;
+		char *buffer = buf->body;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21) 
+		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
+			continue;
+#else
+		if (!n || n != table->ctl_name)
+			continue;
+#endif
+		pos = strlen(buffer);
+		cp = table->procname;
+		error = -ENOMEM;
+		if (cp) {
+			if (pos + 1 >= sizeof(buf->body) - 1)
+				goto out;
+			buffer[pos++] = '/';
+			while (*cp) {
+				const unsigned char c
+					= *(const unsigned char *) cp;
+				if (c == '\\') {
+					if (pos + 2 >= sizeof(buf->body) - 1)
+						goto out;
+					buffer[pos++] = '\\';
+					buffer[pos++] = '\\';
+				} else if (c > ' ' && c < 127) {
+					if (pos + 1 >= sizeof(buf->body) - 1)
+						goto out;
+					buffer[pos++] = c;
+				} else {
+					if (pos + 4 >= sizeof(buf->body) - 1)
+						goto out;
+					buffer[pos++] = '\\';
+					buffer[pos++] = (c >> 6) + '0';
+					buffer[pos++] = ((c >> 3) & 7) + '0';
+					buffer[pos++] = (c & 7) + '0';
+				}
+				cp++;
+			}
+		} else {
+			/* Assume nobody assigns "=\$=" for procname. */
+			snprintf(buffer + pos, sizeof(buf->body) - pos - 1,
+				 "/=%d=", table->ctl_name);
+			if (!memchr(buffer, '\0', sizeof(buf->body) - 2))
+				goto out;
+		}
+		if (table->child) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
+			if (table->strategy) {
+				/* printk("sysctl='%s'\n", buffer); */
+				ccs_fill_path_info(&buf->head);
+				if (ccs_check_file_perm(&r, &buf->head, op,
+							"sysctl")) {
+					error = -EPERM;
+					goto out;
+				}
+			}
+#endif
+			name++;
+			nlen--;
+			table = table->child;
+			goto repeat;
+		}
+		/* printk("sysctl='%s'\n", buffer); */
+		ccs_fill_path_info(&buf->head);
+		error = ccs_check_file_perm(&r, &buf->head, op, "sysctl");
+		goto out;
+	}
+	error = -ENOTDIR;
+ out:
+	ccs_free(buf);
+	return error;
+}
+#endif
