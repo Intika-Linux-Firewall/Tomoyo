@@ -941,7 +941,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  			mode &= ~current->fs->umask;
 +		/***** TOMOYO Linux start. *****/
 +		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
-+						   nd->path.mnt, mode, 0);
++						   nd->mnt, mode, 0);
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
@@ -952,8 +952,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
 +		/***** TOMOYO Linux start. *****/
-+		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
-+						   dentry, nd.path.mnt, mode,
++		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
++						   nd.mnt, mode,
 +						   new_decode_dev(dev));
 +		if (!error)
 +		/***** TOMOYO Linux end. *****/
@@ -1630,7 +1630,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			tb_for_each(tb, node, &head->chain)
@@ -1641,7 +1641,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(port))
++			if (ccs_lport_reserved(port))
 +				continue;
 +			/***** SAKURA Linux end. *****/
   			head = &tcp_bhash[tcp_bhashfn(port)];
@@ -1664,7 +1664,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
++				if (ccs_lport_reserved(result))
 +					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
@@ -1675,7 +1675,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
++			if (ccs_lport_reserved(result))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
@@ -1698,7 +1698,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			tb_for_each(tb, node, &head->chain)
@@ -1709,7 +1709,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  		for (i = 1; i <= range; i++) {
  			port = low + (i + offset) % range;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(port))
++			if (ccs_lport_reserved(port))
 +				continue;
 +			/***** SAKURA Linux end. *****/
   			head = &tcp_bhash[tcp_bhashfn(port)];
@@ -1732,7 +1732,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
++				if (ccs_lport_reserved(result))
 +					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
@@ -1743,7 +1743,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
++			if (ccs_lport_reserved(result))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))

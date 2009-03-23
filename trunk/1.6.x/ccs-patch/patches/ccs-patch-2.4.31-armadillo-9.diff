@@ -1728,7 +1728,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			for (tb = head->chain; tb; tb = tb->next)
@@ -1739,7 +1739,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);		
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next_port;
 +			/***** SAKURA Linux end. *****/
  
@@ -1762,7 +1762,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
++				if (ccs_lport_reserved(result))
 +					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
@@ -1773,7 +1773,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
++			if (ccs_lport_reserved(result))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))
@@ -1796,7 +1796,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			head = &tcp_bhash[tcp_bhashfn(rover)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			for (tb = head->chain; tb; tb = tb->next)
@@ -1819,7 +1819,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
 +				/***** SAKURA Linux start. *****/
-+				if (ccs_may_autobind(result))
++				if (ccs_lport_reserved(result))
 +					continue;
 +				/***** SAKURA Linux end. *****/
  				goto gotit;
@@ -1837,7 +1837,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(result))
++			if (ccs_lport_reserved(result))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			if (!udp_lport_inuse(result))

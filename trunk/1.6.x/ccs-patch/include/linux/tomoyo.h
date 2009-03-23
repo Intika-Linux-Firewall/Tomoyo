@@ -88,10 +88,12 @@ static inline int ccs_check_open_permission(struct dentry *dentry,
 {
 	return 0;
 }
+
 static inline int ccs_check_rewrite_permission(struct file *filp)
 {
 	return 0;
 }
+
 static inline int ccs_check_ioctl_permission(struct file *filp,
 					     unsigned int cmd,
 					     unsigned long arg)
@@ -101,7 +103,7 @@ static inline int ccs_check_ioctl_permission(struct file *filp,
 
 static inline int ccs_parse_table(int __user *name, int nlen,
 				  void __user *oldval, void __user *newval,
-				  ctl_table *table)
+				  struct ctl_table *table)
 {
 	return 0;
 }
@@ -110,6 +112,7 @@ static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
 }
+
 static inline _Bool ccs_capable(const u8 operation)
 {
 	return 1;
