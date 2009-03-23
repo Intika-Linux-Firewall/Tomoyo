@@ -357,7 +357,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
@@ -443,7 +443,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);

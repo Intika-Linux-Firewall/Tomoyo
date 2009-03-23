@@ -736,7 +736,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  		goto out; 
  
 -	retval = search_binary_handler(&bprm,regs);
-+	retval = search_binary_handler_with_transition(&bprm, regs);
++	retval = ccs_search_binary_handler(&bprm, regs);
 +
  	if (retval >= 0)
  		/* execve success */

@@ -160,7 +160,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		trace_fs_exec(filename);
  		/* execve success */
@@ -247,7 +247,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		trace_fs_exec(filename);
  		/* execve success */

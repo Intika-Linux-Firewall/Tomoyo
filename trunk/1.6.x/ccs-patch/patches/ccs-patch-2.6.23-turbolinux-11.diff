@@ -354,7 +354,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
@@ -440,7 +440,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);

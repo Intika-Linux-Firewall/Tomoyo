@@ -258,7 +258,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/os/SRPMS/kern
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
@@ -308,7 +308,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/os/SRPMS/kern
  	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
 +
  	if (retval >= 0) {
  		/* execve success */

@@ -210,9 +210,9 @@ void ccs_finish_execve(int retval);
 
 int search_binary_handler(struct linux_binprm *, struct pt_regs *);
 
-static inline int
-search_binary_handler_with_transition(struct linux_binprm *bprm,
-				      struct pt_regs *regs)
+#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
+static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
+					    struct pt_regs *regs)
 {
 	int retval = ccs_start_execve(bprm);
 	if (!retval) {
@@ -221,6 +221,9 @@ search_binary_handler_with_transition(struct linux_binprm *bprm,
 	}
 	return retval;
 }
+#else
+#define ccs_search_binary_handler search_binary_handler
+#endif
 
 #define CCS_CHECK_READ_FOR_OPEN_EXEC    1
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2

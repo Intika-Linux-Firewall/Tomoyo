@@ -208,7 +208,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
@@ -294,7 +294,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	bprm->argv_len = env_p - bprm->p;
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
