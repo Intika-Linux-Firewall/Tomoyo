@@ -159,7 +159,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	gr_set_proc_label(file->f_dentry, file->f_vfsmnt);
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)
@@ -246,7 +246,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)

@@ -160,7 +160,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		goto out;
  
 -	retval = search_binary_handler(bprm, regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
@@ -247,7 +247,7 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  	current->flags &= ~PF_KTHREAD;
 -	retval = search_binary_handler(bprm,regs);
-+	retval = search_binary_handler_with_transition(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);

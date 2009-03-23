@@ -930,7 +930,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		goto out; 
  
 -	retval = search_binary_handler(&bprm,regs);
-+	retval = search_binary_handler_with_transition(&bprm, regs);
++	retval = ccs_search_binary_handler(&bprm, regs);
 +
  	if (retval >= 0) {
  #ifdef NO_MM
