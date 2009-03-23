@@ -2067,11 +2067,11 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 	int error = ccs_may_create(dir, dentry);
 #endif
 #endif
-        if (error)
-                return error;
-        if (!dir->i_op || !dir->i_op->create)
-                return -EACCES; /* shouldn't it be ENOSYS? */
-        return 0;
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->create)
+		return -EACCES; /* shouldn't it be ENOSYS? */
+	return 0;
 }
 
 /* Permission checks before security_inode_mknod() is called. */
@@ -2290,10 +2290,10 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 		return error;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-                error = ccs_check_1path_perm(TYPE_MKCHAR_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKCHAR_ACL, dentry, mnt);
 		break;
 	case S_IFBLK:
-                error = ccs_check_1path_perm(TYPE_MKBLOCK_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKBLOCK_ACL, dentry, mnt);
 		break;
 	case S_IFIFO:
 		error = ccs_check_1path_perm(TYPE_MKFIFO_ACL, dentry, mnt);
@@ -2311,8 +2311,8 @@ int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt, int mode)
 {
 	int error = ccs_pre_vfs_mkdir(dir, dentry);
-        if (!error)
-                error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt);
+	if (!error)
+		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt);
 	return error;
 }
 
@@ -2320,9 +2320,9 @@ int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt)
 {
-        int error = ccs_pre_vfs_rmdir(dir, dentry);
-        if (!error)
-                error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt);
+	int error = ccs_pre_vfs_rmdir(dir, dentry);
+	if (!error)
+		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt);
 	return error;
 }
 
@@ -2354,7 +2354,7 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 
 /* Permission checks before security_inode_setattr() is called. */
 int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-				  loff_t length,unsigned int time_attrs)
+				  loff_t length, unsigned int time_attrs)
 {
 	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt);
 }
@@ -2436,7 +2436,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		int pos;
 		const char *cp;
 		char *buffer = buf->body;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21) 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
 		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
 			continue;
 #else

@@ -1068,7 +1068,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					hashinfo->bhash_size)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
@@ -1091,7 +1091,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		for (i = 1; i <= remaining; i++) {
  			port = low + (i + offset) % remaining;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(port))
++			if (ccs_lport_reserved(port))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			head = &hinfo->bhash[inet_bhashfn(net, port,
@@ -1114,7 +1114,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  
@@ -1125,7 +1125,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
 +			/***** SAKURA Linux start. *****/
-+			if (!ccs_may_autobind(rover))
++			if (!ccs_lport_reserved(rover))
 +			/***** SAKURA Linux end. *****/
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;

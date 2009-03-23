@@ -1019,7 +1019,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  					hashinfo->bhash_size)];
  			spin_lock(&head->lock);
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(rover))
++			if (ccs_lport_reserved(rover))
 +				goto next;
 +			/***** SAKURA Linux end. *****/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
@@ -1042,7 +1042,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		for (i = 1; i <= remaining; i++) {
  			port = low + (i + offset) % remaining;
 +			/***** SAKURA Linux start. *****/
-+			if (ccs_may_autobind(port))
++			if (ccs_lport_reserved(port))
 +				continue;
 +			/***** SAKURA Linux end. *****/
  			head = &hinfo->bhash[inet_bhashfn(net, port,
@@ -1067,7 +1067,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 -				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap))
 +				    !test_bit(snum / UDP_HTABLE_SIZE, bitmap)
 +				    /***** SAKURA Linux start. *****/
-+				    && !ccs_may_autobind(snum))
++				    && !ccs_lport_reserved(snum))
 +				    /***** SAKURA Linux end. *****/
  					goto found;
  				snum += rand;

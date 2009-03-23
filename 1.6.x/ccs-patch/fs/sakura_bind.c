@@ -69,27 +69,27 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 }
 
 /**
- * ccs_may_autobind - Check permission for bind()'s automatic port number selection.
+ * ccs_lport_reserved - Check permission for bind()'s automatic port number selection.
  *
  * @port: Port number.
  *
- * Returns 0 on success, -EPERM otherwise.
+ * Returns true on success, false otherwise.
  */
-int ccs_may_autobind(const u16 port)
+bool ccs_lport_reserved(const u16 port)
 {
 	/***** CRITICAL SECTION START *****/
 	struct ccs_reserved_entry *ptr;
 	if (!ccs_check_flags(NULL, CCS_RESTRICT_AUTOBIND))
-		return 0;
+		return false;
 	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port <= port && port <= ptr->max_port &&
 		    !ptr->is_deleted)
-			return -EPERM;
+			return true;
 	}
-	return 0;
+	return false;
 	/***** CRITICAL SECTION END *****/
 }
-EXPORT_SYMBOL(ccs_may_autobind); /* for net/ipv4/ and net/ipv6/ */
+EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
 
 /**
  * ccs_write_reserved_port_policy - Write "struct ccs_reserved_entry" list.

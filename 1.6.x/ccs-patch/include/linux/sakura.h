@@ -66,8 +66,8 @@ int ccs_may_mount(struct nameidata *nd);
 /* Check whether the given mountpoint is allowed to umount. */
 int ccs_may_umount(struct vfsmount *mnt);
 
-/* Check whether the given port is allowed to autobind. */
-int ccs_may_autobind(const u16 port);
+/* Check whether the given local port is reserved. */
+_Bool ccs_lport_reserved(const u16 port);
 
 #else
 
@@ -116,7 +116,7 @@ static inline int ccs_may_umount(struct vfsmount *mnt)
 {
 	return 0;
 }
-static inline int ccs_may_autobind(const u16 port)
+static inline _Bool ccs_lport_reserved(const u16 port)
 {
 	return 0;
 }
