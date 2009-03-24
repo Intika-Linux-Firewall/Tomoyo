@@ -36,8 +36,8 @@ Source code for this patch is "emerge hardened-sources"
  net/unix/af_unix.c              |    8 +++++
  32 files changed, 429 insertions(+), 3 deletions(-)
 
---- linux-2.6.28-hardened-r3.orig/fs/Kconfig
-+++ linux-2.6.28-hardened-r3/fs/Kconfig
+--- linux-2.6.28-hardened-r6.orig/fs/Kconfig
++++ linux-2.6.28-hardened-r6/fs/Kconfig
 @@ -1607,4 +1607,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -45,16 +45,16 @@ Source code for this patch is "emerge hardened-sources"
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.28-hardened-r3.orig/fs/Makefile
-+++ linux-2.6.28-hardened-r3/fs/Makefile
+--- linux-2.6.28-hardened-r6.orig/fs/Makefile
++++ linux-2.6.28-hardened-r6/fs/Makefile
 @@ -123,3 +123,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.28-hardened-r3.orig/fs/attr.c
-+++ linux-2.6.28-hardened-r3/fs/attr.c
+--- linux-2.6.28-hardened-r6.orig/fs/attr.c
++++ linux-2.6.28-hardened-r6/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -79,8 +79,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (ia_valid & ATTR_SIZE)
  		down_write(&dentry->d_inode->i_alloc_sem);
---- linux-2.6.28-hardened-r3.orig/fs/compat.c
-+++ linux-2.6.28-hardened-r3/fs/compat.c
+--- linux-2.6.28-hardened-r6.orig/fs/compat.c
++++ linux-2.6.28-hardened-r6/fs/compat.c
 @@ -56,6 +56,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -100,8 +100,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)
---- linux-2.6.28-hardened-r3.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-hardened-r3/fs/compat_ioctl.c
+--- linux-2.6.28-hardened-r6.orig/fs/compat_ioctl.c
++++ linux-2.6.28-hardened-r6/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -112,7 +112,7 @@ Source code for this patch is "emerge hardened-sources"
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2786,6 +2789,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2788,6 +2791,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
@@ -123,7 +123,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (error)
  		goto out_fput;
  
-@@ -2810,6 +2817,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2812,6 +2819,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -136,8 +136,8 @@ Source code for this patch is "emerge hardened-sources"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-hardened-r3.orig/fs/exec.c
-+++ linux-2.6.28-hardened-r3/fs/exec.c
+--- linux-2.6.28-hardened-r6.orig/fs/exec.c
++++ linux-2.6.28-hardened-r6/fs/exec.c
 @@ -72,6 +72,10 @@ void (*pax_set_initial_flags_func)(struc
  EXPORT_SYMBOL(pax_set_initial_flags_func);
  #endif
@@ -182,8 +182,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)
---- linux-2.6.28-hardened-r3.orig/fs/fcntl.c
-+++ linux-2.6.28-hardened-r3/fs/fcntl.c
+--- linux-2.6.28-hardened-r6.orig/fs/fcntl.c
++++ linux-2.6.28-hardened-r6/fs/fcntl.c
 @@ -24,6 +24,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -207,8 +207,8 @@ Source code for this patch is "emerge hardened-sources"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-hardened-r3.orig/fs/ioctl.c
-+++ linux-2.6.28-hardened-r3/fs/ioctl.c
+--- linux-2.6.28-hardened-r6.orig/fs/ioctl.c
++++ linux-2.6.28-hardened-r6/fs/ioctl.c
 @@ -17,6 +17,9 @@
  #include <linux/buffer_head.h>
  
@@ -241,8 +241,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.28-hardened-r3.orig/fs/namei.c
-+++ linux-2.6.28-hardened-r3/fs/namei.c
+--- linux-2.6.28-hardened-r6.orig/fs/namei.c
++++ linux-2.6.28-hardened-r6/fs/namei.c
 @@ -35,6 +35,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -377,8 +377,8 @@ Source code for this patch is "emerge hardened-sources"
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  	if (!error)
---- linux-2.6.28-hardened-r3.orig/fs/namespace.c
-+++ linux-2.6.28-hardened-r3/fs/namespace.c
+--- linux-2.6.28-hardened-r6.orig/fs/namespace.c
++++ linux-2.6.28-hardened-r6/fs/namespace.c
 @@ -31,6 +31,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -491,8 +491,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-hardened-r3.orig/fs/open.c
-+++ linux-2.6.28-hardened-r3/fs/open.c
+--- linux-2.6.28-hardened-r6.orig/fs/open.c
++++ linux-2.6.28-hardened-r6/fs/open.c
 @@ -29,6 +29,12 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -557,8 +557,8 @@ Source code for this patch is "emerge hardened-sources"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-hardened-r3.orig/fs/proc/Makefile
-+++ linux-2.6.28-hardened-r3/fs/proc/Makefile
+--- linux-2.6.28-hardened-r6.orig/fs/proc/Makefile
++++ linux-2.6.28-hardened-r6/fs/proc/Makefile
 @@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
  proc-$(CONFIG_PRINTK)	+= kmsg.o
@@ -566,8 +566,8 @@ Source code for this patch is "emerge hardened-sources"
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.28-hardened-r3.orig/fs/proc/version.c
-+++ linux-2.6.28-hardened-r3/fs/proc/version.c
+--- linux-2.6.28-hardened-r6.orig/fs/proc/version.c
++++ linux-2.6.28-hardened-r6/fs/proc/version.c
 @@ -32,3 +32,14 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -577,14 +577,14 @@ Source code for this patch is "emerge hardened-sources"
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r3 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r6 2009/03/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 +#endif
 +/***** CCS end. *****/
---- linux-2.6.28-hardened-r3.orig/include/linux/init_task.h
-+++ linux-2.6.28-hardened-r3/include/linux/init_task.h
+--- linux-2.6.28-hardened-r6.orig/include/linux/init_task.h
++++ linux-2.6.28-hardened-r6/include/linux/init_task.h
 @@ -180,6 +180,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -596,8 +596,8 @@ Source code for this patch is "emerge hardened-sources"
  }
  
  
---- linux-2.6.28-hardened-r3.orig/include/linux/sched.h
-+++ linux-2.6.28-hardened-r3/include/linux/sched.h
+--- linux-2.6.28-hardened-r6.orig/include/linux/sched.h
++++ linux-2.6.28-hardened-r6/include/linux/sched.h
 @@ -29,6 +29,10 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -620,8 +620,8 @@ Source code for this patch is "emerge hardened-sources"
  
  };
  
---- linux-2.6.28-hardened-r3.orig/kernel/compat.c
-+++ linux-2.6.28-hardened-r3/kernel/compat.c
+--- linux-2.6.28-hardened-r6.orig/kernel/compat.c
++++ linux-2.6.28-hardened-r6/kernel/compat.c
 @@ -26,6 +26,9 @@
  #include <linux/times.h>
  
@@ -643,8 +643,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-hardened-r3.orig/kernel/kexec.c
-+++ linux-2.6.28-hardened-r3/kernel/kexec.c
+--- linux-2.6.28-hardened-r6.orig/kernel/kexec.c
++++ linux-2.6.28-hardened-r6/kernel/kexec.c
 @@ -37,6 +37,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -666,8 +666,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-hardened-r3.orig/kernel/kmod.c
-+++ linux-2.6.28-hardened-r3/kernel/kmod.c
+--- linux-2.6.28-hardened-r6.orig/kernel/kmod.c
++++ linux-2.6.28-hardened-r6/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -680,8 +680,8 @@ Source code for this patch is "emerge hardened-sources"
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-hardened-r3.orig/kernel/module.c
-+++ linux-2.6.28-hardened-r3/kernel/module.c
+--- linux-2.6.28-hardened-r6.orig/kernel/module.c
++++ linux-2.6.28-hardened-r6/kernel/module.c
 @@ -56,6 +56,9 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -714,8 +714,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-hardened-r3.orig/kernel/ptrace.c
-+++ linux-2.6.28-hardened-r3/kernel/ptrace.c
+--- linux-2.6.28-hardened-r6.orig/kernel/ptrace.c
++++ linux-2.6.28-hardened-r6/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  
  #include <asm/pgtable.h>
@@ -748,8 +748,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-hardened-r3.orig/kernel/sched.c
-+++ linux-2.6.28-hardened-r3/kernel/sched.c
+--- linux-2.6.28-hardened-r6.orig/kernel/sched.c
++++ linux-2.6.28-hardened-r6/kernel/sched.c
 @@ -76,6 +76,9 @@
  
  #include <asm/tlb.h>
@@ -771,8 +771,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-hardened-r3.orig/kernel/signal.c
-+++ linux-2.6.28-hardened-r3/kernel/signal.c
+--- linux-2.6.28-hardened-r6.orig/kernel/signal.c
++++ linux-2.6.28-hardened-r6/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -783,7 +783,7 @@ Source code for this patch is "emerge hardened-sources"
  
  /*
   * SLAB caches for signal bits.
-@@ -2211,6 +2214,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2210,6 +2213,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -796,7 +796,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2272,6 +2281,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2271,6 +2280,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -809,7 +809,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2284,6 +2299,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2283,6 +2298,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -822,8 +822,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.28-hardened-r3.orig/kernel/sys.c
-+++ linux-2.6.28-hardened-r3/kernel/sys.c
+--- linux-2.6.28-hardened-r6.orig/kernel/sys.c
++++ linux-2.6.28-hardened-r6/kernel/sys.c
 @@ -42,6 +42,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -880,8 +880,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-hardened-r3.orig/kernel/sysctl.c
-+++ linux-2.6.28-hardened-r3/kernel/sysctl.c
+--- linux-2.6.28-hardened-r6.orig/kernel/sysctl.c
++++ linux-2.6.28-hardened-r6/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -904,8 +904,8 @@ Source code for this patch is "emerge hardened-sources"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-hardened-r3.orig/kernel/time.c
-+++ linux-2.6.28-hardened-r3/kernel/time.c
+--- linux-2.6.28-hardened-r6.orig/kernel/time.c
++++ linux-2.6.28-hardened-r6/kernel/time.c
 @@ -40,6 +40,9 @@
  
  #include <asm/uaccess.h>
@@ -938,8 +938,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-hardened-r3.orig/kernel/time/ntp.c
-+++ linux-2.6.28-hardened-r3/kernel/time/ntp.c
+--- linux-2.6.28-hardened-r6.orig/kernel/time/ntp.c
++++ linux-2.6.28-hardened-r6/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -969,8 +969,8 @@ Source code for this patch is "emerge hardened-sources"
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-hardened-r3.orig/net/core/datagram.c
-+++ linux-2.6.28-hardened-r3/net/core/datagram.c
+--- linux-2.6.28-hardened-r6.orig/net/core/datagram.c
++++ linux-2.6.28-hardened-r6/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -996,8 +996,8 @@ Source code for this patch is "emerge hardened-sources"
  		if (skb)
  			return skb;
  
---- linux-2.6.28-hardened-r3.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-hardened-r3/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-hardened-r6.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-hardened-r6/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1019,8 +1019,8 @@ Source code for this patch is "emerge hardened-sources"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-hardened-r3.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-hardened-r3/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-hardened-r6.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-hardened-r6/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1042,8 +1042,8 @@ Source code for this patch is "emerge hardened-sources"
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-hardened-r3.orig/net/ipv4/udp.c
-+++ linux-2.6.28-hardened-r3/net/ipv4/udp.c
+--- linux-2.6.28-hardened-r6.orig/net/ipv4/udp.c
++++ linux-2.6.28-hardened-r6/net/ipv4/udp.c
 @@ -104,6 +104,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1067,8 +1067,8 @@ Source code for this patch is "emerge hardened-sources"
  			do {
  				snum = snum + rand;
  			} while (snum < low || snum > high);
---- linux-2.6.28-hardened-r3.orig/net/socket.c
-+++ linux-2.6.28-hardened-r3/net/socket.c
+--- linux-2.6.28-hardened-r6.orig/net/socket.c
++++ linux-2.6.28-hardened-r6/net/socket.c
 @@ -113,6 +113,11 @@ extern int gr_search_accept(struct socke
  extern int gr_search_socket(const int domain, const int type,
  			    const int protocol);
@@ -1159,8 +1159,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	sck = (struct sockaddr *)&address;
  
---- linux-2.6.28-hardened-r3.orig/net/unix/af_unix.c
-+++ linux-2.6.28-hardened-r3/net/unix/af_unix.c
+--- linux-2.6.28-hardened-r6.orig/net/unix/af_unix.c
++++ linux-2.6.28-hardened-r6/net/unix/af_unix.c
 @@ -114,6 +114,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
