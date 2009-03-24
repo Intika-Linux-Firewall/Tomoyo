@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7-rc   2009/03/18
+ * Version: 1.6.7-rc   2009/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -587,6 +587,29 @@ static int __init ccs_realpath_init(void)
 	list1_add_tail_mb(&ccs_kernel_domain.list, &ccs_domain_list);
 	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
+#ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
+	{
+		/* Load built-in policy. */
+		const int len = strlen(CONFIG_TOMOYO_BUILTIN_INITIALIZERS) + 1;
+		char *str = kmalloc(len, GFP_KERNEL);
+		if (!str)
+			panic("Out of memory.");
+		memmove(str, CONFIG_TOMOYO_BUILTIN_INITIALIZERS, len);
+		ccs_normalize_line(str);
+		if (*str) {
+			char *cp = str;
+			do {
+				char *cp2 = strchr(cp, ' ');
+				if (cp2)
+					*cp2++ = '\0';
+				ccs_write_domain_initializer_policy(cp, false,
+								    false);
+				cp = cp2;
+			} while (cp);
+		}
+		kfree(str);
+	}
+#endif
 	return 0;
 }
 

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7-rc   2009/03/18
+ * Version: 1.6.7-rc   2009/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -654,6 +654,8 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			 const char *function);
 /* Check whether the token can be a domainname. */
 bool ccs_is_domain_def(const unsigned char *buffer);
+/* Format string. */
+void ccs_normalize_line(unsigned char *buffer);
 /* Check whether the given filename matches the given pattern. */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);

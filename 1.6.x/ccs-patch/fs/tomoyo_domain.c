@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7-rc   2009/03/18
+ * Version: 1.6.7-rc   2009/03/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -937,7 +937,7 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
  out:
 	return false;
 }
-
+			
 /**
  * ccs_find_next_domain - Find a domain.
  *
@@ -960,24 +960,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_path_info sn; /* symlink name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
-
-	{
-		/*
-		 * Built-in initializers. This is needed because policies are
-		 * not loaded until starting /sbin/init.
-		 */
-		static bool first = true;
-		if (first) {
-			ccs_update_domain_initializer_entry(NULL,
-							    "/sbin/hotplug",
-							    false, false);
-			ccs_update_domain_initializer_entry(NULL,
-							    "/sbin/modprobe",
-							    false, false);
-			first = false;
-		}
-	}
-
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
