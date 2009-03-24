@@ -321,6 +321,11 @@ struct ccs_domain_info {
  */
 #define DOMAIN_FLAGS_TRANSITION_FAILED        4
 
+#define CCS_CHECK_READ_FOR_OPEN_EXEC    1
+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+#define CCS_TASK_IS_EXECUTE_HANDLER     4
+#define CCS_TASK_IS_POLICY_MANAGER      8
+
 /*
  * Structure for "execute_handler" and "denied_execute_handler" directive.
  * These directives can exist only one entry in a domain.

@@ -79,6 +79,8 @@ int ccs_check_rename_permission(struct inode *old_dir,
 				struct vfsmount *mnt);
 int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			      struct dentry *new_dentry, struct vfsmount *mnt);
+int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
+int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
 
 #else
 
@@ -180,6 +182,18 @@ static inline int ccs_check_link_permission(struct dentry *old_dentry,
 	return 0;
 }
 
+static inline int ccs_check_open_exec_permission(struct dentry *dentry,
+						 struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_check_uselib_permission(struct dentry *dentry,
+					      struct vfsmount *mnt)
+{
+        return 0;
+}
+
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -224,11 +238,6 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 #else
 #define ccs_search_binary_handler search_binary_handler
 #endif
-
-#define CCS_CHECK_READ_FOR_OPEN_EXEC    1
-#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
-#define CCS_TASK_IS_EXECUTE_HANDLER     4
-#define CCS_TASK_IS_POLICY_MANAGER      8
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {

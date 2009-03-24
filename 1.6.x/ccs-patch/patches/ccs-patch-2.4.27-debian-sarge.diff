@@ -27,7 +27,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  fs/Config.in                 |    3 +
  fs/Makefile                  |    2 -
  fs/attr.c                    |   10 +++++
- fs/exec.c                    |   21 ++++++++++
+ fs/exec.c                    |   18 ++++++++-
  fs/fcntl.c                   |    8 ++++
  fs/ioctl.c                   |   16 ++++++++
  fs/namei.c                   |   64 ++++++++++++++++++++++++++++++++
@@ -50,7 +50,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |   11 +++++
  net/socket.c                 |   40 +++++++++++++++++++-
  net/unix/af_unix.c           |    8 ++++
- 48 files changed, 661 insertions(+), 6 deletions(-)
+ 48 files changed, 658 insertions(+), 6 deletions(-)
 
 --- linux-2.4.27-10sarge7.orig/Documentation/Configure.help
 +++ linux-2.4.27-10sarge7/Documentation/Configure.help
@@ -703,13 +703,12 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  int core_uses_pid;
  char core_pattern[65] = "core";
  int core_setuid_ok = 0;
-@@ -125,6 +129,13 @@ asmlinkage long sys_uselib(const char * 
+@@ -125,6 +129,12 @@ asmlinkage long sys_uselib(const char * 
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -717,21 +716,19 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -396,6 +407,13 @@ struct file *open_exec(const char *name)
+@@ -396,6 +406,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -975,7 +993,8 @@ int do_execve(char * filename, char ** a
+@@ -975,7 +990,8 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
@@ -1176,7 +1173,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

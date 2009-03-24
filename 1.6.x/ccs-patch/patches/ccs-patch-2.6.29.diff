@@ -7,7 +7,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/attr.c                       |   10 ++++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 ++++++++
- fs/exec.c                       |   20 ++++++++++++-
+ fs/exec.c                       |   15 +++++++++-
  fs/fcntl.c                      |    9 ++++++
  fs/ioctl.c                      |   11 +++++++
  fs/namei.c                      |   59 ++++++++++++++++++++++++++++++++++++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv4/udp.c                  |    8 ++++-
  net/socket.c                    |   41 +++++++++++++++++++++++++++
  net/unix/af_unix.c              |    9 ++++++
- 32 files changed, 435 insertions(+), 3 deletions(-)
+ 32 files changed, 430 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29.orig/fs/Kconfig
 +++ linux-2.6.29/fs/Kconfig
@@ -148,36 +148,31 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
-@@ -127,6 +130,12 @@ SYSCALL_DEFINE1(uselib, const char __use
+@@ -127,6 +130,11 @@ SYSCALL_DEFINE1(uselib, const char __use
  				 MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.path.dentry, nd.path.mnt, 01);
++	error = ccs_check_uselib_permission(nd.path.dentry, nd.path.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -674,6 +683,15 @@ struct file *open_exec(const char *name)
+@@ -674,6 +682,11 @@ struct file *open_exec(const char *name)
  	err = inode_permission(nd.path.dentry->d_inode, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
 +	/***** TOMOYO Linux start. *****/
-+	if (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) {
-+		/* 01 means "read". */
-+		err = ccs_check_open_permission(nd.path.dentry, nd.path.mnt,
-+						01);
-+		if (err)
-+			goto out_path_put;
-+	}
++	err = ccs_check_open_exec_permission(nd.path.dentry, nd.path.mnt);
++	if (err)
++		goto out_path_put;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1332,7 +1350,7 @@ int do_execve(char * filename,
+@@ -1332,7 +1345,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
