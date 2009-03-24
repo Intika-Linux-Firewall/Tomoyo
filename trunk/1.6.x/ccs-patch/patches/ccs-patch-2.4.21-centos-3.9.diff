@@ -682,7 +682,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
