@@ -1824,8 +1824,8 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
  * but the VFS helper functions don't receive "struct vfsmount" parameter,
  * TOMOYO Linux checks permission outside VFS helper functions.
  * To keep the DAC's permission checks are performed before the
- * TOMOYO Linux's permission checks are performed, I'm manually inserting
- * these functions that performs the DAC's permission checks into fs/namei.c.
+ * TOMOYO Linux's permission checks are performed, I'm manually copying
+ * these functions that performs the DAC's permission checks from fs/namei.c.
  *
  * The approach to obtain "struct vfsmount" parameter from
  * the "struct task_struct" doesn't work because it triggers deadlock.
@@ -1833,7 +1833,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
-/* Some of permission checks from vfs_create(). */
+/* Permission checks from vfs_create(). */
 static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -1845,7 +1845,7 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_mknod(). */
+/* Permission checks from vfs_mknod(). */
 static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -1857,7 +1857,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_mkdir(). */
+/* Permission checks from vfs_mkdir(). */
 static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
@@ -1869,7 +1869,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_rmdir(). */
+/* Permission checks from vfs_rmdir(). */
 static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
@@ -1878,7 +1878,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_unlink(). */
+/* Permission checks from vfs_unlink(). */
 static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
@@ -1922,7 +1922,7 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 	return error;
 }
 
-/* Some of permission checks from vfs_link(). */
+/* Permission checks from vfs_link(). */
 static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 			    struct dentry *new_dentry)
 {
@@ -1976,7 +1976,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 #endif
 }
 
-/* Some of permission checks from vfs_rename_dir(). */
+/* Permission checks from vfs_rename_dir(). */
 static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
 					 struct dentry *old_dentry,
 					 struct inode *new_dir,
@@ -2003,7 +2003,7 @@ static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
 	return error;
 }
 
-/* Some of permission checks from vfs_rename_other(). */
+/* Permission checks from vfs_rename_other(). */
 static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
 					   struct dentry *old_dentry,
 					   struct inode *new_dir,
@@ -2028,7 +2028,7 @@ static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
 	return 0;
 }
 
-/* Some of permission checks from vfs_rename(). */
+/* Permission checks from vfs_rename(). */
 static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			      struct inode *new_dir, struct dentry *new_dentry)
 {
@@ -2051,7 +2051,7 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 #define HAVE_IS_DIR_FOR_MAY_CREATE
 #endif
 
-/* Permission checks before security_inode_create() is called. */
+/* Permission checks from vfs_create(). */
 static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
@@ -2074,7 +2074,7 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 	return 0;
 }
 
-/* Permission checks before security_inode_mknod() is called. */
+/* Permission checks from vfs_mknod(). */
 static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 			     int mode)
 {
@@ -2100,7 +2100,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 	return 0;
 }
 
-/* Permission checks before security_inode_mkdir() is called. */
+/* Permission checks from vfs_mkdir(). */
 static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
@@ -2123,7 +2123,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 	return 0;
 }
 
-/* Some of permission checks before security_inode_rmdir() is called. */
+/* Permission checks from vfs_rmdir(). */
 static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 1);
@@ -2134,7 +2134,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 	return 0;
 }
 
-/* Some of permission checks before security_inode_unlink() is called. */
+/* Permission checks from vfs_unlink(). */
 static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccs_may_delete(dir, dentry, 0);
@@ -2145,7 +2145,7 @@ static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 	return 0;
 }
 
-/* Permission checks before security_inode_link() is called. */
+/* Permission checks from vfs_link(). */
 static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 			    struct dentry *new_dentry)
 {
@@ -2179,7 +2179,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	return 0;
 }
 
-/* Permission checks before security_inode_symlink() is called. */
+/* Permission checks from vfs_symlink(). */
 static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
@@ -2202,7 +2202,7 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 	return 0;
 }
 
-/* Permission checks before security_inode_rename() is called. */
+/* Permission checks from vfs_rename(). */
 static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			      struct inode *new_dir, struct dentry *new_dentry)
 {
@@ -2255,7 +2255,7 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 #endif
 
 /*
- * Permission checks before security_inode_mknod() is called.
+ * Permission checks from vfs_mknod().
  *
  * This function is exported because
  * vfs_mknod() is called from net/unix/af_unix.c.
@@ -2306,7 +2306,7 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 }
 EXPORT_SYMBOL(ccs_check_mknod_permission);
 
-/* Permission checks before security_inode_mkdir() is called. */
+/* Permission checks for vfs_mkdir(). */
 int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt, int mode)
 {
@@ -2316,7 +2316,7 @@ int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 	return error;
 }
 
-/* Permission checks before security_inode_rmdir() is called. */
+/* Permission checks for vfs_rmdir(). */
 int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt)
 {
@@ -2326,7 +2326,7 @@ int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
 	return error;
 }
 
-/* Permission checks before security_inode_unlink() is called. */
+/* Permission checks for vfs_unlink(). */
 int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 				struct vfsmount *mnt)
 {
@@ -2339,7 +2339,7 @@ int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 	return error;
 }
 
-/* Permission checks before security_inode_symlink() is called. */
+/* Permission checks for vfs_symlink(). */
 int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 				 struct vfsmount *mnt, char *from)
 {
@@ -2352,14 +2352,14 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 	return error;
 }
 
-/* Permission checks before security_inode_setattr() is called. */
+/* Permission checks for notify_change(). */
 int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 				  loff_t length, unsigned int time_attrs)
 {
 	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt);
 }
 
-/* Permission checks before security_inode_rename() is called. */
+/* Permission checks for vfs_rename(). */
 int ccs_check_rename_permission(struct inode *old_dir,
 				struct dentry *old_dentry,
 				struct inode *new_dir,
@@ -2376,7 +2376,7 @@ int ccs_check_rename_permission(struct inode *old_dir,
 	return error;
 }
 
-/* Permission checks before security_inode_link() is called. */
+/* Permission checks for vfs_link(). */
 int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			      struct dentry *new_dentry, struct vfsmount *mnt)
 {
@@ -2390,11 +2390,26 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 	return error;
 }
 
+/* Permission checks for open_exec(). */
+int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
+{
+	return (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) ?
+		/* 01 means "read". */
+		ccs_check_open_permission(dentry, mnt, 01) : 0;
+}
+
+/* Permission checks for sys_uselib(). */
+int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
+{
+        /* 01 means "read". */
+        return ccs_check_open_permission(dentry, mnt, 01);
+}
+
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)
 
 #include <linux/sysctl.h>
 
-/* Permission checks before parse_table() is called. */
+/* Permission checks for parse_table(). */
 int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		    void __user *newval, struct ctl_table *table)
 {

@@ -16,7 +16,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  fs/Makefile                     |    2 +
  fs/attr.c                       |   19 ++++++++++++
  fs/compat.c                     |   15 +++++++++-
- fs/exec.c                       |   20 ++++++++++++-
+ fs/exec.c                       |   17 ++++++++++-
  fs/fcntl.c                      |    9 ++++++
  fs/ioctl.c                      |   11 +++++++
  fs/namei.c                      |   60 ++++++++++++++++++++++++++++++++++++++++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  net/ipv6/udp.c                  |   11 +++++++
  net/socket.c                    |   43 +++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    8 +++++
- 42 files changed, 529 insertions(+), 9 deletions(-)
+ 42 files changed, 526 insertions(+), 9 deletions(-)
 
 --- linux-2.6.17.1-12.44.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.17.1-12.44/arch/alpha/kernel/ptrace.c
@@ -396,13 +396,12 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  /* A program that gets called and passed a core dump whenever a program
   * crashes for certain reasons (sigsegv, etc). Default dump size is
-@@ -146,6 +149,13 @@ asmlinkage long sys_uselib(const char __
+@@ -146,6 +149,12 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -410,21 +409,19 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	file = nameidata_to_filp(&nd, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -495,6 +505,13 @@ struct file *open_exec(const char *name)
+@@ -495,6 +504,11 @@ struct file *open_exec(const char *name)
  			int err = vfs_permission(&nd, MAY_EXEC);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, O_RDONLY);
-@@ -1215,7 +1232,8 @@ int do_execve(char * filename,
+@@ -1215,7 +1229,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -831,7 +828,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.17.1-12.44 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.17.1-12.44 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

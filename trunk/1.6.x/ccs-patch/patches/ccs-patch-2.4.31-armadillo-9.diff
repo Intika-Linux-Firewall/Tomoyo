@@ -35,7 +35,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/Config.in                    |    3 +
  fs/Makefile                     |    2 
  fs/attr.c                       |   10 ++++
- fs/exec.c                       |   21 +++++++++
+ fs/exec.c                       |   18 +++++++-
  fs/fcntl.c                      |    8 +++
  fs/ioctl.c                      |   16 +++++++
  fs/namei.c                      |   67 +++++++++++++++++++++++++++++++
@@ -58,7 +58,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   16 ++++++-
  net/socket.c                    |   40 +++++++++++++++++-
  net/unix/af_unix.c              |    8 +++
- 56 files changed, 728 insertions(+), 8 deletions(-)
+ 56 files changed, 725 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Documentation/Configure.help
 +++ linux-2.4.31-a9-3/Documentation/Configure.help
@@ -897,13 +897,12 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  int core_uses_pid;
  char core_pattern[65] = "core";
  int core_setuid_ok = 0;
-@@ -136,6 +140,13 @@ asmlinkage long sys_uselib(const char * 
+@@ -136,6 +140,12 @@ asmlinkage long sys_uselib(const char * 
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -911,21 +910,19 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -408,6 +419,13 @@ struct file *open_exec(const char *name)
+@@ -408,6 +418,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1000,7 +1018,8 @@ int do_execve(char * filename, char ** a
+@@ -1000,7 +1015,8 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
@@ -1373,7 +1370,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

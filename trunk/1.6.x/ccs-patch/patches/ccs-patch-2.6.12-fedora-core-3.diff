@@ -33,7 +33,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  fs/Makefile                        |    2 +
  fs/attr.c                          |   19 +++++++++++
  fs/compat.c                        |   15 ++++++++-
- fs/exec.c                          |   21 ++++++++++++
+ fs/exec.c                          |   18 ++++++++++-
  fs/fcntl.c                         |    8 ++++
  fs/ioctl.c                         |   11 ++++++
  fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
@@ -58,7 +58,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  net/ipv6/udp.c                     |   11 ++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 56 files changed, 638 insertions(+), 10 deletions(-)
+ 56 files changed, 635 insertions(+), 10 deletions(-)
 
 --- linux-2.6.12-2.3.legacy_FC3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12-2.3.legacy_FC3/arch/alpha/kernel/ptrace.c
@@ -802,13 +802,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  int core_uses_pid;
  char core_pattern[65] = "core";
  /* The maximal length of core_pattern is also specified in sysctl.c */
-@@ -136,6 +140,13 @@ asmlinkage long sys_uselib(const char __
+@@ -136,6 +140,12 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -816,21 +815,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -504,6 +515,13 @@ struct file *open_exec(const char *name)
+@@ -504,6 +514,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC, &nd);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1189,7 +1207,8 @@ int do_execve(char * filename,
+@@ -1189,7 +1204,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -1246,7 +1243,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

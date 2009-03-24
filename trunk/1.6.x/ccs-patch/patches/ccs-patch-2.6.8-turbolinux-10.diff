@@ -29,7 +29,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/Makefile                        |    2 +
  fs/attr.c                          |   19 +++++++++++
  fs/compat.c                        |   11 ++++++
- fs/exec.c                          |   20 +++++++++++-
+ fs/exec.c                          |   17 +++++++++-
  fs/fcntl.c                         |    8 ++++
  fs/ioctl.c                         |   13 ++++++++
  fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
@@ -53,7 +53,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/udp.c                     |   11 ++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 53 files changed, 610 insertions(+), 10 deletions(-)
+ 53 files changed, 607 insertions(+), 10 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -740,13 +740,12 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  int core_uses_pid;
  char core_pattern[65] = "core";
  /* The maximal length of core_pattern is also specified in sysctl.c */
-@@ -134,6 +138,13 @@ asmlinkage long sys_uselib(const char __
+@@ -134,6 +138,12 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -754,21 +753,19 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -494,6 +505,13 @@ struct file *open_exec(const char *name)
+@@ -494,6 +504,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC, &nd);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1163,7 +1181,7 @@ int do_execve(char * filename,
+@@ -1163,7 +1178,7 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -1185,7 +1182,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.8-16 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.8-16 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

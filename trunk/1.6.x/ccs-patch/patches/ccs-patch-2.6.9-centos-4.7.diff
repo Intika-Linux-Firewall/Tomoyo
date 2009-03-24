@@ -32,7 +32,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  fs/Makefile                        |    1 
  fs/attr.c                          |   19 +++++++++++
  fs/compat.c                        |   16 ++++++++-
- fs/exec.c                          |   26 ++++++++++++++--
+ fs/exec.c                          |   23 ++++++++++++--
  fs/fcntl.c                         |    8 ++++
  fs/ioctl.c                         |   13 ++++++++
  fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  net/ipv6/udp.c                     |   10 ++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 55 files changed, 630 insertions(+), 11 deletions(-)
+ 55 files changed, 627 insertions(+), 11 deletions(-)
 
 --- linux-2.6.9-78.0.13.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.0.13.EL/arch/alpha/kernel/ptrace.c
@@ -779,13 +779,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  int core_uses_pid;
  char core_pattern[65] = "core";
  int suid_dumpable = 0;
-@@ -140,6 +144,13 @@ asmlinkage long sys_uselib(const char __
+@@ -140,6 +144,12 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -793,21 +792,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -494,6 +505,13 @@ struct file *open_exec(const char *name)
+@@ -494,6 +504,11 @@ struct file *open_exec(const char *name)
  		if (!(nd.mnt->mnt_flags & MNT_NOEXEC) &&
  		    S_ISREG(inode->i_mode)) {
  			int err = permission(inode, MAY_EXEC, &nd);
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, 
-@@ -1184,8 +1202,11 @@ int do_execve(char * filename,
+@@ -1184,8 +1199,11 @@ int do_execve(char * filename,
  
  	retval = -ENOMEM;
  	bprm = kmalloc(sizeof(*bprm), GFP_KERNEL);
@@ -820,7 +817,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  	memset(bprm, 0, sizeof(*bprm));
  
  	bprm->p = PAGE_SIZE*MAX_ARG_PAGES-sizeof(void *);
-@@ -1230,7 +1251,8 @@ int do_execve(char * filename,
+@@ -1230,7 +1248,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -1237,7 +1234,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.0.13.EL 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

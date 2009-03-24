@@ -7,7 +7,7 @@ Source code for this patch is "emerge hardened-sources"
  fs/attr.c                       |   10 +++++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 +++++++++
- fs/exec.c                       |   21 ++++++++++++++
+ fs/exec.c                       |   16 ++++++++++-
  fs/fcntl.c                      |    9 ++++++
  fs/ioctl.c                      |   11 +++++++
  fs/namei.c                      |   57 ++++++++++++++++++++++++++++++++++++++++
@@ -34,7 +34,7 @@ Source code for this patch is "emerge hardened-sources"
  net/ipv4/udp.c                  |    9 +++++-
  net/socket.c                    |   41 ++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 32 files changed, 434 insertions(+), 3 deletions(-)
+ 32 files changed, 429 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-hardened-r3.orig/fs/Kconfig
 +++ linux-2.6.28-hardened-r3/fs/Kconfig
@@ -149,36 +149,31 @@ Source code for this patch is "emerge hardened-sources"
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -140,6 +144,12 @@ SYSCALL_DEFINE1(uselib, const char __use
+@@ -140,6 +144,11 @@ SYSCALL_DEFINE1(uselib, const char __use
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.path.dentry, nd.path.mnt, 01);
++	error = ccs_check_uselib_permission(nd.path.dentry, nd.path.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -710,6 +720,15 @@ struct file *open_exec(const char *name)
+@@ -710,6 +719,11 @@ struct file *open_exec(const char *name)
  	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
 +	/***** TOMOYO Linux start. *****/
-+	if (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) {
-+		/* 01 means "read". */
-+		err = ccs_check_open_permission(nd.path.dentry, nd.path.mnt,
-+						01);
-+		if (err)
-+			goto out_path_put;
-+	}
++	err = ccs_check_open_exec_permission(nd.path.dentry, nd.path.mnt);
++	if (err)
++		goto out_path_put;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1413,7 +1432,7 @@ int do_execve(char * filename,
+@@ -1413,7 +1427,7 @@ int do_execve(char * filename,
  		goto out_fail;
  
  	current->flags &= ~PF_KTHREAD;
@@ -582,7 +577,7 @@ Source code for this patch is "emerge hardened-sources"
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r3 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r3 2009/03/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

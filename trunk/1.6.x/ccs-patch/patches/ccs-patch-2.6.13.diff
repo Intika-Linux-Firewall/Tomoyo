@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/Makefile                        |    2 +
  fs/attr.c                          |   19 +++++++++++
  fs/compat.c                        |   15 ++++++++-
- fs/exec.c                          |   21 ++++++++++++
+ fs/exec.c                          |   18 ++++++++++-
  fs/fcntl.c                         |    8 ++++
  fs/ioctl.c                         |   11 ++++++
  fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
@@ -61,7 +61,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                     |   16 +++++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 59 files changed, 663 insertions(+), 11 deletions(-)
+ 59 files changed, 660 insertions(+), 11 deletions(-)
 
 --- linux-2.6.13.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.13.5/arch/alpha/kernel/ptrace.c
@@ -851,13 +851,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  int core_uses_pid;
  char core_pattern[65] = "core";
  int suid_dumpable = 0;
-@@ -139,6 +143,13 @@ asmlinkage long sys_uselib(const char __
+@@ -139,6 +143,12 @@ asmlinkage long sys_uselib(const char __
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -865,21 +864,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -507,6 +518,13 @@ struct file *open_exec(const char *name)
+@@ -507,6 +517,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC, &nd);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1203,7 +1221,8 @@ int do_execve(char * filename,
+@@ -1203,7 +1218,8 @@ int do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -1295,7 +1292,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.13.5 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.13.5 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

@@ -26,7 +26,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/Config.in                 |    3 +
  fs/Makefile                  |    1 
  fs/attr.c                    |   10 +++++
- fs/exec.c                    |   20 +++++++++-
+ fs/exec.c                    |   17 ++++++++
  fs/fcntl.c                   |    8 ++++
  fs/ioctl.c                   |   16 ++++++++
  fs/namei.c                   |   67 +++++++++++++++++++++++++++++++++
@@ -49,7 +49,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |   11 +++++
  net/socket.c                 |   38 +++++++++++++++++++
  net/unix/af_unix.c           |    8 ++++
- 47 files changed, 658 insertions(+), 2 deletions(-)
+ 47 files changed, 655 insertions(+), 2 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -678,13 +678,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  int core_uses_pid;
  char core_pattern[65] = "core";
  /* The maximal length of core_pattern is also specified in sysctl.c */ 
-@@ -127,6 +131,13 @@ asmlinkage long sys_uselib(const char * 
+@@ -127,6 +131,12 @@ asmlinkage long sys_uselib(const char * 
  	if (error)
  		goto exit;
  
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.dentry, nd.mnt, 01);
++	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
@@ -692,21 +691,19 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
  	error = PTR_ERR(file);
  	if (IS_ERR(file))
-@@ -400,6 +411,13 @@ struct file *open_exec(const char *name)
+@@ -400,6 +410,11 @@ struct file *open_exec(const char *name)
  			int err = permission(inode, MAY_EXEC);
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			/***** TOMOYO Linux start. *****/
-+			if (!err && (current->ccs_flags &
-+				     CCS_CHECK_READ_FOR_OPEN_EXEC))
-+				/* 01 means "read". */
-+				err = ccs_check_open_permission(nd.dentry,
-+								nd.mnt, 01);
++			if (!err)
++				err = ccs_check_open_exec_permission(nd.dentry,
++								     nd.mnt);
 +			/***** TOMOYO Linux end. *****/
  			file = ERR_PTR(err);
  			if (!err) {
  				file = dentry_open(nd.dentry, nd.mnt, O_RDONLY);
-@@ -1076,7 +1094,7 @@ int do_execve(char * filename, char ** a
+@@ -1076,7 +1091,7 @@ int do_execve(char * filename, char ** a
  	if (retval < 0) 
  		goto out; 
  
@@ -1152,7 +1149,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }

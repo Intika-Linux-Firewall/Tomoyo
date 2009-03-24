@@ -9,7 +9,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/development/sourc
  fs/attr.c                       |   19 +++++++++++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 +++++++++
- fs/exec.c                       |   21 ++++++++++++++
+ fs/exec.c                       |   16 ++++++++++-
  fs/fcntl.c                      |    9 ++++++
  fs/ioctl.c                      |   11 +++++++
  fs/namei.c                      |   57 ++++++++++++++++++++++++++++++++++++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/development/sourc
  net/ipv4/udp.c                  |   10 +++++++
  net/socket.c                    |   41 ++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 34 files changed, 449 insertions(+), 2 deletions(-)
+ 34 files changed, 444 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.19-170.2.35.fc10.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.19-170.2.35.fc10/arch/ia64/ia32/sys_ia32.c
@@ -212,36 +212,31 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/development/sourc
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -132,6 +136,12 @@ SYSCALL_DEFINE1(uselib, const char __use
+@@ -132,6 +136,11 @@ SYSCALL_DEFINE1(uselib, const char __use
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
 +	/***** TOMOYO Linux start. *****/
-+	/* 01 means "read". */
-+	error = ccs_check_open_permission(nd.path.dentry, nd.path.mnt, 01);
++	error = ccs_check_uselib_permission(nd.path.dentry, nd.path.mnt);
 +	if (error)
 +		goto exit;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	error = PTR_ERR(file);
-@@ -685,6 +695,15 @@ struct file *open_exec(const char *name)
+@@ -685,6 +694,11 @@ struct file *open_exec(const char *name)
  	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
 +	/***** TOMOYO Linux start. *****/
-+	if (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) {
-+		/* 01 means "read". */
-+		err = ccs_check_open_permission(nd.path.dentry, nd.path.mnt,
-+						01);
-+		if (err)
-+			goto out_path_put;
-+	}
++	err = ccs_check_open_exec_permission(nd.path.dentry, nd.path.mnt);
++	if (err)
++		goto out_path_put;
 +	/***** TOMOYO Linux end. *****/
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1345,7 +1364,7 @@ int do_execve(char * filename,
+@@ -1345,7 +1359,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -642,7 +637,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/development/sourc
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.19-170.2.35.fc10 2009/03/18\n");
++	printk(KERN_INFO "Hook version: 2.6.27.19-170.2.35.fc10 2009/03/24\n");
 +#endif
 +	/***** CCS end. *****/
  }
