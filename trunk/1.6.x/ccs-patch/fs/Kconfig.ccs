@@ -55,6 +55,26 @@ config TOMOYO_MAX_ACCEPT_ENTRY
 	  and consumes much memory.
 	  This is the safeguard for such programs.
 
+config TOMOYO_BUILTIN_INITIALIZERS
+	string "Built-in domain initializer programs"
+	default "/sbin/modprobe /sbin/hotplug"
+	depends on TOMOYO
+	---help---
+	  Some programs are executed from initrd/initramfs before /sbin/init
+	  starts.
+
+	  Since policy is loaded when /sbin/init starts, it is impossible to
+	  run such programs outside the <kernel> domain. Usually it is fine.
+
+	  But if such programs continue running when /sbin/init starts, such
+	  programs will reside in the <kernel> domain.
+	  If such programs executes /bin/sh , you will give the <kernel> domain
+	  permission to execute /bin/sh ; I think you don't want to do so.
+
+	  This option allows you to chase such programs away from the <kernel>
+	  domain so that you won't give the <kernel> domain permission to
+	  execute /bin/sh .
+
 config TOMOYO_AUDIT
 	bool "Auditing interface support"
 	default y
