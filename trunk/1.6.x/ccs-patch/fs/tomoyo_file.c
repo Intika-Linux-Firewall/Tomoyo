@@ -2401,8 +2401,8 @@ int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
 /* Permission checks for sys_uselib(). */
 int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
-        /* 01 means "read". */
-        return ccs_check_open_permission(dentry, mnt, 01);
+	/* 01 means "read". */
+	return ccs_check_open_permission(dentry, mnt, 01);
 }
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)

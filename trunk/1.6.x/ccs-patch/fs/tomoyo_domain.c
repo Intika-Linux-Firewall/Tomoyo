@@ -937,7 +937,7 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
  out:
 	return false;
 }
-			
+
 /**
  * ccs_find_next_domain - Find a domain.
  *
