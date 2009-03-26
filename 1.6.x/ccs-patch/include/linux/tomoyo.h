@@ -191,7 +191,7 @@ static inline int ccs_check_open_exec_permission(struct dentry *dentry,
 static inline int ccs_check_uselib_permission(struct dentry *dentry,
 					      struct vfsmount *mnt)
 {
-        return 0;
+	return 0;
 }
 
 #endif
