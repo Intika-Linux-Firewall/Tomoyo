@@ -1804,10 +1804,6 @@ Fix 2009/01/05
       As remove_arg_zero() uses kmap_atomic(KM_USER0), I modified to use
       kmap_atomic(KM_USER0) rather than kmap().
 
-    @ Relocate definitions and functions.
-
-      To reduce exposed symbols, I relocated some definitions and functions.
-
 Fix 2009/01/28
 
     @ Fix "allow_read" + "allow_write" != "allow_read/write" problem.
@@ -1874,7 +1870,7 @@ Fix 2009/03/18
 
     @ Insert ccs_check_ioctl_permission() call.
 
-      To enable MAC_FOR_IOCTL functionality work, I inserted
+      To make MAC_FOR_IOCTL functionality working, I inserted
       ccs_check_ioctl_permission() call into ccs-patch-\*.diff .
 
 Fix 2009/03/23
