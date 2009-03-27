@@ -43,7 +43,6 @@
 <p>/sys/kernel/security/tomoyo/exception_policy および /etc/tomoyo/exception_policy.conf で使われるもの</p>
 
 <ul>
-<li><a href="#exception_policy_aggregator">aggregator</a></li>
 <li><a href="#exception_policy_initialize_domain">initialize_domain</a></li>
 <li><a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></li>
 <li><a href="#exception_policy_keep_domain">keep_domain</a></li>
@@ -284,15 +283,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
 </td></tr>
-<tr><td>類似するプログラムの集約</td><td>
-<p>例外ポリシから</p>
-
-<ul>
-<li>aggregator 「パス名候補 1 」 「集約されたパス名」
-</ul>
-
-<p>というエントリを探します。見つかった場合は、「集約されたパス名」を「パス名候補 1 」とします。</p>
-</td></tr>
 <tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
 <p>ドメインポリシから</p>
 
@@ -359,8 +349,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2><a name="profile">/sys/kernel/security/tomoyo/profile</a></h2>
 
-<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシ管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
-
 <p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには setlevel コマンドまたは loadpolicy コマンドを使用します。</p>
 
 <p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは editpolicy コマンドまたは loadpolicy コマンドを使用します。</p>
@@ -426,9 +414,9 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
-<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
+<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。</p>
 <p>（例） allow_execute /bin/ls</p>
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
 <p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
@@ -550,14 +538,6 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というキーワードに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。このキーワードの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることです。</p>
 <p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
-
-<p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
-
-<h3><a name="exception_policy_aggregator">aggregator</a></h3>
-
-<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。このキーワードの目的は、同様のプログラムを集約することです。</p>
-<p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
-<p>例えば、 Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていません。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになります。</p>
 
 <p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
