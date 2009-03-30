@@ -1,7 +1,6 @@
-This is TOMOYO Linux patch for kernel 2.6.27.10 + grsecurity-2.1.12-2.6.27.10 .
+This is TOMOYO Linux patch for Hardened Gentoo 2.6.27 .
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.10.tar.bz2
-and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
+Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
 ---
  arch/ia64/ia32/sys_ia32.c       |    9 +++
  arch/mips/kernel/ptrace32.c     |    9 +++
@@ -39,8 +38,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  net/unix/af_unix.c              |   15 +++++
  34 files changed, 606 insertions(+), 2 deletions(-)
 
---- linux-2.6.27.10.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.27.10/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
 @@ -51,6 +51,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -64,8 +63,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.27.10.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.27.10/arch/mips/kernel/ptrace32.c
+--- linux-2.6.27-hardened-r8.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.27-hardened-r8/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -89,25 +88,25 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27.10.orig/fs/Kconfig
-+++ linux-2.6.27.10/fs/Kconfig
-@@ -2093,4 +2093,6 @@ endif
+--- linux-2.6.27-hardened-r8.orig/fs/Kconfig
++++ linux-2.6.27-hardened-r8/fs/Kconfig
+@@ -2143,4 +2143,6 @@ endif
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
  
 +source "fs/Kconfig.ccs"
 +
  endmenu
---- linux-2.6.27.10.orig/fs/Makefile
-+++ linux-2.6.27.10/fs/Makefile
-@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+--- linux-2.6.27-hardened-r8.orig/fs/Makefile
++++ linux-2.6.27-hardened-r8/fs/Makefile
+@@ -123,3 +123,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.27.10.orig/fs/attr.c
-+++ linux-2.6.27.10/fs/attr.c
+--- linux-2.6.27-hardened-r8.orig/fs/attr.c
++++ linux-2.6.27-hardened-r8/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -147,8 +146,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.27.10.orig/fs/compat.c
-+++ linux-2.6.27.10/fs/compat.c
+--- linux-2.6.27-hardened-r8.orig/fs/compat.c
++++ linux-2.6.27-hardened-r8/fs/compat.c
 @@ -57,6 +57,9 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -168,8 +167,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)
---- linux-2.6.27.10.orig/fs/compat_ioctl.c
-+++ linux-2.6.27.10/fs/compat_ioctl.c
+--- linux-2.6.27-hardened-r8.orig/fs/compat_ioctl.c
++++ linux-2.6.27-hardened-r8/fs/compat_ioctl.c
 @@ -113,6 +113,9 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -180,7 +179,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
-@@ -2803,6 +2806,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -2810,6 +2813,12 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -193,8 +192,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.27.10.orig/fs/exec.c
-+++ linux-2.6.27.10/fs/exec.c
+--- linux-2.6.27-hardened-r8.orig/fs/exec.c
++++ linux-2.6.27-hardened-r8/fs/exec.c
 @@ -76,6 +76,10 @@ void (*pax_set_initial_flags_func)(struc
  EXPORT_SYMBOL(pax_set_initial_flags_func);
  #endif
@@ -206,7 +205,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
  int suid_dumpable = 0;
-@@ -144,6 +148,12 @@ asmlinkage long sys_uselib(const char __
+@@ -144,6 +148,12 @@ SYSCALL_DEFINE1(uselib, const char __use
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
@@ -244,8 +243,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	if (retval >= 0) {
  #ifdef CONFIG_GRKERNSEC
  		if (old_exec_file)
---- linux-2.6.27.10.orig/fs/fcntl.c
-+++ linux-2.6.27.10/fs/fcntl.c
+--- linux-2.6.27-hardened-r8.orig/fs/fcntl.c
++++ linux-2.6.27-hardened-r8/fs/fcntl.c
 @@ -25,6 +25,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -269,8 +268,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.27.10.orig/fs/ioctl.c
-+++ linux-2.6.27.10/fs/ioctl.c
+--- linux-2.6.27-hardened-r8.orig/fs/ioctl.c
++++ linux-2.6.27-hardened-r8/fs/ioctl.c
 @@ -15,6 +15,9 @@
  #include <linux/uaccess.h>
  
@@ -292,8 +291,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.27.10.orig/fs/namei.c
-+++ linux-2.6.27.10/fs/namei.c
+--- linux-2.6.27-hardened-r8.orig/fs/namei.c
++++ linux-2.6.27-hardened-r8/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -361,7 +360,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	switch (mode & S_IFMT) {
  	case S_IFREG:
  	case S_IFCHR:
-@@ -2091,10 +2123,34 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2091,10 +2123,34 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
  			break;
  		case S_IFCHR: case S_IFBLK:
@@ -396,7 +395,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  			error = vfs_mknod(nd.path.dentry->d_inode,dentry,mode,0);
  			break;
  	}
-@@ -2165,6 +2221,13 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2165,6 +2221,13 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -449,7 +448,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		if (!error && (saved_ino || saved_dev))
  			gr_handle_delete(saved_ino, saved_dev);
-@@ -2454,6 +2535,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2454,6 +2535,10 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	char *to;
  	struct dentry *dentry;
  	struct nameidata nd;
@@ -460,7 +459,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	from = getname(oldname);
  	if (IS_ERR(from))
-@@ -2476,6 +2561,13 @@ asmlinkage long sys_symlinkat(const char
+@@ -2476,6 +2561,13 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -474,7 +473,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
  	if (!error)
  		gr_handle_create(dentry, nd.path.mnt);
-@@ -2555,6 +2647,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2554,6 +2646,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  
  	if ((flags & ~AT_SYMLINK_FOLLOW) != 0)
  		return -EINVAL;
@@ -485,7 +484,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	error = user_path_at(olddfd, oldname,
  			     flags & AT_SYMLINK_FOLLOW ? LOOKUP_FOLLOW : 0,
-@@ -2589,6 +2685,15 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2588,6 +2684,15 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -501,7 +500,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	if (!error)
  		gr_handle_create(new_dentry, nd.path.mnt);
-@@ -2769,6 +2874,10 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2768,6 +2873,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  	char *from;
  	char *to;
  	int error;
@@ -512,7 +511,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	error = user_path_parent(olddfd, oldname, &oldnd, &from);
  	if (error)
-@@ -2821,6 +2930,17 @@ asmlinkage long sys_renameat(int olddfd,
+@@ -2820,6 +2929,17 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
@@ -530,8 +529,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	error = gr_acl_handle_rename(new_dentry, new_dir, newnd.path.mnt,
  				     old_dentry, old_dir->d_inode, oldnd.path.mnt,
---- linux-2.6.27.10.orig/fs/namespace.c
-+++ linux-2.6.27.10/fs/namespace.c
+--- linux-2.6.27-hardened-r8.orig/fs/namespace.c
++++ linux-2.6.27-hardened-r8/fs/namespace.c
 @@ -32,6 +32,12 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -557,7 +556,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -1138,6 +1149,10 @@ asmlinkage long sys_umount(char __user *
+@@ -1138,6 +1149,10 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct path path;
  	int retval;
@@ -622,7 +621,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2206,6 +2247,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2205,6 +2246,10 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -633,7 +632,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2219,6 +2264,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2218,6 +2263,10 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -644,8 +643,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.27.10.orig/fs/open.c
-+++ linux-2.6.27.10/fs/open.c
+--- linux-2.6.27-hardened-r8.orig/fs/open.c
++++ linux-2.6.27-hardened-r8/fs/open.c
 @@ -30,6 +30,12 @@
  #include <linux/audit.h>
  #include <linux/falloc.h>
@@ -659,7 +658,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -275,6 +281,11 @@ static long do_sys_truncate(const char _
+@@ -273,6 +279,11 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
@@ -671,7 +670,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -331,6 +342,11 @@ static long do_sys_ftruncate(unsigned in
+@@ -329,6 +340,11 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -683,7 +682,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -587,6 +603,14 @@ asmlinkage long sys_chroot(const char __
+@@ -606,6 +622,14 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -698,9 +697,9 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -1196,6 +1220,10 @@ EXPORT_SYMBOL(sys_close);
+@@ -1212,6 +1236,10 @@ EXPORT_SYMBOL(sys_close);
   */
- asmlinkage long sys_vhangup(void)
+ SYSCALL_DEFINE0(vhangup)
  {
 +	/***** TOMOYO Linux start. *****/
 +	if (!ccs_capable(TOMOYO_SYS_VHANGUP))
@@ -709,8 +708,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.27.10.orig/fs/proc/Makefile
-+++ linux-2.6.27.10/fs/proc/Makefile
+--- linux-2.6.27-hardened-r8.orig/fs/proc/Makefile
++++ linux-2.6.27-hardened-r8/fs/proc/Makefile
 @@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
  proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
@@ -718,20 +717,20 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.27.10.orig/fs/proc/proc_misc.c
-+++ linux-2.6.27.10/fs/proc/proc_misc.c
+--- linux-2.6.27-hardened-r8.orig/fs/proc/proc_misc.c
++++ linux-2.6.27-hardened-r8/fs/proc/proc_misc.c
 @@ -951,4 +951,9 @@ void __init proc_misc_init(void)
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.27.10 + grsecurity-2.1.12-2.6.27.10 2009/01/05\n");
++	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2009/03/30\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.27.10.orig/include/linux/init_task.h
-+++ linux-2.6.27.10/include/linux/init_task.h
+--- linux-2.6.27-hardened-r8.orig/include/linux/init_task.h
++++ linux-2.6.27-hardened-r8/include/linux/init_task.h
 @@ -179,6 +179,10 @@ extern struct group_info init_groups;
  	INIT_IDS							\
  	INIT_TRACE_IRQFLAGS						\
@@ -743,8 +742,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  }
  
  
---- linux-2.6.27.10.orig/include/linux/sched.h
-+++ linux-2.6.27.10/include/linux/sched.h
+--- linux-2.6.27-hardened-r8.orig/include/linux/sched.h
++++ linux-2.6.27-hardened-r8/include/linux/sched.h
 @@ -29,6 +29,11 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -757,7 +756,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  /*
   * Scheduling policies
   */
-@@ -1328,6 +1333,10 @@ struct task_struct {
+@@ -1327,6 +1332,10 @@ struct task_struct {
  	u8 brute;
  #endif
  
@@ -768,8 +767,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  };
  
  #define MF_PAX_PAGEEXEC		0x01000000	/* Paging based non-executable pages */
---- linux-2.6.27.10.orig/kernel/compat.c
-+++ linux-2.6.27.10/kernel/compat.c
+--- linux-2.6.27-hardened-r8.orig/kernel/compat.c
++++ linux-2.6.27-hardened-r8/kernel/compat.c
 @@ -25,6 +25,9 @@
  #include <linux/posix-timers.h>
  
@@ -791,8 +790,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.27.10.orig/kernel/kexec.c
-+++ linux-2.6.27.10/kernel/kexec.c
+--- linux-2.6.27-hardened-r8.orig/kernel/kexec.c
++++ linux-2.6.27-hardened-r8/kernel/kexec.c
 @@ -36,6 +36,9 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -803,7 +802,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
-@@ -943,6 +946,10 @@ asmlinkage long sys_kexec_load(unsigned 
+@@ -942,6 +945,10 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
  		return -EPERM;
@@ -814,8 +813,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.27.10.orig/kernel/kmod.c
-+++ linux-2.6.27.10/kernel/kmod.c
+--- linux-2.6.27-hardened-r8.orig/kernel/kmod.c
++++ linux-2.6.27-hardened-r8/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -828,8 +827,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.27.10.orig/kernel/module.c
-+++ linux-2.6.27.10/kernel/module.c
+--- linux-2.6.27-hardened-r8.orig/kernel/module.c
++++ linux-2.6.27-hardened-r8/kernel/module.c
 @@ -51,6 +51,9 @@
  
  #include <linux/license.h>
@@ -840,7 +839,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  #if 0
  #define DEBUGP printk
-@@ -741,6 +744,10 @@ sys_delete_module(const char __user *nam
+@@ -741,6 +744,10 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -851,7 +850,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2420,6 +2427,10 @@ sys_init_module(void __user *umod,
+@@ -2418,6 +2425,10 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE))
  		return -EPERM;
@@ -862,8 +861,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.27.10.orig/kernel/ptrace.c
-+++ linux-2.6.27.10/kernel/ptrace.c
+--- linux-2.6.27-hardened-r8.orig/kernel/ptrace.c
++++ linux-2.6.27-hardened-r8/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  
  #include <asm/pgtable.h>
@@ -874,7 +873,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  /*
   * ptrace a task: make the debugger its new parent and
-@@ -554,6 +557,12 @@ asmlinkage long sys_ptrace(long request,
+@@ -554,6 +557,12 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
@@ -900,8 +899,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.27.10.orig/kernel/sched.c
-+++ linux-2.6.27.10/kernel/sched.c
+--- linux-2.6.27-hardened-r8.orig/kernel/sched.c
++++ linux-2.6.27-hardened-r8/kernel/sched.c
 @@ -75,6 +75,9 @@
  
  #include <asm/tlb.h>
@@ -913,7 +912,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  #include "sched_cpupri.h"
  
 @@ -4946,6 +4949,10 @@ int can_nice(const struct task_struct *p
- asmlinkage long sys_nice(int increment)
+ SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
 +	/***** TOMOYO Linux start. *****/
@@ -923,8 +922,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.27.10.orig/kernel/signal.c
-+++ linux-2.6.27.10/kernel/signal.c
+--- linux-2.6.27-hardened-r8.orig/kernel/signal.c
++++ linux-2.6.27-hardened-r8/kernel/signal.c
 @@ -34,6 +34,9 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -935,8 +934,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  /*
   * SLAB caches for signal bits.
-@@ -2212,6 +2215,12 @@ asmlinkage long
- sys_kill(pid_t pid, int sig)
+@@ -2209,6 +2212,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
 +	/***** TOMOYO Linux start. *****/
@@ -948,7 +947,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2273,6 +2282,12 @@ asmlinkage long sys_tgkill(pid_t tgid, p
+@@ -2270,6 +2279,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -961,7 +960,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2286,6 +2301,12 @@ sys_tkill(pid_t pid, int sig)
+@@ -2282,6 +2297,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -974,8 +973,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.27.10.orig/kernel/sys.c
-+++ linux-2.6.27.10/kernel/sys.c
+--- linux-2.6.27-hardened-r8.orig/kernel/sys.c
++++ linux-2.6.27-hardened-r8/kernel/sys.c
 @@ -43,6 +43,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -986,7 +985,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
-@@ -153,6 +156,12 @@ asmlinkage long sys_setpriority(int whic
+@@ -153,6 +156,12 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -999,7 +998,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -369,6 +378,10 @@ asmlinkage long sys_reboot(int magic1, i
+@@ -370,6 +379,10 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -1010,7 +1009,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1399,6 +1412,10 @@ asmlinkage long sys_sethostname(char __u
+@@ -1400,6 +1413,10 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1021,7 +1020,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1444,6 +1461,10 @@ asmlinkage long sys_setdomainname(char _
+@@ -1445,6 +1462,10 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -1032,8 +1031,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.27.10.orig/kernel/sysctl.c
-+++ linux-2.6.27.10/kernel/sysctl.c
+--- linux-2.6.27-hardened-r8.orig/kernel/sysctl.c
++++ linux-2.6.27-hardened-r8/kernel/sysctl.c
 @@ -51,6 +51,9 @@
  
  #include <asm/uaccess.h>
@@ -1044,7 +1043,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1633,6 +1636,93 @@ repeat:
+@@ -1644,6 +1647,93 @@ repeat:
  	return -ENOTDIR;
  }
  
@@ -1138,7 +1137,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  int do_sysctl(int __user *name, int nlen, void __user *oldval, size_t __user *oldlenp,
  	       void __user *newval, size_t newlen)
  {
-@@ -1649,6 +1739,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1660,6 +1750,11 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1150,8 +1149,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.27.10.orig/kernel/time.c
-+++ linux-2.6.27.10/kernel/time.c
+--- linux-2.6.27-hardened-r8.orig/kernel/time.c
++++ linux-2.6.27-hardened-r8/kernel/time.c
 @@ -41,6 +41,9 @@
  
  #include <asm/uaccess.h>
@@ -1162,7 +1161,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  #include "timeconst.h"
  
-@@ -91,6 +94,10 @@ asmlinkage long sys_stime(time_t __user 
+@@ -91,6 +94,10 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -1184,8 +1183,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.27.10.orig/kernel/time/ntp.c
-+++ linux-2.6.27.10/kernel/time/ntp.c
+--- linux-2.6.27-hardened-r8.orig/kernel/time/ntp.c
++++ linux-2.6.27-hardened-r8/kernel/time/ntp.c
 @@ -18,6 +18,9 @@
  #include <linux/math64.h>
  #include <linux/clocksource.h>
@@ -1207,8 +1206,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.27.10.orig/net/core/datagram.c
-+++ linux-2.6.27.10/net/core/datagram.c
+--- linux-2.6.27-hardened-r8.orig/net/core/datagram.c
++++ linux-2.6.27-hardened-r8/net/core/datagram.c
 @@ -56,6 +56,11 @@
  #include <net/sock.h>
  #include <net/tcp_states.h>
@@ -1234,8 +1233,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  		if (skb)
  			return skb;
  
---- linux-2.6.27.10.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.27.10/net/ipv4/inet_connection_sock.c
+--- linux-2.6.27-hardened-r8.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.27-hardened-r8/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1257,8 +1256,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.27.10.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.27.10/net/ipv4/inet_hashtables.c
+--- linux-2.6.27-hardened-r8.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.27-hardened-r8/net/ipv4/inet_hashtables.c
 @@ -23,6 +23,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1280,8 +1279,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.27.10.orig/net/ipv4/udp.c
-+++ linux-2.6.27.10/net/ipv4/udp.c
+--- linux-2.6.27-hardened-r8.orig/net/ipv4/udp.c
++++ linux-2.6.27-hardened-r8/net/ipv4/udp.c
 @@ -104,6 +104,9 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -1313,8 +1312,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
---- linux-2.6.27.10.orig/net/socket.c
-+++ linux-2.6.27.10/net/socket.c
+--- linux-2.6.27-hardened-r8.orig/net/socket.c
++++ linux-2.6.27-hardened-r8/net/socket.c
 @@ -113,6 +113,11 @@ extern int gr_search_accept(const struct
  extern int gr_search_socket(const int domain, const int type,
  			    const int protocol);
@@ -1353,7 +1352,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1410,6 +1427,13 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1410,6 +1427,13 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  			err = security_socket_bind(sock,
  						   (struct sockaddr *)&address,
  						   addrlen);
@@ -1367,7 +1366,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  			if (!err)
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
-@@ -1446,6 +1470,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1446,6 +1470,10 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  		}
  
  		err = security_socket_listen(sock, backlog);
@@ -1392,7 +1391,7 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1647,6 +1682,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1647,6 +1682,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
  	if (err < 0)
  		goto out_put;
@@ -1405,8 +1404,8 @@ and http://www.grsecurity.net/grsecurity-2.1.12-2.6.27.10-200812271347.patch.gz
  
  	sck = (struct sockaddr *)&address;
  	if (!gr_search_connect(sock, (struct sockaddr_in *)sck) ||
---- linux-2.6.27.10.orig/net/unix/af_unix.c
-+++ linux-2.6.27.10/net/unix/af_unix.c
+--- linux-2.6.27-hardened-r8.orig/net/unix/af_unix.c
++++ linux-2.6.27-hardened-r8/net/unix/af_unix.c
 @@ -115,6 +115,9 @@
  #include <net/checksum.h>
  #include <linux/security.h>
