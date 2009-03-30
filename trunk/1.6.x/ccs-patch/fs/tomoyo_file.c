@@ -1422,7 +1422,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	case TYPE_MKDIR_ACL:
 	case TYPE_RMDIR_ACL:
 		if (!buf->is_dir) {
-			/* ccs_get_path() reserves space for appending "/." */
+			/* ccs_get_path() reserves space for appending "/". */
 			strcat((char *) buf->name, "/");
 			ccs_fill_path_info(buf);
 		}
@@ -1511,7 +1511,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	if (operation == TYPE_RENAME_ACL) {
 		/* TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-			/* ccs_get_path() reserves space for appending "/." */
+			/* ccs_get_path() reserves space for appending "/". */
 			if (!buf1->is_dir) {
 				strcat((char *) buf1->name, "/");
 				ccs_fill_path_info(buf1);
