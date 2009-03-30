@@ -1206,7 +1206,7 @@ static int read_profile(struct ccs_io_buffer *head)
 		if (!profile)
 			continue;
 #if !defined(CONFIG_SAKURA) || !defined(CONFIG_TOMOYO)
-		switch (type) {
+		switch (type - 1) {
 #ifndef CONFIG_SAKURA
 		case CCS_SAKURA_DENY_CONCEAL_MOUNT:
 		case CCS_SAKURA_RESTRICT_CHROOT:

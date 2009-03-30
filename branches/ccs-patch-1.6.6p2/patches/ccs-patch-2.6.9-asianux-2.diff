@@ -34,7 +34,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/compat.c                        |   16 ++++-
  fs/exec.c                          |   26 +++++++-
  fs/fcntl.c                         |    8 ++
- fs/ioctl.c                         |    7 ++
+ fs/ioctl.c                         |    9 ++
  fs/namei.c                         |  118 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   54 ++++++++++++++++
  fs/open.c                          |   28 ++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/ipv6/udp.c                     |   10 +++
  net/socket.c                       |   43 ++++++++++++-
  net/unix/af_unix.c                 |   15 ++++
- 54 files changed, 830 insertions(+), 12 deletions(-)
+ 54 files changed, 832 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-78.9AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.9AXS2/arch/alpha/kernel/ptrace.c
@@ -918,17 +918,19 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
-@@ -60,6 +63,10 @@ asmlinkage long sys_ioctl(unsigned int f
- 	filp = fget(fd);
- 	if (!filp)
- 		goto out;
-+	/***** TOMOYO Linux start. *****/
-+	if (!ccs_capable(TOMOYO_SYS_IOCTL))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
- 
- 	error = security_file_ioctl(filp, cmd, arg);
- 	if (error) {
+@@ -131,6 +134,12 @@ asmlinkage long sys_ioctl(unsigned int f
+ 				error = -ENOTTY;
+ 			break;
+ 		default:
++			/***** TOMOYO Linux start. *****/
++			if (!ccs_capable(TOMOYO_SYS_IOCTL)) {
++				error = -EPERM;
++				break;
++			}
++			/***** TOMOYO Linux end. *****/
+ 			error = -ENOTTY;
+ 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
+ 				error = file_ioctl(filp, cmd, arg);
 --- linux-2.6.9-78.9AXS2.orig/fs/namei.c
 +++ linux-2.6.9-78.9AXS2/fs/namei.c
 @@ -35,6 +35,10 @@
@@ -1373,7 +1375,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-78.9AXS2 2009/02/12\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.9AXS2 2009/03/22\n");
 +#endif
 +	/***** CCS end. *****/
  }
