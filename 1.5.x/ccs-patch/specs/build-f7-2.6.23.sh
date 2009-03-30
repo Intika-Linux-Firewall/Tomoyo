@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.23.17-88.fc7.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/7/SRPMS/kernel-2.6.23.17-88.fc7.src.rpm || die "Can't download source package."
+    wget http://ftp.yz.yamagata-u.ac.jp/pub/linux/fedora/linux/updates/7/SRPMS/kernel-2.6.23.17-88.fc7.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.23.17-88.fc7.src.rpm || die "Can't install source package."
 

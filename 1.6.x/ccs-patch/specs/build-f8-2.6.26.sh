@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.26.8-57.fc8.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/8/SRPMS.newkey/kernel-2.6.26.8-57.fc8.src.rpm || die "Can't download source package."
+    wget http://ftp.man.poznan.pl/pub/linux/fedora/updates/8/SRPMS.newkey/kernel-2.6.26.8-57.fc8.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.26.8-57.fc8.src.rpm || die "Can't install source package."
 
