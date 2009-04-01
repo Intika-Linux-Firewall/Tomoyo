@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for CentOS 5.2's 2.6.18 kernel.
+# This is a kernel build script for CentOS 5.3's 2.6.18 kernel.
 #
 
 die () {
@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-92.1.22.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-128.1.1.el5.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/5.2/updates/SRPMS/kernel-2.6.18-92.1.22.el5.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS/kernel-2.6.18-128.1.1.el5.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-92.1.22.el5.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-128.1.1.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-12-17 01:17:06.000000000 +0900
-+++ kernel-2.6.spec	2008-12-17 14:58:33.000000000 +0900
+--- kernel-2.6.spec	2009-03-26 06:43:10.000000000 +0900
++++ kernel-2.6.spec	2009-04-01 12:25:43.000000000 +0900
 @@ -66,7 +66,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -55,18 +55,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -4854,6 +4857,10 @@
+@@ -6605,6 +6608,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-centos-5.2.diff
++patch -sp1 < patches/ccs-patch-2.6.18-centos-5.3.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -4913,6 +4920,9 @@
+@@ -6664,6 +6671,9 @@
  for i in *.config
  do
    mv $i .config
