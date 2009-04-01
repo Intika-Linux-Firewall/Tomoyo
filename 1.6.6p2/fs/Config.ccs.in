@@ -1,0 +1,27 @@
+#
+# Mandatory Access Control configuration
+#
+[ -z "$CONFIG_SAKURA" ] && define_bool CONFIG_SAKURA y
+bool 'SAKURA (Domain-Free Mandatory Access Control) support' CONFIG_SAKURA
+
+[ -z "$CONFIG_TOMOYO" ] && define_bool CONFIG_TOMOYO y
+bool 'TOMOYO (Domain-Based Mandatory Access Control) support' CONFIG_TOMOYO
+
+if [ "$CONFIG_TOMOYO" = "y" ]; then
+
+  [ -z "$CONFIG_TOMOYO_MAX_ACCEPT_ENTRY" ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 2048
+  [ $CONFIG_TOMOYO_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_TOMOYO_MAX_ACCEPT_ENTRY 0
+  int  '  Default maximal count for learning mode' CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
+
+  [ -z "$CONFIG_TOMOYO_MAX_GRANT_LOG" ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 1024
+  [ $CONFIG_TOMOYO_MAX_GRANT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_GRANT_LOG 0
+  int  '  Default maximal count for grant log' CONFIG_TOMOYO_MAX_GRANT_LOG
+
+  [ -z "$CONFIG_TOMOYO_MAX_REJECT_LOG" ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 1024
+  [ $CONFIG_TOMOYO_MAX_REJECT_LOG -lt 0 ] && define_int CONFIG_TOMOYO_MAX_REJECT_LOG 0
+  int  '  Default maximal count for reject log' CONFIG_TOMOYO_MAX_REJECT_LOG
+
+fi
+
+[ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN m
+tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN
