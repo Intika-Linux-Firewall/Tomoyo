@@ -20,9 +20,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.6-20090314.tar.gz ]
+if [ ! -r ccs-patch-1.6.6-20090401.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090401.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -35,7 +35,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.6-20090314.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.6-20090401.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.20-ubuntu-7.04.diff || die "Can't apply patch."
 for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 for i in debian/config/*/config.ccs; do cat config.ccs >> $i; done

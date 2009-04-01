@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.6-20090314.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)
  #define release %(R="$Revision: 1.1381 $"; RR="${R##: }"; echo ${RR%%?})_FC3%{rhbsys}
 -%define release 2.3.legacy_FC3
-+%define release 2.3.legacy_FC3_tomoyo_1.6.6
++%define release 2.3.legacy_FC3_tomoyo_1.6.7
  %define signmodules 0
  %define make_target bzImage
  
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.6-20090314.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
 +# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.12-fedora-core-3.diff
 +

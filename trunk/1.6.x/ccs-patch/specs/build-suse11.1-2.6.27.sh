@@ -67,9 +67,9 @@ fi
 rpm -ivh kernel-source-2.6.27.19-3.2.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.6-20090314.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -90,7 +90,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel
  Version:        2.6.27.19
 -Release:        3.<RELEASE1>
-+Release:        3.2.1_tomoyo_1.6.6
++Release:        3.2.1_tomoyo_1.6.7
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
@@ -108,7 +108,7 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.27
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.6-20090314.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
 +patch -sp1 < %_sourcedir/ccs-patch-2.6.27-suse-11.1.diff
 +cat config.ccs >> .config
  cp .config .config.orig
