@@ -1835,14 +1835,6 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 <tr><td>path2.parent.uid</td><td>UID of object's parent directory.</td></tr>
 <tr><td>path2.parent.gid</td><td>GID of object's parent directory.</td></tr>
 <tr><td>path2.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
-<tr><td>exec.argc</td><td>Number of argv[] passed for execute request.</td></tr>
-<tr><td>exec.envc</td><td>Number of envp[] passed for execute request.</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value". </td></tr>
-<tr><td>exec.argv[index]!="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) does not match "value".</td></tr>
-<tr><td>exec.envp["name"]="value"</td><td>Environment variable "name" is defined and matches "value".</td></tr>
-<tr><td>exec.envp["name"]!="value"</td><td>Environment variable "name" is not defined or does not match "value".</td></tr>
-<tr><td>exec.envp["name"]!=NULL</td><td>Environment variable "name" is defined.</td></tr>
-<tr><td>exec.envp["name"]=NULL</td><td>Environment variable "name" is not defined.</td></tr>
 </table>
 
 <p>"path1" corresponds to the first pathname of operations that requires pathnames, and "path2" corresponds to the second pathname of operations that requires pathnames. For example, the case of "<a href="#domain_policy_allow_rename">allow_rename</a> file1 file2", path1 corresponds to file1 and path2 corresponds to file2.</p>
@@ -1857,7 +1849,126 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 
 <p>"path1" is not supported when accessing via "sysctl" (i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open").</p>
 
-<p>"exec" is available only for operation that executes a program (i.e. <a href="#domain_policy_allow_execute">allow_execute</a> keyword).</p>
+<h3>The following variables and conditions are available for <a href="#domain_policy_allow_execute">allow_execute</a> keyword.</h3>
+
+<table border="1">
+<tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>exec.argc</td><td>Number of argv[] passed for execute request.</td></tr>
+<tr><td>exec.envc</td><td>Number of envp[] passed for execute request.</td></tr></table>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value". </td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) does not match "value".</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>Environment variable "name" is defined and matches "value".</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>Environment variable "name" is not defined or does not match "value".</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>Environment variable "name" is defined.</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>Environment variable "name" is not defined.</td></tr>
+</table>
+
+<h3>The following conditions are also available for TOMOYO 1.6.7 and later.</h3>
+<h4>Type of process</h4>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>task.type=execute_handler</td><td>Current process is a program specified by execute_handler keyword.</td></tr>
+<tr><td>task.type!=execute_handler</td><td>Current process is not a program specified by execute_handler keyword.</td></tr>
+</table>
+
+<h4>Type of file.</h4>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>path1.type=file</td><td>path1 is a regular file.</td></tr>
+<tr><td>path1.type=directory</td><td>path1 is a directory.</td></tr>
+<tr><td>path1.type=fifo</td><td>path1 is a FIFO.</td></tr>
+<tr><td>path1.type=socket</td><td>path1 is a socket.</td></tr>
+<tr><td>path1.type=symlink</td><td>path1 is a symbolic link.</td></tr>
+<tr><td>path1.type=block</td><td>path1 is a block device file.</td></tr>
+<tr><td>path1.type=char</td><td>path1 is a character device file.</td></tr>
+<tr><td>path1.type!=file</td><td>path1 is not a regular file.</td></tr>
+<tr><td>path1.type!=directory</td><td>path1 is not a directory.</td></tr>
+<tr><td>path1.type!=fifo</td><td>path1 is not a FIFO.</td></tr>
+<tr><td>path1.type!=socket</td><td>path1 is not a socket.</td></tr>
+<tr><td>path1.type!=symlink</td><td>path1 is not a symbolic link.</td></tr>
+<tr><td>path1.type!=block</td><td>path1 is not a block device file.</td></tr>
+<tr><td>path1.type!=char</td><td>path1 is not a character device file.</td></tr></table>
+
+<p>Since path1.parent and path2.parent are always directory, TOMOYO does not support path1.parent and path2.parent for type of file.</p>
+
+<h4>Device numbers of a device file where the file resides.</h4>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>path1.major=num1-num2</td><td>Device major number of a device file which path1 reside is between num1 and num2.</td></tr>
+<tr><td>path1.minor=num1-num2</td><td>Device minor number of a device file which path1 reside is between num1 and num2.</td></tr>
+<tr><td>path1.major!=num1-num2</td><td>Device major number of a device file which path1 reside is not between num1 and num2.</td></tr>
+<tr><td>path1.minor!=num1-num2</td><td>Device minor number of a device file which path1 reside is not between num1 and num2.</td></tr>
+</table>
+
+<p>Since a device file where path1.parent and path2.parent reside is always same as the device file where path1 resides (because cross device operation is not permitted), TOMOYO does not support path1.parent and path2.parent for device numbers.</p>
+
+<p>If num1 and num2 is the same value, you can omit -num2 part.</p>
+
+<h4>Device numbers of the device file itself.</h4>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>path1.dev_major=num1-num2</td><td>Device file's major number is between num1 and num2.</td></tr>
+<tr><td>path1.dev_minor=num1-num2</td><td>Device file's minor number is between num1 and num2.</td></tr>
+<tr><td>path1.dev_major!=num1-num2</td><td>Device file's major number is not between num1 and num2.</td></tr>
+<tr><td>path1.dev_minor!=num1-num2</td><td>Device file's minor number is not between num1 and num2.</td></tr>
+</table>
+
+<p>These conditions are valid only for path1.type=block or path1.type=char cases.</p>
+
+<p>If num1 and num2 is the same value, you can omit -num2 part.</p>
+
+<h4>DAC's permissions</h4>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>path1.perm=num1-num2</td><td>path1's permission is between num1 and num2.</td></tr>
+<tr><td>path1.perm!=num1-num2</td><td>path1's permission is not between num1 and num2.</td></tr>
+<tr><td>path1.perm=setuid</td><td>path1's setuid bit is on.</td></tr>
+<tr><td>path1.perm!=setuid</td><td>path1's setuid bit is off.</td></tr>
+<tr><td>path1.perm=setgid</td><td>path1's setgid bit is on.</td></tr>
+<tr><td>path1.perm!=setgid</td><td>path1's setgid bit is off.</td></tr>
+<tr><td>path1.perm=sticky</td><td>path1's sticky bit is on.</td></tr>
+<tr><td>path1.perm!=sticky</td><td>path1's sticky bit is off.</td></tr>
+<tr><td>path1.perm=owner_read</td><td>path1's owner read bit is on.</td></tr>
+<tr><td>path1.perm!=owner_read</td><td>path1's owner read bit is off.</td></tr>
+<tr><td>path1.perm=owner_write</td><td>path1's owner write bit is on.</td></tr>
+<tr><td>path1.perm!=owner_write</td><td>path1's owner write bit is off.</td></tr>
+<tr><td>path1.perm=owner_execute</td><td>path1's owner execute bit is on.</td></tr>
+<tr><td>path1.perm!=owner_execute</td><td>path1's owner execute bit is off.</td></tr>
+<tr><td>path1.perm=group_read</td><td>path1's group read bit is on.</td></tr>
+<tr><td>path1.perm!=group_read</td><td>path1's group read bit is off.</td></tr>
+<tr><td>path1.perm=group_write</td><td>path1's group write bit is on.</td></tr>
+<tr><td>path1.perm!=group_write</td><td>path1's group write bit is off.</td></tr>
+<tr><td>path1.perm=group_execute</td><td>path1's group execute bit is on.</td></tr>
+<tr><td>path1.perm!=group_execute</td><td>path1's group execute bit is off.</td></tr>
+<tr><td>path1.perm=others_read</td><td>path1's others read bit is on.</td></tr>
+<tr><td>path1.perm!=others_read</td><td>path1's others read bit is off.</td></tr>
+<tr><td>path1.perm=others_write</td><td>path1's others write bit is on.</td></tr>
+<tr><td>path1.perm!=others_write</td><td>path1's others write bit is off.</td></tr>
+<tr><td>path1.perm=others_execute</td><td>path1's others execute bit is on.</td></tr>
+<tr><td>path1.perm!=others_execute</td><td>path1's others execute bit is off.</td></tr>
+</table>
+
+<p>These conditions are applicable for path1.parent and path2.parent as well as path1 .</p>
+
+<p>If num1 and num2 is the same value, you can omit -num2 part.</p>
+
+<p>To specify value in octal format, start from 0 (e.g. path1.perm=0644 ).</p>
+
+<h4>Example:</h4>
+
+<ul>
+<li>allow_read/write /dev/null if path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
+</ul>
+
+<p>will allow opening /dev/null for reading and writing only if /dev/null's type is character device file and /dev/null's major number is 1 and /dev/null's minor number is 3 and /dev/null's permission is 0666.</p>
 
 <h2>6.4 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
