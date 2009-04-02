@@ -42,6 +42,7 @@
 
 <ul>
 <li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
+<li><a href="#profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></li>
 <li><a href="#profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></li>
 <li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
 <li><a href="#profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></li>
@@ -138,6 +139,7 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
+<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
 <li><a href="#domain_policy_allow_argv0">allow_argv0</a></li>
 <li><a href="#domain_policy_allow_env">allow_env</a></li>
 <li><a href="#domain_policy_allow_network">allow_network</a></li>
@@ -633,6 +635,18 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
 
 <p>Specifies access control level regarding file access requests.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></h3>
+
+<p>Specifies access control level regarding ioctl requests. Valid for TOMOYO Linux 1.6.7 and later.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1348,6 +1362,17 @@ cat /proc/ccs/domain_policy</p>
 <p>(Example) allow_rewrite /var/log/messages</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
+<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+<p>This keyword grants doing IOCTL request with the specified command numbers and the specified pathnames.</p>
+<p>(Example) allow_ioctl socket:[family=2:type=2:protocol=17] 35093<br>
+Allow sockets with protocol family 2, type 2, protocol 17 to do IOCTL request with command number 35093.</p>
+<p>(Example) allow_ioctl /dev/null 10000-20000<br>
+Allow /dev/null to do IOCTL request with command number between 10000 and 20000.</p>
+
+<p>Regarding the meaning of IOCTL request's command numbers, please refer manuals provided by each module with IOCTL functionality. For example, IOCTL request with command number 21585 means, on i386 platform, FIOCLEX command which turns on the file's close-on-exec flag. For example, IOCTL request with command number 35088 means SIOCGIFNAME command which retrieves the name of network interface.</p>
+
+<p>See also:  <a href="#conditional_acl">Using conditional ACL.</a></p>
+
 <h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
 
 <p>To restrict the contents of argv[0], use allow_argv0 keyword followed by "the pathname of program" and "the basename part of argv[0]".</p>
@@ -1417,6 +1442,7 @@ programs to behave as cat in the domain of /bin/ls by creating a symbolic link n
 <li>You can restrict deletion of non-directories using <a href="#domain_policy_allow_unlink">allow_unlink</a> keyword.
 <li>You can restrict combination of pathnames that can be hard linked using <a href="#domain_policy_allow_link">allow_link</a> keyword.
 <li>You can restrict combination of pathnames that can be renamed using <a href="#domain_policy_allow_rename">allow_rename</a> keyword.
+<li>You can restrict combination of IOCTL's command numbers and pathnames using <a href="#domain_policy_allow_ioctl">allow_ioctl</a> keyword. (Valid for TOMOYO 1.6.7 and later.)
 <li>You can restrict IP addresses and ports using <a href="#domain_policy_allow_network">allow_network</a> keyword.
 <li>You can restrict signal numbers and target domain using <a href="#domain_policy_allow_signal">allow_signal</a> keyword.
 <li>You can restrict devices and directories for mount operations using <a href="#system_policy_allow_mount">allow_mount</a> keyword.
