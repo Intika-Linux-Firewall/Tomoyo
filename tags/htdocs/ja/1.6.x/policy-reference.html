@@ -42,6 +42,7 @@
 
 <ul>
 <li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
+<li><a href="#profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></li>
 <li><a href="#profile_MAC_FOR_ARGV0">MAC_FOR_ARGV0</a></li>
 <li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
 <li><a href="#profile_MAC_FOR_CAPABILITY::inet_tcp_create">MAC_FOR_CAPABILITY::inet_tcp_create</a></li>
@@ -138,6 +139,7 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
+<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
 <li><a href="#domain_policy_allow_argv0">allow_argv0</a></li>
 <li><a href="#domain_policy_allow_env">allow_env</a></li>
 <li><a href="#domain_policy_allow_network">allow_network</a></li>
@@ -633,6 +635,18 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
 
 <p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
+
+<table border="1">
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+</table>
+
+<h3><a name="profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></h3>
+
+<p>ファイルに対する強制アクセス制御のレベルを指定します。 TOMOYO 1.6.7 以降で利用可能です。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
@@ -1346,6 +1360,20 @@ cat /proc/ccs/domain_policy</p>
 <p>（例） allow_rewrite /var/log/messages</p>
 <p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
+<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+
+<p>IOCTL 要求で指定可能なコマンド番号を指定するには、 allow_ioctl というキーワードに続けて、パス名とコマンド番号を指定します。パス名にはパターンおよびパス名のグループも使用できます。</p>
+
+<table border="1">
+<tr><td>指定例</td><td>許可されるアクセス</td></tr>
+<tr><td>allow_ioctl socket:[family=2:type=2:protocol=17] 0</td><td>アドレスファミリーが 2 、種類が 2 、プロトコルが 17 のソケットに対して 35093 番の IOCTL 要求を許可</td></tr>
+<tr><td>allow_ioctl /dev/null 10000-20000</td><td>/dev/null に対して 10000 ～ 20000 番の IOCTL 要求を許可</td></tr>
+</table>
+
+<p>IOCTL 要求のコマンド番号の意味については、 IOCTL 機能を提供しているモジュールの説明を参照してください。例えば、 i386 環境において 21585 番の IOCTL 要求は close-on-exec フラグをセットするための FIOCLEX コマンドを指します。例えば、ソケットに対する 35088 番の IOCTL 要求は、ネットワークインターフェースの名前を取得する SIOCGIFNAME コマンドを指します。</p>
+
+<p>関連項目： <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
+
 <h3><a name="domain_policy_allow_argv0">allow_argv0</a></h3>
 
 <p>argv[0] の組み合わせを制限するには、 allow_argv0 というキーワードに続けて、絶対パス名と「 argv[0] の最後の / より後ろの部分」を指定します。</p>
@@ -1411,6 +1439,7 @@ cat /proc/ccs/domain_policy</p>
 <li>削除を許可するパス名を <a href="#domain_policy_allow_unlink">allow_unlink</a> キーワードを使用して制限することができます。
 <li>ハードリンクを許可する組み合わせを <a href="#domain_policy_allow_link">allow_link</a> キーワードを使用して制限することができます。
 <li>パス名の変更を許可する組み合わせを <a href="#domain_policy_allow_rename">allow_rename</a> キーワードを使用して制限することができます。
+<li>利用を許可する IOCTL のパス名とコマンド番号の組み合わせを <a href="#domain_policy_allow_ioctl">allow_ioctl</a> キーワードを使用して制限することができます。（ TOMOYO 1.6.7 以降のみ）
 <li>使用を許可する IP アドレスの範囲ととポート番号の範囲を <a href="#domain_policy_allow_network">allow_network</a> キーワードを使用して制限することができます。
 <li>送信可能なシグナルの番号と送信先のドメインを <a href="#domain_policy_allow_signal">allow_signal</a> キーワードを使用して制限することができます。
 <li>マウントを許可するデバイスおよびマウントポイントを <a href="#system_policy_allow_mount">allow_mount</a> キーワードを使用して制限することができます。
