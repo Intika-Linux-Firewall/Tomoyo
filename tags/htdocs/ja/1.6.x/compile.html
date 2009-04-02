@@ -50,7 +50,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#Fedora10">Fedora 10</a>
 <li><a href="#CentOS3.9">CentOS 3.9</a>
 <li><a href="#CentOS4.7">CentOS 4.7</a>
-<li><a href="#CentOS5.2">CentOS 5.2</a>
+<li><a href="#CentOS5.3">CentOS 5.3</a>
 <li><a href="#Sarge-2.4">Debian Sarge (2.4.27)</a>
 <li><a href="#Sarge-2.6">Debian Sarge (2.6.8)</a>
 <li><a href="#Etch">Debian Etch</a>
@@ -219,7 +219,7 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 </td></tr>
 </table>
 
-<h2><a name="CentOS5.2">CentOS 5.2</a></h2>
+<h2><a name="CentOS5.3">CentOS 5.3</a></h2>
 
 <table border="1">
 <tr><td>
@@ -483,9 +483,9 @@ cd linux-2.6.29<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.6-20090314.tar.gz<br>
+tar -zxf ccs-patch-1.6.7-20090401.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.29.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -513,9 +513,9 @@ cd linux-2.4.37<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.6-20090314.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.6-20090314.tar.gz<br>
+tar -zxf ccs-patch-1.6.7-20090401.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
