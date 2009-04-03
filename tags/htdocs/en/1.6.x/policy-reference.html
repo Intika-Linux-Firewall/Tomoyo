@@ -1364,10 +1364,12 @@ cat /proc/ccs/domain_policy</p>
 
 <h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
 <p>This keyword grants doing IOCTL request with the specified command numbers and the specified pathnames.</p>
-<p>(Example) allow_ioctl socket:[family=2:type=2:protocol=17] 35093<br>
-Allow sockets with protocol family 2, type 2, protocol 17 to do IOCTL request with command number 35093.</p>
-<p>(Example) allow_ioctl /dev/null 10000-20000<br>
-Allow /dev/null to do IOCTL request with command number between 10000 and 20000.</p>
+
+<table border="1">
+<tr><td>Example</td><td>Permitted access</td></tr>
+<tr><td>allow_ioctl socket:[family=2:type=2:protocol=17] 35093</td><td>Allow sockets with protocol family 2, type 2, protocol 17 to do IOCTL request with command number 35093.</td></tr>
+<tr><td>allow_ioctl /dev/null 10000-20000</td><td>Allow /dev/null to do IOCTL request with command number between 10000 and 20000.</td></tr>
+</table>
 
 <p>Regarding the meaning of IOCTL request's command numbers, please refer manuals provided by each module with IOCTL functionality. For example, IOCTL request with command number 21585 means, on i386 platform, FIOCLEX command which turns on the file's close-on-exec flag. For example, IOCTL request with command number 35088 means SIOCGIFNAME command which retrieves the name of network interface.</p>
 
