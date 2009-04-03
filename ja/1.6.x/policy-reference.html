@@ -1828,14 +1828,6 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 <tr><td>path2.parent.uid</td><td>作成されるパス名の親ディレクトリの所有者ＩＤ</td></tr>
 <tr><td>path2.parent.gid</td><td>作成されるパス名の親ディレクトリのグループＩＤ</td></tr>
 <tr><td>path2.parent.ino</td><td>作成されるパス名の親ディレクトリのｉノード番号</td></tr>
-<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
-<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
-<tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
-<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>
-<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか、あるいは値が value ではない</td></tr>
-<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている</td></tr>
-<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない</td></tr>
 </table>
 
 <p>path1 はパス名を必要とする操作の 1 個目のパス名に対応し、 path2 はパス名を必要とする操作の 2 個目のパス名に対応します。
@@ -1851,7 +1843,130 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 
 <p>sysctl による読み書き（ /proc/sys/ ディレクトリ以下のファイルを open ではなく sysctl を用いてアクセス）を行う場合については、 path1 path2 ともにサポートしていません。</p>
 
-<p>exec はプログラム実行時（つまり <a href="#domain_policy_allow_execute">allow_execute</a> ）に限り指定できます。</p>
+<h3>プログラムの実行許可（<a href="#domain_policy_allow_execute">allow_execute</a>）に対しては以下の変数と条件も指定できます。</h3>
+
+<table border="1">
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
+<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
+</table>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
+<tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
+<tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>
+<tr><td>exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか、あるいは値が value ではない</td></tr>
+<tr><td>exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている</td></tr>
+<tr><td>exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない</td></tr>
+</table>
+
+<h3>TOMOYO 1.6.7 以降では以下の条件も指定できます。</h3>
+
+<h4>プロセス種別の指定</h4>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>task.type=execute_handler</td><td>プロセスは execute_handler として動作している</td></tr>
+<tr><td>task.type!=execute_handler</td><td>プロセスは普通のプロセスとして動作している</td></tr>
+</table>
+
+<h4>ファイル種別の指定</h4>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>path1.type=file</td><td>path1 は通常のファイルである</td></tr>
+<tr><td>path1.type=directory</td><td>path1 はディレクトリである</td></tr>
+<tr><td>path1.type=fifo</td><td>path1 is a は FIFO である</td></tr>
+<tr><td>path1.type=socket</td><td>path1 はソケットである</td></tr>
+<tr><td>path1.type=symlink</td><td>path1 はシンボリックリンクである</td></tr>
+<tr><td>path1.type=block</td><td>path1 はブロックデバイスファイルである</td></tr>
+<tr><td>path1.type=char</td><td>path1 はキャラクタデバイスファイルである</td></tr>
+<tr><td>path1.type!=file</td><td>path1 は通常のファイルではない</td></tr>
+<tr><td>path1.type!=directory</td><td>path1 はディレクトリではない</td></tr>
+<tr><td>path1.type!=fifo</td><td>path1 は FIFO ではない</td></tr>
+<tr><td>path1.type!=socket</td><td>path1 はソケットではない</td></tr>
+<tr><td>path1.type!=symlink</td><td>path1 はシンボリックリンクではない</td></tr>
+<tr><td>path1.type!=block</td><td>path1 はブロックデバイスファイルではない</td></tr>
+<tr><td>path1.type!=char</td><td>path1 はキャラクタデバイスファイルではない</td></tr></table>
+
+<p>path1.parent や path2.parent は常にディレクトリなので、 path1.parent.type や path2.parent.type という指定はサポートしません。</p>
+
+<h4>ファイルの保存されているデバイス番号の指定</h4>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>path1.major=数値1-数値2</td><td>path1 のメジャー番号部分が「数値1～数値2」である</td></tr>
+<tr><td>path1.minor=数値1-数値2</td><td>path1 のマイナー番号部分が「数値1～数値2」である</td></tr>
+<tr><td>path1.major!=数値1-数値2</td><td>path1 のメジャー番号部分が「数値1～数値2」ではない</td></tr>
+<tr><td>path1.minor!=数値1-数値2</td><td>path1 のマイナー番号部分が「数値1～数値2」ではない</td></tr>
+</table>
+
+<p>path1.parent や path2.parent のデバイスは（デバイスを跨ぐ操作は認められていないため）常に path1 と同一なので、 path1.parent や path2.parent という指定はサポートしません。</p>
+
+<p>「数値1」と「数値2」が同じ値の場合、「-数値2」の部分は省略可能です。</p>
+
+<h4>デバイスファイル属性の指定</h4>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>path1.dev_major=数値1-数値2</td><td>path1 のデバイスメジャー番号部分が「数値1～数値2」である</td></tr>
+<tr><td>path1.dev_minor=数値1-数値2</td><td>path1 のデバイスマイナー番号部分が「数値1～数値2」である</td></tr>
+<tr><td>path1.dev_major!=数値1-数値2</td><td>path1 のデバイスメジャー番号部分が「数値1～数値2」ではない</td></tr>
+<tr><td>path1.dev_minor!=数値1-数値2</td><td>path1 のデバイスマイナー番号部分が「数値1～数値2」ではない</td></tr>
+</table>
+
+<p>path1.type=block または path1.type=char に対してのみ有効です。</p>
+
+<p>「数値1」と「数値2」が同じ値の場合、「-数値2」の部分は省略可能です。</p>
+
+<h4>DAC のパーミッション指定</h4>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>path1.perm=数値1-数値2</td><td>path1 のパーミッションが「数値1～数値2」である</td></tr>
+<tr><td>path1.perm!=数値1-数値2</td><td>path1 のパーミッションが「数値1～数値2」ではない</td></tr>
+<tr><td>path1.perm=setuid</td><td>path1 に関して setuid ビットが on である</td></tr>
+<tr><td>path1.perm!=setuid</td><td>path1 に関して setuid ビットが off である</td></tr>
+<tr><td>path1.perm=setgid</td><td>path1 に関して setgid ビットが on である</td></tr>
+<tr><td>path1.perm!=setgid</td><td>path1 に関して setgid ビットが off である</td></tr>
+<tr><td>path1.perm=sticky</td><td>path1 に関して sticky ビットが on である</td></tr>
+<tr><td>path1.perm!=sticky</td><td>path1 に関して sticky ビットが off である</td></tr>
+<tr><td>path1.perm=owner_read</td><td>path1 に関して owner に対する read ビットが on である</td></tr>
+<tr><td>path1.perm!=owner_read</td><td>path1 に関して owner に対する read ビットが off である</td></tr>
+<tr><td>path1.perm=owner_write</td><td>path1 に関して owner に対する write ビットが on である</td></tr>
+<tr><td>path1.perm!=owner_write</td><td>path1 に関して owner に対する write ビットが off である</td></tr>
+<tr><td>path1.perm=owner_execute</td><td>path1 に関して owner に対する execute ビットが on である</td></tr>
+<tr><td>path1.perm!=owner_execute</td><td>path1 に関して owner に対する execute ビットが off である</td></tr>
+<tr><td>path1.perm=group_read</td><td>path1 に関して group に対する read ビットが on である</td></tr>
+<tr><td>path1.perm!=group_read</td><td>path1 に関して group に対する read ビットが off である</td></tr>
+<tr><td>path1.perm=group_write</td><td>path1 に関して group に対する write ビットが on である</td></tr>
+<tr><td>path1.perm!=group_write</td><td>path1 に関して group に対する write ビットが off である</td></tr>
+<tr><td>path1.perm=group_execute</td><td>path1 に関して group に対する execute ビットが on である</td></tr>
+<tr><td>path1.perm!=group_execute</td><td>path1 に関して group に対する execute ビットが off である</td></tr>
+<tr><td>path1.perm=others_read</td><td>path1 に関して others に対する read ビットが on である</td></tr>
+<tr><td>path1.perm!=others_read</td><td>path1 に関して others に対する read ビットが off である</td></tr>
+<tr><td>path1.perm=others_write</td><td>path1 に関して others に対する write ビットが on である</td></tr>
+<tr><td>path1.perm!=others_write</td><td>path1 に関して others に対する write ビットが off である</td></tr>
+<tr><td>path1.perm=others_execute</td><td>path1 に関して others に対する execute ビットが on である</td></tr>
+<tr><td>path1.perm!=others_execute</td><td>path1 に関して others に対する execute ビットが off である</td></tr>
+</table>
+
+<p>path1 だけでなく path1.parent や path2.parent も指定可能です。</p>
+
+<p>「数値1」と「数値2」が同じ値の場合、「-数値2」の部分は省略可能です。</p>
+
+<p>数値を 8 進数で指定する場合には 0 から始まるようにしてください。（例： path1.perm=0644 ）</p>
+
+<h4>例</h4>
+
+<ul>
+<li>allow_read/write /dev/null if path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
+</ul>
+
+<p>「パス名が /dev/null 」「ファイル種別がキャラクタデバイスファイル」「デバイスメジャー番号が 1 」「デバイスマイナー番号が 3 」「パーミッションが 0666 」の場合のみ「読み書きモードでのオープンを許可する」という意味になります。</p>
+
+<h3></h3>
 
 <h2>6.4 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
 
