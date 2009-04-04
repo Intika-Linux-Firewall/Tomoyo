@@ -4,27 +4,21 @@
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras"
-K_GENPATCHES_VER="9"
+K_GENPATCHES_VER="12"
 K_SECURITY_UNSUPPORTED="1"
 
 inherit eutils kernel-2
 detect_version
+detect_arch
 
-CCS_TGP="ccs-patch-1.6.6-20090202"
+CCS_TGP="ccs-patch-1.6.7-20090401"
 CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
-CCS_PATCH_VER="2.6.27-grsecurity-2.1.12-2.6.27.10"
+CCS_PATCH_VER="2.6.27"
 
-HGPV="${KV_MAJOR}.${KV_MINOR}.${KV_PATCH}-5"
-HGPV_URI="http://dev.gentoo.org/~gengor/distfiles/${CATEGORY}/${PN}/hardened-patches-${HGPV}.extras.tar.bz2
-	mirror://gentoo/hardened-patches-${HGPV}.extras.tar.bz2"
-
-DESCRIPTION="TOMOYO Linux sources for the hardened kernel ${KV_MAJOR}.${KV_MINOR}"
-SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${HGPV_URI} ${CCS_TGP_SRC}"
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sparc ~x86"
+DESCRIPTION="TOMOYO Linux sources for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
+SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${CCS_TGP_SRC}"
+KEYWORDS="~alpha ~amd64 ~arm -hppa ~ia64 ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86"
 RDEPEND="sys-apps/ccs-tools"
-
-UNIPATCH_LIST="${DISTDIR}/hardened-patches-${HGPV}.extras.tar.bz2"
-UNIPATCH_EXCLUDE="4200_fbcondecor-0.9.4.patch"
 
 K_EXTRAEINFO="Before booting with TOMOYO enabled kernel, you need to
 run this command to initialize TOMOYO policies:
