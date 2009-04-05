@@ -109,7 +109,7 @@ patch << "EOF" || die "Can't patch spec file."
  cd linux-2.6.27
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.27-suse-11.1.diff
++patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
