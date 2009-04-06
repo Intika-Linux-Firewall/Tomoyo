@@ -705,9 +705,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete)
 	return ccs_update_aggregator_entry(data, cp, is_delete);
 }
 
-/* Domain create/delete/undelete handler. */
-
-/* #define DEBUG_DOMAIN_UNDELETE */
+/* Domain create/delete handler. */
 
 /**
  * ccs_delete_domain - Delete a domain.
@@ -723,94 +721,19 @@ int ccs_delete_domain(char *domainname)
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	mutex_lock(&ccs_domain_list_lock);
-#ifdef DEBUG_DOMAIN_UNDELETE
-	printk(KERN_DEBUG "ccs_delete_domain %s\n", domainname);
-	list1_for_each_entry(domain, &ccs_domain_list, list) {
-		if (ccs_pathcmp(domain->domainname, &name))
-			continue;
-		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
-	}
-#endif
 	/* Is there an active domain? */
 	list1_for_each_entry(domain, &ccs_domain_list, list) {
-		struct ccs_domain_info *domain2;
 		/* Never delete ccs_kernel_domain */
 		if (domain == &ccs_kernel_domain)
 			continue;
 		if (domain->is_deleted ||
 		    ccs_pathcmp(domain->domainname, &name))
 			continue;
-		/* Mark already deleted domains as non undeletable. */
-		list1_for_each_entry(domain2, &ccs_domain_list, list) {
-			if (!domain2->is_deleted ||
-			    ccs_pathcmp(domain2->domainname, &name))
-				continue;
-#ifdef DEBUG_DOMAIN_UNDELETE
-			if (domain2->is_deleted != 255)
-				printk(KERN_DEBUG
-				       "Marked %p as non undeletable\n",
-				       domain2);
-#endif
-			domain2->is_deleted = 255;
-		}
-		/* Delete and mark active domain as undeletable. */
-		domain->is_deleted = 1;
-#ifdef DEBUG_DOMAIN_UNDELETE
-		printk(KERN_DEBUG "Marked %p as undeletable\n", domain);
-#endif
+		domain->is_deleted = true;
 		break;
 	}
 	mutex_unlock(&ccs_domain_list_lock);
 	return 0;
-}
-
-/**
- * ccs_undelete_domain - Undelete a domain.
- *
- * @domainname: The name of domain.
- *
- * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
- */
-struct ccs_domain_info *ccs_undelete_domain(const char *domainname)
-{
-	struct ccs_domain_info *domain;
-	struct ccs_domain_info *candidate_domain = NULL;
-	struct ccs_path_info name;
-	name.name = domainname;
-	ccs_fill_path_info(&name);
-	mutex_lock(&ccs_domain_list_lock);
-#ifdef DEBUG_DOMAIN_UNDELETE
-	printk(KERN_DEBUG "ccs_undelete_domain %s\n", domainname);
-	list1_for_each_entry(domain, &ccs_domain_list, list) {
-		if (ccs_pathcmp(domain->domainname, &name))
-			continue;
-		printk(KERN_DEBUG "List: %p %u\n", domain, domain->is_deleted);
-	}
-#endif
-	list1_for_each_entry(domain, &ccs_domain_list, list) {
-		if (ccs_pathcmp(&name, domain->domainname))
-			continue;
-		if (!domain->is_deleted) {
-			/* This domain is active. I can't undelete. */
-			candidate_domain = NULL;
-#ifdef DEBUG_DOMAIN_UNDELETE
-			printk(KERN_DEBUG "%p is active. I can't undelete.\n",
-			       domain);
-#endif
-			break;
-		}
-		/* Is this domain undeletable? */
-		if (domain->is_deleted == 1)
-			candidate_domain = domain;
-	}
-	if (candidate_domain) {
-		candidate_domain->is_deleted = 0;
-#ifdef DEBUG_DOMAIN_UNDELETE
-		printk(KERN_DEBUG "%p was undeleted.\n", candidate_domain);
-#endif
-	}
-	mutex_unlock(&ccs_domain_list_lock);
-	return candidate_domain;
 }
 
 /**
@@ -856,10 +779,6 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		/***** CRITICAL SECTION END *****/
 		if (flag)
 			continue;
-#ifdef DEBUG_DOMAIN_UNDELETE
-		printk(KERN_DEBUG "Reusing %p %s\n", domain,
-		       domain->domainname->name);
-#endif
 		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 			ptr->type |= ACL_DELETED;
 		}
@@ -867,7 +786,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		domain->profile = profile;
 		domain->quota_warned = false;
 		mb(); /* Avoid out-of-order execution. */
-		domain->is_deleted = 0;
+		domain->is_deleted = false;
 		goto out;
 	}
 	/* No memory reusable. Create using new memory. */

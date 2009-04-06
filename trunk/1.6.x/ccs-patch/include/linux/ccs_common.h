@@ -300,7 +300,7 @@ struct ccs_domain_info {
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
-	u8 is_deleted;     /* Delete flag.           */
+	bool is_deleted;   /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
 	/* DOMAIN_FLAGS_*. Use ccs_set_domain_flag() to modify. */
 	u8 flags;
@@ -544,7 +544,6 @@ enum ccs_ip_record_type {
 #define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
 #define KEYWORD_PATH_GROUP                "path_group "
 #define KEYWORD_SELECT                    "select "
-#define KEYWORD_UNDELETE                  "undelete "
 #define KEYWORD_USE_PROFILE               "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
@@ -830,8 +829,6 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname);
 /* Find or create a domain by the given name. */
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						  const u8 profile);
-/* Undelete a domain. */
-struct ccs_domain_info *ccs_undelete_domain(const char *domainname);
 /* Check mode for specified functionality. */
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 			     const u8 index);
