@@ -465,12 +465,12 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				continue;
 
 			/* Compare mount point. */
-			if (ccs_path_matches_pattern(&rdir, ptr->dir_name) == 0)
+			if (!ccs_path_matches_pattern(&rdir, ptr->dir_name))
 				continue;
 
 			/* Compare device name. */
 			if (requested_dev_name &&
-			    ccs_path_matches_pattern(&rdev, ptr->dev_name) == 0)
+			    !ccs_path_matches_pattern(&rdev, ptr->dev_name))
 				continue;
 
 			/* OK. */
@@ -487,7 +487,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			ccs_update_mount_acl(need_dev ?
 					     requested_dev_name : dev_name,
 					     requested_dir_name, type, flags,
-					     0);
+					     false);
  cleanup:
 		ccs_free(requested_dev_name);
 		ccs_free(requested_dir_name);
