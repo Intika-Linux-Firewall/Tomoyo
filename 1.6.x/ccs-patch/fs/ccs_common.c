@@ -1552,7 +1552,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	struct ccs_domain_info *domain = head->write_var1;
 	bool is_delete = false;
 	bool is_select = false;
-	bool is_undelete = false;
 	unsigned int profile;
 	const struct ccs_condition_list *cond = NULL;
 	char *cp;
@@ -1560,8 +1559,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		is_delete = true;
 	else if (ccs_str_starts(&data, KEYWORD_SELECT))
 		is_select = true;
-	else if (ccs_str_starts(&data, KEYWORD_UNDELETE))
-		is_undelete = true;
 	if (is_select && ccs_is_select_one(head, data))
 		return 0;
 	/* Don't allow updating policies by non manager programs. */
@@ -1573,8 +1570,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 			ccs_delete_domain(data);
 		else if (is_select)
 			domain = ccs_find_domain(data);
-		else if (is_undelete)
-			domain = ccs_undelete_domain(data);
 		else
 			domain = ccs_find_or_assign_new_domain(data, 0);
 		head->write_var1 = domain;
@@ -2609,10 +2604,10 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.7   2009/04/01\n");
+	printk(KERN_INFO "SAKURA: 1.6.7+   2009/04/06\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.7   2009/04/01\n");
+	printk(KERN_INFO "TOMOYO: 1.6.7+   2009/04/06\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;

@@ -1892,3 +1892,22 @@ Fix 2009/03/24
       Thus, I made these pathnames configurable.
 
 Version 1.6.7 2009/04/01   Feature enhancement release.
+
+Fix 2009/04/06
+
+    @ Drop "undelete domain" command.
+
+      I added "undelete domain" command on 2007/01/19, but never used by policy
+      management tools. The garbage collector I added on 2007/01/29 will
+      automatically reuse memory and allow administrators switch domain policy
+      periodically, provided that the administrators kills processes in old
+      domains before recreating new domains with the same domainnames.
+
+      Thus, I dropped "undelete domain" command.
+
+    @ Escape invalid characters in ccs_check_mount_permission2().
+
+      ccs_check_mount_permission2() was passing unencoded strings to printk()
+      and ccs_update_mount_acl() and ccs_check_supervisor(). This may cause
+      /proc/ccs/system_policy and /proc/ccs/query to contain invalid
+      characters within a string.
