@@ -590,24 +590,17 @@ static int __init ccs_realpath_init(void)
 #ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
 	{
 		/* Load built-in policy. */
-		const int len = strlen(CONFIG_TOMOYO_BUILTIN_INITIALIZERS) + 1;
-		char *str = kmalloc(len, GFP_KERNEL);
-		if (!str)
-			panic("Out of memory.");
-		memmove(str, CONFIG_TOMOYO_BUILTIN_INITIALIZERS, len);
-		ccs_normalize_line(str);
-		if (*str) {
-			char *cp = str;
-			do {
-				char *cp2 = strchr(cp, ' ');
-				if (cp2)
-					*cp2++ = '\0';
-				ccs_write_domain_initializer_policy(cp, false,
-								    false);
-				cp = cp2;
-			} while (cp);
+		static char ccs_builtin_initializers[] __initdata
+			= CONFIG_TOMOYO_BUILTIN_INITIALIZERS;
+		char *cp = ccs_builtin_initializers;
+		ccs_normalize_line(cp);
+		while (cp && *cp) {
+			char *cp2 = strchr(cp, ' ');
+			if (cp2)
+				*cp2++ = '\0';
+			ccs_write_domain_initializer_policy(cp, false, false);
+			cp = cp2;
 		}
-		kfree(str);
 	}
 #endif
 	return 0;

@@ -162,7 +162,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		if (exename)
 			ccs_free(exename);
 		if (r.mode == 1 && old_root && new_root)
-			ccs_update_pivot_root_acl(old_root, new_root, 0);
+			ccs_update_pivot_root_acl(old_root, new_root, false);
 	}
 	ccs_free(old_root);
 	ccs_free(new_root);
