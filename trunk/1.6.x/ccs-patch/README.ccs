@@ -1911,3 +1911,13 @@ Fix 2009/04/06
       and ccs_update_mount_acl() and ccs_check_supervisor(). This may cause
       /proc/ccs/system_policy and /proc/ccs/query to contain invalid
       characters within a string.
+
+Fix 2009/04/07
+
+    @ Fix IPv4's "address_group" handling error.
+
+      Since 1.4 , due to lack of ntohl() (byte order conversion) in
+      ccs_update_address_group_entry(), "address_group" with IPv4 address was
+      not working.
+
+      This problem happens on little endian platforms (e.g. x86).
