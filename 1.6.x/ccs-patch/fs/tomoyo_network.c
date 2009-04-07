@@ -131,6 +131,8 @@ static int ccs_update_address_group_entry(const char *group_name,
 	const struct in6_addr *saved_max_address = NULL;
 	int error = -ENOMEM;
 	bool found = false;
+	const u32 min_ipv4_address = ntohl(*(u32 *) min_address);
+	const u32 max_ipv4_address = ntohl(*(u32 *) max_address);
 	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
 	    !group_name[0])
 		return -EINVAL;
@@ -159,8 +161,8 @@ static int ccs_update_address_group_entry(const char *group_name,
 				    member->max.ipv6 != saved_max_address)
 					continue;
 			} else {
-				if (member->min.ipv4 != *(u32 *) min_address ||
-				    member->max.ipv4 != *(u32 *) max_address)
+				if (member->min.ipv4 != min_ipv4_address ||
+				    member->max.ipv4 != max_ipv4_address)
 					continue;
 			}
 			member->is_deleted = is_delete;
@@ -191,8 +193,8 @@ static int ccs_update_address_group_entry(const char *group_name,
 		new_member->min.ipv6 = saved_min_address;
 		new_member->max.ipv6 = saved_max_address;
 	} else {
-		new_member->min.ipv4 = *(u32 *) min_address;
-		new_member->max.ipv4 = *(u32 *) max_address;
+		new_member->min.ipv4 = min_ipv4_address;
+		new_member->max.ipv4 = max_ipv4_address;
 	}
 	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
 	error = 0;
