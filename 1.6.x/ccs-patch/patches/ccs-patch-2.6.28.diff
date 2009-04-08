@@ -27,14 +27,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sys.c                    |   21 ++++++++++++++
  kernel/sysctl.c                 |    8 +++++
  kernel/time.c                   |   11 +++++++
- kernel/time/ntp.c               |   11 +++++++
+ kernel/time/ntp.c               |   12 ++++++++
  net/core/datagram.c             |   11 +++++++
  net/ipv4/inet_connection_sock.c |    7 ++++
  net/ipv4/inet_hashtables.c      |    7 ++++
  net/ipv4/udp.c                  |    9 +++++-
  net/socket.c                    |   41 ++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 32 files changed, 429 insertions(+), 3 deletions(-)
+ 32 files changed, 430 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28.9.orig/fs/Kconfig
 +++ linux-2.6.28.9/fs/Kconfig
@@ -577,7 +577,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28.9 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.28.9 2009/04/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -950,12 +950,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * Timekeeping variables
-@@ -286,10 +289,18 @@ int do_adjtimex(struct timex *txc)
+@@ -286,10 +289,19 @@ int do_adjtimex(struct timex *txc)
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
 +		/***** TOMOYO Linux start. *****/
-+		if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
++		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
++		    !ccs_capable(CCS_SYS_SETTIME))
 +			return -EPERM;
 +		/***** TOMOYO Linux end. *****/
  	} else {
