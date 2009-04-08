@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.16-76.40vl4.src.rpm ]
+if [ ! -r kernel-2.6.16-76.47vl4.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-4.2/updates/SRPMS/kernel-2.6.16-76.40vl4.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-4.2/updates/SRPMS/kernel-2.6.16-76.47vl4.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.16-76.40vl4.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.16-76.47vl4.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
@@ -22,17 +22,22 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-2.6.16-vine-linux-4.2-20090408.diff ]
+then
+    wget -O ccs-patch-2.6.16-vine-linux-4.2-20090408.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.16-vine-linux-4.2.diff?revision=2405&root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/vine/SPECS/kernel-2.6-vl.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6-vl.spec	2008-11-09 03:44:19.000000000 +0900
-+++ kernel-2.6-vl.spec	2009-01-24 21:05:21.000000000 +0900
+--- kernel-2.6-vl.spec	2009-03-13 09:38:52.000000000 +0900
++++ kernel-2.6-vl.spec	2009-04-08 16:20:46.000000000 +0900
 @@ -23,7 +23,7 @@
  %define sublevel 16
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 76.40%{_dist_release}
-+%define release 76.40%{_dist_release}_tomoyo_1.6.7
+-%define release 76.47%{_dist_release}
++%define release 76.47%{_dist_release}_tomoyo_1.6.7
  
  %define make_target bzImage
  
@@ -55,18 +60,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -1090,6 +1093,10 @@
+@@ -1124,6 +1127,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
++patch -sp1 < %_sourcedir/ccs-patch-2.6.16-vine-linux-4.2-20090408.diff
 +
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -1110,6 +1117,9 @@
+@@ -1144,6 +1151,9 @@
  for i in *.config
  do 
  	mv $i .config 
