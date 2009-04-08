@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.7+   2009/04/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -158,4 +158,18 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 {
 	return inode->i_sock ? &inode->u.socket_i : NULL;
 }
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+#if defined(__LITTLE_ENDIAN)
+#define HIPQUAD(addr) \
+	((unsigned char *)&addr)[3], \
+	((unsigned char *)&addr)[2], \
+	((unsigned char *)&addr)[1], \
+	((unsigned char *)&addr)[0]
+#elif defined(__BIG_ENDIAN)
+#define HIPQUAD NIPQUAD
+#else
+#error "Please fix asm/byteorder.h"
+#endif /* __LITTLE_ENDIAN */
 #endif
