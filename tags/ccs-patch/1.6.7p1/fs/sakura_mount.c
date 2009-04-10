@@ -370,6 +370,8 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 	error = -EPERM;
 	if (!type)
 		type = "<NULL>";
+	if (!dev_name)
+		dev_name = "<NULL>";
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
 	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
