@@ -1,0 +1,1243 @@
+This is TOMOYO Linux patch for kernel 2.6.27.21.
+
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.27.21.tar.bz2
+---
+ arch/ia64/ia32/sys_ia32.c       |    7 ++++
+ arch/mips/kernel/ptrace32.c     |    7 ++++
+ fs/Kconfig                      |    2 +
+ fs/Makefile                     |    2 +
+ fs/attr.c                       |   19 +++++++++++++
+ fs/compat.c                     |    5 ++-
+ fs/compat_ioctl.c               |   13 +++++++++
+ fs/exec.c                       |   16 ++++++++++-
+ fs/fcntl.c                      |    9 ++++++
+ fs/ioctl.c                      |   11 +++++++
+ fs/namei.c                      |   57 ++++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   49 ++++++++++++++++++++++++++++++++++
+ fs/open.c                       |   29 ++++++++++++++++++++
+ fs/proc/Makefile                |    3 ++
+ fs/proc/proc_misc.c             |    5 +++
+ include/linux/init_task.h       |    4 ++
+ include/linux/sched.h           |    8 +++++
+ kernel/compat.c                 |    7 ++++
+ kernel/kexec.c                  |    7 ++++
+ kernel/kmod.c                   |    5 +++
+ kernel/module.c                 |   11 +++++++
+ kernel/ptrace.c                 |   11 +++++++
+ kernel/sched.c                  |    7 ++++
+ kernel/signal.c                 |   21 ++++++++++++++
+ kernel/sys.c                    |   21 ++++++++++++++
+ kernel/sysctl.c                 |    8 +++++
+ kernel/time.c                   |   11 +++++++
+ kernel/time/ntp.c               |    7 ++++
+ net/core/datagram.c             |   11 +++++++
+ net/ipv4/inet_connection_sock.c |    7 ++++
+ net/ipv4/inet_hashtables.c      |    7 ++++
+ net/ipv4/udp.c                  |   10 +++++++
+ net/socket.c                    |   41 ++++++++++++++++++++++++++++
+ net/unix/af_unix.c              |    8 +++++
+ 34 files changed, 444 insertions(+), 2 deletions(-)
+
+--- linux-2.6.27.21.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.27.21/arch/ia64/ia32/sys_ia32.c
+@@ -51,6 +51,9 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "ia32priv.h"
+ 
+@@ -1622,6 +1625,10 @@ sys32_ptrace (int request, pid_t pid, un
+ 	struct task_struct *child;
+ 	unsigned int value, tmp;
+ 	long i, ret;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+--- linux-2.6.27.21.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.27.21/arch/mips/kernel/ptrace32.c
+@@ -35,6 +35,9 @@
+ #include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/bootinfo.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int ptrace_getregs(struct task_struct *child, __s64 __user *data);
+ int ptrace_setregs(struct task_struct *child, __s64 __user *data);
+@@ -50,6 +53,10 @@ asmlinkage int sys32_ptrace(int request,
+ {
+ 	struct task_struct *child;
+ 	int ret;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ 	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
+--- linux-2.6.27.21.orig/fs/Kconfig
++++ linux-2.6.27.21/fs/Kconfig
+@@ -2093,4 +2093,6 @@ endif
+ source "fs/nls/Kconfig"
+ source "fs/dlm/Kconfig"
+ 
++source "fs/Kconfig.ccs"
++
+ endmenu
+--- linux-2.6.27.21.orig/fs/Makefile
++++ linux-2.6.27.21/fs/Makefile
+@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
+ obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
+ obj-$(CONFIG_GFS2_FS)           += gfs2/
++
++include $(srctree)/fs/Makefile-2.6.ccs
+--- linux-2.6.27.21.orig/fs/attr.c
++++ linux-2.6.27.21/fs/attr.c
+@@ -14,6 +14,9 @@
+ #include <linux/fcntl.h>
+ #include <linux/quotaops.h>
+ #include <linux/security.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* Taken over from the old code... */
+ 
+@@ -164,12 +167,28 @@ int notify_change(struct dentry * dentry
+ 
+ 	if (inode->i_op && inode->i_op->setattr) {
+ 		error = security_inode_setattr(dentry, attr);
++		/***** TOMOYO Linux start. *****/
++		if (!error && (ia_valid & ATTR_MODE) &&
++		    !ccs_capable(CCS_SYS_CHMOD))
++			error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
++		    !ccs_capable(CCS_SYS_CHOWN))
++			error = -EPERM;
++		/***** TOMOYO Linux end. *****/
+ 		if (!error)
+ 			error = inode->i_op->setattr(dentry, attr);
+ 	} else {
+ 		error = inode_change_ok(inode, attr);
+ 		if (!error)
+ 			error = security_inode_setattr(dentry, attr);
++		/***** TOMOYO Linux start. *****/
++		if (!error && (ia_valid & ATTR_MODE) &&
++		    !ccs_capable(CCS_SYS_CHMOD))
++			error = -EPERM;
++		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
++		    !ccs_capable(CCS_SYS_CHOWN))
++			error = -EPERM;
++		/***** TOMOYO Linux end. *****/
+ 		if (!error) {
+ 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
+ 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
+--- linux-2.6.27.21.orig/fs/compat.c
++++ linux-2.6.27.21/fs/compat.c
+@@ -56,6 +56,9 @@
+ #include <asm/mmu_context.h>
+ #include <asm/ioctls.h>
+ #include "internal.h"
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int compat_log = 1;
+ 
+@@ -1404,7 +1407,7 @@ int compat_do_execve(char * filename,
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	retval = search_binary_handler(bprm, regs);
++	retval = ccs_search_binary_handler(bprm, regs);
+ 	if (retval >= 0) {
+ 		/* execve success */
+ 		security_bprm_free(bprm);
+--- linux-2.6.27.21.orig/fs/compat_ioctl.c
++++ linux-2.6.27.21/fs/compat_ioctl.c
+@@ -113,6 +113,9 @@
+ #ifdef CONFIG_SPARC
+ #include <asm/fbio.h>
+ #endif
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
+ 			      unsigned long arg, struct file *f)
+@@ -2788,6 +2791,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 
+ 	/* RED-PEN how should LSM module know it's handling 32bit? */
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+@@ -2812,6 +2819,12 @@ asmlinkage long compat_sys_ioctl(unsigne
+ 		/*FALL THROUGH*/
+ 
+ 	default:
++		/***** TOMOYO Linux start. *****/
++		if (!ccs_capable(CCS_SYS_IOCTL)) {
++			error = -EPERM;
++			goto out_fput;
++		}
++		/***** TOMOYO Linux end. *****/
+ 		if (filp->f_op && filp->f_op->compat_ioctl) {
+ 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
+ 			if (error != -ENOIOCTLCMD)
+--- linux-2.6.27.21.orig/fs/exec.c
++++ linux-2.6.27.21/fs/exec.c
+@@ -64,6 +64,10 @@
+ #include <linux/a.out.h>
+ #endif
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
++
+ int core_uses_pid;
+ char core_pattern[CORENAME_MAX_SIZE] = "core";
+ int suid_dumpable = 0;
+@@ -132,6 +136,11 @@ SYSCALL_DEFINE1(uselib, const char __use
+ 	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
+ 	if (error)
+ 		goto exit;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_uselib_permission(nd.path.dentry, nd.path.mnt);
++	if (error)
++		goto exit;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
+ 	error = PTR_ERR(file);
+@@ -685,6 +694,11 @@ struct file *open_exec(const char *name)
+ 	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
+ 	if (err)
+ 		goto out_path_put;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_check_open_exec_permission(nd.path.dentry, nd.path.mnt);
++	if (err)
++		goto out_path_put;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
+ 	if (IS_ERR(file))
+@@ -1345,7 +1359,7 @@ int do_execve(char * filename,
+ 		goto out;
+ 
+ 	current->flags &= ~PF_KTHREAD;
+-	retval = search_binary_handler(bprm,regs);
++	retval = ccs_search_binary_handler(bprm, regs);
+ 	if (retval >= 0) {
+ 		/* execve success */
+ 		security_bprm_free(bprm);
+--- linux-2.6.27.21.orig/fs/fcntl.c
++++ linux-2.6.27.21/fs/fcntl.c
+@@ -24,6 +24,9 @@
+ #include <asm/poll.h>
+ #include <asm/siginfo.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ void set_close_on_exec(unsigned int fd, int flag)
+ {
+@@ -155,6 +158,12 @@ static int setfl(int fd, struct file * f
+ 	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
+ 		return -EPERM;
+ 
++	/***** TOMOYO Linux start. *****/
++	if (((arg ^ filp->f_flags) & O_APPEND) &&
++	    ccs_check_rewrite_permission(filp))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
++
+ 	/* O_NOATIME can only be set by the owner or superuser */
+ 	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
+ 		if (!is_owner_or_cap(inode))
+--- linux-2.6.27.21.orig/fs/ioctl.c
++++ linux-2.6.27.21/fs/ioctl.c
+@@ -15,6 +15,9 @@
+ #include <linux/uaccess.h>
+ 
+ #include <asm/ioctls.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /**
+  * vfs_ioctl - call filesystem specific ioctl methods
+@@ -35,6 +38,10 @@ static long vfs_ioctl(struct file *filp,
+ 
+ 	if (!filp->f_op)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_IOCTL))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (filp->f_op->unlocked_ioctl) {
+ 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
+@@ -206,6 +213,10 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+ 		goto out;
+ 
+ 	error = security_file_ioctl(filp, cmd, arg);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_ioctl_permission(filp, cmd, arg);
++	/***** TOMOYO Linux end. *****/
+ 	if (error)
+ 		goto out_fput;
+ 
+--- linux-2.6.27.21.orig/fs/namei.c
++++ linux-2.6.27.21/fs/namei.c
+@@ -35,6 +35,10 @@
+ 
+ #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
++
+ /* [Feb-1997 T. Schoebel-Theuer]
+  * Fundamental changes in the pathname lookup mechanisms (namei)
+  * were necessary because of omirr.  The reason is that omirr needs
+@@ -1569,6 +1573,13 @@ int may_open(struct nameidata *nd, int a
+ 		if (!is_owner_or_cap(inode))
+ 			return -EPERM;
+ 
++	/***** TOMOYO Linux start. *****/
++	/* includes O_APPEND and O_TRUNC checks */
++	error = ccs_check_open_permission(dentry, nd->path.mnt, flag);
++	if (error)
++		return error;
++	/***** TOMOYO Linux end. *****/
++
+ 	/*
+ 	 * Ensure there are no outstanding leases on the file.
+ 	 */
+@@ -1615,6 +1626,11 @@ static int __open_namei_create(struct na
+ 
+ 	if (!IS_POSIXACL(dir->d_inode))
+ 		mode &= ~current->fs->umask;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_mknod_permission(dir->d_inode, path->dentry,
++					   nd->path.mnt, mode, 0);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
+ 	mutex_unlock(&dir->d_inode->i_mutex);
+ 	dput(nd->path.dentry);
+@@ -1625,6 +1641,9 @@ static int __open_namei_create(struct na
+ 	return may_open(nd, 0, flag & ~O_TRUNC);
+ }
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_vfs.h>
++/***** TOMOYO Linux end. *****/
+ /*
+  * Note that while the flag value (low two bits) for sys_open means:
+  *	00 - read-only
+@@ -2018,6 +2037,12 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_mknod_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt, mode,
++					   new_decode_dev(dev));
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	switch (mode & S_IFMT) {
+ 		case 0: case S_IFREG:
+ 			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
+@@ -2089,6 +2114,11 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_mkdir_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt, mode);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2196,6 +2226,11 @@ static long do_rmdir(int dfd, const char
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto exit3;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_rmdir_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
+ 	mnt_drop_write(nd.path.mnt);
+ exit3:
+@@ -2278,6 +2313,11 @@ static long do_unlinkat(int dfd, const c
+ 		error = mnt_want_write(nd.path.mnt);
+ 		if (error)
+ 			goto exit2;
++		/***** TOMOYO Linux start. *****/
++		error = ccs_check_unlink_permission(nd.path.dentry->d_inode,
++						    dentry, nd.path.mnt);
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
+ 		mnt_drop_write(nd.path.mnt);
+ 	exit2:
+@@ -2359,6 +2399,11 @@ SYSCALL_DEFINE3(symlinkat, const char __
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_symlink_permission(nd.path.dentry->d_inode, dentry,
++					     nd.path.mnt, from);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2455,6 +2500,12 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_dput;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_link_permission(old_path.dentry,
++					  nd.path.dentry->d_inode, new_dentry,
++					  nd.path.mnt);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
+ 	mnt_drop_write(nd.path.mnt);
+ out_dput:
+@@ -2687,6 +2738,12 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+ 	error = mnt_want_write(oldnd.path.mnt);
+ 	if (error)
+ 		goto exit5;
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
++					    new_dir->d_inode, new_dentry,
++					    newnd.path.mnt);
++	if (!error)
++	/***** TOMOYO Linux end. *****/
+ 	error = vfs_rename(old_dir->d_inode, old_dentry,
+ 				   new_dir->d_inode, new_dentry);
+ 	mnt_drop_write(oldnd.path.mnt);
+--- linux-2.6.27.21.orig/fs/namespace.c
++++ linux-2.6.27.21/fs/namespace.c
+@@ -31,6 +31,12 @@
+ #include <asm/unistd.h>
+ #include "pnode.h"
+ #include "internal.h"
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
+ #define HASH_SIZE (1UL << HASH_SHIFT)
+@@ -1041,6 +1047,11 @@ static int do_umount(struct vfsmount *mn
+ 	if (retval)
+ 		return retval;
+ 
++	/***** SAKURA Linux start. *****/
++	if (ccs_may_umount(mnt))
++		return -EPERM;
++	/***** SAKURA Linux end. *****/
++
+ 	/*
+ 	 * Allow userspace to request a mountpoint be expired rather than
+ 	 * unmounting unconditionally. Unmount only happens if:
+@@ -1132,6 +1143,10 @@ SYSCALL_DEFINE2(umount, char __user *, n
+ {
+ 	struct path path;
+ 	int retval;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_UMOUNT))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	retval = user_path(name, &path);
+ 	if (retval)
+@@ -1479,6 +1494,11 @@ static noinline int do_loopback(struct n
+ 	err = -EINVAL;
+ 	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
+ 		goto out;
++	/***** SAKURA Linux start. *****/
++	err = -EPERM;
++	if (ccs_may_mount(&nd->path))
++		goto out;
++	/***** SAKURA Linux end. *****/
+ 
+ 	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
+ 		goto out;
+@@ -1598,6 +1618,11 @@ static noinline int do_move_mount(struct
+ 	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
+ 		goto out;
+ 
++	/***** SAKURA Linux start. *****/
++	err = -EPERM;
++	if (ccs_may_umount(old_nd.path.mnt) || ccs_may_mount(&nd->path))
++		goto out;
++	/***** SAKURA Linux end. *****/
+ 	err = -ENOENT;
+ 	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
+ 	if (IS_DEADDIR(nd->path.dentry->d_inode))
+@@ -1702,6 +1727,11 @@ int do_add_mount(struct vfsmount *newmnt
+ 	err = -EINVAL;
+ 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
+ 		goto unlock;
++	/***** SAKURA Linux start. *****/
++	err = -EPERM;
++	if (ccs_may_mount(path))
++		goto unlock;
++	/***** SAKURA Linux end. *****/
+ 
+ 	newmnt->mnt_flags = mnt_flags;
+ 	if ((err = graft_tree(newmnt, path)))
+@@ -1925,6 +1955,17 @@ long do_mount(char *dev_name, char *dir_
+ 	if (data_page)
+ 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+ 
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_MOUNT))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
++	/***** SAKURA Linux start. *****/
++	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
++					    &flags);
++	if (retval)
++		return retval;
++	/***** SAKURA Linux end. *****/
++
+ 	/* Separate the per-mountpoint flags */
+ 	if (flags & MS_NOSUID)
+ 		mnt_flags |= MNT_NOSUID;
+@@ -2188,6 +2229,10 @@ SYSCALL_DEFINE2(pivot_root, const char _
+ 
+ 	if (!capable(CAP_SYS_ADMIN))
+ 		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	error = user_path_dir(new_root, &new);
+ 	if (error)
+@@ -2201,6 +2246,10 @@ SYSCALL_DEFINE2(pivot_root, const char _
+ 		goto out1;
+ 
+ 	error = security_sb_pivotroot(&old, &new);
++	/***** SAKURA Linux start. *****/
++	if (!error)
++		error = ccs_check_pivot_root_permission(&old, &new);
++	/***** SAKURA Linux end. *****/
+ 	if (error) {
+ 		path_put(&old);
+ 		goto out1;
+--- linux-2.6.27.21.orig/fs/open.c
++++ linux-2.6.27.21/fs/open.c
+@@ -29,6 +29,12 @@
+ #include <linux/rcupdate.h>
+ #include <linux/audit.h>
+ #include <linux/falloc.h>
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
+ {
+@@ -269,6 +275,11 @@ static long do_sys_truncate(const char _
+ 	if (error)
+ 		goto put_write_and_out;
+ 
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_truncate_permission(path.dentry, path.mnt, length, 0);
++	if (error)
++		goto put_write_and_out;
++	/***** TOMOYO Linux end. *****/
+ 	error = locks_verify_truncate(inode, NULL, length);
+ 	if (!error) {
+ 		DQUOT_INIT(inode);
+@@ -325,6 +336,12 @@ static long do_sys_ftruncate(unsigned in
+ 	if (IS_APPEND(inode))
+ 		goto out_putf;
+ 
++	/***** TOMOYO Linux start. *****/
++	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
++					      0);
++	if (error)
++		goto out_putf;
++	/***** TOMOYO Linux end. *****/
+ 	error = locks_verify_truncate(inode, file, length);
+ 	if (!error)
+ 		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
+@@ -590,6 +607,14 @@ SYSCALL_DEFINE1(chroot, const char __use
+ 	error = -EPERM;
+ 	if (!capable(CAP_SYS_CHROOT))
+ 		goto dput_and_out;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_CHROOT))
++		goto dput_and_out;
++	/***** TOMOYO Linux end. *****/
++	/***** SAKURA Linux start. *****/
++	if (ccs_check_chroot_permission(&path))
++		goto dput_and_out;
++	/***** SAKURA Linux end. *****/
+ 
+ 	set_fs_root(current->fs, &path);
+ 	error = 0;
+@@ -1156,6 +1181,10 @@ EXPORT_SYMBOL(sys_close);
+  */
+ SYSCALL_DEFINE0(vhangup)
+ {
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_VHANGUP))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 	if (capable(CAP_SYS_TTY_CONFIG)) {
+ 		/* XXX: this needs locking */
+ 		tty_vhangup(current->signal->tty);
+--- linux-2.6.27.21.orig/fs/proc/Makefile
++++ linux-2.6.27.21/fs/proc/Makefile
+@@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
+ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
+ proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
+ proc-$(CONFIG_PRINTK)	+= kmsg.o
++
++proc-$(CONFIG_SAKURA) += ccs_proc.o
++proc-$(CONFIG_TOMOYO) += ccs_proc.o
+--- linux-2.6.27.21.orig/fs/proc/proc_misc.c
++++ linux-2.6.27.21/fs/proc/proc_misc.c
+@@ -934,4 +934,9 @@ void __init proc_misc_init(void)
+ #ifdef CONFIG_MAGIC_SYSRQ
+ 	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
+ #endif
++	/***** CCS start. *****/
++#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
++	printk(KERN_INFO "Hook version: 2.6.27.21 2009/03/24\n");
++#endif
++	/***** CCS end. *****/
+ }
+--- linux-2.6.27.21.orig/include/linux/init_task.h
++++ linux-2.6.27.21/include/linux/init_task.h
+@@ -179,6 +179,10 @@ extern struct group_info init_groups;
+ 	INIT_IDS							\
+ 	INIT_TRACE_IRQFLAGS						\
+ 	INIT_LOCKDEP							\
++	/***** TOMOYO Linux start. *****/        \
++	.ccs_domain_info = NULL,                 \
++	.ccs_flags = 0,                          \
++	/***** TOMOYO Linux end. *****/          \
+ }
+ 
+ 
+--- linux-2.6.27.21.orig/include/linux/sched.h
++++ linux-2.6.27.21/include/linux/sched.h
+@@ -29,6 +29,10 @@
+ #define CLONE_NEWNET		0x40000000	/* New network namespace */
+ #define CLONE_IO		0x80000000	/* Clone io context */
+ 
++/***** TOMOYO Linux start. *****/
++struct ccs_domain_info;
++/***** TOMOYO Linux end. *****/
++
+ /*
+  * Scheduling policies
+  */
+@@ -1306,6 +1310,10 @@ struct task_struct {
+ 	int latency_record_count;
+ 	struct latency_record latency_record[LT_SAVECOUNT];
+ #endif
++	/***** TOMOYO Linux start. *****/
++	struct ccs_domain_info *ccs_domain_info;
++	u32 ccs_flags;
++	/***** TOMOYO Linux end. *****/
+ };
+ 
+ /*
+--- linux-2.6.27.21.orig/kernel/compat.c
++++ linux-2.6.27.21/kernel/compat.c
+@@ -25,6 +25,9 @@
+ #include <linux/posix-timers.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -868,6 +871,10 @@ asmlinkage long compat_sys_stime(compat_
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
+--- linux-2.6.27.21.orig/kernel/kexec.c
++++ linux-2.6.27.21/kernel/kexec.c
+@@ -36,6 +36,9 @@
+ #include <asm/io.h>
+ #include <asm/system.h>
+ #include <asm/sections.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /* Per cpu memory for storing cpu states in case of system crash. */
+ note_buf_t* crash_notes;
+@@ -942,6 +945,10 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT))
+ 		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_KEXEC_LOAD))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/*
+ 	 * Verify we have a legal set of flags
+--- linux-2.6.27.21.orig/kernel/kmod.c
++++ linux-2.6.27.21/kernel/kmod.c
+@@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
+ 	 */
+ 	set_user_nice(current, 0);
+ 
++	/***** TOMOYO Linux start. *****/
++	current->ccs_domain_info = NULL;
++	current->ccs_flags = 0;
++	/***** TOMOYO Linux end. *****/
++
+ 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
+ 
+ 	/* Exec failed? */
+--- linux-2.6.27.21.orig/kernel/module.c
++++ linux-2.6.27.21/kernel/module.c
+@@ -46,6 +46,9 @@
+ #include <asm/cacheflush.h>
+ #include <linux/license.h>
+ #include <asm/sections.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #if 0
+ #define DEBUGP printk
+@@ -724,6 +727,10 @@ SYSCALL_DEFINE2(delete_module, const cha
+ 
+ 	if (!capable(CAP_SYS_MODULE))
+ 		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
+ 		return -EFAULT;
+@@ -2266,6 +2273,10 @@ SYSCALL_DEFINE3(init_module, void __user
+ 	/* Must have permission */
+ 	if (!capable(CAP_SYS_MODULE))
+ 		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* Only one module load at a time, please */
+ 	if (mutex_lock_interruptible(&module_mutex) != 0)
+--- linux-2.6.27.21.orig/kernel/ptrace.c
++++ linux-2.6.27.21/kernel/ptrace.c
+@@ -24,6 +24,9 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * ptrace a task: make the debugger its new parent and
+@@ -553,6 +556,10 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
+ 	 */
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
+@@ -676,6 +683,10 @@ asmlinkage long compat_sys_ptrace(compat
+ 	/*
+ 	 * This lock_kernel fixes a subtle race with suid exec
+ 	 */
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_PTRACE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 	lock_kernel();
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
+--- linux-2.6.27.21.orig/kernel/sched.c
++++ linux-2.6.27.21/kernel/sched.c
+@@ -74,6 +74,9 @@
+ 
+ #include <asm/tlb.h>
+ #include <asm/irq_regs.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "sched_cpupri.h"
+ 
+@@ -4945,6 +4948,10 @@ int can_nice(const struct task_struct *p
+ SYSCALL_DEFINE1(nice, int, increment)
+ {
+ 	long nice, retval;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_NICE))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/*
+ 	 * Setpriority might change our priority at the same moment.
+--- linux-2.6.27.21.orig/kernel/signal.c
++++ linux-2.6.27.21/kernel/signal.c
+@@ -33,6 +33,9 @@
+ #include <asm/unistd.h>
+ #include <asm/siginfo.h>
+ #include "audit.h"	/* audit_signal_info() */
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * SLAB caches for signal bits.
+@@ -2199,6 +2202,12 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+ {
+ 	struct siginfo info;
++	/***** TOMOYO Linux start. *****/
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	info.si_signo = sig;
+ 	info.si_errno = 0;
+@@ -2260,6 +2269,12 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
++	/***** TOMOYO Linux start. *****/
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	return do_tkill(tgid, pid, sig);
+ }
+@@ -2272,6 +2287,12 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0)
+ 		return -EINVAL;
++	/***** TOMOYO Linux start. *****/
++	if (sig && !ccs_capable(CCS_SYS_KILL))
++		return -EPERM;
++	if (sig && ccs_check_signal_acl(sig, pid))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	return do_tkill(0, pid, sig);
+ }
+--- linux-2.6.27.21.orig/kernel/sys.c
++++ linux-2.6.27.21/kernel/sys.c
+@@ -42,6 +42,9 @@
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifndef SET_UNALIGN_CTL
+ # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
+@@ -146,6 +149,12 @@ SYSCALL_DEFINE3(setpriority, int, which,
+ 
+ 	if (which > PRIO_USER || which < PRIO_PROCESS)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* normalize: avoid signed division (rounding problems) */
+ 	error = -ESRCH;
+@@ -363,6 +372,10 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+ 			magic2 != LINUX_REBOOT_MAGIC2B &&
+ 	                magic2 != LINUX_REBOOT_MAGIC2C))
+ 		return -EINVAL;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_REBOOT))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* Instead of trying to make the power_off code look like
+ 	 * halt when pm_power_off is not set do it the easy way.
+@@ -1349,6 +1362,10 @@ SYSCALL_DEFINE2(sethostname, char __user
+ 		return -EPERM;
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 	down_write(&uts_sem);
+ 	errno = -EFAULT;
+ 	if (!copy_from_user(tmp, name, len)) {
+@@ -1394,6 +1411,10 @@ SYSCALL_DEFINE2(setdomainname, char __us
+ 		return -EPERM;
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	down_write(&uts_sem);
+ 	errno = -EFAULT;
+--- linux-2.6.27.21.orig/kernel/sysctl.c
++++ linux-2.6.27.21/kernel/sysctl.c
+@@ -51,6 +51,9 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/processor.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #ifdef CONFIG_X86
+ #include <asm/nmi.h>
+@@ -1603,6 +1606,11 @@ int do_sysctl(int __user *name, int nlen
+ 
+ 	for (head = sysctl_head_next(NULL); head;
+ 			head = sysctl_head_next(head)) {
++		/***** TOMOYO Linux start. *****/
++		error = ccs_parse_table(name, nlen, oldval, newval,
++					head->ctl_table);
++		if (!error)
++		/***** TOMOYO Linux end. *****/
+ 		error = parse_table(name, nlen, oldval, oldlenp, 
+ 					newval, newlen,
+ 					head->root, head->ctl_table);
+--- linux-2.6.27.21.orig/kernel/time.c
++++ linux-2.6.27.21/kernel/time.c
+@@ -40,6 +40,9 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ #include "timeconst.h"
+ 
+@@ -90,6 +93,10 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
+ 	err = security_settime(&tv, NULL);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	do_settimeofday(&tv);
+ 	return 0;
+@@ -161,6 +168,10 @@ int do_sys_settimeofday(struct timespec 
+ 	error = security_settime(tv, tz);
+ 	if (error)
+ 		return error;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	if (tz) {
+ 		/* SMP safe, global irq locking makes it work. */
+--- linux-2.6.27.21.orig/kernel/time/ntp.c
++++ linux-2.6.27.21/kernel/time/ntp.c
+@@ -18,6 +18,9 @@
+ #include <linux/math64.h>
+ #include <linux/clocksource.h>
+ #include <asm/timex.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ /*
+  * Timekeeping variables
+@@ -283,6 +286,10 @@ int do_adjtimex(struct timex *txc)
+ 	/* In order to modify anything, you gotta be super-user! */
+ 	if (txc->modes && !capable(CAP_SYS_TIME))
+ 		return -EPERM;
++	/***** TOMOYO Linux start. *****/
++	if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	/* Now we validate the data before disabling interrupts */
+ 
+--- linux-2.6.27.21.orig/net/core/datagram.c
++++ linux-2.6.27.21/net/core/datagram.c
+@@ -56,6 +56,11 @@
+ #include <net/sock.h>
+ #include <net/tcp_states.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
++
+ /*
+  *	Is a socket 'connection oriented' ?
+  */
+@@ -179,6 +184,12 @@ struct sk_buff *__skb_recv_datagram(stru
+ 		}
+ 		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
+ 
++		/***** TOMOYO Linux start. *****/
++		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
++		if (error)
++			goto no_packet;
++		/***** TOMOYO Linux end. *****/
++
+ 		if (skb)
+ 			return skb;
+ 
+--- linux-2.6.27.21.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.27.21/net/ipv4/inet_connection_sock.c
+@@ -23,6 +23,9 @@
+ #include <net/route.h>
+ #include <net/tcp_states.h>
+ #include <net/xfrm.h>
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
+ 
+ #ifdef INET_CSK_DEBUG
+ const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
+@@ -106,6 +109,10 @@ int inet_csk_get_port(struct sock *sk, u
+ 			head = &hashinfo->bhash[inet_bhashfn(net, rover,
+ 					hashinfo->bhash_size)];
+ 			spin_lock(&head->lock);
++			/***** SAKURA Linux start. *****/
++			if (ccs_lport_reserved(rover))
++				goto next;
++			/***** SAKURA Linux end. *****/
+ 			inet_bind_bucket_for_each(tb, node, &head->chain)
+ 				if (tb->ib_net == net && tb->port == rover)
+ 					goto next;
+--- linux-2.6.27.21.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.27.21/net/ipv4/inet_hashtables.c
+@@ -22,6 +22,9 @@
+ #include <net/inet_connection_sock.h>
+ #include <net/inet_hashtables.h>
+ #include <net/ip.h>
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
+ 
+ /*
+  * Allocate and initialize a new local port bind bucket.
+@@ -440,6 +443,10 @@ int __inet_hash_connect(struct inet_time
+ 		local_bh_disable();
+ 		for (i = 1; i <= remaining; i++) {
+ 			port = low + (i + offset) % remaining;
++			/***** SAKURA Linux start. *****/
++			if (ccs_lport_reserved(port))
++				continue;
++			/***** SAKURA Linux end. *****/
+ 			head = &hinfo->bhash[inet_bhashfn(net, port,
+ 					hinfo->bhash_size)];
+ 			spin_lock(&head->lock);
+--- linux-2.6.27.21.orig/net/ipv4/udp.c
++++ linux-2.6.27.21/net/ipv4/udp.c
+@@ -103,6 +103,9 @@
+ #include <net/checksum.h>
+ #include <net/xfrm.h>
+ #include "udp_impl.h"
++/***** SAKURA Linux start. *****/
++#include <linux/sakura.h>
++/***** SAKURA Linux end. *****/
+ 
+ /*
+  *	Snmp MIB for the UDP layer
+@@ -170,6 +173,10 @@ int udp_lib_get_port(struct sock *sk, un
+ 		/* 1st pass: look for empty (or shortest) hash chain */
+ 		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
+ 			int size = 0;
++			/***** SAKURA Linux start. *****/
++			if (ccs_lport_reserved(rover))
++				goto next;
++			/***** SAKURA Linux end. *****/
+ 
+ 			head = &udptable[udp_hashfn(net, rover)];
+ 			if (hlist_empty(head))
+@@ -193,6 +200,9 @@ int udp_lib_get_port(struct sock *sk, un
+ 		/* 2nd pass: find hole in shortest hash chain */
+ 		rover = best;
+ 		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
++			/***** SAKURA Linux start. *****/
++			if (!ccs_lport_reserved(rover))
++			/***** SAKURA Linux end. *****/
+ 			if (! __udp_lib_lport_inuse(net, rover, udptable))
+ 				goto gotit;
+ 			rover += UDP_HTABLE_SIZE;
+--- linux-2.6.27.21.orig/net/socket.c
++++ linux-2.6.27.21/net/socket.c
+@@ -97,6 +97,11 @@
+ #include <net/sock.h>
+ #include <linux/netfilter.h>
+ 
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
++
+ static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
+ static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
+ 			 unsigned long nr_segs, loff_t pos);
+@@ -560,6 +565,12 @@ static inline int __sock_sendmsg(struct 
+ 	err = security_socket_sendmsg(sock, msg, size);
+ 	if (err)
+ 		return err;
++	/***** TOMOYO Linux start. *****/
++	if (ccs_socket_sendmsg_permission(sock,
++					  (struct sockaddr *) msg->msg_name,
++					  msg->msg_namelen))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	return sock->ops->sendmsg(iocb, sock, msg, size);
+ }
+@@ -1123,6 +1134,12 @@ static int __sock_create(struct net *net
+ 		family = PF_PACKET;
+ 	}
+ 
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_create_permission(family, type, protocol);
++	if (err)
++		return err;
++	/***** TOMOYO Linux end. *****/
++
+ 	err = security_socket_create(family, type, protocol, kern);
+ 	if (err)
+ 		return err;
+@@ -1378,6 +1395,13 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+ 			err = security_socket_bind(sock,
+ 						   (struct sockaddr *)&address,
+ 						   addrlen);
++			/***** TOMOYO Linux start. *****/
++			if (!err)
++				err = ccs_socket_bind_permission(sock,
++							 (struct sockaddr *)
++								 &address,
++								 addrlen);
++			/***** TOMOYO Linux end. *****/
+ 			if (!err)
+ 				err = sock->ops->bind(sock,
+ 						      (struct sockaddr *)
+@@ -1407,6 +1431,10 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+ 			backlog = somaxconn;
+ 
+ 		err = security_socket_listen(sock, backlog);
++		/***** TOMOYO Linux start. *****/
++		if (!err)
++			err = ccs_socket_listen_permission(sock);
++		/***** TOMOYO Linux end. *****/
+ 		if (!err)
+ 			err = sock->ops->listen(sock, backlog);
+ 
+@@ -1477,6 +1505,13 @@ long do_accept(int fd, struct sockaddr _
+ 	if (err < 0)
+ 		goto out_fd;
+ 
++	/***** TOMOYO Linux start. *****/
++	if (ccs_socket_accept_permission(newsock,
++					 (struct sockaddr *) &address)) {
++		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
++		goto out_fd;
++	}
++	/***** TOMOYO Linux end. *****/
+ 	if (upeer_sockaddr) {
+ 		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
+ 					  &len, 2) < 0) {
+@@ -1598,6 +1633,12 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+ 	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
+ 	if (err < 0)
+ 		goto out_put;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_connect_permission(sock, (struct sockaddr *) &address,
++					    addrlen);
++	if (err)
++		goto out_put;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	err =
+ 	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
+--- linux-2.6.27.21.orig/net/unix/af_unix.c
++++ linux-2.6.27.21/net/unix/af_unix.c
+@@ -114,6 +114,9 @@
+ #include <linux/mount.h>
+ #include <net/checksum.h>
+ #include <linux/security.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
+ static DEFINE_SPINLOCK(unix_table_lock);
+@@ -827,6 +830,11 @@ static int unix_bind(struct socket *sock
+ 		err = mnt_want_write(nd.path.mnt);
+ 		if (err)
+ 			goto out_mknod_dput;
++		/***** TOMOYO Linux start. *****/
++		err = ccs_check_mknod_permission(nd.path.dentry->d_inode,
++						 dentry, nd.path.mnt, mode, 0);
++		if (!err)
++		/***** TOMOYO Linux end. *****/
+ 		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+ 		mnt_drop_write(nd.path.mnt);
+ 		if (err)
