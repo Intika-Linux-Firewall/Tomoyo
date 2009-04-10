@@ -17,14 +17,9 @@ fi
 rpm -ivh kernel-2.6.16-76.47vl4.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090410.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-2.6.16-vine-linux-4.2-20090408.diff ]
-then
-    wget -O ccs-patch-2.6.16-vine-linux-4.2-20090408.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.16-vine-linux-4.2.diff?revision=2405&root=tomoyo' || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090410.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -37,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 76.47%{_dist_release}
-+%define release 76.47%{_dist_release}_tomoyo_1.6.7
++%define release 76.47%{_dist_release}_tomoyo_1.6.7p1
  
  %define make_target bzImage
  
@@ -65,8 +60,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.16-vine-linux-4.2-20090408.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.7-20090410.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
 +
  cp %{SOURCE10} Documentation/
  
