@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.27.21-78.2.41.fc9.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090410.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090410.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -#% define buildid .local
-+%define buildid _tomoyo_1.6.7
++%define buildid _tomoyo_1.6.7p1
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
@@ -80,7 +80,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.7-20090410.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.27-fedora-9.diff
 +
  %endif

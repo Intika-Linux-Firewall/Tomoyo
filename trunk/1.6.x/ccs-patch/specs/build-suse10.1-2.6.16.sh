@@ -73,9 +73,9 @@ fi
 rpm -ivh kernel-source-2.6.16.54-0.2.5.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090410.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090410.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -97,7 +97,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.16.54
 -Release: 0.2.5
-+Release: 0.2.5_tomoyo_1.6.7
++Release: 0.2.5_tomoyo_1.6.7p1
  Summary:        The Standard Kernel
  License:        GPL v2 or later
  Group:          System/Kernel
@@ -115,7 +115,7 @@ patch << "EOF" || die "Can't patch spec file."
  source .rpm-defs
  cd linux-2.6.16
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.7-20090401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.7-20090410.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.16-suse-10.1.diff
 +cat config.ccs >> .config
  cp .config .config.orig

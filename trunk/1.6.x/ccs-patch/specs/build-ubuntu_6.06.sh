@@ -20,9 +20,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.7-20090401.tar.gz ]
+if [ ! -r ccs-patch-1.6.7-20090410.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090401.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.7-20090410.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -35,8 +35,22 @@ apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install ker
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.7-20090401.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.7-20090410.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
+grep -qF 'asmlinkage long sys_kexec_load' kernel/kexec.c && patch -p1 << EOF
+--- linux-2.6.15-54.76.orig/kernel/kexec.c
++++ linux-2.6.15-54.76/kernel/kexec.c
+@@ -907,9 +907,6 @@ static struct kimage *kexec_crash_image 
+  */
+ static int kexec_lock = 0;
+ 
+-asmlinkage long sys_kexec_load(unsigned long entry, unsigned long nr_segments,
+-				struct kexec_segment __user *segments,
+-				unsigned long flags)
+ SYSCALL_DEFINE4(kexec_load, unsigned long, entry, unsigned long, nr_segments,
+ 		struct kexec_segment __user *, segments, unsigned long, flags)
+ {
+EOF
 cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
 cat debian/control.stub.tmp >> debian/control.stub || die "Can't edit file."
