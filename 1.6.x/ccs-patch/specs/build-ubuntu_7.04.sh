@@ -38,7 +38,7 @@ cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.7-20090410.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.20-ubuntu-7.04.diff || die "Can't apply patch."
 for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
-for i in debian/config/*/config.ccs; do cat config.ccs >> $i; done
+for i in debian/config/*/config; do cat config.ccs >> $i; done
 touch debian/control.stub.in || die "Can't touch control."
 debian/rules debian/control || die "Can't update control."
 touch debian/abi/i386.ignore || die "Can't create file."
