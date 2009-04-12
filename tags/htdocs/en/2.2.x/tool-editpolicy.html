@@ -37,7 +37,31 @@
 
 <p>Press "Left-Arrow"/"Right-Arrow" keys or "Home"/"End" keys.</p>
 
-<h2>(5) To search strings</h2>
+<h2>(5) To switch screen</h2>
+
+<p>The policy editor has 6 screens. Press "W" key to show the window list.</p>
+
+<img src="editpolicy/window-list.png" alt="Window List" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for editing exception policy will appear if you press "E" key from the window list screen.<br>
+<img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for editing domain transition tree will appear if you press "D" key from the window list screen.<br>
+<img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for editing specific domain's policy will appear if you press "A" key from the window list screen.<br>
+<img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for editing profiles will appear if you press "P" key from the window list screen.<br>
+<img src="editpolicy/profile-list.png" alt="Screen for Profile List" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for editing managers will appear if you press "M" key from the window list screen.<br>
+<img src="editpolicy/manager-list.png" alt="Screen for Manager List" WIDTH="720" HEIGHT="400"></p>
+
+<p>Screen for browsing memory usage will appear if you press "U" key from the window list screen.<br>
+<img src="editpolicy/memusage.png" alt="Screen for Memory Usage" WIDTH="720" HEIGHT="400"></p>
+
+<h2>(6) To search strings</h2>
 
 <p>To start searching, press "F" and enter strings to search and press "Enter" key.<br>
 <img src="editpolicy/find-first.png" alt="Find First" WIDTH="720" HEIGHT="400"></p>
@@ -45,28 +69,6 @@
 <p>To continue searching in forward direction, press "N" key.</p>
 
 <p>To continue searching in backward direction, press "P" key.</p>
-
-<h2>(6) To switch screen</h2>
-
-<p>The policy editor has 3 screens.</p>
-
-<table border="0">
-<tr><td>(1) Screen for editing domain transition tree</td></tr>
-<tr><td>(2) Screen for editing exception policy</td></tr>
-<tr><td>(3) Screen for editing specific domain's policy</td></tr>
-</table>
-
-<p>The screen toggles between (1) and (2) by pressing "Tab" key.</p>
-
-<p>The screen (1) changes to (3) by pressing "Enter" key.</p>
-<p>The screen (3) changes to (1) by pressing either "Enter" or "Tab" keys.</p>
-
-<p>A screenshot of domain transition tree<br>
-<img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
-<p>A screenshot of exception policy<br>
-<img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
-<p>A screenshot of specific domain's policy<br>
-<img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
 
 <h2>(7) To add an entry</h2>
 
@@ -196,7 +198,7 @@ The last "pathname of program" in the domainname is shown on the right side of t
 <img src="editpolicy/adding-no_keep_domain.png" alt="Adding no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
 <p>Return to the screen for editing domain transition tree. Now the "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain and its descendants are not marked with "!".<br>
-<p><img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
+<img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
 <p>Some commands are invoked by "/usr/bin/man" command, but it doesn't worth doing domain transitions. So, let's make /usr/bin/man not to transit domains. Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain /usr/bin/man" (or "keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man") and press "Enter" key.<br>
 <img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" WIDTH="720" HEIGHT="400"></p>

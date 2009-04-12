@@ -17,9 +17,9 @@
 
 <p>TOMOYO Linux には、 CUI で動作するポリシーエディタが付属しています。</p>
 
-<p>予め /sys/kernel/security/tomoyo/manager に「editpolicy が動作するドメインのドメイン名」または「editpolicy へのパス名（通常は /usr/lib/ccs/editpolicy ）」が登録されている必要があります。</p>
+<p>予め /sys/kernel/security/tomoyo/manager に「 ccs-editpolicy が動作するドメインのドメイン名」または「 ccs-editpolicy へのパス名（通常は /usr/lib/ccs/editpolicy ）」が登録されている必要があります。</p>
 
-<p>シェルプロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
+<p>シェルプロンプトから ccs-editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
 <h2>（１）ポリシーエディタを終了するには</h2>
 
@@ -37,7 +37,31 @@
 
 <p>横方向にスクロールさせるには、「←」「→」キーまたは「Home」「End」キーを押します。</p>
 
-<h2>（５）検索するには</h2>
+<h2>（５）画面を切り替えるには</h2>
+
+<p>ポリシーエディタには６つの画面があります。「W」キーを押すと一覧が表示されます。</p>
+
+<img src="editpolicy/window-list.png" alt="Window List" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「E」キーを押すと、例外ポリシーの編集画面に切り替わります。<br>
+<img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「D」キーを押すと、ドメイン遷移一覧画面に切り替わります。<br>
+<img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「A」キーを押すと、ドメインに対するアクセス許可の編集画面に切り替わります。<br>
+<img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「P」キーを押すと、プロファイルの編集画面に切り替わります。<br>
+<img src="editpolicy/profile-list.png" alt="Screen for Profile List" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「M」キーを押すと、マネージャの編集画面に切り替わります。<br>
+<img src="editpolicy/manager-list.png" alt="Screen for Manager List" WIDTH="720" HEIGHT="400"></p>
+
+<p>この画面から「U」キーを押すと、メモリ使用量確認画面に切り替わります。<br>
+<img src="editpolicy/memusage.png" alt="Screen for Memory Usage" WIDTH="720" HEIGHT="400"></p>
+
+<h2>（６）検索するには</h2>
 
 <p>検索を開始するには、「F」キーを押して、検索したい文字列を入力し、最後に「Enter」キーを押します。<br>
 <img src="editpolicy/find-first.png" alt="Find First" WIDTH="720" HEIGHT="400"></p>
@@ -45,28 +69,6 @@
 <p>前回入力した文字列で順方向（下方向）に検索を続行するには、「N」キーを押します。</p>
 
 <p>前回入力した文字列で逆方向（上方向）に検索を続行するには、「P」キーを押します。</p>
-
-<h2>（６）画面を切り替えるには</h2>
-
-<p>ポリシーエディタには３つの画面があります。</p>
-
-<table border="0">
-<tr><td>(1) ドメイン遷移一覧画面</td></tr>
-<tr><td>(2) 例外ポリシーの編集画面</td></tr>
-<tr><td>(3) ドメインに対するアクセス許可の編集画面</td></tr>
-</table>
-
-<p>「Tab」キーを押すと(1)と(2)の画面が切り替わります。</p>
-
-<p>(1)の画面において「Enter」キーを押すと、(3)に切り替わります。</p>
-<p>(3)の画面において「Enter」キーまたは「Tab」キーを押すと(1)に切り替わります。</p>
-
-<p>ドメイン遷移一覧画面の例<br>
-<img src="editpolicy/domain-list.png" alt="Screen for Domain List" WIDTH="720" HEIGHT="400"></p>
-<p>例外ポリシーの編集画面の例<br>
-<img src="editpolicy/exception-policy.png" alt="Screen for Exception Policy" WIDTH="720" HEIGHT="400"></p>
-<p>ドメインに対するアクセス許可の編集画面の例<br>
-<img src="editpolicy/domain-policy.png" alt="Screen for Domain Policy" WIDTH="720" HEIGHT="400"></p>
 
 <h2>（７）エントリを追加するには</h2>
 
@@ -196,7 +198,7 @@
 <img src="editpolicy/adding-no_keep_domain.png" alt="Adding no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
 <p>その後、ドメイン一覧画面に戻ると、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ドメインとその子孫ドメインから「!」という表示が消えました。<br>
-<p><img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
+<img src="editpolicy/after-no_keep_domain.png" alt="After no_keep_domain" WIDTH="720" HEIGHT="400"></p>
 
 <p>/usr/bin/man コマンドからいくつかのコマンドが実行されていますが、これらはドメイン遷移させる必要が無いので、ドメイン遷移をさせないことにします。例外ポリシー編集画面に切り替えて、「A」キーを押してから keep_domain /usr/bin/man（または keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man ）と入力し、「Enter」キーを押します。<br>
 <img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" WIDTH="720" HEIGHT="400"></p>
