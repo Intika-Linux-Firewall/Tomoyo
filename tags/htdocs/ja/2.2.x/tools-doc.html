@@ -13,9 +13,9 @@
 <hr>
 <h2><a name="administration_tool">＜＜システム管理者用ツール＞＞</a></h2>
 
-<h3><a name="editpolicy">＜ポリシーエディタ　editpolicy＞</a></h3>
+<h3><a name="ccs-editpolicy">＜ポリシーエディタ　ccs-editpolicy＞</a></h3>
 <p>現在のポリシーを /sys/kernel/security/tomoyo/ ディレクトリから読み込み、編集を行う。</p>
-<p>コマンドラインパラメータとして e d のいずれかの文字を指定することで最初に表示される画面を指定できる。省略すると最初にドメイン一覧表示画面が表示される。</p>
+<p>コマンドラインパラメータとして e d p m u のいずれかの文字を指定することで最初に表示される画面を指定できる。省略すると最初にドメイン一覧表示画面が表示される。</p>
 <p>以下のキーを使用して操作する。</p>
 
 <p>＜カーソル移動＞</p>
@@ -52,10 +52,10 @@
 <table border="1">
 <tr><td>q/Q</td><td>終了する。</td></tr>
 <tr><td>r/R</td><td>最新の情報に更新する。</td></tr>
-<tr><td>Tab</td><td>次の画面に切り替える。</td></tr>
+<tr><td>w/W</td><td>ウィンドウ選択画面を表示する。</td></tr>
 </table>
 
-<h3><a name="loadpolicy">＜ポリシー再読み込みプログラム　loadpolicy＞</a></h3>
+<h3><a name="ccs-loadpolicy">＜ポリシー再読み込みプログラム　ccs-loadpolicy＞</a></h3>
 <p>ディスク上のポリシーをカーネルに読み込む。</p>
 <p>以下のコマンドラインオプションを指定可能である。</p>
 <ul>
@@ -65,22 +65,23 @@
 <li>f ・・・ディスク上のポリシーを再読み込みする前に、メモリ上のポリシーを消去する。
 <li>p ・・・プロファイル用ポリシーを再読み込みする。 f は指定できない。
 <li>m ・・・マネージャ用ポリシーを再読み込みする。 f は指定できない。
-<li>- ・・・標準入力から読み込む。 e d p m のいずれか１個のみ指定できる。
+<li>u ・・・メモリ使用量の上限を設定する。 f は指定できない。
+<li>- ・・・標準入力から読み込む。 e d p m u のいずれか１個のみ指定できる。
 </ul>
 
-<h3><a name="setlevel">＜制御レベル変更プログラム　setlevel＞</a></h3>
+<h3><a name="ccs-setlevel">＜制御レベル変更プログラム　ccs-setlevel＞</a></h3>
 <p>プロファイルの内容を変更する。</p>
 <p>コマンドラインパラメータで制御レベルを指定する。コマンドラインパラメータの有無に関係なく現在の制御レベルを表示する。</p>
 
-<h3><a name="setprofile">＜プロファイル割り当てプログラム　setprofile＞</a></h3>
+<h3><a name="ccs-setprofile">＜プロファイル割り当てプログラム　ccs-setprofile＞</a></h3>
 <p>ドメインに対してプロファイル番号を割り当てる。</p>
 <p>コマンドラインパラメータでプロファイル番号とドメイン名を指定する。プロファイル番号が変更されたドメイン名が表示される。</p>
 
-<h3><a name="ccstree">＜プロセス一覧表示プログラム　ccstree＞</a></h3>
+<h3><a name="ccs-ccstree">＜プロセス一覧表示プログラム　ccs-ccstree＞</a></h3>
 <p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを表示する。</p>
 <p>プロファイル番号、プロセス名、プロセスＩＤ、ドメイン名の順番で pstree のように出力される。</p>
 
-<h3><a name="savepolicy">＜ポリシー保存プログラム　savepolicy＞</a></h3>
+<h3><a name="ccs-savepolicy">＜ポリシー保存プログラム　ccs-savepolicy＞</a></h3>
 <p>カーネル内のポリシーをディスクに保存する。</p>
 <p>以下のコマンドラインオプションを指定可能である。</p>
 <ul>
@@ -90,19 +91,20 @@
 <li>f ・・・ディスク上のポリシーとメモリ上のポリシーが同一内容であっても保存する。
 <li>p ・・・プロファイル用ポリシーを保存する。
 <li>m ・・・マネージャ用ポリシーを保存する。
-<li>- ・・・標準出力へ書き出す。 e d p m のいずれか１個のみ指定できる。
+<li>u ・・・メモリ使用量を標準出力へ書き出す。
+<li>- ・・・標準出力へ書き出す。 e d p m u のいずれか１個のみ指定できる。
 </ul>
 
-<h3><a name="findtemp">＜テンポラリパス検出プログラム　findtemp＞</a></h3>
+<h3><a name="ccs-findtemp">＜テンポラリパス検出プログラム　ccs-findtemp＞</a></h3>
 <p>標準入力からパス名の一覧を受け取り、全ての存在しないパス名を表示する。</p>
 <p>存在しなかったパス名はテンポラリなパス名として使用されている可能性が高いので、同様のパス名から規則性を判断して /etc/tomoyo/exception_policy.conf および /sys/kernel/security/tomoyo/exception_policy にパターン化したパス名を追加していく。</p>
 <p>/etc/tomoyo/domain_policy.conf または /sys/kernel/security/tomoyo/domain_policy の内容をリダイレクトまたはパイプを使用して標準入力へ渡せばよい。</p>
 
-<h3><a name="ld-watch">＜ライブラリファイルのパス名更新プログラム　ld-watch＞</a></h3>
+<h3><a name="ccs-ld-watch">＜ライブラリファイルのパス名更新プログラム　ccs-ld-watch＞</a></h3>
 <p>/etc/ld.so.cache に登録されている共有ライブラリファイルのパス名の変化を検出し、自動的に allow_read キーワードを使って例外ポリシーに登録する。</p>
 <p>このプログラムをソフトウェアのアップデート時に実行しておくことで、共有ライブラリファイルのパス名が変化したために共有ライブラリファイルへアクセスできないことが原因でプログラムの起動に失敗するというエラーを回避することができる。</p>
 
-<h3><a name="checkpolicy">＜ポリシー構文検査プログラム　checkpolicy＞</a></h3>
+<h3><a name="ccs-checkpolicy">＜ポリシー構文検査プログラム　ccs-checkpolicy＞</a></h3>
 <p>標準入力からポリシーファイルの内容を読み込み、構文をチェックする。</p>
 <p>問題があれば行番号と共にエラーの内容を表示する。</p>
 
@@ -110,10 +112,10 @@
 <p> /etc/tomoyo/ ディレクトリからポリシーファイルを読み込む。</p>
 <p>/sbin/tomoyo-init に置くことで、 initrd から /sbin/init の実行が要求されたときに自動的に呼び出される。</p>
 
-<h3><a name="domainmatch">＜アクセス許可検索ツール　domainmatch＞</a></h3>
+<h3><a name="ccs-domainmatch">＜アクセス許可検索ツール　ccs-domainmatch＞</a></h3>
 <p> /sys/kernel/security/tomoyo/domain_policy からドメイン単位で fgrep を行う。</p>
 
-<h3><a name="patternize">＜パス名パターン化ツール　patternize＞</a></h3>
+<h3><a name="ccs-patternize">＜パス名パターン化ツール　ccs-patternize＞</a></h3>
 <p>ドメイン用ポリシーを標準入力から受け取り、コマンドラインに与えられたパス名のパターンと一致した場合はパターン化してから標準出力へ送る。実行許可を含むファイルへのアクセス許可とドメイン名はパターン化されない。</p>
 
 <h3><a name="tomoyo_init_policy.sh">＜ポリシー初期化ツール　tomoyo_init_policy.sh＞</a></h3>
