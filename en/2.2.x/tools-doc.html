@@ -13,9 +13,9 @@
 <hr>
 <h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
 
-<h3><a name="editpolicy">&lt;Policy Editor "editpolicy"&gt;</a></h3>
+<h3><a name="ccs-editpolicy">&lt;Policy Editor "ccs-editpolicy"&gt;</a></h3>
 <p>Edits the current policy in /sys/kernel/security/tomoyo/ directory.</p>
-<p>You may give one of "e" "d" to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
+<p>You may give one of 'e' 'd' 'p' 'm' 'u' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
 
 <p>&lt;Scroll&gt;</p>
 <table border="1">
@@ -51,10 +51,10 @@
 <table border="1">
 <tr><td>q/Q</td><td>Quit</td></tr>
 <tr><td>r/R</td><td>Refresh</td></tr>
-<tr><td>Tab</td><td>Switch to next screen.</td></tr>
+<tr><td>w/W</td><td>Switch to window list.</td></tr>
 </table>
 
-<h3><a name="loadpolicy"><a name="loadpolicy">&lt;Policy Loader "loadpolicy"&gt;</a></h3>
+<h3><a name="ccs-loadpolicy">&lt;Policy Loader "ccs-loadpolicy"&gt;</a></h3>
 <p>Reloads the on-disk policy onto memory.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -64,22 +64,23 @@
 <li>f --- Erase on-memory policy before loading.
 <li>p --- Reload profile. 'f' option is not supported.
 <li>m --- Reload manager policy. 'f' option is not supported.
-<li>- --- Read from stdin. Only one of 'e' d' 'p' 'm' is possible when using this option.
+<li>u --- Set memory quota. 'f' option is not supported.
+<li>- --- Read from stdin. Only one of 'e' 'd' 'p' 'm' 'u' is possible when using this option.
 </ul>
 
-<h3><a name="setlevel">&lt;Control Level Changer "setlevel"&gt;</a></h3>
+<h3><a name="ccs-setlevel">&lt;Control Level Changer "ccs-setlevel"&gt;</a></h3>
 <p>Changes the current control level (i.e. writing to /sys/kernel/security/tomoyo/profile ) and displays the new control level.</p>
 <p>You can give the new control level from commandline parameter.</p>
 
-<h3><a name="setprofile">&lt;Profile Selector "setprofile"&gt;</a></h3>
+<h3><a name="ccs-setprofile">&lt;Profile Selector "ccs-setprofile"&gt;</a></h3>
 <p>Assigns a profile to domains.</p>
 <p>You can give the new profile number and domainnames from the commandline parameter. The list of domainnames that the profile number assigned to has changed is printed.</p>
 
-<h3><a name="ccstree">&lt;Process Info Viewer "ccstree"&gt;</a></h3>
+<h3><a name="ccs-ccstree">&lt;Process Info Viewer "ccs-ccstree"&gt;</a></h3>
 <p>Lists the domainnames of currently running processes belong to and the profile numbers the domains currently assigned to.</p>
 <p>This program shows the profile number, the name of process, PID, the domainname like "pstree" command.</p>
 
-<h3><a name="savepolicy">&lt;Policy Saver "savepolicy"&gt;</a></h3>
+<h3><a name="ccs-savepolicy">&lt;Policy Saver "ccs-savepolicy"&gt;</a></h3>
 <p>Saves the on-memory policy onto disk.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -89,19 +90,20 @@
 <li>f --- Save even if on-memory policy and on-disk policy are same.
 <li>p --- Save profile.
 <li>m --- Save manager policy.
-<li>- --- Write to stdout. Only one of 'e' d' 'p' 'm' is possible when using this option.
+<li>u --- Write memory usage on stdout. Implies '-' option.
+<li>- --- Write to stdout. Only one of 'e' 'd' 'p' 'm' 'u' is possible when using this option.
 </ul>
 
-<h3><a name="findtemp">&lt;Temporal Pathnames Detector "findtemp"&gt;</a></h3>
+<h3><a name="ccs-findtemp">&lt;Temporal Pathnames Detector "ccs-findtemp"&gt;</a></h3>
 <p>Reads domain policy from standard input and checks the existence of pathnames, and dumps the nonexistent pathnames.</p>
 <p>The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/tomoyo/exception_policy.conf and /sys/kernel/security/tomoyo/exception_policy .</p>
 <p>You can pass the content of /etc/tomoyo/domain_policy.conf or /sys/kernel/security/tomoyo/domain_policy using redirection or pipes to the standard input of this program.</p>
 
-<h3><a name="ld-watch">&lt;Library Pathnames Updater "ld-watch"&gt;</a></h3>
+<h3><a name="ccs-ld-watch">&lt;Library Pathnames Updater "ccs-ld-watch"&gt;</a></h3>
 <p>Appends shared libraries to exception policy automatically using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
 <p>By running this program while updating packages, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
 
-<h3><a name="checkpolicy">&lt;Policy Syntax Checker "checkpolicy"&gt;</a></h3>
+<h3><a name="ccs-checkpolicy">&lt;Policy Syntax Checker "ccs-checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
 <p>Prints errors with line numbers if any.</p>
 
@@ -109,10 +111,10 @@
 <p>Loads policy files from /etc/tomoyo/ directory.</p>
 <p>Put this program as /sbin/tomoyo-init , and this program will be invoked automatically when execution of /sbin/init is requested by initrd.</p>
 
-<h3><a name="domainmatch">&lt;ACL Searcher "domainmatch"&gt;</a></h3>
+<h3><a name="ccs-domainmatch">&lt;ACL Searcher "ccs-domainmatch"&gt;</a></h3>
 <p>This is a "fgrep" for /sys/kernel/security/tomoyo/domain_policy .</p>
 
-<h3><a name="patternize">&lt;Pathname Pattern Replacer "patternize"&gt;</a></h3>
+<h3><a name="ccs-patternize">&lt;Pathname Pattern Replacer "ccs-patternize"&gt;</a></h3>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>
 
 <h3><a name="tomoyo_init_policy.sh">&lt;Policy Template Generator "tomoyo_init_policy.sh"&gt;</a></h3>
