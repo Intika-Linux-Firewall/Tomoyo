@@ -4,12 +4,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Kconfig   |    1 
  security/tomoyo/Makefile  |    2 
- security/tomoyo/common.c  |  114 ++++++
- security/tomoyo/common.h  |   65 +++
- security/tomoyo/network.c |  869 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.c  |  118 ++++++
+ security/tomoyo/common.h  |   68 +++
+ security/tomoyo/network.c |  892 ++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c  |   46 ++
  security/tomoyo/tomoyo.h  |   17 
- 7 files changed, 1110 insertions(+), 4 deletions(-)
+ 7 files changed, 1140 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -63,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1378,6 +1385,103 @@ static bool tomoyo_print_double_path_acl
+@@ -1378,6 +1385,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -98,13 +98,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static bool tomoyo_print_ipv6_entry(struct tomoyo_io_buffer *head,
 +				    struct tomoyo_ip_network_acl_record *ptr)
 +{
++	char buf[64];
 +	const struct in6_addr *min_address = ptr->u.ipv6.min;
 +	const struct in6_addr *max_address = ptr->u.ipv6.max;
-+	if (!tomoyo_io_printf(head, "%pI6", min_address))
++	tomoyo_print_ipv6(buf, sizeof(buf), min_address);
++	if (!tomoyo_io_printf(head, "%s", buf))
 +		return false;
-+	if (min_address != max_address)
-+		if (!tomoyo_io_printf(head, "-%pI6", max_address))
++	if (min_address != max_address) {
++		tomoyo_print_ipv6(buf, sizeof(buf), max_address);
++		if (!tomoyo_io_printf(head, "-%s", buf))
 +			return false;
++	}
 +	return true;
 +}
 +
@@ -167,7 +171,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1406,6 +1510,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1406,6 +1514,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -181,7 +185,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	BUG(); /* This must not happen. */
  	return false;
  }
-@@ -2068,6 +2179,9 @@ void *tomoyo_alloc_acl_element(const u8 
+@@ -2068,6 +2183,9 @@ void *tomoyo_alloc_acl_element(const u8 
  	case TOMOYO_TYPE_DOUBLE_PATH_ACL:
  		len = sizeof(struct tomoyo_double_path_acl_record);
  		break;
@@ -267,7 +271,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* Structure for reading/writing policy via securityfs interfaces. */
  struct tomoyo_io_buffer {
-@@ -275,6 +327,13 @@ void tomoyo_load_policy(const char *file
+@@ -204,6 +256,9 @@ bool tomoyo_is_domain_def(const unsigned
+ /* Check whether the given filename matches the given pattern. */
+ bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
+ 				 const struct tomoyo_path_info *pattern);
++/* Print an IPv6 address. */
++void tomoyo_print_ipv6(char *buffer, const int buffer_len,
++		       const struct in6_addr *ip);
+ /* Read "alias" entry in exception policy. */
+ bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head);
+ /*
+@@ -275,6 +330,13 @@ void tomoyo_load_policy(const char *file
  /* Change "struct tomoyo_domain_info"->flags. */
  void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
  			    const bool is_delete, const u8 flags);
@@ -283,7 +297,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
 --- /dev/null
 +++ security-testing-2.6.git/security/tomoyo/network.c
-@@ -0,0 +1,869 @@
+@@ -0,0 +1,892 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -411,6 +425,28 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 1;
 +	}
 +	return 0;
++}
++
++/**
++ * tomoyo_print_ipv6 - Print an IPv6 address.
++ *
++ * @buffer:     Buffer to write to.
++ * @buffer_len: Size of @buffer.
++ * @ip:         Pointer to "struct in6_addr".
++ *
++ * To make output shortest, TOMOYO doesn't use "%pI6".
++ *
++ * Returns nothing.
++ */
++void tomoyo_print_ipv6(char *buffer, const int buffer_len,
++		       const struct in6_addr *ip)
++{
++	memset(buffer, 0, buffer_len);
++	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x",
++		 ntohs(ip->s6_addr16[0]), ntohs(ip->s6_addr16[1]),
++		 ntohs(ip->s6_addr16[2]), ntohs(ip->s6_addr16[3]),
++		 ntohs(ip->s6_addr16[4]), ntohs(ip->s6_addr16[5]),
++		 ntohs(ip->s6_addr16[6]), ntohs(ip->s6_addr16[7]));
 +}
 +
 +/**
@@ -618,7 +654,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +	memset(buf, 0, sizeof(buf));
 +	if (is_ipv6)
-+		snprintf(buf, sizeof(buf) - 1, "%pI6", address);
++		tomoyo_print_ipv6(buf, sizeof(buf),
++				  (const struct in6_addr *) address);
 +	else
 +		snprintf(buf, sizeof(buf) - 1, "%pI4", address);
 +	if (tomoyo_verbose_mode(domain))
