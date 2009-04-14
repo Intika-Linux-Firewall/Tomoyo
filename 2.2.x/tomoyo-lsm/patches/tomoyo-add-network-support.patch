@@ -3,12 +3,13 @@ This patch is incomplete.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Kconfig   |    1 
- security/tomoyo/common.c  |  112 +++++
+ security/tomoyo/Makefile  |    2 
+ security/tomoyo/common.c  |  114 ++++++
  security/tomoyo/common.h  |   65 +++
- security/tomoyo/network.c |  868 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/network.c |  869 ++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c  |   46 ++
  security/tomoyo/tomoyo.h  |   17 
- 6 files changed, 1106 insertions(+), 3 deletions(-)
+ 7 files changed, 1110 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -20,6 +21,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default n
  	help
  	  This selects TOMOYO Linux, pathname-based access control.
+--- security-testing-2.6.git.orig/security/tomoyo/Makefile
++++ security-testing-2.6.git/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o realpath.o tomoyo.o domain.o file.o
++obj-y = common.o realpath.o tomoyo.o domain.o file.o network.o
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -12,6 +12,7 @@
@@ -57,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1378,6 +1385,101 @@ static bool tomoyo_print_double_path_acl
+@@ -1378,6 +1385,103 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -71,8 +77,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static bool tomoyo_print_ipv4_entry(struct tomoyo_io_buffer *head,
 +				    struct tomoyo_ip_network_acl_record *ptr)
 +{
-+	const u32 min_address = ptr->u.ipv4.min;
-+	const u32 max_address = ptr->u.ipv4.max;
++	const u32 min_address = htonl(ptr->u.ipv4.min);
++	const u32 max_address = htonl(ptr->u.ipv4.max);
 +	if (!tomoyo_io_printf(head, "%pI4", &min_address))
 +		return false;
 +	if (min_address != max_address
@@ -119,6 +125,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return false;
 +	if (min_port != max_port && !tomoyo_io_printf(head, "-%u", max_port))
 +		return false;
++	if (!tomoyo_io_printf(head, "\n"))
++		return false;
 +	return true;
 +}
 +
@@ -159,7 +167,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1406,6 +1508,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1406,6 +1510,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -173,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	BUG(); /* This must not happen. */
  	return false;
  }
-@@ -2068,6 +2177,9 @@ void *tomoyo_alloc_acl_element(const u8 
+@@ -2068,6 +2179,9 @@ void *tomoyo_alloc_acl_element(const u8 
  	case TOMOYO_TYPE_DOUBLE_PATH_ACL:
  		len = sizeof(struct tomoyo_double_path_acl_record);
  		break;
@@ -275,7 +283,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
 --- /dev/null
 +++ security-testing-2.6.git/security/tomoyo/network.c
-@@ -0,0 +1,868 @@
+@@ -0,0 +1,869 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -283,7 +291,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + *
-+ * Version: 2.2.0-pre   2009/02/01
++ * Version: 2.3.0-pre   2009/04/14
 + *
 + */
 +
@@ -506,6 +514,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			    saved_max_address != acl->u.ipv6.max)
 +				continue;
 +		}
++		ptr->type &= ~TOMOYO_ACL_DELETED;
 +		error = 0;
 +		goto out;
 +	}
@@ -611,7 +620,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (is_ipv6)
 +		snprintf(buf, sizeof(buf) - 1, "%pI6", address);
 +	else
-+		snprintf(buf, sizeof(buf) - 1, "%pI4", &ip);
++		snprintf(buf, sizeof(buf) - 1, "%pI4", address);
 +	if (tomoyo_verbose_mode(domain))
 +		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 +		       tomoyo_get_msg(is_enforce), keyword, buf, port,
@@ -623,7 +632,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					    TOMOYO_IP_RECORD_TYPE_IPv6 :
 +					    TOMOYO_IP_RECORD_TYPE_IPv4,
 +					    address, address, port, port,
-+					    domain, 0);
++					    domain, false);
 +	return 0;
 +}
 +
