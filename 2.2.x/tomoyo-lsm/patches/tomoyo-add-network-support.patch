@@ -10,8 +10,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/tomoyo.h  |   17 
  6 files changed, 1106 insertions(+), 3 deletions(-)
 
---- linux-next.git.orig/security/tomoyo/Kconfig
-+++ linux-next.git/security/tomoyo/Kconfig
+--- security-testing-2.6.git.orig/security/tomoyo/Kconfig
++++ security-testing-2.6.git/security/tomoyo/Kconfig
 @@ -3,6 +3,7 @@ config SECURITY_TOMOYO
  	depends on SECURITY
  	select SECURITYFS
@@ -20,8 +20,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default n
  	help
  	  This selects TOMOYO Linux, pathname-based access control.
---- linux-next.git.orig/security/tomoyo/common.c
-+++ linux-next.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -12,6 +12,7 @@
  #include <linux/uaccess.h>
  #include <linux/security.h>
@@ -48,7 +48,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	up_read(&tomoyo_domain_acl_info_list_lock);
-@@ -1295,6 +1300,8 @@ static int tomoyo_write_domain_policy(st
+@@ -1290,6 +1295,8 @@ static int tomoyo_write_domain_policy(st
  			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
  		return 0;
  	}
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1383,6 +1390,101 @@ static bool tomoyo_print_double_path_acl
+@@ -1378,6 +1385,101 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -159,7 +159,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1411,6 +1513,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1406,6 +1508,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -173,7 +173,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	BUG(); /* This must not happen. */
  	return false;
  }
-@@ -2073,6 +2182,9 @@ void *tomoyo_alloc_acl_element(const u8 
+@@ -2068,6 +2177,9 @@ void *tomoyo_alloc_acl_element(const u8 
  	case TOMOYO_TYPE_DOUBLE_PATH_ACL:
  		len = sizeof(struct tomoyo_double_path_acl_record);
  		break;
@@ -183,9 +183,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default:
  		return NULL;
  	}
---- linux-next.git.orig/security/tomoyo/common.h
-+++ linux-next.git/security/tomoyo/common.h
-@@ -133,8 +133,59 @@ struct tomoyo_double_path_acl_record {
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
+@@ -130,8 +130,59 @@ struct tomoyo_double_path_acl_record {
  	const struct tomoyo_path_info *filename2;
  };
  
@@ -245,7 +245,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
  #define TOMOYO_KEYWORD_DELETE                    "delete "
  #define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
-@@ -153,9 +204,10 @@ struct tomoyo_double_path_acl_record {
+@@ -149,9 +200,10 @@ struct tomoyo_double_path_acl_record {
  
  /* Index numbers for Access Controls. */
  #define TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
@@ -259,7 +259,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* Structure for reading/writing policy via securityfs interfaces. */
  struct tomoyo_io_buffer {
-@@ -281,6 +333,13 @@ void tomoyo_load_policy(const char *file
+@@ -275,6 +327,13 @@ void tomoyo_load_policy(const char *file
  /* Change "struct tomoyo_domain_info"->flags. */
  void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
  			    const bool is_delete, const u8 flags);
@@ -274,7 +274,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
 --- /dev/null
-+++ linux-next.git/security/tomoyo/network.c
++++ security-testing-2.6.git/security/tomoyo/network.c
 @@ -0,0 +1,868 @@
 +/*
 + * security/tomoyo/network.c
@@ -1144,8 +1144,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* Hope less harmful than -EPERM. */
 +	return -EAGAIN;
 +}
---- linux-next.git.orig/security/tomoyo/tomoyo.c
-+++ linux-next.git/security/tomoyo/tomoyo.c
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6.git/security/tomoyo/tomoyo.c
 @@ -10,6 +10,7 @@
   */
  
@@ -1213,8 +1213,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  static int __init tomoyo_init(void)
---- linux-next.git.orig/security/tomoyo/tomoyo.h
-+++ linux-next.git/security/tomoyo/tomoyo.h
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
++++ security-testing-2.6.git/security/tomoyo/tomoyo.h
 @@ -36,10 +36,27 @@ int tomoyo_check_rewrite_permission(stru
  int tomoyo_find_next_domain(struct linux_binprm *bprm,
  			    struct tomoyo_domain_info **next_domain);

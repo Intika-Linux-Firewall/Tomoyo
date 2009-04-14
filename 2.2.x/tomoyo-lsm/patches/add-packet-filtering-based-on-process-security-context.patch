@@ -11,14 +11,14 @@ before the moment of accept()/recvmsg() request.
 
 Precautions: These hooks have a side effect which unlikely occurs.
 
-If a socket is shared by multiple processes with differnt policy, the process
+If a socket is shared by multiple processes with different policy, the process
 who should be able to accept this connection will not be able to accept this
 connection because socket_post_accept() aborts this connection.
 This is needed because the process who must not be able to accept this
 connection will repeat accept() request (and consume CPU resource) forever
 if socket_post_accept() doesn't abort this connection.
 
-Similarly, if a socket is shared by multiple processes with differnt policy,
+Similarly, if a socket is shared by multiple processes with different policy,
 the process who should be able to pick up this datagram will not be able to
 pick up this datagram because socket_post_recv_datagram() discards this
 datagram.
