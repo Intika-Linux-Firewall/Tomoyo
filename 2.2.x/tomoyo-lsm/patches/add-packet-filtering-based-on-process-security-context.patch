@@ -9,7 +9,7 @@ wants to do TCP Wrapper-like filtering (e.g. App1 is permitted to accept TCP
 connections from 192.168.0.0/16) because nobody can tell who picks them up
 before the moment of accept()/recvmsg() request.
 
-Precautions: These hooks have a side effect which unlikely occurs.
+Precautions: These hooks have a side effect if improperly used.
 
 If a socket is shared by multiple processes with different policy, the process
 who should be able to accept this connection will not be able to accept this
