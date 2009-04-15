@@ -1,13 +1,13 @@
 Subject: tomoyo: Add network access control support.
 
-TOMOYO checks permissions for below network operations.
+TOMOYO checks permissions for below IPv4/IPv6 network operations.
 
-Creation of TCP/UDP/RAW sockets for IPv4/IPv6 networking.
-Binding TCP/UDP/RAW sockets with local address.
-Listening TCP sockets with local address.
-Connecting TCP/UDP/RAW sockets to remote address.
-Sending UDP/RAW packets to remote address.
-Receiving UDP/RAW packets from remote address.
+Binding TCP/UDP/RAW sockets.
+Listening TCP sockets.
+Accepting TCP sockets.
+Connecting TCP/UDP/RAW sockets.
+Sending UDP/RAW packets.
+Receiving UDP/RAW packets.
 
 TOMOYO uses security_socket_post_accept() and
 security_socket_post_recv_datagram() in order to implement a packet filtering
