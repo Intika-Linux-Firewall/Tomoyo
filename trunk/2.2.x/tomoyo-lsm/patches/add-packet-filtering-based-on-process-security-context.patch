@@ -34,11 +34,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
  include/linux/security.h |   39 +++++++++++++++++++++++++++++++++++++++
- net/core/datagram.c      |   29 ++++++++++++++++++++++++++++-
+ net/core/datagram.c      |   21 +++++++++++++++++++--
  net/socket.c             |    5 +++++
  security/capability.c    |   13 +++++++++++++
  security/security.c      |   11 +++++++++++
- 5 files changed, 96 insertions(+), 1 deletion(-)
+ 5 files changed, 87 insertions(+), 2 deletions(-)
 
 ---
 
@@ -158,39 +158,32 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  		spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
  		skb = skb_peek(&sk->sk_receive_queue);
-@@ -179,6 +180,14 @@ struct sk_buff *__skb_recv_datagram(stru
+@@ -179,8 +180,13 @@ struct sk_buff *__skb_recv_datagram(stru
  		}
  		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
  
-+		/* Filter packets from unwanted peers. */
+-		if (skb)
 +		if (skb) {
 +			error = security_socket_post_recv_datagram(sk, skb,
 +								   flags);
 +			if (error)
 +				goto force_dequeue;
-+		}
-+
- 		if (skb)
  			return skb;
++		}
  
-@@ -191,6 +200,24 @@ struct sk_buff *__skb_recv_datagram(stru
+ 		/* User doesn't want to wait */
+ 		error = -EAGAIN;
+@@ -191,6 +197,17 @@ struct sk_buff *__skb_recv_datagram(stru
  
  	return NULL;
  
 +force_dequeue:
-+	/* Drop this packet because LSM says "Don't pass it to the caller". */
 +	if (!(flags & MSG_PEEK))
 +		goto no_peek;
-+	/*
-+	 * If this packet is MSG_PEEK'ed, dequeue it forcibly
-+	 * so that this packet won't prevent the caller from picking up
-+	 * next packet.
-+	 */
 +	spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
 +	if (skb == skb_peek(&sk->sk_receive_queue)) {
 +		__skb_unlink(skb, &sk->sk_receive_queue);
 +		atomic_dec(&skb->users);
-+		/* Do I have something to do with skb->peeked ? */
 +	}
 +	spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
 +no_peek:
