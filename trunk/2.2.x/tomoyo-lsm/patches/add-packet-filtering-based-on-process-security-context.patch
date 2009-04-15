@@ -7,7 +7,7 @@ There are already hooks for filtering incoming connections/datagrams based on
 the socket's security context, but these hooks are not applicable when someone
 wants to do TCP Wrapper-like filtering (e.g. App1 is permitted to accept TCP
 connections from 192.168.0.0/16) because nobody can tell who picks them up
-before the moment of accept()/recvmsg() request.
+before the moment of sock->ops->accept()/sock->ops->recvmsg() call.
 
 Precautions: These hooks have a side effect if improperly used.
 
