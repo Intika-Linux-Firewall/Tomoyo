@@ -1,15 +1,30 @@
-This patch is incomplete.
+Subject: tomoyo: Add network access control support.
 
+TOMOYO checks permissions for below network operations.
+
+Creation of TCP/UDP/RAW sockets for IPv4/IPv6 networking.
+Binding TCP/UDP/RAW sockets with local address.
+Listening TCP sockets with local address.
+Connecting TCP/UDP/RAW sockets to remote address.
+Sending UDP/RAW packets to remote address.
+Receiving UDP/RAW packets from remote address.
+
+TOMOYO uses security_socket_post_accept() and
+security_socket_post_recv_datagram() in order to implement a packet filtering
+with interactive enforcement. (Interactive enforcement is not implemented yet.)
+
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/Kconfig   |    1 
  security/tomoyo/Makefile  |    2 
- security/tomoyo/common.c  |  118 ++++++
+ security/tomoyo/common.c  |  118 +++++
  security/tomoyo/common.h  |   68 +++
- security/tomoyo/network.c |  892 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/network.c |  930 ++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c  |   46 ++
  security/tomoyo/tomoyo.h  |   17 
- 7 files changed, 1140 insertions(+), 4 deletions(-)
+ 7 files changed, 1178 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -297,7 +312,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
 --- /dev/null
 +++ security-testing-2.6.git/security/tomoyo/network.c
-@@ -0,0 +1,892 @@
+@@ -0,0 +1,930 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -305,7 +320,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + *
-+ * Version: 2.3.0-pre   2009/04/14
++ * Version: 2.3.0-pre   2009/04/15
 + *
 + */
 +
@@ -395,6 +410,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int tomoyo_parse_ip_address(char *address, u16 *min, u16 *max)
 +{
++	/* "%pI6" is not supported for sscanf(). */
 +	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
 +			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
 +			   &min[0], &min[1], &min[2], &min[3],
@@ -411,6 +427,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +		return 2;
 +	}
++	/* "%pI4" is not supported for sscanf(). */
 +	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
 +		       &min[0], &min[1], &min[2], &min[3],
 +		       &max[0], &max[1], &max[2], &max[3]);
@@ -909,7 +926,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
 +
-+/* Check permission for listening a TCP socket. */
++/**
++ * tomoyo_socket_listen_permission - Check permission for listening a TCP socket.
++ *
++ * @sock: Pointer to "struct socket".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
 +int tomoyo_socket_listen_permission(struct socket *sock)
 +{
 +	int error = 0;
@@ -948,7 +971,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* Check permission for setting the remote IP address/port pair of a socket. */
++/**
++ * tomoyo_socket_connect_permission - Check permission for setting the remote IP address/port pair of a socket.
++ *
++ * @sock: Pointer to "struct socket".
++ * @addr: Pointer to "struct sockaddr".
++ * @len:  Size of @addr in bytes.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
 +int tomoyo_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 +				     int addr_len)
 +{
@@ -997,7 +1028,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* Check permission for setting the local IP address/port pair of a socket. */
++/**
++ * tomoyo_socket_bind_permission - Check permission for setting the local IP address/port pair of a socket.
++ *
++ * @sock: Pointer to "struct socket".
++ * @addr: Pointer to "struct sockaddr".
++ * @len:  Size of @addr in bytes.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
 +int tomoyo_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 +				  int addr_len)
 +{
@@ -1046,10 +1085,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/*
-+ * Check permission for accepting a TCP socket.
++/**
++ * tomoyo_socket_accept_permission - Check permission for accepting a TCP socket.
 + *
-+ * Currently, the LSM hook for this purpose is not provided.
++ * @sock: Pointer to "struct socket".
++ *
++ * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_socket_accept_permission(struct socket *sock)
 +{
@@ -1091,7 +1132,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* Check permission for sending a datagram via a UDP or RAW socket. */
++/**
++ * tomoyo_socket_sendmsg_permission - Check permission for sending a datagram via a UDP or RAW socket.
++ *
++ * @sock:     Pointer to "struct socket".
++ * @addr:     Pointer to "struct sockaddr".
++ * @addr_len: Size of @addr in bytes.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
 +int tomoyo_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 +				     int addr_len)
 +{
@@ -1134,10 +1183,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/*
-+ * Check permission for receiving a datagram via a UDP or RAW socket.
++/**
++ * tomoyo_socket_recv_datagram_permission - Check permission for receiving a datagram via a UDP or RAW socket.
 + *
-+ * Currently, the LSM hook for this purpose is not provided.
++ * @sk:    Pointer to "struct sock".
++ * @skb:   Pointer to "struct sk_buff".
++ * @flags: Flags for recvmsg().
++ *
++ * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_socket_recv_datagram_permission(struct sock *sk, struct sk_buff *skb,
 +					   const unsigned int flags)
