@@ -34,11 +34,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
  include/linux/security.h |   39 +++++++++++++++++++++++++++++++++++++++
- net/core/datagram.c      |   21 +++++++++++++++++++--
+ net/core/datagram.c      |   21 ++++++++++++++++++++-
  net/socket.c             |    5 +++++
  security/capability.c    |   13 +++++++++++++
  security/security.c      |   11 +++++++++++
- 5 files changed, 87 insertions(+), 2 deletions(-)
+ 5 files changed, 88 insertions(+), 1 deletion(-)
 
 ---
 
@@ -142,22 +142,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  /*
   *	Is a socket 'connection oriented' ?
-@@ -148,6 +149,7 @@ struct sk_buff *__skb_recv_datagram(stru
- {
- 	struct sk_buff *skb;
- 	long timeo;
-+	unsigned long cpu_flags;
- 	/*
- 	 * Caller is allowed not to check sk->sk_err before skb_recv_datagram()
- 	 */
-@@ -165,7 +167,6 @@ struct sk_buff *__skb_recv_datagram(stru
- 		 * Look at current nfs client by the way...
- 		 * However, this function was corrent in any case. 8)
- 		 */
--		unsigned long cpu_flags;
- 
- 		spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
- 		skb = skb_peek(&sk->sk_receive_queue);
 @@ -179,8 +180,13 @@ struct sk_buff *__skb_recv_datagram(stru
  		}
  		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
@@ -173,21 +157,23 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  		/* User doesn't want to wait */
  		error = -EAGAIN;
-@@ -191,6 +197,17 @@ struct sk_buff *__skb_recv_datagram(stru
+@@ -191,6 +197,19 @@ struct sk_buff *__skb_recv_datagram(stru
  
  	return NULL;
  
 +force_dequeue:
-+	if (!(flags & MSG_PEEK))
-+		goto no_peek;
-+	spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
-+	if (skb == skb_peek(&sk->sk_receive_queue)) {
-+		__skb_unlink(skb, &sk->sk_receive_queue);
-+		atomic_dec(&skb->users);
++	if (flags & MSG_PEEK) {
++		unsigned long cpu_flags;
++		spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
++		if (skb == skb_peek(&sk->sk_receive_queue)) {
++			__skb_unlink(skb, &sk->sk_receive_queue);
++			atomic_dec(&skb->users);
++		}
++		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
 +	}
-+	spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
-+no_peek:
-+	kfree_skb(skb);
++	lock_sock(sk);
++	skb_free_datagram(sk, skb);
++	release_sock(sk);
  no_packet:
  	*err = error;
  	return NULL;
