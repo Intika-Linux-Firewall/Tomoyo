@@ -38,10 +38,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  net/ipv4/udp.c           |    7 +++++++
  net/ipv6/raw.c           |    5 +++++
  net/ipv6/udp.c           |    7 +++++++
- net/socket.c             |    5 +++++
+ net/socket.c             |    4 ++++
  security/capability.c    |   13 +++++++++++++
  security/security.c      |   11 +++++++++++
- 8 files changed, 92 insertions(+)
+ 8 files changed, 91 insertions(+)
 
 ---
 
@@ -197,11 +197,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	copied = len;
 --- security-testing-2.6.git.orig/net/socket.c
 +++ security-testing-2.6.git/net/socket.c
-@@ -1519,6 +1519,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1519,6 +1519,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
-+	/* Filter connections from unwanted peers. */
 +	err = security_socket_post_accept(sock, newsock);
 +	if (err)
 +		goto out_fd;
