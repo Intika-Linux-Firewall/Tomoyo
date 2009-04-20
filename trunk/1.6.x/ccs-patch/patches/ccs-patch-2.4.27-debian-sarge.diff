@@ -43,14 +43,15 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  kernel/sys.c                 |   19 +++++++++
  kernel/sysctl.c              |   19 +++++++++
  kernel/time.c                |   15 +++++++
- net/core/datagram.c          |   10 +++++
+ net/ipv4/raw.c               |    8 ++++
  net/ipv4/tcp_ipv4.c          |   11 +++++
- net/ipv4/udp.c               |   11 +++++
+ net/ipv4/udp.c               |   21 ++++++++++
+ net/ipv6/raw.c               |    8 ++++
  net/ipv6/tcp_ipv6.c          |    7 +++
- net/ipv6/udp.c               |   11 +++++
+ net/ipv6/udp.c               |   19 +++++++++
  net/socket.c                 |   40 +++++++++++++++++++-
  net/unix/af_unix.c           |    8 ++++
- 48 files changed, 658 insertions(+), 6 deletions(-)
+ 49 files changed, 681 insertions(+), 7 deletions(-)
 
 --- linux-2.4.27-10sarge7.orig/Documentation/Configure.help
 +++ linux-2.4.27-10sarge7/Documentation/Configure.help
@@ -1173,7 +1174,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.4.27-10sarge7 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1482,32 +1483,30 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.4.27-10sarge7.orig/net/core/datagram.c
-+++ linux-2.4.27-10sarge7/net/core/datagram.c
-@@ -43,6 +43,10 @@
- #include <net/sock.h>
+--- linux-2.4.27-10sarge7.orig/net/ipv4/raw.c
++++ linux-2.4.27-10sarge7/net/ipv4/raw.c
+@@ -66,6 +66,9 @@
  #include <net/checksum.h>
- 
+ #include <net/xfrm.h>
+ #include <linux/netfilter_ipv4.h>
 +/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
  
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->receive_queue);
+ struct sock *raw_v4_htable[RAWV4_HTABLE_SIZE];
+ rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
+@@ -531,6 +534,11 @@ int raw_recvmsg(struct sock *sk, struct 
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
  
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.4.27-10sarge7.orig/net/ipv4/tcp_ipv4.c
 +++ linux-2.4.27-10sarge7/net/ipv4/tcp_ipv4.c
 @@ -67,6 +67,9 @@
@@ -1544,17 +1543,20 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			 * because the established check is already
 --- linux-2.4.27-10sarge7.orig/net/ipv4/udp.c
 +++ linux-2.4.27-10sarge7/net/ipv4/udp.c
-@@ -103,6 +103,9 @@
+@@ -103,6 +103,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -137,6 +140,10 @@ static int udp_v4_get_port(struct sock *
+@@ -137,6 +143,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1565,7 +1567,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  				goto gotit;
  			}
  			size = 0;
-@@ -154,6 +161,10 @@ static int udp_v4_get_port(struct sock *
+@@ -154,6 +164,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1576,6 +1578,44 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -788,7 +802,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
+--- linux-2.4.27-10sarge7.orig/net/ipv6/raw.c
++++ linux-2.4.27-10sarge7/net/ipv6/raw.c
+@@ -49,6 +49,9 @@
+ 
+ #include <net/rawv6.h>
+ #include <net/xfrm.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct sock *raw_v6_htable[RAWV6_HTABLE_SIZE];
+ rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
+@@ -368,6 +371,11 @@ int rawv6_recvmsg(struct sock *sk, struc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.4.27-10sarge7.orig/net/ipv6/tcp_ipv6.c
 +++ linux-2.4.27-10sarge7/net/ipv6/tcp_ipv6.c
 @@ -53,6 +53,9 @@
@@ -1601,17 +1641,20 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  					goto next;
 --- linux-2.4.27-10sarge7.orig/net/ipv6/udp.c
 +++ linux-2.4.27-10sarge7/net/ipv6/udp.c
-@@ -52,6 +52,9 @@
+@@ -52,6 +52,12 @@
  
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -79,6 +82,10 @@ static int udp_v6_get_port(struct sock *
+@@ -79,6 +85,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1622,7 +1665,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  				goto gotit;
  			}
  			size = 0;
-@@ -96,6 +103,10 @@ static int udp_v6_get_port(struct sock *
+@@ -96,6 +106,10 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1633,6 +1676,18 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -406,6 +420,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.4.27-10sarge7.orig/net/socket.c
 +++ linux-2.4.27-10sarge7/net/socket.c
 @@ -84,6 +84,10 @@

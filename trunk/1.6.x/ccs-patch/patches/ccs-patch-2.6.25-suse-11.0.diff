@@ -32,13 +32,15 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  kernel/sysctl.c                 |    9 ++++++
  kernel/time.c                   |   11 +++++++
  kernel/time/ntp.c               |    7 ++++
- net/core/datagram.c             |   11 +++++++
  net/ipv4/inet_connection_sock.c |    7 ++++
  net/ipv4/inet_hashtables.c      |    7 ++++
- net/ipv4/udp.c                  |   10 +++++++
+ net/ipv4/raw.c                  |    8 +++++
+ net/ipv4/udp.c                  |   18 ++++++++++++
+ net/ipv6/raw.c                  |    8 +++++
+ net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   41 ++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 36 files changed, 462 insertions(+), 2 deletions(-)
+ 38 files changed, 483 insertions(+), 2 deletions(-)
 
 --- linux-2.6.25.20-0.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20-0.1/arch/ia64/ia32/sys_ia32.c
@@ -689,7 +691,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.25.20-0.1 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.25.20-0.1 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1079,33 +1081,6 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.25.20-0.1.orig/net/core/datagram.c
-+++ linux-2.6.25.20-0.1/net/core/datagram.c
-@@ -56,6 +56,11 @@
- #include <net/sock.h>
- #include <net/tcp_states.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  *	Is a socket 'connection oriented' ?
-  */
-@@ -179,6 +184,12 @@ struct sk_buff *__skb_recv_datagram(stru
- 		}
- 		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
 --- linux-2.6.25.20-0.1.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.25.20-0.1/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
@@ -1152,19 +1127,46 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
+--- linux-2.6.25.20-0.1.orig/net/ipv4/raw.c
++++ linux-2.6.25.20-0.1/net/ipv4/raw.c
+@@ -79,6 +79,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ static struct raw_hashinfo raw_v4_hashinfo = {
+ 	.lock = __RW_LOCK_UNLOCKED(),
+@@ -668,6 +671,11 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.25.20-0.1.orig/net/ipv4/udp.c
 +++ linux-2.6.25.20-0.1/net/ipv4/udp.c
-@@ -105,6 +105,9 @@
+@@ -105,6 +105,12 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -176,6 +179,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -176,6 +182,10 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 1st pass: look for empty (or shortest) hash chain */
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
@@ -1175,7 +1177,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  			head = &udptable[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(head))
-@@ -199,6 +206,9 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -199,6 +209,9 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1185,6 +1187,66 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -863,6 +876,11 @@ try_again:
+ 				  &peeked, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	ulen = skb->len - sizeof(struct udphdr);
+ 	copied = len;
+--- linux-2.6.25.20-0.1.orig/net/ipv6/raw.c
++++ linux-2.6.25.20-0.1/net/ipv6/raw.c
+@@ -60,6 +60,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ static struct raw_hashinfo raw_v6_hashinfo = {
+ 	.lock = __RW_LOCK_UNLOCKED(),
+@@ -482,6 +485,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (copied > len) {
+--- linux-2.6.25.20-0.1.orig/net/ipv6/udp.c
++++ linux-2.6.25.20-0.1/net/ipv6/udp.c
+@@ -50,6 +50,9 @@
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+ #include "udp_impl.h"
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ static inline int udp_v6_get_port(struct sock *sk, unsigned short snum)
+ {
+@@ -137,6 +140,11 @@ try_again:
+ 				  &peeked, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	ulen = skb->len - sizeof(struct udphdr);
+ 	copied = len;
 --- linux-2.6.25.20-0.1.orig/net/socket.c
 +++ linux-2.6.25.20-0.1/net/socket.c
 @@ -94,6 +94,11 @@

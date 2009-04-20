@@ -37,14 +37,16 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  kernel/sysctl.c                 |   18 +++++++++++++
  kernel/time.c                   |   11 ++++++++
  kernel/time/ntp.c               |    7 +++++
- net/core/datagram.c             |   11 ++++++++
  net/ipv4/inet_connection_sock.c |    7 +++++
  net/ipv4/inet_hashtables.c      |    7 +++++
- net/ipv4/udp.c                  |   11 ++++++++
+ net/ipv4/raw.c                  |    8 +++++
+ net/ipv4/udp.c                  |   21 ++++++++++++++-
  net/ipv6/inet6_hashtables.c     |    7 +++++
+ net/ipv6/raw.c                  |    8 +++++
+ net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   42 +++++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    8 +++++
- 42 files changed, 514 insertions(+), 6 deletions(-)
+ 44 files changed, 536 insertions(+), 7 deletions(-)
 
 --- linux-2.6.20-17.39.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20-17.39/arch/alpha/kernel/ptrace.c
@@ -822,7 +824,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.20-17.39 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.20-17.39 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1219,33 +1221,6 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.20-17.39.orig/net/core/datagram.c
-+++ linux-2.6.20-17.39/net/core/datagram.c
-@@ -56,6 +56,11 @@
- #include <net/sock.h>
- #include <net/tcp_states.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  *	Is a socket 'connection oriented' ?
-  */
-@@ -178,6 +183,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
 --- linux-2.6.20-17.39.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.20-17.39/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
@@ -1292,19 +1267,46 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.20-17.39.orig/net/ipv4/raw.c
++++ linux-2.6.20-17.39/net/ipv4/raw.c
+@@ -78,6 +78,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v4_lock);
+@@ -597,6 +600,11 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.20-17.39.orig/net/ipv4/udp.c
 +++ linux-2.6.20-17.39/net/ipv4/udp.c
-@@ -102,6 +102,9 @@
+@@ -102,6 +102,12 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -162,6 +165,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -162,6 +168,10 @@ int __udp_lib_get_port(struct sock *sk, 
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1315,7 +1317,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  				goto gotit;
  			}
  			size = 0;
-@@ -180,6 +187,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -180,6 +190,10 @@ int __udp_lib_get_port(struct sock *sk, 
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1326,6 +1328,20 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  			if (! __udp_lib_lport_inuse(result, udptable))
  				break;
  		}
+@@ -824,7 +838,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
 --- linux-2.6.20-17.39.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.20-17.39/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
@@ -1349,6 +1365,54 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.20-17.39.orig/net/ipv6/raw.c
++++ linux-2.6.20-17.39/net/ipv6/raw.c
+@@ -59,6 +59,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v6_lock);
+@@ -414,6 +417,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
+--- linux-2.6.20-17.39.orig/net/ipv6/udp.c
++++ linux-2.6.20-17.39/net/ipv6/udp.c
+@@ -50,6 +50,9 @@
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+ #include "udp_impl.h"
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
+ 
+@@ -134,6 +137,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.6.20-17.39.orig/net/socket.c
 +++ linux-2.6.20-17.39/net/socket.c
 @@ -93,6 +93,11 @@

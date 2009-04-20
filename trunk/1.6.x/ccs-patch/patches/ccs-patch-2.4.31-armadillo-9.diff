@@ -51,14 +51,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  kernel/sys.c                    |   19 ++++++++
  kernel/sysctl.c                 |   22 +++++++++-
  kernel/time.c                   |   15 ++++++
- net/core/datagram.c             |   10 ++++
+ net/ipv4/raw.c                  |    8 +++
  net/ipv4/tcp_ipv4.c             |   11 +++++
- net/ipv4/udp.c                  |   11 +++++
+ net/ipv4/udp.c                  |   21 +++++++++
+ net/ipv6/raw.c                  |    8 +++
  net/ipv6/tcp_ipv6.c             |    7 +++
- net/ipv6/udp.c                  |   16 ++++++-
+ net/ipv6/udp.c                  |   24 ++++++++++-
  net/socket.c                    |   40 +++++++++++++++++-
  net/unix/af_unix.c              |    8 +++
- 56 files changed, 725 insertions(+), 8 deletions(-)
+ 57 files changed, 748 insertions(+), 9 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Documentation/Configure.help
 +++ linux-2.4.31-a9-3/Documentation/Configure.help
@@ -1370,7 +1371,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1682,32 +1683,30 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.4.31-a9-3.orig/net/core/datagram.c
-+++ linux-2.4.31-a9-3/net/core/datagram.c
-@@ -43,6 +43,10 @@
- #include <net/sock.h>
+--- linux-2.4.31-a9-3.orig/net/ipv4/raw.c
++++ linux-2.4.31-a9-3/net/ipv4/raw.c
+@@ -66,6 +66,9 @@
+ #include <net/raw.h>
+ #include <net/inet_common.h>
  #include <net/checksum.h>
- 
 +/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
  
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -164,6 +168,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->receive_queue);
+ struct sock *raw_v4_htable[RAWV4_HTABLE_SIZE];
+ rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
+@@ -505,6 +508,11 @@ int raw_recvmsg(struct sock *sk, struct 
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
  
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.4.31-a9-3.orig/net/ipv4/tcp_ipv4.c
 +++ linux-2.4.31-a9-3/net/ipv4/tcp_ipv4.c
 @@ -77,6 +77,9 @@
@@ -1744,17 +1743,20 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			 * because the established check is already
 --- linux-2.4.31-a9-3.orig/net/ipv4/udp.c
 +++ linux-2.4.31-a9-3/net/ipv4/udp.c
-@@ -107,6 +107,9 @@
+@@ -107,6 +107,12 @@
  #include <net/route.h>
  #include <net/inet_common.h>
  #include <net/checksum.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -144,6 +147,10 @@ static int udp_v4_get_port(struct sock *
+@@ -144,6 +150,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1765,7 +1767,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  				goto gotit;
  			}
  			size = 0;
-@@ -161,6 +168,10 @@ static int udp_v4_get_port(struct sock *
+@@ -161,6 +171,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1776,6 +1778,44 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -857,7 +871,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
+--- linux-2.4.31-a9-3.orig/net/ipv6/raw.c
++++ linux-2.4.31-a9-3/net/ipv6/raw.c
+@@ -48,6 +48,9 @@
+ #include <net/inet_common.h>
+ 
+ #include <net/rawv6.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct sock *raw_v6_htable[RAWV6_HTABLE_SIZE];
+ rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
+@@ -396,6 +399,11 @@ int rawv6_recvmsg(struct sock *sk, struc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.4.31-a9-3.orig/net/ipv6/tcp_ipv6.c
 +++ linux-2.4.31-a9-3/net/ipv6/tcp_ipv6.c
 @@ -65,6 +65,9 @@
@@ -1801,17 +1841,20 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  					goto next;
 --- linux-2.4.31-a9-3.orig/net/ipv6/udp.c
 +++ linux-2.4.31-a9-3/net/ipv6/udp.c
-@@ -62,6 +62,9 @@
+@@ -62,6 +62,12 @@
  #include <net/inet_common.h>
  
  #include <net/checksum.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -89,6 +92,10 @@ static int udp_v6_get_port(struct sock *
+@@ -89,6 +95,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1822,7 +1865,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  				goto gotit;
  			}
  			size = 0;
-@@ -101,14 +108,21 @@ static int udp_v6_get_port(struct sock *
+@@ -101,14 +111,21 @@ static int udp_v6_get_port(struct sock *
  		next:;
  		}
  		result = best;
@@ -1845,6 +1888,18 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  gotit:
  		udp_port_rover = snum = result;
  	} else {
+@@ -538,6 +555,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.4.31-a9-3.orig/net/socket.c
 +++ linux-2.4.31-a9-3/net/socket.c
 @@ -84,6 +84,10 @@

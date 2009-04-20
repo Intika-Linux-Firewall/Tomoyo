@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.7+   2009/04/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -31,8 +31,28 @@ int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr);
 int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 				  int addr_len);
-int ccs_socket_recv_datagram_permission(struct sock *sk, struct sk_buff *skb,
-					const unsigned int flags);
+int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
+				  const unsigned int flags);
+
+#include <linux/version.h>
+
+static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
+						      struct sk_buff *skb,
+						      const unsigned int flags)
+{
+	/* Nothing to do if I didn't receive a datagram. */
+	if (!skb)
+		return 0;
+	/* Nothing to do if I can't sleep. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+	if (in_interrupt())
+		return 0;
+#else
+	if (in_atomic())
+		return 0;
+#endif
+	return ccs_socket_recvmsg_permission(sk, skb, flags);
+}
 
 #else
 
@@ -71,6 +91,12 @@ static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
 						      struct sk_buff *skb,
 						      const unsigned int flags)
+{
+	return 0;
+}
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
 {
 	return 0;
 }

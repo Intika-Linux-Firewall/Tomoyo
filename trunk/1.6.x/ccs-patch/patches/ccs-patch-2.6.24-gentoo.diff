@@ -36,14 +36,16 @@ Source code for this patch is "emerge gentoo-sources"
  kernel/sysctl.c                 |    9 ++++++
  kernel/time.c                   |   11 ++++++++
  kernel/time/ntp.c               |    7 +++++
- net/core/datagram.c             |   11 ++++++++
  net/ipv4/inet_connection_sock.c |    7 +++++
  net/ipv4/inet_hashtables.c      |    7 +++++
- net/ipv4/udp.c                  |   10 +++++++
+ net/ipv4/raw.c                  |    8 +++++
+ net/ipv4/udp.c                  |   18 +++++++++++++
  net/ipv6/inet6_hashtables.c     |    7 +++++
+ net/ipv6/raw.c                  |    8 +++++
+ net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   41 +++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 41 files changed, 493 insertions(+), 2 deletions(-)
+ 43 files changed, 514 insertions(+), 2 deletions(-)
 
 --- linux-2.6.24-gentoo-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-gentoo-r8/arch/ia64/ia32/sys_ia32.c
@@ -786,7 +788,7 @@ Source code for this patch is "emerge gentoo-sources"
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.24-gentoo-r8 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.24-gentoo-r8 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1165,33 +1167,6 @@ Source code for this patch is "emerge gentoo-sources"
  
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.24-gentoo-r8.orig/net/core/datagram.c
-+++ linux-2.6.24-gentoo-r8/net/core/datagram.c
-@@ -56,6 +56,11 @@
- #include <net/sock.h>
- #include <net/tcp_states.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  *	Is a socket 'connection oriented' ?
-  */
-@@ -178,6 +183,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
 --- linux-2.6.24-gentoo-r8.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.24-gentoo-r8/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
@@ -1238,19 +1213,46 @@ Source code for this patch is "emerge gentoo-sources"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
+--- linux-2.6.24-gentoo-r8.orig/net/ipv4/raw.c
++++ linux-2.6.24-gentoo-r8/net/ipv4/raw.c
+@@ -79,6 +79,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v4_lock);
+@@ -605,6 +608,11 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.24-gentoo-r8.orig/net/ipv4/udp.c
 +++ linux-2.6.24-gentoo-r8/net/ipv4/udp.c
-@@ -104,6 +104,9 @@
+@@ -104,6 +104,12 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -159,6 +162,10 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -159,6 +165,10 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 1st pass: look for empty (or shortest) hash chain */
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
@@ -1261,7 +1263,7 @@ Source code for this patch is "emerge gentoo-sources"
  
  			head = &udptable[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(head))
-@@ -182,6 +189,9 @@ int __udp_lib_get_port(struct sock *sk, 
+@@ -182,6 +192,9 @@ int __udp_lib_get_port(struct sock *sk, 
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1271,6 +1273,18 @@ Source code for this patch is "emerge gentoo-sources"
  			if (! __udp_lib_lport_inuse(rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -841,6 +854,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	ulen = skb->len - sizeof(struct udphdr);
+ 	copied = len;
 --- linux-2.6.24-gentoo-r8.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.24-gentoo-r8/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
@@ -1294,6 +1308,54 @@ Source code for this patch is "emerge gentoo-sources"
  			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
  			spin_lock(&head->lock);
  
+--- linux-2.6.24-gentoo-r8.orig/net/ipv6/raw.c
++++ linux-2.6.24-gentoo-r8/net/ipv6/raw.c
+@@ -59,6 +59,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v6_lock);
+@@ -443,6 +446,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (copied > len) {
+--- linux-2.6.24-gentoo-r8.orig/net/ipv6/udp.c
++++ linux-2.6.24-gentoo-r8/net/ipv6/udp.c
+@@ -49,6 +49,9 @@
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
+ #include "udp_impl.h"
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
+ 
+@@ -134,6 +137,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	ulen = skb->len - sizeof(struct udphdr);
+ 	copied = len;
 --- linux-2.6.24-gentoo-r8.orig/net/socket.c
 +++ linux-2.6.24-gentoo-r8/net/socket.c
 @@ -94,6 +94,11 @@

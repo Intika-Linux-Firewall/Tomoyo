@@ -49,14 +49,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  kernel/sys.c                       |   21 ++++++++++++
  kernel/sysctl.c                    |   20 +++++++++++-
  kernel/time.c                      |   15 +++++++++
- net/core/datagram.c                |   10 ++++++
+ net/ipv4/raw.c                     |    8 ++++
  net/ipv4/tcp_ipv4.c                |   11 ++++++
- net/ipv4/udp.c                     |   10 ++++++
+ net/ipv4/udp.c                     |   20 +++++++++++-
+ net/ipv6/raw.c                     |    8 ++++
  net/ipv6/tcp_ipv6.c                |    7 ++++
- net/ipv6/udp.c                     |   10 ++++++
+ net/ipv6/udp.c                     |   18 +++++++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 54 files changed, 622 insertions(+), 12 deletions(-)
+ 55 files changed, 645 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.10AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.10AXS2/arch/alpha/kernel/ptrace.c
@@ -1235,7 +1236,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-78.10AXS2 2009/04/08\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.10AXS2 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1554,32 +1555,30 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.9-78.10AXS2.orig/net/core/datagram.c
-+++ linux-2.6.9-78.10AXS2/net/core/datagram.c
-@@ -54,6 +54,10 @@
- #include <net/sock.h>
- #include <net/checksum.h>
- 
+--- linux-2.6.9-78.10AXS2.orig/net/ipv4/raw.c
++++ linux-2.6.9-78.10AXS2/net/ipv4/raw.c
+@@ -79,6 +79,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
 +/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
  
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -177,6 +181,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
+@@ -585,6 +588,11 @@ int raw_recvmsg(struct kiocb *iocb, stru
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
  
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.9-78.10AXS2.orig/net/ipv4/tcp_ipv4.c
 +++ linux-2.6.9-78.10AXS2/net/ipv4/tcp_ipv4.c
 @@ -75,6 +75,9 @@
@@ -1616,17 +1615,20 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
   			 * because the established check is already
 --- linux-2.6.9-78.10AXS2.orig/net/ipv4/udp.c
 +++ linux-2.6.9-78.10AXS2/net/ipv4/udp.c
-@@ -107,6 +107,9 @@
+@@ -107,6 +107,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -141,6 +144,10 @@ static int udp_v4_get_port(struct sock *
+@@ -141,6 +147,10 @@ static int udp_v4_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			struct hlist_head *list;
  			int size = 0;
@@ -1637,7 +1639,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -160,6 +167,9 @@ static int udp_v4_get_port(struct sock *
+@@ -160,6 +170,9 @@ static int udp_v4_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1647,6 +1649,44 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -794,7 +807,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
+--- linux-2.6.9-78.10AXS2.orig/net/ipv6/raw.c
++++ linux-2.6.9-78.10AXS2/net/ipv6/raw.c
+@@ -54,6 +54,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
+@@ -384,6 +387,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.6.9-78.10AXS2.orig/net/ipv6/tcp_ipv6.c
 +++ linux-2.6.9-78.10AXS2/net/ipv6/tcp_ipv6.c
 @@ -67,6 +67,9 @@ DEFINE_PER_CPU(struct dma_chan *, net_dm
@@ -1672,17 +1712,20 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  					goto next;
 --- linux-2.6.9-78.10AXS2.orig/net/ipv6/udp.c
 +++ linux-2.6.9-78.10AXS2/net/ipv6/udp.c
-@@ -57,6 +57,9 @@
+@@ -57,6 +57,12 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -83,6 +86,10 @@ static int udp_v6_get_port(struct sock *
+@@ -83,6 +89,10 @@ static int udp_v6_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
  			struct hlist_head *list;
@@ -1693,7 +1736,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -102,6 +109,9 @@ static int udp_v6_get_port(struct sock *
+@@ -102,6 +112,9 @@ static int udp_v6_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1703,6 +1746,18 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -238,6 +251,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.6.9-78.10AXS2.orig/net/socket.c
 +++ linux-2.6.9-78.10AXS2/net/socket.c
 @@ -96,6 +96,11 @@
