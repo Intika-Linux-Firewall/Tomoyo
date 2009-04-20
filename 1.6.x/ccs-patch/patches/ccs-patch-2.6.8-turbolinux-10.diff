@@ -46,14 +46,15 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  kernel/sys.c                       |   21 ++++++++++++
  kernel/sysctl.c                    |   19 +++++++++++
  kernel/time.c                      |   15 +++++++++
- net/core/datagram.c                |   10 ++++++
+ net/ipv4/raw.c                     |    8 ++++
  net/ipv4/tcp_ipv4.c                |   11 ++++++
- net/ipv4/udp.c                     |   11 ++++++
+ net/ipv4/udp.c                     |   21 ++++++++++++
+ net/ipv6/raw.c                     |    8 ++++
  net/ipv6/tcp_ipv6.c                |    7 ++++
- net/ipv6/udp.c                     |   11 ++++++
+ net/ipv6/udp.c                     |   19 +++++++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 53 files changed, 607 insertions(+), 10 deletions(-)
+ 54 files changed, 630 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -1182,7 +1183,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.8-16 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.8-16 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1500,32 +1501,30 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.8-16.orig/net/core/datagram.c
-+++ linux-2.6.8-16/net/core/datagram.c
-@@ -54,6 +54,10 @@
- #include <net/sock.h>
- #include <net/checksum.h>
- 
+--- linux-2.6.8-16.orig/net/ipv4/raw.c
++++ linux-2.6.8-16/net/ipv4/raw.c
+@@ -79,6 +79,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
 +/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
 +#include <linux/tomoyo_socket.h>
 +/***** TOMOYO Linux end. *****/
  
- /*
-  *	Is a socket 'connection oriented' ?
-@@ -177,6 +181,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
+@@ -582,6 +585,11 @@ int raw_recvmsg(struct kiocb *iocb, stru
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
  
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.8-16.orig/net/ipv4/tcp_ipv4.c
 +++ linux-2.6.8-16/net/ipv4/tcp_ipv4.c
 @@ -74,6 +74,9 @@
@@ -1562,17 +1561,20 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
   			 * because the established check is already
 --- linux-2.6.8-16.orig/net/ipv4/udp.c
 +++ linux-2.6.8-16/net/ipv4/udp.c
-@@ -107,6 +107,9 @@
+@@ -107,6 +107,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -145,6 +148,10 @@ static int udp_v4_get_port(struct sock *
+@@ -145,6 +151,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1583,7 +1585,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  				goto gotit;
  			}
  			size = 0;
-@@ -161,6 +168,10 @@ static int udp_v4_get_port(struct sock *
+@@ -161,6 +171,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1594,6 +1596,44 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -801,7 +815,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
+--- linux-2.6.8-16.orig/net/ipv6/raw.c
++++ linux-2.6.8-16/net/ipv6/raw.c
+@@ -54,6 +54,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
+@@ -384,6 +387,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.6.8-16.orig/net/ipv6/tcp_ipv6.c
 +++ linux-2.6.8-16/net/ipv6/tcp_ipv6.c
 @@ -62,6 +62,9 @@
@@ -1619,17 +1659,20 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  					goto next;
 --- linux-2.6.8-16.orig/net/ipv6/udp.c
 +++ linux-2.6.8-16/net/ipv6/udp.c
-@@ -57,6 +57,9 @@
+@@ -57,6 +57,12 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -87,6 +90,10 @@ static int udp_v6_get_port(struct sock *
+@@ -87,6 +93,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1640,7 +1683,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  				goto gotit;
  			}
  			size = 0;
-@@ -103,6 +110,10 @@ static int udp_v6_get_port(struct sock *
+@@ -103,6 +113,10 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1651,6 +1694,18 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -235,6 +249,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.6.8-16.orig/net/socket.c
 +++ linux-2.6.8-16/net/socket.c
 @@ -95,6 +95,11 @@

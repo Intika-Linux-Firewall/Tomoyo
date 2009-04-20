@@ -36,15 +36,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sys.c                    |   21 ++++++++++++++
  kernel/sysctl.c                 |   17 +++++++++++
  kernel/time.c                   |   15 ++++++++++
- net/core/datagram.c             |   11 +++++++
  net/ipv4/inet_connection_sock.c |    7 ++++
  net/ipv4/inet_hashtables.c      |    7 ++++
- net/ipv4/udp.c                  |   11 +++++++
+ net/ipv4/raw.c                  |    8 +++++
+ net/ipv4/udp.c                  |   19 ++++++++++++
  net/ipv6/inet6_hashtables.c     |    9 +++++-
- net/ipv6/udp.c                  |   11 +++++++
+ net/ipv6/raw.c                  |    8 +++++
+ net/ipv6/udp.c                  |   19 ++++++++++++
  net/socket.c                    |   43 +++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    8 +++++
- 42 files changed, 528 insertions(+), 9 deletions(-)
+ 43 files changed, 549 insertions(+), 9 deletions(-)
 
 --- linux-2.6.17.14.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.17.14/arch/alpha/kernel/ptrace.c
@@ -829,7 +830,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.17.14 2009/03/24\n");
++	printk(KERN_INFO "Hook version: 2.6.17.14 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1206,33 +1207,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.17.14.orig/net/core/datagram.c
-+++ linux-2.6.17.14/net/core/datagram.c
-@@ -56,6 +56,11 @@
- #include <net/sock.h>
- #include <net/tcp_states.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  *	Is a socket 'connection oriented' ?
-  */
-@@ -178,6 +183,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
 --- linux-2.6.17.14.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.17.14/net/ipv4/inet_connection_sock.c
 @@ -24,6 +24,9 @@
@@ -1279,19 +1253,46 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.17.14.orig/net/ipv4/raw.c
++++ linux-2.6.17.14/net/ipv4/raw.c
+@@ -79,6 +79,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v4_lock);
+@@ -592,6 +595,11 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.17.14.orig/net/ipv4/udp.c
 +++ linux-2.6.17.14/net/ipv4/udp.c
-@@ -109,6 +109,9 @@
+@@ -109,6 +109,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -147,6 +150,10 @@ static int udp_v4_get_port(struct sock *
+@@ -147,6 +153,10 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1302,7 +1303,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				goto gotit;
  			}
  			size = 0;
-@@ -163,6 +170,10 @@ static int udp_v4_get_port(struct sock *
+@@ -163,6 +173,10 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1313,6 +1314,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -797,6 +811,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+   
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
 --- linux-2.6.17.14.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.17.14/net/ipv6/inet6_hashtables.c
 @@ -22,6 +22,9 @@
@@ -1345,19 +1358,46 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.17.14.orig/net/ipv6/raw.c
++++ linux-2.6.17.14/net/ipv6/raw.c
+@@ -56,6 +56,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v6_lock);
+@@ -387,6 +390,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.6.17.14.orig/net/ipv6/udp.c
 +++ linux-2.6.17.14/net/ipv6/udp.c
-@@ -59,6 +59,9 @@
+@@ -59,6 +59,12 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -89,6 +92,10 @@ static int udp_v6_get_port(struct sock *
+@@ -89,6 +95,10 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1368,7 +1408,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				goto gotit;
  			}
  			size = 0;
-@@ -105,6 +112,10 @@ static int udp_v6_get_port(struct sock *
+@@ -105,6 +115,10 @@ static int udp_v6_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1379,6 +1419,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!udp_lport_inuse(result))
  				break;
  		}
+@@ -238,6 +252,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.6.17.14.orig/net/socket.c
 +++ linux-2.6.17.14/net/socket.c
 @@ -95,6 +95,11 @@

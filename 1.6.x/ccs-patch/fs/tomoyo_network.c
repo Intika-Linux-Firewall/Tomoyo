@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7+   2009/04/10
+ * Version: 1.6.7+   2009/04/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1207,31 +1207,56 @@ static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
 #endif
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
+static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
+			      unsigned int flags)
+{
+	/* Clear queue. */
+	if (flags & MSG_PEEK) {
+		int clear = 0;
+		spin_lock_irq(&sk->sk_receive_queue.lock);
+		if (skb == skb_peek(&sk->sk_receive_queue)) {
+			__skb_unlink(skb, &sk->sk_receive_queue);
+			clear = 1;
+		}
+		spin_unlock_irq(&sk->sk_receive_queue.lock);
+		if (clear)
+			kfree_skb(skb);
+	}
+}
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
+static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
+			      unsigned int flags)
+{
+	/* Clear queue. */
+	if (flags & MSG_PEEK) {
+		int clear = 0;
+		spin_lock_bh(&sk->sk_receive_queue.lock);
+		if (skb == skb_peek(&sk->sk_receive_queue)) {
+			__skb_unlink(skb, &sk->sk_receive_queue);
+			clear = 1;
+		}
+		spin_unlock_bh(&sk->sk_receive_queue.lock);
+		if (clear)
+			kfree_skb(skb);
+	}
+}
+#endif
+
 /*
  * Check permission for receiving a datagram via a UDP or RAW socket.
  *
  * Currently, the LSM hook for this purpose is not provided.
  */
-int ccs_socket_recv_datagram_permission(struct sock *sk, struct sk_buff *skb,
-					const unsigned int flags)
+int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
+				  const unsigned int flags)
 {
 	int error = 0;
 	const unsigned int type = sk->sk_type;
-	/* Nothing to do if I didn't receive a datagram. */
-	if (!skb)
+	if (type != SOCK_DGRAM && type != SOCK_RAW)
 		return 0;
-	/* Nothing to do if I can't sleep. */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	if (in_interrupt())
-		return 0;
-#else
-	if (in_atomic())
-		return 0;
-#endif
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
-		return 0;
-	if (type != SOCK_DGRAM && type != SOCK_RAW)
 		return 0;
 
 	switch (sk->sk_family) {
@@ -1268,31 +1293,22 @@ int ccs_socket_recv_datagram_permission(struct sock *sk, struct sk_buff *skb,
 	}
 	if (!error)
 		return 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	lock_sock(sk);
-#endif
 	/*
 	 * Remove from queue if MSG_PEEK is used so that
 	 * the head message from unwanted source in receive queue will not
 	 * prevent the caller from picking up next message from wanted source
 	 * when the caller is using MSG_PEEK flag for picking up.
 	 */
-	if (flags & MSG_PEEK) {
-		unsigned long cpu_flags;
-		/***** CRITICAL SECTION START *****/
-		spin_lock_irqsave(&sk->sk_receive_queue.lock, cpu_flags);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			atomic_dec(&skb->users);
-		}
-		spin_unlock_irqrestore(&sk->sk_receive_queue.lock, cpu_flags);
-		/***** CRITICAL SECTION END *****/
-	}
-	/* Drop reference count. */
-	skb_free_datagram(sk, skb);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	release_sock(sk);
+	if (type == SOCK_DGRAM)
+		lock_sock(sk);
+#endif
+	skb_kill_datagram(sk, skb, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	if (type == SOCK_DGRAM)
+		release_sock(sk);
 #endif
 	/* Hope less harmful than -EPERM. */
 	return -EAGAIN;
 }
+EXPORT_SYMBOL(ccs_socket_recvmsg_permission);

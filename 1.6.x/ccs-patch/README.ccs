@@ -1921,3 +1921,13 @@ Fix 2009/04/07
       not working.
 
       This problem happens on little endian platforms (e.g. x86).
+
+Fix 2009/04/20
+
+    @ Update recvmsg() hooks.
+
+      Since 1.5.0, I was doing network access control for incoming UDP and RAW
+      packets inside skb_recv_datagram(). But to synchronize with LSM version,
+      I moved ccs_recv_datagram_permission() hook from skb_recv_datagram() to
+      udp_recvmsg()/udpv6_recvmsg()/raw_recvmsg()/rawv6_recvmsg() with name
+      change to ccs_recvmsg_permission().

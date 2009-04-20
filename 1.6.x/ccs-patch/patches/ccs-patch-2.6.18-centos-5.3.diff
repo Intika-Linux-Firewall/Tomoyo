@@ -31,15 +31,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  kernel/sys.c                    |   21 ++++++++++++++
  kernel/sysctl.c                 |   17 +++++++++++
  kernel/time.c                   |   15 ++++++++++
- net/core/datagram.c             |   11 +++++++
  net/ipv4/inet_connection_sock.c |    7 ++++
  net/ipv4/inet_hashtables.c      |    7 ++++
- net/ipv4/udp.c                  |   10 ++++++
+ net/ipv4/raw.c                  |    8 +++++
+ net/ipv4/udp.c                  |   20 ++++++++++++-
  net/ipv6/inet6_hashtables.c     |    7 ++++
- net/ipv6/udp.c                  |   10 ++++++
+ net/ipv6/raw.c                  |    8 +++++
+ net/ipv6/udp.c                  |   18 ++++++++++++
  net/socket.c                    |   43 +++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    8 +++++
- 37 files changed, 491 insertions(+), 7 deletions(-)
+ 38 files changed, 513 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-128.1.6.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-128.1.6.el5/arch/alpha/kernel/ptrace.c
@@ -705,7 +706,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-128.1.6.el5 2009/04/02\n");
++	printk(KERN_INFO "Hook version: 2.6.18-128.1.6.el5 2009/04/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1093,33 +1094,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-128.1.6.el5.orig/net/core/datagram.c
-+++ linux-2.6.18-128.1.6.el5/net/core/datagram.c
-@@ -56,6 +56,11 @@
- #include <net/sock.h>
- #include <net/tcp_states.h>
- 
-+/***** TOMOYO Linux start. *****/
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
-+/***** TOMOYO Linux end. *****/
-+
- /*
-  *	Is a socket 'connection oriented' ?
-  */
-@@ -178,6 +183,12 @@ struct sk_buff *skb_recv_datagram(struct
- 		} else
- 			skb = skb_dequeue(&sk->sk_receive_queue);
- 
-+		/***** TOMOYO Linux start. *****/
-+		error = ccs_socket_recv_datagram_permission(sk, skb, flags);
-+		if (error)
-+			goto no_packet;
-+		/***** TOMOYO Linux end. *****/
-+
- 		if (skb)
- 			return skb;
- 
 --- linux-2.6.18-128.1.6.el5.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.18-128.1.6.el5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
@@ -1166,19 +1140,46 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.18-128.1.6.el5.orig/net/ipv4/raw.c
++++ linux-2.6.18-128.1.6.el5/net/ipv4/raw.c
+@@ -78,6 +78,9 @@
+ #include <linux/seq_file.h>
+ #include <linux/netfilter.h>
+ #include <linux/netfilter_ipv4.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v4_lock);
+@@ -595,6 +598,11 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
 --- linux-2.6.18-128.1.6.el5.orig/net/ipv4/udp.c
 +++ linux-2.6.18-128.1.6.el5/net/ipv4/udp.c
-@@ -109,6 +109,9 @@
+@@ -109,6 +109,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -151,6 +154,10 @@ static int udp_v4_get_port(struct sock *
+@@ -151,6 +157,10 @@ static int udp_v4_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			struct hlist_head *list;
  			int size = 0;
@@ -1189,7 +1190,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -170,6 +177,9 @@ static int udp_v4_get_port(struct sock *
+@@ -170,6 +180,9 @@ static int udp_v4_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1199,6 +1200,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -813,7 +826,12 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
+-  
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
++
+   	copied = skb->len - sizeof(struct udphdr);
+ 	if (copied > len) {
+ 		copied = len;
 --- linux-2.6.18-128.1.6.el5.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.18-128.1.6.el5/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
@@ -1222,19 +1237,46 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
+--- linux-2.6.18-128.1.6.el5.orig/net/ipv6/raw.c
++++ linux-2.6.18-128.1.6.el5/net/ipv6/raw.c
+@@ -56,6 +56,9 @@
+ 
+ #include <linux/proc_fs.h>
+ #include <linux/seq_file.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
+ 
+ struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
+ DEFINE_RWLOCK(raw_v6_lock);
+@@ -387,6 +390,11 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	copied = skb->len;
+   	if (copied > len) {
 --- linux-2.6.18-128.1.6.el5.orig/net/ipv6/udp.c
 +++ linux-2.6.18-128.1.6.el5/net/ipv6/udp.c
-@@ -58,6 +58,9 @@
+@@ -58,6 +58,12 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
 +/***** SAKURA Linux start. *****/
 +#include <linux/sakura.h>
 +/***** SAKURA Linux end. *****/
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo_socket.h>
++/***** TOMOYO Linux end. *****/
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6) __read_mostly;
  
-@@ -84,6 +87,10 @@ static int udp_v6_get_port(struct sock *
+@@ -84,6 +90,10 @@ static int udp_v6_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
  			struct hlist_head *list;
@@ -1245,7 +1287,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -103,6 +110,9 @@ static int udp_v6_get_port(struct sock *
+@@ -103,6 +113,9 @@ static int udp_v6_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1255,6 +1297,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
+@@ -241,6 +254,11 @@ try_again:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	/***** TOMOYO Linux start. *****/
++	err = ccs_socket_recvmsg_permission(sk, skb, flags);
++	if (err)
++		goto out;
++	/***** TOMOYO Linux end. *****/
+ 
+  	copied = skb->len - sizeof(struct udphdr);
+   	if (copied > len) {
 --- linux-2.6.18-128.1.6.el5.orig/net/socket.c
 +++ linux-2.6.18-128.1.6.el5/net/socket.c
 @@ -95,6 +95,11 @@
