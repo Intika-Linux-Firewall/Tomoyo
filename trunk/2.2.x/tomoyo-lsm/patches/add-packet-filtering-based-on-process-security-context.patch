@@ -40,8 +40,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  net/ipv6/udp.c           |    7 +++++++
  net/socket.c             |    4 ++++
  security/capability.c    |   13 +++++++++++++
- security/security.c      |   11 +++++++++++
- 8 files changed, 91 insertions(+)
+ security/security.c      |   12 ++++++++++++
+ 8 files changed, 92 insertions(+)
 
 ---
 
@@ -260,7 +260,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
  	return security_ops->socket_sendmsg(sock, msg, size);
-@@ -1018,6 +1023,12 @@ int security_socket_recvmsg(struct socke
+@@ -1018,6 +1023,13 @@ int security_socket_recvmsg(struct socke
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  
@@ -269,6 +269,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	return security_ops->socket_post_recv_datagram(sk, skb, flags);
 +}
++EXPORT_SYMBOL(security_socket_post_recv_datagram);
 +
  int security_socket_getsockname(struct socket *sock)
  {
