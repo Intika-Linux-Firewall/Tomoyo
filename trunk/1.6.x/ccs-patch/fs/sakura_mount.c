@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7+   2009/04/10
+ * Version: 1.6.7+   2009/04/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -154,7 +154,6 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 	if (!fs)
 		return -EINVAL;
 	if (!dev_name)
-		/* Map dev_name to "<NULL>" for if no dev_name given. */
 		dev_name = "<NULL>";
 	if (!strcmp(fs->name, MOUNT_REMOUNT_KEYWORD))
 		/* Fix dev_name to "any" for remount permission. */
@@ -370,8 +369,6 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 	error = -EPERM;
 	if (!type)
 		type = "<NULL>";
-	if (!dev_name)
-		dev_name = "<NULL>";
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
 	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
@@ -482,6 +479,9 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				goto cleanup;
 			}
 		} else {
+			/* Map dev_name to "<NULL>" if no dev_name given. */
+			if (!dev_name)
+				dev_name = "<NULL>";
 			requested_dev_name = ccs_encode(dev_name);
 			if (!requested_dev_name) {
 				error = -ENOMEM;
