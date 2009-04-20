@@ -2604,7 +2604,7 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 #ifdef CONFIG_SAKURA
-	printk(KERN_INFO "SAKURA: 1.6.7+   2009/04/10\n");
+	printk(KERN_INFO "SAKURA: 1.6.7+   2009/04/20\n");
 #endif
 #ifdef CONFIG_TOMOYO
 	printk(KERN_INFO "TOMOYO: 1.6.7+   2009/04/20\n");
