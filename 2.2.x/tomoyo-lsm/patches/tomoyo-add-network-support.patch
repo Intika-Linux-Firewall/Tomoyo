@@ -21,10 +21,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/Makefile  |    2 
  security/tomoyo/common.c  |  118 +++++
  security/tomoyo/common.h  |   68 +++
- security/tomoyo/network.c |  930 ++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/network.c |  927 ++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c  |   46 ++
  security/tomoyo/tomoyo.h  |   17 
- 7 files changed, 1178 insertions(+), 4 deletions(-)
+ 7 files changed, 1175 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -312,7 +312,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
 --- /dev/null
 +++ security-testing-2.6.git/security/tomoyo/network.c
-@@ -0,0 +1,930 @@
+@@ -0,0 +1,927 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -320,7 +320,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + *
-+ * Version: 2.3.0-pre   2009/04/15
++ * Version: 2.3.0-pre   2009/04/21
 + *
 + */
 +
@@ -1197,9 +1197,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +{
 +	int error = 0;
 +	const unsigned int type = sk->sk_type;
-+	/* Nothing to do if I can't sleep. */
-+	if (in_atomic())
-+		return 0;
 +	/* Nothing to do if I am a kernel service. */
 +	if (segment_eq(get_fs(), KERNEL_DS))
 +		return 0;
