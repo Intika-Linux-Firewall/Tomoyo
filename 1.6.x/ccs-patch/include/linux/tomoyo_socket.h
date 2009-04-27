@@ -34,26 +34,6 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 				  const unsigned int flags);
 
-#include <linux/version.h>
-
-static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
-						      struct sk_buff *skb,
-						      const unsigned int flags)
-{
-	/* Nothing to do if I didn't receive a datagram. */
-	if (!skb)
-		return 0;
-	/* Nothing to do if I can't sleep. */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	if (in_interrupt())
-		return 0;
-#else
-	if (in_atomic())
-		return 0;
-#endif
-	return ccs_socket_recvmsg_permission(sk, skb, flags);
-}
-
 #else
 
 static inline int ccs_socket_create_permission(int family, int type,
@@ -85,12 +65,6 @@ static inline int ccs_socket_accept_permission(struct socket *sock,
 static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 						struct sockaddr *addr,
 						int addr_len)
-{
-	return 0;
-}
-static inline int ccs_socket_recv_datagram_permission(struct sock *sk,
-						      struct sk_buff *skb,
-						      const unsigned int flags)
 {
 	return 0;
 }
