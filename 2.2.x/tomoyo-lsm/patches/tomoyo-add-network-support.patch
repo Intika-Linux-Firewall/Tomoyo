@@ -22,9 +22,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.c  |  118 +++++
  security/tomoyo/common.h  |   68 +++
  security/tomoyo/network.c |  927 ++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.c  |   46 ++
+ security/tomoyo/tomoyo.c  |  146 +++++++
  security/tomoyo/tomoyo.h  |   17 
- 7 files changed, 1175 insertions(+), 4 deletions(-)
+ 7 files changed, 1275 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -1250,41 +1250,129 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #include "common.h"
  #include "tomoyo.h"
  #include "realpath.h"
-@@ -256,6 +257,45 @@ static int tomoyo_dentry_open(struct fil
+@@ -256,6 +257,133 @@ static int tomoyo_dentry_open(struct fil
  	return tomoyo_check_open_permission(tomoyo_domain(), &f->f_path, flags);
  }
  
++#include <net/sock.h>
++
++static inline int tomoyo_dead_sock(struct sock *sk)
++{
++	return sk && sk->sk_security == (void *) 0xDEADBEEF ? -EPERM : 0;
++}
++
++static int tomoyo_socket_post_create(struct socket *sock, int family, int type,
++				     int protocol, int kern)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_accept(struct socket *sock, struct socket *newsock)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_recvmsg(struct socket *sock, struct msghdr *msg,
++				 int size, int flags)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_getsockname(struct socket *sock)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_getpeername(struct socket *sock)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_getsockopt(struct socket *sock, int level, int optname)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_setsockopt(struct socket *sock, int level, int optname)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
++{
++	return tomoyo_dead_sock(sk);
++}
++
++static int tomoyo_socket_getpeersec_stream(struct socket *sock,
++					   char __user *optval,
++					   int __user *optlen, unsigned len)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static int tomoyo_socket_getpeersec_dgram(struct socket *sock,
++					  struct sk_buff *skb, u32 *secid)
++{
++	return tomoyo_dead_sock(sock->sk);
++}
++
++static void tomoyo_sk_clone_security(const struct sock *sk, struct sock *newsk)
++{
++	newsk->sk_security = sk->sk_security;
++}
++
++static int tomoyo_inet_conn_request(struct sock *sk, struct sk_buff *skb,
++				    struct request_sock *req)
++{
++	return tomoyo_dead_sock(sk);
++}
++
 +static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
 +			      int addrlen)
 +{
++	int error = tomoyo_dead_sock(sock->sk);
++	if (error)
++		return error;
 +	return tomoyo_socket_bind_permission(sock, address, addrlen);
 +}
 +
 +static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
 +				 int addrlen)
 +{
++	int error = tomoyo_dead_sock(sock->sk);
++	if (error)
++		return error;
 +	return tomoyo_socket_connect_permission(sock, address, addrlen);
 +}
 +
 +static int tomoyo_socket_listen(struct socket *sock, int backlog)
 +{
++	int error = tomoyo_dead_sock(sock->sk);
++	if (error)
++		return error;
 +	return tomoyo_socket_listen_permission(sock);
 +}
 +
-+static int tomoyo_socket_post_accept(struct socket *sock,
-+				     struct socket *newsock)
++static void tomoyo_socket_post_accept(struct socket *sock,
++				      struct socket *newsock,
++				      struct sockaddr *address, int len)
 +{
-+	return tomoyo_socket_accept_permission(newsock);
++	if (tomoyo_socket_accept_permission(newsock)) {
++		newsock->sk->sk_security = (void *) 0xDEADBEEF;
++		memset(address, 0, len);
++	}
 +}
 +
 +static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
 +				 int size)
 +{
++	int error = tomoyo_dead_sock(sock->sk);
++	if (error)
++		return error;
 +	return tomoyo_socket_sendmsg_permission(sock, (struct sockaddr *)
 +						msg->msg_name,
 +						msg->msg_namelen);
 +}
-+
 +
 +static int tomoyo_socket_post_recv_datagram(struct sock *sk,
 +					    struct sk_buff *skb,
@@ -1296,16 +1384,28 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static struct security_operations tomoyo_security_ops = {
  	.name                = "tomoyo",
  	.cred_prepare        = tomoyo_cred_prepare,
-@@ -274,6 +314,12 @@ static struct security_operations tomoyo
+@@ -274,6 +402,24 @@ static struct security_operations tomoyo
  	.path_mknod          = tomoyo_path_mknod,
  	.path_link           = tomoyo_path_link,
  	.path_rename         = tomoyo_path_rename,
 +	.socket_bind               = tomoyo_socket_bind,
 +	.socket_listen             = tomoyo_socket_listen,
 +	.socket_connect            = tomoyo_socket_connect,
++	.socket_accept             = tomoyo_socket_accept,
 +	.socket_sendmsg            = tomoyo_socket_sendmsg,
 +	.socket_post_recv_datagram = tomoyo_socket_post_recv_datagram,
 +	.socket_post_accept        = tomoyo_socket_post_accept,
++	.socket_post_create        = tomoyo_socket_post_create,
++	.socket_recvmsg            = tomoyo_socket_recvmsg,
++	.socket_getsockname        = tomoyo_socket_getsockname,
++	.socket_getpeername        = tomoyo_socket_getpeername,
++	.socket_getsockopt         = tomoyo_socket_getsockopt,
++	.socket_setsockopt         = tomoyo_socket_setsockopt,
++	.socket_sock_rcv_skb       = tomoyo_socket_sock_rcv_skb,
++	.socket_getpeersec_stream  = tomoyo_socket_getpeersec_stream,
++	.socket_getpeersec_dgram   = tomoyo_socket_getpeersec_dgram,
++	.sk_clone_security         = tomoyo_sk_clone_security,
++	.inet_conn_request         = tomoyo_inet_conn_request,
  };
  
  static int __init tomoyo_init(void)
