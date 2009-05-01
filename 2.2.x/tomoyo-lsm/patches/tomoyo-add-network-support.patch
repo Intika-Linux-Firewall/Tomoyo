@@ -1238,7 +1238,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!error)
 +		return 0;
 +	/* Hope less harmful than -EPERM. */
-+	return -EAGAIN;
++	return -ENOMEM;
 +}
 --- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6.git/security/tomoyo/tomoyo.c

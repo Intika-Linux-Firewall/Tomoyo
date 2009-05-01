@@ -9,10 +9,11 @@ wants to do TCP Wrapper-like filtering (e.g. App1 is permitted to accept TCP
 connections from 192.168.0.0/16) because nobody can tell who picks them up
 before the moment of sock->ops->accept()/sock->ops->recvmsg() call.
 
-But it is not a good thing to drop already established connections,
-we decided that we won't drop after sock->ops->accept(). Instead, we mark
-newsock as a dead socket (so that all socket operations other than shutdown()
-and close() are denied by -EPERM) at socket_post_accept().
+But since it is not a good thing to drop already established connections in
+accept(), we decided that we won't drop after sock->ops->accept(). Instead, we
+give LSM modules a chance to mark newsock as a dead socket (so that all socket
+operations other than shutdown() and close() are denied by -EPERM) at
+socket_post_accept().
 To make sure that the newsock is marked before newsock's fd becomes visible to
 other threads, we insert socket_post_accept() before fd_install().
 
