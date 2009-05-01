@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.29.1-102.fc11.src.rpm ]
+if [ ! -r kernel-2.6.29.1-111.fc11.src.rpm ]
 then
-    wget http://mirrors.kernel.org/fedora/development/source/SRPMS/kernel-2.6.29.1-102.fc11.src.rpm || die "Can't download source package."
+    wget http://mirrors.kernel.org/fedora/development/source/SRPMS/kernel-2.6.29.1-111.fc11.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.29.1-102.fc11.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.29.1-111.fc11.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.7-20090410.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- ccs-kernel.spec	2009-04-21 04:12:26.000000000 +0900
-+++ ccs-kernel.spec	2009-04-28 16:27:18.000000000 +0900
+--- ccs-kernel.spec	2009-04-24 23:35:11.000000000 +0900
++++ ccs-kernel.spec	2009-05-01 12:32:21.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -48,6 +48,15 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
+@@ -428,7 +433,7 @@
+ # Packages that need to be installed before the kernel is, because the %post
+ # scripts use them.
+ #
+-%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 6.0.61-1, kernel-firmware >= %{rpmversion}-%{pkg_release}, /sbin/new-kernel-pkg
++%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 6.0.61-1, /sbin/new-kernel-pkg
+ 
+ #
+ # This macro does requires, provides, conflicts, obsoletes for a kernel package.
 @@ -456,7 +461,7 @@
  AutoProv: yes\
  %{nil}
@@ -57,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -850,7 +855,7 @@
+@@ -854,7 +859,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -66,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1395,6 +1400,10 @@
+@@ -1405,6 +1410,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -77,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1421,6 +1430,9 @@
+@@ -1431,6 +1440,9 @@
  for i in *.config
  do
    mv $i .config
