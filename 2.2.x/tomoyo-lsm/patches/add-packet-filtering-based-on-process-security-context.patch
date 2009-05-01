@@ -9,16 +9,16 @@ wants to do TCP Wrapper-like filtering (e.g. App1 is permitted to accept TCP
 connections from 192.168.0.0/16) because nobody can tell who picks them up
 before the moment of sock->ops->accept()/sock->ops->recvmsg() call.
 
-Precautions: These hooks have a side effect if improperly used.
+But it is not a good thing to drop already established connections,
+we decided that we won't drop after sock->ops->accept(). Instead, we mark
+newsock as a dead socket (so that all socket operations other than shutdown()
+and close() are denied by -EPERM) at socket_post_accept().
+To make sure that the newsock is marked before newsock's fd becomes visible to
+other threads, we insert socket_post_accept() before fd_install().
 
-If a socket is shared by multiple processes with different policy, the process
-who should be able to accept this connection will not be able to accept this
-connection because socket_post_accept() aborts this connection.
-This is needed because the process who must not be able to accept this
-connection will repeat accept() request (and consume CPU resource) forever
-if socket_post_accept() doesn't abort this connection.
+Precautions: The hook for datagram have a side effect if improperly used.
 
-Similarly, if a socket is shared by multiple processes with different policy,
+If a socket is shared by multiple processes with different policy,
 the process who should be able to pick up this datagram will not be able to
 pick up this datagram because socket_post_recv_datagram() discards this
 datagram.
@@ -27,27 +27,27 @@ datagram will repeat recvmsg() request (and consume CPU resource) forever
 if socket_post_recv_datagram() doesn't discard this datagram.
 
 Therefore, don't give different policy between processes who share one socket.
-Otherwise, some connections/datagrams cannot be delivered to intended process.
+Otherwise, some datagrams cannot be delivered to intended process.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
- include/linux/security.h |   37 +++++++++++++++++++++++++++++++++++++
+ include/linux/security.h |   32 ++++++++++++++++++++++++++++++++
  net/ipv4/raw.c           |    5 +++++
  net/ipv4/udp.c           |    7 +++++++
  net/ipv6/raw.c           |    5 +++++
  net/ipv6/udp.c           |    7 +++++++
- net/socket.c             |    6 +++++-
- security/capability.c    |   13 +++++++++++++
- security/security.c      |   13 +++++++++++++
- 8 files changed, 92 insertions(+), 1 deletion(-)
+ net/socket.c             |    1 +
+ security/capability.c    |   12 ++++++++++++
+ security/security.c      |   12 ++++++++++++
+ 8 files changed, 81 insertions(+)
 
 ---
 
 --- security-testing-2.6.git.orig/include/linux/security.h
 +++ security-testing-2.6.git/include/linux/security.h
-@@ -880,6 +880,12 @@ static inline void security_free_mnt_opt
+@@ -880,6 +880,10 @@ static inline void security_free_mnt_opt
   *	@sock contains the listening socket structure.
   *	@newsock contains the newly created server socket for connection.
   *	Return 0 if permission is granted.
@@ -55,12 +55,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + *	Update the security module's state when accept() succeeded.
 + *	@sock contains the listening socket structure.
 + *	@newsock contains the newly created server socket for connection.
-+ *	@address contains the address of remote endpoint.
-+ *	@len contains valid bytes in @address. 0 if getname() not called yet.
   * @socket_sendmsg:
   *	Check permission before transmitting a message to another socket.
   *	@sock contains the socket structure.
-@@ -893,6 +899,15 @@ static inline void security_free_mnt_opt
+@@ -893,6 +897,15 @@ static inline void security_free_mnt_opt
   *	@size contains the size of message structure.
   *	@flags contains the operational flags.
   *	Return 0 if permission is granted.
@@ -76,12 +74,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1549,10 +1564,14 @@ struct security_operations {
+@@ -1549,10 +1562,14 @@ struct security_operations {
  			       struct sockaddr *address, int addrlen);
  	int (*socket_listen) (struct socket *sock, int backlog);
  	int (*socket_accept) (struct socket *sock, struct socket *newsock);
-+	void (*socket_post_accept) (struct socket *sock, struct socket *newsock,
-+				    struct sockaddr *address, int len);
++	void (*socket_post_accept) (struct socket *sock,
++				    struct socket *newsock);
  	int (*socket_sendmsg) (struct socket *sock,
  			       struct msghdr *msg, int size);
  	int (*socket_recvmsg) (struct socket *sock,
@@ -91,12 +89,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	int (*socket_getsockname) (struct socket *sock);
  	int (*socket_getpeername) (struct socket *sock);
  	int (*socket_getsockopt) (struct socket *sock, int level, int optname);
-@@ -2530,9 +2549,13 @@ int security_socket_bind(struct socket *
+@@ -2530,9 +2547,12 @@ int security_socket_bind(struct socket *
  int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
  int security_socket_listen(struct socket *sock, int backlog);
  int security_socket_accept(struct socket *sock, struct socket *newsock);
-+void security_socket_post_accept(struct socket *sock, struct socket *newsock,
-+				 struct sockaddr *address, int len);
++void security_socket_post_accept(struct socket *sock, struct socket *newsock);
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size);
  int security_socket_recvmsg(struct socket *sock, struct msghdr *msg,
  			    int size, int flags);
@@ -105,21 +102,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_getsockname(struct socket *sock);
  int security_socket_getpeername(struct socket *sock);
  int security_socket_getsockopt(struct socket *sock, int level, int optname);
-@@ -2608,6 +2631,13 @@ static inline int security_socket_accept
+@@ -2608,6 +2628,11 @@ static inline int security_socket_accept
  	return 0;
  }
  
 +static inline void security_socket_post_accept(struct socket *sock,
-+					       struct socket *newsock,
-+					       struct sockaddr *address,
-+					       int len)
++					       struct socket *newsock)
 +{
 +}
 +
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
-@@ -2621,6 +2651,13 @@ static inline int security_socket_recvms
+@@ -2621,6 +2646,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -195,38 +190,28 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	copied = len;
 --- security-testing-2.6.git.orig/net/socket.c
 +++ security-testing-2.6.git/net/socket.c
-@@ -1525,11 +1525,15 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
- 			err = -ECONNABORTED;
- 			goto out_fd;
- 		}
-+		security_socket_post_accept(sock, newsock,
-+					    (struct sockaddr *) &address, len);
- 		err = move_addr_to_user((struct sockaddr *)&address,
- 					len, upeer_sockaddr, upeer_addrlen);
+@@ -1530,6 +1530,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  		if (err < 0)
  			goto out_fd;
--	}
-+	} else
-+		security_socket_post_accept(sock, newsock,
-+					    (struct sockaddr *) &address, 0);
+ 	}
++	security_socket_post_accept(sock, newsock);
  
  	/* File flags are not inherited via accept() unlike another OSes. */
  
 --- security-testing-2.6.git.orig/security/capability.c
 +++ security-testing-2.6.git/security/capability.c
-@@ -620,6 +620,11 @@ static int cap_socket_accept(struct sock
+@@ -620,6 +620,10 @@ static int cap_socket_accept(struct sock
  	return 0;
  }
  
-+static void cap_socket_post_accept(struct socket *sock, struct socket *newsock,
-+				   struct sockaddr *address, int len)
++static void cap_socket_post_accept(struct socket *sock, struct socket *newsock)
 +{
 +}
 +
  static int cap_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
  	return 0;
-@@ -631,6 +636,12 @@ static int cap_socket_recvmsg(struct soc
+@@ -631,6 +635,12 @@ static int cap_socket_recvmsg(struct soc
  	return 0;
  }
  
@@ -239,7 +224,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static int cap_socket_getsockname(struct socket *sock)
  {
  	return 0;
-@@ -1010,8 +1021,10 @@ void security_fixup_ops(struct security_
+@@ -1010,8 +1020,10 @@ void security_fixup_ops(struct security_
  	set_to_cap_if_null(ops, socket_connect);
  	set_to_cap_if_null(ops, socket_listen);
  	set_to_cap_if_null(ops, socket_accept);
@@ -252,20 +237,19 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	set_to_cap_if_null(ops, socket_setsockopt);
 --- security-testing-2.6.git.orig/security/security.c
 +++ security-testing-2.6.git/security/security.c
-@@ -1007,6 +1007,12 @@ int security_socket_accept(struct socket
+@@ -1007,6 +1007,11 @@ int security_socket_accept(struct socket
  	return security_ops->socket_accept(sock, newsock);
  }
  
-+void security_socket_post_accept(struct socket *sock, struct socket *newsock,
-+				 struct sockaddr *address, int len)
++void security_socket_post_accept(struct socket *sock, struct socket *newsock)
 +{
-+	security_ops->socket_post_accept(sock, newsock, address, len);
++	security_ops->socket_post_accept(sock, newsock);
 +}
 +
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
  	return security_ops->socket_sendmsg(sock, msg, size);
-@@ -1018,6 +1024,13 @@ int security_socket_recvmsg(struct socke
+@@ -1018,6 +1023,13 @@ int security_socket_recvmsg(struct socke
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  

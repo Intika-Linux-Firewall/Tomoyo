@@ -22,9 +22,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.c  |  118 +++++
  security/tomoyo/common.h  |   68 +++
  security/tomoyo/network.c |  927 ++++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/tomoyo.c  |  146 +++++++
+ security/tomoyo/tomoyo.c  |  143 +++++++
  security/tomoyo/tomoyo.h  |   17 
- 7 files changed, 1275 insertions(+), 4 deletions(-)
+ 7 files changed, 1272 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -1250,7 +1250,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #include "common.h"
  #include "tomoyo.h"
  #include "realpath.h"
-@@ -256,6 +257,133 @@ static int tomoyo_dentry_open(struct fil
+@@ -256,6 +257,130 @@ static int tomoyo_dentry_open(struct fil
  	return tomoyo_check_open_permission(tomoyo_domain(), &f->f_path, flags);
  }
  
@@ -1354,13 +1354,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +static void tomoyo_socket_post_accept(struct socket *sock,
-+				      struct socket *newsock,
-+				      struct sockaddr *address, int len)
++				      struct socket *newsock)
 +{
-+	if (tomoyo_socket_accept_permission(newsock)) {
++	if (tomoyo_socket_accept_permission(newsock))
 +		newsock->sk->sk_security = (void *) 0xDEADBEEF;
-+		memset(address, 0, len);
-+	}
 +}
 +
 +static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
@@ -1384,7 +1381,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static struct security_operations tomoyo_security_ops = {
  	.name                = "tomoyo",
  	.cred_prepare        = tomoyo_cred_prepare,
-@@ -274,6 +402,24 @@ static struct security_operations tomoyo
+@@ -274,6 +399,24 @@ static struct security_operations tomoyo
  	.path_mknod          = tomoyo_path_mknod,
  	.path_link           = tomoyo_path_link,
  	.path_rename         = tomoyo_path_rename,
