@@ -2,15 +2,34 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 ===================================================================
 --- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 2496)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
-@@ -300,6 +300,8 @@
+@@ -299,7 +299,9 @@
+ 	char *name;
  	char *domain;
  	u8 profile;
- 	_Bool done;
+-	_Bool done;
++	_Bool selected;
 +	int index;
 +	int depth;
  };
  
  /***** STRUCTURES DEFINITION END *****/
+@@ -367,6 +369,7 @@
+ 			      const _Bool is_dis, const _Bool is_dd);
+ const char *domain_name(const struct domain_policy *dp, const int index);
+ void send_fd(char *data, int *fd);
++void read_process_list(_Bool show_all);
+ void editpolicy_offline_daemon(void);
+ void editpolicy_init_keyword_map(void);
+ void editpolicy_line_draw(const int screen);
+@@ -416,6 +419,8 @@
+ extern int current_y[MAXSCREEN];
+ extern int list_item_count[MAXSCREEN];
+ extern struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX];
++extern struct task_entry *task_list;
++extern int task_list_len;
+ 
+ extern const char *proc_policy_dir,
+ 	*disk_policy_dir,
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 ===================================================================
 --- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 2496)
@@ -34,9 +53,9 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  struct generic_acl *generic_acl_list = NULL;
  int generic_acl_list_count = 0;
  
-+static struct task_entry *task_list = NULL;
-+static int task_list_len = 0;
-+static int dump_index = 0; 
++struct task_entry *task_list = NULL;
++int task_list_len = 0;
++static int dump_index = 0;
 +
  static struct domain_keeper_entry *domain_keeper_list = NULL;
  static int domain_keeper_list_len = 0;
@@ -54,7 +73,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if (network_mode)
  				fputc(0, fp);
  			fflush(fp);
-@@ -965,6 +973,218 @@
+@@ -965,6 +973,236 @@
  	}
  }
  
@@ -140,8 +159,8 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +		if (pid != task_list[i].pid)
 +			continue;
 +		task_list[i].index = dump_index++;
-+		task_list[i].depth = depth; 
-+		task_list[i].done = true;
++		task_list[i].depth = depth;
++		task_list[i].selected = true;
 +	}
 +	for (i = 0; i < task_list_len; i++) {
 +		if (pid != task_list[i].ppid)
@@ -157,7 +176,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	return a0->index - b0->index;
 +}
 +
-+static void read_process_list(void)
++void read_process_list(_Bool show_all)
 +{
 +	int i;
 +	while (task_list_len) {
@@ -167,7 +186,8 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	}
 +	dump_index = 0;
 +	if (network_mode) {
-+		FILE *fp = open_write("proc:all_process_status");
++		FILE *fp = open_write(show_all ? "proc:all_process_status" :
++				      "proc:process_status");
 +		if (!fp)
 +			return;
 +		get();
@@ -183,6 +203,8 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +				name = strdup(name + 5);
 +			if (!name)
 +				name = strdup("<UNKNOWN>");
++			if (!name)
++				out_of_memory();
 +			if (!freadline(fp))
 +				break;
 +			sscanf(shared_buffer, "%u %u", &pid, &profile);
@@ -191,17 +213,20 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +				domain = strdup(domain);
 +			if (!domain)
 +				domain = strdup("<UNKNOWN>");
++			if (!domain)
++				out_of_memory();
 +			task_list = realloc(task_list,
 +					    (task_list_len + 1) *
 +					    sizeof(struct task_entry));
 +			if (!task_list)
 +				out_of_memory();
++			memset(&task_list[task_list_len], 0,
++			       sizeof(task_list[0]));
 +			task_list[task_list_len].pid = pid;
 +			task_list[task_list_len].ppid = ppid;
 +			task_list[task_list_len].profile = profile;
 +			task_list[task_list_len].name = name;
 +			task_list[task_list_len].domain = domain;
-+			task_list[task_list_len].done = false;
 +			task_list_len++;
 +		}
 +		put();
@@ -220,12 +245,21 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +			int profile = -1;
 +			unsigned int pid = 0;
 +			char buffer[128];
++			char test[16];
 +			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1)
 +				goto skip;
 +			memset(buffer, 0, sizeof(buffer));
++			if (!show_all) {
++				snprintf(buffer, sizeof(buffer) - 1,
++					 "/proc/%u/exe", pid);
++				if (readlink(buffer, test, sizeof(test)) <= 0)
++					goto skip;
++			}
 +			name = get_name(pid);
 +			if (!name)
 +				name = strdup("<UNKNOWN>");
++			if (!name)
++				out_of_memory();
 +			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 +			write(status_fd, buffer, strlen(buffer));
 +			get();
@@ -238,17 +272,20 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +				domain = strdup(domain);
 +			if (!domain)
 +				domain = strdup("<UNKNOWN>");
++			if (!domain)
++				out_of_memory();
 +			put();
 +			task_list = realloc(task_list, (task_list_len + 1) *
 +					    sizeof(struct task_entry));
 +			if (!task_list)
 +				out_of_memory();
++			memset(&task_list[task_list_len], 0,
++			       sizeof(task_list[0]));
 +			task_list[task_list_len].pid = pid;
 +			task_list[task_list_len].ppid = get_ppid(pid);
 +			task_list[task_list_len].profile = profile;
 +			task_list[task_list_len].name = name;
 +			task_list[task_list_len].domain = domain;
-+			task_list[task_list_len].done = false;
 +			task_list_len++;
 +skip:
 +			free((void *) namelist[i]);
@@ -259,8 +296,8 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	}
 +	sort_process_entry(1, 0);
 +	for (i = 0; i < task_list_len; i++) {
-+		if (task_list[i].done) {
-+			task_list[i].done = false;
++		if (task_list[i].selected) {
++			task_list[i].selected = false;
 +			continue;
 +		}
 +		task_list[i].index = dump_index++;
@@ -273,13 +310,13 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static int add_domain_initializer_entry(const char *domainname,
  					const char *program, const _Bool is_not)
  {
-@@ -1331,13 +1551,39 @@
+@@ -1331,13 +1569,39 @@
  		}
  	}
  
 -	dp->list_selected = realloc(dp->list_selected, dp->list_len);
 +	if (!offline_mode) /* read process information */
-+		read_process_list();
++		read_process_list(true);
 +
 +	dp->list_selected = realloc(dp->list_selected, dp->list_len
 +				    + generic_acl_list_count);
@@ -294,7 +331,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +	int tmp_col = 0;
 +	int i;
 +	printw("%c%4d:%3u ",
-+	       task_list[index].done ? '&' : ' ',
++	       task_list[index].selected ? '&' : ' ',
 +	       index, task_list[index].profile);
 +	tmp_col += 10;
 +	for (i = 0; i < task_list[index].depth - 1; i++) {
@@ -315,7 +352,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void show_list(struct domain_policy *dp)
  {
  	const int offset = current_item_index[current_screen];
-@@ -1360,9 +1606,10 @@
+@@ -1360,9 +1624,10 @@
  	if (current_screen == SCREEN_DOMAIN_LIST) {
  		int i = list_item_count[SCREEN_DOMAIN_LIST]
  			- unnumbered_domain_count;
@@ -328,7 +365,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	} else {
  		int i = list_item_count[current_screen];
  		printw("<<< %s >>>"
-@@ -1397,13 +1644,22 @@
+@@ -1397,13 +1662,22 @@
  	}
  	for (i = 0; i < body_lines; i++) {
  		const int index = offset + i;
@@ -354,76 +391,139 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			break;
  		case SCREEN_SYSTEM_LIST:
  		case SCREEN_EXCEPTION_LIST:
-@@ -1451,16 +1707,17 @@
+@@ -1451,80 +1725,103 @@
  
  static void down_arrow_key(struct domain_policy *dp)
  {
-+	int count = list_item_count[current_screen] - 1;
-+	if (current_screen == SCREEN_DOMAIN_LIST)
-+		count += task_list_len;
- 	if (current_y[current_screen] < body_lines - 1) {
- 		if (current_item_index[current_screen]
+-	if (current_y[current_screen] < body_lines - 1) {
+-		if (current_item_index[current_screen]
 -		    + current_y[current_screen]
 -		    < list_item_count[current_screen] - 1) {
-+		    + current_y[current_screen] <  count) {
++	int count = list_item_count[current_screen] - 1;
++	const int p0 = current_item_index[current_screen];
++	const int p1 = current_y[current_screen];
++	if (current_screen == SCREEN_DOMAIN_LIST)
++		count += task_list_len;
++	if (p0 + p1 < count) {
++		if (p1 < body_lines - 1) {
  			current_y[current_screen]++;
  			show_current(dp);
++		} else {
++			current_item_index[current_screen]++;
++			show_list(dp);
  		}
- 	} else if (current_item_index[current_screen]
+-	} else if (current_item_index[current_screen]
 -		   + current_y[current_screen]
 -		   < list_item_count[current_screen] - 1) {
-+		   + current_y[current_screen] < count) {
- 		current_item_index[current_screen]++;
- 		show_list(dp);
+-		current_item_index[current_screen]++;
+-		show_list(dp);
  	}
-@@ -1484,33 +1741,34 @@
+ }
+ 
+ static void page_up_key(struct domain_policy *dp)
+ {
+-	if (current_item_index[current_screen] + current_y[current_screen]
+-	    > body_lines) {
+-		current_item_index[current_screen] -= body_lines;
+-		if (current_item_index[current_screen] < 0)
+-			current_item_index[current_screen] = 0;
++	int p0 = current_item_index[current_screen];
++	int p1 = current_y[current_screen];
++	_Bool refresh;
++	if (p0 + p1 > body_lines) {
++		p0 -= body_lines;
++		if (p0 < 0)
++			p0 = 0;
++	} else if (p0 + p1 > 0) {
++		p0 = 0;
++		p1 = 0;
++	} else {
++		return;
++	}
++	refresh = (current_item_index[current_screen] != p0);
++	current_item_index[current_screen] = p0;
++	current_y[current_screen] = p1;
++	if (refresh)
+ 		show_list(dp);
+-	} else if (current_item_index[current_screen]
+-		   + current_y[current_screen] > 0) {
+-		current_item_index[current_screen] = 0;
+-		current_y[current_screen] = 0;
+-		show_list(dp);
+-	}
++	else
++		show_current(dp);
+ }
  
  static void page_down_key(struct domain_policy *dp)
  {
 -	if (list_item_count[current_screen] - current_item_index[current_screen]
 -	    > body_lines) {
-+	int count = list_item_count[current_screen] - 1;
-+	if (current_screen == SCREEN_DOMAIN_LIST)
-+		count += task_list_len;
-+	if (count + 1 - current_item_index[current_screen] > body_lines) {
- 		current_item_index[current_screen] += body_lines;
- 		if (current_item_index[current_screen]
+-		current_item_index[current_screen] += body_lines;
+-		if (current_item_index[current_screen]
 -		    + current_y[current_screen]
 -		    > list_item_count[current_screen] - 1)
-+		    + current_y[current_screen] > count)
- 			current_y[current_screen]
+-			current_y[current_screen]
 -				= list_item_count[current_screen] - 1
 -				- current_item_index[current_screen];
-+				= count - current_item_index[current_screen];
++	int count = list_item_count[current_screen] - 1;
++	int p0 = current_item_index[current_screen];
++	int p1 = current_y[current_screen];
++	_Bool refresh;
++	if (current_screen == SCREEN_DOMAIN_LIST)
++		count += task_list_len;
++	if (p0 + p1 + body_lines < count) {
++		p0 += body_lines;
++	} else if (p0 + p1 < count) {
++		while (p0 + p1 < count) {
++			if (p1 + 1 < body_lines)
++				p1++;
++			else
++				p0++;
++		}
++	} else {
++		return;
++	}
++	refresh = (current_item_index[current_screen] != p0);
++	current_item_index[current_screen] = p0;
++	current_y[current_screen] = p1;
++	if (refresh)
  		show_list(dp);
- 	} else if (current_item_index[current_screen]
+-	} else if (current_item_index[current_screen]
 -		   + current_y[current_screen]
 -		   < list_item_count[current_screen] - 1) {
-+		   + current_y[current_screen] < count) {
- 		current_y[current_screen]
+-		current_y[current_screen]
 -			= list_item_count[current_screen]
 -			- current_item_index[current_screen] - 1;
-+			= list_item_count[current_screen] - count;
++	else
  		show_current(dp);
- 	}
+-	}
  }
  
  int editpolicy_get_current(void)
  {
 -	if (list_item_count[current_screen] == 0)
 +	int count = list_item_count[current_screen];
++	const int p0 = current_item_index[current_screen];
++	const int p1 = current_y[current_screen];
 +	if (current_screen == SCREEN_DOMAIN_LIST)
 +		count += task_list_len;
 +	if (!count)
  		return EOF;
- 	if (current_item_index[current_screen] + current_y[current_screen] < 0
- 	    || current_item_index[current_screen] + current_y[current_screen]
+-	if (current_item_index[current_screen] + current_y[current_screen] < 0
+-	    || current_item_index[current_screen] + current_y[current_screen]
 -	    >= list_item_count[current_screen]) {
-+	    >= count) {
++	if (p0 + p1 < 0 || p0 + p1 >= count) {
  		fprintf(stderr, "ERROR: current_item_index=%d current_y=%d\n",
- 			current_item_index[current_screen],
- 			current_y[current_screen]);
-@@ -1522,9 +1780,14 @@
+-			current_item_index[current_screen],
+-			current_y[current_screen]);
++			p0, p1);
+ 		exit(127);
+ 	}
+-	return current_item_index[current_screen] + current_y[current_screen];
++	return p0 + p1;
+ }
+ 
  static void show_current(struct domain_policy *dp)
  {
  	if (current_screen == SCREEN_DOMAIN_LIST) {
@@ -439,7 +539,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (window_width < sizeof(shared_buffer))
  			shared_buffer[window_width] = '\0';
  		move(2, 0);
-@@ -1579,10 +1842,13 @@
+@@ -1579,10 +1876,13 @@
  		int x;
  		int y;
  		if (current_screen == SCREEN_DOMAIN_LIST) {
@@ -453,16 +553,16 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +					return 0;
 +				dp->list_selected[current] ^= 1;
 +			} else
-+				task_list[current - dp->list_len].done ^= 1;
++				task_list[current - dp->list_len].selected ^= 1;
  		} else {
  			generic_acl_list[current].selected ^= 1;
  		}
-@@ -1816,6 +2082,12 @@
+@@ -1816,6 +2116,12 @@
  		fprintf(fp, "select %s\n" KEYWORD_USE_PROFILE "%s\n",
  			domain_name(dp, index), line);
  	}
 +	for (index = 0; index < task_list_len; index++) {
-+		if (!task_list[index].done)
++		if (!task_list[index].selected)
 +			continue;
 +		fprintf(fp, "select pid=%u\n" KEYWORD_USE_PROFILE "%s\n",
 +			task_list[index].pid, line);
@@ -470,7 +570,44 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	close_write(fp);
  out:
  	free(line);
-@@ -2003,7 +2275,7 @@
+@@ -1957,6 +2263,36 @@
+ 	}
+ }
+ 
++static void copy_mark_state(struct domain_policy *dp, const int current)
++{
++	int index = list_item_count[current_screen];
++	if (current_screen == SCREEN_DOMAIN_LIST) {
++		if (current >= index) {
++			const u8 selected = task_list[current - index].selected;
++			for (index = current - index; index < task_list_len;
++			     index++)
++				task_list[index].selected = selected;
++		} else {
++			const u8 selected = dp->list_selected[current];
++			if (is_deleted_domain(dp, current) ||
++			    is_initializer_source(dp, current))
++				return;
++			for (index = current;
++			     index < dp->list_len; index++) {
++				if (is_deleted_domain(dp, index) ||
++				    is_initializer_source(dp, index))
++					continue;
++				dp->list_selected[index] = selected;
++			}
++		}
++	} else {
++		const u8 selected = generic_acl_list[current].selected;
++		for (index = current; index < generic_acl_list_count; index++)
++			generic_acl_list[index].selected = selected;
++	}
++	show_list(dp);
++}
++
+ static int generic_list_loop(struct domain_policy *dp)
+ {
+ 	static struct readline_data rl;
+@@ -2003,7 +2339,7 @@
  start:
  	if (current_screen == SCREEN_DOMAIN_LIST) {
  		read_domain_and_exception_policy(dp);
@@ -479,12 +616,20 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	} else {
  		read_generic_policy();
  		adjust_cursor_pos(generic_acl_list_count);
-@@ -2072,19 +2344,28 @@
+@@ -2032,7 +2368,7 @@
+ 		if (c == '\t') {
+ 			if (current_screen == SCREEN_DOMAIN_LIST) {
+ 				if (ccs_major == 2 && ccs_minor == 2)
+-					return SCREEN_EXCEPTION_LIST; 
++					return SCREEN_EXCEPTION_LIST;
+ 				return SCREEN_SYSTEM_LIST;
+ 			} else if (current_screen == SCREEN_SYSTEM_LIST) {
+ 				return SCREEN_EXCEPTION_LIST;
+@@ -2072,30 +2408,7 @@
  		case 'C':
  			if (current == EOF)
  				break;
-+			index = list_item_count[current_screen];
- 			if (current_screen == SCREEN_DOMAIN_LIST) {
+-			if (current_screen == SCREEN_DOMAIN_LIST) {
 -				const u8 selected
 -					= dp->list_selected[current];
 -				if (is_deleted_domain(dp, current) ||
@@ -493,33 +638,26 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 -				for (index = current;
 -				     index < dp->list_len; index++) {
 -					if (is_deleted_domain(dp, index) ||
-+				if (current >= index) {
-+					const u8 selected =
-+						task_list[current - index].done;
-+					for (index = current;
-+					     index < task_list_len; index++)
-+						task_list[index].done = selected;
-+				} else {
-+					const u8 selected
-+						= dp->list_selected[current];
-+					if (is_deleted_domain(dp, current) ||
-+					    is_initializer_source(dp, current))
-+						break;
-+					for (index = current;
-+					     index < dp->list_len; index++) {
-+						if (is_deleted_domain(dp, index) ||
- 					    is_initializer_source(dp, index))
+-					    is_initializer_source(dp, index))
 -						continue;
 -					dp->list_selected[index]
 -						= selected;
-+							continue;
-+						dp->list_selected[index]
-+							= selected;
-+					}
- 				}
- 			} else {
- 				const u8 selected
-@@ -2153,6 +2434,18 @@
+-				}
+-			} else {
+-				const u8 selected
+-					= generic_acl_list[current].selected;
+-				for (index = current;
+-				     index < generic_acl_list_count; index++) {
+-					generic_acl_list[index].selected
+-						= selected;
+-				}
+-			}
+-			show_list(dp);
++			copy_mark_state(dp, current);
+ 			break;
+ 		case 'f':
+ 		case 'F':
+@@ -2153,6 +2466,18 @@
  		case '\n':
  			if (current_screen != SCREEN_DOMAIN_LIST)
  				break;
@@ -538,6 +676,262 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if (is_initializer_source(dp, current)) {
  				int redirect_index;
  				get();
+Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c
+===================================================================
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c	(revision 2496)
++++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c	(working copy)
+@@ -10,84 +10,6 @@
+  */
+ #include "ccstools.h"
+ 
+-static pid_t get_ppid(const pid_t pid)
+-{
+-	char buffer[1024];
+-	FILE *fp;
+-	pid_t ppid = 1;
+-	memset(buffer, 0, sizeof(buffer));
+-	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
+-	fp = fopen(buffer, "r");
+-	if (fp) {
+-		while (memset(buffer, 0, sizeof(buffer)),
+-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
+-			if (sscanf(buffer, "PPid: %u", &ppid) == 1)
+-				break;
+-		}
+-		fclose(fp);
+-	}
+-	return ppid;
+-}
+-
+-static char *get_name(const pid_t pid)
+-{
+-	char buffer[1024];
+-	FILE *fp;
+-	memset(buffer, 0, sizeof(buffer));
+-	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
+-	fp = fopen(buffer, "r");
+-	if (fp) {
+-		static const int offset = sizeof(buffer) / 6;
+-		while (memset(buffer, 0, sizeof(buffer)),
+-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
+-			if (!strncmp(buffer, "Name:\t", 6)) {
+-				char *cp = buffer + 6;
+-				memmove(buffer, cp, strlen(cp) + 1);
+-				cp = strchr(buffer, '\n');
+-				if (cp)
+-					*cp = '\0';
+-				break;
+-			}
+-		}
+-		fclose(fp);
+-		if (buffer[0] && strlen(buffer) < offset - 1) {
+-			const char *src = buffer;
+-			char *dest = buffer + offset;
+-			while (1) {
+-				unsigned char c = *src++;
+-				if (!c) {
+-					*dest = '\0';
+-					break;
+-				}
+-				if (c == '\\') {
+-					c = *src++;
+-					if (c == '\\') {
+-						memmove(dest, "\\\\", 2);
+-						dest += 2;
+-					} else if (c == 'n') {
+-						memmove(dest, "\\012", 4);
+-						dest += 4;
+-					} else {
+-						break;
+-					}
+-				} else if (c > ' ' && c <= 126) {
+-					*dest++ = c;
+-				} else {
+-					*dest++ = '\\';
+-					*dest++ = (c >> 6) + '0';
+-					*dest++ = ((c >> 3) & 7) + '0';
+-					*dest++ = (c & 7) + '0';
+-				}
+-			}
+-			return strdup(buffer + offset);
+-		}
+-	}
+-	return NULL;
+-}
+-
+-static struct task_entry *task_list = NULL;
+-static int task_list_len = 0;
+-
+ static void dump(const pid_t pid, const int depth)
+ {
+ 	int i;
+@@ -102,7 +24,7 @@
+ 			printf("  +-");
+ 		printf(" %s (%u) %s\n", task_list[i].name,
+ 		       task_list[i].pid, task_list[i].domain);
+-		task_list[i].done = true;
++		task_list[i].selected = true;
+ 	}
+ 	for (i = 0; i < task_list_len; i++) {
+ 		if (pid != task_list[i].ppid)
+@@ -111,22 +33,8 @@
+ 	}
+ }
+ 
+-static void dump_unprocessed(void)
+-{
+-	int i;
+-	for (i = 0; i < task_list_len; i++) {
+-		if (task_list[i].done)
+-			continue;
+-		printf("%3d %s (%u) %s\n",
+-		       task_list[i].profile, task_list[i].name,
+-		       task_list[i].pid, task_list[i].domain);
+-		task_list[i].done = true;
+-	}
+-}
+-
+ int ccstree_main(int argc, char *argv[])
+ {
+-	const char *policy_file = proc_policy_process_status;
+ 	static _Bool show_all = false;
+ 	int i;
+ 	for (i = 1; i < argc; i++) {
+@@ -150,115 +58,32 @@
+ 			return 0;
+ 		}
+ 	}
+-	if (network_mode) {
+-		FILE *fp = open_write(show_all ? "proc:all_process_status" :
+-				      "proc:process_status");
+-		if (!fp) {
++	read_process_list(show_all);
++	if (!task_list_len) {
++		if (network_mode) {
+ 			fprintf(stderr, "Can't connect.\n");
+ 			return 1;
+-		}
+-		get();
+-		while (freadline(fp)) {
+-			unsigned int pid = 0;
+-			unsigned int ppid = 0;
+-			int profile = -1;
+-			char *name;
+-			char *domain;
+-			sscanf(shared_buffer, "PID=%u PPID=%u", &pid, &ppid);
+-			name = strstr(shared_buffer, "NAME=");
+-			if (name)
+-				name = strdup(name + 5);
+-			if (!name)
+-				name = "<UNKNOWN>";
+-			if (!freadline(fp))
+-				break;
+-			sscanf(shared_buffer, "%u %u", &pid, &profile);
+-			domain = strchr(shared_buffer, '<');
+-			if (domain)
+-				domain = strdup(domain);
+-			if (!domain)
+-				domain = "<UNKNOWN>";
+-			task_list = realloc(task_list,
+-					    (task_list_len + 1) *
+-					    sizeof(struct task_entry));
+-			if (!task_list)
+-				out_of_memory();
+-			task_list[task_list_len].pid = pid;
+-			task_list[task_list_len].ppid = ppid;
+-			task_list[task_list_len].profile = profile;
+-			task_list[task_list_len].name = name;
+-			task_list[task_list_len].domain = domain;
+-			task_list[task_list_len].done = false;
+-			task_list_len++;
+-		}
+-		put();
+-		fclose(fp);
+-	} else {
+-		struct dirent **namelist;
+-		int i;
+-		int n;
+-		int status_fd;
+-		if (access(proc_policy_dir, F_OK)) {
++		} else {
+ 			fprintf(stderr, "You can't use this command "
+ 				"for this kernel.\n");
+ 			return 1;
+ 		}
+-		status_fd = open(policy_file, O_RDWR);
+-		if (status_fd == EOF) {
+-			fprintf(stderr, "Can't open %s\n", policy_file);
+-			return 1;
+-		}
+-		n = scandir("/proc/", &namelist, 0, 0);
+-		for (i = 0; i < n; i++) {
+-			char *name;
+-			char *domain;
+-			int profile = -1;
+-			unsigned int pid = 0;
+-			char buffer[128];
+-			char test[16];
+-			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1)
+-				goto skip;
+-			memset(buffer, 0, sizeof(buffer));
+-			snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/exe",
+-				 pid);
+-			if (!show_all &&
+-			    readlink(buffer, test, sizeof(test)) <= 0)
+-				goto skip;
+-			name = get_name(pid);
+-			if (!name)
+-				name = "<UNKNOWN>";
+-			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
+-			write(status_fd, buffer, strlen(buffer));
+-			get();
+-			memset(shared_buffer, 0, sizeof(shared_buffer));
+-			read(status_fd, shared_buffer,
+-			     sizeof(shared_buffer) - 1);
+-			sscanf(shared_buffer, "%u %u", &pid, &profile);
+-			domain = strchr(shared_buffer, '<');
+-			if (domain)
+-				domain = strdup(domain);
+-			if (!domain)
+-				domain = "<UNKNOWN>";
+-			put();
+-			task_list = realloc(task_list, (task_list_len + 1) *
+-					    sizeof(struct task_entry));
+-			if (!task_list)
+-				out_of_memory();
+-			task_list[task_list_len].pid = pid;
+-			task_list[task_list_len].ppid = get_ppid(pid);
+-			task_list[task_list_len].profile = profile;
+-			task_list[task_list_len].name = name;
+-			task_list[task_list_len].domain = domain;
+-			task_list[task_list_len].done = false;
+-			task_list_len++;
+-skip:
+-			free((void *) namelist[i]);
+-		}
+-		if (n >= 0)
+-			free((void *) namelist);
+-		close(status_fd);
+ 	}
+ 	dump(1, 0);
+-	dump_unprocessed();
++	for (i = 0; i < task_list_len; i++) {
++		if (task_list[i].selected)
++			continue;
++		printf("%3d %s (%u) %s\n",
++		       task_list[i].profile, task_list[i].name,
++		       task_list[i].pid, task_list[i].domain);
++		task_list[i].selected = true;
++	}
++	while (task_list_len) {
++		task_list_len--;
++		free((void *) task_list[task_list_len].name);
++		free((void *) task_list[task_list_len].domain);
++	}
++	free(task_list);
++	task_list = NULL;
+ 	return 0;
+ }
 Index: trunk/1.6.x/ccs-tools/ccstools/Makefile
 ===================================================================
 --- trunk/1.6.x/ccs-tools/ccstools/Makefile	(revision 2496)
