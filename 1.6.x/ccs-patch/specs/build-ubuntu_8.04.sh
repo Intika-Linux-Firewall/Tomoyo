@@ -12,7 +12,7 @@ VERSION=`uname -r | cut -d - -f 1,2`
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
-for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6
+for key in 0A0AC927 17063E6D 174BF01A 191FCD8A 60E80B5B 63549F8E 76682A37 8BF9EFE6 3255AAF4
 do
   gpg --list-keys $key 2> /dev/null > /dev/null || wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x'$key | gpg --import || die "Can't import PGP key."
 done
@@ -70,7 +70,7 @@ sed -i -e 's:virtual:virtual ccs:' debian/rules.d/i386.mk || die "Can't edit fil
 debian/rules binary-indep binary-arch || die "Failed to build kernel package."
 cd .. || die "Can't chdir to ../ ."
 
-cd linux-restricted-modules-2.6.24-2.6.24.16/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.16/ ."
+cd linux-restricted-modules-2.6.24-2.6.24.17/ || die "Can't chdir to linux-restricted-modules-2.6.24-2.6.24.17/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
 sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
