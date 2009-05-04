@@ -45,24 +45,24 @@ But regarding Ubuntu 8.04, a binary kernel package is available and this page us
 <p>First, download the binary kernel package.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-image-2.6.24-23-ccs1.6.7p1_2.6.24-23.52_i386.deb</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-ubuntu-modules-2.6.24-23-ccs1.6.7p1_2.6.24-23.37_i386.deb</span>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-restricted-modules-2.6.24-23-ccs1.6.7p1_2.6.24.16-23.56_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-image-2.6.24-24-ccs1.6.7p1_2.6.24-24.53_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-ubuntu-modules-2.6.24-24-ccs1.6.7p1_2.6.24-24.39_i386.deb</span>
+# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-restricted-modules-2.6.24-24-ccs1.6.7p1_2.6.24.17-24.1_i386.deb</span>
 </pre>
 
 <p>Next, install the downloaded package.</p>
 
 <pre>
-# <span class="user">dpkg --install linux-image-2.6.24-23-ccs1.6.7p1_2.6.24-23.52_i386.deb linux-ubuntu-modules-2.6.24-23-ccs1.6.7p1_2.6.24-23.37_i386.deb linux-restricted-modules-2.6.24-23-ccs1.6.7p1_2.6.24.16-23.56_i386.deb</span>
+# <span class="user">dpkg --install linux-image-2.6.24-24-ccs1.6.7p1_2.6.24-24.53_i386.deb linux-ubuntu-modules-2.6.24-24-ccs1.6.7p1_2.6.24-24.39_i386.deb linux-restricted-modules-2.6.24-24-ccs1.6.7p1_2.6.24.17-24.1_i386.deb</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 
 <pre>
-title           Ubuntu 8.04, kernel 2.6.24-23-ccs
+title           Ubuntu 8.04, kernel 2.6.24-24-ccs
 root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.24-23-ccs root=/dev/sda1 ro quiet splash
-initrd          /boot/initrd.img-2.6.24-23-ccs
+kernel          /boot/vmlinuz-2.6.24-24-ccs root=/dev/sda1 ro quiet splash
+initrd          /boot/initrd.img-2.6.24-24-ccs
 </pre>
 
 <p>Comment out the "timeout=" line of /boot/grub/menu.lst so that you will not fail to select TOMOYO Linux's kernel.</p>
