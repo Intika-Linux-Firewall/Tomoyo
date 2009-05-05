@@ -77,7 +77,24 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static int select_window(struct domain_policy *dp, const int current);
  static _Bool show_command_key(const int screen, const _Bool readonly);
  static int generic_list_loop(struct domain_policy *dp);
-@@ -352,7 +351,7 @@
+@@ -131,6 +130,16 @@
+ 	return c;
+ }
+ 
++static int count3(const struct task_entry *array, int len)
++{
++	int i;
++	int c = 0;
++	for (i = 0; i < len; i++)
++		if (array[i].selected)
++			c++;
++	return c;
++}
++
+ static _Bool is_keeper_domain(struct domain_policy *dp, const int index)
+ {
+ 	return dp->list[index].is_dk;
+@@ -352,7 +361,7 @@
  }
  
  
@@ -86,7 +103,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int tmp_col = 0;
  	const struct domain_initializer_entry *domain_initializer;
-@@ -437,7 +436,7 @@
+@@ -437,7 +446,7 @@
  	return tmp_col;
  }
  
@@ -95,7 +112,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	u8 directive = generic_acl_list[index].directive;
  	const char *cp1 = directives[directive].alias;
-@@ -452,7 +451,7 @@
+@@ -452,7 +461,7 @@
  	return strlen(cp1) + strlen(cp2) + 8 + list_indent;
  }
  
@@ -104,7 +121,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	const char *cp = generic_acl_list[index].operand;
  	const u8 profile = generic_acl_list[index].directive;
-@@ -464,7 +463,7 @@
+@@ -464,7 +473,7 @@
  	return strlen(number) + strlen(cp) + 8;
  }
  
@@ -113,7 +130,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	const char *cp = generic_acl_list[index].operand;
  	printw("%c%4d: %s ",
-@@ -473,7 +472,7 @@
+@@ -473,7 +482,7 @@
  	return strlen(cp) + 8;
  }
  
@@ -122,7 +139,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	unsigned int now = 0;
  	unsigned int quota = 0;
-@@ -608,12 +607,17 @@
+@@ -608,12 +617,17 @@
  static const char *policy_file = NULL;
  static const char *list_caption = NULL;
  static char *current_domain = NULL;
@@ -140,7 +157,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static struct domain_keeper_entry *domain_keeper_list = NULL;
  static int domain_keeper_list_len = 0;
  static struct domain_initializer_entry *domain_initializer_list = NULL;
-@@ -882,7 +886,11 @@
+@@ -882,7 +896,11 @@
  			/* Don't set error message if failed. */
  			fp = fopen(policy_file, "r+");
  		if (fp) {
@@ -153,7 +170,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			if (network_mode)
  				fputc(0, fp);
  			fflush(fp);
-@@ -965,6 +973,236 @@
+@@ -965,6 +983,236 @@
  	}
  }
  
@@ -390,7 +407,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static int add_domain_initializer_entry(const char *domainname,
  					const char *program, const _Bool is_not)
  {
-@@ -1331,13 +1569,39 @@
+@@ -1331,13 +1579,39 @@
  		}
  	}
  
@@ -432,7 +449,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static void show_list(struct domain_policy *dp)
  {
  	const int offset = current_item_index[current_screen];
-@@ -1360,9 +1624,10 @@
+@@ -1360,9 +1634,10 @@
  	if (current_screen == SCREEN_DOMAIN_LIST) {
  		int i = list_item_count[SCREEN_DOMAIN_LIST]
  			- unnumbered_domain_count;
@@ -445,7 +462,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	} else {
  		int i = list_item_count[current_screen];
  		printw("<<< %s >>>"
-@@ -1397,13 +1662,22 @@
+@@ -1397,13 +1672,22 @@
  	}
  	for (i = 0; i < body_lines; i++) {
  		const int index = offset + i;
@@ -471,7 +488,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			break;
  		case SCREEN_SYSTEM_LIST:
  		case SCREEN_EXCEPTION_LIST:
-@@ -1451,80 +1725,103 @@
+@@ -1451,80 +1735,103 @@
  
  static void down_arrow_key(struct domain_policy *dp)
  {
@@ -619,7 +636,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (window_width < sizeof(shared_buffer))
  			shared_buffer[window_width] = '\0';
  		move(2, 0);
-@@ -1573,27 +1870,29 @@
+@@ -1573,27 +1880,29 @@
  	}
  }
  
@@ -668,7 +685,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  }
  
  static int generic_acl_compare(const void *a, const void *b)
-@@ -1617,16 +1916,16 @@
+@@ -1617,16 +1926,16 @@
  	}
  }
  
@@ -688,7 +705,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			printw("Select domain using Space key first.");
  		else
  			printw("Delete selected domain%s? ('Y'es/'N'o)",
-@@ -1634,7 +1933,7 @@
+@@ -1634,7 +1943,7 @@
  	} else {
  		c = count2(generic_acl_list, generic_acl_list_count);
  		if (!c)
@@ -697,7 +714,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		if (!c)
  			printw("Select entry using Space key first.");
  		else
-@@ -1655,31 +1954,35 @@
+@@ -1655,31 +1964,36 @@
  		return;
  	}
  	if (current_screen == SCREEN_DOMAIN_LIST) {
@@ -728,7 +745,8 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +			if (current_pid)
 +				fprintf(fp, "select pid=%u\n", current_pid);
 +			else
-+				fprintf(fp, "select %s\n", current_domain);
++				fprintf(fp, "select domain=%s\n",
++					current_domain);
 +		}
 +		for (i = 0; i < generic_acl_list_count; i++) {
  			u8 directive;
@@ -744,7 +762,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  		close_write(fp);
  	}
-@@ -1714,7 +2017,10 @@
+@@ -1714,7 +2028,10 @@
  		}
  		break;
  	case SCREEN_ACL_LIST:
@@ -752,11 +770,11 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +		if (current_pid)
 +			fprintf(fp, "select pid=%u\n", current_pid);
 +		else
-+			fprintf(fp, "select %s\n", current_domain);
++			fprintf(fp, "select domain=%s\n", current_domain);
  		/* Fall through. */
  	case SCREEN_SYSTEM_LIST:
  	case SCREEN_EXCEPTION_LIST:
-@@ -1735,7 +2041,7 @@
+@@ -1735,7 +2052,7 @@
  }
  
  static void find_entry(struct domain_policy *dp, _Bool input, _Bool forward,
@@ -765,7 +783,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int index = current;
  	char *line = NULL;
-@@ -1788,7 +2094,7 @@
+@@ -1788,13 +2105,14 @@
  	show_list(dp);
  }
  
@@ -774,8 +792,20 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int index;
  	FILE *fp;
-@@ -1816,12 +2122,18 @@
- 		fprintf(fp, "select %s\n" KEYWORD_USE_PROFILE "%s\n",
+ 	char *line;
++
+ 	if (!count(dp->list_selected, dp->list_len) &&
+-	    !select_item(dp, current)) {
++	    !count3(task_list, task_list_len) && !select_item(dp, current)) {
+ 		move(1, 0);
+ 		printw("Select domain using Space key first.");
+ 		clrtoeol();
+@@ -1813,15 +2131,21 @@
+ 	for (index = 0; index < dp->list_len; index++) {
+ 		if (!dp->list_selected[index])
+ 			continue;
+-		fprintf(fp, "select %s\n" KEYWORD_USE_PROFILE "%s\n",
++		fprintf(fp, "select domain=%s\n" KEYWORD_USE_PROFILE "%s\n",
  			domain_name(dp, index), line);
  	}
 +	for (index = 0; index < task_list_len; index++) {
@@ -794,7 +824,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int index;
  	FILE *fp;
-@@ -1855,7 +2167,7 @@
+@@ -1855,7 +2179,7 @@
  	free(line);
  }
  
@@ -803,7 +833,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  {
  	int index;
  	FILE *fp;
-@@ -1888,6 +2200,44 @@
+@@ -1888,6 +2212,47 @@
  	free(line);
  }
  
@@ -839,7 +869,10 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 +		return false;
 +	}
 +	free(current_domain);
-+	current_domain = strdup(domain_name(dp, current));
++	if (current >= index)
++		current_domain = strdup(task_list[current - index].domain);
++	else
++		current_domain = strdup(domain_name(dp, current));
 +	if (!current_domain)
 +		out_of_memory();
 +	return true;
@@ -848,7 +881,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static int select_window(struct domain_policy *dp, const int current)
  {
  	const _Bool s_ok = offline_mode ||
-@@ -1906,8 +2256,9 @@
+@@ -1906,8 +2271,9 @@
  	if (d_ok)
  		printw("d     <<< Domain Transition Editor >>>\n");
  	if (d_ok && current_screen == SCREEN_DOMAIN_LIST &&
@@ -860,7 +893,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		printw("a     <<< Domain Policy Editor >>>\n");
  	printw("p     <<< Profile Editor >>>\n");
  	printw("m     <<< Manager Policy Editor >>>\n");
-@@ -1927,16 +2278,8 @@
+@@ -1927,16 +2293,8 @@
  		if (d_ok && (c == 'D' || c == 'd'))
  			return SCREEN_DOMAIN_LIST;
  		if (d_ok && (c == 'A' || c == 'a')) {
@@ -878,7 +911,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		}
  		if (c == 'P' || c == 'p')
  			return SCREEN_PROFILE_LIST;
-@@ -1957,6 +2300,67 @@
+@@ -1957,6 +2315,67 @@
  	}
  }
  
@@ -946,7 +979,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  static int generic_list_loop(struct domain_policy *dp)
  {
  	static struct readline_data rl;
-@@ -2003,7 +2407,7 @@
+@@ -2003,7 +2422,7 @@
  start:
  	if (current_screen == SCREEN_DOMAIN_LIST) {
  		read_domain_and_exception_policy(dp);
@@ -955,7 +988,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	} else {
  		read_generic_policy();
  		adjust_cursor_pos(generic_acl_list_count);
-@@ -2032,7 +2436,7 @@
+@@ -2032,7 +2451,7 @@
  		if (c == '\t') {
  			if (current_screen == SCREEN_DOMAIN_LIST) {
  				if (ccs_major == 2 && ccs_minor == 2)
@@ -964,7 +997,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  				return SCREEN_SYSTEM_LIST;
  			} else if (current_screen == SCREEN_SYSTEM_LIST) {
  				return SCREEN_EXCEPTION_LIST;
-@@ -2047,8 +2451,6 @@
+@@ -2047,8 +2466,6 @@
  		if (c == ERR)
  			continue; /* Ignore invalid key. */
  		switch (c) {
@@ -973,7 +1006,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case KEY_RESIZE:
  			resize_window();
  			show_list(dp);
-@@ -2072,30 +2474,7 @@
+@@ -2072,30 +2489,7 @@
  		case 'C':
  			if (current == EOF)
  				break;
@@ -1005,7 +1038,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			break;
  		case 'f':
  		case 'F':
-@@ -2151,35 +2530,8 @@
+@@ -2151,35 +2545,8 @@
  			break;
  		case '\r':
  		case '\n':
@@ -1042,7 +1075,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  			break;
  		case 's':
  		case 'S':
-@@ -2215,33 +2567,7 @@
+@@ -2215,33 +2582,7 @@
  			max_eat_col[current_screen] = max_col;
  			goto start2;
  		case KEY_IC:
