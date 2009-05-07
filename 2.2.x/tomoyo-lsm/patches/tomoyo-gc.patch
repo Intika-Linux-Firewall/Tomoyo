@@ -1,19 +1,13 @@
 Subject: [TOMOYO] Add garbage collector support.
 
-This patch implements garbage collector for TOMOYO.
-As of now, TOMOYO cannot release memory used by list elements and strings.
-This is because a process who is reading/writing list elements has pointers
-which point to list elements and releases a lock when they leave the kernel,
-but TOMOYO does not manage list of pointers.
+As of now, TOMOYO cannot release memory used by deleted list elements and
+deleted strings. This is because a process who is reading/writing list elements
+has pointers which point to (possibly deleted) list elements and releases a
+lock when the process leaves the kernel, but TOMOYO does not manage list of
+pointers.
 
-In the past, we tried to add a refcounter to each list element, but it turned
-out that that approach messes up the source code. Therefore, this time,
-we added list of pointers which are used by processes who are reading/writing
-list elements.
-
-This patch increases memory usage than current implementation if list elements
-are not deleted, but allows an administrator release memory used by list
-elements if they are deleted.
+This patch makes TOMOYO to manage list of pointers and allows an administrator
+release memory used by deleted list elements and deleted strings.
 
 Rules:
 
@@ -50,7 +44,9 @@ Rules:
   tomoyo_used_by_cookie() is called with tomoyo_policy_lock held for writing
   to check whether the pointer is referenced by a cookie or not.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c   |  264 +++++++++++++++++++++++++++++---------------
  security/tomoyo/common.h   |   37 ++++--
