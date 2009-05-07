@@ -19,14 +19,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/Kconfig    |    1 
  security/tomoyo/Makefile   |    2 
- security/tomoyo/common.c   |  129 ++++++
+ security/tomoyo/common.c   |  128 ++++++
  security/tomoyo/common.h   |   75 +++
  security/tomoyo/network.c  |  883 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.c |   65 +++
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |  143 +++++++
  security/tomoyo/tomoyo.h   |   17 
- 9 files changed, 1316 insertions(+), 4 deletions(-)
+ 9 files changed, 1315 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -202,7 +202,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			case TOMOYO_TYPE_SINGLE_PATH_ACL:
  				acl1 = container_of(acl,
  				    struct tomoyo_single_path_acl_record,
-@@ -1484,6 +1599,17 @@ static void tomoyo_cleanup_domain_policy
+@@ -1482,6 +1597,16 @@ static void tomoyo_cleanup_domain_policy
  				tomoyo_del_name(acl2->filename1);
  				tomoyo_del_name(acl2->filename2);
  				break;
@@ -210,17 +210,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				acl3 = container_of(acl,
 +				    struct tomoyo_ip_network_acl_record,
 +						    head);
-+				printk(KERN_DEBUG "Delete network\n");
 +				if (acl3->record_type !=
 +				    TOMOYO_IP_RECORD_TYPE_IPv6)
 +					break;
 +				tomoyo_del_ipv6_address(acl3->u.ipv6.min);
 +				tomoyo_del_ipv6_address(acl3->u.ipv6.max);
 +				break;
- 			default:
- 				printk(KERN_DEBUG "Delete unknown\n");
  			}
-@@ -2153,6 +2279,9 @@ void *tomoyo_alloc_acl_element(const u8 
+ 			tomoyo_free_element(acl);
+ 		}
+@@ -2148,6 +2273,9 @@ void *tomoyo_alloc_acl_element(const u8 
  	case TOMOYO_TYPE_DOUBLE_PATH_ACL:
  		len = sizeof(struct tomoyo_double_path_acl_record);
  		break;
@@ -1232,7 +1231,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6.git/security/tomoyo/realpath.c
-@@ -351,6 +351,71 @@ void tomoyo_del_name(const struct tomoyo
+@@ -347,6 +347,71 @@ void tomoyo_del_name(const struct tomoyo
  	/***** EXCLUSIVE SECTION END *****/
  }
  
