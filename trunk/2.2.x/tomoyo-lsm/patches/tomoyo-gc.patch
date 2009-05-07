@@ -1,14 +1,14 @@
 Subject: [TOMOYO] Add garbage collector support.
 
 A process who is reading/writing list elements has pointers which point to
-(possibly deleted) list elements and releases a lock when the process leaves
-the kernel.
+(possibly marked-as-deleted) list elements and releases a lock when the process
+leaves the kernel.
 
-As of now, TOMOYO cannot release memory used by deleted list elements and
-deleted strings because TOMOYO does not manage list of pointers.
+As of now, TOMOYO cannot release memory used by marked-as-deleted list elements
+because TOMOYO does not manage list of pointers.
 
 This patch makes TOMOYO to manage list of pointers and allows an administrator
-release memory used by deleted list elements and deleted strings.
+release memory used by marked-as-deleted list elements.
 
 Rules:
 
