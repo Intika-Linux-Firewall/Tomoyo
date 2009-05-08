@@ -49,15 +49,15 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c   |  259 ++++++++++++++++++++++++++++----------------
+ security/tomoyo/common.c   |  261 +++++++++++++++++++++++++++++---------------
  security/tomoyo/common.h   |   37 ++++--
  security/tomoyo/domain.c   |  237 ++++++++++++++++++++++++----------------
  security/tomoyo/file.c     |  188 +++++++++++++++++++++++---------
  security/tomoyo/realpath.c |  264 ++++++++++++++++++++++++++-------------------
- security/tomoyo/realpath.h |   43 +++++--
+ security/tomoyo/realpath.h |   47 +++++---
  security/tomoyo/tomoyo.c   |   40 ++++--
  security/tomoyo/tomoyo.h   |   13 --
- 8 files changed, 689 insertions(+), 392 deletions(-)
+ 8 files changed, 695 insertions(+), 392 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -125,18 +125,20 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
  		return true;
  	if (!domain->quota_warned) {
-@@ -915,7 +917,10 @@ static int tomoyo_write_profile(struct t
+@@ -915,7 +917,12 @@ static int tomoyo_write_profile(struct t
  		return -EINVAL;
  	*cp = '\0';
  	if (!strcmp(data, "COMMENT")) {
++		/***** EXCLUSIVE SECTION START *****/
 +		down_write(&tomoyo_policy_lock);
 +		tomoyo_del_name(profile->comment);
  		profile->comment = tomoyo_save_name(cp + 1);
 +		up_write(&tomoyo_policy_lock);
++		/***** EXCLUSIVE SECTION END *****/
  		return 0;
  	}
  	for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++) {
-@@ -973,9 +978,13 @@ static int tomoyo_read_profile(struct to
+@@ -973,9 +980,13 @@ static int tomoyo_read_profile(struct to
  		if (!profile)
  			continue;
  		if (!type) { /* Print profile' comment tag. */
@@ -153,7 +155,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  				break;
  			continue;
  		}
-@@ -1020,7 +1029,6 @@ struct tomoyo_policy_manager_entry {
+@@ -1020,7 +1031,6 @@ struct tomoyo_policy_manager_entry {
  
  /* The list for "struct tomoyo_policy_manager_entry". */
  static LIST_HEAD(tomoyo_policy_manager_list);
@@ -161,7 +163,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  /**
   * tomoyo_update_manager_entry - Add a manager entry.
-@@ -1051,7 +1059,7 @@ static int tomoyo_update_manager_entry(c
+@@ -1051,7 +1061,7 @@ static int tomoyo_update_manager_entry(c
  	if (!saved_manager)
  		return -ENOMEM;
  	/***** EXCLUSIVE SECTION START *****/
@@ -170,7 +172,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
  		if (ptr->manager != saved_manager)
  			continue;
-@@ -1067,11 +1075,13 @@ static int tomoyo_update_manager_entry(c
+@@ -1067,11 +1077,13 @@ static int tomoyo_update_manager_entry(c
  	if (!new_entry)
  		goto out;
  	new_entry->manager = saved_manager;
@@ -185,7 +187,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	/***** EXCLUSIVE SECTION END *****/
  	return error;
  }
-@@ -1095,6 +1105,23 @@ static int tomoyo_write_manager_policy(s
+@@ -1095,6 +1107,23 @@ static int tomoyo_write_manager_policy(s
  	return tomoyo_update_manager_entry(data, is_delete);
  }
  
@@ -209,7 +211,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /**
   * tomoyo_read_manager_policy - Read manager policy.
   *
-@@ -1109,8 +1136,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1109,8 +1138,8 @@ static int tomoyo_read_manager_policy(st
  
  	if (head->read_eof)
  		return 0;
@@ -220,7 +222,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			     &tomoyo_policy_manager_list) {
  		struct tomoyo_policy_manager_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_policy_manager_entry,
-@@ -1122,8 +1149,10 @@ static int tomoyo_read_manager_policy(st
+@@ -1122,8 +1151,10 @@ static int tomoyo_read_manager_policy(st
  			break;
  		}
  	}
@@ -232,7 +234,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return 0;
  }
  
-@@ -1145,7 +1174,7 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1145,7 +1176,7 @@ static bool tomoyo_is_policy_manager(voi
  		return true;
  	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
  		return false;
@@ -241,7 +243,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
  		if (!ptr->is_deleted && ptr->is_domain
  		    && !tomoyo_pathcmp(domainname, ptr->manager)) {
-@@ -1153,13 +1182,13 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1153,13 +1184,13 @@ static bool tomoyo_is_policy_manager(voi
  			break;
  		}
  	}
@@ -257,7 +259,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
  		if (!ptr->is_deleted && !ptr->is_domain
  		    && !strcmp(exe, ptr->manager->name)) {
-@@ -1167,7 +1196,7 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1167,7 +1198,7 @@ static bool tomoyo_is_policy_manager(voi
  			break;
  		}
  	}
@@ -266,7 +268,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	if (!found) { /* Reduce error messages. */
  		static pid_t last_pid;
  		const pid_t pid = current->pid;
-@@ -1194,25 +1223,30 @@ static bool tomoyo_is_select_one(struct 
+@@ -1194,25 +1225,30 @@ static bool tomoyo_is_select_one(struct 
  {
  	unsigned int pid;
  	struct tomoyo_domain_info *domain = NULL;
@@ -303,7 +305,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
-@@ -1222,15 +1256,15 @@ static bool tomoyo_is_select_one(struct 
+@@ -1222,15 +1258,15 @@ static bool tomoyo_is_select_one(struct 
  	head->read_eof = !domain;
  	if (domain) {
  		struct tomoyo_domain_info *d;
@@ -324,7 +326,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		head->read_bit = 0;
  		head->read_step = 0;
  		if (domain->is_deleted)
-@@ -1249,7 +1283,7 @@ static bool tomoyo_is_select_one(struct 
+@@ -1249,7 +1285,7 @@ static bool tomoyo_is_select_one(struct 
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -333,7 +335,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -1264,16 +1298,16 @@ static int tomoyo_write_domain_policy(st
+@@ -1264,16 +1300,16 @@ static int tomoyo_write_domain_policy(st
  	if (!tomoyo_is_policy_manager())
  		return -EPERM;
  	if (tomoyo_is_domain_def(data)) {
@@ -358,7 +360,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		return 0;
  	}
  	if (!domain)
-@@ -1410,6 +1444,57 @@ static bool tomoyo_print_entry(struct to
+@@ -1410,6 +1446,57 @@ static bool tomoyo_print_entry(struct to
  	return false;
  }
  
@@ -416,7 +418,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /**
   * tomoyo_read_domain_policy - Read domain policy.
   *
-@@ -1427,8 +1512,9 @@ static int tomoyo_read_domain_policy(str
+@@ -1427,8 +1514,9 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -428,7 +430,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1461,18 +1547,16 @@ acl_loop:
+@@ -1461,18 +1549,16 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -450,7 +452,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1485,8 +1569,10 @@ tail_mark:
+@@ -1485,8 +1571,10 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -462,7 +464,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return 0;
  }
  
-@@ -1496,30 +1582,25 @@ tail_mark:
+@@ -1496,30 +1584,25 @@ tail_mark:
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns 0 on success, -EINVAL otherwise.
@@ -501,7 +503,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return 0;
  }
  
-@@ -1529,13 +1610,6 @@ static int tomoyo_write_domain_profile(s
+@@ -1529,13 +1612,6 @@ static int tomoyo_write_domain_profile(s
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns list of profile number and domainname pairs.
@@ -515,7 +517,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   */
  static int tomoyo_read_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1544,8 +1618,8 @@ static int tomoyo_read_domain_profile(st
+@@ -1544,8 +1620,8 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -526,7 +528,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1556,7 +1630,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1556,7 +1632,7 @@ static int tomoyo_read_domain_profile(st
  			break;
  		}
  	}
@@ -535,7 +537,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1595,11 +1669,11 @@ static int tomoyo_read_pid(struct tomoyo
+@@ -1595,11 +1671,11 @@ static int tomoyo_read_pid(struct tomoyo
  		struct task_struct *p;
  		struct tomoyo_domain_info *domain = NULL;
  		/***** CRITICAL SECTION START *****/
@@ -549,7 +551,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		/***** CRITICAL SECTION END *****/
  		if (domain)
  			tomoyo_io_printf(head, "%d %u %s", pid, domain->profile,
-@@ -1655,43 +1729,43 @@ static int tomoyo_read_exception_policy(
+@@ -1655,43 +1731,43 @@ static int tomoyo_read_exception_policy(
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -602,7 +604,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			head->read_step = 9;
  		case 9:
  			head->read_eof = true;
-@@ -1778,7 +1852,7 @@ void tomoyo_load_policy(const char *file
+@@ -1778,7 +1854,7 @@ void tomoyo_load_policy(const char *file
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
  		struct tomoyo_domain_info *domain;
@@ -611,7 +613,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		list_for_each_entry(domain, &tomoyo_domain_list, list) {
  			const u8 profile = domain->profile;
  			if (tomoyo_profile_ptr[profile])
-@@ -1786,7 +1860,7 @@ void tomoyo_load_policy(const char *file
+@@ -1786,7 +1862,7 @@ void tomoyo_load_policy(const char *file
  			panic("Profile %u (used by '%s') not defined.\n",
  			      profile, domain->domainname->name);
  		}
@@ -620,7 +622,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  }
  
-@@ -1919,6 +1993,9 @@ static int tomoyo_open_control(const u8 
+@@ -1919,6 +1995,9 @@ static int tomoyo_open_control(const u8 
  			return -ENOMEM;
  		}
  	}
@@ -630,7 +632,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is
-@@ -2043,6 +2120,9 @@ static int tomoyo_close_control(struct f
+@@ -2043,6 +2122,9 @@ static int tomoyo_close_control(struct f
  	head->read_buf = NULL;
  	tomoyo_free(head->write_buf);
  	head->write_buf = NULL;
@@ -640,7 +642,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
-@@ -2171,9 +2251,10 @@ static void __init tomoyo_create_entry(c
+@@ -2171,9 +2253,10 @@ static void __init tomoyo_create_entry(c
  static int __init tomoyo_initerface_init(void)
  {
  	struct dentry *tomoyo_dir;
@@ -2093,7 +2095,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Allocate memory for temporary use (e.g. permission checks). */
  void *tomoyo_alloc(const size_t size);
  
-@@ -63,4 +51,35 @@ int tomoyo_write_memory_quota(struct tom
+@@ -63,4 +51,39 @@ int tomoyo_write_memory_quota(struct tom
  /* Initialize realpath related code. */
  void __init tomoyo_realpath_init(void);
  
@@ -2115,8 +2117,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 + * @cookie: Pointer to "struct tomoyo_cookie".
 + * @ptr:    Pointer to assign.
 + *
-+ * Caller must hold tomoyo_policy_lock for writing unless @ptr is NULL or
-+ * @ptr is already in cookie list.
++ * Caller must hold tomoyo_policy_lock for reading unless either
++ *   (a) @ptr is NULL
++ *   (b) @ptr is already in cookie list
++ *   (c) @ptr is not in memory for the policy
++ *   (d) in the initialization phase
++ * is true.
 + */
 +static inline void tomoyo_update_cookie(struct tomoyo_cookie *cookie,
 +					const void *ptr)
