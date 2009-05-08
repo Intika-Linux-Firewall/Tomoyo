@@ -48,7 +48,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
 --- security-testing-2.6.git.orig/include/linux/security.h
 +++ security-testing-2.6.git/include/linux/security.h
-@@ -880,6 +880,10 @@ static inline void security_free_mnt_opt
+@@ -881,6 +881,10 @@ static inline void security_free_mnt_opt
   *	@sock contains the listening socket structure.
   *	@newsock contains the newly created server socket for connection.
   *	Return 0 if permission is granted.
@@ -59,7 +59,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @socket_sendmsg:
   *	Check permission before transmitting a message to another socket.
   *	@sock contains the socket structure.
-@@ -893,6 +897,15 @@ static inline void security_free_mnt_opt
+@@ -894,6 +898,15 @@ static inline void security_free_mnt_opt
   *	@size contains the size of message structure.
   *	@flags contains the operational flags.
   *	Return 0 if permission is granted.
@@ -75,7 +75,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @socket_getsockname:
   *	Check permission before the local address (name) of the socket object
   *	@sock is retrieved.
-@@ -1549,10 +1562,14 @@ struct security_operations {
+@@ -1550,10 +1563,14 @@ struct security_operations {
  			       struct sockaddr *address, int addrlen);
  	int (*socket_listen) (struct socket *sock, int backlog);
  	int (*socket_accept) (struct socket *sock, struct socket *newsock);
@@ -90,7 +90,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	int (*socket_getsockname) (struct socket *sock);
  	int (*socket_getpeername) (struct socket *sock);
  	int (*socket_getsockopt) (struct socket *sock, int level, int optname);
-@@ -2530,9 +2547,12 @@ int security_socket_bind(struct socket *
+@@ -2531,9 +2548,12 @@ int security_socket_bind(struct socket *
  int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
  int security_socket_listen(struct socket *sock, int backlog);
  int security_socket_accept(struct socket *sock, struct socket *newsock);
@@ -103,7 +103,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_getsockname(struct socket *sock);
  int security_socket_getpeername(struct socket *sock);
  int security_socket_getsockopt(struct socket *sock, int level, int optname);
-@@ -2608,6 +2628,11 @@ static inline int security_socket_accept
+@@ -2609,6 +2629,11 @@ static inline int security_socket_accept
  	return 0;
  }
  
@@ -115,7 +115,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
-@@ -2621,6 +2646,13 @@ static inline int security_socket_recvms
+@@ -2622,6 +2647,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -175,7 +175,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	if (copied > len) {
 --- security-testing-2.6.git.orig/net/ipv6/udp.c
 +++ security-testing-2.6.git/net/ipv6/udp.c
-@@ -208,6 +208,13 @@ try_again:
+@@ -212,6 +212,13 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -191,7 +191,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	copied = len;
 --- security-testing-2.6.git.orig/net/socket.c
 +++ security-testing-2.6.git/net/socket.c
-@@ -1530,6 +1530,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1528,6 +1528,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  		if (err < 0)
  			goto out_fd;
  	}
@@ -238,7 +238,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	set_to_cap_if_null(ops, socket_setsockopt);
 --- security-testing-2.6.git.orig/security/security.c
 +++ security-testing-2.6.git/security/security.c
-@@ -1007,6 +1007,11 @@ int security_socket_accept(struct socket
+@@ -1009,6 +1009,11 @@ int security_socket_accept(struct socket
  	return security_ops->socket_accept(sock, newsock);
  }
  
@@ -250,7 +250,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
  	return security_ops->socket_sendmsg(sock, msg, size);
-@@ -1018,6 +1023,13 @@ int security_socket_recvmsg(struct socke
+@@ -1020,6 +1025,13 @@ int security_socket_recvmsg(struct socke
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  

@@ -1718,7 +1718,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	tomoyo_free(buf1);
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6.git/security/tomoyo/realpath.c
-@@ -194,68 +194,51 @@ char *tomoyo_realpath_nofollow(const cha
+@@ -195,68 +195,51 @@ char *tomoyo_realpath_nofollow(const cha
  }
  
  /* Memory allocated for non-string data. */
@@ -1815,7 +1815,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Quota for holding string data in bytes. */
  static unsigned int tomoyo_quota_for_savename;
  
-@@ -269,44 +252,27 @@ static unsigned int tomoyo_quota_for_sav
+@@ -270,44 +253,27 @@ static unsigned int tomoyo_quota_for_sav
  /* Structure for string data. */
  struct tomoyo_name_entry {
  	struct list_head list;
@@ -1866,7 +1866,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (!name)
  		return NULL;
-@@ -318,74 +284,89 @@ const struct tomoyo_path_info *tomoyo_sa
+@@ -319,74 +285,89 @@ const struct tomoyo_path_info *tomoyo_sa
  	}
  	hash = full_name_hash((const unsigned char *) name, len - 1);
  	/***** EXCLUSIVE SECTION START *****/
@@ -1997,7 +1997,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -432,9 +413,9 @@ int tomoyo_read_memory_counter(struct to
+@@ -433,9 +414,9 @@ int tomoyo_read_memory_counter(struct to
  {
  	if (!head->read_eof) {
  		const unsigned int shared
@@ -2009,7 +2009,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		const unsigned int dynamic
  			= atomic_read(&tomoyo_dynamic_memory_size);
  		char buffer[64];
-@@ -480,3 +461,64 @@ int tomoyo_write_memory_quota(struct tom
+@@ -481,3 +462,64 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
