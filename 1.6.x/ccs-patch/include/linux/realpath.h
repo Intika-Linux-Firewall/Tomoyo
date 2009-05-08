@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,6 +36,8 @@ char *ccs_realpath(const char *pathname);
 int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 /* Same with ccs_realpath() except that the pathname is already solved. */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
+/* Encode binary string to ascii string. */
+char *ccs_encode(const char *str);
 
 /*
  * Allocate memory for ACL entry.

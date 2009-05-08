@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,6 +29,12 @@ struct ccs_argv_entry {
 /* Structure for envp[]. */
 struct ccs_envp_entry {
 	const struct ccs_path_info *name;
+	const struct ccs_path_info *value;
+	bool is_not;
+};
+
+/* Structure for symlink's target. */
+struct ccs_symlinkp_entry {
 	const struct ccs_path_info *value;
 	bool is_not;
 };
@@ -257,6 +263,33 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 	return result;
 }
 
+/**
+ * ccs_scan_symlink - Scan symlink's target.
+ *
+ * @target:   Pointer to "struct ccs_path_info".
+ * @symlinkc: Length of @symlinkp.
+ * @symlinkp: Poiner to "struct ccs_symlinkp_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_scan_symlink(struct ccs_path_info *target,
+			     u16 symlinkc,
+			     const struct ccs_symlinkp_entry *symlinkp)
+{
+	if (!target)
+		return false;
+	while (symlinkc) {
+		const bool bool1 =
+			ccs_path_matches_pattern(target, symlinkp->value);
+		const bool bool2 = symlinkp->is_not;
+		if (bool1 == bool2)
+			return false;
+		symlinkp++;
+		symlinkc--;
+	}
+	return true;
+}
+
 /* Value type definition. */
 #define VALUE_TYPE_DECIMAL     1
 #define VALUE_TYPE_OCTAL       2
@@ -428,6 +461,46 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 	envp->name = name;
 	envp->is_not = is_not;
 	envp->value = value;
+	return true;
+ out:
+	return false;
+}
+
+/**
+ * ccs_parse_symlinkp - Parse an symlink.target condition part.
+ *
+ * @start:    String to parse.
+ * @symlinkp: Pointer to "struct ccs_symlinkp_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
+{
+	const struct ccs_path_info *value;
+	bool is_not;
+	char c;
+	char *cp;
+	start += 14;
+	c = *start++;
+	if (c == '=')
+		is_not = false;
+	else if (c == '!' && *start++ == '=')
+		is_not = true;
+	else
+		goto out;
+	if (*start++ != '"')
+		goto out;
+	cp = start + strlen(start) - 1;
+	if (cp < start || *cp != '"')
+		goto out;
+	*cp = '\0';
+	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+		goto out;
+	value = ccs_save_name(start);
+	if (!value)
+		goto out;
+	symlinkp->is_not = is_not;
+	symlinkp->value = value;
 	return true;
  out:
 	return false;
@@ -612,7 +685,8 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 		/* Don't compare if size differs. */
 		if (ptr->condc != new_ptr->condc ||
 		    ptr->argc != new_ptr->argc ||
-		    ptr->envc != new_ptr->envc)
+		    ptr->envc != new_ptr->envc ||
+		    ptr->symlinkc != new_ptr->symlinkc)
 			continue;
 		/*
 		 * Compare ptr and new_ptr
@@ -656,6 +730,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 	unsigned long *ptr;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
+	struct ccs_symlinkp_entry *symlinkp;
 	u32 size;
 	u8 left;
 	u8 right;
@@ -667,6 +742,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 	u16 condc = 0;
 	u16 argc = 0;
 	u16 envc = 0;
+	u16 symlinkc = 0;
 	u8 post_state[4] = { 0, 0, 0, 0 };
 	/* Calculate at runtime. */
 	static u8 ccs_condition_control_keyword_len[MAX_KEYWORD];
@@ -696,6 +772,12 @@ ccs_find_or_assign_new_condition(char * const condition)
 		} else if (!strncmp(start, "exec.envp[\"", 11)) {
 			envc++;
 			start = strchr(start + 11, ' ');
+			if (!start)
+				break;
+			continue;
+		} else if (!strncmp(start, "symlink.target", 14)) {
+			symlinkc++;
+			start = strchr(start + 14, ' ');
 			if (!start)
 				break;
 			continue;
@@ -753,7 +835,8 @@ ccs_find_or_assign_new_condition(char * const condition)
 	size = sizeof(*new_ptr)
 		+ condc * sizeof(unsigned long)
 		+ argc * sizeof(struct ccs_argv_entry)
-		+ envc * sizeof(struct ccs_envp_entry);
+		+ envc * sizeof(struct ccs_envp_entry)
+		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
 	new_ptr = ccs_alloc(size, false);
 	if (!new_ptr)
 		return NULL;
@@ -762,9 +845,11 @@ ccs_find_or_assign_new_condition(char * const condition)
 	new_ptr->condc = condc;
 	new_ptr->argc = argc;
 	new_ptr->envc = envc;
+	new_ptr->symlinkc = symlinkc;
 	ptr = (unsigned long *) (new_ptr + 1);
 	argv = (struct ccs_argv_entry *) (ptr + condc);
 	envp = (struct ccs_envp_entry *) (argv + argc);
+	symlinkp = (struct ccs_symlinkp_entry *) (envp + envc);
 	start = condition;
 	if (!strncmp(start, "if ", 3))
 		start += 3;
@@ -802,6 +887,20 @@ ccs_find_or_assign_new_condition(char * const condition)
 				goto out;
 			envp++;
 			envc--;
+			if (cp)
+				*cp = ' ';
+			else
+				break;
+			start = cp;
+			continue;
+		} else if (!strncmp(start, "symlink.target", 14)) {
+			char *cp = strchr(start + 14, ' ');
+			if (cp)
+				*cp = '\0';
+			if (!ccs_parse_symlinkp(start, symlinkp))
+				goto out;
+			symlinkp++;
+			symlinkc--;
 			if (cp)
 				*cp = ' ';
 			else
@@ -884,10 +983,12 @@ ccs_find_or_assign_new_condition(char * const condition)
 		}
 	}
 	/*
-	  printk(KERN_DEBUG "argc=%u envc=%u condc=%u\n", argc, envc, condc);
+	  printk(KERN_DEBUG "argc=%u envc=%u symlinkc=%u condc=%u\n",
+	  argc, envc, symlinkc, condc);
 	*/
 	BUG_ON(argc);
 	BUG_ON(envc);
+	BUG_ON(symlinkc);
 	BUG_ON(condc);
 	return ccs_find_same_condition(new_ptr, size);
  out:
@@ -1055,10 +1156,12 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	const unsigned long *ptr;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
+	const struct ccs_symlinkp_entry *symlinkp;
 	struct ccs_obj_info *obj;
 	u16 condc;
 	u16 argc;
 	u16 envc;
+	u16 symlinkc;
 	const struct ccs_condition_list *cond = ccs_get_condition_part(acl);
 	struct linux_binprm *bprm = NULL;
 	if (!cond)
@@ -1066,6 +1169,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	condc = cond->condc;
 	argc = cond->argc;
 	envc = cond->envc;
+	symlinkc = cond->symlinkc;
 	obj = r->obj;
 	if (r->ee)
 		bprm = r->ee->bprm;
@@ -1074,6 +1178,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	ptr = (unsigned long *) (cond + 1);
 	argv = (const struct ccs_argv_entry *) (ptr + condc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
+	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc); 
 	for (i = 0; i < condc; i++) {
 		const u32 header = *ptr;
 		const bool match = (header >> 16) & 1;
@@ -1382,6 +1487,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
  out:
 		return false;
 	}
+	if (symlinkc) {
+		if (!obj || !ccs_scan_symlink(obj->symlink_target,
+					      symlinkc, symlinkp))
+			return false;
+	}
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
@@ -1401,9 +1511,11 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	const unsigned long *ptr;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
+	const struct ccs_symlinkp_entry *symlinkp;
 	u16 condc;
 	u16 argc;
 	u16 envc;
+	u16 symlinkc;
 	u16 i;
 	u16 j;
 	char buffer[32];
@@ -1412,9 +1524,11 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	condc = cond->condc;
 	argc = cond->argc;
 	envc = cond->envc;
+	symlinkc = cond->symlinkc;
 	ptr = (const unsigned long *) (cond + 1);
 	argv = (const struct ccs_argv_entry *) (ptr + condc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
+	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc);
 	memset(buffer, 0, sizeof(buffer));
 	for (i = 0; i < condc; i++) {
 		const u32 header = *ptr;
@@ -1471,7 +1585,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		i++;
 	}
 
-	if (!argc && !envc)
+	if (!argc && !envc && !symlinkc)
 		goto post_condition;
 	if (!condc && !ccs_io_printf(head, " if"))
 		goto out;
@@ -1481,7 +1595,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 				   op, argv->value->name))
 			goto out;
 	}
-	buffer[1] = '\0';
+	/* buffer[1] = '\0'; */
 	for (i = 0; i < envc; envp++, i++) {
 		const char *op = envp->is_not ? "!=" : "=";
 		const char *value = envp->value ? envp->value->name : NULL;
@@ -1495,6 +1609,12 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 			if (!ccs_io_printf(head, "NULL"))
 				goto out;
 		}
+	}
+	for (i = 0; i < symlinkc; symlinkp++, i++) {
+		const char *op = symlinkp->is_not ? "!=" : "=";
+		if (!ccs_io_printf(head, " symlink.target%s\"%s\"", op,
+				   symlinkp->value->name))
+			goto out;
 	}
  post_condition:
 	i = cond->post_state[3];

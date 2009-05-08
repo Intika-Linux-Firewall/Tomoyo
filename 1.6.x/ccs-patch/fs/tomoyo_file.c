@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1398,11 +1398,13 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
+ * @target:    Symlink's target if @operation is TYPE_SYMLINK_ACL.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
-				struct vfsmount *mnt)
+				struct vfsmount *mnt,
+				struct ccs_path_info *target)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
@@ -1430,6 +1432,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry;
 	obj.path1_vfsmnt = mnt;
+	obj.symlink_target = target;
 	r.obj = &obj;
 	error = ccs_check_single_path_permission2(&r, operation, buf);
  out:
@@ -2278,7 +2281,7 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 		error = ccs_pre_vfs_create(dir, dentry);
 		if (!error)
 			error = ccs_check_1path_perm(TYPE_CREATE_ACL,
-						     dentry, mnt);
+						     dentry, mnt, NULL);
 		return error;
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -2290,16 +2293,20 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 		return error;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		error = ccs_check_1path_perm(TYPE_MKCHAR_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKCHAR_ACL, dentry, mnt,
+					     NULL);
 		break;
 	case S_IFBLK:
-		error = ccs_check_1path_perm(TYPE_MKBLOCK_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKBLOCK_ACL, dentry, mnt,
+					     NULL);
 		break;
 	case S_IFIFO:
-		error = ccs_check_1path_perm(TYPE_MKFIFO_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKFIFO_ACL, dentry, mnt,
+					     NULL);
 		break;
 	case S_IFSOCK:
-		error = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, mnt,
+					     NULL);
 		break;
 	}
 	return error;
@@ -2312,7 +2319,7 @@ int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 {
 	int error = ccs_pre_vfs_mkdir(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt, NULL);
 	return error;
 }
 
@@ -2322,7 +2329,7 @@ int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
 {
 	int error = ccs_pre_vfs_rmdir(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt, NULL);
 	return error;
 }
 
@@ -2335,7 +2342,7 @@ int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_unlink(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt);
+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt, NULL);
 	return error;
 }
 
@@ -2344,11 +2351,18 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 				 struct vfsmount *mnt, char *from)
 {
 	int error;
+	struct ccs_path_info target;
 	if (!ccs_capable(CCS_SYS_SYMLINK))
 		return -EPERM;
 	error = ccs_pre_vfs_symlink(dir, dentry);
-	if (!error)
-		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt);
+	if (error)
+		return error;
+	target.name = ccs_encode(from);
+	if (!target.name)
+		return -ENOMEM;
+	ccs_fill_path_info(&target);
+	error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt, &target);
+	ccs_free(target.name);
 	return error;
 }
 
@@ -2356,7 +2370,7 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 				  loff_t length, unsigned int time_attrs)
 {
-	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt);
+	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */

@@ -1931,3 +1931,31 @@ Fix 2009/04/20
       I moved ccs_recv_datagram_permission() hook from skb_recv_datagram() to
       udp_recvmsg()/udpv6_recvmsg()/raw_recvmsg()/rawv6_recvmsg() with name
       change to ccs_recvmsg_permission().
+
+Fix 2009/05/08
+
+    @ Add condition for symlink's target pathname.
+
+      Until now, "allow_symlink" keyword allows creation of a symlink but does
+      not check the symlink's target. Usually it is no problem because
+      permission checks are done using dereferenced pathname. But in some
+      cases, we should restrict the symlink's target. For example,
+      "ln -s .htpasswd /var/www/html/readme.html" by CGI program should be
+      blocked because we will allow Apache to read both
+      /var/www/html/readme.html and /var/www/html/.htpasswd .
+
+      Thus, I added new condition, "symlink.target".
+
+        allow_symlink /var/www/html/\*.html if symlink.target="\*.html"
+
+        allow_symlink /var/www/html/\*\-.\* if symlink.target="\*\-.\*"
+
+    @ Don't return -EAGAIN at ccs_socket_recvmsg_permission().
+
+      It turned out that it is not permitted for accept() and recvmsg() to
+      return -EAGAIN if poll() said connections/datagrams are ready. However,
+      recvmsg() may return -EAGAIN and potentially confuse some applications
+      because ccs_socket_recvmsg_permission() is returning -EAGAIN.
+
+      Thus, I modified ccs_socket_recvmsg_permission() to return -ENOMEM
+      rather than -EAGAIN.

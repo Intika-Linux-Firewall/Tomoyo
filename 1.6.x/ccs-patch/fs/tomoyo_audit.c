@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7   2009/04/01
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -131,6 +131,9 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	};
 	char *buf;
 	char *bprm_info = "";
+	const char *symlink_head = "";
+	const char *symlink_tail = "";
+	const char *symlink_info = "";
 	struct timeval tv;
 	u32 ccs_flags = current->ccs_flags;
 	const char *domainname;
@@ -145,19 +148,26 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			return NULL;
 		*len += strlen(bprm_info);
 	}
+	if (r->obj && r->obj->symlink_target) {
+		symlink_head = "symlink.target=\"";
+		symlink_info = r->obj->symlink_target->name;
+		symlink_tail = "\" ";
+		*len += 18 + strlen(symlink_info);
+	}
 	buf = ccs_alloc(*len, true);
 	if (buf)
 		snprintf(buf, (*len) - 1,
 			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
 			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
-			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u %s\n"
-			 "%s\n",
+			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u "
+			 "%s%s%s%s\n%s\n",
 			 tv.tv_sec, r->profile, ccs_mode_4[r->mode],
 			 (pid_t) sys_getpid(), current_uid(), current_gid(),
 			 current_euid(), current_egid(), current_suid(),
 			 current_sgid(), current_fsuid(), current_fsgid(),
 			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
-			 (u8) (ccs_flags >> 8), bprm_info, domainname);
+			 (u8) (ccs_flags >> 8), symlink_head, symlink_info,
+			 symlink_tail, bprm_info, domainname);
 	if (r->ee)
 		ccs_free(bprm_info);
 	return buf;
