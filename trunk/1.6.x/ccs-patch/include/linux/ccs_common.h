@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7+   2009/04/10
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -148,6 +148,7 @@ struct ccs_obj_info {
 	/* I don't handle path2_stat for rename operation. */
 	struct ccs_mini_stat path1_parent_stat;
 	struct ccs_mini_stat path2_parent_stat;
+	struct ccs_path_info *symlink_target;
 };
 
 /* Structure for " if " and "; set" part. */
@@ -156,10 +157,12 @@ struct ccs_condition_list {
 	u16 condc;
 	u16 argc;
 	u16 envc;
+	u16 symlinkc;
 	u8 post_state[4];
 	/* "unsigned long condition[condc]" follows here. */
 	/* "struct ccs_argv_entry argv[argc]" follows here. */
 	/* "struct ccs_envp_entry envp[envc]" follows here. */
+	/* "struct ccs_symlinkp_entry symlinkp[symlinkc]" follows here. */
 };
 
 struct ccs_execve_entry;

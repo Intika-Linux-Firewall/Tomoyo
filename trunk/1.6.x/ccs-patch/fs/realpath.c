@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.7+   2009/04/10
+ * Version: 1.6.8-pre   2009/05/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -371,6 +371,56 @@ int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 	path_release(&nd);
 #endif
 	return ret ? -ENOMEM : 0;
+}
+
+/**
+ * ccs_encode: Encode binary string to ascii string.
+ *
+ * @str: String in binary format.
+ *
+ * Returns pointer to @str in ascii format on success, NULL otherwise.
+ *
+ * This function uses ccs_alloc(), so caller must ccs_free() if this function
+ * didn't return NULL.
+ */
+char *ccs_encode(const char *str)
+{
+	int len = 0;
+	const char *p = str;
+	char *cp;
+	char *cp0;
+	if (!p)
+		return NULL;
+	while (*p) {
+		const unsigned char c = *p++;
+		if (c == '\\')
+			len += 2;
+		else if (c > ' ' && c < 127)
+			len++;
+		else
+			len += 4;
+	}
+	len++;
+	cp = ccs_alloc(len, false);
+	if (!cp)
+		return NULL;
+	cp0 = cp;
+	p = str;
+	while (*p) {
+		const unsigned char c = *p++;
+		if (c == '\\') {
+			*cp++ = '\\';
+			*cp++ = '\\';
+		} else if (c > ' ' && c < 127) {
+			*cp++ = c;
+		} else {
+			*cp++ = '\\';
+			*cp++ = (c >> 6) + '0';
+			*cp++ = ((c >> 3) & 7) + '0';
+			*cp++ = (c & 7) + '0';
+		}
+	}
+	return cp0;
 }
 
 /**
