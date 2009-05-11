@@ -63,7 +63,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		}
  	}
  	up_read(&tomoyo_policy_lock);
-@@ -1324,6 +1328,8 @@ static int tomoyo_write_domain_policy(st
+@@ -1334,6 +1338,8 @@ static int tomoyo_write_domain_policy(st
  			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
  		return 0;
  	}
@@ -72,7 +72,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1412,6 +1418,107 @@ static bool tomoyo_print_double_path_acl
+@@ -1422,6 +1428,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -180,7 +180,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1440,6 +1547,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1450,6 +1557,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -194,7 +194,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	BUG(); /* This must not happen. */
  	return false;
  }
-@@ -1469,6 +1583,7 @@ static void tomoyo_cleanup_domain_policy
+@@ -1479,6 +1593,7 @@ static void tomoyo_cleanup_domain_policy
  			switch (tomoyo_acl_type1(acl)) {
  				struct tomoyo_single_path_acl_record *acl1;
  				struct tomoyo_double_path_acl_record *acl2;
@@ -202,7 +202,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			case TOMOYO_TYPE_SINGLE_PATH_ACL:
  				acl1 = container_of(acl,
  				    struct tomoyo_single_path_acl_record,
-@@ -1482,6 +1597,16 @@ static void tomoyo_cleanup_domain_policy
+@@ -1492,6 +1607,16 @@ static void tomoyo_cleanup_domain_policy
  				tomoyo_del_name(acl2->filename1);
  				tomoyo_del_name(acl2->filename2);
  				break;
