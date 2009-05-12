@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2522)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(working copy)
 @@ -83,47 +83,20 @@
  			ret; })
@@ -62,7 +62,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
  #define s_fs_info u.generic_sbp
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2522)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
 @@ -37,6 +37,7 @@
  #else
@@ -171,16 +171,29 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Subset of "struct stat". */
  struct ccs_mini_stat {
  	uid_t uid;
-@@ -153,7 +112,7 @@
+@@ -153,12 +112,15 @@
  
  /* Structure for " if " and "; set" part. */
  struct ccs_condition_list {
 -	struct list1_head list;
+-	u16 condc;
+-	u16 argc;
+-	u16 envc;
+-	u16 symlinkc;
+-	u8 post_state[4];
 +	struct list_head list;
- 	u16 condc;
- 	u16 argc;
- 	u16 envc;
-@@ -207,6 +166,7 @@
++	atomic_t users;
++	struct {
++		u16 condc;
++		u16 argc;
++		u16 envc;
++		u16 symlinkc;
++		u8 post_state[4];
++	} head;
+ 	/* "unsigned long condition[condc]" follows here. */
+ 	/* "struct ccs_argv_entry argv[argc]" follows here. */
+ 	/* "struct ccs_envp_entry envp[envc]" follows here. */
+@@ -207,6 +169,7 @@
  	struct ccs_request_info r;
  	struct ccs_obj_info obj;
  	struct linux_binprm *bprm;
@@ -188,7 +201,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* For execute_handler */
  	const struct ccs_path_info *handler;
  	/* For calculating domain to transit to. */
-@@ -220,21 +180,22 @@
+@@ -220,21 +183,22 @@
  
  /* Structure for "path_group" directive. */
  struct ccs_path_group_member {
@@ -215,7 +228,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	union {
  		u32 ipv4;                    /* Host byte order    */
  		const struct in6_addr *ipv6; /* Network byte order */
-@@ -245,9 +206,10 @@
+@@ -245,9 +209,10 @@
  
  /* Structure for "address_group" directive. */
  struct ccs_address_group_entry {
@@ -228,7 +241,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  };
  
  /* Structure for holding requested pathname. */
-@@ -261,18 +223,12 @@
+@@ -261,18 +226,12 @@
  
  /* Common header for holding ACL entries. */
  struct ccs_acl_info {
@@ -249,7 +262,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	 */
  	u8 type;
  } __attribute__((__packed__));
-@@ -293,13 +249,11 @@
+@@ -293,13 +252,11 @@
  
  /* This ACL entry is deleted.           */
  #define ACL_DELETED        0x80
@@ -265,7 +278,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* Name of this domain. Never NULL.          */
  	const struct ccs_path_info *domainname;
  	u8 profile;        /* Profile number to use. */
-@@ -363,10 +317,11 @@
+@@ -363,10 +320,11 @@
  	bool u_is_group; /* True if u points to "path_group" directive. */
  	u16 perm;
  	union {
@@ -278,7 +291,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	} u;
  };
  
-@@ -377,16 +332,18 @@
+@@ -377,16 +335,18 @@
  	bool u1_is_group; /* True if u1 points to "path_group" directive. */
  	bool u2_is_group; /* True if u2 points to "path_group" directive. */
  	union {
@@ -299,7 +312,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	} u2;
  };
  
-@@ -397,6 +354,7 @@
+@@ -397,6 +357,7 @@
  	unsigned int cmd_max;
  	bool u_is_group; /* True if u points to "path_group" directive. */
  	union {
@@ -307,7 +320,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  		/* Pointer to single pathname. */
  		const struct ccs_path_info *filename;
  		/* Pointer to pathname group. */
-@@ -431,6 +389,12 @@
+@@ -431,6 +392,12 @@
  	const struct ccs_path_info *domainname;
  };
  
@@ -320,7 +333,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Structure for "allow_network" directive. */
  struct ccs_ip_network_acl_record {
  	struct ccs_acl_info head; /* type = TYPE_IP_NETWORK_ACL */
-@@ -604,11 +568,11 @@
+@@ -604,11 +571,11 @@
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
  	/* The position currently reading from. */
@@ -335,7 +348,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* The step for reading.                */
  	int read_step;
  	/* Buffer for reading.                  */
-@@ -828,10 +792,10 @@
+@@ -828,10 +795,10 @@
  int ccs_write_control(struct file *file, const char __user *buffer,
  		      const int buffer_len);
  /* Find a domain by the given name. */
@@ -349,7 +362,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Check mode for specified functionality. */
  unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
  			     const u8 index);
-@@ -876,13 +840,13 @@
+@@ -876,13 +843,13 @@
  /* Get type of an ACL entry. */
  static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
  {
@@ -365,7 +378,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  }
  
  /**
-@@ -895,12 +859,13 @@
+@@ -895,12 +862,13 @@
  static inline const struct ccs_condition_list *
  ccs_get_condition_part(const struct ccs_acl_info *acl)
  {
@@ -384,7 +397,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Log level for printk(). */
 Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2522)
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
 @@ -39,21 +39,23 @@
  /* Encode binary string to ascii string. */
@@ -394,19 +407,21 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 - * Allocate memory for ACL entry.
 - * The RAM is chunked, so NEVER try to kfree() the returned pointer.
 - */
-+/* Allocate memory for ACL entry. */
- void *ccs_alloc_element(const unsigned int size);
-+/* Delete memory for ACL entry. */
+-void *ccs_alloc_element(const unsigned int size);
++/*  Check memory quota. */
++bool ccs_memory_ok(const void *ptr);
++/* Release memory. */
 +void ccs_free_element(void *ptr);
  
 -/*
 - * Keep the given name on the RAM.
 - * The RAM is shared, so NEVER try to modify or kfree() the returned name.
 - */
+-const struct ccs_path_info *ccs_save_name(const char *name);
 +/* Allocate memory for the given name. */
- const struct ccs_path_info *ccs_save_name(const char *name);
++const struct ccs_path_info *ccs_get_name(const char *name);
 +/* Delete memory for the given name. */
-+void ccs_del_name(const struct ccs_path_info *name);
++void ccs_put_name(const struct ccs_path_info *name);
  
 +/* Allocate memory for the given IPv6 address. */
 +const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr);
@@ -451,7 +466,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  #endif
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
 @@ -34,13 +34,13 @@
  
@@ -469,43 +484,63 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  
  /**
   * ccs_update_globally_usable_env_entry - Update "struct ccs_globally_usable_env_entry" list.
-@@ -55,7 +55,6 @@
+@@ -53,36 +53,37 @@
+ static int ccs_update_globally_usable_env_entry(const char *env,
+ 						const bool is_delete)
  {
- 	struct ccs_globally_usable_env_entry *new_entry;
+-	struct ccs_globally_usable_env_entry *new_entry;
++	struct ccs_globally_usable_env_entry *entry = NULL;
  	struct ccs_globally_usable_env_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_env;
- 	int error = -ENOMEM;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
-@@ -63,8 +62,9 @@
- 	saved_env = ccs_save_name(env);
+ 		return -EINVAL;
+-	saved_env = ccs_save_name(env);
++	saved_env = ccs_get_name(env);
  	if (!saved_env)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
  		if (ptr->env != saved_env)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -79,10 +79,13 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->env = saved_env;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->env = saved_env;
++		saved_env = NULL;
++		list_add_tail(&entry->list, &ccs_globally_usable_env_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->env = saved_env;
 -	list1_add_tail_mb(&new_entry->list, &ccs_globally_usable_env_list);
-+	saved_env = NULL;
-+	list_add_tail(&new_entry->list, &ccs_globally_usable_env_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_env);
++	ccs_put_name(saved_env);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -98,11 +101,16 @@
+@@ -98,11 +99,16 @@
  static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
  {
  	struct ccs_globally_usable_env_entry *ptr;
@@ -526,7 +561,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  }
  
  /**
-@@ -127,21 +135,23 @@
+@@ -127,21 +133,23 @@
   */
  bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  {
@@ -559,54 +594,84 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  }
  
  /**
-@@ -158,7 +168,6 @@
+@@ -158,21 +166,23 @@
  				const struct ccs_condition_list *condition,
  				const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
++	struct ccs_env_acl_record *entry = NULL;
  	struct ccs_acl_info *ptr;
- 	struct ccs_env_acl_record *acl;
+-	struct ccs_env_acl_record *acl;
  	const struct ccs_path_info *saved_env;
-@@ -169,10 +178,11 @@
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
+ 		return -EINVAL;
+-	saved_env = ccs_save_name(env);
++	saved_env = ccs_get_name(env);
  	if (!saved_env)
  		return -ENOMEM;
  
 -	mutex_lock(&lock);
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -188,11 +198,12 @@
- 	if (!acl)
- 		goto out;
- 	acl->env = saved_env;
-+	saved_env = NULL;
- 	error = ccs_add_domain_acl(domain, &acl->head);
+@@ -181,18 +191,24 @@
+ 		if (acl->env != saved_env)
+ 			continue;
+ 		error = ccs_add_domain_acl(NULL, ptr);
+-		goto out;
++		break;
+ 	}
+-	/* Not found. Append it to the tail. */
+-	acl = ccs_alloc_acl_element(TYPE_ENV_ACL, condition);
+-	if (!acl)
+-		goto out;
+-	acl->env = saved_env;
+-	error = ccs_add_domain_acl(domain, &acl->head);
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_ENV_ACL;
++		entry->head.cond = condition;
++		entry->env = saved_env;
++		saved_env = NULL;
++		error = ccs_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++	}
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -204,7 +215,9 @@
+@@ -203,8 +219,11 @@
+ 		error = ccs_del_domain_acl(ptr);
  		break;
  	}
-  out:
--	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_env);
+  out:
+-	mutex_unlock(&lock);
++	ccs_put_name(saved_env);
++	kfree(entry);
  	return error;
  }
  
-@@ -224,7 +237,8 @@
+@@ -224,7 +243,8 @@
  	struct ccs_path_info env;
  	env.name = environ;
  	ccs_fill_path_info(&env);
@@ -616,7 +681,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
  			continue;
-@@ -236,6 +250,7 @@
+@@ -236,6 +256,7 @@
  		error = 0;
  		break;
  	}
@@ -626,23 +691,32 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	    ccs_is_globally_usable_env(&env))
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
-@@ -55,54 +55,8 @@
+@@ -55,54 +55,86 @@
  				   "%s %s %u\n", operation, address, port);
  }
  
--/**
++/* The list for "struct ccs_address_group_entry". */
++static LIST_HEAD(ccs_address_group_list);
++
+ /**
 - * ccs_save_ipv6_address - Keep the given IPv6 address on the RAM.
-- *
++ * ccs_get_address_group - Allocate memory for "struct ccs_address_group_entry".
+  *
 - * @addr: Pointer to "struct in6_addr".
-- *
++ * @group_name: The name of address group.
+  *
 - * Returns pointer to "struct in6_addr" on success, NULL otherwise.
 - *
 - * The RAM is shared, so NEVER try to modify or kfree() the returned address.
-- */
++ * Returns pointer to "struct ccs_address_group_entry" on success,
++ * NULL otherwise.
+  */
 -static const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr)
--{
++static struct ccs_address_group_entry *ccs_get_address_group(const char *
++							     group_name)
+ {
 -	static const u8 ccs_block_size = 16;
 -	struct ccs_addr_list {
 -		/* Workaround for gcc 4.3's bug. */
@@ -655,7 +729,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -	static DEFINE_MUTEX(lock);
 -	u8 i = ccs_block_size;
 -	if (!addr)
--		return NULL;
++	struct ccs_address_group_entry *entry = NULL;
++	struct ccs_address_group_entry *group;
++	const struct ccs_path_info *saved_group_name;
++	int error = -ENOMEM;
++	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
++	    !group_name[0])
+ 		return NULL;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_address_list, list) {
 -		for (i = 0; i < ptr->in_use_count; i++) {
@@ -664,96 +744,205 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -		}
 -		if (i < ccs_block_size)
 -			break;
--	}
++	saved_group_name = ccs_get_name(group_name);
++	if (!saved_group_name)
++		return NULL;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry(group, &ccs_address_group_list, list) {
++		if (saved_group_name != group->group_name)
++			continue;
++		atomic_inc(&group->users);
++		error = 0;
++		break;
+ 	}
 -	if (i == ccs_block_size) {
 -		ptr = ccs_alloc_element(sizeof(*ptr));
 -		if (!ptr)
 -			goto ok;
 -		list1_add_tail_mb(&ptr->list, &ccs_address_list);
 -		i = 0;
--	}
++	if (error && ccs_memory_ok(entry)) {
++		INIT_LIST_HEAD(&entry->address_group_member_list);
++		entry->group_name = saved_group_name;
++		saved_group_name = NULL;
++		atomic_set(&entry->users, 1);
++		list_add_tail(&entry->list, &ccs_address_group_list);
++		group = entry;
++		entry = NULL;
++		error = 0;
+ 	}
 -	ptr->addr[ptr->in_use_count++] = *addr;
 - ok:
 -	mutex_unlock(&lock);
 -	return ptr ? &ptr->addr[i] : NULL;
--}
--
- /* The list for "struct ccs_address_group_entry". */
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
++	ccs_put_name(saved_group_name);
++	kfree(entry);
++	return !error ? group : NULL;
+ }
+ 
+-/* The list for "struct ccs_address_group_entry". */
 -static LIST1_HEAD(ccs_address_group_list);
-+static LIST_HEAD(ccs_address_group_list);
++/**
++ * ccs_put_address_group - Delete memory for "struct ccs_address_group_entry".
++ *
++ * @group: Pointer to "struct ccs_address_group_entry".
++ */
++static void ccs_put_address_group(struct ccs_address_group_entry *group)
++{
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
++	if (atomic_dec_and_test(&group->users)) {
++		struct ccs_address_group_member *member;
++		struct ccs_address_group_member *next_member;
++		list_for_each_entry_safe(member, next_member,
++					 &group->address_group_member_list,
++					 list) {
++			if (!member->is_deleted)
++				break;
++			list_del(&member->list);
++			ccs_free_element(member);
++		}
++		if (list_empty(&group->address_group_member_list)) {
++			list_del(&group->list);
++			ccs_put_name(group->group_name);
++			ccs_free_element(group);
++		}
++	}
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
++}
  
  /**
   * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
-@@ -121,7 +75,6 @@
+@@ -121,23 +153,16 @@
  					  const u16 *max_address,
  					  const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
- 	struct ccs_address_group_entry *new_group;
+-	struct ccs_address_group_entry *new_group;
  	struct ccs_address_group_entry *group;
- 	struct ccs_address_group_member *new_member;
-@@ -145,14 +98,19 @@
- 		= ccs_save_ipv6_address((struct in6_addr *) min_address);
+-	struct ccs_address_group_member *new_member;
++	struct ccs_address_group_member *entry = NULL;
+ 	struct ccs_address_group_member *member;
+-	const struct ccs_path_info *saved_group_name;
+ 	const struct in6_addr *saved_min_address = NULL;
+ 	const struct in6_addr *saved_max_address = NULL;
+-	int error = -ENOMEM;
+-	bool found = false;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	const u32 min_ipv4_address = ntohl(*(u32 *) min_address);
+ 	const u32 max_ipv4_address = ntohl(*(u32 *) max_address);
+-	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+-	    !group_name[0])
+-		return -EINVAL;
+-	saved_group_name = ccs_save_name(group_name);
+-	if (!saved_group_name)
++	group = ccs_get_address_group(group_name);
++	if (!group)
+ 		return -ENOMEM;
+ 	if (!is_ipv6)
+ 		goto not_ipv6;
+@@ -146,60 +171,49 @@
  	saved_max_address
  		= ccs_save_ipv6_address((struct in6_addr *) max_address);
--	if (!saved_min_address || !saved_max_address)
-+	if (!saved_min_address || !saved_max_address) {
-+		ccs_del_ipv6_address(saved_min_address);
-+		ccs_del_ipv6_address(saved_max_address);
-+		ccs_del_name(saved_group_name);
- 		return -ENOMEM;
-+	}
+ 	if (!saved_min_address || !saved_max_address)
+-		return -ENOMEM;
++		goto out;
   not_ipv6:
 -	mutex_lock(&lock);
 -	list1_for_each_entry(group, &ccs_address_group_list, list) {
+-		if (saved_group_name != group->group_name)
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
-+	list_for_each_entry(group, &ccs_address_group_list, list) {
- 		if (saved_group_name != group->group_name)
++	list_for_each_entry(member, &group->address_group_member_list, list) {
++		if (member->is_ipv6 != is_ipv6)
  			continue;
 -		list1_for_each_entry(member, &group->address_group_member_list,
-+		list_for_each_entry(member, &group->address_group_member_list,
- 				     list) {
- 			if (member->is_ipv6 != is_ipv6)
+-				     list) {
+-			if (member->is_ipv6 != is_ipv6)
++		if (is_ipv6) {
++			if (member->min.ipv6 != saved_min_address ||
++			    member->max.ipv6 != saved_max_address)
  				continue;
-@@ -180,9 +138,10 @@
- 		new_group = ccs_alloc_element(sizeof(*new_group));
- 		if (!new_group)
- 			goto out;
+-			if (is_ipv6) {
+-				if (member->min.ipv6 != saved_min_address ||
+-				    member->max.ipv6 != saved_max_address)
+-					continue;
+-			} else {
+-				if (member->min.ipv4 != min_ipv4_address ||
+-				    member->max.ipv4 != max_ipv4_address)
+-					continue;
+-			}
+-			member->is_deleted = is_delete;
+-			error = 0;
+-			goto out;
++		} else {
++			if (member->min.ipv4 != min_ipv4_address ||
++			    member->max.ipv4 != max_ipv4_address)
++				continue;
+ 		}
+-		found = true;
++		member->is_deleted = is_delete;
++		error = 0;
+ 		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->is_ipv6 = is_ipv6;
++		if (is_ipv6) {
++			entry->min.ipv6 = saved_min_address;
++			saved_min_address = NULL;
++			entry->max.ipv6 = saved_max_address;
++			saved_max_address = NULL;
++		} else {
++			entry->min.ipv4 = min_ipv4_address;
++			entry->max.ipv4 = max_ipv4_address;
++		}
++		list_add_tail(&entry->list, &group->address_group_member_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	if (!found) {
+-		new_group = ccs_alloc_element(sizeof(*new_group));
+-		if (!new_group)
+-			goto out;
 -		INIT_LIST1_HEAD(&new_group->address_group_member_list);
-+		INIT_LIST_HEAD(&new_group->address_group_member_list);
- 		new_group->group_name = saved_group_name;
+-		new_group->group_name = saved_group_name;
 -		list1_add_tail_mb(&new_group->list, &ccs_address_group_list);
-+		saved_group_name = NULL;
-+		list_add_tail(&new_group->list, &ccs_address_group_list);
- 		group = new_group;
- 	}
- 	new_member = ccs_alloc_element(sizeof(*new_member));
-@@ -191,15 +150,21 @@
- 	new_member->is_ipv6 = is_ipv6;
- 	if (is_ipv6) {
- 		new_member->min.ipv6 = saved_min_address;
-+		saved_min_address = NULL;
- 		new_member->max.ipv6 = saved_max_address;
-+		saved_max_address = NULL;
- 	} else {
- 		new_member->min.ipv4 = min_ipv4_address;
- 		new_member->max.ipv4 = max_ipv4_address;
- 	}
+-		group = new_group;
+-	}
+-	new_member = ccs_alloc_element(sizeof(*new_member));
+-	if (!new_member)
+-		goto out;
+-	new_member->is_ipv6 = is_ipv6;
+-	if (is_ipv6) {
+-		new_member->min.ipv6 = saved_min_address;
+-		new_member->max.ipv6 = saved_max_address;
+-	} else {
+-		new_member->min.ipv4 = min_ipv4_address;
+-		new_member->max.ipv4 = max_ipv4_address;
+-	}
 -	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
-+	list_add_tail(&new_member->list, &group->address_group_member_list);
- 	error = 0;
-  out:
--	mutex_unlock(&lock);
+-	error = 0;
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
+  out:
+-	mutex_unlock(&lock);
 +	ccs_del_ipv6_address(saved_min_address);
 +	ccs_del_ipv6_address(saved_max_address);
-+	ccs_del_name(saved_group_name);
++	ccs_put_address_group(group);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -291,11 +256,18 @@
+@@ -291,11 +305,18 @@
  {
  	u8 i;
  	struct ccs_address_group_entry *group;
@@ -775,7 +964,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		if (!i) {
  			const u16 dummy[2] = { 0, 0 };
  			ccs_update_address_group_entry(group_name, false,
-@@ -322,21 +294,28 @@
+@@ -322,21 +343,28 @@
  {
  	struct ccs_address_group_member *member;
  	const u32 ip = ntohl(*address);
@@ -810,7 +999,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
  /**
-@@ -348,16 +327,19 @@
+@@ -348,16 +376,19 @@
   */
  bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
  {
@@ -836,7 +1025,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  					     struct ccs_address_group_member,
  					     list);
  			if (member->is_deleted)
-@@ -390,15 +372,16 @@
+@@ -390,15 +421,16 @@
  						 HIPQUAD(max_address));
  				}
  			}
@@ -858,15 +1047,20 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
  #if !defined(NIP6)
-@@ -489,7 +472,6 @@
+@@ -489,10 +521,9 @@
  				    const struct ccs_condition_list *condition,
  				    const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
++	struct ccs_ip_network_acl_record *entry = NULL;
  	struct ccs_acl_info *ptr;
- 	struct ccs_ip_network_acl_record *acl;
- 	int error = -ENOMEM;
-@@ -506,13 +488,17 @@
+-	struct ccs_ip_network_acl_record *acl;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	/* using host byte order to allow u32 comparison than memcmp().*/
+ 	const u32 min_ip = ntohl(*min_address);
+ 	const u32 max_ip = ntohl(*max_address);
+@@ -506,13 +537,19 @@
  						  min_address);
  	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
  						  max_address);
@@ -878,47 +1072,90 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +	}
   not_ipv6:
 -	mutex_lock(&lock);
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -550,7 +536,9 @@
- 		acl->u.ipv4.max = max_ip;
- 	} else {
- 		acl->u.ipv6.min = saved_min_address;
-+		saved_min_address = NULL;
- 		acl->u.ipv6.max = saved_max_address;
-+		saved_max_address = NULL;
+@@ -535,30 +572,37 @@
+ 				continue;
+ 		}
+ 		error = ccs_add_domain_acl(NULL, ptr);
+-		goto out;
++		break;
  	}
- 	acl->min_port = min_port;
- 	acl->max_port = max_port;
-@@ -558,7 +546,7 @@
+-	/* Not found. Append it to the tail. */
+-	acl = ccs_alloc_acl_element(TYPE_IP_NETWORK_ACL, condition);
+-	if (!acl)
+-		goto out;
+-	acl->operation_type = operation;
+-	acl->record_type = record_type;
+-	if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
+-		acl->u.group = group;
+-	} else if (record_type == IP_RECORD_TYPE_IPv4) {
+-		acl->u.ipv4.min = min_ip;
+-		acl->u.ipv4.max = max_ip;
+-	} else {
+-		acl->u.ipv6.min = saved_min_address;
+-		acl->u.ipv6.max = saved_max_address;
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_IP_NETWORK_ACL;
++		entry->head.cond = condition;
++		entry->operation_type = operation;
++		entry->record_type = record_type;
++		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
++			entry->u.group = group;
++		} else if (record_type == IP_RECORD_TYPE_IPv4) {
++			entry->u.ipv4.min = min_ip;
++			entry->u.ipv4.max = max_ip;
++		} else {
++			entry->u.ipv6.min = saved_min_address;
++			saved_min_address = NULL;
++			entry->u.ipv6.max = saved_max_address;
++			saved_max_address = NULL;
++		}
++		entry->min_port = min_port;
++		entry->max_port = max_port;
++		error = ccs_add_domain_acl(domain, &entry->head);
++		entry = NULL;
+ 	}
+-	acl->min_port = min_port;
+-	acl->max_port = max_port;
+-	error = ccs_add_domain_acl(domain, &acl->head);
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -584,7 +572,10 @@
+@@ -583,8 +627,12 @@
+ 		error = ccs_del_domain_acl(ptr);
  		break;
  	}
-  out:
--	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
+  out:
+-	mutex_unlock(&lock);
 +	ccs_del_ipv6_address(saved_min_address);
 +	ccs_del_ipv6_address(saved_max_address);
++	kfree(entry);
  	return error;
  }
  
-@@ -616,7 +607,8 @@
+@@ -616,7 +664,8 @@
  	if (!r.mode)
  		return 0;
   retry:
@@ -928,7 +1165,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
-@@ -642,6 +634,7 @@
+@@ -642,6 +691,7 @@
  		found = true;
  		break;
  	}
@@ -938,7 +1175,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		ccs_print_ipv6(buf, sizeof(buf),
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
 @@ -28,9 +28,9 @@
  #else
@@ -951,7 +1188,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  #include <net/sock.h>
  
  /**
-@@ -443,56 +443,122 @@
+@@ -443,56 +443,120 @@
  			/ sizeof(long)) * sizeof(long);
  }
  
@@ -962,15 +1199,19 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  
  /**
 - * ccs_alloc_element - Allocate permanent memory for structures.
-+ * ccs_alloc_element - Allocate memory for structures.
++ * ccs_memory_ok - Check memory quota.
   *
-  * @size: Size in bytes.
+- * @size: Size in bytes.
++ * @ptr: Pointer to allocated memory.
   *
-  * Returns pointer to allocated memory on success, NULL otherwise.
-- *
+- * Returns pointer to allocated memory on success, NULL otherwise.
++ * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
+  *
 - * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ * Caller must hold ccs_policy_lock for writing.
   */
- void *ccs_alloc_element(const unsigned int size)
+-void *ccs_alloc_element(const unsigned int size)
++bool ccs_memory_ok(const void *ptr)
  {
 -	static DEFINE_MUTEX(lock);
 -	static char *ccs_buf;
@@ -978,26 +1219,17 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 -	char *ptr = NULL;
 -	const unsigned int word_aligned_size = ccs_round_up(size);
 -	if (word_aligned_size > PAGE_SIZE)
-+	void *ptr = kzalloc(size, GFP_KERNEL);
-+	const unsigned int allocated_len = ptr ? ksize(ptr) : 0;
-+	/***** EXCLUSIVE SECTION START *****/
-+	mutex_lock(&ccs_element_lock);
-+	if (!allocated_len ||
-+	    (ccs_quota_for_elements &&
-+	     ccs_allocated_memory_for_elements + allocated_len
-+	     > ccs_quota_for_elements)) {
-+		kfree(ptr);
-+		ptr = NULL;
-+		printk(KERN_WARNING "ERROR: Out of memory for %s().\n",
-+		       __func__);
-+		if (!ccs_policy_loaded)
-+			panic("MAC Initialization failed.\n");
-+	} else {
-+		ccs_allocated_memory_for_elements += allocated_len;
++	const unsigned int len = ptr ? ksize(ptr) : 0;
++	if (len && (!ccs_quota_for_elements ||
++		    ccs_allocated_memory_for_elements + len
++		    <= ccs_quota_for_elements)) {
++		ccs_allocated_memory_for_elements += len;
++		return true;
 +	}
-+	mutex_unlock(&ccs_element_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+	return ptr;
++	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
++	if (!ccs_policy_loaded)
++		panic("MAC Initialization failed.\n");
++	return false;
 +}
 +
 +/**
@@ -1032,7 +1264,9 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 + */
 +const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr)
 +{
++	struct ccs_addr_entry *entry;
 +	struct ccs_addr_entry *ptr;
++	int error = -ENOMEM;
 +	if (!addr)
  		return NULL;
 -	mutex_lock(&lock);
@@ -1049,23 +1283,26 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 -			ccs_buf = ptr;
 -			ccs_allocated_memory_for_elements += PAGE_SIZE;
 -			ccs_buf_used_len = word_aligned_size;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_address_list, list) {
 +		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
 +			continue;
 +		atomic_inc(&ptr->users);
-+		goto ok;
++		error = 0;
++		break;
 +	}
-+	ptr = ccs_alloc_element(sizeof(*ptr));
-+	if (!ptr)
-+		goto ok;
-+	ptr->addr = *addr;
-+	atomic_set(&ptr->users, 1);
-+	list_add_tail(&ptr->list, &ccs_address_list);
-+ ok:
++	if (error && ccs_memory_ok(entry)) {
++		ptr = entry;
++		ptr->addr = *addr;
++		atomic_set(&ptr->users, 1);
++		list_add_tail(&ptr->list, &ccs_address_list);
++		entry = NULL;
++	}
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
++	kfree(entry);
 +	return ptr ? &ptr->addr : NULL;
 +}
 +
@@ -1110,7 +1347,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  }
  
  static unsigned int ccs_allocated_memory_for_savename;
-@@ -502,7 +568,8 @@
+@@ -502,7 +566,8 @@
  
  /* Structure for string data. */
  struct ccs_name_entry {
@@ -1120,7 +1357,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	struct ccs_path_info entry;
  };
  
-@@ -514,84 +581,95 @@
+@@ -514,84 +579,95 @@
  };
  
  /* The list for "struct ccs_name_entry". */
@@ -1130,7 +1367,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  
  /**
 - * ccs_save_name - Allocate permanent memory for string data.
-+ * ccs_save_name - Allocate memory for string data.
++ * ccs_get_name - Allocate memory for string data.
   *
   * @name: The string to store into the permernent memory.
   *
@@ -1138,7 +1375,8 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 - *
 - * The RAM is shared, so NEVER try to modify or kfree() the returned name.
   */
- const struct ccs_path_info *ccs_save_name(const char *name)
+-const struct ccs_path_info *ccs_save_name(const char *name)
++const struct ccs_path_info *ccs_get_name(const char *name)
  {
 -	static LIST_HEAD(ccs_fmb_list);
 -	static DEFINE_MUTEX(lock);
@@ -1233,11 +1471,11 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  }
  
 +/**
-+ * ccs_del_name - Delete shared memory for string data.
++ * ccs_put_name - Delete shared memory for string data.
 + *
 + * @name: Pointer to "struct ccs_path_info".
 + */
-+void ccs_del_name(const struct ccs_path_info *name)
++void ccs_put_name(const struct ccs_path_info *name)
 +{
 +	struct ccs_name_entry *ptr;
 +	unsigned int hash;
@@ -1264,32 +1502,35 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  /* Structure for temporarily allocated memory. */
  struct ccs_cache_entry {
  	struct list_head list;
-@@ -613,6 +691,7 @@
+@@ -613,7 +689,8 @@
  static int __init ccs_realpath_init(void)
  {
  	int i;
+-	/* Constraint for ccs_save_name(). */
 +	struct ccs_cookie cookie;
- 	/* Constraint for ccs_save_name(). */
++	/* Constraint for ccs_get_name(). */
  	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
  		panic("Bad size.");
-@@ -631,11 +710,12 @@
+ 	/* Constraint for "struct ccs_execve_entry"->tmp users. */
+@@ -631,11 +708,12 @@
  	if (!ccs_cachep)
  		panic("Can't create cache.\n");
  	for (i = 0; i < MAX_HASH; i++)
 -		INIT_LIST1_HEAD(&ccs_name_list[i]);
 -	INIT_LIST1_HEAD(&ccs_kernel_domain.acl_info_list);
-+		INIT_LIST_HEAD(&ccs_name_list[i]);
-+	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
- 	ccs_kernel_domain.domainname = ccs_save_name(ROOT_NAME);
+-	ccs_kernel_domain.domainname = ccs_save_name(ROOT_NAME);
 -	list1_add_tail_mb(&ccs_kernel_domain.list, &ccs_domain_list);
 -	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
++		INIT_LIST_HEAD(&ccs_name_list[i]);
++	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
++	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
 +	list_add_tail(&ccs_kernel_domain.list, &ccs_domain_list);
 +	if (!ccs_find_domain(ROOT_NAME, &cookie) ||
 +	    cookie.u.domain != &ccs_kernel_domain)
  		panic("Can't register ccs_kernel_domain");
  #ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
  	{
-@@ -850,3 +930,64 @@
+@@ -850,3 +928,64 @@
  		ccs_quota_for_dynamic = size;
  	return 0;
  }
@@ -1356,7 +1597,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
 @@ -23,13 +23,13 @@
  
@@ -1374,12 +1615,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  
  /**
   * ccs_update_chroot_acl - Update "struct ccs_chroot_entry" list.
-@@ -41,37 +41,44 @@
+@@ -41,37 +41,41 @@
   */
  static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
  {
 -	struct ccs_chroot_entry *new_entry;
-+	struct ccs_chroot_entry *new_entry = NULL;
++	struct ccs_chroot_entry *entry = NULL;
  	struct ccs_chroot_entry *ptr;
  	const struct ccs_path_info *saved_dir;
 -	static DEFINE_MUTEX(lock);
@@ -1387,16 +1628,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 +	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
  		return -EINVAL;
- 	saved_dir = ccs_save_name(dir);
+-	saved_dir = ccs_save_name(dir);
++	saved_dir = ccs_get_name(dir);
  	if (!saved_dir)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_chroot_list, list) {
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_chroot_list, list) {
@@ -1410,11 +1649,11 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->dir = saved_dir;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->dir = saved_dir;
 +		saved_dir = NULL;
-+		list_add_tail(&new_entry->list, &ccs_chroot_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_chroot_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -1429,12 +1668,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_name(saved_dir);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_dir);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -142,7 +149,7 @@
+@@ -142,7 +146,7 @@
  		ccs_fill_path_info(&dir);
  		if (dir.is_dir) {
  			struct ccs_chroot_entry *ptr;
@@ -1443,7 +1682,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  				if (ptr->is_deleted)
  					continue;
  				if (!ccs_path_matches_pattern(&dir, ptr->dir))
-@@ -182,10 +189,10 @@
+@@ -182,10 +186,10 @@
   */
  bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
  {
@@ -1459,7 +1698,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
 @@ -23,14 +23,14 @@
  
@@ -1478,12 +1717,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  
  /**
   * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_entry" list.
-@@ -44,43 +44,52 @@
+@@ -44,43 +44,49 @@
  static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
  				     const bool is_delete)
  {
 -	struct ccs_pivot_root_entry *new_entry;
-+	struct ccs_pivot_root_entry *new_entry = NULL;
++	struct ccs_pivot_root_entry *entry = NULL;
  	struct ccs_pivot_root_entry *ptr;
  	const struct ccs_path_info *saved_old_root;
  	const struct ccs_path_info *saved_new_root;
@@ -1493,18 +1732,17 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
  	    !ccs_is_correct_path(new_root, 1, 0, 1, __func__))
  		return -EINVAL;
- 	saved_old_root = ccs_save_name(old_root);
- 	saved_new_root = ccs_save_name(new_root);
+-	saved_old_root = ccs_save_name(old_root);
+-	saved_new_root = ccs_save_name(new_root);
++	saved_old_root = ccs_get_name(old_root);
++	saved_new_root = ccs_get_name(new_root);
  	if (!saved_old_root || !saved_new_root)
 -		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 +		goto out;
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_pivot_root_list, list) {
@@ -1519,13 +1757,13 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->old_root = saved_old_root;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->old_root = saved_old_root;
 +		saved_old_root = NULL;
-+		new_entry->new_root = saved_new_root;
++		entry->new_root = saved_new_root;
 +		saved_new_root = NULL;
-+		list_add_tail(&new_entry->list, &ccs_pivot_root_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_pivot_root_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -1542,13 +1780,13 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	       new_root, old_root);
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_name(saved_old_root);
-+	ccs_del_name(saved_new_root);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_old_root);
++	ccs_put_name(saved_new_root);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -132,7 +141,7 @@
+@@ -132,7 +138,7 @@
  		ccs_fill_path_info(&new_root_dir);
  		if (old_root_dir.is_dir && new_root_dir.is_dir) {
  			struct ccs_pivot_root_entry *ptr;
@@ -1557,7 +1795,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  				if (ptr->is_deleted)
  					continue;
  				if (!ccs_path_matches_pattern(&old_root_dir,
-@@ -197,10 +206,11 @@
+@@ -197,10 +203,11 @@
   */
  bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
  {
@@ -1574,7 +1812,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
 @@ -56,7 +56,7 @@
  
@@ -1594,28 +1832,29 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  
  /**
   * ccs_update_mount_acl - Update "struct ccs_mount_entry" list.
-@@ -90,99 +90,101 @@
+@@ -90,99 +90,97 @@
  				const char *fs_type, const unsigned long flags,
  				const bool is_delete)
  {
 -	struct file_system_type *type = NULL;
 -	struct ccs_mount_entry *new_entry;
-+	struct ccs_mount_entry *new_entry = NULL;
++	struct ccs_mount_entry *entry = NULL;
  	struct ccs_mount_entry *ptr;
 -	const struct ccs_path_info *fs;
 -	const struct ccs_path_info *dev;
 -	const struct ccs_path_info *dir;
 -	static DEFINE_MUTEX(lock);
+-	int error = -ENOMEM;
 +	const struct ccs_path_info *saved_fs;
 +	const struct ccs_path_info *saved_dev;
 +	const struct ccs_path_info *saved_dir;
- 	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(fs_type, 0, 0, 0, __func__))
  		return -EINVAL;
 -	fs = ccs_save_name(fs_type);
 -	if (!fs)
 -		return -EINVAL;
-+	saved_fs = ccs_save_name(fs_type);
++	saved_fs = ccs_get_name(fs_type);
 +	if (!saved_fs)
 +		return -ENOMEM;
  	if (!dev_name)
@@ -1636,7 +1875,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	if (!ccs_is_correct_path(dev_name, 0, 0, 0, __func__) ||
 -	    !ccs_is_correct_path(dir_name, 0, 0, 0, __func__))
 +	    !ccs_is_correct_path(dir_name, 0, 0, 0, __func__)) {
-+		ccs_del_name(saved_fs);
++		ccs_put_name(saved_fs);
  		return -EINVAL;
 -	dev = ccs_save_name(dev_name);
 -	dir = ccs_save_name(dir_name);
@@ -1645,16 +1884,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_mount_list, list) {
 +	}
-+	saved_dev = ccs_save_name(dev_name);
-+	saved_dir = ccs_save_name(dir_name);
++	saved_dev = ccs_get_name(dev_name);
++	saved_dir = ccs_get_name(dir_name);
 +	if (!saved_dev || !saved_dir)
 +		goto out;
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	} else
-+		error = -ENOENT;
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_mount_list, list) {
@@ -1683,16 +1918,16 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->dev_name = saved_dev;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->dev_name = saved_dev;
 +		saved_dev = NULL;
-+		new_entry->dir_name = saved_dir;
++		entry->dir_name = saved_dir;
 +		saved_dir = NULL;
-+		new_entry->fs_type = saved_fs;
++		entry->fs_type = saved_fs;
 +		saved_fs = NULL;
-+		new_entry->flags = flags;
-+		list_add_tail(&new_entry->list, &ccs_mount_list);
-+		new_entry = NULL;
++		entry->flags = flags;
++		list_add_tail(&entry->list, &ccs_mount_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -1710,7 +1945,6 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -	ptr = new_entry;
 - update:
 -	if (!strcmp(fs->name, MOUNT_REMOUNT_KEYWORD)) {
-+	ccs_free_element(new_entry);
 +	if (!strcmp(fs_type, MOUNT_REMOUNT_KEYWORD))
  		printk(KERN_CONT "%sAllow remount %s with options 0x%lX.\n",
 -		       ccs_log_level, dir->name, ptr->flags);
@@ -1755,13 +1989,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -		put_filesystem(type);
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_name(saved_dev);
-+	ccs_del_name(saved_dir);
-+	ccs_del_name(saved_fs);
++	ccs_put_name(saved_dev);
++	ccs_put_name(saved_dir);
++	ccs_put_name(saved_fs);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -440,7 +442,8 @@
+@@ -440,7 +438,8 @@
  		}
  		rdev.name = requested_dev_name;
  		ccs_fill_path_info(&rdev);
@@ -1771,7 +2006,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  			if (ptr->is_deleted)
  				continue;
  
-@@ -468,6 +471,7 @@
+@@ -468,6 +467,7 @@
  					  requested_type, flags, need_dev);
  			break;
  		}
@@ -1779,7 +2014,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  		if (error)
  			error = ccs_print_error(r, requested_dev_name,
  						requested_dir_name,
-@@ -561,18 +565,20 @@
+@@ -561,18 +561,20 @@
   */
  bool ccs_read_mount_policy(struct ccs_io_buffer *head)
  {
@@ -1810,9 +2045,37 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 +	up_read(&ccs_policy_lock);
 +	return done;
  }
+Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
+===================================================================
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 2530)
++++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+@@ -188,19 +188,19 @@
+ 	const struct ccs_condition_list *ptr = r->cond;
+ 	if (ptr) {
+ 		struct task_struct *task = current;
+-		const u8 flags = ptr->post_state[3];
++		const u8 flags = ptr->head.post_state[3];
+ 		u32 ccs_flags = task->ccs_flags;
+ 		if (flags & 1) {
+ 			ccs_flags &= ~0xFF000000;
+-			ccs_flags |= ptr->post_state[0] << 24;
++			ccs_flags |= ptr->head.post_state[0] << 24;
+ 		}
+ 		if (flags & 2) {
+ 			ccs_flags &= ~0x00FF0000;
+-			ccs_flags |= ptr->post_state[1] << 16;
++			ccs_flags |= ptr->head.post_state[1] << 16;
+ 		}
+ 		if (flags & 4) {
+ 			ccs_flags &= ~0x0000FF00;
+-			ccs_flags |= ptr->post_state[2] << 8;
++			ccs_flags |= ptr->head.post_state[2] << 8;
+ 		}
+ 		task->ccs_flags = ccs_flags;
+ 		r->cond = NULL;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
 @@ -35,16 +35,13 @@
  struct ccs_domain_info ccs_kernel_domain;
@@ -1887,53 +2150,87 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  /**
   * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer_entry" list.
-@@ -214,7 +202,6 @@
+@@ -212,12 +200,11 @@
+ 					       const bool is_not,
+ 					       const bool is_delete)
  {
- 	struct ccs_domain_initializer_entry *new_entry;
+-	struct ccs_domain_initializer_entry *new_entry;
++	struct ccs_domain_initializer_entry *entry = NULL;
  	struct ccs_domain_initializer_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_program;
  	const struct ccs_path_info *saved_domainname = NULL;
- 	int error = -ENOMEM;
-@@ -232,10 +219,13 @@
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	bool is_last_name = false;
+ 	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
+ 		return -EINVAL; /* No patterns allowed. */
+@@ -227,38 +214,44 @@
+ 			is_last_name = true;
+ 		else if (!ccs_is_correct_domain(domainname, __func__))
+ 			return -EINVAL;
+-		saved_domainname = ccs_save_name(domainname);
++		saved_domainname = ccs_get_name(domainname);
+ 		if (!saved_domainname)
  			return -ENOMEM;
  	}
- 	saved_program = ccs_save_name(program);
+-	saved_program = ccs_save_name(program);
 -	if (!saved_program)
++	saved_program = ccs_get_name(program);
 +	if (!saved_program) {
-+		ccs_del_name(saved_domainname);
++		ccs_put_name(saved_domainname);
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
 +	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -252,13 +242,18 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->domainname = saved_domainname;
-+	saved_domainname = NULL;
- 	new_entry->program = saved_program;
-+	saved_program = NULL;
- 	new_entry->is_not = is_not;
- 	new_entry->is_last_name = is_last_name;
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->domainname = saved_domainname;
++		saved_domainname = NULL;
++		entry->program = saved_program;
++		saved_program = NULL;
++		entry->is_not = is_not;
++		entry->is_last_name = is_last_name;
++		list_add_tail(&entry->list, &ccs_domain_initializer_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->domainname = saved_domainname;
+-	new_entry->program = saved_program;
+-	new_entry->is_not = is_not;
+-	new_entry->is_last_name = is_last_name;
 -	list1_add_tail_mb(&new_entry->list, &ccs_domain_initializer_list);
-+	list_add_tail(&new_entry->list, &ccs_domain_initializer_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_domainname);
-+	ccs_del_name(saved_program);
++	ccs_put_name(saved_domainname);
++	ccs_put_name(saved_program);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -272,14 +267,16 @@
+@@ -272,14 +265,16 @@
   */
  bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
  {
@@ -1953,7 +2250,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  				  list);
  		if (ptr->is_deleted)
  			continue;
-@@ -288,14 +285,14 @@
+@@ -288,14 +283,14 @@
  			from = " from ";
  			domain = ptr->domainname->name;
  		}
@@ -1975,7 +2272,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -336,7 +333,8 @@
+@@ -336,7 +331,8 @@
  {
  	struct ccs_domain_initializer_entry *ptr;
  	bool flag = false;
@@ -1985,7 +2282,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -350,15 +348,18 @@
+@@ -350,15 +346,18 @@
  		}
  		if (ccs_pathcmp(ptr->program, program))
  			continue;
@@ -2007,53 +2304,87 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  /**
   * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper_entry" list.
-@@ -379,7 +380,6 @@
+@@ -375,12 +374,11 @@
+ 					  const bool is_not,
+ 					  const bool is_delete)
+ {
+-	struct ccs_domain_keeper_entry *new_entry;
++	struct ccs_domain_keeper_entry *entry = NULL;
  	struct ccs_domain_keeper_entry *ptr;
  	const struct ccs_path_info *saved_domainname;
  	const struct ccs_path_info *saved_program = NULL;
 -	static DEFINE_MUTEX(lock);
- 	int error = -ENOMEM;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	bool is_last_name = false;
  	if (!ccs_is_domain_def(domainname) &&
-@@ -395,10 +395,13 @@
+ 	    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
+@@ -390,38 +388,44 @@
+ 	if (program) {
+ 		if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
+ 			return -EINVAL;
+-		saved_program = ccs_save_name(program);
++		saved_program = ccs_get_name(program);
+ 		if (!saved_program)
  			return -ENOMEM;
  	}
- 	saved_domainname = ccs_save_name(domainname);
+-	saved_domainname = ccs_save_name(domainname);
 -	if (!saved_domainname)
++	saved_domainname = ccs_get_name(domainname);
 +	if (!saved_domainname) {
-+		ccs_del_name(saved_program);
++		ccs_put_name(saved_program);
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
 +	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -415,13 +418,18 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->domainname = saved_domainname;
-+	saved_domainname = NULL;
- 	new_entry->program = saved_program;
-+	saved_program = NULL;
- 	new_entry->is_not = is_not;
- 	new_entry->is_last_name = is_last_name;
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->domainname = saved_domainname;
++		saved_domainname = NULL;
++		entry->program = saved_program;
++		saved_program = NULL;
++		entry->is_not = is_not;
++		entry->is_last_name = is_last_name;
++		list_add_tail(&entry->list, &ccs_domain_keeper_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->domainname = saved_domainname;
+-	new_entry->program = saved_program;
+-	new_entry->is_not = is_not;
+-	new_entry->is_last_name = is_last_name;
 -	list1_add_tail_mb(&new_entry->list, &ccs_domain_keeper_list);
-+	list_add_tail(&new_entry->list, &ccs_domain_keeper_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_domainname);
-+	ccs_del_name(saved_program);
++	ccs_put_name(saved_domainname);
++	ccs_put_name(saved_program);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -455,13 +463,16 @@
+@@ -455,13 +459,16 @@
   */
  bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
  {
@@ -2073,7 +2404,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -469,14 +480,14 @@
+@@ -469,14 +476,14 @@
  			from = " from ";
  			program = ptr->program->name;
  		}
@@ -2095,7 +2426,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -495,7 +506,8 @@
+@@ -495,7 +502,8 @@
  {
  	struct ccs_domain_keeper_entry *ptr;
  	bool flag = false;
@@ -2105,7 +2436,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -507,15 +519,18 @@
+@@ -507,15 +515,18 @@
  		}
  		if (ptr->program && ccs_pathcmp(ptr->program, program))
  			continue;
@@ -2127,52 +2458,76 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  /**
   * ccs_update_alias_entry - Update "struct ccs_alias_entry" list.
-@@ -532,7 +547,6 @@
+@@ -530,41 +541,47 @@
+ 				  const char *aliased_name,
+ 				  const bool is_delete)
  {
- 	struct ccs_alias_entry *new_entry;
+-	struct ccs_alias_entry *new_entry;
++	struct ccs_alias_entry *entry = NULL;
  	struct ccs_alias_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_original_name;
  	const struct ccs_path_info *saved_aliased_name;
- 	int error = -ENOMEM;
-@@ -541,10 +555,14 @@
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
+ 	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
  		return -EINVAL; /* No patterns allowed. */
- 	saved_original_name = ccs_save_name(original_name);
- 	saved_aliased_name = ccs_save_name(aliased_name);
+-	saved_original_name = ccs_save_name(original_name);
+-	saved_aliased_name = ccs_save_name(aliased_name);
 -	if (!saved_original_name || !saved_aliased_name)
++	saved_original_name = ccs_get_name(original_name);
++	saved_aliased_name = ccs_get_name(aliased_name);
 +	if (!saved_original_name || !saved_aliased_name) {
-+		ccs_del_name(saved_original_name);
-+		ccs_del_name(saved_aliased_name);
++		ccs_put_name(saved_original_name);
++		ccs_put_name(saved_aliased_name);
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_alias_list, list) {
 +	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_alias_list, list) {
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aliased_name != saved_aliased_name)
  			continue;
-@@ -560,11 +578,16 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->original_name = saved_original_name;
-+	saved_original_name = NULL;
- 	new_entry->aliased_name = saved_aliased_name;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->original_name = saved_original_name;
++		saved_original_name = NULL;
++		entry->aliased_name = saved_aliased_name;
++		saved_aliased_name = NULL;
++		list_add_tail(&entry->list, &ccs_alias_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->original_name = saved_original_name;
+-	new_entry->aliased_name = saved_aliased_name;
 -	list1_add_tail_mb(&new_entry->list, &ccs_alias_list);
-+	saved_aliased_name = NULL;
-+	list_add_tail(&new_entry->list, &ccs_alias_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_original_name);
-+	ccs_del_name(saved_aliased_name);
++	ccs_put_name(saved_original_name);
++	ccs_put_name(saved_aliased_name);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -578,20 +601,22 @@
+@@ -578,20 +595,22 @@
   */
  bool ccs_read_alias_policy(struct ccs_io_buffer *head)
  {
@@ -2205,7 +2560,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -612,7 +637,7 @@
+@@ -612,7 +631,7 @@
  }
  
  /* The list for "struct ccs_aggregator_entry". */
@@ -2214,52 +2569,75 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  
  /**
   * ccs_update_aggregator_entry - Update "struct ccs_aggregator_entry" list.
-@@ -629,7 +654,6 @@
+@@ -627,41 +646,46 @@
+ 				       const char *aggregated_name,
+ 				       const bool is_delete)
  {
- 	struct ccs_aggregator_entry *new_entry;
+-	struct ccs_aggregator_entry *new_entry;
++	struct ccs_aggregator_entry *entry = NULL;
  	struct ccs_aggregator_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_original_name;
  	const struct ccs_path_info *saved_aggregated_name;
- 	int error = -ENOMEM;
-@@ -638,10 +662,14 @@
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
+ 	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
  		return -EINVAL;
- 	saved_original_name = ccs_save_name(original_name);
- 	saved_aggregated_name = ccs_save_name(aggregated_name);
+-	saved_original_name = ccs_save_name(original_name);
+-	saved_aggregated_name = ccs_save_name(aggregated_name);
 -	if (!saved_original_name || !saved_aggregated_name)
++	saved_original_name = ccs_get_name(original_name);
++	saved_aggregated_name = ccs_get_name(aggregated_name);
 +	if (!saved_original_name || !saved_aggregated_name) {
-+		ccs_del_name(saved_original_name);
-+		ccs_del_name(saved_aggregated_name);
++		ccs_put_name(saved_original_name);
++		ccs_put_name(saved_aggregated_name);
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_aggregator_list, list) {
 +	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_aggregator_list, list) {
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aggregated_name != saved_aggregated_name)
  			continue;
-@@ -657,11 +685,16 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->original_name = saved_original_name;
-+	saved_original_name = NULL;
- 	new_entry->aggregated_name = saved_aggregated_name;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->original_name = saved_original_name;
++		saved_original_name = NULL;
++		entry->aggregated_name = saved_aggregated_name;
++		saved_aggregated_name = NULL;
++		list_add_tail(&entry->list, &ccs_aggregator_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->original_name = saved_original_name;
+-	new_entry->aggregated_name = saved_aggregated_name;
 -	list1_add_tail_mb(&new_entry->list, &ccs_aggregator_list);
-+	saved_aggregated_name = NULL;
-+	list_add_tail(&new_entry->list, &ccs_aggregator_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_original_name);
-+	ccs_del_name(saved_aggregated_name);
++	ccs_put_name(saved_original_name);
++	ccs_put_name(saved_aggregated_name);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -675,20 +708,23 @@
+@@ -675,20 +699,23 @@
   */
  bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
  {
@@ -2293,7 +2671,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -723,9 +759,10 @@
+@@ -723,9 +750,10 @@
  	struct ccs_path_info name;
  	name.name = domainname;
  	ccs_fill_path_info(&name);
@@ -2306,7 +2684,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		/* Never delete ccs_kernel_domain */
  		if (domain == &ccs_kernel_domain)
  			continue;
-@@ -735,7 +772,8 @@
+@@ -735,7 +763,8 @@
  		domain->is_deleted = true;
  		break;
  	}
@@ -2316,7 +2694,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	return 0;
  }
  
-@@ -744,65 +782,36 @@
+@@ -744,65 +773,36 @@
   *
   * @domainname: The name of domain.
   * @profile:    Profile number to assign if the domain was newly created.
@@ -2335,17 +2713,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	mutex_lock(&ccs_domain_list_lock);
 -	domain = ccs_find_domain(domainname);
 -	if (domain)
-+	struct ccs_domain_info *domain = ccs_alloc_element(sizeof(*domain));
-+	const struct ccs_path_info *saved_domainname
-+		= ccs_save_name(domainname);
++	struct ccs_domain_info *domain = kzalloc(sizeof(*domain), GFP_KERNEL);
++	const struct ccs_path_info *saved_domainname = ccs_get_name(domainname);
 +	if (!domain || !saved_domainname)
  		goto out;
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
-+	if (ccs_find_domain(domainname, cookie))
-+		goto out;
- 	if (!ccs_is_correct_domain(domainname, __func__))
- 		goto out;
+-	if (!ccs_is_correct_domain(domainname, __func__))
+-		goto out;
 -	saved_domainname = ccs_save_name(domainname);
 -	if (!saved_domainname)
 -		goto out;
@@ -2384,28 +2757,32 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	domain = ccs_alloc_element(sizeof(*domain));
 -	if (domain) {
 -		INIT_LIST1_HEAD(&domain->acl_info_list);
--		domain->domainname = saved_domainname;
--		domain->profile = profile;
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
++	if (!ccs_find_domain(domainname, cookie) &&
++	    ccs_is_correct_domain(domainname, __func__) &&
++	    ccs_memory_ok(domain)) {
++		INIT_LIST_HEAD(&domain->acl_info_list);
+ 		domain->domainname = saved_domainname;
++		saved_domainname = NULL;
+ 		domain->profile = profile;
 -		list1_add_tail_mb(&domain->list, &ccs_domain_list);
--	}
-+	INIT_LIST_HEAD(&domain->acl_info_list);
-+	domain->domainname = saved_domainname;
-+	saved_domainname = NULL;
-+	domain->profile = profile;
-+	list_add_tail(&domain->list, &ccs_domain_list);
-+	domain = NULL;
++		list_add_tail(&domain->list, &ccs_domain_list);
++		cookie->u.domain = domain;
++		domain = NULL;
+ 	}
   out:
 -	mutex_unlock(&ccs_domain_list_lock);
 -	return domain;
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_domainname);
-+	ccs_free_element(domain);
++	ccs_put_name(saved_domainname);
++	kfree(domain);
 +	return cookie->u.domain != NULL;
  }
  
  /**
-@@ -881,7 +890,9 @@
+@@ -881,7 +881,9 @@
  	struct ccs_path_info rn; /* real name */
  	struct ccs_path_info sn; /* symlink name */
  	struct ccs_path_info ln; /* last name */
@@ -2415,7 +2792,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
   retry:
  	current->ccs_flags = ccs_flags;
  	r->cond = NULL;
-@@ -915,7 +926,8 @@
+@@ -915,7 +917,8 @@
  	if (ccs_pathcmp(&rn, &sn)) {
  		struct ccs_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -2425,7 +2802,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			if (ptr->is_deleted ||
  			    ccs_pathcmp(&rn, ptr->original_name) ||
  			    ccs_pathcmp(&sn, ptr->aliased_name))
-@@ -925,6 +937,7 @@
+@@ -925,6 +928,7 @@
  			ccs_fill_path_info(&rn);
  			break;
  		}
@@ -2433,7 +2810,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	}
  	/* sn will be overwritten after here. */
  
-@@ -954,7 +967,8 @@
+@@ -954,7 +958,8 @@
  	{
  		struct ccs_aggregator_entry *ptr;
  		/* Is this program allowed to be aggregated? */
@@ -2443,7 +2820,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  			if (ptr->is_deleted ||
  			    !ccs_path_matches_pattern(&rn, ptr->original_name))
  				continue;
-@@ -963,6 +977,7 @@
+@@ -963,6 +968,7 @@
  			ccs_fill_path_info(&rn);
  			break;
  		}
@@ -2451,7 +2828,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	}
  
  	/* Check execute permission. */
-@@ -985,19 +1000,23 @@
+@@ -985,19 +991,23 @@
  		 * /sbin/init. But transit from kernel domain if executing
  		 * initializers because they might start before /sbin/init.
  		 */
@@ -2480,7 +2857,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		goto done;
  	if (is_enforce) {
  		int error = ccs_check_supervisor(r,
-@@ -1008,26 +1027,25 @@
+@@ -1008,26 +1018,25 @@
  		if (error < 0)
  			goto done;
  	}
@@ -2521,7 +2898,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	return retval;
  }
  
-@@ -1236,6 +1254,7 @@
+@@ -1236,6 +1245,7 @@
  	}
  	/* ee->dump->data is allocated by ccs_dump_page(). */
  	ee->task = current;
@@ -2529,7 +2906,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&ccs_execve_list_lock);
  	list_add(&ee->list, &ccs_execve_list);
-@@ -1284,6 +1303,7 @@
+@@ -1284,6 +1294,7 @@
  	ccs_free(ee->program_path);
  	ccs_free(ee->tmp);
  	kfree(ee->dump.data);
@@ -2537,7 +2914,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	ccs_free(ee);
  }
  
-@@ -1513,22 +1533,26 @@
+@@ -1513,22 +1524,26 @@
  	struct task_struct *task = current;
  	const struct ccs_domain_info *domain = ccs_current_domain();
  	struct ccs_acl_info *ptr;
@@ -2567,7 +2944,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  }
  
  /**
-@@ -1666,9 +1690,10 @@
+@@ -1639,6 +1654,7 @@
+  ok:
+ 	if (retval < 0)
+ 		goto out;
++	ee->r.domain = ee->cookie.u.domain;
+ 	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
+ 	retval = ccs_check_environ(ee);
+ 	if (retval < 0)
+@@ -1666,9 +1682,10 @@
  		return;
  	if (retval < 0)
  		goto out;
@@ -2581,7 +2966,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
 @@ -31,8 +31,8 @@
  #else
@@ -2672,12 +3057,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  }
  
  /**
-@@ -1079,29 +1089,29 @@
+@@ -1079,29 +1089,30 @@
  static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
  							  profile)
  {
 -	static DEFINE_MUTEX(lock);
- 	struct ccs_profile *ptr = NULL;
+-	struct ccs_profile *ptr = NULL;
 -	mutex_lock(&lock);
 -	if (profile < MAX_PROFILES) {
 -		ptr = ccs_profile_ptr[profile];
@@ -2696,34 +3081,45 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -			mb(); /* Avoid out-of-order execution. */
 -			ccs_profile_ptr[profile] = ptr;
 -		}
--	}
++	struct ccs_profile *ptr;
++	struct ccs_profile *entry;
 +	int i;
 +	if (profile >= MAX_PROFILES)
 +		return NULL;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	ptr = ccs_profile_ptr[profile];
-+	if (ptr)
-+		goto ok;
-+	ptr = ccs_alloc_element(sizeof(*ptr));
-+	if (!ptr)
-+		goto ok;
-+	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
-+		ptr->value[i] = ccs_control_array[i].current_value;
-+	/*
-+	 * Needn't to initialize "ptr->capability_value"
-+	 * because they are always 0.
-+	 */
-+	mb(); /* Avoid out-of-order execution. */
-+	ccs_profile_ptr[profile] = ptr;
-  ok:
++	if (!ptr && ccs_memory_ok(entry)) {
++		ptr = entry;
++		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
++			ptr->value[i] = ccs_control_array[i].current_value;
++		/*
++		 * Needn't to initialize "ptr->capability_value"
++		 * because they are always 0.
++		 */
++		mb(); /* Avoid out-of-order execution. */
++		ccs_profile_ptr[profile] = ptr;
++		entry = NULL;
+ 	}
+- ok:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
++	kfree(entry);
  	return ptr;
  }
  
-@@ -1297,7 +1307,7 @@
+@@ -1134,7 +1145,7 @@
+ 	*cp = '\0';
+ 	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
+ 	if (!strcmp(data, "COMMENT")) {
+-		ccs_profile->comment = ccs_save_name(cp + 1);
++		ccs_profile->comment = ccs_get_name(cp + 1);
+ 		ccs_profile_entry_used[0] = true;
+ 		return 0;
+ 	}
+@@ -1297,7 +1308,7 @@
  
  /* Structure for policy manager. */
  struct ccs_policy_manager_entry {
@@ -2732,7 +3128,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/* A path to program or a domainname. */
  	const struct ccs_path_info *manager;
  	bool is_domain;  /* True if manager is a domainname. */
-@@ -1305,7 +1315,7 @@
+@@ -1305,7 +1316,7 @@
  };
  
  /* The list for "struct ccs_policy_manager_entry". */
@@ -2741,44 +3137,70 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  
  /**
   * ccs_update_manager_entry - Add a manager entry.
-@@ -1319,7 +1329,6 @@
+@@ -1317,11 +1328,10 @@
+  */
+ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
  {
- 	struct ccs_policy_manager_entry *new_entry;
+-	struct ccs_policy_manager_entry *new_entry;
++	struct ccs_policy_manager_entry *entry = NULL;
  	struct ccs_policy_manager_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_manager;
- 	int error = -ENOMEM;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	bool is_domain = false;
-@@ -1334,8 +1343,9 @@
- 	saved_manager = ccs_save_name(manager);
+ 	if (ccs_is_domain_def(manager)) {
+ 		if (!ccs_is_correct_domain(manager, __func__))
+@@ -1331,30 +1341,32 @@
+ 		if (!ccs_is_correct_path(manager, 1, -1, -1, __func__))
+ 			return -EINVAL;
+ 	}
+-	saved_manager = ccs_save_name(manager);
++	saved_manager = ccs_get_name(manager);
  	if (!saved_manager)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_policy_manager_list, list) {
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_policy_manager_list, list) {
  		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -1350,11 +1360,14 @@
- 	if (!new_entry)
- 		goto out;
- 	new_entry->manager = saved_manager;
-+	saved_manager = NULL;
- 	new_entry->is_domain = is_domain;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->manager = saved_manager;
++		saved_manager = NULL;
++		entry->is_domain = is_domain;
++		list_add_tail(&entry->list, &ccs_policy_manager_list);
++		entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = ccs_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->manager = saved_manager;
+-	new_entry->is_domain = is_domain;
 -	list1_add_tail_mb(&new_entry->list, &ccs_policy_manager_list);
-+	list_add_tail(&new_entry->list, &ccs_policy_manager_list);
- 	error = 0;
-  out:
+-	error = 0;
+- out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_manager);
++	ccs_put_name(saved_manager);
++	kfree(entry);
  	if (!error)
  		ccs_update_counter(CCS_UPDATES_COUNTER_MANAGER);
  	return error;
-@@ -1387,18 +1400,23 @@
+@@ -1387,18 +1399,23 @@
   */
  static int ccs_read_manager_policy(struct ccs_io_buffer *head)
  {
@@ -2808,7 +3230,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	return 0;
  }
  
-@@ -1422,7 +1440,7 @@
+@@ -1422,7 +1439,7 @@
  		return true;
  	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
  		return false;
@@ -2817,7 +3239,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (!ptr->is_deleted && ptr->is_domain
  		    && !ccs_pathcmp(domainname, ptr->manager)) {
  			/* Set manager flag. */
-@@ -1433,7 +1451,7 @@
+@@ -1433,7 +1450,7 @@
  	exe = ccs_get_exe();
  	if (!exe)
  		return false;
@@ -2826,7 +3248,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (!ptr->is_deleted && !ptr->is_domain
  		    && !strcmp(exe, ptr->manager->name)) {
  			found = true;
-@@ -1496,12 +1514,14 @@
+@@ -1496,12 +1513,14 @@
  {
  	unsigned int pid;
  	struct ccs_domain_info *domain = NULL;
@@ -2841,7 +3263,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_pid(pid);
-@@ -1509,12 +1529,18 @@
+@@ -1509,12 +1528,18 @@
  			domain = ccs_task_domain(p);
  		read_unlock(&tasklist_lock);
  		/***** CRITICAL SECTION END *****/
@@ -2863,7 +3285,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
-@@ -1523,14 +1549,8 @@
+@@ -1523,14 +1548,8 @@
  	head->read_single_domain = true;
  	head->read_eof = !domain;
  	if (domain) {
@@ -2880,7 +3302,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		head->read_bit = 0;
  		head->read_step = 0;
  		if (domain->is_deleted)
-@@ -1549,7 +1569,7 @@
+@@ -1549,7 +1568,7 @@
  static int ccs_write_domain_policy(struct ccs_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -2889,7 +3311,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -1565,14 +1585,16 @@
+@@ -1565,14 +1584,16 @@
  	if (!ccs_is_policy_manager())
  		return -EPERM;
  	if (ccs_is_domain_def(data)) {
@@ -2913,7 +3335,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
  		return 0;
  	}
-@@ -1991,7 +2013,7 @@
+@@ -1991,7 +2012,7 @@
  			    struct ccs_acl_info *ptr)
  {
  	const struct ccs_condition_list *cond = ccs_get_condition_part(ptr);
@@ -2922,7 +3344,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	if (acl_type & ACL_DELETED)
  		return true;
  	if (acl_type == TYPE_SINGLE_PATH_ACL) {
-@@ -2070,19 +2092,19 @@
+@@ -2070,19 +2091,19 @@
   */
  static int ccs_read_domain_policy(struct ccs_io_buffer *head)
  {
@@ -2946,7 +3368,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (head->read_step != 1)
  			goto acl_loop;
  		if (domain->is_deleted && !head->read_single_domain)
-@@ -2110,10 +2132,10 @@
+@@ -2110,10 +2131,10 @@
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -2959,7 +3381,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			if (!ccs_print_entry(head, ptr))
  				return 0;
  		}
-@@ -2137,26 +2159,24 @@
+@@ -2137,26 +2158,24 @@
   * @head: Pointer to "struct ccs_io_buffer".
   *
   * Returns 0 on success, -EINVAL otherwise.
@@ -2994,7 +3416,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
  	return 0;
  }
-@@ -2167,22 +2187,15 @@
+@@ -2167,22 +2186,15 @@
   * @head: Pointer to "struct ccs_io_buffer".
   *
   * Returns list of profile number and domainname pairs.
@@ -3020,7 +3442,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (domain->is_deleted)
  			continue;
  		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
-@@ -2232,6 +2245,7 @@
+@@ -2232,6 +2244,7 @@
  	if (ccs_str_starts(&buf, "info "))
  		task_info = true;
  	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
@@ -3028,7 +3450,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/***** CRITICAL SECTION START *****/
  	read_lock(&tasklist_lock);
  	p = find_task_by_pid(pid);
-@@ -2241,6 +2255,7 @@
+@@ -2241,6 +2254,7 @@
  	}
  	read_unlock(&tasklist_lock);
  	/***** CRITICAL SECTION END *****/
@@ -3036,7 +3458,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	if (!domain)
  		goto done;
  	if (!task_info)
-@@ -2314,53 +2329,53 @@
+@@ -2314,53 +2328,53 @@
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -3101,7 +3523,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_step = 10;
  		case 10:
  			if (!ccs_read_address_group_policy(head))
-@@ -2416,27 +2431,27 @@
+@@ -2416,27 +2430,27 @@
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -3134,7 +3556,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_step = 5;
  		case 5:
  			if (!ccs_read_reserved_port_policy(head))
-@@ -2614,7 +2629,7 @@
+@@ -2614,7 +2628,7 @@
  	ccs_log_level = KERN_WARNING;
  	{ /* Check all profiles currently assigned to domains are defined. */
  		struct ccs_domain_info *domain;
@@ -3143,7 +3565,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			const u8 profile = domain->profile;
  			if (ccs_profile_ptr[profile])
  				continue;
-@@ -3200,6 +3215,9 @@
+@@ -3200,6 +3214,9 @@
  			return -ENOMEM;
  		}
  	}
@@ -3153,7 +3575,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is /proc/ccs/self_domain
-@@ -3355,6 +3373,9 @@
+@@ -3355,12 +3372,16 @@
  	head->read_buf = NULL;
  	ccs_free(head->write_buf);
  	head->write_buf = NULL;
@@ -3163,7 +3585,14 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	ccs_free(head);
  	head = NULL;
  	file->private_data = NULL;
-@@ -3406,27 +3427,10 @@
+ 	return 0;
+ }
+ 
++#if 0
+ /**
+  * ccs_alloc_acl_element - Allocate permanent memory for ACL entry.
+  *
+@@ -3406,27 +3427,11 @@
  	default:
  		return NULL;
  	}
@@ -3173,7 +3602,8 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	 */
 -	if (!condition)
 -		len -= sizeof(ptr->access_me_via_ccs_get_condition_part);
- 	ptr = ccs_alloc_element(len);
+-	ptr = ccs_alloc_element(len);
++	ptr = kzalloc(len, GFP_KERNEL);
  	if (!ptr)
  		return NULL;
 -	if (condition) {
@@ -3192,9 +3622,10 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	ptr->type = acl_type;
  	return ptr;
  }
++#endif
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
 @@ -18,15 +18,17 @@
  
@@ -3216,7 +3647,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  /**
   * ccs_update_reserved_entry - Update "struct ccs_reserved_entry" list.
   *
-@@ -39,31 +41,47 @@
+@@ -39,31 +41,46 @@
  static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
  				     const bool is_delete)
  {
@@ -3227,10 +3658,9 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
 +	u8 *ccs_tmp_map = ccs_alloc(8192, false);
-+	struct ccs_reserved_entry *new_entry =
-+		ccs_alloc_element(sizeof(*new_entry));
-+	if (!ccs_tmp_map || !new_entry) {
-+		ccs_free_element(new_entry);
++	struct ccs_reserved_entry *entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	if (!ccs_tmp_map || !entry) {
++		kfree(entry);
 +		ccs_free(ccs_tmp_map);
 +		return -ENOMEM;
 +	}
@@ -3249,11 +3679,11 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->min_port = min_port;
-+		new_entry->max_port = max_port;
-+		list_add_tail(&new_entry->list, &ccs_reservedport_list);
-+		new_entry = NULL;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->min_port = min_port;
++		entry->max_port = max_port;
++		list_add_tail(&entry->list, &ccs_reservedport_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -3276,12 +3706,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 +		sizeof(ccs_reserved_port_map));
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_free_element(new_entry);
++	kfree(entry);
 +	ccs_free(ccs_tmp_map);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -78,15 +96,10 @@
+@@ -78,15 +95,10 @@
  bool ccs_lport_reserved(const u16 port)
  {
  	/***** CRITICAL SECTION START *****/
@@ -3299,7 +3729,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	/***** CRITICAL SECTION END *****/
  }
  EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
-@@ -127,24 +140,27 @@
+@@ -127,24 +139,27 @@
   */
  bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
  {
@@ -3337,56 +3767,90 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
-@@ -55,7 +55,6 @@
+@@ -55,23 +55,25 @@
  				 const struct ccs_condition_list *condition,
  				 const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
++	struct ccs_signal_acl_record *entry = NULL;
  	struct ccs_acl_info *ptr;
- 	struct ccs_signal_acl_record *acl;
+-	struct ccs_signal_acl_record *acl;
  	const struct ccs_path_info *saved_dest_pattern;
-@@ -68,10 +67,11 @@
- 	saved_dest_pattern = ccs_save_name(dest_pattern);
+ 	const u16 hash = sig;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (!domain)
+ 		return -EINVAL;
+ 	if (!dest_pattern || !ccs_is_correct_domain(dest_pattern, __func__))
+ 		return -EINVAL;
+-	saved_dest_pattern = ccs_save_name(dest_pattern);
++	saved_dest_pattern = ccs_get_name(dest_pattern);
  	if (!saved_dest_pattern)
  		return -ENOMEM;
 -	mutex_lock(&lock);
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_signal_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -89,11 +89,12 @@
- 		goto out;
- 	acl->sig = hash;
- 	acl->domainname = saved_dest_pattern;
-+	saved_dest_pattern = NULL;
- 	error = ccs_add_domain_acl(domain, &acl->head);
+@@ -81,19 +83,25 @@
+ 		    ccs_pathcmp(acl->domainname, saved_dest_pattern))
+ 			continue;
+ 		error = ccs_add_domain_acl(NULL, ptr);
+-		goto out;
++		break;
+ 	}
+-	/* Not found. Append it to the tail. */
+-	acl = ccs_alloc_acl_element(TYPE_SIGNAL_ACL, condition);
+-	if (!acl)
+-		goto out;
+-	acl->sig = hash;
+-	acl->domainname = saved_dest_pattern;
+-	error = ccs_add_domain_acl(domain, &acl->head);
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_SIGNAL_ACL;
++		entry->head.cond = condition;
++		entry->sig = hash;
++		entry->domainname = saved_dest_pattern;
++		saved_dest_pattern = NULL;
++		error = ccs_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++	}
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_signal_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -106,7 +107,9 @@
+@@ -105,8 +113,11 @@
+ 		error = ccs_del_domain_acl(ptr);
  		break;
  	}
-  out:
--	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_dest_pattern);
+  out:
+-	mutex_unlock(&lock);
++	ccs_put_name(saved_dest_pattern);
++	kfree(entry);
  	return error;
  }
  
-@@ -141,6 +144,7 @@
+@@ -141,6 +152,7 @@
  	}
  	{ /* Simplified checking. */
  		struct task_struct *p = NULL;
@@ -3394,7 +3858,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		if (pid > 0)
-@@ -155,6 +159,7 @@
+@@ -155,6 +167,7 @@
  			dest = ccs_task_domain(p);
  		read_unlock(&tasklist_lock);
  		/***** CRITICAL SECTION END *****/
@@ -3402,7 +3866,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  	}
  	if (!dest)
  		return 0; /* I can't find destinatioin. */
-@@ -164,7 +169,8 @@
+@@ -164,7 +177,8 @@
  	}
  	dest_pattern = dest->domainname->name;
   retry:
@@ -3412,7 +3876,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		struct ccs_signal_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
  			continue;
-@@ -185,6 +191,7 @@
+@@ -185,6 +199,7 @@
  			break;
  		}
  	}
@@ -3422,7 +3886,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		return 0;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
 @@ -20,21 +20,21 @@
  
@@ -3458,12 +3922,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
  /**
   * ccs_update_globally_readable_entry - Update "struct ccs_globally_readable_file_entry" list.
-@@ -182,36 +182,41 @@
+@@ -182,36 +182,37 @@
  static int ccs_update_globally_readable_entry(const char *filename,
  					      const bool is_delete)
  {
 -	struct ccs_globally_readable_file_entry *new_entry;
-+	struct ccs_globally_readable_file_entry *new_entry = NULL;
++	struct ccs_globally_readable_file_entry *entry = NULL;
  	struct ccs_globally_readable_file_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_filename;
@@ -3471,16 +3935,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__))
  		return -EINVAL;
- 	saved_filename = ccs_save_name(filename);
+-	saved_filename = ccs_save_name(filename);
++	saved_filename = ccs_get_name(filename);
  	if (!saved_filename)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_globally_readable_list, list) {
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
@@ -3494,11 +3956,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->filename = saved_filename;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->filename = saved_filename;
 +		saved_filename = NULL;
-+		list_add_tail(&new_entry->list, &ccs_globally_readable_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_globally_readable_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -3507,16 +3969,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	new_entry->filename = saved_filename;
 -	list1_add_tail_mb(&new_entry->list, &ccs_globally_readable_list);
 -	error = 0;
+- out:
+-	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-  out:
--	mutex_unlock(&lock);
-+	ccs_del_name(saved_filename);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_filename);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -226,12 +231,17 @@
+@@ -226,12 +227,17 @@
  static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
  {
  	struct ccs_globally_readable_file_entry *ptr;
@@ -3539,7 +4001,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -256,27 +266,107 @@
+@@ -256,27 +262,105 @@
   */
  bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
  {
@@ -3576,7 +4038,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +static LIST_HEAD(ccs_path_group_list);
  
  /**
-+ * ccs_save_new_path_group - Allocate memory for "struct ccs_path_group_entry".
++ * ccs_save_path_group - Allocate memory for "struct ccs_path_group_entry".
 + *
 + * @group_name: The name of pathname group.
 + *
@@ -3584,43 +4046,41 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 + */
 +static struct ccs_path_group_entry *ccs_save_path_group(const char *group_name)
 +{
-+	struct ccs_path_group_entry *new_group;
-+	struct ccs_path_group_entry *group = NULL;
++	struct ccs_path_group_entry *entry = NULL;
++	struct ccs_path_group_entry *group;
 +	const struct ccs_path_info *saved_group_name;
-+	bool found = false;
++	int error = -ENOMEM;
 +	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
 +	    !group_name[0])
 +		return NULL;
-+	saved_group_name = ccs_save_name(group_name);
++	saved_group_name = ccs_get_name(group_name);
 +	if (!saved_group_name)
 +		return NULL;
-+	new_group = ccs_alloc_element(sizeof(*new_group));
-+	if (!new_group)
-+		goto out;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(group, &ccs_path_group_list, list) {
 +		if (saved_group_name != group->group_name)
 +			continue;
 +		atomic_inc(&group->users);
-+		found = true;
++		error = 0;
 +		break;
 +	}
-+	if (!found) {
-+		INIT_LIST_HEAD(&new_group->path_group_member_list);
-+		new_group->group_name = saved_group_name;
++	if (error && ccs_memory_ok(entry)) {
++		INIT_LIST_HEAD(&entry->path_group_member_list);
++		entry->group_name = saved_group_name;
 +		saved_group_name = NULL;
-+		atomic_set(&new_group->users, 1);
-+		list_add_tail(&new_group->list, &ccs_path_group_list);
-+		group = new_group;
-+		new_group = NULL;
++		atomic_set(&entry->users, 1);
++		list_add_tail(&entry->list, &ccs_path_group_list);
++		group = entry;
++		entry = NULL;
++		error = 0;
 +	}
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+ out:
-+	ccs_free_element(new_group);
-+	ccs_del_name(saved_group_name);
-+	return group;
++	ccs_put_name(saved_group_name);
++	kfree(entry);
++	return !error ? group : NULL;
 +}
 +
 +/**
@@ -3636,8 +4096,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		struct ccs_path_group_member *member;
 +		struct ccs_path_group_member *next_member;
 +		list_for_each_entry_safe(member, next_member,
-+					  &group->path_group_member_list,
-+					  list) {
++					 &group->path_group_member_list,
++					 list) {
 +			if (!member->is_deleted)
 +				break;
 +			list_del(&member->list);
@@ -3645,7 +4105,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		}
 +		if (list_empty(&group->path_group_member_list)) {
 +			list_del(&group->list);
-+			ccs_del_name(group->group_name);
++			ccs_put_name(group->group_name);
 +			ccs_free_element(group);
 +		}
 +	}
@@ -3657,7 +4117,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   * ccs_update_path_group_entry - Update "struct ccs_path_group_entry" list.
   *
   * @group_name:  The name of pathname group.
-@@ -289,64 +379,54 @@
+@@ -289,64 +373,48 @@
  				       const char *member_name,
  				       const bool is_delete)
  {
@@ -3665,16 +4125,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	struct ccs_path_group_entry *new_group;
  	struct ccs_path_group_entry *group;
 -	struct ccs_path_group_member *new_member;
-+	struct ccs_path_group_member *new_member = NULL;
++	struct ccs_path_group_member *entry = NULL;
  	struct ccs_path_group_member *member;
 -	const struct ccs_path_info *saved_group_name;
  	const struct ccs_path_info *saved_member_name;
 -	int error = -ENOMEM;
-+	int error = is_delete ? -ENOENT : -ENOMEM;
- 	bool found = false;
+-	bool found = false;
 -	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
 -	    !group_name[0] ||
 -	    !ccs_is_correct_path(member_name, 0, 0, 0, __func__) ||
++	int error = is_delete ? -ENOENT : -ENOMEM;
 +	if (!ccs_is_correct_path(member_name, 0, 0, 0, __func__) ||
  	    !member_name[0])
  		return -EINVAL;
@@ -3686,19 +4146,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (!strcmp(member_name, "pipe:"))
  		member_name = "pipe:[\\$]";
  #endif
- 	saved_member_name = ccs_save_name(member_name);
+-	saved_member_name = ccs_save_name(member_name);
 -	if (!saved_group_name || !saved_member_name)
 -		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(group, &ccs_path_group_list, list) {
 -		if (saved_group_name != group->group_name)
++	saved_member_name = ccs_get_name(member_name);
 +	if (saved_member_name)
 +		goto out;
-+	if (!is_delete) {
-+		new_member = ccs_alloc_element(sizeof(*new_member));
-+		if (!new_member)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(member, &group->path_group_member_list, list) {
@@ -3712,20 +4170,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -			error = 0;
 -			goto out;
 -		}
+-		found = true;
 +		member->is_deleted = is_delete;
 +		error = 0;
- 		found = true;
  		break;
  	}
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && !found) {
-+		new_member->member_name = saved_member_name;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->member_name = saved_member_name;
 +		saved_member_name = NULL;
-+		list_add_tail(&new_member->list,
-+			       &group->path_group_member_list);
-+		new_member = NULL;
++		list_add_tail(&entry->list, &group->path_group_member_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	if (!found) {
@@ -3747,13 +4204,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_free_element(new_member);
-+	ccs_del_name(saved_member_name);
++	ccs_put_name(saved_member_name);
 +	ccs_del_path_group(group);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -369,31 +449,6 @@
+@@ -369,31 +437,6 @@
  }
  
  /**
@@ -3785,7 +4242,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
   *
   * @pathname:        The name of pathname.
-@@ -407,19 +462,25 @@
+@@ -407,19 +450,25 @@
  				   const bool may_use_pattern)
  {
  	struct ccs_path_group_member *member;
@@ -3819,7 +4276,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -431,31 +492,34 @@
+@@ -431,31 +480,34 @@
   */
  bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
  {
@@ -3868,12 +4325,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
  /**
   * ccs_update_file_pattern_entry - Update "struct ccs_pattern_entry" list.
-@@ -468,36 +532,41 @@
+@@ -468,36 +520,37 @@
  static int ccs_update_file_pattern_entry(const char *pattern,
  					 const bool is_delete)
  {
 -	struct ccs_pattern_entry *new_entry;
-+	struct ccs_pattern_entry *new_entry = NULL;
++	struct ccs_pattern_entry *entry = NULL;
  	struct ccs_pattern_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_pattern;
@@ -3881,16 +4338,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(pattern, 0, 1, 0, __func__))
  		return -EINVAL;
- 	saved_pattern = ccs_save_name(pattern);
+-	saved_pattern = ccs_save_name(pattern);
++	saved_pattern = ccs_get_name(pattern);
  	if (!saved_pattern)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_pattern_list, list) {
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_pattern_list, list) {
@@ -3904,11 +4359,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->pattern = saved_pattern;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->pattern = saved_pattern;
 +		saved_pattern = NULL;
-+		list_add_tail(&new_entry->list, &ccs_pattern_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_pattern_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -3917,16 +4372,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	new_entry->pattern = saved_pattern;
 -	list1_add_tail_mb(&new_entry->list, &ccs_pattern_list);
 -	error = 0;
+- out:
+-	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-  out:
--	mutex_unlock(&lock);
-+	ccs_del_name(saved_pattern);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_pattern);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -505,15 +574,15 @@
+@@ -505,15 +558,15 @@
  /**
   * ccs_get_file_pattern - Get patterned pathname.
   *
@@ -3947,7 +4402,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		if (ptr->is_deleted)
  			continue;
  		if (!ccs_path_matches_pattern(filename, ptr->pattern))
-@@ -527,8 +596,8 @@
+@@ -527,8 +580,8 @@
  		}
  	}
  	if (pattern)
@@ -3958,7 +4413,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -553,23 +622,25 @@
+@@ -553,23 +606,25 @@
   */
  bool ccs_read_file_pattern(struct ccs_io_buffer *head)
  {
@@ -3994,12 +4449,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
  /**
   * ccs_update_no_rewrite_entry - Update "struct ccs_no_rewrite_entry" list.
-@@ -582,36 +653,41 @@
+@@ -582,36 +637,37 @@
  static int ccs_update_no_rewrite_entry(const char *pattern,
  				       const bool is_delete)
  {
 -	struct ccs_no_rewrite_entry *new_entry;
-+	struct ccs_no_rewrite_entry *new_entry = NULL;
++	struct ccs_no_rewrite_entry *entry = NULL;
  	struct ccs_no_rewrite_entry *ptr;
 -	static DEFINE_MUTEX(lock);
  	const struct ccs_path_info *saved_pattern;
@@ -4007,16 +4462,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(pattern, 0, 0, 0, __func__))
  		return -EINVAL;
- 	saved_pattern = ccs_save_name(pattern);
+-	saved_pattern = ccs_save_name(pattern);
++	saved_pattern = ccs_get_name(pattern);
  	if (!saved_pattern)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
@@ -4030,11 +4483,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->pattern = saved_pattern;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->pattern = saved_pattern;
 +		saved_pattern = NULL;
-+		list_add_tail(&new_entry->list, &ccs_no_rewrite_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_no_rewrite_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -4043,16 +4496,16 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	new_entry->pattern = saved_pattern;
 -	list1_add_tail_mb(&new_entry->list, &ccs_no_rewrite_list);
 -	error = 0;
+- out:
+-	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-  out:
--	mutex_unlock(&lock);
-+	ccs_del_name(saved_pattern);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_pattern);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -627,14 +703,18 @@
+@@ -627,14 +683,18 @@
  static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
  {
  	struct ccs_no_rewrite_entry *ptr;
@@ -4074,7 +4527,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -659,19 +739,22 @@
+@@ -659,19 +719,22 @@
   */
  bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  {
@@ -4106,7 +4559,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -735,7 +818,9 @@
+@@ -735,7 +798,9 @@
  {
  	struct ccs_domain_info *domain = r->domain;
  	struct ccs_acl_info *ptr;
@@ -4117,7 +4570,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		struct ccs_single_path_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -755,9 +840,11 @@
+@@ -755,9 +820,11 @@
  			continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -4131,7 +4584,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -838,10 +925,18 @@
+@@ -838,10 +905,18 @@
  	}
  	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
  		/* Don't use patterns for execute permission. */
@@ -4154,7 +4607,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
  	return 0;
  }
-@@ -860,10 +955,9 @@
+@@ -860,22 +935,24 @@
  				      struct ccs_domain_info * const domain,
  				      const bool is_delete)
  {
@@ -4162,21 +4615,22 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	const struct ccs_path_info *saved_filename;
  	struct ccs_acl_info *ptr;
 -	struct ccs_execute_handler_record *acl;
+-	int error = -ENOMEM;
 +	struct ccs_execute_handler_record *entry = NULL;
- 	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!domain)
  		return -EINVAL;
-@@ -872,10 +966,15 @@
- 	saved_filename = ccs_save_name(filename);
+ 	if (!ccs_is_correct_path(filename, 1, -1, -1, __func__))
+ 		return -EINVAL;
+-	saved_filename = ccs_save_name(filename);
++	saved_filename = ccs_get_name(filename);
  	if (!saved_filename)
  		return -ENOMEM;
 -	mutex_lock(&lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	entry = ccs_alloc_acl_element(type, NULL);
-+	if (!entry)
-+		goto out;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -4184,7 +4638,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		if (ccs_acl_type1(ptr) != type)
  			continue;
  		/* Condition not supported. */
-@@ -884,28 +983,33 @@
+@@ -884,28 +961,32 @@
  		if (acl->handler != saved_filename)
  			continue;
  		/* Only one entry can exist in a domain. */
@@ -4206,7 +4660,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 -		if (ptr->type == type)
 -			ptr->type |= ACL_DELETED;
-+	if (error) {
++	if (error && ccs_memory_ok(entry)) {
 +		entry->handler = saved_filename;
 +		saved_filename = NULL;
 +		/* Only one entry can exist in a domain. */
@@ -4222,7 +4676,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
@@ -4231,7 +4685,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		if (ccs_acl_type2(ptr) != type)
  			continue;
  		/* Condition not supported. */
-@@ -916,8 +1020,11 @@
+@@ -916,8 +997,11 @@
  		error = ccs_del_domain_acl(ptr);
  		break;
  	}
@@ -4239,12 +4693,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_free_element(entry);
-+	ccs_del_name(saved_filename);
++	ccs_put_name(saved_filename);
++	kfree(entry);
  	return error;
  }
  
-@@ -993,13 +1100,12 @@
+@@ -993,13 +1077,12 @@
  				      condition,
  				      const bool is_delete)
  {
@@ -4261,7 +4715,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	bool is_group = false;
  	const u16 perm = 1 << type;
  	if (!domain)
-@@ -1007,33 +1113,33 @@
+@@ -1007,33 +1090,31 @@
  	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
  		return -EINVAL;
  	if (filename[0] == '@') {
@@ -4279,7 +4733,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			filename = "pipe:[\\$]";
  #endif
 -		saved_filename = ccs_save_name(filename);
-+		saved_ptr = ccs_save_name(filename);
++		saved_ptr = ccs_get_name(filename);
  	}
 -	if (!saved_filename)
 +	if (!saved_ptr)
@@ -4288,9 +4742,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	entry = ccs_alloc_acl_element(TYPE_SINGLE_PATH_ACL, condition);
-+	if (!entry)
-+		goto out;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -4306,7 +4758,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			continue;
  		/* Special case. Clear all bits if marked as deleted. */
  		if (ptr->type & ACL_DELETED)
-@@ -1044,29 +1150,33 @@
+@@ -1044,29 +1125,35 @@
  		else if (acl->perm & (1 << TYPE_READ_WRITE_ACL))
  			acl->perm |= ccs_rw_mask;
  		error = ccs_add_domain_acl(NULL, ptr);
@@ -4323,7 +4775,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	acl->u_is_group = is_group;
 -	acl->u.filename = saved_filename;
 -	error = ccs_add_domain_acl(domain, &acl->head);
-+	if (error) {
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_SINGLE_PATH_ACL;
++		entry->head.cond = condition;
 +		entry->perm = perm;
 +		if (perm == (1 << TYPE_READ_WRITE_ACL))
 +			entry->perm |= ccs_rw_mask;
@@ -4354,7 +4808,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			continue;
  		acl->perm &= ~perm;
  		if ((acl->perm & ccs_rw_mask) != ccs_rw_mask)
-@@ -1076,8 +1186,14 @@
+@@ -1076,8 +1163,14 @@
  		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
  		break;
  	}
@@ -4362,15 +4816,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_free_element(entry);
 +	if (is_group)
 +		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr);
 +	else
-+		ccs_del_name((struct ccs_path_info *) saved_ptr);
++		ccs_put_name((struct ccs_path_info *) saved_ptr);
++	kfree(entry);
  	return error;
  }
  
-@@ -1100,12 +1216,11 @@
+@@ -1100,12 +1193,11 @@
  				      condition,
  				      const bool is_delete)
  {
@@ -4387,7 +4841,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	bool is_group1 = false;
  	bool is_group2 = false;
  	const u8 perm = 1 << type;
-@@ -1115,78 +1230,86 @@
+@@ -1115,78 +1207,86 @@
  	    !ccs_is_correct_path(filename2, 0, 0, 0, __func__))
  		return -EINVAL;
  	if (filename1[0] == '@') {
@@ -4401,7 +4855,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		is_group1 = true;
  	} else {
 -		saved_filename1 = ccs_save_name(filename1);
-+		saved_ptr1 = ccs_save_name(filename1);
++		saved_ptr1 = ccs_get_name(filename1);
  	}
  	if (filename2[0] == '@') {
 -		/*
@@ -4414,7 +4868,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		is_group2 = true;
  	} else {
 -		saved_filename2 = ccs_save_name(filename2);
-+		saved_ptr2 = ccs_save_name(filename2);
++		saved_ptr2 = ccs_get_name(filename2);
  	}
 -	if (!saved_filename1 || !saved_filename2)
 -		return -ENOMEM;
@@ -4424,9 +4878,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	entry = ccs_alloc_acl_element(TYPE_DOUBLE_PATH_ACL, condition);
-+	if (!entry)
-+		goto out;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -4459,7 +4911,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	acl->u1.filename1 = saved_filename1;
 -	acl->u2.filename2 = saved_filename2;
 -	error = ccs_add_domain_acl(domain, &acl->head);
-+	if (error) {
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_DOUBLE_PATH_ACL;
++		entry->head.cond = condition;
 +		entry->perm = perm;
 +		entry->u1_is_group = is_group1;
 +		entry->u2_is_group = is_group2;
@@ -4498,19 +4952,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_free_element(entry);
 +	if (is_group1)
 +		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr1);
 +	else
-+		ccs_del_name((struct ccs_path_info *) saved_ptr1);
++		ccs_put_name((struct ccs_path_info *) saved_ptr1);
 +	if (is_group2)
 +		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr2);
 +	else
-+		ccs_del_name((struct ccs_path_info *) saved_ptr2);
++		ccs_put_name((struct ccs_path_info *) saved_ptr2);
++	kfree(entry);
  	return error;
  }
  
-@@ -1224,7 +1347,9 @@
+@@ -1224,7 +1324,9 @@
  	const struct ccs_domain_info *domain = r->domain;
  	struct ccs_acl_info *ptr;
  	const u8 perm = 1 << type;
@@ -4521,7 +4975,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		struct ccs_double_path_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -1251,9 +1376,11 @@
+@@ -1251,9 +1353,11 @@
  				continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -4535,7 +4989,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -1291,11 +1418,15 @@
+@@ -1291,11 +1395,15 @@
  		if (error == 1)
  			goto retry;
  	}
@@ -4554,7 +5008,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (!is_enforce)
  		error = 0;
   ok:
-@@ -1548,12 +1679,19 @@
+@@ -1548,12 +1656,19 @@
  		if (error == 1)
  			goto retry;
  	}
@@ -4580,7 +5034,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
  	ccs_free(buf1);
  	ccs_free(buf2);
-@@ -1600,74 +1738,83 @@
+@@ -1600,74 +1715,83 @@
  				const struct ccs_condition_list *condition,
  				const bool is_delete)
  {
@@ -4612,7 +5066,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			filename = "pipe:[\\$]";
  #endif
 -		saved_filename = ccs_save_name(filename);
-+		saved_ptr = ccs_save_name(filename);
++		saved_ptr = ccs_get_name(filename);
  	}
 -	if (!saved_filename)
 +	if (!saved_ptr)
@@ -4621,9 +5075,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	entry = ccs_alloc_acl_element(TYPE_IOCTL_ACL, condition);
-+	if (!entry)
-+		goto out;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -4650,7 +5102,9 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	acl->cmd_min = cmd_min;
 -	acl->cmd_max = cmd_max;
 -	error = ccs_add_domain_acl(domain, &acl->head);
-+	if (error) {
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_IOCTL_ACL;
++		entry->head.cond = condition;
 +		entry->u_is_group = is_group;
 +		entry->u.ptr = saved_ptr;
 +		saved_ptr = NULL;
@@ -4685,15 +5139,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_free_element(entry);
 +	if (is_group)
 +		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr);
 +	else
-+		ccs_del_name((struct ccs_path_info *) saved_ptr);
++		ccs_put_name((struct ccs_path_info *) saved_ptr);
++	kfree(entry);
  	return error;
  }
  
-@@ -1686,7 +1833,9 @@
+@@ -1686,7 +1810,9 @@
  {
  	struct ccs_domain_info *domain = r->domain;
  	struct ccs_acl_info *ptr;
@@ -4704,7 +5158,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		struct ccs_ioctl_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
  			continue;
-@@ -1704,9 +1853,11 @@
+@@ -1704,9 +1830,11 @@
  				continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -4718,7 +5172,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -1742,9 +1893,14 @@
+@@ -1742,9 +1870,14 @@
  			goto retry;
  		return err;
  	}
@@ -4738,48 +5192,78 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
-@@ -99,16 +99,16 @@
+@@ -99,16 +99,18 @@
  				     const struct ccs_condition_list *condition,
  				     const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
++	struct ccs_capability_acl_record *entry = NULL;
  	struct ccs_acl_info *ptr;
- 	struct ccs_capability_acl_record *acl;
- 	int error = -ENOMEM;
+-	struct ccs_capability_acl_record *acl;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!domain)
  		return -EINVAL;
 -	mutex_lock(&lock);
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_capability_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -128,7 +128,7 @@
+@@ -117,18 +119,23 @@
+ 		if (acl->operation != operation)
+ 			continue;
+ 		error = ccs_add_domain_acl(NULL, ptr);
+-		goto out;
++		break;
+ 	}
+-	/* Not found. Append it to the tail. */
+-	acl = ccs_alloc_acl_element(TYPE_CAPABILITY_ACL, condition);
+-	if (!acl)
+-		goto out;
+-	acl->operation = operation;
+-	error = ccs_add_domain_acl(domain, &acl->head);
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_CAPABILITY_ACL;
++		entry->head.cond = condition;
++		entry->operation = operation;
++		error = ccs_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++	}
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_capability_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -140,7 +140,8 @@
+@@ -139,8 +146,10 @@
+ 		error = ccs_del_domain_acl(ptr);
  		break;
  	}
-  out:
--	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
+  out:
+-	mutex_unlock(&lock);
++	kfree(entry);
  	return error;
  }
  
-@@ -164,7 +165,8 @@
+@@ -164,7 +173,8 @@
  	if (!r.mode)
  		return true;
   retry:
@@ -4789,7 +5273,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		struct ccs_capability_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
  			continue;
-@@ -176,6 +178,7 @@
+@@ -176,6 +186,7 @@
  		found = true;
  		break;
  	}
@@ -4799,8 +5283,44 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		return true;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
+@@ -391,7 +391,7 @@
+ 	*cp = '\0';
+ 	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+ 		goto out;
+-	value = ccs_save_name(start);
++	value = ccs_get_name(start);
+ 	if (!value)
+ 		goto out;
+ 	argv->index = index;
+@@ -440,7 +440,7 @@
+ 	}
+ 	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0, __func__))
+ 		goto out;
+-	name = ccs_save_name(cp);
++	name = ccs_get_name(cp);
+ 	if (!name)
+ 		goto out;
+ 	if (!strcmp(start, "NULL")) {
+@@ -454,7 +454,7 @@
+ 		*cp = '\0';
+ 		if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+ 			goto out;
+-		value = ccs_save_name(start);
++		value = ccs_get_name(start);
+ 		if (!value)
+ 			goto out;
+ 	}
+@@ -496,7 +496,7 @@
+ 	*cp = '\0';
+ 	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+ 		goto out;
+-	value = ccs_save_name(start);
++	value = ccs_get_name(start);
+ 	if (!value)
+ 		goto out;
+ 	symlinkp->is_not = is_not;
 @@ -507,7 +507,7 @@
  }
  
@@ -4810,7 +5330,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  
  enum ccs_conditions_index {
  	TASK_UID,             /* current_uid()   */
-@@ -678,10 +678,10 @@
+@@ -678,40 +678,27 @@
  static struct ccs_condition_list *
  ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
  {
@@ -4818,89 +5338,227 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  	struct ccs_condition_list *ptr;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_condition_list, list) {
+-		/* Don't compare if size differs. */
+-		if (ptr->condc != new_ptr->condc ||
+-		    ptr->argc != new_ptr->argc ||
+-		    ptr->envc != new_ptr->envc ||
+-		    ptr->symlinkc != new_ptr->symlinkc)
++	int error = -ENOMEM;
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_condition_list, list) {
- 		/* Don't compare if size differs. */
- 		if (ptr->condc != new_ptr->condc ||
- 		    ptr->argc != new_ptr->argc ||
-@@ -706,12 +706,13 @@
- 	if (ptr) {
- 		memmove(ptr, new_ptr, size);
- 		/* Append to chain. */
--		list1_add_tail_mb(&ptr->list, &ccs_condition_list);
-+		list_add_tail(&ptr->list, &ccs_condition_list);
++		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
++		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(ptr)))
+ 			continue;
+-		/*
+-		 * Compare ptr and new_ptr
+-		 * except ptr->list and new_ptr->list.
+-		 */
+-		if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
+-			   ((u8 *) new_ptr) + sizeof(new_ptr->list),
+-			   size - sizeof(ptr->list)))
+-			continue;
+ 		/* Same entry found. Share this entry. */
+-		ccs_free(new_ptr);
++		atomic_inc(&ptr->users);
++		kfree(new_ptr);
+ 		new_ptr = ptr;
+-		goto ok;
++		error = 0;
++		break;
  	}
- 	ccs_free(new_ptr);
- 	new_ptr = ptr;
-  ok:
+-	/* Same entry not found. Save this entry. */
+-	ptr = ccs_alloc_element(size);
+-	if (ptr) {
+-		memmove(ptr, new_ptr, size);
+-		/* Append to chain. */
+-		list1_add_tail_mb(&ptr->list, &ccs_condition_list);
++	if (error && !ccs_memory_ok(new_ptr)) {
++		kfree(new_ptr);
++		new_ptr = NULL;
+ 	}
+-	ccs_free(new_ptr);
+-	new_ptr = ptr;
+- ok:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
  	return new_ptr;
  }
  
+@@ -837,15 +824,16 @@
+ 		+ argc * sizeof(struct ccs_argv_entry)
+ 		+ envc * sizeof(struct ccs_envp_entry)
+ 		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
+-	new_ptr = ccs_alloc(size, false);
++	new_ptr = kzalloc(size, GFP_KERNEL);
+ 	if (!new_ptr)
+ 		return NULL;
+ 	for (i = 0; i < 4; i++)
+-		new_ptr->post_state[i] = post_state[i];
+-	new_ptr->condc = condc;
+-	new_ptr->argc = argc;
+-	new_ptr->envc = envc;
+-	new_ptr->symlinkc = symlinkc;
++		new_ptr->head.post_state[i] = post_state[i];
++	atomic_set(&new_ptr->users, 1);
++	new_ptr->head.condc = condc;
++	new_ptr->head.argc = argc;
++	new_ptr->head.envc = envc;
++	new_ptr->head.symlinkc = symlinkc;
+ 	ptr = (unsigned long *) (new_ptr + 1);
+ 	argv = (struct ccs_argv_entry *) (ptr + condc);
+ 	envp = (struct ccs_envp_entry *) (argv + argc);
+@@ -992,7 +980,7 @@
+ 	BUG_ON(condc);
+ 	return ccs_find_same_condition(new_ptr, size);
+  out:
+-	ccs_free(new_ptr);
++	kfree(new_ptr);
+ 	return NULL;
+ }
+ 
+@@ -1166,10 +1154,10 @@
+ 	struct linux_binprm *bprm = NULL;
+ 	if (!cond)
+ 		return true;
+-	condc = cond->condc;
+-	argc = cond->argc;
+-	envc = cond->envc;
+-	symlinkc = cond->symlinkc;
++	condc = cond->head.condc;
++	argc = cond->head.argc;
++	envc = cond->head.envc;
++	symlinkc = cond->head.symlinkc;
+ 	obj = r->obj;
+ 	if (r->ee)
+ 		bprm = r->ee->bprm;
+@@ -1521,10 +1509,10 @@
+ 	char buffer[32];
+ 	if (!cond)
+ 		goto no_condition;
+-	condc = cond->condc;
+-	argc = cond->argc;
+-	envc = cond->envc;
+-	symlinkc = cond->symlinkc;
++	condc = cond->head.condc;
++	argc = cond->head.argc;
++	envc = cond->head.envc;
++	symlinkc = cond->head.symlinkc;
+ 	ptr = (const unsigned long *) (cond + 1);
+ 	argv = (const struct ccs_argv_entry *) (ptr + condc);
+ 	envp = (const struct ccs_envp_entry *) (argv + argc);
+@@ -1617,7 +1605,7 @@
+ 			goto out;
+ 	}
+  post_condition:
+-	i = cond->post_state[3];
++	i = cond->head.post_state[3];
+ 	if (!i)
+ 		goto no_condition;
+ 	if (!ccs_io_printf(head, " ; set"))
+@@ -1626,7 +1614,7 @@
+ 		if (!(i & (1 << j)))
+ 			continue;
+ 		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
+-				   cond->post_state[j]))
++				   cond->head.post_state[j]))
+ 			goto out;
+ 	}
+  no_condition:
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
-@@ -49,7 +49,6 @@
+@@ -49,24 +49,29 @@
  				  const struct ccs_condition_list *condition,
  				  const bool is_delete)
  {
 -	static DEFINE_MUTEX(lock);
++	struct ccs_argv0_acl_record *entry = NULL;
  	struct ccs_acl_info *ptr;
- 	struct ccs_argv0_acl_record *acl;
+-	struct ccs_argv0_acl_record *acl;
  	const struct ccs_path_info *saved_filename;
-@@ -61,12 +60,16 @@
+ 	const struct ccs_path_info *saved_argv0;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
+ 	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
+ 	    strchr(argv0, '/'))
  		return -EINVAL;
- 	saved_filename = ccs_save_name(filename);
- 	saved_argv0 = ccs_save_name(argv0);
+-	saved_filename = ccs_save_name(filename);
+-	saved_argv0 = ccs_save_name(argv0);
 -	if (!saved_filename || !saved_argv0)
++	saved_filename = ccs_get_name(filename);
++	saved_argv0 = ccs_get_name(argv0);
 +	if (!saved_filename || !saved_argv0) {
-+		ccs_del_name(saved_filename);
-+		ccs_del_name(saved_argv0);
++		ccs_put_name(saved_filename);
++		ccs_put_name(saved_argv0);
  		return -ENOMEM;
 -	mutex_lock(&lock);
 +	}
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_argv0_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -83,12 +86,14 @@
- 	if (!acl)
- 		goto out;
- 	acl->filename = saved_filename;
-+	saved_filename = NULL;
- 	acl->argv0 = saved_argv0;
-+	saved_argv0 = NULL;
- 	error = ccs_add_domain_acl(domain, &acl->head);
+@@ -76,19 +81,26 @@
+ 		    acl->argv0 != saved_argv0)
+ 			continue;
+ 		error = ccs_add_domain_acl(NULL, ptr);
+-		goto out;
++		break;
+ 	}
+-	/* Not found. Append it to the tail. */
+-	acl = ccs_alloc_acl_element(TYPE_ARGV0_ACL, condition);
+-	if (!acl)
+-		goto out;
+-	acl->filename = saved_filename;
+-	acl->argv0 = saved_argv0;
+-	error = ccs_add_domain_acl(domain, &acl->head);
++	if (error && ccs_memory_ok(entry)) {
++		entry->head.type = TYPE_ARGV0_ACL;
++		entry->head.cond = condition;	
++		entry->filename = saved_filename;
++		saved_filename = NULL;
++		entry->argv0 = saved_argv0;
++		saved_argv0 = NULL;
++		error = ccs_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++	}
++	up_write(&ccs_policy_lock);
++	/***** EXCLUSIVE SECTION END *****/
  	goto out;
   delete:
- 	error = -ENOENT;
+-	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** EXCLUSIVE SECTION START *****/
++	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct ccs_argv0_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -101,7 +106,10 @@
+@@ -100,8 +112,11 @@
+ 		error = ccs_del_domain_acl(ptr);
  		break;
  	}
-  out:
--	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
 +	/***** EXCLUSIVE SECTION END *****/
-+	ccs_del_name(saved_filename);
-+	ccs_del_name(saved_argv0);
+  out:
+-	mutex_unlock(&lock);
++	ccs_put_name(saved_filename);
++	ccs_put_name(saved_argv0);
  	return error;
  }
  
-@@ -124,7 +132,8 @@
+@@ -124,7 +139,8 @@
  	struct ccs_path_info argv_0;
  	argv_0.name = argv0;
  	ccs_fill_path_info(&argv_0);
@@ -4910,7 +5568,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  		struct ccs_argv0_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
  			continue;
-@@ -137,6 +146,7 @@
+@@ -137,6 +153,7 @@
  		error = 0;
  		break;
  	}
@@ -4920,7 +5578,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2522)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2530)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
 @@ -23,13 +23,13 @@
  
@@ -4938,12 +5596,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  
  /**
   * ccs_update_no_umount_acl - Update "struct ccs_no_umount_entry" list.
-@@ -41,37 +41,44 @@
+@@ -41,37 +41,41 @@
   */
  static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
  {
 -	struct ccs_no_umount_entry *new_entry;
-+	struct ccs_no_umount_entry *new_entry = NULL;
++	struct ccs_no_umount_entry *entry = NULL;
  	struct ccs_no_umount_entry *ptr;
  	const struct ccs_path_info *saved_dir;
 -	static DEFINE_MUTEX(lock);
@@ -4951,16 +5609,14 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 +	int error = is_delete ? -ENOENT : -ENOMEM;
  	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
  		return -EINVAL;
- 	saved_dir = ccs_save_name(dir);
+-	saved_dir = ccs_save_name(dir);
++	saved_dir = ccs_get_name(dir);
  	if (!saved_dir)
  		return -ENOMEM;
 -	mutex_lock(&lock);
 -	list1_for_each_entry(ptr, &ccs_no_umount_list, list) {
-+	if (!is_delete) {
-+		new_entry = ccs_alloc_element(sizeof(*new_entry));
-+		if (!new_entry)
-+			goto out;
-+	}
++	if (!is_delete)
++		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_no_umount_list, list) {
@@ -4974,11 +5630,11 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 -	if (is_delete) {
 -		error = -ENOENT;
 -		goto out;
-+	if (!is_delete && error) {
-+		new_entry->dir = saved_dir;
++	if (!is_delete && error && ccs_memory_ok(entry)) {
++		entry->dir = saved_dir;
 +		saved_dir = NULL;
-+		list_add_tail(&new_entry->list, &ccs_no_umount_list);
-+		new_entry = NULL;
++		list_add_tail(&entry->list, &ccs_no_umount_list);
++		entry = NULL;
 +		error = 0;
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
@@ -4993,12 +5649,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  	printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_name(saved_dir);
-+	ccs_free_element(new_entry);
++	ccs_put_name(saved_dir);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -105,7 +112,7 @@
+@@ -105,7 +109,7 @@
  		goto out;
  	dir.name = dir0;
  	ccs_fill_path_info(&dir);
@@ -5007,7 +5663,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  		if (ptr->is_deleted)
  			continue;
  		if (!ccs_path_matches_pattern(&dir, ptr->dir))
-@@ -157,10 +164,11 @@
+@@ -157,10 +161,11 @@
   */
  bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
  {
