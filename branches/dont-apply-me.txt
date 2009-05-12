@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2530)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(working copy)
 @@ -83,47 +83,20 @@
  			ret; })
@@ -62,7 +62,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
  #define s_fs_info u.generic_sbp
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2530)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
 @@ -37,6 +37,7 @@
  #else
@@ -348,7 +348,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* The step for reading.                */
  	int read_step;
  	/* Buffer for reading.                  */
-@@ -828,10 +795,10 @@
+@@ -828,18 +795,15 @@
  int ccs_write_control(struct file *file, const char __user *buffer,
  		      const int buffer_len);
  /* Find a domain by the given name. */
@@ -362,7 +362,15 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Check mode for specified functionality. */
  unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
  			     const u8 index);
-@@ -876,13 +843,13 @@
+ /* Check whether it is safe to sleep. */
+ bool ccs_can_sleep(void);
+-/* Allocate memory for structures. */
+-void *ccs_alloc_acl_element(const u8 acl_type,
+-			    const struct ccs_condition_list *condition);
+ /* Fill in "struct ccs_path_info" members. */
+ void ccs_fill_path_info(struct ccs_path_info *ptr);
+ /* Fill in "struct ccs_request_info" members. */
+@@ -876,13 +840,13 @@
  /* Get type of an ACL entry. */
  static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
  {
@@ -378,7 +386,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  }
  
  /**
-@@ -895,12 +862,13 @@
+@@ -895,12 +859,13 @@
  static inline const struct ccs_condition_list *
  ccs_get_condition_part(const struct ccs_acl_info *acl)
  {
@@ -397,7 +405,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Log level for printk(). */
 Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2530)
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
 @@ -39,21 +39,23 @@
  /* Encode binary string to ascii string. */
@@ -424,9 +432,9 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 +void ccs_put_name(const struct ccs_path_info *name);
  
 +/* Allocate memory for the given IPv6 address. */
-+const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr);
++const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 +/* Delete memory for the given IPv6 address. */
-+void ccs_del_ipv6_address(const struct in6_addr *addr);
++void ccs_put_ipv6_address(const struct in6_addr *addr);
 +
  /* Allocate memory for temporary use (e.g. permission checks). */
  void *ccs_alloc(const size_t size, const _Bool check_quota);
@@ -466,7 +474,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  #endif
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
 @@ -34,13 +34,13 @@
  
@@ -691,7 +699,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	    ccs_is_globally_usable_env(&env))
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
 @@ -55,54 +55,86 @@
  				   "%s %s %u\n", operation, address, port);
@@ -818,7 +826,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
  /**
   * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
-@@ -121,23 +153,16 @@
+@@ -121,85 +153,67 @@
  					  const u16 *max_address,
  					  const bool is_delete)
  {
@@ -846,9 +854,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		return -ENOMEM;
  	if (!is_ipv6)
  		goto not_ipv6;
-@@ -146,60 +171,49 @@
+ 	saved_min_address
+-		= ccs_save_ipv6_address((struct in6_addr *) min_address);
++		= ccs_get_ipv6_address((struct in6_addr *) min_address);
  	saved_max_address
- 		= ccs_save_ipv6_address((struct in6_addr *) max_address);
+-		= ccs_save_ipv6_address((struct in6_addr *) max_address);
++		= ccs_get_ipv6_address((struct in6_addr *) max_address);
  	if (!saved_min_address || !saved_max_address)
 -		return -ENOMEM;
 +		goto out;
@@ -936,8 +947,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_ipv6_address(saved_min_address);
-+	ccs_del_ipv6_address(saved_max_address);
++	ccs_put_ipv6_address(saved_min_address);
++	ccs_put_ipv6_address(saved_max_address);
 +	ccs_put_address_group(group);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
@@ -964,13 +975,21 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		if (!i) {
  			const u16 dummy[2] = { 0, 0 };
  			ccs_update_address_group_entry(group_name, false,
-@@ -322,21 +343,28 @@
+@@ -315,6 +336,8 @@
+  * @group:   Pointer to "struct ccs_address_group_entry".
+  *
+  * Returns true if @address matches addresses in @group group, false otherwise.
++ *
++ * Caller holds ccs_policy_lockfor reading.
+  */
+ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
+ 				      const struct ccs_address_group_entry *
+@@ -322,21 +345,26 @@
  {
  	struct ccs_address_group_member *member;
  	const u32 ip = ntohl(*address);
 -	list1_for_each_entry(member, &group->address_group_member_list, list) {
 +	bool matched = false;
-+	down_read(&ccs_policy_lock);
 +	list_for_each_entry(member, &group->address_group_member_list, list) {
  		if (member->is_deleted)
  			continue;
@@ -994,7 +1013,6 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		}
  	}
 -	return false;
-+	up_read(&ccs_policy_lock);
 +	return matched;
  }
  
@@ -1060,14 +1078,20 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	/* using host byte order to allow u32 comparison than memcmp().*/
  	const u32 min_ip = ntohl(*min_address);
  	const u32 max_ip = ntohl(*max_address);
-@@ -506,13 +537,19 @@
+@@ -502,17 +533,23 @@
+ 		return -EINVAL;
+ 	if (record_type != IP_RECORD_TYPE_IPv6)
+ 		goto not_ipv6;
+-	saved_min_address = ccs_save_ipv6_address((struct in6_addr *)
++	saved_min_address = ccs_get_ipv6_address((struct in6_addr *)
  						  min_address);
- 	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
+-	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
++	saved_max_address = ccs_get_ipv6_address((struct in6_addr *)
  						  max_address);
 -	if (!saved_min_address || !saved_max_address)
 +	if (!saved_min_address || !saved_max_address) {
-+		ccs_del_ipv6_address(saved_min_address);
-+		ccs_del_ipv6_address(saved_max_address);
++		ccs_put_ipv6_address(saved_min_address);
++		ccs_put_ipv6_address(saved_max_address);
  		return -ENOMEM;
 +	}
   not_ipv6:
@@ -1149,8 +1173,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +	/***** EXCLUSIVE SECTION END *****/
   out:
 -	mutex_unlock(&lock);
-+	ccs_del_ipv6_address(saved_min_address);
-+	ccs_del_ipv6_address(saved_max_address);
++	ccs_put_ipv6_address(saved_min_address);
++	ccs_put_ipv6_address(saved_max_address);
 +	kfree(entry);
  	return error;
  }
@@ -1175,7 +1199,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  		ccs_print_ipv6(buf, sizeof(buf),
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
 @@ -28,9 +28,9 @@
  #else
@@ -1254,7 +1278,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +static LIST_HEAD(ccs_address_list);
 +
 +/**
-+ * ccs_save_ipv6_address - Keep the given IPv6 address on the RAM.
++ * ccs_get_ipv6_address - Keep the given IPv6 address on the RAM.
 + *
 + * @addr: Pointer to "struct in6_addr".
 + *
@@ -1262,7 +1286,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 + *
 + * The RAM is shared, so NEVER try to modify or kfree() the returned address.
 + */
-+const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr)
++const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 +{
 +	struct ccs_addr_entry *entry;
 +	struct ccs_addr_entry *ptr;
@@ -1307,11 +1331,11 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +}
 +
 +/**
-+ * ccs_del_ipv6_address - Delete the given IPv6 address on the RAM.
++ * ccs_put_ipv6_address - Delete the given IPv6 address on the RAM.
 + *
 + * @addr: Pointer to "struct in6_addr".
 + */
-+void ccs_del_ipv6_address(const struct in6_addr *addr)
++void ccs_put_ipv6_address(const struct in6_addr *addr)
 +{
 +	struct ccs_addr_entry *ptr;
 +	if (!addr)
@@ -1597,7 +1621,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
 @@ -23,13 +23,13 @@
  
@@ -1698,7 +1722,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
 @@ -23,14 +23,14 @@
  
@@ -1812,7 +1836,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
 @@ -56,7 +56,7 @@
  
@@ -2047,7 +2071,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
 @@ -188,19 +188,19 @@
  	const struct ccs_condition_list *ptr = r->cond;
@@ -2075,7 +2099,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		r->cond = NULL;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
 @@ -35,16 +35,13 @@
  struct ccs_domain_info ccs_kernel_domain;
@@ -2966,15 +2990,15 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
 @@ -31,8 +31,8 @@
  #else
  static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
  #endif
-+#include <linux/ccs_common.h>
- #include <linux/realpath.h>
--#include <linux/ccs_common.h>
+-#include <linux/realpath.h>
+ #include <linux/ccs_common.h>
++#include <linux/realpath.h>
  #include <linux/ccs_proc.h>
  #include <linux/tomoyo.h>
  #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -3575,7 +3599,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is /proc/ccs/self_domain
-@@ -3355,12 +3372,16 @@
+@@ -3355,78 +3372,11 @@
  	head->read_buf = NULL;
  	ccs_free(head->write_buf);
  	head->write_buf = NULL;
@@ -3587,15 +3611,52 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	file->private_data = NULL;
  	return 0;
  }
- 
-+#if 0
- /**
-  * ccs_alloc_acl_element - Allocate permanent memory for ACL entry.
-  *
-@@ -3406,27 +3427,11 @@
- 	default:
- 		return NULL;
- 	}
+-
+-/**
+- * ccs_alloc_acl_element - Allocate permanent memory for ACL entry.
+- *
+- * @acl_type:  Type of ACL entry.
+- * @condition: Pointer to condition part of the ACL entry. May be NULL.
+- *
+- * Returns pointer to the ACL entry on success, NULL otherwise.
+- */
+-void *ccs_alloc_acl_element(const u8 acl_type,
+-			    const struct ccs_condition_list *condition)
+-{
+-	int len;
+-	struct ccs_acl_info *ptr;
+-	switch (acl_type) {
+-	case TYPE_SINGLE_PATH_ACL:
+-		len = sizeof(struct ccs_single_path_acl_record);
+-		break;
+-	case TYPE_DOUBLE_PATH_ACL:
+-		len = sizeof(struct ccs_double_path_acl_record);
+-		break;
+-	case TYPE_IOCTL_ACL:
+-		len = sizeof(struct ccs_ioctl_acl_record);
+-		break;
+-	case TYPE_ARGV0_ACL:
+-		len = sizeof(struct ccs_argv0_acl_record);
+-		break;
+-	case TYPE_ENV_ACL:
+-		len = sizeof(struct ccs_env_acl_record);
+-		break;
+-	case TYPE_CAPABILITY_ACL:
+-		len = sizeof(struct ccs_capability_acl_record);
+-		break;
+-	case TYPE_IP_NETWORK_ACL:
+-		len = sizeof(struct ccs_ip_network_acl_record);
+-		break;
+-	case TYPE_SIGNAL_ACL:
+-		len = sizeof(struct ccs_signal_acl_record);
+-		break;
+-	case TYPE_EXECUTE_HANDLER:
+-	case TYPE_DENIED_EXECUTE_HANDLER:
+-		len = sizeof(struct ccs_execute_handler_record);
+-		break;
+-	default:
+-		return NULL;
+-	}
 -	/*
 -	 * If the ACL doesn't have condition part, reduce memory usage
 -	 * by eliminating sizeof(struct ccs_condition_list *).
@@ -3603,9 +3664,8 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	if (!condition)
 -		len -= sizeof(ptr->access_me_via_ccs_get_condition_part);
 -	ptr = ccs_alloc_element(len);
-+	ptr = kzalloc(len, GFP_KERNEL);
- 	if (!ptr)
- 		return NULL;
+-	if (!ptr)
+-		return NULL;
 -	if (condition) {
 -		ptr->access_me_via_ccs_get_condition_part = condition;
 -		ptr->type = acl_type | ACL_WITH_CONDITION;
@@ -3618,14 +3678,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	 */
 -	ptr = (void *) (((u8 *) ptr)
 -			- sizeof(ptr->access_me_via_ccs_get_condition_part));
-+	ptr->cond = condition;
- 	ptr->type = acl_type;
- 	return ptr;
- }
-+#endif
+-	ptr->type = acl_type;
+-	return ptr;
+-}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
 @@ -18,15 +18,17 @@
  
@@ -3767,7 +3825,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
 @@ -55,23 +55,25 @@
  				 const struct ccs_condition_list *condition,
@@ -3886,7 +3944,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		return 0;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
 @@ -20,21 +20,21 @@
  
@@ -4038,13 +4096,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +static LIST_HEAD(ccs_path_group_list);
  
  /**
-+ * ccs_save_path_group - Allocate memory for "struct ccs_path_group_entry".
++ * ccs_get_path_group - Allocate memory for "struct ccs_path_group_entry".
 + *
 + * @group_name: The name of pathname group.
 + *
 + * Returns pointer to "struct ccs_path_group_entry" on success, NULL otherwise.
 + */
-+static struct ccs_path_group_entry *ccs_save_path_group(const char *group_name)
++static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 +{
 +	struct ccs_path_group_entry *entry = NULL;
 +	struct ccs_path_group_entry *group;
@@ -4084,11 +4142,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +}
 +
 +/**
-+ * ccs_del_path_group - Delete memory for "struct ccs_path_group_entry".
++ * ccs_put_path_group - Delete memory for "struct ccs_path_group_entry".
 + *
 + * @group: Pointer to "struct ccs_path_group_entry".
 + */
-+static void ccs_del_path_group(struct ccs_path_group_entry *group)
++static void ccs_put_path_group(struct ccs_path_group_entry *group)
 +{
 +	/***** EXCLUSIVE SECTION START *****/
 +	down_write(&ccs_policy_lock);
@@ -4139,7 +4197,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	    !member_name[0])
  		return -EINVAL;
 -	saved_group_name = ccs_save_name(group_name);
-+	group = ccs_save_path_group(group_name);
++	group = ccs_get_path_group(group_name);
 +	if (!group)
 +		return -ENOMEM;
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
@@ -4205,7 +4263,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_member_name);
-+	ccs_del_path_group(group);
++	ccs_put_path_group(group);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
@@ -4242,13 +4300,20 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
   *
   * @pathname:        The name of pathname.
-@@ -407,19 +450,25 @@
+@@ -401,25 +444,31 @@
+  * @may_use_pattern: True if wild card is permitted.
+  *
+  * Returns true if @pathname matches pathnames in @group, false otherwise.
++ *
++ * Caller holds ccs_policy_lock for reading.
+  */
+ static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
+ 				   const struct ccs_path_group_entry *group,
  				   const bool may_use_pattern)
  {
  	struct ccs_path_group_member *member;
 -	list1_for_each_entry(member, &group->path_group_member_list, list) {
 +	bool matched = false;
-+	down_read(&ccs_policy_lock);
 +	list_for_each_entry(member, &group->path_group_member_list, list) {
  		if (member->is_deleted)
  			continue;
@@ -4271,7 +4336,6 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		break;
  	}
 -	return false;
-+	up_read(&ccs_policy_lock);
 +	return matched;
  }
  
@@ -4725,7 +4789,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		 */
 -		saved_filename = (struct ccs_path_info *)
 -			ccs_find_or_assign_new_path_group(filename + 1);
-+		saved_ptr = ccs_save_path_group(filename + 1);
++		saved_ptr = ccs_get_path_group(filename + 1);
  		is_group = true;
  	} else {
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
@@ -4817,7 +4881,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
 -	mutex_unlock(&lock);
 +	if (is_group)
-+		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr);
++		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
 +	else
 +		ccs_put_name((struct ccs_path_info *) saved_ptr);
 +	kfree(entry);
@@ -4851,7 +4915,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		 */
 -		saved_filename1 = (struct ccs_path_info *)
 -			ccs_find_or_assign_new_path_group(filename1 + 1);
-+		saved_ptr1 = ccs_save_path_group(filename1 + 1);
++		saved_ptr1 = ccs_get_path_group(filename1 + 1);
  		is_group1 = true;
  	} else {
 -		saved_filename1 = ccs_save_name(filename1);
@@ -4864,7 +4928,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		 */
 -		saved_filename2 = (struct ccs_path_info *)
 -			ccs_find_or_assign_new_path_group(filename2 + 1);
-+		saved_ptr2 = ccs_save_path_group(filename2 + 1);
++		saved_ptr2 = ccs_get_path_group(filename2 + 1);
  		is_group2 = true;
  	} else {
 -		saved_filename2 = ccs_save_name(filename2);
@@ -4953,11 +5017,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
 -	mutex_unlock(&lock);
 +	if (is_group1)
-+		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr1);
++		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr1);
 +	else
 +		ccs_put_name((struct ccs_path_info *) saved_ptr1);
 +	if (is_group2)
-+		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr2);
++		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr2);
 +	else
 +		ccs_put_name((struct ccs_path_info *) saved_ptr2);
 +	kfree(entry);
@@ -5058,7 +5122,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		 */
 -		saved_filename = (struct ccs_path_info *)
 -			ccs_find_or_assign_new_path_group(filename + 1);
-+		saved_ptr = ccs_save_path_group(filename + 1);
++		saved_ptr = ccs_get_path_group(filename + 1);
  		is_group = true;
  	} else {
  #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
@@ -5140,7 +5204,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
 -	mutex_unlock(&lock);
 +	if (is_group)
-+		ccs_del_path_group((struct ccs_path_group_entry *) saved_ptr);
++		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
 +	else
 +		ccs_put_name((struct ccs_path_info *) saved_ptr);
 +	kfree(entry);
@@ -5192,7 +5256,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
 @@ -99,16 +99,18 @@
  				     const struct ccs_condition_list *condition,
@@ -5283,7 +5347,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		return true;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
 @@ -391,7 +391,7 @@
  	*cp = '\0';
@@ -5468,7 +5532,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
   no_condition:
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
 @@ -49,24 +49,29 @@
  				  const struct ccs_condition_list *condition,
@@ -5578,7 +5642,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2530)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2531)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
 @@ -23,13 +23,13 @@
  
