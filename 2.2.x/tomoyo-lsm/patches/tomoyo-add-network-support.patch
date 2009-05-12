@@ -22,11 +22,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/common.c   |  114 +++++
  security/tomoyo/common.h   |   75 +++
  security/tomoyo/network.c  |  890 +++++++++++++++++++++++++++++++++++++++++++++
- security/tomoyo/realpath.c |   83 ++++
+ security/tomoyo/realpath.c |   79 +++
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |  143 +++++++
  security/tomoyo/tomoyo.h   |   17 
- 9 files changed, 1326 insertions(+), 4 deletions(-)
+ 9 files changed, 1322 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -63,7 +63,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		}
  	}
  	up_read(&tomoyo_policy_lock);
-@@ -1298,6 +1302,8 @@ static int tomoyo_write_domain_policy(st
+@@ -1329,6 +1333,8 @@ static int tomoyo_write_domain_policy(st
  			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
  		return 0;
  	}
@@ -72,7 +72,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1386,6 +1392,107 @@ static bool tomoyo_print_double_path_acl
+@@ -1417,6 +1423,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -180,7 +180,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1414,6 +1521,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1445,6 +1552,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -294,7 +294,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Read "alias" entry in exception policy. */
  bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head);
  /*
-@@ -344,6 +406,13 @@ void tomoyo_load_policy(const char *file
+@@ -342,6 +404,13 @@ void tomoyo_load_policy(const char *file
  /* Change "struct tomoyo_domain_info"->flags. */
  void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
  			    const bool is_delete, const u8 flags);
@@ -485,13 +485,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return -EINVAL;
 +	if (record_type != TOMOYO_IP_RECORD_TYPE_IPv6)
 +		goto not_ipv6;
-+	saved_min_address = tomoyo_save_ipv6_address((struct in6_addr *)
++	saved_min_address = tomoyo_get_ipv6_address((struct in6_addr *)
 +						     min_address);
-+	saved_max_address = tomoyo_save_ipv6_address((struct in6_addr *)
++	saved_max_address = tomoyo_get_ipv6_address((struct in6_addr *)
 +						     max_address);
 +	if (!saved_min_address || !saved_max_address) {
-+		tomoyo_del_ipv6_address(saved_min_address);
-+		tomoyo_del_ipv6_address(saved_max_address);
++		tomoyo_put_ipv6_address(saved_min_address);
++		tomoyo_put_ipv6_address(saved_max_address);
 +		return -ENOMEM;
 +	}
 + not_ipv6:
@@ -574,8 +574,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	up_write(&tomoyo_policy_lock);
 +	/***** EXCLUSIVE SECTION START *****/
 + out:
-+	tomoyo_del_ipv6_address(saved_min_address);
-+	tomoyo_del_ipv6_address(saved_max_address);
++	tomoyo_put_ipv6_address(saved_min_address);
++	tomoyo_put_ipv6_address(saved_max_address);
 +	kfree(entry);
 +	return error;
 +}
@@ -1203,7 +1203,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6.git/security/tomoyo/realpath.c
-@@ -332,6 +332,78 @@ void tomoyo_del_name(const struct tomoyo
+@@ -339,6 +339,74 @@ void tomoyo_put_name(const struct tomoyo
  	/***** EXCLUSIVE SECTION END *****/
  }
  
@@ -1211,13 +1211,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +static DEFINE_MUTEX(tomoyo_address_list_lock);
 +
 +/**
-+ * tomoyo_save_ipv6_address - Keep the given IPv6 address on the RAM.
++ * tomoyo_get_ipv6_address - Keep the given IPv6 address on the RAM.
 + *
 + * @addr: Pointer to "struct in6_addr".
 + *
 + * Returns pointer to "struct in6_addr" on success, NULL otherwise.
 + */
-+const struct in6_addr *tomoyo_save_ipv6_address(const struct in6_addr *addr)
++const struct in6_addr *tomoyo_get_ipv6_address(const struct in6_addr *addr)
 +{
 +	struct tomoyo_addr_entry *ptr;
 +	struct tomoyo_addr_entry *entry;
@@ -1250,11 +1250,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +}
 +
 +/**
-+ * tomoyo_del_ipv6_address - Delete shared memory for IPv6 address.
++ * tomoyo_put_ipv6_address - Delete shared memory for IPv6 address.
 + *
 + * @addr: Pointer to "struct in6_addr".
 + */
-+void tomoyo_del_ipv6_address(const struct in6_addr *addr)
++void tomoyo_put_ipv6_address(const struct in6_addr *addr)
 +{
 +	struct tomoyo_addr_entry *ptr;
 +	if (!addr)
@@ -1265,13 +1265,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		if (memcmp(addr, &ptr->addr, sizeof(*addr)))
 +			continue;
 +		if (atomic_dec_and_test(&ptr->users)) {
-+			int len;
-+			printk(KERN_DEBUG "%s: Freeing %p '%pI6'\n", __func__,
-+			       ptr, &ptr->addr);
-+			len = ksize(ptr);
 +			list_del(&ptr->list);
++			tomoyo_allocated_memory_for_elements -= ksize(ptr);
 +			kfree(ptr);
-+			atomic_sub(len, &tomoyo_allocated_memory_for_savename);
 +		}
 +		break;
 +	}
@@ -1282,17 +1278,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /**
   * tomoyo_realpath_init - Initialize realpath related code.
   */
-@@ -666,6 +738,7 @@ static void tomoyo_cleanup_domain_policy
+@@ -693,6 +761,7 @@ static void tomoyo_cleanup_domain_policy
  			switch (tomoyo_acl_type1(acl)) {
  				struct tomoyo_single_path_acl_record *acl1;
  				struct tomoyo_double_path_acl_record *acl2;
-+ 				struct tomoyo_ip_network_acl_record *acl3;
++				struct tomoyo_ip_network_acl_record *acl3;
  			case TOMOYO_TYPE_SINGLE_PATH_ACL:
  				acl1 = container_of(acl,
  				    struct tomoyo_single_path_acl_record,
-@@ -679,6 +752,16 @@ static void tomoyo_cleanup_domain_policy
- 				tomoyo_del_name(acl2->filename1);
- 				tomoyo_del_name(acl2->filename2);
+@@ -706,6 +775,16 @@ static void tomoyo_cleanup_domain_policy
+ 				tomoyo_put_name(acl2->filename1);
+ 				tomoyo_put_name(acl2->filename2);
  				break;
 +			case TOMOYO_TYPE_IP_NETWORK_ACL:
 +				acl3 = container_of(acl,
@@ -1301,22 +1297,22 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				if (acl3->record_type !=
 +				    TOMOYO_IP_RECORD_TYPE_IPv6)
 +					break;
-+				tomoyo_del_ipv6_address(acl3->u.ipv6.min);
-+				tomoyo_del_ipv6_address(acl3->u.ipv6.max);
++				tomoyo_put_ipv6_address(acl3->u.ipv6.min);
++				tomoyo_put_ipv6_address(acl3->u.ipv6.max);
 +				break;
  			}
- 			atomic_sub(ksize(acl),
- 				   &tomoyo_allocated_memory_for_elements);
+ 			tomoyo_allocated_memory_for_elements -= ksize(acl);
+ 			kfree(acl);
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.h
 +++ security-testing-2.6.git/security/tomoyo/realpath.h
-@@ -59,6 +59,11 @@ const struct tomoyo_path_info *tomoyo_sa
+@@ -59,6 +59,11 @@ const struct tomoyo_path_info *tomoyo_ge
  /* Delete memory for the given name. */
- void tomoyo_del_name(const struct tomoyo_path_info *name);
+ void tomoyo_put_name(const struct tomoyo_path_info *name);
  
 +/* Allocate memory for the given IPv6 address. */
-+const struct in6_addr *tomoyo_save_ipv6_address(const struct in6_addr *addr);
++const struct in6_addr *tomoyo_get_ipv6_address(const struct in6_addr *addr);
 +/* Delete memory for the given IPv6 address. */
-+void tomoyo_del_ipv6_address(const struct in6_addr *addr);
++void tomoyo_put_ipv6_address(const struct in6_addr *addr);
 +
  /* Add a cookie to cookie list. */
  void tomoyo_add_cookie(struct tomoyo_cookie *cookie, const void *ptr);
