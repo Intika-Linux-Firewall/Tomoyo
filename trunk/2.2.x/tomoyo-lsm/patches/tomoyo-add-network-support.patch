@@ -19,14 +19,14 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/Kconfig    |    1 
  security/tomoyo/Makefile   |    2 
- security/tomoyo/common.c   |  114 +++++
+ security/tomoyo/common.c   |  115 +++++
  security/tomoyo/common.h   |   75 +++
  security/tomoyo/network.c  |  889 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.c |   77 +++
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |  143 +++++++
  security/tomoyo/tomoyo.h   |   17 
- 9 files changed, 1319 insertions(+), 4 deletions(-)
+ 9 files changed, 1320 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -45,7 +45,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o network.o
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
-@@ -35,6 +35,7 @@ static struct {
+@@ -36,6 +36,7 @@ static struct {
  	const unsigned int max_value;
  } tomoyo_control_array[TOMOYO_MAX_CONTROL_INDEX] = {
  	[TOMOYO_MAC_FOR_FILE]     = { "MAC_FOR_FILE",        0,       3 },
@@ -53,7 +53,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	[TOMOYO_MAX_ACCEPT_ENTRY] = { "MAX_ACCEPT_ENTRY", 2048, INT_MAX },
  	[TOMOYO_VERBOSE]          = { "TOMOYO_VERBOSE",      1,       1 },
  };
-@@ -841,6 +842,9 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -846,6 +847,9 @@ bool tomoyo_domain_quota_is_ok(struct to
  			if (perm & (1 << TOMOYO_TYPE_RENAME_ACL))
  				count++;
  			break;
@@ -63,16 +63,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		}
  	}
  	up_read(&tomoyo_policy_lock);
-@@ -1352,6 +1356,8 @@ static int tomoyo_write_domain_policy(st
- 		domain->ignore_global_allow_read = !is_delete;
+@@ -1350,6 +1354,9 @@ static int tomoyo_write_domain_policy(st
+ 		cookie->u.domain->ignore_global_allow_read = !is_delete;
  		return 0;
  	}
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK))
-+		return tomoyo_write_network_policy(data, domain, is_delete);
- 	return tomoyo_write_file_policy(data, domain, is_delete);
++		return tomoyo_write_network_policy(data, cookie->u.domain,
++						   is_delete);
+ 	return tomoyo_write_file_policy(data, cookie->u.domain, is_delete);
  }
  
-@@ -1440,6 +1446,107 @@ static bool tomoyo_print_double_path_acl
+@@ -1438,6 +1445,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -180,7 +181,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1468,6 +1575,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1466,6 +1574,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
