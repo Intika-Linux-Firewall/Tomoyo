@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2531)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h	(working copy)
 @@ -83,47 +83,20 @@
  			ret; })
@@ -62,7 +62,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_compat.h
  #define s_fs_info u.generic_sbp
 Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2531)
+--- trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/include/linux/ccs_common.h	(working copy)
 @@ -37,6 +37,7 @@
  #else
@@ -193,15 +193,29 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* "unsigned long condition[condc]" follows here. */
  	/* "struct ccs_argv_entry argv[argc]" follows here. */
  	/* "struct ccs_envp_entry envp[envc]" follows here. */
-@@ -207,6 +169,7 @@
+@@ -169,7 +131,8 @@
+ 
+ /* Structure for request info. */
+ struct ccs_request_info {
+-	struct ccs_domain_info *domain;
++	struct ccs_cookie cookie;
++	//struct ccs_domain_info *domain;
+ 	struct ccs_obj_info *obj;
+ 	struct ccs_execve_entry *ee;
+ 	const struct ccs_condition_list *cond;
+@@ -207,10 +170,9 @@
  	struct ccs_request_info r;
  	struct ccs_obj_info obj;
  	struct linux_binprm *bprm;
 +	struct ccs_cookie cookie;
  	/* For execute_handler */
  	const struct ccs_path_info *handler;
- 	/* For calculating domain to transit to. */
-@@ -220,21 +183,22 @@
+-	/* For calculating domain to transit to. */
+-	struct ccs_domain_info *next_domain; /* Initialized to NULL. */
+ 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
+ 	/* For dumping argv[] and envp[]. */
+ 	struct ccs_page_dump dump;
+@@ -220,21 +182,22 @@
  
  /* Structure for "path_group" directive. */
  struct ccs_path_group_member {
@@ -228,7 +242,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	union {
  		u32 ipv4;                    /* Host byte order    */
  		const struct in6_addr *ipv6; /* Network byte order */
-@@ -245,9 +209,10 @@
+@@ -245,9 +208,10 @@
  
  /* Structure for "address_group" directive. */
  struct ccs_address_group_entry {
@@ -241,7 +255,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  };
  
  /* Structure for holding requested pathname. */
-@@ -261,18 +226,12 @@
+@@ -261,18 +225,12 @@
  
  /* Common header for holding ACL entries. */
  struct ccs_acl_info {
@@ -262,7 +276,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	 */
  	u8 type;
  } __attribute__((__packed__));
-@@ -293,13 +252,11 @@
+@@ -293,42 +251,144 @@
  
  /* This ACL entry is deleted.           */
  #define ACL_DELETED        0x80
@@ -278,7 +292,154 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* Name of this domain. Never NULL.          */
  	const struct ccs_path_info *domainname;
  	u8 profile;        /* Profile number to use. */
-@@ -363,10 +320,11 @@
+ 	bool is_deleted;   /* Delete flag.           */
+ 	bool quota_warned; /* Quota warnning flag.   */
+-	/* DOMAIN_FLAGS_*. Use ccs_set_domain_flag() to modify. */
+-	u8 flags;
++	/* Ignore "allow_read" directive in exception policy. */
++	bool ignore_global_allow_read;
++	/* Ignore "allow_env" directive in exception policy.  */
++	bool ignore_global_allow_env;
++	/*
++	 * This domain was unable to create a new domain at
++	 * ccs_find_next_domain() because the name of the domain to be created
++	 * was too long or it could not allocate memory.
++	 * More than one process continued execve() without domain transition.
++	 */
++	bool domain_transition_failed;
+ };
+ 
+ /* Profile number is an integer between 0 and 255. */
+ #define MAX_PROFILES 256
+ 
+-/* Ignore "allow_read" directive in exception policy. */
+-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
+-/* Ignore "allow_env" directive in exception policy.  */
+-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
+-/*
+- * This domain was unable to create a new domain at ccs_find_next_domain()
+- * because the name of the domain to be created was too long or
+- * it could not allocate memory.
+- * More than one process continued execve() without domain transition.
+- */
+-#define DOMAIN_FLAGS_TRANSITION_FAILED        4
+-
+ #define CCS_CHECK_READ_FOR_OPEN_EXEC    1
+ #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
+ #define CCS_TASK_IS_EXECUTE_HANDLER     4
+ #define CCS_TASK_IS_POLICY_MANAGER      8
+ 
++/* Structure for "allow_read" keyword. */
++struct ccs_globally_readable_file_entry {
++	struct list_head list;
++	const struct ccs_path_info *filename;
++	bool is_deleted;
++};
++
++/* Structure for "file_pattern" keyword. */
++struct ccs_pattern_entry {
++	struct list_head list;
++	const struct ccs_path_info *pattern;
++	bool is_deleted;
++};
++
++/* Structure for "deny_rewrite" keyword. */
++struct ccs_no_rewrite_entry {
++	struct list_head list;
++	const struct ccs_path_info *pattern;
++	bool is_deleted;
++};
++
++/* Structure for "allow_env" keyword. */
++struct ccs_globally_usable_env_entry {
++	struct list_head list;
++	const struct ccs_path_info *env;
++	bool is_deleted;
++};
++
++/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
++struct ccs_domain_initializer_entry {
++	struct list_head list;
++	const struct ccs_path_info *domainname;    /* This may be NULL */
++	const struct ccs_path_info *program;
++	bool is_deleted;
++	bool is_not;       /* True if this entry is "no_initialize_domain".  */
++	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
++};
++
++/* Structure for "keep_domain" and "no_keep_domain" keyword. */
++struct ccs_domain_keeper_entry {
++	struct list_head list;
++	const struct ccs_path_info *domainname;
++	const struct ccs_path_info *program;       /* This may be NULL */
++	bool is_deleted;
++	bool is_not;       /* True if this entry is "no_keep_domain".        */
++	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
++};
++
++/* Structure for "aggregator" keyword. */
++struct ccs_aggregator_entry {
++	struct list_head list;
++	const struct ccs_path_info *original_name;
++	const struct ccs_path_info *aggregated_name;
++	bool is_deleted;
++};
++
++/* Structure for "alias" keyword. */
++struct ccs_alias_entry {
++	struct list_head list;
++	const struct ccs_path_info *original_name;
++	const struct ccs_path_info *aliased_name;
++	bool is_deleted;
++};
++
++/* Structure for "deny_unmount" keyword. */
++struct ccs_no_umount_entry {
++	struct list_head list;
++	const struct ccs_path_info *dir;
++	bool is_deleted;
++};
++
++/* Structure for "allow_pivot_root" keyword. */
++struct ccs_pivot_root_entry {
++	struct list_head list;
++	const struct ccs_path_info *old_root;
++	const struct ccs_path_info *new_root;
++	bool is_deleted;
++};
++
++/* Structure for "allow_mount" keyword. */
++struct ccs_mount_entry {
++	struct list_head list;
++	const struct ccs_path_info *dev_name;
++	const struct ccs_path_info *dir_name;
++	const struct ccs_path_info *fs_type;
++	unsigned long flags;
++	bool is_deleted;
++};
++
++/* Structure for "allow_chroot" keyword. */
++struct ccs_chroot_entry {
++	struct list_head list;
++	const struct ccs_path_info *dir;
++	bool is_deleted;
++};
++
++/* Structure for policy manager. */
++struct ccs_policy_manager_entry {
++	struct list_head list;
++	/* A path to program or a domainname. */
++	const struct ccs_path_info *manager;
++	bool is_domain;  /* True if manager is a domainname. */
++	bool is_deleted; /* True if this entry is deleted. */
++};
++
++///
++
+ /*
+  * Structure for "execute_handler" and "denied_execute_handler" directive.
+  * These directives can exist only one entry in a domain.
+@@ -363,10 +423,11 @@
  	bool u_is_group; /* True if u points to "path_group" directive. */
  	u16 perm;
  	union {
@@ -291,7 +452,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	} u;
  };
  
-@@ -377,16 +335,18 @@
+@@ -377,16 +438,18 @@
  	bool u1_is_group; /* True if u1 points to "path_group" directive. */
  	bool u2_is_group; /* True if u2 points to "path_group" directive. */
  	union {
@@ -312,7 +473,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	} u2;
  };
  
-@@ -397,6 +357,7 @@
+@@ -397,10 +460,11 @@
  	unsigned int cmd_max;
  	bool u_is_group; /* True if u points to "path_group" directive. */
  	union {
@@ -320,7 +481,12 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  		/* Pointer to single pathname. */
  		const struct ccs_path_info *filename;
  		/* Pointer to pathname group. */
-@@ -431,6 +392,12 @@
+-		const struct ccs_path_group_entry *group;
++		struct ccs_path_group_entry *group;
+ 	} u;
+ };
+ 
+@@ -431,6 +495,12 @@
  	const struct ccs_path_info *domainname;
  };
  
@@ -333,7 +499,16 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Structure for "allow_network" directive. */
  struct ccs_ip_network_acl_record {
  	struct ccs_acl_info head; /* type = TYPE_IP_NETWORK_ACL */
-@@ -604,11 +571,11 @@
+@@ -476,7 +546,7 @@
+ 			const struct in6_addr *max;
+ 		} ipv6;
+ 		/* Pointer to address group. */
+-		const struct ccs_address_group_entry *group;
++		struct ccs_address_group_entry *group;
+ 	} u;
+ };
+ 
+@@ -604,11 +674,11 @@
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
  	/* The position currently reading from. */
@@ -348,7 +523,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  	/* The step for reading.                */
  	int read_step;
  	/* Buffer for reading.                  */
-@@ -828,18 +795,15 @@
+@@ -828,18 +898,15 @@
  int ccs_write_control(struct file *file, const char __user *buffer,
  		      const int buffer_len);
  /* Find a domain by the given name. */
@@ -370,7 +545,29 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* Fill in "struct ccs_path_info" members. */
  void ccs_fill_path_info(struct ccs_path_info *ptr);
  /* Fill in "struct ccs_request_info" members. */
-@@ -876,13 +840,13 @@
+@@ -850,9 +917,6 @@
+ /* Print an IPv6 address. */
+ void ccs_print_ipv6(char *buffer, const int buffer_len,
+ 		    const struct in6_addr *ip);
+-/* Change "struct ccs_domain_info"->flags. */
+-void ccs_set_domain_flag(struct ccs_domain_info *domain, const bool is_delete,
+-			 const u8 flags);
+ /* Update the policy change counter. */
+ void ccs_update_counter(const unsigned char index);
+ 
+@@ -866,6 +930,11 @@
+ int ccs_check_exec_perm(struct ccs_request_info *r,
+ 			const struct ccs_path_info *filename);
+ 
++/* Delete memory for "struct ccs_path_group_entry". */
++void ccs_put_path_group(struct ccs_path_group_entry *group);
++/* Delete memory for "struct ccs_address_group_entry". */
++void ccs_put_address_group(struct ccs_address_group_entry *group);
++
+ /* strcmp() for "struct ccs_path_info" structure. */
+ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
+ 			       const struct ccs_path_info *b)
+@@ -876,13 +945,13 @@
  /* Get type of an ACL entry. */
  static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
  {
@@ -386,7 +583,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  }
  
  /**
-@@ -895,12 +859,13 @@
+@@ -895,12 +964,32 @@
  static inline const struct ccs_condition_list *
  ccs_get_condition_part(const struct ccs_acl_info *acl)
  {
@@ -400,14 +597,33 @@ Index: trunk/1.6.x/ccs-patch/include/linux/ccs_common.h
  /* A linked list of domains. */
 -extern struct list1_head ccs_domain_list;
 +extern struct list_head ccs_domain_list;
++
++extern struct list_head ccs_mount_list;
++extern struct list_head ccs_address_group_list;
++extern struct list_head ccs_globally_readable_list;
++extern struct list_head ccs_path_group_list;
++extern struct list_head ccs_pattern_list;
++extern struct list_head ccs_no_rewrite_list;
++extern struct list_head ccs_globally_usable_env_list;
++extern struct list_head ccs_domain_initializer_list;
++extern struct list_head ccs_domain_keeper_list;
++extern struct list_head ccs_alias_list;
++extern struct list_head ccs_aggregator_list;
++extern struct list_head ccs_condition_list;
++extern struct list_head ccs_no_umount_list;
++extern struct list_head ccs_pivot_root_list;
++extern struct list_head ccs_chroot_list;
++extern struct list_head ccs_reservedport_list;
++extern struct list_head ccs_policy_manager_list;
++
  /* Has /sbin/init started? */
  extern bool ccs_policy_loaded;
  /* Log level for printk(). */
 Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 ===================================================================
---- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2531)
+--- trunk/1.6.x/ccs-patch/include/linux/realpath.h	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/include/linux/realpath.h	(working copy)
-@@ -39,21 +39,23 @@
+@@ -39,21 +39,21 @@
  /* Encode binary string to ascii string. */
  char *ccs_encode(const char *str);
  
@@ -418,8 +634,6 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 -void *ccs_alloc_element(const unsigned int size);
 +/*  Check memory quota. */
 +bool ccs_memory_ok(const void *ptr);
-+/* Release memory. */
-+void ccs_free_element(void *ptr);
  
 -/*
 - * Keep the given name on the RAM.
@@ -442,7 +656,7 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
  /* Free memory allocated by ccs_alloc(). */
  void ccs_free(const void *p);
  
-@@ -63,4 +65,29 @@
+@@ -63,4 +63,27 @@
  /* Set memory quota. */
  int ccs_write_memory_quota(struct ccs_io_buffer *head);
  
@@ -468,31 +682,30 @@ Index: trunk/1.6.x/ccs-patch/include/linux/realpath.h
 +}
 +/* Delete a cookie from cookie list. */
 +void ccs_del_cookie(struct ccs_cookie *cookie);
-+/* Check whether the given pointer is referenced by a cookie or not. */
-+bool ccs_used_by_cookie(const void *ptr);
 +
  #endif
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_env.c	(working copy)
-@@ -34,13 +34,13 @@
+@@ -32,15 +32,8 @@
+ 				   env);
+ }
  
- /* Structure for "allow_env" keyword. */
- struct ccs_globally_usable_env_entry {
+-/* Structure for "allow_env" keyword. */
+-struct ccs_globally_usable_env_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *env;
- 	bool is_deleted;
- };
- 
+-	const struct ccs_path_info *env;
+-	bool is_deleted;
+-};
+-
  /* The list for "struct ccs_globally_usable_env_entry". */
 -static LIST1_HEAD(ccs_globally_usable_env_list);
-+static LIST_HEAD(ccs_globally_usable_env_list);
++LIST_HEAD(ccs_globally_usable_env_list);
  
  /**
   * ccs_update_globally_usable_env_entry - Update "struct ccs_globally_usable_env_entry" list.
-@@ -53,36 +53,37 @@
+@@ -53,36 +46,37 @@
  static int ccs_update_globally_usable_env_entry(const char *env,
  						const bool is_delete)
  {
@@ -513,7 +726,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 -	list1_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
  		if (ptr->env != saved_env)
@@ -542,13 +755,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_env);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -98,11 +99,16 @@
+@@ -98,11 +92,18 @@
  static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
  {
  	struct ccs_globally_usable_env_entry *ptr;
@@ -556,6 +769,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 -		if (!ptr->is_deleted && ccs_path_matches_pattern(env, ptr->env))
 -			return true;
 +	bool found = false;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
 +		if (ptr->is_deleted || !ccs_path_matches_pattern(env, ptr->env))
@@ -565,11 +779,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	}
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return found;
  }
  
  /**
-@@ -127,21 +133,23 @@
+@@ -127,21 +128,25 @@
   */
  bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  {
@@ -577,6 +792,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 -	list1_for_each_cookie(pos, head->read_var2,
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
  			      &ccs_globally_usable_env_list) {
@@ -598,11 +814,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -158,21 +166,23 @@
+@@ -158,21 +163,23 @@
  				const struct ccs_condition_list *condition,
  				const bool is_delete)
  {
@@ -625,14 +842,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -181,18 +191,24 @@
+@@ -181,18 +188,24 @@
  		if (acl->env != saved_env)
  			continue;
  		error = ccs_add_domain_acl(NULL, ptr);
@@ -654,24 +871,24 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -203,8 +219,11 @@
+@@ -203,8 +216,11 @@
  		error = ccs_del_domain_acl(ptr);
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_env);
@@ -679,7 +896,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  	return error;
  }
  
-@@ -224,7 +243,8 @@
+@@ -218,13 +234,14 @@
+  */
+ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
+ {
+-	const struct ccs_domain_info *domain = r->domain;
++	const struct ccs_domain_info *domain = r->cookie.u.domain;
+ 	int error = -EPERM;
+ 	struct ccs_acl_info *ptr;
  	struct ccs_path_info env;
  	env.name = environ;
  	ccs_fill_path_info(&env);
@@ -689,24 +913,51 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_env.c
  		struct ccs_env_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
  			continue;
-@@ -236,6 +256,7 @@
+@@ -236,8 +253,8 @@
  		error = 0;
  		break;
  	}
+-	if (error &&
+-	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV) == 0 &&
 +	up_read(&ccs_policy_lock);
- 	if (error &&
- 	    (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV) == 0 &&
++	if (error && !domain->ignore_global_allow_env &&
  	    ccs_is_globally_usable_env(&env))
+ 		error = 0;
+ 	return error;
+@@ -264,18 +281,19 @@
+ 	ccs_audit_env_log(r, env, !error);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode(r->domain))
++	if (ccs_verbose_mode(r->cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), env,
+-		       ccs_get_last_name(r->domain));
++		       ccs_get_last_name(r->cookie.u.domain));
+ 	if (is_enforce) {
+ 		error = ccs_check_supervisor(r, KEYWORD_ALLOW_ENV "%s\n", env);
+ 		if (error == 1)
+ 			goto retry;
+ 		return error;
+ 	}
+-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
+-		ccs_update_env_entry(env, r->domain, ccs_handler_cond(), false);
++	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain))
++		ccs_update_env_entry(env, r->cookie.u.domain,
++				     ccs_handler_cond(), false);
+ 	return 0;
+ }
+ 
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_network.c	(working copy)
-@@ -55,54 +55,86 @@
+@@ -55,55 +55,57 @@
  				   "%s %s %u\n", operation, address, port);
  }
  
 +/* The list for "struct ccs_address_group_entry". */
-+static LIST_HEAD(ccs_address_group_list);
++LIST_HEAD(ccs_address_group_list);
 +
  /**
 - * ccs_save_ipv6_address - Keep the given IPv6 address on the RAM.
@@ -756,7 +1007,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +	if (!saved_group_name)
 +		return NULL;
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(group, &ccs_address_group_list, list) {
 +		if (saved_group_name != group->group_name)
@@ -786,7 +1037,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -	mutex_unlock(&lock);
 -	return ptr ? &ptr->addr[i] : NULL;
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_group_name);
 +	kfree(entry);
 +	return !error ? group : NULL;
@@ -794,39 +1045,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  
 -/* The list for "struct ccs_address_group_entry". */
 -static LIST1_HEAD(ccs_address_group_list);
-+/**
-+ * ccs_put_address_group - Delete memory for "struct ccs_address_group_entry".
-+ *
-+ * @group: Pointer to "struct ccs_address_group_entry".
-+ */
-+static void ccs_put_address_group(struct ccs_address_group_entry *group)
-+{
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
-+	if (atomic_dec_and_test(&group->users)) {
-+		struct ccs_address_group_member *member;
-+		struct ccs_address_group_member *next_member;
-+		list_for_each_entry_safe(member, next_member,
-+					 &group->address_group_member_list,
-+					 list) {
-+			if (!member->is_deleted)
-+				break;
-+			list_del(&member->list);
-+			ccs_free_element(member);
-+		}
-+		if (list_empty(&group->address_group_member_list)) {
-+			list_del(&group->list);
-+			ccs_put_name(group->group_name);
-+			ccs_free_element(group);
-+		}
-+	}
-+	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+}
- 
+-
  /**
   * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
-@@ -121,85 +153,67 @@
+  *
+@@ -121,85 +123,67 @@
  					  const u16 *max_address,
  					  const bool is_delete)
  {
@@ -869,7 +1092,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -		if (saved_group_name != group->group_name)
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(member, &group->address_group_member_list, list) {
 +		if (member->is_ipv6 != is_ipv6)
@@ -944,7 +1167,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
 -	error = 0;
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_ipv6_address(saved_min_address);
@@ -953,29 +1176,43 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -291,11 +305,18 @@
- {
- 	u8 i;
- 	struct ccs_address_group_entry *group;
-+	bool found = false;
- 	for (i = 0; i <= 1; i++) {
+@@ -279,35 +263,6 @@
+ }
+ 
+ /**
+- * ccs_find_or_assign_new_address_group - Create address group.
+- *
+- * @group_name: The name of address group.
+- *
+- * Returns pointer to "struct ccs_address_group_entry" on success,
+- * NULL otherwise.
+- */
+-static struct ccs_address_group_entry *
+-ccs_find_or_assign_new_address_group(const char *group_name)
+-{
+-	u8 i;
+-	struct ccs_address_group_entry *group;
+-	for (i = 0; i <= 1; i++) {
 -		list1_for_each_entry(group, &ccs_address_group_list, list) {
 -			if (!strcmp(group_name, group->group_name->name))
 -				return group;
-+		down_read(&ccs_policy_lock);
-+		list_for_each_entry(group, &ccs_address_group_list, list) {
-+			if (strcmp(group_name, group->group_name->name))
-+				continue;
-+			found = true;
-+			break;
- 		}
-+		up_read(&ccs_policy_lock);
-+		if (found)
-+			return group;
- 		if (!i) {
- 			const u16 dummy[2] = { 0, 0 };
- 			ccs_update_address_group_entry(group_name, false,
-@@ -315,6 +336,8 @@
+-		}
+-		if (!i) {
+-			const u16 dummy[2] = { 0, 0 };
+-			ccs_update_address_group_entry(group_name, false,
+-						       dummy, dummy, false);
+-			ccs_update_address_group_entry(group_name, false,
+-						       dummy, dummy, true);
+-		}
+-	}
+-	return NULL;
+-}
+-
+-/**
+  * ccs_address_matches_group - Check whether the given address matches members of the given address group.
+  *
+  * @is_ipv6: True if @address is an IPv6 address.
+@@ -315,6 +270,8 @@
   * @group:   Pointer to "struct ccs_address_group_entry".
   *
   * Returns true if @address matches addresses in @group group, false otherwise.
@@ -984,7 +1221,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
   */
  static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
  				      const struct ccs_address_group_entry *
-@@ -322,21 +345,26 @@
+@@ -322,21 +279,26 @@
  {
  	struct ccs_address_group_member *member;
  	const u32 ip = ntohl(*address);
@@ -1017,7 +1254,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  }
  
  /**
-@@ -348,16 +376,19 @@
+@@ -348,16 +310,20 @@
   */
  bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
  {
@@ -1027,6 +1264,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +	struct list_head *gpos;
 +	struct list_head *mpos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(gpos, head->read_var1.u.list,
 +			      &ccs_address_group_list) {
@@ -1043,29 +1281,51 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  					     struct ccs_address_group_member,
  					     list);
  			if (member->is_deleted)
-@@ -390,15 +421,16 @@
+@@ -390,15 +356,18 @@
  						 HIPQUAD(max_address));
  				}
  			}
 -			if (!ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
 -					   "%s %s\n", group->group_name->name,
 -					   buf))
+-				goto out;
 +			done = ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
 +					     "%s %s\n", group->group_name->name,
 +					     buf);
-+			if (!done) 
- 				goto out;
++			if (!done)
++				break;
  		}
++		if (!done)
++			break;
  	}
 -	return true;
-  out:
+- out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  #if !defined(NIP6)
-@@ -489,10 +521,9 @@
+@@ -469,7 +438,7 @@
+  *
+  * @operation:   Type of operation.
+  * @record_type: Type of address.
+- * @group:       Pointer to "struct ccs_address_group_entry". May be NULL.
++ * @group:       Name of group. May be NULL.
+  * @min_address: Start of IPv4 or IPv6 address range.
+  * @max_address: End of IPv4 or IPv6 address range.
+  * @min_port:    Start of port number range.
+@@ -481,7 +450,7 @@
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
+-				    const struct ccs_address_group_entry *group,
++				    const char *group_name,
+ 				    const u32 *min_address,
+ 				    const u32 *max_address,
+ 				    const u16 min_port, const u16 max_port,
+@@ -489,30 +458,36 @@
  				    const struct ccs_condition_list *condition,
  				    const bool is_delete)
  {
@@ -1078,36 +1338,45 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
  	/* using host byte order to allow u32 comparison than memcmp().*/
  	const u32 min_ip = ntohl(*min_address);
  	const u32 max_ip = ntohl(*max_address);
-@@ -502,17 +533,23 @@
+ 	const struct in6_addr *saved_min_address = NULL;
+ 	const struct in6_addr *saved_max_address = NULL;
++	struct ccs_address_group_entry *group = NULL;
+ 	if (!domain)
  		return -EINVAL;
- 	if (record_type != IP_RECORD_TYPE_IPv6)
- 		goto not_ipv6;
+-	if (record_type != IP_RECORD_TYPE_IPv6)
+-		goto not_ipv6;
 -	saved_min_address = ccs_save_ipv6_address((struct in6_addr *)
-+	saved_min_address = ccs_get_ipv6_address((struct in6_addr *)
- 						  min_address);
+-						  min_address);
 -	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
-+	saved_max_address = ccs_get_ipv6_address((struct in6_addr *)
- 						  max_address);
+-						  max_address);
 -	if (!saved_min_address || !saved_max_address)
-+	if (!saved_min_address || !saved_max_address) {
-+		ccs_put_ipv6_address(saved_min_address);
-+		ccs_put_ipv6_address(saved_max_address);
- 		return -ENOMEM;
-+	}
-  not_ipv6:
+-		return -ENOMEM;
+- not_ipv6:
 -	mutex_lock(&lock);
++	if (group_name) {
++		group = ccs_get_address_group(group_name);
++		if (!group)
++			return -ENOMEM;
++	} else if (record_type == IP_RECORD_TYPE_IPv6) {
++		saved_min_address = ccs_get_ipv6_address((struct in6_addr *)
++							 min_address);
++		saved_max_address = ccs_get_ipv6_address((struct in6_addr *)
++							 max_address);
++		if (!saved_min_address || !saved_max_address)
++			goto out;
++	}
  	if (is_delete)
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -535,30 +572,37 @@
+@@ -535,30 +510,38 @@
  				continue;
  		}
  		error = ccs_add_domain_acl(NULL, ptr);
@@ -1135,6 +1404,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 +		entry->record_type = record_type;
 +		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 +			entry->u.group = group;
++			group = NULL;
 +		} else if (record_type == IP_RECORD_TYPE_IPv4) {
 +			entry->u.ipv4.min = min_ip;
 +			entry->u.ipv4.max = max_ip;
@@ -1153,53 +1423,114 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_network.c
 -	acl->max_port = max_port;
 -	error = ccs_add_domain_acl(domain, &acl->head);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -583,8 +627,12 @@
+@@ -583,8 +566,13 @@
  		error = ccs_del_domain_acl(ptr);
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_ipv6_address(saved_min_address);
 +	ccs_put_ipv6_address(saved_max_address);
++	ccs_put_address_group(group);
 +	kfree(entry);
  	return error;
  }
  
-@@ -616,7 +664,8 @@
+@@ -616,7 +604,9 @@
  	if (!r.mode)
  		return 0;
   retry:
 -	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
-+	list_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
  		struct ccs_ip_network_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
  			continue;
-@@ -642,6 +691,7 @@
+@@ -642,6 +632,8 @@
  		found = true;
  		break;
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	memset(buf, 0, sizeof(buf));
  	if (is_ipv6)
  		ccs_print_ipv6(buf, sizeof(buf),
+@@ -651,10 +643,10 @@
+ 	ccs_audit_network_log(&r, keyword, buf, port, found);
+ 	if (found)
+ 		return 0;
+-	if (ccs_verbose_mode(r.domain))
++	if (ccs_verbose_mode(r.cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
+ 		       ccs_get_msg(is_enforce), keyword, buf, port,
+-		       ccs_get_last_name(r.domain));
++		       ccs_get_last_name(r.cookie.u.domain));
+ 	if (is_enforce) {
+ 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
+ 						 "%s %s %u\n", keyword, buf,
+@@ -663,12 +655,13 @@
+ 			goto retry;
+ 		return error;
+ 	}
+-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
++	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
+ 		ccs_update_network_entry(operation, is_ipv6 ?
+ 					 IP_RECORD_TYPE_IPv6 :
+ 					 IP_RECORD_TYPE_IPv4,
+ 					 NULL, address, address, port, port,
+-					 r.domain, ccs_handler_cond(), 0);
++					 r.cookie.u.domain, ccs_handler_cond(),
++					 false);
+ 	return 0;
+ }
+ 
+@@ -691,7 +684,7 @@
+ 	u8 record_type;
+ 	u16 min_address[8];
+ 	u16 max_address[8];
+-	struct ccs_address_group_entry *group = NULL;
++	const char *group_name = NULL;
+ 	u16 min_port;
+ 	u16 max_port;
+ 	u8 count;
+@@ -754,9 +747,7 @@
+ 	default:
+ 		if (*cp2 != '@')
+ 			goto out;
+-		group = ccs_find_or_assign_new_address_group(cp2 + 1);
+-		if (!group)
+-			return -ENOMEM;
++		group_name = cp2 + 1;
+ 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
+ 		break;
+ 	}
+@@ -767,7 +758,7 @@
+ 		goto out;
+ 	if (count == 1)
+ 		max_port = min_port;
+-	return ccs_update_network_entry(operation, record_type, group,
++	return ccs_update_network_entry(operation, record_type, group_name,
+ 					(u32 *) min_address,
+ 					(u32 *) max_address,
+ 					min_port, max_port, domain, condition,
 Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/realpath.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/realpath.c	(working copy)
 @@ -28,9 +28,9 @@
  #else
@@ -1212,7 +1543,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  #include <net/sock.h>
  
  /**
-@@ -443,56 +443,120 @@
+@@ -443,58 +443,213 @@
  			/ sizeof(long)) * sizeof(long);
  }
  
@@ -1230,19 +1561,9 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
   *
 - * Returns pointer to allocated memory on success, NULL otherwise.
 + * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
-  *
-- * The RAM is chunked, so NEVER try to kfree() the returned pointer.
-+ * Caller must hold ccs_policy_lock for writing.
-  */
--void *ccs_alloc_element(const unsigned int size)
++ */
 +bool ccs_memory_ok(const void *ptr)
- {
--	static DEFINE_MUTEX(lock);
--	static char *ccs_buf;
--	static unsigned int ccs_buf_used_len = PAGE_SIZE;
--	char *ptr = NULL;
--	const unsigned int word_aligned_size = ccs_round_up(size);
--	if (word_aligned_size > PAGE_SIZE)
++{
 +	const unsigned int len = ptr ? ksize(ptr) : 0;
 +	if (len && (!ccs_quota_for_elements ||
 +		    ccs_allocated_memory_for_elements + len
@@ -1257,11 +1578,45 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +}
 +
 +/**
++ * ccs_memory_free - Free memory for elements.
+  *
+- * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ * @ptr: Pointer to allocated memory.
+  */
+-void *ccs_alloc_element(const unsigned int size)
++static void ccs_memory_free(const void *ptr)
+ {
+-	static DEFINE_MUTEX(lock);
+-	static char *ccs_buf;
+-	static unsigned int ccs_buf_used_len = PAGE_SIZE;
+-	char *ptr = NULL;
+-	const unsigned int word_aligned_size = ccs_round_up(size);
+-	if (word_aligned_size > PAGE_SIZE)
+-		return NULL;
+-	mutex_lock(&lock);
+-	if (ccs_buf_used_len + word_aligned_size > PAGE_SIZE) {
+-		if (!ccs_quota_for_elements || ccs_allocated_memory_for_elements
+-		    + PAGE_SIZE <= ccs_quota_for_elements)
+-			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
+-		if (!ptr) {
+-			printk(KERN_WARNING "ERROR: Out of memory "
+-			       "for ccs_alloc_element().\n");
+-			if (!ccs_policy_loaded)
+-				panic("MAC Initialization failed.\n");
+-		} else {
+-			ccs_buf = ptr;
+-			ccs_allocated_memory_for_elements += PAGE_SIZE;
+-			ccs_buf_used_len = word_aligned_size;
++	ccs_allocated_memory_for_elements -= ksize(ptr);
++	kfree(ptr);
++}
++
++/**
 + * ccs_free_element - Delete memory for structures.
 + *
 + * @ptr: Memory to release.
 + */
-+void ccs_free_element(void *ptr)
++static void ccs_free_element(void *ptr)
 +{
 +	int len;
 +	if (!ptr)
@@ -1272,7 +1627,102 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +	mutex_lock(&ccs_element_lock);
 +	ccs_allocated_memory_for_elements -= len;
 +	mutex_unlock(&ccs_element_lock);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** EXCLUSIVE SECTION END *****/
++}
++
++/**
++ * ccs_put_path_group - Delete memory for "struct ccs_path_group_entry".
++ *
++ * @group: Pointer to "struct ccs_path_group_entry".
++ */
++void ccs_put_path_group(struct ccs_path_group_entry *group)
++{
++	struct ccs_path_group_member *member;
++	struct ccs_path_group_member *next_member;
++	LIST_HEAD(q);
++	bool can_delete_group = false;
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	if (atomic_dec_and_test(&group->users)) {
++		list_for_each_entry_safe(member, next_member,
++					 &group->path_group_member_list,
++					 list) {
++			if (!member->is_deleted)
++				break;
++			list_del(&member->list);
++			list_add(&member->list, &q);
+ 		}
+-	} else if (word_aligned_size) {
+-		int i;
+-		ptr = ccs_buf + ccs_buf_used_len;
+-		ccs_buf_used_len += word_aligned_size;
+-		for (i = 0; i < word_aligned_size; i++) {
+-			if (!ptr[i])
+-				continue;
+-			printk(KERN_ERR "WARNING: Reserved memory was tainted! "
+-			       "The system might go wrong.\n");
+-			ptr[i] = '\0';
++		if (list_empty(&group->path_group_member_list)) {
++			list_del(&group->list);
++			can_delete_group = true;
+ 		}
+ 	}
+-	mutex_unlock(&lock);
+-	return ptr;
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(member, next_member, &q, list) {
++		list_del(&member->list);
++		ccs_put_name(member->member_name);
++		ccs_free_element(member);
++	}
++	if (can_delete_group) {
++		ccs_put_name(group->group_name);
++		ccs_free_element(group);
++	}
+ }
+ 
++/**
++ * ccs_put_address_group - Delete memory for "struct ccs_address_group_entry".
++ *
++ * @group: Pointer to "struct ccs_address_group_entry".
++ */
++void ccs_put_address_group(struct ccs_address_group_entry *group)
++{
++	struct ccs_address_group_member *member;
++	struct ccs_address_group_member *next_member;
++	LIST_HEAD(q);
++	bool can_delete_group = false;
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	if (atomic_dec_and_test(&group->users)) {
++		list_for_each_entry_safe(member, next_member,
++					 &group->address_group_member_list,
++					 list) {
++			if (!member->is_deleted)
++				break;
++			list_del(&member->list);
++			list_add(&member->list, &q);
++		}
++		if (list_empty(&group->address_group_member_list)) {
++			list_del(&group->list);
++			can_delete_group = true;
++		}
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(member, next_member, &q, list) {
++		list_del(&member->list);
++		if (member->is_ipv6) {
++			ccs_put_ipv6_address(member->min.ipv6);
++			ccs_put_ipv6_address(member->max.ipv6);
++		}
++		ccs_free_element(member);
++	}
++	if (can_delete_group) {
++		ccs_put_name(group->group_name);
++		ccs_free_element(group);
++	}
 +}
 +
 +static LIST_HEAD(ccs_address_list);
@@ -1292,23 +1742,9 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +	struct ccs_addr_entry *ptr;
 +	int error = -ENOMEM;
 +	if (!addr)
- 		return NULL;
--	mutex_lock(&lock);
--	if (ccs_buf_used_len + word_aligned_size > PAGE_SIZE) {
--		if (!ccs_quota_for_elements || ccs_allocated_memory_for_elements
--		    + PAGE_SIZE <= ccs_quota_for_elements)
--			ptr = kzalloc(PAGE_SIZE, GFP_KERNEL);
--		if (!ptr) {
--			printk(KERN_WARNING "ERROR: Out of memory "
--			       "for ccs_alloc_element().\n");
--			if (!ccs_policy_loaded)
--				panic("MAC Initialization failed.\n");
--		} else {
--			ccs_buf = ptr;
--			ccs_allocated_memory_for_elements += PAGE_SIZE;
--			ccs_buf_used_len = word_aligned_size;
++		return NULL;
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_address_list, list) {
 +		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
@@ -1325,7 +1761,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	kfree(entry);
 +	return ptr ? &ptr->addr : NULL;
 +}
@@ -1338,40 +1774,28 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +void ccs_put_ipv6_address(const struct in6_addr *addr)
 +{
 +	struct ccs_addr_entry *ptr;
++	bool can_delete = false;
 +	if (!addr)
 +		return;
-+	/***** EXCLUSIVE SECTION START *****/
++	ptr = container_of(addr, struct ccs_addr_entry, addr);
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
-+	list_for_each_entry(ptr, &ccs_address_list, list) {
-+		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
-+			continue;
-+		if (atomic_dec_and_test(&ptr->users)) {
-+			int len = ksize(ptr);
-+			list_del(&ptr->list);
-+			ccs_free(ptr);
-+			ccs_allocated_memory_for_elements -= len;
- 		}
--	} else if (word_aligned_size) {
--		int i;
--		ptr = ccs_buf + ccs_buf_used_len;
--		ccs_buf_used_len += word_aligned_size;
--		for (i = 0; i < word_aligned_size; i++) {
--			if (!ptr[i])
--				continue;
--			printk(KERN_ERR "WARNING: Reserved memory was tainted! "
--			       "The system might go wrong.\n");
--			ptr[i] = '\0';
--		}
-+		break;
- 	}
--	mutex_unlock(&lock);
--	return ptr;
++	if (atomic_dec_and_test(&ptr->users)) {
++		list_del(&ptr->list);
++		can_delete = true;
++	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
- }
- 
++	/***** WRITER SECTION END *****/
++	if (can_delete) {
++		ccs_allocated_memory_for_elements -= ksize(ptr);
++		ccs_free(ptr);
++	}
++}
++
  static unsigned int ccs_allocated_memory_for_savename;
-@@ -502,7 +566,8 @@
+ static unsigned int ccs_quota_for_savename;
+ 
+@@ -502,7 +657,8 @@
  
  /* Structure for string data. */
  struct ccs_name_entry {
@@ -1381,7 +1805,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	struct ccs_path_info entry;
  };
  
-@@ -514,84 +579,95 @@
+@@ -514,84 +670,92 @@
  };
  
  /* The list for "struct ccs_name_entry". */
@@ -1502,31 +1926,28 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 +void ccs_put_name(const struct ccs_path_info *name)
 +{
 +	struct ccs_name_entry *ptr;
-+	unsigned int hash;
++	bool can_delete = false;
 +	if (!name)
 +		return;
-+	hash = name->hash % MAX_HASH;
++	ptr = container_of(name, struct ccs_name_entry, entry);
 +	/***** EXCLUSIVE SECTION START *****/
 +	mutex_lock(&ccs_name_list_lock);
-+	list_for_each_entry(ptr, &ccs_name_list[hash], list) {
-+		if (ccs_pathcmp(name, &ptr->entry))
-+			continue;
-+		if (atomic_dec_and_test(&ptr->users)) {
-+			int len = ksize(ptr);
-+			list_del(&ptr->list);
-+			kfree(ptr);
-+			ccs_allocated_memory_for_savename -= len;
-+		}
-+		break;
++	if (atomic_dec_and_test(&ptr->users)) {
++		list_del(&ptr->list);
++		can_delete = true;
 +	}
 +	mutex_unlock(&ccs_name_list_lock);
 +	/***** EXCLUSIVE SECTION END *****/
++	if (can_delete) {
++		ccs_allocated_memory_for_savename -= ksize(ptr);
++		kfree(ptr);
++	}
 +}
 +
  /* Structure for temporarily allocated memory. */
  struct ccs_cache_entry {
  	struct list_head list;
-@@ -613,7 +689,8 @@
+@@ -613,7 +777,8 @@
  static int __init ccs_realpath_init(void)
  {
  	int i;
@@ -1536,7 +1957,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
  		panic("Bad size.");
  	/* Constraint for "struct ccs_execve_entry"->tmp users. */
-@@ -631,11 +708,12 @@
+@@ -631,11 +796,12 @@
  	if (!ccs_cachep)
  		panic("Can't create cache.\n");
  	for (i = 0; i < MAX_HASH; i++)
@@ -1554,7 +1975,7 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
  		panic("Can't register ccs_kernel_domain");
  #ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
  	{
-@@ -850,3 +928,64 @@
+@@ -850,3 +1016,476 @@
  		ccs_quota_for_dynamic = size;
  	return 0;
  }
@@ -1571,13 +1992,12 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 + */
 +void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr)
 +{
-+	unsigned long flags;
 +	if (!cookie)
 +		return;
 +	ccs_update_cookie(cookie, ptr);
-+	write_lock_irqsave(&ccs_cookie_list_lock, flags);
++	write_lock(&ccs_cookie_list_lock);
 +	list_add_tail(&cookie->list, &ccs_cookie_list);
-+	write_unlock_irqrestore(&ccs_cookie_list_lock, flags);
++	write_unlock(&ccs_cookie_list_lock);
 +}
 +
 +/**
@@ -1587,12 +2007,11 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 + */
 +void ccs_del_cookie(struct ccs_cookie *cookie)
 +{
-+	unsigned long flags;
 +	if (!cookie)
 +		return;
-+	write_lock_irqsave(&ccs_cookie_list_lock, flags);
++	write_lock(&ccs_cookie_list_lock);
 +	list_del(&cookie->list);
-+	write_unlock_irqrestore(&ccs_cookie_list_lock, flags);
++	write_unlock(&ccs_cookie_list_lock);
 +}
 +
 +/**
@@ -1604,42 +2023,457 @@ Index: trunk/1.6.x/ccs-patch/fs/realpath.c
 + *
 + * Caller must hold ccs_policy_lock for writing.
 + */
-+bool ccs_used_by_cookie(const void *ptr)
++static bool ccs_used_by_cookie(const void *ptr)
 +{
-+	unsigned long flags;
 +	struct ccs_cookie *cookie;
 +	bool in_use = false;
-+	read_lock_irqsave(&ccs_cookie_list_lock, flags);
++	read_lock(&ccs_cookie_list_lock);
 +	list_for_each_entry(cookie, &ccs_cookie_list, list) {
 +		if (ptr != cookie->u.ptr)
 +			continue;
 +		in_use = true;
 +		break;
 +	}
-+	read_unlock_irqrestore(&ccs_cookie_list_lock, flags);
++	read_unlock(&ccs_cookie_list_lock);
 +	return in_use;
 +}
++
++/**
++ * ccs_cleanup_allow_read - Clean up deleted "struct ccs_globally_readable_file_entry".
++ */
++static void ccs_cleanup_allow_read(void)
++{
++	struct ccs_globally_readable_file_entry *ptr;
++	struct ccs_globally_readable_file_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_globally_readable_list,
++				 list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->filename);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_allow_env - Clean up deleted "struct ccs_globally_usable_env_entry".
++ */
++static void ccs_cleanup_allow_env(void)
++{
++	struct ccs_globally_usable_env_entry *ptr;
++	struct ccs_globally_usable_env_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_globally_usable_env_list,
++				 list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->env);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_file_pattern - Clean up deleted "struct ccs_pattern_entry".
++ */
++static void ccs_cleanup_file_pattern(void)
++{
++	struct ccs_pattern_entry *ptr;
++	struct ccs_pattern_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_pattern_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->pattern);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_no_rewrite - Clean up deleted "struct ccs_no_rewrite_entry".
++ */
++static void ccs_cleanup_no_rewrite(void)
++{
++	struct ccs_no_rewrite_entry *ptr;
++	struct ccs_no_rewrite_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_no_rewrite_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->pattern);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_initializer - Clean up deleted "struct ccs_domain_initializer_entry".
++ */
++static void ccs_cleanup_initializer(void)
++{
++	struct ccs_domain_initializer_entry *ptr;
++	struct ccs_domain_initializer_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_domain_initializer_list,
++				 list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->domainname);
++		ccs_put_name(ptr->program);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_keep_domain - Clean up deleted "struct ccs_domain_keeper_entry".
++ */
++static void ccs_cleanup_keep_domain(void)
++{
++	struct ccs_domain_keeper_entry *ptr;
++	struct ccs_domain_keeper_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_domain_keeper_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->domainname);
++		ccs_put_name(ptr->program);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_alias - Clean up deleted "struct ccs_alias_entry".
++ */
++static void ccs_cleanup_alias(void)
++{
++	struct ccs_alias_entry *ptr;
++	struct ccs_alias_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_alias_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->original_name);
++		ccs_put_name(ptr->aliased_name);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_aggregator - Clean up deleted "struct ccs_aggregator_entry".
++ */
++static void ccs_cleanup_aggregator(void)
++{
++	struct ccs_aggregator_entry *ptr;
++	struct ccs_aggregator_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_aggregator_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->original_name);
++		ccs_put_name(ptr->aggregated_name);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/**
++ * ccs_cleanup_manager - Clean up deleted "struct ccs_policy_manager_entry".
++ */
++static void ccs_cleanup_manager(void)
++{
++	struct ccs_policy_manager_entry *ptr;
++	struct ccs_policy_manager_entry *tmp;
++	LIST_HEAD(q);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(ptr, tmp, &ccs_policy_manager_list, list) {
++		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
++			continue;
++		list_del(&ptr->list);
++		list_add(&ptr->list, &q);
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(ptr, tmp, &q, list) {
++		ccs_put_name(ptr->manager);
++		list_del(&ptr->list);
++		ccs_memory_free(ptr);
++	}
++}
++
++/* For compatibility with older kernels. */
++#ifndef for_each_process
++#define for_each_process for_each_task
++#endif
++
++/**
++ * ccs_used_by_task - Check whether the given pointer is referenced by a task.
++ *
++ * @domain: Pointer to "struct ccs_domain_info".
++ *
++ * Returns true if @ptr is in use, false otherwise.
++ */
++static bool ccs_used_by_task(struct ccs_domain_info *domain)
++{
++	bool in_use = false;
++	struct task_struct *p;
++	/***** CRITICAL SECTION START *****/
++	read_lock(&tasklist_lock);
++	for_each_process(p) {
++		if (p->ccs_domain_info != domain)
++			continue;
++		in_use = true;
++		break;
++	}
++	read_unlock(&tasklist_lock);
++	/***** CRITICAL SECTION END *****/
++	return in_use;
++}
++
++/**
++ * ccs_cleanup_domain_policy - Clean up deleted domain policy.
++ */
++static void ccs_cleanup_domain_policy(void)
++{
++	struct ccs_domain_info *domain;
++	struct ccs_domain_info *next_domain;
++	struct ccs_acl_info *acl;
++	struct ccs_acl_info *next_acl;
++	LIST_HEAD(q_domain);
++	LIST_HEAD(q_acl);
++	/***** WRITER SECTION START *****/
++	down_write(&ccs_policy_lock);
++	list_for_each_entry_safe(domain, next_domain, &ccs_domain_list,
++				 list) {
++		const bool can_delete_domain = domain->is_deleted &&
++			!ccs_used_by_cookie(domain) &&
++			!ccs_used_by_task(domain);
++		if (can_delete_domain) {
++			list_for_each_entry(acl, &domain->acl_info_list, list)
++				acl->type |= ACL_DELETED;
++		}
++		list_for_each_entry_safe(acl, next_acl, &domain->acl_info_list,
++					 list) {
++			if (!(acl->type & ACL_DELETED)
++			    || ccs_used_by_cookie(acl))
++				continue;
++			list_del(&acl->list);
++			list_add(&acl->list, &q_acl);
++		}
++		if (can_delete_domain && list_empty(&domain->acl_info_list)) {
++			list_del(&domain->list);
++			list_add(&domain->list, &q_domain);
++		}
++	}
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	list_for_each_entry_safe(acl, next_acl, &q_acl, list) {
++		switch (ccs_acl_type1(acl)) {
++			struct ccs_single_path_acl_record *acl1;
++			struct ccs_double_path_acl_record *acl2;
++			struct ccs_ip_network_acl_record *acl3;
++			struct ccs_ioctl_acl_record *acl4;
++			struct ccs_argv0_acl_record *acl5;
++			struct ccs_env_acl_record *acl6;
++			struct ccs_capability_acl_record *acl7;
++			struct ccs_signal_acl_record *acl8;
++			struct ccs_execute_handler_record *acl9;
++		case TYPE_SINGLE_PATH_ACL:
++			acl1 = container_of(acl,
++					    struct ccs_single_path_acl_record,
++					    head);
++			if (acl1->u_is_group)
++				ccs_put_path_group(acl1->u.group);
++			else
++				ccs_put_name(acl1->u.filename);
++			break;
++		case TYPE_DOUBLE_PATH_ACL:
++			acl2 = container_of(acl,
++					    struct ccs_double_path_acl_record,
++					    head);
++			if (acl2->u1_is_group)
++				ccs_put_path_group(acl2->u1.group1);
++			else
++				ccs_put_name(acl2->u1.filename1);
++			if (acl2->u2_is_group)
++				ccs_put_path_group(acl2->u2.group2);
++			else
++				ccs_put_name(acl2->u2.filename2);
++			break;
++		case TYPE_IP_NETWORK_ACL:
++			acl3 = container_of(acl,
++					    struct ccs_ip_network_acl_record,
++					    head);
++			if (acl3->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
++				ccs_put_address_group(acl3->u.group);
++			else if (acl3->record_type == IP_RECORD_TYPE_IPv6) {
++				ccs_put_ipv6_address(acl3->u.ipv6.min);
++				ccs_put_ipv6_address(acl3->u.ipv6.max);
++			}
++			break;
++		case TYPE_IOCTL_ACL:
++			acl4 = container_of(acl, struct ccs_ioctl_acl_record,
++					    head);
++			if (acl4->u_is_group)
++				ccs_put_path_group(acl4->u.group);
++			else
++				ccs_put_name(acl4->u.filename);
++			break;
++		case TYPE_ARGV0_ACL:
++			acl5 = container_of(acl, struct ccs_argv0_acl_record,
++					    head);
++			ccs_put_name(acl5->argv0);
++			break;
++		case TYPE_ENV_ACL:
++			acl6 = container_of(acl, struct ccs_env_acl_record,
++					    head);
++			ccs_put_name(acl6->env);
++			break;
++		case TYPE_CAPABILITY_ACL:
++			acl7 = container_of(acl,
++					    struct ccs_capability_acl_record,
++					    head);
++			break;
++		case TYPE_SIGNAL_ACL:
++			acl8 = container_of(acl, struct ccs_signal_acl_record,
++					    head);
++			ccs_put_name(acl8->domainname);
++			break;
++		case TYPE_EXECUTE_HANDLER:
++		case TYPE_DENIED_EXECUTE_HANDLER:
++			acl9 = container_of(acl,
++					    struct ccs_execute_handler_record,
++					    head);
++			ccs_put_name(acl9->handler);
++			break;
++		}
++		list_del(&acl->list);
++		ccs_memory_free(acl);
++	}
++	list_for_each_entry_safe(domain, next_domain, &q_domain, list) {
++		ccs_put_name(domain->domainname);
++		list_del(&domain->list);
++		ccs_memory_free(domain);
++	}
++}
++
++/**
++ * ccs_run_garbage_collector - Run garbage collector.
++ */
++void ccs_run_garbage_collector(void)
++{
++	ccs_cleanup_allow_read();
++	ccs_cleanup_allow_env();
++	ccs_cleanup_file_pattern();
++	ccs_cleanup_no_rewrite();
++	ccs_cleanup_initializer();
++	ccs_cleanup_keep_domain();
++	ccs_cleanup_alias();
++	ccs_cleanup_aggregator();
++	ccs_cleanup_manager();
++	ccs_cleanup_domain_policy();
++}
++/*
++extern struct list_head ccs_address_group_list;
++extern struct list_head ccs_path_group_list;
++extern struct list_head ccs_condition_list;
++extern struct list_head ccs_mount_list;
++extern struct list_head ccs_no_umount_list;
++extern struct list_head ccs_pivot_root_list;
++extern struct list_head ccs_chroot_list;
++extern struct list_head ccs_reservedport_list;
++*/
 Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_chroot.c	(working copy)
-@@ -23,13 +23,13 @@
+@@ -21,15 +21,8 @@
+ #include <linux/fs.h>
+ #endif
  
- /* Structure for "allow_chroot" keyword. */
- struct ccs_chroot_entry {
+-/* Structure for "allow_chroot" keyword. */
+-struct ccs_chroot_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *dir;
- 	bool is_deleted;
- };
- 
+-	const struct ccs_path_info *dir;
+-	bool is_deleted;
+-};
+-
  /* The list for "struct ccs_chroot_entry". */
 -static LIST1_HEAD(ccs_chroot_list);
-+static LIST_HEAD(ccs_chroot_list);
++LIST_HEAD(ccs_chroot_list);
  
  /**
   * ccs_update_chroot_acl - Update "struct ccs_chroot_entry" list.
-@@ -41,37 +41,41 @@
+@@ -41,37 +34,40 @@
   */
  static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
  {
@@ -1660,7 +2494,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
 -	list1_for_each_entry(ptr, &ccs_chroot_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_chroot_list, list) {
  		if (ptr->dir != saved_dir)
@@ -1682,22 +2516,24 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
 -	if (!new_entry)
-+	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+	if (is_delete)
- 		goto out;
+-		goto out;
 -	new_entry->dir = saved_dir;
 -	list1_add_tail_mb(&new_entry->list, &ccs_chroot_list);
 -	error = 0;
- 	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
-  out:
+-	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
+- out:
 -	mutex_unlock(&lock);
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	if (!is_delete && !error)
++		printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level,
++		       dir);
 +	ccs_put_name(saved_dir);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -142,7 +146,7 @@
+@@ -142,7 +138,7 @@
  		ccs_fill_path_info(&dir);
  		if (dir.is_dir) {
  			struct ccs_chroot_entry *ptr;
@@ -1706,42 +2542,60 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_chroot.c
  				if (ptr->is_deleted)
  					continue;
  				if (!ccs_path_matches_pattern(&dir, ptr->dir))
-@@ -182,10 +186,10 @@
+@@ -182,17 +178,21 @@
   */
  bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
  {
 -	struct list1_head *pos;
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_chroot_list) {
 +	struct list_head *pos;
++	bool done = true;
++	/***** READER SECTION START *****/
++	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_chroot_list) {
  		struct ccs_chroot_entry *ptr;
 -		ptr = list1_entry(pos, struct ccs_chroot_entry, list);
 +		ptr = list_entry(pos, struct ccs_chroot_entry, list);
  		if (ptr->is_deleted)
  			continue;
- 		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
+-		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
+-				   ptr->dir->name))
+-			goto out;
++		done = ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
++				     ptr->dir->name);
++		if (!done)
++			break;
+ 	}
+-	return true;
+- out:
+-	return false;
++	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
++	return done;
+ }
 Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_pivot.c	(working copy)
-@@ -23,14 +23,14 @@
+@@ -21,16 +21,8 @@
+ #include <linux/fs.h>
+ #endif
  
- /* Structure for "allow_pivot_root" keyword. */
- struct ccs_pivot_root_entry {
+-/* Structure for "allow_pivot_root" keyword. */
+-struct ccs_pivot_root_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *old_root;
- 	const struct ccs_path_info *new_root;
- 	bool is_deleted;
- };
- 
+-	const struct ccs_path_info *old_root;
+-	const struct ccs_path_info *new_root;
+-	bool is_deleted;
+-};
+-
  /* The list for "struct ccs_pivot_root_entry". */
 -static LIST1_HEAD(ccs_pivot_root_list);
-+static LIST_HEAD(ccs_pivot_root_list);
++LIST_HEAD(ccs_pivot_root_list);
  
  /**
   * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_entry" list.
-@@ -44,43 +44,49 @@
+@@ -44,43 +36,48 @@
  static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
  				     const bool is_delete)
  {
@@ -1767,7 +2621,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
 +		goto out;
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_pivot_root_list, list) {
  		if (ptr->old_root != saved_old_root ||
@@ -1792,16 +2646,18 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	}
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
 -	if (!new_entry)
-+	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+	if (is_delete)
- 		goto out;
+-		goto out;
 -	new_entry->old_root = saved_old_root;
 -	new_entry->new_root = saved_new_root;
 -	list1_add_tail_mb(&new_entry->list, &ccs_pivot_root_list);
 -	error = 0;
- 	printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
- 	       new_root, old_root);
+-	printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
+-	       new_root, old_root);
++	up_write(&ccs_policy_lock);
++	/***** WRITER SECTION END *****/
++	if (!is_delete && !error)
++		printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
++		       new_root, old_root);
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_old_root);
@@ -1810,7 +2666,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -132,7 +138,7 @@
+@@ -132,7 +129,7 @@
  		ccs_fill_path_info(&new_root_dir);
  		if (old_root_dir.is_dir && new_root_dir.is_dir) {
  			struct ccs_pivot_root_entry *ptr;
@@ -1819,44 +2675,69 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_pivot.c
  				if (ptr->is_deleted)
  					continue;
  				if (!ccs_path_matches_pattern(&old_root_dir,
-@@ -197,10 +203,11 @@
+@@ -197,17 +194,22 @@
   */
  bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
  {
 -	struct list1_head *pos;
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_pivot_root_list) {
 +	struct list_head *pos;
++	bool done = true;
++	/***** READER SECTION START *****/
++	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
-+			      &ccs_pivot_root_list) {
++			     &ccs_pivot_root_list) {
  		struct ccs_pivot_root_entry *ptr;
 -		ptr = list1_entry(pos, struct ccs_pivot_root_entry, list);
 +		ptr = list_entry(pos, struct ccs_pivot_root_entry, list);
  		if (ptr->is_deleted)
  			continue;
- 		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+-		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+-				   ptr->new_root->name, ptr->old_root->name))
+-			goto out;
++		done = ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
++				     ptr->new_root->name, ptr->old_root->name);
++		if (!done)
++			break;
+ 	}
+-	return true;
+- out:
+-	return false;
++	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
++	return done;
+ }
 Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_mount.c	(working copy)
-@@ -56,7 +56,7 @@
+@@ -54,16 +54,6 @@
+ /* Allow to call 'mount --make-shared /dir'           */
+ #define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
  
- /* Structure for "allow_mount" keyword. */
- struct ccs_mount_entry {
+-/* Structure for "allow_mount" keyword. */
+-struct ccs_mount_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *dev_name;
- 	const struct ccs_path_info *dir_name;
- 	const struct ccs_path_info *fs_type;
-@@ -73,7 +73,7 @@
+-	const struct ccs_path_info *dev_name;
+-	const struct ccs_path_info *dir_name;
+-	const struct ccs_path_info *fs_type;
+-	unsigned long flags;
+-	bool is_deleted;
+-};
+-
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
+ /* For compatibility with older kernels. */
+ static void put_filesystem(struct file_system_type *fs)
+@@ -73,7 +63,7 @@
  #endif
  
  /* The list for "struct ccs_mount_entry". */
 -static LIST1_HEAD(ccs_mount_list);
-+static LIST_HEAD(ccs_mount_list);
++LIST_HEAD(ccs_mount_list);
  
  /**
   * ccs_update_mount_acl - Update "struct ccs_mount_entry" list.
-@@ -90,99 +90,97 @@
+@@ -90,99 +80,97 @@
  				const char *fs_type, const unsigned long flags,
  				const bool is_delete)
  {
@@ -1914,7 +2795,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 +		goto out;
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_mount_list, list) {
  		if (ptr->flags != flags ||
@@ -1957,8 +2838,8 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
 -	if (!new_entry)
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+	if (is_delete)
++	/***** WRITER SECTION END *****/
++	if (is_delete || error)
  		goto out;
 -	new_entry->dev_name = dev;
 -	new_entry->dir_name = dir;
@@ -2020,25 +2901,27 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -440,7 +438,8 @@
+@@ -440,7 +428,9 @@
  		}
  		rdev.name = requested_dev_name;
  		ccs_fill_path_info(&rdev);
 -		list1_for_each_entry(ptr, &ccs_mount_list, list) {
++		/***** READER SECTION START *****/
 +		down_read(&ccs_policy_lock);
 +		list_for_each_entry(ptr, &ccs_mount_list, list) {
  			if (ptr->is_deleted)
  				continue;
  
-@@ -468,6 +467,7 @@
+@@ -468,6 +458,8 @@
  					  requested_type, flags, need_dev);
  			break;
  		}
 +		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
  		if (error)
  			error = ccs_print_error(r, requested_dev_name,
  						requested_dir_name,
-@@ -561,18 +561,20 @@
+@@ -561,18 +553,22 @@
   */
  bool ccs_read_mount_policy(struct ccs_io_buffer *head)
  {
@@ -2046,6 +2929,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_mount_list) {
  		struct ccs_mount_entry *ptr;
@@ -2067,12 +2951,26 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_mount.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c	(working copy)
+@@ -137,9 +137,9 @@
+ 	struct timeval tv;
+ 	u32 ccs_flags = current->ccs_flags;
+ 	const char *domainname;
+-	if (!r->domain)
+-		r->domain = ccs_current_domain();
+-	domainname = r->domain->domainname->name;
++	if (!r->cookie.u.domain)
++		r->cookie.u.domain = ccs_current_domain();
++	domainname = r->cookie.u.domain->domainname->name;
+ 	do_gettimeofday(&tv);
+ 	*len += strlen(domainname) + 256;
+ 	if (r->ee) {
 @@ -188,19 +188,19 @@
  	const struct ccs_condition_list *ptr = r->cond;
  	if (ptr) {
@@ -2097,11 +2995,24 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_audit.c
  		}
  		task->ccs_flags = ccs_flags;
  		r->cond = NULL;
+@@ -284,9 +284,9 @@
+ 	int len;
+ 	char *buf;
+ 	struct ccs_log_entry *new_entry;
+-	if (!r->domain)
+-		r->domain = ccs_current_domain();
+-	if (!ccs_can_save_audit_log(r->domain, is_granted))
++	if (!r->cookie.u.domain)
++		r->cookie.u.domain = ccs_current_domain();
++	if (!ccs_can_save_audit_log(r->cookie.u.domain, is_granted))
+ 		goto out;
+ 	va_start(args, fmt);
+ 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c	(working copy)
-@@ -35,16 +35,13 @@
+@@ -35,74 +35,11 @@
  struct ccs_domain_info ccs_kernel_domain;
  
  /* The list for "struct ccs_domain_info". */
@@ -2113,41 +3024,71 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -/* Domain creation lock. */
 -static DEFINE_MUTEX(ccs_domain_list_lock);
 -
- /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
- struct ccs_domain_initializer_entry {
+-/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
+-struct ccs_domain_initializer_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *domainname;    /* This may be NULL */
- 	const struct ccs_path_info *program;
- 	bool is_deleted;
-@@ -54,7 +51,7 @@
- 
- /* Structure for "keep_domain" and "no_keep_domain" keyword. */
- struct ccs_domain_keeper_entry {
+-	const struct ccs_path_info *domainname;    /* This may be NULL */
+-	const struct ccs_path_info *program;
+-	bool is_deleted;
+-	bool is_not;       /* True if this entry is "no_initialize_domain".  */
+-	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+-};
+-
+-/* Structure for "keep_domain" and "no_keep_domain" keyword. */
+-struct ccs_domain_keeper_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *domainname;
- 	const struct ccs_path_info *program;       /* This may be NULL */
- 	bool is_deleted;
-@@ -64,7 +61,7 @@
- 
- /* Structure for "aggregator" keyword. */
- struct ccs_aggregator_entry {
+-	const struct ccs_path_info *domainname;
+-	const struct ccs_path_info *program;       /* This may be NULL */
+-	bool is_deleted;
+-	bool is_not;       /* True if this entry is "no_keep_domain".        */
+-	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+-};
+-
+-/* Structure for "aggregator" keyword. */
+-struct ccs_aggregator_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *original_name;
- 	const struct ccs_path_info *aggregated_name;
- 	bool is_deleted;
-@@ -72,7 +69,7 @@
- 
- /* Structure for "alias" keyword. */
- struct ccs_alias_entry {
+-	const struct ccs_path_info *original_name;
+-	const struct ccs_path_info *aggregated_name;
+-	bool is_deleted;
+-};
+-
+-/* Structure for "alias" keyword. */
+-struct ccs_alias_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *original_name;
- 	const struct ccs_path_info *aliased_name;
- 	bool is_deleted;
-@@ -129,16 +126,7 @@
+-	const struct ccs_path_info *original_name;
+-	const struct ccs_path_info *aliased_name;
+-	bool is_deleted;
+-};
+-
+ /**
+- * ccs_set_domain_flag - Set or clear domain's attribute flags.
+- *
+- * @domain:    Pointer to "struct ccs_domain_info".
+- * @is_delete: True if it is a delete request.
+- * @flags:     Flags to set or clear.
+- *
+- * Returns nothing.
+- */
+-void ccs_set_domain_flag(struct ccs_domain_info *domain, const bool is_delete,
+-			 const u8 flags)
+-{
+-	/* We need to serialize because this is bitfield operation. */
+-	static DEFINE_SPINLOCK(lock);
+-	/***** CRITICAL SECTION START *****/
+-	spin_lock(&lock);
+-	if (!is_delete)
+-		domain->flags |= flags;
+-	else
+-		domain->flags &= ~flags;
+-	spin_unlock(&lock);
+-	/***** CRITICAL SECTION END *****/
+-}
+-
+-/**
+  * ccs_get_last_name - Get last component of a domainname.
+  *
+  * @domain: Pointer to "struct ccs_domain_info".
+@@ -129,16 +66,7 @@
  int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
  {
  	if (domain) {
@@ -2165,16 +3106,25 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	} else {
  		acl->type &= ~ACL_DELETED;
  	}
-@@ -195,7 +183,7 @@
+@@ -174,7 +102,7 @@
+ {
+ 	struct ccs_request_info *r = &ee->r;
+ 	const char *handler = ee->handler->name;
+-	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_FILE);
++	r->mode = ccs_check_flags(r->cookie.u.domain, CCS_MAC_FOR_FILE);
+ 	return ccs_write_audit_log(true, r, "%s %s\n",
+ 				   is_default ? KEYWORD_EXECUTE_HANDLER :
+ 				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
+@@ -195,7 +123,7 @@
  }
  
  /* The list for "struct ccs_domain_initializer_entry". */
 -static LIST1_HEAD(ccs_domain_initializer_list);
-+static LIST_HEAD(ccs_domain_initializer_list);
++LIST_HEAD(ccs_domain_initializer_list);
  
  /**
   * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer_entry" list.
-@@ -212,12 +200,11 @@
+@@ -212,12 +140,11 @@
  					       const bool is_not,
  					       const bool is_delete)
  {
@@ -2189,7 +3139,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	bool is_last_name = false;
  	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
  		return -EINVAL; /* No patterns allowed. */
-@@ -227,38 +214,44 @@
+@@ -227,38 +154,44 @@
  			is_last_name = true;
  		else if (!ccs_is_correct_domain(domainname, __func__))
  			return -EINVAL;
@@ -2209,7 +3159,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	}
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
  		if (ptr->is_not != is_not ||
@@ -2247,14 +3197,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_domainname);
 +	ccs_put_name(saved_program);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -272,14 +265,16 @@
+@@ -272,14 +205,17 @@
   */
  bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
  {
@@ -2262,6 +3212,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	list1_for_each_cookie(pos, head->read_var2,
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
  			      &ccs_domain_initializer_list) {
@@ -2274,7 +3225,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  				  list);
  		if (ptr->is_deleted)
  			continue;
-@@ -288,14 +283,14 @@
+@@ -288,14 +224,15 @@
  			from = " from ";
  			domain = ptr->domainname->name;
  		}
@@ -2292,21 +3243,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -336,7 +331,8 @@
+@@ -336,7 +273,9 @@
  {
  	struct ccs_domain_initializer_entry *ptr;
  	bool flag = false;
 -	list1_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_initializer_list, list) {
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -350,15 +346,18 @@
+@@ -350,15 +289,19 @@
  		}
  		if (ccs_pathcmp(ptr->program, program))
  			continue;
@@ -2319,16 +3272,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		flag = true;
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	return flag;
  }
  
  /* The list for "struct ccs_domain_keeper_entry". */
 -static LIST1_HEAD(ccs_domain_keeper_list);
-+static LIST_HEAD(ccs_domain_keeper_list);
++LIST_HEAD(ccs_domain_keeper_list);
  
  /**
   * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper_entry" list.
-@@ -375,12 +374,11 @@
+@@ -375,12 +318,11 @@
  					  const bool is_not,
  					  const bool is_delete)
  {
@@ -2343,7 +3297,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	bool is_last_name = false;
  	if (!ccs_is_domain_def(domainname) &&
  	    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
-@@ -390,38 +388,44 @@
+@@ -390,38 +332,44 @@
  	if (program) {
  		if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
  			return -EINVAL;
@@ -2363,7 +3317,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	}
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
  		if (ptr->is_not != is_not ||
@@ -2401,14 +3355,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_domainname);
 +	ccs_put_name(saved_program);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -455,13 +459,16 @@
+@@ -455,13 +403,17 @@
   */
  bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
  {
@@ -2416,6 +3370,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_domain_keeper_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
 +			      &ccs_domain_keeper_list) {
@@ -2428,7 +3383,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -469,14 +476,14 @@
+@@ -469,14 +421,15 @@
  			from = " from ";
  			program = ptr->program->name;
  		}
@@ -2446,21 +3401,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -495,7 +502,8 @@
+@@ -495,7 +448,9 @@
  {
  	struct ccs_domain_keeper_entry *ptr;
  	bool flag = false;
 -	list1_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_domain_keeper_list, list) {
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -507,15 +515,18 @@
+@@ -507,15 +462,19 @@
  		}
  		if (ptr->program && ccs_pathcmp(ptr->program, program))
  			continue;
@@ -2473,16 +3430,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		flag = true;
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	return flag;
  }
  
  /* The list for "struct ccs_alias_entry". */
 -static LIST1_HEAD(ccs_alias_list);
-+static LIST_HEAD(ccs_alias_list);
++LIST_HEAD(ccs_alias_list);
  
  /**
   * ccs_update_alias_entry - Update "struct ccs_alias_entry" list.
-@@ -530,41 +541,47 @@
+@@ -530,41 +489,47 @@
  				  const char *aliased_name,
  				  const bool is_delete)
  {
@@ -2511,7 +3469,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	}
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_alias_list, list) {
  		if (ptr->original_name != saved_original_name ||
@@ -2544,14 +3502,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_original_name);
 +	ccs_put_name(saved_aliased_name);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -578,20 +595,22 @@
+@@ -578,20 +543,24 @@
   */
  bool ccs_read_alias_policy(struct ccs_io_buffer *head)
  {
@@ -2559,6 +3517,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_alias_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_alias_list) {
  		struct ccs_alias_entry *ptr;
@@ -2580,20 +3539,21 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -612,7 +631,7 @@
+@@ -612,7 +581,7 @@
  }
  
  /* The list for "struct ccs_aggregator_entry". */
 -static LIST1_HEAD(ccs_aggregator_list);
-+static LIST_HEAD(ccs_aggregator_list);
++LIST_HEAD(ccs_aggregator_list);
  
  /**
   * ccs_update_aggregator_entry - Update "struct ccs_aggregator_entry" list.
-@@ -627,41 +646,46 @@
+@@ -627,41 +596,47 @@
  				       const char *aggregated_name,
  				       const bool is_delete)
  {
@@ -2622,7 +3582,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +	}
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_aggregator_list, list) {
  		if (ptr->original_name != saved_original_name ||
@@ -2655,13 +3615,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_original_name);
 +	ccs_put_name(saved_aggregated_name);
++	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -675,20 +699,23 @@
+@@ -675,20 +650,25 @@
   */
  bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
  {
@@ -2669,6 +3630,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_aggregator_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
 +			      &ccs_aggregator_list) {
@@ -2691,16 +3653,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -723,9 +750,10 @@
+@@ -723,9 +703,10 @@
  	struct ccs_path_info name;
  	name.name = domainname;
  	ccs_fill_path_info(&name);
 -	mutex_lock(&ccs_domain_list_lock);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
  	/* Is there an active domain? */
 -	list1_for_each_entry(domain, &ccs_domain_list, list) {
@@ -2708,17 +3671,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		/* Never delete ccs_kernel_domain */
  		if (domain == &ccs_kernel_domain)
  			continue;
-@@ -735,7 +763,8 @@
+@@ -735,7 +716,8 @@
  		domain->is_deleted = true;
  		break;
  	}
 -	mutex_unlock(&ccs_domain_list_lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	return 0;
  }
  
-@@ -744,65 +773,36 @@
+@@ -744,65 +726,36 @@
   *
   * @domainname: The name of domain.
   * @profile:    Profile number to assign if the domain was newly created.
@@ -2781,7 +3744,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	domain = ccs_alloc_element(sizeof(*domain));
 -	if (domain) {
 -		INIT_LIST1_HEAD(&domain->acl_info_list);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	if (!ccs_find_domain(domainname, cookie) &&
 +	    ccs_is_correct_domain(domainname, __func__) &&
@@ -2799,71 +3762,110 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 -	mutex_unlock(&ccs_domain_list_lock);
 -	return domain;
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_domainname);
 +	kfree(domain);
 +	return cookie->u.domain != NULL;
  }
  
  /**
-@@ -881,7 +881,9 @@
- 	struct ccs_path_info rn; /* real name */
+@@ -872,7 +825,7 @@
+ 	struct ccs_request_info *r = &ee->r;
+ 	const struct ccs_path_info *handler = ee->handler;
+ 	struct ccs_domain_info *domain = NULL;
+-	const char *old_domain_name = r->domain->domainname->name;
++	const char *old_domain_name = r->cookie.u.domain->domainname->name;
+ 	struct linux_binprm *bprm = ee->bprm;
+ 	const u8 mode = r->mode;
+ 	const bool is_enforce = (mode == 3);
+@@ -882,6 +835,7 @@
  	struct ccs_path_info sn; /* symlink name */
  	struct ccs_path_info ln; /* last name */
-+	struct ccs_cookie *cookie = &ee->cookie;
  	int retval;
 +	bool found = false;
   retry:
  	current->ccs_flags = ccs_flags;
  	r->cond = NULL;
-@@ -915,7 +917,8 @@
+@@ -894,7 +848,7 @@
+ 	ccs_fill_path_info(&rn);
+ 	sn.name = ee->tmp;
+ 	ccs_fill_path_info(&sn);
+-	ln.name = ccs_get_last_name(r->domain);
++	ln.name = ccs_get_last_name(r->cookie.u.domain);
+ 	ccs_fill_path_info(&ln);
+ 
+ 	if (handler) {
+@@ -915,7 +869,9 @@
  	if (ccs_pathcmp(&rn, &sn)) {
  		struct ccs_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
 -		list1_for_each_entry(ptr, &ccs_alias_list, list) {
++		/***** READER SECTION START *****/
 +		down_read(&ccs_policy_lock);
 +		list_for_each_entry(ptr, &ccs_alias_list, list) {
  			if (ptr->is_deleted ||
  			    ccs_pathcmp(&rn, ptr->original_name) ||
  			    ccs_pathcmp(&sn, ptr->aliased_name))
-@@ -925,6 +928,7 @@
+@@ -925,11 +881,13 @@
  			ccs_fill_path_info(&rn);
  			break;
  		}
 +		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
  	}
  	/* sn will be overwritten after here. */
  
-@@ -954,7 +958,8 @@
+ 	/* Compare basename of program_path and argv[0] */
+-	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_ARGV0);
++	r->mode = ccs_check_flags(r->cookie.u.domain, CCS_MAC_FOR_ARGV0);
+ 	if (bprm->argc > 0 && r->mode) {
+ 		char *base_argv0 = ee->tmp;
+ 		const char *base_filename;
+@@ -954,7 +912,9 @@
  	{
  		struct ccs_aggregator_entry *ptr;
  		/* Is this program allowed to be aggregated? */
 -		list1_for_each_entry(ptr, &ccs_aggregator_list, list) {
++		/***** READER SECTION START *****/
 +		down_read(&ccs_policy_lock);
 +		list_for_each_entry(ptr, &ccs_aggregator_list, list) {
  			if (ptr->is_deleted ||
  			    !ccs_path_matches_pattern(&rn, ptr->original_name))
  				continue;
-@@ -963,6 +968,7 @@
+@@ -963,6 +923,8 @@
  			ccs_fill_path_info(&rn);
  			break;
  		}
 +		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
  	}
  
  	/* Check execute permission. */
-@@ -985,19 +991,23 @@
+@@ -975,29 +937,35 @@
+ 
+  calculate_domain:
+ 	new_domain_name = ee->tmp;
+-	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
++	if (ccs_is_domain_initializer(r->cookie.u.domain->domainname, &rn,
++				      &ln)) {
+ 		/* Transit to the child of ccs_kernel_domain domain. */
+ 		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
+ 			 ROOT_NAME " " "%s", ee->program_path);
+-	} else if (r->domain == &ccs_kernel_domain && !ccs_policy_loaded) {
++	} else if (r->cookie.u.domain == &ccs_kernel_domain &&
++		   !ccs_policy_loaded) {
+ 		/*
+ 		 * Needn't to transit from kernel domain before starting
  		 * /sbin/init. But transit from kernel domain if executing
  		 * initializers because they might start before /sbin/init.
  		 */
 -		domain = r->domain;
+-	} else if (ccs_is_domain_keeper(r->domain->domainname, &rn, &ln)) {
 +		found = true;
-+		ccs_update_cookie(cookie, r->domain);
- 	} else if (ccs_is_domain_keeper(r->domain->domainname, &rn, &ln)) {
++	} else if (ccs_is_domain_keeper(r->cookie.u.domain->domainname, &rn, &ln)) {
  		/* Keep current domain. */
 -		domain = r->domain;
 +		found = true;
-+		ccs_update_cookie(cookie, r->domain);
  	} else {
  		/* Normal domain transition. */
  		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
@@ -2874,21 +3876,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  		goto done;
 -	domain = ccs_find_domain(new_domain_name);
 -	if (domain)
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
-+	found = ccs_find_domain(new_domain_name, cookie);
++	found = ccs_find_domain(new_domain_name, &r->cookie);
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	if (found)
  		goto done;
  	if (is_enforce) {
  		int error = ccs_check_supervisor(r,
-@@ -1008,26 +1018,25 @@
+@@ -1008,26 +976,24 @@
  		if (error < 0)
  			goto done;
  	}
 -	domain = ccs_find_or_assign_new_domain(new_domain_name, r->profile);
 -	if (domain)
 +	found = ccs_find_or_assign_new_domain(new_domain_name, r->profile,
-+					      cookie);
++					      &r->cookie);
 +	if (found)
  		ccs_audit_domain_creation_log(domain);
   done:
@@ -2913,8 +3917,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
 +		retval = -EPERM;
 +	else {
 +		retval = 0;
-+		ccs_set_domain_flag(r->domain, false,
-+				    DOMAIN_FLAGS_TRANSITION_FAILED);
++		r->cookie.u.domain->domain_transition_failed = true;
 +	}
   out:
 -	if (domain)
@@ -2922,23 +3925,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	return retval;
  }
  
-@@ -1236,6 +1245,7 @@
+@@ -1236,6 +1202,7 @@
  	}
  	/* ee->dump->data is allocated by ccs_dump_page(). */
  	ee->task = current;
-+	ccs_add_cookie(&ee->cookie, current->ccs_domain_info);
++	ccs_add_cookie(&ee->r.cookie, current->ccs_domain_info);
  	/***** CRITICAL SECTION START *****/
  	spin_lock(&ccs_execve_list_lock);
  	list_add(&ee->list, &ccs_execve_list);
-@@ -1284,6 +1294,7 @@
+@@ -1284,6 +1251,7 @@
  	ccs_free(ee->program_path);
  	ccs_free(ee->tmp);
  	kfree(ee->dump.data);
-+	ccs_del_cookie(&ee->cookie);
++	ccs_del_cookie(&ee->r.cookie);
  	ccs_free(ee);
  }
  
-@@ -1513,22 +1524,26 @@
+@@ -1513,22 +1481,28 @@
  	struct task_struct *task = current;
  	const struct ccs_domain_info *domain = ccs_current_domain();
  	struct ccs_acl_info *ptr;
@@ -2950,6 +3953,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	if (task->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
  		return false;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		struct ccs_execute_handler_record *acl;
@@ -2964,33 +3968,51 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_domain.c
  	}
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return found;
  }
  
  /**
-@@ -1639,6 +1654,7 @@
+@@ -1592,7 +1566,7 @@
+ 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
+ 	struct ccs_domain_info *next_domain = NULL;
+ 	if (ee)
+-		next_domain = ee->next_domain;
++		next_domain = ee->r.cookie.u.domain;
+ 	if (!next_domain)
+ 		next_domain = ccs_current_domain();
+ 	return next_domain;
+@@ -1639,11 +1613,10 @@
   ok:
  	if (retval < 0)
  		goto out;
-+	ee->r.domain = ee->cookie.u.domain;
- 	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
+-	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
++	ee->r.mode = ccs_check_flags(ee->r.cookie.u.domain, CCS_MAC_FOR_ENV);
  	retval = ccs_check_environ(ee);
  	if (retval < 0)
-@@ -1666,9 +1682,10 @@
+ 		goto out;
+-	ee->next_domain = ee->r.domain;
+ 	task->ccs_flags |= CCS_CHECK_READ_FOR_OPEN_EXEC;
+ 	retval = 0;
+  out:
+@@ -1666,9 +1639,12 @@
  		return;
  	if (retval < 0)
  		goto out;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
  	/* Proceed to next domain if execution suceeded. */
- 	task->ccs_domain_info = ee->r.domain;
+-	task->ccs_domain_info = ee->r.domain;
 -	mb(); /* Make domain transition visible to other CPUs. */
++	task->ccs_domain_info = ee->r.cookie.u.domain;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	/* Mark the current process as execute handler. */
  	if (ee->handler)
  		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
 Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/ccs_common.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/ccs_common.c	(working copy)
 @@ -31,8 +31,8 @@
  #else
@@ -3011,20 +4033,21 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  /* Has /sbin/init started? */
  bool ccs_policy_loaded;
  
-@@ -467,21 +469,26 @@
+@@ -467,21 +469,28 @@
   * ccs_find_domain - Find a domain by the given name.
   *
   * @domainname: The domainname to find.
 + * @cookie:     Pointer to "struct ccs_cookie".
   *
 - * Returns pointer to "struct ccs_domain_info" if found, NULL otherwise.
-+ * Caller holds	ccs_policy_lock.
++ * Caller holds	ccs_policy_lock for reading or writing.
 + *
 + * Returns true if found, false otherwise.
   */
 -struct ccs_domain_info *ccs_find_domain(const char *domainname)
 +bool ccs_find_domain(const char *domainname, struct ccs_cookie *cookie)
  {
++	/***** READER SECTION START *****/
  	struct ccs_domain_info *domain;
  	struct ccs_path_info name;
  	name.name = domainname;
@@ -3042,10 +4065,20 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
 -	return NULL;
 +	return false;
++	/***** READER SECTION END *****/
  }
  
  /**
-@@ -999,12 +1006,14 @@
+@@ -964,7 +973,7 @@
+ 	memset(r, 0, sizeof(*r));
+ 	if (!domain)
+ 		domain = ccs_current_domain();
+-	r->domain = domain;
++	r->cookie.u.domain = domain;
+ 	r->profile = domain->profile;
+ 	if (index < CCS_MAX_CONTROL_INDEX)
+ 		r->mode = ccs_check_flags(domain, index);
+@@ -999,12 +1008,15 @@
  {
  	unsigned int count = 0;
  	struct ccs_acl_info *ptr;
@@ -3053,6 +4086,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	if (!domain)
  		return true;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		if (ptr->type & ACL_DELETED)
@@ -3062,7 +4096,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			struct ccs_single_path_acl_record *acl1;
  			struct ccs_double_path_acl_record *acl2;
  			u16 perm;
-@@ -1059,14 +1068,15 @@
+@@ -1059,14 +1071,16 @@
  		}
  	}
  	if (count < ccs_check_flags(domain, CCS_MAX_ACCEPT_ENTRY))
@@ -3077,11 +4111,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return quota_ok;
  }
  
  /**
-@@ -1079,29 +1089,30 @@
+@@ -1079,29 +1093,30 @@
  static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
  							  profile)
  {
@@ -3111,7 +4146,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 +	if (profile >= MAX_PROFILES)
 +		return NULL;
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	ptr = ccs_profile_ptr[profile];
 +	if (!ptr && ccs_memory_ok(entry)) {
@@ -3129,12 +4164,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 - ok:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	kfree(entry);
  	return ptr;
  }
  
-@@ -1134,7 +1145,7 @@
+@@ -1134,7 +1149,7 @@
  	*cp = '\0';
  	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
  	if (!strcmp(data, "COMMENT")) {
@@ -3143,25 +4178,26 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		ccs_profile_entry_used[0] = true;
  		return 0;
  	}
-@@ -1297,7 +1308,7 @@
+@@ -1295,17 +1310,8 @@
+ 	return 0;
+ }
  
- /* Structure for policy manager. */
- struct ccs_policy_manager_entry {
+-/* Structure for policy manager. */
+-struct ccs_policy_manager_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	/* A path to program or a domainname. */
- 	const struct ccs_path_info *manager;
- 	bool is_domain;  /* True if manager is a domainname. */
-@@ -1305,7 +1316,7 @@
- };
- 
+-	/* A path to program or a domainname. */
+-	const struct ccs_path_info *manager;
+-	bool is_domain;  /* True if manager is a domainname. */
+-	bool is_deleted; /* True if this entry is deleted. */
+-};
+-
  /* The list for "struct ccs_policy_manager_entry". */
 -static LIST1_HEAD(ccs_policy_manager_list);
-+static LIST_HEAD(ccs_policy_manager_list);
++LIST_HEAD(ccs_policy_manager_list);
  
  /**
   * ccs_update_manager_entry - Add a manager entry.
-@@ -1317,11 +1328,10 @@
+@@ -1317,11 +1323,10 @@
   */
  static int ccs_update_manager_entry(const char *manager, const bool is_delete)
  {
@@ -3175,7 +4211,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	bool is_domain = false;
  	if (ccs_is_domain_def(manager)) {
  		if (!ccs_is_correct_domain(manager, __func__))
-@@ -1331,30 +1341,32 @@
+@@ -1331,30 +1336,32 @@
  		if (!ccs_is_correct_path(manager, 1, -1, -1, __func__))
  			return -EINVAL;
  	}
@@ -3187,7 +4223,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -	list1_for_each_entry(ptr, &ccs_policy_manager_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_policy_manager_list, list) {
  		if (ptr->manager != saved_manager)
@@ -3218,13 +4254,13 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_manager);
 +	kfree(entry);
  	if (!error)
  		ccs_update_counter(CCS_UPDATES_COUNTER_MANAGER);
  	return error;
-@@ -1387,18 +1399,23 @@
+@@ -1387,18 +1394,25 @@
   */
  static int ccs_read_manager_policy(struct ccs_io_buffer *head)
  {
@@ -3234,6 +4270,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	if (head->read_eof)
  		return 0;
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
 +			      &ccs_policy_manager_list) {
@@ -3250,11 +4287,12 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
 -	head->read_eof = true;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	head->read_eof = done;
  	return 0;
  }
  
-@@ -1422,7 +1439,7 @@
+@@ -1422,7 +1436,7 @@
  		return true;
  	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
  		return false;
@@ -3263,7 +4301,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (!ptr->is_deleted && ptr->is_domain
  		    && !ccs_pathcmp(domainname, ptr->manager)) {
  			/* Set manager flag. */
-@@ -1433,7 +1450,7 @@
+@@ -1433,7 +1447,7 @@
  	exe = ccs_get_exe();
  	if (!exe)
  		return false;
@@ -3272,7 +4310,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (!ptr->is_deleted && !ptr->is_domain
  		    && !strcmp(exe, ptr->manager->name)) {
  			found = true;
-@@ -1496,12 +1513,14 @@
+@@ -1496,12 +1510,15 @@
  {
  	unsigned int pid;
  	struct ccs_domain_info *domain = NULL;
@@ -3283,25 +4321,29 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	}
  	if (sscanf(data, "pid=%u", &pid) == 1) {
  		struct task_struct *p;
++		/***** READER SECTION START *****/
 +		down_read(&ccs_policy_lock);
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_pid(pid);
-@@ -1509,12 +1528,18 @@
+@@ -1509,12 +1526,21 @@
  			domain = ccs_task_domain(p);
  		read_unlock(&tasklist_lock);
  		/***** CRITICAL SECTION END *****/
 +		if (domain)
 +			ccs_update_cookie(cookie, domain);
 +		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
  	} else if (!strncmp(data, "domain=", 7)) {
 -		if (ccs_is_domain_def(data + 7))
 -			domain = ccs_find_domain(data + 7);
 +		if (ccs_is_domain_def(data + 7)) {
++			/***** READER SECTION START *****/
 +			down_read(&ccs_policy_lock);
 +			if (ccs_find_domain(data + 7, cookie))
 +				domain = cookie->u.domain;
 +			up_read(&ccs_policy_lock);
++			/***** READER SECTION END *****/
 +		}
  	} else
  		return false;
@@ -3309,24 +4351,32 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
-@@ -1523,14 +1548,8 @@
- 	head->read_single_domain = true;
+@@ -1524,13 +1550,18 @@
  	head->read_eof = !domain;
  	if (domain) {
--		struct ccs_domain_info *d;
+ 		struct ccs_domain_info *d;
 -		head->read_var1 = NULL;
 -		list1_for_each_entry(d, &ccs_domain_list, list) {
 -			if (d == domain)
 -				break;
 -			head->read_var1 = &d->list;
--		}
++		head->read_var1.u.list = NULL;
++		/***** READER SECTION START *****/
++		down_read(&ccs_policy_lock);
++		list_for_each_entry(d, &ccs_domain_list, list) {
++			if (d->list.next != &domain->list)
++				continue;
++			ccs_update_cookie(&head->read_var1, &d->list);
++			break;
+ 		}
 -		head->read_var2 = NULL;
-+		ccs_update_cookie(&head->read_var1, domain);
++		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
 +		head->read_var2.u.list = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
  		if (domain->is_deleted)
-@@ -1549,7 +1568,7 @@
+@@ -1549,7 +1580,7 @@
  static int ccs_write_domain_policy(struct ccs_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -3335,7 +4385,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -1565,14 +1584,16 @@
+@@ -1565,14 +1596,18 @@
  	if (!ccs_is_policy_manager())
  		return -EPERM;
  	if (ccs_is_domain_def(data)) {
@@ -3351,15 +4401,33 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		head->write_var1 = domain;
 +			ccs_update_cookie(cookie, NULL);
 +		} else if (is_select) {
++			/***** READER SECTION START *****/
 +			down_read(&ccs_policy_lock);
 +			ccs_find_domain(data, cookie);
 +			up_read(&ccs_policy_lock);
++			/***** READER SECTION END *****/
 +		} else
 +			ccs_find_or_assign_new_domain(data, 0, cookie);
  		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
  		return 0;
  	}
-@@ -1991,7 +2012,7 @@
+@@ -1586,13 +1621,11 @@
+ 		return 0;
+ 	}
+ 	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
+-		ccs_set_domain_flag(domain, is_delete,
+-				    DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
++		domain->ignore_global_allow_read = !is_delete;
+ 		return 0;
+ 	}
+ 	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
+-		ccs_set_domain_flag(domain, is_delete,
+-				    DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV);
++		domain->ignore_global_allow_env = !is_delete;
+ 		return 0;
+ 	}
+ 	cp = ccs_find_condition_part(data);
+@@ -1991,7 +2024,7 @@
  			    struct ccs_acl_info *ptr)
  {
  	const struct ccs_condition_list *cond = ccs_get_condition_part(ptr);
@@ -3368,7 +4436,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	if (acl_type & ACL_DELETED)
  		return true;
  	if (acl_type == TYPE_SINGLE_PATH_ACL) {
-@@ -2070,19 +2091,19 @@
+@@ -2070,19 +2103,19 @@
   */
  static int ccs_read_domain_policy(struct ccs_io_buffer *head)
  {
@@ -3392,7 +4460,23 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (head->read_step != 1)
  			goto acl_loop;
  		if (domain->is_deleted && !head->read_single_domain)
-@@ -2110,10 +2131,10 @@
+@@ -2090,12 +2123,12 @@
+ 		/* Print domainname and flags. */
+ 		if (domain->quota_warned)
+ 			quota_exceeded = "quota_exceeded\n";
+-		if (domain->flags & DOMAIN_FLAGS_TRANSITION_FAILED)
++		if (domain->domain_transition_failed)
+ 			transition_failed = "transition_failed\n";
+-		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
++		if (domain->ignore_global_allow_read)
+ 			ignore_global_allow_read
+ 				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
+-		if (domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV)
++		if (domain->ignore_global_allow_env)
+ 			ignore_global_allow_env
+ 				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
+ 		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
+@@ -2110,10 +2143,10 @@
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -3405,7 +4489,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			if (!ccs_print_entry(head, ptr))
  				return 0;
  		}
-@@ -2137,26 +2158,24 @@
+@@ -2137,26 +2170,26 @@
   * @head: Pointer to "struct ccs_io_buffer".
   *
   * Returns 0 on success, -EINVAL otherwise.
@@ -3432,15 +4516,17 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -		domain->profile = (u8) profile;
 +	if (profile >= MAX_PROFILES)
 +		return -EINVAL;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	if (ccs_find_domain(cp + 1, &cookie) &&
 +	    (ccs_profile_ptr[profile] || !ccs_policy_loaded))
 +		cookie.u.domain->profile = (u8) profile;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
  	return 0;
  }
-@@ -2167,22 +2186,15 @@
+@@ -2167,22 +2200,15 @@
   * @head: Pointer to "struct ccs_io_buffer".
   *
   * Returns list of profile number and domainname pairs.
@@ -3466,23 +4552,25 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  		if (domain->is_deleted)
  			continue;
  		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
-@@ -2232,6 +2244,7 @@
+@@ -2232,6 +2258,8 @@
  	if (ccs_str_starts(&buf, "info "))
  		task_info = true;
  	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
  	/***** CRITICAL SECTION START *****/
  	read_lock(&tasklist_lock);
  	p = find_task_by_pid(pid);
-@@ -2241,6 +2254,7 @@
+@@ -2241,6 +2269,8 @@
  	}
  	read_unlock(&tasklist_lock);
  	/***** CRITICAL SECTION END *****/
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	if (!domain)
  		goto done;
  	if (!task_info)
-@@ -2314,53 +2328,53 @@
+@@ -2314,53 +2344,53 @@
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -3547,7 +4635,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_step = 10;
  		case 10:
  			if (!ccs_read_address_group_policy(head))
-@@ -2416,27 +2430,27 @@
+@@ -2416,27 +2446,27 @@
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -3580,7 +4668,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			head->read_step = 5;
  		case 5:
  			if (!ccs_read_reserved_port_policy(head))
-@@ -2614,7 +2628,7 @@
+@@ -2614,7 +2644,7 @@
  	ccs_log_level = KERN_WARNING;
  	{ /* Check all profiles currently assigned to domains are defined. */
  		struct ccs_domain_info *domain;
@@ -3589,7 +4677,26 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  			const u8 profile = domain->profile;
  			if (ccs_profile_ptr[profile])
  				continue;
-@@ -3200,6 +3214,9 @@
+@@ -2666,14 +2696,14 @@
+ 	static unsigned int ccs_serial;
+ 	struct ccs_query_entry *ccs_query_entry = NULL;
+ 	char *header;
+-	if (!r->domain)
+-		r->domain = ccs_current_domain();
++	if (!r->cookie.u.domain)
++		r->cookie.u.domain = ccs_current_domain();
+ 	if (!atomic_read(&ccs_query_observers)) {
+ 		int i;
+ 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
+ 			return -EPERM;
+-		for (i = 0; i < ccs_check_flags(r->domain, CCS_SLEEP_PERIOD);
+-		     i++) {
++		for (i = 0; i < ccs_check_flags(r->cookie.u.domain,
++						CCS_SLEEP_PERIOD); i++) {
+ 			set_current_state(TASK_INTERRUPTIBLE);
+ 			schedule_timeout(HZ / 10);
+ 		}
+@@ -3200,6 +3230,9 @@
  			return -ENOMEM;
  		}
  	}
@@ -3599,7 +4706,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is /proc/ccs/self_domain
-@@ -3355,78 +3372,11 @@
+@@ -3355,78 +3388,11 @@
  	head->read_buf = NULL;
  	ccs_free(head->write_buf);
  	head->write_buf = NULL;
@@ -3683,7 +4790,7 @@ Index: trunk/1.6.x/ccs-patch/fs/ccs_common.c
 -}
 Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_bind.c	(working copy)
 @@ -18,15 +18,17 @@
  
@@ -3698,7 +4805,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  
  /* The list for "struct ccs_reserved_entry". */
 -static LIST1_HEAD(ccs_reservedport_list);
-+static LIST_HEAD(ccs_reservedport_list);
++LIST_HEAD(ccs_reservedport_list);
  
 +static u8 ccs_reserved_port_map[8192];
 +
@@ -3724,7 +4831,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 +	}
 +	if (is_delete)
 +		error = -ENOENT;
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_reservedport_list, list) {
  		if (ptr->min_port != min_port || max_port != ptr->max_port)
@@ -3763,7 +4870,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 +	memmove(ccs_reserved_port_map, ccs_tmp_map,
 +		sizeof(ccs_reserved_port_map));
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	kfree(entry);
 +	ccs_free(ccs_tmp_map);
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
@@ -3787,7 +4894,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	/***** CRITICAL SECTION END *****/
  }
  EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
-@@ -127,24 +139,27 @@
+@@ -127,24 +139,29 @@
   */
  bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
  {
@@ -3797,6 +4904,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
  	char buffer[16];
  	memset(buffer, 0, sizeof(buffer));
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
 +			      &ccs_reservedport_list) {
@@ -3821,11 +4929,12 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_bind.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c	(working copy)
 @@ -55,23 +55,25 @@
  				 const struct ccs_condition_list *condition,
@@ -3852,7 +4961,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_signal_acl_record *acl;
@@ -3883,12 +4992,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_signal_acl_record *acl;
@@ -3900,7 +5009,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_dest_pattern);
@@ -3908,79 +5017,172 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_signal.c
  	return error;
  }
  
-@@ -141,6 +152,7 @@
+@@ -121,12 +132,13 @@
+ int ccs_check_signal_acl(const int sig, const int pid)
+ {
+ 	struct ccs_request_info r;
+-	struct ccs_domain_info *dest = NULL;
++	struct ccs_cookie dest;
+ 	const char *dest_pattern;
+ 	struct ccs_acl_info *ptr;
+ 	const u16 hash = sig;
+ 	bool is_enforce;
+ 	bool found = false;
++	int error = -EPERM;
+ 	if (!ccs_can_sleep())
+ 		return 0;
+ 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
+@@ -135,12 +147,19 @@
+ 		return 0;
+ 	if (!sig)
+ 		return 0;                /* No check for NULL signal. */
++	ccs_add_cookie(&r.cookie, ccs_current_domain());
++	ccs_add_cookie(&dest, NULL);
+ 	if (sys_getpid() == pid) {
+-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
+-		return 0;                /* No check for self process. */
++		ccs_audit_signal_log(&r, sig,
++				     r.cookie.u.domain->domainname->name,
++				     true);
++		error = 0;
++		goto done;               /* No check for self process. */
  	}
  	{ /* Simplified checking. */
  		struct task_struct *p = NULL;
++		/***** READER SECTION START *****/
 +		down_read(&ccs_policy_lock);
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		if (pid > 0)
-@@ -155,6 +167,7 @@
- 			dest = ccs_task_domain(p);
+@@ -148,23 +167,32 @@
+ 		else if (pid == 0)
+ 			p = current;
+ 		else if (pid == -1)
+-			dest = &ccs_kernel_domain;
++			dest.u.domain = &ccs_kernel_domain;
+ 		else
+ 			p = find_task_by_pid((pid_t) -pid);
+ 		if (p)
+-			dest = ccs_task_domain(p);
++			dest.u.domain = ccs_task_domain(p);
  		read_unlock(&tasklist_lock);
  		/***** CRITICAL SECTION END *****/
 +		up_read(&ccs_policy_lock);
++		/***** READER SECTION END *****/
  	}
- 	if (!dest)
- 		return 0; /* I can't find destinatioin. */
-@@ -164,7 +177,8 @@
+-	if (!dest)
+-		return 0; /* I can't find destinatioin. */
+-	if (r.domain == dest) {
+-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
+-		return 0;                /* No check for self domain. */
++	if (!dest.u.domain) {
++		error = 0;
++		goto done; /* I can't find destinatioin. */
  	}
- 	dest_pattern = dest->domainname->name;
+-	dest_pattern = dest->domainname->name;
++	if (r.cookie.u.domain == dest.u.domain) {
++		ccs_audit_signal_log(&r, sig,
++				     r.cookie.u.domain->domainname->name,
++				     true);
++		error = 0;
++		goto done; /* No check for self domain. */
++	}
++	dest_pattern = dest.u.domain->domainname->name;
   retry:
 -	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	/***** READER SECTION END *****/
 +	down_read(&ccs_policy_lock);
-+	list_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
  		struct ccs_signal_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
  			continue;
-@@ -185,6 +199,7 @@
+@@ -185,24 +213,33 @@
  			break;
  		}
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	ccs_audit_signal_log(&r, sig, dest_pattern, found);
- 	if (found)
- 		return 0;
+-	if (found)
+-		return 0;
+-	if (ccs_verbose_mode(r.domain))
++	if (found) {
++		error = 0;
++		goto done;
++	}
++	if (ccs_verbose_mode(r.cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
+ 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
+-		       ccs_get_last_name(dest), ccs_get_last_name(r.domain));
++		       ccs_get_last_name(dest.u.domain),
++		       ccs_get_last_name(r.cookie.u.domain));
+ 	if (is_enforce) {
+-		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
+-						 "%d %s\n", sig, dest_pattern);
+-		if (error == 1)
++		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
++					       "%d %s\n", sig, dest_pattern);
++		if (err == 1)
+ 			goto retry;
+-		return error;
++		goto done;
+ 	}
+-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
+-		ccs_update_signal_acl(sig, dest_pattern, r.domain,
++	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
++		ccs_update_signal_acl(sig, dest_pattern, r.cookie.u.domain,
+ 				      ccs_handler_cond(), false);
+-	return 0;
++	error = 0;
++ done:
++	ccs_del_cookie(&dest);
++	ccs_del_cookie(&r.cookie);
++	return error;
+ }
+ 
+ /**
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_file.c	(working copy)
-@@ -20,21 +20,21 @@
+@@ -18,27 +18,6 @@
+ #include <linux/binfmts.h>
+ #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
- /* Structure for "allow_read" keyword. */
- struct ccs_globally_readable_file_entry {
+-/* Structure for "allow_read" keyword. */
+-struct ccs_globally_readable_file_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *filename;
- 	bool is_deleted;
- };
- 
- /* Structure for "file_pattern" keyword. */
- struct ccs_pattern_entry {
+-	const struct ccs_path_info *filename;
+-	bool is_deleted;
+-};
+-
+-/* Structure for "file_pattern" keyword. */
+-struct ccs_pattern_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *pattern;
- 	bool is_deleted;
- };
- 
- /* Structure for "deny_rewrite" keyword. */
- struct ccs_no_rewrite_entry {
+-	const struct ccs_path_info *pattern;
+-	bool is_deleted;
+-};
+-
+-/* Structure for "deny_rewrite" keyword. */
+-struct ccs_no_rewrite_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *pattern;
- 	bool is_deleted;
- };
-@@ -169,7 +169,7 @@
+-	const struct ccs_path_info *pattern;
+-	bool is_deleted;
+-};
+-
+ /* Keyword array for single path operations. */
+ static const char *ccs_sp_keyword[MAX_SINGLE_PATH_OPERATION] = {
+ 	[TYPE_READ_WRITE_ACL] = "read/write",
+@@ -169,7 +148,7 @@
  }
  
  /* The list for "struct ccs_globally_readable_file_entry". */
 -static LIST1_HEAD(ccs_globally_readable_list);
-+static LIST_HEAD(ccs_globally_readable_list);
++LIST_HEAD(ccs_globally_readable_list);
  
  /**
   * ccs_update_globally_readable_entry - Update "struct ccs_globally_readable_file_entry" list.
-@@ -182,36 +182,37 @@
+@@ -182,36 +161,37 @@
  static int ccs_update_globally_readable_entry(const char *filename,
  					      const bool is_delete)
  {
@@ -4001,7 +5203,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_entry(ptr, &ccs_globally_readable_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
  		if (ptr->filename != saved_filename)
@@ -4030,13 +5232,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_filename);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -226,12 +227,17 @@
+@@ -226,12 +206,19 @@
  static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
  {
  	struct ccs_globally_readable_file_entry *ptr;
@@ -4045,6 +5247,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -		    ccs_path_matches_pattern(filename, ptr->filename))
 -			return true;
 +	bool found = false;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
 +		if (ptr->is_deleted ||
@@ -4055,11 +5258,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return found;
  }
  
  /**
-@@ -256,27 +262,105 @@
+@@ -256,27 +243,77 @@
   */
  bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
  {
@@ -4067,6 +5271,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_cookie(pos, head->read_var2,
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
  			      &ccs_globally_readable_list) {
@@ -4088,12 +5293,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /* The list for "struct ccs_path_group_entry". */
 -static LIST1_HEAD(ccs_path_group_list);
-+static LIST_HEAD(ccs_path_group_list);
++LIST_HEAD(ccs_path_group_list);
  
  /**
 + * ccs_get_path_group - Allocate memory for "struct ccs_path_group_entry".
@@ -4115,7 +5321,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	if (!saved_group_name)
 +		return NULL;
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(group, &ccs_path_group_list, list) {
 +		if (saved_group_name != group->group_name)
@@ -4135,47 +5341,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		error = 0;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_group_name);
 +	kfree(entry);
 +	return !error ? group : NULL;
 +}
 +
 +/**
-+ * ccs_put_path_group - Delete memory for "struct ccs_path_group_entry".
-+ *
-+ * @group: Pointer to "struct ccs_path_group_entry".
-+ */
-+static void ccs_put_path_group(struct ccs_path_group_entry *group)
-+{
-+	/***** EXCLUSIVE SECTION START *****/
-+	down_write(&ccs_policy_lock);
-+	if (atomic_dec_and_test(&group->users)) {
-+		struct ccs_path_group_member *member;
-+		struct ccs_path_group_member *next_member;
-+		list_for_each_entry_safe(member, next_member,
-+					 &group->path_group_member_list,
-+					 list) {
-+			if (!member->is_deleted)
-+				break;
-+			list_del(&member->list);
-+			ccs_free_element(member);
-+		}
-+		if (list_empty(&group->path_group_member_list)) {
-+			list_del(&group->list);
-+			ccs_put_name(group->group_name);
-+			ccs_free_element(group);
-+		}
-+	}
-+	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
-+}
-+
-+/**
   * ccs_update_path_group_entry - Update "struct ccs_path_group_entry" list.
   *
   * @group_name:  The name of pathname group.
-@@ -289,64 +373,48 @@
+@@ -289,64 +326,48 @@
  				       const char *member_name,
  				       const bool is_delete)
  {
@@ -4215,7 +5391,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		goto out;
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(member, &group->path_group_member_list, list) {
 +		if (member->member_name != saved_member_name)
@@ -4259,7 +5435,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
 -	error = 0;
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_member_name);
@@ -4268,7 +5444,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -369,31 +437,6 @@
+@@ -369,31 +390,6 @@
  }
  
  /**
@@ -4300,7 +5476,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
   *
   * @pathname:        The name of pathname.
-@@ -401,25 +444,31 @@
+@@ -401,25 +397,31 @@
   * @may_use_pattern: True if wild card is permitted.
   *
   * Returns true if @pathname matches pathnames in @group, false otherwise.
@@ -4340,7 +5516,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  }
  
  /**
-@@ -431,31 +480,34 @@
+@@ -431,31 +433,36 @@
   */
  bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
  {
@@ -4350,6 +5526,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +	struct list_head *gpos;
 +	struct list_head *mpos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(gpos, head->read_var1.u.list,
 +			      &ccs_path_group_list) {
@@ -4380,16 +5557,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /* The list for "struct ccs_pattern_entry". */
 -static LIST1_HEAD(ccs_pattern_list);
-+static LIST_HEAD(ccs_pattern_list);
++LIST_HEAD(ccs_pattern_list);
  
  /**
   * ccs_update_file_pattern_entry - Update "struct ccs_pattern_entry" list.
-@@ -468,36 +520,37 @@
+@@ -468,36 +475,37 @@
  static int ccs_update_file_pattern_entry(const char *pattern,
  					 const bool is_delete)
  {
@@ -4410,7 +5588,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_entry(ptr, &ccs_pattern_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_pattern_list, list) {
  		if (saved_pattern != ptr->pattern)
@@ -4439,13 +5617,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_pattern);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -505,15 +558,15 @@
+@@ -505,15 +513,16 @@
  /**
   * ccs_get_file_pattern - Get patterned pathname.
   *
@@ -4461,12 +5639,13 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	const struct ccs_path_info *pattern = NULL;
 -	list1_for_each_entry(ptr, &ccs_pattern_list, list) {
 +	const struct ccs_path_info *filename = cookie->u.path;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_pattern_list, list) {
  		if (ptr->is_deleted)
  			continue;
  		if (!ccs_path_matches_pattern(filename, ptr->pattern))
-@@ -527,8 +580,8 @@
+@@ -527,8 +536,9 @@
  		}
  	}
  	if (pattern)
@@ -4474,10 +5653,11 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	return filename->name;
 +		ccs_update_cookie(cookie, pattern);
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  }
  
  /**
-@@ -553,23 +606,25 @@
+@@ -553,23 +563,27 @@
   */
  bool ccs_read_file_pattern(struct ccs_io_buffer *head)
  {
@@ -4485,6 +5665,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_pattern_list) {
  		struct ccs_pattern_entry *ptr;
@@ -4504,16 +5685,17 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /* The list for "struct ccs_no_rewrite_entry". */
 -static LIST1_HEAD(ccs_no_rewrite_list);
-+static LIST_HEAD(ccs_no_rewrite_list);
++LIST_HEAD(ccs_no_rewrite_list);
  
  /**
   * ccs_update_no_rewrite_entry - Update "struct ccs_no_rewrite_entry" list.
-@@ -582,36 +637,37 @@
+@@ -582,36 +596,37 @@
  static int ccs_update_no_rewrite_entry(const char *pattern,
  				       const bool is_delete)
  {
@@ -4534,7 +5716,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
  		if (ptr->pattern != saved_pattern)
@@ -4563,18 +5745,19 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	ccs_put_name(saved_pattern);
 +	kfree(entry);
  	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
  	return error;
  }
-@@ -627,14 +683,18 @@
+@@ -627,14 +642,20 @@
  static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
  {
  	struct ccs_no_rewrite_entry *ptr;
 -	list1_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
 +	bool matched = false;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
  		if (ptr->is_deleted)
@@ -4587,11 +5770,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return matched;
  }
  
  /**
-@@ -659,19 +719,22 @@
+@@ -659,19 +680,24 @@
   */
  bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  {
@@ -4599,6 +5783,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_no_rewrite_list) {
 +	struct list_head *pos;
 +	bool done = true;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
 +			      &ccs_no_rewrite_list) {
@@ -4619,22 +5804,27 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 - out:
 -	return false;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return done;
  }
  
  /**
-@@ -735,7 +798,9 @@
+@@ -733,9 +759,12 @@
+ 				      const u16 perm,
+ 				      const bool may_use_pattern)
  {
- 	struct ccs_domain_info *domain = r->domain;
+-	struct ccs_domain_info *domain = r->domain;
++	struct ccs_domain_info *domain = r->cookie.u.domain;
  	struct ccs_acl_info *ptr;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	int error = -EPERM;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		struct ccs_single_path_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -755,9 +820,11 @@
+@@ -755,9 +784,12 @@
  			continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -4644,34 +5834,61 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	return -EPERM;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return error;
  }
  
  /**
-@@ -838,10 +905,18 @@
+@@ -818,17 +850,16 @@
+ 		BUG();
+  retry:
+ 	error = ccs_check_file_acl(r, filename, perm);
+-	if (error && perm == 4 &&
+-	    (r->domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
+-	    ccs_is_globally_readable_file(filename))
++	if (error && perm == 4 && !r->cookie.u.domain->ignore_global_allow_read
++	    && ccs_is_globally_readable_file(filename))
+ 		error = 0;
+ 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode(r->domain))
++	if (ccs_verbose_mode(r->cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
+ 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
+-		       filename->name, ccs_get_last_name(r->domain));
++		       filename->name, ccs_get_last_name(r->cookie.u.domain));
+ 	if (is_enforce) {
+ 		int err = ccs_check_supervisor(r, "allow_%s %s\n",
+ 					       msg, filename->name);
+@@ -836,12 +867,21 @@
+ 			goto retry;
+ 		return err;
  	}
- 	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
++	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
  		/* Don't use patterns for execute permission. */
 -		const char *patterned_file = (perm != 1) ?
 -			ccs_get_file_pattern(filename) : filename->name;
 -		ccs_update_file_acl(patterned_file, perm, r->domain,
 -				    ccs_handler_cond(), false);
 +		if (perm == 1) {
-+			ccs_update_file_acl(filename->name, perm, r->domain,
++			ccs_update_file_acl(filename->name, perm,
++					    r->cookie.u.domain,
 +					    ccs_handler_cond(), false);
 +		} else {
 +			struct ccs_cookie cookie;
 +			ccs_add_cookie(&cookie, filename);
 +			ccs_get_file_pattern(&cookie);
 +			ccs_update_file_acl(cookie.u.path->name, perm,
-+					    r->domain, ccs_handler_cond(),
-+					    false);
++					    r->cookie.u.domain,
++					    ccs_handler_cond(), false);
 +			ccs_del_cookie(&cookie);
 +		}
  	}
  	return 0;
  }
-@@ -860,22 +935,24 @@
+@@ -860,22 +900,24 @@
  				      struct ccs_domain_info * const domain,
  				      const bool is_delete)
  {
@@ -4695,14 +5912,14 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_execute_handler_record *acl;
  		if (ccs_acl_type1(ptr) != type)
  			continue;
  		/* Condition not supported. */
-@@ -884,28 +961,32 @@
+@@ -884,28 +926,32 @@
  		if (acl->handler != saved_filename)
  			continue;
  		/* Only one entry can exist in a domain. */
@@ -4737,24 +5954,24 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	error = ccs_add_domain_acl(domain, &acl->head);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_execute_handler_record *acl;
  		if (ccs_acl_type2(ptr) != type)
  			continue;
  		/* Condition not supported. */
-@@ -916,8 +997,11 @@
+@@ -916,8 +962,11 @@
  		error = ccs_del_domain_acl(ptr);
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_filename);
@@ -4762,7 +5979,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	return error;
  }
  
-@@ -993,13 +1077,12 @@
+@@ -993,13 +1042,12 @@
  				      condition,
  				      const bool is_delete)
  {
@@ -4779,7 +5996,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	bool is_group = false;
  	const u16 perm = 1 << type;
  	if (!domain)
-@@ -1007,33 +1090,31 @@
+@@ -1007,33 +1055,31 @@
  	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
  		return -EINVAL;
  	if (filename[0] == '@') {
@@ -4807,7 +6024,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_single_path_acl_record *acl;
@@ -4822,7 +6039,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			continue;
  		/* Special case. Clear all bits if marked as deleted. */
  		if (ptr->type & ACL_DELETED)
-@@ -1044,29 +1125,35 @@
+@@ -1044,29 +1090,35 @@
  		else if (acl->perm & (1 << TYPE_READ_WRITE_ACL))
  			acl->perm |= ccs_rw_mask;
  		error = ccs_add_domain_acl(NULL, ptr);
@@ -4852,12 +6069,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_single_path_acl_record *acl;
@@ -4872,12 +6089,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  			continue;
  		acl->perm &= ~perm;
  		if ((acl->perm & ccs_rw_mask) != ccs_rw_mask)
-@@ -1076,8 +1163,14 @@
+@@ -1076,8 +1128,14 @@
  		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	if (is_group)
@@ -4888,7 +6105,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	return error;
  }
  
-@@ -1100,12 +1193,11 @@
+@@ -1100,12 +1158,11 @@
  				      condition,
  				      const bool is_delete)
  {
@@ -4905,7 +6122,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	bool is_group1 = false;
  	bool is_group2 = false;
  	const u8 perm = 1 << type;
-@@ -1115,78 +1207,86 @@
+@@ -1115,78 +1172,86 @@
  	    !ccs_is_correct_path(filename2, 0, 0, 0, __func__))
  		return -EINVAL;
  	if (filename1[0] == '@') {
@@ -4943,7 +6160,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_double_path_acl_record *acl;
@@ -4989,12 +6206,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_double_path_acl_record *acl;
@@ -5013,7 +6230,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	if (is_group1)
@@ -5028,18 +6245,23 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	return error;
  }
  
-@@ -1224,7 +1324,9 @@
- 	const struct ccs_domain_info *domain = r->domain;
+@@ -1221,10 +1286,13 @@
+ 				     const struct ccs_path_info *filename1,
+ 				     const struct ccs_path_info *filename2)
+ {
+-	const struct ccs_domain_info *domain = r->domain;
++	const struct ccs_domain_info *domain = r->cookie.u.domain;
  	struct ccs_acl_info *ptr;
  	const u8 perm = 1 << type;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	int error = -EPERM;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		struct ccs_double_path_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -1251,9 +1353,11 @@
+@@ -1251,9 +1319,12 @@
  				continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -5049,30 +6271,58 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	return -EPERM;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return error;
  }
  
  /**
-@@ -1291,11 +1395,15 @@
+@@ -1281,21 +1352,25 @@
+ 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
+ 	if (!error)
+ 		goto ok;
+-	if (ccs_verbose_mode(r->domain))
++	if (ccs_verbose_mode(r->cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
+ 		       ccs_get_msg(is_enforce), msg, filename->name,
+-		       ccs_get_last_name(r->domain));
++		       ccs_get_last_name(r->cookie.u.domain));
+ 	if (is_enforce) {
+ 		error = ccs_check_supervisor(r, "allow_%s %s\n",
+ 					     msg, filename->name);
  		if (error == 1)
  			goto retry;
  	}
 -	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
 -		ccs_update_single_path_acl(operation,
 -					   ccs_get_file_pattern(filename),
-+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+-					   r->domain, ccs_handler_cond(),
+-					   false);
++	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
 +		struct ccs_cookie cookie;
 +		ccs_add_cookie(&cookie, filename);
 +		ccs_get_file_pattern(&cookie);
 +		ccs_update_single_path_acl(operation, cookie.u.path->name,
- 					   r->domain, ccs_handler_cond(),
- 					   false);
++					   r->cookie.u.domain,
++					   ccs_handler_cond(), false);
 +		ccs_del_cookie(&cookie);
 +	}
  	if (!is_enforce)
  		error = 0;
   ok:
-@@ -1548,12 +1656,19 @@
+@@ -1537,23 +1612,31 @@
+ 	ccs_audit_file_log(&r, msg, buf1->name, buf2->name, !error);
+ 	if (!error)
+ 		goto out;
+-	if (ccs_verbose_mode(r.domain))
++	if (ccs_verbose_mode(r.cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
+ 		       "denied for %s\n", ccs_get_msg(is_enforce),
+ 		       msg, buf1->name, buf2->name,
+-		       ccs_get_last_name(r.domain));
++		       ccs_get_last_name(r.cookie.u.domain));
+ 	if (is_enforce) {
+ 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
+ 					     msg, buf1->name, buf2->name);
  		if (error == 1)
  			goto retry;
  	}
@@ -5082,7 +6332,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 -					   ccs_get_file_pattern(buf2),
 -					   r.domain, ccs_handler_cond(),
 -					   false);
-+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
++	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
 +		struct ccs_cookie cookie1;
 +		struct ccs_cookie cookie2;
 +		ccs_add_cookie(&cookie1, buf1);
@@ -5090,7 +6340,8 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		ccs_get_file_pattern(&cookie1);
 +		ccs_get_file_pattern(&cookie2);
 +		ccs_update_double_path_acl(operation, cookie1.u.path->name,
-+					   cookie2.u.path->name, r.domain,
++					   cookie2.u.path->name,
++					   r.cookie.u.domain,
 +					   ccs_handler_cond(), false);
 +		ccs_del_cookie(&cookie1);
 +		ccs_del_cookie(&cookie2);
@@ -5098,7 +6349,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
   out:
  	ccs_free(buf1);
  	ccs_free(buf2);
-@@ -1600,74 +1715,83 @@
+@@ -1600,74 +1683,83 @@
  				const struct ccs_condition_list *condition,
  				const bool is_delete)
  {
@@ -5140,7 +6391,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_ioctl_acl_record *acl;
@@ -5178,12 +6429,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_ioctl_acl_record *acl;
@@ -5200,7 +6451,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	if (is_group)
@@ -5211,18 +6462,22 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	return error;
  }
  
-@@ -1686,7 +1810,9 @@
+@@ -1684,9 +1776,12 @@
+ 			       const struct ccs_path_info *filename,
+ 			       const unsigned int cmd)
  {
- 	struct ccs_domain_info *domain = r->domain;
+-	struct ccs_domain_info *domain = r->domain;
++	struct ccs_domain_info *domain = r->cookie.u.domain;
  	struct ccs_acl_info *ptr;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	int error = -EPERM;
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		struct ccs_ioctl_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
  			continue;
-@@ -1704,9 +1830,11 @@
+@@ -1704,9 +1799,12 @@
  				continue;
  		}
  		r->cond = ccs_get_condition_part(ptr);
@@ -5232,23 +6487,38 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  	}
 -	return -EPERM;
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
 +	return error;
  }
  
  /**
-@@ -1742,9 +1870,14 @@
+@@ -1731,10 +1829,10 @@
+ 	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode(r->domain))
++	if (ccs_verbose_mode(r->cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
+ 		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
+-		       cmd, ccs_get_last_name(r->domain));
++		       cmd, ccs_get_last_name(r->cookie.u.domain));
+ 	if (is_enforce) {
+ 		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
+ 					       filename->name, cmd);
+@@ -1742,9 +1840,15 @@
  			goto retry;
  		return err;
  	}
 -	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
 -		ccs_update_ioctl_acl(ccs_get_file_pattern(filename), cmd, cmd,
 -				     r->domain, ccs_handler_cond(), false);
-+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
++	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
 +		struct ccs_cookie cookie;
 +		ccs_add_cookie(&cookie, filename);
 +		ccs_get_file_pattern(&cookie);
-+		ccs_update_ioctl_acl(cookie.u.path->name, cmd, cmd, r->domain,
-+				     ccs_handler_cond(), false);
++		ccs_update_ioctl_acl(cookie.u.path->name, cmd, cmd,
++				     r->cookie.u.domain, ccs_handler_cond(),
++				     false);
 +		ccs_del_cookie(&cookie);
 +	}
  	return 0;
@@ -5256,7 +6526,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_file.c
  
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c	(working copy)
 @@ -99,16 +99,18 @@
  				     const struct ccs_condition_list *condition,
@@ -5275,7 +6545,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_capability_acl_record *acl;
@@ -5303,12 +6573,12 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_capability_acl_record *acl;
@@ -5320,34 +6590,56 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_capability.c
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	kfree(entry);
  	return error;
  }
  
-@@ -164,7 +173,8 @@
+@@ -164,7 +173,9 @@
  	if (!r.mode)
  		return true;
   retry:
 -	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
-+	list_for_each_entry(ptr, &r.domain->acl_info_list, list) {
++	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
  		struct ccs_capability_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
  			continue;
-@@ -176,6 +186,7 @@
+@@ -176,13 +187,15 @@
  		found = true;
  		break;
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION START *****/
  	ccs_audit_capability_log(&r, operation, found);
  	if (found)
  		return true;
+-	if (ccs_verbose_mode(r.domain))
++	if (ccs_verbose_mode(r.cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
+-		       ccs_get_last_name(r.domain));
++		       ccs_get_last_name(r.cookie.u.domain));
+ 	if (is_enforce) {
+ 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
+ 						 "%s\n",
+@@ -191,8 +204,8 @@
+ 			goto retry;
+ 		return !error;
+ 	}
+-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
+-		ccs_update_capability_acl(operation, r.domain,
++	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
++		ccs_update_capability_acl(operation, r.cookie.u.domain,
+ 					  ccs_handler_cond(), false);
+ 	return true;
+ }
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c	(working copy)
 @@ -391,7 +391,7 @@
  	*cp = '\0';
@@ -5390,7 +6682,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
  
  /* The list for "struct ccs_condition_list". */
 -static LIST1_HEAD(ccs_condition_list);
-+static LIST_HEAD(ccs_condition_list);
++LIST_HEAD(ccs_condition_list);
  
  enum ccs_conditions_index {
  	TASK_UID,             /* current_uid()   */
@@ -5408,7 +6700,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 -		    ptr->envc != new_ptr->envc ||
 -		    ptr->symlinkc != new_ptr->symlinkc)
 +	int error = -ENOMEM;
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_condition_list, list) {
 +		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
@@ -5446,7 +6738,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
 - ok:
 -	mutex_unlock(&lock);
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	return new_ptr;
  }
  
@@ -5532,7 +6824,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_cond.c
   no_condition:
 Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c	(working copy)
 @@ -49,24 +49,29 @@
  				  const struct ccs_condition_list *condition,
@@ -5565,7 +6857,7 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
  		goto delete;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_argv0_acl_record *acl;
@@ -5597,70 +6889,103 @@ Index: trunk/1.6.x/ccs-patch/fs/tomoyo_exec.c
 +		entry = NULL;
 +	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
  	goto out;
   delete:
 -	error = -ENOENT;
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct ccs_argv0_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
  			continue;
  		if (ccs_get_condition_part(ptr) != condition)
-@@ -100,8 +112,11 @@
+@@ -100,8 +112,12 @@
  		error = ccs_del_domain_acl(ptr);
  		break;
  	}
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
   out:
 -	mutex_unlock(&lock);
 +	ccs_put_name(saved_filename);
 +	ccs_put_name(saved_argv0);
++	kfree(entry);
  	return error;
  }
  
-@@ -124,7 +139,8 @@
+@@ -119,12 +135,14 @@
+ 			       const char *argv0)
+ {
+ 	int error = -EPERM;
+-	struct ccs_domain_info *domain = r->domain;
++	struct ccs_domain_info *domain = r->cookie.u.domain;
+ 	struct ccs_acl_info *ptr;
  	struct ccs_path_info argv_0;
  	argv_0.name = argv0;
  	ccs_fill_path_info(&argv_0);
 -	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
++	/***** READER SECTION START *****/
 +	down_read(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
  		struct ccs_argv0_acl_record *acl;
  		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
  			continue;
-@@ -137,6 +153,7 @@
+@@ -137,6 +155,8 @@
  		error = 0;
  		break;
  	}
 +	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
  	return error;
+ }
+ 
+@@ -163,16 +183,17 @@
+ 	ccs_audit_argv0_log(r, filename->name, argv0, !error);
+ 	if (!error)
+ 		return 0;
+-	if (ccs_verbose_mode(r->domain))
++	if (ccs_verbose_mode(r->cookie.u.domain))
+ 		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
+ 		       ccs_get_msg(is_enforce), filename->name, argv0,
+-		       ccs_get_last_name(r->domain));
++		       ccs_get_last_name(r->cookie.u.domain));
+ 	if (is_enforce)
+ 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
+ 					    filename->name, argv0);
+-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
+-		ccs_update_argv0_entry(filename->name, argv0, r->domain,
+-				       ccs_handler_cond(), false);
++	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain))
++		ccs_update_argv0_entry(filename->name, argv0,
++				       r->cookie.u.domain, ccs_handler_cond(),
++				       false);
+ 	return 0;
  }
  
 Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 ===================================================================
---- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2531)
+--- trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(revision 2535)
 +++ trunk/1.6.x/ccs-patch/fs/sakura_umount.c	(working copy)
-@@ -23,13 +23,13 @@
+@@ -21,15 +21,8 @@
+ #include <linux/namespace.h>
+ #endif
  
- /* Structure for "deny_unmount" keyword. */
- struct ccs_no_umount_entry {
+-/* Structure for "deny_unmount" keyword. */
+-struct ccs_no_umount_entry {
 -	struct list1_head list;
-+	struct list_head list;
- 	const struct ccs_path_info *dir;
- 	bool is_deleted;
- };
- 
+-	const struct ccs_path_info *dir;
+-	bool is_deleted;
+-};
+-
  /* The list for "struct ccs_no_umount_entry". */
 -static LIST1_HEAD(ccs_no_umount_list);
-+static LIST_HEAD(ccs_no_umount_list);
++LIST_HEAD(ccs_no_umount_list);
  
  /**
   * ccs_update_no_umount_acl - Update "struct ccs_no_umount_entry" list.
-@@ -41,37 +41,41 @@
+@@ -41,37 +34,41 @@
   */
  static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
  {
@@ -5681,7 +7006,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 -	list1_for_each_entry(ptr, &ccs_no_umount_list, list) {
 +	if (!is_delete)
 +		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&ccs_policy_lock);
 +	list_for_each_entry(ptr, &ccs_no_umount_list, list) {
  		if (ptr->dir != saved_dir)
@@ -5704,7 +7029,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
 -	new_entry = ccs_alloc_element(sizeof(*new_entry));
 -	if (!new_entry)
 +	up_write(&ccs_policy_lock);
-+	/***** EXCLUSIVE SECTION END *****/
++	/***** WRITER SECTION END *****/
 +	if (is_delete)
  		goto out;
 -	new_entry->dir = saved_dir;
@@ -5718,7 +7043,7 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
  	return error;
  }
-@@ -105,7 +109,7 @@
+@@ -105,7 +102,7 @@
  		goto out;
  	dir.name = dir0;
  	ccs_fill_path_info(&dir);
@@ -5727,18 +7052,35 @@ Index: trunk/1.6.x/ccs-patch/fs/sakura_umount.c
  		if (ptr->is_deleted)
  			continue;
  		if (!ccs_path_matches_pattern(&dir, ptr->dir))
-@@ -157,10 +161,11 @@
+@@ -157,17 +154,22 @@
   */
  bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
  {
 -	struct list1_head *pos;
 -	list1_for_each_cookie(pos, head->read_var2, &ccs_no_umount_list) {
 +	struct list_head *pos;
++	bool done = true;
++	/***** READER SECTION START *****/
++	down_read(&ccs_policy_lock);
 +	list_for_each_cookie(pos, head->read_var2.u.list,
-+			      &ccs_no_umount_list) {
++			     &ccs_no_umount_list) {
  		struct ccs_no_umount_entry *ptr;
 -		ptr = list1_entry(pos, struct ccs_no_umount_entry, list);
 +		ptr = list_entry(pos, struct ccs_no_umount_entry, list);
  		if (ptr->is_deleted)
  			continue;
- 		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
+-		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
+-				   ptr->dir->name))
+-			goto out;
++		done = ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
++				     ptr->dir->name);
++		if (!done)
++			break;
+ 	}
+-	return true;
+- out:
+-	return false;
++	up_read(&ccs_policy_lock);
++	/***** READER SECTION END *****/
++	return done;
+ }
