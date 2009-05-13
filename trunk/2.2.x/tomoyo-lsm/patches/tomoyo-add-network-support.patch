@@ -21,12 +21,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  security/tomoyo/Makefile   |    2 
  security/tomoyo/common.c   |  114 +++++
  security/tomoyo/common.h   |   75 +++
- security/tomoyo/network.c  |  887 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/network.c  |  889 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.c |   77 +++
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |  143 +++++++
  security/tomoyo/tomoyo.h   |   17 
- 9 files changed, 1317 insertions(+), 4 deletions(-)
+ 9 files changed, 1319 insertions(+), 4 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/Kconfig
 +++ security-testing-2.6.git/security/tomoyo/Kconfig
@@ -53,7 +53,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	[TOMOYO_MAX_ACCEPT_ENTRY] = { "MAX_ACCEPT_ENTRY", 2048, INT_MAX },
  	[TOMOYO_VERBOSE]          = { "TOMOYO_VERBOSE",      1,       1 },
  };
-@@ -838,6 +839,9 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -841,6 +842,9 @@ bool tomoyo_domain_quota_is_ok(struct to
  			if (perm & (1 << TOMOYO_TYPE_RENAME_ACL))
  				count++;
  			break;
@@ -63,8 +63,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		}
  	}
  	up_read(&tomoyo_policy_lock);
-@@ -1330,6 +1334,8 @@ static int tomoyo_write_domain_policy(st
- 			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
+@@ -1349,6 +1353,8 @@ static int tomoyo_write_domain_policy(st
+ 		domain->ignore_global_allow_read = !is_delete;
  		return 0;
  	}
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK))
@@ -72,7 +72,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1418,6 +1424,107 @@ static bool tomoyo_print_double_path_acl
+@@ -1437,6 +1443,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -180,7 +180,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1446,6 +1553,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1465,6 +1572,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -204,7 +204,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  struct dentry;
  struct vfsmount;
-@@ -142,8 +143,65 @@ struct tomoyo_double_path_acl_record {
+@@ -139,8 +140,65 @@ struct tomoyo_double_path_acl_record {
  	const struct tomoyo_path_info *filename2;
  };
  
@@ -270,7 +270,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
  #define TOMOYO_KEYWORD_DELETE                    "delete "
  #define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
-@@ -161,9 +219,10 @@ struct tomoyo_double_path_acl_record {
+@@ -158,9 +216,10 @@ struct tomoyo_double_path_acl_record {
  
  /* Index numbers for Access Controls. */
  #define TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
@@ -284,7 +284,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  /* Structure for reading/writing policy via securityfs interfaces. */
  struct tomoyo_io_buffer {
-@@ -276,6 +335,9 @@ bool tomoyo_is_domain_def(const unsigned
+@@ -273,6 +332,9 @@ bool tomoyo_is_domain_def(const unsigned
  /* Check whether the given filename matches the given pattern. */
  bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
  				 const struct tomoyo_path_info *pattern);
@@ -294,10 +294,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Read "alias" entry in exception policy. */
  bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head);
  /*
-@@ -342,6 +404,13 @@ void tomoyo_load_policy(const char *file
- /* Change "struct tomoyo_domain_info"->flags. */
- void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
- 			    const bool is_delete, const u8 flags);
+@@ -336,6 +398,13 @@ unsigned int tomoyo_check_flags(const st
+ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
+ /* Run policy loader when /sbin/init starts. */
+ void tomoyo_load_policy(const char *filename);
 +/* Read "allow_network" entry in domain policy. */
 +bool tomoyo_read_network_policy(struct tomoyo_io_buffer *head);
 +/* Create "allow_network" entry in domain policy. */
@@ -310,7 +310,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
 --- /dev/null
 +++ security-testing-2.6.git/security/tomoyo/network.c
-@@ -0,0 +1,887 @@
+@@ -0,0 +1,889 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -495,7 +495,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (is_delete)
 +		goto delete;
 +	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&tomoyo_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_ip_network_acl_record *acl;
@@ -540,10 +540,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		error = 0;
 +	}
 +	up_write(&tomoyo_policy_lock);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION END *****/
 +	goto out;
 + delete:
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION START *****/
 +	down_write(&tomoyo_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_ip_network_acl_record *acl;
@@ -569,7 +569,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	up_write(&tomoyo_policy_lock);
-+	/***** EXCLUSIVE SECTION START *****/
++	/***** WRITER SECTION END *****/
 + out:
 +	tomoyo_put_ipv6_address(saved_min_address);
 +	tomoyo_put_ipv6_address(saved_max_address);
@@ -601,6 +601,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	char buf[64];
 +	if (!mode)
 +		return 0;
++	/***** READER SECTION START *****/
 +	down_read(&tomoyo_policy_lock);
 +	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_ip_network_acl_record *acl;
@@ -625,6 +626,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		break;
 +	}
 +	up_read(&tomoyo_policy_lock);
++	/***** READER SECTION END *****/
 +	if (found)
 +		return 0;
 +	memset(buf, 0, sizeof(buf));
@@ -1274,7 +1276,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /**
   * tomoyo_realpath_init - Initialize realpath related code.
   */
-@@ -741,6 +808,7 @@ static void tomoyo_cleanup_domain_policy
+@@ -743,6 +810,7 @@ static void tomoyo_cleanup_domain_policy
  		switch (tomoyo_acl_type1(acl)) {
  			struct tomoyo_single_path_acl_record *acl1;
  			struct tomoyo_double_path_acl_record *acl2;
@@ -1282,7 +1284,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		case TOMOYO_TYPE_SINGLE_PATH_ACL:
  			acl1 = container_of(acl,
  				    struct tomoyo_single_path_acl_record,
-@@ -754,6 +822,15 @@ static void tomoyo_cleanup_domain_policy
+@@ -756,6 +824,15 @@ static void tomoyo_cleanup_domain_policy
  			tomoyo_put_name(acl2->filename1);
  			tomoyo_put_name(acl2->filename2);
  			break;
