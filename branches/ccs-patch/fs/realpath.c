@@ -648,10 +648,8 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 	}
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
-	if (can_delete) {
-		ccs_allocated_memory_for_elements -= ksize(ptr);
-		ccs_free(ptr);
-	}
+	if (can_delete)
+		ccs_free_element(ptr);
 }
 
 static unsigned int ccs_allocated_memory_for_savename;
@@ -958,6 +956,7 @@ void ccs_free(const void *p)
 		kmem_cache_free(ccs_cachep, entry);
 	} else {
 		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
+		dump_stack();
 	}
 }
 
