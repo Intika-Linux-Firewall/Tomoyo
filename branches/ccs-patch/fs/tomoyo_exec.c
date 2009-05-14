@@ -60,11 +60,8 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		return -EINVAL;
 	saved_filename = ccs_get_name(filename);
 	saved_argv0 = ccs_get_name(argv0);
-	if (!saved_filename || !saved_argv0) {
-		ccs_put_name(saved_filename);
-		ccs_put_name(saved_argv0);
-		return -ENOMEM;
-	}
+	if (!saved_filename || !saved_argv0)
+		goto out;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -74,7 +71,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (acl->filename != saved_filename ||
@@ -103,7 +100,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (acl->filename != saved_filename ||
@@ -151,7 +148,7 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 		    !ccs_path_matches_pattern(filename, acl->filename) ||
 		    !ccs_path_matches_pattern(&argv_0, acl->argv0))
 			continue;
-		r->cond = ccs_get_condition_part(ptr);
+		r->condition_cookie.u.cond = ptr->cond;
 		error = 0;
 		break;
 	}

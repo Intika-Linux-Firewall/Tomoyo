@@ -47,6 +47,7 @@ extern asmlinkage long sys_getppid(void);
 
 struct ccs_domain_info;
 struct ccs_path_info;
+struct ccs_condition_list;
 struct ccs_cookie {
 	struct list_head list;
 	union {
@@ -54,6 +55,7 @@ struct ccs_cookie {
 		struct list_head *list;
 		struct ccs_domain_info *domain;
 		const struct ccs_path_info *path;
+		const struct ccs_condition_list *cond;
 	} u;
 };
 
@@ -132,10 +134,9 @@ struct ccs_execve_entry;
 /* Structure for request info. */
 struct ccs_request_info {
 	struct ccs_cookie cookie;
-	//struct ccs_domain_info *domain;
+	struct ccs_cookie condition_cookie;
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
-	const struct ccs_condition_list *cond;
 	u16 retry;
 	u8 profile;
 	u8 mode;
@@ -912,6 +913,8 @@ void ccs_fill_path_info(struct ccs_path_info *ptr);
 /* Fill in "struct ccs_request_info" members. */
 void ccs_init_request_info(struct ccs_request_info *r,
 			   struct ccs_domain_info *domain, const u8 index);
+/* Cleanup "struct ccs_request_info" members. */
+void ccs_exit_request_info(struct ccs_request_info *r);
 /* Run policy loader when /sbin/init starts. */
 void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */
@@ -952,19 +955,6 @@ static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
 static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
 {
 	return ptr->type;
-}
-
-/**
- * ccs_get_condition_part - Get condition part of the given ACL entry.
- *
- * @acl: Pointer to "struct ccs_acl_info".
- *
- * Returns pointer to the condition part if the ACL has it, NULL otherwise.
- */
-static inline const struct ccs_condition_list *
-ccs_get_condition_part(const struct ccs_acl_info *acl)
-{
-	return acl->cond;
 }
 
 /* Lock for protecting policy. */

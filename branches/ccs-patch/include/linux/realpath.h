@@ -65,25 +65,10 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head);
 
 /* Add a cookie to cookie list. */
 void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr);
-/**
- * ccs_update_cookie - Assign the given pointer to a cookie.
- *
- * @cookie: Pointer to "struct ccs_cookie".
- * @ptr:    Pointer to assign.
- *
- * Caller must hold ccs_policy_lock for reading unless either
- *   (a) @ptr is NULL
- *   (b) @ptr is already in cookie list
- *   (c) @ptr is not in memory for the policy
- *   (d) in the initialization phase
- * is true.
- */
-static inline void ccs_update_cookie(struct ccs_cookie *cookie,
-				     const void *ptr)
-{
-	cookie->u.ptr = ptr;
-}
 /* Delete a cookie from cookie list. */
 void ccs_del_cookie(struct ccs_cookie *cookie);
+
+/* Cleanup deleted entries. */
+void ccs_run_garbage_collector(void);
 
 #endif

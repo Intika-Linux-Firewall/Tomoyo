@@ -1150,7 +1150,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
-	const struct ccs_condition_list *cond = ccs_get_condition_part(acl);
+	const struct ccs_condition_list *cond = acl->cond;
 	struct linux_binprm *bprm = NULL;
 	if (!cond)
 		return true;

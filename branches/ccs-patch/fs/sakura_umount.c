@@ -93,8 +93,10 @@ int ccs_may_umount(struct vfsmount *mnt)
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_UNMOUNT);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
+	if (!r.mode) {
+		error = 0;
+		goto out;
+	}
  retry:
 	error = -EPERM;
 	dir0 = ccs_realpath_from_dentry(mnt->mnt_root, mnt);
@@ -129,6 +131,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		error = 0;
 	if (error == 1)
 		goto retry;
+	ccs_exit_request_info(&r);
 	return error;
 }
 

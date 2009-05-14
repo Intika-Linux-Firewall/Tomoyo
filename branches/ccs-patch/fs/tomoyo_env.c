@@ -171,8 +171,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		return -EINVAL;
 	saved_env = ccs_get_name(env);
 	if (!saved_env)
-		return -ENOMEM;
-
+		goto out;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -182,7 +181,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		struct ccs_env_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_env_acl_record, head);
 		if (acl->env != saved_env)
@@ -208,7 +207,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		struct ccs_env_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_env_acl_record, head);
 		if (acl->env != saved_env)
@@ -249,7 +248,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
-		r->cond = ccs_get_condition_part(ptr);
+		r->condition_cookie.u.cond = ptr->cond;
 		error = 0;
 		break;
 	}

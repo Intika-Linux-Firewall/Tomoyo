@@ -118,13 +118,13 @@ static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
 	struct ccs_request_info r;
-	int error;
+	int error = 0;
 	char *root_name;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_CHROOT);
 	if (!r.mode)
-		return 0;
+		goto done;
  retry:
 	error = -EPERM;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -153,6 +153,8 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	ccs_free(root_name);
 	if (error == 1)
 		goto retry;
+ done:
+	ccs_exit_request_info(&r);
 	return error;
 }
 

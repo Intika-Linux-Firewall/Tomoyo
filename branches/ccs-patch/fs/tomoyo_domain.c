@@ -117,9 +117,12 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
  */
 static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
 {
+	int error;
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, domain, CCS_MAC_FOR_FILE);
-	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
+	error = ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
+	ccs_exit_request_info(&r);
+	return error;
 }
 
 /* The list for "struct ccs_domain_initializer_entry". */
@@ -733,24 +736,34 @@ int ccs_delete_domain(char *domainname)
 bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
 				   struct ccs_cookie *cookie)
 {
-	struct ccs_domain_info *domain = kzalloc(sizeof(*domain), GFP_KERNEL);
-	const struct ccs_path_info *saved_domainname = ccs_get_name(domainname);
-	if (!domain || !saved_domainname)
-		goto out;
+	struct ccs_domain_info *entry;
+	struct ccs_domain_info *domain;
+	const struct ccs_path_info *saved_domainname;
+	cookie->u.domain = NULL;
+	if (!ccs_is_correct_domain(domainname, __func__))
+		return false;
+	saved_domainname = ccs_get_name(domainname);
+	if (!saved_domainname)
+		return false;
+	entry = kzalloc(sizeof(*domain), GFP_KERNEL);
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
-	if (!ccs_find_domain(domainname, cookie) &&
-	    ccs_is_correct_domain(domainname, __func__) &&
-	    ccs_memory_ok(domain)) {
-		INIT_LIST_HEAD(&domain->acl_info_list);
-		domain->domainname = saved_domainname;
-		saved_domainname = NULL;
-		domain->profile = profile;
-		list_add_tail(&domain->list, &ccs_domain_list);
+	list_for_each_entry(domain, &ccs_domain_list, list) {
+		if (domain->is_deleted ||
+		    ccs_pathcmp(saved_domainname, domain->domainname))
+			continue;
 		cookie->u.domain = domain;
-		domain = NULL;
+		break;
 	}
- out:
+	if (!cookie->u.domain && ccs_memory_ok(entry)) {
+		INIT_LIST_HEAD(&entry->acl_info_list);
+		entry->domainname = saved_domainname;
+		saved_domainname = NULL;
+		entry->profile = profile;
+		list_add_tail(&entry->list, &ccs_domain_list);
+		cookie->u.domain = entry;
+		entry = NULL;
+	}
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
 	ccs_put_name(saved_domainname);
@@ -838,7 +851,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	bool found = false;
  retry:
 	current->ccs_flags = ccs_flags;
-	r->cond = NULL;
+	r->condition_cookie.u.cond = NULL;
 	/* Get realpath of program and symbolic link. */
 	retval = ccs_realpath_both(bprm->filename, ee);
 	if (retval < 0)
@@ -960,11 +973,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 	if (found || strlen(new_domain_name) >= CCS_MAX_PATHNAME_LEN)
 		goto done;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
 	found = ccs_find_domain(new_domain_name, &r->cookie);
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	if (found)
 		goto done;
 	if (is_enforce) {
@@ -1652,6 +1661,7 @@ void ccs_finish_execve(int retval)
 	else
 		task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
  out:
+	ccs_exit_request_info(&ee->r);
 	ccs_free_execve_entry(ee);
 }
 

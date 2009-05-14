@@ -536,7 +536,7 @@ static void ccs_get_file_pattern(struct ccs_cookie *cookie)
 		}
 	}
 	if (pattern)
-		ccs_update_cookie(cookie, pattern);
+		cookie->u.path = pattern;
 	up_read(&ccs_policy_lock);
 	/***** READER SECTION END *****/
 }
@@ -783,7 +783,7 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 		} else {
 			continue;
 		}
-		r->cond = ccs_get_condition_part(ptr);
+		r->condition_cookie.u.cond = ptr->cond;
 		error = 0;
 		break;
 	}
@@ -1075,7 +1075,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
@@ -1114,7 +1114,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
@@ -1194,7 +1194,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
@@ -1230,7 +1230,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
@@ -1318,7 +1318,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 						      acl->u2.filename2))
 				continue;
 		}
-		r->cond = ccs_get_condition_part(ptr);
+		r->condition_cookie.u.cond = ptr->cond;
 		error = 0;
 		break;
 	}
@@ -1421,23 +1421,29 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_obj_info obj;
 	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
-	struct ccs_path_info *buf;
+	struct ccs_path_info *buf = NULL;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, current->ccs_flags &
 			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
 			      ccs_fetch_next_domain() : ccs_current_domain(),
 			      CCS_MAC_FOR_FILE);
-	if (!r.mode || !mnt)
-		return 0;
-	if (acc_mode == 0)
-		return 0;
-	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
+	if (!r.mode || !mnt) {
+		error = 0;
+		goto out;
+	}
+	if (acc_mode == 0) {
+		error = 0;
+		goto out;
+	}
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
 		/*
 		 * I don't check directories here because mkdir() and rmdir()
 		 * don't call me.
 		 */
-		return 0;
+		error = 0;
+		goto out;
+	}
 	buf = ccs_get_path(dentry, mnt);
 	if (!buf)
 		goto out;
@@ -1464,6 +1470,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	ccs_free(buf);
 	if (r.mode != 3)
 		error = 0;
+	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1484,14 +1491,16 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf;
+	struct ccs_path_info *buf = NULL;
 	bool is_enforce;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt)
-		return 0;
+	if (!r.mode || !mnt) {
+		error = 0;
+		goto out;
+	}
 	buf = ccs_get_path(dentry, mnt);
 	if (!buf)
 		goto out;
@@ -1514,6 +1523,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	ccs_free(buf);
 	if (!is_enforce)
 		error = 0;
+	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1530,13 +1540,15 @@ int ccs_check_rewrite_permission(struct file *filp)
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
 	bool is_enforce;
-	struct ccs_path_info *buf;
+	struct ccs_path_info *buf = NULL;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode || !filp->f_vfsmnt)
-		return 0;
+	if (!r.mode || !filp->f_vfsmnt) {
+		error = 0;
+		goto out;
+	}
 	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
 	if (!buf)
 		goto out;
@@ -1553,6 +1565,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	ccs_free(buf);
 	if (!is_enforce)
 		error = 0;
+	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1571,8 +1584,8 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf1;
-	struct ccs_path_info *buf2;
+	struct ccs_path_info *buf1 = NULL;
+	struct ccs_path_info *buf2 = NULL;
 	bool is_enforce;
 	const char *msg;
 	struct ccs_obj_info obj;
@@ -1580,8 +1593,10 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt)
-		return 0;
+	if (!r.mode || !mnt) {
+		error = 0;
+		goto out;
+	}
 	buf1 = ccs_get_path(dentry1, mnt);
 	buf2 = ccs_get_path(dentry2, mnt);
 	if (!buf1 || !buf2)
@@ -1642,6 +1657,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	ccs_free(buf2);
 	if (!is_enforce)
 		error = 0;
+	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1713,7 +1729,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
 		if (acl->u.ptr != saved_ptr ||
@@ -1743,7 +1759,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
 		if (acl->u.ptr != saved_ptr ||
@@ -1798,7 +1814,7 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 						      acl->u.filename))
 				continue;
 		}
-		r->cond = ccs_get_condition_part(ptr);
+		r->condition_cookie.u.cond = ptr->cond;
 		error = 0;
 		break;
 	}
@@ -1902,12 +1918,14 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf;
+	struct ccs_path_info *buf = NULL;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
-	if (!r.mode || !filp->f_vfsmnt)
-		return 0;
+	if (!r.mode || !filp->f_vfsmnt) {
+		error = 0;
+		goto out;
+	}
 	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
 	if (!buf)
 		goto out;
@@ -1920,6 +1938,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	ccs_free(buf);
 	if (r.mode != 3)
 		error = 0;
+	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -2534,7 +2553,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	int n;
 	int error = -ENOMEM;
 	int op = 0;
-	struct ccs_path_info_with_data *buf;
+	struct ccs_path_info_with_data *buf = NULL;
 	struct ccs_request_info r;
 	if (oldval)
 		op |= 004;
@@ -2545,11 +2564,13 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	if (!r.mode)
-		return 0;
+	if (!r.mode) {
+		error = 0;
+		goto out;
+	}
 	buf = ccs_alloc(sizeof(*buf), false);
 	if (!buf)
-		return -ENOMEM;
+		goto out;
 	buf->head.name = buf->body;
 	snprintf(buf->body, sizeof(buf->body) - 1, "/proc/sys");
  repeat:
@@ -2637,6 +2658,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	error = -ENOTDIR;
  out:
 	ccs_free(buf);
+	ccs_exit_request_info(&r);
 	return error;
 }
 #endif

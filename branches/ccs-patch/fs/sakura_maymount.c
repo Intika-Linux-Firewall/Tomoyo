@@ -116,6 +116,7 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 	struct ccs_request_info r;
 	struct list_head *p;
 	bool flag = false;
+	int error = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
 	struct namespace *namespace = current->namespace;
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
@@ -127,9 +128,9 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_DENY_CONCEAL_MOUNT);
 	if (!r.mode)
-		return 0;
+		goto done;
 	if (!namespace)
-		return 0;
+		goto done;
  retry:
 	list_for_each(p, &namespace->list) {
 		struct vfsmount *vfsmnt = list_entry(p, struct vfsmount,
@@ -145,10 +146,12 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 			break;
 	}
 	if (flag) {
-		int error = ccs_print_error(&r, path);
-		if (error == 1)
+		int err = ccs_print_error(&r, path);
+		if (err == 1)
 			goto retry;
-		return error;
+		error = err;
 	}
-	return 0;
+ done:
+	ccs_exit_request_info(&r);
+	return error;
 }

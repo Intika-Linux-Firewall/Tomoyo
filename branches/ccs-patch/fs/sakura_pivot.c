@@ -107,8 +107,10 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_PIVOT_ROOT);
-	if (!r.mode)
-		return 0;
+	if (!r.mode) {
+		error = 0;
+		goto done;
+	}
  retry:
 	error = -EPERM;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -165,6 +167,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	ccs_free(new_root);
 	if (error == 1)
 		goto retry;
+ done:
+	ccs_exit_request_info(&r);
 	return error;
 }
 

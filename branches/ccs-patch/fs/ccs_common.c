@@ -471,26 +471,27 @@ bool ccs_is_domain_def(const unsigned char *buffer)
  * @domainname: The domainname to find.
  * @cookie:     Pointer to "struct ccs_cookie".
  *
- * Caller holds	ccs_policy_lock for reading or writing.
- *
  * Returns true if found, false otherwise.
  */
 bool ccs_find_domain(const char *domainname, struct ccs_cookie *cookie)
 {
-	/***** READER SECTION START *****/
 	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
+	cookie->u.domain = NULL;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
 	list_for_each_entry(domain, &ccs_domain_list, list) {
 		if (domain->is_deleted ||
 		    ccs_pathcmp(&name, domain->domainname))
 			continue;
-		ccs_update_cookie(cookie, domain);
-		return true;
+		cookie->u.domain = domain;
+		break;
 	}
-	return false;
+	up_read(&ccs_policy_lock);
 	/***** READER SECTION END *****/
+	return cookie->u.domain != NULL;
 }
 
 /**
@@ -971,6 +972,8 @@ void ccs_init_request_info(struct ccs_request_info *r,
 			   struct ccs_domain_info *domain, const u8 index)
 {
 	memset(r, 0, sizeof(*r));
+	ccs_add_cookie(&r->cookie, NULL);
+	ccs_add_cookie(&r->condition_cookie, NULL);
 	if (!domain)
 		domain = ccs_current_domain();
 	r->cookie.u.domain = domain;
@@ -982,6 +985,17 @@ void ccs_init_request_info(struct ccs_request_info *r,
 		r->mode = ccs_check_capability_flags(domain, index
 						     - CCS_MAX_CONTROL_INDEX);
 #endif
+}
+
+/**
+ * ccs_exit_request_info - Cleanup "struct ccs_request_info" members.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ */
+void ccs_exit_request_info(struct ccs_request_info *r)
+{
+	ccs_del_cookie(&r->condition_cookie);
+	ccs_del_cookie(&r->cookie);
 }
 
 /**
@@ -1509,7 +1523,6 @@ static char *ccs_find_condition_part(char *data)
 static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
-	struct ccs_domain_info *domain = NULL;
 	struct ccs_cookie *cookie = &head->write_var1;
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
@@ -1517,56 +1530,42 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	}
 	if (sscanf(data, "pid=%u", &pid) == 1) {
 		struct task_struct *p;
+		cookie->u.domain = NULL;
 		/***** READER SECTION START *****/
 		down_read(&ccs_policy_lock);
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		p = find_task_by_pid(pid);
 		if (p)
-			domain = ccs_task_domain(p);
+			cookie->u.domain = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
-		if (domain)
-			ccs_update_cookie(cookie, domain);
 		up_read(&ccs_policy_lock);
 		/***** READER SECTION END *****/
 	} else if (!strncmp(data, "domain=", 7)) {
-		if (ccs_is_domain_def(data + 7)) {
-			/***** READER SECTION START *****/
-			down_read(&ccs_policy_lock);
-			if (ccs_find_domain(data + 7, cookie))
-				domain = cookie->u.domain;
-			up_read(&ccs_policy_lock);
-			/***** READER SECTION END *****/
-		}
+		cookie->u.domain = NULL;
+		if (ccs_is_domain_def(data + 7))
+			ccs_find_domain(data + 7, cookie);
 	} else
 		return false;
 	/* Accessing read_buf is safe because head->io_sem is held. */
 	if (!head->read_buf)
 		return true; /* Do nothing if open(O_WRONLY). */
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	if (cookie->u.domain)
+		head->read_var1.u.list = cookie->u.domain->list.prev;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	head->read_avail = 0;
 	ccs_io_printf(head, "# select %s\n", data);
 	head->read_single_domain = true;
-	head->read_eof = !domain;
-	if (domain) {
-		struct ccs_domain_info *d;
-		head->read_var1.u.list = NULL;
-		/***** READER SECTION START *****/
-		down_read(&ccs_policy_lock);
-		list_for_each_entry(d, &ccs_domain_list, list) {
-			if (d->list.next != &domain->list)
-				continue;
-			ccs_update_cookie(&head->read_var1, &d->list);
-			break;
-		}
-		up_read(&ccs_policy_lock);
-		/***** READER SECTION END *****/
-		head->read_var2.u.list = NULL;
-		head->read_bit = 0;
-		head->read_step = 0;
-		if (domain->is_deleted)
-			ccs_io_printf(head, "# This is a deleted domain.\n");
-	}
+	head->read_eof = !cookie->u.domain;
+	head->read_var2.u.list = NULL;
+	head->read_bit = 0;
+	head->read_step = 0;
+	if (cookie->u.domain && cookie->u.domain->is_deleted)
+		ccs_io_printf(head, "# This is a deleted domain.\n");
 	return true;
 }
 
@@ -1580,7 +1579,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	struct ccs_domain_info *domain = head->write_var1.u.domain;
+	struct ccs_cookie *cookie = &head->write_var1;
 	bool is_delete = false;
 	bool is_select = false;
 	unsigned int profile;
@@ -1596,36 +1595,31 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	if (!ccs_is_policy_manager())
 		return -EPERM;
 	if (ccs_is_domain_def(data)) {
-		struct ccs_cookie *cookie = &head->write_var1;
+		cookie->u.domain = NULL;
 		if (is_delete) {
 			ccs_delete_domain(data);
-			ccs_update_cookie(cookie, NULL);
-		} else if (is_select) {
-			/***** READER SECTION START *****/
-			down_read(&ccs_policy_lock);
+		} else if (is_select)
 			ccs_find_domain(data, cookie);
-			up_read(&ccs_policy_lock);
-			/***** READER SECTION END *****/
-		} else
+		else
 			ccs_find_or_assign_new_domain(data, 0, cookie);
 		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
 	}
-	if (!domain)
+	if (!cookie->u.domain)
 		return -EINVAL;
 
 	if (sscanf(data, KEYWORD_USE_PROFILE "%u", &profile) == 1
 	    && profile < MAX_PROFILES) {
 		if (ccs_profile_ptr[profile] || !ccs_policy_loaded)
-			domain->profile = (u8) profile;
+			cookie->u.domain->profile = (u8) profile;
 		return 0;
 	}
 	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
-		domain->ignore_global_allow_read = !is_delete;
+		cookie->u.domain->ignore_global_allow_read = !is_delete;
 		return 0;
 	}
 	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
-		domain->ignore_global_allow_env = !is_delete;
+		cookie->u.domain->ignore_global_allow_env = !is_delete;
 		return 0;
 	}
 	cp = ccs_find_condition_part(data);
@@ -1635,20 +1629,26 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 			return -EINVAL;
 	}
 	if (ccs_str_starts(&data, KEYWORD_ALLOW_CAPABILITY))
-		return ccs_write_capability_policy(data, domain, cond,
-						   is_delete);
+		return ccs_write_capability_policy(data, cookie->u.domain,
+						   cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_NETWORK))
-		return ccs_write_network_policy(data, domain, cond, is_delete);
+		return ccs_write_network_policy(data, cookie->u.domain, cond,
+						is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_SIGNAL))
-		return ccs_write_signal_policy(data, domain, cond, is_delete);
+		return ccs_write_signal_policy(data, cookie->u.domain, cond,
+					       is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ARGV0))
-		return ccs_write_argv0_policy(data, domain, cond, is_delete);
+		return ccs_write_argv0_policy(data, cookie->u.domain, cond,
+					      is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
-		return ccs_write_env_policy(data, domain, cond, is_delete);
+		return ccs_write_env_policy(data, cookie->u.domain, cond,
+					    is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
-		return ccs_write_ioctl_policy(data, domain, cond, is_delete);
+		return ccs_write_ioctl_policy(data, cookie->u.domain, cond,
+					      is_delete);
 	else
-		return ccs_write_file_policy(data, domain, cond, is_delete);
+		return ccs_write_file_policy(data, cookie->u.domain, cond,
+					     is_delete);
 }
 
 /**
@@ -2023,7 +2023,7 @@ static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
 static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    struct ccs_acl_info *ptr)
 {
-	const struct ccs_condition_list *cond = ccs_get_condition_part(ptr);
+	const struct ccs_condition_list *cond = ptr->cond;
 	const u8 acl_type = ptr->type;
 	if (acl_type & ACL_DELETED)
 		return true;
@@ -2183,13 +2183,11 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	profile = simple_strtoul(data, NULL, 10);
 	if (profile >= MAX_PROFILES)
 		return -EINVAL;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
+	ccs_add_cookie(&cookie, NULL);
 	if (ccs_find_domain(cp + 1, &cookie) &&
 	    (ccs_profile_ptr[profile] || !ccs_policy_loaded))
 		cookie.u.domain->profile = (u8) profile;
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
+	ccs_del_cookie(&cookie);
 	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
@@ -3378,6 +3376,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 int ccs_close_control(struct file *file)
 {
 	struct ccs_io_buffer *head = file->private_data;
+	const bool write_mode = head->write_buf!= NULL;
 	/*
 	 * If the file is /proc/ccs/query , decrement the observer counter.
 	 */
@@ -3394,5 +3393,7 @@ int ccs_close_control(struct file *file)
 	ccs_free(head);
 	head = NULL;
 	file->private_data = NULL;
+	if (write_mode)
+		ccs_run_garbage_collector();
 	return 0;
 }

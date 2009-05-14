@@ -88,13 +88,13 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c   |  456 +++++++++++++++++++-----------------
  security/tomoyo/common.h   |  134 ++++++++--
- security/tomoyo/domain.c   |  438 +++++++++++++---------------------
+ security/tomoyo/domain.c   |  437 +++++++++++++---------------------
  security/tomoyo/file.c     |  369 +++++++++++++++--------------
  security/tomoyo/realpath.c |  567 ++++++++++++++++++++++++++++++++++-----------
  security/tomoyo/realpath.h |   25 +
  security/tomoyo/tomoyo.c   |   40 +--
  security/tomoyo/tomoyo.h   |   13 -
- 8 files changed, 1191 insertions(+), 851 deletions(-)
+ 8 files changed, 1190 insertions(+), 851 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1656,7 +1656,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return done;
  }
  
-@@ -551,120 +513,65 @@ int tomoyo_write_alias_policy(char *data
+@@ -551,120 +513,64 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }
  
@@ -1780,8 +1780,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	up_write(&tomoyo_domain_list_lock);
 -	/***** EXCLUSIVE SECTION END *****/
 -	return domain;
-+	if (!cookie->u.domain && saved_domainname &&
-+	    tomoyo_alloc_element(entry)) {
++	if (!cookie->u.domain && tomoyo_alloc_element(entry)) {
 +		INIT_LIST_HEAD(&entry->acl_info_list);
 +		entry->domainname = saved_domainname;
 +		saved_domainname = NULL;
@@ -1812,7 +1811,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -672,7 +579,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -672,7 +578,6 @@ int tomoyo_find_next_domain(struct linux
  	 */
  	struct tomoyo_page_buffer *tmp = tomoyo_alloc(sizeof(*tmp));
  	struct tomoyo_domain_info *old_domain = tomoyo_domain();
@@ -1820,7 +1819,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const char *old_domain_name = old_domain->domainname->name;
  	const char *original_name = bprm->filename;
  	char *new_domain_name = NULL;
-@@ -685,6 +591,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -685,6 +590,8 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1829,7 +1828,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (!tmp)
  		goto out;
-@@ -723,7 +631,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -723,7 +630,8 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1839,7 +1838,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		list_for_each_entry(ptr, &tomoyo_alias_list, list) {
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
-@@ -735,7 +644,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -735,7 +643,8 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1849,7 +1848,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  
  	/* Check execute permission. */
-@@ -755,40 +665,38 @@ int tomoyo_find_next_domain(struct linux
+@@ -755,40 +664,38 @@ int tomoyo_find_next_domain(struct linux
  		 * /sbin/init. But transit from kernel domain if executing
  		 * initializers because they might start before /sbin/init.
  		 */

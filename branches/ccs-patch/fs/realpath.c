@@ -1031,7 +1031,7 @@ void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr)
 {
 	if (!cookie)
 		return;
-	ccs_update_cookie(cookie, ptr);
+	cookie->u.ptr = ptr;
 	write_lock(&ccs_cookie_list_lock);
 	list_add_tail(&cookie->list, &ccs_cookie_list);
 	write_unlock(&ccs_cookie_list_lock);

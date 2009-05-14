@@ -113,7 +113,7 @@ static int ccs_update_capability_acl(const u8 operation,
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_capability_acl_record, head);
 		if (acl->operation != operation)
@@ -138,7 +138,7 @@ static int ccs_update_capability_acl(const u8 operation,
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_capability_acl_record, head);
 		if (acl->operation != operation)
@@ -170,8 +170,10 @@ bool ccs_capable(const u8 operation)
 		return true;
 	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return true;
+	if (!r.mode) {
+		found = true;
+		goto done;
+	}
  retry:
 	/***** READER SECTION START *****/
 	down_read(&ccs_policy_lock);
@@ -183,7 +185,7 @@ bool ccs_capable(const u8 operation)
 		if (acl->operation != operation ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
-		r.cond = ccs_get_condition_part(ptr);
+		r.condition_cookie.u.cond = ptr->cond;
 		found = true;
 		break;
 	}
@@ -191,7 +193,7 @@ bool ccs_capable(const u8 operation)
 	/***** READER SECTION START *****/
 	ccs_audit_capability_log(&r, operation, found);
 	if (found)
-		return true;
+		goto done;
 	if (ccs_verbose_mode(r.cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
@@ -202,12 +204,16 @@ bool ccs_capable(const u8 operation)
 						 ccs_cap2keyword(operation));
 		if (error == 1)
 			goto retry;
-		return !error;
+		found = !error;
+		goto done;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
 		ccs_update_capability_acl(operation, r.cookie.u.domain,
 					  ccs_handler_cond(), false);
-	return true;
+	found = true;
+ done:
+	ccs_exit_request_info(&r);
+	return found;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 

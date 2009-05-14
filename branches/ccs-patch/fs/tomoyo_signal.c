@@ -76,7 +76,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig != hash ||
@@ -104,7 +104,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
-		if (ccs_get_condition_part(ptr) != condition)
+		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig != hash ||
@@ -141,14 +141,17 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	int error = -EPERM;
 	if (!ccs_can_sleep())
 		return 0;
+	ccs_add_cookie(&dest, NULL);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
-	if (!sig)
-		return 0;                /* No check for NULL signal. */
-	ccs_add_cookie(&r.cookie, ccs_current_domain());
-	ccs_add_cookie(&dest, NULL);
+	if (!r.mode) {
+		error = 0;
+		goto done;
+	}
+	if (!sig) {
+		error = 0;
+		goto done;                /* No check for NULL signal. */
+	}
 	if (sys_getpid() == pid) {
 		ccs_audit_signal_log(&r, sig,
 				     r.cookie.u.domain->domainname->name,
@@ -208,7 +211,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			default:
 				continue;
 			}
-			r.cond = ccs_get_condition_part(ptr);
+			r.condition_cookie.u.cond = ptr->cond;
 			found = true;
 			break;
 		}
@@ -238,7 +241,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	error = 0;
  done:
 	ccs_del_cookie(&dest);
-	ccs_del_cookie(&r.cookie);
+	ccs_exit_request_info(&r);
 	return error;
 }
 
