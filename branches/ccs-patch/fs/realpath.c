@@ -511,6 +511,8 @@ void ccs_put_path_group(struct ccs_path_group_entry *group)
 	struct ccs_path_group_member *next_member;
 	LIST_HEAD(q);
 	bool can_delete_group = false;
+	if (!group)
+		return;
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
 	if (atomic_dec_and_test(&group->users)) {
@@ -551,6 +553,8 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 	struct ccs_address_group_member *next_member;
 	LIST_HEAD(q);
 	bool can_delete_group = false;
+	if (!group)
+		return;
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
 	if (atomic_dec_and_test(&group->users)) {

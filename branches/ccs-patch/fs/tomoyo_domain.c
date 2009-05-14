@@ -745,7 +745,7 @@ bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
 	saved_domainname = ccs_get_name(domainname);
 	if (!saved_domainname)
 		return false;
-	entry = kzalloc(sizeof(*domain), GFP_KERNEL);
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
 	list_for_each_entry(domain, &ccs_domain_list, list) {
@@ -767,7 +767,7 @@ bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
 	ccs_put_name(saved_domainname);
-	kfree(domain);
+	kfree(entry);
 	return cookie->u.domain != NULL;
 }
 
@@ -837,7 +837,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_path_info *handler = ee->handler;
-	struct ccs_domain_info *domain = NULL;
 	const char *old_domain_name = r->cookie.u.domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
 	const u8 mode = r->mode;
@@ -988,7 +987,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	found = ccs_find_or_assign_new_domain(new_domain_name, r->profile,
 					      &r->cookie);
 	if (found)
-		ccs_audit_domain_creation_log(domain);
+		ccs_audit_domain_creation_log(r->cookie.u.domain);
  done:
 	if (found) {
 		retval = 0;
@@ -1211,7 +1210,6 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	}
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->task = current;
-	ccs_add_cookie(&ee->r.cookie, current->ccs_domain_info);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_execve_list_lock);
 	list_add(&ee->list, &ccs_execve_list);
@@ -1260,7 +1258,6 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 	ccs_free(ee->program_path);
 	ccs_free(ee->tmp);
 	kfree(ee->dump.data);
-	ccs_del_cookie(&ee->r.cookie);
 	ccs_free(ee);
 }
 
