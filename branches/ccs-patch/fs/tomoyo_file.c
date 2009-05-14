@@ -18,27 +18,6 @@
 #include <linux/binfmts.h>
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
-/* Structure for "allow_read" keyword. */
-struct ccs_globally_readable_file_entry {
-	struct list1_head list;
-	const struct ccs_path_info *filename;
-	bool is_deleted;
-};
-
-/* Structure for "file_pattern" keyword. */
-struct ccs_pattern_entry {
-	struct list1_head list;
-	const struct ccs_path_info *pattern;
-	bool is_deleted;
-};
-
-/* Structure for "deny_rewrite" keyword. */
-struct ccs_no_rewrite_entry {
-	struct list1_head list;
-	const struct ccs_path_info *pattern;
-	bool is_deleted;
-};
-
 /* Keyword array for single path operations. */
 static const char *ccs_sp_keyword[MAX_SINGLE_PATH_OPERATION] = {
 	[TYPE_READ_WRITE_ACL] = "read/write",
@@ -169,7 +148,7 @@ static int ccs_audit_file_log(struct ccs_request_info *r, const char *operation,
 }
 
 /* The list for "struct ccs_globally_readable_file_entry". */
-static LIST1_HEAD(ccs_globally_readable_list);
+LIST_HEAD(ccs_globally_readable_list);
 
 /**
  * ccs_update_globally_readable_entry - Update "struct ccs_globally_readable_file_entry" list.
@@ -182,36 +161,37 @@ static LIST1_HEAD(ccs_globally_readable_list);
 static int ccs_update_globally_readable_entry(const char *filename,
 					      const bool is_delete)
 {
-	struct ccs_globally_readable_file_entry *new_entry;
+	struct ccs_globally_readable_file_entry *entry = NULL;
 	struct ccs_globally_readable_file_entry *ptr;
-	static DEFINE_MUTEX(lock);
 	const struct ccs_path_info *saved_filename;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__))
 		return -EINVAL;
-	saved_filename = ccs_save_name(filename);
+	saved_filename = ccs_get_name(filename);
 	if (!saved_filename)
 		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_globally_readable_list, list) {
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->filename != saved_filename)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->filename = saved_filename;
+		saved_filename = NULL;
+		list_add_tail(&entry->list, &ccs_globally_readable_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->filename = saved_filename;
-	list1_add_tail_mb(&new_entry->list, &ccs_globally_readable_list);
-	error = 0;
- out:
-	mutex_unlock(&lock);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	ccs_put_name(saved_filename);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
@@ -226,12 +206,19 @@ static int ccs_update_globally_readable_entry(const char *filename,
 static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 {
 	struct ccs_globally_readable_file_entry *ptr;
-	list1_for_each_entry(ptr, &ccs_globally_readable_list, list) {
-		if (!ptr->is_deleted &&
-		    ccs_path_matches_pattern(filename, ptr->filename))
-			return true;
+	bool found = false;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
+		if (ptr->is_deleted ||
+		    !ccs_path_matches_pattern(filename, ptr->filename))
+			continue;
+		found = true;
+		break;
 	}
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return found;
 }
 
 /**
@@ -256,25 +243,75 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
  */
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2,
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list,
 			      &ccs_globally_readable_list) {
 		struct ccs_globally_readable_file_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_globally_readable_file_entry,
+		ptr = list_entry(pos, struct ccs_globally_readable_file_entry,
 				  list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
-				   ptr->filename->name))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
+				     ptr->filename->name);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }
 
 /* The list for "struct ccs_path_group_entry". */
-static LIST1_HEAD(ccs_path_group_list);
+LIST_HEAD(ccs_path_group_list);
+
+/**
+ * ccs_get_path_group - Allocate memory for "struct ccs_path_group_entry".
+ *
+ * @group_name: The name of pathname group.
+ *
+ * Returns pointer to "struct ccs_path_group_entry" on success, NULL otherwise.
+ */
+static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
+{
+	struct ccs_path_group_entry *entry = NULL;
+	struct ccs_path_group_entry *group;
+	const struct ccs_path_info *saved_group_name;
+	int error = -ENOMEM;
+	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+	    !group_name[0])
+		return NULL;
+	saved_group_name = ccs_get_name(group_name);
+	if (!saved_group_name)
+		return NULL;
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(group, &ccs_path_group_list, list) {
+		if (saved_group_name != group->group_name)
+			continue;
+		atomic_inc(&group->users);
+		error = 0;
+		break;
+	}
+	if (error && ccs_memory_ok(entry)) {
+		INIT_LIST_HEAD(&entry->path_group_member_list);
+		entry->group_name = saved_group_name;
+		saved_group_name = NULL;
+		atomic_set(&entry->users, 1);
+		list_add_tail(&entry->list, &ccs_path_group_list);
+		group = entry;
+		entry = NULL;
+		error = 0;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	ccs_put_name(saved_group_name);
+	kfree(entry);
+	return !error ? group : NULL;
+}
 
 /**
  * ccs_update_path_group_entry - Update "struct ccs_path_group_entry" list.
@@ -289,64 +326,48 @@ static int ccs_update_path_group_entry(const char *group_name,
 				       const char *member_name,
 				       const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
-	struct ccs_path_group_entry *new_group;
 	struct ccs_path_group_entry *group;
-	struct ccs_path_group_member *new_member;
+	struct ccs_path_group_member *entry = NULL;
 	struct ccs_path_group_member *member;
-	const struct ccs_path_info *saved_group_name;
 	const struct ccs_path_info *saved_member_name;
-	int error = -ENOMEM;
-	bool found = false;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
-	    !group_name[0] ||
-	    !ccs_is_correct_path(member_name, 0, 0, 0, __func__) ||
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(member_name, 0, 0, 0, __func__) ||
 	    !member_name[0])
 		return -EINVAL;
-	saved_group_name = ccs_save_name(group_name);
+	group = ccs_get_path_group(group_name);
+	if (!group)
+		return -ENOMEM;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 	if (!strcmp(member_name, "pipe:"))
 		member_name = "pipe:[\\$]";
 #endif
-	saved_member_name = ccs_save_name(member_name);
-	if (!saved_group_name || !saved_member_name)
-		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(group, &ccs_path_group_list, list) {
-		if (saved_group_name != group->group_name)
+	saved_member_name = ccs_get_name(member_name);
+	if (saved_member_name)
+		goto out;
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(member, &group->path_group_member_list, list) {
+		if (member->member_name != saved_member_name)
 			continue;
-		list1_for_each_entry(member, &group->path_group_member_list,
-				     list) {
-			if (member->member_name != saved_member_name)
-				continue;
-			member->is_deleted = is_delete;
-			error = 0;
-			goto out;
-		}
-		found = true;
+		member->is_deleted = is_delete;
+		error = 0;
 		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->member_name = saved_member_name;
+		saved_member_name = NULL;
+		list_add_tail(&entry->list, &group->path_group_member_list);
+		entry = NULL;
+		error = 0;
 	}
-	if (!found) {
-		new_group = ccs_alloc_element(sizeof(*new_group));
-		if (!new_group)
-			goto out;
-		INIT_LIST1_HEAD(&new_group->path_group_member_list);
-		new_group->group_name = saved_group_name;
-		list1_add_tail_mb(&new_group->list, &ccs_path_group_list);
-		group = new_group;
-	}
-	new_member = ccs_alloc_element(sizeof(*new_member));
-	if (!new_member)
-		goto out;
-	new_member->member_name = saved_member_name;
-	list1_add_tail_mb(&new_member->list, &group->path_group_member_list);
-	error = 0;
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_member_name);
+	ccs_put_path_group(group);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
@@ -369,31 +390,6 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_find_or_assign_new_path_group - Create pathname group.
- *
- * @group_name: The name of pathname group.
- *
- * Returns pointer to "struct ccs_path_group_entry" if found, NULL otherwise.
- */
-static struct ccs_path_group_entry *
-ccs_find_or_assign_new_path_group(const char *group_name)
-{
-	u8 i;
-	struct ccs_path_group_entry *group;
-	for (i = 0; i <= 1; i++) {
-		list1_for_each_entry(group, &ccs_path_group_list, list) {
-			if (!strcmp(group_name, group->group_name->name))
-				return group;
-		}
-		if (!i) {
-			ccs_update_path_group_entry(group_name, "/", false);
-			ccs_update_path_group_entry(group_name, "/", true);
-		}
-	}
-	return NULL;
-}
-
-/**
  * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
  *
  * @pathname:        The name of pathname.
@@ -401,25 +397,31 @@ ccs_find_or_assign_new_path_group(const char *group_name)
  * @may_use_pattern: True if wild card is permitted.
  *
  * Returns true if @pathname matches pathnames in @group, false otherwise.
+ *
+ * Caller holds ccs_policy_lock for reading.
  */
 static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 				   const struct ccs_path_group_entry *group,
 				   const bool may_use_pattern)
 {
 	struct ccs_path_group_member *member;
-	list1_for_each_entry(member, &group->path_group_member_list, list) {
+	bool matched = false;
+	list_for_each_entry(member, &group->path_group_member_list, list) {
 		if (member->is_deleted)
 			continue;
 		if (!member->member_name->is_patterned) {
-			if (!ccs_pathcmp(pathname, member->member_name))
-				return true;
+			if (ccs_pathcmp(pathname, member->member_name))
+				continue;
 		} else if (may_use_pattern) {
-			if (ccs_path_matches_pattern(pathname,
-						     member->member_name))
-				return true;
-		}
+			if (!ccs_path_matches_pattern(pathname,
+						      member->member_name))
+				continue;
+		} else
+			continue;
+		matched = true;
+		break;
 	}
-	return false;
+	return matched;
 }
 
 /**
@@ -431,31 +433,36 @@ static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
  */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *gpos;
-	struct list1_head *mpos;
-	list1_for_each_cookie(gpos, head->read_var1, &ccs_path_group_list) {
+	struct list_head *gpos;
+	struct list_head *mpos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(gpos, head->read_var1.u.list,
+			      &ccs_path_group_list) {
 		struct ccs_path_group_entry *group;
-		group = list1_entry(gpos, struct ccs_path_group_entry, list);
-		list1_for_each_cookie(mpos, head->read_var2,
+		group = list_entry(gpos, struct ccs_path_group_entry, list);
+		list_for_each_cookie(mpos, head->read_var2.u.list,
 				      &group->path_group_member_list) {
 			struct ccs_path_group_member *member;
-			member = list1_entry(mpos, struct ccs_path_group_member,
+			member = list_entry(mpos, struct ccs_path_group_member,
 					     list);
 			if (member->is_deleted)
 				continue;
-			if (!ccs_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
-					   group->group_name->name,
-					   member->member_name->name))
-				goto out;
+			done = ccs_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
+					     group->group_name->name,
+					     member->member_name->name);
+			if (!done)
+				break;
 		}
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }
 
 /* The list for "struct ccs_pattern_entry". */
-static LIST1_HEAD(ccs_pattern_list);
+LIST_HEAD(ccs_pattern_list);
 
 /**
  * ccs_update_file_pattern_entry - Update "struct ccs_pattern_entry" list.
@@ -468,36 +475,37 @@ static LIST1_HEAD(ccs_pattern_list);
 static int ccs_update_file_pattern_entry(const char *pattern,
 					 const bool is_delete)
 {
-	struct ccs_pattern_entry *new_entry;
+	struct ccs_pattern_entry *entry = NULL;
 	struct ccs_pattern_entry *ptr;
-	static DEFINE_MUTEX(lock);
 	const struct ccs_path_info *saved_pattern;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(pattern, 0, 1, 0, __func__))
 		return -EINVAL;
-	saved_pattern = ccs_save_name(pattern);
+	saved_pattern = ccs_get_name(pattern);
 	if (!saved_pattern)
 		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_pattern_list, list) {
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_pattern_list, list) {
 		if (saved_pattern != ptr->pattern)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->pattern = saved_pattern;
+		saved_pattern = NULL;
+		list_add_tail(&entry->list, &ccs_pattern_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->pattern = saved_pattern;
-	list1_add_tail_mb(&new_entry->list, &ccs_pattern_list);
-	error = 0;
- out:
-	mutex_unlock(&lock);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	ccs_put_name(saved_pattern);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
@@ -505,15 +513,16 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 /**
  * ccs_get_file_pattern - Get patterned pathname.
  *
- * @filename: The filename to find patterned pathname.
- *
- * Returns pointer to pathname pattern if matched, @filename->name otherwise.
+ * @cookie: Pointer to "struct ccs_cookie".
  */
-static const char *ccs_get_file_pattern(const struct ccs_path_info *filename)
+static void ccs_get_file_pattern(struct ccs_cookie *cookie)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
-	list1_for_each_entry(ptr, &ccs_pattern_list, list) {
+	const struct ccs_path_info *filename = cookie->u.path;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_pattern_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(filename, ptr->pattern))
@@ -527,8 +536,9 @@ static const char *ccs_get_file_pattern(const struct ccs_path_info *filename)
 		}
 	}
 	if (pattern)
-		filename = pattern;
-	return filename->name;
+		ccs_update_cookie(cookie, pattern);
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 }
 
 /**
@@ -553,23 +563,27 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
  */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_pattern_list) {
 		struct ccs_pattern_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_pattern_entry, list);
+		ptr = list_entry(pos, struct ccs_pattern_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_FILE_PATTERN "%s\n",
-				   ptr->pattern->name))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_FILE_PATTERN "%s\n",
+				     ptr->pattern->name);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }
 
 /* The list for "struct ccs_no_rewrite_entry". */
-static LIST1_HEAD(ccs_no_rewrite_list);
+LIST_HEAD(ccs_no_rewrite_list);
 
 /**
  * ccs_update_no_rewrite_entry - Update "struct ccs_no_rewrite_entry" list.
@@ -582,36 +596,37 @@ static LIST1_HEAD(ccs_no_rewrite_list);
 static int ccs_update_no_rewrite_entry(const char *pattern,
 				       const bool is_delete)
 {
-	struct ccs_no_rewrite_entry *new_entry;
+	struct ccs_no_rewrite_entry *entry = NULL;
 	struct ccs_no_rewrite_entry *ptr;
-	static DEFINE_MUTEX(lock);
 	const struct ccs_path_info *saved_pattern;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(pattern, 0, 0, 0, __func__))
 		return -EINVAL;
-	saved_pattern = ccs_save_name(pattern);
+	saved_pattern = ccs_get_name(pattern);
 	if (!saved_pattern)
 		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->pattern != saved_pattern)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->pattern = saved_pattern;
+		saved_pattern = NULL;
+		list_add_tail(&entry->list, &ccs_no_rewrite_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->pattern = saved_pattern;
-	list1_add_tail_mb(&new_entry->list, &ccs_no_rewrite_list);
-	error = 0;
- out:
-	mutex_unlock(&lock);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	ccs_put_name(saved_pattern);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
@@ -627,14 +642,20 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 {
 	struct ccs_no_rewrite_entry *ptr;
-	list1_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
+	bool matched = false;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(filename, ptr->pattern))
 			continue;
-		return true;
+		matched = true;
+		break;
 	}
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return matched;
 }
 
 /**
@@ -659,19 +680,24 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
  */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &ccs_no_rewrite_list) {
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list,
+			      &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_no_rewrite_entry, list);
+		ptr = list_entry(pos, struct ccs_no_rewrite_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_DENY_REWRITE "%s\n",
-				   ptr->pattern->name))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_DENY_REWRITE "%s\n",
+				     ptr->pattern->name);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }
 
 /**
@@ -733,9 +759,12 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 				      const u16 perm,
 				      const bool may_use_pattern)
 {
-	struct ccs_domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->cookie.u.domain;
 	struct ccs_acl_info *ptr;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	int error = -EPERM;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
@@ -755,9 +784,12 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 			continue;
 		}
 		r->cond = ccs_get_condition_part(ptr);
-		return 0;
+		error = 0;
+		break;
 	}
-	return -EPERM;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return error;
 }
 
 /**
@@ -818,17 +850,16 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 		BUG();
  retry:
 	error = ccs_check_file_acl(r, filename, perm);
-	if (error && perm == 4 &&
-	    (r->domain->flags & DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0 &&
-	    ccs_is_globally_readable_file(filename))
+	if (error && perm == 4 && !r->cookie.u.domain->ignore_global_allow_read
+	    && ccs_is_globally_readable_file(filename))
 		error = 0;
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
+	if (ccs_verbose_mode(r->cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
-		       filename->name, ccs_get_last_name(r->domain));
+		       filename->name, ccs_get_last_name(r->cookie.u.domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(r, "allow_%s %s\n",
 					       msg, filename->name);
@@ -836,12 +867,21 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
 		/* Don't use patterns for execute permission. */
-		const char *patterned_file = (perm != 1) ?
-			ccs_get_file_pattern(filename) : filename->name;
-		ccs_update_file_acl(patterned_file, perm, r->domain,
-				    ccs_handler_cond(), false);
+		if (perm == 1) {
+			ccs_update_file_acl(filename->name, perm,
+					    r->cookie.u.domain,
+					    ccs_handler_cond(), false);
+		} else {
+			struct ccs_cookie cookie;
+			ccs_add_cookie(&cookie, filename);
+			ccs_get_file_pattern(&cookie);
+			ccs_update_file_acl(cookie.u.path->name, perm,
+					    r->cookie.u.domain,
+					    ccs_handler_cond(), false);
+			ccs_del_cookie(&cookie);
+		}
 	}
 	return 0;
 }
@@ -860,22 +900,24 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
 				      const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
 	const struct ccs_path_info *saved_filename;
 	struct ccs_acl_info *ptr;
-	struct ccs_execute_handler_record *acl;
-	int error = -ENOMEM;
+	struct ccs_execute_handler_record *entry = NULL;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
 	if (!ccs_is_correct_path(filename, 1, -1, -1, __func__))
 		return -EINVAL;
-	saved_filename = ccs_save_name(filename);
+	saved_filename = ccs_get_name(filename);
 	if (!saved_filename)
 		return -ENOMEM;
-	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_execute_handler_record *acl;
 		if (ccs_acl_type1(ptr) != type)
 			continue;
 		/* Condition not supported. */
@@ -884,28 +926,32 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		if (acl->handler != saved_filename)
 			continue;
 		/* Only one entry can exist in a domain. */
-		list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
 				ptr->type |= ACL_DELETED;
 		}
 		error = ccs_add_domain_acl(NULL, &acl->head);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(type, NULL);
-	if (!acl)
-		goto out;
-	acl->handler = saved_filename;
-	/* Only one entry can exist in a domain. */
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
-		if (ptr->type == type)
-			ptr->type |= ACL_DELETED;
+	if (error && ccs_memory_ok(entry)) {
+		entry->handler = saved_filename;
+		saved_filename = NULL;
+		/* Only one entry can exist in a domain. */
+		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+			if (ptr->type == type)
+				ptr->type |= ACL_DELETED;
+		}
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
 	}
-	error = ccs_add_domain_acl(domain, &acl->head);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_execute_handler_record *acl;
 		if (ccs_acl_type2(ptr) != type)
 			continue;
 		/* Condition not supported. */
@@ -916,8 +962,11 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_filename);
+	kfree(entry);
 	return error;
 }
 
@@ -993,13 +1042,12 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      condition,
 				      const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
 	static const u16 ccs_rw_mask =
 		(1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
-	const struct ccs_path_info *saved_filename;
+	const void *saved_ptr;
 	struct ccs_acl_info *ptr;
-	struct ccs_single_path_acl_record *acl;
-	int error = -ENOMEM;
+	struct ccs_single_path_acl_record *entry = NULL;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_group = false;
 	const u16 perm = 1 << type;
 	if (!domain)
@@ -1007,33 +1055,31 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
 		return -EINVAL;
 	if (filename[0] == '@') {
-		/*
-		 * This cast is OK because I don't dereference
-		 * in this function.
-		 */
-		saved_filename = (struct ccs_path_info *)
-			ccs_find_or_assign_new_path_group(filename + 1);
+		saved_ptr = ccs_get_path_group(filename + 1);
 		is_group = true;
 	} else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		if (!strcmp(filename, "pipe:"))
 			filename = "pipe:[\\$]";
 #endif
-		saved_filename = ccs_save_name(filename);
+		saved_ptr = ccs_get_name(filename);
 	}
-	if (!saved_filename)
+	if (!saved_ptr)
 		return -ENOMEM;
-	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
-		if (acl->u.filename != saved_filename)
+		if (acl->u.ptr != saved_ptr)
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
@@ -1044,29 +1090,35 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		else if (acl->perm & (1 << TYPE_READ_WRITE_ACL))
 			acl->perm |= ccs_rw_mask;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_SINGLE_PATH_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->perm = perm;
-	if (perm == (1 << TYPE_READ_WRITE_ACL))
-		acl->perm |= ccs_rw_mask;
-	acl->u_is_group = is_group;
-	acl->u.filename = saved_filename;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_SINGLE_PATH_ACL;
+		entry->head.cond = condition;
+		entry->perm = perm;
+		if (perm == (1 << TYPE_READ_WRITE_ACL))
+			entry->perm |= ccs_rw_mask;
+		entry->u_is_group = is_group;
+		entry->u.filename = saved_ptr;
+		saved_ptr = NULL;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
-		if (acl->u.filename != saved_filename)
+		if (acl->u.ptr != saved_ptr)
 			continue;
 		acl->perm &= ~perm;
 		if ((acl->perm & ccs_rw_mask) != ccs_rw_mask)
@@ -1076,8 +1128,14 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	if (is_group)
+		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
+	else
+		ccs_put_name((struct ccs_path_info *) saved_ptr);
+	kfree(entry);
 	return error;
 }
 
@@ -1100,12 +1158,11 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      condition,
 				      const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
-	const struct ccs_path_info *saved_filename1;
-	const struct ccs_path_info *saved_filename2;
+	const void *saved_ptr1;
+	const void *saved_ptr2;
 	struct ccs_acl_info *ptr;
-	struct ccs_double_path_acl_record *acl;
-	int error = -ENOMEM;
+	struct ccs_double_path_acl_record *entry = NULL;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_group1 = false;
 	bool is_group2 = false;
 	const u8 perm = 1 << type;
@@ -1115,78 +1172,86 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	    !ccs_is_correct_path(filename2, 0, 0, 0, __func__))
 		return -EINVAL;
 	if (filename1[0] == '@') {
-		/*
-		 * This cast is OK because I don't dereference
-		 * in this function.
-		 */
-		saved_filename1 = (struct ccs_path_info *)
-			ccs_find_or_assign_new_path_group(filename1 + 1);
+		saved_ptr1 = ccs_get_path_group(filename1 + 1);
 		is_group1 = true;
 	} else {
-		saved_filename1 = ccs_save_name(filename1);
+		saved_ptr1 = ccs_get_name(filename1);
 	}
 	if (filename2[0] == '@') {
-		/*
-		 * This cast is OK because I don't dereference
-		 * in this function.
-		 */
-		saved_filename2 = (struct ccs_path_info *)
-			ccs_find_or_assign_new_path_group(filename2 + 1);
+		saved_ptr2 = ccs_get_path_group(filename2 + 1);
 		is_group2 = true;
 	} else {
-		saved_filename2 = ccs_save_name(filename2);
+		saved_ptr2 = ccs_get_name(filename2);
 	}
-	if (!saved_filename1 || !saved_filename2)
-		return -ENOMEM;
-	mutex_lock(&lock);
+	if (!saved_ptr1 || !saved_ptr2)
+		goto out;
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
-		if (acl->u1.filename1 != saved_filename1 ||
-		    acl->u2.filename2 != saved_filename2)
+		if (acl->u1.ptr != saved_ptr1 || acl->u2.ptr != saved_ptr2)
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_DOUBLE_PATH_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->perm = perm;
-	acl->u1_is_group = is_group1;
-	acl->u2_is_group = is_group2;
-	acl->u1.filename1 = saved_filename1;
-	acl->u2.filename2 = saved_filename2;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_DOUBLE_PATH_ACL;
+		entry->head.cond = condition;
+		entry->perm = perm;
+		entry->u1_is_group = is_group1;
+		entry->u2_is_group = is_group2;
+		entry->u1.ptr = saved_ptr1;
+		saved_ptr1 = NULL;
+		entry->u2.ptr = saved_ptr2;
+		saved_ptr2 = NULL;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
-		if (acl->u1.filename1 != saved_filename1 ||
-		    acl->u2.filename2 != saved_filename2)
+		if (acl->u1.ptr != saved_ptr1 || acl->u2.ptr != saved_ptr2)
 			continue;
 		acl->perm &= ~perm;
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	if (is_group1)
+		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr1);
+	else
+		ccs_put_name((struct ccs_path_info *) saved_ptr1);
+	if (is_group2)
+		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr2);
+	else
+		ccs_put_name((struct ccs_path_info *) saved_ptr2);
+	kfree(entry);
 	return error;
 }
 
@@ -1221,10 +1286,13 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename1,
 				     const struct ccs_path_info *filename2)
 {
-	const struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info *domain = r->cookie.u.domain;
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	int error = -EPERM;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
@@ -1251,9 +1319,12 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				continue;
 		}
 		r->cond = ccs_get_condition_part(ptr);
-		return 0;
+		error = 0;
+		break;
 	}
-	return -EPERM;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return error;
 }
 
 /**
@@ -1281,21 +1352,25 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		goto ok;
-	if (ccs_verbose_mode(r->domain))
+	if (ccs_verbose_mode(r->cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 		       ccs_get_msg(is_enforce), msg, filename->name,
-		       ccs_get_last_name(r->domain));
+		       ccs_get_last_name(r->cookie.u.domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, "allow_%s %s\n",
 					     msg, filename->name);
 		if (error == 1)
 			goto retry;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
-		ccs_update_single_path_acl(operation,
-					   ccs_get_file_pattern(filename),
-					   r->domain, ccs_handler_cond(),
-					   false);
+	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_cookie cookie;
+		ccs_add_cookie(&cookie, filename);
+		ccs_get_file_pattern(&cookie);
+		ccs_update_single_path_acl(operation, cookie.u.path->name,
+					   r->cookie.u.domain,
+					   ccs_handler_cond(), false);
+		ccs_del_cookie(&cookie);
+	}
 	if (!is_enforce)
 		error = 0;
  ok:
@@ -1537,23 +1612,31 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	ccs_audit_file_log(&r, msg, buf1->name, buf2->name, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode(r.domain))
+	if (ccs_verbose_mode(r.cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(is_enforce),
 		       msg, buf1->name, buf2->name,
-		       ccs_get_last_name(r.domain));
+		       ccs_get_last_name(r.cookie.u.domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
 		if (error == 1)
 			goto retry;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
-		ccs_update_double_path_acl(operation,
-					   ccs_get_file_pattern(buf1),
-					   ccs_get_file_pattern(buf2),
-					   r.domain, ccs_handler_cond(),
-					   false);
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+		struct ccs_cookie cookie1;
+		struct ccs_cookie cookie2;
+		ccs_add_cookie(&cookie1, buf1);
+		ccs_add_cookie(&cookie2, buf2);
+		ccs_get_file_pattern(&cookie1);
+		ccs_get_file_pattern(&cookie2);
+		ccs_update_double_path_acl(operation, cookie1.u.path->name,
+					   cookie2.u.path->name,
+					   r.cookie.u.domain,
+					   ccs_handler_cond(), false);
+		ccs_del_cookie(&cookie1);
+		ccs_del_cookie(&cookie2);
+	}
  out:
 	ccs_free(buf1);
 	ccs_free(buf2);
@@ -1600,74 +1683,83 @@ static int ccs_update_ioctl_acl(const char *filename,
 				const struct ccs_condition_list *condition,
 				const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
-	const struct ccs_path_info *saved_filename;
+	const void *saved_ptr;
 	struct ccs_acl_info *ptr;
-	struct ccs_ioctl_acl_record *acl;
-	int error = -ENOMEM;
+	struct ccs_ioctl_acl_record *entry = NULL;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_group = false;
 	if (!domain)
 		return -EINVAL;
 	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
 		return -EINVAL;
 	if (filename[0] == '@') {
-		/*
-		 * This cast is OK because I don't dereference
-		 * in this function.
-		 */
-		saved_filename = (struct ccs_path_info *)
-			ccs_find_or_assign_new_path_group(filename + 1);
+		saved_ptr = ccs_get_path_group(filename + 1);
 		is_group = true;
 	} else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		if (!strcmp(filename, "pipe:"))
 			filename = "pipe:[\\$]";
 #endif
-		saved_filename = ccs_save_name(filename);
+		saved_ptr = ccs_get_name(filename);
 	}
-	if (!saved_filename)
+	if (!saved_ptr)
 		return -ENOMEM;
-	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
-		if (acl->u.filename != saved_filename ||
+		if (acl->u.ptr != saved_ptr ||
 		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
 			continue;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_IOCTL_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->u_is_group = is_group;
-	acl->u.filename = saved_filename;
-	acl->cmd_min = cmd_min;
-	acl->cmd_max = cmd_max;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_IOCTL_ACL;
+		entry->head.cond = condition;
+		entry->u_is_group = is_group;
+		entry->u.ptr = saved_ptr;
+		saved_ptr = NULL;
+		entry->cmd_min = cmd_min;
+		entry->cmd_max = cmd_max;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
-		if (acl->u.filename != saved_filename ||
+		if (acl->u.ptr != saved_ptr ||
 		    acl->cmd_min != cmd_min || acl->cmd_max != cmd_max)
 			continue;
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	if (is_group)
+		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
+	else
+		ccs_put_name((struct ccs_path_info *) saved_ptr);
+	kfree(entry);
 	return error;
 }
 
@@ -1684,9 +1776,12 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
 			       const unsigned int cmd)
 {
-	struct ccs_domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->cookie.u.domain;
 	struct ccs_acl_info *ptr;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	int error = -EPERM;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
 			continue;
@@ -1704,9 +1799,12 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 				continue;
 		}
 		r->cond = ccs_get_condition_part(ptr);
-		return 0;
+		error = 0;
+		break;
 	}
-	return -EPERM;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return error;
 }
 
 /**
@@ -1731,10 +1829,10 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
+	if (ccs_verbose_mode(r->cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
-		       cmd, ccs_get_last_name(r->domain));
+		       cmd, ccs_get_last_name(r->cookie.u.domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
 					       filename->name, cmd);
@@ -1742,9 +1840,15 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
-		ccs_update_ioctl_acl(ccs_get_file_pattern(filename), cmd, cmd,
-				     r->domain, ccs_handler_cond(), false);
+	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_cookie cookie;
+		ccs_add_cookie(&cookie, filename);
+		ccs_get_file_pattern(&cookie);
+		ccs_update_ioctl_acl(cookie.u.path->name, cmd, cmd,
+				     r->cookie.u.domain, ccs_handler_cond(),
+				     false);
+		ccs_del_cookie(&cookie);
+	}
 	return 0;
 }
 

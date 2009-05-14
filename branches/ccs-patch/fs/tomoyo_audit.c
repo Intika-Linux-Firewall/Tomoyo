@@ -137,9 +137,9 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	struct timeval tv;
 	u32 ccs_flags = current->ccs_flags;
 	const char *domainname;
-	if (!r->domain)
-		r->domain = ccs_current_domain();
-	domainname = r->domain->domainname->name;
+	if (!r->cookie.u.domain)
+		r->cookie.u.domain = ccs_current_domain();
+	domainname = r->cookie.u.domain->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
 	if (r->ee) {
@@ -188,19 +188,19 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	const struct ccs_condition_list *ptr = r->cond;
 	if (ptr) {
 		struct task_struct *task = current;
-		const u8 flags = ptr->post_state[3];
+		const u8 flags = ptr->head.post_state[3];
 		u32 ccs_flags = task->ccs_flags;
 		if (flags & 1) {
 			ccs_flags &= ~0xFF000000;
-			ccs_flags |= ptr->post_state[0] << 24;
+			ccs_flags |= ptr->head.post_state[0] << 24;
 		}
 		if (flags & 2) {
 			ccs_flags &= ~0x00FF0000;
-			ccs_flags |= ptr->post_state[1] << 16;
+			ccs_flags |= ptr->head.post_state[1] << 16;
 		}
 		if (flags & 4) {
 			ccs_flags &= ~0x0000FF00;
-			ccs_flags |= ptr->post_state[2] << 8;
+			ccs_flags |= ptr->head.post_state[2] << 8;
 		}
 		task->ccs_flags = ccs_flags;
 		r->cond = NULL;
@@ -284,9 +284,9 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int len;
 	char *buf;
 	struct ccs_log_entry *new_entry;
-	if (!r->domain)
-		r->domain = ccs_current_domain();
-	if (!ccs_can_save_audit_log(r->domain, is_granted))
+	if (!r->cookie.u.domain)
+		r->cookie.u.domain = ccs_current_domain();
+	if (!ccs_can_save_audit_log(r->cookie.u.domain, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;

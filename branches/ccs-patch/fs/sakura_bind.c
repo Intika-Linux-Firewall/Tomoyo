@@ -18,14 +18,16 @@
 
 /* Structure for "deny_autobind" keyword. */
 struct ccs_reserved_entry {
-	struct list1_head list;
+	struct list_head list;
 	bool is_deleted;             /* Delete flag.                         */
 	u16 min_port;                /* Start of port number range.          */
 	u16 max_port;                /* End of port number range.            */
 };
 
 /* The list for "struct ccs_reserved_entry". */
-static LIST1_HEAD(ccs_reservedport_list);
+LIST_HEAD(ccs_reservedport_list);
+
+static u8 ccs_reserved_port_map[8192];
 
 /**
  * ccs_update_reserved_entry - Update "struct ccs_reserved_entry" list.
@@ -39,31 +41,46 @@ static LIST1_HEAD(ccs_reservedport_list);
 static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 				     const bool is_delete)
 {
-	struct ccs_reserved_entry *new_entry;
 	struct ccs_reserved_entry *ptr;
-	static DEFINE_MUTEX(lock);
 	int error = -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
+	u8 *ccs_tmp_map = ccs_alloc(8192, false);
+	struct ccs_reserved_entry *entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	if (!ccs_tmp_map || !entry) {
+		kfree(entry);
+		ccs_free(ccs_tmp_map);
+		return -ENOMEM;
+	}
+	if (is_delete)
+		error = -ENOENT;
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port != min_port || max_port != ptr->max_port)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->min_port = min_port;
+		entry->max_port = max_port;
+		list_add_tail(&entry->list, &ccs_reservedport_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->min_port = min_port;
-	new_entry->max_port = max_port;
-	list1_add_tail_mb(&new_entry->list, &ccs_reservedport_list);
-	error = 0;
- out:
-	mutex_unlock(&lock);
+	list_for_each_entry(ptr, &ccs_reservedport_list, list) {
+		unsigned int port;
+		if (ptr->is_deleted)
+			continue;
+		for (port = ptr->min_port; port <= ptr->max_port; port++)
+			ccs_tmp_map[port >> 8] |= 1 << (port & 7);
+	}
+	memmove(ccs_reserved_port_map, ccs_tmp_map,
+		sizeof(ccs_reserved_port_map));
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	kfree(entry);
+	ccs_free(ccs_tmp_map);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
@@ -78,15 +95,10 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 bool ccs_lport_reserved(const u16 port)
 {
 	/***** CRITICAL SECTION START *****/
-	struct ccs_reserved_entry *ptr;
 	if (!ccs_check_flags(NULL, CCS_RESTRICT_AUTOBIND))
 		return false;
-	list1_for_each_entry(ptr, &ccs_reservedport_list, list) {
-		if (ptr->min_port <= port && port <= ptr->max_port &&
-		    !ptr->is_deleted)
-			return true;
-	}
-	return false;
+	return ccs_reserved_port_map[port >> 8] & (1 << (port & 7))
+		? true : false;
 	/***** CRITICAL SECTION END *****/
 }
 EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
@@ -127,24 +139,29 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
  */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
+	bool done = true;
+	struct list_head *pos;
 	char buffer[16];
 	memset(buffer, 0, sizeof(buffer));
-	list1_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list,
+			      &ccs_reservedport_list) {
 		u16 min_port;
 		u16 max_port;
 		struct ccs_reserved_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_reserved_entry, list);
+		ptr = list_entry(pos, struct ccs_reserved_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		min_port = ptr->min_port;
 		max_port = ptr->max_port;
 		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
 			 min_port != max_port ? '-' : '\0', max_port);
-		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }

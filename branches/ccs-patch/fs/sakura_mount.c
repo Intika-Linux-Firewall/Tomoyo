@@ -54,16 +54,6 @@ static inline void module_put(struct module *module)
 /* Allow to call 'mount --make-shared /dir'           */
 #define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
 
-/* Structure for "allow_mount" keyword. */
-struct ccs_mount_entry {
-	struct list1_head list;
-	const struct ccs_path_info *dev_name;
-	const struct ccs_path_info *dir_name;
-	const struct ccs_path_info *fs_type;
-	unsigned long flags;
-	bool is_deleted;
-};
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 /* For compatibility with older kernels. */
 static void put_filesystem(struct file_system_type *fs)
@@ -73,7 +63,7 @@ static void put_filesystem(struct file_system_type *fs)
 #endif
 
 /* The list for "struct ccs_mount_entry". */
-static LIST1_HEAD(ccs_mount_list);
+LIST_HEAD(ccs_mount_list);
 
 /**
  * ccs_update_mount_acl - Update "struct ccs_mount_entry" list.
@@ -90,99 +80,97 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 				const char *fs_type, const unsigned long flags,
 				const bool is_delete)
 {
-	struct file_system_type *type = NULL;
-	struct ccs_mount_entry *new_entry;
+	struct ccs_mount_entry *entry = NULL;
 	struct ccs_mount_entry *ptr;
-	const struct ccs_path_info *fs;
-	const struct ccs_path_info *dev;
-	const struct ccs_path_info *dir;
-	static DEFINE_MUTEX(lock);
-	int error = -ENOMEM;
+	const struct ccs_path_info *saved_fs;
+	const struct ccs_path_info *saved_dev;
+	const struct ccs_path_info *saved_dir;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(fs_type, 0, 0, 0, __func__))
 		return -EINVAL;
-	fs = ccs_save_name(fs_type);
-	if (!fs)
-		return -EINVAL;
+	saved_fs = ccs_get_name(fs_type);
+	if (!saved_fs)
+		return -ENOMEM;
 	if (!dev_name)
 		dev_name = "<NULL>";
-	if (!strcmp(fs->name, MOUNT_REMOUNT_KEYWORD))
+	if (!strcmp(saved_fs->name, MOUNT_REMOUNT_KEYWORD))
 		/* Fix dev_name to "any" for remount permission. */
 		dev_name = "any";
-	if (!strcmp(fs->name, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-	    !strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-	    !strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) ||
-	    !strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD))
+	if (!strcmp(saved_fs->name, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+	    !strcmp(saved_fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) ||
+	    !strcmp(saved_fs->name, MOUNT_MAKE_SLAVE_KEYWORD) ||
+	    !strcmp(saved_fs->name, MOUNT_MAKE_SHARED_KEYWORD))
 		dev_name = "any";
 	if (!ccs_is_correct_path(dev_name, 0, 0, 0, __func__) ||
-	    !ccs_is_correct_path(dir_name, 0, 0, 0, __func__))
+	    !ccs_is_correct_path(dir_name, 0, 0, 0, __func__)) {
+		ccs_put_name(saved_fs);
 		return -EINVAL;
-	dev = ccs_save_name(dev_name);
-	dir = ccs_save_name(dir_name);
-	if (!dev || !dir)
-		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_mount_list, list) {
+	}
+	saved_dev = ccs_get_name(dev_name);
+	saved_dir = ccs_get_name(dir_name);
+	if (!saved_dev || !saved_dir)
+		goto out;
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_mount_list, list) {
 		if (ptr->flags != flags ||
-		    ccs_pathcmp(ptr->dev_name, dev) ||
-		    ccs_pathcmp(ptr->dir_name, dir) ||
-		    ccs_pathcmp(ptr->fs_type, fs))
+		    ccs_pathcmp(ptr->dev_name, saved_dev) ||
+		    ccs_pathcmp(ptr->dir_name, saved_dir) ||
+		    ccs_pathcmp(ptr->fs_type, saved_fs))
 			continue;
+		ptr->is_deleted = is_delete;
 		error = 0;
-		if (is_delete) {
-			ptr->is_deleted = true;
-			goto out;
-		} else {
-			if (ptr->is_deleted) {
-				ptr->is_deleted = false;
-				goto update;
-			}
-			goto out; /* No changes. */
-		}
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->dev_name = saved_dev;
+		saved_dev = NULL;
+		entry->dir_name = saved_dir;
+		saved_dir = NULL;
+		entry->fs_type = saved_fs;
+		saved_fs = NULL;
+		entry->flags = flags;
+		list_add_tail(&entry->list, &ccs_mount_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	if (is_delete || error)
 		goto out;
-	new_entry->dev_name = dev;
-	new_entry->dir_name = dir;
-	new_entry->fs_type = fs;
-	new_entry->flags = flags;
-	list1_add_tail_mb(&new_entry->list, &ccs_mount_list);
-	error = 0;
-	ptr = new_entry;
- update:
-	if (!strcmp(fs->name, MOUNT_REMOUNT_KEYWORD)) {
+	if (!strcmp(fs_type, MOUNT_REMOUNT_KEYWORD))
 		printk(KERN_CONT "%sAllow remount %s with options 0x%lX.\n",
-		       ccs_log_level, dir->name, ptr->flags);
-	} else if (!strcmp(fs->name, MOUNT_BIND_KEYWORD)
-		   || !strcmp(fs->name, MOUNT_MOVE_KEYWORD)) {
+		       ccs_log_level, dir_name, flags);
+	else if (!strcmp(fs_type, MOUNT_BIND_KEYWORD)
+		 || !strcmp(fs_type, MOUNT_MOVE_KEYWORD))
 		printk(KERN_CONT "%sAllow mount %s %s %s with options 0x%lX\n",
-		       ccs_log_level, fs->name, dev->name, dir->name,
-		       ptr->flags);
-	} else if (!strcmp(fs->name, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		   !strcmp(fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		   !strcmp(fs->name, MOUNT_MAKE_SLAVE_KEYWORD) ||
-		   !strcmp(fs->name, MOUNT_MAKE_SHARED_KEYWORD)) {
+		       ccs_log_level, fs_type, dev_name, dir_name, flags);
+	else if (!strcmp(fs_type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+		 !strcmp(fs_type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
+		 !strcmp(fs_type, MOUNT_MAKE_SLAVE_KEYWORD) ||
+		 !strcmp(fs_type, MOUNT_MAKE_SHARED_KEYWORD))
 		printk(KERN_CONT "%sAllow mount %s %s with options 0x%lX.\n",
-		       ccs_log_level, fs->name, dir->name, ptr->flags);
-	} else {
-		type = get_fs_type(fs->name);
+		       ccs_log_level, fs_type, dir_name, flags);
+	else {
+		struct file_system_type *type = get_fs_type(fs_type);
 		if (type && (type->fs_flags & FS_REQUIRES_DEV) != 0)
 			printk(KERN_CONT "%sAllow mount -t %s %s %s "
 			       "with options 0x%lX.\n", ccs_log_level,
-			       fs->name, dev->name, dir->name, ptr->flags);
+			       fs_type, dev_name, dir_name, flags);
 		else
 			printk(KERN_CONT "%sAllow mount %s on %s "
 			       "with options 0x%lX.\n", ccs_log_level,
-			       fs->name, dir->name, ptr->flags);
+			       fs_type, dir_name, flags);
+		if (type)
+			put_filesystem(type);
 	}
-	if (type)
-		put_filesystem(type);
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_dev);
+	ccs_put_name(saved_dir);
+	ccs_put_name(saved_fs);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
@@ -440,7 +428,9 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		}
 		rdev.name = requested_dev_name;
 		ccs_fill_path_info(&rdev);
-		list1_for_each_entry(ptr, &ccs_mount_list, list) {
+		/***** READER SECTION START *****/
+		down_read(&ccs_policy_lock);
+		list_for_each_entry(ptr, &ccs_mount_list, list) {
 			if (ptr->is_deleted)
 				continue;
 
@@ -468,6 +458,8 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 					  requested_type, flags, need_dev);
 			break;
 		}
+		up_read(&ccs_policy_lock);
+		/***** READER SECTION END *****/
 		if (error)
 			error = ccs_print_error(r, requested_dev_name,
 						requested_dir_name,
@@ -561,18 +553,22 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
  */
 bool ccs_read_mount_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_mount_list) {
 		struct ccs_mount_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_mount_entry, list);
+		ptr = list_entry(pos, struct ccs_mount_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-				   ptr->dev_name->name, ptr->dir_name->name,
-				   ptr->fs_type->name, ptr->flags))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+				     ptr->dev_name->name, ptr->dir_name->name,
+				     ptr->fs_type->name, ptr->flags);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }

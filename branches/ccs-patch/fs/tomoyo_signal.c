@@ -55,23 +55,25 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 				 const struct ccs_condition_list *condition,
 				 const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
+	struct ccs_signal_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_signal_acl_record *acl;
 	const struct ccs_path_info *saved_dest_pattern;
 	const u16 hash = sig;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
 	if (!dest_pattern || !ccs_is_correct_domain(dest_pattern, __func__))
 		return -EINVAL;
-	saved_dest_pattern = ccs_save_name(dest_pattern);
+	saved_dest_pattern = ccs_get_name(dest_pattern);
 	if (!saved_dest_pattern)
 		return -ENOMEM;
-	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -81,19 +83,25 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		    ccs_pathcmp(acl->domainname, saved_dest_pattern))
 			continue;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_SIGNAL_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->sig = hash;
-	acl->domainname = saved_dest_pattern;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_SIGNAL_ACL;
+		entry->head.cond = condition;
+		entry->sig = hash;
+		entry->domainname = saved_dest_pattern;
+		saved_dest_pattern = NULL;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -105,8 +113,11 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_dest_pattern);
+	kfree(entry);
 	return error;
 }
 
@@ -121,12 +132,13 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 int ccs_check_signal_acl(const int sig, const int pid)
 {
 	struct ccs_request_info r;
-	struct ccs_domain_info *dest = NULL;
+	struct ccs_cookie dest;
 	const char *dest_pattern;
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
 	bool is_enforce;
 	bool found = false;
+	int error = -EPERM;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
@@ -135,12 +147,19 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
+	ccs_add_cookie(&r.cookie, ccs_current_domain());
+	ccs_add_cookie(&dest, NULL);
 	if (sys_getpid() == pid) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
-		return 0;                /* No check for self process. */
+		ccs_audit_signal_log(&r, sig,
+				     r.cookie.u.domain->domainname->name,
+				     true);
+		error = 0;
+		goto done;               /* No check for self process. */
 	}
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
+		/***** READER SECTION START *****/
+		down_read(&ccs_policy_lock);
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		if (pid > 0)
@@ -148,23 +167,32 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		else if (pid == 0)
 			p = current;
 		else if (pid == -1)
-			dest = &ccs_kernel_domain;
+			dest.u.domain = &ccs_kernel_domain;
 		else
 			p = find_task_by_pid((pid_t) -pid);
 		if (p)
-			dest = ccs_task_domain(p);
+			dest.u.domain = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
+		up_read(&ccs_policy_lock);
+		/***** READER SECTION END *****/
 	}
-	if (!dest)
-		return 0; /* I can't find destinatioin. */
-	if (r.domain == dest) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
-		return 0;                /* No check for self domain. */
+	if (!dest.u.domain) {
+		error = 0;
+		goto done; /* I can't find destinatioin. */
 	}
-	dest_pattern = dest->domainname->name;
+	if (r.cookie.u.domain == dest.u.domain) {
+		ccs_audit_signal_log(&r, sig,
+				     r.cookie.u.domain->domainname->name,
+				     true);
+		error = 0;
+		goto done; /* No check for self domain. */
+	}
+	dest_pattern = dest.u.domain->domainname->name;
  retry:
-	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
+	/***** READER SECTION END *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
 			continue;
@@ -185,24 +213,33 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			break;
 		}
 	}
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	ccs_audit_signal_log(&r, sig, dest_pattern, found);
-	if (found)
-		return 0;
-	if (ccs_verbose_mode(r.domain))
+	if (found) {
+		error = 0;
+		goto done;
+	}
+	if (ccs_verbose_mode(r.cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
-		       ccs_get_last_name(dest), ccs_get_last_name(r.domain));
+		       ccs_get_last_name(dest.u.domain),
+		       ccs_get_last_name(r.cookie.u.domain));
 	if (is_enforce) {
-		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
-						 "%d %s\n", sig, dest_pattern);
-		if (error == 1)
+		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
+					       "%d %s\n", sig, dest_pattern);
+		if (err == 1)
 			goto retry;
-		return error;
+		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
-		ccs_update_signal_acl(sig, dest_pattern, r.domain,
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
+		ccs_update_signal_acl(sig, dest_pattern, r.cookie.u.domain,
 				      ccs_handler_cond(), false);
-	return 0;
+	error = 0;
+ done:
+	ccs_del_cookie(&dest);
+	ccs_del_cookie(&r.cookie);
+	return error;
 }
 
 /**

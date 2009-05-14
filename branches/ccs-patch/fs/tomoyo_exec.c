@@ -49,24 +49,29 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 				  const struct ccs_condition_list *condition,
 				  const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
+	struct ccs_argv0_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_argv0_acl_record *acl;
 	const struct ccs_path_info *saved_filename;
 	const struct ccs_path_info *saved_argv0;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
 	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
 	    strchr(argv0, '/'))
 		return -EINVAL;
-	saved_filename = ccs_save_name(filename);
-	saved_argv0 = ccs_save_name(argv0);
-	if (!saved_filename || !saved_argv0)
+	saved_filename = ccs_get_name(filename);
+	saved_argv0 = ccs_get_name(argv0);
+	if (!saved_filename || !saved_argv0) {
+		ccs_put_name(saved_filename);
+		ccs_put_name(saved_argv0);
 		return -ENOMEM;
-	mutex_lock(&lock);
+	}
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -76,19 +81,26 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		    acl->argv0 != saved_argv0)
 			continue;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_ARGV0_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->filename = saved_filename;
-	acl->argv0 = saved_argv0;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_ARGV0_ACL;
+		entry->head.cond = condition;	
+		entry->filename = saved_filename;
+		saved_filename = NULL;
+		entry->argv0 = saved_argv0;
+		saved_argv0 = NULL;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -100,8 +112,12 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_filename);
+	ccs_put_name(saved_argv0);
+	kfree(entry);
 	return error;
 }
 
@@ -119,12 +135,14 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 			       const char *argv0)
 {
 	int error = -EPERM;
-	struct ccs_domain_info *domain = r->domain;
+	struct ccs_domain_info *domain = r->cookie.u.domain;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info argv_0;
 	argv_0.name = argv0;
 	ccs_fill_path_info(&argv_0);
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_argv0_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
 			continue;
@@ -137,6 +155,8 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 		error = 0;
 		break;
 	}
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	return error;
 }
 
@@ -163,16 +183,17 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 	ccs_audit_argv0_log(r, filename->name, argv0, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
+	if (ccs_verbose_mode(r->cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
 		       ccs_get_msg(is_enforce), filename->name, argv0,
-		       ccs_get_last_name(r->domain));
+		       ccs_get_last_name(r->cookie.u.domain));
 	if (is_enforce)
 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain))
-		ccs_update_argv0_entry(filename->name, argv0, r->domain,
-				       ccs_handler_cond(), false);
+	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain))
+		ccs_update_argv0_entry(filename->name, argv0,
+				       r->cookie.u.domain, ccs_handler_cond(),
+				       false);
 	return 0;
 }
 

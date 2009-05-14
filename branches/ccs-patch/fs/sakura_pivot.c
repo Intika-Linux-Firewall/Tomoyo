@@ -21,16 +21,8 @@
 #include <linux/fs.h>
 #endif
 
-/* Structure for "allow_pivot_root" keyword. */
-struct ccs_pivot_root_entry {
-	struct list1_head list;
-	const struct ccs_path_info *old_root;
-	const struct ccs_path_info *new_root;
-	bool is_deleted;
-};
-
 /* The list for "struct ccs_pivot_root_entry". */
-static LIST1_HEAD(ccs_pivot_root_list);
+LIST_HEAD(ccs_pivot_root_list);
 
 /**
  * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_entry" list.
@@ -44,43 +36,48 @@ static LIST1_HEAD(ccs_pivot_root_list);
 static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 				     const bool is_delete)
 {
-	struct ccs_pivot_root_entry *new_entry;
+	struct ccs_pivot_root_entry *entry = NULL;
 	struct ccs_pivot_root_entry *ptr;
 	const struct ccs_path_info *saved_old_root;
 	const struct ccs_path_info *saved_new_root;
-	static DEFINE_MUTEX(lock);
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
 	    !ccs_is_correct_path(new_root, 1, 0, 1, __func__))
 		return -EINVAL;
-	saved_old_root = ccs_save_name(old_root);
-	saved_new_root = ccs_save_name(new_root);
+	saved_old_root = ccs_get_name(old_root);
+	saved_new_root = ccs_get_name(new_root);
 	if (!saved_old_root || !saved_new_root)
-		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_pivot_root_list, list) {
+		goto out;
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 		if (ptr->old_root != saved_old_root ||
 		    ptr->new_root != saved_new_root)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->old_root = saved_old_root;
+		saved_old_root = NULL;
+		entry->new_root = saved_new_root;
+		saved_new_root = NULL;
+		list_add_tail(&entry->list, &ccs_pivot_root_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->old_root = saved_old_root;
-	new_entry->new_root = saved_new_root;
-	list1_add_tail_mb(&new_entry->list, &ccs_pivot_root_list);
-	error = 0;
-	printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
-	       new_root, old_root);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	if (!is_delete && !error)
+		printk(KERN_CONT "%sAllow pivot_root(%s, %s)\n", ccs_log_level,
+		       new_root, old_root);
  out:
-	mutex_unlock(&lock);
+	ccs_put_name(saved_old_root);
+	ccs_put_name(saved_new_root);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
@@ -132,7 +129,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		ccs_fill_path_info(&new_root_dir);
 		if (old_root_dir.is_dir && new_root_dir.is_dir) {
 			struct ccs_pivot_root_entry *ptr;
-			list1_for_each_entry(ptr, &ccs_pivot_root_list, list) {
+			list_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 				if (ptr->is_deleted)
 					continue;
 				if (!ccs_path_matches_pattern(&old_root_dir,
@@ -197,17 +194,22 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete)
  */
 bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &ccs_pivot_root_list) {
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list,
+			     &ccs_pivot_root_list) {
 		struct ccs_pivot_root_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_pivot_root_entry, list);
+		ptr = list_entry(pos, struct ccs_pivot_root_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
-				   ptr->new_root->name, ptr->old_root->name))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+				     ptr->new_root->name, ptr->old_root->name);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }

@@ -391,7 +391,7 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 	*cp = '\0';
 	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
 		goto out;
-	value = ccs_save_name(start);
+	value = ccs_get_name(start);
 	if (!value)
 		goto out;
 	argv->index = index;
@@ -440,7 +440,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 	}
 	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0, __func__))
 		goto out;
-	name = ccs_save_name(cp);
+	name = ccs_get_name(cp);
 	if (!name)
 		goto out;
 	if (!strcmp(start, "NULL")) {
@@ -454,7 +454,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 		*cp = '\0';
 		if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
 			goto out;
-		value = ccs_save_name(start);
+		value = ccs_get_name(start);
 		if (!value)
 			goto out;
 	}
@@ -496,7 +496,7 @@ static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
 	*cp = '\0';
 	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
 		goto out;
-	value = ccs_save_name(start);
+	value = ccs_get_name(start);
 	if (!value)
 		goto out;
 	symlinkp->is_not = is_not;
@@ -507,7 +507,7 @@ static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
 }
 
 /* The list for "struct ccs_condition_list". */
-static LIST1_HEAD(ccs_condition_list);
+LIST_HEAD(ccs_condition_list);
 
 enum ccs_conditions_index {
 	TASK_UID,             /* current_uid()   */
@@ -678,40 +678,27 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 static struct ccs_condition_list *
 ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 {
-	static DEFINE_MUTEX(lock);
 	struct ccs_condition_list *ptr;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_condition_list, list) {
-		/* Don't compare if size differs. */
-		if (ptr->condc != new_ptr->condc ||
-		    ptr->argc != new_ptr->argc ||
-		    ptr->envc != new_ptr->envc ||
-		    ptr->symlinkc != new_ptr->symlinkc)
-			continue;
-		/*
-		 * Compare ptr and new_ptr
-		 * except ptr->list and new_ptr->list.
-		 */
-		if (memcmp(((u8 *) ptr) + sizeof(ptr->list),
-			   ((u8 *) new_ptr) + sizeof(new_ptr->list),
-			   size - sizeof(ptr->list)))
+	int error = -ENOMEM;
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_condition_list, list) {
+		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
+		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(ptr)))
 			continue;
 		/* Same entry found. Share this entry. */
-		ccs_free(new_ptr);
+		atomic_inc(&ptr->users);
+		kfree(new_ptr);
 		new_ptr = ptr;
-		goto ok;
+		error = 0;
+		break;
 	}
-	/* Same entry not found. Save this entry. */
-	ptr = ccs_alloc_element(size);
-	if (ptr) {
-		memmove(ptr, new_ptr, size);
-		/* Append to chain. */
-		list1_add_tail_mb(&ptr->list, &ccs_condition_list);
+	if (error && !ccs_memory_ok(new_ptr)) {
+		kfree(new_ptr);
+		new_ptr = NULL;
 	}
-	ccs_free(new_ptr);
-	new_ptr = ptr;
- ok:
-	mutex_unlock(&lock);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	return new_ptr;
 }
 
@@ -837,15 +824,16 @@ ccs_find_or_assign_new_condition(char * const condition)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry)
 		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
-	new_ptr = ccs_alloc(size, false);
+	new_ptr = kzalloc(size, GFP_KERNEL);
 	if (!new_ptr)
 		return NULL;
 	for (i = 0; i < 4; i++)
-		new_ptr->post_state[i] = post_state[i];
-	new_ptr->condc = condc;
-	new_ptr->argc = argc;
-	new_ptr->envc = envc;
-	new_ptr->symlinkc = symlinkc;
+		new_ptr->head.post_state[i] = post_state[i];
+	atomic_set(&new_ptr->users, 1);
+	new_ptr->head.condc = condc;
+	new_ptr->head.argc = argc;
+	new_ptr->head.envc = envc;
+	new_ptr->head.symlinkc = symlinkc;
 	ptr = (unsigned long *) (new_ptr + 1);
 	argv = (struct ccs_argv_entry *) (ptr + condc);
 	envp = (struct ccs_envp_entry *) (argv + argc);
@@ -992,7 +980,7 @@ ccs_find_or_assign_new_condition(char * const condition)
 	BUG_ON(condc);
 	return ccs_find_same_condition(new_ptr, size);
  out:
-	ccs_free(new_ptr);
+	kfree(new_ptr);
 	return NULL;
 }
 
@@ -1166,10 +1154,10 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	struct linux_binprm *bprm = NULL;
 	if (!cond)
 		return true;
-	condc = cond->condc;
-	argc = cond->argc;
-	envc = cond->envc;
-	symlinkc = cond->symlinkc;
+	condc = cond->head.condc;
+	argc = cond->head.argc;
+	envc = cond->head.envc;
+	symlinkc = cond->head.symlinkc;
 	obj = r->obj;
 	if (r->ee)
 		bprm = r->ee->bprm;
@@ -1521,10 +1509,10 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	char buffer[32];
 	if (!cond)
 		goto no_condition;
-	condc = cond->condc;
-	argc = cond->argc;
-	envc = cond->envc;
-	symlinkc = cond->symlinkc;
+	condc = cond->head.condc;
+	argc = cond->head.argc;
+	envc = cond->head.envc;
+	symlinkc = cond->head.symlinkc;
 	ptr = (const unsigned long *) (cond + 1);
 	argv = (const struct ccs_argv_entry *) (ptr + condc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
@@ -1617,7 +1605,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 			goto out;
 	}
  post_condition:
-	i = cond->post_state[3];
+	i = cond->head.post_state[3];
 	if (!i)
 		goto no_condition;
 	if (!ccs_io_printf(head, " ; set"))
@@ -1626,7 +1614,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!(i & (1 << j)))
 			continue;
 		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
-				   cond->post_state[j]))
+				   cond->head.post_state[j]))
 			goto out;
 	}
  no_condition:

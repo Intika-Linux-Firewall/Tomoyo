@@ -39,21 +39,21 @@ char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 /* Encode binary string to ascii string. */
 char *ccs_encode(const char *str);
 
-/*
- * Allocate memory for ACL entry.
- * The RAM is chunked, so NEVER try to kfree() the returned pointer.
- */
-void *ccs_alloc_element(const unsigned int size);
+/*  Check memory quota. */
+bool ccs_memory_ok(const void *ptr);
 
-/*
- * Keep the given name on the RAM.
- * The RAM is shared, so NEVER try to modify or kfree() the returned name.
- */
-const struct ccs_path_info *ccs_save_name(const char *name);
+/* Allocate memory for the given name. */
+const struct ccs_path_info *ccs_get_name(const char *name);
+/* Delete memory for the given name. */
+void ccs_put_name(const struct ccs_path_info *name);
+
+/* Allocate memory for the given IPv6 address. */
+const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+/* Delete memory for the given IPv6 address. */
+void ccs_put_ipv6_address(const struct in6_addr *addr);
 
 /* Allocate memory for temporary use (e.g. permission checks). */
 void *ccs_alloc(const size_t size, const _Bool check_quota);
-
 /* Free memory allocated by ccs_alloc(). */
 void ccs_free(const void *p);
 
@@ -62,5 +62,28 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head);
 
 /* Set memory quota. */
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
+
+/* Add a cookie to cookie list. */
+void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr);
+/**
+ * ccs_update_cookie - Assign the given pointer to a cookie.
+ *
+ * @cookie: Pointer to "struct ccs_cookie".
+ * @ptr:    Pointer to assign.
+ *
+ * Caller must hold ccs_policy_lock for reading unless either
+ *   (a) @ptr is NULL
+ *   (b) @ptr is already in cookie list
+ *   (c) @ptr is not in memory for the policy
+ *   (d) in the initialization phase
+ * is true.
+ */
+static inline void ccs_update_cookie(struct ccs_cookie *cookie,
+				     const void *ptr)
+{
+	cookie->u.ptr = ptr;
+}
+/* Delete a cookie from cookie list. */
+void ccs_del_cookie(struct ccs_cookie *cookie);
 
 #endif

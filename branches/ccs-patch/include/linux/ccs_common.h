@@ -37,6 +37,7 @@
 #else
 #include <linux/hardirq.h>
 #endif
+#include <linux/in6.h>
 
 struct dentry;
 struct vfsmount;
@@ -44,79 +45,37 @@ struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
-#include <linux/ccs_compat.h>
-
-/*
- * Singly linked list.
- *
- * This list holds ACL entries used for access control.
- * Since TOMOYO Linux performs string pattern matching which takes long time,
- * I don't want to take any locks which disable preemption.
- * Threfore, I use singly linked list that cannot delete an element
- * but can make the code read-lock free.
- * This is OK because ACL entries in this list are seldom deleted.
- * You don't append garbage ACL entries without reasons, do you?
- */
-struct list1_head {
-	struct list1_head *next;
+struct ccs_domain_info;
+struct ccs_path_info;
+struct ccs_cookie {
+	struct list_head list;
+	union {
+		const void *ptr;
+		struct list_head *list;
+		struct ccs_domain_info *domain;
+		const struct ccs_path_info *path;
+	} u;
 };
 
-#define LIST1_HEAD_INIT(name) { &(name) }
-#define LIST1_HEAD(name) struct list1_head name = LIST1_HEAD_INIT(name)
-
-static inline void INIT_LIST1_HEAD(struct list1_head *list)
-{
-	list->next = list;
-}
-
-/* Reuse list_entry because it doesn't use "->prev" pointer. */
-#define list1_entry list_entry
-
-/* Reuse list_for_each_rcu because it doesn't use "->prev" pointer. */
-#define list1_for_each list_for_each_rcu
-
-/* Reuse list_for_each_entry_rcu because it doesn't use "->prev" pointer. */
-#define list1_for_each_entry list_for_each_entry_rcu
+#include <linux/ccs_compat.h>
 
 /**
- * list1_for_each_cookie - iterate over a list with cookie.
- * @pos:        the &struct list1_head to use as a loop cursor.
- * @cookie:     the &struct list1_head to use as a cookie.
+ * list_for_each_cookie - iterate over a list with cookie.
+ * @pos:        the &struct list_head to use as a loop cursor.
+ * @cookie:     the &struct list_head to use as a cookie.
  * @head:       the head for your list.
  *
- * Same with list_for_each_rcu() except that this primitive uses @cookie
+ * Same with list_for_each() except that this primitive uses @cookie
  * so that we can continue iteration.
  * @cookie must be NULL when iteration starts, and @cookie will become
  * NULL when iteration finishes.
- *
- * Since list elements are never removed, we don't need to get a lock
- * or a reference count.
  */
-#define list1_for_each_cookie(pos, cookie, head)                      \
+#define list_for_each_cookie(pos, cookie, head)                       \
 	for (({ if (!cookie)                                          \
 				     cookie = head; }),               \
-	     pos = rcu_dereference((cookie)->next);                   \
+	     pos = (cookie)->next;                                    \
 	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-	     (cookie) = pos, pos = rcu_dereference(pos->next))
-
-/**
- * list_add_tail_mb - add a new entry with memory barrier.
- * @new: new entry to be added.
- * @head: list head to add it before.
- *
- * Same with list_add_tail_rcu() except that this primitive uses mb()
- * so that we can traverse forwards using list1_for_each() and
- * list1_for_each_cookie().
- */
-static inline void list1_add_tail_mb(struct list1_head *new,
-				     struct list1_head *head)
-{
-	struct list1_head *prev = head;
-	new->next = head;
-	while (prev->next != head)
-		prev = prev->next;
-	rcu_assign_pointer(prev->next, new);
-}
+	     (cookie) = pos, pos = pos->next)
 
 /* Subset of "struct stat". */
 struct ccs_mini_stat {
@@ -153,12 +112,15 @@ struct ccs_obj_info {
 
 /* Structure for " if " and "; set" part. */
 struct ccs_condition_list {
-	struct list1_head list;
-	u16 condc;
-	u16 argc;
-	u16 envc;
-	u16 symlinkc;
-	u8 post_state[4];
+	struct list_head list;
+	atomic_t users;
+	struct {
+		u16 condc;
+		u16 argc;
+		u16 envc;
+		u16 symlinkc;
+		u8 post_state[4];
+	} head;
 	/* "unsigned long condition[condc]" follows here. */
 	/* "struct ccs_argv_entry argv[argc]" follows here. */
 	/* "struct ccs_envp_entry envp[envc]" follows here. */
@@ -169,7 +131,8 @@ struct ccs_execve_entry;
 
 /* Structure for request info. */
 struct ccs_request_info {
-	struct ccs_domain_info *domain;
+	struct ccs_cookie cookie;
+	//struct ccs_domain_info *domain;
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
 	const struct ccs_condition_list *cond;
@@ -207,10 +170,9 @@ struct ccs_execve_entry {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
+	struct ccs_cookie cookie;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
-	/* For calculating domain to transit to. */
-	struct ccs_domain_info *next_domain; /* Initialized to NULL. */
 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
@@ -220,21 +182,22 @@ struct ccs_execve_entry {
 
 /* Structure for "path_group" directive. */
 struct ccs_path_group_member {
-	struct list1_head list;
+	struct list_head list;
 	const struct ccs_path_info *member_name;
 	bool is_deleted;
 };
 
 /* Structure for "path_group" directive. */
 struct ccs_path_group_entry {
-	struct list1_head list;
+	struct list_head list;
 	const struct ccs_path_info *group_name;
-	struct list1_head path_group_member_list;
+	struct list_head path_group_member_list;
+	atomic_t users;
 };
 
 /* Structure for "address_group" directive. */
 struct ccs_address_group_member {
-	struct list1_head list;
+	struct list_head list;
 	union {
 		u32 ipv4;                    /* Host byte order    */
 		const struct in6_addr *ipv6; /* Network byte order */
@@ -245,9 +208,10 @@ struct ccs_address_group_member {
 
 /* Structure for "address_group" directive. */
 struct ccs_address_group_entry {
-	struct list1_head list;
+	struct list_head list;
 	const struct ccs_path_info *group_name;
-	struct list1_head address_group_member_list;
+	struct list_head address_group_member_list;
+	atomic_t users;
 };
 
 /* Structure for holding requested pathname. */
@@ -261,18 +225,12 @@ struct ccs_path_info_with_data {
 
 /* Common header for holding ACL entries. */
 struct ccs_acl_info {
-	/*
-	 * Keep "access_me_via_ccs_get_condition_part" first, for
-	 * memory for this filed is not allocated if
-	 * (type & ACL_WITH_CONDITION) == 0.
-	 */
-	const struct ccs_condition_list *access_me_via_ccs_get_condition_part;
-	struct list1_head list;
+	struct list_head list;
+	const struct ccs_condition_list *cond;
 	/*
 	 * Type of this ACL entry.
 	 *
 	 * MSB is is_deleted flag.
-	 * Next bit is with_condition flag.
 	 */
 	u8 type;
 } __attribute__((__packed__));
@@ -293,41 +251,143 @@ enum ccs_acl_entry_type_index {
 
 /* This ACL entry is deleted.           */
 #define ACL_DELETED        0x80
-/* This ACL entry has conditional part. */
-#define ACL_WITH_CONDITION 0x40
 
 /* Structure for domain information. */
 struct ccs_domain_info {
-	struct list1_head list;
-	struct list1_head acl_info_list;
+	struct list_head list;
+	struct list_head acl_info_list;
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
 	bool is_deleted;   /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
-	/* DOMAIN_FLAGS_*. Use ccs_set_domain_flag() to modify. */
-	u8 flags;
+	/* Ignore "allow_read" directive in exception policy. */
+	bool ignore_global_allow_read;
+	/* Ignore "allow_env" directive in exception policy.  */
+	bool ignore_global_allow_env;
+	/*
+	 * This domain was unable to create a new domain at
+	 * ccs_find_next_domain() because the name of the domain to be created
+	 * was too long or it could not allocate memory.
+	 * More than one process continued execve() without domain transition.
+	 */
+	bool domain_transition_failed;
 };
 
 /* Profile number is an integer between 0 and 255. */
 #define MAX_PROFILES 256
 
-/* Ignore "allow_read" directive in exception policy. */
-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
-/* Ignore "allow_env" directive in exception policy.  */
-#define DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_ENV  2
-/*
- * This domain was unable to create a new domain at ccs_find_next_domain()
- * because the name of the domain to be created was too long or
- * it could not allocate memory.
- * More than one process continued execve() without domain transition.
- */
-#define DOMAIN_FLAGS_TRANSITION_FAILED        4
-
 #define CCS_CHECK_READ_FOR_OPEN_EXEC    1
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 #define CCS_TASK_IS_EXECUTE_HANDLER     4
 #define CCS_TASK_IS_POLICY_MANAGER      8
+
+/* Structure for "allow_read" keyword. */
+struct ccs_globally_readable_file_entry {
+	struct list_head list;
+	const struct ccs_path_info *filename;
+	bool is_deleted;
+};
+
+/* Structure for "file_pattern" keyword. */
+struct ccs_pattern_entry {
+	struct list_head list;
+	const struct ccs_path_info *pattern;
+	bool is_deleted;
+};
+
+/* Structure for "deny_rewrite" keyword. */
+struct ccs_no_rewrite_entry {
+	struct list_head list;
+	const struct ccs_path_info *pattern;
+	bool is_deleted;
+};
+
+/* Structure for "allow_env" keyword. */
+struct ccs_globally_usable_env_entry {
+	struct list_head list;
+	const struct ccs_path_info *env;
+	bool is_deleted;
+};
+
+/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
+struct ccs_domain_initializer_entry {
+	struct list_head list;
+	const struct ccs_path_info *domainname;    /* This may be NULL */
+	const struct ccs_path_info *program;
+	bool is_deleted;
+	bool is_not;       /* True if this entry is "no_initialize_domain".  */
+	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+};
+
+/* Structure for "keep_domain" and "no_keep_domain" keyword. */
+struct ccs_domain_keeper_entry {
+	struct list_head list;
+	const struct ccs_path_info *domainname;
+	const struct ccs_path_info *program;       /* This may be NULL */
+	bool is_deleted;
+	bool is_not;       /* True if this entry is "no_keep_domain".        */
+	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+};
+
+/* Structure for "aggregator" keyword. */
+struct ccs_aggregator_entry {
+	struct list_head list;
+	const struct ccs_path_info *original_name;
+	const struct ccs_path_info *aggregated_name;
+	bool is_deleted;
+};
+
+/* Structure for "alias" keyword. */
+struct ccs_alias_entry {
+	struct list_head list;
+	const struct ccs_path_info *original_name;
+	const struct ccs_path_info *aliased_name;
+	bool is_deleted;
+};
+
+/* Structure for "deny_unmount" keyword. */
+struct ccs_no_umount_entry {
+	struct list_head list;
+	const struct ccs_path_info *dir;
+	bool is_deleted;
+};
+
+/* Structure for "allow_pivot_root" keyword. */
+struct ccs_pivot_root_entry {
+	struct list_head list;
+	const struct ccs_path_info *old_root;
+	const struct ccs_path_info *new_root;
+	bool is_deleted;
+};
+
+/* Structure for "allow_mount" keyword. */
+struct ccs_mount_entry {
+	struct list_head list;
+	const struct ccs_path_info *dev_name;
+	const struct ccs_path_info *dir_name;
+	const struct ccs_path_info *fs_type;
+	unsigned long flags;
+	bool is_deleted;
+};
+
+/* Structure for "allow_chroot" keyword. */
+struct ccs_chroot_entry {
+	struct list_head list;
+	const struct ccs_path_info *dir;
+	bool is_deleted;
+};
+
+/* Structure for policy manager. */
+struct ccs_policy_manager_entry {
+	struct list_head list;
+	/* A path to program or a domainname. */
+	const struct ccs_path_info *manager;
+	bool is_domain;  /* True if manager is a domainname. */
+	bool is_deleted; /* True if this entry is deleted. */
+};
+
+///
 
 /*
  * Structure for "execute_handler" and "denied_execute_handler" directive.
@@ -363,10 +423,11 @@ struct ccs_single_path_acl_record {
 	bool u_is_group; /* True if u points to "path_group" directive. */
 	u16 perm;
 	union {
+		const void *ptr;
 		/* Pointer to single pathname. */
 		const struct ccs_path_info *filename;
 		/* Pointer to pathname group. */
-		const struct ccs_path_group_entry *group;
+		struct ccs_path_group_entry *group;
 	} u;
 };
 
@@ -377,16 +438,18 @@ struct ccs_double_path_acl_record {
 	bool u1_is_group; /* True if u1 points to "path_group" directive. */
 	bool u2_is_group; /* True if u2 points to "path_group" directive. */
 	union {
+		const void *ptr;
 		/* Pointer to single pathname. */
 		const struct ccs_path_info *filename1;
 		/* Pointer to pathname group. */
-		const struct ccs_path_group_entry *group1;
+		struct ccs_path_group_entry *group1;
 	} u1;
 	union {
+		const void *ptr;
 		/* Pointer to single pathname. */
 		const struct ccs_path_info *filename2;
 		/* Pointer to pathname group. */
-		const struct ccs_path_group_entry *group2;
+		struct ccs_path_group_entry *group2;
 	} u2;
 };
 
@@ -397,10 +460,11 @@ struct ccs_ioctl_acl_record {
 	unsigned int cmd_max;
 	bool u_is_group; /* True if u points to "path_group" directive. */
 	union {
+		const void *ptr;
 		/* Pointer to single pathname. */
 		const struct ccs_path_info *filename;
 		/* Pointer to pathname group. */
-		const struct ccs_path_group_entry *group;
+		struct ccs_path_group_entry *group;
 	} u;
 };
 
@@ -429,6 +493,12 @@ struct ccs_signal_acl_record {
 	u16 sig;
 	/* Pointer to destination pattern. */
 	const struct ccs_path_info *domainname;
+};
+
+struct ccs_addr_entry {
+	struct list_head list;
+	atomic_t users;
+	struct in6_addr addr;
 };
 
 /* Structure for "allow_network" directive. */
@@ -476,7 +546,7 @@ struct ccs_ip_network_acl_record {
 			const struct in6_addr *max;
 		} ipv6;
 		/* Pointer to address group. */
-		const struct ccs_address_group_entry *group;
+		struct ccs_address_group_entry *group;
 	} u;
 };
 
@@ -604,11 +674,11 @@ struct ccs_io_buffer {
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
 	/* The position currently reading from. */
-	struct list1_head *read_var1;
+	struct ccs_cookie read_var1;
 	/* Extra variables for reading.         */
-	struct list1_head *read_var2;
+	struct ccs_cookie read_var2;
 	/* The position currently writing to.   */
-	struct ccs_domain_info *write_var1;
+	struct ccs_cookie write_var1;
 	/* The step for reading.                */
 	int read_step;
 	/* Buffer for reading.                  */
@@ -828,18 +898,15 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
 /* Find a domain by the given name. */
-struct ccs_domain_info *ccs_find_domain(const char *domainname);
+bool ccs_find_domain(const char *domainname, struct ccs_cookie *cookie);
 /* Find or create a domain by the given name. */
-struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
-						  const u8 profile);
+bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
+				   struct ccs_cookie *cookie);
 /* Check mode for specified functionality. */
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 			     const u8 index);
 /* Check whether it is safe to sleep. */
 bool ccs_can_sleep(void);
-/* Allocate memory for structures. */
-void *ccs_alloc_acl_element(const u8 acl_type,
-			    const struct ccs_condition_list *condition);
 /* Fill in "struct ccs_path_info" members. */
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 /* Fill in "struct ccs_request_info" members. */
@@ -850,9 +917,6 @@ void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */
 void ccs_print_ipv6(char *buffer, const int buffer_len,
 		    const struct in6_addr *ip);
-/* Change "struct ccs_domain_info"->flags. */
-void ccs_set_domain_flag(struct ccs_domain_info *domain, const bool is_delete,
-			 const u8 flags);
 /* Update the policy change counter. */
 void ccs_update_counter(const unsigned char index);
 
@@ -866,6 +930,11 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
 int ccs_check_exec_perm(struct ccs_request_info *r,
 			const struct ccs_path_info *filename);
 
+/* Delete memory for "struct ccs_path_group_entry". */
+void ccs_put_path_group(struct ccs_path_group_entry *group);
+/* Delete memory for "struct ccs_address_group_entry". */
+void ccs_put_address_group(struct ccs_address_group_entry *group);
+
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 			       const struct ccs_path_info *b)
@@ -876,13 +945,13 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 /* Get type of an ACL entry. */
 static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
 {
-	return ptr->type & ~(ACL_DELETED | ACL_WITH_CONDITION);
+	return ptr->type & ~ACL_DELETED;
 }
 
 /* Get type of an ACL entry. */
 static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
 {
-	return ptr->type & ~ACL_WITH_CONDITION;
+	return ptr->type;
 }
 
 /**
@@ -895,12 +964,32 @@ static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
 static inline const struct ccs_condition_list *
 ccs_get_condition_part(const struct ccs_acl_info *acl)
 {
-	return (acl->type & ACL_WITH_CONDITION) ?
-		acl->access_me_via_ccs_get_condition_part : NULL;
+	return acl->cond;
 }
 
+/* Lock for protecting policy. */
+extern struct rw_semaphore ccs_policy_lock;
 /* A linked list of domains. */
-extern struct list1_head ccs_domain_list;
+extern struct list_head ccs_domain_list;
+
+extern struct list_head ccs_mount_list;
+extern struct list_head ccs_address_group_list;
+extern struct list_head ccs_globally_readable_list;
+extern struct list_head ccs_path_group_list;
+extern struct list_head ccs_pattern_list;
+extern struct list_head ccs_no_rewrite_list;
+extern struct list_head ccs_globally_usable_env_list;
+extern struct list_head ccs_domain_initializer_list;
+extern struct list_head ccs_domain_keeper_list;
+extern struct list_head ccs_alias_list;
+extern struct list_head ccs_aggregator_list;
+extern struct list_head ccs_condition_list;
+extern struct list_head ccs_no_umount_list;
+extern struct list_head ccs_pivot_root_list;
+extern struct list_head ccs_chroot_list;
+extern struct list_head ccs_reservedport_list;
+extern struct list_head ccs_policy_manager_list;
+
 /* Has /sbin/init started? */
 extern bool ccs_policy_loaded;
 /* Log level for printk(). */

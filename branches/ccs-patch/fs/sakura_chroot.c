@@ -21,15 +21,8 @@
 #include <linux/fs.h>
 #endif
 
-/* Structure for "allow_chroot" keyword. */
-struct ccs_chroot_entry {
-	struct list1_head list;
-	const struct ccs_path_info *dir;
-	bool is_deleted;
-};
-
 /* The list for "struct ccs_chroot_entry". */
-static LIST1_HEAD(ccs_chroot_list);
+LIST_HEAD(ccs_chroot_list);
 
 /**
  * ccs_update_chroot_acl - Update "struct ccs_chroot_entry" list.
@@ -41,37 +34,40 @@ static LIST1_HEAD(ccs_chroot_list);
  */
 static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
 {
-	struct ccs_chroot_entry *new_entry;
+	struct ccs_chroot_entry *entry = NULL;
 	struct ccs_chroot_entry *ptr;
 	const struct ccs_path_info *saved_dir;
-	static DEFINE_MUTEX(lock);
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
 		return -EINVAL;
-	saved_dir = ccs_save_name(dir);
+	saved_dir = ccs_get_name(dir);
 	if (!saved_dir)
 		return -ENOMEM;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_chroot_list, list) {
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_chroot_list, list) {
 		if (ptr->dir != saved_dir)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
-		goto out;
+		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->dir = saved_dir;
+		saved_dir = NULL;
+		list_add_tail(&entry->list, &ccs_chroot_list);
+		entry = NULL;
+		error = 0;
 	}
-	new_entry = ccs_alloc_element(sizeof(*new_entry));
-	if (!new_entry)
-		goto out;
-	new_entry->dir = saved_dir;
-	list1_add_tail_mb(&new_entry->list, &ccs_chroot_list);
-	error = 0;
-	printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level, dir);
- out:
-	mutex_unlock(&lock);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	if (!is_delete && !error)
+		printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level,
+		       dir);
+	ccs_put_name(saved_dir);
+	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
 	return error;
 }
@@ -142,7 +138,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		ccs_fill_path_info(&dir);
 		if (dir.is_dir) {
 			struct ccs_chroot_entry *ptr;
-			list1_for_each_entry(ptr, &ccs_chroot_list, list) {
+			list_for_each_entry(ptr, &ccs_chroot_list, list) {
 				if (ptr->is_deleted)
 					continue;
 				if (!ccs_path_matches_pattern(&dir, ptr->dir))
@@ -182,17 +178,21 @@ int ccs_write_chroot_policy(char *data, const bool is_delete)
  */
 bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *pos;
-	list1_for_each_cookie(pos, head->read_var2, &ccs_chroot_list) {
+	struct list_head *pos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_chroot_list) {
 		struct ccs_chroot_entry *ptr;
-		ptr = list1_entry(pos, struct ccs_chroot_entry, list);
+		ptr = list_entry(pos, struct ccs_chroot_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
-				   ptr->dir->name))
-			goto out;
+		done = ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
+				     ptr->dir->name);
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }

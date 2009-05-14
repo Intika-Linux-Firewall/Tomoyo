@@ -99,16 +99,18 @@ static int ccs_update_capability_acl(const u8 operation,
 				     const struct ccs_condition_list *condition,
 				     const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
+	struct ccs_capability_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_capability_acl_record *acl;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
-	mutex_lock(&lock);
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -117,18 +119,23 @@ static int ccs_update_capability_acl(const u8 operation,
 		if (acl->operation != operation)
 			continue;
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_CAPABILITY_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->operation = operation;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_CAPABILITY_ACL;
+		entry->head.cond = condition;
+		entry->operation = operation;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -139,8 +146,10 @@ static int ccs_update_capability_acl(const u8 operation,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	kfree(entry);
 	return error;
 }
 
@@ -164,7 +173,9 @@ bool ccs_capable(const u8 operation)
 	if (!r.mode)
 		return true;
  retry:
-	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
@@ -176,13 +187,15 @@ bool ccs_capable(const u8 operation)
 		found = true;
 		break;
 	}
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION START *****/
 	ccs_audit_capability_log(&r, operation, found);
 	if (found)
 		return true;
-	if (ccs_verbose_mode(r.domain))
+	if (ccs_verbose_mode(r.cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
-		       ccs_get_last_name(r.domain));
+		       ccs_get_last_name(r.cookie.u.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
@@ -191,8 +204,8 @@ bool ccs_capable(const u8 operation)
 			goto retry;
 		return !error;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
-		ccs_update_capability_acl(operation, r.domain,
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
+		ccs_update_capability_acl(operation, r.cookie.u.domain,
 					  ccs_handler_cond(), false);
 	return true;
 }

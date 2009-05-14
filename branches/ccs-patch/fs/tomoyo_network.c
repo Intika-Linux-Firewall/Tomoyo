@@ -55,54 +55,56 @@ static int ccs_audit_network_log(struct ccs_request_info *r,
 				   "%s %s %u\n", operation, address, port);
 }
 
-/**
- * ccs_save_ipv6_address - Keep the given IPv6 address on the RAM.
- *
- * @addr: Pointer to "struct in6_addr".
- *
- * Returns pointer to "struct in6_addr" on success, NULL otherwise.
- *
- * The RAM is shared, so NEVER try to modify or kfree() the returned address.
- */
-static const struct in6_addr *ccs_save_ipv6_address(const struct in6_addr *addr)
-{
-	static const u8 ccs_block_size = 16;
-	struct ccs_addr_list {
-		/* Workaround for gcc 4.3's bug. */
-		struct in6_addr addr[16]; /* = ccs_block_size */
-		struct list1_head list;
-		u32 in_use_count;
-	};
-	static LIST1_HEAD(ccs_address_list);
-	struct ccs_addr_list *ptr;
-	static DEFINE_MUTEX(lock);
-	u8 i = ccs_block_size;
-	if (!addr)
-		return NULL;
-	mutex_lock(&lock);
-	list1_for_each_entry(ptr, &ccs_address_list, list) {
-		for (i = 0; i < ptr->in_use_count; i++) {
-			if (!memcmp(&ptr->addr[i], addr, sizeof(*addr)))
-				goto ok;
-		}
-		if (i < ccs_block_size)
-			break;
-	}
-	if (i == ccs_block_size) {
-		ptr = ccs_alloc_element(sizeof(*ptr));
-		if (!ptr)
-			goto ok;
-		list1_add_tail_mb(&ptr->list, &ccs_address_list);
-		i = 0;
-	}
-	ptr->addr[ptr->in_use_count++] = *addr;
- ok:
-	mutex_unlock(&lock);
-	return ptr ? &ptr->addr[i] : NULL;
-}
-
 /* The list for "struct ccs_address_group_entry". */
-static LIST1_HEAD(ccs_address_group_list);
+LIST_HEAD(ccs_address_group_list);
+
+/**
+ * ccs_get_address_group - Allocate memory for "struct ccs_address_group_entry".
+ *
+ * @group_name: The name of address group.
+ *
+ * Returns pointer to "struct ccs_address_group_entry" on success,
+ * NULL otherwise.
+ */
+static struct ccs_address_group_entry *ccs_get_address_group(const char *
+							     group_name)
+{
+	struct ccs_address_group_entry *entry = NULL;
+	struct ccs_address_group_entry *group;
+	const struct ccs_path_info *saved_group_name;
+	int error = -ENOMEM;
+	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+	    !group_name[0])
+		return NULL;
+	saved_group_name = ccs_get_name(group_name);
+	if (!saved_group_name)
+		return NULL;
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(group, &ccs_address_group_list, list) {
+		if (saved_group_name != group->group_name)
+			continue;
+		atomic_inc(&group->users);
+		error = 0;
+		break;
+	}
+	if (error && ccs_memory_ok(entry)) {
+		INIT_LIST_HEAD(&entry->address_group_member_list);
+		entry->group_name = saved_group_name;
+		saved_group_name = NULL;
+		atomic_set(&entry->users, 1);
+		list_add_tail(&entry->list, &ccs_address_group_list);
+		group = entry;
+		entry = NULL;
+		error = 0;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	ccs_put_name(saved_group_name);
+	kfree(entry);
+	return !error ? group : NULL;
+}
 
 /**
  * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
@@ -121,85 +123,67 @@ static int ccs_update_address_group_entry(const char *group_name,
 					  const u16 *max_address,
 					  const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
-	struct ccs_address_group_entry *new_group;
 	struct ccs_address_group_entry *group;
-	struct ccs_address_group_member *new_member;
+	struct ccs_address_group_member *entry = NULL;
 	struct ccs_address_group_member *member;
-	const struct ccs_path_info *saved_group_name;
 	const struct in6_addr *saved_min_address = NULL;
 	const struct in6_addr *saved_max_address = NULL;
-	int error = -ENOMEM;
-	bool found = false;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	const u32 min_ipv4_address = ntohl(*(u32 *) min_address);
 	const u32 max_ipv4_address = ntohl(*(u32 *) max_address);
-	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
-	    !group_name[0])
-		return -EINVAL;
-	saved_group_name = ccs_save_name(group_name);
-	if (!saved_group_name)
+	group = ccs_get_address_group(group_name);
+	if (!group)
 		return -ENOMEM;
 	if (!is_ipv6)
 		goto not_ipv6;
 	saved_min_address
-		= ccs_save_ipv6_address((struct in6_addr *) min_address);
+		= ccs_get_ipv6_address((struct in6_addr *) min_address);
 	saved_max_address
-		= ccs_save_ipv6_address((struct in6_addr *) max_address);
+		= ccs_get_ipv6_address((struct in6_addr *) max_address);
 	if (!saved_min_address || !saved_max_address)
-		return -ENOMEM;
+		goto out;
  not_ipv6:
-	mutex_lock(&lock);
-	list1_for_each_entry(group, &ccs_address_group_list, list) {
-		if (saved_group_name != group->group_name)
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(member, &group->address_group_member_list, list) {
+		if (member->is_ipv6 != is_ipv6)
 			continue;
-		list1_for_each_entry(member, &group->address_group_member_list,
-				     list) {
-			if (member->is_ipv6 != is_ipv6)
+		if (is_ipv6) {
+			if (member->min.ipv6 != saved_min_address ||
+			    member->max.ipv6 != saved_max_address)
 				continue;
-			if (is_ipv6) {
-				if (member->min.ipv6 != saved_min_address ||
-				    member->max.ipv6 != saved_max_address)
-					continue;
-			} else {
-				if (member->min.ipv4 != min_ipv4_address ||
-				    member->max.ipv4 != max_ipv4_address)
-					continue;
-			}
-			member->is_deleted = is_delete;
-			error = 0;
-			goto out;
+		} else {
+			if (member->min.ipv4 != min_ipv4_address ||
+			    member->max.ipv4 != max_ipv4_address)
+				continue;
 		}
-		found = true;
+		member->is_deleted = is_delete;
+		error = 0;
 		break;
 	}
-	if (is_delete) {
-		error = -ENOENT;
-		goto out;
+	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->is_ipv6 = is_ipv6;
+		if (is_ipv6) {
+			entry->min.ipv6 = saved_min_address;
+			saved_min_address = NULL;
+			entry->max.ipv6 = saved_max_address;
+			saved_max_address = NULL;
+		} else {
+			entry->min.ipv4 = min_ipv4_address;
+			entry->max.ipv4 = max_ipv4_address;
+		}
+		list_add_tail(&entry->list, &group->address_group_member_list);
+		entry = NULL;
+		error = 0;
 	}
-	if (!found) {
-		new_group = ccs_alloc_element(sizeof(*new_group));
-		if (!new_group)
-			goto out;
-		INIT_LIST1_HEAD(&new_group->address_group_member_list);
-		new_group->group_name = saved_group_name;
-		list1_add_tail_mb(&new_group->list, &ccs_address_group_list);
-		group = new_group;
-	}
-	new_member = ccs_alloc_element(sizeof(*new_member));
-	if (!new_member)
-		goto out;
-	new_member->is_ipv6 = is_ipv6;
-	if (is_ipv6) {
-		new_member->min.ipv6 = saved_min_address;
-		new_member->max.ipv6 = saved_max_address;
-	} else {
-		new_member->min.ipv4 = min_ipv4_address;
-		new_member->max.ipv4 = max_ipv4_address;
-	}
-	list1_add_tail_mb(&new_member->list, &group->address_group_member_list);
-	error = 0;
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_ipv6_address(saved_min_address);
+	ccs_put_ipv6_address(saved_max_address);
+	ccs_put_address_group(group);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
@@ -279,35 +263,6 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 }
 
 /**
- * ccs_find_or_assign_new_address_group - Create address group.
- *
- * @group_name: The name of address group.
- *
- * Returns pointer to "struct ccs_address_group_entry" on success,
- * NULL otherwise.
- */
-static struct ccs_address_group_entry *
-ccs_find_or_assign_new_address_group(const char *group_name)
-{
-	u8 i;
-	struct ccs_address_group_entry *group;
-	for (i = 0; i <= 1; i++) {
-		list1_for_each_entry(group, &ccs_address_group_list, list) {
-			if (!strcmp(group_name, group->group_name->name))
-				return group;
-		}
-		if (!i) {
-			const u16 dummy[2] = { 0, 0 };
-			ccs_update_address_group_entry(group_name, false,
-						       dummy, dummy, false);
-			ccs_update_address_group_entry(group_name, false,
-						       dummy, dummy, true);
-		}
-	}
-	return NULL;
-}
-
-/**
  * ccs_address_matches_group - Check whether the given address matches members of the given address group.
  *
  * @is_ipv6: True if @address is an IPv6 address.
@@ -315,6 +270,8 @@ ccs_find_or_assign_new_address_group(const char *group_name)
  * @group:   Pointer to "struct ccs_address_group_entry".
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
+ *
+ * Caller holds ccs_policy_lockfor reading.
  */
 static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 				      const struct ccs_address_group_entry *
@@ -322,21 +279,26 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 {
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
-	list1_for_each_entry(member, &group->address_group_member_list, list) {
+	bool matched = false;
+	list_for_each_entry(member, &group->address_group_member_list, list) {
 		if (member->is_deleted)
 			continue;
 		if (member->is_ipv6) {
 			if (is_ipv6 &&
 			    memcmp(member->min.ipv6, address, 16) <= 0 &&
-			    memcmp(address, member->max.ipv6, 16) <= 0)
-				return true;
+			    memcmp(address, member->max.ipv6, 16) <= 0) {
+				matched = true;
+				break;
+			}
 		} else {
 			if (!is_ipv6 &&
-			    member->min.ipv4 <= ip && ip <= member->max.ipv4)
-				return true;
+			    member->min.ipv4 <= ip && ip <= member->max.ipv4) {
+				matched = true;
+				break;
+			}
 		}
 	}
-	return false;
+	return matched;
 }
 
 /**
@@ -348,16 +310,20 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
  */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 {
-	struct list1_head *gpos;
-	struct list1_head *mpos;
-	list1_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
+	struct list_head *gpos;
+	struct list_head *mpos;
+	bool done = true;
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_cookie(gpos, head->read_var1.u.list,
+			      &ccs_address_group_list) {
 		struct ccs_address_group_entry *group;
-		group = list1_entry(gpos, struct ccs_address_group_entry, list);
-		list1_for_each_cookie(mpos, head->read_var2,
+		group = list_entry(gpos, struct ccs_address_group_entry, list);
+		list_for_each_cookie(mpos, head->read_var2.u.list,
 				      &group->address_group_member_list) {
 			char buf[128];
 			struct ccs_address_group_member *member;
-			member = list1_entry(mpos,
+			member = list_entry(mpos,
 					     struct ccs_address_group_member,
 					     list);
 			if (member->is_deleted)
@@ -390,15 +356,18 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 						 HIPQUAD(max_address));
 				}
 			}
-			if (!ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
-					   "%s %s\n", group->group_name->name,
-					   buf))
-				goto out;
+			done = ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
+					     "%s %s\n", group->group_name->name,
+					     buf);
+			if (!done)
+				break;
 		}
+		if (!done)
+			break;
 	}
-	return true;
- out:
-	return false;
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	return done;
 }
 
 #if !defined(NIP6)
@@ -469,7 +438,7 @@ const char *ccs_net2keyword(const u8 operation)
  *
  * @operation:   Type of operation.
  * @record_type: Type of address.
- * @group:       Pointer to "struct ccs_address_group_entry". May be NULL.
+ * @group:       Name of group. May be NULL.
  * @min_address: Start of IPv4 or IPv6 address range.
  * @max_address: End of IPv4 or IPv6 address range.
  * @min_port:    Start of port number range.
@@ -481,7 +450,7 @@ const char *ccs_net2keyword(const u8 operation)
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_network_entry(const u8 operation, const u8 record_type,
-				    const struct ccs_address_group_entry *group,
+				    const char *group_name,
 				    const u32 *min_address,
 				    const u32 *max_address,
 				    const u16 min_port, const u16 max_port,
@@ -489,30 +458,36 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    const struct ccs_condition_list *condition,
 				    const bool is_delete)
 {
-	static DEFINE_MUTEX(lock);
+	struct ccs_ip_network_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_ip_network_acl_record *acl;
-	int error = -ENOMEM;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 min_ip = ntohl(*min_address);
 	const u32 max_ip = ntohl(*max_address);
 	const struct in6_addr *saved_min_address = NULL;
 	const struct in6_addr *saved_max_address = NULL;
+	struct ccs_address_group_entry *group = NULL;
 	if (!domain)
 		return -EINVAL;
-	if (record_type != IP_RECORD_TYPE_IPv6)
-		goto not_ipv6;
-	saved_min_address = ccs_save_ipv6_address((struct in6_addr *)
-						  min_address);
-	saved_max_address = ccs_save_ipv6_address((struct in6_addr *)
-						  max_address);
-	if (!saved_min_address || !saved_max_address)
-		return -ENOMEM;
- not_ipv6:
-	mutex_lock(&lock);
+	if (group_name) {
+		group = ccs_get_address_group(group_name);
+		if (!group)
+			return -ENOMEM;
+	} else if (record_type == IP_RECORD_TYPE_IPv6) {
+		saved_min_address = ccs_get_ipv6_address((struct in6_addr *)
+							 min_address);
+		saved_max_address = ccs_get_ipv6_address((struct in6_addr *)
+							 max_address);
+		if (!saved_min_address || !saved_max_address)
+			goto out;
+	}
 	if (is_delete)
 		goto delete;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -535,30 +510,38 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				continue;
 		}
 		error = ccs_add_domain_acl(NULL, ptr);
-		goto out;
+		break;
 	}
-	/* Not found. Append it to the tail. */
-	acl = ccs_alloc_acl_element(TYPE_IP_NETWORK_ACL, condition);
-	if (!acl)
-		goto out;
-	acl->operation_type = operation;
-	acl->record_type = record_type;
-	if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-		acl->u.group = group;
-	} else if (record_type == IP_RECORD_TYPE_IPv4) {
-		acl->u.ipv4.min = min_ip;
-		acl->u.ipv4.max = max_ip;
-	} else {
-		acl->u.ipv6.min = saved_min_address;
-		acl->u.ipv6.max = saved_max_address;
+	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_IP_NETWORK_ACL;
+		entry->head.cond = condition;
+		entry->operation_type = operation;
+		entry->record_type = record_type;
+		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
+			entry->u.group = group;
+			group = NULL;
+		} else if (record_type == IP_RECORD_TYPE_IPv4) {
+			entry->u.ipv4.min = min_ip;
+			entry->u.ipv4.max = max_ip;
+		} else {
+			entry->u.ipv6.min = saved_min_address;
+			saved_min_address = NULL;
+			entry->u.ipv6.max = saved_max_address;
+			saved_max_address = NULL;
+		}
+		entry->min_port = min_port;
+		entry->max_port = max_port;
+		error = ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
 	}
-	acl->min_port = min_port;
-	acl->max_port = max_port;
-	error = ccs_add_domain_acl(domain, &acl->head);
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
 	goto out;
  delete:
-	error = -ENOENT;
-	list1_for_each_entry(ptr, &domain->acl_info_list, list) {
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
 		if (ccs_get_condition_part(ptr) != condition)
@@ -583,8 +566,13 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
  out:
-	mutex_unlock(&lock);
+	ccs_put_ipv6_address(saved_min_address);
+	ccs_put_ipv6_address(saved_max_address);
+	ccs_put_address_group(group);
+	kfree(entry);
 	return error;
 }
 
@@ -616,7 +604,9 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 	if (!r.mode)
 		return 0;
  retry:
-	list1_for_each_entry(ptr, &r.domain->acl_info_list, list) {
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
@@ -642,6 +632,8 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		found = true;
 		break;
 	}
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	memset(buf, 0, sizeof(buf));
 	if (is_ipv6)
 		ccs_print_ipv6(buf, sizeof(buf),
@@ -651,10 +643,10 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 	ccs_audit_network_log(&r, keyword, buf, port, found);
 	if (found)
 		return 0;
-	if (ccs_verbose_mode(r.domain))
+	if (ccs_verbose_mode(r.cookie.u.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(is_enforce), keyword, buf, port,
-		       ccs_get_last_name(r.domain));
+		       ccs_get_last_name(r.cookie.u.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
 						 "%s %s %u\n", keyword, buf,
@@ -663,12 +655,13 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 			goto retry;
 		return error;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :
 					 IP_RECORD_TYPE_IPv4,
 					 NULL, address, address, port, port,
-					 r.domain, ccs_handler_cond(), 0);
+					 r.cookie.u.domain, ccs_handler_cond(),
+					 false);
 	return 0;
 }
 
@@ -691,7 +684,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	u8 record_type;
 	u16 min_address[8];
 	u16 max_address[8];
-	struct ccs_address_group_entry *group = NULL;
+	const char *group_name = NULL;
 	u16 min_port;
 	u16 max_port;
 	u8 count;
@@ -754,9 +747,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	default:
 		if (*cp2 != '@')
 			goto out;
-		group = ccs_find_or_assign_new_address_group(cp2 + 1);
-		if (!group)
-			return -ENOMEM;
+		group_name = cp2 + 1;
 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
 		break;
 	}
@@ -767,7 +758,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		goto out;
 	if (count == 1)
 		max_port = min_port;
-	return ccs_update_network_entry(operation, record_type, group,
+	return ccs_update_network_entry(operation, record_type, group_name,
 					(u32 *) min_address,
 					(u32 *) max_address,
 					min_port, max_port, domain, condition,

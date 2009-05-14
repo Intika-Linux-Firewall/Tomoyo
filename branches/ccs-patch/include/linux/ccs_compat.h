@@ -83,47 +83,20 @@
 			ret; })
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-#define smp_read_barrier_depends smp_rmb
+/*
+#ifndef list_for_each
+#define list_for_each(pos, head) \
+	for (pos = (head)->next; prefetch(pos->next), pos != (head); \
+	     pos = pos->next)
 #endif
 
-#ifndef ACCESS_ONCE
-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
-#endif
-
-#ifndef rcu_dereference
-#define rcu_dereference(p)     ({ \
-				typeof(p) _________p1 = ACCESS_ONCE(p); \
-				smp_read_barrier_depends(); /* see RCU */ \
-				(_________p1); \
-				})
-#endif
-
-#ifndef rcu_assign_pointer
-#define rcu_assign_pointer(p, v) \
-	({ \
-		if (!__builtin_constant_p(v) || \
-		    ((v) != NULL)) \
-			smp_wmb(); /* see RCU */ \
-		(p) = (v); \
-	})
-#endif
-
-#ifndef list_for_each_rcu
-#define list_for_each_rcu(pos, head) \
-	for (pos = rcu_dereference((head)->next); \
-		prefetch(pos->next), pos != (head); \
-		pos = rcu_dereference(pos->next))
-#endif
-
-#ifndef list_for_each_entry_rcu
-#define list_for_each_entry_rcu(pos, head, member) \
-	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), \
-		member); \
+#ifndef list_for_each_entry
+#define list_for_each_entry(pos, head, member) \
+	for (pos = list_entry((head)->next, typeof(*pos), member); \
 		prefetch(pos->member.next), &pos->member != (head); \
-		pos = list_entry(rcu_dereference(pos->member.next), \
-		typeof(*pos), member))
+		pos = list_entry(pos->member.next, typeof(*pos), member))
 #endif
+*/
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
