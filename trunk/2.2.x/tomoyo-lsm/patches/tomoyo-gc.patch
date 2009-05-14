@@ -162,12 +162,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		    tomoyo_pathcmp(&name, domain->domainname))
 +			continue;
 +		cookie->u.domain = domain;
-+		return true;
++		break;
  	}
 -	return NULL;
 +	up_read(&tomoyo_policy_lock);
 +	/***** READER SECTION END *****/
-+	return false;
++	return cookie->u.domain != NULL;
  }
  
  /**
