@@ -1,4 +1,4 @@
-Subject: [TOMOYO] Add garbage collector support.
+Subject: TOMOYO: Add garbage collector support. (v2)
 
 A process who is reading/writing list elements has pointers which point to
 (possibly marked-as-deleted) list elements and releases a lock when the process
@@ -10,11 +10,50 @@ because TOMOYO does not manage list of pointers.
 This patch makes TOMOYO to manage list of pointers and allows an administrator
 release memory used by marked-as-deleted list elements.
 
-Also, this patch makes TOMOYO's kmalloc()/kfree() operations go outside
+Also, this patch makes TOMOYO's kmalloc(GFP_KERNEL)/kfree() calls go outside
 the rw_semaphore.
 
-Memory Management Rules:
+Approach:
 
+  Define a cookie as
+
+    struct tomoyo_cookie {
+    	struct list_head list;
+    	union {
+    		const void *ptr;
+    		struct list_head *list;
+    		struct tomoyo_domain_info *domain;
+    		const struct tomoyo_path_info *path;
+    	} u;
+    };
+
+  and add the cookie to the cookie's list using
+
+    void tomoyo_add_cookie(struct tomoyo_cookie *cookie, const void *ptr);
+
+  and delete the cookie from the cookie's list using
+
+    void tomoyo_del_cookie(struct tomoyo_cookie *cookie);
+
+  and update the "cookie->u.{ptr,list,domain,path}" between
+  down_read(&tomoyo_policy_lock); and up_read(&tomoyo_policy_lock); .
+
+  To keep the cookie's list up-to-date, tomoyo_add_cookie() and
+  tomoyo_del_cookie() take write lock of tomoyo_cookie_list_lock spinlock and
+  tomoyo_used_by_cookie() takes read lock of tomoyo_cookie_list_lock spinlock.
+
+  The garbage collector function scans the cookie's list using
+
+    bool tomoyo_used_by_cookie(const void *ptr);
+
+  between down_write(&tomoyo_policy_lock); and up_write(&tomoyo_policy_lock);
+  to determine whether "ptr" is kfree()able or not.
+
+  In this way, the garbage collector shall not release "ptr" stored in a cookie
+  in the cookie's list.
+
+Memory Management Rules:
+  
   When reading list elements, a process takes tomoyo_policy_lock for reading.
   When writing list elements, a process takes tomoyo_policy_lock for writing.
 
@@ -47,15 +86,15 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c   |  462 +++++++++++++++++++-----------------
+ security/tomoyo/common.c   |  457 +++++++++++++++++++-----------------
  security/tomoyo/common.h   |  134 ++++++++--
- security/tomoyo/domain.c   |  433 +++++++++++++---------------------
+ security/tomoyo/domain.c   |  438 +++++++++++++---------------------
  security/tomoyo/file.c     |  370 +++++++++++++++--------------
  security/tomoyo/realpath.c |  567 ++++++++++++++++++++++++++++++++++-----------
  security/tomoyo/realpath.h |   25 +
  security/tomoyo/tomoyo.c   |   40 +--
  security/tomoyo/tomoyo.h   |   13 -
- 8 files changed, 1193 insertions(+), 851 deletions(-)
+ 8 files changed, 1192 insertions(+), 852 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -100,21 +139,21 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   *
 - * Caller must call down_read(&tomoyo_domain_list_lock); or
 - * down_write(&tomoyo_domain_list_lock); .
-+ * Returns true if found, false otherwise.
-  *
+- *
 - * Returns pointer to "struct tomoyo_domain_info" if found, NULL otherwise.
-+ * Caller must hold tomoyo_policy_lock for reading or writing.
++ * Returns true if found, false otherwise.
   */
 -struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname)
 +bool tomoyo_find_domain(const char *domainname, struct tomoyo_cookie *cookie)
  {
-+	/***** READER SECTION START *****/
  	struct tomoyo_domain_info *domain;
  	struct tomoyo_path_info name;
  
 +	cookie->u.domain = NULL;
  	name.name = domainname;
  	tomoyo_fill_path_info(&name);
++	/***** READER SECTION START *****/
++	down_read(&tomoyo_policy_lock);
  	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 -		if (!domain->is_deleted &&
 -		    !tomoyo_pathcmp(&name, domain->domainname))
@@ -126,8 +165,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		return true;
  	}
 -	return NULL;
-+	return false;
++	up_read(&tomoyo_policy_lock);
 +	/***** READER SECTION END *****/
++	return false;
  }
  
  /**
@@ -463,7 +503,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_is_select_one - Parse select command.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1193,49 +1251,51 @@ static bool tomoyo_is_select_one(struct 
+@@ -1193,49 +1251,46 @@ static bool tomoyo_is_select_one(struct 
  				 const char *data)
  {
  	unsigned int pid;
@@ -485,32 +525,29 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			cookie->u.domain = tomoyo_real_domain(p);
 +		rcu_read_unlock();
  		/***** CRITICAL SECTION END *****/
-+		if (cookie->u.domain)
-+			head->read_cookie1.u.list
-+				= cookie->u.domain->list.prev;
 +		up_read(&tomoyo_policy_lock);
 +		/***** READER SECTION END *****/
  	} else if (!strncmp(data, "domain=", 7)) {
-+		cookie->u.domain = NULL;
- 		if (tomoyo_is_domain_def(data + 7)) {
+-		if (tomoyo_is_domain_def(data + 7)) {
 -			down_read(&tomoyo_domain_list_lock);
 -			domain = tomoyo_find_domain(data + 7);
 -			up_read(&tomoyo_domain_list_lock);
-+			/***** READER SECTION START *****/
-+			down_read(&tomoyo_policy_lock);
+-		}
++		cookie->u.domain = NULL;
++		if (tomoyo_is_domain_def(data + 7))
 +			tomoyo_find_domain(data + 7, cookie);
-+			if (cookie->u.domain)
-+				head->read_cookie1.u.list
-+					= cookie->u.domain->list.prev;
-+			up_read(&tomoyo_policy_lock);
-+			/***** READER SECTION END *****/
- 		}
  	} else
  		return false;
 -	head->write_var1 = domain;
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
++	/***** READER SECTION START *****/
++	down_read(&tomoyo_policy_lock);
++	if (cookie->u.domain)
++		head->read_cookie1.u.list = cookie->u.domain->list.prev;
++	up_read(&tomoyo_policy_lock);
++	/***** READER SECTION END *****/
  	head->read_avail = 0;
  	tomoyo_io_printf(head, "# select %s\n", data);
  	head->read_single_domain = true;
@@ -540,7 +577,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return true;
  }
  
-@@ -1249,7 +1309,7 @@ static bool tomoyo_is_select_one(struct 
+@@ -1249,7 +1304,7 @@ static bool tomoyo_is_select_one(struct 
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -549,28 +586,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -1264,33 +1324,33 @@ static int tomoyo_write_domain_policy(st
+@@ -1264,33 +1319,29 @@ static int tomoyo_write_domain_policy(st
  	if (!tomoyo_is_policy_manager())
  		return -EPERM;
  	if (tomoyo_is_domain_def(data)) {
 -		domain = NULL;
--		if (is_delete)
-+		if (is_delete) {
++		cookie->u.domain = NULL;
+ 		if (is_delete)
  			tomoyo_delete_domain(data);
 -		else if (is_select) {
 -			down_read(&tomoyo_domain_list_lock);
 -			domain = tomoyo_find_domain(data);
 -			up_read(&tomoyo_domain_list_lock);
-+			cookie->u.domain = NULL;
-+		} else if (is_select) {
-+			/***** READER SECTION START *****/
-+			down_read(&tomoyo_policy_lock);
-+			tomoyo_find_domain(data, cookie);
-+			up_read(&tomoyo_policy_lock);
-+			/***** READER SECTION END *****/
- 		} else
+-		} else
 -			domain = tomoyo_find_or_assign_new_domain(data, 0);
 -		head->write_var1 = domain;
++		else if (is_select)
++			tomoyo_find_domain(data, cookie);
++		else
 +			tomoyo_find_or_assign_new_domain(data, 0, cookie);
  		return 0;
  	}
@@ -596,7 +629,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  }
  
  /**
-@@ -1427,8 +1487,10 @@ static int tomoyo_read_domain_policy(str
+@@ -1427,8 +1478,10 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -609,7 +642,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1441,51 +1503,47 @@ static int tomoyo_read_domain_policy(str
+@@ -1441,51 +1494,47 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -677,7 +710,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1496,30 +1554,27 @@ tail_mark:
+@@ -1496,30 +1545,25 @@ tail_mark:
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns 0 on success, -EINVAL otherwise.
@@ -708,17 +741,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	if (domain && profile < TOMOYO_MAX_PROFILES
 -	    && (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
 -		domain->profile = (u8) profile;
-+	/***** READER SECTION START *****/
-+	down_read(&tomoyo_policy_lock);
++	tomoyo_add_cookie(&cookie, NULL);
 +	if (tomoyo_find_domain(cp + 1, &cookie) &&
 +	    (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
 +		cookie.u.domain->profile = (u8) profile;
-+	up_read(&tomoyo_policy_lock);
-+	/***** READER SECTION END *****/
++	tomoyo_del_cookie(&cookie);
  	return 0;
  }
  
-@@ -1529,13 +1584,6 @@ static int tomoyo_write_domain_profile(s
+@@ -1529,13 +1573,6 @@ static int tomoyo_write_domain_profile(s
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns list of profile number and domainname pairs.
@@ -732,7 +763,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   */
  static int tomoyo_read_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1544,19 +1592,21 @@ static int tomoyo_read_domain_profile(st
+@@ -1544,19 +1581,21 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -761,7 +792,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1593,17 +1643,24 @@ static int tomoyo_read_pid(struct tomoyo
+@@ -1593,17 +1632,24 @@ static int tomoyo_read_pid(struct tomoyo
  	if (head->read_avail == 0 && !head->read_eof) {
  		const int pid = head->read_step;
  		struct task_struct *p;
@@ -793,7 +824,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		head->read_eof = true;
  	}
  	return 0;
-@@ -1655,43 +1712,43 @@ static int tomoyo_read_exception_policy(
+@@ -1655,43 +1701,43 @@ static int tomoyo_read_exception_policy(
  	if (!head->read_eof) {
  		switch (head->read_step) {
  		case 0:
@@ -846,7 +877,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			head->read_step = 9;
  		case 9:
  			head->read_eof = true;
-@@ -1736,13 +1793,13 @@ static bool tomoyo_policy_loader_exists(
+@@ -1736,13 +1782,13 @@ static bool tomoyo_policy_loader_exists(
   *
   * @filename: The program about to start.
   *
@@ -862,7 +893,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   */
  void tomoyo_load_policy(const char *filename)
  {
-@@ -1778,7 +1835,8 @@ void tomoyo_load_policy(const char *file
+@@ -1778,7 +1824,8 @@ void tomoyo_load_policy(const char *file
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
  		struct tomoyo_domain_info *domain;
@@ -872,7 +903,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		list_for_each_entry(domain, &tomoyo_domain_list, list) {
  			const u8 profile = domain->profile;
  			if (tomoyo_profile_ptr[profile])
-@@ -1786,7 +1844,8 @@ void tomoyo_load_policy(const char *file
+@@ -1786,7 +1833,8 @@ void tomoyo_load_policy(const char *file
  			panic("Profile %u (used by '%s') not defined.\n",
  			      profile, domain->domainname->name);
  		}
@@ -882,7 +913,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  }
  
-@@ -1919,6 +1978,9 @@ static int tomoyo_open_control(const u8 
+@@ -1919,6 +1967,9 @@ static int tomoyo_open_control(const u8 
  			return -ENOMEM;
  		}
  	}
@@ -892,7 +923,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is
-@@ -2037,48 +2099,25 @@ static int tomoyo_write_control(struct f
+@@ -2037,48 +2088,25 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -947,7 +978,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
   *
   * @inode: Pointer to "struct inode".
-@@ -2171,9 +2210,10 @@ static void __init tomoyo_create_entry(c
+@@ -2171,9 +2199,10 @@ static void __init tomoyo_create_entry(c
  static int __init tomoyo_initerface_init(void)
  {
  	struct dentry *tomoyo_dir;
@@ -1633,7 +1664,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return done;
  }
  
-@@ -551,120 +513,52 @@ int tomoyo_write_alias_policy(char *data
+@@ -551,120 +513,65 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }
  
@@ -1689,20 +1720,29 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +				      struct tomoyo_cookie *cookie)
  {
 -	struct tomoyo_domain_info *domain = NULL;
--	const struct tomoyo_path_info *saved_domainname;
--
++	struct tomoyo_domain_info *entry;
++	struct tomoyo_domain_info *domain;
+ 	const struct tomoyo_path_info *saved_domainname;
+ 
 -	/***** EXCLUSIVE SECTION START *****/
 -	down_write(&tomoyo_domain_list_lock);
 -	domain = tomoyo_find_domain(domainname);
 -	if (domain)
 -		goto out;
--	if (!tomoyo_is_correct_domain(domainname, __func__))
++	cookie->u.domain = NULL;
+ 	if (!tomoyo_is_correct_domain(domainname, __func__))
 -		goto out;
 -	saved_domainname = tomoyo_save_name(domainname);
--	if (!saved_domainname)
++		return false;
++	saved_domainname = tomoyo_get_name(domainname);
+ 	if (!saved_domainname)
 -		goto out;
 -	/* Can I reuse memory of deleted domain? */
--	list_for_each_entry(domain, &tomoyo_domain_list, list) {
++		return false;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	/***** WRITER SECTION START *****/
++	down_write(&tomoyo_policy_lock);
+ 	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 -		struct task_struct *p;
 -		struct tomoyo_acl_info *ptr;
 -		bool flag;
@@ -1721,7 +1761,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -		read_unlock(&tasklist_lock);
 -		/***** CRITICAL SECTION END *****/
 -		if (flag)
--			continue;
++		if (domain->is_deleted ||
++		    tomoyo_pathcmp(saved_domainname, domain->domainname))
+ 			continue;
 -		list_for_each_entry(ptr, &domain->acl_info_list, list) {
 -			ptr->type |= TOMOYO_ACL_DELETED;
 -		}
@@ -1735,31 +1777,31 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	/* No memory reusable. Create using new memory. */
 -	domain = tomoyo_alloc_element(sizeof(*domain));
 -	if (domain) {
-+	struct tomoyo_domain_info *domain
-+		= kzalloc(sizeof(*domain), GFP_KERNEL);
-+	const struct tomoyo_path_info *saved_domainname = NULL;
-+	if (tomoyo_is_correct_domain(domainname, __func__))
-+		saved_domainname = tomoyo_get_name(domainname);
-+	/***** WRITER SECTION START *****/
-+	down_write(&tomoyo_policy_lock);
-+	if (!tomoyo_find_domain(domainname, cookie) && saved_domainname &&
-+	    tomoyo_alloc_element(domain)) {
- 		INIT_LIST_HEAD(&domain->acl_info_list);
- 		domain->domainname = saved_domainname;
-+		saved_domainname = NULL;
- 		domain->profile = profile;
- 		list_add_tail(&domain->list, &tomoyo_domain_list);
+-		INIT_LIST_HEAD(&domain->acl_info_list);
+-		domain->domainname = saved_domainname;
+-		domain->profile = profile;
+-		list_add_tail(&domain->list, &tomoyo_domain_list);
 +		cookie->u.domain = domain;
-+		domain = NULL;
++		break;
  	}
 - out:
 -	up_write(&tomoyo_domain_list_lock);
 -	/***** EXCLUSIVE SECTION END *****/
 -	return domain;
++	if (!cookie->u.domain && saved_domainname &&
++	    tomoyo_alloc_element(entry)) {
++		INIT_LIST_HEAD(&entry->acl_info_list);
++		entry->domainname = saved_domainname;
++		saved_domainname = NULL;
++		entry->profile = profile;
++		list_add_tail(&entry->list, &tomoyo_domain_list);
++		cookie->u.domain = entry;
++		entry = NULL;
++	}
 +	up_write(&tomoyo_policy_lock);
 +	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_domainname);
-+	kfree(domain);
++	kfree(entry);
 +	return cookie->u.domain != NULL;
  }
  
@@ -1778,7 +1820,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -672,7 +566,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -672,7 +579,6 @@ int tomoyo_find_next_domain(struct linux
  	 */
  	struct tomoyo_page_buffer *tmp = tomoyo_alloc(sizeof(*tmp));
  	struct tomoyo_domain_info *old_domain = tomoyo_domain();
@@ -1786,7 +1828,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const char *old_domain_name = old_domain->domainname->name;
  	const char *original_name = bprm->filename;
  	char *new_domain_name = NULL;
-@@ -685,6 +578,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -685,6 +591,8 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1795,7 +1837,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (!tmp)
  		goto out;
-@@ -723,7 +618,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -723,7 +631,8 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1805,7 +1847,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		list_for_each_entry(ptr, &tomoyo_alias_list, list) {
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
-@@ -735,7 +631,8 @@ int tomoyo_find_next_domain(struct linux
+@@ -735,7 +644,8 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1815,7 +1857,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  
  	/* Check execute permission. */
-@@ -755,40 +652,42 @@ int tomoyo_find_next_domain(struct linux
+@@ -755,40 +665,38 @@ int tomoyo_find_next_domain(struct linux
  		 * /sbin/init. But transit from kernel domain if executing
  		 * initializers because they might start before /sbin/init.
  		 */
@@ -1846,11 +1888,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		goto done;
 -	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
 -						  old_domain->profile);
-+	/***** READER SECTION START *****/
-+	down_read(&tomoyo_policy_lock);
 +	found = tomoyo_find_domain(new_domain_name, cookie);
-+	up_read(&tomoyo_policy_lock);
-+	/***** READER SECTION END *****/
 +	if (!found && !is_enforce)
 +		found = tomoyo_find_or_assign_new_domain(new_domain_name,
 +							 old_domain->profile,
