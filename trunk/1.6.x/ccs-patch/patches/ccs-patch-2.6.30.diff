@@ -7,7 +7,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/attr.c                       |   10 ++++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 ++++++++
- fs/exec.c                       |   19 ++++++++++++
+ fs/exec.c                       |    5 ++-
  fs/fcntl.c                      |    9 ++++++
  fs/ioctl.c                      |   11 +++++++
  fs/namei.c                      |   59 ++++++++++++++++++++++++++++++++++++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   41 +++++++++++++++++++++++++++
  net/unix/af_unix.c              |    9 ++++++
- 34 files changed, 456 insertions(+), 3 deletions(-)
+ 34 files changed, 442 insertions(+), 3 deletions(-)
 
 --- linux-2.6.30-rc6.orig/fs/Kconfig
 +++ linux-2.6.30-rc6/fs/Kconfig
@@ -150,35 +150,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
-@@ -127,6 +130,13 @@ SYSCALL_DEFINE1(uselib, const char __use
- 	if (file->f_path.mnt->mnt_flags & MNT_NOEXEC)
- 		goto exit;
- 
-+	/***** TOMOYO Linux start. *****/
-+	error = ccs_check_uselib_permission(file->f_path.dentry,
-+					    file->f_path.mnt);
-+	if (error)
-+		goto exit;
-+	/***** TOMOYO Linux end. *****/
-+
- 	fsnotify_open(file->f_path.dentry);
- 
- 	error = -ENOEXEC;
-@@ -662,6 +672,13 @@ struct file *open_exec(const char *name)
- 	if (file->f_path.mnt->mnt_flags & MNT_NOEXEC)
- 		goto exit;
- 
-+	/***** TOMOYO Linux start. *****/
-+	err = ccs_check_open_exec_permission(file->f_path.dentry,
-+					     file->f_path.mnt);
-+	if (err)
-+		goto exit;
-+	/***** TOMOYO Linux end. *****/
-+
- 	fsnotify_open(file->f_path.dentry);
- 
- 	err = deny_write_access(file);
-@@ -1324,7 +1341,7 @@ int do_execve(char * filename,
+@@ -1324,7 +1327,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
