@@ -693,8 +693,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		return NULL;
 	len = strlen(name) + 1;
 	if (len > CCS_MAX_PATHNAME_LEN) {
-		printk(KERN_WARNING "ERROR: Name too long "
-		       "for %s().\n", __func__);
+		printk(KERN_WARNING "ERROR: Name too long. (%s)\n", __func__);
 		return NULL;
 	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
@@ -714,8 +713,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	     > ccs_quota_for_savename)) {
 		kfree(ptr);
 		ptr = NULL;
-		printk(KERN_WARNING "ERROR: Out of memory for %s().\n",
-		       __func__);
+		printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
 		if (!ccs_policy_loaded)
 			panic("MAC Initialization failed.\n");
 		goto out;

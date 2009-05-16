@@ -1422,6 +1422,11 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct ccs_path_info *buf = NULL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+	if (current->in_execve &&
+	    !(current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
+		return 0;
+#endif
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, current->ccs_flags &
@@ -2527,6 +2532,7 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 	return error;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
 /* Permission checks for open_exec(). */
 int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
@@ -2541,6 +2547,7 @@ int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 	/* 01 means "read". */
 	return ccs_check_open_permission(dentry, mnt, 01);
 }
+#endif
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)
 
