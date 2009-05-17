@@ -664,11 +664,13 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 	down_write(&ccs_policy_lock);
 	list_for_each_entry(ptr, &ccs_condition_list, list) {
 		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
-		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(ptr)))
+		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(*ptr)))
 			continue;
 		/* Same entry found. Share this entry. */
+		/*
 		printk(KERN_INFO "Same condition found. %p -> %p\n", new_ptr,
 		       ptr);
+		*/
 		atomic_inc(&ptr->users);
 		kfree(new_ptr);
 		new_ptr = ptr;
@@ -677,11 +679,15 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 	}
 	if (error) {
 		if (ccs_memory_ok(new_ptr)) {
+			/*
 			printk(KERN_INFO "New condition added. %p\n", new_ptr);
+			*/
 			list_add(&new_ptr->list, &ccs_condition_list);
 			error = 0;
 		} else {
+			/*
 			printk(KERN_INFO "Out of memory. %p\n", new_ptr);
+			*/
 			kfree(new_ptr);
 			new_ptr = NULL;
 		}
