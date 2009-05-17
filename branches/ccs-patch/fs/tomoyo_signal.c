@@ -52,7 +52,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
  */
 static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 				 struct ccs_domain_info *domain,
-				 const struct ccs_condition_list *condition,
+				 struct ccs_condition_list *condition,
 				 const bool is_delete)
 {
 	struct ccs_signal_acl_record *entry = NULL;
@@ -256,7 +256,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    const struct ccs_condition_list *condition,
+			    struct ccs_condition_list *condition,
 			    const bool is_delete)
 {
 	int sig;

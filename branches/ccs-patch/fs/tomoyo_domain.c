@@ -66,6 +66,8 @@ const char *ccs_get_last_name(const struct ccs_domain_info *domain)
 int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
 {
 	if (domain) {
+		if (acl->cond)
+			atomic_inc(&acl->cond->users);
 		list_add_tail(&acl->list, &domain->acl_info_list);
 	} else {
 		acl->type &= ~ACL_DELETED;

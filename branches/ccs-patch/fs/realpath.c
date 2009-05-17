@@ -652,6 +652,54 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 		ccs_free_element(ptr);
 }
 
+/**
+ * ccs_put_condition - Delete memory for "struct ccs_condition_list".
+ *
+ * @cond: Pointer to "struct ccs_condition_list".
+ */
+void ccs_put_condition(struct ccs_condition_list *cond)
+{
+	const unsigned long *ptr;
+	const struct ccs_argv_entry *argv;
+	const struct ccs_envp_entry *envp;
+	const struct ccs_symlinkp_entry *symlinkp;
+	u16 condc;
+	u16 argc;
+	u16 envc;
+	u16 symlinkc;
+	u16 i;
+	bool can_delete = false;
+	if (!cond)
+		return;
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	if (atomic_dec_and_test(&cond->users)) {
+		list_del(&cond->list);
+		can_delete = true;
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	if (!can_delete)
+		return;
+	condc = cond->head.condc;
+	argc = cond->head.argc;
+	envc = cond->head.envc;
+	symlinkc = cond->head.symlinkc;
+	ptr = (const unsigned long *) (cond + 1);
+	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	envp = (const struct ccs_envp_entry *) (argv + argc);
+	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc);
+	for (i = 0; i < argc; argv++, i++)
+		ccs_put_name(argv->value);
+	for (i = 0; i < envc; envp++, i++) {
+		ccs_put_name(envp->name);
+		ccs_put_name(envp->value);
+	}
+	for (i = 0; i < symlinkc; symlinkp++, i++)
+		ccs_put_name(symlinkp->value);
+	ccs_free_element(cond);
+}
+
 static unsigned int ccs_allocated_memory_for_savename;
 static unsigned int ccs_quota_for_savename;
 
@@ -1375,6 +1423,7 @@ static void ccs_cleanup_domain_policy(void)
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
 	list_for_each_entry_safe(acl, next_acl, &q_acl, list) {
+		ccs_put_condition(acl->cond);
 		switch (ccs_acl_type1(acl)) {
 			struct ccs_single_path_acl_record *acl1;
 			struct ccs_double_path_acl_record *acl2;

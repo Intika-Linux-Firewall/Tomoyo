@@ -117,13 +117,11 @@ static struct ccs_path_info *ccs_get_path(struct dentry *dentry,
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
 				      struct ccs_domain_info * const domain,
-				      const struct ccs_condition_list *
-				      condition,
+				      struct ccs_condition_list *condition,
 				      const bool is_delete);
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
-				      const struct ccs_condition_list *
-				      condition,
+				      struct ccs_condition_list *condition,
 				      const bool is_delete);
 
 /**
@@ -360,6 +358,7 @@ static int ccs_update_path_group_entry(const char *group_name,
 		saved_member_name = NULL;
 		list_add_tail(&entry->list, &group->path_group_member_list);
 		entry = NULL;
+		atomic_inc(&group->users);
 		error = 0;
 	}
 	up_write(&ccs_policy_lock);
@@ -718,7 +717,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  */
 static int ccs_update_file_acl(const char *filename, u8 perm,
 			       struct ccs_domain_info * const domain,
-			       const struct ccs_condition_list *condition,
+			       struct ccs_condition_list *condition,
 			       const bool is_delete)
 {
 	if (perm > 7 || !perm) {
@@ -981,7 +980,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  const struct ccs_condition_list *condition,
+			  struct ccs_condition_list *condition,
 			  const bool is_delete)
 {
 	char *filename = strchr(data, ' ');
@@ -1038,8 +1037,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
  */
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
-				      const struct ccs_condition_list *
-				      condition,
+				      struct ccs_condition_list *condition,
 				      const bool is_delete)
 {
 	static const u16 ccs_rw_mask =
@@ -1154,8 +1152,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
 				      struct ccs_domain_info * const domain,
-				      const struct ccs_condition_list *
-				      condition,
+				      struct ccs_condition_list *condition,
 				      const bool is_delete)
 {
 	const void *saved_ptr1;
@@ -1701,7 +1698,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 				const unsigned int cmd_min,
 				const unsigned int cmd_max,
 				struct ccs_domain_info * const domain,
-				const struct ccs_condition_list *condition,
+				struct ccs_condition_list *condition,
 				const bool is_delete)
 {
 	const void *saved_ptr;
@@ -1884,7 +1881,7 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
-			   const struct ccs_condition_list *condition,
+			   struct ccs_condition_list *condition,
 			   const bool is_delete)
 {
 	char *cmd = strchr(data, ' ');

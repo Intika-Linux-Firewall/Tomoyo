@@ -46,7 +46,7 @@ static int ccs_audit_argv0_log(struct ccs_request_info *r, const char *filename,
  */
 static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 				  struct ccs_domain_info *domain,
-				  const struct ccs_condition_list *condition,
+				  struct ccs_condition_list *condition,
 				  const bool is_delete)
 {
 	struct ccs_argv0_acl_record *entry = NULL;
@@ -205,7 +205,7 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
-			   const struct ccs_condition_list *condition,
+			   struct ccs_condition_list *condition,
 			   const bool is_delete)
 {
 	char *argv0 = strchr(data, ' ');

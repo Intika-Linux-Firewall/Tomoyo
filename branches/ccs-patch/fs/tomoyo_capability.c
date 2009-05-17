@@ -96,7 +96,7 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
  */
 static int ccs_update_capability_acl(const u8 operation,
 				     struct ccs_domain_info *domain,
-				     const struct ccs_condition_list *condition,
+				     struct ccs_condition_list *condition,
 				     const bool is_delete)
 {
 	struct ccs_capability_acl_record *entry = NULL;
@@ -228,7 +228,7 @@ EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
-				const struct ccs_condition_list *condition,
+				struct ccs_condition_list *condition,
 				const bool is_delete)
 {
 	u8 capability;

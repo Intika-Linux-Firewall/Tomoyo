@@ -176,6 +176,7 @@ static int ccs_update_address_group_entry(const char *group_name,
 		}
 		list_add_tail(&entry->list, &group->address_group_member_list);
 		entry = NULL;
+		atomic_inc(&group->users);
 		error = 0;
 	}
 	up_write(&ccs_policy_lock);
@@ -455,7 +456,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    const u32 *max_address,
 				    const u16 min_port, const u16 max_port,
 				    struct ccs_domain_info *domain,
-				    const struct ccs_condition_list *condition,
+				    struct ccs_condition_list *condition,
 				    const bool is_delete)
 {
 	struct ccs_ip_network_acl_record *entry = NULL;
@@ -685,7 +686,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     const struct ccs_condition_list *condition,
+			     struct ccs_condition_list *condition,
 			     const bool is_delete)
 {
 	u8 sock_type;

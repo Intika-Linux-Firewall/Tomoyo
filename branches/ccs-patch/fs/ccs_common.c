@@ -1583,8 +1583,9 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	bool is_delete = false;
 	bool is_select = false;
 	unsigned int profile;
-	const struct ccs_condition_list *cond = NULL;
+	struct ccs_condition_list *cond = NULL;
 	char *cp;
+	int error;
 	if (ccs_str_starts(&data, KEYWORD_DELETE))
 		is_delete = true;
 	else if (ccs_str_starts(&data, KEYWORD_SELECT))
@@ -1624,31 +1625,34 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	}
 	cp = ccs_find_condition_part(data);
 	if (cp) {
-		cond = ccs_find_or_assign_new_condition(cp);
+		cond = ccs_get_condition(cp);
 		if (!cond)
 			return -EINVAL;
 	}
 	if (ccs_str_starts(&data, KEYWORD_ALLOW_CAPABILITY))
-		return ccs_write_capability_policy(data, cookie->u.domain,
-						   cond, is_delete);
+		error = ccs_write_capability_policy(data, cookie->u.domain,
+						    cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_NETWORK))
-		return ccs_write_network_policy(data, cookie->u.domain, cond,
-						is_delete);
+		error = ccs_write_network_policy(data, cookie->u.domain, cond,
+						 is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_SIGNAL))
-		return ccs_write_signal_policy(data, cookie->u.domain, cond,
-					       is_delete);
+		error = ccs_write_signal_policy(data, cookie->u.domain, cond,
+						is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ARGV0))
-		return ccs_write_argv0_policy(data, cookie->u.domain, cond,
-					      is_delete);
+		error = ccs_write_argv0_policy(data, cookie->u.domain, cond,
+					       is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
-		return ccs_write_env_policy(data, cookie->u.domain, cond,
-					    is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
-		return ccs_write_ioctl_policy(data, cookie->u.domain, cond,
-					      is_delete);
-	else
-		return ccs_write_file_policy(data, cookie->u.domain, cond,
+		error = ccs_write_env_policy(data, cookie->u.domain, cond,
 					     is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
+		error = ccs_write_ioctl_policy(data, cookie->u.domain, cond,
+					       is_delete);
+	else
+		error = ccs_write_file_policy(data, cookie->u.domain, cond,
+					      is_delete);
+	if (cond)
+		ccs_put_condition(cond);
+	return error;
 }
 
 /**

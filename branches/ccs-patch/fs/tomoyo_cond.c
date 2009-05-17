@@ -19,26 +19,6 @@
 #include <linux/tomoyo.h>
 #include <linux/highmem.h>
 
-/* Structure for argv[]. */
-struct ccs_argv_entry {
-	unsigned int index;
-	const struct ccs_path_info *value;
-	bool is_not;
-};
-
-/* Structure for envp[]. */
-struct ccs_envp_entry {
-	const struct ccs_path_info *name;
-	const struct ccs_path_info *value;
-	bool is_not;
-};
-
-/* Structure for symlink's target. */
-struct ccs_symlinkp_entry {
-	const struct ccs_path_info *value;
-	bool is_not;
-};
-
 /**
  * ccs_check_argv - Check argv[] in "struct linux_binbrm".
  *
@@ -687,15 +667,24 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(ptr)))
 			continue;
 		/* Same entry found. Share this entry. */
+		printk(KERN_INFO "Same condition found. %p -> %p\n", new_ptr,
+		       ptr);
 		atomic_inc(&ptr->users);
 		kfree(new_ptr);
 		new_ptr = ptr;
 		error = 0;
 		break;
 	}
-	if (error && !ccs_memory_ok(new_ptr)) {
-		kfree(new_ptr);
-		new_ptr = NULL;
+	if (error) {
+		if (ccs_memory_ok(new_ptr)) {
+			printk(KERN_INFO "New condition added. %p\n", new_ptr);
+			list_add(&new_ptr->list, &ccs_condition_list);
+			error = 0;
+		} else {
+			printk(KERN_INFO "Out of memory. %p\n", new_ptr);
+			kfree(new_ptr);
+			new_ptr = NULL;
+		}
 	}
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
@@ -703,14 +692,13 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 }
 
 /**
- * ccs_find_or_assign_new_condition - Parse condition part.
+ * ccs_get_condition - Parse condition part.
  *
  * @condition: Pointer to string to parse.
  *
  * Returns pointer to "struct ccs_condition_list" on success, NULL otherwise.
  */
-const struct ccs_condition_list *
-ccs_find_or_assign_new_condition(char * const condition)
+struct ccs_condition_list *ccs_get_condition(char * const condition)
 {
 	char *start = condition;
 	struct ccs_condition_list *new_ptr = NULL;
@@ -1630,9 +1618,9 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
  * Returns pointer to "struct ccs_condition_list" if current process is an
  * execute handler, NULL otherwise.
  */
-const struct ccs_condition_list *ccs_handler_cond(void)
+struct ccs_condition_list *ccs_handler_cond(void)
 {
-	static const struct ccs_condition_list *ccs_cond;
+	static struct ccs_condition_list *ccs_cond;
 	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
 	if (!ccs_cond) {
@@ -1642,7 +1630,7 @@ const struct ccs_condition_list *ccs_handler_cond(void)
 		char *tmp = kzalloc(len, GFP_KERNEL);
 		if (tmp) {
 			memmove(tmp, str, len);
-			ccs_cond = ccs_find_or_assign_new_condition(tmp);
+			ccs_cond = ccs_get_condition(tmp);
 			kfree(tmp);
 		}
 		if (!ccs_cond && counter) {
@@ -1650,6 +1638,8 @@ const struct ccs_condition_list *ccs_handler_cond(void)
 			printk(KERN_WARNING "TOMOYO-WARNING: Failed to create "
 			       "condition for execute_handler.\n");
 		}
-	}
+	} else
+		atomic_inc(&ccs_cond->users);
+	/* Need to call ccs_put_cond() after updating. */
 	return ccs_cond;
 }

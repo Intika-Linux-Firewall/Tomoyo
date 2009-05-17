@@ -160,7 +160,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
-				const struct ccs_condition_list *condition,
+				struct ccs_condition_list *condition,
 				const bool is_delete)
 {
 	struct ccs_env_acl_record *entry = NULL;
@@ -307,7 +307,7 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
-			 const struct ccs_condition_list *condition,
+			 struct ccs_condition_list *condition,
 			 const bool is_delete)
 {
 	return ccs_update_env_entry(data, domain, condition, is_delete);
