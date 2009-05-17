@@ -933,6 +933,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		break;
 	}
 	if (error && ccs_memory_ok(entry)) {
+		entry->head.type = type;
 		entry->handler = saved_filename;
 		saved_filename = NULL;
 		/* Only one entry can exist in a domain. */
