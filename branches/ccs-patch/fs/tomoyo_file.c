@@ -340,7 +340,7 @@ static int ccs_update_path_group_entry(const char *group_name,
 		member_name = "pipe:[\\$]";
 #endif
 	saved_member_name = ccs_get_name(member_name);
-	if (saved_member_name)
+	if (!saved_member_name)
 		goto out;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);

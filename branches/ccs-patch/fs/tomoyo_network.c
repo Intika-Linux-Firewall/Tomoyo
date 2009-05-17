@@ -134,15 +134,16 @@ static int ccs_update_address_group_entry(const char *group_name,
 	group = ccs_get_address_group(group_name);
 	if (!group)
 		return -ENOMEM;
-	if (!is_ipv6)
-		goto not_ipv6;
-	saved_min_address
-		= ccs_get_ipv6_address((struct in6_addr *) min_address);
-	saved_max_address
-		= ccs_get_ipv6_address((struct in6_addr *) max_address);
-	if (!saved_min_address || !saved_max_address)
-		goto out;
- not_ipv6:
+	if (is_ipv6) {
+		saved_min_address
+			= ccs_get_ipv6_address((struct in6_addr *)
+					       min_address);
+		saved_max_address
+			= ccs_get_ipv6_address((struct in6_addr *)
+					       max_address);
+		if (!saved_min_address || !saved_max_address)
+			goto out;
+	}
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	/***** WRITER SECTION START *****/
