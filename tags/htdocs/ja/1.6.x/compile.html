@@ -53,6 +53,7 @@ Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
 <li><a href="#Fedora8">Fedora 8</a>
 <li><a href="#Fedora9">Fedora 9</a>
 <li><a href="#Fedora10">Fedora 10</a>
+<li><a href="#Fedora11">Fedora 11</a>
 <li><a href="#CentOS3.9">CentOS 3.9</a>
 <li><a href="#CentOS4.7">CentOS 4.7</a>
 <li><a href="#CentOS5.3">CentOS 5.3</a>
@@ -196,6 +197,19 @@ wget -O build-f10-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*chec
 sh build-f10-2.6.27.sh<br>
 # パッケージを作成する。<br>
 rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr>
+</table>
+
+<h2><a name="Fedora11">Fedora 11</a></h2>
+
+<table border="1">
+<tr><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f11-2.6.29.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f11-2.6.29.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f11-2.6.29.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /root/rpmbuild/SPECS/ccs-kernel.spec
 </td></tr>
 </table>
 
@@ -485,18 +499,18 @@ genkernel --menuconfig all<br>
 
 <h2><a name="2.6-vanilla">バニラ 2.6 カーネル</a></h2>
 
-<p>2.6.11 以降に対応しています。以下の手順では 2.6.29.2 を使用するものとします。</p>
+<p>2.6.11 以降に対応しています。以下の手順では 2.6.29.3 を使用するものとします。</p>
 
 <table border="1">
 <tr><td>
 # ソースディレクトリへ移動する。<br>
 cd /usr/src/<br>
 # カーネルのソースをダウンロードする。<br>
-wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.29.2.tar.bz2<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.29.3.tar.bz2<br>
 # 展開する。<br>
-tar -jxf linux-2.6.29.2.tar.bz2<br>
+tar -jxf linux-2.6.29.3.tar.bz2<br>
 # 展開されたソースのディレクトリへ移動する。<br>
-cd linux-2.6.29.2<br>
+cd linux-2.6.29.3<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
