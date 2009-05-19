@@ -376,6 +376,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		struct ccs_path_info rdev;
 		struct ccs_path_info rdir;
 		int need_dev = 0;
+
 		requested_type = ccs_encode(type);
 		if (!requested_type) {
 			error = -ENOMEM;
