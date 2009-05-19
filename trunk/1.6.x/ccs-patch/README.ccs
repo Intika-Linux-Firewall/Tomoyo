@@ -1959,3 +1959,22 @@ Fix 2009/05/08
 
       Thus, I modified ccs_socket_recvmsg_permission() to return -ENOMEM
       rather than -EAGAIN.
+
+Fix 2009/05/19
+
+    @ Don't call get_fs_type() with a mutex held.
+
+      Until now, when ccs_update_mount_acl() is called with unsupported
+      filesystem, /sbin/modprobe is executed from get_fs_type() to load
+      filesystem module. And get_fs_type() does not return until /sbin/modprobe
+      finishes.
+
+      This means that it will cause deadlock if /sbin/modprobe (which is
+      executed via get_fs_type() in ccs_update_mount_acl()) calls
+      ccs_update_mount_acl(); although it won't happen unless an administrator
+      inserts execute_handler to call mount() requests in learning mode or to
+      add "allow_mount" entries to /proc/ccs/system_policy .
+
+      I modified to unlock the mutex before calling get_fs_type().
+
+Version 1.6.8 2009/05/??   Feature enhancement release.

@@ -169,7 +169,9 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		printk(KERN_CONT "%sAllow mount %s %s with options 0x%lX.\n",
 		       ccs_log_level, fs->name, dir->name, ptr->flags);
 	} else {
+		mutex_unlock(&lock);
 		type = get_fs_type(fs->name);
+		mutex_lock(&lock);
 		if (type && (type->fs_flags & FS_REQUIRES_DEV) != 0)
 			printk(KERN_CONT "%sAllow mount -t %s %s %s "
 			       "with options 0x%lX.\n", ccs_log_level,
