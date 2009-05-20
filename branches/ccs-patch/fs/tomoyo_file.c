@@ -1488,16 +1488,17 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
-				struct vfsmount *mnt,
-				struct ccs_path_info *target)
+				struct vfsmount *mnt, const char *target)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
 	struct ccs_path_info *buf = NULL;
 	bool is_enforce;
+	struct ccs_path_info symlink_target;
 	if (!ccs_can_sleep())
 		return 0;
+	symlink_target.name = NULL;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1519,9 +1520,17 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry;
 	obj.path1_vfsmnt = mnt;
-	obj.symlink_target = target;
+	if (operation == TYPE_SYMLINK_ACL) {
+		symlink_target.name = ccs_encode(target);
+		if (!symlink_target.name)
+			goto out;
+		ccs_fill_path_info(&symlink_target);
+		obj.symlink_target = &symlink_target;
+	}
 	r.obj = &obj;
 	error = ccs_check_single_path_permission2(&r, operation, buf);
+	if (operation == TYPE_SYMLINK_ACL)
+		ccs_free(symlink_target.name);
  out:
 	ccs_free(buf);
 	if (!is_enforce)
@@ -2477,18 +2486,12 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 				 struct vfsmount *mnt, char *from)
 {
 	int error;
-	struct ccs_path_info target;
 	if (!ccs_capable(CCS_SYS_SYMLINK))
 		return -EPERM;
 	error = ccs_pre_vfs_symlink(dir, dentry);
-	if (error)
-		return error;
-	target.name = ccs_encode(from);
-	if (!target.name)
-		return -ENOMEM;
-	ccs_fill_path_info(&target);
-	error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt, &target);
-	ccs_free(target.name);
+	if (!error)
+		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt,
+					     from);
 	return error;
 }
 
