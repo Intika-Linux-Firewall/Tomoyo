@@ -52,13 +52,13 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  kernel/time.c                      |   15 +++++++++
  net/ipv4/raw.c                     |    8 ++++
  net/ipv4/tcp_ipv4.c                |   11 ++++++
- net/ipv4/udp.c                     |   20 +++++++++++-
+ net/ipv4/udp.c                     |   23 +++++++++++++-
  net/ipv6/raw.c                     |    8 ++++
  net/ipv6/tcp_ipv6.c                |    7 ++++
- net/ipv6/udp.c                     |   18 +++++++++++
+ net/ipv6/udp.c                     |   21 ++++++++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 56 files changed, 650 insertions(+), 12 deletions(-)
+ 56 files changed, 656 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.EL/arch/alpha/kernel/ptrace.c
@@ -1235,7 +1235,7 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-89.EL 2009/05/19\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.EL 2009/05/20\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1649,7 +1649,17 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -144,6 +150,10 @@ static int udp_v4_get_port(struct sock *
+@@ -137,6 +143,9 @@ static int udp_v4_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		/***** SAKURA Linux start. *****/
++		if (!ccs_lport_reserved(rover))
++		/***** SAKURA Linux end. *****/
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -144,6 +153,10 @@ static int udp_v4_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			struct hlist_head *list;
  			int size = 0;
@@ -1660,7 +1670,7 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -163,6 +173,9 @@ static int udp_v4_get_port(struct sock *
+@@ -163,6 +176,9 @@ static int udp_v4_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1670,7 +1680,7 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -797,7 +810,12 @@ try_again:
+@@ -797,7 +813,12 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1746,7 +1756,17 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -86,6 +92,10 @@ static int udp_v6_get_port(struct sock *
+@@ -79,6 +85,9 @@ static int udp_v6_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		/***** SAKURA Linux start. *****/
++		if (!ccs_lport_reserved(rover))
++		/***** SAKURA Linux end. *****/
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -86,6 +95,10 @@ static int udp_v6_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
  			struct hlist_head *list;
@@ -1757,7 +1777,7 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -105,6 +115,9 @@ static int udp_v6_get_port(struct sock *
+@@ -105,6 +118,9 @@ static int udp_v6_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1767,7 +1787,7 @@ Source code for this patch is kernel-2.6.9-89.EL.src.rpm
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -241,6 +254,11 @@ try_again:
+@@ -241,6 +257,11 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
