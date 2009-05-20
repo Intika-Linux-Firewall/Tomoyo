@@ -1977,4 +1977,12 @@ Fix 2009/05/19
 
       I modified to unlock the mutex before calling get_fs_type().
 
+Fix 2009/05/20
+
+    @ Add missing skb_free_datagram() call. (only 2.6.15 and earlier)
+
+      Kernels before 2.6.16 do not have skb_kill_datagram().
+      I copied skb_kill_datagram() from kernel 2.6.16, but it turned out that
+      I forgot to call skb_free_datagram() from skb_kill_datagram().
+
 Version 1.6.8 2009/05/??   Feature enhancement release.
