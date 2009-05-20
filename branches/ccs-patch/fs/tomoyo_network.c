@@ -1225,6 +1225,7 @@ static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 		if (clear)
 			kfree_skb(skb);
 	}
+	skb_free_datagram(sk, skb);
 }
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
@@ -1242,6 +1243,7 @@ static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 		if (clear)
 			kfree_skb(skb);
 	}
+	skb_free_datagram(sk, skb);
 }
 #endif
 
