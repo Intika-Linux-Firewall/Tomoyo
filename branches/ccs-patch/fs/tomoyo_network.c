@@ -177,7 +177,6 @@ static int ccs_update_address_group_entry(const char *group_name,
 		}
 		list_add_tail(&entry->list, &group->address_group_member_list);
 		entry = NULL;
-		atomic_inc(&group->users);
 		error = 0;
 	}
 	up_write(&ccs_policy_lock);

@@ -379,6 +379,14 @@ struct ccs_chroot_entry {
 	bool is_deleted;
 };
 
+/* Structure for "deny_autobind" keyword. */
+struct ccs_reserved_entry {
+	struct list_head list;
+	bool is_deleted;             /* Delete flag.                         */
+	u16 min_port;                /* Start of port number range.          */
+	u16 max_port;                /* End of port number range.            */
+};
+
 /* Structure for policy manager. */
 struct ccs_policy_manager_entry {
 	struct list_head list;
@@ -516,7 +524,7 @@ struct ccs_signal_acl_record {
 	const struct ccs_path_info *domainname;
 };
 
-struct ccs_addr_entry {
+struct ccs_ipv6addr_entry {
 	struct list_head list;
 	atomic_t users;
 	struct in6_addr addr;

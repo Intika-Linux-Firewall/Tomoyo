@@ -600,8 +600,8 @@ static LIST_HEAD(ccs_address_list);
  */
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 {
-	struct ccs_addr_entry *entry;
-	struct ccs_addr_entry *ptr;
+	struct ccs_ipv6addr_entry *entry;
+	struct ccs_ipv6addr_entry *ptr;
 	int error = -ENOMEM;
 	if (!addr)
 		return NULL;
@@ -635,11 +635,11 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
  */
 void ccs_put_ipv6_address(const struct in6_addr *addr)
 {
-	struct ccs_addr_entry *ptr;
+	struct ccs_ipv6addr_entry *ptr;
 	bool can_delete = false;
 	if (!addr)
 		return;
-	ptr = container_of(addr, struct ccs_addr_entry, addr);
+	ptr = container_of(addr, struct ccs_ipv6addr_entry, addr);
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
 	if (atomic_dec_and_test(&ptr->users)) {
@@ -710,13 +710,6 @@ struct ccs_name_entry {
 	struct list_head list;
 	atomic_t users;
 	struct ccs_path_info entry;
-};
-
-/* Structure for available memory region. */
-struct ccs_free_memory_block_list {
-	struct list_head list;
-	char *ptr;             /* Pointer to a free area. */
-	int len;               /* Length of the area.     */
 };
 
 /* The list for "struct ccs_name_entry". */
@@ -1514,6 +1507,222 @@ static void ccs_cleanup_domain_policy(void)
 }
 
 /**
+ * ccs_cleanup_path_group - Clean up deleted "struct ccs_path_group_entry".
+ */
+static void ccs_cleanup_path_group(void)
+{
+	struct ccs_path_group_entry *group;
+	struct ccs_path_group_entry *next_group;
+	struct ccs_path_group_member *member;
+	struct ccs_path_group_member *next_member;
+	LIST_HEAD(q_group);
+	LIST_HEAD(q_member);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(group, next_group, &ccs_path_group_list,
+				 list) {
+		list_for_each_entry_safe(member, next_member,
+					 &group->path_group_member_list,
+					 list) {
+			if (!member->is_deleted)
+				break;
+			list_del(&member->list);
+			list_add(&member->list, &q_member);
+		}
+		if (list_empty(&group->path_group_member_list) &&
+		    !atomic_read(&group->users)) {
+			list_del(&group->list);
+			list_add(&group->list, &q_group);
+		}
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(member, next_member, &q_member, list) {
+		ccs_put_name(member->member_name);
+		list_del(&member->list);
+		ccs_free_element(member);
+	}
+	list_for_each_entry_safe(group, next_group, &q_group, list) {
+		ccs_put_name(group->group_name);
+		list_del(&group->list);
+		ccs_free_element(group);
+	}
+}
+
+/**
+ * ccs_cleanup_address_group - Clean up deleted "struct ccs_address_group_entry".
+ */
+static void ccs_cleanup_address_group(void)
+{
+	struct ccs_address_group_entry *group;
+	struct ccs_address_group_entry *next_group;
+	struct ccs_address_group_member *member;
+	struct ccs_address_group_member *next_member;
+	LIST_HEAD(q_group);
+	LIST_HEAD(q_member);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(group, next_group, &ccs_address_group_list,
+				 list) {
+		list_for_each_entry_safe(member, next_member,
+					 &group->address_group_member_list,
+					 list) {
+			if (!member->is_deleted)
+				break;
+			list_del(&member->list);
+			list_add(&member->list, &q_member);
+		}
+		if (list_empty(&group->address_group_member_list) &&
+		    !atomic_read(&group->users)) {
+			list_del(&group->list);
+			list_add(&group->list, &q_group);
+		}
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(member, next_member, &q_member, list) {
+		if (member->is_ipv6) {
+			ccs_put_ipv6_address(member->min.ipv6);
+			ccs_put_ipv6_address(member->max.ipv6);
+		}
+		list_del(&member->list);
+		ccs_free_element(member);
+	}
+	list_for_each_entry_safe(group, next_group, &q_group, list) {
+		ccs_put_name(group->group_name);
+		list_del(&group->list);
+		ccs_free_element(group);
+	}
+}
+
+/**
+ * ccs_cleanup_mount - Clean up deleted "struct ccs_mount_entry".
+ */
+static void ccs_cleanup_mount(void)
+{
+	struct ccs_mount_entry *ptr;
+	struct ccs_mount_entry *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_mount_list, list) {
+		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		ccs_put_name(ptr->dev_name);
+		ccs_put_name(ptr->dir_name);
+		ccs_put_name(ptr->fs_type);
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
+ * ccs_cleanup_no_umount - Clean up deleted "struct ccs_no_umount_entry".
+ */
+static void ccs_cleanup_no_umount(void)
+{
+	struct ccs_no_umount_entry *ptr;
+	struct ccs_no_umount_entry *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_no_umount_list, list) {
+		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		ccs_put_name(ptr->dir);
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
+ * ccs_cleanup_pivot_root - Clean up deleted "struct ccs_pivot_root_entry".
+ */
+static void ccs_cleanup_pivot_root(void)
+{
+	struct ccs_pivot_root_entry *ptr;
+	struct ccs_pivot_root_entry *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_pivot_root_list, list) {
+		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		ccs_put_name(ptr->old_root);
+		ccs_put_name(ptr->new_root);
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
+ * ccs_cleanup_chroot - Clean up deleted "struct ccs_chroot_entry".
+ */
+static void ccs_cleanup_chroot(void)
+{
+	struct ccs_chroot_entry *ptr;
+	struct ccs_chroot_entry *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_chroot_list, list) {
+		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		ccs_put_name(ptr->dir);
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
+ * ccs_cleanup_reservedport - Clean up deleted "struct ccs_reserved_entry".
+ */
+static void ccs_cleanup_reservedport(void)
+{
+	struct ccs_reserved_entry *ptr;
+	struct ccs_reserved_entry *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_reservedport_list, list) {
+		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
  * ccs_run_garbage_collector - Run garbage collector.
  */
 void ccs_run_garbage_collector(void)
@@ -1528,14 +1737,14 @@ void ccs_run_garbage_collector(void)
 	ccs_cleanup_aggregator();
 	ccs_cleanup_manager();
 	ccs_cleanup_domain_policy();
+	ccs_cleanup_path_group();
+	ccs_cleanup_address_group();
+	ccs_cleanup_mount();
+	ccs_cleanup_no_umount();
+	ccs_cleanup_pivot_root();
+	ccs_cleanup_chroot();
+	ccs_cleanup_reservedport();
 }
 /*
-extern struct list_head ccs_address_group_list;
-extern struct list_head ccs_path_group_list;
 extern struct list_head ccs_condition_list;
-extern struct list_head ccs_mount_list;
-extern struct list_head ccs_no_umount_list;
-extern struct list_head ccs_pivot_root_list;
-extern struct list_head ccs_chroot_list;
-extern struct list_head ccs_reservedport_list;
 */

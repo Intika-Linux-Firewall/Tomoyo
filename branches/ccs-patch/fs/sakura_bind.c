@@ -16,14 +16,6 @@
 #include <linux/sakura.h>
 #include <linux/realpath.h>
 
-/* Structure for "deny_autobind" keyword. */
-struct ccs_reserved_entry {
-	struct list_head list;
-	bool is_deleted;             /* Delete flag.                         */
-	u16 min_port;                /* Start of port number range.          */
-	u16 max_port;                /* End of port number range.            */
-};
-
 /* The list for "struct ccs_reserved_entry". */
 LIST_HEAD(ccs_reservedport_list);
 

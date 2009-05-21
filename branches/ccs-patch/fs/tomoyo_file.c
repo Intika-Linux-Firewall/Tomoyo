@@ -358,7 +358,6 @@ static int ccs_update_path_group_entry(const char *group_name,
 		saved_member_name = NULL;
 		list_add_tail(&entry->list, &group->path_group_member_list);
 		entry = NULL;
-		atomic_inc(&group->users);
 		error = 0;
 	}
 	up_write(&ccs_policy_lock);
