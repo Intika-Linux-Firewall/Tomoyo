@@ -47,7 +47,7 @@ extern asmlinkage long sys_getppid(void);
 
 struct ccs_domain_info;
 struct ccs_path_info;
-struct ccs_condition_list;
+struct ccs_condition;
 struct ccs_cookie {
 	struct list_head list;
 	union {
@@ -55,7 +55,7 @@ struct ccs_cookie {
 		struct list_head *list;
 		struct ccs_domain_info *domain;
 		const struct ccs_path_info *path;
-		const struct ccs_condition_list *cond;
+		const struct ccs_condition *cond;
 	} u;
 };
 
@@ -113,7 +113,7 @@ struct ccs_obj_info {
 };
 
 /* Structure for " if " and "; set" part. */
-struct ccs_condition_list {
+struct ccs_condition {
 	struct list_head list;
 	atomic_t users;
 	struct {
@@ -227,7 +227,7 @@ struct ccs_path_info_with_data {
 /* Common header for holding ACL entries. */
 struct ccs_acl_info {
 	struct list_head list;
-	struct ccs_condition_list *cond;
+	struct ccs_condition *cond;
 	/*
 	 * Type of this ACL entry.
 	 *
@@ -733,7 +733,6 @@ struct ccs_io_buffer {
 };
 
 /* Prototype definition. */
-struct ccs_condition_list;
 
 /* Check conditional part of an ACL entry. */
 bool ccs_check_condition(struct ccs_request_info *r,
@@ -762,7 +761,7 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 /* Print conditional part of an ACL entry. */
 bool ccs_print_condition(struct ccs_io_buffer *head,
-			 const struct ccs_condition_list *cond);
+			 const struct ccs_condition *cond);
 /* Read "address_group" entry in exception policy. */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 /* Read "aggregator" entry in exception policy. */
@@ -817,11 +816,11 @@ const char *ccs_sp2keyword(const u8 operation);
 /* Fetch next_domain from the list. */
 struct ccs_domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
-struct ccs_condition_list *ccs_get_condition(char * const condition);
-/* Delete memory for "struct ccs_condition_list". */
-void ccs_put_condition(struct ccs_condition_list *cond);
+struct ccs_condition *ccs_get_condition(char * const condition);
+/* Delete memory for "struct ccs_condition". */
+void ccs_put_condition(struct ccs_condition *cond);
 /* Create conditional part for execute_handler process. */
-struct ccs_condition_list *ccs_handler_cond(void);
+struct ccs_condition *ccs_handler_cond(void);
 /* Add an ACL entry to domain's ACL list. */
 int ccs_add_domain_acl(struct ccs_domain_info *domain,
 		       struct ccs_acl_info *acl);
@@ -858,7 +857,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete);
 int ccs_write_alias_policy(char *data, const bool is_delete);
 /* Create "allow_argv0" entry in domain policy. */
 int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition_list *condition,
+			   struct ccs_condition *condition,
 			   const bool is_delete);
 /* Write an audit log. */
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
@@ -866,7 +865,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
      __attribute__ ((format(printf, 3, 4)));
 /* Create "allow_capability" entry in domain policy. */
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
-				struct ccs_condition_list *condition,
+				struct ccs_condition *condition,
 				const bool is_delete);
 /* Create "allow_chroot" entry in system policy. */
 int ccs_write_chroot_policy(char *data, const bool is_delete);
@@ -881,7 +880,7 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
 				   const bool is_delete);
 /* Create "allow_env" entry in domain policy. */
 int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
-			 struct ccs_condition_list *condition,
+			 struct ccs_condition *condition,
 			 const bool is_delete);
 /*
  * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
@@ -892,7 +891,7 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
  * entry in domain policy.
  */
 int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition_list *condition,
+			  struct ccs_condition *condition,
 			  const bool is_delete);
 /* Create "allow_read" entry in exception policy. */
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
@@ -900,13 +899,13 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 /* Create "allow_ioctl" entry in domain policy. */
 int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition_list *condition,
+			   struct ccs_condition *condition,
 			   const bool is_delete);
 /* Create "allow_mount" entry in system policy. */
 int ccs_write_mount_policy(char *data, const bool is_delete);
 /* Create "allow_network" entry in domain policy. */
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     struct ccs_condition_list *condition,
+			     struct ccs_condition *condition,
 			     const bool is_delete);
 /* Create "deny_rewrite" entry in exception policy. */
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
@@ -922,7 +921,7 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 /* Create "allow_signal" entry in domain policy. */
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition_list *condition,
+			    struct ccs_condition *condition,
 			    const bool is_delete);
 /* Write operation for /proc/ccs/ interface. */
 int ccs_write_control(struct file *file, const char __user *buffer,

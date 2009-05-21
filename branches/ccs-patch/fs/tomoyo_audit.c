@@ -185,7 +185,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	 * CCS_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
 	 * CCS_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
 	 */
-	const struct ccs_condition_list *ptr = r->condition_cookie.u.cond;
+	const struct ccs_condition *ptr = r->condition_cookie.u.cond;
 	if (ptr) {
 		struct task_struct *task = current;
 		const u8 flags = ptr->head.post_state[3];

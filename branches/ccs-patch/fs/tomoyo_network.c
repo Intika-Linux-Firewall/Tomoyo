@@ -445,7 +445,7 @@ const char *ccs_net2keyword(const u8 operation)
  * @min_port:    Start of port number range.
  * @max_port:    End of port number range.
  * @domain:      Pointer to "struct ccs_domain_info".
- * @condition:   Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition:   Pointer to "struct ccs_condition". May be NULL.
  * @is_delete:   True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -456,7 +456,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    const u32 *max_address,
 				    const u16 min_port, const u16 max_port,
 				    struct ccs_domain_info *domain,
-				    struct ccs_condition_list *condition,
+				    struct ccs_condition *condition,
 				    const bool is_delete)
 {
 	struct ccs_ip_network_acl_record *entry = NULL;
@@ -680,13 +680,13 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     struct ccs_condition_list *condition,
+			     struct ccs_condition *condition,
 			     const bool is_delete)
 {
 	u8 sock_type;

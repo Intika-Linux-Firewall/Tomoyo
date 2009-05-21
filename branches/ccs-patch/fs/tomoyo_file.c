@@ -117,11 +117,11 @@ static struct ccs_path_info *ccs_get_path(struct dentry *dentry,
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
 				      struct ccs_domain_info * const domain,
-				      struct ccs_condition_list *condition,
+				      struct ccs_condition *condition,
 				      const bool is_delete);
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
-				      struct ccs_condition_list *condition,
+				      struct ccs_condition *condition,
 				      const bool is_delete);
 
 /**
@@ -704,7 +704,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  * @filename:  Filename.
  * @perm:      Permission (between 1 to 7).
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -716,7 +716,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  */
 static int ccs_update_file_acl(const char *filename, u8 perm,
 			       struct ccs_domain_info * const domain,
-			       struct ccs_condition_list *condition,
+			       struct ccs_condition *condition,
 			       const bool is_delete)
 {
 	if (perm > 7 || !perm) {
@@ -974,13 +974,13 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition_list *condition,
+			  struct ccs_condition *condition,
 			  const bool is_delete)
 {
 	char *filename = strchr(data, ' ');
@@ -1030,14 +1030,14 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
  * @type:      Type of operation.
  * @filename:  Filename.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
-				      struct ccs_condition_list *condition,
+				      struct ccs_condition *condition,
 				      const bool is_delete)
 {
 	static const u16 ccs_rw_mask =
@@ -1144,7 +1144,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
  * @filename1: First filename.
  * @filename2: Second filename.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1152,7 +1152,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 				      const char *filename2,
 				      struct ccs_domain_info * const domain,
-				      struct ccs_condition_list *condition,
+				      struct ccs_condition *condition,
 				      const bool is_delete)
 {
 	const void *saved_ptr1;
@@ -1697,7 +1697,7 @@ static int ccs_audit_ioctl_log(struct ccs_request_info *r,
  * @cmd_min:   Minimum ioctl command number.
  * @cmd_max:   Maximum ioctl command number.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1707,7 +1707,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 				const unsigned int cmd_min,
 				const unsigned int cmd_max,
 				struct ccs_domain_info * const domain,
-				struct ccs_condition_list *condition,
+				struct ccs_condition *condition,
 				const bool is_delete)
 {
 	const void *saved_ptr;
@@ -1884,13 +1884,13 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition_list *condition,
+			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
 	char *cmd = strchr(data, ' ');

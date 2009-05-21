@@ -17,7 +17,7 @@
 
 struct dentry;
 struct vfsmount;
-struct ccs_condition_list;
+struct ccs_condition;
 struct ccs_path_info;
 struct ccs_io_buffer;
 struct ccs_execve_entry;

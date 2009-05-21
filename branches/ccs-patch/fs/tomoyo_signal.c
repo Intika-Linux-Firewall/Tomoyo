@@ -45,14 +45,14 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
  * @sig:          Signal number.
  * @dest_pattern: Destination domainname.
  * @domain:       Pointer to "struct ccs_domain_info".
- * @condition:    Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition:    Pointer to "struct ccs_condition". May be NULL.
  * @is_delete:    True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 				 struct ccs_domain_info *domain,
-				 struct ccs_condition_list *condition,
+				 struct ccs_condition *condition,
 				 const bool is_delete)
 {
 	struct ccs_signal_acl_record *entry = NULL;
@@ -250,13 +250,13 @@ int ccs_check_signal_acl(const int sig, const int pid)
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition_list". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition_list *condition,
+			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
 	int sig;

@@ -1583,7 +1583,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	bool is_delete = false;
 	bool is_select = false;
 	unsigned int profile;
-	struct ccs_condition_list *cond = NULL;
+	struct ccs_condition *cond = NULL;
 	char *cp;
 	int error;
 	if (ccs_str_starts(&data, KEYWORD_DELETE))
@@ -1660,13 +1660,13 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_single_path_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 				      struct ccs_single_path_acl_record *ptr,
-				      const struct ccs_condition_list *cond)
+				      const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
@@ -1709,13 +1709,13 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_double_path_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 				      struct ccs_double_path_acl_record *ptr,
-				      const struct ccs_condition_list *cond)
+				      const struct ccs_condition *cond)
 {
 	int pos;
 	const char *atmark1 = "";
@@ -1760,13 +1760,13 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_ioctl_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_ioctl_acl(struct ccs_io_buffer *head,
 				struct ccs_ioctl_acl_record *ptr,
-				const struct ccs_condition_list *cond)
+				const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	const char *atmark = "";
@@ -1798,13 +1798,13 @@ static bool ccs_print_ioctl_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_argv0_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_argv0_acl(struct ccs_io_buffer *head,
 				struct ccs_argv0_acl_record *ptr,
-				const struct ccs_condition_list *cond)
+				const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
@@ -1823,13 +1823,13 @@ static bool ccs_print_argv0_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_env_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_env_acl(struct ccs_io_buffer *head,
 			      struct ccs_env_acl_record *ptr,
-			      const struct ccs_condition_list *cond)
+			      const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
@@ -1847,13 +1847,13 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_capability_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
 				     struct ccs_capability_acl_record *ptr,
-				     const struct ccs_condition_list *cond)
+				     const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
@@ -1938,13 +1938,13 @@ static bool ccs_print_port_entry(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_ip_network_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 				  struct ccs_ip_network_acl_record *ptr,
-				  const struct ccs_condition_list *cond)
+				  const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_NETWORK "%s ",
@@ -1979,13 +1979,13 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct signale_acl_record".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
 				 struct ccs_signal_acl_record *ptr,
-				 const struct ccs_condition_list *cond)
+				 const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
 	if (!ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
@@ -2027,7 +2027,7 @@ static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
 static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    struct ccs_acl_info *ptr)
 {
-	const struct ccs_condition_list *cond = ptr->cond;
+	const struct ccs_condition *cond = ptr->cond;
 	const u8 acl_type = ptr->type;
 	if (acl_type & ACL_DELETED)
 		return true;

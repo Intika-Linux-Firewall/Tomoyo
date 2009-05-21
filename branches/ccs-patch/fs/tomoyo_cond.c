@@ -486,7 +486,7 @@ static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
 	return false;
 }
 
-/* The list for "struct ccs_condition_list". */
+/* The list for "struct ccs_condition". */
 LIST_HEAD(ccs_condition_list);
 
 enum ccs_conditions_index {
@@ -646,19 +646,20 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 	return false;
 }
 
+#if 0
 /**
  * ccs_find_same_condition - Search for same condition list.
  *
- * @new_ptr: Pointer to "struct ccs_condition_list".
+ * @new_ptr: Pointer to "struct ccs_condition".
  * @size:    Size of @new_ptr.
  *
- * Returns existing pointer to "struct ccs_condition_list" if the same entry was
+ * Returns existing pointer to "struct ccs_condition" if the same entry was
  * found, NULL if memory allocation failed, @new_ptr otherwise.
  */
-static struct ccs_condition_list *
-ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
+static struct ccs_condition *
+ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
 {
-	struct ccs_condition_list *ptr;
+	struct ccs_condition *ptr;
 	int error = -ENOMEM;
 	/***** WRITER SECTION START *****/
 	down_write(&ccs_policy_lock);
@@ -696,19 +697,21 @@ ccs_find_same_condition(struct ccs_condition_list *new_ptr, const u32 size)
 	/***** WRITER SECTION END *****/
 	return new_ptr;
 }
+#endif
 
 /**
  * ccs_get_condition - Parse condition part.
  *
  * @condition: Pointer to string to parse.
  *
- * Returns pointer to "struct ccs_condition_list" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
  */
-struct ccs_condition_list *ccs_get_condition(char * const condition)
+struct ccs_condition *ccs_get_condition(char * const condition)
 {
 	char *start = condition;
-	struct ccs_condition_list *new_ptr = NULL;
-	unsigned long *ptr;
+	struct ccs_condition *entry = NULL;
+	struct ccs_condition *ptr;
+	unsigned long *condp;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
 	struct ccs_symlinkp_entry *symlinkp;
@@ -716,6 +719,7 @@ struct ccs_condition_list *ccs_get_condition(char * const condition)
 	u8 left;
 	u8 right;
 	u8 i;
+	bool found = false;
 	unsigned long left_min = 0;
 	unsigned long left_max = 0;
 	unsigned long right_min = 0;
@@ -813,23 +817,22 @@ struct ccs_condition_list *ccs_get_condition(char * const condition)
 			goto out;
 		condc++; /* body */
 	}
-	size = sizeof(*new_ptr)
+	size = sizeof(*entry)
 		+ condc * sizeof(unsigned long)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry)
 		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
-	new_ptr = kzalloc(size, GFP_KERNEL);
-	if (!new_ptr)
+	entry = kzalloc(size, GFP_KERNEL);
+	if (!entry)
 		return NULL;
 	for (i = 0; i < 4; i++)
-		new_ptr->head.post_state[i] = post_state[i];
-	atomic_set(&new_ptr->users, 1);
-	new_ptr->head.condc = condc;
-	new_ptr->head.argc = argc;
-	new_ptr->head.envc = envc;
-	new_ptr->head.symlinkc = symlinkc;
-	ptr = (unsigned long *) (new_ptr + 1);
-	argv = (struct ccs_argv_entry *) (ptr + condc);
+		entry->head.post_state[i] = post_state[i];
+	entry->head.condc = condc;
+	entry->head.argc = argc;
+	entry->head.envc = envc;
+	entry->head.symlinkc = symlinkc;
+	condp = (unsigned long *) (entry + 1);
+	argv = (struct ccs_argv_entry *) (condp + condc);
 	envp = (struct ccs_envp_entry *) (argv + argc);
 	symlinkp = (struct ccs_symlinkp_entry *) (envp + envc);
 	start = condition;
@@ -939,29 +942,29 @@ struct ccs_condition_list *ccs_get_condition(char * const condition)
 		condc--; /* body */
 		right++;
  store_value:
-		*ptr = (((u32) match) << 16) |
+		*condp = (((u32) match) << 16) |
 			(((u32) left_1_type) << 18) |
 			(((u32) left_2_type) << 20) |
 			(((u32) right_1_type) << 22) |
 			(((u32) right_2_type) << 24) |
 			(((u32) left) << 8) |
 			((u32) right);
-		ptr++;
+		condp++;
 		if (left >= MAX_KEYWORD) {
-			*ptr = left_min;
-			ptr++;
+			*condp = left_min;
+			condp++;
 		}
 		if (left == MAX_KEYWORD + 1) {
-			*ptr = left_max;
-			ptr++;
+			*condp = left_max;
+			condp++;
 		}
 		if (right >= MAX_KEYWORD) {
-			*ptr = right_min;
-			ptr++;
+			*condp = right_min;
+			condp++;
 		}
 		if (right == MAX_KEYWORD + 1) {
-			*ptr = right_max;
-			ptr++;
+			*condp = right_max;
+			condp++;
 		}
 	}
 	/*
@@ -972,9 +975,30 @@ struct ccs_condition_list *ccs_get_condition(char * const condition)
 	BUG_ON(envc);
 	BUG_ON(symlinkc);
 	BUG_ON(condc);
-	return ccs_find_same_condition(new_ptr, size);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry(ptr, &ccs_condition_list, list) {
+		if (memcmp(&ptr->head, &entry->head, sizeof(ptr->head)) ||
+		    memcmp(ptr + 1, entry + 1, size - sizeof(*ptr)))
+			continue;
+		/* Same entry found. Share this entry. */
+		atomic_inc(&ptr->users);
+		found = true;
+		break;
+	}
+	if (!found && ccs_memory_ok(entry)) {
+		atomic_set(&entry->users, 1);
+		list_add(&entry->list, &ccs_condition_list);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	if (found) {
+		kfree(entry);
+		entry = ptr;
+	}
+	return entry;
  out:
-	kfree(new_ptr);
+	kfree(entry);
 	return NULL;
 }
 
@@ -1144,7 +1168,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
-	const struct ccs_condition_list *cond = acl->cond;
+	const struct ccs_condition *cond = acl->cond;
 	struct linux_binprm *bprm = NULL;
 	if (!cond)
 		return true;
@@ -1483,12 +1507,12 @@ bool ccs_check_condition(struct ccs_request_info *r,
  * ccs_print_condition - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @cond: Pointer to "struct ccs_condition_list". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 bool ccs_print_condition(struct ccs_io_buffer *head,
-			 const struct ccs_condition_list *cond)
+			 const struct ccs_condition *cond)
 {
 	const unsigned long *ptr;
 	const struct ccs_argv_entry *argv;
@@ -1621,12 +1645,12 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 /**
  * ccs_handler_cond - Create conditional part for execute_handler process.
  *
- * Returns pointer to "struct ccs_condition_list" if current process is an
+ * Returns pointer to "struct ccs_condition" if current process is an
  * execute handler, NULL otherwise.
  */
-struct ccs_condition_list *ccs_handler_cond(void)
+struct ccs_condition *ccs_handler_cond(void)
 {
-	static struct ccs_condition_list *ccs_cond;
+	static struct ccs_condition *ccs_cond;
 	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
 	if (!ccs_cond) {

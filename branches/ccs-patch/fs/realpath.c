@@ -653,11 +653,11 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 }
 
 /**
- * ccs_put_condition - Delete memory for "struct ccs_condition_list".
+ * ccs_put_condition - Delete memory for "struct ccs_condition".
  *
- * @cond: Pointer to "struct ccs_condition_list".
+ * @cond: Pointer to "struct ccs_condition".
  */
-void ccs_put_condition(struct ccs_condition_list *cond)
+void ccs_put_condition(struct ccs_condition *cond)
 {
 	const unsigned long *ptr;
 	const struct ccs_argv_entry *argv;
@@ -1723,6 +1723,50 @@ static void ccs_cleanup_reservedport(void)
 }
 
 /**
+ * ccs_cleanup_condition - Clean up deleted "struct ccs_condition".
+ */
+static void ccs_cleanup_condition(void)
+{
+	struct ccs_condition *ptr;
+	struct ccs_condition *tmp;
+	LIST_HEAD(q);
+	/***** WRITER SECTION START *****/
+	down_write(&ccs_policy_lock);
+	list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
+		if (atomic_read(&ptr->users) || ccs_used_by_cookie(ptr))
+			continue;
+		list_del(&ptr->list);
+		list_add(&ptr->list, &q);
+	}
+	up_write(&ccs_policy_lock);
+	/***** WRITER SECTION END *****/
+	list_for_each_entry_safe(ptr, tmp, &q, list) {
+		int i;
+		u16 condc = ptr->head.condc;
+		u16 argc = ptr->head.argc;
+		u16 envc = ptr->head.envc;
+		u16 symlinkc = ptr->head.symlinkc;
+		unsigned long *ptr2 = (unsigned long *) (ptr + 1);
+		struct ccs_argv_entry *argv = (struct ccs_argv_entry *)
+			(ptr2 + condc);
+		struct ccs_envp_entry *envp = (struct ccs_envp_entry *)
+			(argv + argc);
+		struct ccs_symlinkp_entry *symlinkp
+			= (struct ccs_symlinkp_entry *) (envp + envc);
+		for (i = 0; i < argc; i++)
+			ccs_put_name(argv[i].value);
+		for (i = 0; i < envc; i++) {
+			ccs_put_name(envp[i].name);
+			ccs_put_name(envp[i].value);
+		}
+		for (i = 0; i < symlinkc; i++)
+			ccs_put_name(symlinkp[i].value);
+		list_del(&ptr->list);
+		ccs_memory_free(ptr);
+	}
+}
+
+/**
  * ccs_run_garbage_collector - Run garbage collector.
  */
 void ccs_run_garbage_collector(void)
@@ -1744,7 +1788,6 @@ void ccs_run_garbage_collector(void)
 	ccs_cleanup_pivot_root();
 	ccs_cleanup_chroot();
 	ccs_cleanup_reservedport();
+	ccs_cleanup_condition();
 }
-/*
-extern struct list_head ccs_condition_list;
-*/
+
