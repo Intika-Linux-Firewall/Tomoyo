@@ -54,8 +54,8 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 	const struct ccs_path_info *saved_filename;
 	const struct ccs_path_info *saved_argv0;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__) ||
-	    !ccs_is_correct_path(argv0, -1, 0, -1, __func__) ||
+	if (!ccs_is_correct_path(filename, 1, 0, -1) ||
+	    !ccs_is_correct_path(argv0, -1, 0, -1) ||
 	    strchr(argv0, '/'))
 		return -EINVAL;
 	saved_filename = ccs_get_name(filename);

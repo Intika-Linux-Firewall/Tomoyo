@@ -38,7 +38,7 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 	struct ccs_no_umount_entry *ptr;
 	const struct ccs_path_info *saved_dir;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
+	if (!ccs_is_correct_path(dir, 1, 0, 1))
 		return -EINVAL;
 	saved_dir = ccs_get_name(dir);
 	if (!saved_dir)
@@ -63,10 +63,8 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 	}
 	up_write(&ccs_policy_lock);
 	/***** WRITER SECTION END *****/
-	if (is_delete)
-		goto out;
-	printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
- out:
+	if (!is_delete)
+		printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
 	ccs_put_name(saved_dir);
 	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
@@ -104,6 +102,8 @@ int ccs_may_umount(struct vfsmount *mnt)
 		goto out;
 	dir.name = dir0;
 	ccs_fill_path_info(&dir);
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
 	list_for_each_entry(ptr, &ccs_no_umount_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -112,6 +112,8 @@ int ccs_may_umount(struct vfsmount *mnt)
 		found = true;
 		break;
 	}
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	if (found) {
 		const char *exename = ccs_get_exe();
 		printk(KERN_WARNING "SAKURA-%s: umount %s "

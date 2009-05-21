@@ -73,7 +73,7 @@ static struct ccs_address_group_entry *ccs_get_address_group(const char *
 	struct ccs_address_group_entry *group;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
 	    !group_name[0])
 		return NULL;
 	saved_group_name = ccs_get_name(group_name);

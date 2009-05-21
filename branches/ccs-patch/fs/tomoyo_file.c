@@ -163,7 +163,7 @@ static int ccs_update_globally_readable_entry(const char *filename,
 	struct ccs_globally_readable_file_entry *ptr;
 	const struct ccs_path_info *saved_filename;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(filename, 1, 0, -1, __func__))
+	if (!ccs_is_correct_path(filename, 1, 0, -1))
 		return -EINVAL;
 	saved_filename = ccs_get_name(filename);
 	if (!saved_filename)
@@ -278,7 +278,7 @@ static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 	struct ccs_path_group_entry *group;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0, __func__) ||
+	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
 	    !group_name[0])
 		return NULL;
 	saved_group_name = ccs_get_name(group_name);
@@ -329,7 +329,7 @@ static int ccs_update_path_group_entry(const char *group_name,
 	struct ccs_path_group_member *member;
 	const struct ccs_path_info *saved_member_name;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(member_name, 0, 0, 0, __func__) ||
+	if (!ccs_is_correct_path(member_name, 0, 0, 0) ||
 	    !member_name[0])
 		return -EINVAL;
 	group = ccs_get_path_group(group_name);
@@ -477,7 +477,7 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *saved_pattern;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(pattern, 0, 1, 0, __func__))
+	if (!ccs_is_correct_path(pattern, 0, 1, 0))
 		return -EINVAL;
 	saved_pattern = ccs_get_name(pattern);
 	if (!saved_pattern)
@@ -598,7 +598,7 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 	struct ccs_no_rewrite_entry *ptr;
 	const struct ccs_path_info *saved_pattern;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(pattern, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(pattern, 0, 0, 0))
 		return -EINVAL;
 	saved_pattern = ccs_get_name(pattern);
 	if (!saved_pattern)
@@ -720,8 +720,8 @@ static int ccs_update_file_acl(const char *filename, u8 perm,
 			       const bool is_delete)
 {
 	if (perm > 7 || !perm) {
-		printk(KERN_DEBUG "%s: Invalid permission '%d %s'\n",
-		       __func__, perm, filename);
+		printk(KERN_DEBUG "Invalid permission '%d %s'\n",
+		       perm, filename);
 		return -EINVAL;
 	}
 	if (filename[0] != '@' && ccs_strendswith(filename, "/"))
@@ -904,7 +904,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_is_correct_path(filename, 1, -1, -1, __func__))
+	if (!ccs_is_correct_path(filename, 1, -1, -1))
 		return -EINVAL;
 	saved_filename = ccs_get_name(filename);
 	if (!saved_filename)
@@ -1050,7 +1050,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	const u16 perm = 1 << type;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return -EINVAL;
 	if (filename[0] == '@') {
 		saved_ptr = ccs_get_path_group(filename + 1);
@@ -1165,8 +1165,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	const u8 perm = 1 << type;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_is_correct_path(filename1, 0, 0, 0, __func__) ||
-	    !ccs_is_correct_path(filename2, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(filename1, 0, 0, 0) ||
+	    !ccs_is_correct_path(filename2, 0, 0, 0))
 		return -EINVAL;
 	if (filename1[0] == '@') {
 		saved_ptr1 = ccs_get_path_group(filename1 + 1);
@@ -1717,7 +1717,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 	bool is_group = false;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_is_correct_path(filename, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return -EINVAL;
 	if (filename[0] == '@') {
 		saved_ptr = ccs_get_path_group(filename + 1);

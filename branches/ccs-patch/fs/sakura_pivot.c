@@ -41,8 +41,8 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 	const struct ccs_path_info *saved_old_root;
 	const struct ccs_path_info *saved_new_root;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(old_root, 1, 0, 1, __func__) ||
-	    !ccs_is_correct_path(new_root, 1, 0, 1, __func__))
+	if (!ccs_is_correct_path(old_root, 1, 0, 1) ||
+	    !ccs_is_correct_path(new_root, 1, 0, 1))
 		return -EINVAL;
 	saved_old_root = ccs_get_name(old_root);
 	saved_new_root = ccs_get_name(new_root);
@@ -131,6 +131,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		ccs_fill_path_info(&new_root_dir);
 		if (old_root_dir.is_dir && new_root_dir.is_dir) {
 			struct ccs_pivot_root_entry *ptr;
+			/***** READER SECTION START *****/
+			down_read(&ccs_policy_lock);
 			list_for_each_entry(ptr, &ccs_pivot_root_list, list) {
 				if (ptr->is_deleted)
 					continue;
@@ -142,6 +144,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				error = 0;
 				break;
 			}
+			up_read(&ccs_policy_lock);
+			/***** READER SECTION END *****/
 		}
 	}
 	if (error) {

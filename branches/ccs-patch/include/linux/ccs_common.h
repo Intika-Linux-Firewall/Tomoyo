@@ -746,12 +746,10 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 /* Check whether the domainname is correct. */
-bool ccs_is_correct_domain(const unsigned char *domainname,
-			   const char *function);
+bool ccs_is_correct_domain(const unsigned char *domainname);
 /* Check whether the token is correct. */
 bool ccs_is_correct_path(const char *filename, const s8 start_type,
-			 const s8 pattern_type, const s8 end_type,
-			 const char *function);
+			 const s8 pattern_type, const s8 end_type);
 /* Check whether the token can be a domainname. */
 bool ccs_is_domain_def(const unsigned char *buffer);
 /* Format string. */

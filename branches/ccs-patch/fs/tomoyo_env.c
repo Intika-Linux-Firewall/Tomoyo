@@ -50,7 +50,7 @@ static int ccs_update_globally_usable_env_entry(const char *env,
 	struct ccs_globally_usable_env_entry *ptr;
 	const struct ccs_path_info *saved_env;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
+	if (!ccs_is_correct_path(env, 0, 0, 0) || strchr(env, '='))
 		return -EINVAL;
 	saved_env = ccs_get_name(env);
 	if (!saved_env)
@@ -167,7 +167,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 	struct ccs_acl_info *ptr;
 	const struct ccs_path_info *saved_env;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0, __func__) || strchr(env, '='))
+	if (!ccs_is_correct_path(env, 0, 0, 0) || strchr(env, '='))
 		return -EINVAL;
 	saved_env = ccs_get_name(env);
 	if (!saved_env)
@@ -239,6 +239,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 	struct ccs_path_info env;
 	env.name = environ;
 	ccs_fill_path_info(&env);
+	/***** READER SECTION START *****/
 	down_read(&ccs_policy_lock);
 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
@@ -253,6 +254,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 		break;
 	}
 	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
 	if (error && !domain->ignore_global_allow_env &&
 	    ccs_is_globally_usable_env(&env))
 		error = 0;

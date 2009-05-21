@@ -117,8 +117,7 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 			return ccs_update_reserved_entry(from, from, is_delete);
 	}
  out:
-	printk(KERN_WARNING "%s: ERROR: Invalid port range '%s'\n",
-	       __func__, data);
+	printk(KERN_DEBUG "ERROR: Invalid port range '%s'\n", data);
 	return -EINVAL;
 }
 

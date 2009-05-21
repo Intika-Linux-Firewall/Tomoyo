@@ -86,7 +86,7 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 	const struct ccs_path_info *saved_dev;
 	const struct ccs_path_info *saved_dir;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(fs_type, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(fs_type, 0, 0, 0))
 		return -EINVAL;
 	saved_fs = ccs_get_name(fs_type);
 	if (!saved_fs)
@@ -101,8 +101,8 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 	    !strcmp(saved_fs->name, MOUNT_MAKE_SLAVE_KEYWORD) ||
 	    !strcmp(saved_fs->name, MOUNT_MAKE_SHARED_KEYWORD))
 		dev_name = "any";
-	if (!ccs_is_correct_path(dev_name, 0, 0, 0, __func__) ||
-	    !ccs_is_correct_path(dir_name, 0, 0, 0, __func__)) {
+	if (!ccs_is_correct_path(dev_name, 0, 0, 0) ||
+	    !ccs_is_correct_path(dir_name, 0, 0, 0)) {
 		ccs_put_name(saved_fs);
 		return -EINVAL;
 	}

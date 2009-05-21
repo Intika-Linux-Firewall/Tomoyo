@@ -62,7 +62,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
-	if (!dest_pattern || !ccs_is_correct_domain(dest_pattern, __func__))
+	if (!dest_pattern || !ccs_is_correct_domain(dest_pattern))
 		return -EINVAL;
 	saved_dest_pattern = ccs_get_name(dest_pattern);
 	if (!saved_dest_pattern)
@@ -193,7 +193,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	}
 	dest_pattern = dest.u.domain->domainname->name;
  retry:
-	/***** READER SECTION END *****/
+	/***** READER SECTION START *****/
 	down_read(&ccs_policy_lock);
 	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;

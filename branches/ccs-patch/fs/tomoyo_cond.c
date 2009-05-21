@@ -369,7 +369,7 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 	if (cp < start || *cp != '"')
 		goto out;
 	*cp = '\0';
-	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(start, 0, 0, 0))
 		goto out;
 	value = ccs_get_name(start);
 	if (!value)
@@ -418,7 +418,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 			goto out;
 		}
 	}
-	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0, __func__))
+	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0))
 		goto out;
 	name = ccs_get_name(cp);
 	if (!name)
@@ -432,7 +432,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 		if (cp < start || *cp != '"')
 			goto out;
 		*cp = '\0';
-		if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+		if (!ccs_is_correct_path(start, 0, 0, 0))
 			goto out;
 		value = ccs_get_name(start);
 		if (!value)
@@ -474,7 +474,7 @@ static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
 	if (cp < start || *cp != '"')
 		goto out;
 	*cp = '\0';
-	if (!ccs_is_correct_path(start, 0, 0, 0, __func__))
+	if (!ccs_is_correct_path(start, 0, 0, 0))
 		goto out;
 	value = ccs_get_name(start);
 	if (!value)
@@ -1143,15 +1143,15 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 
 /**
- * ccs_check_condition - Check condition part.
+ * ccs_check_condition2 - Check condition part.
  *
- * @r:   Pointer to "struct ccs_request_info".
- * @acl: Pointer to "struct ccs_acl_info".
+ * @r:    Pointer to "struct ccs_request_info".
+ * @cond: Pointer to "struct ccs_condition".
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_check_condition(struct ccs_request_info *r,
-			 const struct ccs_acl_info *acl)
+static bool ccs_check_condition2(struct ccs_request_info *r,
+				 const struct ccs_condition *cond)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1168,10 +1168,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
-	const struct ccs_condition *cond = acl->cond;
 	struct linux_binprm *bprm = NULL;
-	if (!cond)
-		return true;
 	condc = cond->head.condc;
 	argc = cond->head.argc;
 	envc = cond->head.envc;
@@ -1501,6 +1498,36 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
+}
+
+/**
+ * ccs_check_condition - Check condition part.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @acl: Pointer to "struct ccs_acl_info".
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds ccs_policy_lock for reading.
+ */
+bool ccs_check_condition(struct ccs_request_info *r,
+			 const struct ccs_acl_info *acl)
+{
+	/***** READER SECTION START *****/
+	struct ccs_cookie cookie;
+	const struct ccs_condition *cond = acl->cond;
+	bool result;
+	if (!cond)
+		return true;
+	ccs_add_cookie(&cookie, cond);
+	up_read(&ccs_policy_lock);
+	/***** READER SECTION END *****/
+	result = ccs_check_condition2(r, cookie.u.cond);
+	/***** READER SECTION START *****/
+	down_read(&ccs_policy_lock);
+	ccs_del_cookie(&cookie);
+	return result;
+	/***** READER SECTION END *****/
 }
 
 /**

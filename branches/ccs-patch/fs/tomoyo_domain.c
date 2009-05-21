@@ -151,13 +151,13 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 	const struct ccs_path_info *saved_domainname = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_last_name = false;
-	if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
+	if (!ccs_is_correct_path(program, 1, -1, -1))
 		return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
 		if (!ccs_is_domain_def(domainname) &&
-		    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
+		    ccs_is_correct_path(domainname, 1, -1, -1))
 			is_last_name = true;
-		else if (!ccs_is_correct_domain(domainname, __func__))
+		else if (!ccs_is_correct_domain(domainname))
 			return -EINVAL;
 		saved_domainname = ccs_get_name(domainname);
 		if (!saved_domainname)
@@ -330,12 +330,12 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_last_name = false;
 	if (!ccs_is_domain_def(domainname) &&
-	    ccs_is_correct_path(domainname, 1, -1, -1, __func__))
+	    ccs_is_correct_path(domainname, 1, -1, -1))
 		is_last_name = true;
-	else if (!ccs_is_correct_domain(domainname, __func__))
+	else if (!ccs_is_correct_domain(domainname))
 		return -EINVAL;
 	if (program) {
-		if (!ccs_is_correct_path(program, 1, -1, -1, __func__))
+		if (!ccs_is_correct_path(program, 1, -1, -1))
 			return -EINVAL;
 		saved_program = ccs_get_name(program);
 		if (!saved_program)
@@ -499,8 +499,8 @@ static int ccs_update_alias_entry(const char *original_name,
 	const struct ccs_path_info *saved_original_name;
 	const struct ccs_path_info *saved_aliased_name;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(original_name, 1, -1, -1, __func__) ||
-	    !ccs_is_correct_path(aliased_name, 1, -1, -1, __func__))
+	if (!ccs_is_correct_path(original_name, 1, -1, -1) ||
+	    !ccs_is_correct_path(aliased_name, 1, -1, -1))
 		return -EINVAL; /* No patterns allowed. */
 	saved_original_name = ccs_get_name(original_name);
 	saved_aliased_name = ccs_get_name(aliased_name);
@@ -606,8 +606,8 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	const struct ccs_path_info *saved_original_name;
 	const struct ccs_path_info *saved_aggregated_name;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(original_name, 1, 0, -1, __func__) ||
-	    !ccs_is_correct_path(aggregated_name, 1, -1, -1, __func__))
+	if (!ccs_is_correct_path(original_name, 1, 0, -1) ||
+	    !ccs_is_correct_path(aggregated_name, 1, -1, -1))
 		return -EINVAL;
 	saved_original_name = ccs_get_name(original_name);
 	saved_aggregated_name = ccs_get_name(aggregated_name);
@@ -742,7 +742,7 @@ bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
 	struct ccs_domain_info *domain;
 	const struct ccs_path_info *saved_domainname;
 	cookie->u.domain = NULL;
-	if (!ccs_is_correct_domain(domainname, __func__))
+	if (!ccs_is_correct_domain(domainname))
 		return false;
 	saved_domainname = ccs_get_name(domainname);
 	if (!saved_domainname)

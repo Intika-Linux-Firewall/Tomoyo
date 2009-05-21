@@ -38,7 +38,7 @@ static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
 	struct ccs_chroot_entry *ptr;
 	const struct ccs_path_info *saved_dir;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(dir, 1, 0, 1, __func__))
+	if (!ccs_is_correct_path(dir, 1, 0, 1))
 		return -EINVAL;
 	saved_dir = ccs_get_name(dir);
 	if (!saved_dir)
@@ -138,6 +138,8 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		ccs_fill_path_info(&dir);
 		if (dir.is_dir) {
 			struct ccs_chroot_entry *ptr;
+			/***** READER SECTION START *****/
+			down_read(&ccs_policy_lock);
 			list_for_each_entry(ptr, &ccs_chroot_list, list) {
 				if (ptr->is_deleted)
 					continue;
@@ -146,6 +148,8 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 				error = 0;
 				break;
 			}
+			up_read(&ccs_policy_lock);
+			/***** READER SECTION END *****/
 		}
 	}
 	if (error)

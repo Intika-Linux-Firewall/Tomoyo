@@ -305,14 +305,12 @@ void ccs_normalize_line(unsigned char *buffer)
  *                1 = must / -1 = must not / 0 = don't care
  * @end_type:     Should the pathname end with '/'?
  *                1 = must / -1 = must not / 0 = don't care
- * @function:     The name of function calling me.
  *
  * Check whether the given filename follows the naming rules.
  * Returns true if @filename follows the naming rules, false otherwise.
  */
 bool ccs_is_correct_path(const char *filename, const s8 start_type,
-			 const s8 pattern_type, const s8 end_type,
-			 const char *function)
+			 const s8 pattern_type, const s8 end_type)
 {
 	bool contains_pattern = false;
 	unsigned char c;
@@ -386,20 +384,17 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 	}
 	return true;
  out:
-	printk(KERN_DEBUG "%s: Invalid pathname '%s'\n", function,
-	       original_filename);
+	printk(KERN_DEBUG "Invalid pathname '%s'\n", original_filename);
 	return false;
 }
 
 /**
  * ccs_is_correct_domain - Check whether the given domainname follows the naming rules.
  * @domainname:   The domainname to check.
- * @function:     The name of function calling me.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
-bool ccs_is_correct_domain(const unsigned char *domainname,
-			   const char *function)
+bool ccs_is_correct_domain(const unsigned char *domainname)
 {
 	unsigned char c;
 	unsigned char d;
@@ -448,8 +443,7 @@ bool ccs_is_correct_domain(const unsigned char *domainname,
 	} while (*domainname);
 	return true;
  out:
-	printk(KERN_DEBUG "%s: Invalid domainname '%s'\n", function,
-	       org_domainname);
+	printk(KERN_DEBUG "Invalid domainname '%s'\n", org_domainname);
 	return false;
 }
 
@@ -1343,11 +1337,11 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	bool is_domain = false;
 	if (ccs_is_domain_def(manager)) {
-		if (!ccs_is_correct_domain(manager, __func__))
+		if (!ccs_is_correct_domain(manager))
 			return -EINVAL;
 		is_domain = true;
 	} else {
-		if (!ccs_is_correct_path(manager, 1, -1, -1, __func__))
+		if (!ccs_is_correct_path(manager, 1, -1, -1))
 			return -EINVAL;
 	}
 	saved_manager = ccs_get_name(manager);
