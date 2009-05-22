@@ -1,0 +1,896 @@
+Subject: TOMOYO: Move sleeping operations to outside the semaphore.
+
+TOMOYO is using rw_semaphore for protecting list elements.
+But TOMOYO is doing operations which might sleep inside down_write().
+This patch makes TOMOYO's sleeping operations go outside down_write().
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c   |   80 ++++++---------------
+ security/tomoyo/common.h   |    2 
+ security/tomoyo/domain.c   |   97 ++++++++++++-------------
+ security/tomoyo/file.c     |  133 ++++++++++++++++++-----------------
+ security/tomoyo/realpath.c |  169 ++++++++++++++-------------------------------
+ security/tomoyo/realpath.h |    7 -
+ 6 files changed, 200 insertions(+), 288 deletions(-)
+
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
+@@ -861,26 +861,27 @@ static struct tomoyo_profile *tomoyo_fin
+ 								int profile)
+ {
+ 	static DEFINE_MUTEX(lock);
+-	struct tomoyo_profile *ptr = NULL;
+-	int i;
++	struct tomoyo_profile *new_ptr = NULL;
++	struct tomoyo_profile *ptr;
+ 
+ 	if (profile >= TOMOYO_MAX_PROFILES)
+ 		return NULL;
++	new_ptr = kmalloc(sizeof(*new_ptr), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	mutex_lock(&lock);
+ 	ptr = tomoyo_profile_ptr[profile];
+-	if (ptr)
+-		goto ok;
+-	ptr = tomoyo_alloc_element(sizeof(*ptr));
+-	if (!ptr)
+-		goto ok;
+-	for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++)
+-		ptr->value[i] = tomoyo_control_array[i].current_value;
+-	mb(); /* Avoid out-of-order execution. */
+-	tomoyo_profile_ptr[profile] = ptr;
+- ok:
++	if (!ptr && tomoyo_memory_ok(new_ptr)) {
++		int i;
++		ptr = new_ptr;
++		new_ptr = NULL;
++		for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++)
++			ptr->value[i] = tomoyo_control_array[i].current_value;
++		mb(); /* Avoid out-of-order execution. */
++		tomoyo_profile_ptr[profile] = ptr;
++	}
+ 	mutex_unlock(&lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_ptr);
+ 	return ptr;
+ }
+ 
+@@ -1033,10 +1034,10 @@ static DECLARE_RWSEM(tomoyo_policy_manag
+ static int tomoyo_update_manager_entry(const char *manager,
+ 				       const bool is_delete)
+ {
+-	struct tomoyo_policy_manager_entry *new_entry;
++	struct tomoyo_policy_manager_entry *new_entry = NULL;
+ 	struct tomoyo_policy_manager_entry *ptr;
+ 	const struct tomoyo_path_info *saved_manager;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	bool is_domain = false;
+ 
+ 	if (tomoyo_is_domain_def(manager)) {
+@@ -1050,6 +1051,8 @@ static int tomoyo_update_manager_entry(c
+ 	saved_manager = tomoyo_save_name(manager);
+ 	if (!saved_manager)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_policy_manager_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
+@@ -1057,22 +1060,18 @@ static int tomoyo_update_manager_entry(c
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->manager = saved_manager;
++		new_entry->is_domain = is_domain;
++		list_add_tail(&new_entry->list, &tomoyo_policy_manager_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->manager = saved_manager;
+-	new_entry->is_domain = is_domain;
+-	list_add_tail(&new_entry->list, &tomoyo_policy_manager_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_policy_manager_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -2050,35 +2049,6 @@ static int tomoyo_close_control(struct f
+ }
+ 
+ /**
+- * tomoyo_alloc_acl_element - Allocate permanent memory for ACL entry.
+- *
+- * @acl_type:  Type of ACL entry.
+- *
+- * Returns pointer to the ACL entry on success, NULL otherwise.
+- */
+-void *tomoyo_alloc_acl_element(const u8 acl_type)
+-{
+-	int len;
+-	struct tomoyo_acl_info *ptr;
+-
+-	switch (acl_type) {
+-	case TOMOYO_TYPE_SINGLE_PATH_ACL:
+-		len = sizeof(struct tomoyo_single_path_acl_record);
+-		break;
+-	case TOMOYO_TYPE_DOUBLE_PATH_ACL:
+-		len = sizeof(struct tomoyo_double_path_acl_record);
+-		break;
+-	default:
+-		return NULL;
+-	}
+-	ptr = tomoyo_alloc_element(len);
+-	if (!ptr)
+-		return NULL;
+-	ptr->type = acl_type;
+-	return ptr;
+-}
+-
+-/**
+  * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
+  *
+  * @inode: Pointer to "struct inode".
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
+@@ -266,8 +266,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+ /* Check mode for specified functionality. */
+ unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
+ 				const u8 index);
+-/* Allocate memory for structures. */
+-void *tomoyo_alloc_acl_element(const u8 acl_type);
+ /* Fill in "struct tomoyo_path_info" members. */
+ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
+ /* Run policy loader when /sbin/init starts. */
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
+@@ -113,11 +113,11 @@ static int tomoyo_update_domain_initiali
+ 						  const bool is_not,
+ 						  const bool is_delete)
+ {
+-	struct tomoyo_domain_initializer_entry *new_entry;
++	struct tomoyo_domain_initializer_entry *new_entry = NULL;
+ 	struct tomoyo_domain_initializer_entry *ptr;
+ 	const struct tomoyo_path_info *saved_program;
+ 	const struct tomoyo_path_info *saved_domainname = NULL;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	bool is_last_name = false;
+ 
+ 	if (!tomoyo_is_correct_path(program, 1, -1, -1, __func__))
+@@ -135,6 +135,8 @@ static int tomoyo_update_domain_initiali
+ 	saved_program = tomoyo_save_name(program);
+ 	if (!saved_program)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_domain_initializer_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
+@@ -144,24 +146,21 @@ static int tomoyo_update_domain_initiali
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->domainname = saved_domainname;
++		new_entry->program = saved_program;
++		new_entry->is_not = is_not;
++		new_entry->is_last_name = is_last_name;
++		list_add_tail(&new_entry->list,
++			      &tomoyo_domain_initializer_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->domainname = saved_domainname;
+-	new_entry->program = saved_program;
+-	new_entry->is_not = is_not;
+-	new_entry->is_last_name = is_last_name;
+-	list_add_tail(&new_entry->list, &tomoyo_domain_initializer_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_domain_initializer_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -292,12 +291,12 @@ static int tomoyo_update_domain_keeper_e
+ 					     const bool is_not,
+ 					     const bool is_delete)
+ {
+-	struct tomoyo_domain_keeper_entry *new_entry;
++	struct tomoyo_domain_keeper_entry *new_entry = NULL;
+ 	struct tomoyo_domain_keeper_entry *ptr;
+ 	const struct tomoyo_path_info *saved_domainname;
+ 	const struct tomoyo_path_info *saved_program = NULL;
+ 	static DEFINE_MUTEX(lock);
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	bool is_last_name = false;
+ 
+ 	if (!tomoyo_is_domain_def(domainname) &&
+@@ -315,6 +314,8 @@ static int tomoyo_update_domain_keeper_e
+ 	saved_domainname = tomoyo_save_name(domainname);
+ 	if (!saved_domainname)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_domain_keeper_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
+@@ -324,24 +325,20 @@ static int tomoyo_update_domain_keeper_e
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->domainname = saved_domainname;
++		new_entry->program = saved_program;
++		new_entry->is_not = is_not;
++		new_entry->is_last_name = is_last_name;
++		list_add_tail(&new_entry->list, &tomoyo_domain_keeper_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->domainname = saved_domainname;
+-	new_entry->program = saved_program;
+-	new_entry->is_not = is_not;
+-	new_entry->is_last_name = is_last_name;
+-	list_add_tail(&new_entry->list, &tomoyo_domain_keeper_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_domain_keeper_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -463,11 +460,11 @@ static int tomoyo_update_alias_entry(con
+ 				     const char *aliased_name,
+ 				     const bool is_delete)
+ {
+-	struct tomoyo_alias_entry *new_entry;
++	struct tomoyo_alias_entry *new_entry = NULL;
+ 	struct tomoyo_alias_entry *ptr;
+ 	const struct tomoyo_path_info *saved_original_name;
+ 	const struct tomoyo_path_info *saved_aliased_name;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(original_name, 1, -1, -1, __func__) ||
+ 	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1, __func__))
+@@ -476,6 +473,8 @@ static int tomoyo_update_alias_entry(con
+ 	saved_aliased_name = tomoyo_save_name(aliased_name);
+ 	if (!saved_original_name || !saved_aliased_name)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_alias_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
+@@ -484,22 +483,18 @@ static int tomoyo_update_alias_entry(con
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->original_name = saved_original_name;
++		new_entry->aliased_name = saved_aliased_name;
++		list_add_tail(&new_entry->list, &tomoyo_alias_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->original_name = saved_original_name;
+-	new_entry->aliased_name = saved_aliased_name;
+-	list_add_tail(&new_entry->list, &tomoyo_alias_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_alias_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -597,9 +592,11 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 							    domainname,
+ 							    const u8 profile)
+ {
+-	struct tomoyo_domain_info *domain = NULL;
++	struct tomoyo_domain_info *new_domain = NULL;
++	struct tomoyo_domain_info *domain;
+ 	const struct tomoyo_path_info *saved_domainname;
+ 
++	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_domain_list_lock);
+ 	domain = tomoyo_find_domain(domainname);
+@@ -642,8 +639,9 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 		goto out;
+ 	}
+ 	/* No memory reusable. Create using new memory. */
+-	domain = tomoyo_alloc_element(sizeof(*domain));
+-	if (domain) {
++	if (tomoyo_memory_ok(new_domain)) {
++		domain = new_domain;
++		new_domain = NULL;
+ 		INIT_LIST_HEAD(&domain->acl_info_list);
+ 		domain->domainname = saved_domainname;
+ 		domain->profile = profile;
+@@ -652,6 +650,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+  out:
+ 	up_write(&tomoyo_domain_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_domain);
+ 	return domain;
+ }
+ 
+--- security-testing-2.6.git.orig/security/tomoyo/file.c
++++ security-testing-2.6.git/security/tomoyo/file.c
+@@ -156,16 +156,18 @@ static DECLARE_RWSEM(tomoyo_globally_rea
+ static int tomoyo_update_globally_readable_entry(const char *filename,
+ 						 const bool is_delete)
+ {
+-	struct tomoyo_globally_readable_file_entry *new_entry;
++	struct tomoyo_globally_readable_file_entry *new_entry = NULL;
+ 	struct tomoyo_globally_readable_file_entry *ptr;
+ 	const struct tomoyo_path_info *saved_filename;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(filename, 1, 0, -1, __func__))
+ 		return -EINVAL;
+ 	saved_filename = tomoyo_save_name(filename);
+ 	if (!saved_filename)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_globally_readable_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_globally_readable_list, list) {
+@@ -173,21 +175,17 @@ static int tomoyo_update_globally_readab
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->filename = saved_filename;
++		list_add_tail(&new_entry->list, &tomoyo_globally_readable_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->filename = saved_filename;
+-	list_add_tail(&new_entry->list, &tomoyo_globally_readable_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_globally_readable_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -274,16 +272,18 @@ static DECLARE_RWSEM(tomoyo_pattern_list
+ static int tomoyo_update_file_pattern_entry(const char *pattern,
+ 					    const bool is_delete)
+ {
+-	struct tomoyo_pattern_entry *new_entry;
++	struct tomoyo_pattern_entry *new_entry = NULL;
+ 	struct tomoyo_pattern_entry *ptr;
+ 	const struct tomoyo_path_info *saved_pattern;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(pattern, 0, 1, 0, __func__))
+ 		return -EINVAL;
+ 	saved_pattern = tomoyo_save_name(pattern);
+ 	if (!saved_pattern)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_pattern_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_pattern_list, list) {
+@@ -291,21 +291,17 @@ static int tomoyo_update_file_pattern_en
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->pattern = saved_pattern;
++		list_add_tail(&new_entry->list, &tomoyo_pattern_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->pattern = saved_pattern;
+-	list_add_tail(&new_entry->list, &tomoyo_pattern_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_pattern_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -398,15 +394,18 @@ static DECLARE_RWSEM(tomoyo_no_rewrite_l
+ static int tomoyo_update_no_rewrite_entry(const char *pattern,
+ 					  const bool is_delete)
+ {
+-	struct tomoyo_no_rewrite_entry *new_entry, *ptr;
++	struct tomoyo_no_rewrite_entry *new_entry = NULL;
++	struct tomoyo_no_rewrite_entry *ptr;
+ 	const struct tomoyo_path_info *saved_pattern;
+-	int error = -ENOMEM;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(pattern, 0, 0, 0, __func__))
+ 		return -EINVAL;
+ 	saved_pattern = tomoyo_save_name(pattern);
+ 	if (!saved_pattern)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_no_rewrite_list_lock);
+ 	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, list) {
+@@ -414,21 +413,17 @@ static int tomoyo_update_no_rewrite_entr
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+-	if (is_delete) {
+-		error = -ENOENT;
+-		goto out;
++	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
++		new_entry->pattern = saved_pattern;
++		list_add_tail(&new_entry->list, &tomoyo_no_rewrite_list);
++		new_entry = NULL;
++		error = 0;
+ 	}
+-	new_entry = tomoyo_alloc_element(sizeof(*new_entry));
+-	if (!new_entry)
+-		goto out;
+-	new_entry->pattern = saved_pattern;
+-	list_add_tail(&new_entry->list, &tomoyo_no_rewrite_list);
+-	error = 0;
+- out:
+ 	up_write(&tomoyo_no_rewrite_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -734,8 +729,8 @@ static int tomoyo_update_single_path_acl
+ 		(1 << TOMOYO_TYPE_READ_ACL) | (1 << TOMOYO_TYPE_WRITE_ACL);
+ 	const struct tomoyo_path_info *saved_filename;
+ 	struct tomoyo_acl_info *ptr;
+-	struct tomoyo_single_path_acl_record *acl;
+-	int error = -ENOMEM;
++	struct tomoyo_single_path_acl_record *new_entry = NULL;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	const u16 perm = 1 << type;
+ 
+ 	if (!domain)
+@@ -745,11 +740,14 @@ static int tomoyo_update_single_path_acl
+ 	saved_filename = tomoyo_save_name(filename);
+ 	if (!saved_filename)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_domain_acl_info_list_lock);
+ 	if (is_delete)
+ 		goto delete;
+ 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_single_path_acl_record *acl;
+ 		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
+@@ -766,22 +764,23 @@ static int tomoyo_update_single_path_acl
+ 			acl->perm |= rw_mask;
+ 		ptr->type &= ~TOMOYO_ACL_DELETED;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+ 	/* Not found. Append it to the tail. */
+-	acl = tomoyo_alloc_acl_element(TOMOYO_TYPE_SINGLE_PATH_ACL);
+-	if (!acl)
+-		goto out;
+-	acl->perm = perm;
+-	if (perm == (1 << TOMOYO_TYPE_READ_WRITE_ACL))
+-		acl->perm |= rw_mask;
+-	acl->filename = saved_filename;
+-	list_add_tail(&acl->head.list, &domain->acl_info_list);
+-	error = 0;
++	if (error && tomoyo_memory_ok(new_entry)) {
++		new_entry->head.type = TOMOYO_TYPE_SINGLE_PATH_ACL;
++		new_entry->perm = perm;
++		if (perm == (1 << TOMOYO_TYPE_READ_WRITE_ACL))
++			new_entry->perm |= rw_mask;
++		new_entry->filename = saved_filename;
++		list_add_tail(&new_entry->head.list, &domain->acl_info_list);
++		new_entry = NULL;
++		error = 0;
++	}
+ 	goto out;
+  delete:
+-	error = -ENOENT;
+ 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_single_path_acl_record *acl;
+ 		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
+@@ -801,6 +800,7 @@ static int tomoyo_update_single_path_acl
+  out:
+ 	up_write(&tomoyo_domain_acl_info_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+@@ -823,8 +823,8 @@ static int tomoyo_update_double_path_acl
+ 	const struct tomoyo_path_info *saved_filename1;
+ 	const struct tomoyo_path_info *saved_filename2;
+ 	struct tomoyo_acl_info *ptr;
+-	struct tomoyo_double_path_acl_record *acl;
+-	int error = -ENOMEM;
++	struct tomoyo_double_path_acl_record *new_entry = NULL;
++	int error = is_delete ? -ENOENT : -ENOMEM;
+ 	const u8 perm = 1 << type;
+ 
+ 	if (!domain)
+@@ -836,11 +836,14 @@ static int tomoyo_update_double_path_acl
+ 	saved_filename2 = tomoyo_save_name(filename2);
+ 	if (!saved_filename1 || !saved_filename2)
+ 		return -ENOMEM;
++	if (!is_delete)
++		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	down_write(&tomoyo_domain_acl_info_list_lock);
+ 	if (is_delete)
+ 		goto delete;
+ 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_double_path_acl_record *acl;
+ 		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
+@@ -854,21 +857,22 @@ static int tomoyo_update_double_path_acl
+ 		acl->perm |= perm;
+ 		ptr->type &= ~TOMOYO_ACL_DELETED;
+ 		error = 0;
+-		goto out;
++		break;
+ 	}
+ 	/* Not found. Append it to the tail. */
+-	acl = tomoyo_alloc_acl_element(TOMOYO_TYPE_DOUBLE_PATH_ACL);
+-	if (!acl)
+-		goto out;
+-	acl->perm = perm;
+-	acl->filename1 = saved_filename1;
+-	acl->filename2 = saved_filename2;
+-	list_add_tail(&acl->head.list, &domain->acl_info_list);
+-	error = 0;
++	if (error && tomoyo_memory_ok(new_entry)) {
++		new_entry->head.type = TOMOYO_TYPE_DOUBLE_PATH_ACL;
++		new_entry->perm = perm;
++		new_entry->filename1 = saved_filename1;
++		new_entry->filename2 = saved_filename2;
++		list_add_tail(&new_entry->head.list, &domain->acl_info_list);
++		new_entry = NULL;
++		error = 0;
++	}
+ 	goto out;
+  delete:
+-	error = -ENOENT;
+ 	list_for_each_entry(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_double_path_acl_record *acl;
+ 		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
+@@ -885,6 +889,7 @@ static int tomoyo_update_double_path_acl
+  out:
+ 	up_write(&tomoyo_domain_acl_info_list_lock);
+ 	/***** EXCLUSIVE SECTION END *****/
++	kfree(new_entry);
+ 	return error;
+ }
+ 
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.c
++++ security-testing-2.6.git/security/tomoyo/realpath.c
+@@ -195,68 +195,36 @@ char *tomoyo_realpath_nofollow(const cha
+ }
+ 
+ /* Memory allocated for non-string data. */
+-static unsigned int tomoyo_allocated_memory_for_elements;
++static atomic_t tomoyo_allocated_memory_for_elements;
+ /* Quota for holding non-string data. */
+ static unsigned int tomoyo_quota_for_elements;
+ 
+ /**
+- * tomoyo_alloc_element - Allocate permanent memory for structures.
++ * tomoyo_memory_ok - Check memory quota.
+  *
+- * @size: Size in bytes.
+- *
+- * Returns pointer to allocated memory on success, NULL otherwise.
++ * @ptr: Pointer to allocated memory.
+  *
+- * Memory has to be zeroed.
+- * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
+  */
+-void *tomoyo_alloc_element(const unsigned int size)
++bool tomoyo_memory_ok(void *ptr)
+ {
+-	static char *buf;
+-	static DEFINE_MUTEX(lock);
+-	static unsigned int buf_used_len = PATH_MAX;
+-	char *ptr = NULL;
+-	/*Assumes sizeof(void *) >= sizeof(long) is true. */
+-	const unsigned int word_aligned_size
+-		= roundup(size, max(sizeof(void *), sizeof(long)));
+-	if (word_aligned_size > PATH_MAX)
+-		return NULL;
+-	/***** EXCLUSIVE SECTION START *****/
+-	mutex_lock(&lock);
+-	if (buf_used_len + word_aligned_size > PATH_MAX) {
+-		if (!tomoyo_quota_for_elements ||
+-		    tomoyo_allocated_memory_for_elements
+-		    + PATH_MAX <= tomoyo_quota_for_elements)
+-			ptr = kzalloc(PATH_MAX, GFP_KERNEL);
+-		if (!ptr) {
+-			printk(KERN_WARNING "ERROR: Out of memory "
+-			       "for tomoyo_alloc_element().\n");
+-			if (!tomoyo_policy_loaded)
+-				panic("MAC Initialization failed.\n");
+-		} else {
+-			buf = ptr;
+-			tomoyo_allocated_memory_for_elements += PATH_MAX;
+-			buf_used_len = word_aligned_size;
+-			ptr = buf;
+-		}
+-	} else if (word_aligned_size) {
+-		int i;
+-		ptr = buf + buf_used_len;
+-		buf_used_len += word_aligned_size;
+-		for (i = 0; i < word_aligned_size; i++) {
+-			if (!ptr[i])
+-				continue;
+-			printk(KERN_ERR "WARNING: Reserved memory was tainted! "
+-			       "The system might go wrong.\n");
+-			ptr[i] = '\0';
+-		}
+-	}
+-	mutex_unlock(&lock);
+-	/***** EXCLUSIVE SECTION END *****/
+-	return ptr;
++	const int len = ptr ? ksize(ptr) : 0;
++	atomic_add(len, &tomoyo_allocated_memory_for_elements);
++	if (len && (!tomoyo_quota_for_elements ||
++		    atomic_read(&tomoyo_allocated_memory_for_elements)
++		    <= tomoyo_quota_for_elements)) {
++		memset(ptr, 0, len);
++		return true;
++	}
++	atomic_sub(len, &tomoyo_allocated_memory_for_elements);
++	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
++	if (!tomoyo_policy_loaded)
++		panic("MAC Initialization failed.\n");
++	return false;
+ }
+ 
+ /* Memory allocated for string data in bytes. */
+-static unsigned int tomoyo_allocated_memory_for_savename;
++static atomic_t tomoyo_allocated_memory_for_savename;
+ /* Quota for holding string data in bytes. */
+ static unsigned int tomoyo_quota_for_savename;
+ 
+@@ -273,13 +241,6 @@ struct tomoyo_name_entry {
+ 	struct tomoyo_path_info entry;
+ };
+ 
+-/* Structure for available memory region. */
+-struct tomoyo_free_memory_block_list {
+-	struct list_head list;
+-	char *ptr;             /* Pointer to a free area. */
+-	int len;               /* Length of the area.     */
+-};
+-
+ /*
+  * The list for "struct tomoyo_name_entry".
+  *
+@@ -299,75 +260,57 @@ static struct list_head tomoyo_name_list
+  */
+ const struct tomoyo_path_info *tomoyo_save_name(const char *name)
+ {
+-	static LIST_HEAD(fmb_list);
+ 	static DEFINE_MUTEX(lock);
++	struct tomoyo_name_entry *entry;
+ 	struct tomoyo_name_entry *ptr;
+ 	unsigned int hash;
+-	/* fmb contains available size in bytes.
+-	   fmb is removed from the fmb_list when fmb->len becomes 0. */
+-	struct tomoyo_free_memory_block_list *fmb;
+-	int len;
+-	char *cp;
++	const int len = name ? strlen(name) + 1 : 0;
++	int allocated_len;
++	int error = -ENOMEM;
+ 
+-	if (!name)
++	if (!len)
+ 		return NULL;
+-	len = strlen(name) + 1;
+ 	if (len > TOMOYO_MAX_PATHNAME_LEN) {
+-		printk(KERN_WARNING "ERROR: Name too long "
+-		       "for tomoyo_save_name().\n");
++		printk(KERN_WARNING "ERROR: Name too long. (%s)\n", __func__);
+ 		return NULL;
+ 	}
+ 	hash = full_name_hash((const unsigned char *) name, len - 1);
++	entry = kmalloc(sizeof(*entry) + len, GFP_KERNEL);
++	allocated_len = entry ? ksize(entry) : 0;
+ 	/***** EXCLUSIVE SECTION START *****/
+ 	mutex_lock(&lock);
+ 	list_for_each_entry(ptr, &tomoyo_name_list[hash % TOMOYO_MAX_HASH],
+ 			     list) {
+-		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
+-			goto out;
+-	}
+-	list_for_each_entry(fmb, &fmb_list, list) {
+-		if (len <= fmb->len)
+-			goto ready;
+-	}
+-	if (!tomoyo_quota_for_savename ||
+-	    tomoyo_allocated_memory_for_savename + PATH_MAX
+-	    <= tomoyo_quota_for_savename)
+-		cp = kzalloc(PATH_MAX, GFP_KERNEL);
+-	else
+-		cp = NULL;
+-	fmb = kzalloc(sizeof(*fmb), GFP_KERNEL);
+-	if (!cp || !fmb) {
+-		kfree(cp);
+-		kfree(fmb);
+-		printk(KERN_WARNING "ERROR: Out of memory "
+-		       "for tomoyo_save_name().\n");
+-		if (!tomoyo_policy_loaded)
+-			panic("MAC Initialization failed.\n");
+-		ptr = NULL;
+-		goto out;
+-	}
+-	tomoyo_allocated_memory_for_savename += PATH_MAX;
+-	list_add(&fmb->list, &fmb_list);
+-	fmb->ptr = cp;
+-	fmb->len = PATH_MAX;
+- ready:
+-	ptr = tomoyo_alloc_element(sizeof(*ptr));
+-	if (!ptr)
+-		goto out;
+-	ptr->entry.name = fmb->ptr;
+-	memmove(fmb->ptr, name, len);
+-	tomoyo_fill_path_info(&ptr->entry);
+-	fmb->ptr += len;
+-	fmb->len -= len;
+-	list_add_tail(&ptr->list, &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
+-	if (fmb->len == 0) {
+-		list_del(&fmb->list);
+-		kfree(fmb);
++		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
++			continue;
++		error = 0;
++		break;
++	}
++	if (error && entry &&
++	    (!tomoyo_quota_for_savename ||
++	     atomic_read(&tomoyo_allocated_memory_for_savename) + allocated_len
++	     <= tomoyo_quota_for_savename)) {
++		atomic_add(allocated_len,
++			   &tomoyo_allocated_memory_for_savename);
++		ptr = entry;
++		memset(ptr, 0, sizeof(*ptr));
++		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
++		memmove((char *) ptr->entry.name, name, len);
++		tomoyo_fill_path_info(&ptr->entry);
++		list_add_tail(&ptr->list,
++			      &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
++		entry = NULL;
++		error = 0;
+ 	}
+- out:
+ 	mutex_unlock(&lock);
+ 	/***** EXCLUSIVE SECTION END *****/
+-	return ptr ? &ptr->entry : NULL;
++	kfree(entry);
++	if (!error)
++		return &ptr->entry;
++	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
++	if (!tomoyo_policy_loaded)
++		panic("MAC Initialization failed.\n");
++	return NULL;
+ }
+ 
+ /**
+@@ -433,9 +376,9 @@ int tomoyo_read_memory_counter(struct to
+ {
+ 	if (!head->read_eof) {
+ 		const unsigned int shared
+-			= tomoyo_allocated_memory_for_savename;
++			= atomic_read(&tomoyo_allocated_memory_for_savename);
+ 		const unsigned int private
+-			= tomoyo_allocated_memory_for_elements;
++			= atomic_read(&tomoyo_allocated_memory_for_elements);
+ 		const unsigned int dynamic
+ 			= atomic_read(&tomoyo_dynamic_memory_size);
+ 		char buffer[64];
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.h
++++ security-testing-2.6.git/security/tomoyo/realpath.h
+@@ -36,11 +36,8 @@ char *tomoyo_realpath_nofollow(const cha
+ /* Same with tomoyo_realpath() except that the pathname is already solved. */
+ char *tomoyo_realpath_from_path(struct path *path);
+ 
+-/*
+- * Allocate memory for ACL entry.
+- * The RAM is chunked, so NEVER try to kfree() the returned pointer.
+- */
+-void *tomoyo_alloc_element(const unsigned int size);
++/* Check memory quota. */
++bool tomoyo_memory_ok(void *ptr);
+ 
+ /*
+  * Keep the given name on the RAM.
