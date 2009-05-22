@@ -1519,10 +1519,10 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	bool result;
 	if (!cond)
 		return true;
-	ccs_add_cookie(&cookie, cond);
+	ccs_add_cookie(&cookie, acl);
 	up_read(&ccs_policy_lock);
 	/***** READER SECTION END *****/
-	result = ccs_check_condition2(r, cookie.u.cond);
+	result = ccs_check_condition2(r, cond);
 	/***** READER SECTION START *****/
 	down_read(&ccs_policy_lock);
 	ccs_del_cookie(&cookie);
