@@ -662,13 +662,15 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		error = err;
 		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :
 					 IP_RECORD_TYPE_IPv4,
 					 NULL, address, address, port, port,
-					 r.cookie.u.domain, ccs_handler_cond(),
-					 false);
+					 r.cookie.u.domain, cond, false);
+		ccs_put_condition(cond);
+	}
 	error = 0;
  done:
 	ccs_exit_request_info(&r);

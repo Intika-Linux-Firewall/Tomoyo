@@ -235,9 +235,12 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			goto retry;
 		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_signal_acl(sig, dest_pattern, r.cookie.u.domain,
-				      ccs_handler_cond(), false);
+				      cond, false);
+		ccs_put_condition(cond);
+	}
 	error = 0;
  done:
 	ccs_del_cookie(&dest);

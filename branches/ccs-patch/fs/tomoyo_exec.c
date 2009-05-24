@@ -187,10 +187,12 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 	if (is_enforce)
 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
-	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain))
+	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_argv0_entry(filename->name, argv0,
-				       r->cookie.u.domain, ccs_handler_cond(),
-				       false);
+				       r->cookie.u.domain, cond, false);
+		ccs_put_condition(cond);
+	}
 	return 0;
 }
 

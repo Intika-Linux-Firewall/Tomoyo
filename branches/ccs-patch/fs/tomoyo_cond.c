@@ -1677,26 +1677,8 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
  */
 struct ccs_condition *ccs_handler_cond(void)
 {
-	static struct ccs_condition *ccs_cond;
+	char str[] = "if task.type=execute_handler";
 	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
-	if (!ccs_cond) {
-		static u8 counter = 20;
-		const char *str = "if task.type=execute_handler";
-		const int len = strlen(str) + 1;
-		char *tmp = kzalloc(len, GFP_KERNEL);
-		if (tmp) {
-			memmove(tmp, str, len);
-			ccs_cond = ccs_get_condition(tmp);
-			kfree(tmp);
-		}
-		if (!ccs_cond && counter) {
-			counter--;
-			printk(KERN_WARNING "TOMOYO-WARNING: Failed to create "
-			       "condition for execute_handler.\n");
-		}
-	} else
-		atomic_inc(&ccs_cond->users);
-	/* Need to call ccs_put_cond() after updating. */
-	return ccs_cond;
+	return ccs_get_condition(str);
 }

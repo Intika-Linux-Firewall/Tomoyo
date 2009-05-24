@@ -207,9 +207,12 @@ bool ccs_capable(const u8 operation)
 		found = !error;
 		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain))
-		ccs_update_capability_acl(operation, r.cookie.u.domain,
-					  ccs_handler_cond(), false);
+	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
+		ccs_update_capability_acl(operation, r.cookie.u.domain, cond,
+					  false);
+		ccs_put_condition(cond);
+	}
 	found = true;
  done:
 	ccs_exit_request_info(&r);

@@ -866,20 +866,20 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 		return err;
 	}
 	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		/* Don't use patterns for execute permission. */
 		if (perm == 1) {
 			ccs_update_file_acl(filename->name, perm,
-					    r->cookie.u.domain,
-					    ccs_handler_cond(), false);
+					    r->cookie.u.domain, cond, false);
 		} else {
 			struct ccs_cookie cookie;
 			ccs_add_cookie(&cookie, filename);
 			ccs_get_file_pattern(&cookie);
 			ccs_update_file_acl(cookie.u.path->name, perm,
-					    r->cookie.u.domain,
-					    ccs_handler_cond(), false);
+					    r->cookie.u.domain, cond, false);
 			ccs_del_cookie(&cookie);
 		}
+		ccs_put_condition(cond);
 	}
 	return 0;
 }
@@ -1360,13 +1360,14 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 			goto retry;
 	}
 	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		struct ccs_cookie cookie;
 		ccs_add_cookie(&cookie, filename);
 		ccs_get_file_pattern(&cookie);
 		ccs_update_single_path_acl(operation, cookie.u.path->name,
-					   r->cookie.u.domain,
-					   ccs_handler_cond(), false);
+					   r->cookie.u.domain, cond, false);
 		ccs_del_cookie(&cookie);
+		ccs_put_condition(cond);
 	}
 	if (!is_enforce)
 		error = 0;
@@ -1650,6 +1651,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 			goto retry;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		struct ccs_cookie cookie1;
 		struct ccs_cookie cookie2;
 		ccs_add_cookie(&cookie1, buf1);
@@ -1658,10 +1660,10 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 		ccs_get_file_pattern(&cookie2);
 		ccs_update_double_path_acl(operation, cookie1.u.path->name,
 					   cookie2.u.path->name,
-					   r.cookie.u.domain,
-					   ccs_handler_cond(), false);
+					   r.cookie.u.domain, cond, false);
 		ccs_del_cookie(&cookie1);
 		ccs_del_cookie(&cookie2);
+		ccs_put_condition(cond);
 	}
  out:
 	ccs_free(buf1);
@@ -1868,13 +1870,14 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 		return err;
 	}
 	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+		struct ccs_condition *cond = ccs_handler_cond();
 		struct ccs_cookie cookie;
 		ccs_add_cookie(&cookie, filename);
 		ccs_get_file_pattern(&cookie);
 		ccs_update_ioctl_acl(cookie.u.path->name, cmd, cmd,
-				     r->cookie.u.domain, ccs_handler_cond(),
-				     false);
+				     r->cookie.u.domain, cond, false);
 		ccs_del_cookie(&cookie);
+		ccs_put_condition(cond);
 	}
 	return 0;
 }
