@@ -2356,7 +2356,8 @@ int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_unlink(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt, NULL);
+		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt,
+					     NULL);
 	return error;
 }
 
