@@ -2207,8 +2207,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
  static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
  {
- 	/*
-@@ -43,6 +53,9 @@ static int tomoyo_bprm_set_creds(struct 
+ 	int rc;
+@@ -49,6 +59,9 @@ static int tomoyo_bprm_set_creds(struct 
  	 * Tell tomoyo_bprm_check_security() is called for the first time of an
  	 * execve operation.
  	 */
@@ -2218,7 +2218,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	bprm->cred->security = NULL;
  	return 0;
  }
-@@ -55,14 +68,8 @@ static int tomoyo_bprm_check_security(st
+@@ -61,14 +74,8 @@ static int tomoyo_bprm_check_security(st
  	 * Execute permission is checked against pathname passed to do_execve()
  	 * using current domain.
  	 */
@@ -2235,7 +2235,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Read permission is checked against interpreters using next domain.
  	 * '1' is the result of open_to_namei_flags(O_RDONLY).
-@@ -259,6 +266,7 @@ static int tomoyo_dentry_open(struct fil
+@@ -265,6 +272,7 @@ static int tomoyo_dentry_open(struct fil
  static struct security_operations tomoyo_security_ops = {
  	.name                = "tomoyo",
  	.cred_prepare        = tomoyo_cred_prepare,
