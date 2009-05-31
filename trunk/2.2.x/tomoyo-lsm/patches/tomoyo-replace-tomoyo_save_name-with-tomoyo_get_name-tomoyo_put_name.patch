@@ -1,5 +1,9 @@
 Subject: Replace tomoyo_save_name() with tomoyo_get_name()/tomoyo_put_name().
 
+Replace tomoyo_save_name() with tomoyo_get_name() and tomoyo_put_name().
+This is preparation for implementing GC support.
+Since refcounter is not added yet, tomoyo_put_name() is a no-op.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |    9 +++++++--
