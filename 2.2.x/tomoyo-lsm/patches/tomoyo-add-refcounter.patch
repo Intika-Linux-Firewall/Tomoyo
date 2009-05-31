@@ -4,13 +4,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |  313 +++++++++++++++++++++++++++++++++++----------
  security/tomoyo/common.h   |   58 +++++---
- security/tomoyo/domain.c   |  274 ++++++++++++++++++++-------------------
+ security/tomoyo/domain.c   |  293 +++++++++++++++++++++---------------------
  security/tomoyo/file.c     |  199 ++++++++++++++++++++++------
  security/tomoyo/realpath.c |   57 ++++++--
  security/tomoyo/realpath.h |    7 -
  security/tomoyo/tomoyo.c   |   28 ++--
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 648 insertions(+), 291 deletions(-)
+ 8 files changed, 658 insertions(+), 300 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1073,10 +1073,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_find_or_assign_new_domain - Create a domain.
   *
-@@ -621,77 +651,53 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -619,79 +649,56 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 							    const u8 profile)
+ {
  	struct tomoyo_domain_info *new_domain = NULL;
- 	struct tomoyo_domain_info *domain = NULL;
- 	const struct tomoyo_path_info *saved_domainname = NULL;
+-	struct tomoyo_domain_info *domain;
+-	const struct tomoyo_path_info *saved_domainname;
++	struct tomoyo_domain_info *domain = NULL;
++	const struct tomoyo_path_info *saved_domainname = NULL;
 +	bool found = false;
  
 +	up_read(&tomoyo_domain_list_lock);
@@ -1126,32 +1130,40 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		mb(); /* Avoid out-of-order execution. */
 -		domain->is_deleted = false;
 -		goto out;
-+		found = true;
-+		break;
- 	}
+-	}
 -	/* No memory reusable. Create using new memory. */
 -	if (tomoyo_memory_ok(new_domain)) {
-+	if (!found && tomoyo_memory_ok(new_domain)) {
- 		domain = new_domain;
- 		new_domain = NULL;
- 		INIT_LIST_HEAD(&domain->acl_info_list);
- 		domain->domainname = saved_domainname;
- 		saved_domainname = NULL;
- 		domain->profile = profile;
+-		domain = new_domain;
+-		new_domain = NULL;
+-		INIT_LIST_HEAD(&domain->acl_info_list);
+-		domain->domainname = saved_domainname;
+-		saved_domainname = NULL;
+-		domain->profile = profile;
 -		list_add_tail(&domain->list, &tomoyo_domain_list);
+-	}
+- out:
++		found = true;
++		break;
++        }
++	if (!found && tomoyo_memory_ok(new_domain)) {
++                domain = new_domain;
++                new_domain = NULL;
++                INIT_LIST_HEAD(&domain->acl_info_list);
++                domain->domainname = saved_domainname;
++                saved_domainname = NULL;
++                domain->profile = profile;
 +		list_add_tail(&domain->entry.list, &tomoyo_domain_list);
 +		found = true;
- 	}
-- out:
++        }
  	up_write(&tomoyo_domain_list_lock);
  	/***** WRITER SECTION END *****/
 + out:
  	tomoyo_put_name(saved_domainname);
  	kfree(new_domain);
--	return domain;
 +	/***** READER SECTION START *****/
 +	down_read(&tomoyo_domain_list_lock);
 +	return found ? domain : NULL;
+ 	return domain;
  }
  
  /**
@@ -1169,7 +1181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -752,7 +758,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -752,7 +759,7 @@ int tomoyo_find_next_domain(struct linux
  		/* Is this program allowed to be called via symbolic links? */
  		/***** READER SECTION START *****/
  		down_read(&tomoyo_alias_list_lock);
@@ -1178,7 +1190,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -793,33 +799,33 @@ int tomoyo_find_next_domain(struct linux
+@@ -793,33 +800,33 @@ int tomoyo_find_next_domain(struct linux
  		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
  			 "%s %s", old_domain_name, real_program_name);
  	}

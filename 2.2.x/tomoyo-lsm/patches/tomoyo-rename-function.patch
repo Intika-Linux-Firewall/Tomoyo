@@ -2,12 +2,12 @@ Subject: Replace tomoyo_save_name() with tomoyo_get_name()/tomoyo_put_name().
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |    9 +++++--
- security/tomoyo/domain.c   |   53 +++++++++++++++++++++++++++++++--------------
- security/tomoyo/file.c     |   29 ++++++++++++++++++------
- security/tomoyo/realpath.c |    8 +++---
- security/tomoyo/realpath.h |    6 ++++-
- 5 files changed, 75 insertions(+), 30 deletions(-)
+ security/tomoyo/common.c   |    9 +++++++--
+ security/tomoyo/domain.c   |   41 +++++++++++++++++++++++++++++++----------
+ security/tomoyo/file.c     |   29 ++++++++++++++++++++++-------
+ security/tomoyo/realpath.c |    8 ++++----
+ security/tomoyo/realpath.h |    6 +++++-
+ 5 files changed, 69 insertions(+), 24 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -147,34 +147,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -600,20 +619,20 @@ struct tomoyo_domain_info *tomoyo_find_o
- 							    const u8 profile)
- {
- 	struct tomoyo_domain_info *new_domain = NULL;
--	struct tomoyo_domain_info *domain;
--	const struct tomoyo_path_info *saved_domainname;
-+	struct tomoyo_domain_info *domain = NULL;
-+	const struct tomoyo_path_info *saved_domainname = NULL;
+@@ -605,7 +624,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  
-+	if (!tomoyo_is_correct_domain(domainname, __func__))
-+		return NULL;
-+	saved_domainname = tomoyo_get_name(domainname);
-+	if (!saved_domainname)
-+		return NULL;
- 	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
- 	/***** WRITER SECTION START *****/
- 	down_write(&tomoyo_domain_list_lock);
- 	domain = tomoyo_find_domain(domainname);
- 	if (domain)
- 		goto out;
--	if (!tomoyo_is_correct_domain(domainname, __func__))
--		goto out;
+ 	if (!tomoyo_is_correct_domain(domainname, __func__))
+ 		return NULL;
 -	saved_domainname = tomoyo_save_name(domainname);
--	if (!saved_domainname)
--		goto out;
- 	/* Can I reuse memory of deleted domain? */
- 	list_for_each_entry(domain, &tomoyo_domain_list, list) {
- 		struct task_struct *p;
++	saved_domainname = tomoyo_get_name(domainname);
+ 	if (!saved_domainname)
+ 		return NULL;
+ 	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
 @@ -651,12 +670,14 @@ struct tomoyo_domain_info *tomoyo_find_o
  		new_domain = NULL;
  		INIT_LIST_HEAD(&domain->acl_info_list);
