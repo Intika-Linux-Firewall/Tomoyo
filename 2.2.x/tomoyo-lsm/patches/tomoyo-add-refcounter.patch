@@ -1,4 +1,47 @@
-Subject: TOMOYO: Add garbage collector support. (v3)
+Subject: TOMOYO: Add refcounter and garbage collector.
+
+A process who is reading/writing list elements has pointers which point to
+(possibly marked-as-deleted) list elements and releases a lock when the process
+leaves the kernel.
+
+As of now, TOMOYO cannot release memory used by marked-as-deleted list elements
+because TOMOYO does not manage list of pointers.
+
+This patch makes TOMOYO to manage list of pointers and allows an administrator
+release memory used by marked-as-deleted list elements.
+
+Approach:
+
+  Define a structure
+
+    struct tomoyo_entry {
+        struct list_head list;
+        atomic_t users;
+    };
+
+  and replace "struct list_head" with "struct tomoyo_entry".
+
+  Get a reference by calling
+
+    void tomoyo_get_ref(struct list_head *item)
+
+  before releasing a lock and drop a reference by calling
+
+    void tomoyo_put_ref(struct list_head *item)
+
+  after obtaining a lock.
+
+Memory Management Rules:
+
+  When /sys/kernel/security/tomoyo/ interface opened for writing is closed,
+  garbage collector functions are called. The garbage collector functions take
+  appropriate locks and remove elements if that element has is_deleted flag set
+  and that element's refcounter is 0.
+
+  Since strings are likely referenced by multiple list elements, this patch
+  assigns a refcounter to each string.
+  The garbage collector function releases memory of the string if the string's
+  refcounter becomes 0.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
