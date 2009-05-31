@@ -2,7 +2,7 @@ Subject: TOMOYO: Add garbage collector support. (v3)
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |  368 +++++++++++++++++++++++++++++++++----------
+ security/tomoyo/common.c   |  376 ++++++++++++++++++++++++++++++++++----------
  security/tomoyo/common.h   |   58 ++++--
  security/tomoyo/domain.c   |  377 ++++++++++++++++++++++++---------------------
  security/tomoyo/file.c     |  282 +++++++++++++++++++++++++--------
@@ -10,7 +10,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 815 insertions(+), 371 deletions(-)
+ 8 files changed, 823 insertions(+), 371 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -381,14 +381,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE))
  		is_delete = true;
-@@ -1262,34 +1368,32 @@ static int tomoyo_write_domain_policy(st
- 	/* Don't allow updating policies by non manager programs. */
+@@ -1263,33 +1369,31 @@ static int tomoyo_write_domain_policy(st
  	if (!tomoyo_is_policy_manager())
  		return -EPERM;
-+	/***** READER SECTION START *****/
-+	down_read(&tomoyo_domain_list_lock);
-+	tomoyo_put_ref(head->write_var1);
  	if (tomoyo_is_domain_def(data)) {
++		/***** READER SECTION START *****/
++		down_read(&tomoyo_domain_list_lock);
++		tomoyo_put_ref(head->write_var1);
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
@@ -410,6 +409,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	    && profile < TOMOYO_MAX_PROFILES) {
 -		if (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded)
 +		head->write_var1 = domain ? &domain->entry.list : NULL;
++		tomoyo_get_ref(head->write_var1);
++		up_read(&tomoyo_domain_list_lock);
++		/***** READER SECTION END *****/
 +	} else if (!domain)
 +		error = -EINVAL;
 +	else if (sscanf(data, TOMOYO_KEYWORD_USE_PROFILE "%u", &profile) == 1) {
@@ -428,9 +430,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		domain->ignore_global_allow_read = !is_delete;
 +	else
 +		error = tomoyo_write_file_policy(data, domain, is_delete);
-+	tomoyo_get_ref(head->write_var1);
-+	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
 +	return error;
  }
  
@@ -682,7 +681,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  }
  
-@@ -2036,6 +2219,7 @@ static int tomoyo_write_control(struct f
+@@ -1919,6 +2102,10 @@ static int tomoyo_open_control(const u8 
+ 		}
+ 	}
+ 	file->private_data = head;
++	/* Get refcount. Though nothing happens. */
++	tomoyo_get_ref(head->write_var1);
++	tomoyo_get_ref(head->read_var1);
++	tomoyo_get_ref(head->read_var2);
+ 	/*
+ 	 * Call the handler now if the file is
+ 	 * /sys/kernel/security/tomoyo/self_domain
+@@ -2036,15 +2223,30 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -690,7 +700,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
-@@ -2045,6 +2229,16 @@ static int tomoyo_close_control(struct f
+ 	head->read_buf = NULL;
+ 	tomoyo_free(head->write_buf);
+ 	head->write_buf = NULL;
++	/* Put refcount if partially read or written. */
++	tomoyo_put_ref(head->read_var2);
++	tomoyo_put_ref(head->read_var1);
++	tomoyo_put_ref(head->write_var1);
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
