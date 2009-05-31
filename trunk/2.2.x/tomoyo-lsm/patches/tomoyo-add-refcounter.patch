@@ -4,13 +4,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |  313 +++++++++++++++++++++++++++++++++++----------
  security/tomoyo/common.h   |   58 +++++---
- security/tomoyo/domain.c   |  293 +++++++++++++++++++++---------------------
+ security/tomoyo/domain.c   |  277 ++++++++++++++++++++-------------------
  security/tomoyo/file.c     |  199 ++++++++++++++++++++++------
  security/tomoyo/realpath.c |   57 ++++++--
  security/tomoyo/realpath.h |    7 -
  security/tomoyo/tomoyo.c   |   28 ++--
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 658 insertions(+), 300 deletions(-)
+ 8 files changed, 650 insertions(+), 292 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -276,12 +276,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_path_info name;
 +
 +	up_read(&tomoyo_domain_list_lock);
-+        /***** READER SECTION END *****/
++	/***** READER SECTION END *****/
 +	name.name = domainname;
-+        tomoyo_fill_path_info(&name);
-+        /***** WRITER SECTION START *****/
++	tomoyo_fill_path_info(&name);
++	/***** WRITER SECTION START *****/
 +	down_write(&tomoyo_domain_list_lock);
-+        /* Is there an active domain? */
++	/* Is there an active domain? */
 +	list_for_each_entry(domain, &tomoyo_domain_list, entry.list) {
 +		/* Never delete tomoyo_kernel_domain */
 +		if (domain == &tomoyo_kernel_domain)
@@ -1130,31 +1130,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		mb(); /* Avoid out-of-order execution. */
 -		domain->is_deleted = false;
 -		goto out;
--	}
--	/* No memory reusable. Create using new memory. */
--	if (tomoyo_memory_ok(new_domain)) {
--		domain = new_domain;
--		new_domain = NULL;
--		INIT_LIST_HEAD(&domain->acl_info_list);
--		domain->domainname = saved_domainname;
--		saved_domainname = NULL;
--		domain->profile = profile;
--		list_add_tail(&domain->list, &tomoyo_domain_list);
--	}
-- out:
 +		found = true;
 +		break;
-+        }
+ 	}
+-	/* No memory reusable. Create using new memory. */
+-	if (tomoyo_memory_ok(new_domain)) {
 +	if (!found && tomoyo_memory_ok(new_domain)) {
-+                domain = new_domain;
-+                new_domain = NULL;
-+                INIT_LIST_HEAD(&domain->acl_info_list);
-+                domain->domainname = saved_domainname;
-+                saved_domainname = NULL;
-+                domain->profile = profile;
+ 		domain = new_domain;
+ 		new_domain = NULL;
+ 		INIT_LIST_HEAD(&domain->acl_info_list);
+ 		domain->domainname = saved_domainname;
+ 		saved_domainname = NULL;
+ 		domain->profile = profile;
+-		list_add_tail(&domain->list, &tomoyo_domain_list);
 +		list_add_tail(&domain->entry.list, &tomoyo_domain_list);
 +		found = true;
-+        }
+ 	}
+- out:
  	up_write(&tomoyo_domain_list_lock);
  	/***** WRITER SECTION END *****/
 + out:
