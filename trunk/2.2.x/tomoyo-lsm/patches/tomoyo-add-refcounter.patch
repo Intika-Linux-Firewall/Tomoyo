@@ -2,15 +2,15 @@ Subject: TOMOYO: Add garbage collector support. (v3)
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |  376 ++++++++++++++++++++++++++++++++++----------
- security/tomoyo/common.h   |   58 ++++--
- security/tomoyo/domain.c   |  377 ++++++++++++++++++++++++---------------------
- security/tomoyo/file.c     |  282 +++++++++++++++++++++++++--------
- security/tomoyo/realpath.c |   65 ++++++-
+ security/tomoyo/common.c   |  322 ++++++++++++++++++++++++++++++++++----------
+ security/tomoyo/common.h   |   58 +++++--
+ security/tomoyo/domain.c   |  329 ++++++++++++++++++++++++---------------------
+ security/tomoyo/file.c     |  227 ++++++++++++++++++++++++-------
+ security/tomoyo/realpath.c |   63 ++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 823 insertions(+), 371 deletions(-)
+ 8 files changed, 719 insertions(+), 316 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -36,42 +36,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!domain->is_deleted &&
  		    !tomoyo_pathcmp(&name, domain->domainname))
  			return domain;
-@@ -706,6 +705,7 @@ static const char *tomoyo_get_exe(void)
- 
- 	if (!mm)
- 		return NULL;
-+	/***** READER SECTION START *****/
- 	down_read(&mm->mmap_sem);
- 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
- 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-@@ -714,6 +714,7 @@ static const char *tomoyo_get_exe(void)
- 		}
- 	}
- 	up_read(&mm->mmap_sem);
-+	/***** READER SECTION END *****/
- 	return cp;
- }
- 
-@@ -784,8 +785,9 @@ bool tomoyo_domain_quota_is_ok(struct to
- 
- 	if (!domain)
+@@ -788,7 +787,7 @@ bool tomoyo_domain_quota_is_ok(struct to
  		return true;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_acl_info_list_lock);
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	list_for_each_entry(ptr, &domain->acl_info_list, entry.list) {
  		if (ptr->type & TOMOYO_ACL_DELETED)
  			continue;
  		switch (tomoyo_acl_type2(ptr)) {
-@@ -839,6 +841,7 @@ bool tomoyo_domain_quota_is_ok(struct to
- 		}
- 	}
- 	up_read(&tomoyo_domain_acl_info_list_lock);
-+	/***** READER SECTION END *****/
- 	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
- 		return true;
- 	if (!domain->quota_warned) {
-@@ -885,6 +888,9 @@ static struct tomoyo_profile *tomoyo_fin
+@@ -889,6 +888,9 @@ static struct tomoyo_profile *tomoyo_fin
  	return ptr;
  }
  
@@ -81,7 +55,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_write_profile - Write to profile table.
   *
-@@ -916,7 +922,16 @@ static int tomoyo_write_profile(struct t
+@@ -920,7 +922,16 @@ static int tomoyo_write_profile(struct t
  		return -EINVAL;
  	*cp = '\0';
  	if (!strcmp(data, "COMMENT")) {
@@ -99,7 +73,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	for (i = 0; i < TOMOYO_MAX_CONTROL_INDEX; i++) {
-@@ -974,9 +989,15 @@ static int tomoyo_read_profile(struct to
+@@ -978,9 +989,15 @@ static int tomoyo_read_profile(struct to
  		if (!profile)
  			continue;
  		if (!type) { /* Print profile' comment tag. */
@@ -118,7 +92,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				break;
  			continue;
  		}
-@@ -1012,7 +1033,7 @@ static int tomoyo_read_profile(struct to
+@@ -1016,7 +1033,7 @@ static int tomoyo_read_profile(struct to
  
  /* Structure for policy manager. */
  struct tomoyo_policy_manager_entry {
@@ -127,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* A path to program or a domainname. */
  	const struct tomoyo_path_info *manager;
  	bool is_domain;  /* True if manager is a domainname. */
-@@ -1048,14 +1069,14 @@ static int tomoyo_update_manager_entry(c
+@@ -1052,14 +1069,14 @@ static int tomoyo_update_manager_entry(c
  		if (!tomoyo_is_correct_path(manager, 1, -1, -1, __func__))
  			return -EINVAL;
  	}
@@ -137,15 +111,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_policy_manager_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_policy_manager_list, entry.list) {
  		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -1064,18 +1085,47 @@ static int tomoyo_update_manager_entry(c
+@@ -1068,8 +1085,10 @@ static int tomoyo_update_manager_entry(c
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->manager = saved_manager;
@@ -157,12 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		new_entry = NULL;
  		error = 0;
  	}
- 	up_write(&tomoyo_policy_manager_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
-+	tomoyo_put_name(saved_manager);
- 	kfree(new_entry);
- 	return error;
+@@ -1080,6 +1099,32 @@ static int tomoyo_update_manager_entry(c
  }
  
  /**
@@ -195,11 +163,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_manager_policy - Write manager policy.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1108,20 +1158,23 @@ static int tomoyo_read_manager_policy(st
- 
- 	if (head->read_eof)
+@@ -1114,17 +1159,19 @@ static int tomoyo_read_manager_policy(st
  		return 0;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_policy_manager_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2,
@@ -210,56 +176,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 entry.list);
  		if (ptr->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, "%s\n", ptr->manager->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, "%s\n", ptr->manager->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, "%s\n", ptr->manager->name);
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_policy_manager_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	head->read_eof = done;
- 	return 0;
- }
-@@ -1144,8 +1197,9 @@ static bool tomoyo_is_policy_manager(voi
- 		return true;
- 	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
+@@ -1151,7 +1198,7 @@ static bool tomoyo_is_policy_manager(voi
  		return false;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_policy_manager_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_policy_manager_list, entry.list) {
  		if (!ptr->is_deleted && ptr->is_domain
  		    && !tomoyo_pathcmp(domainname, ptr->manager)) {
  			found = true;
-@@ -1153,13 +1207,15 @@ static bool tomoyo_is_policy_manager(voi
- 		}
- 	}
- 	up_read(&tomoyo_policy_manager_list_lock);
-+	/***** READER SECTION END *****/
- 	if (found)
- 		return true;
- 	exe = tomoyo_get_exe();
- 	if (!exe)
+@@ -1167,7 +1214,7 @@ static bool tomoyo_is_policy_manager(voi
  		return false;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_policy_manager_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_policy_manager_list, entry.list) {
  		if (!ptr->is_deleted && !ptr->is_domain
  		    && !strcmp(exe, ptr->manager->name)) {
  			found = true;
-@@ -1167,6 +1223,7 @@ static bool tomoyo_is_policy_manager(voi
- 		}
- 	}
- 	up_read(&tomoyo_policy_manager_list_lock);
-+	/***** READER SECTION END *****/
- 	if (!found) { /* Reduce error messages. */
- 		static pid_t last_pid;
- 		const pid_t pid = current->pid;
-@@ -1191,9 +1248,15 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1200,9 +1247,15 @@ static bool tomoyo_is_policy_manager(voi
  static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head,
  				 const char *data)
  {
@@ -275,15 +218,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (sscanf(data, "pid=%u", &pid) == 1) {
  		struct task_struct *p;
  		/***** CRITICAL SECTION START *****/
-@@ -1204,17 +1267,15 @@ static bool tomoyo_is_select_one(struct 
+@@ -1213,19 +1266,15 @@ static bool tomoyo_is_select_one(struct 
  		read_unlock(&tasklist_lock);
  		/***** CRITICAL SECTION END *****/
  	} else if (!strncmp(data, "domain=", 7)) {
 -		if (tomoyo_is_domain_def(data + 7)) {
+-			/***** READER SECTION START *****/
 -			down_read(&tomoyo_domain_list_lock);
 +		if (tomoyo_is_domain_def(data + 7))
  			domain = tomoyo_find_domain(data + 7);
 -			up_read(&tomoyo_domain_list_lock);
+-			/***** READER SECTION END *****/
 -		}
  	} else
 -		return false;
@@ -298,10 +243,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->read_avail = 0;
  	tomoyo_io_printf(head, "# select %s\n", data);
  	head->read_single_domain = true;
-@@ -1222,20 +1283,62 @@ static bool tomoyo_is_select_one(struct 
+@@ -1233,22 +1282,62 @@ static bool tomoyo_is_select_one(struct 
  	if (domain) {
  		struct tomoyo_domain_info *d;
  		head->read_var1 = NULL;
+-		/***** READER SECTION START *****/
 -		down_read(&tomoyo_domain_list_lock);
 -		list_for_each_entry(d, &tomoyo_domain_list, list) {
 +		list_for_each_entry(d, &tomoyo_domain_list, entry.list) {
@@ -311,6 +257,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			head->read_var1 = &d->entry.list;
  		}
 -		up_read(&tomoyo_domain_list_lock);
+-		/***** READER SECTION END *****/
  		head->read_var2 = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
@@ -342,12 +289,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_path_info name;
 +
 +	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
++        /***** READER SECTION END *****/
 +	name.name = domainname;
-+	tomoyo_fill_path_info(&name);
-+	/***** WRITER SECTION START *****/
++        tomoyo_fill_path_info(&name);
++        /***** WRITER SECTION START *****/
 +	down_write(&tomoyo_domain_list_lock);
-+	/* Is there an active domain? */
++        /* Is there an active domain? */
 +	list_for_each_entry(domain, &tomoyo_domain_list, entry.list) {
 +		/* Never delete tomoyo_kernel_domain */
 +		if (domain == &tomoyo_kernel_domain)
@@ -366,7 +313,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -1248,10 +1351,13 @@ static bool tomoyo_is_select_one(struct 
+@@ -1261,10 +1350,13 @@ static bool tomoyo_is_select_one(struct 
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -381,7 +328,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE))
  		is_delete = true;
-@@ -1263,33 +1369,31 @@ static int tomoyo_write_domain_policy(st
+@@ -1276,35 +1368,31 @@ static int tomoyo_write_domain_policy(st
  	if (!tomoyo_is_policy_manager())
  		return -EPERM;
  	if (tomoyo_is_domain_def(data)) {
@@ -392,10 +339,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (is_delete)
  			tomoyo_delete_domain(data);
 -		else if (is_select) {
+-			/***** READER SECTION START *****/
 -			down_read(&tomoyo_domain_list_lock);
 +		else if (is_select)
  			domain = tomoyo_find_domain(data);
 -			up_read(&tomoyo_domain_list_lock);
+-			/***** READER SECTION END *****/
 -		} else
 +		else
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
@@ -407,16 +356,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -
 -	if (sscanf(data, TOMOYO_KEYWORD_USE_PROFILE "%u", &profile) == 1
 -	    && profile < TOMOYO_MAX_PROFILES) {
--		if (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded)
 +		head->write_var1 = domain ? &domain->entry.list : NULL;
 +		tomoyo_get_ref(head->write_var1);
 +		up_read(&tomoyo_domain_list_lock);
 +		/***** READER SECTION END *****/
 +	} else if (!domain)
 +		error = -EINVAL;
-+	else if (sscanf(data, TOMOYO_KEYWORD_USE_PROFILE "%u", &profile) == 1) {
-+		if (profile < TOMOYO_MAX_PROFILES &&
-+		    (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
++	else if (sscanf(data, TOMOYO_KEYWORD_USE_PROFILE "%u", &profile) == 1
++		 && profile < TOMOYO_MAX_PROFILES) {
+ 		if (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded)
  			domain->profile = (u8) profile;
 -		return 0;
 -	}
@@ -426,19 +374,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		return 0;
 -	}
 -	return tomoyo_write_file_policy(data, domain, is_delete);
-+	} else if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ))
++	} else if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
 +		domain->ignore_global_allow_read = !is_delete;
-+	else
++	} else
 +		error = tomoyo_write_file_policy(data, domain, is_delete);
 +	return error;
  }
  
  /**
-@@ -1426,13 +1530,18 @@ static int tomoyo_read_domain_policy(str
- 		return 0;
- 	if (head->read_step == 0)
+@@ -1443,12 +1531,16 @@ static int tomoyo_read_domain_policy(str
  		head->read_step = 1;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_list_lock);
 +	down_read(&tomoyo_domain_acl_info_list_lock);
 +	tomoyo_put_ref(head->read_var1);
@@ -454,7 +400,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (head->read_step != 1)
  			goto acl_loop;
  		if (domain->is_deleted && !head->read_single_domain)
-@@ -1440,56 +1549,119 @@ static int tomoyo_read_domain_policy(str
+@@ -1456,10 +1548,9 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -466,53 +412,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (domain->ignore_global_allow_read)
  			ignore_global_allow_read
  				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
--		if (!tomoyo_io_printf(head,
--				      "%s\n" TOMOYO_KEYWORD_USE_PROFILE "%u\n"
--				      "%s%s%s\n", domain->domainname->name,
--				      domain->profile, quota_exceeded,
--				      transition_failed,
--				      ignore_global_allow_read)) {
--			done = false;
-+		done = tomoyo_io_printf(head, "%s\n"
-+					TOMOYO_KEYWORD_USE_PROFILE "%u\n"
-+					"%s%s%s\n", domain->domainname->name,
-+					domain->profile, quota_exceeded,
-+					transition_failed,
-+					ignore_global_allow_read);
-+		if (!done)
- 			break;
--		}
- 		head->read_step = 2;
- acl_loop:
+ 		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
+@@ -1475,19 +1566,15 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
+-		/***** READER SECTION START *****/
 -		down_read(&tomoyo_domain_acl_info_list_lock);
  		list_for_each_cookie(apos, head->read_var2,
- 				      &domain->acl_info_list) {
+ 				     &domain->acl_info_list) {
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
--					      list);
--			if (!tomoyo_print_entry(head, ptr)) {
--				done = false;
+-					     list);
 +					     entry.list);
-+			done = tomoyo_print_entry(head, ptr);
-+			if (!done)
+ 			done = tomoyo_print_entry(head, ptr);
+ 			if (!done)
  				break;
--			}
  		}
 -		up_read(&tomoyo_domain_acl_info_list_lock);
+-		/***** READER SECTION END *****/
  		if (!done)
  			break;
  		head->read_step = 3;
- tail_mark:
--		if (!tomoyo_io_printf(head, "\n")) {
--			done = false;
-+		done = tomoyo_io_printf(head, "\n");
-+		if (!done)
- 			break;
--		}
- 		head->read_step = 1;
+@@ -1499,6 +1586,9 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -520,9 +442,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_get_ref(head->read_var1);
 +	up_read(&tomoyo_domain_acl_info_list_lock);
  	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	head->read_eof = done;
- 	return 0;
+@@ -1506,6 +1596,71 @@ tail_mark:
  }
  
  /**
@@ -594,33 +516,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_domain_profile - Assign profile for specified domain.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1511,14 +1683,16 @@ static int tomoyo_write_domain_profile(s
+@@ -1527,16 +1682,16 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
 +	if (strict_strtoul(data, 10, &profile) ||
 +	    profile >= TOMOYO_MAX_PROFILES)
 +		return -EINVAL;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_list_lock);
  	domain = tomoyo_find_domain(cp + 1);
--	up_read(&tomoyo_domain_list_lock);
++	if (domain && (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
++		domain->profile = (u8) profile;
+ 	up_read(&tomoyo_domain_list_lock);
+ 	/***** READER SECTION END *****/
 -	if (strict_strtoul(data, 10, &profile))
 -		return -EINVAL;
 -	if (domain && profile < TOMOYO_MAX_PROFILES
 -	    && (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
-+	if (domain && (tomoyo_profile_ptr[profile] || !tomoyo_policy_loaded))
- 		domain->profile = (u8) profile;
-+	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
+-		domain->profile = (u8) profile;
  	return 0;
  }
  
-@@ -1543,19 +1717,22 @@ static int tomoyo_read_domain_profile(st
- 
- 	if (head->read_eof)
+@@ -1563,9 +1718,10 @@ static int tomoyo_read_domain_profile(st
  		return 0;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_list_lock);
 +	tomoyo_put_ref(head->read_var1);
  	list_for_each_cookie(pos, head->read_var1, &tomoyo_domain_list) {
@@ -629,22 +549,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		domain = list_entry(pos, struct tomoyo_domain_info, entry.list);
  		if (domain->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, "%u %s\n", domain->profile,
--				      domain->domainname->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, "%u %s\n", domain->profile,
-+					domain->domainname->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, "%u %s\n", domain->profile,
+@@ -1573,6 +1729,7 @@ static int tomoyo_read_domain_profile(st
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var1);
  	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	head->read_eof = done;
- 	return 0;
- }
-@@ -1593,6 +1770,8 @@ static int tomoyo_read_pid(struct tomoyo
+@@ -1612,6 +1769,8 @@ static int tomoyo_read_pid(struct tomoyo
  		const int pid = head->read_step;
  		struct task_struct *p;
  		struct tomoyo_domain_info *domain = NULL;
@@ -653,7 +567,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		/***** CRITICAL SECTION START *****/
  		read_lock(&tasklist_lock);
  		p = find_task_by_vpid(pid);
-@@ -1603,6 +1782,8 @@ static int tomoyo_read_pid(struct tomoyo
+@@ -1622,6 +1781,8 @@ static int tomoyo_read_pid(struct tomoyo
  		if (domain)
  			tomoyo_io_printf(head, "%d %u %s", pid, domain->profile,
  					 domain->domainname->name);
@@ -662,26 +576,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->read_eof = true;
  	}
  	return 0;
-@@ -1777,8 +1958,9 @@ void tomoyo_load_policy(const char *file
- 	tomoyo_policy_loaded = true;
- 	{ /* Check all profiles currently assigned to domains are defined. */
+@@ -1798,7 +1959,7 @@ void tomoyo_load_policy(const char *file
  		struct tomoyo_domain_info *domain;
-+		/***** READER SECTION START *****/
+ 		/***** READER SECTION START *****/
  		down_read(&tomoyo_domain_list_lock);
 -		list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +		list_for_each_entry(domain, &tomoyo_domain_list, entry.list) {
  			const u8 profile = domain->profile;
  			if (tomoyo_profile_ptr[profile])
  				continue;
-@@ -1786,6 +1968,7 @@ void tomoyo_load_policy(const char *file
- 			      profile, domain->domainname->name);
- 		}
- 		up_read(&tomoyo_domain_list_lock);
-+		/***** READER SECTION END *****/
- 	}
- }
- 
-@@ -1919,6 +2102,10 @@ static int tomoyo_open_control(const u8 
+@@ -1940,6 +2101,10 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
@@ -692,7 +596,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2036,15 +2223,30 @@ static int tomoyo_write_control(struct f
+@@ -2057,15 +2222,30 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -913,8 +817,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_domain_initializer_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, entry.list) {
@@ -937,8 +840,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_domain_initializer_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_domainname);
 +	tomoyo_put_name(saved_program);
  	kfree(new_entry);
@@ -976,17 +878,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_domain_initializer_policy - Read "struct tomoyo_domain_initializer_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -176,7 +185,9 @@ bool tomoyo_read_domain_initializer_poli
- 	struct list_head *pos;
- 	bool done = true;
+@@ -178,6 +187,7 @@ bool tomoyo_read_domain_initializer_poli
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_initializer_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2,
  			     &tomoyo_domain_initializer_list) {
  		const char *no;
-@@ -184,7 +195,7 @@ bool tomoyo_read_domain_initializer_poli
+@@ -185,7 +195,7 @@ bool tomoyo_read_domain_initializer_poli
  		const char *domain = "";
  		struct tomoyo_domain_initializer_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_domain_initializer_entry,
@@ -995,49 +895,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -192,15 +203,16 @@ bool tomoyo_read_domain_initializer_poli
- 			from = " from ";
- 			domain = ptr->domainname->name;
- 		}
--		if (!tomoyo_io_printf(head,
--				      "%s" TOMOYO_KEYWORD_INITIALIZE_DOMAIN
--				      "%s%s%s\n", no, ptr->program->name, from,
--				      domain)) {
--			done = false;
-+		done = tomoyo_io_printf(head,
-+					"%s" TOMOYO_KEYWORD_INITIALIZE_DOMAIN
-+					"%s%s%s\n", no, ptr->program->name,
-+					from, domain);
-+		if (!done)
+@@ -200,6 +210,7 @@ bool tomoyo_read_domain_initializer_poli
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_domain_initializer_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
+@@ -250,7 +261,7 @@ static bool tomoyo_is_domain_initializer
  
-@@ -247,8 +259,9 @@ static bool tomoyo_is_domain_initializer
- 	struct tomoyo_domain_initializer_entry *ptr;
- 	bool flag = false;
- 
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_initializer_list_lock);
 -	list_for_each_entry(ptr,  &tomoyo_domain_initializer_list, list) {
 +	list_for_each_entry(ptr,  &tomoyo_domain_initializer_list, entry.list) {
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -269,6 +282,7 @@ static bool tomoyo_is_domain_initializer
- 		flag = true;
- 	}
- 	up_read(&tomoyo_domain_initializer_list_lock);
-+	/***** READER SECTION END *****/
- 	return flag;
- }
- 
-@@ -307,18 +321,20 @@ static int tomoyo_update_domain_keeper_e
+@@ -310,18 +321,20 @@ static int tomoyo_update_domain_keeper_e
  	if (program) {
  		if (!tomoyo_is_correct_path(program, 1, -1, -1, __func__))
  			return -EINVAL;
@@ -1055,15 +930,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_domain_keeper_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, entry.list) {
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -329,20 +345,52 @@ static int tomoyo_update_domain_keeper_e
+@@ -332,20 +345,52 @@ static int tomoyo_update_domain_keeper_e
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->domainname = saved_domainname;
@@ -1079,8 +953,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_domain_keeper_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_domainname);
 +	tomoyo_put_name(saved_program);
  	kfree(new_entry);
@@ -1118,17 +991,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_domain_keeper_policy - Write "struct tomoyo_domain_keeper_entry" list.
   *
   * @data:      String to parse.
-@@ -375,7 +423,9 @@ bool tomoyo_read_domain_keeper_policy(st
- 	struct list_head *pos;
- 	bool done = true;
+@@ -380,6 +425,7 @@ bool tomoyo_read_domain_keeper_policy(st
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_keeper_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2,
  			     &tomoyo_domain_keeper_list) {
  		struct tomoyo_domain_keeper_entry *ptr;
-@@ -383,7 +433,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -387,7 +433,8 @@ bool tomoyo_read_domain_keeper_policy(st
  		const char *from = "";
  		const char *program = "";
  
@@ -1138,48 +1009,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -391,15 +442,15 @@ bool tomoyo_read_domain_keeper_policy(st
- 			from = " from ";
- 			program = ptr->program->name;
- 		}
--		if (!tomoyo_io_printf(head,
--				      "%s" TOMOYO_KEYWORD_KEEP_DOMAIN
--				      "%s%s%s\n", no, program, from,
--				      ptr->domainname->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, "%s" TOMOYO_KEYWORD_KEEP_DOMAIN
-+					"%s%s%s\n", no, program, from,
-+					ptr->domainname->name);
-+		if (!done)
+@@ -402,6 +449,7 @@ bool tomoyo_read_domain_keeper_policy(st
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_domain_keeper_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
+@@ -426,7 +474,7 @@ static bool tomoyo_is_domain_keeper(cons
  
-@@ -420,8 +471,9 @@ static bool tomoyo_is_domain_keeper(cons
- 	struct tomoyo_domain_keeper_entry *ptr;
- 	bool flag = false;
- 
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_keeper_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, entry.list) {
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -440,6 +492,7 @@ static bool tomoyo_is_domain_keeper(cons
- 		flag = true;
- 	}
- 	up_read(&tomoyo_domain_keeper_list_lock);
-+	/***** READER SECTION END *****/
- 	return flag;
- }
- 
-@@ -469,15 +522,18 @@ static int tomoyo_update_alias_entry(con
+@@ -475,15 +523,18 @@ static int tomoyo_update_alias_entry(con
  	if (!tomoyo_is_correct_path(original_name, 1, -1, -1, __func__) ||
  	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1, __func__))
  		return -EINVAL; /* No patterns allowed. */
@@ -1195,15 +1042,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_alias_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_alias_list, entry.list) {
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aliased_name != saved_aliased_name)
  			continue;
-@@ -487,18 +543,48 @@ static int tomoyo_update_alias_entry(con
+@@ -493,18 +544,48 @@ static int tomoyo_update_alias_entry(con
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->original_name = saved_original_name;
@@ -1216,8 +1062,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_alias_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_original_name);
 +	tomoyo_put_name(saved_aliased_name);
  	kfree(new_entry);
@@ -1254,12 +1099,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_alias_policy - Read "struct tomoyo_alias_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -510,21 +596,22 @@ bool tomoyo_read_alias_policy(struct tom
- 	struct list_head *pos;
- 	bool done = true;
+@@ -518,10 +599,11 @@ bool tomoyo_read_alias_policy(struct tom
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_alias_list_lock);
++	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2, &tomoyo_alias_list) {
  		struct tomoyo_alias_entry *ptr;
  
@@ -1267,23 +1111,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		ptr = list_entry(pos, struct tomoyo_alias_entry, entry.list);
  		if (ptr->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALIAS "%s %s\n",
--				      ptr->original_name->name,
--				      ptr->aliased_name->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALIAS "%s %s\n",
-+					ptr->original_name->name,
-+					ptr->aliased_name->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALIAS "%s %s\n",
+@@ -530,6 +612,7 @@ bool tomoyo_read_alias_policy(struct tom
+ 		if (!done)
  			break;
--		}
  	}
++	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_alias_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
- 
-@@ -546,40 +633,6 @@ int tomoyo_write_alias_policy(char *data
+@@ -553,40 +636,6 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }
  
@@ -1303,7 +1140,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -
 -	name.name = domainname;
 -	tomoyo_fill_path_info(&name);
--	/***** EXCLUSIVE SECTION START *****/
+-	/***** WRITER SECTION START *****/
 -	down_write(&tomoyo_domain_list_lock);
 -	/* Is there an active domain? */
 -	list_for_each_entry(domain, &tomoyo_domain_list, list) {
@@ -1317,14 +1154,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		break;
 -	}
 -	up_write(&tomoyo_domain_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
+-	/***** WRITER SECTION END *****/
 -	return 0;
 -}
 -
  /**
   * tomoyo_find_or_assign_new_domain - Create a domain.
   *
-@@ -587,83 +640,63 @@ int tomoyo_delete_domain(char *domainnam
+@@ -594,83 +643,63 @@ int tomoyo_delete_domain(char *domainnam
   * @profile:    Profile number to assign if the domain was newly created.
   *
   * Returns pointer to "struct tomoyo_domain_info" on success, NULL otherwise.
@@ -1343,7 +1180,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool found = false;
  
 -	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
+-	/***** WRITER SECTION START *****/
 -	down_write(&tomoyo_domain_list_lock);
 -	domain = tomoyo_find_domain(domainname);
 -	if (domain)
@@ -1368,7 +1205,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	list_for_each_entry(domain, &tomoyo_domain_list, entry.list) {
 +		if (domain->is_deleted ||
  		    domain->domainname != saved_domainname)
- 			continue;
+-			continue;
 -		flag = false;
 -		/***** CRITICAL SECTION START *****/
 -		read_lock(&tasklist_lock);
@@ -1391,11 +1228,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		mb(); /* Avoid out-of-order execution. */
 -		domain->is_deleted = false;
 -		goto out;
-+		found = true;
-+		break;
- 	}
+-	}
 -	/* No memory reusable. Create using new memory. */
 -	if (tomoyo_memory_ok(new_domain)) {
++                        continue;
++		found = true;
++		break;
++        }
 +	if (!found && tomoyo_memory_ok(new_domain)) {
  		domain = new_domain;
  		new_domain = NULL;
@@ -1409,12 +1248,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
 - out:
  	up_write(&tomoyo_domain_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
+-	kfree(new_domain);
+-	return domain;
 + out:
 +	tomoyo_put_name(saved_domainname);
- 	kfree(new_domain);
--	return domain;
++        kfree(new_domain);
 +	/***** READER SECTION START *****/
 +	down_read(&tomoyo_domain_list_lock);
 +	return found ? domain : NULL;
@@ -1435,55 +1274,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -722,8 +755,9 @@ int tomoyo_find_next_domain(struct linux
- 	if (tomoyo_pathcmp(&r, &s)) {
- 		struct tomoyo_alias_entry *ptr;
+@@ -731,7 +760,7 @@ int tomoyo_find_next_domain(struct linux
  		/* Is this program allowed to be called via symbolic links? */
-+		/***** READER SECTION START *****/
+ 		/***** READER SECTION START *****/
  		down_read(&tomoyo_alias_list_lock);
 -		list_for_each_entry(ptr, &tomoyo_alias_list, list) {
 +		list_for_each_entry(ptr, &tomoyo_alias_list, entry.list) {
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -735,6 +769,7 @@ int tomoyo_find_next_domain(struct linux
- 			break;
- 		}
- 		up_read(&tomoyo_alias_list_lock);
-+		/***** READER SECTION END *****/
- 	}
- 
- 	/* Check execute permission. */
-@@ -763,31 +798,33 @@ int tomoyo_find_next_domain(struct linux
+@@ -772,33 +801,33 @@ int tomoyo_find_next_domain(struct linux
  		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
  			 "%s %s", old_domain_name, real_program_name);
  	}
-+	/***** READER SECTION START *****/
-+	down_read(&tomoyo_domain_list_lock);
- 	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
- 		goto done;
--	down_read(&tomoyo_domain_list_lock);
+-	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
+-		goto done;
+ 	/***** READER SECTION START *****/
+ 	down_read(&tomoyo_domain_list_lock);
++	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
++		goto done;
  	domain = tomoyo_find_domain(new_domain_name);
--	up_read(&tomoyo_domain_list_lock);
--	if (domain)
--		goto done;
--	if (is_enforce)
--		goto done;
--	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
--						  old_domain->profile);
 +	if (!domain && !is_enforce)
 +		domain = tomoyo_find_or_assign_new_domain(new_domain_name,
 +							  old_domain->profile);
-  done:
--	if (domain)
--		goto out;
--	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
--	       new_domain_name);
--	if (is_enforce)
--		retval = -EPERM;
--	else
--		tomoyo_set_domain_flag(old_domain, false,
--				       TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED);
++ done:
 +	if (!domain) {
 +		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
 +		       new_domain_name);
@@ -1497,8 +1311,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	BUG_ON(bprm->cred->security);
 +	atomic_inc(&domain->entry.users);
 +	bprm->cred->security = domain;
-+	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
+ 	up_read(&tomoyo_domain_list_lock);
+ 	/***** READER SECTION END *****/
+-	if (domain)
+-		goto done;
+-	if (is_enforce)
+-		goto done;
+-	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
+-						  old_domain->profile);
+- done:
+-	if (domain)
+-		goto out;
+-	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
+-	       new_domain_name);
+-	if (is_enforce)
+-		retval = -EPERM;
+-	else
+-		tomoyo_set_domain_flag(old_domain, false,
+-				       TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED);
   out:
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
@@ -1543,8 +1373,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_globally_readable_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_globally_readable_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_globally_readable_list, entry.list) {
@@ -1563,8 +1392,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_globally_readable_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_filename);
  	kfree(new_entry);
  	return error;
@@ -1600,30 +1428,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_globally_readable_file - Check if the file is unconditionnaly permitted to be open()ed for reading.
   *
   * @filename: The filename to check.
-@@ -201,8 +230,9 @@ static bool tomoyo_is_globally_readable_
- {
- 	struct tomoyo_globally_readable_file_entry *ptr;
+@@ -203,7 +232,7 @@ static bool tomoyo_is_globally_readable_
  	bool found = false;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_globally_readable_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_globally_readable_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_globally_readable_list, entry.list) {
  		if (!ptr->is_deleted &&
  		    tomoyo_path_matches_pattern(filename, ptr->filename)) {
  			found = true;
-@@ -210,6 +240,7 @@ static bool tomoyo_is_globally_readable_
- 		}
- 	}
- 	up_read(&tomoyo_globally_readable_list_lock);
-+	/***** READER SECTION END *****/
- 	return found;
- }
+@@ -242,12 +271,13 @@ bool tomoyo_read_globally_readable_polic
  
-@@ -238,22 +269,25 @@ bool tomoyo_read_globally_readable_polic
- 	struct list_head *pos;
- 	bool done = true;
- 
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_globally_readable_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2,
@@ -1635,22 +1451,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 entry.list);
  		if (ptr->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_READ "%s\n",
--				      ptr->filename->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_READ "%s\n",
-+					ptr->filename->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_READ "%s\n",
+@@ -255,6 +285,7 @@ bool tomoyo_read_globally_readable_polic
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_globally_readable_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
- 
-@@ -279,14 +313,14 @@ static int tomoyo_update_file_pattern_en
+@@ -282,14 +313,14 @@ static int tomoyo_update_file_pattern_en
  
  	if (!tomoyo_is_correct_path(pattern, 0, 1, 0, __func__))
  		return -EINVAL;
@@ -1660,15 +1470,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_pattern_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_pattern_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_pattern_list, entry.list) {
  		if (saved_pattern != ptr->pattern)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -295,22 +329,52 @@ static int tomoyo_update_file_pattern_en
+@@ -298,49 +329,90 @@ static int tomoyo_update_file_pattern_en
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->pattern = saved_pattern;
@@ -1679,8 +1488,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_pattern_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_pattern);
  	kfree(new_entry);
  	return error;
@@ -1714,63 +1522,65 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
   * tomoyo_get_file_pattern - Get patterned pathname.
   *
-- * @filename: The filename to find patterned pathname.
-+ *  @filename: The filename to find patterned pathname.
+  * @filename: The filename to find patterned pathname.
   *
 - * Returns pointer to pathname pattern if matched, @filename otherwise.
-+ * Returns pointer to pathname pattern if matched, NULL otherwise.
++ * Returns pointer to "struct tomoyo_pattern_entry" if matched, NULL otherwise.
 + *
 + * Caller must call tomoyo_put_file_pattern() if this function didn't return
 + * NULL.
   */
- static const struct tomoyo_path_info *
+-static const struct tomoyo_path_info *
++static struct tomoyo_pattern_entry *
  tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
-@@ -318,8 +382,9 @@ tomoyo_get_file_pattern(const struct tom
+ {
  	struct tomoyo_pattern_entry *ptr;
- 	const struct tomoyo_path_info *pattern = NULL;
+-	const struct tomoyo_path_info *pattern = NULL;
++	struct tomoyo_pattern_entry *pattern = NULL;
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_pattern_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_pattern_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_pattern_list, entry.list) {
  		if (ptr->is_deleted)
  			continue;
  		if (!tomoyo_path_matches_pattern(filename, ptr->pattern))
-@@ -332,12 +397,26 @@ tomoyo_get_file_pattern(const struct tom
+ 			continue;
+-		pattern = ptr->pattern;
+-		if (tomoyo_strendswith(pattern->name, "/\\*")) {
++		pattern = ptr;
++		if (tomoyo_strendswith(ptr->pattern->name, "/\\*")) {
+ 			/* Do nothing. Try to find the better match. */
+ 		} else {
+ 			/* This would be the better match. Use this. */
  			break;
  		}
  	}
--	up_read(&tomoyo_pattern_list_lock);
- 	if (pattern)
--		filename = pattern;
--	return filename;
-+		atomic_inc(&ptr->entry.users);
++	if (pattern)
++		atomic_inc(&pattern->entry.users);
 +	up_read(&tomoyo_pattern_list_lock);
 +	/***** READER SECTION END *****/
 +	return pattern;
 +}
 +
-+static void tomoyo_put_file_pattern(const struct tomoyo_path_info *name)
++static void tomoyo_put_file_pattern(struct tomoyo_pattern_entry *name)
 +{
 +	if (!name)
 +		return;
 +	/***** READER SECTION START *****/
 +	down_read(&tomoyo_pattern_list_lock);
-+	atomic_dec(&container_of(&name, struct tomoyo_pattern_entry,
-+				 pattern)->entry.users);
-+	up_read(&tomoyo_pattern_list_lock);
-+	/***** READER SECTION END *****/
++	atomic_dec(&name->entry.users);
+ 	up_read(&tomoyo_pattern_list_lock);
+ 	/***** READER SECTION END *****/
+-	if (pattern)
+-		filename = pattern;
+-	return filename;
  }
  
-+
  /**
-  * tomoyo_write_pattern_policy - Write "struct tomoyo_pattern_entry" list.
-  *
-@@ -363,19 +442,22 @@ bool tomoyo_read_file_pattern(struct tom
- 	struct list_head *pos;
- 	bool done = true;
+@@ -370,9 +442,10 @@ bool tomoyo_read_file_pattern(struct tom
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_pattern_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2, &tomoyo_pattern_list) {
@@ -1779,22 +1589,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		ptr = list_entry(pos, struct tomoyo_pattern_entry, entry.list);
  		if (ptr->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_FILE_PATTERN "%s\n",
--				      ptr->pattern->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_FILE_PATTERN
-+					"%s\n", ptr->pattern->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_FILE_PATTERN
+@@ -380,6 +453,7 @@ bool tomoyo_read_file_pattern(struct tom
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_pattern_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
- 
-@@ -401,14 +483,14 @@ static int tomoyo_update_no_rewrite_entr
+@@ -407,14 +481,14 @@ static int tomoyo_update_no_rewrite_entr
  
  	if (!tomoyo_is_correct_path(pattern, 0, 0, 0, __func__))
  		return -EINVAL;
@@ -1804,15 +1608,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_no_rewrite_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, entry.list) {
  		if (ptr->pattern != saved_pattern)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -417,17 +499,45 @@ static int tomoyo_update_no_rewrite_entr
+@@ -423,17 +497,45 @@ static int tomoyo_update_no_rewrite_entr
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->pattern = saved_pattern;
@@ -1823,8 +1626,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	}
  	up_write(&tomoyo_no_rewrite_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_pattern);
  	kfree(new_entry);
  	return error;
@@ -1860,30 +1662,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
   *
   * @filename: Filename to check.
-@@ -440,8 +550,9 @@ static bool tomoyo_is_no_rewrite_file(co
- 	struct tomoyo_no_rewrite_entry *ptr;
- 	bool found = false;
+@@ -448,7 +550,7 @@ static bool tomoyo_is_no_rewrite_file(co
  
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_no_rewrite_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, list) {
 +	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, entry.list) {
  		if (ptr->is_deleted)
  			continue;
  		if (!tomoyo_path_matches_pattern(filename, ptr->pattern))
-@@ -450,6 +561,7 @@ static bool tomoyo_is_no_rewrite_file(co
- 		break;
- 	}
- 	up_read(&tomoyo_no_rewrite_list_lock);
-+	/***** READER SECTION END *****/
- 	return found;
- }
+@@ -488,9 +590,11 @@ bool tomoyo_read_no_rewrite_policy(struc
  
-@@ -478,19 +590,23 @@ bool tomoyo_read_no_rewrite_policy(struc
- 	struct list_head *pos;
- 	bool done = true;
- 
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_no_rewrite_list_lock);
 +	tomoyo_put_ref(head->read_var2);
  	list_for_each_cookie(pos, head->read_var2, &tomoyo_no_rewrite_list) {
@@ -1893,41 +1683,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				 entry.list);
  		if (ptr->is_deleted)
  			continue;
--		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_DENY_REWRITE "%s\n",
--				      ptr->pattern->name)) {
--			done = false;
-+		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_DENY_REWRITE
-+					"%s\n", ptr->pattern->name);
-+		if (!done)
+ 		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_DENY_REWRITE
+@@ -498,6 +602,7 @@ bool tomoyo_read_no_rewrite_policy(struc
+ 		if (!done)
  			break;
--		}
  	}
 +	tomoyo_get_ref(head->read_var2);
  	up_read(&tomoyo_no_rewrite_list_lock);
-+	/***** READER SECTION END *****/
+ 	/***** READER SECTION END *****/
  	return done;
- }
+@@ -567,7 +672,7 @@ static int tomoyo_check_single_path_acl2
  
-@@ -556,8 +672,9 @@ static int tomoyo_check_single_path_acl2
- 	struct tomoyo_acl_info *ptr;
- 	int error = -EPERM;
- 
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_acl_info_list_lock);
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	list_for_each_entry(ptr, &domain->acl_info_list, entry.list) {
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -576,6 +693,7 @@ static int tomoyo_check_single_path_acl2
- 		break;
- 	}
- 	up_read(&tomoyo_domain_acl_info_list_lock);
-+	/***** READER SECTION END *****/
- 	return error;
- }
- 
-@@ -633,8 +751,7 @@ static int tomoyo_check_file_perm2(struc
+@@ -644,8 +749,7 @@ static int tomoyo_check_file_perm2(struc
  	if (!filename)
  		return 0;
  	error = tomoyo_check_file_acl(domain, filename, perm);
@@ -1937,27 +1711,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    && tomoyo_is_globally_readable_file(filename))
  		error = 0;
  	if (perm == 6)
-@@ -656,11 +773,15 @@ static int tomoyo_check_file_perm2(struc
+@@ -667,11 +771,13 @@ static int tomoyo_check_file_perm2(struc
  	if (is_enforce)
  		return error;
  	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
-+		const struct tomoyo_path_info *pattern;
++		struct tomoyo_pattern_entry *p = NULL;
  		/* Don't use patterns for execute permission. */
 -		const struct tomoyo_path_info *patterned_file = (perm != 1) ?
 -			tomoyo_get_file_pattern(filename) : filename;
 -		tomoyo_update_file_acl(patterned_file->name, perm,
 -				       domain, false);
 +		if (perm != 1)
-+			pattern = tomoyo_get_file_pattern(filename);
-+		else
-+			pattern = NULL;
-+		tomoyo_update_file_acl(pattern ? pattern->name : filename->name,
++			p = tomoyo_get_file_pattern(filename);
++		tomoyo_update_file_acl(p ? p->pattern->name : filename->name,
 +				       perm, domain, false);
-+		tomoyo_put_file_pattern(pattern);
++		tomoyo_put_file_pattern(p);
  	}
  	return 0;
  }
-@@ -737,16 +858,16 @@ static int tomoyo_update_single_path_acl
+@@ -748,7 +854,7 @@ static int tomoyo_update_single_path_acl
  		return -EINVAL;
  	if (!tomoyo_is_correct_path(filename, 0, 0, 0, __func__))
  		return -EINVAL;
@@ -1966,9 +1738,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_filename)
  		return -ENOMEM;
  	if (!is_delete)
- 		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+@@ -757,7 +863,7 @@ static int tomoyo_update_single_path_acl
  	down_write(&tomoyo_domain_acl_info_list_lock);
  	if (is_delete)
  		goto delete;
@@ -1977,7 +1747,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -773,13 +894,15 @@ static int tomoyo_update_single_path_acl
+@@ -784,13 +890,15 @@ static int tomoyo_update_single_path_acl
  		if (perm == (1 << TOMOYO_TYPE_READ_WRITE_ACL))
  			new_entry->perm |= rw_mask;
  		new_entry->filename = saved_filename;
@@ -1995,17 +1765,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -799,7 +922,8 @@ static int tomoyo_update_single_path_acl
- 	}
+@@ -811,6 +919,7 @@ static int tomoyo_update_single_path_acl
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_filename);
  	kfree(new_entry);
  	return error;
  }
-@@ -832,17 +956,20 @@ static int tomoyo_update_double_path_acl
+@@ -843,17 +952,20 @@ static int tomoyo_update_double_path_acl
  	if (!tomoyo_is_correct_path(filename1, 0, 0, 0, __func__) ||
  	    !tomoyo_is_correct_path(filename2, 0, 0, 0, __func__))
  		return -EINVAL;
@@ -2021,8 +1789,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
--	/***** EXCLUSIVE SECTION START *****/
-+	/***** WRITER SECTION START *****/
+ 	/***** WRITER SECTION START *****/
  	down_write(&tomoyo_domain_acl_info_list_lock);
  	if (is_delete)
  		goto delete;
@@ -2031,7 +1798,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -864,14 +991,17 @@ static int tomoyo_update_double_path_acl
+@@ -875,14 +987,17 @@ static int tomoyo_update_double_path_acl
  		new_entry->head.type = TOMOYO_TYPE_DOUBLE_PATH_ACL;
  		new_entry->perm = perm;
  		new_entry->filename1 = saved_filename1;
@@ -2051,70 +1818,58 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -888,7 +1018,9 @@ static int tomoyo_update_double_path_acl
- 	}
+@@ -900,6 +1015,8 @@ static int tomoyo_update_double_path_acl
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
--	/***** EXCLUSIVE SECTION END *****/
-+	/***** WRITER SECTION END *****/
+ 	/***** WRITER SECTION END *****/
 +	tomoyo_put_name(saved_filename1);
 +	tomoyo_put_name(saved_filename2);
  	kfree(new_entry);
  	return error;
  }
-@@ -934,8 +1066,9 @@ static int tomoyo_check_double_path_acl(
- 
- 	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
+@@ -947,7 +1064,7 @@ static int tomoyo_check_double_path_acl(
  		return 0;
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_acl_info_list_lock);
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
 +	list_for_each_entry(ptr, &domain->acl_info_list, entry.list) {
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -951,6 +1084,7 @@ static int tomoyo_check_double_path_acl(
- 		break;
- 	}
- 	up_read(&tomoyo_domain_acl_info_list_lock);
-+	/***** READER SECTION END *****/
- 	return error;
- }
- 
-@@ -985,8 +1119,12 @@ static int tomoyo_check_single_path_perm
+@@ -998,8 +1115,12 @@ static int tomoyo_check_single_path_perm
  		       tomoyo_get_msg(is_enforce), msg, filename->name,
  		       tomoyo_get_last_name(domain));
  	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
 -		const char *name = tomoyo_get_file_pattern(filename)->name;
 -		tomoyo_update_single_path_acl(operation, name, domain, false);
-+		const struct tomoyo_path_info *pattern
++		struct tomoyo_pattern_entry *p
 +			= tomoyo_get_file_pattern(filename);
 +		tomoyo_update_single_path_acl(operation,
-+					      pattern ? pattern->name :
++					      p ? p->pattern->name :
 +					      filename->name, domain, false);
-+		tomoyo_put_file_pattern(pattern);
++		tomoyo_put_file_pattern(p);
  	}
  	if (!is_enforce)
  		error = 0;
-@@ -1232,10 +1370,18 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1245,10 +1366,18 @@ int tomoyo_check_2path_perm(struct tomoy
  		       msg, buf1->name, buf2->name,
  		       tomoyo_get_last_name(domain));
  	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
 -		const char *name1 = tomoyo_get_file_pattern(buf1)->name;
 -		const char *name2 = tomoyo_get_file_pattern(buf2)->name;
 -		tomoyo_update_double_path_acl(operation, name1, name2, domain,
-+		const struct tomoyo_path_info *pattern1
++		struct tomoyo_pattern_entry *p1
 +			= tomoyo_get_file_pattern(buf1);
-+		const struct tomoyo_path_info *pattern2
++		struct tomoyo_pattern_entry *p2
 +			= tomoyo_get_file_pattern(buf2);
 +		tomoyo_update_double_path_acl(operation,
-+					      pattern1 ? pattern1->name :
++					      p1 ? p1->pattern->name :
 +					      buf1->name,
-+					      pattern2 ? pattern2->name :
++					      p2 ? p2->pattern->name :
 +					      buf2->name, domain,
  					      false);
-+		tomoyo_put_file_pattern(pattern1);
-+		tomoyo_put_file_pattern(pattern2);
++		tomoyo_put_file_pattern(p1);
++		tomoyo_put_file_pattern(p2);
  	}
   out:
  	tomoyo_free(buf1);
@@ -2234,7 +1989,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_realpath_init - Initialize realpath related code.
   */
  void __init tomoyo_realpath_init(void)
-@@ -324,12 +359,14 @@ void __init tomoyo_realpath_init(void)
+@@ -324,8 +359,8 @@ void __init tomoyo_realpath_init(void)
  	for (i = 0; i < TOMOYO_MAX_HASH; i++)
  		INIT_LIST_HEAD(&tomoyo_name_list[i]);
  	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
@@ -2242,15 +1997,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	list_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
 +	tomoyo_kernel_domain.domainname = tomoyo_get_name(TOMOYO_ROOT_NAME);
 +	list_add_tail(&tomoyo_kernel_domain.entry.list, &tomoyo_domain_list);
-+	/***** READER SECTION START *****/
+ 	/***** READER SECTION START *****/
  	down_read(&tomoyo_domain_list_lock);
  	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
- 		panic("Can't register tomoyo_kernel_domain");
- 	up_read(&tomoyo_domain_list_lock);
-+	/***** READER SECTION END *****/
- }
- 
- /* Memory allocated for temporary purpose. */
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.h
 +++ security-testing-2.6.git/security/tomoyo/realpath.h
 @@ -43,7 +43,8 @@ bool tomoyo_memory_ok(void *ptr);
