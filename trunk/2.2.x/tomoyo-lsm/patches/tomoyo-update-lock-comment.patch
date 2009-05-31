@@ -386,9 +386,9 @@ Signed-off-by: Tetsuo Handa <pemguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
-@@ -597,7 +607,7 @@ struct tomoyo_domain_info *tomoyo_find_o
- 	const struct tomoyo_path_info *saved_domainname;
- 
+@@ -602,7 +612,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 	if (!saved_domainname)
+ 		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
 -	/***** EXCLUSIVE SECTION START *****/
 +	/***** WRITER SECTION START *****/

@@ -8,11 +8,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |   80 ++++++---------------
  security/tomoyo/common.h   |    2 
- security/tomoyo/domain.c   |   97 ++++++++++++-------------
+ security/tomoyo/domain.c   |  107 ++++++++++++++--------------
  security/tomoyo/file.c     |  133 ++++++++++++++++++-----------------
  security/tomoyo/realpath.c |  169 ++++++++++++++-------------------------------
  security/tomoyo/realpath.h |    7 -
- 6 files changed, 200 insertions(+), 288 deletions(-)
+ 6 files changed, 205 insertions(+), 293 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -330,7 +330,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -597,9 +592,11 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -597,19 +592,21 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    domainname,
  							    const u8 profile)
  {
@@ -339,10 +339,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_domain_info *domain;
  	const struct tomoyo_path_info *saved_domainname;
  
++	if (!tomoyo_is_correct_domain(domainname, __func__))
++		return NULL;
++	saved_domainname = tomoyo_save_name(domainname);
++	if (!saved_domainname)
++		return NULL;
 +	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
  	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_list_lock);
  	domain = tomoyo_find_domain(domainname);
+ 	if (domain)
+ 		goto out;
+-	if (!tomoyo_is_correct_domain(domainname, __func__))
+-		goto out;
+-	saved_domainname = tomoyo_save_name(domainname);
+-	if (!saved_domainname)
+-		goto out;
+ 	/* Can I reuse memory of deleted domain? */
+ 	list_for_each_entry(domain, &tomoyo_domain_list, list) {
+ 		struct task_struct *p;
 @@ -642,8 +639,9 @@ struct tomoyo_domain_info *tomoyo_find_o
  		goto out;
  	}
