@@ -1,10 +1,12 @@
-Subject: TOMOYO: Move sleeping operations to outside the semaphore.
+Subject: Move sleeping operations to outside the semaphore.
 
 TOMOYO is using rw_semaphore for protecting list elements.
 But TOMOYO is doing operations which might sleep inside down_write().
 This patch makes TOMOYO's sleeping operations go outside down_write().
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c   |   80 ++++++---------------
  security/tomoyo/common.h   |    2 
