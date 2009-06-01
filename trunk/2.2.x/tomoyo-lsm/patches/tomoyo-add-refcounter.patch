@@ -1,4 +1,4 @@
-Subject: TOMOYO: Add refcounter and garbage collector.
+Subject: Add refcounter and garbage collector.
 
 A process who is reading/writing list elements has pointers which point to
 (possibly marked-as-deleted) list elements and releases a lock when the process
@@ -43,7 +43,9 @@ Memory Management Rules:
   The garbage collector function releases memory of the string if the string's
   refcounter becomes 0.
 
+Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
  security/tomoyo/common.c   |  313 +++++++++++++++++++++++++++++++++++----------
  security/tomoyo/common.h   |   58 +++++---
