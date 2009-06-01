@@ -1,6 +1,6 @@
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 2496)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(revision 2617)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h	(working copy)
 @@ -299,7 +299,9 @@
  	char *name;
@@ -32,7 +32,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstools.h
  	*disk_policy_dir,
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 2496)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(revision 2617)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c	(working copy)
 @@ -53,31 +53,30 @@
  static void read_domain_and_exception_policy(struct domain_policy *dp);
@@ -988,15 +988,6 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  	} else {
  		read_generic_policy();
  		adjust_cursor_pos(generic_acl_list_count);
-@@ -2032,7 +2451,7 @@
- 		if (c == '\t') {
- 			if (current_screen == SCREEN_DOMAIN_LIST) {
- 				if (ccs_major == 2 && ccs_minor == 2)
--					return SCREEN_EXCEPTION_LIST; 
-+					return SCREEN_EXCEPTION_LIST;
- 				return SCREEN_SYSTEM_LIST;
- 			} else if (current_screen == SCREEN_SYSTEM_LIST) {
- 				return SCREEN_EXCEPTION_LIST;
 @@ -2047,8 +2466,6 @@
  		if (c == ERR)
  			continue; /* Ignore invalid key. */
@@ -1112,7 +1103,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/editpolicy.c
  		case 'O':
 Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c	(revision 2496)
+--- trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c	(revision 2617)
 +++ trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c	(working copy)
 @@ -10,84 +10,6 @@
   */
@@ -1368,7 +1359,7 @@ Index: trunk/1.6.x/ccs-tools/ccstools/ccstools.src/ccstree.c
  }
 Index: trunk/1.6.x/ccs-tools/ccstools/Makefile
 ===================================================================
---- trunk/1.6.x/ccs-tools/ccstools/Makefile	(revision 2496)
+--- trunk/1.6.x/ccs-tools/ccstools/Makefile	(revision 2617)
 +++ trunk/1.6.x/ccs-tools/ccstools/Makefile	(working copy)
 @@ -31,7 +31,7 @@
  
