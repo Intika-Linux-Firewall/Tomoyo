@@ -121,7 +121,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -2042,35 +2045,6 @@ static int tomoyo_close_control(struct f
+@@ -2037,35 +2040,6 @@ static int tomoyo_close_control(struct f
  }
  
  /**
@@ -228,7 +228,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -288,11 +287,11 @@ static int tomoyo_update_domain_keeper_e
+@@ -287,11 +286,11 @@ static int tomoyo_update_domain_keeper_e
  					     const bool is_not,
  					     const bool is_delete)
  {
@@ -242,7 +242,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_last_name = false;
  
  	if (!tomoyo_is_domain_def(domainname) &&
-@@ -310,6 +309,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -309,6 +308,8 @@ static int tomoyo_update_domain_keeper_e
  	saved_domainname = tomoyo_save_name(domainname);
  	if (!saved_domainname)
  		return -ENOMEM;
@@ -251,7 +251,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	down_write(&tomoyo_domain_keeper_list_lock);
  	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
  		if (ptr->is_not != is_not ||
-@@ -318,23 +319,19 @@ static int tomoyo_update_domain_keeper_e
+@@ -317,23 +318,19 @@ static int tomoyo_update_domain_keeper_e
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -285,7 +285,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -456,11 +453,11 @@ static int tomoyo_update_alias_entry(con
+@@ -454,11 +451,11 @@ static int tomoyo_update_alias_entry(con
  				     const char *aliased_name,
  				     const bool is_delete)
  {
@@ -299,7 +299,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (!tomoyo_is_correct_path(original_name, 1, -1, -1, __func__) ||
  	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1, __func__))
-@@ -469,6 +466,8 @@ static int tomoyo_update_alias_entry(con
+@@ -467,6 +464,8 @@ static int tomoyo_update_alias_entry(con
  	saved_aliased_name = tomoyo_save_name(aliased_name);
  	if (!saved_original_name || !saved_aliased_name)
  		return -ENOMEM;
@@ -308,7 +308,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	down_write(&tomoyo_alias_list_lock);
  	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
  		if (ptr->original_name != saved_original_name ||
-@@ -476,21 +475,17 @@ static int tomoyo_update_alias_entry(con
+@@ -474,21 +473,17 @@ static int tomoyo_update_alias_entry(con
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -338,7 +338,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -586,9 +581,16 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -583,9 +578,16 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    domainname,
  							    const u8 profile)
  {
@@ -356,7 +356,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	down_write(&tomoyo_domain_list_lock);
  	domain = tomoyo_find_domain(domainname);
  	if (domain)
-@@ -628,8 +630,9 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -625,8 +627,9 @@ struct tomoyo_domain_info *tomoyo_find_o
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -368,7 +368,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
  		domain->profile = profile;
-@@ -637,6 +640,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -634,6 +637,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  	}
   out:
  	up_write(&tomoyo_domain_list_lock);
@@ -426,7 +426,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -272,36 +270,34 @@ static DECLARE_RWSEM(tomoyo_pattern_list
+@@ -271,36 +269,34 @@ static DECLARE_RWSEM(tomoyo_pattern_list
  static int tomoyo_update_file_pattern_entry(const char *pattern,
  					    const bool is_delete)
  {
@@ -474,7 +474,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -394,34 +390,32 @@ static DECLARE_RWSEM(tomoyo_no_rewrite_l
+@@ -392,34 +388,32 @@ static DECLARE_RWSEM(tomoyo_no_rewrite_l
  static int tomoyo_update_no_rewrite_entry(const char *pattern,
  					  const bool is_delete)
  {
@@ -520,7 +520,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	up_write(&tomoyo_no_rewrite_list_lock);
  	return error;
  }
-@@ -728,8 +722,8 @@ static int tomoyo_update_single_path_acl
+@@ -725,8 +719,8 @@ static int tomoyo_update_single_path_acl
  		(1 << TOMOYO_TYPE_READ_ACL) | (1 << TOMOYO_TYPE_WRITE_ACL);
  	const struct tomoyo_path_info *saved_filename;
  	struct tomoyo_acl_info *ptr;
@@ -531,7 +531,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const u16 perm = 1 << type;
  
  	if (!domain)
-@@ -739,10 +733,13 @@ static int tomoyo_update_single_path_acl
+@@ -736,10 +730,13 @@ static int tomoyo_update_single_path_acl
  	saved_filename = tomoyo_save_name(filename);
  	if (!saved_filename)
  		return -ENOMEM;
@@ -545,7 +545,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
-@@ -759,22 +756,23 @@ static int tomoyo_update_single_path_acl
+@@ -756,22 +753,23 @@ static int tomoyo_update_single_path_acl
  			acl->perm |= rw_mask;
  		ptr->type &= ~TOMOYO_ACL_DELETED;
  		error = 0;
@@ -580,7 +580,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
-@@ -793,6 +791,7 @@ static int tomoyo_update_single_path_acl
+@@ -790,6 +788,7 @@ static int tomoyo_update_single_path_acl
  	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
@@ -588,7 +588,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -815,8 +814,8 @@ static int tomoyo_update_double_path_acl
+@@ -812,8 +811,8 @@ static int tomoyo_update_double_path_acl
  	const struct tomoyo_path_info *saved_filename1;
  	const struct tomoyo_path_info *saved_filename2;
  	struct tomoyo_acl_info *ptr;
@@ -599,7 +599,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const u8 perm = 1 << type;
  
  	if (!domain)
-@@ -828,10 +827,13 @@ static int tomoyo_update_double_path_acl
+@@ -825,10 +824,13 @@ static int tomoyo_update_double_path_acl
  	saved_filename2 = tomoyo_save_name(filename2);
  	if (!saved_filename1 || !saved_filename2)
  		return -ENOMEM;
@@ -613,7 +613,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
-@@ -845,21 +847,22 @@ static int tomoyo_update_double_path_acl
+@@ -842,21 +844,22 @@ static int tomoyo_update_double_path_acl
  		acl->perm |= perm;
  		ptr->type &= ~TOMOYO_ACL_DELETED;
  		error = 0;
@@ -646,7 +646,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
-@@ -875,6 +878,7 @@ static int tomoyo_update_double_path_acl
+@@ -872,6 +875,7 @@ static int tomoyo_update_double_path_acl
  	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
