@@ -105,7 +105,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -315,7 +311,6 @@ static int tomoyo_update_domain_keeper_e
+@@ -314,7 +310,6 @@ static int tomoyo_update_domain_keeper_e
  	saved_domainname = tomoyo_save_name(domainname);
  	if (!saved_domainname)
  		return -ENOMEM;
@@ -113,7 +113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	down_write(&tomoyo_domain_keeper_list_lock);
  	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
  		if (ptr->is_not != is_not ||
-@@ -341,7 +336,6 @@ static int tomoyo_update_domain_keeper_e
+@@ -340,7 +335,6 @@ static int tomoyo_update_domain_keeper_e
  	error = 0;
   out:
  	up_write(&tomoyo_domain_keeper_list_lock);
@@ -121,7 +121,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -476,7 +470,6 @@ static int tomoyo_update_alias_entry(con
+@@ -475,7 +469,6 @@ static int tomoyo_update_alias_entry(con
  	saved_aliased_name = tomoyo_save_name(aliased_name);
  	if (!saved_original_name || !saved_aliased_name)
  		return -ENOMEM;
@@ -129,7 +129,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	down_write(&tomoyo_alias_list_lock);
  	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
  		if (ptr->original_name != saved_original_name ||
-@@ -499,7 +492,6 @@ static int tomoyo_update_alias_entry(con
+@@ -498,7 +491,6 @@ static int tomoyo_update_alias_entry(con
  	error = 0;
   out:
  	up_write(&tomoyo_alias_list_lock);
@@ -137,7 +137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -567,7 +559,6 @@ int tomoyo_delete_domain(char *domainnam
+@@ -566,7 +558,6 @@ int tomoyo_delete_domain(char *domainnam
  
  	name.name = domainname;
  	tomoyo_fill_path_info(&name);
@@ -145,7 +145,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	down_write(&tomoyo_domain_list_lock);
  	/* Is there an active domain? */
  	list_for_each_entry(domain, &tomoyo_domain_list, list) {
-@@ -581,7 +572,6 @@ int tomoyo_delete_domain(char *domainnam
+@@ -580,7 +571,6 @@ int tomoyo_delete_domain(char *domainnam
  		break;
  	}
  	up_write(&tomoyo_domain_list_lock);
@@ -153,7 +153,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
-@@ -600,7 +590,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -599,7 +589,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  	struct tomoyo_domain_info *domain = NULL;
  	const struct tomoyo_path_info *saved_domainname;
  
@@ -161,7 +161,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	down_write(&tomoyo_domain_list_lock);
  	domain = tomoyo_find_domain(domainname);
  	if (domain)
-@@ -619,7 +608,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -618,7 +607,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  		    domain->domainname != saved_domainname)
  			continue;
  		flag = false;
@@ -169,7 +169,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		read_lock(&tasklist_lock);
  		for_each_process(p) {
  			if (tomoyo_real_domain(p) != domain)
-@@ -628,7 +616,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -627,7 +615,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  			break;
  		}
  		read_unlock(&tasklist_lock);
@@ -177,7 +177,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (flag)
  			continue;
  		list_for_each_entry(ptr, &domain->acl_info_list, list) {
-@@ -651,7 +638,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -650,7 +637,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  	}
   out:
  	up_write(&tomoyo_domain_list_lock);

@@ -884,7 +884,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -320,7 +325,7 @@ static int tomoyo_update_domain_keeper_e
+@@ -319,7 +324,7 @@ static int tomoyo_update_domain_keeper_e
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_domain_keeper_list_lock);
@@ -893,7 +893,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -336,7 +341,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -335,7 +340,8 @@ static int tomoyo_update_domain_keeper_e
  		saved_program = NULL;
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
@@ -903,7 +903,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -348,6 +354,31 @@ static int tomoyo_update_domain_keeper_e
+@@ -347,6 +353,31 @@ static int tomoyo_update_domain_keeper_e
  }
  
  /**
@@ -935,7 +935,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_write_domain_keeper_policy - Write "struct tomoyo_domain_keeper_entry" list.
   *
   * @data:      String to parse.
-@@ -381,6 +412,7 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -380,6 +411,7 @@ bool tomoyo_read_domain_keeper_policy(st
  	bool done = true;
  
  	down_read(&tomoyo_domain_keeper_list_lock);
@@ -943,7 +943,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	list_for_each_cookie(pos, head->read_var2,
  			     &tomoyo_domain_keeper_list) {
  		struct tomoyo_domain_keeper_entry *ptr;
-@@ -388,7 +420,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -387,7 +419,8 @@ bool tomoyo_read_domain_keeper_policy(st
  		const char *from = "";
  		const char *program = "";
  
@@ -953,7 +953,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -403,6 +436,7 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -402,6 +435,7 @@ bool tomoyo_read_domain_keeper_policy(st
  		if (!done)
  			break;
  	}
@@ -961,7 +961,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	up_read(&tomoyo_domain_keeper_list_lock);
  	return done;
  }
-@@ -425,7 +459,7 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -424,7 +458,7 @@ static bool tomoyo_is_domain_keeper(cons
  	bool flag = false;
  
  	down_read(&tomoyo_domain_keeper_list_lock);
@@ -970,7 +970,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -483,7 +517,7 @@ static int tomoyo_update_alias_entry(con
+@@ -482,7 +516,7 @@ static int tomoyo_update_alias_entry(con
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_alias_list_lock);
@@ -979,7 +979,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aliased_name != saved_aliased_name)
  			continue;
-@@ -496,7 +530,7 @@ static int tomoyo_update_alias_entry(con
+@@ -495,7 +529,7 @@ static int tomoyo_update_alias_entry(con
  		saved_original_name = NULL;
  		new_entry->aliased_name = saved_aliased_name;
  		saved_aliased_name = NULL;
@@ -988,7 +988,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -508,6 +542,30 @@ static int tomoyo_update_alias_entry(con
+@@ -507,6 +541,30 @@ static int tomoyo_update_alias_entry(con
  }
  
  /**
@@ -1019,7 +1019,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * tomoyo_read_alias_policy - Read "struct tomoyo_alias_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -520,10 +578,11 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -519,10 +577,11 @@ bool tomoyo_read_alias_policy(struct tom
  	bool done = true;
  
  	down_read(&tomoyo_alias_list_lock);
@@ -1032,7 +1032,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (ptr->is_deleted)
  			continue;
  		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALIAS "%s %s\n",
-@@ -532,6 +591,7 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -531,6 +590,7 @@ bool tomoyo_read_alias_policy(struct tom
  		if (!done)
  			break;
  	}
@@ -1040,7 +1040,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	up_read(&tomoyo_alias_list_lock);
  	return done;
  }
-@@ -554,38 +614,6 @@ int tomoyo_write_alias_policy(char *data
+@@ -553,38 +613,6 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }
  
@@ -1079,7 +1079,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /**
   * tomoyo_find_or_assign_new_domain - Create a domain.
   *
-@@ -599,80 +627,52 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -598,80 +626,52 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    const u8 profile)
  {
  	struct tomoyo_domain_info *new_domain = NULL;
@@ -1178,7 +1178,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -732,7 +732,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -731,7 +731,7 @@ int tomoyo_find_next_domain(struct linux
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
  		down_read(&tomoyo_alias_list_lock);
@@ -1187,7 +1187,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -772,31 +772,31 @@ int tomoyo_find_next_domain(struct linux
+@@ -771,31 +771,31 @@ int tomoyo_find_next_domain(struct linux
  		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
  			 "%s %s", old_domain_name, real_program_name);
  	}
