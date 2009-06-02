@@ -116,7 +116,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  	up_read(&tomoyo_domain_initializer_list_lock);
  	return done;
-@@ -385,13 +384,12 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -384,13 +383,12 @@ bool tomoyo_read_domain_keeper_policy(st
  			from = " from ";
  			program = ptr->program->name;
  		}
@@ -135,7 +135,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	}
  	up_read(&tomoyo_domain_keeper_list_lock);
  	return done;
-@@ -509,12 +507,11 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -508,12 +506,11 @@ bool tomoyo_read_alias_policy(struct tom
  		ptr = list_entry(pos, struct tomoyo_alias_entry, list);
  		if (ptr->is_deleted)
  			continue;
