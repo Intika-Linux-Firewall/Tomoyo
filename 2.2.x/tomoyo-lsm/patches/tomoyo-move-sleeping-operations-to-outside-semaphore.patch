@@ -8,20 +8,29 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 ---
- security/tomoyo/common.c   |   80 ++++++---------------
+ security/tomoyo/common.c   |   88 +++++++--------------
  security/tomoyo/common.h   |    2 
- security/tomoyo/domain.c   |  107 ++++++++++++++--------------
- security/tomoyo/file.c     |  133 ++++++++++++++++++-----------------
- security/tomoyo/realpath.c |  169 ++++++++++++++-------------------------------
+ security/tomoyo/domain.c   |  102 ++++++++++++------------
+ security/tomoyo/file.c     |  132 ++++++++++++++++----------------
+ security/tomoyo/realpath.c |  184 +++++++++++++++------------------------------
  security/tomoyo/realpath.h |    7 -
- 6 files changed, 205 insertions(+), 293 deletions(-)
+ 6 files changed, 216 insertions(+), 299 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
-@@ -861,26 +861,27 @@ static struct tomoyo_profile *tomoyo_fin
+@@ -44,6 +44,7 @@ static struct tomoyo_profile {
+ 	unsigned int value[TOMOYO_MAX_CONTROL_INDEX];
+ 	const struct tomoyo_path_info *comment;
+ } *tomoyo_profile_ptr[TOMOYO_MAX_PROFILES];
++static DEFINE_SPINLOCK(tomoyo_profile_ptr_lock);
+ 
+ /* Permit policy management by non-root user? */
+ static bool tomoyo_manage_by_non_root;
+@@ -860,25 +861,29 @@ bool tomoyo_domain_quota_is_ok(struct to
+ static struct tomoyo_profile *tomoyo_find_or_assign_new_profile(const unsigned
  								int profile)
  {
- 	static DEFINE_MUTEX(lock);
+-	static DEFINE_MUTEX(lock);
 -	struct tomoyo_profile *ptr = NULL;
 -	int i;
 +	struct tomoyo_profile *new_ptr = NULL;
@@ -29,11 +38,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (profile >= TOMOYO_MAX_PROFILES)
  		return NULL;
-+	new_ptr = kmalloc(sizeof(*new_ptr), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
- 	mutex_lock(&lock);
+-	mutex_lock(&lock);
++	spin_lock(&tomoyo_profile_ptr_lock);
  	ptr = tomoyo_profile_ptr[profile];
--	if (ptr)
++	spin_unlock(&tomoyo_profile_ptr_lock);
+ 	if (ptr)
 -		goto ok;
 -	ptr = tomoyo_alloc_element(sizeof(*ptr));
 -	if (!ptr)
@@ -43,7 +52,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	mb(); /* Avoid out-of-order execution. */
 -	tomoyo_profile_ptr[profile] = ptr;
 - ok:
-+	if (!ptr && tomoyo_memory_ok(new_ptr)) {
+-	mutex_unlock(&lock);
++		return ptr;
++	new_ptr = kmalloc(sizeof(*new_ptr), GFP_KERNEL);
++	spin_lock(&tomoyo_profile_ptr_lock);
++	if (tomoyo_memory_ok(new_ptr)) {
 +		int i;
 +		ptr = new_ptr;
 +		new_ptr = NULL;
@@ -52,13 +65,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +		mb(); /* Avoid out-of-order execution. */
 +		tomoyo_profile_ptr[profile] = ptr;
 +	}
- 	mutex_unlock(&lock);
- 	/***** EXCLUSIVE SECTION END *****/
++	spin_unlock(&tomoyo_profile_ptr_lock);
 +	kfree(new_ptr);
  	return ptr;
  }
  
-@@ -1033,10 +1034,10 @@ static DECLARE_RWSEM(tomoyo_policy_manag
+@@ -1031,10 +1036,10 @@ static DECLARE_RWSEM(tomoyo_policy_manag
  static int tomoyo_update_manager_entry(const char *manager,
  				       const bool is_delete)
  {
@@ -71,16 +83,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_domain = false;
  
  	if (tomoyo_is_domain_def(manager)) {
-@@ -1050,6 +1051,8 @@ static int tomoyo_update_manager_entry(c
+@@ -1048,27 +1053,25 @@ static int tomoyo_update_manager_entry(c
  	saved_manager = tomoyo_save_name(manager);
  	if (!saved_manager)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_policy_manager_list_lock);
  	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
-@@ -1057,22 +1060,18 @@ static int tomoyo_update_manager_entry(c
+ 		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -106,12 +117,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_policy_manager_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -2050,35 +2049,6 @@ static int tomoyo_close_control(struct f
+@@ -2042,35 +2045,6 @@ static int tomoyo_close_control(struct f
  }
  
  /**
@@ -160,7 +170,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Run policy loader when /sbin/init starts. */
 --- security-testing-2.6.git.orig/security/tomoyo/domain.c
 +++ security-testing-2.6.git/security/tomoyo/domain.c
-@@ -113,11 +113,11 @@ static int tomoyo_update_domain_initiali
+@@ -111,11 +111,11 @@ static int tomoyo_update_domain_initiali
  						  const bool is_not,
  						  const bool is_delete)
  {
@@ -174,16 +184,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_last_name = false;
  
  	if (!tomoyo_is_correct_path(program, 1, -1, -1, __func__))
-@@ -135,6 +135,8 @@ static int tomoyo_update_domain_initiali
+@@ -133,6 +133,8 @@ static int tomoyo_update_domain_initiali
  	saved_program = tomoyo_save_name(program);
  	if (!saved_program)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_initializer_list_lock);
  	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
-@@ -144,24 +146,21 @@ static int tomoyo_update_domain_initiali
+ 		if (ptr->is_not != is_not ||
+@@ -141,23 +143,20 @@ static int tomoyo_update_domain_initiali
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -214,12 +224,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_domain_initializer_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -292,12 +291,12 @@ static int tomoyo_update_domain_keeper_e
+@@ -288,12 +287,12 @@ static int tomoyo_update_domain_keeper_e
  					     const bool is_not,
  					     const bool is_delete)
  {
@@ -234,16 +243,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_last_name = false;
  
  	if (!tomoyo_is_domain_def(domainname) &&
-@@ -315,6 +314,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -311,6 +310,8 @@ static int tomoyo_update_domain_keeper_e
  	saved_domainname = tomoyo_save_name(domainname);
  	if (!saved_domainname)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_keeper_list_lock);
  	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
-@@ -324,24 +325,20 @@ static int tomoyo_update_domain_keeper_e
+ 		if (ptr->is_not != is_not ||
+@@ -319,23 +320,19 @@ static int tomoyo_update_domain_keeper_e
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -273,12 +282,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_domain_keeper_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -463,11 +460,11 @@ static int tomoyo_update_alias_entry(con
+@@ -457,11 +454,11 @@ static int tomoyo_update_alias_entry(con
  				     const char *aliased_name,
  				     const bool is_delete)
  {
@@ -292,16 +300,16 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  	if (!tomoyo_is_correct_path(original_name, 1, -1, -1, __func__) ||
  	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1, __func__))
-@@ -476,6 +473,8 @@ static int tomoyo_update_alias_entry(con
+@@ -470,6 +467,8 @@ static int tomoyo_update_alias_entry(con
  	saved_aliased_name = tomoyo_save_name(aliased_name);
  	if (!saved_original_name || !saved_aliased_name)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_alias_list_lock);
  	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
-@@ -484,22 +483,18 @@ static int tomoyo_update_alias_entry(con
+ 		if (ptr->original_name != saved_original_name ||
+@@ -477,21 +476,17 @@ static int tomoyo_update_alias_entry(con
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -327,12 +335,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_alias_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -597,19 +592,21 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -587,9 +582,16 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    domainname,
  							    const u8 profile)
  {
@@ -347,20 +354,10 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +	if (!saved_domainname)
 +		return NULL;
 +	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_list_lock);
  	domain = tomoyo_find_domain(domainname);
  	if (domain)
- 		goto out;
--	if (!tomoyo_is_correct_domain(domainname, __func__))
--		goto out;
--	saved_domainname = tomoyo_save_name(domainname);
--	if (!saved_domainname)
--		goto out;
- 	/* Can I reuse memory of deleted domain? */
- 	list_for_each_entry(domain, &tomoyo_domain_list, list) {
- 		struct task_struct *p;
-@@ -642,8 +639,9 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -629,8 +631,9 @@ struct tomoyo_domain_info *tomoyo_find_o
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -372,17 +369,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
  		domain->profile = profile;
-@@ -652,6 +650,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -638,6 +641,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 	}
   out:
  	up_write(&tomoyo_domain_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_domain);
  	return domain;
  }
  
 --- security-testing-2.6.git.orig/security/tomoyo/file.c
 +++ security-testing-2.6.git/security/tomoyo/file.c
-@@ -156,16 +156,18 @@ static DECLARE_RWSEM(tomoyo_globally_rea
+@@ -156,36 +156,34 @@ static DECLARE_RWSEM(tomoyo_globally_rea
  static int tomoyo_update_globally_readable_entry(const char *filename,
  						 const bool is_delete)
  {
@@ -400,10 +397,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_globally_readable_list_lock);
  	list_for_each_entry(ptr, &tomoyo_globally_readable_list, list) {
-@@ -173,21 +175,17 @@ static int tomoyo_update_globally_readab
+ 		if (ptr->filename != saved_filename)
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -427,12 +423,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_globally_readable_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -274,16 +272,18 @@ static DECLARE_RWSEM(tomoyo_pattern_list
+@@ -272,36 +270,34 @@ static DECLARE_RWSEM(tomoyo_pattern_list
  static int tomoyo_update_file_pattern_entry(const char *pattern,
  					    const bool is_delete)
  {
@@ -450,10 +445,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_pattern_list_lock);
  	list_for_each_entry(ptr, &tomoyo_pattern_list, list) {
-@@ -291,21 +291,17 @@ static int tomoyo_update_file_pattern_en
+ 		if (saved_pattern != ptr->pattern)
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -477,12 +471,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_pattern_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -398,15 +394,18 @@ static DECLARE_RWSEM(tomoyo_no_rewrite_l
+@@ -394,34 +390,32 @@ static DECLARE_RWSEM(tomoyo_no_rewrite_l
  static int tomoyo_update_no_rewrite_entry(const char *pattern,
  					  const bool is_delete)
  {
@@ -500,10 +493,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_no_rewrite_list_lock);
  	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, list) {
-@@ -414,21 +413,17 @@ static int tomoyo_update_no_rewrite_entr
+ 		if (ptr->pattern != saved_pattern)
  			continue;
  		ptr->is_deleted = is_delete;
  		error = 0;
@@ -527,12 +519,9 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	error = 0;
 - out:
  	up_write(&tomoyo_no_rewrite_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
-+	kfree(new_entry);
  	return error;
  }
- 
-@@ -734,8 +729,8 @@ static int tomoyo_update_single_path_acl
+@@ -728,8 +722,8 @@ static int tomoyo_update_single_path_acl
  		(1 << TOMOYO_TYPE_READ_ACL) | (1 << TOMOYO_TYPE_WRITE_ACL);
  	const struct tomoyo_path_info *saved_filename;
  	struct tomoyo_acl_info *ptr;
@@ -543,13 +532,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const u16 perm = 1 << type;
  
  	if (!domain)
-@@ -745,11 +740,14 @@ static int tomoyo_update_single_path_acl
+@@ -739,10 +733,13 @@ static int tomoyo_update_single_path_acl
  	saved_filename = tomoyo_save_name(filename);
  	if (!saved_filename)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_acl_info_list_lock);
  	if (is_delete)
  		goto delete;
@@ -558,7 +546,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
-@@ -766,22 +764,23 @@ static int tomoyo_update_single_path_acl
+@@ -759,22 +756,23 @@ static int tomoyo_update_single_path_acl
  			acl->perm |= rw_mask;
  		ptr->type &= ~TOMOYO_ACL_DELETED;
  		error = 0;
@@ -593,15 +581,15 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
-@@ -801,6 +800,7 @@ static int tomoyo_update_single_path_acl
+@@ -793,6 +791,7 @@ static int tomoyo_update_single_path_acl
+ 	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
-@@ -823,8 +823,8 @@ static int tomoyo_update_double_path_acl
+@@ -815,8 +814,8 @@ static int tomoyo_update_double_path_acl
  	const struct tomoyo_path_info *saved_filename1;
  	const struct tomoyo_path_info *saved_filename2;
  	struct tomoyo_acl_info *ptr;
@@ -612,13 +600,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	const u8 perm = 1 << type;
  
  	if (!domain)
-@@ -836,11 +836,14 @@ static int tomoyo_update_double_path_acl
+@@ -828,10 +827,13 @@ static int tomoyo_update_double_path_acl
  	saved_filename2 = tomoyo_save_name(filename2);
  	if (!saved_filename1 || !saved_filename2)
  		return -ENOMEM;
 +	if (!is_delete)
 +		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	/***** EXCLUSIVE SECTION START *****/
  	down_write(&tomoyo_domain_acl_info_list_lock);
  	if (is_delete)
  		goto delete;
@@ -627,7 +614,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
-@@ -854,21 +857,22 @@ static int tomoyo_update_double_path_acl
+@@ -845,21 +847,22 @@ static int tomoyo_update_double_path_acl
  		acl->perm |= perm;
  		ptr->type &= ~TOMOYO_ACL_DELETED;
  		error = 0;
@@ -660,17 +647,17 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
-@@ -885,6 +889,7 @@ static int tomoyo_update_double_path_acl
+@@ -875,6 +878,7 @@ static int tomoyo_update_double_path_acl
+ 	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
- 	/***** EXCLUSIVE SECTION END *****/
 +	kfree(new_entry);
  	return error;
  }
  
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6.git/security/tomoyo/realpath.c
-@@ -195,68 +195,36 @@ char *tomoyo_realpath_nofollow(const cha
+@@ -195,66 +195,36 @@ char *tomoyo_realpath_nofollow(const cha
  }
  
  /* Memory allocated for non-string data. */
@@ -704,7 +691,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -		= roundup(size, max(sizeof(void *), sizeof(long)));
 -	if (word_aligned_size > PATH_MAX)
 -		return NULL;
--	/***** EXCLUSIVE SECTION START *****/
 -	mutex_lock(&lock);
 -	if (buf_used_len + word_aligned_size > PATH_MAX) {
 -		if (!tomoyo_quota_for_elements ||
@@ -735,7 +721,6 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -		}
 -	}
 -	mutex_unlock(&lock);
--	/***** EXCLUSIVE SECTION END *****/
 -	return ptr;
 +	const int len = ptr ? ksize(ptr) : 0;
 +	atomic_add(len, &tomoyo_allocated_memory_for_elements);
@@ -758,7 +743,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  /* Quota for holding string data in bytes. */
  static unsigned int tomoyo_quota_for_savename;
  
-@@ -273,13 +241,6 @@ struct tomoyo_name_entry {
+@@ -271,20 +241,9 @@ struct tomoyo_name_entry {
  	struct tomoyo_path_info entry;
  };
  
@@ -769,15 +754,24 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	int len;               /* Length of the area.     */
 -};
 -
- /*
-  * The list for "struct tomoyo_name_entry".
-  *
-@@ -299,75 +260,57 @@ static struct list_head tomoyo_name_list
+-/*
+- * The list for "struct tomoyo_name_entry".
+- *
+- * This list is updated only inside tomoyo_save_name(), thus
+- * no global mutex exists.
+- */
++/* The list for "struct tomoyo_name_entry". */
+ static struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
++static DEFINE_MUTEX(tomoyo_name_list_lock);
+ 
+ /**
+  * tomoyo_save_name - Allocate permanent memory for string data.
+@@ -297,73 +256,54 @@ static struct list_head tomoyo_name_list
   */
  const struct tomoyo_path_info *tomoyo_save_name(const char *name)
  {
 -	static LIST_HEAD(fmb_list);
- 	static DEFINE_MUTEX(lock);
+-	static DEFINE_MUTEX(lock);
 +	struct tomoyo_name_entry *entry;
  	struct tomoyo_name_entry *ptr;
  	unsigned int hash;
@@ -801,12 +795,12 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  		return NULL;
  	}
  	hash = full_name_hash((const unsigned char *) name, len - 1);
+-	mutex_lock(&lock);
 +	entry = kmalloc(sizeof(*entry) + len, GFP_KERNEL);
 +	allocated_len = entry ? ksize(entry) : 0;
- 	/***** EXCLUSIVE SECTION START *****/
- 	mutex_lock(&lock);
++	mutex_lock(&tomoyo_name_list_lock);
  	list_for_each_entry(ptr, &tomoyo_name_list[hash % TOMOYO_MAX_HASH],
- 			     list) {
+-			     list) {
 -		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 -			goto out;
 -	}
@@ -848,6 +842,11 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 -	if (fmb->len == 0) {
 -		list_del(&fmb->list);
 -		kfree(fmb);
+-	}
+- out:
+-	mutex_unlock(&lock);
+-	return ptr ? &ptr->entry : NULL;
++			    list) {
 +		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 +			continue;
 +		error = 0;
@@ -868,11 +867,8 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 +			      &tomoyo_name_list[hash % TOMOYO_MAX_HASH]);
 +		entry = NULL;
 +		error = 0;
- 	}
-- out:
- 	mutex_unlock(&lock);
- 	/***** EXCLUSIVE SECTION END *****/
--	return ptr ? &ptr->entry : NULL;
++	}
++	mutex_unlock(&tomoyo_name_list_lock);
 +	kfree(entry);
 +	if (!error)
 +		return &ptr->entry;
@@ -883,7 +879,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  }
  
  /**
-@@ -433,9 +376,9 @@ int tomoyo_read_memory_counter(struct to
+@@ -429,9 +369,9 @@ int tomoyo_read_memory_counter(struct to
  {
  	if (!head->read_eof) {
  		const unsigned int shared
