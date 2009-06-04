@@ -1,0 +1,57 @@
+TOMOYO: Remove unused parameter.
+
+TOMOYO 2.2.0 does not check argv[] and envp[] upon execve().
+We don't need to pass "struct tomoyo_page_buffer".
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/domain.c |    2 +-
+ security/tomoyo/file.c   |    4 +---
+ security/tomoyo/tomoyo.h |    4 +---
+ 3 files changed, 3 insertions(+), 7 deletions(-)
+
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
+@@ -721,7 +721,7 @@ int tomoyo_find_next_domain(struct linux
+ 	}
+ 
+ 	/* Check execute permission. */
+-	retval = tomoyo_check_exec_perm(old_domain, &r, tmp);
++	retval = tomoyo_check_exec_perm(old_domain, &r);
+ 	if (retval < 0)
+ 		goto out;
+ 
+--- security-testing-2.6.git.orig/security/tomoyo/file.c
++++ security-testing-2.6.git/security/tomoyo/file.c
+@@ -1012,13 +1012,11 @@ int tomoyo_check_file_perm(struct tomoyo
+  *
+  * @domain:   Pointer to "struct tomoyo_domain_info".
+  * @filename: Check permission for "execute".
+- * @tmp:      Buffer for temporary use.
+  *
+  * Returns 0 on success, negativevalue otherwise.
+  */
+ int tomoyo_check_exec_perm(struct tomoyo_domain_info *domain,
+-			   const struct tomoyo_path_info *filename,
+-			   struct tomoyo_page_buffer *tmp)
++			   const struct tomoyo_path_info *filename)
+ {
+ 	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+ 
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
++++ security-testing-2.6.git/security/tomoyo/tomoyo.h
+@@ -17,13 +17,11 @@ struct path;
+ struct inode;
+ struct linux_binprm;
+ struct pt_regs;
+-struct tomoyo_page_buffer;
+ 
+ int tomoyo_check_file_perm(struct tomoyo_domain_info *domain,
+ 			   const char *filename, const u8 perm);
+ int tomoyo_check_exec_perm(struct tomoyo_domain_info *domain,
+-			   const struct tomoyo_path_info *filename,
+-			   struct tomoyo_page_buffer *buf);
++			   const struct tomoyo_path_info *filename);
+ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+ 				 struct path *path, const int flag);
+ int tomoyo_check_1path_perm(struct tomoyo_domain_info *domain,
