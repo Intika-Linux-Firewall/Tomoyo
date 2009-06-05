@@ -26,7 +26,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  
  /* Permit policy management by non-root user? */
  static bool tomoyo_manage_by_non_root;
-@@ -860,25 +861,29 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -859,25 +860,29 @@ bool tomoyo_domain_quota_is_ok(struct to
  static struct tomoyo_profile *tomoyo_find_or_assign_new_profile(const unsigned
  								int profile)
  {
@@ -70,7 +70,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return ptr;
  }
  
-@@ -1031,10 +1036,10 @@ static DECLARE_RWSEM(tomoyo_policy_manag
+@@ -1030,10 +1035,10 @@ static DECLARE_RWSEM(tomoyo_policy_manag
  static int tomoyo_update_manager_entry(const char *manager,
  				       const bool is_delete)
  {
@@ -83,7 +83,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	bool is_domain = false;
  
  	if (tomoyo_is_domain_def(manager)) {
-@@ -1048,27 +1053,25 @@ static int tomoyo_update_manager_entry(c
+@@ -1047,27 +1052,25 @@ static int tomoyo_update_manager_entry(c
  	saved_manager = tomoyo_save_name(manager);
  	if (!saved_manager)
  		return -ENOMEM;
@@ -121,7 +121,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	return error;
  }
  
-@@ -2037,35 +2040,6 @@ static int tomoyo_close_control(struct f
+@@ -2036,35 +2039,6 @@ static int tomoyo_close_control(struct f
  }
  
  /**
@@ -159,7 +159,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
   * @inode: Pointer to "struct inode".
 --- security-testing-2.6.git.orig/security/tomoyo/common.h
 +++ security-testing-2.6.git/security/tomoyo/common.h
-@@ -266,8 +266,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -265,8 +265,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  /* Check mode for specified functionality. */
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
