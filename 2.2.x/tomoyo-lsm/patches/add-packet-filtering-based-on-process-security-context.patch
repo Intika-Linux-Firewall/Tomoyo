@@ -32,7 +32,6 @@ Otherwise, some datagrams cannot be delivered to intended process.
 
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
 
  include/linux/security.h |   32 ++++++++++++++++++++++++++++++++
  net/ipv4/raw.c           |    5 +++++
@@ -90,7 +89,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	int (*socket_getsockname) (struct socket *sock);
  	int (*socket_getpeername) (struct socket *sock);
  	int (*socket_getsockopt) (struct socket *sock, int level, int optname);
-@@ -2531,9 +2548,12 @@ int security_socket_bind(struct socket *
+@@ -2533,9 +2550,12 @@ int security_socket_bind(struct socket *
  int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen);
  int security_socket_listen(struct socket *sock, int backlog);
  int security_socket_accept(struct socket *sock, struct socket *newsock);
@@ -103,7 +102,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_getsockname(struct socket *sock);
  int security_socket_getpeername(struct socket *sock);
  int security_socket_getsockopt(struct socket *sock, int level, int optname);
-@@ -2609,6 +2629,11 @@ static inline int security_socket_accept
+@@ -2611,6 +2631,11 @@ static inline int security_socket_accept
  	return 0;
  }
  
@@ -115,7 +114,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
-@@ -2622,6 +2647,13 @@ static inline int security_socket_recvms
+@@ -2624,6 +2649,13 @@ static inline int security_socket_recvms
  	return 0;
  }
  
@@ -238,7 +237,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  	set_to_cap_if_null(ops, socket_setsockopt);
 --- security-testing-2.6.git.orig/security/security.c
 +++ security-testing-2.6.git/security/security.c
-@@ -1009,6 +1009,11 @@ int security_socket_accept(struct socket
+@@ -1006,6 +1006,11 @@ int security_socket_accept(struct socket
  	return security_ops->socket_accept(sock, newsock);
  }
  
@@ -250,7 +249,7 @@ Signed-off-by: Toshiharu Harada <haradats@nttdata.co.jp>
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
  	return security_ops->socket_sendmsg(sock, msg, size);
-@@ -1020,6 +1025,13 @@ int security_socket_recvmsg(struct socke
+@@ -1017,6 +1022,13 @@ int security_socket_recvmsg(struct socke
  	return security_ops->socket_recvmsg(sock, msg, size, flags);
  }
  
