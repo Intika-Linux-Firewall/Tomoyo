@@ -1,22 +1,10 @@
 # This patch is for security-testing-2.6.git#next
 
---- a/security/tomoyo/tomoyo.c
-+++ b/security/tomoyo/tomoyo.c
-@@ -27,6 +27,12 @@ static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
- 
- static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
- {
-+	int rc;
-+
-+	rc = cap_bprm_set_creds(bprm);
-+	if (rc)
-+		 return rc;
-+
- 	/*
- 	 * Do only if this function is called for the first time of an execve
- 	 * operation.
-
-
+---
+ security/tomoyo/common.c |    1 -
+ security/tomoyo/common.h |    1 -
+ security/tomoyo/tomoyo.c |    6 ++++++
+ 3 files changed, 6 insertions(+), 2 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -38,5 +26,18 @@
  	u16 const_len;     /* = tomoyo_const_part_length(name)     */
  	bool is_dir;       /* = tomoyo_strendswith(name, "/")      */
  	bool is_patterned; /* = tomoyo_path_contains_pattern(name) */
-
-
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6.git/security/tomoyo/tomoyo.c
+@@ -27,6 +27,12 @@ static int tomoyo_cred_prepare(struct cr
+ 
+ static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
+ {
++	int rc;
++
++	rc = cap_bprm_set_creds(bprm);
++	if (rc)
++		 return rc;
++
+ 	/*
+ 	 * Do only if this function is called for the first time of an execve
+ 	 * operation.
