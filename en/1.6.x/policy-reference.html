@@ -1860,7 +1860,7 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 
 <table border="1">
 <tr><td>Condition</td><td>Meaning</td></tr>
-<tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value". </td></tr>
+<tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value".</td></tr>
 <tr><td>exec.argv[index]!="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) does not match "value".</td></tr>
 <tr><td>exec.envp["name"]="value"</td><td>Environment variable "name" is defined and matches "value".</td></tr>
 <tr><td>exec.envp["name"]!="value"</td><td>Environment variable "name" is not defined or does not match "value".</td></tr>
@@ -1971,6 +1971,14 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 </ul>
 
 <p>will allow opening /dev/null for reading and writing only if /dev/null's type is character device file and /dev/null's major number is 1 and /dev/null's minor number is 3 and /dev/null's permission is 0666.</p>
+
+<h3>The following conditions for <a href="#domain_policy_allow_symlink">allow_symlink</a> keyword are also available for TOMOYO 1.6.8 and later.</h3>
+
+<table border="1">
+<tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>symlink.target="value"</td><td>The content of a symlink to be created matches "value".</td></tr>
+<tr><td>symlink.target!="value"</td><td>The content of a symlink to be created does not match "value".</td></tr>
+</table>
 
 <h2>6.4 <a name="stateful_acl">Using stateful ACL.</a></h2>
 

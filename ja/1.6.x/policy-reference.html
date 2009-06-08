@@ -1966,7 +1966,13 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 
 <p>「パス名が /dev/null 」「ファイル種別がキャラクタデバイスファイル」「デバイスメジャー番号が 1 」「デバイスマイナー番号が 3 」「パーミッションが 0666 」の場合のみ「読み書きモードでのオープンを許可する」という意味になります。</p>
 
-<h3></h3>
+<h3>TOMOYO 1.6.8 以降では、シンボリックリンクの作成許可（<a href="#domain_policy_allow_symlink">allow_symlink</a>）に対して以下の条件も指定できます。</h3>
+
+<table border="1">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>symlink.target="value"</td><td>作成されるシンボリックリンクの内容が value である</td></tr>
+<tr><td>symlink.target!="value"</td><td>作成されるシンボリックリンクの内容が value ではない</td></tr>
+</table>
 
 <h2>6.4 <a name="stateful_acl">ステートフルなアクセス許可の指定</a></h2>
 
