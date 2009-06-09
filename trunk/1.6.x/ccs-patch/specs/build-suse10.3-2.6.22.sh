@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.22.19-0.2.src.rpm ]
+if [ ! -r kernel-source-2.6.22.19-0.3.src.rpm ]
 then
-    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.19-0.2.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/10.3/rpm/src/kernel-source-2.6.22.19-0.3.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.22.19-0.2.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.22.19-0.3.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090528.tar.gz ]
@@ -75,8 +75,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-10-17 00:52:30.000000000 +0900
-+++ kernel-default.spec	2008-10-23 12:02:07.000000000 +0900
+--- kernel-default.spec	2009-05-28 19:02:43.000000000 +0900
++++ kernel-default.spec	2009-06-09 09:45:35.000000000 +0900
 @@ -44,10 +44,10 @@
  %define build_vanilla 1
  %endif
@@ -85,8 +85,8 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.22.19
--Release: 0.2
-+Release: 0.2_tomoyo_1.6.8
+-Release: 0.3
++Release: 0.3_tomoyo_1.6.8
  License:        GPL v2 or later
  Group:          System/Kernel
  AutoReqProv:    on
@@ -99,7 +99,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -288,6 +288,10 @@
+@@ -289,6 +289,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.22
