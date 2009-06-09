@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.25.20-0.1.src.rpm ]
+if [ ! -r kernel-source-2.6.25.20-0.4.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.20-0.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.20-0.4.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.25.20-0.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.25.20-0.4.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090528.tar.gz ]
@@ -75,8 +75,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-10-22 23:21:23.000000000 +0900
-+++ kernel-default.spec	2008-10-28 17:22:15.000000000 +0900
+--- kernel-default.spec	2009-06-02 08:59:34.000000000 +0900
++++ kernel-default.spec	2009-06-09 10:03:14.000000000 +0900
 @@ -47,10 +47,10 @@
  %define build_nomodules 1
  %endif
@@ -85,19 +85,18 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.25.20
--Release: 0.1
-+Release: 0.1_tomoyo_1.6.8
+-Release: 0.4
++Release: 0.4_tomoyo_1.6.8
  License:        GPL v2 or later
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -314,6 +314,11 @@
+@@ -315,6 +315,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.25
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.6.8-20090528.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
-+# sed -i -e 's:-ccs::' -- Makefile
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
