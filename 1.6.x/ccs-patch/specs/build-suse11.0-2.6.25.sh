@@ -76,7 +76,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec	2009-06-02 08:59:34.000000000 +0900
-+++ kernel-default.spec	2009-06-09 10:03:14.000000000 +0900
++++ kernel-default.spec	2009-06-09 12:06:33.000000000 +0900
 @@ -47,10 +47,10 @@
  %define build_nomodules 1
  %endif
@@ -90,6 +90,15 @@ patch << "EOF" || die "Can't patch spec file."
  License:        GPL v2 or later
  Group:          System/Kernel
  Url:            http://www.kernel.org/
+@@ -213,7 +213,7 @@
+ %define tolerate_unknown_new_config_options 0
+ # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
+ # 31 is the maximum; see scripts/kabi-checks)
+-%define tolerate_kabi_changes 6
++%define tolerate_kabi_changes 31
+ 
+ %description
+ The standard kernel for both uniprocessor and multiprocessor systems.
 @@ -315,6 +315,10 @@
  %build
  source .rpm-defs
