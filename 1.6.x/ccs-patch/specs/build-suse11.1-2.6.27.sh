@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.21-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.23-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/source/distribution/11.1/repo/oss/suse/src/kernel-source-2.6.27.21-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/source/distribution/11.1/repo/oss/suse/src/kernel-source-2.6.27.23-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.21-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.23-0.1.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090528.tar.gz ]
@@ -88,7 +88,7 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.21
+ Version:        2.6.27.23
 -Release:        0.<RELEASE1>
 +Release:        0.1.1_tomoyo_1.6.8
  License:        GPL v2 only
