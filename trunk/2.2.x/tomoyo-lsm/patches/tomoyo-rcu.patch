@@ -1,11 +1,12 @@
 ---
- security/tomoyo/common.c   |  216 +++++++++++++++++++++++++++++++++----------
- security/tomoyo/common.h   |   63 ++++++++----
- security/tomoyo/domain.c   |  222 ++++++++++++++++++++-------------------------
- security/tomoyo/file.c     |  160 ++++++++++++++++++++++++--------
- security/tomoyo/realpath.c |   59 +++++++++--
+ security/tomoyo/common.c   |  220 +++++++++++++++++++++++++++++++---------
+ security/tomoyo/common.h   |   68 +++++++-----
+ security/tomoyo/domain.c   |  242 ++++++++++++++++++++-------------------------
+ security/tomoyo/file.c     |  187 ++++++++++++++++++++++++----------
+ security/tomoyo/realpath.c |   59 ++++++++--
  security/tomoyo/tomoyo.c   |   28 +++--
- 6 files changed, 491 insertions(+), 257 deletions(-)
+ security/tomoyo/tomoyo.h   |    3 
+ 7 files changed, 515 insertions(+), 292 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -68,16 +69,26 @@
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
  		return true;
  	if (!domain->quota_warned) {
-@@ -1113,7 +1115,7 @@ static int tomoyo_update_manager_entry(c
+@@ -1080,7 +1082,6 @@ struct tomoyo_policy_manager_entry {
+  * # cat /sys/kernel/security/tomoyo/manager
+  */
+ static LIST_HEAD(tomoyo_policy_manager_list);
+-static DECLARE_RWSEM(tomoyo_policy_manager_list_lock);
+ 
+ /**
+  * tomoyo_update_manager_entry - Add a manager entry.
+@@ -1112,8 +1113,8 @@ static int tomoyo_update_manager_entry(c
+ 		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_policy_manager_list_lock);
+-	down_write(&tomoyo_policy_manager_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_policy_manager_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
  		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -1123,7 +1125,8 @@ static int tomoyo_update_manager_entry(c
+@@ -1123,16 +1124,39 @@ static int tomoyo_update_manager_entry(c
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->manager = saved_manager;
  		new_entry->is_domain = is_domain;
@@ -87,7 +98,10 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -1133,6 +1136,29 @@ static int tomoyo_update_manager_entry(c
+-	up_write(&tomoyo_policy_manager_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	kfree(new_entry);
+ 	return error;
  }
  
  /**
@@ -96,17 +110,16 @@
 +static void tomoyo_cleanup_manager(void)
 +{
 +	struct tomoyo_policy_manager_entry *ptr;
-+	struct tomoyo_policy_manager_entry *tmp;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_policy_manager_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_policy_manager_list_lock);
-+	list_for_each_entry_safe(ptr, tmp, &q, list) {
++	mutex_unlock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->manager);
 +		list_del(&ptr->list);
 +		tomoyo_free_element(ptr);
@@ -117,7 +130,7 @@
   * tomoyo_write_manager_policy - Write manager policy.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1165,9 +1191,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1165,9 +1189,8 @@ static int tomoyo_read_manager_policy(st
  
  	if (head->read_eof)
  		return 0;
@@ -129,7 +142,7 @@
  		struct tomoyo_policy_manager_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_policy_manager_entry,
  				 list);
-@@ -1177,7 +1202,6 @@ static int tomoyo_read_manager_policy(st
+@@ -1177,7 +1200,6 @@ static int tomoyo_read_manager_policy(st
  		if (!done)
  			break;
  	}
@@ -137,7 +150,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1187,6 +1211,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1187,6 +1209,8 @@ static int tomoyo_read_manager_policy(st
   *
   * Returns true if the current process is permitted to modify policy
   * via /sys/kernel/security/tomoyo/ interface.
@@ -146,7 +159,7 @@
   */
  static bool tomoyo_is_policy_manager(void)
  {
-@@ -1200,29 +1226,25 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1200,29 +1224,25 @@ static bool tomoyo_is_policy_manager(voi
  		return true;
  	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
  		return false;
@@ -178,7 +191,7 @@
  	if (!found) { /* Reduce error messages. */
  		static pid_t last_pid;
  		const pid_t pid = current->pid;
-@@ -1243,6 +1265,8 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1243,6 +1263,8 @@ static bool tomoyo_is_policy_manager(voi
   * @data: String to parse.
   *
   * Returns true on success, false otherwise.
@@ -187,7 +200,7 @@
   */
  static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head,
  				 const char *data)
-@@ -1258,11 +1282,8 @@ static bool tomoyo_is_select_one(struct 
+@@ -1258,11 +1280,8 @@ static bool tomoyo_is_select_one(struct 
  			domain = tomoyo_real_domain(p);
  		read_unlock(&tasklist_lock);
  	} else if (!strncmp(data, "domain=", 7)) {
@@ -200,7 +213,7 @@
  	} else
  		return false;
  	head->write_var1 = domain;
-@@ -1276,13 +1297,11 @@ static bool tomoyo_is_select_one(struct 
+@@ -1276,13 +1295,11 @@ static bool tomoyo_is_select_one(struct 
  	if (domain) {
  		struct tomoyo_domain_info *d;
  		head->read_var1 = NULL;
@@ -215,7 +228,7 @@
  		head->read_var2 = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
-@@ -1293,11 +1312,45 @@ static bool tomoyo_is_select_one(struct 
+@@ -1293,11 +1310,45 @@ static bool tomoyo_is_select_one(struct 
  }
  
  /**
@@ -234,7 +247,7 @@
 +
 +	name.name = domainname;
 +	tomoyo_fill_path_info(&name);
-+	down_write(&tomoyo_domain_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	/* Is there an active domain? */
 +	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
 +		/* Never delete tomoyo_kernel_domain */
@@ -246,7 +259,7 @@
 +		domain->is_deleted = true;
 +		break;
 +	}
-+	up_write(&tomoyo_domain_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	return 0;
 +}
 +
@@ -261,7 +274,7 @@
   */
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
-@@ -1320,11 +1373,9 @@ static int tomoyo_write_domain_policy(st
+@@ -1320,11 +1371,9 @@ static int tomoyo_write_domain_policy(st
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
@@ -275,7 +288,7 @@
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
  		head->write_var1 = domain;
  		return 0;
-@@ -1339,8 +1390,7 @@ static int tomoyo_write_domain_policy(st
+@@ -1339,8 +1388,7 @@ static int tomoyo_write_domain_policy(st
  		return 0;
  	}
  	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
@@ -285,7 +298,7 @@
  		return 0;
  	}
  	return tomoyo_write_file_policy(data, domain, is_delete);
-@@ -1480,8 +1530,7 @@ static int tomoyo_read_domain_policy(str
+@@ -1480,8 +1528,7 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -295,7 +308,7 @@
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1494,10 +1543,9 @@ static int tomoyo_read_domain_policy(str
+@@ -1494,10 +1541,9 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -308,7 +321,7 @@
  			ignore_global_allow_read
  				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
  		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
-@@ -1513,9 +1561,8 @@ acl_loop:
+@@ -1513,9 +1559,8 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -320,7 +333,7 @@
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
  					     list);
-@@ -1523,7 +1570,6 @@ acl_loop:
+@@ -1523,7 +1568,6 @@ acl_loop:
  			if (!done)
  				break;
  		}
@@ -328,7 +341,7 @@
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1535,12 +1581,69 @@ tail_mark:
+@@ -1535,12 +1579,69 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -346,7 +359,7 @@
 +	struct tomoyo_acl_info *acl;
 +	LIST_HEAD(q_domain);
 +	LIST_HEAD(q_acl);
-+	down_write(&tomoyo_domain_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
 +		const bool can_delete_domain = domain->is_deleted &&
 +			!atomic_read(&domain->users);
@@ -366,7 +379,7 @@
 +			//list_add(&domain->list, &q_domain);
 +		}
 +	}
-+	up_write(&tomoyo_domain_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(acl, &q_acl, list) {
 +		switch (tomoyo_acl_type1(acl)) {
 +			struct tomoyo_single_path_acl_record *acl1;
@@ -399,7 +412,7 @@
   * tomoyo_write_domain_profile - Assign profile for specified domain.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1551,6 +1654,8 @@ tail_mark:
+@@ -1551,6 +1652,8 @@ tail_mark:
   *
   *     ( echo "select " $domainname; echo "use_profile " $profile ) |
   *     /usr/lib/ccs/loadpolicy -d
@@ -408,7 +421,7 @@
   */
  static int tomoyo_write_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1562,9 +1667,7 @@ static int tomoyo_write_domain_profile(s
+@@ -1562,9 +1665,7 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
@@ -418,7 +431,7 @@
  	if (strict_strtoul(data, 10, &profile))
  		return -EINVAL;
  	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1594,8 +1697,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1594,8 +1695,7 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -428,7 +441,7 @@
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1605,7 +1707,6 @@ static int tomoyo_read_domain_profile(st
+@@ -1605,7 +1705,6 @@ static int tomoyo_read_domain_profile(st
  		if (!done)
  			break;
  	}
@@ -436,7 +449,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1824,16 +1925,16 @@ void tomoyo_load_policy(const char *file
+@@ -1824,16 +1923,16 @@ void tomoyo_load_policy(const char *file
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
@@ -456,7 +469,7 @@
  	}
  }
  
-@@ -1967,6 +2068,7 @@ static int tomoyo_open_control(const u8 
+@@ -1967,6 +2066,7 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
@@ -464,7 +477,7 @@
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2084,6 +2186,8 @@ static int tomoyo_write_control(struct f
+@@ -2084,6 +2184,8 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -473,7 +486,7 @@
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
-@@ -2093,6 +2197,18 @@ static int tomoyo_close_control(struct f
+@@ -2093,6 +2195,18 @@ static int tomoyo_close_control(struct f
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
@@ -566,7 +579,20 @@
  
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
-@@ -441,21 +443,36 @@ extern bool tomoyo_policy_loaded;
+@@ -429,10 +431,9 @@ static inline bool tomoyo_is_invalid(con
+ 
+ /* The list for "struct tomoyo_domain_info". */
+ extern struct list_head tomoyo_domain_list;
+-extern struct rw_semaphore tomoyo_domain_list_lock;
+ 
+-/* Lock for domain->acl_info_list. */
+-extern struct rw_semaphore tomoyo_domain_acl_info_list_lock;
++/* Lock for modifying policy. */
++extern struct mutex tomoyo_policy_lock;
+ 
+ /* Has /sbin/init started? */
+ extern bool tomoyo_policy_loaded;
+@@ -441,21 +442,36 @@ extern bool tomoyo_policy_loaded;
  extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
  /**
@@ -611,7 +637,15 @@
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
 --- security-testing-2.6.git.orig/security/tomoyo/domain.c
 +++ security-testing-2.6.git/security/tomoyo/domain.c
-@@ -131,28 +131,6 @@ struct tomoyo_alias_entry {
+@@ -58,7 +58,6 @@ struct tomoyo_domain_info tomoyo_kernel_
+  * exceptions.
+  */
+ LIST_HEAD(tomoyo_domain_list);
+-DECLARE_RWSEM(tomoyo_domain_list_lock);
+ 
+ /*
+  * tomoyo_domain_initializer_entry is a structure which is used for holding
+@@ -131,28 +130,6 @@ struct tomoyo_alias_entry {
  };
  
  /**
@@ -640,16 +674,26 @@
   * tomoyo_get_last_name - Get last component of a domainname.
   *
   * @domain: Pointer to "struct tomoyo_domain_info".
-@@ -250,7 +228,7 @@ static int tomoyo_update_domain_initiali
+@@ -206,7 +183,6 @@ const char *tomoyo_get_last_name(const s
+  * unless executed from "<kernel> /etc/rc.d/init.d/httpd" domain.
+  */
+ static LIST_HEAD(tomoyo_domain_initializer_list);
+-static DECLARE_RWSEM(tomoyo_domain_initializer_list_lock);
+ 
+ /**
+  * tomoyo_update_domain_initializer_entry - Update "struct tomoyo_domain_initializer_entry" list.
+@@ -249,8 +225,8 @@ static int tomoyo_update_domain_initiali
+ 	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_domain_initializer_list_lock);
+-	down_write(&tomoyo_domain_initializer_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_domain_initializer_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -266,8 +244,8 @@ static int tomoyo_update_domain_initiali
+@@ -266,12 +242,12 @@ static int tomoyo_update_domain_initiali
  		saved_program = NULL;
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
@@ -660,7 +704,12 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -279,6 +257,29 @@ static int tomoyo_update_domain_initiali
+-	up_write(&tomoyo_domain_initializer_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_domainname);
+ 	tomoyo_put_name(saved_program);
+ 	kfree(new_entry);
+@@ -279,6 +255,29 @@ static int tomoyo_update_domain_initiali
  }
  
  /**
@@ -670,14 +719,14 @@
 +{
 +	struct tomoyo_domain_initializer_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_domain_initializer_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_domain_initializer_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->domainname);
 +		tomoyo_put_name(ptr->program);
@@ -690,7 +739,7 @@
   * tomoyo_read_domain_initializer_policy - Read "struct tomoyo_domain_initializer_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -290,15 +291,14 @@ bool tomoyo_read_domain_initializer_poli
+@@ -290,15 +289,14 @@ bool tomoyo_read_domain_initializer_poli
  	struct list_head *pos;
  	bool done = true;
  
@@ -709,7 +758,7 @@
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -313,7 +313,6 @@ bool tomoyo_read_domain_initializer_poli
+@@ -313,7 +311,6 @@ bool tomoyo_read_domain_initializer_poli
  		if (!done)
  			break;
  	}
@@ -717,7 +766,7 @@
  	return done;
  }
  
-@@ -350,6 +349,8 @@ int tomoyo_write_domain_initializer_poli
+@@ -350,6 +347,8 @@ int tomoyo_write_domain_initializer_poli
   *
   * Returns true if executing @program reinitializes domain transition,
   * false otherwise.
@@ -726,7 +775,7 @@
   */
  static bool tomoyo_is_domain_initializer(const struct tomoyo_path_info *
  					 domainname,
-@@ -360,8 +361,7 @@ static bool tomoyo_is_domain_initializer
+@@ -360,8 +359,7 @@ static bool tomoyo_is_domain_initializer
  	struct tomoyo_domain_initializer_entry *ptr;
  	bool flag = false;
  
@@ -736,7 +785,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -381,7 +381,6 @@ static bool tomoyo_is_domain_initializer
+@@ -381,7 +379,6 @@ static bool tomoyo_is_domain_initializer
  		}
  		flag = true;
  	}
@@ -744,16 +793,26 @@
  	return flag;
  }
  
-@@ -468,7 +467,7 @@ static int tomoyo_update_domain_keeper_e
+@@ -424,7 +421,6 @@ static bool tomoyo_is_domain_initializer
+  * explicitly specified by "initialize_domain".
+  */
+ static LIST_HEAD(tomoyo_domain_keeper_list);
+-static DECLARE_RWSEM(tomoyo_domain_keeper_list_lock);
+ 
+ /**
+  * tomoyo_update_domain_keeper_entry - Update "struct tomoyo_domain_keeper_entry" list.
+@@ -467,8 +463,8 @@ static int tomoyo_update_domain_keeper_e
+ 	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_domain_keeper_list_lock);
+-	down_write(&tomoyo_domain_keeper_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_domain_keeper_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -484,7 +483,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -484,11 +480,12 @@ static int tomoyo_update_domain_keeper_e
  		saved_program = NULL;
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
@@ -763,7 +822,12 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -496,6 +496,29 @@ static int tomoyo_update_domain_keeper_e
+-	up_write(&tomoyo_domain_keeper_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_domainname);
+ 	tomoyo_put_name(saved_program);
+ 	kfree(new_entry);
+@@ -496,6 +493,29 @@ static int tomoyo_update_domain_keeper_e
  }
  
  /**
@@ -773,14 +837,14 @@
 +{
 +	struct tomoyo_domain_keeper_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_domain_keeper_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_domain_keeper_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->domainname);
 +		tomoyo_put_name(ptr->program);
@@ -793,7 +857,7 @@
   * tomoyo_write_domain_keeper_policy - Write "struct tomoyo_domain_keeper_entry" list.
   *
   * @data:      String to parse.
-@@ -528,9 +551,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -528,9 +548,8 @@ bool tomoyo_read_domain_keeper_policy(st
  	struct list_head *pos;
  	bool done = true;
  
@@ -805,7 +869,7 @@
  		struct tomoyo_domain_keeper_entry *ptr;
  		const char *no;
  		const char *from = "";
-@@ -551,7 +573,6 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -551,7 +570,6 @@ bool tomoyo_read_domain_keeper_policy(st
  		if (!done)
  			break;
  	}
@@ -813,7 +877,7 @@
  	return done;
  }
  
-@@ -564,6 +585,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -564,6 +582,8 @@ bool tomoyo_read_domain_keeper_policy(st
   *
   * Returns true if executing @program supresses domain transition,
   * false otherwise.
@@ -822,7 +886,7 @@
   */
  static bool tomoyo_is_domain_keeper(const struct tomoyo_path_info *domainname,
  				    const struct tomoyo_path_info *program,
-@@ -572,8 +595,7 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -572,8 +592,7 @@ static bool tomoyo_is_domain_keeper(cons
  	struct tomoyo_domain_keeper_entry *ptr;
  	bool flag = false;
  
@@ -832,7 +896,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -591,7 +613,6 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -591,7 +610,6 @@ static bool tomoyo_is_domain_keeper(cons
  		}
  		flag = true;
  	}
@@ -840,16 +904,26 @@
  	return flag;
  }
  
-@@ -660,7 +681,7 @@ static int tomoyo_update_alias_entry(con
+@@ -626,7 +644,6 @@ static bool tomoyo_is_domain_keeper(cons
+  * execve() succeeds is calculated using /bin/cat rather than /bin/busybox .
+  */
+ static LIST_HEAD(tomoyo_alias_list);
+-static DECLARE_RWSEM(tomoyo_alias_list_lock);
+ 
+ /**
+  * tomoyo_update_alias_entry - Update "struct tomoyo_alias_entry" list.
+@@ -659,8 +676,8 @@ static int tomoyo_update_alias_entry(con
+ 	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_alias_list_lock);
+-	down_write(&tomoyo_alias_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_alias_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aliased_name != saved_aliased_name)
  			continue;
-@@ -673,7 +694,7 @@ static int tomoyo_update_alias_entry(con
+@@ -673,11 +690,11 @@ static int tomoyo_update_alias_entry(con
  		saved_original_name = NULL;
  		new_entry->aliased_name = saved_aliased_name;
  		saved_aliased_name = NULL;
@@ -858,7 +932,12 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -685,6 +706,29 @@ static int tomoyo_update_alias_entry(con
+-	up_write(&tomoyo_alias_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_original_name);
+ 	tomoyo_put_name(saved_aliased_name);
+ 	kfree(new_entry);
+@@ -685,6 +702,29 @@ static int tomoyo_update_alias_entry(con
  }
  
  /**
@@ -868,14 +947,14 @@
 +{
 +	struct tomoyo_alias_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_alias_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_alias_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->original_name);
 +		tomoyo_put_name(ptr->aliased_name);
@@ -888,7 +967,7 @@
   * tomoyo_read_alias_policy - Read "struct tomoyo_alias_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -696,8 +740,7 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -696,8 +736,7 @@ bool tomoyo_read_alias_policy(struct tom
  	struct list_head *pos;
  	bool done = true;
  
@@ -898,7 +977,7 @@
  		struct tomoyo_alias_entry *ptr;
  
  		ptr = list_entry(pos, struct tomoyo_alias_entry, list);
-@@ -709,7 +752,6 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -709,7 +748,6 @@ bool tomoyo_read_alias_policy(struct tom
  		if (!done)
  			break;
  	}
@@ -906,7 +985,7 @@
  	return done;
  }
  
-@@ -731,38 +773,6 @@ int tomoyo_write_alias_policy(char *data
+@@ -731,38 +769,6 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }
  
@@ -945,7 +1024,16 @@
  /**
   * tomoyo_find_or_assign_new_domain - Create a domain.
   *
-@@ -794,35 +804,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -785,7 +791,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 	if (!saved_domainname)
+ 		return NULL;
+ 	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
+-	down_write(&tomoyo_domain_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
+ 	domain = tomoyo_find_domain(domainname);
+ 	if (domain)
+ 		goto out;
+@@ -794,35 +800,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  	saved_domainname = tomoyo_get_name(domainname);
  	if (!saved_domainname)
  		goto out;
@@ -981,7 +1069,7 @@
  	/* No memory reusable. Create using new memory. */
  	if (tomoyo_memory_ok(new_domain)) {
  		domain = new_domain;
-@@ -831,7 +812,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -831,10 +808,10 @@ struct tomoyo_domain_info *tomoyo_find_o
  		domain->domainname = saved_domainname;
  		saved_domainname = NULL;
  		domain->profile = profile;
@@ -989,8 +1077,12 @@
 +		list_add_tail_rcu(&domain->list, &tomoyo_domain_list);
  	}
   out:
- 	up_write(&tomoyo_domain_list_lock);
-@@ -843,13 +824,13 @@ struct tomoyo_domain_info *tomoyo_find_o
+-	up_write(&tomoyo_domain_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_domainname);
+ 	kfree(new_domain);
+ 	return domain;
+@@ -843,13 +820,13 @@ struct tomoyo_domain_info *tomoyo_find_o
  /**
   * tomoyo_find_next_domain - Find a domain.
   *
@@ -1008,7 +1100,7 @@
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -870,6 +851,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -870,6 +847,7 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1016,7 +1108,7 @@
  
  	if (!tmp)
  		goto out;
-@@ -908,8 +890,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -908,8 +886,7 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1026,7 +1118,7 @@
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -920,7 +901,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -920,7 +897,6 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1034,7 +1126,7 @@
  	}
  
  	/* Check execute permission. */
-@@ -951,9 +931,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -951,9 +927,7 @@ int tomoyo_find_next_domain(struct linux
  	}
  	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
  		goto done;
@@ -1044,7 +1136,7 @@
  	if (domain)
  		goto done;
  	if (is_enforce)
-@@ -968,12 +946,14 @@ int tomoyo_find_next_domain(struct linux
+@@ -968,12 +942,14 @@ int tomoyo_find_next_domain(struct linux
  	if (is_enforce)
  		retval = -EPERM;
  	else
@@ -1064,16 +1156,37 @@
  }
 --- security-testing-2.6.git.orig/security/tomoyo/file.c
 +++ security-testing-2.6.git/security/tomoyo/file.c
-@@ -222,7 +222,7 @@ static int tomoyo_update_globally_readab
+@@ -159,8 +159,8 @@ static struct tomoyo_path_info *tomoyo_g
+ 	return NULL;
+ }
+ 
+-/* Lock for domain->acl_info_list. */
+-DECLARE_RWSEM(tomoyo_domain_acl_info_list_lock);
++/* Lock for modifying TOMOYO's policy. */
++DEFINE_MUTEX(tomoyo_policy_lock);
+ 
+ static int tomoyo_update_double_path_acl(const u8 type, const char *filename1,
+ 					 const char *filename2,
+@@ -196,7 +196,6 @@ static int tomoyo_update_single_path_acl
+  * belongs to.
+  */
+ static LIST_HEAD(tomoyo_globally_readable_list);
+-static DECLARE_RWSEM(tomoyo_globally_readable_list_lock);
+ 
+ /**
+  * tomoyo_update_globally_readable_entry - Update "struct tomoyo_globally_readable_file_entry" list.
+@@ -221,8 +220,8 @@ static int tomoyo_update_globally_readab
+ 		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_globally_readable_list_lock);
+-	down_write(&tomoyo_globally_readable_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_globally_readable_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list, list) {
  		if (ptr->filename != saved_filename)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -232,7 +232,8 @@ static int tomoyo_update_globally_readab
+@@ -232,37 +231,60 @@ static int tomoyo_update_globally_readab
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->filename = saved_filename;
  		saved_filename = NULL;
@@ -1083,7 +1196,11 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -243,26 +244,48 @@ static int tomoyo_update_globally_readab
+-	up_write(&tomoyo_globally_readable_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_filename);
+ 	kfree(new_entry);
+ 	return error;
  }
  
  /**
@@ -1093,14 +1210,14 @@
 +{
 +	struct tomoyo_globally_readable_file_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_globally_readable_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_globally_readable_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->filename);
 +		list_del_rcu(&ptr->list);
@@ -1135,7 +1252,7 @@
  	return found;
  }
  
-@@ -291,9 +314,8 @@ bool tomoyo_read_globally_readable_polic
+@@ -291,9 +313,8 @@ bool tomoyo_read_globally_readable_polic
  	struct list_head *pos;
  	bool done = true;
  
@@ -1147,7 +1264,7 @@
  		struct tomoyo_globally_readable_file_entry *ptr;
  		ptr = list_entry(pos,
  				 struct tomoyo_globally_readable_file_entry,
-@@ -305,7 +327,6 @@ bool tomoyo_read_globally_readable_polic
+@@ -305,7 +326,6 @@ bool tomoyo_read_globally_readable_polic
  		if (!done)
  			break;
  	}
@@ -1155,16 +1272,26 @@
  	return done;
  }
  
-@@ -365,7 +386,7 @@ static int tomoyo_update_file_pattern_en
+@@ -339,7 +359,6 @@ bool tomoyo_read_globally_readable_polic
+  * current process from accessing other process's information.
+  */
+ static LIST_HEAD(tomoyo_pattern_list);
+-static DECLARE_RWSEM(tomoyo_pattern_list_lock);
+ 
+ /**
+  * tomoyo_update_file_pattern_entry - Update "struct tomoyo_pattern_entry" list.
+@@ -364,8 +383,8 @@ static int tomoyo_update_file_pattern_en
+ 		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_pattern_list_lock);
+-	down_write(&tomoyo_pattern_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_pattern_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
  		if (saved_pattern != ptr->pattern)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -375,7 +396,7 @@ static int tomoyo_update_file_pattern_en
+@@ -375,22 +394,46 @@ static int tomoyo_update_file_pattern_en
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->pattern = saved_pattern;
  		saved_pattern = NULL;
@@ -1173,7 +1300,11 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -386,11 +407,35 @@ static int tomoyo_update_file_pattern_en
+-	up_write(&tomoyo_pattern_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_pattern);
+ 	kfree(new_entry);
+ 	return error;
  }
  
  /**
@@ -1183,17 +1314,17 @@
 +{
 +	struct tomoyo_pattern_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_pattern_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_pattern_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->pattern);
-+		//list_del_rcu(&ptr->list);
++		list_del_rcu(&ptr->list);
 +		tomoyo_free_element(ptr);
 +	}
 +}
@@ -1209,7 +1340,7 @@
   */
  static const struct tomoyo_path_info *
  tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
-@@ -398,8 +443,7 @@ tomoyo_get_file_pattern(const struct tom
+@@ -398,8 +441,7 @@ tomoyo_get_file_pattern(const struct tom
  	struct tomoyo_pattern_entry *ptr;
  	const struct tomoyo_path_info *pattern = NULL;
  
@@ -1219,7 +1350,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (!tomoyo_path_matches_pattern(filename, ptr->pattern))
-@@ -412,7 +456,6 @@ tomoyo_get_file_pattern(const struct tom
+@@ -412,7 +454,6 @@ tomoyo_get_file_pattern(const struct tom
  			break;
  		}
  	}
@@ -1227,7 +1358,7 @@
  	if (pattern)
  		filename = pattern;
  	return filename;
-@@ -443,8 +486,7 @@ bool tomoyo_read_file_pattern(struct tom
+@@ -443,8 +484,7 @@ bool tomoyo_read_file_pattern(struct tom
  	struct list_head *pos;
  	bool done = true;
  
@@ -1237,7 +1368,7 @@
  		struct tomoyo_pattern_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_pattern_entry, list);
  		if (ptr->is_deleted)
-@@ -454,7 +496,6 @@ bool tomoyo_read_file_pattern(struct tom
+@@ -454,7 +494,6 @@ bool tomoyo_read_file_pattern(struct tom
  		if (!done)
  			break;
  	}
@@ -1245,16 +1376,26 @@
  	return done;
  }
  
-@@ -514,7 +555,7 @@ static int tomoyo_update_no_rewrite_entr
+@@ -488,7 +527,6 @@ bool tomoyo_read_file_pattern(struct tom
+  * need to worry whether the file is already unlink()ed or not.
+  */
+ static LIST_HEAD(tomoyo_no_rewrite_list);
+-static DECLARE_RWSEM(tomoyo_no_rewrite_list_lock);
+ 
+ /**
+  * tomoyo_update_no_rewrite_entry - Update "struct tomoyo_no_rewrite_entry" list.
+@@ -513,8 +551,8 @@ static int tomoyo_update_no_rewrite_entr
+ 		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
- 	down_write(&tomoyo_no_rewrite_list_lock);
+-	down_write(&tomoyo_no_rewrite_list_lock);
 -	list_for_each_entry(ptr, &tomoyo_no_rewrite_list, list) {
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
  		if (ptr->pattern != saved_pattern)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -524,7 +565,7 @@ static int tomoyo_update_no_rewrite_entr
+@@ -524,30 +562,53 @@ static int tomoyo_update_no_rewrite_entr
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->pattern = saved_pattern;
  		saved_pattern = NULL;
@@ -1263,7 +1404,10 @@
  		new_entry = NULL;
  		error = 0;
  	}
-@@ -534,20 +575,43 @@ static int tomoyo_update_no_rewrite_entr
+-	up_write(&tomoyo_no_rewrite_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_pattern);
+ 	return error;
  }
  
  /**
@@ -1273,14 +1417,14 @@
 +{
 +	struct tomoyo_no_rewrite_entry *ptr;
 +	LIST_HEAD(q);
-+	down_write(&tomoyo_no_rewrite_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
 +		if (!ptr->is_deleted)
 +			continue;
 +		list_del_rcu(&ptr->list);
 +		//list_add(&ptr->list, &q);
 +	}
-+	up_write(&tomoyo_no_rewrite_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &q, list) {
 +		tomoyo_put_name(ptr->pattern);
 +		list_del_rcu(&ptr->list);
@@ -1309,7 +1453,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (!tomoyo_path_matches_pattern(filename, ptr->pattern))
-@@ -555,7 +619,6 @@ static bool tomoyo_is_no_rewrite_file(co
+@@ -555,7 +616,6 @@ static bool tomoyo_is_no_rewrite_file(co
  		found = true;
  		break;
  	}
@@ -1317,7 +1461,7 @@
  	return found;
  }
  
-@@ -584,8 +647,8 @@ bool tomoyo_read_no_rewrite_policy(struc
+@@ -584,8 +644,8 @@ bool tomoyo_read_no_rewrite_policy(struc
  	struct list_head *pos;
  	bool done = true;
  
@@ -1328,7 +1472,7 @@
  		struct tomoyo_no_rewrite_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_no_rewrite_entry, list);
  		if (ptr->is_deleted)
-@@ -595,7 +658,6 @@ bool tomoyo_read_no_rewrite_policy(struc
+@@ -595,7 +655,6 @@ bool tomoyo_read_no_rewrite_policy(struc
  		if (!done)
  			break;
  	}
@@ -1336,7 +1480,7 @@
  	return done;
  }
  
-@@ -660,9 +722,9 @@ static int tomoyo_check_single_path_acl2
+@@ -660,9 +719,9 @@ static int tomoyo_check_single_path_acl2
  {
  	struct tomoyo_acl_info *ptr;
  	int error = -EPERM;
@@ -1348,7 +1492,7 @@
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -680,7 +742,7 @@ static int tomoyo_check_single_path_acl2
+@@ -680,7 +739,7 @@ static int tomoyo_check_single_path_acl2
  		error = 0;
  		break;
  	}
@@ -1357,7 +1501,7 @@
  	return error;
  }
  
-@@ -738,8 +800,7 @@ static int tomoyo_check_file_perm2(struc
+@@ -738,8 +797,7 @@ static int tomoyo_check_file_perm2(struc
  	if (!filename)
  		return 0;
  	error = tomoyo_check_file_acl(domain, filename, perm);
@@ -1367,8 +1511,12 @@
  	    && tomoyo_is_globally_readable_file(filename))
  		error = 0;
  	if (perm == 6)
-@@ -850,7 +911,7 @@ static int tomoyo_update_single_path_acl
- 	down_write(&tomoyo_domain_acl_info_list_lock);
+@@ -847,10 +905,10 @@ static int tomoyo_update_single_path_acl
+ 		return -ENOMEM;
+ 	if (!is_delete)
+ 		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+-	down_write(&tomoyo_domain_acl_info_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1376,7 +1524,7 @@
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -878,13 +939,14 @@ static int tomoyo_update_single_path_acl
+@@ -878,13 +936,14 @@ static int tomoyo_update_single_path_acl
  			new_entry->perm |= rw_mask;
  		new_entry->filename = saved_filename;
  		saved_filename = NULL;
@@ -1393,8 +1541,21 @@
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -949,7 +1011,7 @@ static int tomoyo_update_double_path_acl
- 	down_write(&tomoyo_domain_acl_info_list_lock);
+@@ -903,7 +962,7 @@ static int tomoyo_update_single_path_acl
+ 		break;
+ 	}
+  out:
+-	up_write(&tomoyo_domain_acl_info_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_filename);
+ 	kfree(new_entry);
+ 	return error;
+@@ -946,10 +1005,10 @@ static int tomoyo_update_double_path_acl
+ 	}
+ 	if (!is_delete)
+ 		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
+-	down_write(&tomoyo_domain_acl_info_list_lock);
++	mutex_lock(&tomoyo_policy_lock);
  	if (is_delete)
  		goto delete;
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1402,7 +1563,7 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -974,13 +1036,14 @@ static int tomoyo_update_double_path_acl
+@@ -974,13 +1033,14 @@ static int tomoyo_update_double_path_acl
  		saved_filename1 = NULL;
  		new_entry->filename2 = saved_filename2;
  		saved_filename2 = NULL;
@@ -1419,7 +1580,16 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -1041,11 +1104,12 @@ static int tomoyo_check_double_path_acl(
+@@ -996,7 +1056,7 @@ static int tomoyo_update_double_path_acl
+ 		break;
+ 	}
+  out:
+-	up_write(&tomoyo_domain_acl_info_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_filename1);
+ 	tomoyo_put_name(saved_filename2);
+ 	kfree(new_entry);
+@@ -1041,11 +1101,12 @@ static int tomoyo_check_double_path_acl(
  	struct tomoyo_acl_info *ptr;
  	const u8 perm = 1 << type;
  	int error = -EPERM;
@@ -1434,7 +1604,7 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -1060,7 +1124,7 @@ static int tomoyo_check_double_path_acl(
+@@ -1060,7 +1121,7 @@ static int tomoyo_check_double_path_acl(
  		error = 0;
  		break;
  	}
@@ -1443,7 +1613,7 @@
  	return error;
  }
  
-@@ -1170,6 +1234,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1170,6 +1231,7 @@ int tomoyo_check_open_permission(struct 
  	struct tomoyo_path_info *buf;
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
@@ -1451,7 +1621,7 @@
  
  	if (!mode || !path->mnt)
  		return 0;
-@@ -1185,6 +1250,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1185,6 +1247,7 @@ int tomoyo_check_open_permission(struct 
  	if (!buf)
  		goto out;
  	error = 0;
@@ -1459,7 +1629,7 @@
  	/*
  	 * If the filename is specified by "deny_rewrite" keyword,
  	 * we need to check "allow_rewrite" permission when the filename is not
-@@ -1204,6 +1270,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1204,6 +1267,7 @@ int tomoyo_check_open_permission(struct 
  		error = tomoyo_check_single_path_permission2(domain,
  						     TOMOYO_TYPE_TRUNCATE_ACL,
  							     buf, mode);
@@ -1467,7 +1637,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1227,6 +1294,7 @@ int tomoyo_check_1path_perm(struct tomoy
+@@ -1227,6 +1291,7 @@ int tomoyo_check_1path_perm(struct tomoy
  	struct tomoyo_path_info *buf;
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
@@ -1475,7 +1645,7 @@
  
  	if (!mode || !path->mnt)
  		return 0;
-@@ -1244,8 +1312,10 @@ int tomoyo_check_1path_perm(struct tomoy
+@@ -1244,8 +1309,10 @@ int tomoyo_check_1path_perm(struct tomoy
  			tomoyo_fill_path_info(buf);
  		}
  	}
@@ -1486,7 +1656,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1268,19 +1338,23 @@ int tomoyo_check_rewrite_permission(stru
+@@ -1268,19 +1335,23 @@ int tomoyo_check_rewrite_permission(stru
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
  	struct tomoyo_path_info *buf;
@@ -1511,7 +1681,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1307,6 +1381,7 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1307,6 +1378,7 @@ int tomoyo_check_2path_perm(struct tomoy
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
  	const char *msg;
@@ -1519,7 +1689,7 @@
  
  	if (!mode || !path1->mnt || !path2->mnt)
  		return 0;
-@@ -1330,10 +1405,11 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1330,10 +1402,11 @@ int tomoyo_check_2path_perm(struct tomoy
  			}
  		}
  	}
@@ -1532,7 +1702,7 @@
  	if (tomoyo_verbose_mode(domain))
  		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
  		       "denied for %s\n", tomoyo_get_msg(is_enforce),
-@@ -1345,6 +1421,8 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1345,6 +1418,8 @@ int tomoyo_check_2path_perm(struct tomoy
  		tomoyo_update_double_path_acl(operation, name1, name2, domain,
  					      false);
  	}
@@ -1719,3 +1889,15 @@
  	tomoyo_realpath_init();
  	return 0;
  }
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
++++ security-testing-2.6.git/security/tomoyo/tomoyo.h
+@@ -31,8 +31,7 @@ int tomoyo_check_2path_perm(struct tomoy
+ 			    struct path *path2);
+ int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
+ 				    struct file *filp);
+-int tomoyo_find_next_domain(struct linux_binprm *bprm,
+-			    struct tomoyo_domain_info **next_domain);
++int tomoyo_find_next_domain(struct linux_binprm *bprm);
+ 
+ /* Index numbers for Access Controls. */
+ 
