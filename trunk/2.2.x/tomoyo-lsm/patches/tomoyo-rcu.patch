@@ -1,13 +1,13 @@
 ---
- security/tomoyo/common.c   |  159 +++++++++---------
- security/tomoyo/common.h   |  218 ++++++++++++++++++++++---
+ security/tomoyo/common.c   |  159 ++++++++++---------
+ security/tomoyo/common.h   |  218 +++++++++++++++++++++++---
  security/tomoyo/domain.c   |  249 +++++------------------------
- security/tomoyo/file.c     |  177 ++++++++------------
- security/tomoyo/realpath.c |  382 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/file.c     |  177 ++++++++-------------
+ security/tomoyo/realpath.c |  375 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 777 insertions(+), 444 deletions(-)
+ 8 files changed, 770 insertions(+), 444 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1877,61 +1877,54 @@
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -431,3 +465,325 @@ int tomoyo_write_memory_quota(struct tom
+@@ -431,3 +465,318 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
 +
 +/* Garbage collecter functions */
 +
-+static void tomoyo_gc_del_domain_initializer
++static inline void tomoyo_gc_del_domain_initializer
 +(struct tomoyo_domain_initializer_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->domainname);
 +	tomoyo_put_name(ptr->program);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_domain_keeper
++static inline void tomoyo_gc_del_domain_keeper
 +(struct tomoyo_domain_keeper_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->domainname);
 +	tomoyo_put_name(ptr->program);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_alias(struct tomoyo_alias_entry *ptr)
++static inline void tomoyo_gc_del_alias(struct tomoyo_alias_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->original_name);
 +	tomoyo_put_name(ptr->aliased_name);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_readable
++static inline void tomoyo_gc_del_readable
 +(struct tomoyo_globally_readable_file_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->filename);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_pattern(struct tomoyo_pattern_entry *ptr)
++static inline void tomoyo_gc_del_pattern(struct tomoyo_pattern_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->pattern);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_no_rewrite
++static inline void tomoyo_gc_del_no_rewrite
 +(struct tomoyo_no_rewrite_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->pattern);
-+	list_del_rcu(&ptr->list);
 +}
 +
-+static void tomoyo_gc_del_manager
++static inline void tomoyo_gc_del_manager
 +(struct tomoyo_policy_manager_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->manager);
-+	list_del_rcu(&ptr->list);
 +}
 +
 +static void tomoyo_gc_del_acl(struct tomoyo_acl_info *acl)
@@ -1951,7 +1944,6 @@
 +		tomoyo_put_name(acl2->filename2);
 +		break;
 +	}
-+	list_del_rcu(&acl->list);
 +}
 +
 +static bool tomoyo_gc_del_domain(struct tomoyo_domain_info *domain)
@@ -1966,6 +1958,7 @@
 +		return false;
 +	/* Delete all entries in this domain. */
 +	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
++		list_del_rcu(&acl->list);
 +		tomoyo_gc_del_acl(acl);
 +		tomoyo_free_element(acl);
 +	}
