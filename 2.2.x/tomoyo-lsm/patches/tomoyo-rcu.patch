@@ -1,13 +1,13 @@
 ---
- security/tomoyo/common.c   |  159 ++++++++++---------
- security/tomoyo/common.h   |  218 +++++++++++++++++++++++---
- security/tomoyo/domain.c   |  251 +++++-------------------------
- security/tomoyo/file.c     |  177 ++++++++-------------
- security/tomoyo/realpath.c |  375 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/common.c   |  159 +++++++++---------
+ security/tomoyo/common.h   |  218 ++++++++++++++++++++++---
+ security/tomoyo/domain.c   |  251 +++++------------------------
+ security/tomoyo/file.c     |  177 +++++++-------------
+ security/tomoyo/realpath.c |  386 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 772 insertions(+), 444 deletions(-)
+ 8 files changed, 783 insertions(+), 444 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -124,9 +124,9 @@
  		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -1123,11 +1104,12 @@ static int tomoyo_update_manager_entry(c
- 	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
+@@ -1124,11 +1105,12 @@ static int tomoyo_update_manager_entry(c
  		new_entry->manager = saved_manager;
+ 		saved_manager = NULL;
  		new_entry->is_domain = is_domain;
 -		list_add_tail(&new_entry->list, &tomoyo_policy_manager_list);
 +		list_add_tail_rcu(&new_entry->list,
@@ -136,10 +136,10 @@
  	}
 -	up_write(&tomoyo_policy_manager_list_lock);
 +	mutex_unlock(&tomoyo_policy_lock);
+ 	tomoyo_put_name(saved_manager);
  	kfree(new_entry);
  	return error;
- }
-@@ -1165,9 +1147,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1167,9 +1149,8 @@ static int tomoyo_read_manager_policy(st
  
  	if (head->read_eof)
  		return 0;
@@ -151,7 +151,7 @@
  		struct tomoyo_policy_manager_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_policy_manager_entry,
  				 list);
-@@ -1177,7 +1158,6 @@ static int tomoyo_read_manager_policy(st
+@@ -1179,7 +1160,6 @@ static int tomoyo_read_manager_policy(st
  		if (!done)
  			break;
  	}
@@ -159,7 +159,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1187,6 +1167,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1189,6 +1169,8 @@ static int tomoyo_read_manager_policy(st
   *
   * Returns true if the current process is permitted to modify policy
   * via /sys/kernel/security/tomoyo/ interface.
@@ -168,7 +168,7 @@
   */
  static bool tomoyo_is_policy_manager(void)
  {
-@@ -1200,29 +1182,25 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1202,29 +1184,25 @@ static bool tomoyo_is_policy_manager(voi
  		return true;
  	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
  		return false;
@@ -200,7 +200,7 @@
  	if (!found) { /* Reduce error messages. */
  		static pid_t last_pid;
  		const pid_t pid = current->pid;
-@@ -1243,6 +1221,8 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1245,6 +1223,8 @@ static bool tomoyo_is_policy_manager(voi
   * @data: String to parse.
   *
   * Returns true on success, false otherwise.
@@ -209,7 +209,7 @@
   */
  static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head,
  				 const char *data)
-@@ -1258,11 +1238,8 @@ static bool tomoyo_is_select_one(struct 
+@@ -1260,11 +1240,8 @@ static bool tomoyo_is_select_one(struct 
  			domain = tomoyo_real_domain(p);
  		read_unlock(&tasklist_lock);
  	} else if (!strncmp(data, "domain=", 7)) {
@@ -222,7 +222,7 @@
  	} else
  		return false;
  	head->write_var1 = domain;
-@@ -1276,13 +1253,11 @@ static bool tomoyo_is_select_one(struct 
+@@ -1278,13 +1255,11 @@ static bool tomoyo_is_select_one(struct 
  	if (domain) {
  		struct tomoyo_domain_info *d;
  		head->read_var1 = NULL;
@@ -237,7 +237,7 @@
  		head->read_var2 = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
-@@ -1293,11 +1268,45 @@ static bool tomoyo_is_select_one(struct 
+@@ -1295,11 +1270,45 @@ static bool tomoyo_is_select_one(struct 
  }
  
  /**
@@ -283,7 +283,7 @@
   */
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
-@@ -1320,11 +1329,9 @@ static int tomoyo_write_domain_policy(st
+@@ -1322,11 +1331,9 @@ static int tomoyo_write_domain_policy(st
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
@@ -297,7 +297,7 @@
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
  		head->write_var1 = domain;
  		return 0;
-@@ -1339,8 +1346,7 @@ static int tomoyo_write_domain_policy(st
+@@ -1341,8 +1348,7 @@ static int tomoyo_write_domain_policy(st
  		return 0;
  	}
  	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
@@ -307,7 +307,7 @@
  		return 0;
  	}
  	return tomoyo_write_file_policy(data, domain, is_delete);
-@@ -1480,8 +1486,7 @@ static int tomoyo_read_domain_policy(str
+@@ -1482,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -317,7 +317,7 @@
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1494,10 +1499,9 @@ static int tomoyo_read_domain_policy(str
+@@ -1496,10 +1501,9 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -330,7 +330,7 @@
  			ignore_global_allow_read
  				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
  		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
-@@ -1513,9 +1517,8 @@ acl_loop:
+@@ -1515,9 +1519,8 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -342,7 +342,7 @@
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
  					     list);
-@@ -1523,7 +1526,6 @@ acl_loop:
+@@ -1525,7 +1528,6 @@ acl_loop:
  			if (!done)
  				break;
  		}
@@ -350,7 +350,7 @@
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1535,7 +1537,6 @@ tail_mark:
+@@ -1537,7 +1539,6 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -358,7 +358,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1551,6 +1552,8 @@ tail_mark:
+@@ -1553,6 +1554,8 @@ tail_mark:
   *
   *     ( echo "select " $domainname; echo "use_profile " $profile ) |
   *     /usr/lib/ccs/loadpolicy -d
@@ -367,7 +367,7 @@
   */
  static int tomoyo_write_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1562,9 +1565,7 @@ static int tomoyo_write_domain_profile(s
+@@ -1564,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
@@ -377,7 +377,7 @@
  	if (strict_strtoul(data, 10, &profile))
  		return -EINVAL;
  	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1594,8 +1595,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1596,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -387,7 +387,7 @@
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1605,7 +1605,6 @@ static int tomoyo_read_domain_profile(st
+@@ -1607,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
  		if (!done)
  			break;
  	}
@@ -395,7 +395,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1824,16 +1823,24 @@ void tomoyo_load_policy(const char *file
+@@ -1826,16 +1825,24 @@ void tomoyo_load_policy(const char *file
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
@@ -423,7 +423,7 @@
  	}
  }
  
-@@ -1967,6 +1974,7 @@ static int tomoyo_open_control(const u8 
+@@ -1969,6 +1976,7 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
@@ -431,7 +431,7 @@
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2084,6 +2092,7 @@ static int tomoyo_write_control(struct f
+@@ -2086,6 +2094,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -1875,7 +1875,7 @@
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -431,3 +465,318 @@ int tomoyo_write_memory_quota(struct tom
+@@ -431,3 +465,329 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
@@ -2190,8 +2190,19 @@
 +int tomoyo_gc_thread(void *unused)
 +{
 +	while (1) {
++		int i;
++		struct tomoyo_name_entry *ptr;
 +		msleep(30000);
 +		tomoyo_gc_thread_main(unused);
++		if (!mutex_trylock(&tomoyo_name_list_lock))
++			continue;
++		for (i = 0; i < TOMOYO_MAX_HASH; i++)
++			list_for_each_entry_rcu(ptr, &tomoyo_name_list[i],
++						list)
++				printk(KERN_DEBUG "users=%u name=%s\n",
++				       atomic_read(&ptr->users),
++				       ptr->entry.name);
++		mutex_unlock(&tomoyo_name_list_lock);
 +	}
 +}
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.h
