@@ -1,13 +1,13 @@
 ---
  security/tomoyo/common.c   |  159 ++++++++++---------
  security/tomoyo/common.h   |  218 +++++++++++++++++++++++---
- security/tomoyo/domain.c   |  250 +++++-------------------------
+ security/tomoyo/domain.c   |  251 +++++-------------------------
  security/tomoyo/file.c     |  177 ++++++++-------------
  security/tomoyo/realpath.c |  375 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 771 insertions(+), 444 deletions(-)
+ 8 files changed, 772 insertions(+), 444 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1195,7 +1195,7 @@
  	if (domain)
  		goto done;
  	if (is_enforce)
-@@ -963,12 +798,15 @@ int tomoyo_find_next_domain(struct linux
+@@ -963,12 +798,16 @@ int tomoyo_find_next_domain(struct linux
  	if (is_enforce)
  		retval = -EPERM;
  	else
@@ -1204,8 +1204,9 @@
 +		old_domain->domain_transition_failed = true;
   out:
 +	BUG_ON(bprm->cred->security);
-+	if (domain)
-+		atomic_inc(&domain->users);
++	if (!domain)
++		domain = old_domain;
++	atomic_inc(&domain->users);
 +	bprm->cred->security = domain;
 +	tomoyo_unlock(idx);
  	tomoyo_free(real_program_name);
