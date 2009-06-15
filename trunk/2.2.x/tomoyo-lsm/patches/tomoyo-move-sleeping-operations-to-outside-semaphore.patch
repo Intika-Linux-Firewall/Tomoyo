@@ -9,11 +9,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |   88 +++++++---------------
  security/tomoyo/common.h   |    2 
- security/tomoyo/domain.c   |  102 +++++++++++++------------
+ security/tomoyo/domain.c   |  107 +++++++++++++--------------
  security/tomoyo/file.c     |  132 +++++++++++++++++----------------
  security/tomoyo/realpath.c |  177 +++++++++++++++------------------------------
  security/tomoyo/realpath.h |    7 -
- 6 files changed, 215 insertions(+), 293 deletions(-)
+ 6 files changed, 215 insertions(+), 298 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -337,7 +337,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -761,9 +756,16 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -761,17 +756,19 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    domainname,
  							    const u8 profile)
  {
@@ -346,16 +346,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_domain_info *domain;
  	const struct tomoyo_path_info *saved_domainname;
  
-+	if (!tomoyo_is_correct_domain(domainname, __func__))
+-	down_write(&tomoyo_domain_list_lock);
+-	domain = tomoyo_find_domain(domainname);
+-	if (domain)
+-		goto out;
+ 	if (!tomoyo_is_correct_domain(domainname, __func__))
+-		goto out;
 +		return NULL;
-+	saved_domainname = tomoyo_save_name(domainname);
-+	if (!saved_domainname)
+ 	saved_domainname = tomoyo_save_name(domainname);
+ 	if (!saved_domainname)
 +		return NULL;
 +	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
- 	down_write(&tomoyo_domain_list_lock);
- 	domain = tomoyo_find_domain(domainname);
- 	if (domain)
-@@ -803,8 +805,9 @@ struct tomoyo_domain_info *tomoyo_find_o
++	down_write(&tomoyo_domain_list_lock);
++	domain = tomoyo_find_domain(domainname);
++	if (domain)
+ 		goto out;
+ 	/* Can I reuse memory of deleted domain? */
+ 	list_for_each_entry(domain, &tomoyo_domain_list, list) {
+@@ -803,8 +800,9 @@ struct tomoyo_domain_info *tomoyo_find_o
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -367,7 +375,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
  		domain->profile = profile;
-@@ -812,6 +815,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -812,6 +810,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  	}
   out:
  	up_write(&tomoyo_domain_list_lock);

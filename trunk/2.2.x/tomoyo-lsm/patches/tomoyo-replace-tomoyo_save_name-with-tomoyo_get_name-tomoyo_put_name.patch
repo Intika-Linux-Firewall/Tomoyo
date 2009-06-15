@@ -8,11 +8,11 @@ Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |    9 +++++++--
- security/tomoyo/domain.c   |   43 ++++++++++++++++++++++++++++++++-----------
+ security/tomoyo/domain.c   |   41 +++++++++++++++++++++++++++++++----------
  security/tomoyo/file.c     |   29 ++++++++++++++++++++++-------
  security/tomoyo/realpath.c |    6 +++---
  security/tomoyo/realpath.h |    6 +++++-
- 5 files changed, 69 insertions(+), 24 deletions(-)
+ 5 files changed, 68 insertions(+), 23 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -160,16 +160,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
-@@ -772,7 +791,7 @@ struct tomoyo_domain_info *tomoyo_find_o
- 		goto out;
- 	if (!tomoyo_is_correct_domain(domainname, __func__))
- 		goto out;
--	saved_domainname = tomoyo_save_name(domainname);
-+	saved_domainname = tomoyo_get_name(domainname);
- 	if (!saved_domainname)
- 		goto out;
- 	/* Can I reuse memory of deleted domain? */
-@@ -810,11 +829,13 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -805,11 +824,13 @@ struct tomoyo_domain_info *tomoyo_find_o
  		new_domain = NULL;
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;

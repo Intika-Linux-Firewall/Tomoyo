@@ -1,13 +1,13 @@
 ---
  security/tomoyo/common.c   |  159 ++++++++++---------
  security/tomoyo/common.h   |  218 +++++++++++++++++++++++---
- security/tomoyo/domain.c   |  249 +++++------------------------
+ security/tomoyo/domain.c   |  250 +++++-------------------------
  security/tomoyo/file.c     |  177 ++++++++-------------
  security/tomoyo/realpath.c |  375 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 770 insertions(+), 444 deletions(-)
+ 8 files changed, 771 insertions(+), 444 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1087,7 +1087,7 @@
  /**
   * tomoyo_find_or_assign_new_domain - Create a domain.
   *
-@@ -785,7 +652,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -785,39 +652,10 @@ struct tomoyo_domain_info *tomoyo_find_o
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
@@ -1095,10 +1095,6 @@
 +	mutex_lock(&tomoyo_policy_lock);
  	domain = tomoyo_find_domain(domainname);
  	if (domain)
- 		goto out;
-@@ -794,35 +661,6 @@ struct tomoyo_domain_info *tomoyo_find_o
- 	saved_domainname = tomoyo_get_name(domainname);
- 	if (!saved_domainname)
  		goto out;
 -	/* Can I reuse memory of deleted domain? */
 -	list_for_each_entry(domain, &tomoyo_domain_list, list) {
@@ -1132,7 +1128,7 @@
  	/* No memory reusable. Create using new memory. */
  	if (tomoyo_memory_ok(new_domain)) {
  		domain = new_domain;
-@@ -831,10 +669,10 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -826,10 +664,10 @@ struct tomoyo_domain_info *tomoyo_find_o
  		domain->domainname = saved_domainname;
  		saved_domainname = NULL;
  		domain->profile = profile;
@@ -1145,7 +1141,7 @@
  	tomoyo_put_name(saved_domainname);
  	kfree(new_domain);
  	return domain;
-@@ -843,13 +681,13 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -838,13 +676,13 @@ struct tomoyo_domain_info *tomoyo_find_o
  /**
   * tomoyo_find_next_domain - Find a domain.
   *
@@ -1163,7 +1159,7 @@
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -870,6 +708,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -865,6 +703,7 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1171,7 +1167,7 @@
  
  	if (!tmp)
  		goto out;
-@@ -908,8 +747,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -903,8 +742,7 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1181,7 +1177,7 @@
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -920,7 +758,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -915,7 +753,6 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1189,7 +1185,7 @@
  	}
  
  	/* Check execute permission. */
-@@ -951,9 +788,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -946,9 +783,7 @@ int tomoyo_find_next_domain(struct linux
  	}
  	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
  		goto done;
@@ -1199,7 +1195,7 @@
  	if (domain)
  		goto done;
  	if (is_enforce)
-@@ -968,12 +803,14 @@ int tomoyo_find_next_domain(struct linux
+@@ -963,12 +798,15 @@ int tomoyo_find_next_domain(struct linux
  	if (is_enforce)
  		retval = -EPERM;
  	else
@@ -1208,7 +1204,8 @@
 +		old_domain->domain_transition_failed = true;
   out:
 +	BUG_ON(bprm->cred->security);
-+	atomic_inc(&domain->users);
++	if (domain)
++		atomic_inc(&domain->users);
 +	bprm->cred->security = domain;
 +	tomoyo_unlock(idx);
  	tomoyo_free(real_program_name);
