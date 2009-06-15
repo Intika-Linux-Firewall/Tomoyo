@@ -7,12 +7,12 @@ Since refcounter is not added yet, tomoyo_put_name() is a no-op.
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |    9 +++++++--
+ security/tomoyo/common.c   |   11 +++++++++--
  security/tomoyo/domain.c   |   41 +++++++++++++++++++++++++++++++----------
  security/tomoyo/file.c     |   29 ++++++++++++++++++++++-------
  security/tomoyo/realpath.c |    6 +++---
  security/tomoyo/realpath.h |    6 +++++-
- 5 files changed, 68 insertions(+), 23 deletions(-)
+ 5 files changed, 70 insertions(+), 23 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -39,6 +39,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_manager)
  		return -ENOMEM;
  	if (!is_delete)
+@@ -1117,12 +1122,14 @@ static int tomoyo_update_manager_entry(c
+ 	}
+ 	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
+ 		new_entry->manager = saved_manager;
++		saved_manager = NULL;
+ 		new_entry->is_domain = is_domain;
+ 		list_add_tail(&new_entry->list, &tomoyo_policy_manager_list);
+ 		new_entry = NULL;
+ 		error = 0;
+ 	}
+ 	up_write(&tomoyo_policy_manager_list_lock);
++	tomoyo_put_name(saved_manager);
+ 	kfree(new_entry);
+ 	return error;
+ }
 --- security-testing-2.6.git.orig/security/tomoyo/domain.c
 +++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -238,13 +238,15 @@ static int tomoyo_update_domain_initiali
