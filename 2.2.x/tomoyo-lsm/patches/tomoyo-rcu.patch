@@ -1,12 +1,13 @@
 ---
- security/tomoyo/common.c   |  159 +++++++++++----------
- security/tomoyo/common.h   |  218 +++++++++++++++++++++++++---
- security/tomoyo/domain.c   |  249 +++++----------------------------
- security/tomoyo/file.c     |  177 +++++++++--------------
- security/tomoyo/realpath.c |  339 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/common.c   |  159 ++++++++++----------
+ security/tomoyo/common.h   |  218 ++++++++++++++++++++++++---
+ security/tomoyo/domain.c   |  249 +++++--------------------------
+ security/tomoyo/file.c     |  177 ++++++++--------------
+ security/tomoyo/realpath.c |  356 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   28 ++-
  security/tomoyo/tomoyo.h   |    3 
- 7 files changed, 733 insertions(+), 440 deletions(-)
+ 8 files changed, 751 insertions(+), 444 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1777,7 +1778,7 @@
 + *
 + * @ptr: Pointer to allocated memory.
 + */
-+void tomoyo_free_element(void *ptr)
++static void tomoyo_free_element(void *ptr)
 +{
 +	atomic_sub(ksize(ptr), &tomoyo_allocated_memory_for_elements);
 +	kfree(ptr);
@@ -1876,7 +1877,7 @@
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -431,3 +465,282 @@ int tomoyo_write_memory_quota(struct tom
+@@ -431,3 +465,299 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
@@ -1891,7 +1892,7 @@
 +	TOMOYO_ID_PATTERN,
 +	TOMOYO_ID_NO_REWRITE,
 +	TOMOYO_ID_MANAGER,
-+	TOMOYO_ID_DOMAIN_ACL,
++	TOMOYO_ID_ACL,
 +	TOMOYO_ID_DOMAIN
 +};
 +
@@ -2006,26 +2007,17 @@
 +		struct tomoyo_domain_info *domain;
 +		struct tomoyo_acl_info *acl;
 +		list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
-+			const bool can_delete_domain = domain->is_deleted &&
-+				!atomic_read(&domain->users);
-+			if (can_delete_domain) {
-+				list_for_each_entry_rcu(acl,
-+							&domain->acl_info_list,
-+							list)
-+					acl->type |= TOMOYO_ACL_DELETED;
-+			}
 +			list_for_each_entry_rcu(acl, &domain->acl_info_list,
 +						list) {
 +				if (!(acl->type & TOMOYO_ACL_DELETED))
 +					continue;
-+				if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN_ACL,
-+						     acl))
++				if (tomoyo_add_to_gc(TOMOYO_ID_ACL, acl))
 +					list_del_rcu(&acl->list);
 +				else
 +					break;
 +			}
-+			if (can_delete_domain &&
-+			    list_empty(&domain->acl_info_list)) {
++			if (domain->is_deleted &&
++			    !atomic_read(&domain->users)) {
 +				if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN, domain))
 +					list_del_rcu(&domain->list);
 +				else
@@ -2121,7 +2113,7 @@
 +				tomoyo_free_element(ptr);
 +			}
 +			break;
-+		case TOMOYO_ID_DOMAIN_ACL:
++		case TOMOYO_ID_ACL:
 +			{
 +				struct tomoyo_acl_info *acl =
 +					(struct tomoyo_acl_info *)
@@ -2147,7 +2139,33 @@
 +			break;
 +		case TOMOYO_ID_DOMAIN:
 +			{
++				bool defer = false;
++				struct tomoyo_acl_info *acl;
 +				struct tomoyo_domain_info *domain = p->element;
++				/*
++				 * We need to recheck domain->users because
++				 * tomoyo_find_next_domain() increments it.
++				 */
++				if (atomic_read(&domain->users))
++					continue;
++				/* Delete all entries in this domain. */
++				list_for_each_entry_rcu(acl,
++							&domain->acl_info_list,
++							list) {
++					if (tomoyo_add_to_gc(TOMOYO_ID_ACL,
++							     acl))
++						list_del_rcu(&acl->list);
++					else {
++						defer = true;
++						break;
++					}
++				}
++				/*
++				 * Don't delete this domain now if failed to
++				 * delete entries in this domain.
++				 */
++				if (defer)
++					continue;
 +				tomoyo_put_name(domain->domainname);
 +				list_del_rcu(&domain->list);
 +				tomoyo_free_element(domain);
@@ -2159,6 +2177,20 @@
 +	}
 +	goto restart;
 +}
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.h
++++ security-testing-2.6.git/security/tomoyo/realpath.h
+@@ -44,10 +44,7 @@ bool tomoyo_memory_ok(void *ptr);
+  * The RAM is shared, so NEVER try to modify or kfree() the returned name.
+  */
+ const struct tomoyo_path_info *tomoyo_get_name(const char *name);
+-static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
+-{
+-	/* It's a dummy so far. */
+-}
++void tomoyo_put_name(const struct tomoyo_path_info *name);
+ 
+ /* Allocate memory for temporary use (e.g. permission checks). */
+ void *tomoyo_alloc(const size_t size);
 --- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6.git/security/tomoyo/tomoyo.c
 @@ -22,9 +22,19 @@ static int tomoyo_cred_prepare(struct cr
