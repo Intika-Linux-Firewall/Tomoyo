@@ -27,8 +27,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/tomoyo.h   |   17 
  9 files changed, 1309 insertions(+), 4 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/Kconfig
-+++ linux-2.6.git/security/tomoyo/Kconfig
+--- security-testing-2.6.git.orig/security/tomoyo/Kconfig
++++ security-testing-2.6.git/security/tomoyo/Kconfig
 @@ -3,6 +3,7 @@ config SECURITY_TOMOYO
  	depends on SECURITY
  	select SECURITYFS
@@ -37,13 +37,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default n
  	help
  	  This selects TOMOYO Linux, pathname-based access control.
---- linux-2.6.git.orig/security/tomoyo/Makefile
-+++ linux-2.6.git/security/tomoyo/Makefile
+--- security-testing-2.6.git.orig/security/tomoyo/Makefile
++++ security-testing-2.6.git/security/tomoyo/Makefile
 @@ -1 +1 @@
 -obj-y = common.o realpath.o tomoyo.o domain.o file.o
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o network.o
---- linux-2.6.git.orig/security/tomoyo/common.c
-+++ linux-2.6.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -41,6 +41,7 @@ static struct {
  	const unsigned int max_value;
  } tomoyo_control_array[TOMOYO_MAX_CONTROL_INDEX] = {
@@ -217,8 +217,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  		list_del(&acl->entry.list);
  		tomoyo_free_element(acl);
---- linux-2.6.git.orig/security/tomoyo/common.h
-+++ linux-2.6.git/security/tomoyo/common.h
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
 @@ -22,6 +22,7 @@
  #include <linux/namei.h>
  #include <linux/mount.h>
@@ -332,7 +332,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_cleanup_allow_read(void);
  void tomoyo_cleanup_file_pattern(void);
 --- /dev/null
-+++ linux-2.6.git/security/tomoyo/network.c
++++ security-testing-2.6.git/security/tomoyo/network.c
 @@ -0,0 +1,883 @@
 +/*
 + * security/tomoyo/network.c
@@ -1217,8 +1217,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* Hope less harmful than -EPERM. */
 +	return -ENOMEM;
 +}
---- linux-2.6.git.orig/security/tomoyo/realpath.c
-+++ linux-2.6.git/security/tomoyo/realpath.c
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.c
++++ security-testing-2.6.git/security/tomoyo/realpath.c
 @@ -351,6 +351,69 @@ void tomoyo_put_name(const struct tomoyo
  	}
  }
@@ -1289,8 +1289,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_realpath_init - Initialize realpath related code.
   */
---- linux-2.6.git.orig/security/tomoyo/realpath.h
-+++ linux-2.6.git/security/tomoyo/realpath.h
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.h
++++ security-testing-2.6.git/security/tomoyo/realpath.h
 @@ -46,6 +46,11 @@ bool tomoyo_memory_ok(void *ptr);
  const struct tomoyo_path_info *tomoyo_get_name(const char *name);
  void tomoyo_put_name(const struct tomoyo_path_info *name);
@@ -1303,8 +1303,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Allocate memory for temporary use (e.g. permission checks). */
  void *tomoyo_alloc(const size_t size);
  
---- linux-2.6.git.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.git/security/tomoyo/tomoyo.c
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6.git/security/tomoyo/tomoyo.c
 @@ -10,6 +10,7 @@
   */
  
@@ -1469,8 +1469,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  static int __init tomoyo_init(void)
---- linux-2.6.git.orig/security/tomoyo/tomoyo.h
-+++ linux-2.6.git/security/tomoyo/tomoyo.h
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
++++ security-testing-2.6.git/security/tomoyo/tomoyo.h
 @@ -33,10 +33,27 @@ int tomoyo_check_rewrite_permission(stru
  				    struct file *filp);
  int tomoyo_find_next_domain(struct linux_binprm *bprm);

@@ -10,8 +10,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c |   32 --------------------------------
  3 files changed, 30 insertions(+), 34 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/common.c
-+++ linux-2.6.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -1285,6 +1285,36 @@ static bool tomoyo_is_select_one(struct 
  }
  
@@ -49,8 +49,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_domain_policy - Write domain policy.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
---- linux-2.6.git.orig/security/tomoyo/common.h
-+++ linux-2.6.git/security/tomoyo/common.h
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
 @@ -339,8 +339,6 @@ const char *tomoyo_get_last_name(const s
  const char *tomoyo_get_msg(const bool is_enforce);
  /* Convert single path operation to operation name. */
@@ -60,8 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Create "alias" entry in exception policy. */
  int tomoyo_write_alias_policy(char *data, const bool is_delete);
  /*
---- linux-2.6.git.orig/security/tomoyo/domain.c
-+++ linux-2.6.git/security/tomoyo/domain.c
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -717,38 +717,6 @@ int tomoyo_write_alias_policy(char *data
  	return tomoyo_update_alias_entry(data, cp, is_delete);
  }

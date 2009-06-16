@@ -15,8 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    7 -
  6 files changed, 231 insertions(+), 345 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/common.c
-+++ linux-2.6.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -56,6 +56,7 @@ static struct tomoyo_profile {
  	unsigned int value[TOMOYO_MAX_CONTROL_INDEX];
  	const struct tomoyo_path_info *comment;
@@ -179,8 +179,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
   *
   * @inode: Pointer to "struct inode".
---- linux-2.6.git.orig/security/tomoyo/common.h
-+++ linux-2.6.git/security/tomoyo/common.h
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
 @@ -159,23 +159,20 @@ struct tomoyo_domain_info {
  	u8 profile;        /* Profile number to use. */
  	bool is_deleted;   /* Delete flag.           */
@@ -230,8 +230,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
---- linux-2.6.git.orig/security/tomoyo/domain.c
-+++ linux-2.6.git/security/tomoyo/domain.c
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -131,28 +131,6 @@ struct tomoyo_alias_entry {
  };
  
@@ -495,8 +495,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   out:
  	if (!domain)
  		domain = old_domain;
---- linux-2.6.git.orig/security/tomoyo/file.c
-+++ linux-2.6.git/security/tomoyo/file.c
+--- security-testing-2.6.git.orig/security/tomoyo/file.c
++++ security-testing-2.6.git/security/tomoyo/file.c
 @@ -209,36 +209,34 @@ static DECLARE_RWSEM(tomoyo_globally_rea
  static int tomoyo_update_globally_readable_entry(const char *filename,
  						 const bool is_delete)
@@ -783,8 +783,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
---- linux-2.6.git.orig/security/tomoyo/realpath.c
-+++ linux-2.6.git/security/tomoyo/realpath.c
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.c
++++ security-testing-2.6.git/security/tomoyo/realpath.c
 @@ -195,66 +195,36 @@ char *tomoyo_realpath_nofollow(const cha
  }
  
@@ -1018,8 +1018,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		const unsigned int dynamic
  			= atomic_read(&tomoyo_dynamic_memory_size);
  		char buffer[64];
---- linux-2.6.git.orig/security/tomoyo/realpath.h
-+++ linux-2.6.git/security/tomoyo/realpath.h
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.h
++++ security-testing-2.6.git/security/tomoyo/realpath.h
 @@ -36,11 +36,8 @@ char *tomoyo_realpath_nofollow(const cha
  /* Same with tomoyo_realpath() except that the pathname is already solved. */
  char *tomoyo_realpath_from_path(struct path *path);

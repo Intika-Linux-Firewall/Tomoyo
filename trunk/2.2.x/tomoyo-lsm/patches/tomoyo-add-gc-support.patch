@@ -14,8 +14,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    7 +--
  6 files changed, 289 insertions(+), 4 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/common.c
-+++ linux-2.6.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -1144,6 +1144,30 @@ static int tomoyo_update_manager_entry(c
  }
  
@@ -142,8 +142,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- linux-2.6.git.orig/security/tomoyo/common.h
-+++ linux-2.6.git/security/tomoyo/common.h
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
 @@ -396,6 +396,13 @@ void tomoyo_fill_path_info(struct tomoyo
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
@@ -158,8 +158,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
---- linux-2.6.git.orig/security/tomoyo/domain.c
-+++ linux-2.6.git/security/tomoyo/domain.c
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -257,6 +257,31 @@ static int tomoyo_update_domain_initiali
  }
  
@@ -255,8 +255,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_alias_policy - Read "struct tomoyo_alias_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
---- linux-2.6.git.orig/security/tomoyo/file.c
-+++ linux-2.6.git/security/tomoyo/file.c
+--- security-testing-2.6.git.orig/security/tomoyo/file.c
++++ security-testing-2.6.git/security/tomoyo/file.c
 @@ -244,6 +244,30 @@ static int tomoyo_update_globally_readab
  }
  
@@ -349,8 +349,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
   *
   * @filename: Filename to check.
---- linux-2.6.git.orig/security/tomoyo/realpath.c
-+++ linux-2.6.git/security/tomoyo/realpath.c
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.c
++++ security-testing-2.6.git/security/tomoyo/realpath.c
 @@ -223,6 +223,17 @@ bool tomoyo_memory_ok(void *ptr)
  	return false;
  }
@@ -401,8 +401,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_realpath_init - Initialize realpath related code.
   */
  void __init tomoyo_realpath_init(void)
---- linux-2.6.git.orig/security/tomoyo/realpath.h
-+++ linux-2.6.git/security/tomoyo/realpath.h
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.h
++++ security-testing-2.6.git/security/tomoyo/realpath.h
 @@ -44,10 +44,7 @@ bool tomoyo_memory_ok(void *ptr);
   * The RAM is shared, so NEVER try to modify or kfree() the returned name.
   */

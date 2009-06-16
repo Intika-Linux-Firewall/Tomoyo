@@ -45,16 +45,16 @@ Memory Management Rules:
 Signed-off-by: Kentaro Takeda <takedakn@nttdata.co.jp>
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |  130 +++++++++++++++++++++++++++++----------------
- security/tomoyo/common.h   |   26 +++++++--
- security/tomoyo/domain.c   |  124 ++++++++++++++++++------------------------
- security/tomoyo/file.c     |  116 ++++++++++++++++++++++++++--------------
+ security/tomoyo/common.c   |  130 +++++++++++++++++++++++++++++--------------
+ security/tomoyo/common.h   |   26 +++++++-
+ security/tomoyo/domain.c   |  133 +++++++++++++++++++--------------------------
+ security/tomoyo/file.c     |  116 +++++++++++++++++++++++++--------------
  security/tomoyo/realpath.c |   13 +---
  security/tomoyo/tomoyo.c   |   18 +++++-
- 6 files changed, 260 insertions(+), 167 deletions(-)
+ 6 files changed, 264 insertions(+), 172 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/common.c
-+++ linux-2.6.git/security/tomoyo/common.c
+--- security-testing-2.6.git.orig/security/tomoyo/common.c
++++ security-testing-2.6.git/security/tomoyo/common.c
 @@ -340,10 +340,9 @@ bool tomoyo_is_domain_def(const unsigned
   *
   * @domainname: The domainname to find.
@@ -457,8 +457,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
---- linux-2.6.git.orig/security/tomoyo/common.h
-+++ linux-2.6.git/security/tomoyo/common.h
+--- security-testing-2.6.git.orig/security/tomoyo/common.h
++++ security-testing-2.6.git/security/tomoyo/common.h
 @@ -23,6 +23,25 @@
  #include <linux/mount.h>
  #include <linux/list.h>
@@ -516,8 +516,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* The step for reading.                */
  	int read_step;
  	/* Buffer for reading.                  */
---- linux-2.6.git.orig/security/tomoyo/domain.c
-+++ linux-2.6.git/security/tomoyo/domain.c
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -77,7 +77,7 @@ DECLARE_RWSEM(tomoyo_domain_list_lock);
   *      component of a domainname", false otherwise.
   */
@@ -698,7 +698,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	const struct tomoyo_path_info *saved_domainname;
 +	struct tomoyo_domain_info *domain = NULL;
 +	const struct tomoyo_path_info *saved_domainname = NULL;
-+	bool found = true;
++	bool found = false;
  
 +	up_read(&tomoyo_domain_list_lock);
  	if (!tomoyo_is_correct_domain(domainname, __func__))
@@ -780,15 +780,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -889,30 +874,29 @@ int tomoyo_find_next_domain(struct linux
+@@ -889,30 +874,28 @@ int tomoyo_find_next_domain(struct linux
  		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
  			 "%s %s", old_domain_name, real_program_name);
  	}
-+	down_read(&tomoyo_domain_list_lock);
- 	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
- 		goto done;
--	down_read(&tomoyo_domain_list_lock);
- 	domain = tomoyo_find_domain(new_domain_name);
+-	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
+-		goto done;
+ 	down_read(&tomoyo_domain_list_lock);
+-	domain = tomoyo_find_domain(new_domain_name);
 -	up_read(&tomoyo_domain_list_lock);
 -	if (domain)
 -		goto done;
@@ -796,10 +795,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		goto done;
 -	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
 -						  old_domain->profile);
-+	if (!domain && !is_enforce)
-+		domain = tomoyo_find_or_assign_new_domain(new_domain_name,
-+							  old_domain->profile);
-  done:
+- done:
 -	if (domain)
 -		goto out;
 -	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
@@ -808,6 +804,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		retval = -EPERM;
 -	else
 -		old_domain->domain_transition_failed = true;
+- out:
+-	if (!domain)
++	if (!domain && strlen(new_domain_name) < TOMOYO_MAX_PATHNAME_LEN) {
++		const char *name = new_domain_name;
++		domain = tomoyo_find_domain(name);
++		if (!domain && !is_enforce)
++			domain = tomoyo_find_or_assign_new_domain(name,
++								  old_domain
++								  ->profile);
++	}
 +	if (!domain) {
 +		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
 +		       new_domain_name);
@@ -815,19 +821,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			retval = -EPERM;
 +		else
 +			old_domain->domain_transition_failed = true;
-+	}
-  out:
- 	if (!domain)
  		domain = old_domain;
-+	BUG_ON(bprm->cred->security);
++	}
 +	atomic_inc(&domain->entry.users);
  	bprm->cred->security = domain;
 +	up_read(&tomoyo_domain_list_lock);
++ out:
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
  	tomoyo_free(tmp);
---- linux-2.6.git.orig/security/tomoyo/file.c
-+++ linux-2.6.git/security/tomoyo/file.c
+--- security-testing-2.6.git.orig/security/tomoyo/file.c
++++ security-testing-2.6.git/security/tomoyo/file.c
 @@ -25,7 +25,7 @@
   *      otherwise.
   */
@@ -1171,8 +1175,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
   out:
  	tomoyo_free(buf1);
---- linux-2.6.git.orig/security/tomoyo/realpath.c
-+++ linux-2.6.git/security/tomoyo/realpath.c
+--- security-testing-2.6.git.orig/security/tomoyo/realpath.c
++++ security-testing-2.6.git/security/tomoyo/realpath.c
 @@ -238,15 +238,10 @@ static unsigned int tomoyo_quota_for_sav
  /*
   * tomoyo_name_entry is a structure which is used for linking
@@ -1224,8 +1228,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	down_read(&tomoyo_domain_list_lock);
  	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
  		panic("Can't register tomoyo_kernel_domain");
---- linux-2.6.git.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.git/security/tomoyo/tomoyo.c
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6.git/security/tomoyo/tomoyo.c
 @@ -22,9 +22,19 @@ static int tomoyo_cred_prepare(struct cr
  	 * we don't need to duplicate.
  	 */
