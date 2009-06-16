@@ -4,7 +4,7 @@
 
 ETYPE="sources"
 K_WANT_GENPATCHES="base extras"
-K_GENPATCHES_VER="7"
+K_GENPATCHES_VER="3"
 
 inherit eutils kernel-2
 detect_version
@@ -12,11 +12,12 @@ detect_arch
 
 CCS_TGP="ccs-patch-1.6.8-20090528"
 CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
-CCS_PATCH_VER="2.6.29"
+CCS_PATCH_VER="2.6.30"
 
 DESCRIPTION="TOMOYO Linux sources for the ${KV_MAJOR}.${KV_MINOR} kernel tree"
+HOMEPAGE="http://tomoyo.sourceforge.jp/index.html.en"
 SRC_URI="${KERNEL_URI} ${GENPATCHES_URI} ${ARCH_URI} ${CCS_TGP_SRC}"
-KEYWORDS="alpha amd64 arm hppa ia64 ppc ~ppc64 sh ~sparc x86"
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~ppc ~ppc64 ~sh ~sparc ~x86"
 DEPEND="sys-apps/coreutils"
 RDEPEND="sys-apps/ccs-tools"
 
