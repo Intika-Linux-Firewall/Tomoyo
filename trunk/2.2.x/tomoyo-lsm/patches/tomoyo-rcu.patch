@@ -1,16 +1,15 @@
 ---
- security/tomoyo/common.c   |  159 +++++++++---------
- security/tomoyo/common.h   |  218 ++++++++++++++++++++++---
- security/tomoyo/domain.c   |  251 +++++------------------------
+ security/tomoyo/common.c   |  135 ++++++---------
+ security/tomoyo/common.h   |  216 ++++++++++++++++++++++---
+ security/tomoyo/domain.c   |  213 +++++-------------------
  security/tomoyo/file.c     |  177 +++++++-------------
  security/tomoyo/realpath.c |  386 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
- security/tomoyo/tomoyo.c   |   28 ++-
- security/tomoyo/tomoyo.h   |    3 
- 8 files changed, 783 insertions(+), 444 deletions(-)
+ security/tomoyo/tomoyo.c   |   18 +-
+ 7 files changed, 751 insertions(+), 399 deletions(-)
 
---- security-testing-2.6.git.orig/security/tomoyo/common.c
-+++ security-testing-2.6.git/security/tomoyo/common.c
+--- linux-2.6.git.orig/security/tomoyo/common.c
++++ linux-2.6.git/security/tomoyo/common.c
 @@ -12,10 +12,14 @@
  #include <linux/uaccess.h>
  #include <linux/security.h>
@@ -237,44 +236,37 @@
  		head->read_var2 = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
-@@ -1295,11 +1270,45 @@ static bool tomoyo_is_select_one(struct 
- }
- 
- /**
-+ * tomoyo_delete_domain - Delete a domain.
-+ *
-+ * @domainname: The name of domain.
-+ *
-+ * Returns 0.
+@@ -1300,6 +1275,8 @@ static bool tomoyo_is_select_one(struct 
+  * @domainname: The name of domain.
+  *
+  * Returns 0.
 + *
 + * Caller holds tomoyo_lock().
-+ */
-+static int tomoyo_delete_domain(char *domainname)
-+{
-+	struct tomoyo_domain_info *domain;
-+	struct tomoyo_path_info name;
-+
-+	name.name = domainname;
-+	tomoyo_fill_path_info(&name);
+  */
+ static int tomoyo_delete_domain(char *domainname)
+ {
+@@ -1308,9 +1285,9 @@ static int tomoyo_delete_domain(char *do
+ 
+ 	name.name = domainname;
+ 	tomoyo_fill_path_info(&name);
+-	down_write(&tomoyo_domain_list_lock);
 +	mutex_lock(&tomoyo_policy_lock);
-+	/* Is there an active domain? */
+ 	/* Is there an active domain? */
+-	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 +	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
-+		/* Never delete tomoyo_kernel_domain */
-+		if (domain == &tomoyo_kernel_domain)
-+			continue;
-+		if (domain->is_deleted ||
-+		    tomoyo_pathcmp(domain->domainname, &name))
-+			continue;
-+		domain->is_deleted = true;
-+		break;
-+	}
+ 		/* Never delete tomoyo_kernel_domain */
+ 		if (domain == &tomoyo_kernel_domain)
+ 			continue;
+@@ -1320,7 +1297,7 @@ static int tomoyo_delete_domain(char *do
+ 		domain->is_deleted = true;
+ 		break;
+ 	}
+-	up_write(&tomoyo_domain_list_lock);
 +	mutex_unlock(&tomoyo_policy_lock);
-+	return 0;
-+}
-+
-+/**
-  * tomoyo_write_domain_policy - Write domain policy.
-  *
+ 	return 0;
+ }
+ 
+@@ -1330,6 +1307,8 @@ static int tomoyo_delete_domain(char *do
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns 0 on success, negative value otherwise.
@@ -283,7 +275,7 @@
   */
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
-@@ -1322,11 +1331,9 @@ static int tomoyo_write_domain_policy(st
+@@ -1352,11 +1331,9 @@ static int tomoyo_write_domain_policy(st
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
@@ -297,7 +289,7 @@
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
  		head->write_var1 = domain;
  		return 0;
-@@ -1341,8 +1348,7 @@ static int tomoyo_write_domain_policy(st
+@@ -1371,8 +1348,7 @@ static int tomoyo_write_domain_policy(st
  		return 0;
  	}
  	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
@@ -307,7 +299,7 @@
  		return 0;
  	}
  	return tomoyo_write_file_policy(data, domain, is_delete);
-@@ -1482,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
+@@ -1512,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -317,7 +309,7 @@
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1496,10 +1501,9 @@ static int tomoyo_read_domain_policy(str
+@@ -1526,10 +1501,9 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -330,7 +322,7 @@
  			ignore_global_allow_read
  				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
  		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
-@@ -1515,9 +1519,8 @@ acl_loop:
+@@ -1545,9 +1519,8 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -342,7 +334,7 @@
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
  					     list);
-@@ -1525,7 +1528,6 @@ acl_loop:
+@@ -1555,7 +1528,6 @@ acl_loop:
  			if (!done)
  				break;
  		}
@@ -350,7 +342,7 @@
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1537,7 +1539,6 @@ tail_mark:
+@@ -1567,7 +1539,6 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -358,7 +350,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1553,6 +1554,8 @@ tail_mark:
+@@ -1583,6 +1554,8 @@ tail_mark:
   *
   *     ( echo "select " $domainname; echo "use_profile " $profile ) |
   *     /usr/lib/ccs/loadpolicy -d
@@ -367,7 +359,7 @@
   */
  static int tomoyo_write_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1564,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
+@@ -1594,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
@@ -377,7 +369,7 @@
  	if (strict_strtoul(data, 10, &profile))
  		return -EINVAL;
  	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1596,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1626,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -387,7 +379,7 @@
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1607,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
+@@ -1637,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
  		if (!done)
  			break;
  	}
@@ -395,7 +387,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1826,16 +1825,24 @@ void tomoyo_load_policy(const char *file
+@@ -1856,16 +1825,24 @@ void tomoyo_load_policy(const char *file
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
@@ -423,7 +415,7 @@
  	}
  }
  
-@@ -1969,6 +1976,7 @@ static int tomoyo_open_control(const u8 
+@@ -1999,6 +1976,7 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
@@ -431,7 +423,7 @@
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2086,6 +2094,7 @@ static int tomoyo_write_control(struct f
+@@ -2116,6 +2094,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -439,8 +431,8 @@
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
---- security-testing-2.6.git.orig/security/tomoyo/common.h
-+++ security-testing-2.6.git/security/tomoyo/common.h
+--- linux-2.6.git.orig/security/tomoyo/common.h
++++ linux-2.6.git/security/tomoyo/common.h
 @@ -156,26 +156,24 @@ struct tomoyo_domain_info {
  	struct list_head acl_info_list;
  	/* Name of this domain. Never NULL.          */
@@ -487,16 +479,7 @@
  	/* The position currently reading from. */
  	struct list_head *read_var1;
  	/* Extra variables for reading.         */
-@@ -339,8 +339,6 @@ const char *tomoyo_get_last_name(const s
- const char *tomoyo_get_msg(const bool is_enforce);
- /* Convert single path operation to operation name. */
- const char *tomoyo_sp2keyword(const u8 operation);
--/* Delete a domain. */
--int tomoyo_delete_domain(char *data);
- /* Create "alias" entry in exception policy. */
- int tomoyo_write_alias_policy(char *data, const bool is_delete);
- /*
-@@ -380,9 +378,6 @@ unsigned int tomoyo_check_flags(const st
+@@ -378,9 +378,6 @@ unsigned int tomoyo_check_flags(const st
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
@@ -506,7 +489,7 @@
  
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
-@@ -429,10 +424,9 @@ static inline bool tomoyo_is_invalid(con
+@@ -427,10 +424,9 @@ static inline bool tomoyo_is_invalid(con
  
  /* The list for "struct tomoyo_domain_info". */
  extern struct list_head tomoyo_domain_list;
@@ -519,7 +502,7 @@
  
  /* Has /sbin/init started? */
  extern bool tomoyo_policy_loaded;
-@@ -441,21 +435,193 @@ extern bool tomoyo_policy_loaded;
+@@ -439,21 +435,193 @@ extern bool tomoyo_policy_loaded;
  extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
  /**
@@ -719,8 +702,8 @@
 +int tomoyo_gc_thread(void *unused);
  
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
---- security-testing-2.6.git.orig/security/tomoyo/domain.c
-+++ security-testing-2.6.git/security/tomoyo/domain.c
+--- linux-2.6.git.orig/security/tomoyo/domain.c
++++ linux-2.6.git/security/tomoyo/domain.c
 @@ -58,99 +58,6 @@ struct tomoyo_domain_info tomoyo_kernel_
   * exceptions.
   */
@@ -1048,46 +1031,7 @@
  	return done;
  }
  
-@@ -731,38 +630,6 @@ int tomoyo_write_alias_policy(char *data
- 	return tomoyo_update_alias_entry(data, cp, is_delete);
- }
- 
--/* Domain create/delete handler. */
--
--/**
-- * tomoyo_delete_domain - Delete a domain.
-- *
-- * @domainname: The name of domain.
-- *
-- * Returns 0.
-- */
--int tomoyo_delete_domain(char *domainname)
--{
--	struct tomoyo_domain_info *domain;
--	struct tomoyo_path_info name;
--
--	name.name = domainname;
--	tomoyo_fill_path_info(&name);
--	down_write(&tomoyo_domain_list_lock);
--	/* Is there an active domain? */
--	list_for_each_entry(domain, &tomoyo_domain_list, list) {
--		/* Never delete tomoyo_kernel_domain */
--		if (domain == &tomoyo_kernel_domain)
--			continue;
--		if (domain->is_deleted ||
--		    tomoyo_pathcmp(domain->domainname, &name))
--			continue;
--		domain->is_deleted = true;
--		break;
--	}
--	up_write(&tomoyo_domain_list_lock);
--	return 0;
--}
--
- /**
-  * tomoyo_find_or_assign_new_domain - Create a domain.
-  *
-@@ -785,39 +652,10 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -753,39 +652,10 @@ struct tomoyo_domain_info *tomoyo_find_o
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
@@ -1128,7 +1072,7 @@
  	/* No memory reusable. Create using new memory. */
  	if (tomoyo_memory_ok(new_domain)) {
  		domain = new_domain;
-@@ -826,10 +664,10 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -794,10 +664,10 @@ struct tomoyo_domain_info *tomoyo_find_o
  		domain->domainname = saved_domainname;
  		saved_domainname = NULL;
  		domain->profile = profile;
@@ -1141,25 +1085,16 @@
  	tomoyo_put_name(saved_domainname);
  	kfree(new_domain);
  	return domain;
-@@ -838,13 +676,13 @@ struct tomoyo_domain_info *tomoyo_find_o
- /**
-  * tomoyo_find_next_domain - Find a domain.
-  *
-- * @bprm:           Pointer to "struct linux_binprm".
-- * @next_domain:    Pointer to pointer to "struct tomoyo_domain_info".
-+ * @bprm: Pointer to "struct linux_binprm".
+@@ -809,6 +679,8 @@ struct tomoyo_domain_info *tomoyo_find_o
+  * @bprm: Pointer to "struct linux_binprm".
   *
   * Returns 0 on success, negative value otherwise.
 + *
 + * Caller holds tomoyo_lock().
   */
--int tomoyo_find_next_domain(struct linux_binprm *bprm,
--			    struct tomoyo_domain_info **next_domain)
-+int tomoyo_find_next_domain(struct linux_binprm *bprm)
+ int tomoyo_find_next_domain(struct linux_binprm *bprm)
  {
- 	/*
- 	 * This function assumes that the size of buffer returned by
-@@ -865,6 +703,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -831,6 +703,7 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1167,7 +1102,7 @@
  
  	if (!tmp)
  		goto out;
-@@ -903,8 +742,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -869,8 +742,7 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1177,7 +1112,7 @@
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -915,7 +753,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -881,7 +753,6 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1185,7 +1120,7 @@
  	}
  
  	/* Check execute permission. */
-@@ -946,9 +783,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -912,9 +783,7 @@ int tomoyo_find_next_domain(struct linux
  	}
  	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
  		goto done;
@@ -1195,7 +1130,7 @@
  	if (domain)
  		goto done;
  	if (is_enforce)
-@@ -963,12 +798,16 @@ int tomoyo_find_next_domain(struct linux
+@@ -929,12 +798,16 @@ int tomoyo_find_next_domain(struct linux
  	if (is_enforce)
  		retval = -EPERM;
  	else
@@ -1211,12 +1146,12 @@
 +	tomoyo_unlock(idx);
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
--	*next_domain = domain ? domain : old_domain;
+-	bprm->cred->security = domain ? domain : old_domain;
  	tomoyo_free(tmp);
  	return retval;
  }
---- security-testing-2.6.git.orig/security/tomoyo/file.c
-+++ security-testing-2.6.git/security/tomoyo/file.c
+--- linux-2.6.git.orig/security/tomoyo/file.c
++++ linux-2.6.git/security/tomoyo/file.c
 @@ -14,56 +14,6 @@
  #include "realpath.h"
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -1757,8 +1692,8 @@
   out:
  	tomoyo_free(buf1);
  	tomoyo_free(buf2);
---- security-testing-2.6.git.orig/security/tomoyo/realpath.c
-+++ security-testing-2.6.git/security/tomoyo/realpath.c
+--- linux-2.6.git.orig/security/tomoyo/realpath.c
++++ linux-2.6.git/security/tomoyo/realpath.c
 @@ -15,6 +15,7 @@
  #include <linux/fs_struct.h>
  #include "common.h"
@@ -2205,8 +2140,8 @@
 +		mutex_unlock(&tomoyo_name_list_lock);
 +	}
 +}
---- security-testing-2.6.git.orig/security/tomoyo/realpath.h
-+++ security-testing-2.6.git/security/tomoyo/realpath.h
+--- linux-2.6.git.orig/security/tomoyo/realpath.h
++++ linux-2.6.git/security/tomoyo/realpath.h
 @@ -44,10 +44,7 @@ bool tomoyo_memory_ok(void *ptr);
   * The RAM is shared, so NEVER try to modify or kfree() the returned name.
   */
@@ -2219,8 +2154,8 @@
  
  /* Allocate memory for temporary use (e.g. permission checks). */
  void *tomoyo_alloc(const size_t size);
---- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
-+++ security-testing-2.6.git/security/tomoyo/tomoyo.c
+--- linux-2.6.git.orig/security/tomoyo/tomoyo.c
++++ linux-2.6.git/security/tomoyo/tomoyo.c
 @@ -22,9 +22,19 @@ static int tomoyo_cred_prepare(struct cr
  	 * we don't need to duplicate.
  	 */
@@ -2254,24 +2189,7 @@
  	return 0;
  }
  
-@@ -61,14 +75,8 @@ static int tomoyo_bprm_check_security(st
- 	 * Execute permission is checked against pathname passed to do_execve()
- 	 * using current domain.
- 	 */
--	if (!domain) {
--		struct tomoyo_domain_info *next_domain = NULL;
--		int retval = tomoyo_find_next_domain(bprm, &next_domain);
--
--		if (!retval)
--			bprm->cred->security = next_domain;
--		return retval;
--	}
-+	if (!domain)
-+		return tomoyo_find_next_domain(bprm);
- 	/*
- 	 * Read permission is checked against interpreters using next domain.
- 	 * '1' is the result of open_to_namei_flags(O_RDONLY).
-@@ -269,6 +277,7 @@ static int tomoyo_dentry_open(struct fil
+@@ -263,6 +277,7 @@ static int tomoyo_dentry_open(struct fil
  static struct security_operations tomoyo_security_ops = {
  	.name                = "tomoyo",
  	.cred_prepare        = tomoyo_cred_prepare,
@@ -2279,7 +2197,7 @@
  	.bprm_set_creds      = tomoyo_bprm_set_creds,
  	.bprm_check_security = tomoyo_bprm_check_security,
  #ifdef CONFIG_SYSCTL
-@@ -297,6 +306,7 @@ static int __init tomoyo_init(void)
+@@ -291,6 +306,7 @@ static int __init tomoyo_init(void)
  		panic("Failure registering TOMOYO Linux");
  	printk(KERN_INFO "TOMOYO Linux initialized\n");
  	cred->security = &tomoyo_kernel_domain;
@@ -2287,15 +2205,3 @@
  	tomoyo_realpath_init();
  	return 0;
  }
---- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
-+++ security-testing-2.6.git/security/tomoyo/tomoyo.h
-@@ -31,8 +31,7 @@ int tomoyo_check_2path_perm(struct tomoy
- 			    struct path *path2);
- int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
- 				    struct file *filp);
--int tomoyo_find_next_domain(struct linux_binprm *bprm,
--			    struct tomoyo_domain_info **next_domain);
-+int tomoyo_find_next_domain(struct linux_binprm *bprm);
- 
- /* Index numbers for Access Controls. */
- 

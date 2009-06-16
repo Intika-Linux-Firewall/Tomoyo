@@ -14,9 +14,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    7 +--
  6 files changed, 289 insertions(+), 4 deletions(-)
 
---- security-testing-2.6.git.orig/security/tomoyo/common.c
-+++ security-testing-2.6.git/security/tomoyo/common.c
-@@ -1143,6 +1143,30 @@ static int tomoyo_update_manager_entry(c
+--- linux-2.6.git.orig/security/tomoyo/common.c
++++ linux-2.6.git/security/tomoyo/common.c
+@@ -1144,6 +1144,30 @@ static int tomoyo_update_manager_entry(c
  }
  
  /**
@@ -47,7 +47,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_manager_policy - Write manager policy.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1596,6 +1620,69 @@ tail_mark:
+@@ -1597,6 +1621,69 @@ tail_mark:
  }
  
  /**
@@ -117,7 +117,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_domain_profile - Assign profile for specified domain.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -2147,6 +2234,7 @@ static int tomoyo_write_control(struct f
+@@ -2148,6 +2235,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -125,7 +125,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
-@@ -2160,6 +2248,16 @@ static int tomoyo_close_control(struct f
+@@ -2161,6 +2249,16 @@ static int tomoyo_close_control(struct f
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
@@ -142,8 +142,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
---- security-testing-2.6.git.orig/security/tomoyo/common.h
-+++ security-testing-2.6.git/security/tomoyo/common.h
+--- linux-2.6.git.orig/security/tomoyo/common.h
++++ linux-2.6.git/security/tomoyo/common.h
 @@ -395,6 +395,13 @@ void tomoyo_fill_path_info(struct tomoyo
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
@@ -158,8 +158,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
---- security-testing-2.6.git.orig/security/tomoyo/domain.c
-+++ security-testing-2.6.git/security/tomoyo/domain.c
+--- linux-2.6.git.orig/security/tomoyo/domain.c
++++ linux-2.6.git/security/tomoyo/domain.c
 @@ -257,6 +257,31 @@ static int tomoyo_update_domain_initiali
  }
  
@@ -255,8 +255,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_alias_policy - Read "struct tomoyo_alias_entry" list.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
---- security-testing-2.6.git.orig/security/tomoyo/file.c
-+++ security-testing-2.6.git/security/tomoyo/file.c
+--- linux-2.6.git.orig/security/tomoyo/file.c
++++ linux-2.6.git/security/tomoyo/file.c
 @@ -244,6 +244,30 @@ static int tomoyo_update_globally_readab
  }
  
@@ -349,8 +349,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
   *
   * @filename: Filename to check.
---- security-testing-2.6.git.orig/security/tomoyo/realpath.c
-+++ security-testing-2.6.git/security/tomoyo/realpath.c
+--- linux-2.6.git.orig/security/tomoyo/realpath.c
++++ linux-2.6.git/security/tomoyo/realpath.c
 @@ -223,6 +223,17 @@ bool tomoyo_memory_ok(void *ptr)
  	return false;
  }
@@ -401,8 +401,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_realpath_init - Initialize realpath related code.
   */
  void __init tomoyo_realpath_init(void)
---- security-testing-2.6.git.orig/security/tomoyo/realpath.h
-+++ security-testing-2.6.git/security/tomoyo/realpath.h
+--- linux-2.6.git.orig/security/tomoyo/realpath.h
++++ linux-2.6.git/security/tomoyo/realpath.h
 @@ -44,10 +44,7 @@ bool tomoyo_memory_ok(void *ptr);
   * The RAM is shared, so NEVER try to modify or kfree() the returned name.
   */

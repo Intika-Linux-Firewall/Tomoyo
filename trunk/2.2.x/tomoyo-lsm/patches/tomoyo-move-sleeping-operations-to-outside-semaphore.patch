@@ -15,8 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    7 -
  6 files changed, 215 insertions(+), 298 deletions(-)
 
---- security-testing-2.6.git.orig/security/tomoyo/common.c
-+++ security-testing-2.6.git/security/tomoyo/common.c
+--- linux-2.6.git.orig/security/tomoyo/common.c
++++ linux-2.6.git/security/tomoyo/common.c
 @@ -56,6 +56,7 @@ static struct tomoyo_profile {
  	unsigned int value[TOMOYO_MAX_CONTROL_INDEX];
  	const struct tomoyo_path_info *comment;
@@ -120,7 +120,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -2089,35 +2092,6 @@ static int tomoyo_close_control(struct f
+@@ -2119,35 +2122,6 @@ static int tomoyo_close_control(struct f
  }
  
  /**
@@ -156,9 +156,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_open - open() for /sys/kernel/security/tomoyo/ interface.
   *
   * @inode: Pointer to "struct inode".
---- security-testing-2.6.git.orig/security/tomoyo/common.h
-+++ security-testing-2.6.git/security/tomoyo/common.h
-@@ -376,8 +376,6 @@ struct tomoyo_domain_info *tomoyo_find_o
+--- linux-2.6.git.orig/security/tomoyo/common.h
++++ linux-2.6.git/security/tomoyo/common.h
+@@ -374,8 +374,6 @@ struct tomoyo_domain_info *tomoyo_find_o
  /* Check mode for specified functionality. */
  unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
  				const u8 index);
@@ -167,8 +167,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Fill in "struct tomoyo_path_info" members. */
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  /* Run policy loader when /sbin/init starts. */
---- security-testing-2.6.git.orig/security/tomoyo/domain.c
-+++ security-testing-2.6.git/security/tomoyo/domain.c
+--- linux-2.6.git.orig/security/tomoyo/domain.c
++++ linux-2.6.git/security/tomoyo/domain.c
 @@ -223,11 +223,11 @@ static int tomoyo_update_domain_initiali
  						  const bool is_not,
  						  const bool is_delete)
@@ -337,7 +337,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -761,17 +756,19 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -729,17 +724,19 @@ struct tomoyo_domain_info *tomoyo_find_o
  							    domainname,
  							    const u8 profile)
  {
@@ -363,7 +363,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		goto out;
  	/* Can I reuse memory of deleted domain? */
  	list_for_each_entry(domain, &tomoyo_domain_list, list) {
-@@ -803,8 +800,9 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -771,8 +768,9 @@ struct tomoyo_domain_info *tomoyo_find_o
  		goto out;
  	}
  	/* No memory reusable. Create using new memory. */
@@ -375,7 +375,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
  		domain->profile = profile;
-@@ -812,6 +810,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -780,6 +778,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  	}
   out:
  	up_write(&tomoyo_domain_list_lock);
@@ -383,8 +383,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return domain;
  }
  
---- security-testing-2.6.git.orig/security/tomoyo/file.c
-+++ security-testing-2.6.git/security/tomoyo/file.c
+--- linux-2.6.git.orig/security/tomoyo/file.c
++++ linux-2.6.git/security/tomoyo/file.c
 @@ -209,36 +209,34 @@ static DECLARE_RWSEM(tomoyo_globally_rea
  static int tomoyo_update_globally_readable_entry(const char *filename,
  						 const bool is_delete)
@@ -661,8 +661,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
---- security-testing-2.6.git.orig/security/tomoyo/realpath.c
-+++ security-testing-2.6.git/security/tomoyo/realpath.c
+--- linux-2.6.git.orig/security/tomoyo/realpath.c
++++ linux-2.6.git/security/tomoyo/realpath.c
 @@ -195,66 +195,36 @@ char *tomoyo_realpath_nofollow(const cha
  }
  
@@ -896,8 +896,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		const unsigned int dynamic
  			= atomic_read(&tomoyo_dynamic_memory_size);
  		char buffer[64];
---- security-testing-2.6.git.orig/security/tomoyo/realpath.h
-+++ security-testing-2.6.git/security/tomoyo/realpath.h
+--- linux-2.6.git.orig/security/tomoyo/realpath.h
++++ linux-2.6.git/security/tomoyo/realpath.h
 @@ -36,11 +36,8 @@ char *tomoyo_realpath_nofollow(const cha
  /* Same with tomoyo_realpath() except that the pathname is already solved. */
  char *tomoyo_realpath_from_path(struct path *path);

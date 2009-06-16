@@ -45,8 +45,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 ---
 
---- security-testing-2.6.git.orig/include/linux/security.h
-+++ security-testing-2.6.git/include/linux/security.h
+--- linux-2.6.git.orig/include/linux/security.h
++++ linux-2.6.git/include/linux/security.h
 @@ -881,6 +881,10 @@ static inline void security_free_mnt_opt
   *	@sock contains the listening socket structure.
   *	@newsock contains the newly created server socket for connection.
@@ -128,8 +128,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline int security_socket_getsockname(struct socket *sock)
  {
  	return 0;
---- security-testing-2.6.git.orig/net/ipv4/raw.c
-+++ security-testing-2.6.git/net/ipv4/raw.c
+--- linux-2.6.git.orig/net/ipv4/raw.c
++++ linux-2.6.git/net/ipv4/raw.c
 @@ -666,6 +666,11 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -142,8 +142,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	copied = skb->len;
  	if (len < copied) {
---- security-testing-2.6.git.orig/net/ipv4/udp.c
-+++ security-testing-2.6.git/net/ipv4/udp.c
+--- linux-2.6.git.orig/net/ipv4/udp.c
++++ linux-2.6.git/net/ipv4/udp.c
 @@ -901,6 +901,13 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
@@ -158,8 +158,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- security-testing-2.6.git.orig/net/ipv6/raw.c
-+++ security-testing-2.6.git/net/ipv6/raw.c
+--- linux-2.6.git.orig/net/ipv6/raw.c
++++ linux-2.6.git/net/ipv6/raw.c
 @@ -465,6 +465,11 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -172,9 +172,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	copied = skb->len;
  	if (copied > len) {
---- security-testing-2.6.git.orig/net/ipv6/udp.c
-+++ security-testing-2.6.git/net/ipv6/udp.c
-@@ -212,6 +212,13 @@ try_again:
+--- linux-2.6.git.orig/net/ipv6/udp.c
++++ linux-2.6.git/net/ipv6/udp.c
+@@ -211,6 +211,13 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -188,8 +188,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- security-testing-2.6.git.orig/net/socket.c
-+++ security-testing-2.6.git/net/socket.c
+--- linux-2.6.git.orig/net/socket.c
++++ linux-2.6.git/net/socket.c
 @@ -1528,6 +1528,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  		if (err < 0)
  			goto out_fd;
@@ -198,8 +198,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	/* File flags are not inherited via accept() unlike another OSes. */
  
---- security-testing-2.6.git.orig/security/capability.c
-+++ security-testing-2.6.git/security/capability.c
+--- linux-2.6.git.orig/security/capability.c
++++ linux-2.6.git/security/capability.c
 @@ -620,6 +620,10 @@ static int cap_socket_accept(struct sock
  	return 0;
  }
@@ -235,8 +235,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	set_to_cap_if_null(ops, socket_getsockname);
  	set_to_cap_if_null(ops, socket_getpeername);
  	set_to_cap_if_null(ops, socket_setsockopt);
---- security-testing-2.6.git.orig/security/security.c
-+++ security-testing-2.6.git/security/security.c
+--- linux-2.6.git.orig/security/security.c
++++ linux-2.6.git/security/security.c
 @@ -1006,6 +1006,11 @@ int security_socket_accept(struct socket
  	return security_ops->socket_accept(sock, newsock);
  }
