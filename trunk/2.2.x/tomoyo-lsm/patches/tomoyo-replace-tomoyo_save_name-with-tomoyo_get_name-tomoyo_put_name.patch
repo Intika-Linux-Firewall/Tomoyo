@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
 --- linux-2.6.git.orig/security/tomoyo/domain.c
 +++ linux-2.6.git/security/tomoyo/domain.c
-@@ -238,13 +238,15 @@ static int tomoyo_update_domain_initiali
+@@ -216,13 +216,15 @@ static int tomoyo_update_domain_initiali
  			is_last_name = true;
  		else if (!tomoyo_is_correct_domain(domainname, __func__))
  			return -EINVAL;
@@ -75,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_domain_initializer_list_lock);
-@@ -259,7 +261,9 @@ static int tomoyo_update_domain_initiali
+@@ -237,7 +239,9 @@ static int tomoyo_update_domain_initiali
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->domainname = saved_domainname;
@@ -85,7 +85,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
  		list_add_tail(&new_entry->list,
-@@ -268,6 +272,8 @@ static int tomoyo_update_domain_initiali
+@@ -246,6 +250,8 @@ static int tomoyo_update_domain_initiali
  		error = 0;
  	}
  	up_write(&tomoyo_domain_initializer_list_lock);
@@ -94,7 +94,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -450,13 +456,15 @@ static int tomoyo_update_domain_keeper_e
+@@ -428,13 +434,15 @@ static int tomoyo_update_domain_keeper_e
  	if (program) {
  		if (!tomoyo_is_correct_path(program, 1, -1, -1, __func__))
  			return -EINVAL;
@@ -113,7 +113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_domain_keeper_list_lock);
-@@ -471,7 +479,9 @@ static int tomoyo_update_domain_keeper_e
+@@ -449,7 +457,9 @@ static int tomoyo_update_domain_keeper_e
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->domainname = saved_domainname;
@@ -123,7 +123,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
  		list_add_tail(&new_entry->list, &tomoyo_domain_keeper_list);
-@@ -479,6 +489,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -457,6 +467,8 @@ static int tomoyo_update_domain_keeper_e
  		error = 0;
  	}
  	up_write(&tomoyo_domain_keeper_list_lock);
@@ -132,7 +132,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -638,10 +650,13 @@ static int tomoyo_update_alias_entry(con
+@@ -616,10 +628,13 @@ static int tomoyo_update_alias_entry(con
  	if (!tomoyo_is_correct_path(original_name, 1, -1, -1, __func__) ||
  	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1, __func__))
  		return -EINVAL; /* No patterns allowed. */
@@ -149,7 +149,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_alias_list_lock);
-@@ -655,12 +670,16 @@ static int tomoyo_update_alias_entry(con
+@@ -633,12 +648,16 @@ static int tomoyo_update_alias_entry(con
  	}
  	if (!is_delete && error && tomoyo_memory_ok(new_entry)) {
  		new_entry->original_name = saved_original_name;
@@ -166,7 +166,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -730,7 +749,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -708,7 +727,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  
  	if (!tomoyo_is_correct_domain(domainname, __func__))
  		return NULL;
@@ -175,7 +175,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
-@@ -773,11 +792,13 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -752,11 +771,13 @@ struct tomoyo_domain_info *tomoyo_find_o
  		new_domain = NULL;
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
@@ -260,7 +260,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -836,7 +842,7 @@ static int tomoyo_update_single_path_acl
+@@ -835,7 +841,7 @@ static int tomoyo_update_single_path_acl
  		return -EINVAL;
  	if (!tomoyo_is_correct_path(filename, 0, 0, 0, __func__))
  		return -EINVAL;
@@ -269,7 +269,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_filename)
  		return -ENOMEM;
  	if (!is_delete)
-@@ -871,6 +877,7 @@ static int tomoyo_update_single_path_acl
+@@ -870,6 +876,7 @@ static int tomoyo_update_single_path_acl
  		if (perm == (1 << TOMOYO_TYPE_READ_WRITE_ACL))
  			new_entry->perm |= rw_mask;
  		new_entry->filename = saved_filename;
@@ -277,7 +277,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		list_add_tail(&new_entry->head.list, &domain->acl_info_list);
  		new_entry = NULL;
  		error = 0;
-@@ -897,6 +904,7 @@ static int tomoyo_update_single_path_acl
+@@ -896,6 +903,7 @@ static int tomoyo_update_single_path_acl
  	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);
@@ -285,7 +285,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -929,10 +937,13 @@ static int tomoyo_update_double_path_acl
+@@ -928,10 +936,13 @@ static int tomoyo_update_double_path_acl
  	if (!tomoyo_is_correct_path(filename1, 0, 0, 0, __func__) ||
  	    !tomoyo_is_correct_path(filename2, 0, 0, 0, __func__))
  		return -EINVAL;
@@ -302,7 +302,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
  	down_write(&tomoyo_domain_acl_info_list_lock);
-@@ -960,7 +971,9 @@ static int tomoyo_update_double_path_acl
+@@ -959,7 +970,9 @@ static int tomoyo_update_double_path_acl
  		new_entry->head.type = TOMOYO_TYPE_DOUBLE_PATH_ACL;
  		new_entry->perm = perm;
  		new_entry->filename1 = saved_filename1;
@@ -312,7 +312,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		list_add_tail(&new_entry->head.list, &domain->acl_info_list);
  		new_entry = NULL;
  		error = 0;
-@@ -984,6 +997,8 @@ static int tomoyo_update_double_path_acl
+@@ -983,6 +996,8 @@ static int tomoyo_update_double_path_acl
  	}
   out:
  	up_write(&tomoyo_domain_acl_info_list_lock);

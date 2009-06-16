@@ -4,10 +4,10 @@ We can update bprm->cred->security inside tomoyo_find_next_domain().
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/domain.c |    8 +++-----
+ security/tomoyo/domain.c |   10 +++++-----
  security/tomoyo/tomoyo.c |   10 ++--------
  security/tomoyo/tomoyo.h |    3 +--
- 3 files changed, 6 insertions(+), 15 deletions(-)
+ 3 files changed, 8 insertions(+), 15 deletions(-)
 
 --- linux-2.6.git.orig/security/tomoyo/domain.c
 +++ linux-2.6.git/security/tomoyo/domain.c
@@ -27,12 +27,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	/*
  	 * This function assumes that the size of buffer returned by
-@@ -916,7 +914,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -914,9 +912,11 @@ int tomoyo_find_next_domain(struct linux
+ 		tomoyo_set_domain_flag(old_domain, false,
+ 				       TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED);
   out:
++	if (!domain)
++		domain = old_domain;
++	bprm->cred->security = domain;
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
 -	*next_domain = domain ? domain : old_domain;
-+	bprm->cred->security = domain ? domain : old_domain;
  	tomoyo_free(tmp);
  	return retval;
  }
