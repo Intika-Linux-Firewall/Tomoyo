@@ -1,3 +1,26 @@
+Subject: TOMOYO: Add RCU-like garbage collector.
+
+As of now, TOMOYO cannot release memory used by marked-as-deleted list elements
+because TOMOYO does not know how many readers are there.
+
+This patch adds "atomic_t users" to
+"struct tomoyo_domain_info" and "struct tomoyo_name_entry" structures
+and adds global counter "atomic_t tomoyo_users_counter[2]" and
+their index counter "tomoyo_users_counter_idx".
+
+Reader threads do "idx = atomic_read(&tomoyo_users_counter_idx);" and
+"atomic_inc(&tomoyo_users_counter[idx]);" before start reading, and do
+"atomic_dec(&tomoyo_users_counter[idx]);" after finished reading.
+
+The garbage collector thread removes marked-as-deleted elements using
+list_del_rcu(). Then, GC updates "tomoyo_users_counter_idx" so that subsequent
+readers shall use the other global counter. Then, GC waits for previously used
+global counter to become 0, which indicates that RCU's grace period has
+expired. To be able to release all marked-as-deleted elements with single
+RCU grace period, GC temporarily stores marked-as-deleted elements in a private
+list.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c   |  127 ++++++--------
  security/tomoyo/common.h   |  192 +++++++++++++++++++++-
