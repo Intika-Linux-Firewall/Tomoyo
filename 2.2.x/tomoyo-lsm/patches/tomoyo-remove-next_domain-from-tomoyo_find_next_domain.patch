@@ -9,8 +9,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/tomoyo.h |    3 +--
  3 files changed, 8 insertions(+), 15 deletions(-)
 
---- linux-2.6.git.orig/security/tomoyo/domain.c
-+++ linux-2.6.git/security/tomoyo/domain.c
+--- security-testing-2.6.git.orig/security/tomoyo/domain.c
++++ security-testing-2.6.git/security/tomoyo/domain.c
 @@ -786,13 +786,11 @@ struct tomoyo_domain_info *tomoyo_find_o
  /**
   * tomoyo_find_next_domain - Find a domain.
@@ -40,8 +40,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_free(tmp);
  	return retval;
  }
---- linux-2.6.git.orig/security/tomoyo/tomoyo.c
-+++ linux-2.6.git/security/tomoyo/tomoyo.c
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6.git/security/tomoyo/tomoyo.c
 @@ -61,14 +61,8 @@ static int tomoyo_bprm_check_security(st
  	 * Execute permission is checked against pathname passed to do_execve()
  	 * using current domain.
@@ -59,8 +59,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/*
  	 * Read permission is checked against interpreters using next domain.
  	 * '1' is the result of open_to_namei_flags(O_RDONLY).
---- linux-2.6.git.orig/security/tomoyo/tomoyo.h
-+++ linux-2.6.git/security/tomoyo/tomoyo.h
+--- security-testing-2.6.git.orig/security/tomoyo/tomoyo.h
++++ security-testing-2.6.git/security/tomoyo/tomoyo.h
 @@ -31,8 +31,7 @@ int tomoyo_check_2path_perm(struct tomoy
  			    struct path *path2);
  int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
