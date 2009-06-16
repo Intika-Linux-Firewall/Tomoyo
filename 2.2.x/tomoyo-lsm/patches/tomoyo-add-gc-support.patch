@@ -47,7 +47,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_manager_policy - Write manager policy.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1597,6 +1621,69 @@ tail_mark:
+@@ -1601,6 +1625,69 @@ tail_mark:
  }
  
  /**
@@ -117,7 +117,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_write_domain_profile - Assign profile for specified domain.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -2148,6 +2235,7 @@ static int tomoyo_write_control(struct f
+@@ -2152,6 +2239,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -125,7 +125,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
-@@ -2161,6 +2249,16 @@ static int tomoyo_close_control(struct f
+@@ -2165,6 +2253,16 @@ static int tomoyo_close_control(struct f
  	tomoyo_free(head);
  	head = NULL;
  	file->private_data = NULL;
@@ -144,7 +144,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- linux-2.6.git.orig/security/tomoyo/common.h
 +++ linux-2.6.git/security/tomoyo/common.h
-@@ -395,6 +395,13 @@ void tomoyo_fill_path_info(struct tomoyo
+@@ -396,6 +396,13 @@ void tomoyo_fill_path_info(struct tomoyo
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
  

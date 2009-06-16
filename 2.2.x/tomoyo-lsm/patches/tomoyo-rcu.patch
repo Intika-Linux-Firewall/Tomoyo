@@ -1,12 +1,12 @@
 ---
- security/tomoyo/common.c   |  135 ++++++---------
- security/tomoyo/common.h   |  216 ++++++++++++++++++++++---
- security/tomoyo/domain.c   |  213 +++++-------------------
- security/tomoyo/file.c     |  177 +++++++-------------
+ security/tomoyo/common.c   |  127 ++++++--------
+ security/tomoyo/common.h   |  192 +++++++++++++++++++++-
+ security/tomoyo/domain.c   |  191 ++++------------------
+ security/tomoyo/file.c     |  174 +++++++-------------
  security/tomoyo/realpath.c |  386 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   18 +-
- 7 files changed, 751 insertions(+), 399 deletions(-)
+ 7 files changed, 735 insertions(+), 358 deletions(-)
 
 --- linux-2.6.git.orig/security/tomoyo/common.c
 +++ linux-2.6.git/security/tomoyo/common.c
@@ -289,17 +289,7 @@
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
  		head->write_var1 = domain;
  		return 0;
-@@ -1371,8 +1348,7 @@ static int tomoyo_write_domain_policy(st
- 		return 0;
- 	}
- 	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
--		tomoyo_set_domain_flag(domain, is_delete,
--			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
-+		domain->ignore_global_allow_read = !is_delete;
- 		return 0;
- 	}
- 	return tomoyo_write_file_policy(data, domain, is_delete);
-@@ -1512,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
+@@ -1511,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -309,20 +299,7 @@
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1526,10 +1501,9 @@ static int tomoyo_read_domain_policy(str
- 		/* Print domainname and flags. */
- 		if (domain->quota_warned)
- 			quota_exceeded = "quota_exceeded\n";
--		if (domain->flags & TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED)
-+		if (domain->domain_transition_failed)
- 			transition_failed = "transition_failed\n";
--		if (domain->flags &
--		    TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
-+		if (domain->ignore_global_allow_read)
- 			ignore_global_allow_read
- 				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
- 		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
-@@ -1545,9 +1519,8 @@ acl_loop:
+@@ -1543,9 +1519,8 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -334,7 +311,7 @@
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
  					     list);
-@@ -1555,7 +1528,6 @@ acl_loop:
+@@ -1553,7 +1528,6 @@ acl_loop:
  			if (!done)
  				break;
  		}
@@ -342,7 +319,7 @@
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1567,7 +1539,6 @@ tail_mark:
+@@ -1565,7 +1539,6 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -350,7 +327,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1583,6 +1554,8 @@ tail_mark:
+@@ -1581,6 +1554,8 @@ tail_mark:
   *
   *     ( echo "select " $domainname; echo "use_profile " $profile ) |
   *     /usr/lib/ccs/loadpolicy -d
@@ -359,7 +336,7 @@
   */
  static int tomoyo_write_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1594,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
+@@ -1592,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
@@ -369,7 +346,7 @@
  	if (strict_strtoul(data, 10, &profile))
  		return -EINVAL;
  	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1626,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1624,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -379,7 +356,7 @@
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1637,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
+@@ -1635,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
  		if (!done)
  			break;
  	}
@@ -387,7 +364,7 @@
  	head->read_eof = done;
  	return 0;
  }
-@@ -1856,16 +1825,24 @@ void tomoyo_load_policy(const char *file
+@@ -1854,16 +1825,24 @@ void tomoyo_load_policy(const char *file
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
@@ -415,7 +392,7 @@
  	}
  }
  
-@@ -1999,6 +1976,7 @@ static int tomoyo_open_control(const u8 
+@@ -1997,6 +1976,7 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
@@ -423,7 +400,7 @@
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2116,6 +2094,7 @@ static int tomoyo_write_control(struct f
+@@ -2114,6 +2094,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
@@ -433,7 +410,7 @@
  	tomoyo_free(head->read_buf);
 --- linux-2.6.git.orig/security/tomoyo/common.h
 +++ linux-2.6.git/security/tomoyo/common.h
-@@ -156,26 +156,24 @@ struct tomoyo_domain_info {
+@@ -156,6 +156,7 @@ struct tomoyo_domain_info {
  	struct list_head acl_info_list;
  	/* Name of this domain. Never NULL.          */
  	const struct tomoyo_path_info *domainname;
@@ -441,36 +418,7 @@
  	u8 profile;        /* Profile number to use. */
  	bool is_deleted;   /* Delete flag.           */
  	bool quota_warned; /* Quota warnning flag.   */
--	/* DOMAIN_FLAGS_*. Use tomoyo_set_domain_flag() to modify. */
--	u8 flags;
-+	/* Ignore "allow_read" directive in exception policy. */
-+	bool ignore_global_allow_read;
-+	/*
-+	 * This domain was unable to create a new domain at
-+	 * tomoyo_find_next_domain() because the name of the domain to be
-+	 * created was too long or it could not allocate memory.
-+	 * More than one process continued execve() without domain transition.
-+	 */
-+	bool domain_transition_failed;
- };
- 
- /* Profile number is an integer between 0 and 255. */
- #define TOMOYO_MAX_PROFILES 256
- 
--/* Ignore "allow_read" directive in exception policy. */
--#define TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
--/*
-- * This domain was unable to create a new domain at tomoyo_find_next_domain()
-- * because the name of the domain to be created was too long or
-- * it could not allocate memory.
-- * More than one process continued execve() without domain transition.
-- */
--#define TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED        2
--
- /*
-  * tomoyo_single_path_acl_record is a structure which is used for holding an
-  * entry with one pathname operation (e.g. open(), mkdir()).
-@@ -269,6 +267,8 @@ struct tomoyo_io_buffer {
+@@ -266,6 +267,8 @@ struct tomoyo_io_buffer {
  	int (*write) (struct tomoyo_io_buffer *);
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
@@ -479,17 +427,7 @@
  	/* The position currently reading from. */
  	struct list_head *read_var1;
  	/* Extra variables for reading.         */
-@@ -378,9 +378,6 @@ unsigned int tomoyo_check_flags(const st
- void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
- /* Run policy loader when /sbin/init starts. */
- void tomoyo_load_policy(const char *filename);
--/* Change "struct tomoyo_domain_info"->flags. */
--void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
--			    const bool is_delete, const u8 flags);
- 
- /* strcmp() for "struct tomoyo_path_info" structure. */
- static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
-@@ -427,10 +424,9 @@ static inline bool tomoyo_is_invalid(con
+@@ -421,10 +424,9 @@ static inline bool tomoyo_is_invalid(con
  
  /* The list for "struct tomoyo_domain_info". */
  extern struct list_head tomoyo_domain_list;
@@ -502,7 +440,7 @@
  
  /* Has /sbin/init started? */
  extern bool tomoyo_policy_loaded;
-@@ -439,21 +435,193 @@ extern bool tomoyo_policy_loaded;
+@@ -433,21 +435,193 @@ extern bool tomoyo_policy_loaded;
  extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
  /**
@@ -704,7 +642,7 @@
  #endif /* !defined(_SECURITY_TOMOYO_COMMON_H) */
 --- linux-2.6.git.orig/security/tomoyo/domain.c
 +++ linux-2.6.git/security/tomoyo/domain.c
-@@ -58,99 +58,6 @@ struct tomoyo_domain_info tomoyo_kernel_
+@@ -58,77 +58,6 @@ struct tomoyo_domain_info tomoyo_kernel_
   * exceptions.
   */
  LIST_HEAD(tomoyo_domain_list);
@@ -779,32 +717,10 @@
 -	const struct tomoyo_path_info *aliased_name;
 -	bool is_deleted;
 -};
--
--/**
-- * tomoyo_set_domain_flag - Set or clear domain's attribute flags.
-- *
-- * @domain:    Pointer to "struct tomoyo_domain_info".
-- * @is_delete: True if it is a delete request.
-- * @flags:     Flags to set or clear.
-- *
-- * Returns nothing.
-- */
--void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
--			    const bool is_delete, const u8 flags)
--{
--	/* We need to serialize because this is bitfield operation. */
--	static DEFINE_SPINLOCK(lock);
--	spin_lock(&lock);
--	if (!is_delete)
--		domain->flags |= flags;
--	else
--		domain->flags &= ~flags;
--	spin_unlock(&lock);
--}
  
  /**
   * tomoyo_get_last_name - Get last component of a domainname.
-@@ -205,8 +112,7 @@ const char *tomoyo_get_last_name(const s
+@@ -183,8 +112,7 @@ const char *tomoyo_get_last_name(const s
   * will cause "/usr/sbin/httpd" to belong to "<kernel> /usr/sbin/httpd" domain
   * unless executed from "<kernel> /etc/rc.d/init.d/httpd" domain.
   */
@@ -814,7 +730,7 @@
  
  /**
   * tomoyo_update_domain_initializer_entry - Update "struct tomoyo_domain_initializer_entry" list.
-@@ -249,8 +155,8 @@ static int tomoyo_update_domain_initiali
+@@ -227,8 +155,8 @@ static int tomoyo_update_domain_initiali
  	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -825,7 +741,7 @@
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -266,12 +172,12 @@ static int tomoyo_update_domain_initiali
+@@ -244,12 +172,12 @@ static int tomoyo_update_domain_initiali
  		saved_program = NULL;
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
@@ -841,7 +757,7 @@
  	tomoyo_put_name(saved_domainname);
  	tomoyo_put_name(saved_program);
  	kfree(new_entry);
-@@ -290,15 +196,14 @@ bool tomoyo_read_domain_initializer_poli
+@@ -268,15 +196,14 @@ bool tomoyo_read_domain_initializer_poli
  	struct list_head *pos;
  	bool done = true;
  
@@ -860,7 +776,7 @@
  		if (ptr->is_deleted)
  			continue;
  		no = ptr->is_not ? "no_" : "";
-@@ -313,7 +218,6 @@ bool tomoyo_read_domain_initializer_poli
+@@ -291,7 +218,6 @@ bool tomoyo_read_domain_initializer_poli
  		if (!done)
  			break;
  	}
@@ -868,7 +784,7 @@
  	return done;
  }
  
-@@ -350,6 +254,8 @@ int tomoyo_write_domain_initializer_poli
+@@ -328,6 +254,8 @@ int tomoyo_write_domain_initializer_poli
   *
   * Returns true if executing @program reinitializes domain transition,
   * false otherwise.
@@ -877,7 +793,7 @@
   */
  static bool tomoyo_is_domain_initializer(const struct tomoyo_path_info *
  					 domainname,
-@@ -360,8 +266,7 @@ static bool tomoyo_is_domain_initializer
+@@ -338,8 +266,7 @@ static bool tomoyo_is_domain_initializer
  	struct tomoyo_domain_initializer_entry *ptr;
  	bool flag = false;
  
@@ -887,7 +803,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (ptr->domainname) {
-@@ -381,7 +286,6 @@ static bool tomoyo_is_domain_initializer
+@@ -359,7 +286,6 @@ static bool tomoyo_is_domain_initializer
  		}
  		flag = true;
  	}
@@ -895,7 +811,7 @@
  	return flag;
  }
  
-@@ -423,8 +327,7 @@ static bool tomoyo_is_domain_initializer
+@@ -401,8 +327,7 @@ static bool tomoyo_is_domain_initializer
   * "<kernel> /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain, unless
   * explicitly specified by "initialize_domain".
   */
@@ -905,7 +821,7 @@
  
  /**
   * tomoyo_update_domain_keeper_entry - Update "struct tomoyo_domain_keeper_entry" list.
-@@ -467,8 +370,8 @@ static int tomoyo_update_domain_keeper_e
+@@ -445,8 +370,8 @@ static int tomoyo_update_domain_keeper_e
  	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -916,7 +832,7 @@
  		if (ptr->is_not != is_not ||
  		    ptr->domainname != saved_domainname ||
  		    ptr->program != saved_program)
-@@ -484,11 +387,12 @@ static int tomoyo_update_domain_keeper_e
+@@ -462,11 +387,12 @@ static int tomoyo_update_domain_keeper_e
  		saved_program = NULL;
  		new_entry->is_not = is_not;
  		new_entry->is_last_name = is_last_name;
@@ -931,7 +847,7 @@
  	tomoyo_put_name(saved_domainname);
  	tomoyo_put_name(saved_program);
  	kfree(new_entry);
-@@ -528,9 +432,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -506,9 +432,8 @@ bool tomoyo_read_domain_keeper_policy(st
  	struct list_head *pos;
  	bool done = true;
  
@@ -943,7 +859,7 @@
  		struct tomoyo_domain_keeper_entry *ptr;
  		const char *no;
  		const char *from = "";
-@@ -551,7 +454,6 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -529,7 +454,6 @@ bool tomoyo_read_domain_keeper_policy(st
  		if (!done)
  			break;
  	}
@@ -951,7 +867,7 @@
  	return done;
  }
  
-@@ -564,6 +466,8 @@ bool tomoyo_read_domain_keeper_policy(st
+@@ -542,6 +466,8 @@ bool tomoyo_read_domain_keeper_policy(st
   *
   * Returns true if executing @program supresses domain transition,
   * false otherwise.
@@ -960,7 +876,7 @@
   */
  static bool tomoyo_is_domain_keeper(const struct tomoyo_path_info *domainname,
  				    const struct tomoyo_path_info *program,
-@@ -572,8 +476,7 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -550,8 +476,7 @@ static bool tomoyo_is_domain_keeper(cons
  	struct tomoyo_domain_keeper_entry *ptr;
  	bool flag = false;
  
@@ -970,7 +886,7 @@
  		if (ptr->is_deleted)
  			continue;
  		if (!ptr->is_last_name) {
-@@ -591,7 +494,6 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -569,7 +494,6 @@ static bool tomoyo_is_domain_keeper(cons
  		}
  		flag = true;
  	}
@@ -978,7 +894,7 @@
  	return flag;
  }
  
-@@ -625,8 +527,7 @@ static bool tomoyo_is_domain_keeper(cons
+@@ -603,8 +527,7 @@ static bool tomoyo_is_domain_keeper(cons
   * /bin/busybox and domainname which the current process will belong to after
   * execve() succeeds is calculated using /bin/cat rather than /bin/busybox .
   */
@@ -988,7 +904,7 @@
  
  /**
   * tomoyo_update_alias_entry - Update "struct tomoyo_alias_entry" list.
-@@ -659,8 +560,8 @@ static int tomoyo_update_alias_entry(con
+@@ -637,8 +560,8 @@ static int tomoyo_update_alias_entry(con
  	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -999,7 +915,7 @@
  		if (ptr->original_name != saved_original_name ||
  		    ptr->aliased_name != saved_aliased_name)
  			continue;
-@@ -673,11 +574,11 @@ static int tomoyo_update_alias_entry(con
+@@ -651,11 +574,11 @@ static int tomoyo_update_alias_entry(con
  		saved_original_name = NULL;
  		new_entry->aliased_name = saved_aliased_name;
  		saved_aliased_name = NULL;
@@ -1013,7 +929,7 @@
  	tomoyo_put_name(saved_original_name);
  	tomoyo_put_name(saved_aliased_name);
  	kfree(new_entry);
-@@ -696,8 +597,7 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -674,8 +597,7 @@ bool tomoyo_read_alias_policy(struct tom
  	struct list_head *pos;
  	bool done = true;
  
@@ -1023,7 +939,7 @@
  		struct tomoyo_alias_entry *ptr;
  
  		ptr = list_entry(pos, struct tomoyo_alias_entry, list);
-@@ -709,7 +609,6 @@ bool tomoyo_read_alias_policy(struct tom
+@@ -687,7 +609,6 @@ bool tomoyo_read_alias_policy(struct tom
  		if (!done)
  			break;
  	}
@@ -1031,15 +947,15 @@
  	return done;
  }
  
-@@ -753,39 +652,10 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -731,52 +652,18 @@ struct tomoyo_domain_info *tomoyo_find_o
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
 -	down_write(&tomoyo_domain_list_lock);
 +	mutex_lock(&tomoyo_policy_lock);
  	domain = tomoyo_find_domain(domainname);
- 	if (domain)
- 		goto out;
+-	if (domain)
+-		goto out;
 -	/* Can I reuse memory of deleted domain? */
 -	list_for_each_entry(domain, &tomoyo_domain_list, list) {
 -		struct task_struct *p;
@@ -1062,30 +978,33 @@
 -		list_for_each_entry(ptr, &domain->acl_info_list, list) {
 -			ptr->type |= TOMOYO_ACL_DELETED;
 -		}
--		tomoyo_set_domain_flag(domain, true, domain->flags);
+-		domain->ignore_global_allow_read = false;
+-		domain->domain_transition_failed = false;
 -		domain->profile = profile;
 -		domain->quota_warned = false;
 -		mb(); /* Avoid out-of-order execution. */
 -		domain->is_deleted = false;
 -		goto out;
 -	}
- 	/* No memory reusable. Create using new memory. */
- 	if (tomoyo_memory_ok(new_domain)) {
+-	/* No memory reusable. Create using new memory. */
+-	if (tomoyo_memory_ok(new_domain)) {
++	if (!domain && tomoyo_memory_ok(new_domain)) {
  		domain = new_domain;
-@@ -794,10 +664,10 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 		new_domain = NULL;
+ 		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
  		saved_domainname = NULL;
  		domain->profile = profile;
 -		list_add_tail(&domain->list, &tomoyo_domain_list);
 +		list_add_tail_rcu(&domain->list, &tomoyo_domain_list);
  	}
-  out:
+- out:
 -	up_write(&tomoyo_domain_list_lock);
 +	mutex_unlock(&tomoyo_policy_lock);
  	tomoyo_put_name(saved_domainname);
  	kfree(new_domain);
  	return domain;
-@@ -809,6 +679,8 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -788,6 +675,8 @@ struct tomoyo_domain_info *tomoyo_find_o
   * @bprm: Pointer to "struct linux_binprm".
   *
   * Returns 0 on success, negative value otherwise.
@@ -1094,7 +1013,7 @@
   */
  int tomoyo_find_next_domain(struct linux_binprm *bprm)
  {
-@@ -831,6 +703,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -810,6 +699,7 @@ int tomoyo_find_next_domain(struct linux
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
@@ -1102,7 +1021,7 @@
  
  	if (!tmp)
  		goto out;
-@@ -869,8 +742,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -848,8 +738,7 @@ int tomoyo_find_next_domain(struct linux
  	if (tomoyo_pathcmp(&r, &s)) {
  		struct tomoyo_alias_entry *ptr;
  		/* Is this program allowed to be called via symbolic links? */
@@ -1112,7 +1031,7 @@
  			if (ptr->is_deleted ||
  			    tomoyo_pathcmp(&r, ptr->original_name) ||
  			    tomoyo_pathcmp(&s, ptr->aliased_name))
-@@ -881,7 +753,6 @@ int tomoyo_find_next_domain(struct linux
+@@ -860,7 +749,6 @@ int tomoyo_find_next_domain(struct linux
  			tomoyo_fill_path_info(&r);
  			break;
  		}
@@ -1120,7 +1039,7 @@
  	}
  
  	/* Check execute permission. */
-@@ -912,9 +783,7 @@ int tomoyo_find_next_domain(struct linux
+@@ -891,9 +779,7 @@ int tomoyo_find_next_domain(struct linux
  	}
  	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
  		goto done;
@@ -1130,26 +1049,19 @@
  	if (domain)
  		goto done;
  	if (is_enforce)
-@@ -929,12 +798,16 @@ int tomoyo_find_next_domain(struct linux
- 	if (is_enforce)
- 		retval = -EPERM;
+@@ -910,9 +796,12 @@ int tomoyo_find_next_domain(struct linux
  	else
--		tomoyo_set_domain_flag(old_domain, false,
--				       TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED);
-+		old_domain->domain_transition_failed = true;
+ 		old_domain->domain_transition_failed = true;
   out:
 +	BUG_ON(bprm->cred->security);
-+	if (!domain)
-+		domain = old_domain;
+ 	if (!domain)
+ 		domain = old_domain;
 +	atomic_inc(&domain->users);
-+	bprm->cred->security = domain;
+ 	bprm->cred->security = domain;
 +	tomoyo_unlock(idx);
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
--	bprm->cred->security = domain ? domain : old_domain;
  	tomoyo_free(tmp);
- 	return retval;
- }
 --- linux-2.6.git.orig/security/tomoyo/file.c
 +++ linux-2.6.git/security/tomoyo/file.c
 @@ -14,56 +14,6 @@
@@ -1482,17 +1394,7 @@
  	return error;
  }
  
-@@ -738,8 +681,7 @@ static int tomoyo_check_file_perm2(struc
- 	if (!filename)
- 		return 0;
- 	error = tomoyo_check_file_acl(domain, filename, perm);
--	if (error && perm == 4 &&
--	    (domain->flags & TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0
-+	if (error && perm == 4 && !domain->ignore_global_allow_read
- 	    && tomoyo_is_globally_readable_file(filename))
- 		error = 0;
- 	if (perm == 6)
-@@ -847,10 +789,10 @@ static int tomoyo_update_single_path_acl
+@@ -846,10 +789,10 @@ static int tomoyo_update_single_path_acl
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -1505,7 +1407,7 @@
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -878,13 +820,14 @@ static int tomoyo_update_single_path_acl
+@@ -877,13 +820,14 @@ static int tomoyo_update_single_path_acl
  			new_entry->perm |= rw_mask;
  		new_entry->filename = saved_filename;
  		saved_filename = NULL;
@@ -1522,7 +1424,7 @@
  		struct tomoyo_single_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
-@@ -903,7 +846,7 @@ static int tomoyo_update_single_path_acl
+@@ -902,7 +846,7 @@ static int tomoyo_update_single_path_acl
  		break;
  	}
   out:
@@ -1531,7 +1433,7 @@
  	tomoyo_put_name(saved_filename);
  	kfree(new_entry);
  	return error;
-@@ -946,10 +889,10 @@ static int tomoyo_update_double_path_acl
+@@ -945,10 +889,10 @@ static int tomoyo_update_double_path_acl
  	}
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -1544,7 +1446,7 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -974,13 +917,14 @@ static int tomoyo_update_double_path_acl
+@@ -973,13 +917,14 @@ static int tomoyo_update_double_path_acl
  		saved_filename1 = NULL;
  		new_entry->filename2 = saved_filename2;
  		saved_filename2 = NULL;
@@ -1561,7 +1463,7 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -996,7 +940,7 @@ static int tomoyo_update_double_path_acl
+@@ -995,7 +940,7 @@ static int tomoyo_update_double_path_acl
  		break;
  	}
   out:
@@ -1570,7 +1472,7 @@
  	tomoyo_put_name(saved_filename1);
  	tomoyo_put_name(saved_filename2);
  	kfree(new_entry);
-@@ -1041,11 +985,12 @@ static int tomoyo_check_double_path_acl(
+@@ -1040,11 +985,12 @@ static int tomoyo_check_double_path_acl(
  	struct tomoyo_acl_info *ptr;
  	const u8 perm = 1 << type;
  	int error = -EPERM;
@@ -1585,7 +1487,7 @@
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
-@@ -1060,7 +1005,7 @@ static int tomoyo_check_double_path_acl(
+@@ -1059,7 +1005,7 @@ static int tomoyo_check_double_path_acl(
  		error = 0;
  		break;
  	}
@@ -1594,7 +1496,7 @@
  	return error;
  }
  
-@@ -1170,6 +1115,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1169,6 +1115,7 @@ int tomoyo_check_open_permission(struct 
  	struct tomoyo_path_info *buf;
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
@@ -1602,7 +1504,7 @@
  
  	if (!mode || !path->mnt)
  		return 0;
-@@ -1185,6 +1131,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1184,6 +1131,7 @@ int tomoyo_check_open_permission(struct 
  	if (!buf)
  		goto out;
  	error = 0;
@@ -1610,7 +1512,7 @@
  	/*
  	 * If the filename is specified by "deny_rewrite" keyword,
  	 * we need to check "allow_rewrite" permission when the filename is not
-@@ -1204,6 +1151,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1203,6 +1151,7 @@ int tomoyo_check_open_permission(struct 
  		error = tomoyo_check_single_path_permission2(domain,
  						     TOMOYO_TYPE_TRUNCATE_ACL,
  							     buf, mode);
@@ -1618,7 +1520,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1227,6 +1175,7 @@ int tomoyo_check_1path_perm(struct tomoy
+@@ -1226,6 +1175,7 @@ int tomoyo_check_1path_perm(struct tomoy
  	struct tomoyo_path_info *buf;
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
@@ -1626,7 +1528,7 @@
  
  	if (!mode || !path->mnt)
  		return 0;
-@@ -1244,8 +1193,10 @@ int tomoyo_check_1path_perm(struct tomoy
+@@ -1243,8 +1193,10 @@ int tomoyo_check_1path_perm(struct tomoy
  			tomoyo_fill_path_info(buf);
  		}
  	}
@@ -1637,7 +1539,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1268,19 +1219,23 @@ int tomoyo_check_rewrite_permission(stru
+@@ -1267,19 +1219,23 @@ int tomoyo_check_rewrite_permission(stru
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
  	struct tomoyo_path_info *buf;
@@ -1662,7 +1564,7 @@
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
-@@ -1307,6 +1262,7 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1306,6 +1262,7 @@ int tomoyo_check_2path_perm(struct tomoy
  	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
  	const bool is_enforce = (mode == 3);
  	const char *msg;
@@ -1670,7 +1572,7 @@
  
  	if (!mode || !path1->mnt || !path2->mnt)
  		return 0;
-@@ -1330,10 +1286,11 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1329,10 +1286,11 @@ int tomoyo_check_2path_perm(struct tomoy
  			}
  		}
  	}
@@ -1683,7 +1585,7 @@
  	if (tomoyo_verbose_mode(domain))
  		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
  		       "denied for %s\n", tomoyo_get_msg(is_enforce),
-@@ -1345,6 +1302,8 @@ int tomoyo_check_2path_perm(struct tomoy
+@@ -1344,6 +1302,8 @@ int tomoyo_check_2path_perm(struct tomoy
  		tomoyo_update_double_path_acl(operation, name1, name2, domain,
  					      false);
  	}

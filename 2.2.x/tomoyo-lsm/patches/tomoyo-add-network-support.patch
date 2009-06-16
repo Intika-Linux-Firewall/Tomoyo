@@ -62,16 +62,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	up_read(&tomoyo_domain_acl_info_list_lock);
-@@ -1447,6 +1451,8 @@ static int tomoyo_write_domain_policy(st
- 			domain->profile = (u8) profile;
- 	} else if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
+@@ -1423,6 +1427,8 @@ static int tomoyo_write_domain_policy(st
  		domain->ignore_global_allow_read = !is_delete;
-+	} else if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK)) {
-+		error = tomoyo_write_network_policy(data, domain, is_delete);
- 	} else
- 		error = tomoyo_write_file_policy(data, domain, is_delete);
- 	return error;
-@@ -1537,6 +1543,107 @@ static bool tomoyo_print_double_path_acl
+ 		return 0;
+ 	}
++	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK))
++		return tomoyo_write_network_policy(data, domain, is_delete);
+ 	return tomoyo_write_file_policy(data, domain, is_delete);
+ }
+ 
+@@ -1511,6 +1517,107 @@ static bool tomoyo_print_double_path_acl
  }
  
  /**
@@ -179,7 +179,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1565,6 +1672,13 @@ static bool tomoyo_print_entry(struct to
+@@ -1539,6 +1646,13 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_double_path_acl(head, acl);
  	}
@@ -193,7 +193,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	BUG(); /* This must not happen. */
  	return false;
  }
-@@ -1689,6 +1803,7 @@ static void tomoyo_cleanup_domain_policy
+@@ -1663,6 +1777,7 @@ static void tomoyo_cleanup_domain_policy
  		switch (tomoyo_acl_type1(acl)) {
  			struct tomoyo_single_path_acl_record *acl1;
  			struct tomoyo_double_path_acl_record *acl2;
@@ -201,7 +201,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		case TOMOYO_TYPE_SINGLE_PATH_ACL:
  			acl1 = container_of(acl,
  				    struct tomoyo_single_path_acl_record,
-@@ -1702,6 +1817,15 @@ static void tomoyo_cleanup_domain_policy
+@@ -1676,6 +1791,15 @@ static void tomoyo_cleanup_domain_policy
  			tomoyo_put_name(acl2->filename1);
  			tomoyo_put_name(acl2->filename2);
  			break;
@@ -227,7 +227,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  struct tomoyo_entry {
  	struct list_head list;
-@@ -234,8 +235,65 @@ struct tomoyo_double_path_acl_record {
+@@ -235,8 +236,65 @@ struct tomoyo_double_path_acl_record {
  	const struct tomoyo_path_info *filename2;
  };
  
@@ -293,7 +293,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
  #define TOMOYO_KEYWORD_DELETE                    "delete "
  #define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
-@@ -253,9 +311,10 @@ struct tomoyo_double_path_acl_record {
+@@ -254,9 +312,10 @@ struct tomoyo_double_path_acl_record {
  
  /* Index numbers for Access Controls. */
  #define TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
@@ -307,7 +307,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /*
   * tomoyo_io_buffer is a structure which is used for reading and modifying
-@@ -330,6 +389,9 @@ bool tomoyo_is_domain_def(const unsigned
+@@ -331,6 +390,9 @@ bool tomoyo_is_domain_def(const unsigned
  /* Check whether the given filename matches the given pattern. */
  bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
  				 const struct tomoyo_path_info *pattern);
@@ -317,7 +317,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Read "alias" entry in exception policy. */
  bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head);
  /*
-@@ -394,6 +456,13 @@ unsigned int tomoyo_check_flags(const st
+@@ -395,6 +457,13 @@ unsigned int tomoyo_check_flags(const st
  void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
