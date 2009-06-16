@@ -14,8 +14,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/realpath.h |    6 +++++-
  5 files changed, 70 insertions(+), 23 deletions(-)
 
---- security-testing-2.6.git.orig/security/tomoyo/common.c
-+++ security-testing-2.6.git/security/tomoyo/common.c
+--- linux-2.6.git.orig/security/tomoyo/common.c
++++ linux-2.6.git/security/tomoyo/common.c
 @@ -929,7 +929,12 @@ static int tomoyo_write_profile(struct t
  		return -EINVAL;
  	*cp = '\0';
@@ -54,8 +54,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
---- security-testing-2.6.git.orig/security/tomoyo/domain.c
-+++ security-testing-2.6.git/security/tomoyo/domain.c
+--- linux-2.6.git.orig/security/tomoyo/domain.c
++++ linux-2.6.git/security/tomoyo/domain.c
 @@ -238,13 +238,15 @@ static int tomoyo_update_domain_initiali
  			is_last_name = true;
  		else if (!tomoyo_is_correct_domain(domainname, __func__))
@@ -166,7 +166,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
-@@ -762,7 +781,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -730,7 +749,7 @@ struct tomoyo_domain_info *tomoyo_find_o
  
  	if (!tomoyo_is_correct_domain(domainname, __func__))
  		return NULL;
@@ -175,7 +175,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!saved_domainname)
  		return NULL;
  	new_domain = kmalloc(sizeof(*new_domain), GFP_KERNEL);
-@@ -805,11 +824,13 @@ struct tomoyo_domain_info *tomoyo_find_o
+@@ -773,11 +792,13 @@ struct tomoyo_domain_info *tomoyo_find_o
  		new_domain = NULL;
  		INIT_LIST_HEAD(&domain->acl_info_list);
  		domain->domainname = saved_domainname;
@@ -189,8 +189,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_domain);
  	return domain;
  }
---- security-testing-2.6.git.orig/security/tomoyo/file.c
-+++ security-testing-2.6.git/security/tomoyo/file.c
+--- linux-2.6.git.orig/security/tomoyo/file.c
++++ linux-2.6.git/security/tomoyo/file.c
 @@ -216,7 +216,7 @@ static int tomoyo_update_globally_readab
  
  	if (!tomoyo_is_correct_path(filename, 1, 0, -1, __func__))
@@ -321,8 +321,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(new_entry);
  	return error;
  }
---- security-testing-2.6.git.orig/security/tomoyo/realpath.c
-+++ security-testing-2.6.git/security/tomoyo/realpath.c
+--- linux-2.6.git.orig/security/tomoyo/realpath.c
++++ linux-2.6.git/security/tomoyo/realpath.c
 @@ -260,7 +260,7 @@ static struct list_head tomoyo_name_list
  static DEFINE_MUTEX(tomoyo_name_list_lock);
  
@@ -350,8 +350,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	list_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
  	down_read(&tomoyo_domain_list_lock);
  	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
---- security-testing-2.6.git.orig/security/tomoyo/realpath.h
-+++ security-testing-2.6.git/security/tomoyo/realpath.h
+--- linux-2.6.git.orig/security/tomoyo/realpath.h
++++ linux-2.6.git/security/tomoyo/realpath.h
 @@ -43,7 +43,11 @@ bool tomoyo_memory_ok(void *ptr);
   * Keep the given name on the RAM.
   * The RAM is shared, so NEVER try to modify or kfree() the returned name.
