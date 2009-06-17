@@ -6,7 +6,7 @@ because TOMOYO does not know how many readers are there.
 This patch adds "atomic_t users" to
 "struct tomoyo_domain_info" and "struct tomoyo_name_entry" structures
 and adds global counter "atomic_t tomoyo_users_counter[2]" and
-their index counter "tomoyo_users_counter_idx".
+active counter indicator "tomoyo_users_counter_idx".
 
 Reader threads do "idx = atomic_read(&tomoyo_users_counter_idx);" and
 "atomic_inc(&tomoyo_users_counter[idx]);" before start reading, and do
