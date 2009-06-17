@@ -26,10 +26,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.h   |  192 +++++++++++++++++++++-
  security/tomoyo/domain.c   |  191 ++++------------------
  security/tomoyo/file.c     |  174 +++++++-------------
- security/tomoyo/realpath.c |  386 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/realpath.c |  384 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
  security/tomoyo/tomoyo.c   |   18 +-
- 7 files changed, 735 insertions(+), 358 deletions(-)
+ 7 files changed, 733 insertions(+), 358 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
@@ -1735,7 +1735,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -431,3 +465,329 @@ int tomoyo_write_memory_quota(struct tom
+@@ -431,3 +465,327 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
@@ -1857,7 +1857,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_gc_thread - Garbage collector thread for TOMOYO.
++ * tomoyo_gc_thread_main - Garbage collector thread for TOMOYO.
 + *
 + * @unused: Not used.
 + *
@@ -2047,22 +2047,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
++/**
++ * tomoyo_gc_thread - Garbage collector thread for TOMOYO.
++ *
++ * @unused: Not used.
++ */
 +int tomoyo_gc_thread(void *unused)
 +{
++	/*
++	 * Maybe this thread should be created and terminated as needed
++	 * rather than created upon boot and living forever...
++	 */
 +	while (1) {
-+		int i;
-+		struct tomoyo_name_entry *ptr;
 +		msleep(30000);
 +		tomoyo_gc_thread_main(unused);
-+		if (!mutex_trylock(&tomoyo_name_list_lock))
-+			continue;
-+		for (i = 0; i < TOMOYO_MAX_HASH; i++)
-+			list_for_each_entry_rcu(ptr, &tomoyo_name_list[i],
-+						list)
-+				printk(KERN_DEBUG "users=%u name=%s\n",
-+				       atomic_read(&ptr->users),
-+				       ptr->entry.name);
-+		mutex_unlock(&tomoyo_name_list_lock);
 +	}
 +}
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.h
