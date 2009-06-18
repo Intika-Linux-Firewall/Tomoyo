@@ -1,39 +1,24 @@
-Subject: TOMOYO: Add RCU-like garbage collector.
+Subject: TOMOYO: Add SRCU based garbage collector.
 
 As of now, TOMOYO cannot release memory used by marked-as-deleted list elements
 because TOMOYO does not know how many readers are there.
 
-This patch adds "atomic_t users" to
-"struct tomoyo_domain_info" and "struct tomoyo_name_entry" structures
-and adds global counter "atomic_t tomoyo_users_counter[2]" and
-active counter indicator "tomoyo_users_counter_idx".
-
-Reader threads do "idx = atomic_read(&tomoyo_users_counter_idx);" and
-"atomic_inc(&tomoyo_users_counter[idx]);" before start reading, and do
-"atomic_dec(&tomoyo_users_counter[idx]);" after finished reading.
-
-The garbage collector thread removes marked-as-deleted elements using
-list_del_rcu(). Then, GC updates "tomoyo_users_counter_idx" so that subsequent
-readers shall use the other global counter. Then, GC waits for previously used
-global counter to become 0, which indicates that RCU's grace period has
-expired. To be able to release all marked-as-deleted elements with single
-RCU grace period, GC temporarily stores marked-as-deleted elements in a private
-list.
+This patch adds SRCU based garbage collector.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |  127 ++++++--------
- security/tomoyo/common.h   |  192 +++++++++++++++++++++-
- security/tomoyo/domain.c   |  191 ++++------------------
- security/tomoyo/file.c     |  174 +++++++-------------
- security/tomoyo/realpath.c |  384 +++++++++++++++++++++++++++++++++++++++++++--
+ security/tomoyo/common.c   |  124 ++++++--------
+ security/tomoyo/common.h   |  180 ++++++++++++++++++++-
+ security/tomoyo/domain.c   |  191 ++++-------------------
+ security/tomoyo/file.c     |  174 ++++++++------------
+ security/tomoyo/realpath.c |  373 +++++++++++++++++++++++++++++++++++++++++++--
  security/tomoyo/realpath.h |    5 
- security/tomoyo/tomoyo.c   |   18 +-
- 7 files changed, 733 insertions(+), 358 deletions(-)
+ security/tomoyo/tomoyo.c   |   18 ++
+ 7 files changed, 707 insertions(+), 358 deletions(-)
 
 --- security-testing-2.6.git.orig/security/tomoyo/common.c
 +++ security-testing-2.6.git/security/tomoyo/common.c
-@@ -12,10 +12,14 @@
+@@ -12,6 +12,7 @@
  #include <linux/uaccess.h>
  #include <linux/security.h>
  #include <linux/hardirq.h>
@@ -41,14 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #include "realpath.h"
  #include "common.h"
  #include "tomoyo.h"
- 
-+atomic_t tomoyo_users_counter[2];
-+atomic_t tomoyo_users_counter_idx;
-+
- /* Has loading policy done? */
- bool tomoyo_policy_loaded;
- 
-@@ -340,10 +344,9 @@ bool tomoyo_is_domain_def(const unsigned
+@@ -340,10 +341,9 @@ bool tomoyo_is_domain_def(const unsigned
   *
   * @domainname: The domainname to find.
   *
@@ -57,11 +35,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 - *
   * Returns pointer to "struct tomoyo_domain_info" if found, NULL otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname)
  {
-@@ -352,7 +355,7 @@ struct tomoyo_domain_info *tomoyo_find_d
+@@ -352,7 +352,7 @@ struct tomoyo_domain_info *tomoyo_find_d
  
  	name.name = domainname;
  	tomoyo_fill_path_info(&name);
@@ -70,16 +48,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!domain->is_deleted &&
  		    !tomoyo_pathcmp(&name, domain->domainname))
  			return domain;
-@@ -788,6 +791,8 @@ bool tomoyo_verbose_mode(const struct to
+@@ -788,6 +788,8 @@ bool tomoyo_verbose_mode(const struct to
   * @domain: Pointer to "struct tomoyo_domain_info".
   *
   * Returns true if the domain is not exceeded quota, false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  bool tomoyo_domain_quota_is_ok(struct tomoyo_domain_info * const domain)
  {
-@@ -796,8 +801,7 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -796,8 +798,7 @@ bool tomoyo_domain_quota_is_ok(struct to
  
  	if (!domain)
  		return true;
@@ -89,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (ptr->type & TOMOYO_ACL_DELETED)
  			continue;
  		switch (tomoyo_acl_type2(ptr)) {
-@@ -850,7 +854,6 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -850,7 +851,6 @@ bool tomoyo_domain_quota_is_ok(struct to
  			break;
  		}
  	}
@@ -97,7 +75,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
  		return true;
  	if (!domain->quota_warned) {
-@@ -1029,27 +1032,6 @@ static int tomoyo_read_profile(struct to
+@@ -1029,27 +1029,6 @@ static int tomoyo_read_profile(struct to
  }
  
  /*
@@ -125,7 +103,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_policy_manager_list is used for holding list of domainnames or
   * programs which are permitted to modify configuration via
   * /sys/kernel/security/tomoyo/ interface.
-@@ -1079,8 +1061,7 @@ struct tomoyo_policy_manager_entry {
+@@ -1079,8 +1058,7 @@ struct tomoyo_policy_manager_entry {
   *
   * # cat /sys/kernel/security/tomoyo/manager
   */
@@ -135,7 +113,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * tomoyo_update_manager_entry - Add a manager entry.
-@@ -1112,8 +1093,8 @@ static int tomoyo_update_manager_entry(c
+@@ -1112,8 +1090,8 @@ static int tomoyo_update_manager_entry(c
  		return -ENOMEM;
  	if (!is_delete)
  		new_entry = kmalloc(sizeof(*new_entry), GFP_KERNEL);
@@ -146,7 +124,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (ptr->manager != saved_manager)
  			continue;
  		ptr->is_deleted = is_delete;
-@@ -1124,11 +1105,12 @@ static int tomoyo_update_manager_entry(c
+@@ -1124,11 +1102,12 @@ static int tomoyo_update_manager_entry(c
  		new_entry->manager = saved_manager;
  		saved_manager = NULL;
  		new_entry->is_domain = is_domain;
@@ -161,7 +139,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	tomoyo_put_name(saved_manager);
  	kfree(new_entry);
  	return error;
-@@ -1167,9 +1149,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1167,9 +1146,8 @@ static int tomoyo_read_manager_policy(st
  
  	if (head->read_eof)
  		return 0;
@@ -173,7 +151,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_policy_manager_entry *ptr;
  		ptr = list_entry(pos, struct tomoyo_policy_manager_entry,
  				 list);
-@@ -1179,7 +1160,6 @@ static int tomoyo_read_manager_policy(st
+@@ -1179,7 +1157,6 @@ static int tomoyo_read_manager_policy(st
  		if (!done)
  			break;
  	}
@@ -181,16 +159,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1189,6 +1169,8 @@ static int tomoyo_read_manager_policy(st
+@@ -1189,6 +1166,8 @@ static int tomoyo_read_manager_policy(st
   *
   * Returns true if the current process is permitted to modify policy
   * via /sys/kernel/security/tomoyo/ interface.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_policy_manager(void)
  {
-@@ -1202,29 +1184,25 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1202,29 +1181,25 @@ static bool tomoyo_is_policy_manager(voi
  		return true;
  	if (!tomoyo_manage_by_non_root && (task->cred->uid || task->cred->euid))
  		return false;
@@ -222,16 +200,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!found) { /* Reduce error messages. */
  		static pid_t last_pid;
  		const pid_t pid = current->pid;
-@@ -1245,6 +1223,8 @@ static bool tomoyo_is_policy_manager(voi
+@@ -1245,6 +1220,8 @@ static bool tomoyo_is_policy_manager(voi
   * @data: String to parse.
   *
   * Returns true on success, false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head,
  				 const char *data)
-@@ -1260,11 +1240,8 @@ static bool tomoyo_is_select_one(struct 
+@@ -1260,11 +1237,8 @@ static bool tomoyo_is_select_one(struct 
  			domain = tomoyo_real_domain(p);
  		read_unlock(&tasklist_lock);
  	} else if (!strncmp(data, "domain=", 7)) {
@@ -244,7 +222,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	} else
  		return false;
  	head->write_var1 = domain;
-@@ -1278,13 +1255,11 @@ static bool tomoyo_is_select_one(struct 
+@@ -1278,13 +1252,11 @@ static bool tomoyo_is_select_one(struct 
  	if (domain) {
  		struct tomoyo_domain_info *d;
  		head->read_var1 = NULL;
@@ -259,16 +237,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->read_var2 = NULL;
  		head->read_bit = 0;
  		head->read_step = 0;
-@@ -1300,6 +1275,8 @@ static bool tomoyo_is_select_one(struct 
+@@ -1300,6 +1272,8 @@ static bool tomoyo_is_select_one(struct 
   * @domainname: The name of domain.
   *
   * Returns 0.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static int tomoyo_delete_domain(char *domainname)
  {
-@@ -1308,9 +1285,9 @@ static int tomoyo_delete_domain(char *do
+@@ -1308,9 +1282,9 @@ static int tomoyo_delete_domain(char *do
  
  	name.name = domainname;
  	tomoyo_fill_path_info(&name);
@@ -280,7 +258,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		/* Never delete tomoyo_kernel_domain */
  		if (domain == &tomoyo_kernel_domain)
  			continue;
-@@ -1320,7 +1297,7 @@ static int tomoyo_delete_domain(char *do
+@@ -1320,7 +1294,7 @@ static int tomoyo_delete_domain(char *do
  		domain->is_deleted = true;
  		break;
  	}
@@ -289,16 +267,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return 0;
  }
  
-@@ -1330,6 +1307,8 @@ static int tomoyo_delete_domain(char *do
+@@ -1330,6 +1304,8 @@ static int tomoyo_delete_domain(char *do
   * @head: Pointer to "struct tomoyo_io_buffer".
   *
   * Returns 0 on success, negative value otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static int tomoyo_write_domain_policy(struct tomoyo_io_buffer *head)
  {
-@@ -1352,11 +1331,9 @@ static int tomoyo_write_domain_policy(st
+@@ -1352,11 +1328,9 @@ static int tomoyo_write_domain_policy(st
  		domain = NULL;
  		if (is_delete)
  			tomoyo_delete_domain(data);
@@ -312,7 +290,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			domain = tomoyo_find_or_assign_new_domain(data, 0);
  		head->write_var1 = domain;
  		return 0;
-@@ -1511,8 +1488,7 @@ static int tomoyo_read_domain_policy(str
+@@ -1511,8 +1485,7 @@ static int tomoyo_read_domain_policy(str
  		return 0;
  	if (head->read_step == 0)
  		head->read_step = 1;
@@ -322,7 +300,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_domain_info *domain;
  		const char *quota_exceeded = "";
  		const char *transition_failed = "";
-@@ -1543,9 +1519,8 @@ acl_loop:
+@@ -1543,9 +1516,8 @@ acl_loop:
  		if (head->read_step == 3)
  			goto tail_mark;
  		/* Print ACL entries in the domain. */
@@ -334,7 +312,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			struct tomoyo_acl_info *ptr
  				= list_entry(apos, struct tomoyo_acl_info,
  					     list);
-@@ -1553,7 +1528,6 @@ acl_loop:
+@@ -1553,7 +1525,6 @@ acl_loop:
  			if (!done)
  				break;
  		}
@@ -342,7 +320,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!done)
  			break;
  		head->read_step = 3;
-@@ -1565,7 +1539,6 @@ tail_mark:
+@@ -1565,7 +1536,6 @@ tail_mark:
  		if (head->read_single_domain)
  			break;
  	}
@@ -350,16 +328,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1581,6 +1554,8 @@ tail_mark:
+@@ -1581,6 +1551,8 @@ tail_mark:
   *
   *     ( echo "select " $domainname; echo "use_profile " $profile ) |
   *     /usr/lib/ccs/loadpolicy -d
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static int tomoyo_write_domain_profile(struct tomoyo_io_buffer *head)
  {
-@@ -1592,9 +1567,7 @@ static int tomoyo_write_domain_profile(s
+@@ -1592,9 +1564,7 @@ static int tomoyo_write_domain_profile(s
  	if (!cp)
  		return -EINVAL;
  	*cp = '\0';
@@ -369,7 +347,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (strict_strtoul(data, 10, &profile))
  		return -EINVAL;
  	if (domain && profile < TOMOYO_MAX_PROFILES
-@@ -1624,8 +1597,7 @@ static int tomoyo_read_domain_profile(st
+@@ -1624,8 +1594,7 @@ static int tomoyo_read_domain_profile(st
  
  	if (head->read_eof)
  		return 0;
@@ -379,7 +357,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_domain_info *domain;
  		domain = list_entry(pos, struct tomoyo_domain_info, list);
  		if (domain->is_deleted)
-@@ -1635,7 +1607,6 @@ static int tomoyo_read_domain_profile(st
+@@ -1635,7 +1604,6 @@ static int tomoyo_read_domain_profile(st
  		if (!done)
  			break;
  	}
@@ -387,11 +365,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	head->read_eof = done;
  	return 0;
  }
-@@ -1854,16 +1825,24 @@ void tomoyo_load_policy(const char *file
+@@ -1854,16 +1822,24 @@ void tomoyo_load_policy(const char *file
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  	tomoyo_policy_loaded = true;
  	{ /* Check all profiles currently assigned to domains are defined. */
-+		const int idx = tomoyo_lock();
++		const int idx = srcu_read_lock(&tomoyo_ss);
  		struct tomoyo_domain_info *domain;
 -		down_read(&tomoyo_domain_list_lock);
 -		list_for_each_entry(domain, &tomoyo_domain_list, list) {
@@ -403,7 +381,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			      profile, domain->domainname->name);
  		}
 -		up_read(&tomoyo_domain_list_lock);
-+		tomoyo_unlock(idx);
++		srcu_read_unlock(&tomoyo_ss, idx);
 +	}
 +	{
 +		struct task_struct *task =
@@ -415,19 +393,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  }
  
-@@ -1997,6 +1976,7 @@ static int tomoyo_open_control(const u8 
+@@ -1997,6 +1973,7 @@ static int tomoyo_open_control(const u8 
  		}
  	}
  	file->private_data = head;
-+	head->tomoyo_users_counter_index = tomoyo_lock();
++	head->tomoyo_srcu_index = srcu_read_lock(&tomoyo_ss);
  	/*
  	 * Call the handler now if the file is
  	 * /sys/kernel/security/tomoyo/self_domain
-@@ -2114,6 +2094,7 @@ static int tomoyo_write_control(struct f
+@@ -2114,6 +2091,7 @@ static int tomoyo_write_control(struct f
  static int tomoyo_close_control(struct file *file)
  {
  	struct tomoyo_io_buffer *head = file->private_data;
-+	tomoyo_unlock(head->tomoyo_users_counter_index);
++	srcu_read_unlock(&tomoyo_ss, head->tomoyo_srcu_index);
  
  	/* Release memory used for policy I/O. */
  	tomoyo_free(head->read_buf);
@@ -446,7 +424,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Exclusive lock for this structure.   */
  	struct mutex io_sem;
 +	/* counter which this structure locked. */
-+	int tomoyo_users_counter_index;
++	int tomoyo_srcu_index;
  	/* The position currently reading from. */
  	struct list_head *read_var1;
  	/* Extra variables for reading.         */
@@ -463,7 +441,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* Has /sbin/init started? */
  extern bool tomoyo_policy_loaded;
-@@ -433,21 +435,193 @@ extern bool tomoyo_policy_loaded;
+@@ -433,21 +435,181 @@ extern bool tomoyo_policy_loaded;
  extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
  /**
@@ -490,20 +468,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	     (cookie) = pos, pos = pos->next)
 +	     (cookie) = pos, pos = rcu_dereference(pos->next))
 +
-+extern atomic_t tomoyo_users_counter[2];
-+extern atomic_t tomoyo_users_counter_idx;
-+
-+static inline int tomoyo_lock(void)
-+{
-+	int idx = atomic_read(&tomoyo_users_counter_idx);
-+	atomic_inc(&tomoyo_users_counter[idx]);
-+	return idx;
-+}
-+
-+static inline void tomoyo_unlock(int idx)
-+{
-+	atomic_dec(&tomoyo_users_counter[idx]);
-+}
++/* SRCU structure for GC */
++extern struct srcu_struct tomoyo_ss;
 +
 +/*
 + * tomoyo_policy_manager_entry is a structure which is used for holding list of
@@ -812,7 +778,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * Returns true if executing @program reinitializes domain transition,
   * false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_domain_initializer(const struct tomoyo_path_info *
  					 domainname,
@@ -895,7 +861,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * Returns true if executing @program supresses domain transition,
   * false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_domain_keeper(const struct tomoyo_path_info *domainname,
  				    const struct tomoyo_path_info *program,
@@ -1032,7 +998,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns 0 on success, negative value otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  int tomoyo_find_next_domain(struct linux_binprm *bprm)
  {
@@ -1040,7 +1006,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_path_info s; /* symlink name */
  	struct tomoyo_path_info l; /* last name */
  	static bool initialized;
-+	const int idx = tomoyo_lock();
++	const int idx = srcu_read_lock(&tomoyo_ss);
  
  	if (!tmp)
  		goto out;
@@ -1081,7 +1047,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain = old_domain;
 +	atomic_inc(&domain->users);
  	bprm->cred->security = domain;
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
  	tomoyo_free(real_program_name);
  	tomoyo_free(symlink_program_name);
  	tomoyo_free(tmp);
@@ -1196,7 +1162,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns true if any domain can open @filename for reading, false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_globally_readable_file(const struct tomoyo_path_info *
  					     filename)
@@ -1276,7 +1242,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns pointer to pathname pattern if matched, @filename otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static const struct tomoyo_path_info *
  tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
@@ -1356,7 +1322,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * Returns true if @filename is specified by "deny_rewrite" directive,
   * false otherwise.
 + *
-+ * Caller holds tomoyo_lock().
++ * Caller holds srcu_read_lock(&tomoyo_ss).
   */
  static bool tomoyo_is_no_rewrite_file(const struct tomoyo_path_info *filename)
  {
@@ -1400,7 +1366,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	struct tomoyo_acl_info *ptr;
  	int error = -EPERM;
-+	const int idx = tomoyo_lock();
++	const int idx = srcu_read_lock(&tomoyo_ss);
  
 -	down_read(&tomoyo_domain_acl_info_list_lock);
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
@@ -1413,7 +1379,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	}
 -	up_read(&tomoyo_domain_acl_info_list_lock);
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
  	return error;
  }
  
@@ -1505,7 +1471,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
 -	down_read(&tomoyo_domain_acl_info_list_lock);
 -	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-+	idx = tomoyo_lock();
++	idx = srcu_read_lock(&tomoyo_ss);
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_double_path_acl_record *acl;
  		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
@@ -1515,7 +1481,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
  	}
 -	up_read(&tomoyo_domain_acl_info_list_lock);
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
  	return error;
  }
  
@@ -1531,7 +1497,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!buf)
  		goto out;
  	error = 0;
-+	idx = tomoyo_lock();
++	idx = srcu_read_lock(&tomoyo_ss);
  	/*
  	 * If the filename is specified by "deny_rewrite" keyword,
  	 * we need to check "allow_rewrite" permission when the filename is not
@@ -1539,7 +1505,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = tomoyo_check_single_path_permission2(domain,
  						     TOMOYO_TYPE_TRUNCATE_ACL,
  							     buf, mode);
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
@@ -1555,10 +1521,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			tomoyo_fill_path_info(buf);
  		}
  	}
-+	idx = tomoyo_lock();
++	idx = srcu_read_lock(&tomoyo_ss);
  	error = tomoyo_check_single_path_permission2(domain, operation, buf,
  						     mode);
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
@@ -1573,7 +1539,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	buf = tomoyo_get_path(&filp->f_path);
  	if (!buf)
  		goto out;
-+	idx = tomoyo_lock();
++	idx = srcu_read_lock(&tomoyo_ss);
  	if (!tomoyo_is_no_rewrite_file(buf)) {
  		error = 0;
 -		goto out;
@@ -1583,7 +1549,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  						     TOMOYO_TYPE_REWRITE_ACL,
  						     buf, mode);
 + ok:
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
   out:
  	tomoyo_free(buf);
  	if (!is_enforce)
@@ -1599,7 +1565,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			}
  		}
  	}
-+	idx = tomoyo_lock();
++	idx = srcu_read_lock(&tomoyo_ss);
  	error = tomoyo_check_double_path_acl(domain, operation, buf1, buf2);
  	msg = tomoyo_dp2keyword(operation);
  	if (!error)
@@ -1613,21 +1579,28 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					      false);
  	}
 + ok:
-+	tomoyo_unlock(idx);
++	srcu_read_unlock(&tomoyo_ss, idx);
   out:
  	tomoyo_free(buf1);
  	tomoyo_free(buf2);
 --- security-testing-2.6.git.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6.git/security/tomoyo/realpath.c
-@@ -15,6 +15,7 @@
+@@ -1,3 +1,4 @@
++
+ /*
+  * security/tomoyo/realpath.c
+  *
+@@ -15,6 +16,9 @@
  #include <linux/fs_struct.h>
  #include "common.h"
  #include "realpath.h"
 +#include "tomoyo.h"
++
++struct srcu_struct tomoyo_ss;
  
  /**
   * tomoyo_encode: Convert binary string to ascii string.
-@@ -223,6 +224,17 @@ bool tomoyo_memory_ok(void *ptr)
+@@ -223,6 +227,17 @@ bool tomoyo_memory_ok(void *ptr)
  	return false;
  }
  
@@ -1645,7 +1618,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Memory allocated for string data in bytes. */
  static atomic_t tomoyo_allocated_memory_for_savename;
  /* Quota for holding string data in bytes. */
-@@ -238,15 +250,10 @@ static unsigned int tomoyo_quota_for_sav
+@@ -238,15 +253,10 @@ static unsigned int tomoyo_quota_for_sav
  /*
   * tomoyo_name_entry is a structure which is used for linking
   * "struct tomoyo_path_info" into tomoyo_name_list .
@@ -1662,7 +1635,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_path_info entry;
  };
  
-@@ -287,10 +294,11 @@ const struct tomoyo_path_info *tomoyo_ge
+@@ -287,10 +297,11 @@ const struct tomoyo_path_info *tomoyo_ge
  	entry = kmalloc(sizeof(*entry) + len, GFP_KERNEL);
  	allocated_len = entry ? ksize(entry) : 0;
  	mutex_lock(&tomoyo_name_list_lock);
@@ -1676,7 +1649,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		break;
  	}
-@@ -305,8 +313,9 @@ const struct tomoyo_path_info *tomoyo_ge
+@@ -305,8 +316,9 @@ const struct tomoyo_path_info *tomoyo_ge
  		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
  		memmove((char *) ptr->entry.name, name, len);
  		tomoyo_fill_path_info(&ptr->entry);
@@ -1688,7 +1661,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		entry = NULL;
  		error = 0;
  	}
-@@ -321,6 +330,31 @@ const struct tomoyo_path_info *tomoyo_ge
+@@ -321,6 +333,31 @@ const struct tomoyo_path_info *tomoyo_ge
  }
  
  /**
@@ -1720,22 +1693,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_realpath_init - Initialize realpath related code.
   */
  void __init tomoyo_realpath_init(void)
-@@ -332,11 +366,11 @@ void __init tomoyo_realpath_init(void)
+@@ -331,12 +368,14 @@ void __init tomoyo_realpath_init(void)
+ 	for (i = 0; i < TOMOYO_MAX_HASH; i++)
  		INIT_LIST_HEAD(&tomoyo_name_list[i]);
  	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
++	if (init_srcu_struct(&tomoyo_ss))
++		panic("Can't initialize tomoyo_ss");
  	tomoyo_kernel_domain.domainname = tomoyo_get_name(TOMOYO_ROOT_NAME);
 -	list_add_tail(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
 -	down_read(&tomoyo_domain_list_lock);
 +	list_add_tail_rcu(&tomoyo_kernel_domain.list, &tomoyo_domain_list);
-+	i = tomoyo_lock();
++	i = srcu_read_lock(&tomoyo_ss);
  	if (tomoyo_find_domain(TOMOYO_ROOT_NAME) != &tomoyo_kernel_domain)
  		panic("Can't register tomoyo_kernel_domain");
 -	up_read(&tomoyo_domain_list_lock);
-+	tomoyo_unlock(i);
++	srcu_read_unlock(&tomoyo_ss, i);
  }
  
  /* Memory allocated for temporary purpose. */
-@@ -431,3 +465,327 @@ int tomoyo_write_memory_quota(struct tom
+@@ -431,3 +470,311 @@ int tomoyo_write_memory_quota(struct tom
  		tomoyo_quota_for_elements = size;
  	return 0;
  }
@@ -1986,24 +1962,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_unlock(&tomoyo_policy_lock);
 +	if (list_empty(&tomoyo_gc_queue))
 +		goto done;
++	synchronize_srcu(&tomoyo_ss);
 +	{
-+		/* Swap active counter. */
-+		const int idx = atomic_read(&tomoyo_users_counter_idx);
-+		atomic_set(&tomoyo_users_counter_idx, idx ^ 1);
-+		/*
-+		 * Wait for readers who are using previously active counter.
-+		 * This is similar to synchronize_rcu() while this code allows
-+		 * readers to do operations which may sleep.
-+		 */
-+		while (atomic_read(&tomoyo_users_counter[idx]))
-+			msleep(1000);
-+	}
-+	{
-+		/*
-+		 * Nobody is using previously active counter.
-+		 * Ready to release memory of elements removed from the list
-+		 * during previously active counter was active.
-+		 */
 +		struct tomoyo_gc_entry *p;
 +		struct tomoyo_gc_entry *tmp;
 +		list_for_each_entry_safe(p, tmp, &tomoyo_gc_queue, list) {
