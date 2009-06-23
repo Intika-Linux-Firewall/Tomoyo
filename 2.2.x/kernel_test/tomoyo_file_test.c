@@ -828,7 +828,7 @@ static void stage_file_test2(void)
 					   fcntl(fd, F_GETFL) & ~O_APPEND), 0);
 			if (fd != EOF)
 				close(fd);
-			
+
 			delete_policy();
 		}
 		policy = "allow_read/write /tmp/rewrite_test";
@@ -836,7 +836,7 @@ static void stage_file_test2(void)
 		fprintf(fp_exception, "delete deny_rewrite "
 			"/tmp/rewrite_test\n");
 		fflush(fp_exception);
-		
+
 	}
 	unlink2(filename);
 }
