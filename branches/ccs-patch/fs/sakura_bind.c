@@ -130,7 +130,6 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
  */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 {
-	bool done = true;
 	struct list_head *pos;
 	char buffer[16];
 	memset(buffer, 0, sizeof(buffer));
@@ -145,9 +144,8 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 		max_port = ptr->max_port;
 		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
 			 min_port != max_port ? '-' : '\0', max_port);
-		done = ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer);
-		if (!done)
-			break;
+		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
+			return false;
 	}
-	return done;
+	return true;
 }

@@ -1139,15 +1139,17 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 
 /**
- * ccs_check_condition2 - Check condition part.
+ * ccs_check_condition - Check condition part.
  *
  * @r:    Pointer to "struct ccs_request_info".
- * @cond: Pointer to "struct ccs_condition".
+ * @acl: Pointer to "struct ccs_acl_info".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
-static bool ccs_check_condition2(struct ccs_request_info *r,
-				 const struct ccs_condition *cond)
+bool ccs_check_condition(struct ccs_request_info *r,
+			 const struct ccs_acl_info *acl)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1165,6 +1167,9 @@ static bool ccs_check_condition2(struct ccs_request_info *r,
 	u16 envc;
 	u16 symlinkc;
 	struct linux_binprm *bprm = NULL;
+	const struct ccs_condition *cond = acl->cond;
+	if (!cond)
+		return true;
 	condc = cond->head.condc;
 	argc = cond->head.argc;
 	envc = cond->head.envc;
@@ -1494,25 +1499,6 @@ static bool ccs_check_condition2(struct ccs_request_info *r,
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
-}
-
-/**
- * ccs_check_condition - Check condition part.
- *
- * @r:   Pointer to "struct ccs_request_info".
- * @acl: Pointer to "struct ccs_acl_info".
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds ccs_policy_lock for reading.
- */
-bool ccs_check_condition(struct ccs_request_info *r,
-			 const struct ccs_acl_info *acl)
-{
-	const struct ccs_condition *cond = acl->cond;
-	if (!cond)
-		return true;
-	return ccs_check_condition2(r, cond);
 }
 
 /**

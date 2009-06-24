@@ -808,7 +808,6 @@ static kmem_cache_t *ccs_cachep;
 static int __init ccs_realpath_init(void)
 {
 	int i;
-	struct ccs_domain_info *domain;
 	/* Constraint for ccs_get_name(). */
 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
 		panic("Bad size.");
@@ -830,9 +829,8 @@ static int __init ccs_realpath_init(void)
 		INIT_LIST_HEAD(&ccs_name_list[i]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
-	list_add_tail(&ccs_kernel_domain.list, &ccs_domain_list);
-	domain = ccs_find_domain(ROOT_NAME);
-	if (domain != &ccs_kernel_domain)
+	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
+	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
 #ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
 	{
@@ -985,7 +983,6 @@ void ccs_free(const void *p)
 		kmem_cache_free(ccs_cachep, entry);
 	} else {
 		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
-		dump_stack();
 	}
 }
 

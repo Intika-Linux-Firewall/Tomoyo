@@ -472,17 +472,14 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname)
 {
 	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
-	bool found = false;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
-		if (domain->is_deleted ||
-		    ccs_pathcmp(&name, domain->domainname))
-			continue;
-		found = true;
-		break;
+		if (!domain->is_deleted &&
+		    !ccs_pathcmp(&name, domain->domainname))
+			return domain;
 	}
-	return found ? domain : NULL;
+	return NULL;
 }
 
 /**
@@ -977,15 +974,6 @@ void ccs_init_request_info(struct ccs_request_info *r,
 }
 
 /**
- * ccs_exit_request_info - Cleanup "struct ccs_request_info" members.
- *
- * @r: Pointer to "struct ccs_request_info".
- */
-void ccs_exit_request_info(struct ccs_request_info *r)
-{
-}
-
-/**
  * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
  *
  * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
@@ -1011,13 +999,12 @@ bool ccs_domain_quota_ok(struct ccs_domain_info * const domain)
 {
 	unsigned int count = 0;
 	struct ccs_acl_info *ptr;
-	bool quota_ok = false;
 	if (!domain)
 		return true;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		if (ptr->type & ACL_DELETED)
 			continue;
-		switch (ptr->type) {
+		switch (ccs_acl_type2(ptr)) {
 			struct ccs_single_path_acl_record *acl1;
 			struct ccs_double_path_acl_record *acl2;
 			u16 perm;
@@ -1072,14 +1059,14 @@ bool ccs_domain_quota_ok(struct ccs_domain_info * const domain)
 		}
 	}
 	if (count < ccs_check_flags(domain, CCS_MAX_ACCEPT_ENTRY))
-		quota_ok = true;
-	else if (!domain->quota_warned) {
+		return true;
+	if (!domain->quota_warned) {
 		domain->quota_warned = true;
 		printk(KERN_WARNING "TOMOYO-WARNING: "
 		       "Domain '%s' has so many ACLs to hold. "
 		       "Stopped learning mode.\n", domain->domainname->name);
 	}
-	return quota_ok;
+	return false;
 }
 
 /**
@@ -1097,6 +1084,9 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	int i;
 	if (profile >= MAX_PROFILES)
 		return NULL;
+	ptr = ccs_profile_ptr[profile];
+	if (ptr)
+		return ptr;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	ptr = ccs_profile_ptr[profile];
@@ -1392,7 +1382,6 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
 static int ccs_read_manager_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	bool done = true;
 	if (head->read_eof)
 		return 0;
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
@@ -1400,11 +1389,10 @@ static int ccs_read_manager_policy(struct ccs_io_buffer *head)
 		ptr = list_entry(pos, struct ccs_policy_manager_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, "%s\n", ptr->manager->name);
-		if (!done)
-			break;
+		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
+			return 0;
 	}
-	head->read_eof = done;
+	head->read_eof = true;
 	return 0;
 }
 
@@ -1503,14 +1491,13 @@ static char *ccs_find_condition_part(char *data)
 static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
-	struct ccs_domain_info *domain = head->write_var1;
+	struct ccs_domain_info *domain = NULL;
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
 	}
 	if (sscanf(data, "pid=%u", &pid) == 1) {
 		struct task_struct *p;
-		domain = NULL;
 		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		p = find_task_by_pid(pid);
@@ -1519,7 +1506,6 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
 	} else if (!strncmp(data, "domain=", 7)) {
-		domain = NULL;
 		if (ccs_is_domain_def(data + 7))
 			domain = ccs_find_domain(data + 7);
 	} else
@@ -1528,24 +1514,24 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	/* Accessing read_buf is safe because head->io_sem is held. */
 	if (!head->read_buf)
 		return true; /* Do nothing if open(O_WRONLY). */
-	if (domain) {
-		struct ccs_domain_info *d;
-                head->read_var1 = NULL;
-                list_for_each_entry_rcu(d, &ccs_domain_list, list) {
-                        if (d == domain)
-                                break;
-                        head->read_var1 = &d->list;
-                }
-	}
 	head->read_avail = 0;
 	ccs_io_printf(head, "# select %s\n", data);
 	head->read_single_domain = true;
 	head->read_eof = !domain;
-	head->read_var2 = NULL;
-	head->read_bit = 0;
-	head->read_step = 0;
-	if (domain && domain->is_deleted)
-		ccs_io_printf(head, "# This is a deleted domain.\n");
+	if (domain) {
+		struct ccs_domain_info *d;
+		head->read_var1 = NULL;
+		list_for_each_entry_rcu(d, &ccs_domain_list, list) {
+			if (d == domain)
+				break;
+			head->read_var1 = &d->list;
+		}
+		head->read_var2 = NULL;
+		head->read_bit = 0;
+		head->read_step = 0;
+		if (domain->is_deleted)
+			ccs_io_printf(head, "# This is a deleted domain.\n");
+	}
 	return true;
 }
 
@@ -1577,14 +1563,14 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		return -EPERM;
 	if (ccs_is_domain_def(data)) {
 		domain = NULL;
-		if (is_delete) {
+		if (is_delete)
 			ccs_delete_domain(data);
-		} else if (is_select)
+		else if (is_select)
 			domain = ccs_find_domain(data);
 		else
 			domain = ccs_find_or_assign_new_domain(data, 0);
-		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		head->write_var1 = domain;
+		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
 	}
 	if (!domain)
@@ -2003,7 +1989,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    struct ccs_acl_info *ptr)
 {
 	const struct ccs_condition *cond = ptr->cond;
-	const u8 acl_type = ptr->type;
+	const u8 acl_type = ccs_acl_type2(ptr);
 	if (acl_type & ACL_DELETED)
 		return true;
 	if (acl_type == TYPE_SINGLE_PATH_ACL) {
@@ -2149,6 +2135,11 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, -EINVAL otherwise.
+ *
+ * This is equivalent to doing
+ *
+ *     ( echo "select " $domainname; echo "use_profile " $profile ) |
+ *     /usr/lib/ccs/loadpolicy -d
  */
 static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 {
@@ -2175,6 +2166,13 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns list of profile number and domainname pairs.
+ *
+ * This is equivalent to doing
+ *
+ *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy |
+ *     awk ' { if ( domainname == "" ) { if ( $1 == "<kernel>" )
+ *     domainname = $0; } else if ( $1 == "use_profile" ) {
+ *     print $2 " " domainname; domainname = ""; } } ; '
  */
 static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 {

@@ -591,16 +591,13 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 ip = ntohl(*address);
 	bool found = false;
-	int error = -EPERM;
 	char buf[64];
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK);
 	is_enforce = (r.mode == 3);
-	if (!r.mode) {
-		error = 0;
-		goto done;
-	}
+	if (!r.mode)
+		return 0;
  retry:
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
@@ -635,10 +632,8 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 	else
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
 	ccs_audit_network_log(&r, keyword, buf, port, found);
-	if (found) {
-		error = 0;
-		goto done;
-	}
+	if (found)
+		return 0;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(is_enforce), keyword, buf, port,
@@ -649,8 +644,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 					       port);
 		if (err == 1)
 			goto retry;
-		error = err;
-		goto done;
+		return err;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
@@ -661,10 +655,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 					 r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
-	error = 0;
- done:
-	ccs_exit_request_info(&r);
-	return error;
+	return 0;
 }
 
 /**

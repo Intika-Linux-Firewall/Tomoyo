@@ -1427,7 +1427,6 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	ccs_free(buf);
 	if (r.mode != 3)
 		error = 0;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1489,7 +1488,6 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	ccs_free(buf);
 	if (!is_enforce)
 		error = 0;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1531,7 +1529,6 @@ int ccs_check_rewrite_permission(struct file *filp)
 	ccs_free(buf);
 	if (!is_enforce)
 		error = 0;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1617,7 +1614,6 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	ccs_free(buf2);
 	if (!is_enforce)
 		error = 0;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1889,7 +1885,6 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	ccs_free(buf);
 	if (r.mode != 3)
 		error = 0;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -2605,7 +2600,6 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	error = -ENOTDIR;
  out:
 	ccs_free(buf);
-	ccs_exit_request_info(&r);
 	return error;
 }
 #endif

@@ -922,8 +922,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr);
 /* Fill in "struct ccs_request_info" members. */
 void ccs_init_request_info(struct ccs_request_info *r,
 			   struct ccs_domain_info *domain, const u8 index);
-/* Cleanup "struct ccs_request_info" members. */
-void ccs_exit_request_info(struct ccs_request_info *r);
 /* Run policy loader when /sbin/init starts. */
 void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */

@@ -168,10 +168,8 @@ bool ccs_capable(const u8 operation)
 		return true;
 	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
 	is_enforce = (r.mode == 3);
-	if (!r.mode) {
-		found = true;
-		goto done;
-	}
+	if (!r.mode)
+		return true;
  retry:
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
@@ -187,7 +185,7 @@ bool ccs_capable(const u8 operation)
 	}
 	ccs_audit_capability_log(&r, operation, found);
 	if (found)
-		goto done;
+		return true;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
@@ -198,18 +196,14 @@ bool ccs_capable(const u8 operation)
 						 ccs_cap2keyword(operation));
 		if (error == 1)
 			goto retry;
-		found = !error;
-		goto done;
+		return !error;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_capability_acl(operation, r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
-	found = true;
- done:
-	ccs_exit_request_info(&r);
-	return found;
+	return true;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 

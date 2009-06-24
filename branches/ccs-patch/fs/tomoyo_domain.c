@@ -123,7 +123,6 @@ static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, domain, CCS_MAC_FOR_FILE);
 	error = ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -1625,7 +1624,6 @@ void ccs_finish_execve(int retval)
 	else
 		task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
  out:
-	ccs_exit_request_info(&ee->r);
 	ccs_free_execve_entry(ee);
 }
 

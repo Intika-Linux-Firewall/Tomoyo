@@ -107,10 +107,8 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_PIVOT_ROOT);
-	if (!r.mode) {
-		error = 0;
-		goto done;
-	}
+	if (!r.mode)
+		return 0;
  retry:
 	error = -EPERM;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -168,8 +166,6 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	ccs_free(new_root);
 	if (error == 1)
 		goto retry;
- done:
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -202,16 +198,14 @@ int ccs_write_pivot_root_policy(char *data, const bool is_delete)
 bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	bool done = true;
 	list_for_each_cookie(pos, head->read_var2, &ccs_pivot_root_list) {
 		struct ccs_pivot_root_entry *ptr;
 		ptr = list_entry(pos, struct ccs_pivot_root_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
-				     ptr->new_root->name, ptr->old_root->name);
-		if (!done)
-			break;
+		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+				   ptr->new_root->name, ptr->old_root->name))
+			return false;
 	}
-	return done;
+	return true;
 }

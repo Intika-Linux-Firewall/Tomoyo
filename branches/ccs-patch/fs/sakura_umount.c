@@ -91,10 +91,8 @@ int ccs_may_umount(struct vfsmount *mnt)
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_UNMOUNT);
 	is_enforce = (r.mode == 3);
-	if (!r.mode) {
-		error = 0;
-		goto out;
-	}
+	if (!r.mode)
+		return 0;
  retry:
 	error = -EPERM;
 	dir0 = ccs_realpath_from_dentry(mnt->mnt_root, mnt);
@@ -129,7 +127,6 @@ int ccs_may_umount(struct vfsmount *mnt)
 		error = 0;
 	if (error == 1)
 		goto retry;
-	ccs_exit_request_info(&r);
 	return error;
 }
 
@@ -158,16 +155,14 @@ int ccs_write_no_umount_policy(char *data, const bool is_delete)
 bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	bool done = true;
 	list_for_each_cookie(pos, head->read_var2, &ccs_no_umount_list) {
 		struct ccs_no_umount_entry *ptr;
 		ptr = list_entry(pos, struct ccs_no_umount_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
-				     ptr->dir->name);
-		if (!done)
-			break;
+		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
+				   ptr->dir->name))
+			return false;
 	}
-	return done;
+	return true;
 }

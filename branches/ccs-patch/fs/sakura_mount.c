@@ -493,16 +493,14 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 			       const unsigned long *flags)
 {
-	int error = 0;
 	struct ccs_request_info r;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_MOUNT);
-	if (r.mode)
-		error = ccs_check_mount_permission2(&r, dev_name, dir_name,
-						    type, *flags);
-	ccs_exit_request_info(&r);
-	return error;
+	if (!r.mode)
+		return 0;
+	return ccs_check_mount_permission2(&r, dev_name, dir_name, type,
+					   *flags);
 }
 
 /**
@@ -555,17 +553,15 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
 bool ccs_read_mount_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	bool done = true;
 	list_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
 		struct ccs_mount_entry *ptr;
 		ptr = list_entry(pos, struct ccs_mount_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-				     ptr->dev_name->name, ptr->dir_name->name,
-				     ptr->fs_type->name, ptr->flags);
-		if (!done)
-			break;
+		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+				   ptr->dev_name->name, ptr->dir_name->name,
+				   ptr->fs_type->name, ptr->flags))
+			return false;
 	}
-	return done;
+	return true;
 }

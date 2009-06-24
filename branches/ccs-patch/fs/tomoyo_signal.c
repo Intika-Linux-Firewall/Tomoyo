@@ -136,23 +136,17 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	const u16 hash = sig;
 	bool is_enforce;
 	bool found = false;
-	int error = -EPERM;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
 	is_enforce = (r.mode == 3);
-	if (!r.mode) {
-		error = 0;
-		goto done;
-	}
-	if (!sig) {
-		error = 0;
-		goto done;                /* No check for NULL signal. */
-	}
+	if (!r.mode)
+		return 0;
+	if (!sig)
+		return 0;                /* No check for NULL signal. */
 	if (sys_getpid() == pid) {
 		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
-		error = 0;
-		goto done;               /* No check for self process. */
+		return 0;                /* No check for self process. */
 	}
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
@@ -171,14 +165,11 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		read_unlock(&tasklist_lock);
 		/***** CRITICAL SECTION END *****/
 	}
-	if (!dest) {
-		error = 0;
-		goto done; /* I can't find destinatioin. */
-	}
+	if (!dest)
+		return 0; /* I can't find destinatioin. */
 	if (r.domain == dest) {
 		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
-		error = 0;
-		goto done; /* No check for self domain. */
+		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;
  retry:
@@ -204,30 +195,25 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		}
 	}
 	ccs_audit_signal_log(&r, sig, dest_pattern, found);
-	if (found) {
-		error = 0;
-		goto done;
-	}
+	if (found)
+		return 0;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
 		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
 		       ccs_get_last_name(dest), ccs_get_last_name(r.domain));
 	if (is_enforce) {
-		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
-					       "%d %s\n", sig, dest_pattern);
-		if (err == 1)
+		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
+						 "%d %s\n", sig, dest_pattern);
+		if (error == 1)
 			goto retry;
-		goto done;
+		return error;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_signal_acl(sig, dest_pattern, r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
-	error = 0;
- done:
-	ccs_exit_request_info(&r);
-	return error;
+	return 0;
 }
 
 /**
