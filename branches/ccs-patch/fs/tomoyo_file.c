@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -170,9 +170,8 @@ static int ccs_update_globally_readable_entry(const char *filename,
 		return -ENOMEM;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->filename != saved_filename)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -182,12 +181,11 @@ static int ccs_update_globally_readable_entry(const char *filename,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->filename = saved_filename;
 		saved_filename = NULL;
-		list_add_tail(&entry->list, &ccs_globally_readable_list);
+		list_add_tail_rcu(&entry->list, &ccs_globally_readable_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_filename);
 	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
@@ -200,22 +198,20 @@ static int ccs_update_globally_readable_entry(const char *filename,
  * @filename: The filename to check.
  *
  * Returns true if any domain can open @filename for reading, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 {
 	struct ccs_globally_readable_file_entry *ptr;
 	bool found = false;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_globally_readable_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->is_deleted ||
 		    !ccs_path_matches_pattern(filename, ptr->filename))
 			continue;
 		found = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return found;
 }
 
@@ -238,18 +234,18 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list,
-			      &ccs_globally_readable_list) {
+	list_for_each_cookie(pos, head->read_var2,
+			     &ccs_globally_readable_list) {
 		struct ccs_globally_readable_file_entry *ptr;
 		ptr = list_entry(pos, struct ccs_globally_readable_file_entry,
-				  list);
+				 list);
 		if (ptr->is_deleted)
 			continue;
 		done = ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
@@ -257,8 +253,6 @@ bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -285,9 +279,8 @@ static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 	if (!saved_group_name)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(group, &ccs_path_group_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(group, &ccs_path_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
 		atomic_inc(&group->users);
@@ -299,13 +292,12 @@ static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 		entry->group_name = saved_group_name;
 		saved_group_name = NULL;
 		atomic_set(&entry->users, 1);
-		list_add_tail(&entry->list, &ccs_path_group_list);
+		list_add_tail_rcu(&entry->list, &ccs_path_group_list);
 		group = entry;
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_group_name);
 	kfree(entry);
 	return !error ? group : NULL;
@@ -344,9 +336,8 @@ static int ccs_update_path_group_entry(const char *group_name,
 		goto out;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(member, &group->path_group_member_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
 		if (member->member_name != saved_member_name)
 			continue;
 		member->is_deleted = is_delete;
@@ -356,12 +347,11 @@ static int ccs_update_path_group_entry(const char *group_name,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->member_name = saved_member_name;
 		saved_member_name = NULL;
-		list_add_tail(&entry->list, &group->path_group_member_list);
+		list_add_tail_rcu(&entry->list, &group->path_group_member_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(saved_member_name);
 	ccs_put_path_group(group);
@@ -404,7 +394,7 @@ static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 {
 	struct ccs_path_group_member *member;
 	bool matched = false;
-	list_for_each_entry(member, &group->path_group_member_list, list) {
+	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
 		if (member->is_deleted)
 			continue;
 		if (!member->member_name->is_patterned) {
@@ -428,20 +418,19 @@ static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(gpos, head->read_var1.u.list,
-			      &ccs_path_group_list) {
+	list_for_each_cookie(gpos, head->read_var1, &ccs_path_group_list) {
 		struct ccs_path_group_entry *group;
 		group = list_entry(gpos, struct ccs_path_group_entry, list);
-		list_for_each_cookie(mpos, head->read_var2.u.list,
-				      &group->path_group_member_list) {
+		list_for_each_cookie(mpos, head->read_var2,
+				     &group->path_group_member_list) {
 			struct ccs_path_group_member *member;
 			member = list_entry(mpos, struct ccs_path_group_member,
 					     list);
@@ -454,8 +443,6 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 				break;
 		}
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -484,9 +471,8 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 		return -ENOMEM;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_pattern_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (saved_pattern != ptr->pattern)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -496,12 +482,11 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->pattern = saved_pattern;
 		saved_pattern = NULL;
-		list_add_tail(&entry->list, &ccs_pattern_list);
+		list_add_tail_rcu(&entry->list, &ccs_pattern_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_pattern);
 	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
@@ -511,16 +496,18 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 /**
  * ccs_get_file_pattern - Get patterned pathname.
  *
- * @cookie: Pointer to "struct ccs_cookie".
+ * @filename: Pointer to "struct ccs_path_info".
+ *
+ * Returns pointer to "struct ccs_path_info".
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
-static void ccs_get_file_pattern(struct ccs_cookie *cookie)
+static const struct ccs_path_info *ccs_get_file_pattern
+(const struct ccs_path_info *filename)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
-	const struct ccs_path_info *filename = cookie->u.path;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_pattern_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(filename, ptr->pattern))
@@ -533,10 +520,7 @@ static void ccs_get_file_pattern(struct ccs_cookie *cookie)
 			break;
 		}
 	}
-	if (pattern)
-		cookie->u.path = pattern;
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
+	return pattern ? pattern : filename;
 }
 
 /**
@@ -558,14 +542,14 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_pattern_list) {
+	list_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
 		struct ccs_pattern_entry *ptr;
 		ptr = list_entry(pos, struct ccs_pattern_entry, list);
 		if (ptr->is_deleted)
@@ -575,8 +559,6 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -605,9 +587,8 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 		return -ENOMEM;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->pattern != saved_pattern)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -617,12 +598,11 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->pattern = saved_pattern;
 		saved_pattern = NULL;
-		list_add_tail(&entry->list, &ccs_no_rewrite_list);
+		list_add_tail_rcu(&entry->list, &ccs_no_rewrite_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_pattern);
 	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
@@ -636,14 +616,14 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
  *
  * Returns true if @filename is specified by "deny_rewrite" directive,
  * false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 {
 	struct ccs_no_rewrite_entry *ptr;
 	bool matched = false;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_no_rewrite_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(filename, ptr->pattern))
@@ -651,8 +631,6 @@ static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 		matched = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return matched;
 }
 
@@ -675,14 +653,14 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list,
+	list_for_each_cookie(pos, head->read_var2,
 			      &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
 		ptr = list_entry(pos, struct ccs_no_rewrite_entry, list);
@@ -693,8 +671,6 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -751,18 +727,18 @@ static int ccs_update_file_acl(const char *filename, u8 perm,
  * @may_use_pattern: True if patterned ACL is permitted.
  *
  * Returns 0 on success, -EPERM otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 				      const struct ccs_path_info *filename,
 				      const u16 perm,
 				      const bool may_use_pattern)
 {
-	struct ccs_domain_info *domain = r->cookie.u.domain;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
@@ -781,12 +757,10 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 		} else {
 			continue;
 		}
-		r->condition_cookie.u.cond = ptr->cond;
+		r->cond = ptr->cond;
 		error = 0;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return error;
 }
 
@@ -848,16 +822,16 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 		BUG();
  retry:
 	error = ccs_check_file_acl(r, filename, perm);
-	if (error && perm == 4 && !r->cookie.u.domain->ignore_global_allow_read
+	if (error && perm == 4 && !r->domain->ignore_global_allow_read
 	    && ccs_is_globally_readable_file(filename))
 		error = 0;
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->cookie.u.domain))
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
-		       filename->name, ccs_get_last_name(r->cookie.u.domain));
+		       filename->name, ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(r, "allow_%s %s\n",
 					       msg, filename->name);
@@ -865,19 +839,16 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		/* Don't use patterns for execute permission. */
 		if (perm == 1) {
 			ccs_update_file_acl(filename->name, perm,
-					    r->cookie.u.domain, cond, false);
+					    r->domain, cond, false);
 		} else {
-			struct ccs_cookie cookie;
-			ccs_add_cookie(&cookie, filename);
-			ccs_get_file_pattern(&cookie);
-			ccs_update_file_acl(cookie.u.path->name, perm,
-					    r->cookie.u.domain, cond, false);
-			ccs_del_cookie(&cookie);
+			ccs_update_file_acl(ccs_get_file_pattern(filename)
+					    ->name, perm,
+					    r->domain, cond, false);
 		}
 		ccs_put_condition(cond);
 	}
@@ -912,9 +883,8 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
 		if (ccs_acl_type1(ptr) != type)
 			continue;
@@ -924,7 +894,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		if (acl->handler != saved_filename)
 			continue;
 		/* Only one entry can exist in a domain. */
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
 				ptr->type |= ACL_DELETED;
 		}
@@ -936,20 +906,18 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		entry->handler = saved_filename;
 		saved_filename = NULL;
 		/* Only one entry can exist in a domain. */
-		list_for_each_entry(ptr, &domain->acl_info_list, list) {
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
 				ptr->type |= ACL_DELETED;
 		}
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
 		if (ccs_acl_type2(ptr) != type)
 			continue;
@@ -961,8 +929,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(saved_filename);
 	kfree(entry);
@@ -1067,9 +1034,8 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
@@ -1102,13 +1068,11 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
 			continue;
@@ -1126,8 +1090,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	if (is_group)
 		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
@@ -1185,9 +1148,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
@@ -1217,13 +1179,11 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
@@ -1237,8 +1197,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	if (is_group1)
 		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr1);
@@ -1278,18 +1237,18 @@ static inline int ccs_check_single_path_acl(struct ccs_request_info *r,
  * @filename2: Second filename to check.
  *
  * Returns 0 on success, -EPERM otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename1,
 				     const struct ccs_path_info *filename2)
 {
-	const struct ccs_domain_info *domain = r->cookie.u.domain;
+	const struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
 			continue;
@@ -1315,12 +1274,10 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 						      acl->u2.filename2))
 				continue;
 		}
-		r->condition_cookie.u.cond = ptr->cond;
+		r->cond = ptr->cond;
 		error = 0;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return error;
 }
 
@@ -1349,24 +1306,21 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
 		goto ok;
-	if (ccs_verbose_mode(r->cookie.u.domain))
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
 		       ccs_get_msg(is_enforce), msg, filename->name,
-		       ccs_get_last_name(r->cookie.u.domain));
+		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, "allow_%s %s\n",
 					     msg, filename->name);
 		if (error == 1)
 			goto retry;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		struct ccs_cookie cookie;
-		ccs_add_cookie(&cookie, filename);
-		ccs_get_file_pattern(&cookie);
-		ccs_update_single_path_acl(operation, cookie.u.path->name,
-					   r->cookie.u.domain, cond, false);
-		ccs_del_cookie(&cookie);
+		ccs_update_single_path_acl(operation,
+					   ccs_get_file_pattern(filename)
+					   ->name, r->domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	if (!is_enforce)
@@ -1639,30 +1593,23 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	ccs_audit_file_log(&r, msg, buf1->name, buf2->name, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode(r.cookie.u.domain))
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(is_enforce),
 		       msg, buf1->name, buf2->name,
-		       ccs_get_last_name(r.cookie.u.domain));
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
 					     msg, buf1->name, buf2->name);
 		if (error == 1)
 			goto retry;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		struct ccs_cookie cookie1;
-		struct ccs_cookie cookie2;
-		ccs_add_cookie(&cookie1, buf1);
-		ccs_add_cookie(&cookie2, buf2);
-		ccs_get_file_pattern(&cookie1);
-		ccs_get_file_pattern(&cookie2);
-		ccs_update_double_path_acl(operation, cookie1.u.path->name,
-					   cookie2.u.path->name,
-					   r.cookie.u.domain, cond, false);
-		ccs_del_cookie(&cookie1);
-		ccs_del_cookie(&cookie2);
+		ccs_update_double_path_acl(operation,
+					   ccs_get_file_pattern(buf1)->name,
+					   ccs_get_file_pattern(buf2)->name,
+					   r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
  out:
@@ -1736,9 +1683,8 @@ static int ccs_update_ioctl_acl(const char *filename,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
 			continue;
@@ -1762,13 +1708,11 @@ static int ccs_update_ioctl_acl(const char *filename,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
 			continue;
@@ -1781,8 +1725,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	if (is_group)
 		ccs_put_path_group((struct ccs_path_group_entry *) saved_ptr);
@@ -1800,17 +1743,17 @@ static int ccs_update_ioctl_acl(const char *filename,
  * @cmd:      Ioctl command number.
  *
  * Returns 0 on success, -EPERM otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
 			       const unsigned int cmd)
 {
-	struct ccs_domain_info *domain = r->cookie.u.domain;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
 			continue;
@@ -1827,12 +1770,10 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 						      acl->u.filename))
 				continue;
 		}
-		r->condition_cookie.u.cond = ptr->cond;
+		r->cond = ptr->cond;
 		error = 0;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return error;
 }
 
@@ -1858,10 +1799,10 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->cookie.u.domain))
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
 		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
-		       cmd, ccs_get_last_name(r->cookie.u.domain));
+		       cmd, ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
 					       filename->name, cmd);
@@ -1869,14 +1810,10 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		struct ccs_cookie cookie;
-		ccs_add_cookie(&cookie, filename);
-		ccs_get_file_pattern(&cookie);
-		ccs_update_ioctl_acl(cookie.u.path->name, cmd, cmd,
-				     r->cookie.u.domain, cond, false);
-		ccs_del_cookie(&cookie);
+		ccs_update_ioctl_acl(ccs_get_file_pattern(filename)->name, cmd,
+				     cmd, r->domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	return 0;

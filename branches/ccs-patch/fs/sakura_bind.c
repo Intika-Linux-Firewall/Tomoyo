@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -44,9 +44,8 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	}
 	if (is_delete)
 		error = -ENOENT;
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_reservedport_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port != min_port || max_port != ptr->max_port)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -56,11 +55,11 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->min_port = min_port;
 		entry->max_port = max_port;
-		list_add_tail(&entry->list, &ccs_reservedport_list);
+		list_add_tail_rcu(&entry->list, &ccs_reservedport_list);
 		entry = NULL;
 		error = 0;
 	}
-	list_for_each_entry(ptr, &ccs_reservedport_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 		unsigned int port;
 		if (ptr->is_deleted)
 			continue;
@@ -69,8 +68,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	}
 	memmove(ccs_reserved_port_map, ccs_tmp_map,
 		sizeof(ccs_reserved_port_map));
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
 	ccs_free(ccs_tmp_map);
 	ccs_update_counter(CCS_UPDATES_COUNTER_SYSTEM_POLICY);
@@ -127,6 +125,8 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 {
@@ -134,10 +134,7 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 	struct list_head *pos;
 	char buffer[16];
 	memset(buffer, 0, sizeof(buffer));
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list,
-			      &ccs_reservedport_list) {
+	list_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
 		u16 min_port;
 		u16 max_port;
 		struct ccs_reserved_entry *ptr;
@@ -152,7 +149,5 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }

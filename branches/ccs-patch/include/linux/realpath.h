@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,13 +62,5 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head);
 
 /* Set memory quota. */
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
-
-/* Add a cookie to cookie list. */
-void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr);
-/* Delete a cookie from cookie list. */
-void ccs_del_cookie(struct ccs_cookie *cookie);
-
-/* Cleanup deleted entries. */
-void ccs_run_garbage_collector(void);
 
 #endif

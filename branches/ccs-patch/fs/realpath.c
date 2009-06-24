@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -513,8 +513,7 @@ void ccs_put_path_group(struct ccs_path_group_entry *group)
 	bool can_delete_group = false;
 	if (!group)
 		return;
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	if (atomic_dec_and_test(&group->users)) {
 		list_for_each_entry_safe(member, next_member,
 					 &group->path_group_member_list,
@@ -529,8 +528,7 @@ void ccs_put_path_group(struct ccs_path_group_entry *group)
 			can_delete_group = true;
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(member, next_member, &q, list) {
 		list_del(&member->list);
 		ccs_put_name(member->member_name);
@@ -555,8 +553,7 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 	bool can_delete_group = false;
 	if (!group)
 		return;
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	if (atomic_dec_and_test(&group->users)) {
 		list_for_each_entry_safe(member, next_member,
 					 &group->address_group_member_list,
@@ -571,8 +568,7 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 			can_delete_group = true;
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(member, next_member, &q, list) {
 		list_del(&member->list);
 		if (member->is_ipv6) {
@@ -606,8 +602,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 	if (!addr)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry(ptr, &ccs_address_list, list) {
 		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
 			continue;
@@ -622,8 +617,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		list_add_tail(&ptr->list, &ccs_address_list);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
 	return ptr ? &ptr->addr : NULL;
 }
@@ -640,14 +634,12 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 	if (!addr)
 		return;
 	ptr = container_of(addr, struct ccs_ipv6addr_entry, addr);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	if (atomic_dec_and_test(&ptr->users)) {
 		list_del(&ptr->list);
 		can_delete = true;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	if (can_delete)
 		ccs_free_element(ptr);
 }
@@ -671,14 +663,12 @@ void ccs_put_condition(struct ccs_condition *cond)
 	bool can_delete = false;
 	if (!cond)
 		return;
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	if (atomic_dec_and_test(&cond->users)) {
 		list_del(&cond->list);
 		can_delete = true;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	if (!can_delete)
 		return;
 	condc = cond->head.condc;
@@ -818,7 +808,7 @@ static kmem_cache_t *ccs_cachep;
 static int __init ccs_realpath_init(void)
 {
 	int i;
-	struct ccs_cookie cookie;
+	struct ccs_domain_info *domain;
 	/* Constraint for ccs_get_name(). */
 	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
 		panic("Bad size.");
@@ -841,8 +831,8 @@ static int __init ccs_realpath_init(void)
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
 	list_add_tail(&ccs_kernel_domain.list, &ccs_domain_list);
-	if (!ccs_find_domain(ROOT_NAME, &cookie) ||
-	    cookie.u.domain != &ccs_kernel_domain)
+	domain = ccs_find_domain(ROOT_NAME);
+	if (domain != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
 #ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
 	{
@@ -1059,64 +1049,6 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 	return 0;
 }
 
-/* List of pointers referenced by cookies. */
-static LIST_HEAD(ccs_cookie_list);
-static DEFINE_RWLOCK(ccs_cookie_list_lock);
-
-/**
- * ccs_add_cookie - Add a cookie to cookie list.
- *
- * @cookie: Pointer to "struct ccs_cookie".
- * @ptr:    Pointer to assign.
- */
-void ccs_add_cookie(struct ccs_cookie *cookie, const void *ptr)
-{
-	if (!cookie)
-		return;
-	cookie->u.ptr = ptr;
-	write_lock(&ccs_cookie_list_lock);
-	list_add_tail(&cookie->list, &ccs_cookie_list);
-	write_unlock(&ccs_cookie_list_lock);
-}
-
-/**
- * ccs_del_cookie - Delete a cookie from cookie list.
- *
- * @cookie: Pointer to "struct ccs_cookie".
- */
-void ccs_del_cookie(struct ccs_cookie *cookie)
-{
-	if (!cookie)
-		return;
-	write_lock(&ccs_cookie_list_lock);
-	list_del(&cookie->list);
-	write_unlock(&ccs_cookie_list_lock);
-}
-
-/**
- * ccs_used_by_cookie - Check whether the given pointer is referenced by a cookie or not.
- *
- * @ptr: Pointer to check.
- *
- * Returns true if @ptr is in use, false otherwise.
- *
- * Caller must hold ccs_policy_lock for writing.
- */
-static bool ccs_used_by_cookie(const void *ptr)
-{
-	struct ccs_cookie *cookie;
-	bool in_use = false;
-	read_lock(&ccs_cookie_list_lock);
-	list_for_each_entry(cookie, &ccs_cookie_list, list) {
-		if (ptr != cookie->u.ptr)
-			continue;
-		in_use = true;
-		break;
-	}
-	read_unlock(&ccs_cookie_list_lock);
-	return in_use;
-}
-
 /**
  * ccs_cleanup_allow_read - Clean up deleted "struct ccs_globally_readable_file_entry".
  */
@@ -1125,17 +1057,15 @@ static void ccs_cleanup_allow_read(void)
 	struct ccs_globally_readable_file_entry *ptr;
 	struct ccs_globally_readable_file_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_globally_readable_list,
 				 list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->filename);
 		list_del(&ptr->list);
@@ -1151,17 +1081,15 @@ static void ccs_cleanup_allow_env(void)
 	struct ccs_globally_usable_env_entry *ptr;
 	struct ccs_globally_usable_env_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_globally_usable_env_list,
 				 list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->env);
 		list_del(&ptr->list);
@@ -1177,16 +1105,14 @@ static void ccs_cleanup_file_pattern(void)
 	struct ccs_pattern_entry *ptr;
 	struct ccs_pattern_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_pattern_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->pattern);
 		list_del(&ptr->list);
@@ -1202,16 +1128,14 @@ static void ccs_cleanup_no_rewrite(void)
 	struct ccs_no_rewrite_entry *ptr;
 	struct ccs_no_rewrite_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_no_rewrite_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->pattern);
 		list_del(&ptr->list);
@@ -1227,17 +1151,15 @@ static void ccs_cleanup_initializer(void)
 	struct ccs_domain_initializer_entry *ptr;
 	struct ccs_domain_initializer_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_domain_initializer_list,
 				 list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->domainname);
 		ccs_put_name(ptr->program);
@@ -1254,16 +1176,14 @@ static void ccs_cleanup_keep_domain(void)
 	struct ccs_domain_keeper_entry *ptr;
 	struct ccs_domain_keeper_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_domain_keeper_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->domainname);
 		ccs_put_name(ptr->program);
@@ -1280,16 +1200,14 @@ static void ccs_cleanup_alias(void)
 	struct ccs_alias_entry *ptr;
 	struct ccs_alias_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_alias_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->original_name);
 		ccs_put_name(ptr->aliased_name);
@@ -1306,16 +1224,14 @@ static void ccs_cleanup_aggregator(void)
 	struct ccs_aggregator_entry *ptr;
 	struct ccs_aggregator_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_aggregator_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->original_name);
 		ccs_put_name(ptr->aggregated_name);
@@ -1332,16 +1248,14 @@ static void ccs_cleanup_manager(void)
 	struct ccs_policy_manager_entry *ptr;
 	struct ccs_policy_manager_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_policy_manager_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->manager);
 		list_del(&ptr->list);
@@ -1389,12 +1303,10 @@ static void ccs_cleanup_domain_policy(void)
 	struct ccs_acl_info *next_acl;
 	LIST_HEAD(q_domain);
 	LIST_HEAD(q_acl);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(domain, next_domain, &ccs_domain_list,
 				 list) {
 		const bool can_delete_domain = domain->is_deleted &&
-			!ccs_used_by_cookie(domain) &&
 			!ccs_used_by_task(domain);
 		if (can_delete_domain) {
 			list_for_each_entry(acl, &domain->acl_info_list, list)
@@ -1402,8 +1314,7 @@ static void ccs_cleanup_domain_policy(void)
 		}
 		list_for_each_entry_safe(acl, next_acl, &domain->acl_info_list,
 					 list) {
-			if (!(acl->type & ACL_DELETED)
-			    || ccs_used_by_cookie(acl))
+			if (!(acl->type & ACL_DELETED))
 				continue;
 			list_del(&acl->list);
 			list_add(&acl->list, &q_acl);
@@ -1413,8 +1324,7 @@ static void ccs_cleanup_domain_policy(void)
 			list_add(&domain->list, &q_domain);
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(acl, next_acl, &q_acl, list) {
 		ccs_put_condition(acl->cond);
 		switch (ccs_acl_type1(acl)) {
@@ -1517,8 +1427,7 @@ static void ccs_cleanup_path_group(void)
 	struct ccs_path_group_member *next_member;
 	LIST_HEAD(q_group);
 	LIST_HEAD(q_member);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(group, next_group, &ccs_path_group_list,
 				 list) {
 		list_for_each_entry_safe(member, next_member,
@@ -1535,8 +1444,7 @@ static void ccs_cleanup_path_group(void)
 			list_add(&group->list, &q_group);
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(member, next_member, &q_member, list) {
 		ccs_put_name(member->member_name);
 		list_del(&member->list);
@@ -1560,8 +1468,7 @@ static void ccs_cleanup_address_group(void)
 	struct ccs_address_group_member *next_member;
 	LIST_HEAD(q_group);
 	LIST_HEAD(q_member);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(group, next_group, &ccs_address_group_list,
 				 list) {
 		list_for_each_entry_safe(member, next_member,
@@ -1578,8 +1485,7 @@ static void ccs_cleanup_address_group(void)
 			list_add(&group->list, &q_group);
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(member, next_member, &q_member, list) {
 		if (member->is_ipv6) {
 			ccs_put_ipv6_address(member->min.ipv6);
@@ -1603,16 +1509,14 @@ static void ccs_cleanup_mount(void)
 	struct ccs_mount_entry *ptr;
 	struct ccs_mount_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_mount_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->dev_name);
 		ccs_put_name(ptr->dir_name);
@@ -1630,16 +1534,14 @@ static void ccs_cleanup_no_umount(void)
 	struct ccs_no_umount_entry *ptr;
 	struct ccs_no_umount_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_no_umount_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->dir);
 		list_del(&ptr->list);
@@ -1655,16 +1557,14 @@ static void ccs_cleanup_pivot_root(void)
 	struct ccs_pivot_root_entry *ptr;
 	struct ccs_pivot_root_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_pivot_root_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->old_root);
 		ccs_put_name(ptr->new_root);
@@ -1681,16 +1581,14 @@ static void ccs_cleanup_chroot(void)
 	struct ccs_chroot_entry *ptr;
 	struct ccs_chroot_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_chroot_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		ccs_put_name(ptr->dir);
 		list_del(&ptr->list);
@@ -1706,16 +1604,14 @@ static void ccs_cleanup_reservedport(void)
 	struct ccs_reserved_entry *ptr;
 	struct ccs_reserved_entry *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_reservedport_list, list) {
-		if (!ptr->is_deleted || ccs_used_by_cookie(ptr))
+		if (!ptr->is_deleted)
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		list_del(&ptr->list);
 		ccs_memory_free(ptr);
@@ -1730,16 +1626,14 @@ static void ccs_cleanup_condition(void)
 	struct ccs_condition *ptr;
 	struct ccs_condition *tmp;
 	LIST_HEAD(q);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
-		if (atomic_read(&ptr->users) || ccs_used_by_cookie(ptr))
+		if (atomic_read(&ptr->users))
 			continue;
 		list_del(&ptr->list);
 		list_add(&ptr->list, &q);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		int i;
 		u16 condc = ptr->head.condc;
@@ -1769,7 +1663,7 @@ static void ccs_cleanup_condition(void)
 /**
  * ccs_run_garbage_collector - Run garbage collector.
  */
-void ccs_run_garbage_collector(void)
+static void ccs_run_garbage_collector(void)
 {
 	ccs_cleanup_allow_read();
 	ccs_cleanup_allow_env();
@@ -1790,4 +1684,3 @@ void ccs_run_garbage_collector(void)
 	ccs_cleanup_reservedport();
 	ccs_cleanup_condition();
 }
-

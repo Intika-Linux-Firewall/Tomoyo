@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -137,9 +137,9 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	struct timeval tv;
 	u32 ccs_flags = current->ccs_flags;
 	const char *domainname;
-	if (!r->cookie.u.domain)
-		r->cookie.u.domain = ccs_current_domain();
-	domainname = r->cookie.u.domain->domainname->name;
+	if (!r->domain)
+		r->domain = ccs_current_domain();
+	domainname = r->domain->domainname->name;
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
 	if (r->ee) {
@@ -185,7 +185,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	 * CCS_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
 	 * CCS_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
 	 */
-	const struct ccs_condition *ptr = r->condition_cookie.u.cond;
+	const struct ccs_condition *ptr = r->cond;
 	if (ptr) {
 		struct task_struct *task = current;
 		const u8 flags = ptr->head.post_state[3];
@@ -203,7 +203,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 			ccs_flags |= ptr->head.post_state[2] << 8;
 		}
 		task->ccs_flags = ccs_flags;
-		r->condition_cookie.u.cond = NULL;
+		r->cond = NULL;
 	}
 }
 
@@ -284,9 +284,9 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int len;
 	char *buf;
 	struct ccs_log_entry *new_entry;
-	if (!r->cookie.u.domain)
-		r->cookie.u.domain = ccs_current_domain();
-	if (!ccs_can_save_audit_log(r->cookie.u.domain, is_granted))
+	if (!r->domain)
+		r->domain = ccs_current_domain();
+	if (!ccs_can_save_audit_log(r->domain, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;

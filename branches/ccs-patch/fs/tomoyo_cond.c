@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -661,9 +661,8 @@ ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
 {
 	struct ccs_condition *ptr;
 	int error = -ENOMEM;
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_condition_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
 		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
 		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(*ptr)))
 			continue;
@@ -683,7 +682,7 @@ ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
 			/*
 			printk(KERN_INFO "New condition added. %p\n", new_ptr);
 			*/
-			list_add(&new_ptr->list, &ccs_condition_list);
+			list_add_rcu(&new_ptr->list, &ccs_condition_list);
 			error = 0;
 		} else {
 			/*
@@ -693,8 +692,7 @@ ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
 			new_ptr = NULL;
 		}
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	return new_ptr;
 }
 #endif
@@ -975,9 +973,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	BUG_ON(envc);
 	BUG_ON(symlinkc);
 	BUG_ON(condc);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_condition_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
 		if (memcmp(&ptr->head, &entry->head, sizeof(ptr->head)) ||
 		    memcmp(ptr + 1, entry + 1, size - sizeof(*ptr)))
 			continue;
@@ -988,10 +985,9 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	if (!found && ccs_memory_ok(entry)) {
 		atomic_set(&entry->users, 1);
-		list_add(&entry->list, &ccs_condition_list);
+		list_add_rcu(&entry->list, &ccs_condition_list);
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	if (found) {
 		kfree(entry);
 		entry = ptr;
@@ -1513,21 +1509,10 @@ static bool ccs_check_condition2(struct ccs_request_info *r,
 bool ccs_check_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl)
 {
-	/***** READER SECTION START *****/
-	struct ccs_cookie cookie;
 	const struct ccs_condition *cond = acl->cond;
-	bool result;
 	if (!cond)
 		return true;
-	ccs_add_cookie(&cookie, acl);
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
-	result = ccs_check_condition2(r, cond);
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	ccs_del_cookie(&cookie);
-	return result;
-	/***** READER SECTION END *****/
+	return ccs_check_condition2(r, cond);
 }
 
 /**

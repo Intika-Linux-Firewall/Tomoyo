@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -107,9 +107,8 @@ static int ccs_update_capability_acl(const u8 operation,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
@@ -128,13 +127,11 @@ static int ccs_update_capability_acl(const u8 operation,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
@@ -146,8 +143,7 @@ static int ccs_update_capability_acl(const u8 operation,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	kfree(entry);
 	return error;
@@ -159,6 +155,8 @@ static int ccs_update_capability_acl(const u8 operation,
  * @operation: Type of operation.
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_capable(const u8 operation)
 {
@@ -175,9 +173,7 @@ bool ccs_capable(const u8 operation)
 		goto done;
 	}
  retry:
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
 			continue;
@@ -185,19 +181,17 @@ bool ccs_capable(const u8 operation)
 		if (acl->operation != operation ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
-		r.condition_cookie.u.cond = ptr->cond;
+		r.cond = ptr->cond;
 		found = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION START *****/
 	ccs_audit_capability_log(&r, operation, found);
 	if (found)
 		goto done;
-	if (ccs_verbose_mode(r.cookie.u.domain))
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
-		       ccs_get_last_name(r.cookie.u.domain));
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
@@ -207,10 +201,9 @@ bool ccs_capable(const u8 operation)
 		found = !error;
 		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_capability_acl(operation, r.cookie.u.domain, cond,
-					  false);
+		ccs_update_capability_acl(operation, r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	found = true;

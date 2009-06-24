@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -112,9 +112,8 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		goto out;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_mount_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_mount_list, list) {
 		if (ptr->flags != flags ||
 		    ccs_pathcmp(ptr->dev_name, saved_dev) ||
 		    ccs_pathcmp(ptr->dir_name, saved_dir) ||
@@ -132,12 +131,11 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		entry->fs_type = saved_fs;
 		saved_fs = NULL;
 		entry->flags = flags;
-		list_add_tail(&entry->list, &ccs_mount_list);
+		list_add_tail_rcu(&entry->list, &ccs_mount_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	if (is_delete || error)
 		goto out;
 	if (!strcmp(fs_type, MOUNT_REMOUNT_KEYWORD))
@@ -296,6 +294,8 @@ static int ccs_print_error(struct ccs_request_info *r,
  * @flags:    Mount options.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				       char *dev_name, char *dir_name,
@@ -429,9 +429,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		}
 		rdev.name = requested_dev_name;
 		ccs_fill_path_info(&rdev);
-		/***** READER SECTION START *****/
-		down_read(&ccs_policy_lock);
-		list_for_each_entry(ptr, &ccs_mount_list, list) {
+		list_for_each_entry_rcu(ptr, &ccs_mount_list, list) {
 			if (ptr->is_deleted)
 				continue;
 
@@ -459,8 +457,6 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 					  requested_type, flags, need_dev);
 			break;
 		}
-		up_read(&ccs_policy_lock);
-		/***** READER SECTION END *****/
 		if (error)
 			error = ccs_print_error(r, requested_dev_name,
 						requested_dir_name,
@@ -553,14 +549,14 @@ int ccs_write_mount_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_mount_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list, &ccs_mount_list) {
+	list_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
 		struct ccs_mount_entry *ptr;
 		ptr = list_entry(pos, struct ccs_mount_entry, list);
 		if (ptr->is_deleted)
@@ -571,7 +567,5 @@ bool ccs_read_mount_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }

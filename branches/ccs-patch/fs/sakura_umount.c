@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -45,9 +45,8 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 		return -ENOMEM;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_no_umount_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_no_umount_list, list) {
 		if (ptr->dir != saved_dir)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -57,12 +56,11 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->dir = saved_dir;
 		saved_dir = NULL;
-		list_add_tail(&entry->list, &ccs_no_umount_list);
+		list_add_tail_rcu(&entry->list, &ccs_no_umount_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	if (!is_delete)
 		printk(KERN_CONT "%sDon't allow umount %s\n", ccs_log_level, dir);
 	ccs_put_name(saved_dir);
@@ -77,6 +75,8 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
  * @mnt: Pointer to "struct vfsmount".
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 int ccs_may_umount(struct vfsmount *mnt)
 {
@@ -102,9 +102,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 		goto out;
 	dir.name = dir0;
 	ccs_fill_path_info(&dir);
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_no_umount_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_no_umount_list, list) {
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(&dir, ptr->dir))
@@ -112,8 +110,6 @@ int ccs_may_umount(struct vfsmount *mnt)
 		found = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	if (found) {
 		const char *exename = ccs_get_exe();
 		printk(KERN_WARNING "SAKURA-%s: umount %s "
@@ -156,15 +152,14 @@ int ccs_write_no_umount_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list,
-			     &ccs_no_umount_list) {
+	list_for_each_cookie(pos, head->read_var2, &ccs_no_umount_list) {
 		struct ccs_no_umount_entry *ptr;
 		ptr = list_entry(pos, struct ccs_no_umount_entry, list);
 		if (ptr->is_deleted)
@@ -174,7 +169,5 @@ bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }

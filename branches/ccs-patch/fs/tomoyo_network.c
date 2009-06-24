@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -80,9 +80,8 @@ static struct ccs_address_group_entry *ccs_get_address_group(const char *
 	if (!saved_group_name)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(group, &ccs_address_group_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(group, &ccs_address_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
 		atomic_inc(&group->users);
@@ -94,13 +93,12 @@ static struct ccs_address_group_entry *ccs_get_address_group(const char *
 		entry->group_name = saved_group_name;
 		saved_group_name = NULL;
 		atomic_set(&entry->users, 1);
-		list_add_tail(&entry->list, &ccs_address_group_list);
+		list_add_tail_rcu(&entry->list, &ccs_address_group_list);
 		group = entry;
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_group_name);
 	kfree(entry);
 	return !error ? group : NULL;
@@ -146,9 +144,9 @@ static int ccs_update_address_group_entry(const char *group_name,
 	}
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(member, &group->address_group_member_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(member, &group->address_group_member_list,
+				list) {
 		if (member->is_ipv6 != is_ipv6)
 			continue;
 		if (is_ipv6) {
@@ -175,12 +173,12 @@ static int ccs_update_address_group_entry(const char *group_name,
 			entry->min.ipv4 = min_ipv4_address;
 			entry->max.ipv4 = max_ipv4_address;
 		}
-		list_add_tail(&entry->list, &group->address_group_member_list);
+		list_add_tail_rcu(&entry->list,
+				  &group->address_group_member_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_ipv6_address(saved_min_address);
 	ccs_put_ipv6_address(saved_max_address);
@@ -281,7 +279,8 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
 	bool matched = false;
-	list_for_each_entry(member, &group->address_group_member_list, list) {
+	list_for_each_entry_rcu(member, &group->address_group_member_list,
+				list) {
 		if (member->is_deleted)
 			continue;
 		if (member->is_ipv6) {
@@ -308,20 +307,19 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(gpos, head->read_var1.u.list,
-			      &ccs_address_group_list) {
+	list_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
 		struct ccs_address_group_entry *group;
 		group = list_entry(gpos, struct ccs_address_group_entry, list);
-		list_for_each_cookie(mpos, head->read_var2.u.list,
-				      &group->address_group_member_list) {
+		list_for_each_cookie(mpos, head->read_var2,
+				     &group->address_group_member_list) {
 			char buf[128];
 			struct ccs_address_group_member *member;
 			member = list_entry(mpos,
@@ -366,8 +364,6 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -485,9 +481,8 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
@@ -535,13 +530,11 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
@@ -567,8 +560,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_ipv6_address(saved_min_address);
 	ccs_put_ipv6_address(saved_max_address);
@@ -586,6 +578,8 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
  * @port:      Port number.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 				   const u32 *address, const u16 port)
@@ -608,9 +602,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		goto done;
 	}
  retry:
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &r.cookie.u.domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
@@ -632,12 +624,10 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 			    memcmp(address, acl->u.ipv6.max, 16) > 0)
 				continue;
 		}
-		r.condition_cookie.u.cond = ptr->cond;
+		r.cond = ptr->cond;
 		found = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	memset(buf, 0, sizeof(buf));
 	if (is_ipv6)
 		ccs_print_ipv6(buf, sizeof(buf),
@@ -649,10 +639,10 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		error = 0;
 		goto done;
 	}
-	if (ccs_verbose_mode(r.cookie.u.domain))
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(is_enforce), keyword, buf, port,
-		       ccs_get_last_name(r.cookie.u.domain));
+		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
 					       "%s %s %u\n", keyword, buf,
@@ -662,13 +652,13 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		error = err;
 		goto done;
 	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.cookie.u.domain)) {
+	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :
 					 IP_RECORD_TYPE_IPv4,
 					 NULL, address, address, port, port,
-					 r.cookie.u.domain, cond, false);
+					 r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	error = 0;

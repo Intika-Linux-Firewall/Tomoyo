@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -57,9 +57,8 @@ static int ccs_update_globally_usable_env_entry(const char *env,
 		return -ENOMEM;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->env != saved_env)
 			continue;
 		ptr->is_deleted = is_delete;
@@ -69,12 +68,11 @@ static int ccs_update_globally_usable_env_entry(const char *env,
 	if (!is_delete && error && ccs_memory_ok(entry)) {
 		entry->env = saved_env;
 		saved_env = NULL;
-		list_add_tail(&entry->list, &ccs_globally_usable_env_list);
+		list_add_tail_rcu(&entry->list, &ccs_globally_usable_env_list);
 		entry = NULL;
 		error = 0;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_env);
 	kfree(entry);
 	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
@@ -88,21 +86,19 @@ static int ccs_update_globally_usable_env_entry(const char *env,
  *
  * Returns true if @env is globally permitted environment variable's name,
  * false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
 {
 	struct ccs_globally_usable_env_entry *ptr;
 	bool found = false;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &ccs_globally_usable_env_list, list) {
+	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->is_deleted || !ccs_path_matches_pattern(env, ptr->env))
 			continue;
 		found = true;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return found;
 }
 
@@ -125,15 +121,15 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_cookie(pos, head->read_var2.u.list,
-			      &ccs_globally_usable_env_list) {
+	list_for_each_cookie(pos, head->read_var2,
+			     &ccs_globally_usable_env_list) {
 		struct ccs_globally_usable_env_entry *ptr;
 		ptr = list_entry(pos, struct ccs_globally_usable_env_entry,
 				  list);
@@ -144,8 +140,6 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 		if (!done)
 			break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	return done;
 }
 
@@ -175,9 +169,8 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
 			continue;
@@ -197,13 +190,11 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
 	goto out;
  delete:
-	/***** WRITER SECTION START *****/
-	down_write(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
@@ -215,8 +206,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
-	up_write(&ccs_policy_lock);
-	/***** WRITER SECTION END *****/
+	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(saved_env);
 	kfree(entry);
@@ -230,18 +220,18 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
  * @environ: The name of environment variable.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 {
-	const struct ccs_domain_info *domain = r->cookie.u.domain;
+	const struct ccs_domain_info *domain = r->domain;
 	int error = -EPERM;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;
 	env.name = environ;
 	ccs_fill_path_info(&env);
-	/***** READER SECTION START *****/
-	down_read(&ccs_policy_lock);
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
 			continue;
@@ -249,12 +239,10 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
-		r->condition_cookie.u.cond = ptr->cond;
+		r->cond = ptr->cond;
 		error = 0;
 		break;
 	}
-	up_read(&ccs_policy_lock);
-	/***** READER SECTION END *****/
 	if (error && !domain->ignore_global_allow_env &&
 	    ccs_is_globally_usable_env(&env))
 		error = 0;
@@ -282,19 +270,19 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 	ccs_audit_env_log(r, env, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->cookie.u.domain))
+	if (ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
 		       ccs_get_msg(is_enforce), env,
-		       ccs_get_last_name(r->cookie.u.domain));
+		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, KEYWORD_ALLOW_ENV "%s\n", env);
 		if (error == 1)
 			goto retry;
 		return error;
 	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->cookie.u.domain)) {
+	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_env_entry(env, r->cookie.u.domain, cond, false);
+		ccs_update_env_entry(env, r->domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	return 0;

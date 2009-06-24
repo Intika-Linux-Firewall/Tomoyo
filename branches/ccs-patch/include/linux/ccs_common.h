@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8-pre   2009/05/08
+ * Version: 1.6.8   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -45,20 +45,6 @@ struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
-struct ccs_domain_info;
-struct ccs_path_info;
-struct ccs_condition;
-struct ccs_cookie {
-	struct list_head list;
-	union {
-		const void *ptr;
-		struct list_head *list;
-		struct ccs_domain_info *domain;
-		const struct ccs_path_info *path;
-		const struct ccs_condition *cond;
-	} u;
-};
-
 #include <linux/ccs_compat.h>
 
 /**
@@ -67,7 +53,7 @@ struct ccs_cookie {
  * @cookie:     the &struct list_head to use as a cookie.
  * @head:       the head for your list.
  *
- * Same with list_for_each() except that this primitive uses @cookie
+ * Same with list_for_each_rcu() except that this primitive uses @cookie
  * so that we can continue iteration.
  * @cookie must be NULL when iteration starts, and @cookie will become
  * NULL when iteration finishes.
@@ -75,9 +61,9 @@ struct ccs_cookie {
 #define list_for_each_cookie(pos, cookie, head)                       \
 	for (({ if (!cookie)                                          \
 				     cookie = head; }),               \
-	     pos = (cookie)->next;                                    \
+	     pos = rcu_dereference((cookie)->next);                   \
 	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
-	     (cookie) = pos, pos = pos->next)
+	     (cookie) = pos, pos = rcu_dereference(pos->next))
 
 /* Subset of "struct stat". */
 struct ccs_mini_stat {
@@ -133,8 +119,8 @@ struct ccs_execve_entry;
 
 /* Structure for request info. */
 struct ccs_request_info {
-	struct ccs_cookie cookie;
-	struct ccs_cookie condition_cookie;
+	struct ccs_domain_info *domain;
+	struct ccs_condition *cond;
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
 	u16 retry;
@@ -171,7 +157,6 @@ struct ccs_execve_entry {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
-	struct ccs_cookie cookie;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
@@ -415,8 +400,6 @@ struct ccs_symlinkp_entry {
 	const struct ccs_path_info *value;
 	bool is_not;
 };
-
-///
 
 /*
  * Structure for "execute_handler" and "denied_execute_handler" directive.
@@ -703,11 +686,11 @@ struct ccs_io_buffer {
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
 	/* The position currently reading from. */
-	struct ccs_cookie read_var1;
+	struct list_head *read_var1;
 	/* Extra variables for reading.         */
-	struct ccs_cookie read_var2;
+	struct list_head *read_var2;
 	/* The position currently writing to.   */
-	struct ccs_cookie write_var1;
+	struct ccs_domain_info *write_var1;
 	/* The step for reading.                */
 	int read_step;
 	/* Buffer for reading.                  */
@@ -925,10 +908,10 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
 /* Find a domain by the given name. */
-bool ccs_find_domain(const char *domainname, struct ccs_cookie *cookie);
+struct ccs_domain_info *ccs_find_domain(const char *domainname);
 /* Find or create a domain by the given name. */
-bool ccs_find_or_assign_new_domain(const char *domainname, const u8 profile,
-				   struct ccs_cookie *cookie);
+struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
+						      const u8 profile);
 /* Check mode for specified functionality. */
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 			     const u8 index);
@@ -984,7 +967,7 @@ static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
 }
 
 /* Lock for protecting policy. */
-extern struct rw_semaphore ccs_policy_lock;
+extern struct mutex ccs_policy_lock;
 /* A linked list of domains. */
 extern struct list_head ccs_domain_list;
 
