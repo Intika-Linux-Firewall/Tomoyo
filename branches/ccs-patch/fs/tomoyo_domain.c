@@ -817,13 +817,13 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_path_info *handler = ee->handler;
+	struct ccs_domain_info *domain = NULL;
 	const char *old_domain_name = r->domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
 	const u32 ccs_flags = current->ccs_flags;
 	char *new_domain_name = NULL;
-	struct ccs_domain_info *domain = NULL;
 	struct ccs_path_info rn; /* real name */
 	struct ccs_path_info sn; /* symlink name */
 	struct ccs_path_info ln; /* last name */
@@ -958,19 +958,21 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	if (domain)
 		ccs_audit_domain_creation_log(r->domain);
  done:
-	if (domain) {
+	if (!domain) {
+		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
+		       new_domain_name);
+		if (is_enforce)
+			retval = -EPERM;
+		else {
+			retval = 0;
+			r->domain->domain_transition_failed = true;
+		}
+	} else {
 		retval = 0;
-		goto out;
-	}
-	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
-	       new_domain_name);
-	if (is_enforce)
-		retval = -EPERM;
-	else {
-		retval = 0;
-		r->domain->domain_transition_failed = true;
 	}
  out:
+	if (domain)
+                r->domain = domain;
 	return retval;
 }
 
