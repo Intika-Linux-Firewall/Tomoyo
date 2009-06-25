@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.24-170.2.68.fc10.src.rpm ]
+if [ ! -r kernel-2.6.27.25-170.2.72.fc10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.24-170.2.68.fc10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.24-170.2.68.fc10.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090528.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /root/rpmbuild/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2009-05-21 11:28:47.000000000 +0900
-+++ kernel.spec	2009-05-26 09:13:28.000000000 +0900
+--- kernel.spec	2009-06-22 07:21:39.000000000 +0900
++++ kernel.spec	2009-06-25 09:21:58.000000000 +0900
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -882,7 +887,7 @@
+@@ -878,7 +883,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,8 +75,8 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1428,6 +1433,10 @@
- 
+@@ -1419,6 +1424,10 @@
+ ApplyPatch linux-2.6-dev-zero-avoid-oom-lockup.patch
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1454,6 +1463,9 @@
+@@ -1445,6 +1454,9 @@
  for i in *.config
  do
    mv $i .config
