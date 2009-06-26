@@ -102,13 +102,11 @@ struct ccs_obj_info {
 struct ccs_condition {
 	struct list_head list;
 	atomic_t users;
-	struct {
-		u16 condc;
-		u16 argc;
-		u16 envc;
-		u16 symlinkc;
-		u8 post_state[4];
-	} head;
+	u16 condc;
+	u16 argc;
+	u16 envc;
+	u16 symlinkc;
+	u8 post_state[4];
 	/* "unsigned long condition[condc]" follows here. */
 	/* "struct ccs_argv_entry argv[argc]" follows here. */
 	/* "struct ccs_envp_entry envp[envc]" follows here. */
@@ -120,9 +118,9 @@ struct ccs_execve_entry;
 /* Structure for request info. */
 struct ccs_request_info {
 	struct ccs_domain_info *domain;
-	struct ccs_condition *cond;
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
+	struct ccs_condition *cond;
 	u16 retry;
 	u8 profile;
 	u8 mode;

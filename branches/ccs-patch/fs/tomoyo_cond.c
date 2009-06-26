@@ -706,6 +706,7 @@ ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
  */
 struct ccs_condition *ccs_get_condition(char * const condition)
 {
+	static const u8 offset = offsetof(struct ccs_condition, condc);
 	char *start = condition;
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
@@ -824,11 +825,11 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	if (!entry)
 		return NULL;
 	for (i = 0; i < 4; i++)
-		entry->head.post_state[i] = post_state[i];
-	entry->head.condc = condc;
-	entry->head.argc = argc;
-	entry->head.envc = envc;
-	entry->head.symlinkc = symlinkc;
+		entry->post_state[i] = post_state[i];
+	entry->condc = condc;
+	entry->argc = argc;
+	entry->envc = envc;
+	entry->symlinkc = symlinkc;
 	condp = (unsigned long *) (entry + 1);
 	argv = (struct ccs_argv_entry *) (condp + condc);
 	envp = (struct ccs_envp_entry *) (argv + argc);
@@ -975,8 +976,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	BUG_ON(condc);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
-		if (memcmp(&ptr->head, &entry->head, sizeof(ptr->head)) ||
-		    memcmp(ptr + 1, entry + 1, size - sizeof(*ptr)))
+		if (memcmp(((u8 *) ptr) + offset, ((u8 *) entry) + offset,
+			   size - offset))
 			continue;
 		/* Same entry found. Share this entry. */
 		atomic_inc(&ptr->users);
@@ -1170,10 +1171,10 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	const struct ccs_condition *cond = acl->cond;
 	if (!cond)
 		return true;
-	condc = cond->head.condc;
-	argc = cond->head.argc;
-	envc = cond->head.envc;
-	symlinkc = cond->head.symlinkc;
+	condc = cond->condc;
+	argc = cond->argc;
+	envc = cond->envc;
+	symlinkc = cond->symlinkc;
 	obj = r->obj;
 	if (r->ee)
 		bprm = r->ee->bprm;
@@ -1525,10 +1526,10 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	char buffer[32];
 	if (!cond)
 		goto no_condition;
-	condc = cond->head.condc;
-	argc = cond->head.argc;
-	envc = cond->head.envc;
-	symlinkc = cond->head.symlinkc;
+	condc = cond->condc;
+	argc = cond->argc;
+	envc = cond->envc;
+	symlinkc = cond->symlinkc;
 	ptr = (const unsigned long *) (cond + 1);
 	argv = (const struct ccs_argv_entry *) (ptr + condc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
@@ -1621,7 +1622,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 			goto out;
 	}
  post_condition:
-	i = cond->head.post_state[3];
+	i = cond->post_state[3];
 	if (!i)
 		goto no_condition;
 	if (!ccs_io_printf(head, " ; set"))
@@ -1630,7 +1631,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!(i & (1 << j)))
 			continue;
 		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
-				   cond->head.post_state[j]))
+				   cond->post_state[j]))
 			goto out;
 	}
  no_condition:

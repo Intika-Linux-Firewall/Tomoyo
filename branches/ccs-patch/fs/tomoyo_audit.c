@@ -188,19 +188,19 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	const struct ccs_condition *ptr = r->cond;
 	if (ptr) {
 		struct task_struct *task = current;
-		const u8 flags = ptr->head.post_state[3];
+		const u8 flags = ptr->post_state[3];
 		u32 ccs_flags = task->ccs_flags;
 		if (flags & 1) {
 			ccs_flags &= ~0xFF000000;
-			ccs_flags |= ptr->head.post_state[0] << 24;
+			ccs_flags |= ptr->post_state[0] << 24;
 		}
 		if (flags & 2) {
 			ccs_flags &= ~0x00FF0000;
-			ccs_flags |= ptr->head.post_state[1] << 16;
+			ccs_flags |= ptr->post_state[1] << 16;
 		}
 		if (flags & 4) {
 			ccs_flags &= ~0x0000FF00;
-			ccs_flags |= ptr->head.post_state[2] << 8;
+			ccs_flags |= ptr->post_state[2] << 8;
 		}
 		task->ccs_flags = ccs_flags;
 		r->cond = NULL;

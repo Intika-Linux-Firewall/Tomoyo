@@ -671,10 +671,10 @@ void ccs_put_condition(struct ccs_condition *cond)
 	mutex_unlock(&ccs_policy_lock);
 	if (!can_delete)
 		return;
-	condc = cond->head.condc;
-	argc = cond->head.argc;
-	envc = cond->head.envc;
-	symlinkc = cond->head.symlinkc;
+	condc = cond->condc;
+	argc = cond->argc;
+	envc = cond->envc;
+	symlinkc = cond->symlinkc;
 	ptr = (const unsigned long *) (cond + 1);
 	argv = (const struct ccs_argv_entry *) (ptr + condc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
@@ -1633,10 +1633,10 @@ static void ccs_cleanup_condition(void)
 	mutex_unlock(&ccs_policy_lock);
 	list_for_each_entry_safe(ptr, tmp, &q, list) {
 		int i;
-		u16 condc = ptr->head.condc;
-		u16 argc = ptr->head.argc;
-		u16 envc = ptr->head.envc;
-		u16 symlinkc = ptr->head.symlinkc;
+		u16 condc = ptr->condc;
+		u16 argc = ptr->argc;
+		u16 envc = ptr->envc;
+		u16 symlinkc = ptr->symlinkc;
 		unsigned long *ptr2 = (unsigned long *) (ptr + 1);
 		struct ccs_argv_entry *argv = (struct ccs_argv_entry *)
 			(ptr2 + condc);
