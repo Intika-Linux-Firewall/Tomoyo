@@ -312,24 +312,28 @@ int main(int argc, char *argv[])
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		umount(TEST_DIR_BIND);
 		write_policy("delete allow_mount " TEST_DIR " " TEST_DIR_BIND
-			    " --bind 0\n");
-
+			     " --bind 0\n");
+		
 		/* Test move case */
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
+		write_policy("allow_unmount " TEST_DIR "\n");
 		write_policy("allow_mount " TEST_DIR " " TEST_DIR_MOVE
-			    " --move 0\n");
+			     " --move 0\n");
 		show_prompt("mount('" TEST_DIR "', '" TEST_DIR_MOVE
-			   "', MS_MOVE)", 0);
+			    "', MS_MOVE)", 0);
 		if (mount(TEST_DIR, TEST_DIR_MOVE, NULL, MS_MOVE, NULL) == 0)
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		umount(TEST_DIR_MOVE);
+		write_policy("delete allow_unmount " TEST_DIR "\n");
 		write_policy("delete allow_mount " TEST_DIR " " TEST_DIR_MOVE
 			    " --move 0\n");
 
-		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
 	}
@@ -375,37 +379,41 @@ int main(int argc, char *argv[])
 
 	/* Test umount(). */
 	{
-		write_status("MAC_FOR_NAMESPACE=enforcing\n");
-
 		/* Test standard case */
-		write_policy("deny_unmount " TEST_DIR "\n");
+		write_policy("allow_unmount " TEST_DIR "\n");
 
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		mount("none", TEST_DIR, "tmpfs", 0, NULL);
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 		show_prompt("umount('" TEST_DIR "') for '" TEST_DIR "'", 1);
-		if (umount(TEST_DIR) == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		write_policy("delete deny_unmount " TEST_DIR "\n");
-
-		mount("none", TEST_DIR, "tmpfs", 0, NULL);
-		show_prompt("umount('" TEST_DIR "') for '" TEST_DIR "'", 0);
 		if (umount(TEST_DIR) == 0)
 			printf("OK\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+		write_policy("delete allow_unmount " TEST_DIR "\n");
+
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
+		mount("none", TEST_DIR, "tmpfs", 0, NULL);
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
+		show_prompt("umount('" TEST_DIR "') for '" TEST_DIR "'", 0);
+		if (umount(TEST_DIR) == EOF && errno == EPERM)
+			printf("OK: Permission denied.\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
 		/* Test pattern */
-		write_policy("deny_unmount " TEST_DIR_PATTERN "\n");
+		write_policy("allow_unmount " TEST_DIR_PATTERN "\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		mount("none", TEST_DIR, "tmpfs", 0, NULL);
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 		show_prompt("umount('" TEST_DIR "') for '" TEST_DIR_PATTERN "'",
-			   1);
-		if (umount(TEST_DIR) == EOF && errno == EPERM)
-			printf("OK: Permission denied.\n");
+			    1);
+		if (umount(TEST_DIR) == 0)
+			printf("OK\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		write_policy("delete deny_unmount " TEST_DIR_PATTERN "\n");
-
+		write_policy("delete allow_unmount " TEST_DIR_PATTERN "\n");
+		
 		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
