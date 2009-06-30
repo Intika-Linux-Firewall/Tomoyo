@@ -14,6 +14,7 @@
 
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
+#include <linux/tomoyo.h>
 #include <linux/realpath.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 #include <linux/mount.h>
@@ -125,7 +126,8 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 #endif
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_DENY_CONCEAL_MOUNT);
+	ccs_init_request_info(&r, NULL,
+			      CCS_MAX_CONTROL_INDEX + CCS_CONCEAL_MOUNT);
 	if (!r.mode)
 		return 0;
 	if (!namespace)

@@ -78,11 +78,7 @@ static struct {
 	[CCS_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
-	[CCS_DENY_CONCEAL_MOUNT]  = { "DENY_CONCEAL_MOUNT",  0, 3 },
-	[CCS_RESTRICT_CHROOT]     = { "RESTRICT_CHROOT",     0, 3 },
-	[CCS_RESTRICT_MOUNT]      = { "RESTRICT_MOUNT",      0, 3 },
-	[CCS_RESTRICT_UNMOUNT]    = { "RESTRICT_UNMOUNT",    0, 3 },
-	[CCS_RESTRICT_PIVOT_ROOT] = { "RESTRICT_PIVOT_ROOT", 0, 3 },
+	[CCS_MAC_FOR_NAMESPACE]   = { "MAC_FOR_NAMESPACE",   0, 3 },
 	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
@@ -131,6 +127,7 @@ static const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
 	[CCS_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
 	[CCS_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
 	[CCS_SYS_PTRACE]                 = "SYS_PTRACE",
+	[CCS_CONCEAL_MOUNT]              = "conceal_mount",
 };
 
 static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX +
@@ -1167,12 +1164,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		} else if (value > ccs_control_array[i].max_value) {
 			value = ccs_control_array[i].max_value;
 		}
-		switch (i) {
-		case CCS_DENY_CONCEAL_MOUNT:
-		case CCS_RESTRICT_UNMOUNT:
-			if (value == 1)
-				value = 2; /* learning mode is not supported. */
-		}
 		ccs_profile->value[i] = value;
 		ccs_profile_entry_used[i + 1] = true;
 		return 0;
@@ -1559,9 +1550,8 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		error = ccs_write_ioctl_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_MOUNT))
 		error = ccs_write_mount_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_DENY_UNMOUNT))
-		error = ccs_write_no_umount_policy(data, domain, cond,
-						   is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_UNMOUNT))
+		error = ccs_write_umount_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_CHROOT))
 		error = ccs_write_chroot_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
@@ -1936,6 +1926,107 @@ static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
 }
 
 /**
+ * ccs_print_mount_acl - Print a mount ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_mount_acl_record".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
+				struct ccs_mount_acl_record *ptr,
+				const struct ccs_condition *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+			   ptr->dev_name->name, ptr->dir_name->name,
+			   ptr->fs_type->name, ptr->flags))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * ccs_print_umount_acl - Print a mount ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_umount_acl_record".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
+				 struct ccs_umount_acl_record *ptr,
+				 const struct ccs_condition *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_UNMOUNT "%s\n",
+			   ptr->dir->name))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * ccs_print_chroot_acl - Print a chroot ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_chroot_acl_record".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
+				 struct ccs_chroot_acl_record *ptr,
+				 const struct ccs_condition *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
+			   ptr->dir->name))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
+ * ccs_print_pivot_root_acl - Print a pivot_root ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_pivot_root_acl_record".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_pivot_root_acl(struct ccs_io_buffer *head,
+				     struct ccs_pivot_root_acl_record *ptr,
+				     const struct ccs_condition *cond)
+{
+	int pos = head->read_avail;
+	if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+			   ptr->new_root->name, ptr->old_root->name))
+		goto out;
+	if (!ccs_print_condition(head, cond))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+/**
  * ccs_print_entry - Print an ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -2009,6 +2100,27 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		struct ccs_signal_acl_record *acl
 			= container_of(ptr, struct ccs_signal_acl_record, head);
 		return ccs_print_signal_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_MOUNT_ACL) {
+		struct ccs_mount_acl_record *acl
+			= container_of(ptr, struct ccs_mount_acl_record, head);
+		return ccs_print_mount_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_UMOUNT_ACL) {
+		struct ccs_umount_acl_record *acl
+			= container_of(ptr, struct ccs_umount_acl_record, head);
+		return ccs_print_umount_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_CHROOT_ACL) {
+		struct ccs_chroot_acl_record *acl
+			= container_of(ptr, struct ccs_chroot_acl_record, head);
+		return ccs_print_chroot_acl(head, acl, cond);
+	}
+	if (acl_type == TYPE_PIVOT_ROOT_ACL) {
+		struct ccs_pivot_root_acl_record *acl
+			= container_of(ptr, struct ccs_pivot_root_acl_record,
+				       head);
+		return ccs_print_pivot_root_acl(head, acl, cond);
 	}
 	/* Workaround for gcc 3.2.2's inline bug. */
 	if (acl_type & ACL_DELETED)

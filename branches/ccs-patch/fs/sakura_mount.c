@@ -481,7 +481,7 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_RESTRICT_MOUNT);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	if (!r.mode)
 		return 0;
 	idx = srcu_read_lock(&ccs_ss);
@@ -533,30 +533,3 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	return ccs_update_mount_acl(dev, dir, fs, flags, domain, condition,
 				    is_delete);
 }
-
-#if 0
-/**
- * ccs_read_mount_policy - Read "struct ccs_mount_acl_record" list.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static bool ccs_read_mount_policy(struct ccs_io_buffer *head)
-{
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &ccs_mount_list) {
-		struct ccs_mount_acl_record *ptr;
-		ptr = list_entry(pos, struct ccs_mount_acl_record, list);
-		if (ptr->is_deleted)
-			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-				   ptr->dev_name->name, ptr->dir_name->name,
-				   ptr->fs_type->name, ptr->flags))
-			return false;
-	}
-	return true;
-}
-#endif

@@ -303,6 +303,8 @@ enum ccs_capability_acl_index {
 	CCS_SYS_PIVOT_ROOT,
 	/* sys_ptrace()                                                */
 	CCS_SYS_PTRACE,
+	/* conceal mount                                               */
+	CCS_CONCEAL_MOUNT,
 	CCS_MAX_CAPABILITY_INDEX
 };
 

@@ -111,7 +111,7 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	char *new_root;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_RESTRICT_PIVOT_ROOT);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	if (!r.mode)
 		return 0;
  retry:
@@ -219,29 +219,3 @@ int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
 	return ccs_update_pivot_root_acl(cp, data, domain, condition,
 					 is_delete);
 }
-
-#if 0
-/**
- * ccs_read_pivot_root_policy - Read "struct ccs_pivot_root_acl_record" list.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static bool ccs_read_pivot_root_policy(struct ccs_io_buffer *head)
-{
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &ccs_pivot_root_list) {
-		struct ccs_pivot_root_acl_record *ptr;
-		ptr = list_entry(pos, struct ccs_pivot_root_acl_record, list);
-		if (ptr->is_deleted)
-			continue;
-		if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
-				   ptr->new_root->name, ptr->old_root->name))
-			return false;
-	}
-	return true;
-}
-#endif

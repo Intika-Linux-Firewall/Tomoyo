@@ -335,7 +335,7 @@ struct ccs_alias_entry {
 	bool is_deleted;
 };
 
-/* Structure for "deny_unmount" keyword. */
+/* Structure for "allow_unmount" keyword. */
 struct ccs_umount_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_UMOUNT_ACL */
 	const struct ccs_path_info *dir;
@@ -620,7 +620,7 @@ enum ccs_ip_record_type {
 #define KEYWORD_DELETE                    "delete "
 #define KEYWORD_DENY_AUTOBIND             "deny_autobind "
 #define KEYWORD_DENY_REWRITE              "deny_rewrite "
-#define KEYWORD_DENY_UNMOUNT              "deny_unmount "
+#define KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
 #define KEYWORD_FILE_PATTERN              "file_pattern "
 #define KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
 #define KEYWORD_KEEP_DOMAIN               "keep_domain "
@@ -646,11 +646,7 @@ enum ccs_profile_index {
 	CCS_MAC_FOR_ENV,           /* domain_policy.conf */
 	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
 	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
-	CCS_DENY_CONCEAL_MOUNT,
-	CCS_RESTRICT_CHROOT,       /* domain_policy.conf */
-	CCS_RESTRICT_MOUNT,        /* domain_policy.conf */
-	CCS_RESTRICT_UNMOUNT,      /* domain_policy.conf */
-	CCS_RESTRICT_PIVOT_ROOT,   /* domain_policy.conf */
+	CCS_MAC_FOR_NAMESPACE,     /* domain_policy.conf */
 	CCS_RESTRICT_AUTOBIND,     /* exception_policy.conf */
 	CCS_MAX_ACCEPT_ENTRY,
 #ifdef CONFIG_CCSECURITY_AUDIT
@@ -752,7 +748,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
 /* Read "path_group" entry in exception policy. */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
-/* Read "deny_autobind" entry in system policy. */
+/* Read "deny_autobind" entry in exception policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 /* Write domain policy violation warning message to console? */
 bool ccs_verbose_mode(const struct ccs_domain_info *domain);
@@ -826,7 +822,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete);
-/* Create "allow_chroot" entry in system policy. */
+/* Create "allow_chroot" entry in domain policy. */
 int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
                             struct ccs_condition *condition,
 			    const bool is_delete);
@@ -862,7 +858,7 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete);
-/* Create "allow_mount" entry in system policy. */
+/* Create "allow_mount" entry in domain policy. */
 int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
                            struct ccs_condition *condition,
 			   const bool is_delete);
@@ -872,19 +868,19 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     const bool is_delete);
 /* Create "deny_rewrite" entry in exception policy. */
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
-/* Create "deny_unmount" entry in system policy. */
-int ccs_write_no_umount_policy(char *data, struct ccs_domain_info *domain,
-                               struct ccs_condition *condition,
-			       const bool is_delete);
+/* Create "allow_unmount" entry in domain policy. */
+int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
+			    struct ccs_condition *condition,
+			    const bool is_delete);
 /* Create "path_group" entry in exception policy. */
 int ccs_write_path_group_policy(char *data, const bool is_delete);
 /* Create "file_pattern" entry in exception policy. */
 int ccs_write_pattern_policy(char *data, const bool is_delete);
-/* Create "allow_pivot_root" entry in system policy. */
+/* Create "allow_pivot_root" entry in domain policy. */
 int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
                                 struct ccs_condition *condition,
 				const bool is_delete);
-/* Create "deny_autobind" entry in system policy. */
+/* Create "deny_autobind" entry in exception policy. */
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 /* Create "allow_signal" entry in domain policy. */
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,

@@ -62,6 +62,7 @@ static const char *ccs_cap2name(const u8 operation)
 		[CCS_SYS_KEXEC_LOAD]             = "sys_kexec_load()",
 		[CCS_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
 		[CCS_SYS_PTRACE]                 = "sys_ptrace()",
+		[CCS_CONCEAL_MOUNT]              = "conceal-mount",
 	};
 	if (operation < CCS_MAX_CAPABILITY_INDEX)
 		return ccs_capability_name[operation];

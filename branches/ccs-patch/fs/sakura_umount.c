@@ -95,7 +95,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	bool found = false;
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_RESTRICT_UNMOUNT);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
@@ -116,7 +116,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		found = true;
 		break;
 	}
-	if (found) {
+	if (!found) {
 		const char *exename = ccs_get_exe();
 		printk(KERN_WARNING "SAKURA-%s: umount %s "
 		       "(pid=%d:exe=%s): Permission denied.\n",
@@ -169,29 +169,3 @@ int ccs_write_no_umount_policy(char *data, struct ccs_domain_info *domain,
 {
 	return ccs_update_no_umount_acl(data, domain, condition, is_delete);
 }
-
-#if 0
-/**
- * ccs_read_no_umount_policy - Read "struct ccs_umount_acl_record" list.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static bool ccs_read_no_umount_policy(struct ccs_io_buffer *head)
-{
-	struct list_head *pos;
-	list_for_each_cookie(pos, head->read_var2, &ccs_no_umount_list) {
-		struct ccs_umount_acl_record *ptr;
-		ptr = list_entry(pos, struct ccs_umount_acl_record, list);
-		if (ptr->is_deleted)
-			continue;
-		if (!ccs_io_printf(head, KEYWORD_DENY_UNMOUNT "%s\n",
-				   ptr->dir->name))
-			return false;
-	}
-	return true;
-}
-#endif
