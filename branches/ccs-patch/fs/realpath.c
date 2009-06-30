@@ -1049,10 +1049,6 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 enum ccs_gc_id {
 	CCS_ID_CONDITION,
 	CCS_ID_RESERVEDPORT,
-	CCS_ID_CHROOT,
-	CCS_ID_PIVOT_ROOT,
-	CCS_ID_UMOUNT,
-	CCS_ID_MOUNT,
 	CCS_ID_ADDRESS_GROUP,
 	CCS_ID_ADDRESS_GROUP_MEMBER,
 	CCS_ID_PATH_GROUP,
@@ -1200,6 +1196,10 @@ static void ccs_del_acl(struct ccs_acl_info *acl)
 	struct ccs_capability_acl_record *acl7;
 	struct ccs_signal_acl_record *acl8;
 	struct ccs_execute_handler_record *acl9;
+	struct ccs_mount_acl_record *acl10;
+	struct ccs_umount_acl_record *acl11;
+	struct ccs_chroot_acl_record *acl12;
+	struct ccs_pivot_root_acl_record *acl13;
 	ccs_put_condition(acl->cond);
 	switch (ccs_acl_type1(acl)) {
 	case TYPE_SINGLE_PATH_ACL:
@@ -1262,6 +1262,27 @@ static void ccs_del_acl(struct ccs_acl_info *acl)
 				    head);
 		ccs_put_name(acl9->handler);
 		break;
+	case TYPE_MOUNT_ACL:
+		acl10 = container_of(acl, struct ccs_mount_acl_record, head);
+		ccs_put_name(acl10->dev_name);
+		ccs_put_name(acl10->dir_name);
+		ccs_put_name(acl10->fs_type);
+		break;
+	case TYPE_UMOUNT_ACL:
+		acl11 = container_of(acl, struct ccs_umount_acl_record, head);
+		ccs_put_name(acl11->dir);
+		break;
+	case TYPE_CHROOT_ACL:
+		acl12 = container_of(acl, struct ccs_chroot_acl_record, head);
+		ccs_put_name(acl12->dir);
+		break;
+	case TYPE_PIVOT_ROOT_ACL:
+		acl13 = container_of(acl, struct ccs_pivot_root_acl_record,
+				     head);
+		ccs_put_name(acl13->old_root);
+		ccs_put_name(acl13->new_root);
+		break;
+
 	}
 	ccs_memory_free(acl);
 }
@@ -1301,33 +1322,6 @@ static void ccs_del_address_group(struct ccs_address_group_entry *group)
 {
 	ccs_put_name(group->group_name);
 	ccs_free_element(group);
-}
-
-static void ccs_del_mount(struct ccs_mount_entry *ptr)
-{
-	ccs_put_name(ptr->dev_name);
-	ccs_put_name(ptr->dir_name);
-	ccs_put_name(ptr->fs_type);
-	ccs_memory_free(ptr);
-}
-
-static void ccs_del_no_umount(struct ccs_no_umount_entry *ptr)
-{
-	ccs_put_name(ptr->dir);
-	ccs_memory_free(ptr);
-}
-
-static void ccs_del_pivot_root(struct ccs_pivot_root_entry *ptr)
-{
-	ccs_put_name(ptr->old_root);
-	ccs_put_name(ptr->new_root);
-	ccs_memory_free(ptr);
-}
-
-static void ccs_del_chroot(struct ccs_chroot_entry *ptr)
-{
-	ccs_put_name(ptr->dir);
-	ccs_memory_free(ptr);
 }
 
 static void ccs_del_reservedport(struct ccs_reserved_entry *ptr)
@@ -1549,51 +1543,6 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
-		struct ccs_mount_entry *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_mount_list, list) {
-			if (!ptr->is_deleted)
-				continue;
-			if (ccs_add_to_gc(CCS_ID_MOUNT, ptr, &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
-	{
-		struct ccs_no_umount_entry *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_no_umount_list, list) {
-			if (!ptr->is_deleted)
-				continue;
-			if (ccs_add_to_gc(CCS_ID_UMOUNT, ptr, &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
-	{
-		struct ccs_pivot_root_entry *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_pivot_root_list, list) {
-			if (!ptr->is_deleted)
-				continue;
-			if (ccs_add_to_gc(CCS_ID_PIVOT_ROOT, ptr,
-					  &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
-	{
-		struct ccs_chroot_entry *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_chroot_list, list) {
-			if (!ptr->is_deleted)
-				continue;
-			if (ccs_add_to_gc(CCS_ID_CHROOT, ptr, &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
-	{
 		struct ccs_reserved_entry *ptr;
 		list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 			if (!ptr->is_deleted)
@@ -1663,18 +1612,6 @@ static int ccs_gc_thread(void *unused)
 				break;
 			case CCS_ID_ADDRESS_GROUP:
 				ccs_del_address_group(p->element);
-				break;
-			case CCS_ID_MOUNT:
-				ccs_del_mount(p->element);
-				break;
-			case CCS_ID_UMOUNT:
-				ccs_del_no_umount(p->element);
-				break;
-			case CCS_ID_PIVOT_ROOT:
-				ccs_del_pivot_root(p->element);
-				break;
-			case CCS_ID_CHROOT:
-				ccs_del_chroot(p->element);
 				break;
 			case CCS_ID_RESERVEDPORT:
 				ccs_del_reservedport(p->element);

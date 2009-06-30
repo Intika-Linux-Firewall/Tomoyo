@@ -206,7 +206,6 @@ static int __init ccs_proc_init(void)
 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
 #endif
 	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
-	ccs_create_entry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 	ccs_create_entry("exception_policy", 0600, ccs_dir,
 			 CCS_EXCEPTIONPOLICY);

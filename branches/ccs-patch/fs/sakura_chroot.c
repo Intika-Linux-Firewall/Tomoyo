@@ -21,21 +21,21 @@
 #include <linux/fs.h>
 #endif
 
-/* The list for "struct ccs_chroot_entry". */
-LIST_HEAD(ccs_chroot_list);
-
 /**
- * ccs_update_chroot_acl - Update "struct ccs_chroot_entry" list.
+ * ccs_update_chroot_acl - Update "struct ccs_chroot_acl_record" list.
  *
  * @dir:       The name of directory.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
+static int ccs_update_chroot_acl(const char *dir,
+				 struct ccs_domain_info *domain,
+				 struct ccs_condition *condition,
+				 const bool is_delete)
 {
-	struct ccs_chroot_entry *entry = NULL;
-	struct ccs_chroot_entry *ptr;
+	struct ccs_chroot_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
 	const struct ccs_path_info *saved_dir;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(dir, 1, 0, 1))
@@ -46,24 +46,30 @@ static int ccs_update_chroot_acl(const char *dir, const bool is_delete)
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &ccs_chroot_list, list) {
-		if (ptr->dir != saved_dir)
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_chroot_acl_record *acl;
+		if (ccs_acl_type1(ptr) != TYPE_CHROOT_ACL)
 			continue;
-		ptr->is_deleted = is_delete;
-		error = 0;
+		if (ptr->cond != condition)
+			continue;
+		acl = container_of(ptr, struct ccs_chroot_acl_record, head);
+		if (acl->dir != saved_dir)
+			continue;
+		if (is_delete)
+			error = ccs_del_domain_acl(ptr);
+		else
+			error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry)) {
+		entry->head.type = TYPE_CHROOT_ACL;
+		entry->head.cond = condition;
 		entry->dir = saved_dir;
 		saved_dir = NULL;
-		list_add_tail_rcu(&entry->list, &ccs_chroot_list);
+		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
-		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	if (!is_delete && !error)
-		printk(KERN_CONT "%sAllow chroot() to %s\n", ccs_log_level,
-		       dir);
 	ccs_put_name(saved_dir);
 	kfree(entry);
 	return error;
@@ -95,7 +101,7 @@ static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
 	if (exename)
 		ccs_free(exename);
 	if (r->mode == 1 && root_name)
-		ccs_update_chroot_acl(root_name, false);
+		ccs_update_chroot_acl(root_name, r->domain, NULL, false);
 	return error;
 }
 
@@ -136,11 +142,16 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 		dir.name = root_name;
 		ccs_fill_path_info(&dir);
 		if (dir.is_dir) {
-			struct ccs_chroot_entry *ptr;
-			list_for_each_entry_rcu(ptr, &ccs_chroot_list, list) {
-				if (ptr->is_deleted)
+			struct ccs_acl_info *ptr;
+			list_for_each_entry_rcu(ptr, &r.domain->acl_info_list,
+						list) {
+				struct ccs_chroot_acl_record *acl;
+				if (ccs_acl_type2(ptr) != TYPE_CHROOT_ACL)
 					continue;
-				if (!ccs_path_matches_pattern(&dir, ptr->dir))
+				acl = container_of(ptr,
+						   struct ccs_chroot_acl_record,
+						   head); 
+				if (!ccs_path_matches_pattern(&dir, acl->dir))
 					continue;
 				error = 0;
 				break;
@@ -172,20 +183,25 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 }
 
 /**
- * ccs_write_chroot_policy - Write "struct ccs_chroot_entry" list.
+ * ccs_write_chroot_policy - Write "struct ccs_chroot_acl_record" list.
  *
  * @data:      String to parse.
+ * @domain:    Pointer to "struct ccs_domain_info".
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_chroot_policy(char *data, const bool is_delete)
+int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
+			    struct ccs_condition *condition,
+			    const bool is_delete)
 {
-	return ccs_update_chroot_acl(data, is_delete);
+	return ccs_update_chroot_acl(data, domain, condition, is_delete);
 }
 
+#if 0
 /**
- * ccs_read_chroot_policy - Read "struct ccs_chroot_entry" list.
+ * ccs_read_chroot_policy - Read "struct ccs_chroot_acl_record" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -193,12 +209,12 @@ int ccs_write_chroot_policy(char *data, const bool is_delete)
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
+static bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	list_for_each_cookie(pos, head->read_var2, &ccs_chroot_list) {
-		struct ccs_chroot_entry *ptr;
-		ptr = list_entry(pos, struct ccs_chroot_entry, list);
+		struct ccs_chroot_acl_record *ptr;
+		ptr = list_entry(pos, struct ccs_chroot_acl_record, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
@@ -207,3 +223,4 @@ bool ccs_read_chroot_policy(struct ccs_io_buffer *head)
 	}
 	return true;
 }
+#endif

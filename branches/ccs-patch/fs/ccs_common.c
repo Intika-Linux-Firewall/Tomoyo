@@ -1557,6 +1557,16 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		error = ccs_write_env_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
 		error = ccs_write_ioctl_policy(data, domain, cond, is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_MOUNT))
+		error = ccs_write_mount_policy(data, domain, cond, is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_DENY_UNMOUNT))
+		error = ccs_write_no_umount_policy(data, domain, cond,
+						   is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_CHROOT))
+		error = ccs_write_chroot_policy(data, domain, cond, is_delete);
+	else if (ccs_str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
+		error = ccs_write_pivot_root_policy(data, domain, cond,
+						    is_delete);
 	else
 		error = ccs_write_file_policy(data, domain, cond, is_delete);
 	if (cond)
@@ -2249,6 +2259,8 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 		return ccs_write_no_rewrite_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_ADDRESS_GROUP))
 		return ccs_write_address_group_policy(data, is_delete);
+	if (ccs_str_starts(&data, KEYWORD_DENY_AUTOBIND))
+		return ccs_write_reserved_port_policy(data, is_delete);
 	return -EINVAL;
 }
 
@@ -2317,78 +2329,9 @@ static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 		case 10:
 			if (!ccs_read_address_group_policy(head))
 				break;
-			head->read_eof = true;
-			break;
-		default:
-			return -EINVAL;
-		}
-	}
-	return 0;
-}
-
-/**
- * ccs_write_system_policy - Write system policy.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_system_policy(struct ccs_io_buffer *head)
-{
-	char *data = head->write_buf;
-	bool is_delete = false;
-	if (ccs_str_starts(&data, KEYWORD_DELETE))
-		is_delete = true;
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_MOUNT))
-		return ccs_write_mount_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_DENY_UNMOUNT))
-		return ccs_write_no_umount_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_CHROOT))
-		return ccs_write_chroot_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
-		return ccs_write_pivot_root_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_DENY_AUTOBIND))
-		return ccs_write_reserved_port_policy(data, is_delete);
-	return -EINVAL;
-}
-
-/**
- * ccs_read_system_policy - Read system policy.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0 on success, -EINVAL otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static int ccs_read_system_policy(struct ccs_io_buffer *head)
-{
-	if (!head->read_eof) {
-		switch (head->read_step) {
-		case 0:
 			head->read_var2 = NULL;
-			head->read_step = 1;
-		case 1:
-			if (!ccs_read_mount_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 2;
-		case 2:
-			if (!ccs_read_no_umount_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 3;
-		case 3:
-			if (!ccs_read_chroot_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 4;
-		case 4:
-			if (!ccs_read_pivot_root_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 5;
-		case 5:
+			head->read_step = 11;
+		case 11:
 			if (!ccs_read_reserved_port_policy(head))
 				break;
 			head->read_eof = true;
@@ -2895,10 +2838,6 @@ int ccs_open_control(const u8 type, struct file *file)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
 	switch (type) {
-	case CCS_SYSTEMPOLICY: /* /proc/ccs/system_policy */
-		head->write = ccs_write_system_policy;
-		head->read = ccs_read_system_policy;
-		break;
 	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
 		head->write = ccs_write_domain_policy;
 		head->read = ccs_read_domain_policy;
