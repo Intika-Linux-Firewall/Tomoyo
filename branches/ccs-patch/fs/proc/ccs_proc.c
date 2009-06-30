@@ -21,8 +21,6 @@
 #include <linux/ccs_proc.h>
 #include <linux/ccs_common.h>
 
-#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
 #if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9
 /**
@@ -208,17 +206,13 @@ static int __init ccs_proc_init(void)
 	ccs_dir->proc_iops = &ccs_dir_inode_operations;
 #endif
 	ccs_create_entry("query",            0600, ccs_dir, CCS_QUERY);
-#ifdef CONFIG_SAKURA
 	ccs_create_entry("system_policy",    0600, ccs_dir, CCS_SYSTEMPOLICY);
-#endif
-#ifdef CONFIG_TOMOYO
 	ccs_create_entry("domain_policy",    0600, ccs_dir, CCS_DOMAINPOLICY);
 	ccs_create_entry("exception_policy", 0600, ccs_dir,
 			 CCS_EXCEPTIONPOLICY);
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
 	ccs_create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
-#endif
 #endif
 	ccs_create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 	ccs_create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
@@ -237,6 +231,4 @@ static int __init ccs_proc_init(void)
 __initcall(ccs_proc_init);
 #else
 core_initcall(ccs_proc_init);
-#endif
-
 #endif

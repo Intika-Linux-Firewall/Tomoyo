@@ -1,52 +1,14 @@
-config SAKURA
-	bool "SAKURA (Domain-Free Mandatory Access Control) support"
+config CCSECURITY
+	bool "SAKURA and TOMOYO support"
 	default y
 	help
-	  Say Y here to support the Domain-Free Mandatory Access Control.
+	  Say Y here to support the name based mandatory access control.
 
-	  SAKURA stands for
-	  "Security Advancement Know-how Upon Read-only Approach".
-	  As the name shows, SAKURA was originally a methodology to make
-	  root fs read-only to avoid tampering the system files.
-	  But now, SAKURA is not only a methodology but also a kernel patch
-	  that improves the system security with less effort.
-
-	  SAKURA can restrict operations that affect systemwide.
-
-config TOMOYO
-	bool "TOMOYO (Domain-Based Mandatory Access Control) support"
-	default y
-	help
-	  Say Y here to support the Domain-Based Mandatory Access Control.
-
-	  TOMOYO stands for "Task Oriented Management Obviates Your Onus".
-	  TOMOYO is intended to provide the Domain-Based MAC
-	  utilizing task_struct.
-
-	  The word "domain" in TOMOYO is a class that a process
-	  (i.e. task_struct) belong to.
-	  The domain of a process changes whenever the process
-	  executes a program.
-	  This allows you to classify at the finest level.
-	  The access permission is granted to domains, not to processes.
-	  Policy is defined as "Which domain can access to which resource.".
-
-	  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
-	  The learning mode can automatically generate policy definition,
-	  and dramatically reduces the policy definition labors.
-
-	  TOMOYO is applicable to figuring out the system's behavior, for
-	  TOMOYO uses the canonicalized absolute pathnames and
-	  TreeView style domain transitions.
-
-	  You can make custom root fs with minimum files
-	  to run minimum applications with TOMOYO.
-
-config TOMOYO_MAX_ACCEPT_ENTRY
+config CCSECURITY_MAX_ACCEPT_ENTRY
 	int "Default maximal count for learning mode"
 	default 2048
 	range 0 2147483647
-	depends on TOMOYO
+	depends on CCSECURITY
 	help
 	  This is the default value for maximal ACL entries
 	  that are automatically appended into policy at "learning mode".
@@ -55,10 +17,10 @@ config TOMOYO_MAX_ACCEPT_ENTRY
 	  and consumes much memory.
 	  This is the safeguard for such programs.
 
-config TOMOYO_BUILTIN_INITIALIZERS
+config CCSECURITY_BUILTIN_INITIALIZERS
 	string "Built-in domain initializer programs"
 	default "/sbin/modprobe /sbin/hotplug"
-	depends on TOMOYO
+	depends on CCSECURITY
 	---help---
 	  Some programs are executed from initrd/initramfs before /sbin/init
 	  starts.
@@ -75,20 +37,20 @@ config TOMOYO_BUILTIN_INITIALIZERS
 	  domain so that you won't give the <kernel> domain permission to
 	  execute /bin/sh .
 
-config TOMOYO_AUDIT
+config CCSECURITY_AUDIT
 	bool "Auditing interface support"
 	default y
-	depends on TOMOYO
+	depends on CCSECURITY
 	help
 	  This option enables /proc/ccs/grant_log and /proc/ccs/reject_log
 	  interfaces. You may disable these interfaces if you want to apply for
 	  HDD-less systems (e.g. embedded systems).
 
-config TOMOYO_MAX_GRANT_LOG
+config CCSECURITY_MAX_GRANT_LOG
 	int "Default maximal count for grant log"
 	default 1024
 	range 0 2147483647
-	depends on TOMOYO_AUDIT
+	depends on CCSECURITY_AUDIT
 	help
 	  This is the default value for maximal entries for
 	  access grant logs that the kernel can hold on memory.
@@ -96,11 +58,11 @@ config TOMOYO_MAX_GRANT_LOG
 	  If you don't need access grant logs,
 	  you may set this value to 0.
 
-config TOMOYO_MAX_REJECT_LOG
+config CCSECURITY_MAX_REJECT_LOG
 	int "Default maximal count for reject log"
 	default 1024
 	range 0 2147483647
-	depends on TOMOYO_AUDIT
+	depends on CCSECURITY_AUDIT
 	help
 	  This is the default value for maximal entries for
 	  access reject logs that the kernel can hold on memory.

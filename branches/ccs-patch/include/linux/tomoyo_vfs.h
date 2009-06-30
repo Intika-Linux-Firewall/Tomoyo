@@ -15,7 +15,7 @@
 #ifndef _LINUX_TOMOYO_VFS_H
 #define _LINUX_TOMOYO_VFS_H
 
-#if defined(CONFIG_TOMOYO)
+#if defined(CONFIG_CCSECURITY)
 
 #include <linux/version.h>
 

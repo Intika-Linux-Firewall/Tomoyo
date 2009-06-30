@@ -37,8 +37,6 @@ struct ccs_domain_info ccs_kernel_domain;
 /* The list for "struct ccs_domain_info". */
 LIST_HEAD(ccs_domain_list);
 
-#ifdef CONFIG_TOMOYO
-
 /**
  * ccs_get_last_name - Get last component of a domainname.
  *
@@ -1628,32 +1626,3 @@ void ccs_finish_execve(int retval)
  out:
 	ccs_free_execve_entry(ee);
 }
-
-#else
-
-/**
- * ccs_start_execve - Prepare for execve() operation.
- *
- * @bprm: Pointer to "struct linux_binprm".
- *
- * Returns 0.
- */
-int ccs_start_execve(struct linux_binprm *bprm)
-{
-#ifdef CONFIG_SAKURA
-	/* Clear manager flag. */
-	current->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	if (!ccs_policy_loaded)
-		ccs_load_policy(bprm->filename);
-#endif
-	return 0;
-}
-
-/**
- * ccs_finish_execve - Clean up execve() operation.
- */
-void ccs_finish_execve(int retval)
-{
-}
-
-#endif

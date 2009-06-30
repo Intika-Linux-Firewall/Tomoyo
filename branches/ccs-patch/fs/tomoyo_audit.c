@@ -207,7 +207,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	}
 }
 
-#ifndef CONFIG_TOMOYO_AUDIT
+#ifndef CONFIG_CCSECURITY_AUDIT
 
 /**
  * ccs_write_audit_log - Write audit log.

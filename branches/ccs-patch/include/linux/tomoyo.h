@@ -44,7 +44,7 @@ struct pt_regs;
 struct file;
 struct ctl_table;
 
-#if defined(CONFIG_TOMOYO)
+#if defined(CONFIG_CCSECURITY)
 
 int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag);
@@ -224,7 +224,7 @@ void ccs_finish_execve(int retval);
 
 int search_binary_handler(struct linux_binprm *, struct pt_regs *);
 
-#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
+#if defined(CONFIG_CCSECURITY)
 static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 					    struct pt_regs *regs)
 {

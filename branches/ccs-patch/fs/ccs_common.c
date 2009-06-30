@@ -45,15 +45,9 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 
 /* Set default specified by the kernel config. */
-#ifdef CONFIG_TOMOYO
-#define MAX_ACCEPT_ENTRY (CONFIG_TOMOYO_MAX_ACCEPT_ENTRY)
-#define MAX_GRANT_LOG    (CONFIG_TOMOYO_MAX_GRANT_LOG)
-#define MAX_REJECT_LOG   (CONFIG_TOMOYO_MAX_REJECT_LOG)
-#else
-#define MAX_ACCEPT_ENTRY 0
-#define MAX_GRANT_LOG    0
-#define MAX_REJECT_LOG   0
-#endif
+#define MAX_ACCEPT_ENTRY (CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY)
+#define MAX_GRANT_LOG    (CONFIG_CCSECURITY_MAX_GRANT_LOG)
+#define MAX_REJECT_LOG   (CONFIG_CCSECURITY_MAX_REJECT_LOG)
 
 DEFINE_MUTEX(ccs_policy_lock);
 
@@ -92,7 +86,7 @@ static struct {
 	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY",    MAX_ACCEPT_ENTRY, INT_MAX },
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 	[CCS_MAX_GRANT_LOG]
 	= { "MAX_GRANT_LOG",       MAX_GRANT_LOG, INT_MAX },
 	[CCS_MAX_REJECT_LOG]
@@ -103,7 +97,6 @@ static struct {
 	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
 };
 
-#ifdef CONFIG_TOMOYO
 /* Capability name used by domain policy. */
 static const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
 = {
@@ -139,22 +132,15 @@ static const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
 	[CCS_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
 	[CCS_SYS_PTRACE]                 = "SYS_PTRACE",
 };
-#endif
 
-#ifdef CONFIG_TOMOYO
 static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX +
 				   CCS_MAX_CAPABILITY_INDEX + 1];
-#else
-static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX + 1];
-#endif
 
 /* Profile table. Memory is allocated as needed. */
 static struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
-#ifdef CONFIG_TOMOYO
 	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
-#endif
 } *ccs_profile_ptr[MAX_PROFILES];
 
 /* Permit policy management by non-root user? */
@@ -162,7 +148,6 @@ static bool ccs_manage_by_non_root;
 
 /* Utility functions. */
 
-#ifdef CONFIG_TOMOYO
 /**
  * ccs_quiet_setup - Set CCS_VERBOSE=0 by default.
  *
@@ -177,7 +162,6 @@ static int __init ccs_quiet_setup(char *str)
 }
 
 __setup("CCS_QUIET", ccs_quiet_setup);
-#endif
 
 /**
  * ccs_is_byte_range - Check whether the string isa \ooo style octal value.
@@ -912,7 +896,6 @@ unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 		ccs_profile_ptr[profile]->value[index] : 0;
 }
 
-#ifdef CONFIG_TOMOYO
 /**
  * ccs_check_capability_flags - Check mode for specified capability.
  *
@@ -947,8 +930,6 @@ const char *ccs_cap2keyword(const u8 operation)
 		? ccs_capability_control_keyword[operation] : NULL;
 }
 
-#endif
-
 /**
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
@@ -966,11 +947,9 @@ void ccs_init_request_info(struct ccs_request_info *r,
 	r->profile = domain->profile;
 	if (index < CCS_MAX_CONTROL_INDEX)
 		r->mode = ccs_check_flags(domain, index);
-#ifdef CONFIG_TOMOYO
 	else
 		r->mode = ccs_check_capability_flags(domain, index
 						     - CCS_MAX_CONTROL_INDEX);
-#endif
 }
 
 /**
@@ -1140,7 +1119,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
-#ifdef CONFIG_TOMOYO
 	if (ccs_str_starts(&data, KEYWORD_MAC_FOR_CAPABILITY)) {
 		if (sscanf(cp + 1, "%u", &value) != 1) {
 			for (i = 0; i < 4; i++) {
@@ -1164,7 +1142,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		}
 		return -EINVAL;
 	}
-#endif
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword))
 			continue;
@@ -1225,29 +1202,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 		head->read_step = step;
 		if (!ccs_profile)
 			continue;
-#if !defined(CONFIG_SAKURA) || !defined(CONFIG_TOMOYO)
-		switch (type - 1) {
-#ifndef CONFIG_SAKURA
-		case CCS_DENY_CONCEAL_MOUNT:
-		case CCS_RESTRICT_CHROOT:
-		case CCS_RESTRICT_MOUNT:
-		case CCS_RESTRICT_UNMOUNT:
-		case CCS_RESTRICT_PIVOT_ROOT:
-		case CCS_RESTRICT_AUTOBIND:
-#endif
-#ifndef CONFIG_TOMOYO
-		case CCS_MAC_FOR_FILE:
-		case CCS_MAC_FOR_IOCTL:
-		case CCS_MAC_FOR_ARGV0:
-		case CCS_MAC_FOR_ENV:
-		case CCS_MAC_FOR_NETWORK:
-		case CCS_MAC_FOR_SIGNAL:
-		case CCS_MAX_ACCEPT_ENTRY:
-		case CCS_VERBOSE:
-#endif
-			continue;
-		}
-#endif
 		if (!ccs_profile_entry_used[type])
 			continue;
 		if (!type) { /* Print profile' comment tag. */
@@ -1259,7 +1213,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 		}
 		type--;
 		if (type >= CCS_MAX_CONTROL_INDEX) {
-#ifdef CONFIG_TOMOYO
 			const int i = type - CCS_MAX_CONTROL_INDEX;
 			const u8 value = ccs_profile->capability_value[i];
 			if (!ccs_io_printf(head,
@@ -1268,7 +1221,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 					   ccs_capability_control_keyword[i],
 					   ccs_mode_4[value]))
 				break;
-#endif
 		} else {
 			const unsigned int value = ccs_profile->value[type];
 			const char **modes = NULL;
@@ -1450,8 +1402,6 @@ static bool ccs_is_policy_manager(void)
 	ccs_free(exe);
 	return found;
 }
-
-#ifdef CONFIG_TOMOYO
 
 /**
  * ccs_find_condition_part - Find condition part from the statement.
@@ -2131,8 +2081,6 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 	return 0;
 }
 
-#endif
-
 /**
  * ccs_write_domain_profile - Assign profile for specified domain.
  *
@@ -2269,8 +2217,6 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	return 0;
 }
 
-#ifdef CONFIG_TOMOYO
-
 /**
  * ccs_write_exception_policy - Write exception policy.
  *
@@ -2385,10 +2331,6 @@ static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 	return 0;
 }
 
-#endif
-
-#ifdef CONFIG_SAKURA
-
 /**
  * ccs_write_system_policy - Write system policy.
  *
@@ -2462,8 +2404,6 @@ static int ccs_read_system_policy(struct ccs_io_buffer *head)
 	}
 	return 0;
 }
-
-#endif
 
 /* Path to the policy loader. The default is /sbin/ccs-init. */
 static const char *ccs_loader;
@@ -2616,12 +2556,8 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-#ifdef CONFIG_SAKURA
 	printk(KERN_INFO "SAKURA: 1.6.8   2009/05/28\n");
-#endif
-#ifdef CONFIG_TOMOYO
 	printk(KERN_INFO "TOMOYO: 1.6.8   2009/05/28\n");
-#endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
 	ccs_log_level = KERN_WARNING;
@@ -2695,11 +2631,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
-#ifdef CONFIG_TOMOYO
 	header = ccs_init_audit_log(&len, r);
-#else
-	header = ccs_alloc(1, true);
-#endif
 	if (!header)
 		goto out;
 	ccs_query_entry = ccs_alloc(sizeof(*ccs_query_entry), true);
@@ -2967,7 +2899,7 @@ static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 		      "/proc/ccs/profile:          %10u\n"
 		      "/proc/ccs/query:            %10u\n"
 		      "/proc/ccs/manager:          %10u\n"
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 		      "/proc/ccs/grant_log:        %10u\n"
 		      "/proc/ccs/reject_log:       %10u\n"
 #endif
@@ -2977,7 +2909,7 @@ static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 		      , counter[CCS_UPDATES_COUNTER_PROFILE]
 		      , counter[CCS_UPDATES_COUNTER_QUERY]
 		      , counter[CCS_UPDATES_COUNTER_MANAGER]
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 		      , counter[CCS_UPDATES_COUNTER_GRANT_LOG]
 		      , counter[CCS_UPDATES_COUNTER_REJECT_LOG]
 #endif
@@ -3022,7 +2954,7 @@ static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 		      "/proc/ccs/profile:          %10u\n"
 		      "/proc/ccs/query:            %10u\n"
 		      "/proc/ccs/manager:          %10u\n"
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 		      "/proc/ccs/grant_log:        %10u\n"
 		      "/proc/ccs/reject_log:       %10u\n"
 #endif
@@ -3038,7 +2970,7 @@ static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 				    [CCS_UPDATES_COUNTER_QUERY], 0)
 		      , atomic_xchg(&ccs_updates_counter
 				    [CCS_UPDATES_COUNTER_MANAGER], 0)
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 		      , atomic_xchg(&ccs_updates_counter
 				    [CCS_UPDATES_COUNTER_GRANT_LOG], 0)
 		      , atomic_xchg(&ccs_updates_counter
@@ -3104,13 +3036,10 @@ int ccs_open_control(const u8 type, struct file *file)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
 	switch (type) {
-#ifdef CONFIG_SAKURA
 	case CCS_SYSTEMPOLICY: /* /proc/ccs/system_policy */
 		head->write = ccs_write_system_policy;
 		head->read = ccs_read_system_policy;
 		break;
-#endif
-#ifdef CONFIG_TOMOYO
 	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
 		head->write = ccs_write_domain_policy;
 		head->read = ccs_read_domain_policy;
@@ -3119,7 +3048,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = ccs_write_exception_policy;
 		head->read = ccs_read_exception_policy;
 		break;
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
 		head->poll = ccs_poll_grant_log;
 		head->read = ccs_read_grant_log;
@@ -3128,7 +3057,6 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->poll = ccs_poll_reject_log;
 		head->read = ccs_read_reject_log;
 		break;
-#endif
 #endif
 	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
 		head->read = ccs_read_self_domain;
@@ -3182,7 +3110,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->read = NULL;
 		head->poll = NULL;
 	} else if (type != CCS_QUERY
-#ifdef CONFIG_TOMOYO_AUDIT
+#ifdef CONFIG_CCSECURITY_AUDIT
 		   && type != CCS_GRANTLOG && type != CCS_REJECTLOG
 #endif
 		   ) {
@@ -3318,9 +3246,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		return -EFAULT;
 	/* Don't allow updating policies by non manager programs. */
 	if (head->write != ccs_write_pid &&
-#ifdef CONFIG_TOMOYO
 	    head->write != ccs_write_domain_policy &&
-#endif
 	    !ccs_is_policy_manager())
 		return -EPERM;
 	if (mutex_lock_interruptible(&head->io_sem))

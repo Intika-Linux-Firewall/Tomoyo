@@ -828,11 +828,11 @@ static int __init ccs_realpath_init(void)
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
-#ifdef CONFIG_TOMOYO_BUILTIN_INITIALIZERS
+#ifdef CONFIG_CCSECURITY_BUILTIN_INITIALIZERS
 	{
 		/* Load built-in policy. */
 		static char ccs_builtin_initializers[] __initdata
-			= CONFIG_TOMOYO_BUILTIN_INITIALIZERS;
+			= CONFIG_CCSECURITY_BUILTIN_INITIALIZERS;
 		char *cp = ccs_builtin_initializers;
 		ccs_normalize_line(cp);
 		while (cp && *cp) {

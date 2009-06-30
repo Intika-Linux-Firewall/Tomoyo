@@ -20,7 +20,7 @@ struct sockaddr;
 struct sock;
 struct sk_buff;
 
-#if defined(CONFIG_TOMOYO)
+#if defined(CONFIG_CCSECURITY)
 
 int ccs_socket_create_permission(int family, int type, int protocol);
 int ccs_socket_listen_permission(struct socket *sock);

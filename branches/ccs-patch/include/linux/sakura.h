@@ -34,7 +34,7 @@
 #define __user
 #endif
 
-#if defined(CONFIG_SAKURA)
+#if defined(CONFIG_CCSECURITY)
 
 /* Check whether the given pathname is allowed to chroot to. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
