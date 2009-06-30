@@ -150,5 +150,5 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 			goto retry;
 		return error;
 	}
- 	return 0;
+	return 0;
 }

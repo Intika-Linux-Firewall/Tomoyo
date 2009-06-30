@@ -991,6 +991,8 @@ extern bool ccs_policy_loaded;
 extern const char *ccs_log_level;
 /* The kernel's domain. */
 extern struct ccs_domain_info ccs_kernel_domain;
+/* Lock for GC. */
+extern struct srcu_struct ccs_ss;
 
 #include <linux/dcache.h>
 extern spinlock_t vfsmount_lock;

@@ -1401,6 +1401,8 @@ static int ccs_read_manager_policy(struct ccs_io_buffer *head)
  *
  * Returns true if the current process is permitted to modify policy
  * via /proc/ccs/ interface.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_is_policy_manager(void)
 {
@@ -2065,6 +2067,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 {
@@ -2140,6 +2144,8 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
  *
  *     ( echo "select " $domainname; echo "use_profile " $profile ) |
  *     /usr/lib/ccs/loadpolicy -d
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 {
@@ -2173,6 +2179,8 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
  *     awk ' { if ( domainname == "" ) { if ( $1 == "<kernel>" )
  *     domainname = $0; } else if ( $1 == "use_profile" ) {
  *     print $2 " " domainname; domainname = ""; } } ; '
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 {
@@ -2309,6 +2317,8 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, -EINVAL otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 {
@@ -2411,6 +2421,8 @@ static int ccs_write_system_policy(struct ccs_io_buffer *head)
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, -EINVAL otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_read_system_policy(struct ccs_io_buffer *head)
 {

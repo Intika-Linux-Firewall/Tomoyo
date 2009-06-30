@@ -443,9 +443,7 @@ static inline unsigned int ccs_round_up(const unsigned int size)
 			/ sizeof(long)) * sizeof(long);
 }
 
-
-static DEFINE_MUTEX(ccs_element_lock);
-static unsigned int ccs_allocated_memory_for_elements;
+static atomic_t ccs_allocated_memory_for_elements;
 static unsigned int ccs_quota_for_elements;
 
 /**
@@ -459,9 +457,9 @@ bool ccs_memory_ok(const void *ptr)
 {
 	const unsigned int len = ptr ? ksize(ptr) : 0;
 	if (len && (!ccs_quota_for_elements ||
-		    ccs_allocated_memory_for_elements + len
+		    atomic_read(&ccs_allocated_memory_for_elements) + len
 		    <= ccs_quota_for_elements)) {
-		ccs_allocated_memory_for_elements += len;
+		atomic_add(len, &ccs_allocated_memory_for_elements);
 		return true;
 	}
 	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
@@ -477,7 +475,7 @@ bool ccs_memory_ok(const void *ptr)
  */
 static void ccs_memory_free(const void *ptr)
 {
-	ccs_allocated_memory_for_elements -= ksize(ptr);
+	atomic_sub(ksize(ptr), &ccs_allocated_memory_for_elements);
 	kfree(ptr);
 }
 
@@ -488,16 +486,10 @@ static void ccs_memory_free(const void *ptr)
  */
 static void ccs_free_element(void *ptr)
 {
-	int len;
 	if (!ptr)
 		return;
-	len = ksize(ptr);
+	atomic_sub(ksize(ptr), &ccs_allocated_memory_for_elements);
 	kfree(ptr);
-	/***** EXCLUSIVE SECTION START *****/
-	mutex_lock(&ccs_element_lock);
-	ccs_allocated_memory_for_elements -= len;
-	mutex_unlock(&ccs_element_lock);
-	/***** EXCLUSIVE SECTION END *****/
 }
 
 /**
@@ -690,7 +682,7 @@ void ccs_put_condition(struct ccs_condition *cond)
 	ccs_free_element(cond);
 }
 
-static unsigned int ccs_allocated_memory_for_savename;
+static atomic_t ccs_allocated_memory_for_savename;
 static unsigned int ccs_quota_for_savename;
 
 #define MAX_HASH 256
@@ -740,7 +732,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	allocated_len = ptr ? ksize(ptr) : 0;
 	if (!allocated_len ||
 	    (ccs_quota_for_savename &&
-	     ccs_allocated_memory_for_savename + allocated_len
+	     atomic_read(&ccs_allocated_memory_for_savename) + allocated_len
 	     > ccs_quota_for_savename)) {
 		kfree(ptr);
 		ptr = NULL;
@@ -749,7 +741,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 			panic("MAC Initialization failed.\n");
 		goto out;
 	}
-	ccs_allocated_memory_for_savename += allocated_len;
+	atomic_add(allocated_len, &ccs_allocated_memory_for_savename);
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((char *) ptr->entry.name, name, len);
 	atomic_set(&ptr->users, 1);
@@ -782,7 +774,7 @@ void ccs_put_name(const struct ccs_path_info *name)
 	mutex_unlock(&ccs_name_list_lock);
 	/***** EXCLUSIVE SECTION END *****/
 	if (can_delete) {
-		ccs_allocated_memory_for_savename -= ksize(ptr);
+		atomic_sub(ksize(ptr), &ccs_allocated_memory_for_savename);
 		kfree(ptr);
 	}
 }
@@ -996,8 +988,10 @@ void ccs_free(const void *p)
 int ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		const unsigned int shared = ccs_allocated_memory_for_savename;
-		const unsigned int private = ccs_allocated_memory_for_elements;
+		const unsigned int shared
+			= atomic_read(&ccs_allocated_memory_for_savename);
+		const unsigned int private
+			= atomic_read(&ccs_allocated_memory_for_elements);
 		const unsigned int dynamic = ccs_dynamic_memory_size;
 		char buffer[64];
 		memset(buffer, 0, sizeof(buffer));
@@ -1046,218 +1040,120 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 	return 0;
 }
 
-/**
- * ccs_cleanup_allow_read - Clean up deleted "struct ccs_globally_readable_file_entry".
- */
-static void ccs_cleanup_allow_read(void)
+/* Garbage collector functions */
+
+enum ccs_gc_id {
+	CCS_ID_CONDITION,
+	CCS_ID_RESERVEDPORT,
+	CCS_ID_CHROOT,
+	CCS_ID_PIVOT_ROOT,
+	CCS_ID_UMOUNT,
+	CCS_ID_MOUNT,
+	CCS_ID_ADDRESS_GROUP,
+	CCS_ID_ADDRESS_GROUP_MEMBER,
+	CCS_ID_PATH_GROUP,
+	CCS_ID_PATH_GROUP_MEMBER,
+	CCS_ID_GLOBAL_ENV,
+	CCS_ID_AGGREGATOR,
+	CCS_ID_DOMAIN_INITIALIZER,
+	CCS_ID_DOMAIN_KEEPER,
+	CCS_ID_ALIAS,
+	CCS_ID_GLOBALLY_READABLE,
+	CCS_ID_PATTERN,
+	CCS_ID_NO_REWRITE,
+	CCS_ID_MANAGER,
+	CCS_ID_ACL,
+	CCS_ID_DOMAIN
+};
+
+struct ccs_gc_entry {
+	struct list_head list;
+	int type;
+	void *element;
+};
+
+/* Caller holds ccs_policy_lock mutex. */
+static bool ccs_add_to_gc(const int type, void *element, struct list_head *head)
 {
-	struct ccs_globally_readable_file_entry *ptr;
-	struct ccs_globally_readable_file_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_globally_readable_list,
-				 list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->filename);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	struct ccs_gc_entry *entry = kmalloc(sizeof(*entry), GFP_ATOMIC);
+	if (!entry)
+		return false;
+	entry->type = type;
+	entry->element = element;
+	list_add(&entry->list, head);
+	return true;
 }
 
-/**
- * ccs_cleanup_allow_env - Clean up deleted "struct ccs_globally_usable_env_entry".
- */
-static void ccs_cleanup_allow_env(void)
+static inline void ccs_gc_del_domain_initializer
+(struct ccs_domain_initializer_entry *ptr)
 {
-	struct ccs_globally_usable_env_entry *ptr;
-	struct ccs_globally_usable_env_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_globally_usable_env_list,
-				 list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->env);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->domainname);
+	ccs_put_name(ptr->program);
 }
 
-/**
- * ccs_cleanup_file_pattern - Clean up deleted "struct ccs_pattern_entry".
- */
-static void ccs_cleanup_file_pattern(void)
+static inline void ccs_gc_del_domain_keeper
+(struct ccs_domain_keeper_entry *ptr)
 {
-	struct ccs_pattern_entry *ptr;
-	struct ccs_pattern_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_pattern_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->pattern);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->domainname);
+	ccs_put_name(ptr->program);
 }
 
-/**
- * ccs_cleanup_no_rewrite - Clean up deleted "struct ccs_no_rewrite_entry".
- */
-static void ccs_cleanup_no_rewrite(void)
+static void ccs_del_allow_read(struct ccs_globally_readable_file_entry *ptr)
 {
-	struct ccs_no_rewrite_entry *ptr;
-	struct ccs_no_rewrite_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_no_rewrite_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->pattern);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->filename);
+	ccs_memory_free(ptr);
 }
 
-/**
- * ccs_cleanup_initializer - Clean up deleted "struct ccs_domain_initializer_entry".
- */
-static void ccs_cleanup_initializer(void)
+static void ccs_del_allow_env(struct ccs_globally_usable_env_entry *ptr)
 {
-	struct ccs_domain_initializer_entry *ptr;
-	struct ccs_domain_initializer_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_domain_initializer_list,
-				 list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->domainname);
-		ccs_put_name(ptr->program);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->env);
+	ccs_memory_free(ptr);
 }
 
-/**
- * ccs_cleanup_keep_domain - Clean up deleted "struct ccs_domain_keeper_entry".
- */
-static void ccs_cleanup_keep_domain(void)
+static void ccs_del_file_pattern(struct ccs_pattern_entry *ptr)
 {
-	struct ccs_domain_keeper_entry *ptr;
-	struct ccs_domain_keeper_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_domain_keeper_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->domainname);
-		ccs_put_name(ptr->program);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->pattern);
+	ccs_memory_free(ptr);
 }
 
-/**
- * ccs_cleanup_alias - Clean up deleted "struct ccs_alias_entry".
- */
-static void ccs_cleanup_alias(void)
+static void ccs_del_no_rewrite(struct ccs_no_rewrite_entry *ptr)
 {
-	struct ccs_alias_entry *ptr;
-	struct ccs_alias_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_alias_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->original_name);
-		ccs_put_name(ptr->aliased_name);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->pattern);
+	ccs_memory_free(ptr);
 }
 
-/**
- * ccs_cleanup_aggregator - Clean up deleted "struct ccs_aggregator_entry".
- */
-static void ccs_cleanup_aggregator(void)
+static void ccs_del_domain_initializer(struct ccs_domain_initializer_entry *ptr)
 {
-	struct ccs_aggregator_entry *ptr;
-	struct ccs_aggregator_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_aggregator_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->original_name);
-		ccs_put_name(ptr->aggregated_name);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->domainname);
+	ccs_put_name(ptr->program);
+	ccs_memory_free(ptr);
 }
 
-/**
- * ccs_cleanup_manager - Clean up deleted "struct ccs_policy_manager_entry".
- */
-static void ccs_cleanup_manager(void)
+static void ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
 {
-	struct ccs_policy_manager_entry *ptr;
-	struct ccs_policy_manager_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_policy_manager_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->manager);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
+	ccs_put_name(ptr->domainname);
+	ccs_put_name(ptr->program);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_alias(struct ccs_alias_entry *ptr)
+{
+	ccs_put_name(ptr->original_name);
+	ccs_put_name(ptr->aliased_name);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_aggregator(struct ccs_aggregator_entry *ptr)
+{
+	ccs_put_name(ptr->original_name);
+	ccs_put_name(ptr->aggregated_name);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_manager(struct ccs_policy_manager_entry *ptr)
+{
+	ccs_put_name(ptr->manager);
+	ccs_memory_free(ptr);
 }
 
 /* For compatibility with older kernels. */
@@ -1289,395 +1185,557 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 	return in_use;
 }
 
-/**
- * ccs_cleanup_domain_policy - Clean up deleted domain policy.
- */
-static void ccs_cleanup_domain_policy(void)
+static void ccs_del_acl(struct ccs_acl_info *acl)
 {
-	struct ccs_domain_info *domain;
-	struct ccs_domain_info *next_domain;
-	struct ccs_acl_info *acl;
-	struct ccs_acl_info *next_acl;
-	LIST_HEAD(q_domain);
-	LIST_HEAD(q_acl);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(domain, next_domain, &ccs_domain_list,
-				 list) {
-		const bool can_delete_domain = domain->is_deleted &&
-			!ccs_used_by_task(domain);
-		if (can_delete_domain) {
-			list_for_each_entry(acl, &domain->acl_info_list, list)
-				acl->type |= ACL_DELETED;
+	struct ccs_single_path_acl_record *acl1;
+	struct ccs_double_path_acl_record *acl2;
+	struct ccs_ip_network_acl_record *acl3;
+	struct ccs_ioctl_acl_record *acl4;
+	struct ccs_argv0_acl_record *acl5;
+	struct ccs_env_acl_record *acl6;
+	struct ccs_capability_acl_record *acl7;
+	struct ccs_signal_acl_record *acl8;
+	struct ccs_execute_handler_record *acl9;
+	ccs_put_condition(acl->cond);
+	switch (ccs_acl_type1(acl)) {
+	case TYPE_SINGLE_PATH_ACL:
+		acl1 = container_of(acl, struct ccs_single_path_acl_record,
+				    head);
+		if (acl1->u_is_group)
+			ccs_put_path_group(acl1->u.group);
+		else
+			ccs_put_name(acl1->u.filename);
+		break;
+	case TYPE_DOUBLE_PATH_ACL:
+		acl2 = container_of(acl, struct ccs_double_path_acl_record,
+				    head);
+		if (acl2->u1_is_group)
+			ccs_put_path_group(acl2->u1.group1);
+		else
+			ccs_put_name(acl2->u1.filename1);
+		if (acl2->u2_is_group)
+			ccs_put_path_group(acl2->u2.group2);
+		else
+			ccs_put_name(acl2->u2.filename2);
+		break;
+	case TYPE_IP_NETWORK_ACL:
+		acl3 = container_of(acl, struct ccs_ip_network_acl_record,
+				    head);
+		if (acl3->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
+			ccs_put_address_group(acl3->u.group);
+		else if (acl3->record_type == IP_RECORD_TYPE_IPv6) {
+			ccs_put_ipv6_address(acl3->u.ipv6.min);
+			ccs_put_ipv6_address(acl3->u.ipv6.max);
 		}
-		list_for_each_entry_safe(acl, next_acl, &domain->acl_info_list,
-					 list) {
-			if (!(acl->type & ACL_DELETED))
-				continue;
-			list_del(&acl->list);
-			list_add(&acl->list, &q_acl);
-		}
-		if (can_delete_domain && list_empty(&domain->acl_info_list)) {
-			list_del(&domain->list);
-			list_add(&domain->list, &q_domain);
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(acl, next_acl, &q_acl, list) {
-		ccs_put_condition(acl->cond);
-		switch (ccs_acl_type1(acl)) {
-			struct ccs_single_path_acl_record *acl1;
-			struct ccs_double_path_acl_record *acl2;
-			struct ccs_ip_network_acl_record *acl3;
-			struct ccs_ioctl_acl_record *acl4;
-			struct ccs_argv0_acl_record *acl5;
-			struct ccs_env_acl_record *acl6;
-			struct ccs_capability_acl_record *acl7;
-			struct ccs_signal_acl_record *acl8;
-			struct ccs_execute_handler_record *acl9;
-		case TYPE_SINGLE_PATH_ACL:
-			acl1 = container_of(acl,
-					    struct ccs_single_path_acl_record,
-					    head);
-			if (acl1->u_is_group)
-				ccs_put_path_group(acl1->u.group);
-			else
-				ccs_put_name(acl1->u.filename);
-			break;
-		case TYPE_DOUBLE_PATH_ACL:
-			acl2 = container_of(acl,
-					    struct ccs_double_path_acl_record,
-					    head);
-			if (acl2->u1_is_group)
-				ccs_put_path_group(acl2->u1.group1);
-			else
-				ccs_put_name(acl2->u1.filename1);
-			if (acl2->u2_is_group)
-				ccs_put_path_group(acl2->u2.group2);
-			else
-				ccs_put_name(acl2->u2.filename2);
-			break;
-		case TYPE_IP_NETWORK_ACL:
-			acl3 = container_of(acl,
-					    struct ccs_ip_network_acl_record,
-					    head);
-			if (acl3->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
-				ccs_put_address_group(acl3->u.group);
-			else if (acl3->record_type == IP_RECORD_TYPE_IPv6) {
-				ccs_put_ipv6_address(acl3->u.ipv6.min);
-				ccs_put_ipv6_address(acl3->u.ipv6.max);
-			}
-			break;
-		case TYPE_IOCTL_ACL:
-			acl4 = container_of(acl, struct ccs_ioctl_acl_record,
-					    head);
-			if (acl4->u_is_group)
-				ccs_put_path_group(acl4->u.group);
-			else
-				ccs_put_name(acl4->u.filename);
-			break;
-		case TYPE_ARGV0_ACL:
-			acl5 = container_of(acl, struct ccs_argv0_acl_record,
-					    head);
-			ccs_put_name(acl5->argv0);
-			break;
-		case TYPE_ENV_ACL:
-			acl6 = container_of(acl, struct ccs_env_acl_record,
-					    head);
-			ccs_put_name(acl6->env);
-			break;
-		case TYPE_CAPABILITY_ACL:
-			acl7 = container_of(acl,
-					    struct ccs_capability_acl_record,
-					    head);
-			break;
-		case TYPE_SIGNAL_ACL:
-			acl8 = container_of(acl, struct ccs_signal_acl_record,
-					    head);
-			ccs_put_name(acl8->domainname);
-			break;
+		break;
+	case TYPE_IOCTL_ACL:
+		acl4 = container_of(acl, struct ccs_ioctl_acl_record, head);
+		if (acl4->u_is_group)
+			ccs_put_path_group(acl4->u.group);
+		else
+			ccs_put_name(acl4->u.filename);
+		break;
+	case TYPE_ARGV0_ACL:
+		acl5 = container_of(acl, struct ccs_argv0_acl_record, head);
+		ccs_put_name(acl5->argv0);
+		break;
+	case TYPE_ENV_ACL:
+		acl6 = container_of(acl, struct ccs_env_acl_record, head);
+		ccs_put_name(acl6->env);
+		break;
+	case TYPE_CAPABILITY_ACL:
+		acl7 = container_of(acl, struct ccs_capability_acl_record,
+				    head);
+		break;
+	case TYPE_SIGNAL_ACL:
+		acl8 = container_of(acl, struct ccs_signal_acl_record,
+				    head);
+		ccs_put_name(acl8->domainname);
+		break;
 		case TYPE_EXECUTE_HANDLER:
-		case TYPE_DENIED_EXECUTE_HANDLER:
-			acl9 = container_of(acl,
-					    struct ccs_execute_handler_record,
-					    head);
-			ccs_put_name(acl9->handler);
-			break;
-		}
-		list_del(&acl->list);
-		ccs_memory_free(acl);
+	case TYPE_DENIED_EXECUTE_HANDLER:
+		acl9 = container_of(acl, struct ccs_execute_handler_record,
+				    head);
+		ccs_put_name(acl9->handler);
+		break;
 	}
-	list_for_each_entry_safe(domain, next_domain, &q_domain, list) {
-		ccs_put_name(domain->domainname);
-		list_del(&domain->list);
-		ccs_memory_free(domain);
-	}
+	ccs_memory_free(acl);
 }
 
-/**
- * ccs_cleanup_path_group - Clean up deleted "struct ccs_path_group_entry".
- */
-static void ccs_cleanup_path_group(void)
+static bool ccs_del_domain(struct ccs_domain_info *domain)
 {
-	struct ccs_path_group_entry *group;
-	struct ccs_path_group_entry *next_group;
-	struct ccs_path_group_member *member;
-	struct ccs_path_group_member *next_member;
-	LIST_HEAD(q_group);
-	LIST_HEAD(q_member);
+	if (ccs_used_by_task(domain))
+		return false;
+	ccs_put_name(domain->domainname);
+	ccs_memory_free(domain);
+	return true;
+}
+
+static void ccs_del_path_group_member(struct ccs_path_group_member *member)
+{
+	ccs_put_name(member->member_name);
+	ccs_free_element(member);
+}
+
+static void ccs_del_path_group(struct ccs_path_group_entry *group)
+{
+	ccs_put_name(group->group_name);
+	ccs_free_element(group);
+}
+
+static void ccs_del_address_group_member
+(struct ccs_address_group_member *member)
+{
+	if (member->is_ipv6) {
+		ccs_put_ipv6_address(member->min.ipv6);
+		ccs_put_ipv6_address(member->max.ipv6);
+	}
+	ccs_free_element(member);
+}
+
+static void ccs_del_address_group(struct ccs_address_group_entry *group)
+{
+	ccs_put_name(group->group_name);
+	ccs_free_element(group);
+}
+
+static void ccs_del_mount(struct ccs_mount_entry *ptr)
+{
+	ccs_put_name(ptr->dev_name);
+	ccs_put_name(ptr->dir_name);
+	ccs_put_name(ptr->fs_type);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_no_umount(struct ccs_no_umount_entry *ptr)
+{
+	ccs_put_name(ptr->dir);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_pivot_root(struct ccs_pivot_root_entry *ptr)
+{
+	ccs_put_name(ptr->old_root);
+	ccs_put_name(ptr->new_root);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_chroot(struct ccs_chroot_entry *ptr)
+{
+	ccs_put_name(ptr->dir);
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_reservedport(struct ccs_reserved_entry *ptr)
+{
+	ccs_memory_free(ptr);
+}
+
+static void ccs_del_condition(struct ccs_condition *ptr)
+{
+	int i;
+	u16 condc = ptr->condc;
+	u16 argc = ptr->argc;
+	u16 envc = ptr->envc;
+	u16 symlinkc = ptr->symlinkc;
+	unsigned long *ptr2 = (unsigned long *) (ptr + 1);
+	struct ccs_argv_entry *argv = (struct ccs_argv_entry *) (ptr2 + condc);
+	struct ccs_envp_entry *envp = (struct ccs_envp_entry *) (argv + argc);
+	struct ccs_symlinkp_entry *symlinkp
+		= (struct ccs_symlinkp_entry *) (envp + envc);
+	for (i = 0; i < argc; i++)
+		ccs_put_name(argv[i].value);
+	for (i = 0; i < envc; i++) {
+		ccs_put_name(envp[i].name);
+		ccs_put_name(envp[i].value);
+	}
+	for (i = 0; i < symlinkc; i++)
+		ccs_put_name(symlinkp[i].value);
+	ccs_memory_free(ptr);
+}
+
+static int ccs_gc_thread(void *unused)
+{
+	static DEFINE_MUTEX(ccs_gc_mutex);
+	static LIST_HEAD(ccs_gc_queue);
+	if (!mutex_trylock(&ccs_gc_mutex))
+		return 0;
 	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(group, next_group, &ccs_path_group_list,
-				 list) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->path_group_member_list,
-					 list) {
-			if (!member->is_deleted)
+	{
+		struct ccs_globally_readable_file_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_globally_readable_list,
+					list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
 				break;
-			list_del(&member->list);
-			list_add(&member->list, &q_member);
-		}
-		if (list_empty(&group->path_group_member_list) &&
-		    !atomic_read(&group->users)) {
-			list_del(&group->list);
-			list_add(&group->list, &q_group);
 		}
 	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q_member, list) {
-		ccs_put_name(member->member_name);
-		list_del(&member->list);
-		ccs_free_element(member);
-	}
-	list_for_each_entry_safe(group, next_group, &q_group, list) {
-		ccs_put_name(group->group_name);
-		list_del(&group->list);
-		ccs_free_element(group);
-	}
-}
-
-/**
- * ccs_cleanup_address_group - Clean up deleted "struct ccs_address_group_entry".
- */
-static void ccs_cleanup_address_group(void)
-{
-	struct ccs_address_group_entry *group;
-	struct ccs_address_group_entry *next_group;
-	struct ccs_address_group_member *member;
-	struct ccs_address_group_member *next_member;
-	LIST_HEAD(q_group);
-	LIST_HEAD(q_member);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(group, next_group, &ccs_address_group_list,
-				 list) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->address_group_member_list,
-					 list) {
-			if (!member->is_deleted)
+	{
+		struct ccs_globally_usable_env_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list,
+					list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_GLOBAL_ENV, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
 				break;
-			list_del(&member->list);
-			list_add(&member->list, &q_member);
-		}
-		if (list_empty(&group->address_group_member_list) &&
-		    !atomic_read(&group->users)) {
-			list_del(&group->list);
-			list_add(&group->list, &q_group);
 		}
 	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q_member, list) {
-		if (member->is_ipv6) {
-			ccs_put_ipv6_address(member->min.ipv6);
-			ccs_put_ipv6_address(member->max.ipv6);
+	{
+		struct ccs_pattern_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_PATTERN, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
 		}
-		list_del(&member->list);
-		ccs_free_element(member);
 	}
-	list_for_each_entry_safe(group, next_group, &q_group, list) {
-		ccs_put_name(group->group_name);
-		list_del(&group->list);
-		ccs_free_element(group);
-	}
-}
-
-/**
- * ccs_cleanup_mount - Clean up deleted "struct ccs_mount_entry".
- */
-static void ccs_cleanup_mount(void)
-{
-	struct ccs_mount_entry *ptr;
-	struct ccs_mount_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_mount_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->dev_name);
-		ccs_put_name(ptr->dir_name);
-		ccs_put_name(ptr->fs_type);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
-}
-
-/**
- * ccs_cleanup_no_umount - Clean up deleted "struct ccs_no_umount_entry".
- */
-static void ccs_cleanup_no_umount(void)
-{
-	struct ccs_no_umount_entry *ptr;
-	struct ccs_no_umount_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_no_umount_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->dir);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
-}
-
-/**
- * ccs_cleanup_pivot_root - Clean up deleted "struct ccs_pivot_root_entry".
- */
-static void ccs_cleanup_pivot_root(void)
-{
-	struct ccs_pivot_root_entry *ptr;
-	struct ccs_pivot_root_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_pivot_root_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->old_root);
-		ccs_put_name(ptr->new_root);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
-}
-
-/**
- * ccs_cleanup_chroot - Clean up deleted "struct ccs_chroot_entry".
- */
-static void ccs_cleanup_chroot(void)
-{
-	struct ccs_chroot_entry *ptr;
-	struct ccs_chroot_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_chroot_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		ccs_put_name(ptr->dir);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
-}
-
-/**
- * ccs_cleanup_reservedport - Clean up deleted "struct ccs_reserved_entry".
- */
-static void ccs_cleanup_reservedport(void)
-{
-	struct ccs_reserved_entry *ptr;
-	struct ccs_reserved_entry *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_reservedport_list, list) {
-		if (!ptr->is_deleted)
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
-	}
-}
-
-/**
- * ccs_cleanup_condition - Clean up deleted "struct ccs_condition".
- */
-static void ccs_cleanup_condition(void)
-{
-	struct ccs_condition *ptr;
-	struct ccs_condition *tmp;
-	LIST_HEAD(q);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &ccs_condition_list, list) {
-		if (atomic_read(&ptr->users))
-			continue;
-		list_del(&ptr->list);
-		list_add(&ptr->list, &q);
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(ptr, tmp, &q, list) {
-		int i;
-		u16 condc = ptr->condc;
-		u16 argc = ptr->argc;
-		u16 envc = ptr->envc;
-		u16 symlinkc = ptr->symlinkc;
-		unsigned long *ptr2 = (unsigned long *) (ptr + 1);
-		struct ccs_argv_entry *argv = (struct ccs_argv_entry *)
-			(ptr2 + condc);
-		struct ccs_envp_entry *envp = (struct ccs_envp_entry *)
-			(argv + argc);
-		struct ccs_symlinkp_entry *symlinkp
-			= (struct ccs_symlinkp_entry *) (envp + envc);
-		for (i = 0; i < argc; i++)
-			ccs_put_name(argv[i].value);
-		for (i = 0; i < envc; i++) {
-			ccs_put_name(envp[i].name);
-			ccs_put_name(envp[i].value);
+	{
+		struct ccs_no_rewrite_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_NO_REWRITE, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
 		}
-		for (i = 0; i < symlinkc; i++)
-			ccs_put_name(symlinkp[i].value);
-		list_del(&ptr->list);
-		ccs_memory_free(ptr);
+	}
+	{
+		struct ccs_domain_initializer_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list,
+					list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER,
+					  ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_domain_keeper_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_alias_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_alias_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_ALIAS, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_policy_manager_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_MANAGER, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_aggregator_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_AGGREGATOR, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
+	{
+		struct ccs_domain_info *domain;
+		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+			struct ccs_acl_info *acl;
+			list_for_each_entry_rcu(acl, &domain->acl_info_list,
+						list) {
+				if (!(acl->type & ACL_DELETED))
+					continue;
+				if (ccs_add_to_gc(CCS_ID_ACL, acl,
+						  &ccs_gc_queue))
+					list_del_rcu(&acl->list);
+				else
+					break;
+			}
+			if (!domain->is_deleted ||
+			    ccs_used_by_task(domain))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_DOMAIN, domain, &ccs_gc_queue))
+				list_del_rcu(&domain->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_path_group_entry *group;
+		list_for_each_entry_rcu(group, &ccs_path_group_list, list) {
+			struct ccs_path_group_member *member;
+			list_for_each_entry_rcu(member,
+						&group->path_group_member_list,
+						list) {
+				if (!member->is_deleted)
+					continue;
+				if (ccs_add_to_gc(CCS_ID_PATH_GROUP_MEMBER,
+						  member, &ccs_gc_queue))
+					list_del_rcu(&member->list);
+				else
+					break;
+			}
+			if (!list_empty(&group->path_group_member_list) ||
+			    atomic_read(&group->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_PATH_GROUP, group,
+					  &ccs_gc_queue))
+				list_del_rcu(&group->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_address_group_entry *group;
+		list_for_each_entry_rcu(group, &ccs_address_group_list, list) {
+			struct ccs_address_group_member *member;
+			list_for_each_entry_rcu(member,
+					&group->address_group_member_list,
+						list) {
+				if (!member->is_deleted)
+					break;
+				if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP_MEMBER,
+						  member, &ccs_gc_queue))
+					list_del_rcu(&member->list);
+				else
+					break;
+			}
+			if (!list_empty(&group->address_group_member_list) ||
+			    atomic_read(&group->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, group,
+					  &ccs_gc_queue))
+				list_del_rcu(&group->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_mount_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_mount_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_MOUNT, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_no_umount_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_no_umount_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_UMOUNT, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_pivot_root_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_pivot_root_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_PIVOT_ROOT, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_chroot_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_chroot_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_CHROOT, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_reserved_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
+			if (!ptr->is_deleted)
+				continue;
+			if (ccs_add_to_gc(CCS_ID_RESERVEDPORT, ptr,
+					  &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	{
+		struct ccs_condition *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
+			if (atomic_read(&ptr->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_CONDITION, ptr, &ccs_gc_queue))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
+	if (list_empty(&ccs_gc_queue))
+		goto done;
+	synchronize_srcu(&ccs_ss);
+	{
+		struct ccs_gc_entry *p;
+		struct ccs_gc_entry *tmp;
+		list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
+			switch (p->type) {
+			case CCS_ID_DOMAIN_INITIALIZER:
+				ccs_del_domain_initializer(p->element);
+				break;
+			case CCS_ID_DOMAIN_KEEPER:
+				ccs_del_domain_keeper(p->element);
+				break;
+			case CCS_ID_ALIAS:
+				ccs_del_alias(p->element);
+				break;
+			case CCS_ID_GLOBALLY_READABLE:
+				ccs_del_allow_read(p->element);
+				break;
+			case CCS_ID_PATTERN:
+				ccs_del_file_pattern(p->element);
+				break;
+			case CCS_ID_NO_REWRITE:
+				ccs_del_no_rewrite(p->element);
+				break;
+			case CCS_ID_MANAGER:
+				ccs_del_manager(p->element);
+				break;
+			case CCS_ID_GLOBAL_ENV:
+				ccs_del_allow_env(p->element);
+				break;
+			case CCS_ID_AGGREGATOR:
+				ccs_del_aggregator(p->element);
+				break;
+			case CCS_ID_PATH_GROUP_MEMBER:
+				ccs_del_path_group_member(p->element);
+				break;
+			case CCS_ID_PATH_GROUP:
+				ccs_del_path_group(p->element);
+				break;
+			case CCS_ID_ADDRESS_GROUP_MEMBER:
+				ccs_del_address_group_member(p->element);
+				break;
+			case CCS_ID_ADDRESS_GROUP:
+				ccs_del_address_group(p->element);
+				break;
+			case CCS_ID_MOUNT:
+				ccs_del_mount(p->element);
+				break;
+			case CCS_ID_UMOUNT:
+				ccs_del_no_umount(p->element);
+				break;
+			case CCS_ID_PIVOT_ROOT:
+				ccs_del_pivot_root(p->element);
+				break;
+			case CCS_ID_CHROOT:
+				ccs_del_chroot(p->element);
+				break;
+			case CCS_ID_RESERVEDPORT:
+				ccs_del_reservedport(p->element);
+				break;
+			case CCS_ID_CONDITION:
+				ccs_del_condition(p->element);
+				break;
+			case CCS_ID_ACL:
+				ccs_del_acl(p->element);
+				break;
+			case CCS_ID_DOMAIN:
+				if (!ccs_del_domain(p->element))
+					continue;
+				break;
+			}
+			ccs_free_element(p->element);
+			list_del(&p->list);
+			kfree(p);
+		}
+	}
+ done:
+	mutex_unlock(&ccs_gc_mutex);
+	return 0;
+}
+
+#if 0 && LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+
+static struct srcu_struct {
+	int counter_idx;
+	int counter[2];
+} ccs_ss;
+static DEFINE_SPINLOCK(ccs_counter_lock);
+
+int ccs_read_lock(struct srcu_struct *sp)
+{
+	int idx;
+	spin_lock(&ccs_counter_lock);
+	idx = sp->counter_idx;
+	sp->counter[idx]++;
+	spin_unlock(&ccs_counter_lock);
+	return idx;
+}
+
+void ccs_read_unlock(struct srcu_struct *sp, const int idx)
+{
+	spin_lock(&ccs_counter_lock);
+	sp->counter[idx]--;
+	spin_unlock(&ccs_counter_lock);
+}
+
+void ccs_wait_readers(struct srcu_struct *sp)
+{
+	int idx;
+	int v;
+	spin_lock(&ccs_counter_lock);
+	idx = sp->counter_idx;
+	sp->counter_idx ^= 1;
+	v = sp->counter[idx];
+	spin_unlock(&ccs_counter_lock);
+	while (v) {
+		msleep(1000);
+		spin_lock(&ccs_counter_lock);
+		v = sp->counter[idx];
+		spin_unlock(&ccs_counter_lock);
 	}
 }
 
-/**
- * ccs_run_garbage_collector - Run garbage collector.
- */
-static void ccs_run_garbage_collector(void)
-{
-	ccs_cleanup_allow_read();
-	ccs_cleanup_allow_env();
-	ccs_cleanup_file_pattern();
-	ccs_cleanup_no_rewrite();
-	ccs_cleanup_initializer();
-	ccs_cleanup_keep_domain();
-	ccs_cleanup_alias();
-	ccs_cleanup_aggregator();
-	ccs_cleanup_manager();
-	ccs_cleanup_domain_policy();
-	ccs_cleanup_path_group();
-	ccs_cleanup_address_group();
-	ccs_cleanup_mount();
-	ccs_cleanup_no_umount();
-	ccs_cleanup_pivot_root();
-	ccs_cleanup_chroot();
-	ccs_cleanup_reservedport();
-	ccs_cleanup_condition();
-}
+#endif
