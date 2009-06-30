@@ -1,4 +1,4 @@
-ALL_FILES = sakura_bind_test sakura_filesystem_test tomoyo_capability_test tomoyo_file_test tomoyo_rewrite_test tomoyo_argv0_test tomoyo_env_test tomoyo_network_test tomoyo_signal_test newns tomoyo_accept_test tomoyo_bprm_test tomoyo_cond_test ccs_policy_io_test tomoyo_new_file_test tomoyo_new_capability_test tomoyo_new_network_test tomoyo_execute_handler_test
+ALL_FILES = ccs_bind_test ccs_filesystem_test ccs_capability_test ccs_file_test ccs_rewrite_test ccs_argv0_test ccs_env_test ccs_network_test ccs_signal_test newns ccs_accept_test ccs_bprm_test ccs_cond_test ccs_policy_io_test ccs_new_file_test ccs_new_capability_test ccs_new_network_test ccs_execute_handler_test
 
 all: $(ALL_FILES)
 	chmod 755 testall.sh
@@ -11,13 +11,13 @@ CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/n
 # Tools for kernel testing.
 #
 
-tomoyo_capability_test: tomoyo_capability_test.c include.h
-	$(CC) $(CFLAGS) -o tomoyo_capability_test tomoyo_capability_test.c -lutil
-	chmod 700 tomoyo_capability_test
+ccs_capability_test: ccs_capability_test.c include.h
+	$(CC) $(CFLAGS) -o ccs_capability_test ccs_capability_test.c -lutil
+	chmod 700 ccs_capability_test
 
-tomoyo_new_capability_test: tomoyo_new_capability_test.c include.h
-	$(CC) $(CFLAGS) -o tomoyo_new_capability_test tomoyo_new_capability_test.c -lutil
-	chmod 700 tomoyo_new_capability_test
+ccs_new_capability_test: ccs_new_capability_test.c include.h
+	$(CC) $(CFLAGS) -o ccs_new_capability_test ccs_new_capability_test.c -lutil
+	chmod 700 ccs_new_capability_test
 
 .c:	include.h
 	$(CC) $(CFLAGS) -o $@ $<
