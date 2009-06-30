@@ -158,7 +158,7 @@ static int ccs_update_capability_acl(const u8 operation,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-bool ccs_capable(const u8 operation)
+static bool ccs_capable2(const u8 operation)
 {
 	struct ccs_request_info r;
 	struct ccs_acl_info *ptr;
@@ -204,6 +204,23 @@ bool ccs_capable(const u8 operation)
 		ccs_put_condition(cond);
 	}
 	return true;
+}
+
+/**
+ * ccs_capable - Check permission for capability.
+ *
+ * @operation: Type of operation.
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
+ */
+bool ccs_capable(const u8 operation)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_capable2(operation);
+	srcu_read_unlock(&ccs_ss, idx);
+	return error;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 

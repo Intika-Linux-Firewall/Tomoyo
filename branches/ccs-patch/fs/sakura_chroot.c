@@ -106,7 +106,7 @@ static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
 #define PATH_or_NAMEIDATA nameidata
 #endif
 /**
- * ccs_check_chroot_permission - Check permission for chroot().
+ * ccs_check_chroot_permission2 - Check permission for chroot().
  *
  * @path: Pointer to "struct path" (for 2.6.27 and later).
  *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
@@ -115,7 +115,7 @@ static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
+static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 {
 	struct ccs_request_info r;
 	int error;
@@ -153,6 +153,22 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	ccs_free(root_name);
 	if (error == 1)
 		goto retry;
+	return error;
+}
+
+/**
+ * ccs_check_chroot_permission - Check permission for chroot().
+ *
+ * @path: Pointer to "struct path" (for 2.6.27 and later).
+ *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_check_chroot_permission2(path);
+	srcu_read_unlock(&ccs_ss, idx);
 	return error;
 }
 

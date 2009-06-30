@@ -159,6 +159,8 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
  * @argv0:    The basename of argv[0].
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
 			 const struct ccs_path_info *filename,

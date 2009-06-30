@@ -494,13 +494,18 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 			       const unsigned long *flags)
 {
 	struct ccs_request_info r;
+	int error;
+	int idx;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_RESTRICT_MOUNT);
 	if (!r.mode)
 		return 0;
-	return ccs_check_mount_permission2(&r, dev_name, dir_name, type,
-					   *flags);
+	idx = srcu_read_lock(&ccs_ss);
+	error = ccs_check_mount_permission2(&r, dev_name, dir_name, type,
+					    *flags);
+	srcu_read_unlock(&ccs_ss, idx);
+	return error;
 }
 
 /**

@@ -70,7 +70,7 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
 }
 
 /**
- * ccs_may_umount - Check permission for unmount.
+ * ccs_may_umount2 - Check permission for unmount.
  *
  * @mnt: Pointer to "struct vfsmount".
  *
@@ -78,7 +78,7 @@ static int ccs_update_no_umount_acl(const char *dir, const bool is_delete)
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-int ccs_may_umount(struct vfsmount *mnt)
+static int ccs_may_umount2(struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	int error;
@@ -127,6 +127,21 @@ int ccs_may_umount(struct vfsmount *mnt)
 		error = 0;
 	if (error == 1)
 		goto retry;
+	return error;
+}
+
+/**
+ * ccs_may_umount - Check permission for unmount.
+ *
+ * @mnt: Pointer to "struct vfsmount".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_may_umount(struct vfsmount *mnt)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_may_umount2(mnt);
+	srcu_read_unlock(&ccs_ss, idx);
 	return error;
 }
 

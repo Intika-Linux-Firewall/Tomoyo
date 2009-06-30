@@ -155,6 +155,7 @@ struct ccs_execve_entry {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
+	int srcu_idx;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
@@ -683,6 +684,8 @@ struct ccs_io_buffer {
 	int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
+	/* Index returned by srcu_read_lock().  */
+	int srcu_idx;
 	/* The position currently reading from. */
 	struct list_head *read_var1;
 	/* Extra variables for reading.         */

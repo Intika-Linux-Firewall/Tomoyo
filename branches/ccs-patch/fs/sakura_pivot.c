@@ -86,7 +86,7 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 #define PATH_or_NAMEIDATA nameidata
 #endif
 /**
- * ccs_check_pivot_root_permission - Check permission for pivot_root().
+ * ccs_check_pivot_root_permission2 - Check permission for pivot_root().
  *
  * @old_path: Pointer to "struct path" (for 2.6.27 and later).
  *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
@@ -97,8 +97,8 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
-				    struct PATH_or_NAMEIDATA *new_path)
+static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
+					    struct PATH_or_NAMEIDATA *new_path)
 {
 	struct ccs_request_info r;
 	int error;
@@ -166,6 +166,25 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	ccs_free(new_root);
 	if (error == 1)
 		goto retry;
+	return error;
+}
+
+/**
+ * ccs_check_pivot_root_permission - Check permission for pivot_root().
+ *
+ * @old_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @new_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
+				    struct PATH_or_NAMEIDATA *new_path)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_check_pivot_root_permission2(old_path, new_path);
+	srcu_read_unlock(&ccs_ss, idx);
 	return error;
 }
 

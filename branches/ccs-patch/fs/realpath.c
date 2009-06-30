@@ -792,6 +792,8 @@ static struct kmem_cache *ccs_cachep;
 static kmem_cache_t *ccs_cachep;
 #endif
 
+struct srcu_struct ccs_ss;
+
 /**
  * ccs_realpath_init - Initialize realpath related code.
  *
@@ -806,6 +808,8 @@ static int __init ccs_realpath_init(void)
 	/* Constraint for "struct ccs_execve_entry"->tmp users. */
 	if (CCS_MAX_PATHNAME_LEN > CCS_EXEC_TMPSIZE)
 		panic("Bad size.");
+	if (init_srcu_struct(&ccs_ss))
+		panic("Out of memory.");
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
 	ccs_cachep = kmem_cache_create("ccs_cache",
 				       sizeof(struct ccs_cache_entry),

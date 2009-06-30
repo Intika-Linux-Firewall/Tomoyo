@@ -3213,6 +3213,7 @@ int ccs_open_control(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
+	head->srcu_idx = srcu_read_lock(&ccs_ss);
 	file->private_data = head;
 	/*
 	 * Call the handler now if the file is /proc/ccs/self_domain
@@ -3363,6 +3364,7 @@ int ccs_close_control(struct file *file)
 	 */
 	if (head->write == ccs_write_answer || head->read == ccs_read_query)
 		atomic_dec(&ccs_query_observers);
+	srcu_read_unlock(&ccs_ss, head->srcu_idx);
 	/* Release memory used for policy I/O. */
 	ccs_free(head->read_buf);
 	head->read_buf = NULL;

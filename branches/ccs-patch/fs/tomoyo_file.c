@@ -386,7 +386,7 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
  *
  * Returns true if @pathname matches pathnames in @group, false otherwise.
  *
- * Caller holds ccs_policy_lock for reading.
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 				   const struct ccs_path_group_entry *group,
@@ -772,6 +772,8 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
  * @operation: Mode ("read" or "write" or "read/write" or "execute").
  *
  * Returns 0 on success, -EPERM otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static inline int ccs_check_file_acl(struct ccs_request_info *r,
 				     const struct ccs_path_info *filename,
@@ -800,6 +802,8 @@ static inline int ccs_check_file_acl(struct ccs_request_info *r,
  * @operation: Operation name passed used for verbose mode.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_file_perm(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
@@ -1219,6 +1223,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
  * @filename: Filename to check.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static inline int ccs_check_single_path_acl(struct ccs_request_info *r,
 					    const u8 type,
@@ -1289,6 +1295,8 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
  * @filename:  Filename to check.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 					     u8 operation,
@@ -1346,6 +1354,8 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
  * @filename: Check permission for "execute".
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 int ccs_check_exec_perm(struct ccs_request_info *r,
 			const struct ccs_path_info *filename)
@@ -1374,6 +1384,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
 	struct ccs_path_info *buf = NULL;
+	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (current->in_execve &&
 	    !(current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
@@ -1381,6 +1392,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 #endif
 	if (!ccs_can_sleep())
 		return 0;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, current->ccs_flags &
 			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
 			      ccs_fetch_next_domain() : ccs_current_domain(),
@@ -1425,6 +1437,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 							  buf);
  out:
 	ccs_free(buf);
+	srcu_read_unlock(&ccs_ss, idx);
 	if (r.mode != 3)
 		error = 0;
 	return error;
@@ -1449,9 +1462,11 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	struct ccs_path_info *buf = NULL;
 	bool is_enforce;
 	struct ccs_path_info symlink_target;
+	int idx;
 	if (!ccs_can_sleep())
 		return 0;
 	symlink_target.name = NULL;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1486,6 +1501,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		ccs_free(symlink_target.name);
  out:
 	ccs_free(buf);
+	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1505,8 +1521,10 @@ int ccs_check_rewrite_permission(struct file *filp)
 	int error = -ENOMEM;
 	bool is_enforce;
 	struct ccs_path_info *buf = NULL;
+	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !filp->f_vfsmnt) {
@@ -1527,6 +1545,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL, buf);
  out:
 	ccs_free(buf);
+	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1552,8 +1571,10 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	bool is_enforce;
 	const char *msg;
 	struct ccs_obj_info obj;
+	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1612,6 +1633,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  out:
 	ccs_free(buf1);
 	ccs_free(buf2);
+	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1646,7 +1668,6 @@ static int ccs_audit_ioctl_log(struct ccs_request_info *r,
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
- *
  */
 static int ccs_update_ioctl_acl(const char *filename,
 				const unsigned int cmd_min,
@@ -1781,6 +1802,8 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
  * @cmd:       Ioctl command number.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 				const struct ccs_path_info *filename,
@@ -1866,8 +1889,10 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
 	struct ccs_path_info *buf = NULL;
+	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
 	if (!r.mode || !filp->f_vfsmnt) {
 		error = 0;
@@ -1883,6 +1908,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	error = ccs_check_ioctl_perm(&r, buf, cmd);
  out:
 	ccs_free(buf);
+	srcu_read_unlock(&ccs_ss, idx);
 	if (r.mode != 3)
 		error = 0;
 	return error;

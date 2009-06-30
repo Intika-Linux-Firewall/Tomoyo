@@ -118,7 +118,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 }
 
 /**
- * ccs_check_signal_acl - Check permission for signal.
+ * ccs_check_signal_acl2 - Check permission for signal.
  *
  * @sig: Signal number.
  * @pid: Target's PID.
@@ -127,7 +127,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-int ccs_check_signal_acl(const int sig, const int pid)
+static int ccs_check_signal_acl2(const int sig, const int pid)
 {
 	struct ccs_request_info r;
 	struct ccs_domain_info *dest = NULL;
@@ -214,6 +214,22 @@ int ccs_check_signal_acl(const int sig, const int pid)
 		ccs_put_condition(cond);
 	}
 	return 0;
+}
+
+/**
+ * ccs_check_signal_acl - Check permission for signal.
+ *
+ * @sig: Signal number.
+ * @pid: Target's PID.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_signal_acl(const int sig, const int pid)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_check_signal_acl2(sig, pid);
+	srcu_read_unlock(&ccs_ss, idx);
+	return error;
 }
 
 /**

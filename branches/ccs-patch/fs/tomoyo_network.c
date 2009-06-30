@@ -270,7 +270,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
  *
- * Caller holds ccs_policy_lockfor reading.
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 				      const struct ccs_address_group_entry *
@@ -570,7 +570,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 }
 
 /**
- * ccs_check_network_entry - Check permission for network operation.
+ * ccs_check_network_entry2 - Check permission for network operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @operation: Type of operation.
@@ -581,8 +581,8 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
-				   const u32 *address, const u16 port)
+static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
+				    const u32 *address, const u16 port)
 {
 	struct ccs_request_info r;
 	struct ccs_acl_info *ptr;
@@ -656,6 +656,26 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 		ccs_put_condition(cond);
 	}
 	return 0;
+}
+
+/**
+ * ccs_check_network_entry - Check permission for network operation.
+ *
+ * @is_ipv6:   True if @address is an IPv6 address.
+ * @operation: Type of operation.
+ * @address:   An IPv4 or IPv6 address.
+ * @port:      Port number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
+				   const u32 *address, const u16 port)
+{
+	const int idx = srcu_read_lock(&ccs_ss);
+	const int error = ccs_check_network_entry2(is_ipv6, operation,
+						   address, port);
+	srcu_read_unlock(&ccs_ss, idx);
+	return error;
 }
 
 /**

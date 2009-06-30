@@ -1178,6 +1178,7 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 		ccs_free(ee);
 		return NULL;
 	}
+	ee->srcu_idx = srcu_read_lock(&ccs_ss);
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->task = current;
 	/***** CRITICAL SECTION START *****/
@@ -1228,6 +1229,7 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 	ccs_free(ee->program_path);
 	ccs_free(ee->tmp);
 	kfree(ee->dump.data);
+	srcu_read_unlock(&ccs_ss, ee->srcu_idx);
 	ccs_free(ee);
 }
 

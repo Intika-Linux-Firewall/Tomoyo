@@ -256,6 +256,8 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
  * @env:     The name of environment variable.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
  */
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 {
