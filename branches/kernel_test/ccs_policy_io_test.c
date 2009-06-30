@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  */
 #include "include.h"
@@ -55,10 +55,11 @@ static void try_io(const char *policy, const char should_success)
 static void stage_policy_io_test(void)
 {
 	int i;
-	policy_file = proc_policy_system_policy;
+#if 0
+	policy_file = proc_policy_domain_policy;
 	fd = open(policy_file, O_WRONLY);
 	if (fd == EOF && errno == ENOENT)
-		goto no_system;
+		goto no_domain;
 	for (i = 0; i < 3; i++) {
 		try_io("allow_chroot /", 1);
 		try_io("allow_chroot ", 0);
@@ -128,8 +129,8 @@ static void stage_policy_io_test(void)
 		try_io("allow_mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
 	}
 	close(fd);
- no_system:
-
+ no_domain:
+#endif
 	policy_file = proc_policy_exception_policy;
 	fd = open(policy_file, O_WRONLY);
 	if (fd == EOF && errno == ENOENT)

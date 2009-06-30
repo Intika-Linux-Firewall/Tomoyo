@@ -1,12 +1,12 @@
 /*
- * sakura_filesystem_test.c
+ * sakura_filedomain_test.c
  *
  * Testing program for fs/sakura_mount.c fs/sakura_umount.c fs/sakura_maymount.c
  * fs/sakura_chroot.c fs/sakura_pivot.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  */
 #define _GNU_SOURCE
@@ -37,11 +37,11 @@ static int child(void *arg)
 	return errno;
 }
 
-static int system_fd = EOF;
+static int domain_fd = EOF;
 
 static void write_policy(const char *cp)
 {
-	write(system_fd, cp, strlen(cp));
+	write(domain_fd, cp, strlen(cp));
 }
 
 int main(int argc, char *argv[])
@@ -50,13 +50,13 @@ int main(int argc, char *argv[])
 	ccs_test_init();
 	if (strncmp(proc_policy_dir, "/proc/", 6))
 		pivot_root_dir = "/sys/kernel/security/";
-	system_fd = open(proc_policy_system_policy, O_RDWR);
-	if (system_fd == EOF) {
+	domain_fd = open(proc_policy_domain_policy, O_RDWR);
+	if (domain_fd == EOF) {
 		fprintf(stderr, "You can't use this program for this kernel."
 			"\n");
 		return 1;
 	}
-	if (write(system_fd, "", 0) != 0) {
+	if (write(domain_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
 			"run this program.\n", proc_policy_manager);
 		return 1;
@@ -525,7 +525,7 @@ int main(int argc, char *argv[])
 	rmdir(TEST_DIR_BIND);
 	rmdir(TEST_DIR);
 
-	close(system_fd);
+	close(domain_fd);
 	clear_status();
 	return 0;
 }

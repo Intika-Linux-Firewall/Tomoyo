@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  */
 #include "include.h"
@@ -408,7 +408,7 @@ static void ipv6_udp_sendto(void)
 	wait(NULL);
 }
 
-static int system_fd = EOF;
+static int exception_fd = EOF;
 
 static void set_reserved_range(int low, int high)
 {
@@ -416,7 +416,7 @@ static void set_reserved_range(int low, int high)
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "deny_autobind %d-%d\n",
 		 min_port, max_port);
-	write(system_fd, buffer, strlen(buffer));
+	write(exception_fd, buffer, strlen(buffer));
 }
 
 static void unset_reserved_range(int low, int high)
@@ -425,7 +425,7 @@ static void unset_reserved_range(int low, int high)
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "delete deny_autobind %d-%d\n",
 		 min_port, max_port);
-	write(system_fd, buffer, strlen(buffer));
+	write(exception_fd, buffer, strlen(buffer));
 }
 
 static void ipv4_listener_loop(int ipv4_listener_socket,
@@ -508,13 +508,13 @@ int main(int argc, char *argv[])
 	pid_t ipv4_pid = 0;
 	pid_t ipv6_pid = 0;
 	ccs_test_init();
-	system_fd = open(proc_policy_system_policy, O_RDWR);
-	if (system_fd == EOF) {
+	exception_fd = open(proc_policy_exception_policy, O_RDWR);
+	if (exception_fd == EOF) {
 		fprintf(stderr, "You can't use this program for this kernel."
 			"\n");
 		return 1;
 	}
-	if (write(system_fd, "", 0) != 0) {
+	if (write(exception_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
 			"run this program.\n", proc_policy_manager);
 		return 1;
@@ -633,7 +633,7 @@ int main(int argc, char *argv[])
 		fclose(fp);
 	}
 	printf("Done.\n");
-	close(system_fd);
+	close(exception_fd);
 	clear_status();
 	return 0;
 }
