@@ -22,17 +22,17 @@
 #endif
 
 /**
- * ccs_update_no_umount_acl - Update "struct ccs_umount_acl_record" list.
+ * ccs_update_umount_acl - Update "struct ccs_umount_acl_record" list.
  *
  * @dir:       The name of directrory.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_no_umount_acl(const char *dir,
-				    struct ccs_domain_info *domain,
-				    struct ccs_condition *condition,
-				    const bool is_delete)
+static int ccs_update_umount_acl(const char *dir,
+				 struct ccs_domain_info *domain,
+				 struct ccs_condition *condition,
+				 const bool is_delete)
 {
 	struct ccs_umount_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
@@ -118,7 +118,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	}
 	if (!found) {
 		const char *exename = ccs_get_exe();
-		printk(KERN_WARNING "SAKURA-%s: umount %s "
+		printk(KERN_WARNING "%s: umount %s "
 		       "(pid=%d:exe=%s): Permission denied.\n",
 		       ccs_get_msg(is_enforce), dir0, (pid_t) sys_getpid(),
 		       exename);
@@ -154,7 +154,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 }
 
 /**
- * ccs_write_no_umount_policy - Write "struct ccs_umount_acl_record" list.
+ * ccs_write_umount_policy - Write "struct ccs_umount_acl_record" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -163,9 +163,9 @@ int ccs_may_umount(struct vfsmount *mnt)
  *
  * Returns 0 on sucess, negative value otherwise.
  */
-int ccs_write_no_umount_policy(char *data, struct ccs_domain_info *domain,
-			       struct ccs_condition *condition,
-			       const bool is_delete)
+int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
+			    struct ccs_condition *condition,
+			    const bool is_delete)
 {
-	return ccs_update_no_umount_acl(data, domain, condition, is_delete);
+	return ccs_update_umount_acl(data, domain, condition, is_delete);
 }

@@ -61,10 +61,16 @@ int main(int argc, char *argv[])
 			"run this program.\n", proc_policy_manager);
 		return 1;
 	}
+	{
+		char buffer[128];
+		memset(buffer, 0, sizeof(buffer));
+		snprintf(buffer, sizeof(buffer) - 1, "select pid=%u\n", getpid());
+		write(domain_fd, buffer, strlen(buffer));
+	}
 
 	/* Test mount(). */
 	{
-		write_status("RESTRICT_MOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 1);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == EPERM)
@@ -73,7 +79,7 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		write_status("RESTRICT_MOUNT=learning\n");
+		write_status("MAC_FOR_NAMESPACE=learning\n");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == ENOMEM)
@@ -82,7 +88,7 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		write_status("RESTRICT_MOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == ENOMEM)
@@ -101,13 +107,13 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		write_status("RESTRICT_MOUNT=learning\n");
+		write_status("MAC_FOR_NAMESPACE=learning\n");
 		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
 		if (mount(NULL, "/", "tmpfs", 0, NULL))
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success\n");
-		write_status("RESTRICT_MOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
 		if (mount(NULL, "/", "tmpfs", 0, NULL))
 			printf("BUG: %s\n", strerror(errno));
@@ -126,7 +132,7 @@ int main(int argc, char *argv[])
 		else
 			printf("OK: Success\n");
 		write_policy("delete allow_mount anydev / tmpfs 0\n");
-		write_status("RESTRICT_MOUNT=permissive\n");
+		write_status("MAC_FOR_NAMESPACE=permissive\n");
 		show_prompt("mount(NULL, NULL, 'tmpfs') ", 1);
 		if (mount(NULL, NULL, "tmpfs", 0, NULL))
 			printf("OK: %s\n", strerror(errno));
@@ -152,7 +158,7 @@ int main(int argc, char *argv[])
 			printf("OK: %s\n", strerror(errno));
 		else
 			printf("BUG: Did not fail.\n");
-		write_status("RESTRICT_MOUNT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 	}
 
 	mkdir(TEST_DIR, 0755);
@@ -170,7 +176,7 @@ int main(int argc, char *argv[])
 			mknod(dev_ram_path, S_IFBLK, MKDEV(1, 0));
 		}
 		memset(buf, 0, sizeof(buf));
-		write_status("RESTRICT_MOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 
 		/* Test standard case */
 		show_prompt("mount('none', '" TEST_DIR "', 'tmpfs') for '"
@@ -236,7 +242,7 @@ int main(int argc, char *argv[])
 		write_policy("delete allow_mount none " TEST_DIR_PATTERN
 			    " tmpfs 0\n");
 
-		write_status("RESTRICT_MOUNT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
 	}
@@ -244,7 +250,7 @@ int main(int argc, char *argv[])
 	/* Test mount(). */
 	{
 		mount("none", TEST_DIR, "tmpfs", 0, NULL);
-		write_status("RESTRICT_MOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 
 		/* Test remount case */
 		show_prompt("mount('" TEST_DIR "', MS_REMOUNT)", 1);
@@ -323,7 +329,7 @@ int main(int argc, char *argv[])
 		write_policy("delete allow_mount " TEST_DIR " " TEST_DIR_MOVE
 			    " --move 0\n");
 
-		write_status("RESTRICT_MOUNT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
 	}
@@ -331,7 +337,7 @@ int main(int argc, char *argv[])
 	/* Test mount(). */
 	{
 		mount("none", TEST_DIR, "tmpfs", 0, NULL);
-		write_status("DENY_CONCEAL_MOUNT=enforcing\n");
+		write_status("MAC_FOR_CAPABILITY::conceal_mount=enforcing\n");
 
 		show_prompt("mount('none', '" TEST_DIR "', 'tmpfs')", 1);
 		if (mount("none", TEST_DIR, "tmpfs", 0, NULL) == EOF &&
@@ -354,7 +360,7 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 
-		write_status("DENY_CONCEAL_MOUNT=permissive\n");
+		write_status("MAC_FOR_CAPABILITY::conceal_mount=permissive\n");
 
 		show_prompt("mount('none', '" TEST_DIR "', 'tmpfs')", 0);
 		if (mount("none", TEST_DIR, "tmpfs", 0, NULL) == 0)
@@ -362,14 +368,14 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		write_status("DENY_CONCEAL_MOUNT=disabled\n");
+		write_status("MAC_FOR_CAPABILITY::conceal_mount=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
 	}
 
 	/* Test umount(). */
 	{
-		write_status("RESTRICT_UNMOUNT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 
 		/* Test standard case */
 		write_policy("deny_unmount " TEST_DIR "\n");
@@ -400,14 +406,14 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 		write_policy("delete deny_unmount " TEST_DIR_PATTERN "\n");
 
-		write_status("RESTRICT_UNMOUNT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 		while (umount(TEST_DIR) == 0)
 			c++; /* Dummy. */
 	}
 
 	/* Test chroot(). */
 	{
-		write_status("RESTRICT_CHROOT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 
 		/* Test standard case */
 		write_policy("allow_chroot " TEST_DIR "\n");
@@ -452,14 +458,14 @@ int main(int argc, char *argv[])
 		wait(NULL);
 		write_policy("delete allow_chroot " TEST_DIR_PATTERN "\n");
 
-		write_status("RESTRICT_CHROOT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 	}
 
 	/* Test pivot_root(). */
 	{
 		int error;
 		char *stack = malloc(8192);
-		write_status("RESTRICT_PIVOT_ROOT=enforcing\n");
+		write_status("MAC_FOR_NAMESPACE=enforcing\n");
 
 		snprintf(stack, 8191, "allow_pivot_root %s %s\n",
 			 pivot_root_dir, proc_policy_dir);
@@ -499,7 +505,7 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 
-		write_status("RESTRICT_PIVOT_ROOT=permissive\n");
+		write_status("MAC_FOR_NAMESPACE=permissive\n");
 		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
 			 proc_policy_dir);
 		show_prompt(stack, 0);
@@ -516,7 +522,7 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		write_status("RESTRICT_PIVOT_ROOT=disabled\n");
+		write_status("MAC_FOR_NAMESPACE=disabled\n");
 
 		free(stack);
 	}
