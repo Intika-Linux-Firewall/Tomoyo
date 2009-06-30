@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -662,21 +662,6 @@ enum ccs_profile_index {
 	CCS_MAX_CONTROL_INDEX
 };
 
-/* Index numbers for updates counter. */
-enum ccs_update_counter_index {
-	CCS_UPDATES_COUNTER_SYSTEM_POLICY,
-	CCS_UPDATES_COUNTER_DOMAIN_POLICY,
-	CCS_UPDATES_COUNTER_EXCEPTION_POLICY,
-	CCS_UPDATES_COUNTER_PROFILE,
-	CCS_UPDATES_COUNTER_QUERY,
-	CCS_UPDATES_COUNTER_MANAGER,
-#ifdef CONFIG_CCSECURITY_AUDIT
-	CCS_UPDATES_COUNTER_GRANT_LOG,
-	CCS_UPDATES_COUNTER_REJECT_LOG,
-#endif
-	MAX_CCS_UPDATES_COUNTER
-};
-
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
 	int (*read) (struct ccs_io_buffer *);
@@ -928,9 +913,6 @@ void ccs_load_policy(const char *filename);
 /* Print an IPv6 address. */
 void ccs_print_ipv6(char *buffer, const int buffer_len,
 		    const struct in6_addr *ip);
-/* Update the policy change counter. */
-void ccs_update_counter(const unsigned char index);
-
 /* Check whether the basename of program and argv0 is allowed to differ. */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
 			 const struct ccs_path_info *filename,

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1113,7 +1113,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	if (!cp)
 		return -EINVAL;
 	*cp = '\0';
-	ccs_update_counter(CCS_UPDATES_COUNTER_PROFILE);
 	if (!strcmp(data, "COMMENT")) {
 		ccs_profile->comment = ccs_get_name(cp + 1);
 		ccs_profile_entry_used[0] = true;
@@ -1299,8 +1298,6 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_manager);
 	kfree(entry);
-	if (!error)
-		ccs_update_counter(CCS_UPDATES_COUNTER_MANAGER);
 	return error;
 }
 
@@ -1522,7 +1519,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		else
 			domain = ccs_find_or_assign_new_domain(data, 0);
 		head->write_var1 = domain;
-		ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 		return 0;
 	}
 	if (!domain)
@@ -2110,7 +2106,6 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	domain = ccs_find_domain(cp + 1);
 	if (domain && (ccs_profile_ptr[profile] || !ccs_policy_loaded))
 		domain->profile = (u8) profile;
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -2556,8 +2551,8 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "SAKURA: 1.6.8   2009/05/28\n");
-	printk(KERN_INFO "TOMOYO: 1.6.8   2009/05/28\n");
+	printk(KERN_INFO "SAKURA: 1.7.0-pre   2009/05/28\n");
+	printk(KERN_INFO "TOMOYO: 1.7.0-pre   2009/05/28\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
 	ccs_log_level = KERN_WARNING;
@@ -2659,7 +2654,6 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	list_add_tail(&ccs_query_entry->list, &ccs_query_list);
 	spin_unlock(&ccs_query_list_lock);
 	/***** CRITICAL SECTION END *****/
-	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/* Give 10 seconds for supervisor's opinion. */
 	for (ccs_query_entry->timer = 0;
 	     atomic_read(&ccs_query_observers) && ccs_query_entry->timer < 100;
@@ -2670,7 +2664,6 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		if (ccs_query_entry->answer)
 			break;
 	}
-	ccs_update_counter(CCS_UPDATES_COUNTER_QUERY);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_del(&ccs_query_entry->list);
@@ -2849,140 +2842,6 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 	return 0;
 }
 
-#if !defined(atomic_xchg) || LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 3)
-
-/* Policy updates counter. */
-static unsigned int ccs_updates_counter[MAX_CCS_UPDATES_COUNTER];
-
-/* Policy updates counter lock. */
-static DEFINE_SPINLOCK(ccs_updates_counter_lock);
-
-/**
- * ccs_update_counter - Increment policy change counter.
- *
- * @index: Type of policy.
- *
- * Returns nothing.
- */
-void ccs_update_counter(const unsigned char index)
-{
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_updates_counter_lock);
-	if (index < MAX_CCS_UPDATES_COUNTER)
-		ccs_updates_counter[index]++;
-	spin_unlock(&ccs_updates_counter_lock);
-	/***** CRITICAL SECTION END *****/
-}
-
-/**
- * ccs_read_updates_counter - Check for policy change counter.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns how many times policy has changed since the previous check.
- */
-static int ccs_read_updates_counter(struct ccs_io_buffer *head)
-{
-	unsigned int counter[MAX_CCS_UPDATES_COUNTER];
-	if (head->read_eof)
-		return 0;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_updates_counter_lock);
-	memmove(counter, ccs_updates_counter, sizeof(ccs_updates_counter));
-	memset(ccs_updates_counter, 0, sizeof(ccs_updates_counter));
-	spin_unlock(&ccs_updates_counter_lock);
-	/***** CRITICAL SECTION END *****/
-	ccs_io_printf(head,
-		      "/proc/ccs/system_policy:    %10u\n"
-		      "/proc/ccs/domain_policy:    %10u\n"
-		      "/proc/ccs/exception_policy: %10u\n"
-		      "/proc/ccs/profile:          %10u\n"
-		      "/proc/ccs/query:            %10u\n"
-		      "/proc/ccs/manager:          %10u\n"
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      "/proc/ccs/grant_log:        %10u\n"
-		      "/proc/ccs/reject_log:       %10u\n"
-#endif
-		      , counter[CCS_UPDATES_COUNTER_SYSTEM_POLICY]
-		      , counter[CCS_UPDATES_COUNTER_DOMAIN_POLICY]
-		      , counter[CCS_UPDATES_COUNTER_EXCEPTION_POLICY]
-		      , counter[CCS_UPDATES_COUNTER_PROFILE]
-		      , counter[CCS_UPDATES_COUNTER_QUERY]
-		      , counter[CCS_UPDATES_COUNTER_MANAGER]
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      , counter[CCS_UPDATES_COUNTER_GRANT_LOG]
-		      , counter[CCS_UPDATES_COUNTER_REJECT_LOG]
-#endif
-		      );
-	head->read_eof = true;
-	return 0;
-}
-
-#else
-
-/* Policy updates counter. */
-static atomic_t ccs_updates_counter[MAX_CCS_UPDATES_COUNTER];
-
-/**
- * ccs_update_counter - Increment policy change counter.
- *
- * @index: Type of policy.
- *
- * Returns nothing.
- */
-void ccs_update_counter(const unsigned char index)
-{
-	if (index < MAX_CCS_UPDATES_COUNTER)
-		atomic_inc(&ccs_updates_counter[index]);
-}
-
-/**
- * ccs_read_updates_counter - Check for policy change counter.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns how many times policy has changed since the previous check.
- */
-static int ccs_read_updates_counter(struct ccs_io_buffer *head)
-{
-	if (head->read_eof)
-		return 0;
-	ccs_io_printf(head,
-		      "/proc/ccs/system_policy:    %10u\n"
-		      "/proc/ccs/domain_policy:    %10u\n"
-		      "/proc/ccs/exception_policy: %10u\n"
-		      "/proc/ccs/profile:          %10u\n"
-		      "/proc/ccs/query:            %10u\n"
-		      "/proc/ccs/manager:          %10u\n"
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      "/proc/ccs/grant_log:        %10u\n"
-		      "/proc/ccs/reject_log:       %10u\n"
-#endif
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_SYSTEM_POLICY], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_DOMAIN_POLICY], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_EXCEPTION_POLICY], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_PROFILE], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_QUERY], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_MANAGER], 0)
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_GRANT_LOG], 0)
-		      , atomic_xchg(&ccs_updates_counter
-				    [CCS_UPDATES_COUNTER_REJECT_LOG], 0)
-#endif
-		      );
-	head->read_eof = true;
-	return 0;
-}
-
-#endif
-
 /**
  * ccs_read_version: Get version.
  *
@@ -2993,7 +2852,7 @@ static int ccs_read_updates_counter(struct ccs_io_buffer *head)
 static int ccs_read_version(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		ccs_io_printf(head, "1.6.8");
+		ccs_io_printf(head, "1.7.0-pre");
 		head->read_eof = true;
 	}
 	return 0;
@@ -3097,9 +2956,6 @@ int ccs_open_control(const u8 type, struct file *file)
 	case CCS_MANAGER: /* /proc/ccs/manager */
 		head->write = ccs_write_manager_policy;
 		head->read = ccs_read_manager_policy;
-		break;
-	case CCS_UPDATESCOUNTER: /* /proc/ccs/.ccs_updates_counter */
-		head->read = ccs_read_updates_counter;
 		break;
 	}
 	if (!(file->f_mode & FMODE_READ)) {

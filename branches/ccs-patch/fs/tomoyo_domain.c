@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -70,7 +70,6 @@ int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
 	} else {
 		acl->type &= ~ACL_DELETED;
 	}
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -85,7 +84,6 @@ int ccs_del_domain_acl(struct ccs_acl_info *acl)
 {
 	if (acl)
 		acl->type |= ACL_DELETED;
-	ccs_update_counter(CCS_UPDATES_COUNTER_DOMAIN_POLICY);
 	return 0;
 }
 
@@ -192,7 +190,6 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 	ccs_put_name(saved_domainname);
 	ccs_put_name(saved_program);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -364,7 +361,6 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 	ccs_put_name(saved_domainname);
 	ccs_put_name(saved_program);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -518,7 +514,6 @@ static int ccs_update_alias_entry(const char *original_name,
 	ccs_put_name(saved_original_name);
 	ccs_put_name(saved_aliased_name);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -621,7 +616,6 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	ccs_put_name(saved_original_name);
 	ccs_put_name(saved_aggregated_name);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 

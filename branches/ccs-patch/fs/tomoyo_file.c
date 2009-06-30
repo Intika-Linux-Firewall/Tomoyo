@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/05/28
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -188,7 +188,6 @@ static int ccs_update_globally_readable_entry(const char *filename,
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_filename);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -356,7 +355,6 @@ static int ccs_update_path_group_entry(const char *group_name,
 	ccs_put_name(saved_member_name);
 	ccs_put_path_group(group);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -489,7 +487,6 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_pattern);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
@@ -605,7 +602,6 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(saved_pattern);
 	kfree(entry);
-	ccs_update_counter(CCS_UPDATES_COUNTER_EXCEPTION_POLICY);
 	return error;
 }
 
