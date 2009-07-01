@@ -153,47 +153,6 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 }
 
 /**
- * ccs_print_success - Print success messages.
- *
- * @dev_name: Name of device file.
- * @dir_name: Name of mount point.
- * @type:     Name of filesystem type.
- * @flags:    Mount options.
- * @need_dev: Type of @dev_name.
- *
- * Returns nothing.
- */
-static void ccs_print_success(const char *dev_name, const char *dir_name,
-			      const char *type, const unsigned long flags,
-			      const int need_dev)
-{
-	if (need_dev > 0) {
-		printk(KERN_DEBUG "SAKURA-NOTICE: "
-		       "'mount -t %s %s %s 0x%lX' accepted.\n",
-		       type, dev_name, dir_name, flags);
-	} else if (need_dev < 0) {
-		printk(KERN_DEBUG "SAKURA-NOTICE: "
-		       "'mount %s %s %s 0x%lX' accepted.\n",
-		       type, dev_name, dir_name, flags);
-	} else if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
-		printk(KERN_DEBUG "SAKURA-NOTICE: "
-		       "'mount -o remount %s 0x%lX' accepted.\n",
-		       dir_name, flags);
-	} else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD)) {
-		printk(KERN_DEBUG "SAKURA-NOTICE: "
-		       "'mount %s %s 0x%lX' accepted.\n",
-		       type, dir_name, flags);
-	} else {
-		printk(KERN_DEBUG "SAKURA-NOTICE: "
-		       "'mount %s on %s 0x%lX' accepted.\n",
-		       type, dir_name, flags);
-	}
-}
-
-/**
  * ccs_print_error - Print error messages.
  *
  * @r:        Pointer to "struct ccs_request_info".
@@ -201,66 +160,34 @@ static void ccs_print_success(const char *dev_name, const char *dir_name,
  * @dir_name: Name of mount point.
  * @type:     Name of filesystem type.
  * @flags:    Mount options.
- * @error:    Error value.
  *
- * Returns 0 if permitted by the administrator's decision, negative value
- * otherwise.
+ * Returns nothing.
  */
-static int ccs_print_error(struct ccs_request_info *r,
-			   const char *dev_name, const char *dir_name,
-			   const char *type, const unsigned long flags,
-			   int error)
+static void ccs_print_error(struct ccs_request_info *r, const char *dev_name,
+			    const char *dir_name, const char *type,
+			    const unsigned long flags)
 {
 	const bool is_enforce = (r->mode == 3);
-	const char *exename = ccs_get_exe();
-	const pid_t pid = (pid_t) sys_getpid();
-	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
+	const char *msg = ccs_get_msg(is_enforce);
+	const char *domainname = ccs_get_last_name(r->domain);
+	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
 		printk(KERN_WARNING "SAKURA-%s: mount -o remount %s 0x%lX "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), dir_name, flags, pid, exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(r, "# %s is requesting\n"
-						     "mount -o remount %s "
-						     "0x%lX\n", exename,
-						     dir_name, flags);
-	} else if (!strcmp(type, MOUNT_BIND_KEYWORD)
-		   || !strcmp(type, MOUNT_MOVE_KEYWORD)) {
+		       "denied for %s.\n", msg, dir_name, flags, domainname);
+	else if (!strcmp(type, MOUNT_BIND_KEYWORD)
+		 || !strcmp(type, MOUNT_MOVE_KEYWORD))
 		printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), type, dev_name, dir_name,
-		       flags, pid, exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(r, "# %s is requesting\n"
-						     "mount %s %s %s 0x%lX\n",
-						     exename, type, dev_name,
-						     dir_name, flags);
-	} else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
-		   !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD)) {
-		printk(KERN_WARNING "SAKURA-%s: mount %s %s 0x%lX "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), type, dir_name, flags, pid,
-		       exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(r, "# %s is requesting\n"
-						     "mount %s %s 0x%lX",
-						     exename, type, dir_name,
-						     flags);
-	} else {
+		       "denied for %s\n", msg, type, dev_name, dir_name, flags,
+		       domainname);
+	else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+		 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
+		 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
+		 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
+		printk(KERN_WARNING "SAKURA-%s: mount %s %s 0x%lX denied for "
+		       "%s\n", msg, type, dir_name, flags, domainname);
+	else
 		printk(KERN_WARNING "SAKURA-%s: mount -t %s %s %s 0x%lX "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), type, dev_name, dir_name,
-		       flags, pid, exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(r, "# %s is requesting\n"
-						     "mount -t %s %s %s "
-						     "0x%lX\n", exename, type,
-						     dev_name, dir_name,
-						     flags);
-	}
-	ccs_free(exename);
-	return error;
+		       "denied for %s\n", msg, type, dev_name, dir_name,
+		       flags, domainname);
 }
 
 /**
@@ -359,12 +286,12 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		requested_type = ccs_encode(type);
 		if (!requested_type) {
 			error = -ENOMEM;
-			goto cleanup;
+			goto out;
 		}
 		requested_dir_name = ccs_realpath(dir_name);
 		if (!requested_dir_name) {
 			error = -ENOENT;
-			goto cleanup;
+			goto out;
 		}
 		rdir.name = requested_dir_name;
 		ccs_fill_path_info(&rdir);
@@ -384,7 +311,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			fstype = get_fs_type(type);
 			if (!fstype) {
 				error = -ENODEV;
-				goto cleanup;
+				goto out;
 			}
 			if (fstype->fs_flags & FS_REQUIRES_DEV)
 				/* dev_name is a block device file. */
@@ -394,7 +321,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			requested_dev_name = ccs_realpath(dev_name);
 			if (!requested_dev_name) {
 				error = -ENOENT;
-				goto cleanup;
+				goto out;
 			}
 		} else {
 			/* Map dev_name to "<NULL>" if no dev_name given. */
@@ -403,7 +330,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			requested_dev_name = ccs_encode(dev_name);
 			if (!requested_dev_name) {
 				error = -ENOMEM;
-				goto cleanup;
+				goto out;
 			}
 		}
 		rdev.name = requested_dev_name;
@@ -434,27 +361,28 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 
 			/* OK. */
 			error = 0;
-			ccs_print_success(requested_dev_name,
-					  requested_dir_name,
-					  requested_type, flags, need_dev);
-			break;
+			goto out;
 		}
-		if (error)
-			error = ccs_print_error(r, requested_dev_name,
-						requested_dir_name,
-						requested_type,
-						flags, error);
-		if (error && r->mode == 1)
+		if (ccs_verbose_mode(r->domain))
+			ccs_print_error(r, requested_dev_name,
+					requested_dir_name, requested_type,
+					flags);
+		if (is_enforce)
+			error = ccs_check_supervisor(r, KEYWORD_ALLOW_MOUNT
+						     "%s %s %s 0x%lX\n",
+						     dev_name, dir_name, type,
+						     flags);
+		else if (r->mode == 1)
 			ccs_update_mount_acl(requested_dev_name,
 					     requested_dir_name,
 					     requested_type, flags,
 					     r->domain, NULL, false);
- cleanup:
-		ccs_free(requested_dev_name);
-		ccs_free(requested_dir_name);
+ out:
+		kfree(requested_dev_name);
+		kfree(requested_dir_name);
 		if (fstype)
 			put_filesystem(fstype);
-		ccs_free(requested_type);
+		kfree(requested_type);
 	}
 	if (!is_enforce)
 		error = 0;

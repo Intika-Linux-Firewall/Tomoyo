@@ -29,7 +29,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 			    struct ccs_page_dump *dump)
 {
 	static const int ccs_buffer_len = 4096 * 2;
-	char *buffer = ccs_alloc(ccs_buffer_len, false);
+	char *buffer = kzalloc(ccs_buffer_len, GFP_KERNEL);
 	char *cp;
 	char *last_start;
 	int len;
@@ -154,7 +154,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 		symlink_tail = "\" ";
 		*len += 18 + strlen(symlink_info);
 	}
-	buf = ccs_alloc(*len, true);
+	buf = kzalloc(*len, GFP_KERNEL);
 	if (buf)
 		snprintf(buf, (*len) - 1,
 			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
@@ -169,7 +169,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 			 (u8) (ccs_flags >> 8), symlink_head, symlink_info,
 			 symlink_tail, bprm_info, domainname);
 	if (r->ee)
-		ccs_free(bprm_info);
+		kfree(bprm_info);
 	return buf;
 }
 
@@ -298,9 +298,9 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	va_start(args, fmt);
 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
 	va_end(args);
-	new_entry = ccs_alloc(sizeof(*new_entry), true);
+	new_entry = kzalloc(sizeof(*new_entry), GFP_KERNEL);
 	if (!new_entry) {
-		ccs_free(buf);
+		kfree(buf);
 		goto out;
 	}
 	new_entry->log = buf;
@@ -338,7 +338,7 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 	if (head->read_avail)
 		return 0;
 	if (head->read_buf) {
-		ccs_free(head->read_buf);
+		kfree(head->read_buf);
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
@@ -356,7 +356,7 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 		head->read_buf = ptr->log;
 		head->read_avail = strlen(ptr->log) + 1;
 		head->readbuf_size = head->read_avail;
-		ccs_free(ptr);
+		kfree(ptr);
 	}
 	return 0;
 }
@@ -392,7 +392,7 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 	if (head->read_avail)
 		return 0;
 	if (head->read_buf) {
-		ccs_free(head->read_buf);
+		kfree(head->read_buf);
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
@@ -410,7 +410,7 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 		head->read_buf = ptr->log;
 		head->read_avail = strlen(ptr->log) + 1;
 		head->readbuf_size = head->read_avail;
-		ccs_free(ptr);
+		kfree(ptr);
 	}
 	return 0;
 }

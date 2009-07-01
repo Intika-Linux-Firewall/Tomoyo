@@ -114,23 +114,20 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		if (!ccs_path_matches_pattern(&dir, acl->dir))
 			continue;
 		found = true;
-		break;
-	}
-	if (!found) {
-		const char *exename = ccs_get_exe();
-		printk(KERN_WARNING "%s: umount %s "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), dir0, (pid_t) sys_getpid(),
-		       exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(&r, "# %s is requesting\n"
-						     "unmount %s\n",
-						     exename, dir0);
-		ccs_free(exename);
-	} else
 		error = 0;
-	ccs_free(dir0);
+		goto out;
+	}
+	if (ccs_verbose_mode(r.domain))
+		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
+		       ccs_get_msg(is_enforce), dir0,
+		       ccs_get_last_name(r.domain));
+	if (is_enforce)
+		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_UNMOUNT "%s",
+					     dir0);
+	else if (r.mode == 1)
+		ccs_update_umount_acl(dir0, r.domain, NULL, false);
  out:
+	kfree(dir0);
 	if (!is_enforce)
 		error = 0;
 	if (error == 1)

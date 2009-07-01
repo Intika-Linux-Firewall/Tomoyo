@@ -195,8 +195,9 @@ static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
-			      char *newname, int newname_len)
+static int ccs_realpath_from_dentry2(struct dentry *dentry,
+				     struct vfsmount *mnt,
+				     char *newname, int newname_len)
 {
 	int error = -EINVAL;
 	struct dentry *d_dentry;
@@ -283,16 +284,16 @@ int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
  * Returns the realpath of the given @dentry and @mnt on success,
  * NULL otherwise.
  *
- * These functions use ccs_alloc(), so caller must ccs_free()
+ * These functions use kzalloc(), so caller must kfree()
  * if these functions didn't return NULL.
  */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
 {
-	char *buf = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
+	char *buf = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
 	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
-					     CCS_MAX_PATHNAME_LEN - 1) == 0)
+					     CCS_MAX_PATHNAME_LEN - 2) == 0)
 		return buf;
-	ccs_free(buf);
+	kfree(buf);
 	return NULL;
 }
 
@@ -380,7 +381,7 @@ int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
  *
  * Returns pointer to @str in ascii format on success, NULL otherwise.
  *
- * This function uses ccs_alloc(), so caller must ccs_free() if this function
+ * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
 char *ccs_encode(const char *str)
@@ -401,7 +402,7 @@ char *ccs_encode(const char *str)
 			len += 4;
 	}
 	len++;
-	cp = ccs_alloc(len, false);
+	cp = kzalloc(len, GFP_KERNEL);
 	if (!cp)
 		return NULL;
 	cp0 = cp;
@@ -728,7 +729,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		atomic_inc(&ptr->users);
 		goto out;
 	}
-	ptr = kmalloc(sizeof(*ptr) + len, GFP_KERNEL);
+	ptr = kzalloc(sizeof(*ptr) + len, GFP_KERNEL);
 	allocated_len = ptr ? ksize(ptr) : 0;
 	if (!allocated_len ||
 	    (ccs_quota_for_savename &&
@@ -786,12 +787,6 @@ struct ccs_cache_entry {
 	int size;
 };
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
-static struct kmem_cache *ccs_cachep;
-#else
-static kmem_cache_t *ccs_cachep;
-#endif
-
 struct srcu_struct ccs_ss;
 
 /**
@@ -810,17 +805,6 @@ static int __init ccs_realpath_init(void)
 		panic("Bad size.");
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
-	ccs_cachep = kmem_cache_create("ccs_cache",
-				       sizeof(struct ccs_cache_entry),
-				       0, 0, NULL);
-#else
-	ccs_cachep = kmem_cache_create("ccs_cache",
-				       sizeof(struct ccs_cache_entry),
-				       0, 0, NULL, NULL);
-#endif
-	if (!ccs_cachep)
-		panic("Can't create cache.\n");
 	for (i = 0; i < MAX_HASH; i++)
 		INIT_LIST_HEAD(&ccs_name_list[i]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
@@ -853,134 +837,8 @@ __initcall(ccs_realpath_init);
 core_initcall(ccs_realpath_init);
 #endif
 
-/* The list for "struct ccs_cache_entry". */
-static LIST_HEAD(ccs_audit_cache_list);
-static LIST_HEAD(ccs_acl_cache_list);
-static DEFINE_SPINLOCK(ccs_cache_list_lock);
-
 static unsigned int ccs_dynamic_memory_size;
 static unsigned int ccs_quota_for_dynamic;
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-/**
- * ccs_round2 - Rounded up to power-of-two value.
- *
- * @size: Size in bytes.
- *
- * Returns power-of-two of @size.
- */
-static int ccs_round2(size_t size)
-{
-#if PAGE_SIZE == 4096
-	size_t bsize = 32;
-#else
-	size_t bsize = 64;
-#endif
-	while (size > bsize)
-		bsize <<= 1;
-	return bsize;
-}
-#endif
-
-/**
- * ccs_alloc - Allocate memory for temporary purpose.
- *
- * @size: Size in bytes.
- *
- * Returns pointer to allocated memory on success, NULL otherwise.
- */
-void *ccs_alloc(const size_t size, const _Bool check_quota)
-{
-	struct ccs_cache_entry *new_entry;
-	void *ret = kzalloc(size, GFP_KERNEL);
-	if (!ret)
-		goto out;
-	new_entry = kmem_cache_alloc(ccs_cachep, GFP_KERNEL);
-	if (!new_entry) {
-		kfree(ret);
-		ret = NULL;
-		goto out;
-	}
-	INIT_LIST_HEAD(&new_entry->list);
-	new_entry->ptr = ret;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	new_entry->size = ksize(ret);
-#else
-	new_entry->size = ccs_round2(size);
-#endif
-	if (check_quota) {
-		bool quota_exceeded = false;
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_cache_list_lock);
-		if (!ccs_quota_for_dynamic ||
-		    ccs_dynamic_memory_size + new_entry->size
-		    <= ccs_quota_for_dynamic) {
-			list_add_tail(&new_entry->list, &ccs_audit_cache_list);
-			ccs_dynamic_memory_size += new_entry->size;
-		} else {
-			quota_exceeded = true;
-		}
-		spin_unlock(&ccs_cache_list_lock);
-		/***** CRITICAL SECTION END *****/
-		if (quota_exceeded) {
-			kfree(ret);
-			kmem_cache_free(ccs_cachep, new_entry);
-			ret = NULL;
-		}
-	} else {
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&ccs_cache_list_lock);
-		list_add(&new_entry->list, &ccs_acl_cache_list);
-		ccs_dynamic_memory_size += new_entry->size;
-		spin_unlock(&ccs_cache_list_lock);
-		/***** CRITICAL SECTION END *****/
-	}
- out:
-	return ret;
-}
-
-/**
- * ccs_free - Release memory allocated by ccs_alloc().
- *
- * @p: Pointer returned by ccs_alloc(). May be NULL.
- *
- * Returns nothing.
- */
-void ccs_free(const void *p)
-{
-	struct list_head *v;
-	struct ccs_cache_entry *entry = NULL;
-	if (!p)
-		return;
-	/***** CRITICAL SECTION START *****/
-	spin_lock(&ccs_cache_list_lock);
-	list_for_each(v, &ccs_acl_cache_list) {
-		entry = list_entry(v, struct ccs_cache_entry, list);
-		if (entry->ptr == p)
-			break;
-		entry = NULL;
-	}
-	if (!entry) {
-		list_for_each(v, &ccs_audit_cache_list) {
-			entry = list_entry(v, struct ccs_cache_entry, list);
-			if (entry->ptr == p)
-				break;
-			entry = NULL;
-		}
-	}
-	if (entry) {
-		list_del(&entry->list);
-		ccs_dynamic_memory_size -= entry->size;
-	}
-	spin_unlock(&ccs_cache_list_lock);
-	/***** CRITICAL SECTION END *****/
-	if (entry) {
-		kfree(p);
-		kmem_cache_free(ccs_cachep, entry);
-	} else {
-		printk(KERN_WARNING "BUG: ccs_free() with invalid pointer.\n");
-	}
-}
 
 /**
  * ccs_read_memory_counter - Check for memory usage.
@@ -1075,7 +933,7 @@ struct ccs_gc_entry {
 /* Caller holds ccs_policy_lock mutex. */
 static bool ccs_add_to_gc(const int type, void *element, struct list_head *head)
 {
-	struct ccs_gc_entry *entry = kmalloc(sizeof(*entry), GFP_ATOMIC);
+	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
 	if (!entry)
 		return false;
 	entry->type = type;

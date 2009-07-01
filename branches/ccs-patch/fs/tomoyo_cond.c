@@ -144,7 +144,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 		checked = local_checked;
 		memset(local_checked, 0, sizeof(local_checked));
 	} else {
-		checked = ccs_alloc(argc + envc, false);
+		checked = kzalloc(argc + envc, GFP_KERNEL);
 		if (!checked)
 			return false;
 	}
@@ -239,7 +239,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 		}
 	}
 	if (checked != local_checked)
-		ccs_free(checked);
+		kfree(checked);
 	return result;
 }
 

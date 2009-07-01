@@ -35,11 +35,11 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 {
 	struct ccs_reserved_entry *ptr;
 	int error = -ENOMEM;
-	u8 *ccs_tmp_map = ccs_alloc(8192, false);
+	u8 *ccs_tmp_map = kzalloc(8192, GFP_KERNEL);
 	struct ccs_reserved_entry *entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	if (!ccs_tmp_map || !entry) {
 		kfree(entry);
-		ccs_free(ccs_tmp_map);
+		kfree(ccs_tmp_map);
 		return -ENOMEM;
 	}
 	if (is_delete)
@@ -70,7 +70,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		sizeof(ccs_reserved_port_map));
 	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
-	ccs_free(ccs_tmp_map);
+	kfree(ccs_tmp_map);
 	return error;
 }
 

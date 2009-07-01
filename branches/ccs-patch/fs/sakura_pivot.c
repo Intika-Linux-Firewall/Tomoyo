@@ -109,9 +109,11 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	int error;
 	char *old_root;
 	char *new_root;
+	bool is_enforce;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
+	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
  retry:
@@ -148,34 +150,27 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 							      acl->new_root))
 					continue;
 				error = 0;
-				break;
+				goto out;
 			}
 		}
 	}
-	if (error) {
-		const bool is_enforce = (r.mode == 3);
-		const char *exename = ccs_get_exe();
+	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
-		       "(pid=%d:exe=%s): Permission denied.\n",
-		       ccs_get_msg(is_enforce), new_root, old_root,
-		       (pid_t) sys_getpid(), exename);
-		if (is_enforce)
-			error = ccs_check_supervisor(&r, "# %s is requesting\n"
-						     "pivot_root %s %s\n",
-						     exename, new_root,
-						     old_root);
-		else
-			error = 0;
-		if (exename)
-			ccs_free(exename);
-		if (r.mode == 1 && old_root && new_root)
-			ccs_update_pivot_root_acl(old_root, new_root, r.domain,
-						  NULL, false);
-	}
-	ccs_free(old_root);
-	ccs_free(new_root);
+		       "denied for %s\n", ccs_get_msg(is_enforce), new_root,
+		       old_root, ccs_get_last_name(r.domain));
+	if (is_enforce)
+		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_PIVOT_ROOT
+					     "%s %s\n", new_root, old_root);
+	else if (r.mode == 1 && old_root && new_root)
+		ccs_update_pivot_root_acl(old_root, new_root, r.domain, NULL,
+					  false);
+ out:
+	kfree(old_root);
+	kfree(new_root);
 	if (error == 1)
 		goto retry;
+	if (!is_enforce)
+		error = 0;
 	return error;
 }
 

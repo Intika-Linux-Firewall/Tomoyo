@@ -88,18 +88,15 @@ static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
 {
 	int error;
 	const bool is_enforce = (r->mode == 3);
-	const char *exename = ccs_get_exe();
-	printk(KERN_WARNING "SAKURA-%s: chroot %s (pid=%d:exe=%s): "
-	       "Permission denied.\n", ccs_get_msg(is_enforce),
-	       root_name, (pid_t) sys_getpid(), exename);
+	printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
+	       ccs_get_msg(is_enforce), root_name,
+	       ccs_get_last_name(r->domain));
 	if (is_enforce)
 		error = ccs_check_supervisor(r,
-					     "# %s is requesting\nchroot %s\n",
-					     exename, root_name);
+					     KEYWORD_ALLOW_CHROOT"%s\n",
+					     root_name);
 	else
 		error = 0;
-	if (exename)
-		ccs_free(exename);
 	if (r->mode == 1 && root_name)
 		ccs_update_chroot_acl(root_name, r->domain, NULL, false);
 	return error;
@@ -160,7 +157,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 	}
 	if (error)
 		error = ccs_print_error(&r, root_name);
-	ccs_free(root_name);
+	kfree(root_name);
 	if (error == 1)
 		goto retry;
 	return error;

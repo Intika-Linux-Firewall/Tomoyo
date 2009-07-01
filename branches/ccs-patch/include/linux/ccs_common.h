@@ -758,10 +758,10 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 const char *ccs_cap2keyword(const u8 operation);
 /* Convert double path operation to operation name. */
 const char *ccs_dp2keyword(const u8 operation);
-/* Get the pathname of current process. */
-const char *ccs_get_exe(void);
 /* Get the last component of the given domainname. */
 const char *ccs_get_last_name(const struct ccs_domain_info *domain);
+/* Get the pathname of current process. */
+const char *ccs_get_exe(void);
 /* Get warning message. */
 const char *ccs_get_msg(const bool is_enforce);
 /* Convert network operation index to operation name. */

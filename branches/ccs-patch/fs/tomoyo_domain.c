@@ -1158,16 +1158,16 @@ static DEFINE_SPINLOCK(ccs_execve_list_lock);
  */
 static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 {
-	struct ccs_execve_entry *ee = ccs_alloc(sizeof(*ee), false);
+	struct ccs_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return NULL;
 	memset(ee, 0, sizeof(*ee));
-	ee->program_path = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
-	ee->tmp = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
+	ee->program_path = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
+	ee->tmp = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
 	if (!ee->program_path || !ee->tmp) {
-		ccs_free(ee->program_path);
-		ccs_free(ee->tmp);
-		ccs_free(ee);
+		kfree(ee->program_path);
+		kfree(ee->tmp);
+		kfree(ee);
 		return NULL;
 	}
 	ee->srcu_idx = srcu_read_lock(&ccs_ss);
@@ -1218,11 +1218,11 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 	list_del(&ee->list);
 	spin_unlock(&ccs_execve_list_lock);
 	/***** CRITICAL SECTION END *****/
-	ccs_free(ee->program_path);
-	ccs_free(ee->tmp);
+	kfree(ee->program_path);
+	kfree(ee->tmp);
 	kfree(ee->dump.data);
 	srcu_read_unlock(&ccs_ss, ee->srcu_idx);
-	ccs_free(ee);
+	kfree(ee);
 }
 
 /**
@@ -1341,7 +1341,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 		char *exe = (char *) ccs_get_exe();
 		if (exe) {
 			retval = copy_strings_kernel(1, &exe, bprm);
-			ccs_free(exe);
+			kfree(exe);
 		} else {
 			exe = ee->tmp;
 			strncpy(ee->tmp, "<unknown>", CCS_EXEC_TMPSIZE - 1);
@@ -1412,7 +1412,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 		 * overwrite ee->program_path and ee->tmp.
 		 */
 		const int len = strlen(ee->program_path) + 1;
-		char *cp = kmalloc(len, GFP_KERNEL);
+		char *cp = kzalloc(len, GFP_KERNEL);
 		if (!cp) {
 			retval = -ENOMEM;
 			goto out;
@@ -1488,7 +1488,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 	struct page *page;
 	/* dump->data is released by ccs_free_execve_entry(). */
 	if (!dump->data) {
-		dump->data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		dump->data = kzalloc(PAGE_SIZE, GFP_KERNEL);
 		if (!dump->data)
 			return false;
 	}

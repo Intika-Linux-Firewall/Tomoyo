@@ -807,7 +807,7 @@ bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
  *
  * Returns the ccs_realpath() of current process on success, NULL otherwise.
  *
- * This function uses ccs_alloc(), so the caller must ccs_free()
+ * This function uses kzalloc(), so the caller must kfree()
  * if this function didn't return NULL.
  */
 const char *ccs_get_exe(void)
@@ -1387,7 +1387,7 @@ static bool ccs_is_policy_manager(void)
 			ccs_last_pid = pid;
 		}
 	}
-	ccs_free(exe);
+	kfree(exe);
 	return found;
 }
 
@@ -2684,10 +2684,10 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	header = ccs_init_audit_log(&len, r);
 	if (!header)
 		goto out;
-	ccs_query_entry = ccs_alloc(sizeof(*ccs_query_entry), true);
+	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), GFP_KERNEL);
 	if (!ccs_query_entry)
 		goto out;
-	ccs_query_entry->query = ccs_alloc(len, true);
+	ccs_query_entry->query = kzalloc(len, GFP_KERNEL);
 	if (!ccs_query_entry->query)
 		goto out;
 	INIT_LIST_HEAD(&ccs_query_entry->list);
@@ -2698,7 +2698,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	/***** CRITICAL SECTION END *****/
 	pos = snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
 		       ccs_query_entry->serial, r->retry, header);
-	ccs_free(header);
+	kfree(header);
 	header = NULL;
 	va_start(args, fmt);
 	vsnprintf(ccs_query_entry->query + pos, len - 1 - pos, fmt, args);
@@ -2742,9 +2742,9 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	}
  out:
 	if (ccs_query_entry)
-		ccs_free(ccs_query_entry->query);
-	ccs_free(ccs_query_entry);
-	ccs_free(header);
+		kfree(ccs_query_entry->query);
+	kfree(ccs_query_entry);
+	kfree(header);
 	return error;
 }
 
@@ -2801,7 +2801,7 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	if (head->read_avail)
 		return 0;
 	if (head->read_buf) {
-		ccs_free(head->read_buf);
+		kfree(head->read_buf);
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
@@ -2823,7 +2823,7 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 		head->read_step = 0;
 		return 0;
 	}
-	buf = ccs_alloc(len, false);
+	buf = kzalloc(len, GFP_KERNEL);
 	if (!buf)
 		return 0;
 	pos = 0;
@@ -2852,7 +2852,7 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 		head->read_buf = buf;
 		head->read_step++;
 	} else {
-		ccs_free(buf);
+		kfree(buf);
 	}
 	return 0;
 }
@@ -2945,7 +2945,7 @@ static int ccs_read_self_domain(struct ccs_io_buffer *head)
  */
 int ccs_open_control(const u8 type, struct file *file)
 {
-	struct ccs_io_buffer *head = ccs_alloc(sizeof(*head), false);
+	struct ccs_io_buffer *head = kzalloc(sizeof(*head), GFP_KERNEL);
 	if (!head)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
@@ -2978,7 +2978,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	case CCS_EXECUTE_HANDLER: /* /proc/ccs/.execute_handler */
 		/* Allow execute_handler to read process's status. */
 		if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
-			ccs_free(head);
+			kfree(head);
 			return -EPERM;
 		}
 		/* fall through */
@@ -3027,9 +3027,9 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		if (!head->readbuf_size)
 			head->readbuf_size = 4096 * 2;
-		head->read_buf = ccs_alloc(head->readbuf_size, false);
+		head->read_buf = kzalloc(head->readbuf_size, GFP_KERNEL);
 		if (!head->read_buf) {
-			ccs_free(head);
+			kfree(head);
 			return -ENOMEM;
 		}
 	}
@@ -3041,10 +3041,10 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = NULL;
 	} else if (head->write) {
 		head->writebuf_size = 4096 * 2;
-		head->write_buf = ccs_alloc(head->writebuf_size, false);
+		head->write_buf = kzalloc(head->writebuf_size, GFP_KERNEL);
 		if (!head->write_buf) {
-			ccs_free(head->read_buf);
-			ccs_free(head);
+			kfree(head->read_buf);
+			kfree(head);
 			return -ENOMEM;
 		}
 	}
@@ -3199,11 +3199,11 @@ int ccs_close_control(struct file *file)
 		atomic_dec(&ccs_query_observers);
 	srcu_read_unlock(&ccs_ss, head->srcu_idx);
 	/* Release memory used for policy I/O. */
-	ccs_free(head->read_buf);
+	kfree(head->read_buf);
 	head->read_buf = NULL;
-	ccs_free(head->write_buf);
+	kfree(head->write_buf);
 	head->write_buf = NULL;
-	ccs_free(head);
+	kfree(head);
 	head = NULL;
 	file->private_data = NULL;
 	return 0;

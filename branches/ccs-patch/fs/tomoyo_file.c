@@ -89,29 +89,21 @@ static bool ccs_strendswith(const char *name, const char *tail)
 /**
  * ccs_get_path - Get realpath.
  *
+ * @buf:    Pointer to "struct ccs_path_info".
  * @dentry: Pointer to "struct dentry".
  * @mnt:    Pointer to "struct vfsmount".
  *
- * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
+ * Returns true success, false otherwise.
  */
-static struct ccs_path_info *ccs_get_path(struct dentry *dentry,
-					  struct vfsmount *mnt)
+static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
+			 struct vfsmount *mnt)
 {
-	int error;
-	struct ccs_path_info_with_data *buf = ccs_alloc(sizeof(*buf),
-							false);
-	if (!buf)
-		return NULL;
-	/* Reserve one byte for appending "/". */
-	error = ccs_realpath_from_dentry2(dentry, mnt, buf->body,
-					  sizeof(buf->body) - 2);
-	if (!error) {
-		buf->head.name = buf->body;
-		ccs_fill_path_info(&buf->head);
-		return &buf->head;
+	buf->name = ccs_realpath_from_dentry(dentry, mnt);
+	if (buf->name) {
+		ccs_fill_path_info(buf);
+		return true;
 	}
-	ccs_free(buf);
-	return NULL;
+	return false;
 }
 
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
@@ -1379,7 +1371,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	struct ccs_obj_info obj;
 	const u8 acc_mode = ACC_MODE(flag);
 	int error = -ENOMEM;
-	struct ccs_path_info *buf = NULL;
+	struct ccs_path_info buf;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (current->in_execve &&
@@ -1388,6 +1380,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 #endif
 	if (!ccs_can_sleep())
 		return 0;
+	buf.name = NULL;
 	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, current->ccs_flags &
 			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
@@ -1409,8 +1402,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = 0;
 		goto out;
 	}
-	buf = ccs_get_path(dentry, mnt);
-	if (!buf)
+	if (!ccs_get_path(&buf, dentry, mnt))
 		goto out;
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = dentry;
@@ -1423,16 +1415,16 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 * opened for append mode or the filename is truncated at open time.
 	 */
 	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
-	    && ccs_is_no_rewrite_file(buf))
+	    && ccs_is_no_rewrite_file(&buf))
 		error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL,
-							  buf);
+							  &buf);
 	if (!error)
-		error = ccs_check_file_perm(&r, buf, acc_mode, "open");
+		error = ccs_check_file_perm(&r, &buf, acc_mode, "open");
 	if (!error && (flag & O_TRUNC))
 		error = ccs_check_single_path_permission2(&r, TYPE_TRUNCATE_ACL,
-							  buf);
+							  &buf);
  out:
-	ccs_free(buf);
+	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
 	if (r.mode != 3)
 		error = 0;
@@ -1455,12 +1447,13 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf = NULL;
+	struct ccs_path_info buf;
 	bool is_enforce;
 	struct ccs_path_info symlink_target;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
@@ -1469,16 +1462,15 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		error = 0;
 		goto out;
 	}
-	buf = ccs_get_path(dentry, mnt);
-	if (!buf)
+	if (!ccs_get_path(&buf, dentry, mnt))
 		goto out;
 	switch (operation) {
 	case TYPE_MKDIR_ACL:
 	case TYPE_RMDIR_ACL:
-		if (!buf->is_dir) {
+		if (!buf.is_dir) {
 			/* ccs_get_path() reserves space for appending "/". */
-			strcat((char *) buf->name, "/");
-			ccs_fill_path_info(buf);
+			strcat((char *) buf.name, "/");
+			ccs_fill_path_info(&buf);
 		}
 	}
 	memset(&obj, 0, sizeof(obj));
@@ -1492,11 +1484,11 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		obj.symlink_target = &symlink_target;
 	}
 	r.obj = &obj;
-	error = ccs_check_single_path_permission2(&r, operation, buf);
+	error = ccs_check_single_path_permission2(&r, operation, &buf);
 	if (operation == TYPE_SYMLINK_ACL)
-		ccs_free(symlink_target.name);
+		kfree(symlink_target.name);
  out:
-	ccs_free(buf);
+	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
@@ -1516,10 +1508,11 @@ int ccs_check_rewrite_permission(struct file *filp)
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
 	bool is_enforce;
-	struct ccs_path_info *buf = NULL;
+	struct ccs_path_info buf;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	buf.name = NULL;
 	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
@@ -1527,10 +1520,9 @@ int ccs_check_rewrite_permission(struct file *filp)
 		error = 0;
 		goto out;
 	}
-	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
-	if (!buf)
+	if (!ccs_get_path(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
-	if (!ccs_is_no_rewrite_file(buf)) {
+	if (!ccs_is_no_rewrite_file(&buf)) {
 		error = 0;
 		goto out;
 	}
@@ -1538,9 +1530,9 @@ int ccs_check_rewrite_permission(struct file *filp)
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	r.obj = &obj;
-	error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL, buf);
+	error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL, &buf);
  out:
-	ccs_free(buf);
+	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
@@ -1562,14 +1554,16 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf1 = NULL;
-	struct ccs_path_info *buf2 = NULL;
+	struct ccs_path_info buf1;
+	struct ccs_path_info buf2;
 	bool is_enforce;
 	const char *msg;
 	struct ccs_obj_info obj;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	buf1.name = NULL;
+	buf2.name = NULL;
 	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
@@ -1577,21 +1571,20 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 		error = 0;
 		goto out;
 	}
-	buf1 = ccs_get_path(dentry1, mnt);
-	buf2 = ccs_get_path(dentry2, mnt);
-	if (!buf1 || !buf2)
+	if (!ccs_get_path(&buf1, dentry1, mnt) ||
+	    !ccs_get_path(&buf2, dentry2, mnt))
 		goto out;
 	if (operation == TYPE_RENAME_ACL) {
 		/* TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
 			/* ccs_get_path() reserves space for appending "/". */
-			if (!buf1->is_dir) {
-				strcat((char *) buf1->name, "/");
-				ccs_fill_path_info(buf1);
+			if (!buf1.is_dir) {
+				strcat((char *) buf1.name, "/");
+				ccs_fill_path_info(&buf1);
 			}
-			if (!buf2->is_dir) {
-				strcat((char *) buf2->name, "/");
-				ccs_fill_path_info(buf2);
+			if (!buf2.is_dir) {
+				strcat((char *) buf2.name, "/");
+				ccs_fill_path_info(&buf2);
 			}
 		}
 	}
@@ -1602,33 +1595,33 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	obj.path2_vfsmnt = mnt;
 	r.obj = &obj;
  retry:
-	error = ccs_check_double_path_acl(&r, operation, buf1, buf2);
+	error = ccs_check_double_path_acl(&r, operation, &buf1, &buf2);
 	msg = ccs_dp2keyword(operation);
-	ccs_audit_file_log(&r, msg, buf1->name, buf2->name, !error);
+	ccs_audit_file_log(&r, msg, buf1.name, buf2.name, !error);
 	if (!error)
 		goto out;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(is_enforce),
-		       msg, buf1->name, buf2->name,
+		       msg, buf1.name, buf2.name,
 		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
-					     msg, buf1->name, buf2->name);
+					     msg, buf1.name, buf2.name);
 		if (error == 1)
 			goto retry;
 	}
 	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_double_path_acl(operation,
-					   ccs_get_file_pattern(buf1)->name,
-					   ccs_get_file_pattern(buf2)->name,
+					   ccs_get_file_pattern(&buf1)->name,
+					   ccs_get_file_pattern(&buf2)->name,
 					   r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
  out:
-	ccs_free(buf1);
-	ccs_free(buf2);
+	kfree(buf1.name);
+	kfree(buf2.name);
 	srcu_read_unlock(&ccs_ss, idx);
 	if (!is_enforce)
 		error = 0;
@@ -1884,26 +1877,26 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	int error = -ENOMEM;
-	struct ccs_path_info *buf = NULL;
+	struct ccs_path_info buf;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	buf.name = NULL;
 	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
 	if (!r.mode || !filp->f_vfsmnt) {
 		error = 0;
 		goto out;
 	}
-	buf = ccs_get_path(filp->f_dentry, filp->f_vfsmnt);
-	if (!buf)
+	if (!ccs_get_path(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
 	memset(&obj, 0, sizeof(obj));
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	r.obj = &obj;
-	error = ccs_check_ioctl_perm(&r, buf, cmd);
+	error = ccs_check_ioctl_perm(&r, &buf, cmd);
  out:
-	ccs_free(buf);
+	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
 	if (r.mode != 3)
 		error = 0;
@@ -2517,8 +2510,9 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	int n;
 	int error = -ENOMEM;
 	int op = 0;
-	struct ccs_path_info_with_data *buf = NULL;
+	struct ccs_path_info buf;
 	struct ccs_request_info r;
+	int idx;
 	if (oldval)
 		op |= 004;
 	if (newval)
@@ -2527,16 +2521,17 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		return 0;
 	if (!ccs_can_sleep())
 		return 0;
+	buf.name = NULL;
+	idx = srcu_read_lock(&ccs_ss);
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	if (!r.mode) {
 		error = 0;
 		goto out;
 	}
-	buf = ccs_alloc(sizeof(*buf), false);
-	if (!buf)
+	buf.name = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
+	if (!buf.name)
 		goto out;
-	buf->head.name = buf->body;
-	snprintf(buf->body, sizeof(buf->body) - 1, "/proc/sys");
+	snprintf((char *) buf.name, CCS_MAX_PATHNAME_LEN - 1, "/proc/sys");
  repeat:
 	if (!nlen) {
 		error = -ENOTDIR;
@@ -2553,7 +2548,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		      ; table++) {
 		int pos;
 		const char *cp;
-		char *buffer = buf->body;
+		char *buffer = (char *) buf.name;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
 		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
 			continue;
@@ -2565,23 +2560,23 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		cp = table->procname;
 		error = -ENOMEM;
 		if (cp) {
-			if (pos + 1 >= sizeof(buf->body) - 1)
+			if (pos + 1 >= CCS_MAX_PATHNAME_LEN - 1)
 				goto out;
 			buffer[pos++] = '/';
 			while (*cp) {
 				const unsigned char c
 					= *(const unsigned char *) cp;
 				if (c == '\\') {
-					if (pos + 2 >= sizeof(buf->body) - 1)
+					if (pos + 2 >= CCS_MAX_PATHNAME_LEN - 1)
 						goto out;
 					buffer[pos++] = '\\';
 					buffer[pos++] = '\\';
 				} else if (c > ' ' && c < 127) {
-					if (pos + 1 >= sizeof(buf->body) - 1)
+					if (pos + 1 >= CCS_MAX_PATHNAME_LEN - 1)
 						goto out;
 					buffer[pos++] = c;
 				} else {
-					if (pos + 4 >= sizeof(buf->body) - 1)
+					if (pos + 4 >= CCS_MAX_PATHNAME_LEN - 1)
 						goto out;
 					buffer[pos++] = '\\';
 					buffer[pos++] = (c >> 6) + '0';
@@ -2592,17 +2587,17 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			}
 		} else {
 			/* Assume nobody assigns "=\$=" for procname. */
-			snprintf(buffer + pos, sizeof(buf->body) - pos - 1,
+			snprintf(buffer + pos, CCS_MAX_PATHNAME_LEN - pos - 1,
 				 "/=%d=", table->ctl_name);
-			if (!memchr(buffer, '\0', sizeof(buf->body) - 2))
+			if (!memchr(buffer, '\0', CCS_MAX_PATHNAME_LEN - 2))
 				goto out;
 		}
 		if (table->child) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
 			if (table->strategy) {
 				/* printk("sysctl='%s'\n", buffer); */
-				ccs_fill_path_info(&buf->head);
-				if (ccs_check_file_perm(&r, &buf->head, op,
+				ccs_fill_path_info(&buf);
+				if (ccs_check_file_perm(&r, &buf, op,
 							"sysctl")) {
 					error = -EPERM;
 					goto out;
@@ -2615,13 +2610,14 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			goto repeat;
 		}
 		/* printk("sysctl='%s'\n", buffer); */
-		ccs_fill_path_info(&buf->head);
-		error = ccs_check_file_perm(&r, &buf->head, op, "sysctl");
+		ccs_fill_path_info(&buf);
+		error = ccs_check_file_perm(&r, &buf, op, "sysctl");
 		goto out;
 	}
 	error = -ENOTDIR;
  out:
-	ccs_free(buf);
+	kfree(buf.name);
+	srcu_read_unlock(&ccs_ss, idx);
 	return error;
 }
 #endif

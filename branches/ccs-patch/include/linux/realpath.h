@@ -22,22 +22,19 @@ struct ccs_path_info;
 struct ccs_io_buffer;
 struct ccs_execve_entry;
 
-/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
-int ccs_realpath_from_dentry2(struct dentry *dentry, struct vfsmount *mnt,
-			      char *newname, int newname_len);
-
 /*
  * Returns realpath(3) of the given pathname but ignores chroot'ed root.
- * These functions use ccs_alloc(), so caller must ccs_free()
+ * These functions use kzalloc(), so caller must kfree()
  * if these functions didn't return NULL.
  */
 char *ccs_realpath(const char *pathname);
-/* Get ccs_realpath() of both symlink and dereferenced pathname. */
-int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 /* Same with ccs_realpath() except that the pathname is already solved. */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 /* Encode binary string to ascii string. */
 char *ccs_encode(const char *str);
+
+/* Get ccs_realpath() of both symlink and dereferenced pathname. */
+int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 
 /*  Check memory quota. */
 bool ccs_memory_ok(const void *ptr);
@@ -51,11 +48,6 @@ void ccs_put_name(const struct ccs_path_info *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 /* Delete memory for the given IPv6 address. */
 void ccs_put_ipv6_address(const struct in6_addr *addr);
-
-/* Allocate memory for temporary use (e.g. permission checks). */
-void *ccs_alloc(const size_t size, const _Bool check_quota);
-/* Free memory allocated by ccs_alloc(). */
-void ccs_free(const void *p);
 
 /* Check for memory usage. */
 int ccs_read_memory_counter(struct ccs_io_buffer *head);
