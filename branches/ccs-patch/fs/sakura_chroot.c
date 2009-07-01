@@ -22,6 +22,22 @@
 #endif
 
 /**
+ * ccs_audit_chroot_log - Audit chroot log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @root:       New root directory.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_chroot_log(struct ccs_request_info *r,
+				const char *root, const bool is_granted)
+{
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CHROOT
+				   "%s\n", root);
+}
+
+/**
  * ccs_update_chroot_acl - Update "struct ccs_chroot_acl_record" list.
  *
  * @dir:       The name of directory.
@@ -75,33 +91,6 @@ static int ccs_update_chroot_acl(const char *dir,
 	return error;
 }
 
-/**
- * ccs_print_error - Print error message.
- *
- * @r:         Pointer to "struct ccs_request_info".
- * @root_name: Requested directory name.
- *
- * Returns 0 if @r->mode is not enforcing mode or permitted by the
- * administrator's decision, negative value otherwise.
- */
-static int ccs_print_error(struct ccs_request_info *r, const char *root_name)
-{
-	int error;
-	const bool is_enforce = (r->mode == 3);
-	printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
-	       ccs_get_msg(is_enforce), root_name,
-	       ccs_get_last_name(r->domain));
-	if (is_enforce)
-		error = ccs_check_supervisor(r,
-					     KEYWORD_ALLOW_CHROOT"%s\n",
-					     root_name);
-	else
-		error = 0;
-	if (r->mode == 1 && root_name)
-		ccs_update_chroot_acl(root_name, r->domain, NULL, false);
-	return error;
-}
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path
 #else
@@ -121,10 +110,13 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 {
 	struct ccs_request_info r;
 	int error;
+	struct ccs_path_info dir;
 	char *root_name;
+	bool is_enforce;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
+	is_enforce = (r.mode == 3);
 	if (!r.mode)
 		return 0;
  retry:
@@ -134,29 +126,38 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 #else
 	root_name = ccs_realpath_from_dentry(path->dentry, path->mnt);
 #endif
-	if (root_name) {
-		struct ccs_path_info dir;
-		dir.name = root_name;
-		ccs_fill_path_info(&dir);
-		if (dir.is_dir) {
-			struct ccs_acl_info *ptr;
-			list_for_each_entry_rcu(ptr, &r.domain->acl_info_list,
-						list) {
-				struct ccs_chroot_acl_record *acl;
-				if (ccs_acl_type2(ptr) != TYPE_CHROOT_ACL)
-					continue;
-				acl = container_of(ptr,
-						   struct ccs_chroot_acl_record,
-						   head); 
-				if (!ccs_path_matches_pattern(&dir, acl->dir))
-					continue;
-				error = 0;
-				break;
-			}
+	if (!root_name)
+		goto out;
+	dir.name = root_name;
+	ccs_fill_path_info(&dir);
+	if (dir.is_dir) {
+		struct ccs_acl_info *ptr;
+		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+			struct ccs_chroot_acl_record *acl;
+			if (ccs_acl_type2(ptr) != TYPE_CHROOT_ACL)
+				continue;
+			acl = container_of(ptr, struct ccs_chroot_acl_record,
+					   head); 
+			if (!ccs_path_matches_pattern(&dir, acl->dir))
+				continue;
+			error = 0;
+			break;
 		}
 	}
-	if (error)
-		error = ccs_print_error(&r, root_name);
+	ccs_audit_chroot_log(&r, root_name, !error);
+	if (!error)
+		goto out;
+	printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
+	       ccs_get_msg(is_enforce), root_name,
+	       ccs_get_last_name(r.domain));
+	if (is_enforce)
+		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CHROOT"%s\n",
+					     root_name);
+	else
+		error = 0;
+	if (r.mode == 1)
+		ccs_update_chroot_acl(root_name, r.domain, NULL, false);
+ out:
 	kfree(root_name);
 	if (error == 1)
 		goto retry;

@@ -22,6 +22,22 @@
 #endif
 
 /**
+ * ccs_audit_umount_log - Audit unmount log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @dir:        Mount point.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_umount_log(struct ccs_request_info *r,
+				const char *dir, const bool is_granted)
+{
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_UNMOUNT
+				   "%s\n", dir);
+}
+
+/**
  * ccs_update_umount_acl - Update "struct ccs_umount_acl_record" list.
  *
  * @dir:       The name of directrory.
@@ -92,7 +108,6 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	bool is_enforce;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info dir;
-	bool found = false;
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
@@ -113,10 +128,12 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		acl = container_of(ptr, struct ccs_umount_acl_record, head);
 		if (!ccs_path_matches_pattern(&dir, acl->dir))
 			continue;
-		found = true;
 		error = 0;
-		goto out;
+		break;
 	}
+	ccs_audit_umount_log(&r, dir0, !error);
+	if (!error)
+		goto out;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
 		       ccs_get_msg(is_enforce), dir0,

@@ -37,6 +37,28 @@ static inline void module_put(struct module *module)
 }
 #endif
 
+/**
+ * ccs_audit_mount_log - Audit mount log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @dev_name:   Device file.
+ * @dir_name:   Mount point.
+ * @type:       Filesystem type.
+ * @flags:      Mount flags.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_mount_log(struct ccs_request_info *r,
+			       const char *dev_name, const char *dir_name,
+			       const char *type, const unsigned long flags,
+			       const bool is_granted)
+{
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_MOUNT
+				   "%s %s %s 0x%lu\n", dev_name, dir_name,
+				   type, flags);
+}
+
 /* Keywords for mount restrictions. */
 
 /* Allow to call 'mount --bind /source_dir /dest_dir' */
@@ -361,8 +383,12 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 
 			/* OK. */
 			error = 0;
-			goto out;
+			break;
 		}
+		ccs_audit_mount_log(r, requested_dev_name, requested_dir_name,
+				    requested_type, flags, !error);
+		if (!error)
+			goto out;
 		if (ccs_verbose_mode(r->domain))
 			ccs_print_error(r, requested_dev_name,
 					requested_dir_name, requested_type,
@@ -370,8 +396,9 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		if (is_enforce)
 			error = ccs_check_supervisor(r, KEYWORD_ALLOW_MOUNT
 						     "%s %s %s 0x%lX\n",
-						     dev_name, dir_name, type,
-						     flags);
+						     requested_dev_name,
+						     requested_dir_name,
+						     requested_type, flags);
 		else if (r->mode == 1)
 			ccs_update_mount_acl(requested_dev_name,
 					     requested_dir_name,

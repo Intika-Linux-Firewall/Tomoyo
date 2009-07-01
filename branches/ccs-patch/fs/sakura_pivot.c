@@ -22,6 +22,25 @@
 #endif
 
 /**
+ * ccs_audit_pivot_root_log - Audit pivot_root log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @new_root:   New root directory.
+ * @old_root:   Old root directory.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
+				    const char *new_root,
+				    const char *old_root,
+				    const bool is_granted)
+{
+	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_PIVOT_ROOT
+				   "%s %s\n", new_root, old_root);
+}
+
+/**
  * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_acl_record" list.
  *
  * @old_root:  The name of old root directory.
@@ -109,6 +128,8 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	int error;
 	char *old_root;
 	char *new_root;
+	struct ccs_path_info old_root_dir;
+	struct ccs_path_info new_root_dir;
 	bool is_enforce;
 	if (!ccs_can_sleep())
 		return 0;
@@ -127,33 +148,33 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	old_root = ccs_realpath_from_dentry(old_path->dentry, old_path->mnt);
 	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
 #endif
-	if (old_root && new_root) {
-		struct ccs_path_info old_root_dir;
-		struct ccs_path_info new_root_dir;
-		old_root_dir.name = old_root;
-		ccs_fill_path_info(&old_root_dir);
-		new_root_dir.name = new_root;
-		ccs_fill_path_info(&new_root_dir);
-		if (old_root_dir.is_dir && new_root_dir.is_dir) {
-			struct ccs_acl_info *ptr;
-			list_for_each_entry_rcu(ptr, &r.domain->acl_info_list,
-						list) {
-				struct ccs_pivot_root_acl_record *acl;
-				if (ccs_acl_type2(ptr) != TYPE_PIVOT_ROOT_ACL)
-					continue;
-				acl = container_of(ptr,
+	if (!old_root || !new_root)
+		goto out;
+	old_root_dir.name = old_root;
+	ccs_fill_path_info(&old_root_dir);
+	new_root_dir.name = new_root;
+	ccs_fill_path_info(&new_root_dir);
+	if (old_root_dir.is_dir && new_root_dir.is_dir) {
+		struct ccs_acl_info *ptr;
+		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+			struct ccs_pivot_root_acl_record *acl;
+			if (ccs_acl_type2(ptr) != TYPE_PIVOT_ROOT_ACL)
+				continue;
+			acl = container_of(ptr,
 					   struct ccs_pivot_root_acl_record,
-						   head);
-				if (!ccs_path_matches_pattern(&old_root_dir,
-							      acl->old_root) ||
-				    !ccs_path_matches_pattern(&new_root_dir,
-							      acl->new_root))
-					continue;
-				error = 0;
-				goto out;
-			}
+					   head);
+			if (!ccs_path_matches_pattern(&old_root_dir,
+						      acl->old_root) ||
+			    !ccs_path_matches_pattern(&new_root_dir,
+						      acl->new_root))
+				continue;
+			error = 0;
+			break;
 		}
 	}
+	ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
+	if (!error)
+		goto out;
 	if (ccs_verbose_mode(r.domain))
 		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
 		       "denied for %s\n", ccs_get_msg(is_enforce), new_root,
@@ -161,7 +182,7 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	if (is_enforce)
 		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_PIVOT_ROOT
 					     "%s %s\n", new_root, old_root);
-	else if (r.mode == 1 && old_root && new_root)
+	else if (r.mode == 1)
 		ccs_update_pivot_root_acl(old_root, new_root, r.domain, NULL,
 					  false);
  out:
