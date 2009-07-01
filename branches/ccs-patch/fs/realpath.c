@@ -472,24 +472,12 @@ bool ccs_memory_ok(const void *ptr)
 /**
  * ccs_memory_free - Free memory for elements.
  *
- * @ptr: Pointer to allocated memory.
+ * @ptr:  Pointer to allocated memory.
+ * @size: Size of @ptr .
  */
-static void ccs_memory_free(const void *ptr)
+static void ccs_memory_free(const void *ptr, size_t size)
 {
-	atomic_sub(ksize(ptr), &ccs_allocated_memory_for_elements);
-	kfree(ptr);
-}
-
-/**
- * ccs_free_element - Delete memory for structures.
- *
- * @ptr: Memory to release.
- */
-static void ccs_free_element(void *ptr)
-{
-	if (!ptr)
-		return;
-	atomic_sub(ksize(ptr), &ccs_allocated_memory_for_elements);
+	atomic_sub(size, &ccs_allocated_memory_for_elements);
 	kfree(ptr);
 }
 
@@ -525,11 +513,11 @@ void ccs_put_path_group(struct ccs_path_group_entry *group)
 	list_for_each_entry_safe(member, next_member, &q, list) {
 		list_del(&member->list);
 		ccs_put_name(member->member_name);
-		ccs_free_element(member);
+		ccs_memory_free(member, sizeof(*member));
 	}
 	if (can_delete_group) {
 		ccs_put_name(group->group_name);
-		ccs_free_element(group);
+		ccs_memory_free(group, sizeof(*group));
 	}
 }
 
@@ -568,11 +556,11 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 			ccs_put_ipv6_address(member->min.ipv6);
 			ccs_put_ipv6_address(member->max.ipv6);
 		}
-		ccs_free_element(member);
+		ccs_memory_free(member, sizeof(*member));
 	}
 	if (can_delete_group) {
 		ccs_put_name(group->group_name);
-		ccs_free_element(group);
+		ccs_memory_free(group, sizeof(*group));
 	}
 }
 
@@ -634,7 +622,7 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 	}
 	mutex_unlock(&ccs_policy_lock);
 	if (can_delete)
-		ccs_free_element(ptr);
+		ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 /**
@@ -680,7 +668,7 @@ void ccs_put_condition(struct ccs_condition *cond)
 	}
 	for (i = 0; i < symlinkc; symlinkp++, i++)
 		ccs_put_name(symlinkp->value);
-	ccs_free_element(cond);
+	ccs_memory_free(cond, ksize(cond));
 }
 
 static atomic_t ccs_allocated_memory_for_savename;
@@ -779,13 +767,6 @@ void ccs_put_name(const struct ccs_path_info *name)
 		kfree(ptr);
 	}
 }
-
-/* Structure for temporarily allocated memory. */
-struct ccs_cache_entry {
-	struct list_head list;
-	void *ptr;
-	int size;
-};
 
 struct srcu_struct ccs_ss;
 
@@ -975,59 +956,59 @@ static inline void ccs_gc_del_domain_keeper
 static void ccs_del_allow_read(struct ccs_globally_readable_file_entry *ptr)
 {
 	ccs_put_name(ptr->filename);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_allow_env(struct ccs_globally_usable_env_entry *ptr)
 {
 	ccs_put_name(ptr->env);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_file_pattern(struct ccs_pattern_entry *ptr)
 {
 	ccs_put_name(ptr->pattern);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_no_rewrite(struct ccs_no_rewrite_entry *ptr)
 {
 	ccs_put_name(ptr->pattern);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_domain_initializer(struct ccs_domain_initializer_entry *ptr)
 {
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
 {
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_alias(struct ccs_alias_entry *ptr)
 {
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aliased_name);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_aggregator(struct ccs_aggregator_entry *ptr)
 {
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aggregated_name);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_manager(struct ccs_policy_manager_entry *ptr)
 {
 	ccs_put_name(ptr->manager);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 /* For compatibility with older kernels. */
@@ -1061,104 +1042,140 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 
 static void ccs_del_acl(struct ccs_acl_info *acl)
 {
-	struct ccs_single_path_acl_record *acl1;
-	struct ccs_double_path_acl_record *acl2;
-	struct ccs_ip_network_acl_record *acl3;
-	struct ccs_ioctl_acl_record *acl4;
-	struct ccs_argv0_acl_record *acl5;
-	struct ccs_env_acl_record *acl6;
-	struct ccs_capability_acl_record *acl7;
-	struct ccs_signal_acl_record *acl8;
-	struct ccs_execute_handler_record *acl9;
-	struct ccs_mount_acl_record *acl10;
-	struct ccs_umount_acl_record *acl11;
-	struct ccs_chroot_acl_record *acl12;
-	struct ccs_pivot_root_acl_record *acl13;
+	size_t size;
 	ccs_put_condition(acl->cond);
 	switch (ccs_acl_type1(acl)) {
 	case TYPE_SINGLE_PATH_ACL:
-		acl1 = container_of(acl, struct ccs_single_path_acl_record,
-				    head);
-		if (acl1->u_is_group)
-			ccs_put_path_group(acl1->u.group);
-		else
-			ccs_put_name(acl1->u.filename);
+		{
+			struct ccs_single_path_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			if (entry->u_is_group)
+				ccs_put_path_group(entry->u.group);
+			else
+				ccs_put_name(entry->u.filename);
+		}
 		break;
 	case TYPE_DOUBLE_PATH_ACL:
-		acl2 = container_of(acl, struct ccs_double_path_acl_record,
-				    head);
-		if (acl2->u1_is_group)
-			ccs_put_path_group(acl2->u1.group1);
-		else
-			ccs_put_name(acl2->u1.filename1);
-		if (acl2->u2_is_group)
-			ccs_put_path_group(acl2->u2.group2);
-		else
-			ccs_put_name(acl2->u2.filename2);
+		{
+			struct ccs_double_path_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			if (entry->u1_is_group)
+				ccs_put_path_group(entry->u1.group1);
+			else
+				ccs_put_name(entry->u1.filename1);
+			if (entry->u2_is_group)
+				ccs_put_path_group(entry->u2.group2);
+			else
+				ccs_put_name(entry->u2.filename2);
+		}
 		break;
 	case TYPE_IP_NETWORK_ACL:
-		acl3 = container_of(acl, struct ccs_ip_network_acl_record,
-				    head);
-		if (acl3->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
-			ccs_put_address_group(acl3->u.group);
-		else if (acl3->record_type == IP_RECORD_TYPE_IPv6) {
-			ccs_put_ipv6_address(acl3->u.ipv6.min);
-			ccs_put_ipv6_address(acl3->u.ipv6.max);
+		{
+			struct ccs_ip_network_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			if (entry->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
+				ccs_put_address_group(entry->u.group);
+			else if (entry->record_type == IP_RECORD_TYPE_IPv6) {
+				ccs_put_ipv6_address(entry->u.ipv6.min);
+				ccs_put_ipv6_address(entry->u.ipv6.max);
+			}
 		}
 		break;
 	case TYPE_IOCTL_ACL:
-		acl4 = container_of(acl, struct ccs_ioctl_acl_record, head);
-		if (acl4->u_is_group)
-			ccs_put_path_group(acl4->u.group);
-		else
-			ccs_put_name(acl4->u.filename);
+		{
+			struct ccs_ioctl_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			if (entry->u_is_group)
+				ccs_put_path_group(entry->u.group);
+			else
+				ccs_put_name(entry->u.filename);
+		}
 		break;
 	case TYPE_ARGV0_ACL:
-		acl5 = container_of(acl, struct ccs_argv0_acl_record, head);
-		ccs_put_name(acl5->argv0);
+		{
+			struct ccs_argv0_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->argv0);
+		}
 		break;
 	case TYPE_ENV_ACL:
-		acl6 = container_of(acl, struct ccs_env_acl_record, head);
-		ccs_put_name(acl6->env);
+		{
+			struct ccs_env_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->env);
+		}
 		break;
 	case TYPE_CAPABILITY_ACL:
-		acl7 = container_of(acl, struct ccs_capability_acl_record,
-				    head);
+		{
+			struct ccs_capability_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+		}
 		break;
 	case TYPE_SIGNAL_ACL:
-		acl8 = container_of(acl, struct ccs_signal_acl_record,
-				    head);
-		ccs_put_name(acl8->domainname);
+		{
+			struct ccs_signal_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->domainname);
+		}
 		break;
 		case TYPE_EXECUTE_HANDLER:
 	case TYPE_DENIED_EXECUTE_HANDLER:
-		acl9 = container_of(acl, struct ccs_execute_handler_record,
-				    head);
-		ccs_put_name(acl9->handler);
+		{
+			struct ccs_execute_handler_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->handler);
+		}
 		break;
 	case TYPE_MOUNT_ACL:
-		acl10 = container_of(acl, struct ccs_mount_acl_record, head);
-		ccs_put_name(acl10->dev_name);
-		ccs_put_name(acl10->dir_name);
-		ccs_put_name(acl10->fs_type);
+		{
+			struct ccs_mount_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->dev_name);
+			ccs_put_name(entry->dir_name);
+			ccs_put_name(entry->fs_type);
+		}
 		break;
 	case TYPE_UMOUNT_ACL:
-		acl11 = container_of(acl, struct ccs_umount_acl_record, head);
-		ccs_put_name(acl11->dir);
+		{
+			struct ccs_umount_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->dir);
+		}
 		break;
 	case TYPE_CHROOT_ACL:
-		acl12 = container_of(acl, struct ccs_chroot_acl_record, head);
-		ccs_put_name(acl12->dir);
+		{
+			struct ccs_chroot_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->dir);
+		}
 		break;
 	case TYPE_PIVOT_ROOT_ACL:
-		acl13 = container_of(acl, struct ccs_pivot_root_acl_record,
-				     head);
-		ccs_put_name(acl13->old_root);
-		ccs_put_name(acl13->new_root);
+		{
+			struct ccs_pivot_root_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->old_root);
+			ccs_put_name(entry->new_root);
+		}
 		break;
-
+	default:
+		size = 0;
+		printk(KERN_WARNING "Unknown type\n");
+		break;
 	}
-	ccs_memory_free(acl);
+	ccs_memory_free(acl, size);
 }
 
 static bool ccs_del_domain(struct ccs_domain_info *domain)
@@ -1166,20 +1183,20 @@ static bool ccs_del_domain(struct ccs_domain_info *domain)
 	if (ccs_used_by_task(domain))
 		return false;
 	ccs_put_name(domain->domainname);
-	ccs_memory_free(domain);
+	ccs_memory_free(domain, sizeof(*domain));
 	return true;
 }
 
 static void ccs_del_path_group_member(struct ccs_path_group_member *member)
 {
 	ccs_put_name(member->member_name);
-	ccs_free_element(member);
+	ccs_memory_free(member, sizeof(*member));
 }
 
 static void ccs_del_path_group(struct ccs_path_group_entry *group)
 {
 	ccs_put_name(group->group_name);
-	ccs_free_element(group);
+	ccs_memory_free(group, sizeof(*group));
 }
 
 static void ccs_del_address_group_member
@@ -1189,18 +1206,18 @@ static void ccs_del_address_group_member
 		ccs_put_ipv6_address(member->min.ipv6);
 		ccs_put_ipv6_address(member->max.ipv6);
 	}
-	ccs_free_element(member);
+	ccs_memory_free(member, sizeof(*member));
 }
 
 static void ccs_del_address_group(struct ccs_address_group_entry *group)
 {
 	ccs_put_name(group->group_name);
-	ccs_free_element(group);
+	ccs_memory_free(group, sizeof(*group));
 }
 
 static void ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 {
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static void ccs_del_condition(struct ccs_condition *ptr)
@@ -1223,7 +1240,7 @@ static void ccs_del_condition(struct ccs_condition *ptr)
 	}
 	for (i = 0; i < symlinkc; i++)
 		ccs_put_name(symlinkp[i].value);
-	ccs_memory_free(ptr);
+	ccs_memory_free(ptr, sizeof(*ptr));
 }
 
 static int ccs_gc_thread(void *unused)
@@ -1446,6 +1463,7 @@ static int ccs_gc_thread(void *unused)
 	{
 		struct ccs_gc_entry *p;
 		struct ccs_gc_entry *tmp;
+		size_t size = 0;
 		list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
 			switch (p->type) {
 			case CCS_ID_DOMAIN_INITIALIZER:
@@ -1501,7 +1519,7 @@ static int ccs_gc_thread(void *unused)
 					continue;
 				break;
 			}
-			ccs_free_element(p->element);
+			ccs_memory_free(p->element, size);
 			list_del(&p->list);
 			kfree(p);
 		}
