@@ -2664,6 +2664,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	int len;
 	static unsigned int ccs_serial;
 	struct ccs_query_entry *ccs_query_entry = NULL;
+	bool quota_exceeded = false;
 	char *header;
 	if (!r->domain)
 		r->domain = ccs_current_domain();
@@ -2693,9 +2694,17 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	INIT_LIST_HEAD(&ccs_query_entry->list);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
-	ccs_query_entry->serial = ccs_serial++;
+	if (ccs_quota_for_query && ccs_query_memory_size + len +
+	    sizeof(*ccs_query_entry) >= ccs_quota_for_query) {
+		quota_exceeded = true;
+	} else {
+		ccs_query_memory_size += len + sizeof(*ccs_query_entry);
+		ccs_query_entry->serial = ccs_serial++;
+	}
 	spin_unlock(&ccs_query_list_lock);
 	/***** CRITICAL SECTION END *****/
+	if (quota_exceeded)
+		goto out;
 	pos = snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
 		       ccs_query_entry->serial, r->retry, header);
 	kfree(header);
@@ -2722,6 +2731,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_del(&ccs_query_entry->list);
+	ccs_query_memory_size -= len + sizeof(*ccs_query_entry);
 	spin_unlock(&ccs_query_list_lock);
 	/***** CRITICAL SECTION END *****/
 	switch (ccs_query_entry->answer) {

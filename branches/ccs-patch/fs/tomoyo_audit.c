@@ -236,6 +236,7 @@ static DEFINE_SPINLOCK(ccs_audit_log_lock);
 struct ccs_log_entry {
 	struct list_head list;
 	char *log;
+	int size;
 };
 
 /* The list for "struct ccs_log_entry". */
@@ -284,6 +285,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int len;
 	char *buf;
 	struct ccs_log_entry *new_entry;
+	bool quota_exceeded = false;
 	if (!r->domain)
 		r->domain = ccs_current_domain();
 	if (!ccs_can_save_audit_log(r->domain, is_granted))
@@ -304,17 +306,29 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		goto out;
 	}
 	new_entry->log = buf;
+	new_entry->size = len + sizeof(*new_entry);
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_audit_log_lock);
-	if (is_granted) {
-		list_add_tail(&new_entry->list, &ccs_grant_log);
-		ccs_grant_log_count++;
+	if (ccs_quota_for_audit_log && ccs_audit_log_memory_size
+	    + new_entry->size >= ccs_quota_for_audit_log) {
+		quota_exceeded = true;
 	} else {
-		list_add_tail(&new_entry->list, &ccs_reject_log);
-		ccs_reject_log_count++;
+		ccs_audit_log_memory_size += new_entry->size;
+		if (is_granted) {
+			list_add_tail(&new_entry->list, &ccs_grant_log);
+			ccs_grant_log_count++;
+		} else {
+			list_add_tail(&new_entry->list, &ccs_reject_log);
+			ccs_reject_log_count++;
+		}
 	}
 	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/
+	if (quota_exceeded) {
+		kfree(buf);
+		kfree(new_entry);
+		goto out;
+	}
 	if (is_granted)
 		wake_up(&ccs_grant_log_wait);
 	else
@@ -349,6 +363,7 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 				 list);
 		list_del(&ptr->list);
 		ccs_grant_log_count--;
+		ccs_audit_log_memory_size -= ptr->size;
 	}
 	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/
@@ -403,6 +418,7 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 				 list);
 		list_del(&ptr->list);
 		ccs_reject_log_count--;
+		ccs_audit_log_memory_size -= ptr->size;
 	}
 	spin_unlock(&ccs_audit_log_lock);
 	/***** CRITICAL SECTION END *****/

@@ -55,4 +55,10 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head);
 /* Set memory quota. */
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 
+extern unsigned int ccs_audit_log_memory_size;
+extern unsigned int ccs_quota_for_audit_log;
+
+extern unsigned int ccs_query_memory_size;
+extern unsigned int ccs_quota_for_query;
+
 #endif

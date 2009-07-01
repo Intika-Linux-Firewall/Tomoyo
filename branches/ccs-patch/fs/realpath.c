@@ -837,8 +837,11 @@ __initcall(ccs_realpath_init);
 core_initcall(ccs_realpath_init);
 #endif
 
-static unsigned int ccs_dynamic_memory_size;
-static unsigned int ccs_quota_for_dynamic;
+unsigned int ccs_audit_log_memory_size;
+unsigned int ccs_quota_for_audit_log;
+
+unsigned int ccs_query_memory_size;
+unsigned int ccs_quota_for_query;
 
 /**
  * ccs_read_memory_counter - Check for memory usage.
@@ -854,7 +857,8 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head)
 			= atomic_read(&ccs_allocated_memory_for_savename);
 		const unsigned int private
 			= atomic_read(&ccs_allocated_memory_for_elements);
-		const unsigned int dynamic = ccs_dynamic_memory_size;
+		const unsigned int audit_log = ccs_audit_log_memory_size;
+		const unsigned int query = ccs_query_memory_size;
 		char buffer[64];
 		memset(buffer, 0, sizeof(buffer));
 		if (ccs_quota_for_savename)
@@ -862,21 +866,31 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head)
 				 "   (Quota: %10u)", ccs_quota_for_savename);
 		else
 			buffer[0] = '\0';
-		ccs_io_printf(head, "Shared:  %10u%s\n", shared, buffer);
+		ccs_io_printf(head, "Policy (string):         %10u%s\n",
+			      shared, buffer);
 		if (ccs_quota_for_elements)
 			snprintf(buffer, sizeof(buffer) - 1,
 				 "   (Quota: %10u)", ccs_quota_for_elements);
 		else
 			buffer[0] = '\0';
-		ccs_io_printf(head, "Private: %10u%s\n", private, buffer);
-		if (ccs_quota_for_dynamic)
+		ccs_io_printf(head, "Policy (non-string):     %10u%s\n",
+			      private, buffer);
+		if (ccs_quota_for_audit_log)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_dynamic);
+				 "   (Quota: %10u)", ccs_quota_for_audit_log);
 		else
 			buffer[0] = '\0';
-		ccs_io_printf(head, "Dynamic: %10u%s\n", dynamic, buffer);
-		ccs_io_printf(head, "Total:   %10u\n",
-			      shared + private + dynamic);
+		ccs_io_printf(head, "Audit logs:              %10u%s\n",
+			      audit_log, buffer);
+		if (ccs_quota_for_query)
+			snprintf(buffer, sizeof(buffer) - 1,
+				 "   (Quota: %10u)", ccs_quota_for_query);
+		else
+			buffer[0] = '\0';
+		ccs_io_printf(head, "Interactive enforcement: %10u%s\n",
+			      query, buffer);
+		ccs_io_printf(head, "Total:                   %10u\n",
+			      shared + private + audit_log + query);
 		head->read_eof = true;
 	}
 	return 0;
@@ -893,12 +907,14 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int size;
-	if (sscanf(data, "Shared: %u", &size) == 1)
+	if (sscanf(data, "Policy (string): %u", &size) == 1)
 		ccs_quota_for_savename = size;
-	else if (sscanf(data, "Private: %u", &size) == 1)
+	else if (sscanf(data, "Policy (non-string): %u", &size) == 1)
 		ccs_quota_for_elements = size;
-	else if (sscanf(data, "Dynamic: %u", &size) == 1)
-		ccs_quota_for_dynamic = size;
+	else if (sscanf(data, "Audit logs: %u", &size) == 1)
+		ccs_quota_for_audit_log = size;
+	else if (sscanf(data, "Interactive enforcement: %u", &size) == 1)
+		ccs_quota_for_query = size;
 	return 0;
 }
 
