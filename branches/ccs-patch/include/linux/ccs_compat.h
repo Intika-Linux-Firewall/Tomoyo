@@ -66,6 +66,7 @@
 #define mutex_lock(mutex) down(mutex)
 #define mutex_unlock(mutex) up(mutex)
 #define mutex_lock_interruptible(mutex) down_interruptible(mutex)
+#define mutex_trylock(mutex) !down_trylock(mutex)
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 
@@ -172,4 +173,22 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 #else
 #error "Please fix asm/byteorder.h"
 #endif /* __LITTLE_ENDIAN */
+#endif
+
+#ifndef _LINUX_SRCU_H
+
+struct srcu_struct {
+	int counter_idx;
+	int counter[2];
+};
+
+static inline int init_srcu_struct(struct srcu_struct *sp)
+{
+	return 0;
+}
+
+int srcu_read_lock(struct srcu_struct *sp);
+void srcu_read_unlock(struct srcu_struct *sp, const int idx);
+void synchronize_srcu(struct srcu_struct *sp);
+
 #endif

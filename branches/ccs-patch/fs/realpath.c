@@ -1511,15 +1511,11 @@ static int ccs_gc_thread(void *unused)
 	return 0;
 }
 
-#if 0 && LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
+#ifndef _LINUX_SRCU_H
 
-static struct srcu_struct {
-	int counter_idx;
-	int counter[2];
-} ccs_ss;
 static DEFINE_SPINLOCK(ccs_counter_lock);
 
-int ccs_read_lock(struct srcu_struct *sp)
+int srcu_read_lock(struct srcu_struct *sp)
 {
 	int idx;
 	spin_lock(&ccs_counter_lock);
@@ -1529,14 +1525,14 @@ int ccs_read_lock(struct srcu_struct *sp)
 	return idx;
 }
 
-void ccs_read_unlock(struct srcu_struct *sp, const int idx)
+void srcu_read_unlock(struct srcu_struct *sp, const int idx)
 {
 	spin_lock(&ccs_counter_lock);
 	sp->counter[idx]--;
 	spin_unlock(&ccs_counter_lock);
 }
 
-void ccs_wait_readers(struct srcu_struct *sp)
+void synchronize_srcu(struct srcu_struct *sp)
 {
 	int idx;
 	int v;
