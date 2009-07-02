@@ -160,12 +160,11 @@ static inline void list_del_rcu(struct list_head *entry)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30)
-#ifndef ssleep
+#undef ssleep
 #define ssleep(secs) {                              \
 	set_current_state(TASK_UNINTERRUPTIBLE);    \
 	schedule_timeout((HZ * secs) + 1);          \
 }
-#endif
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
