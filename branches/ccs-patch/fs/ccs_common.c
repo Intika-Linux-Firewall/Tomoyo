@@ -2959,6 +2959,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	if (!head)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
+	head->type = type;
 	switch (type) {
 	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
 		head->write = ccs_write_domain_policy;
@@ -3026,11 +3027,8 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		head->read = NULL;
 		head->poll = NULL;
-	} else if (type != CCS_QUERY
-#ifdef CONFIG_CCSECURITY_AUDIT
-		   && type != CCS_GRANTLOG && type != CCS_REJECTLOG
-#endif
-		   ) {
+	} else if (type != CCS_QUERY &&
+		   type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
 		/*
 		 * Don't allocate buffer for reading if the file is one of
 		 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
@@ -3058,7 +3056,9 @@ int ccs_open_control(const u8 type, struct file *file)
 			return -ENOMEM;
 		}
 	}
-	head->srcu_idx = srcu_read_lock(&ccs_ss);
+	if (type != CCS_QUERY &&
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+		head->srcu_idx = srcu_read_lock(&ccs_ss);
 	file->private_data = head;
 	/*
 	 * Call the handler now if the file is /proc/ccs/self_domain
@@ -3072,8 +3072,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	 * The obserber counter is used by ccs_check_supervisor() to see if
 	 * there is some process monitoring /proc/ccs/query.
 	 */
-	else if (head->write == ccs_write_answer ||
-		 head->read == ccs_read_query)
+	else if (type == CCS_QUERY)
 		atomic_inc(&ccs_query_observers);
 	return 0;
 }
@@ -3202,12 +3201,16 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 int ccs_close_control(struct file *file)
 {
 	struct ccs_io_buffer *head = file->private_data;
+	const bool is_write = head->write_buf != NULL;
+	const u8 type = head->type;
 	/*
 	 * If the file is /proc/ccs/query , decrement the observer counter.
 	 */
-	if (head->write == ccs_write_answer || head->read == ccs_read_query)
+	if (type == CCS_QUERY)
 		atomic_dec(&ccs_query_observers);
-	srcu_read_unlock(&ccs_ss, head->srcu_idx);
+	if (type != CCS_QUERY &&
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+		srcu_read_unlock(&ccs_ss, head->srcu_idx);
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);
 	head->read_buf = NULL;
@@ -3216,5 +3219,7 @@ int ccs_close_control(struct file *file)
 	kfree(head);
 	head = NULL;
 	file->private_data = NULL;
+	if (is_write)
+		ccs_run_gc();
 	return 0;
 }

@@ -36,7 +36,7 @@ char *ccs_encode(const char *str);
 /* Get ccs_realpath() of both symlink and dereferenced pathname. */
 int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 
-/*  Check memory quota. */
+/* Check memory quota. */
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 
 /* Allocate memory for the given name. */
@@ -54,6 +54,9 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head);
 
 /* Set memory quota. */
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
+
+/* Start garbage collector thread. */
+void ccs_run_gc(void);
 
 extern unsigned int ccs_audit_log_memory_size;
 extern unsigned int ccs_quota_for_audit_log;

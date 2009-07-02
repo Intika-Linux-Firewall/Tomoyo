@@ -32,6 +32,9 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/ccs_common.h>
 #include <linux/realpath.h>
 #include <net/sock.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/kthread.h>
+#endif
 
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
@@ -424,28 +427,8 @@ char *ccs_encode(const char *str)
 	return cp0;
 }
 
-/**
- * ccs_round_up - Round up an integer so that the returned pointers are appropriately aligned.
- *
- * @size: Size in bytes.
- *
- * Returns rounded value of @size.
- *
- * FIXME: Are there more requirements that is needed for assigning value
- * atomically?
- */
-static inline unsigned int ccs_round_up(const unsigned int size)
-{
-	if (sizeof(void *) >= sizeof(long))
-		return ((size + sizeof(void *) - 1)
-			/ sizeof(void *)) * sizeof(void *);
-	else
-		return ((size + sizeof(long) - 1)
-			/ sizeof(long)) * sizeof(long);
-}
-
-static atomic_t ccs_allocated_memory_for_elements;
-static unsigned int ccs_quota_for_elements;
+static atomic_t ccs_non_string_memory_size;
+static unsigned int ccs_quota_for_non_string;
 
 /**
  * ccs_memory_ok - Check memory quota.
@@ -457,12 +440,12 @@ static unsigned int ccs_quota_for_elements;
  */
 bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
-	if (ptr && (!ccs_quota_for_elements ||
-		    atomic_read(&ccs_allocated_memory_for_elements) + size
-		    <= ccs_quota_for_elements)) {
-		atomic_add(size, &ccs_allocated_memory_for_elements);
+	atomic_add(size, &ccs_non_string_memory_size);
+	if (ptr && (!ccs_quota_for_non_string ||
+		    atomic_read(&ccs_non_string_memory_size)
+		    <= ccs_quota_for_non_string))
 		return true;
-	}
+	atomic_sub(size, &ccs_non_string_memory_size);
 	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
 	if (!ccs_policy_loaded)
 		panic("MAC Initialization failed.\n");
@@ -477,7 +460,7 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
  */
 static void ccs_memory_free(const void *ptr, size_t size)
 {
-	atomic_sub(size, &ccs_allocated_memory_for_elements);
+	atomic_sub(size, &ccs_non_string_memory_size);
 	kfree(ptr);
 }
 
@@ -671,8 +654,8 @@ void ccs_put_condition(struct ccs_condition *cond)
 	ccs_memory_free(cond, cond->size);
 }
 
-static atomic_t ccs_allocated_memory_for_savename;
-static unsigned int ccs_quota_for_savename;
+static unsigned int ccs_string_memory_size;
+static unsigned int ccs_quota_for_string;
 
 #define MAX_HASH 256
 
@@ -720,10 +703,11 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	}
 	ptr = kzalloc(sizeof(*ptr) + len, GFP_KERNEL);
 	allocated_len = ptr ? sizeof(*ptr) + len : 0;
+	ccs_string_memory_size += allocated_len;
 	if (!allocated_len ||
-	    (ccs_quota_for_savename &&
-	     atomic_read(&ccs_allocated_memory_for_savename) + allocated_len
-	     > ccs_quota_for_savename)) {
+	    (ccs_quota_for_string &&
+	     ccs_string_memory_size > ccs_quota_for_string)) {
+		ccs_string_memory_size -= allocated_len;
 		kfree(ptr);
 		ptr = NULL;
 		printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
@@ -731,7 +715,6 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 			panic("MAC Initialization failed.\n");
 		goto out;
 	}
-	atomic_add(allocated_len, &ccs_allocated_memory_for_savename);
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((char *) ptr->entry.name, name, len);
 	atomic_set(&ptr->users, 1);
@@ -760,14 +743,13 @@ void ccs_put_name(const struct ccs_path_info *name)
 	mutex_lock(&ccs_name_list_lock);
 	if (atomic_dec_and_test(&ptr->users)) {
 		list_del(&ptr->list);
+		ccs_string_memory_size -= ptr->size;
 		can_delete = true;
 	}
 	mutex_unlock(&ccs_name_list_lock);
 	/***** EXCLUSIVE SECTION END *****/
-	if (can_delete) {
-		atomic_sub(ptr->size, &ccs_allocated_memory_for_savename);
+	if (can_delete)
 		kfree(ptr);
-	}
 }
 
 struct srcu_struct ccs_ss;
@@ -836,28 +818,27 @@ unsigned int ccs_quota_for_query;
 int ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		const unsigned int shared
-			= atomic_read(&ccs_allocated_memory_for_savename);
-		const unsigned int private
-			= atomic_read(&ccs_allocated_memory_for_elements);
+		const unsigned int string = ccs_string_memory_size;
+		const unsigned int nonstring
+			= atomic_read(&ccs_non_string_memory_size);
 		const unsigned int audit_log = ccs_audit_log_memory_size;
 		const unsigned int query = ccs_query_memory_size;
 		char buffer[64];
 		memset(buffer, 0, sizeof(buffer));
-		if (ccs_quota_for_savename)
+		if (ccs_quota_for_string)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_savename);
+				 "   (Quota: %10u)", ccs_quota_for_string);
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Policy (string):         %10u%s\n",
-			      shared, buffer);
-		if (ccs_quota_for_elements)
+			      string, buffer);
+		if (ccs_quota_for_non_string)
 			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_elements);
+				 "   (Quota: %10u)", ccs_quota_for_non_string);
 		else
 			buffer[0] = '\0';
 		ccs_io_printf(head, "Policy (non-string):     %10u%s\n",
-			      private, buffer);
+			      nonstring, buffer);
 		if (ccs_quota_for_audit_log)
 			snprintf(buffer, sizeof(buffer) - 1,
 				 "   (Quota: %10u)", ccs_quota_for_audit_log);
@@ -873,7 +854,7 @@ int ccs_read_memory_counter(struct ccs_io_buffer *head)
 		ccs_io_printf(head, "Interactive enforcement: %10u%s\n",
 			      query, buffer);
 		ccs_io_printf(head, "Total:                   %10u\n",
-			      shared + private + audit_log + query);
+			      string + nonstring + audit_log + query);
 		head->read_eof = true;
 	}
 	return 0;
@@ -891,9 +872,9 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 	char *data = head->write_buf;
 	unsigned int size;
 	if (sscanf(data, "Policy (string): %u", &size) == 1)
-		ccs_quota_for_savename = size;
+		ccs_quota_for_string = size;
 	else if (sscanf(data, "Policy (non-string): %u", &size) == 1)
-		ccs_quota_for_elements = size;
+		ccs_quota_for_non_string = size;
 	else if (sscanf(data, "Audit logs: %u", &size) == 1)
 		ccs_quota_for_audit_log = size;
 	else if (sscanf(data, "Interactive enforcement: %u", &size) == 1)
@@ -941,76 +922,63 @@ static bool ccs_add_to_gc(const int type, void *element, struct list_head *head)
 	return true;
 }
 
-static inline void ccs_gc_del_domain_initializer
-(struct ccs_domain_initializer_entry *ptr)
-{
-	ccs_put_name(ptr->domainname);
-	ccs_put_name(ptr->program);
-}
-
-static inline void ccs_gc_del_domain_keeper
-(struct ccs_domain_keeper_entry *ptr)
-{
-	ccs_put_name(ptr->domainname);
-	ccs_put_name(ptr->program);
-}
-
-static void ccs_del_allow_read(struct ccs_globally_readable_file_entry *ptr)
+static size_t ccs_del_allow_read(struct ccs_globally_readable_file_entry *ptr)
 {
 	ccs_put_name(ptr->filename);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_allow_env(struct ccs_globally_usable_env_entry *ptr)
+static size_t ccs_del_allow_env(struct ccs_globally_usable_env_entry *ptr)
 {
 	ccs_put_name(ptr->env);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_file_pattern(struct ccs_pattern_entry *ptr)
+static size_t ccs_del_file_pattern(struct ccs_pattern_entry *ptr)
 {
 	ccs_put_name(ptr->pattern);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_no_rewrite(struct ccs_no_rewrite_entry *ptr)
+static size_t ccs_del_no_rewrite(struct ccs_no_rewrite_entry *ptr)
 {
 	ccs_put_name(ptr->pattern);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_domain_initializer(struct ccs_domain_initializer_entry *ptr)
+static size_t ccs_del_domain_initializer(struct ccs_domain_initializer_entry *
+					 ptr)
 {
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
+static size_t ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
 {
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_alias(struct ccs_alias_entry *ptr)
+static size_t ccs_del_alias(struct ccs_alias_entry *ptr)
 {
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aliased_name);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_aggregator(struct ccs_aggregator_entry *ptr)
+static size_t ccs_del_aggregator(struct ccs_aggregator_entry *ptr)
 {
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aggregated_name);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_manager(struct ccs_policy_manager_entry *ptr)
+static size_t ccs_del_manager(struct ccs_policy_manager_entry *ptr)
 {
 	ccs_put_name(ptr->manager);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
 /* For compatibility with older kernels. */
@@ -1042,7 +1010,7 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 	return in_use;
 }
 
-static void ccs_del_acl(struct ccs_acl_info *acl)
+static size_t ccs_del_acl(struct ccs_acl_info *acl)
 {
 	size_t size;
 	ccs_put_condition(acl->cond);
@@ -1128,7 +1096,7 @@ static void ccs_del_acl(struct ccs_acl_info *acl)
 			ccs_put_name(entry->domainname);
 		}
 		break;
-		case TYPE_EXECUTE_HANDLER:
+	case TYPE_EXECUTE_HANDLER:
 	case TYPE_DENIED_EXECUTE_HANDLER:
 		{
 			struct ccs_execute_handler_record *entry;
@@ -1177,52 +1145,56 @@ static void ccs_del_acl(struct ccs_acl_info *acl)
 		printk(KERN_WARNING "Unknown type\n");
 		break;
 	}
-	ccs_memory_free(acl, size);
+	return size;
 }
 
-static bool ccs_del_domain(struct ccs_domain_info *domain)
+static size_t ccs_del_domain(struct ccs_domain_info *domain)
 {
+	struct ccs_acl_info *acl;
+	struct ccs_acl_info *tmp;
 	if (ccs_used_by_task(domain))
-		return false;
+		return 0;
+	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
+		size_t size = ccs_del_acl(acl);
+		ccs_memory_free(acl, size);
+	}
 	ccs_put_name(domain->domainname);
-	ccs_memory_free(domain, sizeof(*domain));
-	return true;
+	return sizeof(*domain);
 }
 
-static void ccs_del_path_group_member(struct ccs_path_group_member *member)
+static size_t ccs_del_path_group_member(struct ccs_path_group_member *member)
 {
 	ccs_put_name(member->member_name);
-	ccs_memory_free(member, sizeof(*member));
+	return sizeof(*member);
 }
 
-static void ccs_del_path_group(struct ccs_path_group_entry *group)
+static size_t ccs_del_path_group(struct ccs_path_group_entry *group)
 {
 	ccs_put_name(group->group_name);
-	ccs_memory_free(group, sizeof(*group));
+	return sizeof(*group);
 }
 
-static void ccs_del_address_group_member
-(struct ccs_address_group_member *member)
+static size_t ccs_del_address_group_member(struct ccs_address_group_member *member)
 {
 	if (member->is_ipv6) {
 		ccs_put_ipv6_address(member->min.ipv6);
 		ccs_put_ipv6_address(member->max.ipv6);
 	}
-	ccs_memory_free(member, sizeof(*member));
+	return sizeof(*member);
 }
 
-static void ccs_del_address_group(struct ccs_address_group_entry *group)
+static size_t ccs_del_address_group(struct ccs_address_group_entry *group)
 {
 	ccs_put_name(group->group_name);
-	ccs_memory_free(group, sizeof(*group));
+	return sizeof(*group);
 }
 
-static void ccs_del_reservedport(struct ccs_reserved_entry *ptr)
+static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 {
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return sizeof(*ptr);
 }
 
-static void ccs_del_condition(struct ccs_condition *ptr)
+static size_t ccs_del_condition(struct ccs_condition *ptr)
 {
 	int i;
 	u16 condc = ptr->condc;
@@ -1242,7 +1214,7 @@ static void ccs_del_condition(struct ccs_condition *ptr)
 	}
 	for (i = 0; i < symlinkc; i++)
 		ccs_put_name(symlinkp[i].value);
-	ccs_memory_free(ptr, sizeof(*ptr));
+	return ptr->size;
 }
 
 static int ccs_gc_thread(void *unused)
@@ -1250,7 +1222,7 @@ static int ccs_gc_thread(void *unused)
 	static DEFINE_MUTEX(ccs_gc_mutex);
 	static LIST_HEAD(ccs_gc_queue);
 	if (!mutex_trylock(&ccs_gc_mutex))
-		return 0;
+		goto out;
 	mutex_lock(&ccs_policy_lock);
 	{
 		struct ccs_globally_readable_file_entry *ptr;
@@ -1361,7 +1333,6 @@ static int ccs_gc_thread(void *unused)
 				break;
 		}
 	}
-	mutex_unlock(&ccs_policy_lock);
 	{
 		struct ccs_domain_info *domain;
 		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
@@ -1469,56 +1440,61 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
 			switch (p->type) {
 			case CCS_ID_DOMAIN_INITIALIZER:
-				ccs_del_domain_initializer(p->element);
+				size = ccs_del_domain_initializer(p->element);
 				break;
 			case CCS_ID_DOMAIN_KEEPER:
-				ccs_del_domain_keeper(p->element);
+				size = ccs_del_domain_keeper(p->element);
 				break;
 			case CCS_ID_ALIAS:
-				ccs_del_alias(p->element);
+				size = ccs_del_alias(p->element);
 				break;
 			case CCS_ID_GLOBALLY_READABLE:
-				ccs_del_allow_read(p->element);
+				size = ccs_del_allow_read(p->element);
 				break;
 			case CCS_ID_PATTERN:
-				ccs_del_file_pattern(p->element);
+				size = ccs_del_file_pattern(p->element);
 				break;
 			case CCS_ID_NO_REWRITE:
-				ccs_del_no_rewrite(p->element);
+				size = ccs_del_no_rewrite(p->element);
 				break;
 			case CCS_ID_MANAGER:
-				ccs_del_manager(p->element);
+				size = ccs_del_manager(p->element);
 				break;
 			case CCS_ID_GLOBAL_ENV:
-				ccs_del_allow_env(p->element);
+				size = ccs_del_allow_env(p->element);
 				break;
 			case CCS_ID_AGGREGATOR:
-				ccs_del_aggregator(p->element);
+				size = ccs_del_aggregator(p->element);
 				break;
 			case CCS_ID_PATH_GROUP_MEMBER:
-				ccs_del_path_group_member(p->element);
+				size = ccs_del_path_group_member(p->element);
 				break;
 			case CCS_ID_PATH_GROUP:
-				ccs_del_path_group(p->element);
+				size = ccs_del_path_group(p->element);
 				break;
 			case CCS_ID_ADDRESS_GROUP_MEMBER:
-				ccs_del_address_group_member(p->element);
+				size = ccs_del_address_group_member(p->element);
 				break;
 			case CCS_ID_ADDRESS_GROUP:
-				ccs_del_address_group(p->element);
+				size = ccs_del_address_group(p->element);
 				break;
 			case CCS_ID_RESERVEDPORT:
-				ccs_del_reservedport(p->element);
+				size = ccs_del_reservedport(p->element);
 				break;
 			case CCS_ID_CONDITION:
-				ccs_del_condition(p->element);
+				size = ccs_del_condition(p->element);
 				break;
 			case CCS_ID_ACL:
-				ccs_del_acl(p->element);
+				size = ccs_del_acl(p->element);
 				break;
 			case CCS_ID_DOMAIN:
-				if (!ccs_del_domain(p->element))
+				size = ccs_del_domain(p->element);
+				if (!size)
 					continue;
+				break;
+			default:
+				size = 0;
+				printk(KERN_WARNING "Unknown type\n");
 				break;
 			}
 			ccs_memory_free(p->element, size);
@@ -1528,7 +1504,20 @@ static int ccs_gc_thread(void *unused)
 	}
  done:
 	mutex_unlock(&ccs_gc_mutex);
-	return 0;
+ out:
+	do_exit(0);
+}
+
+void ccs_run_gc(void)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	struct task_struct *task = kthread_create(ccs_gc_thread, NULL,
+						  "GC for CCS");
+	if (!IS_ERR(task))
+		wake_up_process(task);
+#else
+	kernel_thread(ccs_gc_thread, NULL, 0);
+#endif
 }
 
 #ifndef _LINUX_SRCU_H

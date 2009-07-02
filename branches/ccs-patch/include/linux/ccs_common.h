@@ -696,6 +696,8 @@ struct ccs_io_buffer {
 	int write_avail;
 	/* Size of write buffer.                */
 	int writebuf_size;
+	/* Type of this interface.              */
+	u8 type;
 };
 
 /* Prototype definition. */
