@@ -170,7 +170,7 @@ static int ccs_update_globally_readable_entry(const char *filename,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->filename = saved_filename;
 		saved_filename = NULL;
 		list_add_tail_rcu(&entry->list, &ccs_globally_readable_list);
@@ -278,7 +278,7 @@ static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 		error = 0;
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		INIT_LIST_HEAD(&entry->path_group_member_list);
 		entry->group_name = saved_group_name;
 		saved_group_name = NULL;
@@ -335,7 +335,7 @@ static int ccs_update_path_group_entry(const char *group_name,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->member_name = saved_member_name;
 		saved_member_name = NULL;
 		list_add_tail_rcu(&entry->list, &group->path_group_member_list);
@@ -469,7 +469,7 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->pattern = saved_pattern;
 		saved_pattern = NULL;
 		list_add_tail_rcu(&entry->list, &ccs_pattern_list);
@@ -584,7 +584,7 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->pattern = saved_pattern;
 		saved_pattern = NULL;
 		list_add_tail_rcu(&entry->list, &ccs_no_rewrite_list);
@@ -893,7 +893,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		error = ccs_add_domain_acl(NULL, &acl->head);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = type;
 		entry->handler = saved_filename;
 		saved_filename = NULL;
@@ -1048,7 +1048,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_SINGLE_PATH_ACL;
 		entry->head.cond = condition;
 		entry->perm = perm;
@@ -1158,7 +1158,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_DOUBLE_PATH_ACL;
 		entry->head.cond = condition;
 		entry->perm = perm;
@@ -1703,7 +1703,7 @@ static int ccs_update_ioctl_acl(const char *filename,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_IOCTL_ACL;
 		entry->head.cond = condition;
 		entry->u_is_group = is_group;

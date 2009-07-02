@@ -127,6 +127,48 @@
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+static inline void __list_add_rcu(struct list_head *new,
+				  struct list_head *prev,
+				  struct list_head *next)
+{
+	new->next = next;
+	new->prev = prev;
+	rcu_assign_pointer(prev->next, new);
+	next->prev = new;
+}
+
+static inline void list_add_tail_rcu(struct list_head *new,
+				     struct list_head *head)
+{
+	__list_add_rcu(new, head->prev, head);
+}
+
+static inline void list_add_rcu(struct list_head *new, struct list_head *head)
+{
+	__list_add_rcu(new, head, head->next);
+}
+
+#ifndef LIST_POISON2
+#define LIST_POISON2  ((void *) 0x00200200)
+#endif
+
+static inline void list_del_rcu(struct list_head *entry)
+{
+	__list_del(entry->prev, entry->next);
+	entry->prev = LIST_POISON2;
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30)
+#ifndef ssleep
+#define ssleep(secs) {                              \
+	set_current_state(TASK_UNINTERRUPTIBLE);    \
+	schedule_timeout((HZ * secs) + 1);          \
+}
+#endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
 #else
 #include <linux/audit.h>

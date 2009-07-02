@@ -85,7 +85,7 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 			error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_PIVOT_ROOT_ACL;
 		entry->head.cond = condition;
 		entry->old_root = saved_old_root;

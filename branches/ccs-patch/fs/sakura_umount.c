@@ -77,7 +77,7 @@ static int ccs_update_umount_acl(const char *dir,
 			error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_UMOUNT_ACL;
 		entry->head.cond = condition;
 		entry->dir = saved_dir;

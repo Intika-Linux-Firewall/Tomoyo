@@ -175,7 +175,7 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->domainname = saved_domainname;
 		saved_domainname = NULL;
 		entry->program = saved_program;
@@ -346,7 +346,7 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->domainname = saved_domainname;
 		saved_domainname = NULL;
 		entry->program = saved_program;
@@ -501,7 +501,7 @@ static int ccs_update_alias_entry(const char *original_name,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->original_name = saved_original_name;
 		saved_original_name = NULL;
 		entry->aliased_name = saved_aliased_name;
@@ -603,7 +603,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->original_name = saved_original_name;
 		saved_original_name = NULL;
 		entry->aggregated_name = saved_aggregated_name;
@@ -724,7 +724,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		found = true;
 		break;
 	}
-	if (!found && ccs_memory_ok(entry)) {
+	if (!found && ccs_memory_ok(entry, sizeof(*entry))) {
 		INIT_LIST_HEAD(&entry->acl_info_list);
 		entry->domainname = saved_domainname;
 		saved_domainname = NULL;

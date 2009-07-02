@@ -79,7 +79,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_ARGV0_ACL;
 		entry->head.cond = condition;	
 		entry->filename = saved_filename;

@@ -121,7 +121,7 @@ static int ccs_update_capability_acl(const u8 operation,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_CAPABILITY_ACL;
 		entry->head.cond = condition;
 		entry->operation = operation;

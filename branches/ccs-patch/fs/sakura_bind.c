@@ -52,7 +52,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->min_port = min_port;
 		entry->max_port = max_port;
 		list_add_tail_rcu(&entry->list, &ccs_reservedport_list);

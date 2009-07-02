@@ -152,7 +152,7 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 			error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_MOUNT_ACL;
 		entry->head.cond = condition;
 		entry->dev_name = saved_dev;

@@ -450,17 +450,17 @@ static unsigned int ccs_quota_for_elements;
 /**
  * ccs_memory_ok - Check memory quota.
  *
- * @ptr: Pointer to allocated memory.
+ * @ptr:  Pointer to allocated memory.
+ * @size: Size in byte.
  *
  * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
  */
-bool ccs_memory_ok(const void *ptr)
+bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
-	const unsigned int len = ptr ? ksize(ptr) : 0;
-	if (len && (!ccs_quota_for_elements ||
-		    atomic_read(&ccs_allocated_memory_for_elements) + len
+	if (ptr && (!ccs_quota_for_elements ||
+		    atomic_read(&ccs_allocated_memory_for_elements) + size
 		    <= ccs_quota_for_elements)) {
-		atomic_add(len, &ccs_allocated_memory_for_elements);
+		atomic_add(size, &ccs_allocated_memory_for_elements);
 		return true;
 	}
 	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
@@ -473,7 +473,7 @@ bool ccs_memory_ok(const void *ptr)
  * ccs_memory_free - Free memory for elements.
  *
  * @ptr:  Pointer to allocated memory.
- * @size: Size of @ptr .
+ * @size: Size in byte.
  */
 static void ccs_memory_free(const void *ptr, size_t size)
 {
@@ -591,7 +591,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		error = 0;
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
 		ptr->addr = *addr;
 		atomic_set(&ptr->users, 1);
@@ -668,7 +668,7 @@ void ccs_put_condition(struct ccs_condition *cond)
 	}
 	for (i = 0; i < symlinkc; symlinkp++, i++)
 		ccs_put_name(symlinkp->value);
-	ccs_memory_free(cond, ksize(cond));
+	ccs_memory_free(cond, cond->size);
 }
 
 static atomic_t ccs_allocated_memory_for_savename;
@@ -680,6 +680,7 @@ static unsigned int ccs_quota_for_savename;
 struct ccs_name_entry {
 	struct list_head list;
 	atomic_t users;
+	int size;
 	struct ccs_path_info entry;
 };
 
@@ -718,7 +719,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		goto out;
 	}
 	ptr = kzalloc(sizeof(*ptr) + len, GFP_KERNEL);
-	allocated_len = ptr ? ksize(ptr) : 0;
+	allocated_len = ptr ? sizeof(*ptr) + len : 0;
 	if (!allocated_len ||
 	    (ccs_quota_for_savename &&
 	     atomic_read(&ccs_allocated_memory_for_savename) + allocated_len
@@ -735,6 +736,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	memmove((char *) ptr->entry.name, name, len);
 	atomic_set(&ptr->users, 1);
 	ccs_fill_path_info(&ptr->entry);
+	ptr->size = allocated_len;
 	list_add_tail(&ptr->list, &ccs_name_list[hash % MAX_HASH]);
  out:
 	mutex_unlock(&ccs_name_list_lock);
@@ -763,7 +765,7 @@ void ccs_put_name(const struct ccs_path_info *name)
 	mutex_unlock(&ccs_name_list_lock);
 	/***** EXCLUSIVE SECTION END *****/
 	if (can_delete) {
-		atomic_sub(ksize(ptr), &ccs_allocated_memory_for_savename);
+		atomic_sub(ptr->size, &ccs_allocated_memory_for_savename);
 		kfree(ptr);
 	}
 }
@@ -1560,7 +1562,7 @@ void synchronize_srcu(struct srcu_struct *sp)
 	v = sp->counter[idx];
 	spin_unlock(&ccs_counter_lock);
 	while (v) {
-		msleep(1000);
+		ssleep(1);
 		spin_lock(&ccs_counter_lock);
 		v = sp->counter[idx];
 		spin_unlock(&ccs_counter_lock);

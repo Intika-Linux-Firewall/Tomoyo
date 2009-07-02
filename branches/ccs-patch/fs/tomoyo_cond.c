@@ -646,57 +646,6 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 	return false;
 }
 
-#if 0
-/**
- * ccs_find_same_condition - Search for same condition list.
- *
- * @new_ptr: Pointer to "struct ccs_condition".
- * @size:    Size of @new_ptr.
- *
- * Returns existing pointer to "struct ccs_condition" if the same entry was
- * found, NULL if memory allocation failed, @new_ptr otherwise.
- */
-static struct ccs_condition *
-ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
-{
-	struct ccs_condition *ptr;
-	int error = -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
-		if (memcmp(&ptr->head, &new_ptr->head, sizeof(ptr->head)) ||
-		    memcmp(ptr + 1, new_ptr + 1, size - sizeof(*ptr)))
-			continue;
-		/* Same entry found. Share this entry. */
-		/*
-		printk(KERN_INFO "Same condition found. %p -> %p\n", new_ptr,
-		       ptr);
-		*/
-		atomic_inc(&ptr->users);
-		kfree(new_ptr);
-		new_ptr = ptr;
-		error = 0;
-		break;
-	}
-	if (error) {
-		if (ccs_memory_ok(new_ptr)) {
-			/*
-			printk(KERN_INFO "New condition added. %p\n", new_ptr);
-			*/
-			list_add_rcu(&new_ptr->list, &ccs_condition_list);
-			error = 0;
-		} else {
-			/*
-			printk(KERN_INFO "Out of memory. %p\n", new_ptr);
-			*/
-			kfree(new_ptr);
-			new_ptr = NULL;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	return new_ptr;
-}
-#endif
-
 /**
  * ccs_get_condition - Parse condition part.
  *
@@ -706,7 +655,7 @@ ccs_find_same_condition(struct ccs_condition *new_ptr, const u32 size)
  */
 struct ccs_condition *ccs_get_condition(char * const condition)
 {
-	static const u8 offset = offsetof(struct ccs_condition, condc);
+	static const u8 offset = offsetof(struct ccs_condition, size);
 	char *start = condition;
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
@@ -824,6 +773,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	entry = kzalloc(size, GFP_KERNEL);
 	if (!entry)
 		return NULL;
+	entry->size = size;
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
@@ -984,9 +934,14 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		found = true;
 		break;
 	}
-	if (!found && ccs_memory_ok(entry)) {
-		atomic_set(&entry->users, 1);
-		list_add_rcu(&entry->list, &ccs_condition_list);
+	if (!found) {
+		if (ccs_memory_ok(entry, size)) {
+			atomic_set(&entry->users, 1);
+			list_add_rcu(&entry->list, &ccs_condition_list);
+		} else {
+			found = true;
+			ptr = NULL;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	if (found) {

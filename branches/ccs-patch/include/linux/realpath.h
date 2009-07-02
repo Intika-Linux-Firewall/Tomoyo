@@ -37,7 +37,7 @@ char *ccs_encode(const char *str);
 int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
 
 /*  Check memory quota. */
-bool ccs_memory_ok(const void *ptr);
+bool ccs_memory_ok(const void *ptr, const unsigned int size);
 
 /* Allocate memory for the given name. */
 const struct ccs_path_info *ccs_get_name(const char *name);

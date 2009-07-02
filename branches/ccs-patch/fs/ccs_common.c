@@ -1066,7 +1066,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	ptr = ccs_profile_ptr[profile];
-	if (!ptr && ccs_memory_ok(entry)) {
+	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
 		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
 			ptr->value[i] = ccs_control_array[i].current_value;
@@ -1278,7 +1278,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->manager = saved_manager;
 		saved_manager = NULL;
 		entry->is_domain = is_domain;

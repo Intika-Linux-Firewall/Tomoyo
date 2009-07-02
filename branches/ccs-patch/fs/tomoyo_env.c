@@ -65,7 +65,7 @@ static int ccs_update_globally_usable_env_entry(const char *env,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->env = saved_env;
 		saved_env = NULL;
 		list_add_tail_rcu(&entry->list, &ccs_globally_usable_env_list);
@@ -181,7 +181,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_ENV_ACL;
 		entry->head.cond = condition;
 		entry->env = saved_env;

@@ -102,6 +102,7 @@ struct ccs_obj_info {
 struct ccs_condition {
 	struct list_head list;
 	atomic_t users;
+	u32 size;
 	u16 condc;
 	u16 argc;
 	u16 envc;

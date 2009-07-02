@@ -88,7 +88,7 @@ static struct ccs_address_group_entry *ccs_get_address_group(const char *
 		error = 0;
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		INIT_LIST_HEAD(&entry->address_group_member_list);
 		entry->group_name = saved_group_name;
 		saved_group_name = NULL;
@@ -162,7 +162,7 @@ static int ccs_update_address_group_entry(const char *group_name,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry)) {
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->is_ipv6 = is_ipv6;
 		if (is_ipv6) {
 			entry->min.ipv6 = saved_min_address;
@@ -507,7 +507,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_IP_NETWORK_ACL;
 		entry->head.cond = condition;
 		entry->operation_type = operation;

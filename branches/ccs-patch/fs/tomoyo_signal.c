@@ -84,7 +84,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
-	if (error && ccs_memory_ok(entry)) {
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_SIGNAL_ACL;
 		entry->head.cond = condition;
 		entry->sig = hash;
