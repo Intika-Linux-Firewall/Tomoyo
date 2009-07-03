@@ -1978,3 +1978,12 @@ Fix 2009/05/20
       change to ccs_recvmsg_permission().
 
 Version 1.6.8 2009/05/28   Feature enhancement release.
+
+Fix 2009/07/03
+
+    @ Fix buffer overrun when used with CONFIG_SLOB=y .
+
+      Since 1.6.7 , ccs_allocate_execve_entry() was requesting for only 4000
+      bytes while the comment says it is 4096 bytes. This may lead to buffer
+      overrun when slob allocator is used, for slob allocator allocates exactly
+      4000 bytes whereas slab and slub allocators allocate 4096 bytes.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.8+   2009/07/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1227,7 +1227,7 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 		return NULL;
 	memset(ee, 0, sizeof(*ee));
 	ee->program_path = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
-	ee->tmp = ccs_alloc(CCS_MAX_PATHNAME_LEN, false);
+	ee->tmp = ccs_alloc(CCS_EXEC_TMPSIZE, false);
 	if (!ee->program_path || !ee->tmp) {
 		ccs_free(ee->program_path);
 		ccs_free(ee->tmp);
