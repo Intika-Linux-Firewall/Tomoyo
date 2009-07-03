@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
  %define dist AXS2
 -%define release 78.13%{?dist}%{axbsys}
-+%define release 78.13%{?dist}%{axbsys}_tomoyo_1.6.8
++%define release 78.13%{?dist}%{axbsys}_tomoyo_1.6.8p1
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
