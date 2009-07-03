@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/05/28
+ * Version: 1.7.0-pre   2009/07/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1161,9 +1161,8 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	struct ccs_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return NULL;
-	memset(ee, 0, sizeof(*ee));
 	ee->program_path = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
-	ee->tmp = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
+	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
 	if (!ee->program_path || !ee->tmp) {
 		kfree(ee->program_path);
 		kfree(ee->tmp);
