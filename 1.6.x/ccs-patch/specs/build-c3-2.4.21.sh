@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 58.EL
-+%define release 58.EL_tomoyo_1.6.8
++%define release 58.EL_tomoyo_1.6.8p1
  %define sublevel 21
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}

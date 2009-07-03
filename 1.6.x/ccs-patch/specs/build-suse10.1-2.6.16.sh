@@ -97,7 +97,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  Version:        2.6.16.54
 -Release: 0.2.5
-+Release: 0.2.5_tomoyo_1.6.8
++Release: 0.2.5_tomoyo_1.6.8p1
  Summary:        The Standard Kernel
  License:        GPL v2 or later
  Group:          System/Kernel

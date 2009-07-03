@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 76.49%{_dist_release}
-+%define release 76.49%{_dist_release}_tomoyo_1.6.8
++%define release 76.49%{_dist_release}_tomoyo_1.6.8p1
  
  %define make_target bzImage
  
