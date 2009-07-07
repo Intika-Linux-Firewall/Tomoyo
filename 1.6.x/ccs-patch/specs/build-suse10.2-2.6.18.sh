@@ -62,7 +62,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-source-2.6.18.8-0.13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/suse/suse/update/10.2/rpm/src/kernel-source-2.6.18.8-0.13.src.rpm || die "Can't download source package."
+    wget http://suse.inode.at/pub/update/10.2/rpm/src/kernel-source-2.6.18.8-0.13.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-source-2.6.18.8-0.13.src.rpm || die "Can't install source package."
 

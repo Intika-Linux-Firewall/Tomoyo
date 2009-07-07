@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.27.25-170.2.72.fc10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't install source package."
 
