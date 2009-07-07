@@ -2355,8 +2355,6 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 	if (ccs_str_starts(&data, KEYWORD_NO_INITIALIZE_DOMAIN))
 		return ccs_write_domain_initializer_policy(data, true,
 							   is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ALIAS))
-		return ccs_write_alias_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_AGGREGATOR))
 		return ccs_write_aggregator_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_ALLOW_READ))
@@ -2409,11 +2407,6 @@ static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 			head->read_step = 4;
 		case 4:
 			if (!ccs_read_domain_initializer_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 5;
-		case 5:
-			if (!ccs_read_alias_policy(head))
 				break;
 			head->read_var2 = NULL;
 			head->read_step = 6;

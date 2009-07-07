@@ -325,44 +325,19 @@ char *ccs_realpath(const char *pathname)
 }
 
 /**
- * ccs_realpath_both - Get realpath of a pathname and symlink.
+ * ccs_symlink_path - Get symlink's pathname.
  *
  * @pathname: The pathname to solve.
  * @ee:       Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
+int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee)
 {
 	struct nameidata nd;
 	int ret;
-	bool is_symlink;
 	if (!pathname ||
 	    path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &nd))
-		return -ENOENT;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	is_symlink = nd.path.dentry->d_inode &&
-		S_ISLNK(nd.path.dentry->d_inode->i_mode);
-	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
-					ee->tmp, CCS_EXEC_TMPSIZE - 1);
-	path_put(&nd.path);
-#else
-	is_symlink = nd.dentry->d_inode && S_ISLNK(nd.dentry->d_inode->i_mode);
-	ret = ccs_realpath_from_dentry2(nd.dentry, nd.mnt, ee->tmp,
-					CCS_EXEC_TMPSIZE - 1);
-	path_release(&nd);
-#endif
-	if (ret)
-		return -ENOMEM;
-	if (strlen(ee->tmp) > CCS_MAX_PATHNAME_LEN - 1)
-		return -ENOMEM;
-	ee->program_path[CCS_MAX_PATHNAME_LEN - 1] = '\0';
-	if (!is_symlink) {
-		strncpy(ee->program_path, ee->tmp,
-			CCS_MAX_PATHNAME_LEN - 1);
-		return 0;
-	}
-	if (path_lookup(pathname, ccs_lookup_flags, &nd))
 		return -ENOENT;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
@@ -374,7 +349,7 @@ int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee)
 					CCS_MAX_PATHNAME_LEN - 1);
 	path_release(&nd);
 #endif
-	return ret ? -ENOMEM : 0;
+	return ret;
 }
 
 /**
@@ -895,7 +870,6 @@ enum ccs_gc_id {
 	CCS_ID_AGGREGATOR,
 	CCS_ID_DOMAIN_INITIALIZER,
 	CCS_ID_DOMAIN_KEEPER,
-	CCS_ID_ALIAS,
 	CCS_ID_GLOBALLY_READABLE,
 	CCS_ID_PATTERN,
 	CCS_ID_NO_REWRITE,
@@ -958,13 +932,6 @@ static size_t ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
 {
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
-	return sizeof(*ptr);
-}
-
-static size_t ccs_del_alias(struct ccs_alias_entry *ptr)
-{
-	ccs_put_name(ptr->original_name);
-	ccs_put_name(ptr->aliased_name);
 	return sizeof(*ptr);
 }
 
@@ -1300,17 +1267,6 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
-		struct ccs_alias_entry *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_alias_list, list) {
-			if (!ptr->is_deleted)
-				continue;
-			if (ccs_add_to_gc(CCS_ID_ALIAS, ptr, &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
-	{
 		struct ccs_policy_manager_entry *ptr;
 		list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
 			if (!ptr->is_deleted)
@@ -1444,9 +1400,6 @@ static int ccs_gc_thread(void *unused)
 				break;
 			case CCS_ID_DOMAIN_KEEPER:
 				size = ccs_del_domain_keeper(p->element);
-				break;
-			case CCS_ID_ALIAS:
-				size = ccs_del_alias(p->element);
 				break;
 			case CCS_ID_GLOBALLY_READABLE:
 				size = ccs_del_allow_read(p->element);

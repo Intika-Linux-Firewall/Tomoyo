@@ -34,7 +34,7 @@ char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 char *ccs_encode(const char *str);
 
 /* Get ccs_realpath() of both symlink and dereferenced pathname. */
-int ccs_realpath_both(const char *pathname, struct ccs_execve_entry *ee);
+int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
 
 /* Check memory quota. */
 bool ccs_memory_ok(const void *ptr, const unsigned int size);

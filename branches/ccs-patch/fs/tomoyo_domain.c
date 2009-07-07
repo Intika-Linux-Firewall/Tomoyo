@@ -459,108 +459,6 @@ static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 	return flag;
 }
 
-/* The list for "struct ccs_alias_entry". */
-LIST_HEAD(ccs_alias_list);
-
-/**
- * ccs_update_alias_entry - Update "struct ccs_alias_entry" list.
- *
- * @original_name: The original program's real name.
- * @aliased_name:  The symbolic program's symbolic link's name.
- * @is_delete:     True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_alias_entry(const char *original_name,
-				  const char *aliased_name,
-				  const bool is_delete)
-{
-	struct ccs_alias_entry *entry = NULL;
-	struct ccs_alias_entry *ptr;
-	const struct ccs_path_info *saved_original_name;
-	const struct ccs_path_info *saved_aliased_name;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(original_name, 1, -1, -1) ||
-	    !ccs_is_correct_path(aliased_name, 1, -1, -1))
-		return -EINVAL; /* No patterns allowed. */
-	saved_original_name = ccs_get_name(original_name);
-	saved_aliased_name = ccs_get_name(aliased_name);
-	if (!saved_original_name || !saved_aliased_name) {
-		ccs_put_name(saved_original_name);
-		ccs_put_name(saved_aliased_name);
-		return -ENOMEM;
-	}
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &ccs_alias_list, list) {
-		if (ptr->original_name != saved_original_name ||
-		    ptr->aliased_name != saved_aliased_name)
-			continue;
-		ptr->is_deleted = is_delete;
-		error = 0;
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->original_name = saved_original_name;
-		saved_original_name = NULL;
-		entry->aliased_name = saved_aliased_name;
-		saved_aliased_name = NULL;
-		list_add_tail_rcu(&entry->list, &ccs_alias_list);
-		entry = NULL;
-		error = 0;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_original_name);
-	ccs_put_name(saved_aliased_name);
-	kfree(entry);
-	return error;
-}
-
-/**
- * ccs_read_alias_policy - Read "struct ccs_alias_entry" list.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-bool ccs_read_alias_policy(struct ccs_io_buffer *head)
-{
-	struct list_head *pos;
-	bool done = true;
-	list_for_each_cookie(pos, head->read_var2, &ccs_alias_list) {
-		struct ccs_alias_entry *ptr;
-		ptr = list_entry(pos, struct ccs_alias_entry, list);
-		if (ptr->is_deleted)
-			continue;
-		done = ccs_io_printf(head, KEYWORD_ALIAS "%s %s\n",
-				     ptr->original_name->name,
-				     ptr->aliased_name->name);
-		if (!done)
-			break;
-	}
-	return done;
-}
-
-/**
- * ccs_write_alias_policy - Write "struct ccs_alias_entry" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_alias_policy(char *data, const bool is_delete)
-{
-	char *cp = strchr(data, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	return ccs_update_alias_entry(data, cp, is_delete);
-}
-
 /* The list for "struct ccs_aggregator_entry". */
 LIST_HEAD(ccs_aggregator_list);
 
@@ -816,21 +714,18 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	const u32 ccs_flags = current->ccs_flags;
 	char *new_domain_name = NULL;
 	struct ccs_path_info rn; /* real name */
-	struct ccs_path_info sn; /* symlink name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
-	/* Get realpath of program and symbolic link. */
-	retval = ccs_realpath_both(bprm->filename, ee);
+	/* Get symlink's pathname of program. */
+	retval = ccs_symlink_path(bprm->filename, ee);
 	if (retval < 0)
 		goto out;
 
 	rn.name = ee->program_path;
 	ccs_fill_path_info(&rn);
-	sn.name = ee->tmp;
-	ccs_fill_path_info(&sn);
 	ln.name = ccs_get_last_name(r->domain);
 	ccs_fill_path_info(&ln);
 
@@ -847,23 +742,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		}
 		goto calculate_domain;
 	}
-
-	/* Check 'alias' directive. */
-	if (ccs_pathcmp(&rn, &sn)) {
-		struct ccs_alias_entry *ptr;
-		/* Is this program allowed to be called via symbolic links? */
-		list_for_each_entry_rcu(ptr, &ccs_alias_list, list) {
-			if (ptr->is_deleted ||
-			    ccs_pathcmp(&rn, ptr->original_name) ||
-			    ccs_pathcmp(&sn, ptr->aliased_name))
-				continue;
-			strncpy(ee->program_path, ptr->aliased_name->name,
-				CCS_MAX_PATHNAME_LEN - 1);
-			ccs_fill_path_info(&rn);
-			break;
-		}
-	}
-	/* sn will be overwritten after here. */
 
 	/* Compare basename of program_path and argv[0] */
 	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_ARGV0);

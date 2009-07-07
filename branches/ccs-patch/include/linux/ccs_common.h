@@ -328,14 +328,6 @@ struct ccs_aggregator_entry {
 	bool is_deleted;
 };
 
-/* Structure for "alias" keyword. */
-struct ccs_alias_entry {
-	struct list_head list;
-	const struct ccs_path_info *original_name;
-	const struct ccs_path_info *aliased_name;
-	bool is_deleted;
-};
-
 /* Structure for "allow_unmount" keyword. */
 struct ccs_umount_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_UMOUNT_ACL */
@@ -607,7 +599,6 @@ enum ccs_ip_record_type {
 /* Keywords for ACLs. */
 #define KEYWORD_ADDRESS_GROUP             "address_group "
 #define KEYWORD_AGGREGATOR                "aggregator "
-#define KEYWORD_ALIAS                     "alias "
 #define KEYWORD_ALLOW_ARGV0               "allow_argv0 "
 #define KEYWORD_ALLOW_CAPABILITY          "allow_capability "
 #define KEYWORD_ALLOW_CHROOT              "allow_chroot "
@@ -732,8 +723,6 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 /* Read "aggregator" entry in exception policy. */
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
-/* Read "alias" entry in exception policy. */
-bool ccs_read_alias_policy(struct ccs_io_buffer *head);
 /*
  * Read "initialize_domain" and "no_initialize_domain" entry
  * in exception policy.
@@ -811,8 +800,6 @@ int ccs_read_reject_log(struct ccs_io_buffer *head);
 int ccs_write_address_group_policy(char *data, const bool is_delete);
 /* Create "aggregator" entry in exception policy. */
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
-/* Create "alias" entry in exception policy. */
-int ccs_write_alias_policy(char *data, const bool is_delete);
 /* Create "allow_argv0" entry in domain policy. */
 int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
@@ -959,7 +946,6 @@ extern struct list_head ccs_no_rewrite_list;
 extern struct list_head ccs_globally_usable_env_list;
 extern struct list_head ccs_domain_initializer_list;
 extern struct list_head ccs_domain_keeper_list;
-extern struct list_head ccs_alias_list;
 extern struct list_head ccs_aggregator_list;
 extern struct list_head ccs_condition_list;
 extern struct list_head ccs_reservedport_list;
