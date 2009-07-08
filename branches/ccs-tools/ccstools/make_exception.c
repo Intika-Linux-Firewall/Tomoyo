@@ -128,7 +128,7 @@ static void printf_encoded(const char *str, const unsigned int flags)
 			if (c == '/') {
 				const size_t numbers = strspn(p, "0123456789");
 				const char c2 = p[numbers];
-				if (numbers && (c2 == '/' || !c)) {
+				if (numbers && (c2 == '/' || !c2)) {
 					found = 1;
 					break;
 				}
@@ -148,7 +148,7 @@ static void printf_encoded(const char *str, const unsigned int flags)
 		     flags == SCANDIR_MUST_CONTAIN_NUMBER_WILDCARD)) {
 			const size_t numbers = strspn(str, "0123456789");
 			const char c2 = str[numbers];
-			if (numbers && (c2 == '/' || !c)) {
+			if (numbers && (c2 == '/' || !c2)) {
 				printf("/\\$");
 				str += numbers;
 				continue;
