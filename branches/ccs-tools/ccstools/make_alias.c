@@ -95,38 +95,56 @@ static void scan_symlink(char *path)
 	free(cp);
 }
 
-static int scandir_filter(const struct dirent *buf)
+static unsigned char revalidate_path(const char *path)
 {
-	return buf->d_type == DT_LNK || buf->d_type == DT_DIR;
+	struct stat buf;
+	unsigned char type = DT_UNKNOWN;
+	fprintf(stderr, "Revalidate %s ", path);
+	if (!lstat(path, &buf)) {
+		if (S_ISREG(buf.st_mode))
+			type = DT_REG;
+		else if (S_ISREG(buf.st_mode))
+			type = DT_DIR;
+		else if (S_ISLNK(buf.st_mode))
+			type = DT_LNK;
+	}
+	if (type == DT_UNKNOWN)
+		fprintf(stderr, "failed\n");
+	else
+		fprintf(stderr, "ok\n");
+	return type;
 }
 
-static void scan_dir(const char *dir)
+static int scandir_filter(const struct dirent *buf)
+{
+	return (buf->d_type == DT_UNKNOWN || buf->d_type == DT_LNK ||
+		buf->d_type == DT_DIR) &&
+		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
+}
+
+static char path[8192];
+
+static void scan_dir(void)
 {
 	static struct stat buf;
-	static char path[8192];
-	static _Bool first = 1;
 	struct dirent **namelist;
 	int i;
-	int n = scandir(dir, &namelist, scandir_filter, 0);
+	int len;
+	int n = scandir(path[0] ? path : "/", &namelist, scandir_filter, 0);
 	if (n < 0)
 		return;
-	if (first) {
-		memset(path, 0, sizeof(path));
-		if (strcmp(dir, "/"))
-			strncpy(path, dir, sizeof(path) - 1);
-		first = 0;
-	}
+	len = strlen(path);
 	for (i = 0; i < n; i++) {
-		const char *cp = namelist[i]->d_name;
-		const unsigned char type = namelist[i]->d_type;
-		const int len = strlen(path);
-		snprintf(path + len, sizeof(path) - len - 1, "/%s", cp);
+		unsigned char type = namelist[i]->d_type;
+		snprintf(path + len, sizeof(path) - len - 1, "/%s",
+			 namelist[i]->d_name);
+		if (type == DT_UNKNOWN)
+			type = revalidate_path(path);
 		if (type == DT_LNK && !stat(path, &buf) &&
 		    S_ISREG(buf.st_mode) && (buf.st_mode & 0111))
 			scan_symlink(path);
-		else if (type == DT_DIR && strcmp(cp, ".") && strcmp(cp, ".."))
-			scan_dir(path);
-		path[len] = '\0';
+		else if (type == DT_DIR)
+			scan_dir();
 		free((void *) namelist[i]);
 	}
 	free((void *) namelist);
@@ -134,8 +152,9 @@ static void scan_dir(const char *dir)
 
 int main(int argc, char *argv[])
 {
+	memset(path, 0, sizeof(path));
 	if (argc > 1 && (chroot(argv[1]) || chdir("/")))
 		return 1;
-	scan_dir("/");
+	scan_dir();
 	return 0;
 }
