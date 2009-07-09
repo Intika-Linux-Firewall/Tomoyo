@@ -8,6 +8,75 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <limits.h>
+#include <sys/vfs.h>
+
+#if defined(__GLIBC__)
+static inline char *get_realpath(const char *path)
+{
+	return realpath(path, NULL);
+}
+#else
+static char *get_realpath(const char *path)
+{
+	struct stat buf;
+	static const int pwd_len = PATH_MAX * 2;
+	char *dir = strdup(path);
+	char *pwd = malloc(pwd_len);
+	char *basename = NULL;
+	int len;
+	if (stat(dir, &buf))
+		goto out;
+	if (!dir || !pwd)
+		goto out;
+	len = strlen(dir);
+	while (len > 1 && dir[len - 1] == '/')
+		dir[--len] = '\0';
+	while (!lstat(dir, &buf) && S_ISLNK(buf.st_mode)) {
+		char *new_dir;
+		char *old_dir = dir;
+		memset(pwd, 0, pwd_len);
+		if (readlink(dir, pwd, pwd_len - 1) < 1)
+			goto out;
+		if (pwd[0] == '/') {
+			dir[0] = '\0';
+		} else {
+			char *cp = strrchr(dir, '/');
+			if (cp)
+				*cp = '\0';
+		}
+		len = strlen(dir) + strlen(pwd) + 4;
+		new_dir = malloc(len);
+		if (new_dir)
+			snprintf(new_dir, len - 1, "%s/%s", dir, pwd);
+		dir = new_dir;
+		free(old_dir);
+	}
+	if (!dir || !pwd)
+		goto out;
+	basename = strrchr(dir, '/');
+	if (basename)
+		*basename++ = '\0';
+	else
+		basename = "";
+	if (chdir(dir))
+		goto out;
+	memset(pwd, 0, pwd_len);
+	if (!getcwd(pwd, pwd_len - 1))
+		goto out;
+	if (strcmp(pwd, "/"))
+		len = strlen(pwd);
+	else
+		len = 0;
+	snprintf(pwd + len, pwd_len - len - 1, "/%s", basename);
+	free(dir);
+	return pwd;
+ out:
+	free(dir);
+	free(pwd);
+	return NULL;
+}
+#endif
 
 #define elementof(x) (sizeof(x) / sizeof(x[0]))
 
@@ -93,6 +162,13 @@ static int scandir_file_and_dir_filter(const struct dirent *buf)
 		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
 }
 
+static int scandir_symlink_and_dir_filter(const struct dirent *buf)
+{
+	return (buf->d_type == DT_LNK || buf->d_type == DT_DIR ||
+		buf->d_type == DT_UNKNOWN) &&
+		strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
+}
+
 static unsigned char revalidate_path(const char *path)
 {
 	struct stat buf;
@@ -103,6 +179,8 @@ static unsigned char revalidate_path(const char *path)
 			type = DT_REG;
 		else if (S_ISDIR(buf.st_mode))
 			type = DT_DIR;
+		else if (S_ISLNK(buf.st_mode))
+			type = DT_LNK;
 	}
 	if (type == DT_UNKNOWN)
 		fprintf(stderr, "failed\n");
@@ -339,6 +417,103 @@ static void scan_executable_files(const char *dir)
 	free((void *) namelist);
 }
 
+static void scan_symlink(char *path)
+{
+	char *base1;
+	char *base2;
+	char *cp = strrchr(path, '/');
+	struct statfs buf;
+	int ret;
+	if (!cp)
+		return;
+	*cp = '\0';
+	ret = statfs(path, &buf);
+	*cp = '/';
+	if (ret)
+		return;
+	switch (buf.f_type) {
+	case 0x00009FA0: /* proc */
+	case 0x62656572: /* sys */
+	case 0x64626720: /* debug */
+	case 0x73636673: /* security */
+	case 0x00009FA2: /* usb */
+	case 0x0027E0EB: /* cgroup */
+	case 0x0BAD1DEA: /* futex */
+	case 0x2BAD1DEA: /* inotify */
+	case 0x00001373: /* device */
+	case 0x00001CD1: /* devpts */
+	case 0x42494E4D: /* binfmt_misc */
+	case 0x67596969: /* rpc_pipefs */
+	case 0x19800202: /* mqueue */
+	case 0xABABABAB: /* vmblock */
+		return;
+	}
+	if (statfs(path, &buf))
+		return;
+	switch (buf.f_type) {
+	case 0x00009FA0: /* proc */
+	case 0x62656572: /* sys */
+	case 0x64626720: /* debug */
+	case 0x73636673: /* security */
+	case 0x00009FA2: /* usb */
+	case 0x0027E0EB: /* cgroup */
+	case 0x0BAD1DEA: /* futex */
+	case 0x2BAD1DEA: /* inotify */
+	case 0x00001373: /* device */
+	case 0x00001CD1: /* devpts */
+	case 0x42494E4D: /* binfmt_misc */
+	case 0x67596969: /* rpc_pipefs */
+	case 0x19800202: /* mqueue */
+	case 0xABABABAB: /* vmblock */
+		return;
+	}
+	cp = get_realpath(path);
+	if (!cp)
+		return;
+	base1 = strrchr(path, '/');
+	base2 = strrchr(cp, '/');
+	if (strcmp(base1, base2) && strncmp(base1, "/lib", 4) &&
+	    !strstr(base1, ".so")) {
+		printf("alias ");
+		printf_encoded(cp, 0);
+		putchar(' ');
+		printf_encoded(path, 0);
+		putchar('\n');
+	}
+	free(cp);
+}
+
+static void scan_dir_for_alias(_Bool first)
+{
+	static struct stat buf;
+	struct dirent **namelist;
+	int n = scandir(first ? "/" : path, &namelist,
+			scandir_symlink_and_dir_filter, 0);
+	int len;
+	int i;
+	if (n < 0)
+		return;
+	if (first) {
+		keyword = NULL;
+		memset(path, 0, sizeof(path));
+	}
+	len = strlen(path);
+	for (i = 0; i < n; i++) {
+		unsigned char type = namelist[i]->d_type;
+		snprintf(path + len, sizeof(path) - len - 1, "/%s",
+			 namelist[i]->d_name);
+		if (type == DT_UNKNOWN)
+			type = revalidate_path(path);
+		if (type == DT_LNK && !stat(path, &buf) &&
+		    S_ISREG(buf.st_mode) && (buf.st_mode & 0111))
+			scan_symlink(path);
+		else if (type == DT_DIR)
+			scan_dir_for_alias(0);
+		free((void *) namelist[i]);
+	}
+	free((void *) namelist);
+}
+
 static void scan_modprobe_and_hotplug(void)
 {
 	/* Make /sbin/modprobe and /sbin/hotplug as initializers. */
@@ -360,7 +535,7 @@ static void scan_modprobe_and_hotplug(void)
 			*cp = '\0';
 		if (!buffer[0])
 			continue;
-		cp = realpath(buffer, NULL);
+		cp = get_realpath(buffer);
 		if (!cp)
 			continue;
 		if (strcmp(cp, "/bin/true") && !access(cp, X_OK)) {
@@ -494,7 +669,7 @@ static void make_globally_readable_files(void)
 	int i;
 	keyword = "allow_read";
 	for (i = 0; i < elementof(files); i++) {
-		char *cp = realpath(files[i], NULL);
+		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
 		printf_encoded(cp, 0);
@@ -528,7 +703,7 @@ static void make_ldconfig_readable_files(void)
 		cp = strstr(path, " => ");
 		if (!cp)
 			continue;
-		cp = realpath(cp + 4, NULL);
+		cp = get_realpath(cp + 4);
 		if (!cp)
 			continue;
 		printf_encoded(cp, 0);
@@ -540,7 +715,7 @@ static void make_ldconfig_readable_files(void)
 static void make_init_dir_as_initializers(void)
 {
 	/* Mark programs under /etc/init.d/ directory as initializer. */
-	char *dir = realpath("/etc/init.d/", NULL);
+	char *dir = get_realpath("/etc/init.d/");
 	if (!dir)
 		return;
 	keyword = "initialize_domain";
@@ -608,7 +783,7 @@ static void make_initializers(void)
 	int i;
 	keyword = "initialize_domain";
 	for (i = 0; i < elementof(files); i++) {
-		char *cp = realpath(files[i], NULL);
+		char *cp = get_realpath(files[i]);
 		if (!cp)
 			continue;
 		if (!access(cp, X_OK))
@@ -1024,6 +1199,9 @@ static void make_deny_rewrite_for_log_directory(void)
 
 int main(int argc, char *argv[])
 {
+	memset(path, 0, sizeof(path));
+	if (argc > 1 && (chroot(argv[1]) || chdir("/")))
+		return 1;
 	scan_modprobe_and_hotplug();
 	make_patterns_for_proc_directory();
 	make_patterns_for_dev_directory();
@@ -1065,5 +1243,6 @@ int main(int argc, char *argv[])
 	make_patterns_for_postgresql();
 	make_patterns_for_misc();
 	make_deny_rewrite_for_log_directory();
+	scan_dir_for_alias(1);
 	return 0;
 }
