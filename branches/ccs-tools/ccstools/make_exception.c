@@ -101,7 +101,7 @@ static unsigned char revalidate_path(const char *path)
 	if (!lstat(path, &buf)) {
 		if (S_ISREG(buf.st_mode))
 			type = DT_REG;
-		else if (S_ISREG(buf.st_mode))
+		else if (S_ISDIR(buf.st_mode))
 			type = DT_DIR;
 	}
 	if (type == DT_UNKNOWN)
