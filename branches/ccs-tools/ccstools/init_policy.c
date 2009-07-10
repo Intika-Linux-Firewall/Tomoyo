@@ -403,6 +403,80 @@ static void scan_dir_for_read2(_Bool flag, int const_len)
 	free((void *) namelist);
 }
 
+static void scan_init_scripts(void)
+{
+	struct dirent **namelist;
+	int n = scandir(path, &namelist, scandir_symlink_and_dir_filter, 0);
+	int len;
+	int i;
+	if (n < 0)
+		return;
+	len = strlen(path);
+	for (i = 0; i < n; i++) {
+		const char *name = namelist[i]->d_name;
+		unsigned char type = namelist[i]->d_type;
+		snprintf(path + len, sizeof(path) - len - 1, "/%s", name);
+		if (type == DT_UNKNOWN)
+			type = revalidate_path(path);
+		if (type == DT_DIR)
+			scan_init_scripts();
+		else if (type == DT_LNK
+			 && (name[0] == 'S' || name[0] == 'K')
+			 && (name[1] >= '0' && name[1] <= '9')
+			 && (name[2] >= '0' && name[2] <= '9')
+			 && !access(path, X_OK)) {
+			char *entity = get_realpath(path);
+			path[len] = '\0';
+			if (entity) {
+				char *cp = strrchr(path, '/');
+				fprintf(filp, "aggregator ");
+				if (cp && !strncmp(cp, "/rc", 3) &&
+				    ((cp[3] >= '0' && cp[3] <= '6') ||
+				     cp[3] == 'S') && !strcmp(cp + 4, ".d")) {
+					*cp = '\0';
+					printf_encoded(path, 0);
+					fprintf(filp, "/rc\\?.d");
+					*cp = '/';
+				} else
+					printf_encoded(path, 0);
+				fprintf(filp, "/\\?\\+\\+");
+				printf_encoded(name + 3, 0);
+				fputc(' ', filp);
+				printf_encoded(entity, 0);
+				fputc('\n', filp);
+				free(entity);
+			}
+		}
+		free((void *) namelist[i]);
+	}
+	free((void *) namelist);
+}
+
+static void make_init_scripts_as_aggregators(void)
+{
+	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
+	static const char *dirs[] = {
+		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
+		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
+		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
+		"/etc/rc.d/rc0.d", "/etc/rc.d/rc1.d", "/etc/rc.d/rc2.d",
+		"/etc/rc.d/rc3.d", "/etc/rc.d/rc4.d", "/etc/rc.d/rc5.d",
+		"/etc/rc.d/rc6.d",
+	};
+	int i;
+	keyword = NULL;
+	memset(path, 0, sizeof(path));
+	for (i = 0; i < elementof(dirs); i++) {
+		char *dir = get_realpath(dirs[i]);
+		if (!dir)
+			continue;
+		strncpy(path, dir, sizeof(path) - 1);
+		free(dir);
+		if (!strcmp(path, dirs[i]))
+			scan_init_scripts();
+	}
+}
+
 static void scan_dir_pattern(const char *dir)
 {
 	keyword = "allow_read";
@@ -1304,6 +1378,8 @@ static void make_exception_policy(void)
 	make_deny_rewrite_for_log_directory();
 	if (ccs_version < 170 || ccs_version >= 220)
 		scan_dir_for_alias(1);
+	else
+		make_init_scripts_as_aggregators();
 	fclose(filp);
 	filp = NULL;
 	if (!chdir(policy_dir) &&
