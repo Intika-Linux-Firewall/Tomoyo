@@ -296,7 +296,17 @@ static _Bool mount_securityfs(void)
 			umount("/sys/");
 		return 0;
 	}
+	/*
+	 * Use /etc/tomoyo/ instead of /etc/ccs/ and
+	 * /sys/kernel/security/tomoyo/ instead of /proc/ccs/ .
+	 */
 	policy_dir = "/etc/tomoyo/";
+	proc_manager = "/sys/kernel/security/tomoyo/manager";
+	proc_system_policy = NULL;
+	proc_exception_policy = "/sys/kernel/security/tomoyo/exception_policy";
+	proc_domain_policy = "/sys/kernel/security/tomoyo/domain_policy";
+	proc_profile = "/sys/kernel/security/tomoyo/profile";
+	proc_meminfo = "/sys/kernel/security/tomoyo/meminfo";
 	ccs_version = 220;
 	return 1;
 }
