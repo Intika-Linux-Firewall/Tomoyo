@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <limits.h>
 #include <sys/vfs.h>
+#include <errno.h>
 
 static void panic(void)
 {
@@ -60,6 +61,7 @@ static void check_arg(const char *arg)
 	else if (!strcmp(arg, "CCS=disabled"))
 		profile_name = "disable";
 	else if (!strncmp(arg, "CCS=", 4)) {
+		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "profile-%s.conf",
 			 arg + 4);
@@ -110,7 +112,12 @@ static void ask_profile(void)
 		profile_name = "";
 		printf("> ");
 		memset(input, 0, sizeof(input));
-		scanf(input, sizeof(input) - 1);
+		fgets(input, sizeof(input) - 1, stdin);
+		{
+			char *cp = strchr(input, '\n');
+			if (cp)
+				*cp = '\0';
+		}
 		if (chdir_ok) {
 			if (!strcmp(input, "default")) {
 				if (!access("profile.conf", R_OK)) {
@@ -121,7 +128,7 @@ static void ask_profile(void)
 				memset(buffer, 0, sizeof(buffer));
 				snprintf(buffer, sizeof(buffer) - 1,
 					 "profile-%s.conf", input);
-				if (!access(profile_name, R_OK)) {
+				if (!access(buffer, R_OK)) {
 					profile_name = strdup(buffer);
 					if (!profile_name)
 						panic();
@@ -144,8 +151,11 @@ static void copy_files(const char *src1, const char *src2, const char *dest)
 {
 	int sfd;
 	int dfd = open(dest, O_WRONLY);
-	if (dfd == EOF)
+	if (dfd == EOF) {
+		if (errno != ENOENT)
+			panic();
 		return;
+	}
 	sfd = open(src1, O_RDONLY);
 	if (sfd != EOF) {
 		while (1) {
@@ -179,20 +189,16 @@ static void scan_used_profile_index(void)
 		return;
 	checked = 1;
 	fp = fopen(proc_domain_policy, "r");
-	if (fp) {
-		for (i = 0; i < 256; i++)
-			profile_used[i] = 0;
-		while (memset(buffer, 0, sizeof(buffer)),
-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
-			if (sscanf(buffer, "use_profile %u", &i) == 1 &&
-			    i < 256)
-				profile_used[i] = 1;
-		}
-		fclose(fp);
-	} else {
-		for (i = 0; i < 256; i++)
+	if (!fp)
+		panic();
+	for (i = 0; i < 256; i++)
+		profile_used[i] = 0;
+	while (memset(buffer, 0, sizeof(buffer)),
+	       fgets(buffer, sizeof(buffer) - 1, fp)) {
+		if (sscanf(buffer, "use_profile %u", &i) == 1 && i < 256)
 			profile_used[i] = 1;
 	}
+	fclose(fp);
 }
 
 static void disable_profile(void)
@@ -200,6 +206,8 @@ static void disable_profile(void)
 	FILE *fp_out = fopen(proc_profile, "w");
 	FILE *fp_in;
 	int i;
+	if (!fp_out)
+		panic();
 	scan_used_profile_index();
 	for (i = 0; i < 256; i++) {
 		if (!profile_used[i])
@@ -209,6 +217,8 @@ static void disable_profile(void)
 	fclose(fp_out);
 	fp_in = fopen(proc_profile, "r");
 	fp_out = fopen(proc_profile, "w");
+	if (!fp_in || !fp_out)
+		panic();
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
 		unsigned int count;
@@ -232,7 +242,7 @@ static void disable_verbose(void)
 	unsigned int i;
 	FILE *fp = fopen(proc_profile, "w");
 	if (!fp)
-		return;
+		panic();
 	scan_used_profile_index();
 	for (i = 0; i < 256; i++)
 		if (profile_used[i])
@@ -346,11 +356,15 @@ int main(int argc, char *argv[])
 	
 	/* Check /proc/cmdline and /proc/self/cmdline */
 	{
+		char *cp;
 		int i;
 		int fd = open("/proc/cmdline", O_RDONLY);
 		memset(buffer, 0, sizeof(buffer));
 		read(fd, buffer, sizeof(buffer) - 1);
 		close(fd);
+		cp = strchr(buffer, '\n');
+		if (cp)
+			*cp = '\0';
 		while (1) {
 			char *cp = strchr(buffer, ' ');
 			if (cp)
