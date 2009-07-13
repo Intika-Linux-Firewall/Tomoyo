@@ -112,7 +112,68 @@ service httpd restart
 
 <p>If the profile is configured as "TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.</p>
 
-<p>If the "TOMOYO-WARNING:" messages are no longer printed when you have likely done everything you want Apache to allow, proceed to the next step.</p>
+<p><img src="permissive-warning.png" width="720" height="400"></p>
+
+<p>If you have configured audit logs at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up neccesary permissions from autit logs using "grep".</p>
+
+<table border="1">
+<tr><td>
+# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/share/horde/admin/sqlshell.php<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/share/pear/DB.php<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/lib/gconv/EUC-JP.so<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/lib/gconv/libJIS.so<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/share/horde/lib/Horde/CLI.php<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+allow_read /usr/share/horde/js/stripe.js
+</td></tr>
+</table>
+
+<p>You can compress these logs using "ccs-sortpolicy" command.</p>
+
+<table border="1">
+<tr><td>
+# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/sbin/ccs-sortpolicy<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-07-13 16:40:22# profile=2 mode=permissive pid=7132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+allow_read /usr/lib/gconv/EUC-JP.so<br>
+allow_read /usr/lib/gconv/libJIS.so<br>
+allow_read /usr/share/horde/admin/sqlshell.php<br>
+allow_read /usr/share/horde/js/stripe.js<br>
+allow_read /usr/share/horde/lib/Horde/CLI.php<br>
+allow_read /usr/share/pear/DB.php
+</td></tr>
+</table>
+
+<p>You can save the compressed logs into a temporary file. Then, you can edit as you need and append to currently used policy in the kernel using "ccs-loadpolicy". ccs-editpolicy's "-" option means read from stdin, "d" option means domain_policy.conf .</p>
+
+<table border="1">
+<tr><td>
+# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/sbin/ccs-sortpolicy &gt; ~/rejected.log<br>
+# emacs ~/rejected.log<br>
+# ccs-loadpolicy -d &lt; ~/rejected.log
+</td></tr>
+</table>
+
+<p>If the "TOMOYO-WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step.</p>
 
 <p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this proceedure.</p>
 
