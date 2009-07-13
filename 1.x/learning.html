@@ -38,6 +38,8 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
 
+<p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
+
 <p>Press 's' key and entry '1' and press 'Enter' key.</p>
 
 <p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
@@ -46,9 +48,15 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
+<p>Press 'q' key to quit the policy editor. Then, run "ccs-ccstree" and verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
 
+<p><img src="ccstree-httpd1.png" width="1108" height="722"></p>
 
-<p>Press 'q' key to quit the policy editor. Then, restart the Apache in order to learn necessary permissions for starting/finishing the Apache.</p>
+<hr>
+
+<h2>Step 2: Gathering necessary permissions</h2>
+
+<p>Restart the Apache in order to learn necessary permissions for starting/finishing the Apache.</p>
 
 <table border="1">
 <tr><td>
@@ -58,239 +66,13 @@ service httpd restart
 
 <p>Run TOMOYO's policy editor again and goto the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
 
+<p>Press 'Enter' key to browse the permissions gathered by now.</p>
+
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
-<hr>
+<p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
 
-<p>The following is the basic procedure for creating domain policy.</p>
-
-<ol>
-<li>Create domains
-<li>Append ACLs to domains
-<li>Confirm ACLs for domains
-<li>Enforce using ACLs
-</ol>
-
-<p>You don't need to create the whole policy for all allications at one time.</p>
-
-<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) and invoke applications. The purpose of this procedure is to create domains for applications.</p>
-
-<p>For example, if you want to protect /usr/sbin/httpd , firstly create domains for /usr/sbin/httpd .
-If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
-
-<p>Assign a profile that doesn't perform MAC (in this manual, profile 0) to the domain current process (normally a shell) belongs to using "ccs-setprofile" command.</p>
-
-<table border="1">
-<tr><td>
-xargs -0 /usr/sbin/ccs-setprofile 0 &lt; /proc/ccs/self_domain
-</td></tr>
-</table>
-
-<p>This is needed to avoid assigning a profile that performs MAC in "enforcing mode" to the newly created domain, for newly created domain inherits the creator's profile.</p>
-
-<p>Start /usr/sbin/httpd .</p>
-
-<table border="1">
-<tr><td>
-service httpd start
-</td></tr>
-</table>
-
-<p>You can use the following command to confirm that the domain is created. Make sure the domain for application you want to protect is created.</p>
-
-<table border="1">
-<tr><td>
-less /proc/ccs/.domain_status
-</td></tr>
-</table>
-
-<p>After you confirmed that the domain is created, proceed to the next step.</p>
-
-<h3>(2) Append ACLs to domains</h3>
-
-<p>After you confirmed that the domain is created, assign a profile that perform MAC in "learning mode" (in this manual, profile 1) to the domain using "ccs-setprofile" command.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
-
-<p>Start /usr/sbin/httpd and let the system append ACLs needed for /usr/sbin/httpd .</p>
-
-<table border="1">
-<tr><td>
-service httpd restart
-</td></tr>
-</table>
-
-<p>If the profile is configured as "1-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
-But regarding "learning mode", the "TOMOYO-WARNING:" messages are printed only once because necessary ACLs are automatically appended when you do the same operation again.</p>
-
-<p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
-
-<h3>(3) Confirm ACLs for domains</h3>
-
-<p>After you judged that necessary ACLs are appended, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain using "ccs-setprofile" command.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
-
-<p>Start /usr/sbin/httpd and confirm that all necessary ACLs are appended.</p>
-
-<p>If the profile is configured as "2-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.
-Regarding "permissive mode", the "TOMOYO-WARNING:" messages are printed again because necessary ACLs are not automatically appended when you do the same operation again.</p>
-
-<p>If the "TOMOYO-WARNING:" messages are no longer printed when you do the operation you want to allow, proceed to the next step.</p>
-
-<h3>(4) Enforce using ACLs</h3>
-
-<p>After you judged that necessary ACLs are given, assign a profile that perform MAC in "enforcing mode" (in this manual, profile 3) to the domain using "ccs-setprofile" command.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
-
-<p>And now, /usr/sbin/httpd is protected by MAC.</p>
-
-<p>If the profile is configured with "3-TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-ERROR:" messages will be printed to the console and the requests are rejected when policy violation occurs. Also, the history of policy violation is accumulated to /proc/ccs/reject_log .</p>
-
-<h2>Creating policy all at once using "permissive mode"</h2>
-
-<p>TOMOYO Linux allows administrators generate domain policy from policy violation logs. If you want to do so, assign a profile that perform MAC in "permissive mode" (in this manual, profile 2) to the domain.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
-</td></tr>
-</table>
-
-<p>The log file /var/log/tomoyo/reject_log.conf created by "ccs-auditd" contains list of ACLs that violated domain policy in time series.
-Select appropriate range and pass to the filter as show below. This filter program sorts by domains and removes duplicated entries. (In other words, "sort" by domains and "uniq".)</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.conf
-</td></tr>
-</table>
-
-<p>Check the output and judge whether these ACLs should be added or not. And if you judged to add, add to /etc/ccs/domain_policy.conf and run "ccs-loadpolicy" to reload domain policy.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-loadpolicy d
-</td></tr>
-</table>
-
-<p>If you run "ccs-loadpolicy" with "f" option (i.e. "ccs-loadpolicy df"), the domain policy currently in the kernel are erased before the domain policy currently on the disk is loaded.</p>
-
-<h3>Operation Example</h3>
-
-<p>Rename the current reject log file. "ccs-auditd" will detect the  disappearance of the current reject log file and recreates it.</p>
-<table border="1">
-<tr><td>
-[root@sakura tomoyo]# mv /var/log/tomoyo/reject_log.conf /var/log/tomoyo/reject_log.tmp<br>
-</td></tr>
-</table>
-<p>Check the logs. Select ranges you want to use using some text editor if necessary.</p>
-<table border="1">
-<tr><td>
-[root@sakura tomoyo]# cat /var/log/tomoyo/reject_log.tmp<br>
-#2006-11-10 10:17:29# pid=4498 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-allow_read /etc/inittab<br>
-<br>
-#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-allow_read /etc/resolv.conf<br>
-<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
-allow_execute /usr/bin/whoami<br>
-<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-allow_read /etc/nsswitch.conf<br>
-<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-allow_read /etc/passwd<br>
-<br>
-</td></tr>
-</table>
-<p>Sort the log by domains.</p>
-<table border="1">
-<tr><td>
-[root@sakura tomoyo]# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/reject_log.tmp<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
-<br>
-allow_execute /usr/bin/whoami<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-<br>
-allow_read /etc/inittab<br>
-allow_read /etc/resolv.conf<br>
-#2006-11-10 10:17:41# pid=4501 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-<br>
-allow_read /etc/nsswitch.conf<br>
-allow_read /etc/passwd<br>
-#2006-11-10 10:18:00# pid=4502 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0<br>
-<br>
-</td></tr>
-</table>
-<p>Since the line of timestamp is disturbing, remove lines starting with # before sorting.</p>
-<table border="1">
-<tr><td>
-[root@sakura tomoyo]# grep -v '^#' /var/log/tomoyo/reject_log.tmp | /usr/sbin/ccs-sortpolicy &gt; /var/log/tomoyo/diff.tmp<br>
-</td></tr>
-</table>
-<p>Check the output. This is in the form of domain policy.</p>
-<table border="1">
-<tr><td>
-[root@sakura tomoyo]# cat /var/log/tomoyo/diff.tmp<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh<br>
-<br>
-allow_execute /usr/bin/whoami<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /bin/cat<br>
-<br>
-allow_read /etc/inittab<br>
-allow_read /etc/resolv.conf<br>
-<br>
-&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh /usr/bin/whoami<br>
-<br>
-allow_read /etc/nsswitch.conf<br>
-allow_read /etc/passwd<br>
-<br>
-</td></tr>
-</table>
-
-<h2>Creating policy interactively using "enforcing mode"</h2>
-
-<p>TOMOYO Linux allows administrators modify policies when the system is running in "enforcing mode". If you want to do so, start "ccs-queryd" command. The "ccs-queryd" command detects the policy violations and shows ACLs needed for allowing the requests. You can judge and append these ACLs to domain policy manually.</p>
-
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-queryd
-</td></tr>
-</table>
-
-<p>If "ccs-queryd" is running, the access requests that violated policy are kept pending. Otherwise, the access requests that violated policy are rejected immediately.</p>
-
-<p>To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) if "ccs-queryd" is running.</p>
-
-<p>To terminate "ccs-queryd", use Ctrl-C. </p>
-
-<h2>Saving Policy</h2>
+<p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
 
 <p>To save the policy currently in the kernel onto the disk, use "ccs-savepolicy" command.</p>
 
@@ -300,9 +82,7 @@ allow_read /etc/passwd<br>
 </td></tr>
 </table>
 
-<p>By executing "savepolicy", three files ("system_policy.conf", "exception_policy.conf", "domain_policy.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
-
-<h2>Loading Policy</h2>
+<p>By executing "ccs-savepolicy", three files ("system_policy.conf", "exception_policy.conf", "domain_policy.conf") are created in the /etc/ccs/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
 
 <p>To load the policy currently on the disk into the kernel, use "ccs-loadpolicy" command.</p>
 
@@ -314,25 +94,32 @@ allow_read /etc/passwd<br>
 
 <p>The "a" option means load three files ("system_policy.conf", "exception_policy.conf", "domain_policy.conf"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
 
-<h2>Editing Policy</h2>
+<hr>
 
-<p>To edit the policy currently in the kernel, use "ccs-editpolicy" command. See <a href="tool-editpolicy.html">Using Policy Editor</a> for usage.</p>
+<h2>Step 3: Reviewing gathered permissions</h2>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-editpolicy
-</td></tr>
-</table>
+<p>After you came to think you have done roughly everything you want to allow Apache to do, run the policy editor and change the profile number to 2. Note that Apache may have executed some external programs (e.g. /bin/sh , /usr/bin/perl , /usr/lib/sendmail) and thus has descendant domains. Be sure to change the profile number for descendant domains if any as well as the /usr/sbin/httpd domain.</p>
 
-<p>To edit the policy currently on the disk, pass the policy directory /etc/ccs/ to "ccs-editpolicy" command. You can edit policy files in /etc/ccs/ directory using  "ccs-editpolicy" even when you are not running the system with TOMOYO Linux kernel.</p>
+<p>Choose target domains and press 's' key and entry '2' and press 'Enter' key.</p>
 
-<table border="1">
-<tr><td>
-/usr/sbin/ccs-editpolicy /etc/ccs/
-</td></tr>
-</table>
+<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
+
+<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 2.</p>
+
+<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
+
+<p>If the profile is configured as "TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.</p>
+
+<p>If the "TOMOYO-WARNING:" messages are no longer printed when you have likely done everything you want Apache to allow, proceed to the next step.</p>
+
+<p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this proceedure.</p>
+
+<p>If your purpose of using TOMOYO Linux is for protection, procees to next phase.</p>
 
 <hr>
+
 <p><a href="index.html">Return to index page.</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
