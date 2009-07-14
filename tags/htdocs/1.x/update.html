@@ -9,13 +9,98 @@
 <body>
 <p style="text-align:right;"><a href="update.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date: 2009-04-03 13:43:59 +0900 (Fri, 03 Apr 2009) $</p>
-<h1>Phase 6: Updating softwares in your system.</h1>
+<h1>Phase 5: Restricting your system's behavior.</h1>
 
-This page describes how to handle software updates.
+<p>This page describes how to use TOMOYO's enforcing mode and how to handle policy violations which arises in enforcing mode.</p>
 
 <hr>
 
-<h2>Step 1: Notes for updating packages</h2>
+<h2>Step 1: Enabling enforcing mode</h2>
+
+<p>After you came to think you have done everything, run the policy editor and change the profile number to 3.</p>
+
+<p>Run the policy editor. Choose target domains and press 's' key and enter '3' and press 'Enter' key.</p>
+
+<p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
+
+<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 3.</p>
+
+<p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor. Then, run "ccs-ccstree" and verify that /usr/sbin/httpd processes and descendant are assigned profile number 3.</p>
+
+<p><img src="ccstree-httpd3.png" width="1108" height="722"></p>
+
+<p>And now, /usr/sbin/httpd processes and descendant are protected by MAC, for the profile 3 was configured for enforcing file accesses control.</p>
+
+<p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
+
+
+<p>Let's try an operation which is permitted by policy.</p>
+
+<p><img src="operation-permitted.png" width="636" height="613"></p>
+
+<p>The operation was successfully completed, for sending mail is permitted by policy.</p>
+
+<p>Let's try an operation which is not permitted by policy.</p>
+
+<p><img src="unix-penguin.png" width="636" height="613"></p>
+
+<p>The operation was rejected. (Seemingly, it looks like it was successfully completed. But actually, the execution of /bin/cat was rejected as you can see warning message by /bin/mail that the input was empty.)</p>
+
+<p><img src="unix-penguin-rejected.png" width="636" height="613"></p>
+
+<p>If the profile is configured as "TOMOYO-VERBOSE=enabled" (this is default), the "TOMOYO-ERROR:" messages will be printed to the console and the requests are rejected when policy violation occurs.</p>
+
+<p><img src="enforcing-error.png" width="720" height="400"></p>
+
+<p>If you have configured audit logs at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up rejected requests from audit logs using "grep".</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
+#2009-07-14 15:59:08# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=ja_JP.UTF-8" "SHLVL=3" "LANGUAGE=ja_JP.UTF-8" }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /bin/cat<br>
+<br>
+#2009-07-14 15:59:09# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_read /bin/cat<br>
+<br>
+#2009-07-14 15:59:09# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_read /usr/lib/gconv/EUC-JP.so
+</td></tr>
+</table>
+
+<p>The first log reports that execution of /bin/cat was requested by /bin/sh which was invoked by /usr/sbin/httpd , and the command line argument was "cat /etc/passwd". As its first line has "mode=enforcing", this request was rejected.</p>
+
+<p>The second log reports that opening /bin/cat for reading requested by /bin/sh which was invoked by /usr/sbin/httpd was rejected. This is because that /bin/sh tries to open the requested program for reading when that program was not executed.</p>
+
+<p>If you have configured notification daemon at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "ccs-notifyd" program. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# mail<br>
+Mail version 8.1 6/6/93.&nbsp;&nbsp;Type ? for help.<br>
+"/var/spool/mail/root": 2 messages 2 new<br>
+&gt;N&nbsp;&nbsp;1 root@localhost.local&nbsp;&nbsp;Tue Jul 14 15:59&nbsp;&nbsp;18/1027<br>
+ N&nbsp;&nbsp;2 apache@localhost.loc&nbsp;&nbsp;Tue Jul 14 15:59&nbsp;&nbsp;13/622<br>
+&amp;<br>
+Message 1:<br>
+From root@localhost.localdomain&nbsp;&nbsp;Tue Jul 14 15:59:09 2009<br>
+Date: Tue, 14 Jul 2009 15:59:08 +0900<br>
+From: root &lt;root@localhost.localdomain&gt;<br>
+To: root@localhost.localdomain<br>
+<br>
+Q0-0<br>
+#2009-07-14 15:59:08# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=ja_JP.UTF-8" "SHLVL=3" "LANGUAGE=ja_JP.UTF-8" }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /bin/cat
+</td></tr>
+</table>
+
+<h2>Step 2: Handling policy violation arising in during software updates</h2>
 
 <p>Since the behavior of the system is restricted by policy, you may need to update policy when you update packages.</p>
 
@@ -33,9 +118,7 @@ This page describes how to handle software updates.
 
 <p>You can see a <a href="http://tomoyo.sourceforge.jp/data/update_demo.avi" target="_blank">demo movie</a> that explains you how to handle software updates. (To see this movie, you need to install VMware codec. You can download the codec from <a href="http://www.vmware.com/download/eula/moviedecoder_v55.html">here</a> if you are using Windows.)</p>
 
-<hr>
-
-<h2>Step 2: Handling policy violation arising in during software updates</h2>
+<h3>Operation example</h3>
 
 <p>Open a console or terminal window. Then, start the following program.</p>
 
