@@ -24,6 +24,9 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
+#include <linux/nsproxy.h>
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path

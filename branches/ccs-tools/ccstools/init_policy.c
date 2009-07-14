@@ -1308,17 +1308,31 @@ static void make_deny_rewrite_for_log_directory(void)
 	}
 }
 
-static const char *policy_dir = "/etc/ccs";
+static char *policy_dir = NULL;
 
 static void make_policy_dir(void)
 {
+	char *dir = policy_dir;
 	if (!chdir(policy_dir))
 		return;
-	fprintf(stderr, "Creating policy directory.\n");
-	mkdir("/etc/", 0755);
+	fprintf(stderr, "Creating policy directory... ");
+	while (1) {
+		const char c = *dir++;
+		if (!c)
+			break;
+		if (c != '/')
+			continue;
+		*(dir - 1) = '\0';
+		mkdir(policy_dir, 0700);
+		*(dir - 1) = '/';
+	}
 	mkdir(policy_dir, 0700);
-	chmod(policy_dir, 0700);
-	chown(policy_dir, 0, 0);
+	if (!chdir(policy_dir))
+		fprintf(stderr, "OK\n");
+	else {
+		fprintf(stderr, "failed.\n");
+		exit(1);
+	}
 }
 
 static void make_exception_policy(void)
@@ -1886,16 +1900,14 @@ static void make_domain_policy(void)
 int main(int argc, char *argv[])
 {
 	int i;
+	const char *dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "version=1.6.8")) {
-			policy_dir = "/etc/ccs";
 			ccs_version = 168;
 		} else if (!strcmp(arg, "version=1.7.0-pre")) {
-			policy_dir = "/etc/ccs";
 			ccs_version = 170;
 		} else if (!strcmp(arg, "version=2.2.0")) {
-			policy_dir = "/etc/tomoyo";
 			ccs_version = 220;
 		} else if (!strncmp(arg, "root=", 5)) {
 			if (chroot(arg + 5) || chdir("/")) {
@@ -1903,6 +1915,8 @@ int main(int argc, char *argv[])
 					arg + 5); 
 				return 1;
 			}
+		} else if (!strncmp(arg, "policy_dir=", 11)) {
+			dir = arg + 11;
 		} else if (!strcmp(arg, "--file-only-profile")) {
 			file_only_profile = 1;
 		} else if (!strcmp(arg, "--full-profile")) {
@@ -1912,6 +1926,13 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 	}
+	if (!dir) {
+		if (ccs_version == 220)
+			dir = "/etc/tomoyo";
+		else
+			dir = "/etc/ccs";
+	}
+	policy_dir = strdup(dir);
 	memset(path, 0, sizeof(path));
 	make_policy_dir();
 	make_exception_policy();
