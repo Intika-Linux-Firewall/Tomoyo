@@ -40,7 +40,7 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
 
-<p>Press 's' key and entry '1' and press 'Enter' key.</p>
+<p>Press 's' key and enter '1' and press 'Enter' key.</p>
 
 <p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
 
@@ -64,7 +64,7 @@ service httpd restart
 </td></tr>
 </table>
 
-<p>Run TOMOYO's policy editor again and goto the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
+<p>Run TOMOYO's policy editor again and go to the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
 
 <p>Press 'Enter' key to browse the permissions gathered by now.</p>
 
@@ -100,7 +100,7 @@ service httpd restart
 
 <p>After you came to think you have done roughly everything you want to allow Apache to do, run the policy editor and change the profile number to 2. Note that Apache may have executed some external programs (e.g. /bin/sh , /usr/bin/perl , /usr/lib/sendmail) and thus has descendant domains. Be sure to change the profile number for descendant domains if any as well as the /usr/sbin/httpd domain.</p>
 
-<p>Choose target domains and press 's' key and entry '2' and press 'Enter' key.</p>
+<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key.</p>
 
 <p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
 
@@ -114,7 +114,7 @@ service httpd restart
 
 <p><img src="permissive-warning.png" width="720" height="400"></p>
 
-<p>If you have configured audit logs at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up neccesary permissions from autit logs using "grep".</p>
+<p>If you have configured audit logs at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up necessary permissions from audit logs using "grep".</p>
 
 <table border="1">
 <tr><td>
@@ -175,9 +175,9 @@ allow_read /usr/share/pear/DB.php
 
 <p>If the "TOMOYO-WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step.</p>
 
-<p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this proceedure.</p>
+<p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
 
-<p>If your purpose of using TOMOYO Linux is for protection, procees to next phase.</p>
+<p>If your purpose of using TOMOYO Linux is for protection, proceed to next phase.</p>
 
 <hr>
 
