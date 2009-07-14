@@ -14,7 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
 
 /**
  * ccs_audit_argv0_log - Audit argv[0] log.

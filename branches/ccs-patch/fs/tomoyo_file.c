@@ -14,8 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
-#include <linux/binfmts.h>
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 /* Keyword array for single path operations. */

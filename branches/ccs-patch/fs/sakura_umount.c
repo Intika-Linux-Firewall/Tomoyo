@@ -12,14 +12,15 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
-#include <linux/realpath.h>
+#include <linux/slab.h>
+#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 #include <linux/mount.h>
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namespace.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/sakura.h>
 
 /**
  * ccs_audit_umount_log - Audit unmount log.

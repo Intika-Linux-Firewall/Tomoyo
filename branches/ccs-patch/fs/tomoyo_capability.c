@@ -14,7 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
 
 /**
  * ccs_cap2name - Convert capability operation to capability message.

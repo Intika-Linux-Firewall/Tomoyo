@@ -14,8 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
-#include <linux/version.h>
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)

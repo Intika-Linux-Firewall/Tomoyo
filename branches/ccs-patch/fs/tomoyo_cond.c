@@ -12,12 +12,9 @@
  *
  */
 
+#include <linux/slab.h>
 #include <linux/ccs_common.h>
-#include <linux/realpath.h>
-#include <linux/version.h>
-
 #include <linux/tomoyo.h>
-#include <linux/highmem.h>
 
 /**
  * ccs_check_argv - Check argv[] in "struct linux_binbrm".

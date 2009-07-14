@@ -12,10 +12,9 @@
  *
  */
 
+#include <linux/slab.h>
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
-#include <linux/highmem.h>
 
 /**
  * ccs_print_bprm - Print "struct linux_binprm" for auditing.

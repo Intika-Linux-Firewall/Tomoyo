@@ -12,10 +12,8 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
-#include <linux/tomoyo.h>
-#include <linux/realpath.h>
+#include <linux/slab.h>
+#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 #include <linux/mount.h>
 #include <linux/mnt_namespace.h>
@@ -23,11 +21,15 @@
 #include <linux/namespace.h>
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/dcache.h>
 #include <linux/namei.h>
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 #include <linux/nsproxy.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/sakura.h>
+#include <linux/tomoyo.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path

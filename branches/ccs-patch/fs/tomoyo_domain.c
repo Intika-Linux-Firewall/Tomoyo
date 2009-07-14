@@ -12,10 +12,9 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
-#include <linux/realpath.h>
+#include <linux/slab.h>
 #include <linux/highmem.h>
+#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
@@ -23,6 +22,8 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #include <linux/fs_struct.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/tomoyo.h>
 
 /* For compatibility with older kernels. */
 #ifndef for_each_process

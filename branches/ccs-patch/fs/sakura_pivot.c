@@ -12,14 +12,15 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
-#include <linux/realpath.h>
+#include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/dcache.h>
 #include <linux/namei.h>
 #else
 #include <linux/fs.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/sakura.h>
 
 /**
  * ccs_audit_pivot_root_log - Audit pivot_root log.

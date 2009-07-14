@@ -14,7 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/tomoyo.h>
-#include <linux/realpath.h>
 
 /**
  * ccs_audit_env_log - Audit environment variable name log.

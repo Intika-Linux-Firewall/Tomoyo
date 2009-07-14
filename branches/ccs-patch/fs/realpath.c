@@ -11,6 +11,7 @@
  * See README.ccs for ChangeLog.
  *
  */
+
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/utime.h>
@@ -28,13 +29,12 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW;
 #else
 static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
-#include <linux/proc_fs.h>
-#include <linux/ccs_common.h>
-#include <linux/realpath.h>
 #include <net/sock.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/kthread.h>
 #endif
+#include <linux/proc_fs.h>
+#include <linux/ccs_common.h>
 
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

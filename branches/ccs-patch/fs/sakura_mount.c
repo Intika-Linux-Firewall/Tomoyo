@@ -12,12 +12,17 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
-#include <linux/realpath.h>
+#include <linux/slab.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/dcache.h>
+#include <linux/namei.h>
+#endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 #include <linux/namespace.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/sakura.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
 #define MS_UNBINDABLE	(1<<17)	/* change to unbindable */
@@ -26,9 +31,7 @@
 #define MS_SHARED	(1<<20)	/* change to shared */
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-#include <linux/namei.h>
-#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 /* For compatibility with older kernels. */
 static inline void module_put(struct module *module)
 {

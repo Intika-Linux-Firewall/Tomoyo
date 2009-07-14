@@ -18,7 +18,6 @@
 #include <linux/proc_fs.h>
 #include <linux/module.h>
 #include <linux/version.h>
-#include <linux/ccs_proc.h>
 #include <linux/ccs_common.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)

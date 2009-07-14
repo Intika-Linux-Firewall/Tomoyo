@@ -650,6 +650,25 @@ enum ccs_profile_index {
 	CCS_MAX_CONTROL_INDEX
 };
 
+/* Indexes for /proc/ccs/ interfaces. */
+enum ccs_proc_interface_index {
+	CCS_DOMAINPOLICY,
+	CCS_EXCEPTIONPOLICY,
+	CCS_SYSTEMPOLICY,
+	CCS_DOMAIN_STATUS,
+	CCS_PROCESS_STATUS,
+	CCS_MEMINFO,
+	CCS_GRANTLOG,
+	CCS_REJECTLOG,
+	CCS_SELFDOMAIN,
+	CCS_VERSION,
+	CCS_PROFILE,
+	CCS_QUERY,
+	CCS_MANAGER,
+	CCS_UPDATESCOUNTER,
+	CCS_EXECUTE_HANDLER
+};
+
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
 	int (*read) (struct ccs_io_buffer *);
@@ -913,6 +932,34 @@ int ccs_check_exec_perm(struct ccs_request_info *r,
 void ccs_put_path_group(struct ccs_path_group_entry *group);
 /* Delete memory for "struct ccs_address_group_entry". */
 void ccs_put_address_group(struct ccs_address_group_entry *group);
+/*
+ * Returns realpath(3) of the given pathname but ignores chroot'ed root.
+ * These functions use kzalloc(), so caller must kfree()
+ * if these functions didn't return NULL.
+ */
+char *ccs_realpath(const char *pathname);
+/* Same with ccs_realpath() except that the pathname is already solved. */
+char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
+/* Encode binary string to ascii string. */
+char *ccs_encode(const char *str);
+/* Get ccs_realpath() of both symlink and dereferenced pathname. */
+int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
+/* Check memory quota. */
+bool ccs_memory_ok(const void *ptr, const unsigned int size);
+/* Allocate memory for the given name. */
+const struct ccs_path_info *ccs_get_name(const char *name);
+/* Delete memory for the given name. */
+void ccs_put_name(const struct ccs_path_info *name);
+/* Allocate memory for the given IPv6 address. */
+const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+/* Delete memory for the given IPv6 address. */
+void ccs_put_ipv6_address(const struct in6_addr *addr);
+/* Check for memory usage. */
+int ccs_read_memory_counter(struct ccs_io_buffer *head);
+/* Set memory quota. */
+int ccs_write_memory_quota(struct ccs_io_buffer *head);
+/* Start garbage collector thread. */
+void ccs_run_gc(void);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -959,6 +1006,11 @@ extern const char *ccs_log_level;
 extern struct ccs_domain_info ccs_kernel_domain;
 /* Lock for GC. */
 extern struct srcu_struct ccs_ss;
+
+extern unsigned int ccs_audit_log_memory_size;
+extern unsigned int ccs_quota_for_audit_log;
+extern unsigned int ccs_query_memory_size;
+extern unsigned int ccs_quota_for_query;
 
 #include <linux/dcache.h>
 extern spinlock_t vfsmount_lock;

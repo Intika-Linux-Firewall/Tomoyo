@@ -31,13 +31,11 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW;
 #else
 static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
-#include <linux/ccs_common.h>
-#include <linux/realpath.h>
-#include <linux/ccs_proc.h>
-#include <linux/tomoyo.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/unistd.h>
 #endif
+#include <linux/ccs_common.h>
+#include <linux/tomoyo.h>
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)

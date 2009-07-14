@@ -12,10 +12,6 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
-#include <linux/tomoyo_socket.h>
-#include <linux/realpath.h>
 #include <linux/net.h>
 #include <linux/inet.h>
 #include <linux/in.h>
@@ -23,6 +19,9 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
+#include <linux/ccs_common.h>
+#include <linux/tomoyo.h>
+#include <linux/tomoyo_socket.h>
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {

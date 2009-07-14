@@ -14,7 +14,6 @@
 
 #include <linux/ccs_common.h>
 #include <linux/sakura.h>
-#include <linux/realpath.h>
 
 /* The list for "struct ccs_reserved_entry". */
 LIST_HEAD(ccs_reservedport_list);
