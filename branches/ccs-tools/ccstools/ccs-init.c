@@ -279,9 +279,11 @@ static void show_memory_usage(void)
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		unsigned int size;
-		if (sscanf(buffer, "Shared: %u", &size) == 1)
+		if (sscanf(buffer, "Shared: %u", &size) == 1 ||
+		    sscanf(buffer, "Policy (string): %u", &size) == 1)
 			shared_mem = size;
-		else if (sscanf(buffer, "Private: %u", &size) == 1)
+		else if (sscanf(buffer, "Private: %u", &size) == 1 ||
+			 sscanf(buffer, "Policy (non-string): %u", &size) == 1)
 			private_mem = size;
 	}
 	fclose(fp);
@@ -296,7 +298,8 @@ static _Bool mount_securityfs(void)
 	if (lstat("/sys/kernel/", &buf) || !S_ISDIR(buf.st_mode))
 		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
 	/* Mount /sys/kernel/security if not mounted. */
-	if (lstat("/sys/kernel/security/", &buf) || !S_ISDIR(buf.st_mode))
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) ||
+	    !S_ISDIR(buf.st_mode))
 		security_unmount = !mount("none", "/sys/kernel/security",
 					  "securityfs", 0, NULL);
 	/* Unmount and exit if policy interface doesn't exist. */
