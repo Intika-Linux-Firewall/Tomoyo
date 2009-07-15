@@ -265,7 +265,8 @@ static void show_domain_usage(void)
 			acl++;
 	}
 	fclose(fp);
-	printf("%u domains. %u ACL entries.\n", domain, acl);
+	printf("%u domain%s. %u ACL entr%s.\n", domain, domain > 1 ? "s" : "",
+	       acl, acl > 1 ? "ies" : "y");
 }
 
 static void show_memory_usage(void)
@@ -284,7 +285,8 @@ static void show_memory_usage(void)
 			private_mem = size;
 	}
 	fclose(fp);
-	printf("%u KB shared. %u KB private.\n", shared_mem, private_mem);
+	printf("%u KB shared. %u KB private.\n", (shared_mem + 1023) / 1024,
+	       (private_mem + 1023) / 1024);
 }
 
 static _Bool mount_securityfs(void)

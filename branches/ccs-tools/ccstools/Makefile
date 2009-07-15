@@ -1,6 +1,6 @@
 INSTALLDIR = /
 
-MAIN_FILES = ccstools realpath make_alias
+MAIN_FILES = ccstools init_policy ccs-init
 
 MISC_FILES = makesyaoranconf candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param ccs-editpolicy-agent
 
@@ -19,13 +19,14 @@ install: all
 	cp -af --remove-destination ccstools ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
 	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/lib/ccs/ccstools $(INSTALLDIR)/usr/lib/ccs/$$i; done
 	for i in $(ALIAS_LIST); do ln -sf /usr/lib/ccs/$$i $(INSTALLDIR)/usr/sbin/ccs-`echo $$i | sed 's:^ccs-::'`; done
-	cp -af --remove-destination realpath make_alias domainmatch init_policy.sh tomoyo_init_policy.sh $(INSTALLDIR)/usr/lib/ccs/
+	cp -af --remove-destination init_policy domainmatch init_policy.sh tomoyo_init_policy.sh $(INSTALLDIR)/usr/lib/ccs/
 	cp -af --remove-destination $(MISC_FILES) $(INSTALLDIR)/usr/lib/ccs/misc/
 	cp -af --remove-destination README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
-	chown -R root:root ccs-init tomoyo-init $(INSTALLDIR)/usr/lib/ccs/
+	chown -R root:root ccs-init $(INSTALLDIR)/usr/lib/ccs/
 	chmod 4711 $(INSTALLDIR)/usr/lib/ccs/misc/force-logout
-	chmod 700 ccs-init tomoyo-init
-	cp -af --remove-destination ccs-init tomoyo-init $(INSTALLDIR)/sbin/
+	chmod 700 ccs-init
+	cp -af --remove-destination ccs-init $(INSTALLDIR)/sbin/
+	ln -f $(INSTALLDIR)/sbin/ccs-init $(INSTALLDIR)/sbin/tomoyo-init
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8/
 	cp -af --remove-destination man/man8/* $(INSTALLDIR)/usr/share/man/man8/
 
