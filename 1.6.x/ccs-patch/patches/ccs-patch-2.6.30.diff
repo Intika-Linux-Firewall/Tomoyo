@@ -275,7 +275,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +	if (!error)
 +		error = ccs_check_mknod_permission(nd.path.dentry->d_inode,
 +						   dentry, nd.path.mnt, mode,
-+						   dev);
++						   new_decode_dev(dev));
 +	/***** TOMOYO Linux end. *****/
  	if (error)
  		goto out_drop_write;
@@ -556,7 +556,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.1 2009/07/03\n");
++	printk(KERN_INFO "Hook version: 2.6.30.1 2009/07/17\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
