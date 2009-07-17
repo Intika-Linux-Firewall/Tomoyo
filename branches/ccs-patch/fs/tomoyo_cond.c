@@ -267,6 +267,38 @@ static bool ccs_scan_symlink(struct ccs_path_info *target,
 	return true;
 }
 
+/**
+ * ccs_scan_exepath - Scan executable's pathname.
+ *
+ * @file:     Pointer to "struct file".
+ * @exepathc: Length of @exepathp.
+ * @exepathp: Poiner to "struct ccs_exepath_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_scan_exepath(struct file *file, u16 exepathc,
+			     const struct ccs_exepath_entry *exepathp)
+{
+	struct ccs_path_info path;
+	if (!file)
+		return false;
+	path.name = ccs_realpath_from_dentry(file->f_dentry, file->f_vfsmnt);
+	if (!path.name)
+		return false;
+	ccs_fill_path_info(&path);
+	while (exepathc) {
+		const bool bool1 =
+			ccs_path_matches_pattern(&path, exepathp->value);
+		const bool bool2 = exepathp->is_not;
+		if (bool1 == bool2)
+			break;
+		exepathp++;
+		exepathc--;
+	}
+	kfree(path.name);
+	return !exepathc;
+}
+
 /* Value type definition. */
 #define VALUE_TYPE_DECIMAL     1
 #define VALUE_TYPE_OCTAL       2
@@ -483,6 +515,46 @@ static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
 	return false;
 }
 
+/**
+ * ccs_parse_exepathp - Parse an executable's pathname condition part.
+ *
+ * @start:    String to parse.
+ * @exepathp: Pointer to "struct ccs_exepath_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_parse_exepathp(char *start, struct ccs_exepath_entry *exepathp)
+{
+	const struct ccs_path_info *value;
+	bool is_not;
+	char c;
+	char *cp;
+	start += 13;
+	c = *start++;
+	if (c == '=')
+		is_not = false;
+	else if (c == '!' && *start++ == '=')
+		is_not = true;
+	else
+		goto out;
+	if (*start++ != '"')
+		goto out;
+	cp = start + strlen(start) - 1;
+	if (cp < start || *cp != '"')
+		goto out;
+	*cp = '\0';
+	if (!ccs_is_correct_path(start, 1, 0, 0))
+		goto out;
+	value = ccs_get_name(start);
+	if (!value)
+		goto out;
+	exepathp->is_not = is_not;
+	exepathp->value = value;
+	return true;
+ out:
+	return false;
+}
+
 /* The list for "struct ccs_condition". */
 LIST_HEAD(ccs_condition_list);
 
@@ -657,6 +729,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
 	unsigned long *condp;
+	struct ccs_exepath_entry *exepathp;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
 	struct ccs_symlinkp_entry *symlinkp;
@@ -670,6 +743,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
 	u16 condc = 0;
+	u16 exepathc = 0;
 	u16 argc = 0;
 	u16 envc = 0;
 	u16 symlinkc = 0;
@@ -708,6 +782,12 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		} else if (!strncmp(start, "symlink.target", 14)) {
 			symlinkc++;
 			start = strchr(start + 14, ' ');
+			if (!start)
+				break;
+			continue;
+		} else if (!strncmp(start, "exec.realpath", 13)) {
+			exepathc++;
+			start = strchr(start + 13, ' ');
 			if (!start)
 				break;
 			continue;
@@ -764,6 +844,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	size = sizeof(*entry)
 		+ condc * sizeof(unsigned long)
+		+ exepathc * sizeof(struct ccs_exepath_entry)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry)
 		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
@@ -774,11 +855,13 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
+	entry->exepathc = exepathc;
 	entry->argc = argc;
 	entry->envc = envc;
 	entry->symlinkc = symlinkc;
 	condp = (unsigned long *) (entry + 1);
-	argv = (struct ccs_argv_entry *) (condp + condc);
+	exepathp = (struct ccs_exepath_entry *) (condp + condc);
+	argv = (struct ccs_argv_entry *) (exepathp + exepathc);
 	envp = (struct ccs_envp_entry *) (argv + argc);
 	symlinkp = (struct ccs_symlinkp_entry *) (envp + envc);
 	start = condition;
@@ -832,6 +915,20 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				goto out;
 			symlinkp++;
 			symlinkc--;
+			if (cp)
+				*cp = ' ';
+			else
+				break;
+			start = cp;
+			continue;
+		} else if (!strncmp(start, "exec.realpath", 13)) {
+			char *cp = strchr(start + 13, ' ');
+			if (cp)
+				*cp = '\0';
+			if (!ccs_parse_exepathp(start, exepathp))
+				goto out;
+			exepathp++;
+			exepathc--;
 			if (cp)
 				*cp = ' ';
 			else
@@ -917,6 +1014,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	  printk(KERN_DEBUG "argc=%u envc=%u symlinkc=%u condc=%u\n",
 	  argc, envc, symlinkc, condc);
 	*/
+	BUG_ON(exepathc);
 	BUG_ON(argc);
 	BUG_ON(envc);
 	BUG_ON(symlinkc);
@@ -1111,11 +1209,13 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
 	const unsigned long *ptr;
+	const struct ccs_exepath_entry *exepathp;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	const struct ccs_symlinkp_entry *symlinkp;
 	struct ccs_obj_info *obj;
 	u16 condc;
+	u16 exepathc;
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
@@ -1124,6 +1224,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (!cond)
 		return true;
 	condc = cond->condc;
+	exepathc = cond->exepathc;
 	argc = cond->argc;
 	envc = cond->envc;
 	symlinkc = cond->symlinkc;
@@ -1133,7 +1234,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (!bprm && (argc || envc))
 		return false;
 	ptr = (unsigned long *) (cond + 1);
-	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	exepathp = (const struct ccs_exepath_entry *) (ptr + condc);
+	argv = (const struct ccs_argv_entry *) (exepathp + exepathc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
 	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc); 
 	for (i = 0; i < condc; i++) {
@@ -1449,6 +1551,10 @@ bool ccs_check_condition(struct ccs_request_info *r,
 					      symlinkc, symlinkp))
 			return false;
 	}
+	if (r->ee && exepathc) {
+		if (!ccs_scan_exepath(r->ee->bprm->file, exepathc, exepathp))
+			return false;
+	}
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
@@ -1466,10 +1572,12 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 			 const struct ccs_condition *cond)
 {
 	const unsigned long *ptr;
+	const struct ccs_exepath_entry *exepathp;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	const struct ccs_symlinkp_entry *symlinkp;
 	u16 condc;
+	u16 exepathc;
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
@@ -1479,11 +1587,13 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	if (!cond)
 		goto no_condition;
 	condc = cond->condc;
+	exepathc = cond->exepathc;
 	argc = cond->argc;
 	envc = cond->envc;
 	symlinkc = cond->symlinkc;
 	ptr = (const unsigned long *) (cond + 1);
-	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	exepathp = (const struct ccs_exepath_entry *) (ptr + condc);
+	argv = (const struct ccs_argv_entry *) (exepathp + exepathc);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
 	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc);
 	memset(buffer, 0, sizeof(buffer));
@@ -1542,10 +1652,16 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		i++;
 	}
 
-	if (!argc && !envc && !symlinkc)
+	if (!exepathc && !argc && !envc && !symlinkc)
 		goto post_condition;
 	if (!condc && !ccs_io_printf(head, " if"))
 		goto out;
+	for (i = 0; i < exepathc; exepathp++, i++) {
+		const char *op = exepathp->is_not ? "!=" : "=";
+		if (!ccs_io_printf(head, " exec.realpath%s\"%s\"",
+				   op, exepathp->value->name))
+			goto out;
+	}
 	for (i = 0; i < argc; argv++, i++) {
 		const char *op = argv->is_not ? "!=" : "=";
 		if (!ccs_io_printf(head, " exec.argv[%u]%s\"%s\"", argv->index,

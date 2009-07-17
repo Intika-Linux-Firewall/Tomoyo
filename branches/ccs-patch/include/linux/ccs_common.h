@@ -104,11 +104,13 @@ struct ccs_condition {
 	atomic_t users;
 	u32 size;
 	u16 condc;
+	u16 exepathc;
 	u16 argc;
 	u16 envc;
 	u16 symlinkc;
 	u8 post_state[4];
 	/* "unsigned long condition[condc]" follows here. */
+	/* "struct ccs_exepath_entry exepathp[exepathc]" follows here. */
 	/* "struct ccs_argv_entry argv[argc]" follows here. */
 	/* "struct ccs_envp_entry envp[envc]" follows here. */
 	/* "struct ccs_symlinkp_entry symlinkp[symlinkc]" follows here. */
@@ -389,6 +391,12 @@ struct ccs_envp_entry {
 
 /* Structure for symlink's target. */
 struct ccs_symlinkp_entry {
+	const struct ccs_path_info *value;
+	bool is_not;
+};
+
+/* Structure for executable's pathname. */
+struct ccs_exepath_entry {
 	const struct ccs_path_info *value;
 	bool is_not;
 };
