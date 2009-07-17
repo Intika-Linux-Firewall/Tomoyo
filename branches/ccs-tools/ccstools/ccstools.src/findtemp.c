@@ -18,6 +18,47 @@ int findtemp_main(int argc, char *argv[])
 	char buffer[16384];
 	char buffer2[sizeof(buffer)];
 	if (argc > 1) {
+		if (!strcmp(argv[1], "--with-domainname")) {
+			_Bool flag = 0;
+			static char *domain = NULL;
+			memset(buffer, 0, sizeof(buffer));
+			while (fgets(buffer, sizeof(buffer) - 1, stdin)) {
+				char *cp = strchr(buffer, '\n');
+				if (cp)
+					*cp = '\0';
+				if (!strncmp(buffer, "<kernel>", 8) &&
+				    (buffer[8] == ' ' || !buffer[8])) {
+					free(domain);
+					domain = strdup(buffer);
+					if (!domain)
+						out_of_memory();
+					flag = 0;
+					continue;
+				}
+				cp = buffer;
+				while (1) {
+					struct stat64 buf;
+					char *cp2 = strchr(cp, ' ');
+					if (cp2)
+						*cp2 = '\0';
+					if (*cp == '/' && decode(cp, buffer2)
+					    && lstat64(buffer2, &buf)) {
+						if (!flag)
+							printf("\n%s\n",
+							       domain);
+						flag = 1;
+						printf("%s\n", buffer);
+						break;
+					}
+					if (!cp2)
+						break;
+					*cp2++ = ' ';
+					cp = cp2;
+				}
+			}
+			free(domain);
+			return 0;
+		}
 		if (strcmp(argv[1], "--all")) {
 			printf("%s < domain_policy\n\n", argv[0]);
 			return 0;

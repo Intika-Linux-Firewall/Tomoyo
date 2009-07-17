@@ -42,6 +42,12 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* ??? ??? ?? 2009 1.6.8-3
+- Convert /sbin/ccs-init and /sbin/tomoyo-init to binary programs.
+- Convert init_policy.sh and tomoyo_init_policy.sh to binary programs.
+- Removed no longer used realpath and make_alias programs.
+- Add "--with-domainname" option to ccs-findtemp program.
+
 * Tue Jun 23 2009 1.6.8-2
 - ccs-auditd: Print error message if auditing interface is not available.
 
