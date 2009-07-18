@@ -705,7 +705,7 @@ static int ccs_update_file_acl(const char *filename, u8 perm,
 }
 
 /**
- * ccs_check_single_path_acl2 - Check permission for single path operation.
+ * ccs_check_single_path_acl - Check permission for single path operation.
  *
  * @r:               Pointer to "struct ccs_request_info".
  * @filename:        Filename to check.
@@ -716,10 +716,10 @@ static int ccs_update_file_acl(const char *filename, u8 perm,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-static int ccs_check_single_path_acl2(struct ccs_request_info *r,
-				      const struct ccs_path_info *filename,
-				      const u16 perm,
-				      const bool may_use_pattern)
+static int ccs_check_single_path_acl(struct ccs_request_info *r,
+				     const struct ccs_path_info *filename,
+				     const u16 perm,
+				     const bool may_use_pattern)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
@@ -751,40 +751,11 @@ static int ccs_check_single_path_acl2(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_file_acl - Check permission for opening files.
- *
- * @r:         Pointer to "struct ccs_request_info".
- * @filename:  Filename to check.
- * @operation: Mode ("read" or "write" or "read/write" or "execute").
- *
- * Returns 0 on success, -EPERM otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static inline int ccs_check_file_acl(struct ccs_request_info *r,
-				     const struct ccs_path_info *filename,
-				     const u8 operation)
-{
-	u16 perm = 0;
-	if (operation == 6)
-		perm = 1 << TYPE_READ_WRITE_ACL;
-	else if (operation == 4)
-		perm = 1 << TYPE_READ_ACL;
-	else if (operation == 2)
-		perm = 1 << TYPE_WRITE_ACL;
-	else if (operation == 1)
-		perm = 1 << TYPE_EXECUTE_ACL;
-	else
-		BUG();
-	return ccs_check_single_path_acl2(r, filename, perm, operation != 1);
-}
-
-/**
  * ccs_check_file_perm - Check permission for opening files.
  *
  * @r:         Pointer to "strct ccs_request_info".
  * @filename:  Filename to check.
- * @perm:      Mode ("read" or "write" or "read/write" or "execute").
+ * @mode:      Mode ("read" or "write" or "read/write" or "execute").
  * @operation: Operation name passed used for verbose mode.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
@@ -793,26 +764,31 @@ static inline int ccs_check_file_acl(struct ccs_request_info *r,
  */
 static int ccs_check_file_perm(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
-			       const u8 perm, const char *operation)
+			       const u8 mode, const char *operation)
 {
 	const bool is_enforce = (r->mode == 3);
 	const char *msg = "<unknown>";
 	int error = 0;
+	u16 perm = 0;
 	if (!filename)
 		return 0;
-	if (perm == 6)
+	if (mode == 6) {
 		msg = ccs_sp2keyword(TYPE_READ_WRITE_ACL);
-	else if (perm == 4)
+		perm = 1 << TYPE_READ_WRITE_ACL;
+	} else if (mode == 4) {
 		msg = ccs_sp2keyword(TYPE_READ_ACL);
-	else if (perm == 2)
+		perm = 1 << TYPE_READ_ACL;
+	} else if (mode == 2) {
 		msg = ccs_sp2keyword(TYPE_WRITE_ACL);
-	else if (perm == 1)
+		perm = 1 << TYPE_WRITE_ACL;
+	} else if (mode == 1) {
 		msg = ccs_sp2keyword(TYPE_EXECUTE_ACL);
-	else
+		perm = 1 << TYPE_EXECUTE_ACL;
+	} else
 		BUG();
  retry:
-	error = ccs_check_file_acl(r, filename, perm);
-	if (error && perm == 4 && !r->domain->ignore_global_allow_read
+	error = ccs_check_single_path_acl(r, filename, perm, mode != 1);
+	if (error && mode == 4 && !r->domain->ignore_global_allow_read
 	    && ccs_is_globally_readable_file(filename))
 		error = 0;
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
@@ -832,14 +808,10 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		/* Don't use patterns for execute permission. */
-		if (perm == 1) {
-			ccs_update_file_acl(filename->name, perm,
-					    r->domain, cond, false);
-		} else {
-			ccs_update_file_acl(ccs_get_file_pattern(filename)
-					    ->name, perm,
-					    r->domain, cond, false);
-		}
+		const struct ccs_path_info *pattern = mode != 1 ?
+			ccs_get_file_pattern(filename) : filename;
+		ccs_update_file_acl(pattern->name, mode, r->domain, cond,
+				    false);
 		ccs_put_condition(cond);
 	}
 	return 0;
@@ -1202,25 +1174,6 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 }
 
 /**
- * ccs_check_single_path_acl - Check permission for single path operation.
- *
- * @r:        Pointer to "struct ccs_request_info".
- * @type:     Type of operation.
- * @filename: Filename to check.
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
- */
-static inline int ccs_check_single_path_acl(struct ccs_request_info *r,
-					    const u8 type,
-					    const struct ccs_path_info *
-					    filename)
-{
-	return ccs_check_single_path_acl2(r, filename, 1 << type, 1);
-}
-
-/**
  * ccs_check_double_path_acl - Check permission for double path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
@@ -1274,7 +1227,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 }
 
 /**
- * ccs_check_single_path_permission2 - Check permission for single path operation.
+ * ccs_check_single_path_permission - Check permission for single path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
@@ -1284,10 +1237,10 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-static int ccs_check_single_path_permission2(struct ccs_request_info *r,
-					     u8 operation,
-					     const struct ccs_path_info *
-					     filename)
+static int ccs_check_single_path_permission(struct ccs_request_info *r,
+					    u8 operation,
+					    const struct ccs_path_info *
+					    filename)
 {
 	const char *msg;
 	int error;
@@ -1295,7 +1248,7 @@ static int ccs_check_single_path_permission2(struct ccs_request_info *r,
 	if (!r->mode)
 		return 0;
  retry:
-	error = ccs_check_single_path_acl(r, operation, filename);
+	error = ccs_check_single_path_acl(r, filename, 1 << operation, 1);
 	msg = ccs_sp2keyword(operation);
 	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
 	if (!error)
@@ -1414,13 +1367,13 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 */
 	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
 	    && ccs_is_no_rewrite_file(&buf))
-		error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL,
-							  &buf);
+		error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL,
+							 &buf);
 	if (!error)
 		error = ccs_check_file_perm(&r, &buf, acc_mode, "open");
 	if (!error && (flag & O_TRUNC))
-		error = ccs_check_single_path_permission2(&r, TYPE_TRUNCATE_ACL,
-							  &buf);
+		error = ccs_check_single_path_permission(&r, TYPE_TRUNCATE_ACL,
+							 &buf);
  out:
 	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
@@ -1482,7 +1435,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		obj.symlink_target = &symlink_target;
 	}
 	r.obj = &obj;
-	error = ccs_check_single_path_permission2(&r, operation, &buf);
+	error = ccs_check_single_path_permission(&r, operation, &buf);
 	if (operation == TYPE_SYMLINK_ACL)
 		kfree(symlink_target.name);
  out:
@@ -1528,7 +1481,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	r.obj = &obj;
-	error = ccs_check_single_path_permission2(&r, TYPE_REWRITE_ACL, &buf);
+	error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL, &buf);
  out:
 	kfree(buf.name);
 	srcu_read_unlock(&ccs_ss, idx);
