@@ -1612,6 +1612,58 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
+ * ccs_print_mkdev_acl - Print a mkdev ACL entry.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_mkdev_acl_record".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
+				struct ccs_mkdev_acl_record *ptr,
+				const struct ccs_condition *cond)
+{
+	int pos;
+	u8 bit;
+	const char *atmark = "";
+	const char *filename;
+	const u16 perm = ptr->perm;
+	if (ptr->u_is_group) {
+		atmark = "@";
+		filename = ptr->u.group->group_name->name;
+	} else {
+		filename = ptr->u.filename->name;
+	}
+	for (bit = head->read_bit; bit < MAX_MKDEV_OPERATION; bit++) {
+		const char *msg;
+		const unsigned int min_major = ptr->min_major;
+		const unsigned int max_major = ptr->max_major;
+		const unsigned int min_minor = ptr->min_minor;
+		const unsigned int max_minor = ptr->max_minor;
+		if (!(perm & (1 << bit)))
+			continue;
+		msg = ccs_mkdev2keyword(bit);
+		pos = head->read_avail;
+		if (!ccs_io_printf(head, "allow_%s %s%s %u", msg, atmark,
+				   filename, min_major) ||
+		    (min_major != max_major &&
+		     !ccs_io_printf(head, "-%u", max_major)) ||
+		    !ccs_io_printf(head, " %u", min_minor) ||
+		    (min_minor != max_minor &&
+		     !ccs_io_printf(head, "-%u", max_minor)) ||
+		    !ccs_print_condition(head, cond))
+			goto out;
+	}
+	head->read_bit = 0;
+	return true;
+ out:
+	head->read_bit = bit;
+	head->read_avail = pos;
+	return false;
+}
+
+/**
  * ccs_print_double_path_acl - Print a double path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -2061,6 +2113,11 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (head->read_execute_only)
 		return true;
+	if (acl_type == TYPE_MKDEV_ACL) {
+		struct ccs_mkdev_acl_record *acl
+			= container_of(ptr, struct ccs_mkdev_acl_record, head);
+		return ccs_print_mkdev_acl(head, acl, cond);
+	}
 	if (acl_type == TYPE_DOUBLE_PATH_ACL) {
 		struct ccs_double_path_acl_record *acl
 			= container_of(ptr, struct ccs_double_path_acl_record,

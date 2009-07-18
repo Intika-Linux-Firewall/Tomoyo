@@ -534,7 +534,7 @@ static void stage_file_test(void)
 		show_result(mknod(filename, S_IFREG, 0), 0);
 	}
 
-	policy = "allow_mkchar /tmp/mknod_chr_test";
+	policy = "allow_mkchar /tmp/mknod_chr_test 1 3";
 	if (write_policy()) {
 		filename = "/tmp/mknod_chr_test";
 		show_result(mknod(filename, S_IFCHR, MKDEV(1, 3)), 1);
@@ -543,7 +543,7 @@ static void stage_file_test(void)
 		show_result(mknod(filename, S_IFCHR, MKDEV(1, 3)), 0);
 	}
 
-	policy = "allow_mkblock /tmp/mknod_blk_test";
+	policy = "allow_mkblock /tmp/mknod_blk_test 1 0";
 	if (write_policy()) {
 		filename = "/tmp/mknod_blk_test";
 		show_result(mknod(filename, S_IFBLK, MKDEV(1, 0)), 1);

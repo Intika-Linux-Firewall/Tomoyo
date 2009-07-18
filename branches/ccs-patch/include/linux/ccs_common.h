@@ -96,6 +96,7 @@ struct ccs_obj_info {
 	struct ccs_mini_stat path1_parent_stat;
 	struct ccs_mini_stat path2_parent_stat;
 	struct ccs_path_info *symlink_target;
+	unsigned int dev;
 };
 
 /* Structure for " if " and "; set" part. */
@@ -226,6 +227,7 @@ struct ccs_acl_info {
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
 	TYPE_SINGLE_PATH_ACL,
+	TYPE_MKDEV_ACL,
 	TYPE_DOUBLE_PATH_ACL,
 	TYPE_IOCTL_ACL,
 	TYPE_ARGV0_ACL,
@@ -427,8 +429,8 @@ struct ccs_execute_handler_record {
 /*
  * Structure for "allow_read/write", "allow_execute", "allow_read",
  * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
- * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
- * "allow_truncate", "allow_symlink" and "allow_rewrite" directive.
+ * "allow_mkfifo", "allow_mksock", "allow_truncate", "allow_symlink" and
+ * "allow_rewrite" directive.
  */
 struct ccs_single_path_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
@@ -441,6 +443,24 @@ struct ccs_single_path_acl_record {
 		/* Pointer to pathname group. */
 		struct ccs_path_group_entry *group;
 	} u;
+};
+
+/* Structure for "allow_mkblock" and "allow_mkchar" directive. */
+struct ccs_mkdev_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_MKDEV_ACL */
+	bool u_is_group; /* True if u points to "path_group" directive. */
+	u8 perm;
+	union {
+		const void *ptr;
+		/* Pointer to single pathname. */
+		const struct ccs_path_info *filename;
+		/* Pointer to pathname group. */
+		struct ccs_path_group_entry *group;
+	} u;
+	unsigned int min_major;
+	unsigned int max_major;
+	unsigned int min_minor;
+	unsigned int max_minor;
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
@@ -584,14 +604,18 @@ enum ccs_single_path_acl_index {
 	TYPE_RMDIR_ACL,
 	TYPE_MKFIFO_ACL,
 	TYPE_MKSOCK_ACL,
-	TYPE_MKBLOCK_ACL,
-	TYPE_MKCHAR_ACL,
 	TYPE_TRUNCATE_ACL,
 	TYPE_SYMLINK_ACL,
 	TYPE_REWRITE_ACL,
 	MAX_SINGLE_PATH_OPERATION
 };
 
+enum ccs_mkdev_acl_type {
+	TYPE_MKBLOCK_ACL,
+	TYPE_MKCHAR_ACL,
+	MAX_MKDEV_OPERATION
+};
+	
 enum ccs_double_path_acl_index {
 	TYPE_LINK_ACL,
 	TYPE_RENAME_ACL,
@@ -787,6 +811,8 @@ const char *ccs_get_msg(const bool is_enforce);
 const char *ccs_net2keyword(const u8 operation);
 /* Convert single path operation to operation name. */
 const char *ccs_sp2keyword(const u8 operation);
+/* Convert mkdev operation index to operation name. */
+const char *ccs_mkdev2keyword(const u8 operation);
 /* Fetch next_domain from the list. */
 struct ccs_domain_info *ccs_fetch_next_domain(void);
 /* Create conditional part of an ACL entry. */
