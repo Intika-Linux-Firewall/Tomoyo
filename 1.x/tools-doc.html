@@ -1,0 +1,880 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Tools Documentation</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tools-doc.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>Tools Documentation</h1>
+<hr>
+<h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
+
+<h3><a name="ccs-editpolicy">&lt;Policy Editor "ccs-editpolicy"&gt;</a></h3>
+<p>Edits the current policy in /proc/ccs/ directory.</p>
+<p>You may give one of 's' 'e' 'd' 'p' 'm' 'u' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
+
+<p>&lt;Scroll&gt;</p>
+<table border="1">
+<tr><td>Up-arrow</td><td>Scroll 1 line up.</td></tr>
+<tr><td>Down-arrow</td><td>Scroll 1 line down.</td></tr>
+<tr><td>PageUp</td><td>Scroll 1 page up.</td></tr>
+<tr><td>PageDown</td><td>Scroll 1 page down.</td></tr>
+<tr><td>Right-arrow</td><td>Scroll 1 column right.</td></tr>
+<tr><td>Left-arrow</td><td>Scroll 1 column left.</td></tr>
+<tr><td>Home</td><td>Move to the top of line.</td></tr>
+<tr><td>End</td><td>Move to the bottom of line.</td></tr>
+</table>
+
+<p>&lt;Search&gt;</p>
+<table border="1">
+<tr><td>f/F</td><td>Find First</td></tr>
+<tr><td>n/N</td><td>Find Next</td></tr>
+<tr><td>p/P</td><td>Find Previous</td></tr>
+</table>
+
+<p>&lt;Edit&gt;</p>
+<table border="1">
+<tr><td>a/A</td><td>Add an entry.</td></tr>
+<tr><td>Enter</td><td>Edit ACLs of a domain at the cursor position. (Valid only for screen for domain listing.)</td></tr>
+<tr><td>Space</td><td>Invert selection state of an entry at the cursor position.</td></tr>
+<tr><td>c/C</td><td>Copy selection state of an entry at the cursor position to all entries below the cursor position.</td></tr>
+<tr><td>d/D</td><td>Delete selected entries.</td></tr>
+<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)</td></tr>
+<tr><td>Insert</td><td>Copy an entry at the cursor position to history buffer.</td></tr>
+</table>
+
+<p>&lt;Misc&gt;</p>
+<table border="1">
+<tr><td>q/Q</td><td>Quit</td></tr>
+<tr><td>r/R</td><td>Refresh</td></tr>
+<tr><td>w/W</td><td>Switch to window list.</td></tr>
+</table>
+
+<p>A tutorial is available at <a href="tool-editpolicy.html">How to use Policy Editor</a>.</p>
+
+<h3><a name="ccs-loadpolicy">&lt;Policy Loader "ccs-loadpolicy"&gt;</a></h3>
+<p>Reloads the on-disk policy onto memory.</p>
+<p>There are the following commandline parameters.</p>
+<ul>
+<li>s --- Reload system policy.
+<li>e --- Reload exception policy.
+<li>d --- Reload domain policy.
+<li>a --- Reload the above three policies.
+<li>f --- Erase on-memory policy before loading.
+<li>p --- Reload profile. 'f' option is not supported.
+<li>m --- Reload manager policy. 'f' option is not supported.
+<li>u --- Set memory quota. 'f' option is not supported.
+<li>- --- Read from stdin. Only one of 's' 'e' 'd' 'p' 'm' 'u' is possible when using this option.
+</ul>
+
+<h3><a name="ccs-setlevel">&lt;Control Level Changer "ccs-setlevel"&gt;</a></h3>
+<p>Changes the current control level (i.e. writing to /proc/ccs/profile ) and displays the new control level.</p>
+<p>You can give the new control level from commandline parameter.</p>
+
+<h3><a name="ccs-setprofile">&lt;Profile Selector "ccs-setprofile"&gt;</a></h3>
+<p>Assigns a profile to domains.</p>
+<p>You can give the new profile number and domainnames from the commandline parameter. The list of domainnames that the profile number assigned to has changed is printed.</p>
+
+<h3><a name="ccs-ccstree">&lt;Process Info Viewer "ccs-ccstree"&gt;</a></h3>
+<p>Lists the domainnames of currently running processes belong to and the profile numbers the domains currently assigned to.</p>
+<p>This program shows the profile number, the name of process, PID, the domainname like "pstree" command.</p>
+
+<h3><a name="ccs-savepolicy">&lt;Policy Saver "ccs-savepolicy"&gt;</a></h3>
+<p>Saves the on-memory policy onto disk.</p>
+<p>There are the following commandline parameters.</p>
+<ul>
+<li>s --- Save system policy.
+<li>e --- Save exception policy.
+<li>d --- Save domain policy.
+<li>a --- Save the above three policies.
+<li>f --- Save even if on-memory policy and on-disk policy are same.
+<li>p --- Save profile.
+<li>m --- Save manager policy.
+<li>u --- Write memory usage on stdout. Implies '-' option.
+<li>- --- Write to stdout. Only one of 's' 'e' 'd' 'p' 'm' 'u' is possible when using this option.
+</ul>
+
+<h3><a name="ccs-auditd">&lt;Access Log Reading Daemon "ccs-auditd"&gt;</a></h3>
+<p>Reads from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to the location given in the commandline parameters.</p>
+<p>The first commandline parameter is the location of access granted log. The second one is the location of access rejected log. You may give /dev/null as the location. If you needn't to save access logs, you needn't to run this program.</p>
+<p>This program runs as a daemon. You can start from /etc/rc.d/rc.local if you are using RedHat Linux. The number of logs that the kernel will keep is given using "MAX_GRANT_LOG=integer" and "MAX_REJECT_LOG=integer" lines in the profile.</p>
+
+<h3><a name="ccs-sortpolicy">&lt;Access Log Compressor "ccs-sortpolicy"&gt;</a></h3>
+<p>Remove duplicated entry from logs written by "ccs-auditd".</p>
+<p>Reads logs written by "ccs-auditd" from standard input and sorts by domains and removes duplicated entries and writes to standard output.</p>
+
+<h3><a name="ccs-findtemp">&lt;Temporal Pathnames Detector "ccs-findtemp"&gt;</a></h3>
+<p>Reads domain policy from standard input and checks the existence of pathnames, and dumps the nonexistent pathnames.</p>
+<p>The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/ccs/exception_policy.conf and /proc/ccs/exception_policy .</p>
+<p>You can pass the content of /etc/ccs/domain_policy.conf or /proc/ccs/domain_policy using redirection or pipes to the standard input of this program.</p>
+
+<h3><a name="ccs-ld-watch">&lt;Library Pathnames Updater "ccs-ld-watch"&gt;</a></h3>
+<p>Appends shared libraries to exception policy automatically using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
+<p>By running this program while updating packages, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
+
+<h3><a name="ccs-queryd">&lt;Delayed Enforcing Mode Handler "ccs-queryd"&gt;</a></h3>
+<p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
+<p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
+<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
+
+<h3><a name="ccs-notifyd">&lt;Policy Violation Notifyier "ccs-notifyd"&gt;</a></h3>
+<p>Detects policy violation and take some actions (e.g. send a mail) to notify it to the administrator.</p>
+<p>By running this program from /etc/crontab , you can know the occurrence of policy violation in enforcing mode as soon as possible.</p>
+
+<h3><a name="ccs-checkpolicy">&lt;Policy Syntax Checker "ccs-checkpolicy"&gt;</a></h3>
+<p>Reads policy files from standard input and checks syntaxes.</p>
+<p>Prints errors with line numbers if any.</p>
+
+<h3><a name="ccs-init">&lt;Initial Policy Loader "ccs-init"&gt;</a></h3>
+<p>Loads policy files from /etc/ccs/ directory.</p>
+<p>Put this program as /sbin/ccs-init , and this program will be invoked automatically when execution of /sbin/init is requested by initrd.</p>
+
+<h3><a name="ccs-domainmatch">&lt;ACL Searcher "ccs-domainmatch"&gt;</a></h3>
+<p>This is a "fgrep" for /proc/ccs/domain_policy .</p>
+
+<h3><a name="ccs-patternize">&lt;Pathname Pattern Replacer "ccs-patternize"&gt;</a></h3>
+<p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>
+
+<h3><a name="init_policy.sh">&lt;Policy Template Generator "init_policy.sh"&gt;</a></h3>
+<p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
+
+<h3><a name="force-logout">&lt;A program that forcibly logs the user out "force-logout"&gt;</a></h3>
+<p>This program forcibly logs the current user out. You can use this program to chase the current user away.</p>
+
+<h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
+<p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
+<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/misc/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program,
+tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/misc/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy,
+and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
+
+<hr>
+<h2><a name="authentication_tool">&lt;&lt;Tools for reinforcing login authentications&gt;&gt;</a></h2>
+
+<h3><a name="falsh">&lt;Restricted login shell for authentication "falsh"&gt;</a></h3>
+<p>A tiny shell that has no built-in command such as "kill". You can use this program for login shell ( the shell specified in the /etc/passwd file). You won't need this program if you don't want to reinforce login authentications.</p>
+<p>You should make your own programs for additional authentications. You shouldn't use the following example programs without modifications.</p>
+
+<h3><a name="honey">&lt;An example program for password authentication with timings "honey"&gt;</a></h3>
+<p>This program fails unless the correct password is typed with the correct time interval. Conventional authentication programs don't check the time interval of typing, but this program does to prevent password brute force attack.</p>
+
+<h3><a name="candy">&lt;An example program for password authentication with time limit "candy"&gt;</a></h3>
+<p>This program fails unless the correct password is typed and this program was invoked within 10 seconds after the parent process was invoked. Conventional authentication programs don't check the time interval between the invocation time of parent process and the invocation time of child process, but this program does to prevent password brute force attack.</p>
+
+<h3><a name="groovy">&lt;An example program for lockfile authentication "groovy"&gt;</a></h3>
+<p>This program fails while the file /tmp/.lockme exists. This program prompts for password, but doesn't check for password. This program checks for the existence of the file /tmp/.lockme . This program prevents password brute force attack by keeping locked just before you run this program. This is a program for demonstration, and using a filename that are apparent to crackers. You must customize if you want to use.</p>
+
+<h3><a name="checktoken">&lt;An example program for token authentication "gettoken / checktoken"&gt;</a></h3>
+<p>This program generates tokens based on the system time. The authentication will succeed if the output of "gettoken" is passwd to the input of "checktoken". These are programs for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
+
+<h3><a name="chaplet">&lt;An example program for challenge-handshake authentication "chaplet"&gt;</a></h3>
+<p>This program displays strings as a challenge data. The authentication will succeed if you input only numerical letters from the challenge data as a response data. This is a program for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
+
+<h3><a name="timeauth">&lt;An example program for password authentication with timings  "timeauth"&gt;</a></h3>
+<p>This is a re-implementation of "honey". Create a script and specify this program as the interpreter for the script.</p>
+
+<h3><a name="mailauth">&lt;An example program for one-time-password authentication using mail "mailauth"&gt;</a></h3>
+<p>This program generates one time password and sends it to the user using "mail". The authentication will succeed if the user input the password sent by "mail". To use this program, some mail server application is needed.</p>
+
+<h3><a name="proxy">&lt;A simple port forwarder "proxy"&gt;</a></h3>
+<p>This program is used by client side. This program explicitly binds to local port and connects to server so that the server side firewall (such as "iptables") can use packet filtering based on client side's port number.</p>
+
+<hr>
+<h2><a name="syaoran_tool">&lt;&lt;Tool for SYAORAN filesystem&gt;&gt;</a></h2>
+
+<h3><a name="makesyaoranconf">&lt;Template Generator for SYAORAN Filesystem "makesyaoranconf"&gt;</a></h3>
+<p>Generates syaoran.conf, the configuration file for SYAORAN (the Tamper-Proof /dev filesystem). You can use SYAORAN filesystem if you want to run the system with read-only root fs or you want to prevent device files from tampering.</p>
+<p>You can't create files that are not listed in the configuration file. If the system creates device files dynamically, attach all necessary devices before executing this program to ensure all device files are listed in the configuration file.</p>
+
+<h3><a name="syaoran_syntax">Policy specifications for SYAORAN filesystem</a></h3>
+<p>The policy file contains a list of entries that the /dev directory has.<br>
+There are many device files in the /dev directory, but only a few dozen files are needed for a system to work.<br>
+Further, it is mandatory for system security that the device files are always associated with correct devices.<br>
+For example, if /dev/null exists with major-8-0 (/dev/sda) attributes instead of char-1-3, the contents of the SCSI HDD will be destroyed at a blow.</p>
+<p>The following is the format of this file.</p>
+<p>List one entry per a line. An entry has maximum 9 elements.</p>
+<table border="1">
+<tr>
+<td>filename</td>
+<td>the name of the file seen from the mount point, without leading / .</td>
+</tr>
+<tr>
+<td>permission</td>
+<td>An octal form of permission value for the file, between 000 and 777.</td>
+</tr>
+<tr>
+<td>owner</td>
+<td>A decimal form of owner of the file.</td>
+</tr>
+<tr>
+<td>group</td>
+<td>A decimal form of group of the file.</td>
+</tr>
+<tr>
+<td>flags</td>
+<td>A combination of the following values.<br>
+<ul>
+<li>1: Allow creation of the file.</li>
+<li>2: Allow deletion of the file.</li>
+<li>4: Allow changing permissions of the file.</li>
+<li>8: Allow changing owner or group of the file.</li>
+<li>16: For internal use. Remembers whether this file is opened or not.</li>
+<li>32: Don't create this file at mount time.</li>
+</ul>
+</td>
+</tr>
+<tr>
+<td>type</td>
+<td>The device type of the file, one of 'd' (directory), 'p' (FIFO), 's' (Socket), 'c' (Character device), 'b' (Block device), 'l' (Symbolic link), 'f' (regular file).</td>
+</tr>
+<tr>
+<td>symlink_data</td>
+<td>The content of the symbolic link that are automatically created when mounted. Not required if type is not 'l'.</td>
+</tr>
+<tr>
+<td>major</td>
+<td>A decimal form of major number. Not required if type is not 'c' nor 'b'.</td>
+</tr>
+<tr>
+<td>minor</td>
+<td>A decimal form of minor number. Not required if type is not 'c' nor 'b'.</td>
+</tr>
+</table>
+<p>Lines are separated by '\n'.</p>
+<p>The 'filename' must be canonicalized form, but the trailing / can be omitted for this policy file.</p>
+<p>The 'symlink_data' needn't to be a Canonicalized Pathname, but you need to use \\ and \ooo style escapes to include non-printable characters.</p>
+<p>How to use:</p>
+<table border="1">
+<tr>
+<td>Step 1</td>
+<td>Generate the policy file with 'flags' = 0.</td>
+</tr>
+<tr>
+<td>Step 2</td>
+<td>Mount the filesystem with accept mode. If this file is at /etc/ccs/syaoran.conf and you want to mount on /dev, run<br>
+mount -t syaoran -o accept=/etc/ccs/syaoran.conf none /dev</td>
+</tr>
+<tr>
+<td>Step 3</td>
+<td>Run the system as usual, and you will get 'flags' value updated according to actual device file access.</td>
+</tr>
+<tr>
+<td>Step 4</td>
+<td>The result of file access tracing is readable via the file .syaoran which exists just under the mount point, and edit (removing unnecessary symbolic links etc.) and save as /etc/ccs/syaoran.conf<br>
+The file access tracing functionality reflects to .syaoran only block and character device files that are actually opened, this functionality is available for removing unnecessary device files. Directories, FIFOs, sockets, symbolic links and regular files are always reflected to .syaoran regardless of they are actually opened or not.</td>
+</tr>
+<tr>
+<td>Step 5</td>
+<td>Unmount the filesystem.</td>
+</tr>
+<tr>
+<td>Step 6</td>
+<td>To mount the filesystem with enforcing mode, run<br>
+mount -t syaoran -o enforce=/etc/ccs/syaoran.conf none /dev<br>
+In the enforcing mode, 'flags' values are not updated.<br>
+Whenever policy violation (caused by missing entry or insufficient flags) occurs, a message that begins with "SYAORAN-ERROR:" appears. You can pick up the messages by the following command.<br>
+dmesg | grep ^SYAORAN-ERROR:</td>
+</tr>
+</table>
+<p>You can tell the default mode for this filesystem by giving SYAORAN=accept or SYAORAN=enforce option to the kernel commandline. If you told the default mode to the command line, you can omit 'accept=' or 'enforce=' option at mount time.</p>
+<h3>An example of policy file</h2>
+<p>The required files depend on your system.</p>
+<table border="0">
+<tr>
+<td>#filename</td>
+<td>permission</td>
+<td>owner</td>
+<td>group</td>
+<td>flags</td>
+<td>type</td>
+<td colspan="2">[ symlink_data | major minor ]</td>
+</tr>
+<tr>
+<td>pts</td>
+<td>755</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>d</td>
+</tr>
+<tr>
+<td>shm</td>
+<td>755</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>d</td>
+</tr>
+<tr>
+<td>fd</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>l</td>
+<td>/proc/self/fd</td>
+</tr>
+<tr>
+<td>stdin</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>l</td>
+<td>/proc/self/fd/0</td>
+</tr>
+<tr>
+<td>stdout</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>l</td>
+<td>/proc/self/fd/1</td>
+</tr>
+<tr>
+<td>stderr</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>l</td>
+<td>/proc/self/fd/2</td>
+</tr>
+<tr>
+<td>null</td>
+<td>666</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>1</td>
+<td>3</td>
+</tr>
+<tr>
+<td>zero</td>
+<td>666</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>1</td>
+<td>5</td>
+</tr>
+<tr>
+<td>random</td>
+<td>644</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>1</td>
+<td>8</td>
+</tr>
+<tr>
+<td>urandom</td>
+<td>644</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>1</td>
+<td>9</td>
+</tr>
+<tr>
+<td>tty</td>
+<td>666</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>5</td>
+<td>0</td>
+</tr>
+<tr>
+<td>tty0</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>tty1</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr>
+<td>tty2</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr>
+<td>tty3</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>3</td>
+</tr>
+<tr>
+<td>tty4</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr>
+<td>tty5</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>5</td>
+</tr>
+<tr>
+<td>tty6</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>6</td>
+</tr>
+<tr>
+<td>tty7</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>7</td>
+</tr>
+<tr>
+<td>tty8</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>c</td>
+<td>4</td>
+<td>8</td>
+</tr>
+<tr>
+<td>cdrom</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>l</td>
+<td>/dev/scd0</td>
+</tr>
+<tr>
+<td>mouse</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>l</td>
+<td>psaux</td>
+</tr>
+<tr>
+<td>console</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>c</td>
+<td>5</td>
+<td>1</td>
+</tr>
+<tr>
+<td>fd0</td>
+<td>660</td>
+<td>0</td>
+<td>19</td>
+<td>0</td>
+<td>b</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td>fd1</td>
+<td>660</td>
+<td>0</td>
+<td>19</td>
+<td>0</td>
+<td>b</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr>
+<td>fd2</td>
+<td>660</td>
+<td>0</td>
+<td>19</td>
+<td>0</td>
+<td>b</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr>
+<td>fd3</td>
+<td>660</td>
+<td>0</td>
+<td>19</td>
+<td>0</td>
+<td>b</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr>
+<td>hda</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td>hda1</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr>
+<td>hda2</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td>hda3</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr>
+<td>hda5</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>5</td>
+</tr>
+<tr>
+<td>hda6</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>6</td>
+</tr>
+<tr>
+<td>hda7</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>7</td>
+</tr>
+<tr>
+<td>hda8</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>8</td>
+</tr>
+<tr>
+<td>hda9</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>9</td>
+</tr>
+<tr>
+<td>hda10</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>10</td>
+</tr>
+<tr>
+<td>hda11</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>11</td>
+</tr>
+<tr>
+<td>hda12</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>3</td>
+<td>12</td>
+</tr>
+<tr>
+<td>initctl</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>p</td>
+</tr>
+<tr>
+<td>log</td>
+<td>666</td>
+<td>0</td>
+<td>0</td>
+<td>15</td>
+<td>s</td>
+</tr>
+<tr>
+<td>rtc</td>
+<td>644</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>10</td>
+<td>135</td>
+</tr>
+<tr>
+<td>ptmx</td>
+<td>666</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>5</td>
+<td>2</td>
+</tr>
+<tr>
+<td>ram</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>l</td>
+<td>/dev/ram0</td>
+</tr>
+<tr>
+<td>ram0</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ram1</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>sda</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>8</td>
+<td>0</td>
+</tr>
+<tr>
+<td>initrd</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>1</td>
+<td>b</td>
+<td>1</td>
+<td>250</td>
+</tr>
+<tr>
+<td>psaux</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>10</td>
+<td>1</td>
+</tr>
+<tr>
+<td>apm_bios</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>10</td>
+<td>134</td>
+</tr>
+<tr>
+<td>cpu</td>
+<td>755</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>d</td>
+</tr>
+<tr>
+<td>cpu/0</td>
+<td>755</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>d</td>
+</tr>
+<tr>
+<td>cpu/0/microcode</td>
+<td>600</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>c</td>
+<td>10</td>
+<td>184</td>
+</tr>
+<tr>
+<td>ttyS0</td>
+<td>660</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>c</td>
+<td>4</td>
+<td>64</td>
+</tr>
+<tr>
+<td>ttyS1</td>
+<td>660</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>c</td>
+<td>4</td>
+<td>65</td>
+</tr>
+<tr>
+<td>ttyS2</td>
+<td>660</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>c</td>
+<td>4</td>
+<td>66</td>
+</tr>
+<tr>
+<td>ttyS3</td>
+<td>660</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>c</td>
+<td>4</td>
+<td>67</td>
+</tr>
+<tr>
+<td>ptal-printd</td>
+<td>777</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>l</td>
+<td>/var/run/ptal-printd</td>
+</tr>
+<tr>
+<td>gpmctl</td>
+<td>700</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>s</td>
+</tr>
+<tr>
+<td>scd0</td>
+<td>660</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>b</td>
+<td>11</td>
+<td>0</td>
+</tr>
+</table>
+
+<hr>
+
+<p><a href="index.html">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
