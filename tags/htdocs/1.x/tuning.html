@@ -80,7 +80,7 @@ allow_write /var/log/samba/\*.log
 </p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
+[root@tomoyo ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
 /var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
 </td></tr>
 </table>
@@ -90,13 +90,13 @@ allow_write /var/log/samba/\*.log
 <p>Save the domain policy currently in the kernel onto the disk.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-savepolicy d<br>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy d<br>
 </td></tr>
 </table>
 <p>List up pathnames that can be temporary files.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf<br>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /etc/mtab~2302<br>
@@ -122,13 +122,13 @@ allow_write /var/log/samba/\*.log
 <p>Find domains that access these files.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
+[root@tomoyo ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
 allow_create /etc/mtab~2302<br>
 allow_write /etc/mtab~2302<br>
 allow_link /etc/mtab~2302 /etc/mtab~<br>
 allow_unlink /etc/mtab~2302<br>
-[root@sakura ~]# /usr/sbin/ccs-domainmatch /tmp/sh-thd-1163113704<br>
+[root@tomoyo ~]# /usr/sbin/ccs-domainmatch /tmp/sh-thd-1163113704<br>
 &lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
 allow_create /tmp/sh-thd-1163113704<br>
 allow_read/write /tmp/sh-thd-1163113704<br>
@@ -138,32 +138,32 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Save the exception policy currently in the kernel onto the disk.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-savepolicy e<br>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy e<br>
 </td></tr>
 </table>
 <p>Append patterns to the exception policy on the disk if needed.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
-[root@sakura ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
 </td></tr>
 </table>
 <p>Load the exception policy on the disk to the kernel.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-loadpolicy ef<br>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy ef<br>
 </td></tr>
 </table>
 <p>Patternize pathnames that match '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
+[root@tomoyo ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
 <p>Confirm that these files are patternized.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
@@ -179,7 +179,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Verify that the patterning are done as you have intended by diff'ing the domain policy before patternize and the one after the patternize.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
+[root@tomoyo ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
 2326,2331c2326,2331<br>
 &lt; allow_read/write /tmp/sh-thd-1163110572<br>
 &lt; allow_read/write /tmp/sh-thd-1163113704<br>
@@ -275,19 +275,19 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 <p>Update the domain policy on the disk.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
+[root@tomoyo ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
 </td></tr>
 </table>
 <p>Load the domain policy on the disk to the kernel.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-loadpolicy df<br>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy df<br>
 </td></tr>
 </table>
 <p>Confirm that the domain policy currently in the kernel is updated.</p>
 <table border="1">
 <tr><td>
-[root@sakura ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
 /etc/mtab.tmp<br>
 /etc/mtab~<br>
 /halt<br>
