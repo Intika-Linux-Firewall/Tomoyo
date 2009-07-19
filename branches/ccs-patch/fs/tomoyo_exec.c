@@ -205,10 +205,9 @@ int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
-	char *argv0 = strchr(data, ' ');
-	if (!argv0)
-		return -EINVAL;
-	*argv0++ = '\0';
-	return ccs_update_argv0_entry(data, argv0, domain, condition,
+	char *w[2];
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+                return -EINVAL;
+	return ccs_update_argv0_entry(w[0], w[1], domain, condition,
 				      is_delete);
 }

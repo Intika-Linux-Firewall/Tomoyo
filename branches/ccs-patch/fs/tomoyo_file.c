@@ -443,11 +443,10 @@ static int ccs_update_path_group_entry(const char *group_name,
  */
 int ccs_write_path_group_policy(char *data, const bool is_delete)
 {
-	char *cp = strchr(data, ' ');
-	if (!cp)
+	char *w[2];
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	*cp++ = '\0';
-	return ccs_update_path_group_entry(data, cp, is_delete);
+	return ccs_update_path_group_entry(w[0], w[1], is_delete);
 }
 
 /**
@@ -1045,83 +1044,69 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  struct ccs_condition *condition,
 			  const bool is_delete)
 {
-	char *filename = strchr(data, ' ');
-	char *filename2;
+	char *w[4];
 	unsigned int perm;
 	u8 type;
-	if (!filename)
-		return -EINVAL;
-	*filename++ = '\0';
-	if (sscanf(data, "%u", &perm) == 1)
-		return ccs_update_file_acl(filename, (u8) perm, domain,
-					   condition, is_delete);
-	if (strncmp(data, "allow_", 6)) {
-		if (!strcmp(data, KEYWORD_EXECUTE_HANDLER))
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+                return -EINVAL;
+	if (strncmp(w[0], "allow_", 6)) {
+		if (sscanf(w[0], "%u", &perm) == 1)
+			return ccs_update_file_acl(w[1], (u8) perm, domain,
+						   condition, is_delete);
+		if (!strcmp(w[0], KEYWORD_EXECUTE_HANDLER))
 			type = TYPE_EXECUTE_HANDLER;
-		else if (!strcmp(data, KEYWORD_DENIED_EXECUTE_HANDLER))
+		else if (!strcmp(w[0], KEYWORD_DENIED_EXECUTE_HANDLER))
 			type = TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			goto out;
-		return ccs_update_execute_handler(type, filename,
+		return ccs_update_execute_handler(type, w[1],
 						  domain, is_delete);
 	}
-	data += 6;
+	w[0] += 6;
 	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
-		if (strcmp(data, ccs_sp_keyword[type]))
+		if (strcmp(w[0], ccs_sp_keyword[type]))
 			continue;
-		return ccs_update_single_path_acl(type, filename, domain,
+		return ccs_update_single_path_acl(type, w[1], domain,
 						  condition, is_delete);
 	}
+	if (!w[2][0])
+		goto out;
+	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
+		if (strcmp(w[0], ccs_dp_keyword[type]))
+			continue;
+		return ccs_update_double_path_acl(type, w[1], w[2],
+						  domain, condition, is_delete);
+	}
+	if (!w[3][0])
+		goto out;
 	for (type = 0; type < MAX_MKDEV_OPERATION; type++) {
 		unsigned int min_major = 0;
 		unsigned int max_major = 0;
 		unsigned int min_minor = 0;
 		unsigned int max_minor = 0;
-		char *cp;
-		if (strcmp(data, ccs_mkdev_keyword[type]))
+		if (strcmp(w[0], ccs_mkdev_keyword[type]))
 			continue;
-		cp = strchr(filename, ' ');
-		if (cp) {
-			*cp++ = '\0';
-			switch (sscanf(cp, "%u-%u", &min_major, &max_major)) {
-			case 1:
-				max_major = min_major;
-				break;
-			case 2:
-				break;
-			default:
-				goto out;
-			}
-			cp = strchr(cp + 1, ' ');
-			if (!cp)
-				goto out;
-			cp++;
-			switch (sscanf(cp, "%u-%u", &min_minor, &max_minor)) {
-			case 1:
-				max_minor = min_minor;
-				break;
-			case 2:
-				break;
-			default:
-				goto out;
-			}
-		} else {
-			max_major = (unsigned int) -1;
-			max_minor = (unsigned int) -1;
+		switch (sscanf(w[2], "%u-%u", &min_major, &max_major)) {
+		case 1:
+			max_major = min_major;
+			break;
+		case 2:
+			break;
+		default:
+			goto out;
 		}
-		return ccs_update_mkdev_acl(type, filename, min_major,
+		switch (sscanf(w[3], "%u-%u", &min_minor, &max_minor)) {
+		case 1:
+			max_minor = min_minor;
+			break;
+		case 2:
+			break;
+		default:
+			goto out;
+		}
+		return ccs_update_mkdev_acl(type, w[1], min_major,
 					    max_major, min_minor, max_minor,
 					    domain, condition, is_delete);
-	}
-	filename2 = strchr(filename, ' ');
-	if (!filename2)
-		goto out;
-	*filename2++ = '\0';
-	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
-		if (strcmp(data, ccs_dp_keyword[type]))
-			continue;
-		return ccs_update_double_path_acl(type, filename, filename2,
-						  domain, condition, is_delete);
 	}
  out:
 	return -EINVAL;
@@ -2122,13 +2107,12 @@ int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
-	char *cmd = strchr(data, ' ');
+	char *w[2];
 	unsigned int cmd_min;
 	unsigned int cmd_max;
-	if (!cmd)
-		return -EINVAL;
-	*cmd++ = '\0';
-	switch (sscanf(cmd, "%u-%u", &cmd_min, &cmd_max)) {
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+                return -EINVAL;
+	switch (sscanf(w[1], "%u-%u", &cmd_min, &cmd_max)) {
 	case 1:
 		cmd_max = cmd_min;
 		break;
@@ -2139,7 +2123,7 @@ int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 	default:
 		return -EINVAL;
 	}
-	return ccs_update_ioctl_acl(data, cmd_min, cmd_max, domain, condition,
+	return ccs_update_ioctl_acl(w[0], cmd_min, cmd_max, domain, condition,
 				    is_delete);
 }
 

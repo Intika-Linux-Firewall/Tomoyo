@@ -463,31 +463,10 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
-	char *cp;
-	char *cp2;
-	const char *fs;
-	const char *dev;
-	const char *dir;
-	unsigned long flags = 0;
-	cp2 = data;
-	cp = strchr(cp2, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp = '\0';
-	dev = cp2;
-	cp2 = cp + 1;
-	cp = strchr(cp2, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp = '\0';
-	dir = cp2;
-	cp2 = cp + 1;
-	cp = strchr(cp2, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp = '\0';
-	fs = cp2;
-	flags = simple_strtoul(cp + 1, NULL, 0);
-	return ccs_update_mount_acl(dev, dir, fs, flags, domain, condition,
-				    is_delete);
+	char *w[4];
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
+                return -EINVAL;
+	return ccs_update_mount_acl(w[0], w[1], w[2],
+				    simple_strtoul(w[3], NULL, 0),
+				    domain, condition, is_delete);
 }

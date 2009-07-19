@@ -276,6 +276,33 @@ void ccs_normalize_line(unsigned char *buffer)
 }
 
 /**
+ * ccs_tokenize - Tokenize string.
+ *
+ * @buffer: The line to tokenize.
+ * @w:      Pointer to "char *".
+ * @size:   Sizeof @w .
+ *
+ * Returns true on success, false otherwise.
+ */
+bool ccs_tokenize(char *buffer, char *w[], size_t size)
+{
+	int count = size / sizeof(char *);
+	int i;
+	for (i = 0; i < count; i++)
+		w[i] = "";
+	for (i = 0; i < count; i++) {
+		char *cp = strchr(buffer, ' ');
+		if (cp)
+			*cp = '\0';
+		w[i] = buffer;
+		if (!cp)
+			break;
+		buffer = cp + 1;
+	}
+	return i < count || !*buffer;
+}
+
+/**
  * ccs_is_correct_path - Validate a pathname.
  * @filename:     The pathname to check.
  * @start_type:   Should the pathname start with '/'?

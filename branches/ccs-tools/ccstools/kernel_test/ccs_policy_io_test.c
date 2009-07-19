@@ -152,11 +152,6 @@ static void stage_policy_io_test(void)
 		try_io("file_pattern /abc", 0);
 		try_io("file_pattern /abc /def", 0);
 		try_io("file_pattern abcdef", 0);
-		try_io("alias /foo /bar", 1);
-		try_io("alias /foo/ /bar", 0);
-		try_io("alias /foo /bar/", 0);
-		try_io("alias /f\\* /bar", 0);
-		try_io("alias /foo /b\\*", 0);
 		try_io("path_group TEST /", 1);
 		try_io("path_group TEST /boo", 1);
 		try_io("path_group TEST /bar", 1);

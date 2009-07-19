@@ -764,6 +764,8 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 bool ccs_is_domain_def(const unsigned char *buffer);
 /* Format string. */
 void ccs_normalize_line(unsigned char *buffer);
+/* Tokenize string. */
+bool ccs_tokenize(char *buffer, char *w[], size_t size);
 /* Check whether the given filename matches the given pattern. */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);

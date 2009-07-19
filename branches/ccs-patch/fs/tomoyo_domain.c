@@ -555,11 +555,10 @@ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
  */
 int ccs_write_aggregator_policy(char *data, const bool is_delete)
 {
-	char *cp = strchr(data, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	return ccs_update_aggregator_entry(data, cp, is_delete);
+	char *w[2];
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+                return -EINVAL;
+	return ccs_update_aggregator_entry(w[0], w[1], is_delete);
 }
 
 /* Domain create/delete handler. */

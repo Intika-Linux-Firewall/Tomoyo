@@ -260,14 +260,14 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 		write_policy("allow_mount something " TEST_DIR
-			     " --remount something 0\n");
+			     " --remount 0\n");
 		show_prompt("mount('" TEST_DIR "', MS_REMOUNT)", 0);
 		if (mount(NULL, TEST_DIR, NULL, MS_REMOUNT, NULL))
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success.\n");
 		write_policy("delete allow_mount something " TEST_DIR
-			     " --remount something 0\n");
+			     " --remount 0\n");
 
 		/* Test bind case */
 		show_prompt("mount('" TEST_DIR "', '" TEST_DIR_BIND

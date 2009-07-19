@@ -993,6 +993,17 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 				ccs_put_name(entry->u.filename);
 		}
 		break;
+	case TYPE_MKDEV_ACL:
+		{
+			struct ccs_mkdev_acl_record *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			if (entry->u_is_group)
+				ccs_put_path_group(entry->u.group);
+			else
+				ccs_put_name(entry->u.filename);
+		}
+		break;
 	case TYPE_DOUBLE_PATH_ACL:
 		{
 			struct ccs_double_path_acl_record *entry;

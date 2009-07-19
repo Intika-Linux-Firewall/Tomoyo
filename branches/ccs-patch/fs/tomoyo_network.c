@@ -238,14 +238,13 @@ static int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
  */
 int ccs_write_address_group_policy(char *data, const bool is_delete)
 {
+	char *w[2];
 	bool is_ipv6;
 	u16 min_address[8];
 	u16 max_address[8];
-	char *cp = strchr(data, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	switch (ccs_parse_ip_address(cp, min_address, max_address)) {
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+                return -EINVAL;
+	switch (ccs_parse_ip_address(w[1], min_address, max_address)) {
 	case 2:
 		is_ipv6 = true;
 		break;
@@ -255,7 +254,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	default:
 		return -EINVAL;
 	}
-	return ccs_update_address_group_entry(data, is_ipv6, min_address,
+	return ccs_update_address_group_entry(w[0], is_ipv6, min_address,
 					      max_address, is_delete);
 }
 
@@ -690,6 +689,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     struct ccs_condition *condition,
 			     const bool is_delete)
 {
+	char *w[4];
 	u8 sock_type;
 	u8 operation;
 	u8 record_type;
@@ -699,24 +699,17 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	u16 min_port;
 	u16 max_port;
 	u8 count;
-	char *cp1 = strchr(data, ' ');
-	char *cp2;
-	if (!cp1)
-		goto out;
-	cp1++;
-	if (!strncmp(data, "TCP ", 4))
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
+                return -EINVAL;
+	if (!strcmp(w[0], "TCP"))
 		sock_type = SOCK_STREAM;
-	else if (!strncmp(data, "UDP ", 4))
+	else if (!strcmp(w[0], "UDP"))
 		sock_type = SOCK_DGRAM;
-	else if (!strncmp(data, "RAW ", 4))
+	else if (!strcmp(w[0], "RAW"))
 		sock_type = SOCK_RAW;
 	else
 		goto out;
-	cp2 = strchr(cp1, ' ');
-	if (!cp2)
-		goto out;
-	cp2++;
-	if (!strncmp(cp1, "bind ", 5))
+	if (!strcmp(w[1], "bind"))
 		switch (sock_type) {
 		case SOCK_STREAM:
 			operation = NETWORK_ACL_TCP_BIND;
@@ -727,7 +720,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		default:
 			operation = NETWORK_ACL_RAW_BIND;
 		}
-	else if (!strncmp(cp1, "connect ", 8))
+	else if (!strcmp(w[1], "connect"))
 		switch (sock_type) {
 		case SOCK_STREAM:
 			operation = NETWORK_ACL_TCP_CONNECT;
@@ -738,17 +731,13 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		default:
 			operation = NETWORK_ACL_RAW_CONNECT;
 		}
-	else if (sock_type == SOCK_STREAM && !strncmp(cp1, "listen ", 7))
+	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
 		operation = NETWORK_ACL_TCP_LISTEN;
-	else if (sock_type == SOCK_STREAM && !strncmp(cp1, "accept ", 7))
+	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
 		operation = NETWORK_ACL_TCP_ACCEPT;
 	else
 		goto out;
-	cp1 = strchr(cp2, ' ');
-	if (!cp1)
-		goto out;
-	*cp1++ = '\0';
-	switch (ccs_parse_ip_address(cp2, min_address, max_address)) {
+	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
 	case 2:
 		record_type = IP_RECORD_TYPE_IPv6;
 		break;
@@ -756,15 +745,13 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		record_type = IP_RECORD_TYPE_IPv4;
 		break;
 	default:
-		if (*cp2 != '@')
+		if (w[2][0] != '@')
 			goto out;
-		group_name = cp2 + 1;
+		group_name = w[2] + 1;
 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
 		break;
 	}
-	if (strchr(cp1, ' '))
-		goto out;
-	count = sscanf(cp1, "%hu-%hu", &min_port, &max_port);
+	count = sscanf(w[3], "%hu-%hu", &min_port, &max_port);
 	if (count != 1 && count != 2)
 		goto out;
 	if (count == 1)
