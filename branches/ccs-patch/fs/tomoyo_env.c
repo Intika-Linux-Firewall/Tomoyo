@@ -27,6 +27,10 @@
 static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 			     const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), env,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ENV "%s\n",
 				   env);
 }
@@ -270,17 +274,12 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 	ccs_audit_env_log(r, env, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
-		       ccs_get_msg(is_enforce), env,
-		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, KEYWORD_ALLOW_ENV "%s\n", env);
 		if (error == 1)
 			goto retry;
 		return error;
-	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_env_entry(env, r->domain, cond, false);
 		ccs_put_condition(cond);

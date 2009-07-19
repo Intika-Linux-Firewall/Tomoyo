@@ -34,6 +34,10 @@
 static int ccs_audit_umount_log(struct ccs_request_info *r,
 				const char *dir, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), dir,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_UNMOUNT
 				   "%s\n", dir);
 }
@@ -127,22 +131,20 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		if (ccs_acl_type2(ptr) != TYPE_UMOUNT_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_umount_acl_record, head);
-		if (!ccs_path_matches_pattern(&dir, acl->dir))
+		if (!ccs_path_matches_pattern(&dir, acl->dir) ||
+		    !ccs_check_condition(&r, ptr))
 			continue;
+		r.cond = ptr->cond;
 		error = 0;
 		break;
 	}
 	ccs_audit_umount_log(&r, dir0, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
-		       ccs_get_msg(is_enforce), dir0,
-		       ccs_get_last_name(r.domain));
 	if (is_enforce)
 		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_UNMOUNT "%s",
 					     dir0);
-	else if (r.mode == 1)
+	else if (ccs_domain_quota_ok(&r))
 		ccs_update_umount_acl(dir0, r.domain, NULL, false);
  out:
 	kfree(dir0);

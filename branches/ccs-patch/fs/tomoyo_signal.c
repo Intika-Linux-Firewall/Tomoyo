@@ -33,6 +33,17 @@
 static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 				const char *dest_domain, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain)) {
+		const char *dest = strrchr(dest_domain, ' ');
+		if (dest)
+			dest++;
+		else
+			dest = dest_domain;
+		printk(KERN_WARNING
+		       "TOMOYO-%s: Signal %d to %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), signal, dest,
+		       ccs_get_last_name(r->domain));
+	}
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_SIGNAL
 				   "%d %s\n", signal, dest_domain);
 }
@@ -195,18 +206,13 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	ccs_audit_signal_log(&r, sig, dest_pattern, found);
 	if (found)
 		return 0;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "TOMOYO-%s: Signal %d "
-		       "to %s denied for %s\n", ccs_get_msg(is_enforce), sig,
-		       ccs_get_last_name(dest), ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
 						 "%d %s\n", sig, dest_pattern);
 		if (error == 1)
 			goto retry;
 		return error;
-	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
+	} else if (ccs_domain_quota_ok(&r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_signal_acl(sig, dest_pattern, r.domain, cond, false);
 		ccs_put_condition(cond);

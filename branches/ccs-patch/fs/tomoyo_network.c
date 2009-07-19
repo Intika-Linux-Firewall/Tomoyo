@@ -50,6 +50,10 @@ static int ccs_audit_network_log(struct ccs_request_info *r,
 				 const char *operation, const char *address,
 				 const u16 port, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
+		       ccs_get_msg(r->mode == 3), operation, address, port,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_NETWORK
 				   "%s %s %u\n", operation, address, port);
 }
@@ -631,10 +635,6 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	ccs_audit_network_log(&r, keyword, buf, port, found);
 	if (found)
 		return 0;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
-		       ccs_get_msg(is_enforce), keyword, buf, port,
-		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
 					       "%s %s %u\n", keyword, buf,
@@ -642,8 +642,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		if (err == 1)
 			goto retry;
 		return err;
-	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
+	} else if (ccs_domain_quota_ok(&r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :

@@ -28,6 +28,10 @@
 static int ccs_audit_argv0_log(struct ccs_request_info *r, const char *filename,
 			       const char *argv0, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), filename, argv0,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ARGV0
 				   "%s %s\n", filename, argv0);
 }
@@ -175,14 +179,10 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 	ccs_audit_argv0_log(r, filename->name, argv0, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
-		       ccs_get_msg(is_enforce), filename->name, argv0,
-		       ccs_get_last_name(r->domain));
 	if (is_enforce)
 		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
 					    filename->name, argv0);
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_argv0_entry(filename->name, argv0,
 				       r->domain, cond, false);

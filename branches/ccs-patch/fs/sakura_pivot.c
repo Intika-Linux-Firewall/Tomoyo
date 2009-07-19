@@ -37,6 +37,10 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 				    const char *old_root,
 				    const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
+		       "denied for %s\n", ccs_get_msg(r->mode == 3), new_root,
+		       old_root, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_PIVOT_ROOT
 				   "%s %s\n", new_root, old_root);
 }
@@ -167,8 +171,10 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 			if (!ccs_path_matches_pattern(&old_root_dir,
 						      acl->old_root) ||
 			    !ccs_path_matches_pattern(&new_root_dir,
-						      acl->new_root))
+						      acl->new_root) ||
+			    !ccs_check_condition(&r, ptr))
 				continue;
+			r.cond = ptr->cond;
 			error = 0;
 			break;
 		}
@@ -176,14 +182,10 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
-		       "denied for %s\n", ccs_get_msg(is_enforce), new_root,
-		       old_root, ccs_get_last_name(r.domain));
 	if (is_enforce)
 		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_PIVOT_ROOT
 					     "%s %s\n", new_root, old_root);
-	else if (r.mode == 1)
+	else if (ccs_domain_quota_ok(&r))
 		ccs_update_pivot_root_acl(old_root, new_root, r.domain, NULL,
 					  false);
  out:

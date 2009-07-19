@@ -990,16 +990,19 @@ bool ccs_verbose_mode(const struct ccs_domain_info *domain)
 /**
  * ccs_domain_quota_ok - Check for domain's quota.
  *
- * @domain: Pointer to "struct ccs_domain_info".
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns true if the domain is not exceeded quota, false otherwise.
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-bool ccs_domain_quota_ok(struct ccs_domain_info * const domain)
+bool ccs_domain_quota_ok(struct ccs_request_info *r)
 {
 	unsigned int count = 0;
+	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
+	if (r->mode != 1)
+		return false;
 	if (!domain)
 		return true;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {

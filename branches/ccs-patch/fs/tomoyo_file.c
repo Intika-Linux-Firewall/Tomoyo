@@ -161,22 +161,50 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 				const bool is_delete);
 
 /**
- * ccs_audit_file_log - Audit file related request log.
+ * ccs_audit_single_path_log - Audit single path request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
- * @filename1:  First pathname.
- * @filename2:  Second pathname. May be NULL.
+ * @filename:   Pathname.
  * @is_granted: True if this is a granted log.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_file_log(struct ccs_request_info *r, const char *operation,
-			      const char *filename1, const char *filename2,
-			      const bool is_granted)
+static int ccs_audit_single_path_log(struct ccs_request_info *r,
+				     const char *operation,
+				     const char *filename,
+				     const bool is_granted)
 {
-	if (!filename2)
-		filename2 = "";
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied "
+		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
+		       filename, ccs_get_last_name(r->domain));
+	return ccs_write_audit_log(is_granted, r, "allow_%s %s\n", operation,
+				   filename);
+}
+
+/**
+ * ccs_audit_double_path_log - Audit double path request log.
+ *
+ * @r:          Pointer to "struct ccs_request_info".
+ * @operation:  The name of operation.
+ * @filename1:  First pathname.
+ * @filename2:  Second pathname.
+ * @is_granted: True if this is a granted log.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_audit_double_path_log(struct ccs_request_info *r,
+				     const char *operation,
+				     const char *filename1,
+				     const char *filename2,
+				     const bool is_granted)
+{
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
+		       "denied for %s\n", ccs_get_msg(r->mode == 3),
+		       operation, filename1, filename2,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
 				   operation, filename1, filename2);
 }
@@ -198,6 +226,10 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r,
 			       const unsigned int major,
 			       const unsigned int minor, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %u %u' denied "
+		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
+		       filename, major, minor, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %u %u\n",
 				   operation, filename, major, minor);
 }
@@ -216,6 +248,10 @@ static int ccs_audit_ioctl_log(struct ccs_request_info *r,
 			       const unsigned int cmd, const char *filename,
 			       const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
+		       "for %s\n", ccs_get_msg(r->mode == 3), filename, cmd,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_ioctl %s %u\n",
 				   filename, cmd);
 }
@@ -888,7 +924,6 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
  * @r:         Pointer to "strct ccs_request_info".
  * @filename:  Filename to check.
  * @mode:      Mode ("read" or "write" or "read/write" or "execute").
- * @operation: Operation name passed used for verbose mode.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
@@ -896,7 +931,7 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
  */
 static int ccs_check_file_perm(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
-			       const u8 mode, const char *operation)
+			       const u8 mode)
 {
 	const bool is_enforce = (r->mode == 3);
 	const char *msg = "<unknown>";
@@ -923,21 +958,16 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	if (error && mode == 4 && !r->domain->ignore_global_allow_read
 	    && ccs_is_globally_readable_file(filename))
 		error = 0;
-	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
+	ccs_audit_single_path_log(r, msg, filename->name, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
-		       "for %s\n", ccs_get_msg(is_enforce), msg, operation,
-		       filename->name, ccs_get_last_name(r->domain));
 	if (is_enforce) {
-		int err = ccs_check_supervisor(r, "allow_%s %s\n",
-					       msg, filename->name);
+		int err = ccs_check_supervisor(r, "allow_%s %s\n", msg,
+					       filename->name);
 		if (err == 1 && !r->ee)
 			goto retry;
 		return err;
-	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		/* Don't use patterns for execute permission. */
 		const struct ccs_path_info *pattern = mode != 1 ?
@@ -1494,20 +1524,15 @@ static int ccs_check_single_path_permission(struct ccs_request_info *r,
  retry:
 	error = ccs_check_single_path_acl(r, filename, 1 << operation, 1);
 	msg = ccs_sp2keyword(operation);
-	ccs_audit_file_log(r, msg, filename->name, NULL, !error);
+	ccs_audit_single_path_log(r, msg, filename->name, !error);
 	if (!error)
 		goto ok;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
-		       ccs_get_msg(is_enforce), msg, filename->name,
-		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, "allow_%s %s\n",
 					     msg, filename->name);
 		if (error == 1)
 			goto retry;
-	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_single_path_acl(operation,
 					   ccs_get_file_pattern(filename)
@@ -1560,19 +1585,12 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 	ccs_audit_mkdev_log(r, msg, filename->name, major, minor, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %u %u' denied "
-		       "for %s\n", ccs_get_msg(is_enforce), msg,
-		       filename->name, major, minor,
-		       ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(r, "allow_%s %s %u %u\n", msg,
 					     filename->name, major, minor);
 		if (error == 1)
 			goto retry;
-	} else
-		error = 0;
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_mkdev_acl(operation,
 				     ccs_get_file_pattern(filename)->name,
@@ -1580,6 +1598,8 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 				     cond, false);
 		ccs_put_condition(cond);
 	}
+	if (!is_enforce)
+		error = 0;
 	return error;
 }
 
@@ -1600,7 +1620,7 @@ int ccs_check_exec_perm(struct ccs_request_info *r,
 		return 0;
 	if (!r->mode)
 		return 0;
-	return ccs_check_file_perm(r, filename, 1, "do_execve");
+	return ccs_check_file_perm(r, filename, 1);
 }
 
 /**
@@ -1667,7 +1687,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL,
 							 &buf);
 	if (!error)
-		error = ccs_check_file_perm(&r, &buf, acc_mode, "open");
+		error = ccs_check_file_perm(&r, &buf, acc_mode);
 	if (!error && (flag & O_TRUNC))
 		error = ccs_check_single_path_permission(&r, TYPE_TRUNCATE_ACL,
 							 &buf);
@@ -1891,21 +1911,15 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  retry:
 	error = ccs_check_double_path_acl(&r, operation, &buf1, &buf2);
 	msg = ccs_dp2keyword(operation);
-	ccs_audit_file_log(&r, msg, buf1.name, buf2.name, !error);
+	ccs_audit_double_path_log(&r, msg, buf1.name, buf2.name, !error);
 	if (!error)
 		goto out;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
-		       "denied for %s\n", ccs_get_msg(is_enforce),
-		       msg, buf1.name, buf2.name,
-		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
 					     msg, buf1.name, buf2.name);
 		if (error == 1)
 			goto retry;
-	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
+	} else if (ccs_domain_quota_ok(&r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_double_path_acl(operation,
 					   ccs_get_file_pattern(&buf1)->name,
@@ -2073,18 +2087,13 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
 	if (!error)
 		return 0;
-	if (ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
-		       "for %s\n", ccs_get_msg(is_enforce), filename->name,
-		       cmd, ccs_get_last_name(r->domain));
 	if (is_enforce) {
 		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
 					       filename->name, cmd);
 		if (err == 1)
 			goto retry;
 		return err;
-	}
-	if (r->mode == 1 && ccs_domain_quota_ok(r->domain)) {
+	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_ioctl_acl(ccs_get_file_pattern(filename)->name, cmd,
 				     cmd, r->domain, cond, false);
@@ -2865,8 +2874,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			if (table->strategy) {
 				/* printk("sysctl='%s'\n", buffer); */
 				ccs_fill_path_info(&buf);
-				if (ccs_check_file_perm(&r, &buf, op,
-							"sysctl")) {
+				if (ccs_check_file_perm(&r, &buf, op)) {
 					error = -EPERM;
 					goto out;
 				}
@@ -2879,7 +2887,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		}
 		/* printk("sysctl='%s'\n", buffer); */
 		ccs_fill_path_info(&buf);
-		error = ccs_check_file_perm(&r, &buf, op, "sysctl");
+		error = ccs_check_file_perm(&r, &buf, op);
 		goto out;
 	}
 	error = -ENOTDIR;

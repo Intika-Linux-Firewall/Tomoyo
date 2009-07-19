@@ -80,6 +80,10 @@ static const char *ccs_cap2name(const u8 operation)
 static int ccs_audit_capability_log(struct ccs_request_info *r,
 				    const u8 operation, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), ccs_cap2name(operation),
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CAPABILITY
 				   "%s\n", ccs_cap2keyword(operation));
 }
@@ -186,10 +190,6 @@ static bool ccs_capable2(const u8 operation)
 	ccs_audit_capability_log(&r, operation, found);
 	if (found)
 		return true;
-	if (ccs_verbose_mode(r.domain))
-		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
-		       ccs_get_msg(is_enforce), ccs_cap2name(operation),
-		       ccs_get_last_name(r.domain));
 	if (is_enforce) {
 		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
@@ -197,8 +197,7 @@ static bool ccs_capable2(const u8 operation)
 		if (error == 1)
 			goto retry;
 		return !error;
-	}
-	if (r.mode == 1 && ccs_domain_quota_ok(r.domain)) {
+	} else if (ccs_domain_quota_ok(&r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_capability_acl(operation, r.domain, cond, false);
 		ccs_put_condition(cond);

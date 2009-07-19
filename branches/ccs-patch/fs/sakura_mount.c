@@ -31,14 +31,22 @@
 #define MS_SHARED	(1<<20)	/* change to shared */
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-/* For compatibility with older kernels. */
-static inline void module_put(struct module *module)
-{
-	if (module)
-		__MOD_DEC_USE_COUNT(module);
-}
-#endif
+/* Keywords for mount restrictions. */
+
+/* Allow to call 'mount --bind /source_dir /dest_dir' */
+#define MOUNT_BIND_KEYWORD                               "--bind"
+/* Allow to call 'mount --move /old_dir    /new_dir ' */
+#define MOUNT_MOVE_KEYWORD                               "--move"
+/* Allow to call 'mount -o remount /dir             ' */
+#define MOUNT_REMOUNT_KEYWORD                            "--remount"
+/* Allow to call 'mount --make-unbindable /dir'       */
+#define MOUNT_MAKE_UNBINDABLE_KEYWORD                    "--make-unbindable"
+/* Allow to call 'mount --make-private /dir'          */
+#define MOUNT_MAKE_PRIVATE_KEYWORD                       "--make-private"
+/* Allow to call 'mount --make-slave /dir'            */
+#define MOUNT_MAKE_SLAVE_KEYWORD                         "--make-slave"
+/* Allow to call 'mount --make-shared /dir'           */
+#define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
 
 /**
  * ccs_audit_mount_log - Audit mount log.
@@ -57,27 +65,46 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 			       const char *type, const unsigned long flags,
 			       const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain)) {
+		const bool is_enforce = (r->mode == 3);
+		const char *msg = ccs_get_msg(is_enforce);
+		const char *domainname = ccs_get_last_name(r->domain);
+		if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
+			printk(KERN_WARNING
+			       "SAKURA-%s: mount -o remount %s 0x%lX "
+			       "denied for %s.\n", msg, dir_name, flags,
+			       domainname);
+		else if (!strcmp(type, MOUNT_BIND_KEYWORD)
+			 || !strcmp(type, MOUNT_MOVE_KEYWORD))
+			printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
+			       "denied for %s\n", msg, type, dev_name,
+			       dir_name, flags, domainname);
+		else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+			 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
+			 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
+			 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
+			printk(KERN_WARNING
+			       "SAKURA-%s: mount %s %s 0x%lX denied for %s\n",
+			       msg, type, dir_name, flags, domainname);
+		else
+			printk(KERN_WARNING
+			       "SAKURA-%s: mount -t %s %s %s 0x%lX "
+			       "denied for %s\n", msg, type, dev_name,
+			       dir_name, flags, domainname);
+	}
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_MOUNT
 				   "%s %s %s 0x%lu\n", dev_name, dir_name,
 				   type, flags);
 }
 
-/* Keywords for mount restrictions. */
-
-/* Allow to call 'mount --bind /source_dir /dest_dir' */
-#define MOUNT_BIND_KEYWORD                               "--bind"
-/* Allow to call 'mount --move /old_dir    /new_dir ' */
-#define MOUNT_MOVE_KEYWORD                               "--move"
-/* Allow to call 'mount -o remount /dir             ' */
-#define MOUNT_REMOUNT_KEYWORD                            "--remount"
-/* Allow to call 'mount --make-unbindable /dir'       */
-#define MOUNT_MAKE_UNBINDABLE_KEYWORD                    "--make-unbindable"
-/* Allow to call 'mount --make-private /dir'          */
-#define MOUNT_MAKE_PRIVATE_KEYWORD                       "--make-private"
-/* Allow to call 'mount --make-slave /dir'            */
-#define MOUNT_MAKE_SLAVE_KEYWORD                         "--make-slave"
-/* Allow to call 'mount --make-shared /dir'           */
-#define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+/* For compatibility with older kernels. */
+static inline void module_put(struct module *module)
+{
+	if (module)
+		__MOD_DEC_USE_COUNT(module);
+}
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
 /* For compatibility with older kernels. */
@@ -175,44 +202,6 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 	ccs_put_name(saved_fs);
 	kfree(entry);
 	return error;
-}
-
-/**
- * ccs_print_error - Print error messages.
- *
- * @r:        Pointer to "struct ccs_request_info".
- * @dev_name: Name of device file.
- * @dir_name: Name of mount point.
- * @type:     Name of filesystem type.
- * @flags:    Mount options.
- *
- * Returns nothing.
- */
-static void ccs_print_error(struct ccs_request_info *r, const char *dev_name,
-			    const char *dir_name, const char *type,
-			    const unsigned long flags)
-{
-	const bool is_enforce = (r->mode == 3);
-	const char *msg = ccs_get_msg(is_enforce);
-	const char *domainname = ccs_get_last_name(r->domain);
-	if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
-		printk(KERN_WARNING "SAKURA-%s: mount -o remount %s 0x%lX "
-		       "denied for %s.\n", msg, dir_name, flags, domainname);
-	else if (!strcmp(type, MOUNT_BIND_KEYWORD)
-		 || !strcmp(type, MOUNT_MOVE_KEYWORD))
-		printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
-		       "denied for %s\n", msg, type, dev_name, dir_name, flags,
-		       domainname);
-	else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-		 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-		 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
-		 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
-		printk(KERN_WARNING "SAKURA-%s: mount %s %s 0x%lX denied for "
-		       "%s\n", msg, type, dir_name, flags, domainname);
-	else
-		printk(KERN_WARNING "SAKURA-%s: mount -t %s %s %s 0x%lX "
-		       "denied for %s\n", msg, type, dev_name, dir_name,
-		       flags, domainname);
 }
 
 /**
@@ -384,7 +373,11 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			    !ccs_path_matches_pattern(&rdev, acl->dev_name))
 				continue;
 
+			if (!ccs_check_condition(r, ptr))
+				continue;
+
 			/* OK. */
+			r->cond = ptr->cond;
 			error = 0;
 			break;
 		}
@@ -392,17 +385,13 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				    requested_type, flags, !error);
 		if (!error)
 			goto out;
-		if (ccs_verbose_mode(r->domain))
-			ccs_print_error(r, requested_dev_name,
-					requested_dir_name, requested_type,
-					flags);
 		if (is_enforce)
 			error = ccs_check_supervisor(r, KEYWORD_ALLOW_MOUNT
 						     "%s %s %s 0x%lX\n",
 						     requested_dev_name,
 						     requested_dir_name,
 						     requested_type, flags);
-		else if (r->mode == 1)
+		else if (ccs_domain_quota_ok(r))
 			ccs_update_mount_acl(requested_dev_name,
 					     requested_dir_name,
 					     requested_type, flags,

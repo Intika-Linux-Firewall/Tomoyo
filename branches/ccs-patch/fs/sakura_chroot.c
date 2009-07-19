@@ -34,6 +34,10 @@
 static int ccs_audit_chroot_log(struct ccs_request_info *r,
 				const char *root, const bool is_granted)
 {
+	if (!is_granted && ccs_verbose_mode(r->domain))
+		printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
+		       ccs_get_msg(r->mode == 3), root,
+		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CHROOT
 				   "%s\n", root);
 }
@@ -139,8 +143,10 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 				continue;
 			acl = container_of(ptr, struct ccs_chroot_acl_record,
 					   head); 
-			if (!ccs_path_matches_pattern(&dir, acl->dir))
+			if (!ccs_path_matches_pattern(&dir, acl->dir) ||
+			    !ccs_check_condition(&r, ptr))
 				continue;
+			r.cond = ptr->cond;
 			error = 0;
 			break;
 		}
@@ -148,20 +154,17 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 	ccs_audit_chroot_log(&r, root_name, !error);
 	if (!error)
 		goto out;
-	printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
-	       ccs_get_msg(is_enforce), root_name,
-	       ccs_get_last_name(r.domain));
 	if (is_enforce)
 		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CHROOT"%s\n",
 					     root_name);
-	else
-		error = 0;
-	if (r.mode == 1)
+	else if (ccs_domain_quota_ok(&r))
 		ccs_update_chroot_acl(root_name, r.domain, NULL, false);
  out:
 	kfree(root_name);
 	if (error == 1)
 		goto retry;
+	if (!is_enforce)
+		error = 0;
 	return error;
 }
 
