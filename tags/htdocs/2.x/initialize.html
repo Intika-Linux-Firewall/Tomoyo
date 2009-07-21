@@ -1,0 +1,283 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date: 2009-07-14 16:54:09 +0900 (Tue, 14 Jul 2009) $</p>
+<h1>Phase 2: Initializing TOMOYO Linux.</h1>
+
+<p>This page describes basic operations needed for using TOMOYO.</p>
+
+<hr>
+
+<h2>Step 1: Initializing Policy</h2>
+
+<p>To initialize policy, run</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/lib/ccs/tomoyo_init_policy.sh
+</td></tr>
+</table>
+
+<p>This will take several minutes.</p>
+
+<p>TOMOYO's policy files will be saved in /etc/tomoyo/ directory.</p>
+
+<hr>
+
+<h2>Step 2: Learning how to use TOMOYO's policy editor</h2>
+
+<p>Run TOMOYO's policy editor "ccs-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-editpolicy /etc/tomoyo/
+</td></tr>
+</table>
+
+<p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
+
+<p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined. But as the system runs, TOMOYO will create domains and add them to the tree. The example picture shown below has many domains.</p>
+
+<p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
+
+<p>The MAC in TOMOYO Linux is applied in the units of domains. Every process belongs to single domain, and basically the process will transit to different domain whenever it executes a program. The name of a domain is a concatenated string expression for the process execution history. For example, the name of domain which the kernel belongs to is "&lt;kernel&gt;", the name of domain which /sbin/init invoked by the kernel belongs to is "&lt;kernel&gt; /sbin/init", the name of domain which /etc/rc.d/rc invoked by the /sbin/init belongs to is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc". The exceptions of this transition rule are described later.</p>
+
+<p>Look at the number which are the second column of each line.</p>
+
+<p><img src="editpolicy-domain-profile-number.png" width="720" height="400"></p>
+
+<p>This number is called "profile number". A profile number is an integer value which takes between 0 and 255.</p>
+
+<p>Press "w" key, and you will see some choices.</p>
+
+<p><img src="editpolicy-window-list.png" width="720" height="400"></p>
+
+<p>Press "p" key, and you will see the list of profiles.</p>
+
+<p>You will see entries shown in below picture.</p>
+
+<p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
+
+<p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
+
+<table border="1">
+<tr><td>Name</td><td>Control</td><td>Default value</td><td>Learning mode supported</td></tr>
+<tr>
+<td>COMMENT</td>
+<td>A line of text that describes the content of the profile.</td>
+<td></td>
+<td>-</td>
+</tr>
+<tr>
+<td>MAC_FOR_FILE</td>
+<td>Enable Mandatory Access Control(MAC) for files.</td>
+<td>disabled</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>MAX_ACCEPT_ENTRY</td>
+<td>Limits the max number of ACL entries that are automatically appended during learning mode.</td>
+<td>2048</td>
+<td>-</td>
+</tr>
+<tr>
+<td>TOMOYO_VERBOSE</td>
+<td>Dump domain policy violation messages to syslog.</td>
+<td>enabled</td>
+<td>-</td>
+</tr>
+</table>
+<p>You can give the following values for MAC_FOR_FILE.</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>disabled</td>
+<td>Disabled. Works as if regular kernel.</td>
+</tr>
+<tr>
+<td>learning</td>
+<td>Learning mode. Not rejected if the request violates policy. Automatically appended to policy.</td>
+</tr>
+<tr>
+<td>permissive</td>
+<td>Permissive mode. Not rejected if the request violates policy. Not appended to policy automatically.</td>
+</tr>
+<tr>
+<td>enforcing</td>
+<td>Enforcing mode. Rejected if the request violates policy.</td>
+</tr>
+</table>
+<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY.</p>
+<p>You can give the following values for TOMOYO_VERBOSE</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>disabled</td>
+<td>Don't dump domain policy violation messages.</td>
+</tr>
+<tr>
+<td>enabled</td>
+<td>Dump domain policy violation messages.</td>
+</tr>
+</table>
+
+<p>Press "w" key, then press "e" key, and you will see the picture shown below.</p>
+
+<p><img src="editpolicy-exception-list1.png" width="720" height="400"></p>
+
+<p>This screen contains the following types of exceptions.</p>
+
+<table border="1">
+<tr><td>
+(1) Pathname pattern
+</td><td>
+<p>Register pathnames with patterns using the "file_pattern" directive. When a file operation is performed and the requested pathname matches a patterned pathname registered with "file_pattern" directive, policy is generated using patterned pathnames.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Files under /proc/PID/ directory.
+<li>Files under /sys/ directory. (Applicable to 2.6 kernels only)
+<li>Some files under /dev/ directory.
+<li>Policy files under /usr/lib/security/ directory.
+<li>Manual pages.
+<li>Spool directories.
+<li>Temporary files used for sending and receiving mails.
+<li>Temporary files used by man command.
+<li>Temporary files used by mount command.
+</ul>
+
+<p>TOMOYO Linux needs more patterned pathnames depending on the applications installed and their configurations. You can add missing patterned pathnames after running the system.</p>
+</td></tr><tr><td>
+(2) Unconditionally readable files
+</td><td>
+<p>Register files that are allowed to be read by all programs using the "allow_read" directive. Patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Dynamically-linked library files that are registered with ldconfig.
+<li>Some files under /proc/ directory.
+<li>Some locale data under /usr/share/locale/ directory.
+</ul>
+
+<p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
+
+</td></tr><tr><td>
+(3) Non-rewritable files
+</td><td>
+<p>Register files that you don't want to allow overwriting existing contents (like log files) using "deny_rewrite" directive. Patterns are allowed. Files registered with "deny_rewrite" directive are (as long as it is not explicitly given by "allow_rewrite" directive in domain policy) forbidden to "open for writing but not append mode" and "truncate".<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Files under /var/log/ directory.
+</ul>
+
+<p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for append-only access.</p>
+
+</td></tr><tr><td>
+(4) Programs invocable via symbolic links
+</td><td>
+<p>Basically, TOMOYO Linux checks execute permissions using the dereferenced pathname if the requested program is a symbolic link. But to handle programs that behave differently depending on the name of invocation, you may define domains using the name of symbolic links.<br>
+To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. No patterns are allowed.<br>
+For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
+</td></tr><tr><td>
+(5) Program aggregations
+</td><td>
+<p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
+For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
+</td></tr><tr><td>
+(6) Programs that cause domain transition initialization
+</td><td>
+<p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
+The following is the guideline.</p>
+
+<ul>
+<li>Scripts that start or terminate daemon programs located under /etc/init.d/ directory.
+<li>Daemon programs that you want to make domain names shorter (for example, httpd and sshd).
+</ul>
+
+<p>You may find more programs depending on applications in your system or configurations. Add missing programs after observing which programs should be initialize their domain transition history. But be careful with the side effect of other domains. For example, when the domain policy already includes</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+allow_execute /bin/tcsh<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh<br>
+use_profile 3<br>
+allow_execute /bin/cat<br>
+<br>
+&lt;kernel&gt; ... /bin/bash /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+allow_read /etc/fstab
+</td></tr>
+</table>
+
+<p>and you add /bin/tcsh as initialize_domain, "&lt;kernel&gt; ... /bin/bash /bin/tcsh" will become  unreachable domain because /bin/tcsh runs in "&lt;kernel&gt; /bin/tcsh" domain. In that case, you will need to replace "&lt;kernel&gt; ... /bin/bash /bin/tcsh" with "&lt;kernel&gt; /bin/tcsh" as shown below.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; ... /bin/bash<br>
+use_profile 3<br>
+allow_execute /bin/tcsh<br>
+<br>
+&lt;kernel&gt; /bin/tcsh<br>
+use_profile 3<br>
+allow_execute /bin/cat<br>
+<br>
+&lt;kernel&gt; /bin/tcsh /bin/cat<br>
+use_profile 3<br>
+allow_read /etc/fstab
+</td></tr>
+</table>
+</td></tr><tr><td>
+(7) Programs that prevent domain transition initialization
+</td><td>
+<p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
+</td></tr><tr><td>
+(8) Domains that prevent domain transition
+</td><td>
+<p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
+For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
+</td></tr><tr><td>
+(9) Domains that cause domain transition
+</td><td>
+<p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
+</td></tr>
+</table>
+
+<p>Press "q" key to finish the policy editor.</p>
+
+<p>Please see the policy editor's tutorial page <a href="tool-editpolicy.html">How to use Policy Editor</a> as needed.</p>
+
+<hr>
+
+<h2>Step 3: Reboot the system</h2>
+
+<p>Now, reboot with TOMOYO Linux kernel.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# reboot
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
