@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-setlevel 1.6.8
+tomoyo-setlevel 2.2.0
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,29 +13,27 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-setlevel profile_index-profile_name=profile_value ...
+Usage: tomoyo-setlevel profile_index-profile_name=profile_value ...
 
 This program updates TOMOYO Linux's profile.
 
-You can see list of profiles currently defined via /proc/ccs/profile .
+You can see list of profiles currently defined via /sys/kernel/security/tomoyo/profile .
 
 Examples:
 
-# ccs-setlevel 2-TOMOYO_VERBOSE=enabled
+# tomoyo-setlevel 2-TOMOYO_VERBOSE=enabled
  Turn on verbose mode for profile 2.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Update TOMOYO Linux's profile" $0 | gzip -9 > man8/ccs-setlevel.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Update TOMOYO Linux's profile" $0 | gzip -9 > man8/tomoyo-setlevel.8.gz
 [SEE ALSO]
 
- ccs-loadpolicy (8)
+ tomoyo-loadpolicy (8)
 
 [NOTES]
 
- This is a symbolic link to /usr/lib/ccs/setlevel .
-
- You need to register either path to this program ( /usr/lib/ccs/setlevel ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/tomoyo-setlevel ) or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program.
 
 [AUTHORS]
 

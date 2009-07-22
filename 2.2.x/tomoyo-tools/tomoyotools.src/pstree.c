@@ -124,7 +124,7 @@ static void dump_unprocessed(void)
 	}
 }
 
-int ccstree_main(int argc, char *argv[])
+int pstree_main(int argc, char *argv[])
 {
 	const char *policy_file = proc_policy_process_status;
 	static _Bool show_all = false;

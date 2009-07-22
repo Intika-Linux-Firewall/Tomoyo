@@ -135,9 +135,6 @@ void editpolicy_offline_daemon(void)
 			else if (!strcmp(shared_buffer,
 					 proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, true);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_system_policy))
-				handle_misc_policy(&mp[1], fp, true);
 			else if (!strcmp(shared_buffer, proc_policy_profile))
 				handle_misc_policy(&mp[2], fp, true);
 			else if (!strcmp(shared_buffer, proc_policy_manager))
@@ -148,9 +145,6 @@ void editpolicy_offline_daemon(void)
 			else if (!strcmp(shared_buffer,
 					 proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, false);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_system_policy))
-				handle_misc_policy(&mp[1], fp, false);
 			else if (!strcmp(shared_buffer, proc_policy_profile))
 				handle_misc_policy(&mp[2], fp, false);
 			else if (!strcmp(shared_buffer, proc_policy_manager))
