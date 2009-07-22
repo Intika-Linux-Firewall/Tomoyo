@@ -8,16 +8,16 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 2.2.0-1
+Conflicts: tomoyo-tools < 2.2.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/ccs-tools-2.2.0-20090???.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/tomoyo-tools-2.2.0-20090???.tar.gz
 
 %description
 This is TOMOYO Linux tools.
 
 %prep
 
-%setup -q -n ccstools
+%setup -q -n tomoyotools
 
 %build
 
@@ -37,7 +37,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/tomoyo/
 /usr/sbin/
 /usr/share/man/
-%attr(4755,root,root) /usr/lib/tomoyo/force-logout
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog

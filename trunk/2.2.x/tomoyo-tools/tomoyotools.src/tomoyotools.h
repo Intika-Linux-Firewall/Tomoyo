@@ -1,11 +1,11 @@
 /*
- * ccstools.h
+ * tomoyotools.h
  *
  * TOMOYO Linux's utilities.
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 2.2.0   2009/??/??
  *
  */
 

@@ -1,11 +1,11 @@
 /*
- * ccs-init.c
+ * tomoyo-init.c
  *
  * TOMOYO Linux's utilities.
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/07/11
+ * Version: 2.2.0   2009/??/??
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -33,14 +33,12 @@ static void panic(void)
 	exit(1);
 }
 
-static unsigned int ccs_version = 168;
-static const char *policy_dir = "/etc/ccs/";
-static const char *proc_manager = "/proc/ccs/manager";
-static const char *proc_system_policy = "/proc/ccs/system_policy";
-static const char *proc_exception_policy = "/proc/ccs/exception_policy";
-static const char *proc_domain_policy = "/proc/ccs/domain_policy";
-static const char *proc_profile = "/proc/ccs/profile";
-static const char *proc_meminfo = "/proc/ccs/meminfo";
+#define policy_dir            "/etc/tomoyo/"
+#define proc_manager          "/sys/kernel/security/tomoyo/manager"
+#define proc_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
+#define proc_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
+#define proc_profile          "/sys/kernel/security/tomoyo/profile"
+#define proc_meminfo          "/sys/kernel/security/tomoyo/meminfo"
 static const char *profile_name = "default";
 static _Bool tomoyo_noload = 0;
 static _Bool tomoyo_quiet = 0;
@@ -54,17 +52,17 @@ static char buffer[8192];
 
 static void check_arg(const char *arg)
 {
-	if (!strcmp(arg, "CCS=ask"))
+	if (!strcmp(arg, "TOMOYO=ask"))
 		profile_name = "ask";
-	else if (!strcmp(arg, "CCS=default"))
+	else if (!strcmp(arg, "TOMOYO=default"))
 		profile_name = "default";
-	else if (!strcmp(arg, "CCS=disabled"))
+	else if (!strcmp(arg, "TOMOYO=disabled"))
 		profile_name = "disable";
-	else if (!strncmp(arg, "CCS=", 4)) {
+	else if (!strncmp(arg, "TOMOYO=", 7)) {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "profile-%s.conf",
-			 arg + 4);
+			 arg + 7);
 		profile_name = strdup(buffer);
 		if (!profile_name)
 			panic();
@@ -291,9 +289,14 @@ static void show_memory_usage(void)
 	       (private_mem + 1023) / 1024);
 }
 
-static _Bool mount_securityfs(void)
+int main(int argc, char *argv[])
 {
 	struct stat buf;
+	
+	/* Mount /proc if not mounted. */
+	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
+		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
+	
 	/* Mount /sys if not mounted. */
 	if (lstat("/sys/kernel/", &buf) || !S_ISDIR(buf.st_mode))
 		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
@@ -309,34 +312,6 @@ static _Bool mount_securityfs(void)
 			umount("/sys/kernel/security/");
 		if (sys_unmount)
 			umount("/sys/");
-		return 0;
-	}
-	/*
-	 * Use /etc/tomoyo/ instead of /etc/ccs/ and
-	 * /sys/kernel/security/tomoyo/ instead of /proc/ccs/ .
-	 */
-	policy_dir = "/etc/tomoyo/";
-	proc_manager = "/sys/kernel/security/tomoyo/manager";
-	proc_system_policy = NULL;
-	proc_exception_policy = "/sys/kernel/security/tomoyo/exception_policy";
-	proc_domain_policy = "/sys/kernel/security/tomoyo/domain_policy";
-	proc_profile = "/sys/kernel/security/tomoyo/profile";
-	proc_meminfo = "/sys/kernel/security/tomoyo/meminfo";
-	ccs_version = 220;
-	return 1;
-}
-
-int main(int argc, char *argv[])
-{
-	struct stat buf;
-	
-	/* Mount /proc if not mounted. */
-	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
-		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
-	
-	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if ((lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) &&
-	    !mount_securityfs()) {
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
@@ -415,9 +390,6 @@ int main(int argc, char *argv[])
 	/* Load policy. */
 	if (chdir_ok) {
 		copy_files("manager.base", "manager.conf", proc_manager);
-		if (ccs_version < 170)
-			copy_files("system_policy.base", "system_policy.conf",
-				   proc_system_policy);
 		copy_files("exception_policy.base", "exception_policy.conf",
 			   proc_exception_policy);
 		if (!tomoyo_noload)
@@ -441,30 +413,16 @@ int main(int argc, char *argv[])
 		disable_verbose();
 
 	/* Do additional initialization. */
-	if (ccs_version < 200) {
-		if (!access("/etc/ccs/ccs-post-init", X_OK)) {
-			switch (fork()) {
-			case 0:
-				execl("/etc/ccs/ccs-post-init",
-				      "/etc/ccs/ccs-post-init", NULL);
-				_exit(0);
-			case -1:
-				panic();
-			}
-			wait(NULL);
+	if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
+		switch (fork()) {
+		case 0:
+			execl("/etc/tomoyo/tomoyo-post-init",
+			      "/etc/tomoyo/tomoyo-post-init", NULL);
+			_exit(0);
+		case -1:
+			panic();
 		}
-	} else {
-		if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
-			switch (fork()) {
-			case 0:
-				execl("/etc/tomoyo/tomoyo-post-init",
-				      "/etc/tomoyo/tomoyo-post-init", NULL);
-				_exit(0);
-			case -1:
-				panic();
-			}
-			wait(NULL);
-		}
+		wait(NULL);
 	}
 
 	show_domain_usage();
