@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-editpolicy 1.6.8
+tomoyo-editpolicy 2.2.0
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,11 +13,9 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-editpolicy [{s|e|d|p|m|u}] [readonly] [refresh=interval] [policy_dir|remote_ip:remote_port]
+Usage: tomoyo-editpolicy [{e|d|p|m|u}] [readonly] [refresh=interval] [policy_dir|remote_ip:remote_port]
 
 This program edits TOMOYO Linux's policy currently loaded in the kernel.
-
- s     Set initial screen to system policy editor.
 
  e     Set initial screen to exception policy editor.
 
@@ -39,30 +37,28 @@ This program edits TOMOYO Linux's policy currently loaded in the kernel.
 
 Examples:
 
-# ccs-editpolicy
+# tomoyo-editpolicy
  Start policy editor with domain policy editor screen.
 
-# ccs-editpolicy /etc/ccs/192.168.1.1/
- Edit policy stored in /etc/ccs/192.168.1.1/ directory.
+# tomoyo-editpolicy /etc/tomoyo/192.168.1.1/
+ Edit policy stored in /etc/tomoyo/192.168.1.1/ directory.
 
-# ccs-editpolicy 192.168.1.1:10000
+# tomoyo-editpolicy 192.168.1.1:10000
  Edit policy via connecting to 192.168.1.1:10000 .
 
-Usage with images are available at http://tomoyo.sourceforge.jp/en/1.6.x/tool-editpolicy.html
+Usage with images are available at http://tomoyo.sourceforge.jp/en/2.2.x/tool-editpolicy.html
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Edit TOMOYO Linux's policy" $0 | gzip -9 > man8/ccs-editpolicy.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Edit TOMOYO Linux's policy" $0 | gzip -9 > man8/tomoyo-editpolicy.8.gz
 [SEE ALSO]
 
- ccs-loadpolicy (8)
- ccs-editpolicy-agent (8)
+ tomoyo-loadpolicy (8)
+ tomoyo-editpolicy-agent (8)
 
 [NOTES]
 
- This is a symbolic link to /usr/lib/ccs/editpolicy .
-
- You need to register either path to this program ( /usr/lib/ccs/editpolicy ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/tomoyo-editpolicy ) or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program.
 
 [AUTHORS]
 

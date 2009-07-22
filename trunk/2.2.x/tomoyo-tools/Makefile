@@ -2,9 +2,9 @@ INSTALLDIR = /
 
 MAIN_FILES = tomoyotools tomoyo_init_policy tomoyo-init
 
-MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh force-logout ccs-editpolicy-agent
+MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh force-logout tomoyo-editpolicy-agent
 
-ALIAS_LIST = ccstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy
+ALIAS_LIST = pstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy
 
 all: main misc
 

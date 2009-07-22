@@ -1047,20 +1047,6 @@ int ccs_major = 0;
 int ccs_minor = 0;
 int ccs_rev = 0;
 
-const char *proc_policy_dir           = "/proc/ccs/",
-	*disk_policy_dir              = "/etc/ccs/",
-	*proc_policy_domain_policy    = "/proc/ccs/domain_policy",
-	*proc_policy_exception_policy = "/proc/ccs/exception_policy",
-	*proc_policy_system_policy    = "/proc/ccs/system_policy",
-	*proc_policy_profile          = "/proc/ccs/profile",
-	*proc_policy_manager          = "/proc/ccs/manager",
-	*proc_policy_meminfo          = "/proc/ccs/meminfo",
-	*proc_policy_query            = "/proc/ccs/query",
-	*proc_policy_grant_log        = "/proc/ccs/grant_log",
-	*proc_policy_reject_log       = "/proc/ccs/reject_log",
-	*proc_policy_domain_status    = "/proc/ccs/.domain_status",
-	*proc_policy_process_status   = "/proc/ccs/.process_status";
-
 char shared_buffer[sizeof(shared_buffer)];
 static _Bool buffer_locked = false;
 
@@ -1118,34 +1104,6 @@ _Bool freadline(FILE *fp)
 	return true;
 }
 
-static void change_policy_dir(void)
-{
-	proc_policy_dir = "/sys/kernel/security/tomoyo/";
-	disk_policy_dir = "/etc/tomoyo/";
-	proc_policy_domain_policy
-		= "/sys/kernel/security/tomoyo/domain_policy";
-	proc_policy_exception_policy
-		= "/sys/kernel/security/tomoyo/exception_policy";
-	proc_policy_system_policy
-		= "/sys/kernel/security/tomoyo/system_policy";
-	proc_policy_profile
-		= "/sys/kernel/security/tomoyo/profile";
-	proc_policy_manager
-		= "/sys/kernel/security/tomoyo/manager";
-	proc_policy_meminfo
-		= "/sys/kernel/security/tomoyo/meminfo";
-	proc_policy_query
-		= "/sys/kernel/security/tomoyo/query";
-	proc_policy_grant_log
-		= "/sys/kernel/security/tomoyo/grant_log";
-	proc_policy_reject_log
-		= "/sys/kernel/security/tomoyo/reject_log";
-	proc_policy_domain_status
-		= "/sys/kernel/security/tomoyo/.domain_status";
-	proc_policy_process_status
-		= "/sys/kernel/security/tomoyo/.process_status";
-}
-
 _Bool check_remote_host(void)
 {
 	FILE *fp = open_read("version");
@@ -1160,8 +1118,10 @@ _Bool check_remote_host(void)
 		return false;
 	}
 	fclose(fp);
-	if (ccs_major == 2)
-		change_policy_dir();
+	if (ccs_major != 2) {
+		fprintf(stderr, "You cannot use this program for that host.\n");
+		exit(1);
+	}
 	return true;
 }
 
@@ -1173,45 +1133,35 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Function not specified.\n");
 		return 1;
 	}
-	if (!access("/sys/kernel/security/tomoyo/", F_OK))
-		change_policy_dir();
 	if (strrchr(argv0, '/'))
 		argv0 = strrchr(argv0, '/') + 1;
-retry:
-	if (!strcmp(argv0, "sortpolicy"))
+	if (!strcmp(argv0, "tomoyo-sortpolicy"))
 		ret = sortpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "setprofile"))
+	else if (!strcmp(argv0, "tomoyo-setprofile"))
 		ret = setprofile_main(argc, argv);
-	else if (!strcmp(argv0, "setlevel"))
+	else if (!strcmp(argv0, "tomoyo-setlevel"))
 		ret = setlevel_main(argc, argv);
-	else if (!strcmp(argv0, "diffpolicy"))
+	else if (!strcmp(argv0, "tomoyo-diffpolicy"))
 		ret = diffpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "savepolicy"))
+	else if (!strcmp(argv0, "tomoyo-savepolicy"))
 		ret = savepolicy_main(argc, argv);
-	else if (!strcmp(argv0, "pathmatch"))
+	else if (!strcmp(argv0, "tomoyo-pathmatch"))
 		ret = pathmatch_main(argc, argv);
-	else if (!strcmp(argv0, "loadpolicy"))
+	else if (!strcmp(argv0, "tomoyo-loadpolicy"))
 		ret = loadpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "ld-watch"))
+	else if (!strcmp(argv0, "tomoyo-ld-watch"))
 		ret = ldwatch_main(argc, argv);
-	else if (!strcmp(argv0, "findtemp"))
+	else if (!strcmp(argv0, "tomoyo-findtemp"))
 		ret = findtemp_main(argc, argv);
-	else if (!strcmp(argv0, "editpolicy"))
+	else if (!strcmp(argv0, "tomoyo-editpolicy"))
 		ret = editpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "checkpolicy"))
+	else if (!strcmp(argv0, "tomoyo-checkpolicy"))
 		ret = checkpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "ccstree"))
-		ret = ccstree_main(argc, argv);
-	else if (!strcmp(argv0, "ccs-queryd"))
-		ret = ccsqueryd_main(argc, argv);
-	else if (!strcmp(argv0, "ccs-auditd"))
-		ret = ccsauditd_main(argc, argv);
-	else if (!strcmp(argv0, "patternize"))
+	else if (!strcmp(argv0, "tomoyo-pstree"))
+		ret = pstree_main(argc, argv);
+	else if (!strcmp(argv0, "tomoyo-patternize"))
 		ret = patternize_main(argc, argv);
-	else if (!strncmp(argv0, "ccs-", 4)) {
-		argv0 += 4;
-		goto retry;
-	} else
+	else
 		goto show_version;
 	return ret;
 show_version:
@@ -1222,7 +1172,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.6.8p1 build 2009/06/23\n");
+	printf("tomoyotools version 2.2.0 build 2009/??/??\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

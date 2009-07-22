@@ -44,13 +44,11 @@
 #define false    0
 
 enum screen_type {
-	SCREEN_SYSTEM_LIST,
 	SCREEN_EXCEPTION_LIST,
 	SCREEN_DOMAIN_LIST,
 	SCREEN_ACL_LIST,
 	SCREEN_PROFILE_LIST,
 	SCREEN_MANAGER_LIST,
-	SCREEN_QUERY_LIST,
 	SCREEN_MEMINFO_LIST,
 	MAXSCREEN
 };
@@ -59,71 +57,35 @@ enum policy_type {
 	POLICY_TYPE_UNKNOWN,
 	POLICY_TYPE_DOMAIN_POLICY,
 	POLICY_TYPE_EXCEPTION_POLICY,
-	POLICY_TYPE_SYSTEM_POLICY
-};
-
-#define VALUE_TYPE_DECIMAL     1
-#define VALUE_TYPE_OCTAL       2
-#define VALUE_TYPE_HEXADECIMAL 3
-
-enum socket_operation_type {
-	NETWORK_ACL_UDP_BIND,
-	NETWORK_ACL_UDP_CONNECT,
-	NETWORK_ACL_TCP_BIND,
-	NETWORK_ACL_TCP_LISTEN,
-	NETWORK_ACL_TCP_CONNECT,
-	NETWORK_ACL_TCP_ACCEPT,
-	NETWORK_ACL_RAW_BIND,
-	NETWORK_ACL_RAW_CONNECT
 };
 
 #define KEYWORD_AGGREGATOR               "aggregator "
 #define KEYWORD_ALIAS                    "alias "
-#define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
-#define KEYWORD_ALLOW_ENV                "allow_env "
-#define KEYWORD_ALLOW_IOCTL              "allow_ioctl "
-#define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
-#define KEYWORD_ALLOW_CHROOT             "allow_chroot "
-#define KEYWORD_ALLOW_MOUNT              "allow_mount "
-#define KEYWORD_ALLOW_NETWORK            "allow_network "
-#define KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
 #define KEYWORD_ALLOW_READ               "allow_read "
-#define KEYWORD_ALLOW_SIGNAL             "allow_signal "
 #define KEYWORD_DELETE                   "delete "
-#define KEYWORD_DENY_AUTOBIND            "deny_autobind "
 #define KEYWORD_DENY_REWRITE             "deny_rewrite "
-#define KEYWORD_DENY_UNMOUNT             "deny_unmount "
 #define KEYWORD_FILE_PATTERN             "file_pattern "
-#define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define KEYWORD_SELECT                   "select "
-#define KEYWORD_UNDELETE                 "undelete "
 #define KEYWORD_USE_PROFILE              "use_profile "
 #define KEYWORD_USE_PROFILE_LEN          (sizeof(KEYWORD_USE_PROFILE) - 1)
 #define KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
 #define KEYWORD_KEEP_DOMAIN              "keep_domain "
-#define KEYWORD_PATH_GROUP               "path_group "
-#define KEYWORD_ADDRESS_GROUP            "address_group "
 #define KEYWORD_NO_INITIALIZE_DOMAIN     "no_" KEYWORD_INITIALIZE_DOMAIN
 #define KEYWORD_NO_KEEP_DOMAIN           "no_" KEYWORD_KEEP_DOMAIN
-#define KEYWORD_EXECUTE_HANDLER          "execute_handler "
-#define KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
 #define KEYWORD_ALLOW_EXECUTE            "allow_execute "
 
-#define CCS_AUDITD_MAX_FILES             2
 #define SAVENAME_MAX_HASH                256
 #define PAGE_SIZE                        4096
 #define CCS_MAX_PATHNAME_LEN             4000
 #define ROOT_NAME                        "<kernel>"
 #define ROOT_NAME_LEN                    (sizeof(ROOT_NAME) - 1)
 
-#define CCSTOOLS_CONFIG_FILE "/usr/lib/ccs/ccstools.conf"
+#define CCSTOOLS_CONFIG_FILE "/usr/lib/tomoyo/tomoyotools.conf"
 
 #define DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
 #define BASE_POLICY_DOMAIN_POLICY    "domain_policy.base"
 #define DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
 #define BASE_POLICY_EXCEPTION_POLICY "exception_policy.base"
-#define DISK_POLICY_SYSTEM_POLICY    "system_policy.conf"
-#define BASE_POLICY_SYSTEM_POLICY    "system_policy.base"
 #define DISK_POLICY_PROFILE          "profile.conf"
 #define BASE_POLICY_PROFILE          "profile.base"
 #define DISK_POLICY_MANAGER          "manager.conf"
@@ -157,31 +119,15 @@ enum editpolicy_directives {
 	DIRECTIVE_ALLOW_LINK,
 	DIRECTIVE_ALLOW_RENAME,
 	DIRECTIVE_ALLOW_REWRITE,
-	DIRECTIVE_ALLOW_ARGV0,
-	DIRECTIVE_ALLOW_SIGNAL,
-	DIRECTIVE_ALLOW_NETWORK,
-	DIRECTIVE_ALLOW_IOCTL,
-	DIRECTIVE_ALLOW_ENV,
-	DIRECTIVE_ADDRESS_GROUP,
 	DIRECTIVE_AGGREGATOR,
 	DIRECTIVE_ALIAS,
-	DIRECTIVE_ALLOW_CAPABILITY,
-	DIRECTIVE_ALLOW_CHROOT,
-	DIRECTIVE_ALLOW_MOUNT,
-	DIRECTIVE_ALLOW_PIVOT_ROOT,
-	DIRECTIVE_DENY_AUTOBIND,
 	DIRECTIVE_DENY_REWRITE,
-	DIRECTIVE_DENY_UNMOUNT,
 	DIRECTIVE_FILE_PATTERN,
-	DIRECTIVE_EXECUTE_HANDLER,
-	DIRECTIVE_DENIED_EXECUTE_HANDLER,
-	DIRECTIVE_IGNORE_GLOBAL_ALLOW_ENV,
 	DIRECTIVE_IGNORE_GLOBAL_ALLOW_READ,
 	DIRECTIVE_INITIALIZE_DOMAIN,
 	DIRECTIVE_KEEP_DOMAIN,
 	DIRECTIVE_NO_INITIALIZE_DOMAIN,
 	DIRECTIVE_NO_KEEP_DOMAIN,
-	DIRECTIVE_PATH_GROUP,
 	DIRECTIVE_QUOTA_EXCEEDED,
 	DIRECTIVE_USE_PROFILE,
 	DIRECTIVE_TRANSITION_FAILED,
@@ -189,7 +135,7 @@ enum editpolicy_directives {
 };
 
 enum color_pair {
-	NORMAL, DOMAIN_HEAD, DOMAIN_CURSOR, SYSTEM_HEAD, SYSTEM_CURSOR,
+	NORMAL, DOMAIN_HEAD, DOMAIN_CURSOR,
 	EXCEPTION_HEAD, EXCEPTION_CURSOR, ACL_HEAD, ACL_CURSOR,
 	PROFILE_HEAD, PROFILE_CURSOR, MANAGER_HEAD, MANAGER_CURSOR,
 	MEMORY_HEAD, MEMORY_CURSOR, DISP_ERR
@@ -209,24 +155,6 @@ struct path_info {
 	_Bool is_dir;       /* = strendswith(name, "/")             */
 	_Bool is_patterned; /* = path_contains_pattern(name)        */
 	u16 depth;          /* = path_depth(name)                   */
-};
-
-struct path_group_entry {
-	const struct path_info *group_name;
-	const struct path_info **member_name;
-	int member_name_len;
-};
-
-struct ip_address_entry {
-	u8 min[16];
-	u8 max[16];
-	_Bool is_ipv6;
-};
-
-struct address_group_entry {
-	const struct path_info *group_name;
-	struct ip_address_entry *member_name;
-	int member_name_len;
 };
 
 struct savename_entry {
@@ -337,9 +265,7 @@ int ldwatch_main(int argc, char *argv[]);
 int findtemp_main(int argc, char *argv[]);
 int editpolicy_main(int argc, char *argv[]);
 int checkpolicy_main(int argc, char *argv[]);
-int ccstree_main(int argc, char *argv[]);
-int ccsqueryd_main(int argc, char *argv[]);
-int ccsauditd_main(int argc, char *argv[]);
+int pstree_main(int argc, char *argv[]);
 int patternize_main(int argc, char *argv[]);
 void shprintf(const char *fmt, ...)
 	__attribute__ ((format(printf, 1, 2)));
@@ -372,8 +298,6 @@ void editpolicy_init_keyword_map(void);
 void editpolicy_line_draw(const int screen);
 void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			     const int screen);
-struct path_group_entry *find_path_group(const char *group_name);
-int add_address_group_policy(char *data, const _Bool is_delete);
 u8 find_directive(const _Bool forward, char *line);
 void editpolicy_color_init(void);
 void editpolicy_color_change(const attr_t attr, const _Bool flg);
@@ -405,30 +329,22 @@ extern _Bool network_mode;
 extern u32 network_ip;
 extern u16 network_port;
 extern int persistent_fd;
-extern int query_fd;
-extern int path_group_list_len;
-extern int address_group_list_len;
 extern struct generic_acl *generic_acl_list;
 extern int generic_acl_list_count;
 extern char *initial_readline_data;
-extern struct path_group_entry *path_group_list;
-extern int path_group_list_len;
 extern int current_y[MAXSCREEN];
 extern int list_item_count[MAXSCREEN];
 extern struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX];
 
-extern const char *proc_policy_dir,
-	*disk_policy_dir,
-	*proc_policy_domain_policy,
-	*proc_policy_exception_policy,
-	*proc_policy_system_policy,
-	*proc_policy_profile,
-	*proc_policy_manager,
-	*proc_policy_meminfo,
-	*proc_policy_query,
-	*proc_policy_grant_log,
-	*proc_policy_reject_log,
-	*proc_policy_domain_status,
-	*proc_policy_process_status;
+#define proc_policy_dir              "/sys/kernel/security/tomoyo/"
+#define disk_policy_dir              "/etc/tomoyo/"
+#define proc_policy_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
+#define proc_policy_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
+#define proc_policy_profile          "/sys/kernel/security/tomoyo/profile"
+#define proc_policy_manager          "/sys/kernel/security/tomoyo/manager"
+#define proc_policy_meminfo          "/sys/kernel/security/tomoyo/meminfo"
+#define proc_policy_domain_status    "/sys/kernel/security/tomoyo/.domain_status"
+#define proc_policy_process_status   "/sys/kernel/security/tomoyo/.process_status"
+
 
 /***** PROTOTYPES DEFINITION END *****/

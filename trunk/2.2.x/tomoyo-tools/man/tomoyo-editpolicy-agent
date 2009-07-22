@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-editpolicy-agent 1.6.8
+tomoyo-editpolicy-agent 2.2.0
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,26 +13,26 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-editpolicy-agent listen_ip:listen_port
+Usage: tomoyo-editpolicy-agent listen_ip:listen_port
 
-This is an agent program for ccs-editpolicy ccs-loadpolicy ccs-savepolicy ccs-ccstree .
+This is an agent program for tomoyo-editpolicy tomoyo-loadpolicy tomoyo-savepolicy tomoyo-pstree .
 
  listen_ip:listen_port     Listen at specified IP address and port number. 
 
 Examples:
 
-# ccs-editpolicy-agent 192.168.1.1:10000
+# tomoyo-editpolicy-agent 192.168.1.1:10000
  Listen at 192.168.1.1 port 10000 .
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Agent for editing TOMOYO Linux's policy" $0 | gzip -9 > man8/ccs-editpolicy-agent.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Agent for editing TOMOYO Linux's policy" $0 | gzip -9 > man8/tomoyo-editpolicy-agent.8.gz
 [SEE ALSO]
 
- ccs-editpolicy (8)
- ccs-loadpolicy (8)
- ccs-savepolicy (8)
- ccs-ccstree (8)
+ tomoyo-editpolicy (8)
+ tomoyo-loadpolicy (8)
+ tomoyo-savepolicy (8)
+ tomoyo-pstree (8)
 
 [NOTES]
 
@@ -40,10 +40,10 @@ cat << EOF | help2man -i - -N -s 8 -n "Agent for editing TOMOYO Linux's policy" 
 
  This program allows anonymous users to edit policy. No user authentication is performed.
 
- This program is designed for systems which running ccs-editpolicy is difficult due to resource limitation.
+ This program is designed for systems which running tomoyo-editpolicy is difficult due to resource limitation.
  This program is not designed for PC and servers.
 
- You need to register either path to this program or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program.
 
 [AUTHORS]
 
