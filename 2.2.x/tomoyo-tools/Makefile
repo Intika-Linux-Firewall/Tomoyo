@@ -2,7 +2,7 @@ INSTALLDIR = /
 
 MAIN_FILES = tomoyotools tomoyo_init_policy tomoyo-init
 
-MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh force-logout tomoyo-editpolicy-agent
+MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth timeauth falsh tomoyo-editpolicy-agent
 
 ALIAS_LIST = pstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy
 
@@ -24,7 +24,6 @@ install: all
 	cp -af --remove-destination $(MISC_FILES) $(INSTALLDIR)/usr/lib/tomoyo/misc/
 	cp -af --remove-destination README.tomoyo COPYING.tomoyo $(INSTALLDIR)/usr/lib/tomoyo/
 	chown -R root:root tomoyo-init $(INSTALLDIR)/usr/lib/tomoyo/
-	chmod 4711 $(INSTALLDIR)/usr/lib/tomoyo/force-logout
 	chmod 700 tomoyo-init
 	cp -af --remove-destination tomoyo-init $(INSTALLDIR)/sbin/
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8/

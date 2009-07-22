@@ -5,10 +5,10 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 2.2.0   2009/??/??
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 /* Prototypes */
 static _Bool compare_path(struct path_info *sarg, struct path_info *darg,
