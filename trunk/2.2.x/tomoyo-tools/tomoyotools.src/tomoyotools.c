@@ -1043,10 +1043,6 @@ read_policy:
 
 /* Variables */
 
-int ccs_major = 0;
-int ccs_minor = 0;
-int ccs_rev = 0;
-
 char shared_buffer[sizeof(shared_buffer)];
 static _Bool buffer_locked = false;
 
@@ -1106,6 +1102,9 @@ _Bool freadline(FILE *fp)
 
 _Bool check_remote_host(void)
 {
+	int ccs_major = 0;
+	int ccs_minor = 0;
+	int ccs_rev = 0;
 	FILE *fp = open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &ccs_major, &ccs_minor, &ccs_rev) < 2) {
@@ -1118,7 +1117,7 @@ _Bool check_remote_host(void)
 		return false;
 	}
 	fclose(fp);
-	if (ccs_major != 2) {
+	if (ccs_major != 2 || ccs_minor != 2) {
 		fprintf(stderr, "You cannot use this program for that host.\n");
 		exit(1);
 	}
