@@ -1,5 +1,5 @@
 /*
- * ccstree.c
+ * pstree.c
  *
  * TOMOYO Linux's utilities.
  *

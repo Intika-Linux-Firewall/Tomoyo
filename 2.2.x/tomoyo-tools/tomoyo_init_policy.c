@@ -450,31 +450,6 @@ static void scan_init_scripts(void)
 	free((void *) namelist);
 }
 
-static void make_init_scripts_as_aggregators(void)
-{
-	/* Mark symlinks under /etc/rc\?.d/ directory as aggregator. */
-	static const char *dirs[] = {
-		"/etc/boot.d", "/etc/rc.d/boot.d", "/etc/init.d/boot.d",
-		"/etc/rc0.d", "/etc/rd1.d", "/etc/rc2.d", "/etc/rc3.d",
-		"/etc/rc4.d", "/etc/rc5.d", "/etc/rc6.d", "/etc/rcS.d",
-		"/etc/rc.d/rc0.d", "/etc/rc.d/rc1.d", "/etc/rc.d/rc2.d",
-		"/etc/rc.d/rc3.d", "/etc/rc.d/rc4.d", "/etc/rc.d/rc5.d",
-		"/etc/rc.d/rc6.d",
-	};
-	int i;
-	keyword = NULL;
-	memset(path, 0, sizeof(path));
-	for (i = 0; i < elementof(dirs); i++) {
-		char *dir = get_realpath(dirs[i]);
-		if (!dir)
-			continue;
-		strncpy(path, dir, sizeof(path) - 1);
-		free(dir);
-		if (!strcmp(path, dirs[i]))
-			scan_init_scripts();
-	}
-}
-
 static void scan_dir_pattern(const char *dir)
 {
 	keyword = "allow_read";
@@ -1386,7 +1361,6 @@ static void make_exception_policy(void)
 
 static void make_manager(void)
 {
-	char *tools_dir;
 	FILE *fp;
 	if (chdir(policy_dir) || !access("manager.conf", R_OK))
 		return;
@@ -1396,11 +1370,11 @@ static void make_manager(void)
 		return;
 	}
 	fprintf(stderr, "Creating manager policy... ");
-	fprintf(fp, "/usr/sbin/tomoyo-loadpolicy\n", tools_dir);
-	fprintf(fp, "/usr/sbin/tomoyo-editpolicy\n", tools_dir);
-	fprintf(fp, "/usr/sbin/tomoyo-setlevel\n", tools_dir);
-	fprintf(fp, "/usr/sbin/tomoyo-setprofile\n", tools_dir);
-	fprintf(fp, "/usr/sbin/tomoyo-ld-watch\n", tools_dir);
+	fprintf(fp, "/usr/sbin/tomoyo-loadpolicy\n");
+	fprintf(fp, "/usr/sbin/tomoyo-editpolicy\n");
+	fprintf(fp, "/usr/sbin/tomoyo-setlevel\n");
+	fprintf(fp, "/usr/sbin/tomoyo-setprofile\n");
+	fprintf(fp, "/usr/sbin/tomoyo-ld-watch\n");
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !rename("manager.tmp", "manager.conf"))
