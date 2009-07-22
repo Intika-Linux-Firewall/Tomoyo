@@ -3,107 +3,97 @@
 <head>
 <base href="http://tomoyo.sourceforge.jp/">
 <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux Project</title>
-<link rev="made" href="mailto:haradats@gmail.com">
-<link rel=stylesheet href="tomoyo.css">
-<link rel="SHORTCUT ICON" href="tomoyo.ico">
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p>Searching for mainline version? It's <a href="en/2.2.x/">here</a>.</p>
 <p style="text-align:right;"><a href="index.html.ja">Japanese Page</a></p>
 <!--#config timefmt="%Y-%m-%d %H:%M" -->
-<div><a href="http://lc.linux.or.jp/lc2004/slide/CP-06s-1.pdf"><img width=115 height=150 alt="" src="tomoyo.png" title="illustration by Akira Igarashi for NTT DATA and TOMOYO Linux"></a></div>
+<h1>TOMOYO Linux : Behavior oriented system analyzer and protector.</h1>
 
-<h1>TOMOYO Linux Project</h1>
+<table border="0" summary="What is TOMOYO?">
+<tr><td><img width=115 height=150 alt="" src="tomoyo.png"></td><td>TOMOYO is a security module which focuses on behavior of a system. A process is created to achieve something. TOMOYO lets each process declare behaviors and resources needed to achieve its purpose (like an immigration officer) and permits only declared behaviors and resources (like an operation watchdog). This approach made it possible for users to understand how a Linux system works. You can use TOMOYO as a system analysis tool as well as an access restriction tool.</td></tr>
+</table>
 
-<h2>What is it?</h2>
+<h1>News</h1>
 
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/wiki-e/?WhatIs">Quick Summary</a></li>
-<li><a href="http://sourceforge.jp/projects/tomoyo/document/elc2007-presentation-20070418.pdf">"TOMOYO Linux - A Lightweight and Manageable Security System for PC and Embedded Linux"</a> (prepared for the <a href="http://www.celinux.org/elc2007/index.html">ELC2007</a>)</li>
-<li><a href="http://tree.celinuxforum.org/CelfPubWiki/TomoyoLinux">Tomoyo Linux - CE Linux Public</a></li>
-</ul>
+<p>2009/07/03 TOMOYO Linux 1.6.8p1 is available.</p>
 
-<h2><a name="movies">Demo Movies</a></h2>
+<p>2009/06/10 TOMOYO Linux 2.2.0 was merged into Linux 2.6.30 kernel.</p>
 
-<p>Movie with narration. (You need to install DivX codec to view these movies)</p>
+<h1>What can TOMOYO do?</h1>
 
-<ul>
-<li><a href="http://tomoyo.sourceforge.jp/data/install_demo.avi">How To Install TOMOYO Linux</a> (11.7 MB)</li>
-<li><a href="http://tomoyo.sourceforge.jp/data/analyze_demo.avi">How To Analyze System's Behavior</a> (14.1 MB)</li>
-<li><a href="http://tomoyo.sourceforge.jp/data/confine_demo.avi">How To Confine System's Behavior</a> (5.78 MB)</li>
-</ul>
-
-<p>Movie only.</p>
+<h3>Analyze your system's behavior.</h3>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/data/install_demo_nosound.avi">How To Install TOMOYO Linux</a> (3.67 MB)</li>
-<li><a href="http://tomoyo.sourceforge.jp/data/analyze_demo_nosound.avi">How To Analyze System's Behavior</a> (4.32 MB)</li>
-<li><a href="http://tomoyo.sourceforge.jp/data/confine_demo_nosound.avi">How To Confine System's Behavior</a> (1.13 MB)</li>
+<li>Debugging applications</li>
+<li>Understanding system's behavior</li>
+<li>Writing textbooks and documentations</li>
 </ul>
 
-<h2><a name="tryit">Let's Start</a></h2>
+<h3>Protect your system.</h3>
 
 <ul>
-<li><a href="en/1.6.x/1st-step/mandriva2009.0/">Kickstarting TOMOYO Linux on Mandriva 2009.0</a></li>
-<li><a href="en/1.6.x/1st-step/mandriva2008.1/">Kickstarting TOMOYO Linux on Mandriva 2008.1</a></li>
-<li><a href="en/1.6.x/1st-step/centos4.7/">Kickstarting TOMOYO Linux on CentOS 4.7</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/centos5.3/">Kickstarting TOMOYO Linux on CentOS 5.3</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/f8/">Kickstarting TOMOYO Linux on Fedora 8</a> (version 1.6.7)</li>
-<li><a href="en/1.6.x/1st-step/sarge/">Kickstarting TOMOYO Linux on Debian Sarge</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/etch/">Kickstarting TOMOYO Linux on Debian Etch</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/ubuntu8.04/">Kickstarting TOMOYO Linux on Ubuntu 8.04</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/ubuntu8.04-live/">TOMOYO Linux LiveCD Tutorial for Ubuntu 8.04</a> (version 1.6.8)</li>
-<li><a href="en/1.6.x/1st-step/centos5-live/">TOMOYO Linux LiveCD Tutorial for CentOS 5.3</a> (version 1.6.8)</li>
-<li><a href="en/1.2/kickstart/">Kickstarting TOMOYO Linux on VMware</a> (version 1.2)</li>
+<li>Restricting SSH based services</li>
+<li>Restricting system administrator's operations</li>
+<li>Per application/user networking firewalls</li>
+<li>Baseline parameter checking for every application (e.g. Web server's CGI)</li>
+<li>Reducing damage caused by buffer overflow vulnerability and OS command injection vulnerability</li>
+<li>Deploying honey pot system.</li>
+<li>Suits well on Linux based PCs, servers, embedded systems</li>
 </ul>
 
-<h2>Installation Manual</h2>
+<h1>How can I try it?</h1>
 
-<p><a href="en/1.6.x/compile.html">Download source and compile</a> (<!--#flastmod file="en/1.6.x/compile.html" --> JST)</p>
-<p><a href="en/1.6.x/index.html">TOMOYO Linux Project</a> (<!--#flastmod file="en/1.6.x/index.html" --> JST)</p>
-<p><a href="http://cblfs.cross-lfs.org/index.php/TOMOYO">TOMOYO Linux - Community Driven BLFS (CBLFS)</a></p>
+<p>We maintain and provide two versions.</p>
 
-<h2>Documents</h2>
+<h3><a href="http://tomoyo.sourceforge.jp/1.6/">1.x : Fully equipped version</a></h3>
 
-<p><a href="http://sourceforge.jp/projects/tomoyo/docs/?category_id=532&amp;language_id=1">Materials used for seminar/symposium</a></p>
+<p>This version supports many distributions using 2.4/2.6 kernels. It inserts original hooks, some of them are next to the hooks provided by Linux Security Modules (LSM), in order to be able to coexist with other Mandatory Access Control (MAC) implementations (e.g. SELinux / SMACK / AppArmor).</p>
 
-<h2>Policy Examples</h2>
+<p>You can use this version if your priority is to obtain all the potentials of TOMOYO and fully functional MAC (for files, network, capabilities, environment variables, etc.) ability over to use without patching the kernel.</p>
 
-<ul>
-<li><a href="/cgi-bin/lxr/source/etch/?v=policy-sample">etch</a></li>
-<li><a href="/cgi-bin/lxr/source/centos4.4/?v=policy-sample">centos4.4</a></li>
-<li><a href="/cgi-bin/lxr/source/fc3/?v=policy-sample">fc3</a></li>
-<li><a href="/cgi-bin/lxr/source/fc4/?v=policy-sample">fc4</a></li>
-<li><a href="/cgi-bin/lxr/source/fc5/?v=policy-sample">fc5</a></li>
-<li><a href="/cgi-bin/lxr/source/opensuse10.1/?v=policy-sample">opensuse10.1</a></li>
-<li><a href="/cgi-bin/lxr/source/rhl9/?v=policy-sample">rhl9</a></li>
-<li><a href="/cgi-bin/lxr/source/sarge/?v=policy-sample">sarge</a></li>
-</ul>
+<p>For handy trial and evaluation purpose, <a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/centos5-live/">CentOS 5.3 LiveCD</a> and <a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/ubuntu8.04-live/">Ubuntu 8.04 LiveCD</a> with TOMOYO Linux are available.</p>
 
-<h2>Other Resources</h2>
+<h3><a href="http://tomoyo.sourceforge.jp/2.2/">2.x : Mainlined version</a></h3>
+
+<p>This version supports only kernels 2.6.30 and later. It uses LSM and offers only subset of MAC for files at the moment, but is available without applying kernel patches.</p>
+
+<p>You can use this version if your priority is to use without patching the kernel over to obtain the ability of access control.</p>
+
+<h1>Links</h1>
+
+<h3>TOMOYO specific</h3>
 
 <ul>
 <li><a href="http://tomoyo.sourceforge.jp/wiki-e/">TOMOYO Linux Wiki</a></li>
-<li><a href="en/1.6.x/policy-reference.html">Policy Specifications of TOMOYO Linux</a></li>
-<li><a href="/cgi-bin/lxr/source">Browse</a> and <a href="/cgi-bin/lxr/search">search</a> the latest 2.6 kernel</li>
-<li>Mailing List (<a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users-en">tomoyo-users-en</a>)</li>
+<li><a href="http://elinux.org/TomoyoLinux">eLinux wiki (TOMOYO for embedded)</a></li>
+<li><a href="http://www.celinuxforum.org/CelfPubWiki/TomoyoLinux">Tomoyo Linux - CE Linux Public</a></li>
+<li><a href="http://cblfs.cross-lfs.org/index.php/TOMOYO">CBLFS</a></li>
+<li><a href="http://freshmeat.net/projects/tomoyo/">Freshmeat</a></li>
+<li><a href="http://sourceforge.jp/projects/tomoyo/">Project page</a></li>
+<li><a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users-en">TOMOYO users Mailing List (English)</a></li>
+<li><a href="http://sourceforge.jp/projects/tomoyo/docs/?category_id=532&amp;language_id=1">Materials used for seminar/symposium</a></li>
+<li><a href="mailto:haradats@gmail.com">Contacts</a></li>
 </ul>
 
-<h2>Other Resources (written in Japanese)</h2>
+<h3>Linux generic</h3>
 
 <ul>
-<li>Mailing List (<a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-users">tomoyo-users</a>, <a href="http://lists.sourceforge.jp/mailman/listinfo/tomoyo-dev">tomoyo-dev</a>)</li>
-<!--<li><a href="http://sourceforge.jp/projects/tomoyo/news/">News</a></li>-->
-<li><a href="http://sourceforge.jp/projects/tomoyo/">Project Page</a></li>
+<li><a href="http://www.kernel.org/">The Linux Kernel Archives</a></li>
+<li><a href="http://lkml.org/">The linux-kernel mailing list (LKML)</a></li>
+<li><a href="http://kernelnewbies.org/">Linux Kernel Newbies</a></li>
+<li><a href="http://lwn.net/">Linux Weekly News</a></li>
+<li><a href="http://tomoyo.sourceforge.jp/cgi-bin/lxr/source">Cross reference of source code</a></li>
 </ul>
 
 <hr>
-<address><a href="/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/en/index.html">NTT DATA CORPORATION</a><br>
-<a href="mailto:haradats@gmail.com">Send message to Webadmin</a><br>
+
+<p><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> is supported by <a href="http://www.nttdata.co.jp/en/index.html">NTT DATA CORPORATION</a><br>
 Last modified: $Date$<br>
 <!--#include virtual="/cgi-bin/counter.pl" -->
-</address>
+</p>
 
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 <p><a href="http://validator.w3.org/check?uri=http%3A%2F%2Ftomoyo.sourceforge.jp%2Findex.html.en">
