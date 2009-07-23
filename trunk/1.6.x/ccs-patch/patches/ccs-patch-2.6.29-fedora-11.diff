@@ -4,7 +4,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
 ---
  fs/Kconfig                      |    2 +
  fs/Makefile                     |    2 +
- fs/attr.c                       |   10 ++++++
+ fs/attr.c                       |    7 ++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 ++++++++
  fs/exec.c                       |   15 +++++++++-
@@ -36,7 +36,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   41 +++++++++++++++++++++++++++
  net/unix/af_unix.c              |    9 ++++++
- 34 files changed, 452 insertions(+), 3 deletions(-)
+ 34 files changed, 449 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29.5-191.fc11.orig/fs/Kconfig
 +++ linux-2.6.29.5-191.fc11/fs/Kconfig
@@ -67,20 +67,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  /* Taken over from the old code... */
  
-@@ -162,6 +165,13 @@ int notify_change(struct dentry * dentry
+@@ -160,6 +163,10 @@ int notify_change(struct dentry * dentry
+ 		return 0;
+ 
  	error = security_inode_setattr(dentry, attr);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_setattr_permission(dentry, attr);
++	/***** TOMOYO Linux end. *****/
  	if (error)
  		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if ((ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
-+		return -EPERM;
-+	if ((ia_valid & (ATTR_UID | ATTR_GID)) &&
-+	    !ccs_capable(CCS_SYS_CHOWN))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
  
- 	if (ia_valid & ATTR_SIZE)
- 		down_write(&dentry->d_inode->i_alloc_sem);
 --- linux-2.6.29.5-191.fc11.orig/fs/compat.c
 +++ linux-2.6.29.5-191.fc11/fs/compat.c
 @@ -57,6 +57,9 @@

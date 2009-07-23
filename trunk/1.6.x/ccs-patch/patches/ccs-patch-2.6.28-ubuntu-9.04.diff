@@ -4,7 +4,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
 ---
  fs/Kconfig                      |    2 +
  fs/Makefile                     |    2 +
- fs/attr.c                       |   10 +++++++
+ fs/attr.c                       |    7 ++++
  fs/compat.c                     |    5 ++-
  fs/compat_ioctl.c               |   13 +++++++++
  fs/exec.c                       |   16 ++++++++++-
@@ -36,7 +36,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/ipv6/udp.c                  |    8 +++++
  net/socket.c                    |   41 ++++++++++++++++++++++++++++
  net/unix/af_unix.c              |    8 +++++
- 34 files changed, 451 insertions(+), 3 deletions(-)
+ 34 files changed, 448 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-13.45.orig/fs/Kconfig
 +++ linux-2.6.28-13.45/fs/Kconfig
@@ -67,20 +67,17 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  /* Taken over from the old code... */
  
-@@ -163,6 +166,13 @@ int fnotify_change(struct dentry *dentry
+@@ -161,6 +164,10 @@ int fnotify_change(struct dentry *dentry
+ 		return 0;
+ 
  	error = security_inode_setattr(dentry, mnt, attr);
++	/***** TOMOYO Linux start. *****/
++	if (!error)
++		error = ccs_check_setattr_permission(dentry, attr);
++	/***** TOMOYO Linux end. *****/
  	if (error)
  		return error;
-+	/***** TOMOYO Linux start. *****/
-+	if ((ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
-+		return -EPERM;
-+	if ((ia_valid & (ATTR_UID | ATTR_GID)) &&
-+	    !ccs_capable(CCS_SYS_CHOWN))
-+		return -EPERM;
-+	/***** TOMOYO Linux end. *****/
  
- 	if (ia_valid & ATTR_SIZE)
- 		down_write(&dentry->d_inode->i_alloc_sem);
 --- linux-2.6.28-13.45.orig/fs/compat.c
 +++ linux-2.6.28-13.45/fs/compat.c
 @@ -56,6 +56,9 @@

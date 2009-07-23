@@ -43,6 +43,7 @@ struct linux_binprm;
 struct pt_regs;
 struct file;
 struct ctl_table;
+struct iattr;
 
 #if defined(CONFIG_TOMOYO)
 
@@ -81,6 +82,7 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			      struct dentry *new_dentry, struct vfsmount *mnt);
 int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
 int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
+int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr);
 
 #else
 
@@ -190,6 +192,12 @@ static inline int ccs_check_open_exec_permission(struct dentry *dentry,
 
 static inline int ccs_check_uselib_permission(struct dentry *dentry,
 					      struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_check_setattr_permission(struct dentry *dentry,
+					       struct iattr *attr)
 {
 	return 0;
 }
