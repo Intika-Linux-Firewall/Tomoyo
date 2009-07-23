@@ -25,7 +25,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  arch/x86_64/kernel/ptrace.c  |    7 +++
  fs/Config.in                 |    3 +
  fs/Makefile                  |    1 
- fs/attr.c                    |   10 +++++
+ fs/attr.c                    |    8 ++++
  fs/exec.c                    |   17 ++++++++
  fs/fcntl.c                   |    8 ++++
  fs/ioctl.c                   |   16 ++++++++
@@ -50,7 +50,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |   19 +++++++++
  net/socket.c                 |   38 +++++++++++++++++++
  net/unix/af_unix.c           |    8 ++++
- 48 files changed, 678 insertions(+), 3 deletions(-)
+ 48 files changed, 676 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -652,16 +652,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /* Taken over from the old code... */
  
-@@ -127,6 +130,13 @@ int notify_change(struct dentry * dentry
+@@ -127,6 +130,11 @@ int notify_change(struct dentry * dentry
  		attr->ia_atime = now;
  	if (!(ia_valid & ATTR_MTIME_SET))
  		attr->ia_mtime = now;
 +	/***** TOMOYO Linux start. *****/
-+	if ((ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
-+		return -EPERM;
-+	if ((ia_valid & (ATTR_UID | ATTR_GID)) &&
-+	    !ccs_capable(CCS_SYS_CHOWN))
-+		return -EPERM;
++	error = ccs_check_setattr_permission(dentry, attr);
++	if (error)
++		return error;
 +	/***** TOMOYO Linux end. *****/
  
  	lock_kernel();

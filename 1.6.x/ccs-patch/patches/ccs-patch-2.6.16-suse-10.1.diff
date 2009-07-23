@@ -14,7 +14,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  arch/x86_64/ia32/ptrace32.c     |    7 ++++
  fs/Kconfig                      |    2 +
  fs/Makefile                     |    2 +
- fs/attr.c                       |   19 ++++++++++++
+ fs/attr.c                       |   11 +++++++
  fs/compat.c                     |   15 +++++++++-
  fs/exec.c                       |   18 +++++++++++-
  fs/fcntl.c                      |    9 ++++++
@@ -45,7 +45,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  net/ipv6/udp.c                  |   19 ++++++++++++
  net/socket.c                    |   43 ++++++++++++++++++++++++++--
  net/unix/af_unix.c              |    8 +++++
- 43 files changed, 548 insertions(+), 10 deletions(-)
+ 43 files changed, 540 insertions(+), 10 deletions(-)
 
 --- linux-2.6.16.54-0.2.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16.54-0.2.5/arch/alpha/kernel/ptrace.c
@@ -311,17 +311,13 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  
  /* Taken over from the old code... */
  
-@@ -145,12 +148,28 @@ int notify_change(struct dentry * dentry
+@@ -145,12 +148,20 @@ int notify_change(struct dentry * dentry
  
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE) &&
-+		    !ccs_capable(CCS_SYS_CHMOD))
-+			error = -EPERM;
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
-+		    !ccs_capable(CCS_SYS_CHOWN))
-+			error = -EPERM;
++		if (!error)
++			error = ccs_check_setattr_permission(dentry, attr);
 +		/***** TOMOYO Linux end. *****/
  		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
@@ -330,12 +326,8 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		/***** TOMOYO Linux start. *****/
-+		if (!error && (ia_valid & ATTR_MODE) &&
-+		    !ccs_capable(CCS_SYS_CHMOD))
-+			error = -EPERM;
-+		if (!error && (ia_valid & (ATTR_UID | ATTR_GID)) &&
-+		    !ccs_capable(CCS_SYS_CHOWN))
-+			error = -EPERM;
++		if (!error)
++			error = ccs_check_setattr_permission(dentry, attr);
 +		/***** TOMOYO Linux end. *****/
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||

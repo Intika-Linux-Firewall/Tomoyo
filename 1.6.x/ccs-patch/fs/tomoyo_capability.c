@@ -222,3 +222,21 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	}
 	return -EINVAL;
 }
+
+/**
+ * ccs_check_setattr_permission - Check permission for chmod/chown.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @attr:   Pointer to "struct iattr".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr)
+{
+	if ((attr->ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
+		return -EPERM;
+	if ((attr->ia_valid & (ATTR_UID | ATTR_GID)) &&
+	    !ccs_capable(CCS_SYS_CHOWN))
+		return -EPERM;
+	return 0;
+}
