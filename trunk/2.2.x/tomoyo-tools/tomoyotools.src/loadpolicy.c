@@ -165,7 +165,7 @@ int savepolicy_main(int argc, char *argv[])
 			force_save = true;
 		if (i)
 			write_to_stdout = true;
-		if (strcspn(ptr, "sedafpmu-"))
+		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
 	if (!write_to_stdout && !policy_dir)
@@ -466,7 +466,7 @@ int loadpolicy_main(int argc, char *argv[])
 			refresh_policy = true;
 		if (i)
 			read_from_stdin = true;
-		if (strcspn(ptr, "sedafpmu-"))
+		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
 	if (!read_from_stdin && !policy_dir)

@@ -475,10 +475,8 @@ static int show_meminfo_line(int index)
 		shprintf("Memory for numeric data   = %10u bytes    "
 			 "Quota = %10u bytes",
 			 now, quota ? quota : -1);
-	else if (sscanf(data, "Dynamic: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for temporary data = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
+	else if (sscanf(data, "Dynamic: %u", &now) == 1)
+		shprintf("Memory for temporary data = %10u bytes", now);
 	else if (sscanf(data, "Total: %u", &now) == 1)
 		shprintf("Total memory in use       = %10u bytes", now);
 	else
@@ -2190,7 +2188,7 @@ int editpolicy_main(int argc, char *argv[])
 			else if (sscanf(ptr, "refresh=%u", &refresh_interval)
 				 != 1) {
 usage:
-				printf("Usage: %s [s|e|d|p|m|u] [readonly] "
+				printf("Usage: %s [e|d|p|m|u] [readonly] "
 				       "[refresh=interval] "
 				       "[{policy_dir|remote_ip:remote_port}]\n",
 				       argv[0]);
