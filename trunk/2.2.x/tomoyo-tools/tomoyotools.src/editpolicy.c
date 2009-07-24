@@ -1088,7 +1088,7 @@ no_exception:
 			cp2 = strchr(cp, ' ');
 			if (cp2)
 				*cp2 = '\0';
-			if (*cp == '@' || is_correct_path(cp, 1, 0, -1))
+			if (is_correct_path(cp, 1, 0, -1))
 				add_string_entry(dp, cp, index);
 		} else if (sscanf(shared_buffer,
 				  KEYWORD_USE_PROFILE "%u", &profile) == 1) {
@@ -1186,10 +1186,8 @@ no_domain:
 		if (domainname->total_len == ROOT_NAME_LEN)
 			continue;
 		for (i = 0; i < max_count; i++) {
-			const struct path_info *cp = string_ptr[i];
-			if (cp->name[0] != '@')
-				assign_domain_initializer_source(dp, domainname,
-								 cp->name);
+			assign_domain_initializer_source(dp, domainname,
+							 string_ptr[i]->name);
 			continue;
 		}
 	}

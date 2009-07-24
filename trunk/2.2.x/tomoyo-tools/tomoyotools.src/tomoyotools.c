@@ -1102,12 +1102,12 @@ _Bool freadline(FILE *fp)
 
 _Bool check_remote_host(void)
 {
-	int ccs_major = 0;
-	int ccs_minor = 0;
-	int ccs_rev = 0;
+	int tomoyo_major = 0;
+	int tomoyo_minor = 0;
+	int tomoyo_rev = 0;
 	FILE *fp = open_read("version");
-	if (!fp ||
-	    fscanf(fp, "%u.%u.%u", &ccs_major, &ccs_minor, &ccs_rev) < 2) {
+	if (!fp || fscanf(fp, "%u.%u.%u", &tomoyo_major, &tomoyo_minor,
+			  &tomoyo_rev) < 2) {
 		const u32 ip = ntohl(network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
@@ -1117,7 +1117,7 @@ _Bool check_remote_host(void)
 		return false;
 	}
 	fclose(fp);
-	if (ccs_major != 2 || ccs_minor != 2) {
+	if (tomoyo_major != 2 || tomoyo_minor != 2) {
 		fprintf(stderr, "You cannot use this program for that host.\n");
 		exit(1);
 	}
