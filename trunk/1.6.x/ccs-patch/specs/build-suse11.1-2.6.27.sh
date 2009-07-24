@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.23-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.25-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.23-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.25-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.23-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.25-0.1.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090703.tar.gz ]
@@ -75,8 +75,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2009-04-02 01:23:52.000000000 +0900
-+++ kernel-default.spec	2009-04-08 20:03:03.000000000 +0900
+--- kernel-default.spec	2009-07-04 16:19:12.000000000 +0900
++++ kernel-default.spec	2009-07-24 16:58:40.000000000 +0900
 @@ -57,13 +57,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
@@ -88,7 +88,7 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.23
+ Version:        2.6.27.25
 -Release:        0.<RELEASE1>
 +Release:        0.1.1_tomoyo_1.6.8p1
  License:        GPL v2 only
