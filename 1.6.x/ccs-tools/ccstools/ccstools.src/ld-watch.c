@@ -90,7 +90,7 @@ int ldwatch_main(int argc, char *argv[])
 	{
 		const int fd = open(proc_policy_exception_policy, O_RDWR);
 		if (fd == EOF) {
-			fprintf(stderr, "You can't run this daemon "
+			fprintf(stderr, "You can't run this program "
 				"for this kernel.\n");
 			return 1;
 		} else if (write(fd, "", 0) != 0) {
