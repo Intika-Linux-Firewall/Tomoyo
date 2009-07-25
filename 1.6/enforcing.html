@@ -54,7 +54,7 @@
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
-<p>If you have configured audit logs at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up rejected requests from audit logs using "grep".</p>
+<p>If you have configured audit logs at <a href="initialize.html#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up rejected requests from audit logs using "grep".</p>
 
 <table border="1">
 <tr><td>
@@ -77,7 +77,7 @@ allow_read /usr/lib/gconv/EUC-JP.so
 
 <p>The second log reports that opening /bin/cat for reading requested by /bin/sh which was invoked by /usr/sbin/httpd was rejected. This is because that /bin/sh tries to open the requested program for reading when that program was not executed.</p>
 
-<p>If you have configured notification daemon at <a href="initialize.html">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "ccs-notifyd" program. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
+<p>If you have configured notification daemon at <a href="initialize.html#configure_notify_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "ccs-notifyd" program. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
 
 <table border="1">
 <tr><td>

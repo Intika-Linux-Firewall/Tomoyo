@@ -401,7 +401,7 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 
 <hr>
 
-<h2>Step 3: Configure to save TOMOYO's audit logs (Optional)</h2>
+<h2><a name="configure_audit_daemon">Step 3: Configure to save TOMOYO's audit logs (Optional)</a></h2>
 
 <p>TOMOYO Linux can record "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).<br>
 The logs are in the form of domain policy so that the logs can be directly appended to domain policy. Add the "access rejected logs" to domain policy if you consider you should allow the access.</p>
@@ -450,7 +450,7 @@ The logs are in the form of domain policy so that the logs can be directly appen
 
 <hr>
 
-<h2>Step 4: Configure to mail TOMOYO's policy violation events (Optional)</h2>
+<h2><a name="configure_notify_daemon">Step 4: Configure to mail TOMOYO's policy violation events (Optional)</a></h2>
 
 <p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail).</p>
 
