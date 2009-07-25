@@ -34,9 +34,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/ipv4/udp.c                  |    8 +++++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   27 +++++++++++++++++++++++++++
+ net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    5 +++++
- 34 files changed, 241 insertions(+), 3 deletions(-)
+ 34 files changed, 238 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31-rc4.orig/fs/Kconfig
 +++ linux-2.6.31-rc4/fs/Kconfig
@@ -469,7 +469,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31-rc4 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.31-rc4 2009/07/25\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -935,29 +935,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -569,6 +572,10 @@ static inline int __sock_sendmsg(struct 
+@@ -567,6 +570,10 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
-@@ -1170,6 +1177,10 @@ static int __sock_create(struct net *net
- 		family = PF_PACKET;
+@@ -1171,6 +1178,8 @@ static int __sock_create(struct net *net
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1419,6 +1430,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+ 
+@@ -1419,6 +1428,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -969,7 +967,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1448,6 +1464,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1448,6 +1462,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -978,7 +976,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1517,6 +1535,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1517,6 +1533,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -990,17 +988,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1580,6 +1603,10 @@ SYSCALL_DEFINE3(connect, int, fd, struct
- 	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
- 	if (err < 0)
- 		goto out_put;
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) &address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
+@@ -1583,6 +1604,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    &address, addrlen);
+ 	if (err)
+ 		goto out_put;
+ 
 --- linux-2.6.31-rc4.orig/net/unix/af_unix.c
 +++ linux-2.6.31-rc4/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
