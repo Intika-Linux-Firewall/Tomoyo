@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 2.2.0   2009/??/??
+ * Version: 2.2.0   2009/07/27
  *
  */
 #include "tomoyotools.h"
@@ -1190,7 +1190,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("tomoyotools version 2.2.0 build 2009/??/??\n");
+	printf("tomoyotools version 2.2.0 build 2009/07/27\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }
