@@ -2,7 +2,7 @@ INSTALLDIR = /
 
 MAIN_FILES = tomoyotools tomoyo_init_policy tomoyo-init
 
-MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth timeauth falsh tomoyo-editpolicy-agent
+MISC_FILES = tomoyo-editpolicy-agent
 
 ALIAS_LIST = pstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy domainmatch
 
@@ -38,16 +38,8 @@ CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/n
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses5-dev'"
 	sleep 10
 
-/usr/include/readline/readline.h:
-	@echo "/usr/include/readline/readline.h is missing."
-	@echo "Run 'yum install readline-devel' or 'apt-get install libreadline5-dev'"
-	sleep 10
-
 tomoyotools: tomoyotools.src/*.c tomoyotools.src/*.h /usr/include/curses.h
 	$(CC) $(CFLAGS) -o tomoyotools tomoyotools.src/*.c -lncurses -DCOLOR_ON
-
-falsh: falsh.c /usr/include/curses.h /usr/include/readline/readline.h
-	$(CC) $(CFLAGS) -o falsh falsh.c -lncurses -lreadline
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<
