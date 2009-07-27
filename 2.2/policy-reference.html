@@ -240,11 +240,11 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <table border="1">
 <tr><td>
 # cat /sys/kernel/security/tomoyo/manager<br>
-/usr/lib/ccs/loadpolicy<br>
-/usr/lib/ccs/editpolicy<br>
-/usr/lib/ccs/setlevel<br>
-/usr/lib/ccs/setprofile<br>
-/usr/lib/ccs/ld-watch<br>
+/usr/sbin/tomoyo-loadpolicy<br>
+/usr/sbin/tomoyo-editpolicy<br>
+/usr/sbin/tomoyo-setlevel<br>
+/usr/sbin/tomoyo-setprofile<br>
+/usr/sbin/tomoyo-ld-watch<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 </td></tr>
 </table>
@@ -351,21 +351,21 @@ For example, /sbin/pidof is a symbolic link to /sbin/killall5 . Since TOMOYO Lin
 
 <h2><a name="profile">/sys/kernel/security/tomoyo/profile</a></h2>
 
-<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "setlevel" or "loadpolicy" commands.</p>
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "tomoyo-setlevel" or "tomoyo-loadpolicy" commands.</p>
 
-<p>Each domain is assigned one profile. To assign profile to domains, use "setprofile" or "editpolicy" or "loadpolicy" commands.</p>
+<p>Each domain is assigned one profile. To assign profile to domains, use "tomoyo-setprofile" or "tomoyo-editpolicy" or "tomoyo-loadpolicy" commands.</p>
 
-<p>You can see profiles currently assigned to domains using "editpolicy" command.<br>
-You can see profiles currently assigned to processes using "ccstree" command.<br>
-If you saved current policy using "savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
+<p>You can see profiles currently assigned to domains using "tomoyo-editpolicy" command.<br>
+You can see profiles currently assigned to processes using "tomoyo-pstree" command.<br>
+If you saved current policy using "tomoyo-savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
 
 <p>To read or modify current profiles, operate like below.</p>
 
 <p>(Example)<br>
 cat /sys/kernel/security/tomoyo/profile<br>
-ccs-savepolicy -p<br>
-ccs-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
+tomoyo-savepolicy -p<br>
+tomoyo-setlevel 1-MAC_FOR_FILE=learning<br>
+echo 1-MAC_FOR_FILE=learning | tomoyo-loadpolicy -p</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
@@ -403,13 +403,13 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | tomoyo-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | tomoyo-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | tomoyo-loadpolicy -d</p>
 <p>(Example) Deleting specific domain.<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" | tomoyo-loadpolicy -d</p>
 <p>(Example) Reading current domain policy.<br>
 cat /sys/kernel/security/tomoyo/domain_policy</p>
 
@@ -511,8 +511,8 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <p>To read or modify current exception policy, operate like below.</p>
 <p>(Example)<br>
-echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
-echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+echo 'file_pattern /proc/\$/status' | tomoyo-loadpolicy -e<br>
+echo 'delete file_pattern /proc/\$/status' | tomoyo-loadpolicy -e<br>
 cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>See also:  <a href="#policy_file_modifiers">Policy File's Modification</a></p>
@@ -618,7 +618,7 @@ For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ 
 
 <h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
-<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "tomoyo-setprofile" command can do line-oriented processing easily.</p>
 
 <h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 
@@ -634,7 +634,7 @@ cat /sys/kernel/security/tomoyo/self_domain</p>
 
 <h2><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h2>
 
-<p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
+<p>This file is used by "tomoyo-pstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
 
 <h2><a name="version">/sys/kernel/security/tomoyo/version</a></h2>
 
@@ -650,7 +650,7 @@ cat /sys/kernel/security/tomoyo/version</p>
 
 <table border="1">
 <tr><td>
-# echo manage_by_non_root | /usr/sbin/ccs-loadpolicy -m
+# echo manage_by_non_root | /usr/sbin/tomoyo-loadpolicy -m
 </td></tr>
 </table>
 
@@ -658,7 +658,7 @@ cat /sys/kernel/security/tomoyo/version</p>
 
 <table border="1">
 <tr><td>
-# echo delete manage_by_non_root | /usr/sbin/ccs-loadpolicy -m
+# echo delete manage_by_non_root | /usr/sbin/tomoyo-loadpolicy -m
 </td></tr>
 </table>
 
@@ -678,8 +678,7 @@ chown -R demo /sys/kernel/security/tomoyo/
 <table border="1">
 <tr><td>
 # chmod 755 /etc/tomoyo/tomoyo-post-init<br>
-# chown -R demo /etc/tomoyo/<br>
-# chmod 755 /usr/lib/ccs/
+# chown -R demo /etc/tomoyo/
 </td></tr>
 </table>
 
