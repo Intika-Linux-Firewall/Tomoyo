@@ -17,7 +17,7 @@ install: all
 	chmod 755 $(INSTALLDIR)/usr/lib/tomoyo
 	cp -af --remove-destination tomoyotools $(INSTALLDIR)/usr/sbin/
 	cp -af --remove-destination tomoyotools.conf $(INSTALLDIR)/usr/lib/tomoyo/
-	for i in $(ALIAS_LIST); do ln -f /usr/sbin/tomoyotools $(INSTALLDIR)/usr/sbin/tomoyo-$$i; done
+	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/tomoyotools $(INSTALLDIR)/usr/sbin/tomoyo-$$i; done
 	rm -f $(INSTALLDIR)/usr/sbin/tomoyotools
 	cp -af --remove-destination tomoyo_init_policy $(INSTALLDIR)/usr/lib/tomoyo/
 	ln -sf tomoyo_init_policy $(INSTALLDIR)/usr/lib/tomoyo/tomoyo_init_policy.sh
