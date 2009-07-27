@@ -10,6 +10,15 @@
  */
 #include "tomoyotools.h"
 
+#ifndef __NR_unshare
+#include <sys/syscall.h>
+#define __NR_unshare 310 /* for x86_32 */
+static inline int unshare(int flags)
+{
+        return syscall(__NR_unshare, flags);
+}
+#endif
+
 /* Prototypes */
 
 static _Bool is_byte_range(const char *str);
@@ -1168,6 +1177,8 @@ int main(int argc, char *argv[])
 		ret = pstree_main(argc, argv);
 	else if (!strcmp(argv0, "tomoyo-patternize"))
 		ret = patternize_main(argc, argv);
+	else if (!strcmp(argv0, "tomoyo-domainmatch"))
+		ret = domainmatch_main(argc, argv);
 	else
 		goto show_version;
 	return ret;
