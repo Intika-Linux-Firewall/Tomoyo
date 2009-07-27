@@ -34,9 +34,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  net/ipv4/udp.c                  |    8 +++++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   27 +++++++++++++++++++++++++++
+ net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    5 +++++
- 34 files changed, 247 insertions(+), 3 deletions(-)
+ 34 files changed, 244 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29.6-213.fc11.orig/fs/Kconfig
 +++ linux-2.6.29.6-213.fc11/fs/Kconfig
@@ -955,29 +955,27 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -559,6 +562,10 @@ static inline int __sock_sendmsg(struct 
+@@ -557,6 +560,10 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
-@@ -1121,6 +1128,10 @@ static int __sock_create(struct net *net
- 		family = PF_PACKET;
+@@ -1122,6 +1129,8 @@ static int __sock_create(struct net *net
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1370,6 +1381,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+ 
+@@ -1370,6 +1379,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -989,7 +987,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1399,6 +1415,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1399,6 +1413,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -998,7 +996,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1468,6 +1486,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1468,6 +1484,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -1010,17 +1008,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1533,6 +1556,10 @@ SYSCALL_DEFINE3(connect, int, fd, struct
- 	err = move_addr_to_kernel(uservaddr, addrlen, (struct sockaddr *)&address);
- 	if (err < 0)
- 		goto out_put;
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) &address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
+@@ -1536,6 +1557,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    &address, addrlen);
+ 	if (err)
+ 		goto out_put;
+ 
 --- linux-2.6.29.6-213.fc11.orig/net/unix/af_unix.c
 +++ linux-2.6.29.6-213.fc11/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
