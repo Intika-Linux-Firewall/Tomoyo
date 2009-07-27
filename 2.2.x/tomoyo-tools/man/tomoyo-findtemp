@@ -19,11 +19,11 @@ This program reads list of pathnames from standard input and checks the existenc
 
 The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/tomoyo/exception_policy.conf and /sys/kernel/security/tomoyo/exception_policy .
 
-You can pass the content of /etc/tomoyo/domain_policy.conf or /proc/tomoyo/domain_policy using redirection or pipes to the standard input of this program.
+You can pass the content of /etc/tomoyo/domain_policy.conf or /sys/kernel/security/tomoyo/domain_policy using redirection or pipes to the standard input of this program.
 
 Examples:
 
-# tomoyo-findtemp < /proc/tomoyo/domain_policy
+# tomoyo-savepolicy -d | tomoyo-findtemp
  Search for nonexistent pathnames from domain policy.
 
 EOF

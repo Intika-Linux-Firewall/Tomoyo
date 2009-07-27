@@ -10,14 +10,14 @@ Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Conflicts: tomoyo-tools < 2.2.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/tomoyo-tools-2.2.0-20090???.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/test/tomoyo-tools-2.2.0-20090727.tar.gz
 
 %description
 This is TOMOYO Linux tools.
 
 %prep
 
-%setup -q -n tomoyotools
+%setup -q -n tomoyo-tools
 
 %build
 
@@ -40,5 +40,5 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
-* ??? ??? ?? 2009 2.2.0-1
+* Mon Jul 27 2009 2.2.0-1
 - Separated from ccs-tools package.
