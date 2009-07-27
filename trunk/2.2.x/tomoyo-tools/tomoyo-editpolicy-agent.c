@@ -10,6 +10,16 @@
 #include <unistd.h>
 #include <signal.h>
 #include <dirent.h>
+#include <sched.h>
+#include <sys/mount.h>
+#ifndef __NR_unshare
+#include <sys/syscall.h>
+#define __NR_unshare 310 /* for x86_32 */
+static inline int unshare(int flags)
+{
+        return syscall(__NR_unshare, flags);
+}
+#endif
 
 static void show_tasklist(FILE *fp, const _Bool show_all)
 {
@@ -190,6 +200,14 @@ int main(int argc, char *argv[])
 	struct sockaddr_in addr;
 	socklen_t size = sizeof(addr);
 	char *port;
+	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
+		if (unshare(CLONE_NEWNS) ||
+		    mount("none", "/sys/kernel/security/", "securityfs", 0,
+			  NULL)) {
+			fprintf(stderr, "Please mount securityfs on "
+				"/sys/kernel/security/ .\n");
+		}
+	}
 	if (chdir("/sys/kernel/security/tomoyo/"))
 		return 1;
 	{

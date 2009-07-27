@@ -268,6 +268,7 @@ int editpolicy_main(int argc, char *argv[]);
 int checkpolicy_main(int argc, char *argv[]);
 int pstree_main(int argc, char *argv[]);
 int patternize_main(int argc, char *argv[]);
+int domainmatch_main(int argc, char *argv[]);
 void shprintf(const char *fmt, ...)
 	__attribute__ ((format(printf, 1, 2)));
 _Bool move_proc_to_file(const char *src, const char *base, const char *dest);
