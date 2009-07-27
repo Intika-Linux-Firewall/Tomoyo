@@ -13,7 +13,7 @@
 <hr>
 <h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
 
-<h3><a name="ccs-editpolicy">&lt;Policy Editor "ccs-editpolicy"&gt;</a></h3>
+<h3><a name="tomoyo-editpolicy">&lt;Policy Editor "tomoyo-editpolicy"&gt;</a></h3>
 <p>Edits the current policy in /sys/kernel/security/tomoyo/ directory.</p>
 <p>You may give one of 'e' 'd' 'p' 'm' 'u' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
 
@@ -56,7 +56,7 @@
 
 <p>A tutorial is available at <a href="tool-editpolicy.html">How to use Policy Editor</a>.</p>
 
-<h3><a name="ccs-loadpolicy">&lt;Policy Loader "ccs-loadpolicy"&gt;</a></h3>
+<h3><a name="tomoyo-loadpolicy">&lt;Policy Loader "tomoyo-loadpolicy"&gt;</a></h3>
 <p>Reloads the on-disk policy onto memory.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -70,19 +70,19 @@
 <li>- --- Read from stdin. Only one of 'e' 'd' 'p' 'm' 'u' is possible when using this option.
 </ul>
 
-<h3><a name="ccs-setlevel">&lt;Control Level Changer "ccs-setlevel"&gt;</a></h3>
+<h3><a name="tomoyo-setlevel">&lt;Control Level Changer "tomoyo-setlevel"&gt;</a></h3>
 <p>Changes the current control level (i.e. writing to /sys/kernel/security/tomoyo/profile ) and displays the new control level.</p>
 <p>You can give the new control level from commandline parameter.</p>
 
-<h3><a name="ccs-setprofile">&lt;Profile Selector "ccs-setprofile"&gt;</a></h3>
+<h3><a name="tomoyo-setprofile">&lt;Profile Selector "tomoyo-setprofile"&gt;</a></h3>
 <p>Assigns a profile to domains.</p>
 <p>You can give the new profile number and domainnames from the commandline parameter. The list of domainnames that the profile number assigned to has changed is printed.</p>
 
-<h3><a name="ccs-ccstree">&lt;Process Info Viewer "ccs-ccstree"&gt;</a></h3>
+<h3><a name="tomoyo-pstree">&lt;Process Info Viewer "tomoyo-pstree"&gt;</a></h3>
 <p>Lists the domainnames of currently running processes belong to and the profile numbers the domains currently assigned to.</p>
 <p>This program shows the profile number, the name of process, PID, the domainname like "pstree" command.</p>
 
-<h3><a name="ccs-savepolicy">&lt;Policy Saver "ccs-savepolicy"&gt;</a></h3>
+<h3><a name="tomoyo-savepolicy">&lt;Policy Saver "tomoyo-savepolicy"&gt;</a></h3>
 <p>Saves the on-memory policy onto disk.</p>
 <p>There are the following commandline parameters.</p>
 <ul>
@@ -96,16 +96,16 @@
 <li>- --- Write to stdout. Only one of 'e' 'd' 'p' 'm' 'u' is possible when using this option.
 </ul>
 
-<h3><a name="ccs-findtemp">&lt;Temporal Pathnames Detector "ccs-findtemp"&gt;</a></h3>
+<h3><a name="tomoyo-findtemp">&lt;Temporal Pathnames Detector "tomoyo-findtemp"&gt;</a></h3>
 <p>Reads domain policy from standard input and checks the existence of pathnames, and dumps the nonexistent pathnames.</p>
 <p>The nonexistent pathnames are likely used as temporary pathnames. So find the naming rules from similar nonexistent pathnames and append the pattern to /etc/tomoyo/exception_policy.conf and /sys/kernel/security/tomoyo/exception_policy .</p>
 <p>You can pass the content of /etc/tomoyo/domain_policy.conf or /sys/kernel/security/tomoyo/domain_policy using redirection or pipes to the standard input of this program.</p>
 
-<h3><a name="ccs-ld-watch">&lt;Library Pathnames Updater "ccs-ld-watch"&gt;</a></h3>
+<h3><a name="tomoyo-ld-watch">&lt;Library Pathnames Updater "tomoyo-ld-watch"&gt;</a></h3>
 <p>Appends shared libraries to exception policy automatically using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
 <p>By running this program while updating packages, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
 
-<h3><a name="ccs-checkpolicy">&lt;Policy Syntax Checker "ccs-checkpolicy"&gt;</a></h3>
+<h3><a name="tomoyo-checkpolicy">&lt;Policy Syntax Checker "tomoyo-checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
 <p>Prints errors with line numbers if any.</p>
 
@@ -113,48 +113,14 @@
 <p>Loads policy files from /etc/tomoyo/ directory.</p>
 <p>Put this program as /sbin/tomoyo-init , and this program will be invoked automatically when execution of /sbin/init is requested by initrd.</p>
 
-<h3><a name="ccs-domainmatch">&lt;ACL Searcher "ccs-domainmatch"&gt;</a></h3>
+<h3><a name="tomoyo-domainmatch">&lt;ACL Searcher "tomoyo-domainmatch"&gt;</a></h3>
 <p>This is a "fgrep" for /sys/kernel/security/tomoyo/domain_policy .</p>
 
-<h3><a name="ccs-patternize">&lt;Pathname Pattern Replacer "ccs-patternize"&gt;</a></h3>
+<h3><a name="tomoyo-patternize">&lt;Pathname Pattern Replacer "tomoyo-patternize"&gt;</a></h3>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>
 
-<h3><a name="tomoyo_init_policy.sh">&lt;Policy Template Generator "tomoyo_init_policy.sh"&gt;</a></h3>
+<h3><a name="tomoyo_init_policy">&lt;Policy Template Generator "tomoyo_init_policy"&gt;</a></h3>
 <p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
-
-<h3><a name="force-logout">&lt;A program that forcibly logs the user out "force-logout"&gt;</a></h3>
-<p>This program forcibly logs the current user out. You can use this program to chase the current user away.</p>
-
-<hr>
-<h2><a name="authentication_tool">&lt;&lt;Tools for reinforcing login authentications&gt;&gt;</a></h2>
-
-<h3><a name="falsh">&lt;Restricted login shell for authentication "falsh"&gt;</a></h3>
-<p>A tiny shell that has no built-in command such as "kill". You can use this program for login shell ( the shell specified in the /etc/passwd file). You won't need this program if you don't want to reinforce login authentications.</p>
-<p>You should make your own programs for additional authentications. You shouldn't use the following example programs without modifications.</p>
-
-<h3><a name="honey">&lt;An example program for password authentication with timings "honey"&gt;</a></h3>
-<p>This program fails unless the correct password is typed with the correct time interval. Conventional authentication programs don't check the time interval of typing, but this program does to prevent password brute force attack.</p>
-
-<h3><a name="candy">&lt;An example program for password authentication with time limit "candy"&gt;</a></h3>
-<p>This program fails unless the correct password is typed and this program was invoked within 10 seconds after the parent process was invoked. Conventional authentication programs don't check the time interval between the invocation time of parent process and the invocation time of child process, but this program does to prevent password brute force attack.</p>
-
-<h3><a name="groovy">&lt;An example program for lockfile authentication "groovy"&gt;</a></h3>
-<p>This program fails while the file /tmp/.lockme exists. This program prompts for password, but doesn't check for password. This program checks for the existence of the file /tmp/.lockme . This program prevents password brute force attack by keeping locked just before you run this program. This is a program for demonstration, and using a filename that are apparent to crackers. You must customize if you want to use.</p>
-
-<h3><a name="checktoken">&lt;An example program for token authentication "gettoken / checktoken"&gt;</a></h3>
-<p>This program generates tokens based on the system time. The authentication will succeed if the output of "gettoken" is passwd to the input of "checktoken". These are programs for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
-
-<h3><a name="chaplet">&lt;An example program for challenge-handshake authentication "chaplet"&gt;</a></h3>
-<p>This program displays strings as a challenge data. The authentication will succeed if you input only numerical letters from the challenge data as a response data. This is a program for demonstration, and the algorithm is too poor. You must customize if you want to use.</p>
-
-<h3><a name="timeauth">&lt;An example program for password authentication with timings  "timeauth"&gt;</a></h3>
-<p>This is a re-implementation of "honey". Create a script and specify this program as the interpreter for the script.</p>
-
-<h3><a name="mailauth">&lt;An example program for one-time-password authentication using mail "mailauth"&gt;</a></h3>
-<p>This program generates one time password and sends it to the user using "mail". The authentication will succeed if the user input the password sent by "mail". To use this program, some mail server application is needed.</p>
-
-<h3><a name="proxy">&lt;A simple port forwarder "proxy"&gt;</a></h3>
-<p>This program is used by client side. This program explicitly binds to local port and connects to server so that the server side firewall (such as "iptables") can use packet filtering based on client side's port number.</p>
 
 <hr>
 
