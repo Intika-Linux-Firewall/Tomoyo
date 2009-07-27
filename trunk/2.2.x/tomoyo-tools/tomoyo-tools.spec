@@ -10,7 +10,7 @@ Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Conflicts: tomoyo-tools < 2.2.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/test/tomoyo-tools-2.2.0-20090727.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20090727.tar.gz
 
 %description
 This is TOMOYO Linux tools.
