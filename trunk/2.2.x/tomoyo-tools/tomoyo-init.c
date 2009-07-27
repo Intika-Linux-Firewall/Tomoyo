@@ -430,6 +430,10 @@ int main(int argc, char *argv[])
 	/* Show memory usage. */
 	show_memory_usage();
 
+	if (security_unmount)
+		umount("/sys/kernel/security/");
+	if (sys_unmount)
+		umount("/sys/");
 	if (proc_unmount)
 		umount("/proc");
 
