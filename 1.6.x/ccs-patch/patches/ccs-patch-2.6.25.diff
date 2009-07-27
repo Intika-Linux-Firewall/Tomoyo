@@ -38,9 +38,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv4/udp.c                  |    8 ++++++++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   27 +++++++++++++++++++++++++++
+ net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
- 38 files changed, 255 insertions(+), 2 deletions(-)
+ 38 files changed, 252 insertions(+), 2 deletions(-)
 
 --- linux-2.6.25.20.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20/arch/ia64/ia32/sys_ia32.c
@@ -1047,29 +1047,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -557,6 +560,10 @@ static inline int __sock_sendmsg(struct 
+@@ -555,6 +558,10 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
-@@ -1120,6 +1127,10 @@ static int __sock_create(struct net *net
- 		family = PF_PACKET;
+@@ -1121,6 +1128,8 @@ static int __sock_create(struct net *net
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1352,6 +1363,11 @@ asmlinkage long sys_bind(int fd, struct 
+ 
+@@ -1352,6 +1361,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1081,7 +1079,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1381,6 +1397,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1381,6 +1395,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1090,7 +1088,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1444,6 +1462,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1444,6 +1460,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1102,17 +1100,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1508,6 +1531,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1506,6 +1527,9 @@ asmlinkage long sys_connect(int fd, stru
+ 
+ 	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    address, addrlen);
  	if (err)
  		goto out_put;
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
  
- 	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
- 				 sock->file->f_flags);
 --- linux-2.6.25.20.orig/net/unix/af_unix.c
 +++ linux-2.6.25.20/net/unix/af_unix.c
 @@ -116,6 +116,7 @@

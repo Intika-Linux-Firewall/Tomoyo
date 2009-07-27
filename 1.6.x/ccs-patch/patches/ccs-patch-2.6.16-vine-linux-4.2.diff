@@ -43,9 +43,9 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/inet6_hashtables.c     |    5 ++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   29 ++++++++++++++++++++++++++---
+ net/socket.c                    |   26 +++++++++++++++++++++++---
  net/unix/af_unix.c              |    4 ++++
- 43 files changed, 291 insertions(+), 11 deletions(-)
+ 43 files changed, 288 insertions(+), 11 deletions(-)
 
 --- linux-2.6.16-76.49vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.49vl4/arch/alpha/kernel/ptrace.c
@@ -1204,30 +1204,30 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -546,7 +549,10 @@ static inline int __sock_sendmsg(struct 
+@@ -544,9 +547,12 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
 -
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1102,6 +1108,10 @@ static int __sock_create(int family, int
- 		family = PF_PACKET;
+@@ -1103,6 +1109,8 @@ static int __sock_create(int family, int
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1299,6 +1309,10 @@ asmlinkage long sys_bind(int fd, struct 
+ 		
+@@ -1299,6 +1307,10 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1238,7 +1238,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1329,7 +1343,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1329,7 +1341,8 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1248,7 +1248,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1380,6 +1395,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1380,6 +1393,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1260,15 +1260,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1435,7 +1455,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1433,9 +1451,11 @@ asmlinkage long sys_connect(int fd, stru
+ 		goto out_put;
+ 
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    address, addrlen);
  	if (err)
  		goto out_put;
 -
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:

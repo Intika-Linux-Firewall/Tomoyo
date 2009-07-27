@@ -43,9 +43,9 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    9 +++++++++
- net/socket.c                    |   29 ++++++++++++++++++++++++++---
+ net/socket.c                    |   26 +++++++++++++++++++++++---
  net/unix/af_unix.c              |    4 ++++
- 43 files changed, 290 insertions(+), 10 deletions(-)
+ 43 files changed, 287 insertions(+), 10 deletions(-)
 
 --- linux-2.6.16.54-0.2.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16.54-0.2.5/arch/alpha/kernel/ptrace.c
@@ -1195,30 +1195,30 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -549,7 +552,10 @@ static inline int __sock_sendmsg(struct 
+@@ -547,9 +550,12 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
 -
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1105,6 +1111,10 @@ static int __sock_create(int family, int
- 		family = PF_PACKET;
+@@ -1106,6 +1112,8 @@ static int __sock_create(int family, int
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1302,6 +1312,10 @@ asmlinkage long sys_bind(int fd, struct 
+ 		
+@@ -1302,6 +1310,10 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1229,7 +1229,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1332,7 +1346,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1332,7 +1344,8 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1239,7 +1239,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1383,6 +1398,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1383,6 +1396,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1251,15 +1251,16 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1438,7 +1458,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1436,9 +1454,11 @@ asmlinkage long sys_connect(int fd, stru
+ 		goto out_put;
+ 
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    address, addrlen);
  	if (err)
  		goto out_put;
 -
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:

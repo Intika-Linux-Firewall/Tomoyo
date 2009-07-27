@@ -36,9 +36,9 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/ipv4/udp.c                  |    8 ++++++++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   27 +++++++++++++++++++++++++++
+ net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
- 36 files changed, 248 insertions(+), 2 deletions(-)
+ 36 files changed, 245 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26.8-57.fc8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26.8-57.fc8/arch/ia64/ia32/sys_ia32.c
@@ -999,29 +999,27 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -558,6 +561,10 @@ static inline int __sock_sendmsg(struct 
+@@ -556,6 +559,10 @@ static inline int __sock_sendmsg(struct 
+ 	si->size = size;
+ 
  	err = security_socket_sendmsg(sock, msg, size);
++	if (!err)
++		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
++						    msg->msg_name,
++						    msg->msg_namelen);
  	if (err)
  		return err;
-+	if (ccs_socket_sendmsg_permission(sock,
-+					  (struct sockaddr *) msg->msg_name,
-+					  msg->msg_namelen))
-+		return -EPERM;
  
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
-@@ -1121,6 +1128,10 @@ static int __sock_create(struct net *net
- 		family = PF_PACKET;
+@@ -1122,6 +1129,8 @@ static int __sock_create(struct net *net
  	}
  
-+	err = ccs_socket_create_permission(family, type, protocol);
-+	if (err)
-+		return err;
-+
  	err = security_socket_create(family, type, protocol, kern);
++	if (!err)
++		err = ccs_socket_create_permission(family, type, protocol);
  	if (err)
  		return err;
-@@ -1353,6 +1364,11 @@ asmlinkage long sys_bind(int fd, struct 
+ 
+@@ -1353,6 +1362,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1033,7 +1031,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1382,6 +1398,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1382,6 +1396,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1042,7 +1040,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1445,6 +1463,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1445,6 +1461,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1054,17 +1052,16 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1509,6 +1532,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1507,6 +1528,9 @@ asmlinkage long sys_connect(int fd, stru
+ 
+ 	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
++	if (!err)
++		err = ccs_socket_connect_permission(sock, (struct sockaddr *)
++						    &address, addrlen);
  	if (err)
  		goto out_put;
-+	err = ccs_socket_connect_permission(sock, (struct sockaddr *) address,
-+					    addrlen);
-+	if (err)
-+		goto out_put;
  
- 	err = sock->ops->connect(sock, (struct sockaddr *)address, addrlen,
- 				 sock->file->f_flags);
 --- linux-2.6.26.8-57.fc8.orig/net/unix/af_unix.c
 +++ linux-2.6.26.8-57.fc8/net/unix/af_unix.c
 @@ -116,6 +116,7 @@
