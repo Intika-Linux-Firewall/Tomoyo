@@ -10,15 +10,6 @@
  */
 #include "tomoyotools.h"
 
-#ifndef __NR_unshare
-#include <sys/syscall.h>
-#define __NR_unshare 310 /* for x86_32 */
-static inline int unshare(int flags)
-{
-        return syscall(__NR_unshare, flags);
-}
-#endif
-
 /* Prototypes */
 
 static _Bool is_byte_range(const char *str);

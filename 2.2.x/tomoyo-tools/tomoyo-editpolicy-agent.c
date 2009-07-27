@@ -12,14 +12,6 @@
 #include <dirent.h>
 #include <sched.h>
 #include <sys/mount.h>
-#ifndef __NR_unshare
-#include <sys/syscall.h>
-#define __NR_unshare 310 /* for x86_32 */
-static inline int unshare(int flags)
-{
-        return syscall(__NR_unshare, flags);
-}
-#endif
 
 static void show_tasklist(FILE *fp, const _Bool show_all)
 {
