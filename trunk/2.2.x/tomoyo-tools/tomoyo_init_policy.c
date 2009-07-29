@@ -701,6 +701,8 @@ static void make_patterns_for_spool_directory(void)
 		echo("file_pattern /var/spool/postfix/defer/\\x/");
 		echo("file_pattern /var/spool/postfix/defer/\\x/\\X");
 	}
+	if (!lstat("/var/spool/exim4/input", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /var/spool/exim4/input/hdr.\\$");
 }
 
 static void make_patterns_for_man(void)
@@ -718,6 +720,7 @@ static void make_patterns_for_mount(void)
 static void make_patterns_for_crontab(void)
 {
 	/* Make patterns for crontab(1). */
+	const char *exe;
 	if (fgrep("Red Hat Linux", "/etc/issue"))
 		echo("file_pattern /tmp/crontab.\\$");
 	if (fgrep("Fedora Core", "/etc/issue"))
@@ -728,6 +731,15 @@ static void make_patterns_for_crontab(void)
 		echo("file_pattern "
 		     "/tmp/crontab.\\?\\?\\?\\?\\?\\?/crontab");
 	}
+	exe = which("crontab");
+	if (!exe)
+		return;
+	if (fgrep("crontab.XXXXXXXXXX", exe))
+		echo("file_pattern /tmp/crontab.XXXX\\?\\?\\?\\?\\?\\?");
+	if (fgrep("crontab.XXXXXX", exe))
+		echo("file_pattern /tmp/crontab.\\?\\?\\?\\?\\?\\?");
+	if (fgrep("fcr-XXXXXX", exe))
+		echo("file_pattern /tmp/fcr-\\?\\?\\?\\?\\?\\?");
 }
 
 static void make_globally_readable_files(void)
@@ -737,6 +749,8 @@ static void make_globally_readable_files(void)
 		"/etc/ld.so.cache", "/proc/meminfo",
 		"/proc/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
+		"/usr/lib32/gconv/gconv-modules.cache",
+		"/usr/lib64/gconv/gconv-modules.cache",
 		"/usr/share/locale/locale.alias"
 	};
 	int i;
@@ -813,6 +827,7 @@ static void make_initializers(void)
 		"/sbin/syslogd",
 		"/sbin/udevd",
 		"/usr/X11R6/bin/xfs",
+		"/usr/bin/dbus-daemon",
 		"/usr/bin/dbus-daemon-1",
 		"/usr/bin/jserver",
 		"/usr/bin/mDNSResponder",
@@ -905,6 +920,11 @@ static void make_patterns_for_squid(void)
 		echo("file_pattern /var/spool/squid/\\*/");
 		echo("file_pattern /var/spool/squid/\\*/\\*/");
 		echo("file_pattern /var/spool/squid/\\*/\\*/\\*");
+	}
+	if (!lstat("/var/cache/squid", &buf) && S_ISDIR(buf.st_mode)) {
+		echo("file_pattern /var/cache/squid/\\*/");
+		echo("file_pattern /var/cache/squid/\\*/\\*/");
+		echo("file_pattern /var/cache/squid/\\*/\\*/\\*");
 	}
 }
 
@@ -1059,6 +1079,10 @@ static void make_patterns_for_makewhatis(void)
 	}
 	if (fgrep("/tmp/whatis.XXXXXX", exe))
 		echo("file_pattern /tmp/whatis.\\?\\?\\?\\?\\?\\?");
+	if (fgrep("/tmp/whatis.tmp.dir.$$", exe)) {
+		echo("file_pattern /tmp/whatis.tmp.dir\\$/");
+		echo("file_pattern /tmp/whatis.tmp.dir\\$/w");
+	}
 }
 
 static void make_patterns_for_automount(void)
@@ -1251,6 +1275,107 @@ static void make_patterns_for_misc(void)
 		echo("file_pattern /usr/share/zoneinfo/\\*/\\*/\\*");
 		echo("file_pattern /usr/share/zoneinfo/\\*/\\*/\\*/\\*");
 	}
+	if (!lstat("/tmp/.ICE-unix", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /tmp/.ICE-unix/\\$");
+	if (!lstat("/usr/share/applications", &buf) && S_ISDIR(buf.st_mode)) {
+		echo("file_pattern /usr/share/applications/\\*.desktop");
+		echo("file_pattern /usr/share/applications/\\*/\\*.desktop");
+	}
+	if (!lstat("/usr/share/gnome/help", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /usr/share/gnome/help/\\*/\\*/\\*.xml");
+	if (!lstat("/usr/share/omf", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /usr/share/omf/\\*/\\*.omf");
+	if (!lstat("/usr/share/scrollkeeper", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /usr/share/scrollkeeper/\\*/\\*/\\*.xml");
+	if (!lstat("/var/cache/man", &buf) && S_ISDIR(buf.st_mode)) {
+		echo("file_pattern /var/cache/man/\\*");
+		echo("file_pattern /var/cache/man/\\*/\\*");
+		echo("file_pattern /var/cache/man/\\*/index.db");
+	}
+	if (!lstat("/var/lib/scrollkeeper", &buf) && S_ISDIR(buf.st_mode)) {
+		echo("file_pattern /var/lib/scrollkeeper/\\*/");
+		echo("file_pattern /var/lib/scrollkeeper/index/\\$");
+		echo("file_pattern /var/lib/scrollkeeper/TOC/\\$");
+		echo("file_pattern /var/lib/scrollkeeper/\\*/\\*.xml");
+	}
+	if (!lstat("/var/lib/apt/lists", &buf) && S_ISDIR(buf.st_mode)) {
+		echo("file_pattern /var/lib/apt/lists/\\*");
+		echo("file_pattern /var/lib/apt/lists/partial/\\*");
+		echo("file_pattern /var/lib/apt/lists/partial/\\*.decomp");
+	}
+	if (!lstat("/var/run/PolicyKit", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern "
+		     "/var/run/PolicyKit/user-\\*.auths.\\?\\?\\?\\?\\?\\?");
+	if (!lstat("/var/run/avahi-daemon", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern "
+		     "/var/run/avahi-daemon/checked_nameservers.\\$");
+	if (!lstat("/var/run/hald", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /var/run/hald/acl-list.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /dev/shm/pulse-shm-\\$");
+	echo("file_pattern "
+	     "/home/\\*/.config/tracker/tracker.cfg.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.dmrc.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/evolution-alarm-notify-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/evolution-exchange-storage-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/fast-user-switch-applet-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gnome2/gnome-panel-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/gnome-pilot.d/gpilotd.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/gnome-power-manager-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/gnome-terminal-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gnome2/gpilotd-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gnome2/nautilus-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern "
+	     "/home/\\*/.gnome2/update-notifier-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gnome2/yelp.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gnupg/.\\*");
+	echo("file_pattern /home/\\*/.goutputstream-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.gtk-bookmarks.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.local/share/Trash/info/gnome-terminal."
+	     "desktop.trashinfo.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.metacity/sessions/\\X.ms");
+	echo("file_pattern /home/\\*/.nautilus/metafiles/file:%2F%2F%2F\\*");
+	echo("file_pattern "
+	     "/home/\\*/.nautilus/saved-session-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.recently-used.xbel.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /home/\\*/.thumbnails/normal/\\X.png");
+	echo("file_pattern "
+	     "/home/\\*/.thumbnails/normal/\\X.png.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /root/.dbus/session-bus/\\*");
+	echo("file_pattern /root/.recently-used.xbel.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/ex4\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/file\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/fusermount\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /tmp/gconfd-\\*/lock/\\*");
+	echo("file_pattern /tmp/gconf-test-locking-file-\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/gdkpixbuf-xpm-tmp.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/keyring-\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /tmp/keyring-\\?\\?\\?\\?\\?\\?/socket");
+	echo("file_pattern /tmp/keyring-\\?\\?\\?\\?\\?\\?/socket.pkcs11");
+	echo("file_pattern /tmp/keyring-\\?\\?\\?\\?\\?\\?/ssh");
+	echo("file_pattern /tmp/libgksu-\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /tmp/libgksu-\\?\\?\\?\\?\\?\\?/.Xauthority");
+	echo("file_pattern /tmp/orbit-\\*/linc-\\*");
+	echo("file_pattern /tmp/seahorse-\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /tmp/seahorse-\\?\\?\\?\\?\\?\\?/S.gpg-agent");
+	echo("file_pattern /tmp/tmp.\\*");
+	echo("file_pattern /tmp/tmpf\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/Tracker-\\*/");
+	echo("file_pattern /tmp/Tracker-\\*/Attachments/");
+	echo("file_pattern /tmp/Tracker-\\*/cache.db");
+	echo("file_pattern /tmp/Tracker-\\*/cache.db-journal");
+	echo("file_pattern /tmp/virtual-\\*.\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /var/mail/.\\*");
+	echo("file_pattern /var/mail/\\*");
+	echo("file_pattern /var/mail/.lk\\*");
+	echo("file_pattern /var/mail/mail.lock.\\*");
+	echo("file_pattern /var/run/tmp.\\*");
+	echo("file_pattern /var/tmp/etilqs_\\*");
 }
 
 static void make_deny_rewrite_for_log_directory(void)
@@ -1447,7 +1572,7 @@ int main(int argc, char *argv[])
 		if (!strncmp(arg, "root=", 5)) {
 			if (chroot(arg + 5) || chdir("/")) {
 				fprintf(stderr, "Can't chroot to '%s'\n",
-					arg + 5); 
+					arg + 5);
 				return 1;
 			}
 		} else if (!strncmp(arg, "policy_dir=", 11)) {
