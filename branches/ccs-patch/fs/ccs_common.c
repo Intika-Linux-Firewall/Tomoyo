@@ -1141,7 +1141,13 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		return -EINVAL;
 	*cp = '\0';
 	if (!strcmp(data, "COMMENT")) {
-		ccs_profile->comment = ccs_get_name(cp + 1);
+		const struct ccs_path_info *new_comment
+			= ccs_get_name(cp + 1);
+		const struct ccs_path_info *old_comment;
+		old_comment = ccs_profile->comment;
+		ccs_profile->comment = new_comment;
+		/* BUG: Need to wait for SRCU before kfree(). */
+		ccs_put_name(old_comment);
 		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
