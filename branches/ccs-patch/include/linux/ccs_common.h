@@ -295,11 +295,10 @@ struct ccs_domain_info {
 /* Profile number is an integer between 0 and 255. */
 #define MAX_PROFILES 256
 
-#define CCS_CHECK_READ_FOR_OPEN_EXEC    1
-#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
-#define CCS_TASK_IS_EXECUTE_HANDLER     4
-#define CCS_TASK_IS_POLICY_MANAGER      8
-#define CCS_FLAGS_SRCU_READ_LOCK_HELD  16
+#define CCS_CHECK_READ_FOR_OPEN_EXEC     16
+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
+#define CCS_TASK_IS_EXECUTE_HANDLER      64
+#define CCS_TASK_IS_POLICY_MANAGER      128
 
 /* Structure for "allow_read" keyword. */
 struct ccs_globally_readable_file_entry {
@@ -1135,21 +1134,22 @@ static inline struct ccs_domain_info *ccs_current_domain(void)
 static inline int ccs_read_lock(void)
 {
 	struct task_struct *task = current;
-	WARN_ON(task->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD);
-	task->ccs_flags |= CCS_FLAGS_SRCU_READ_LOCK_HELD;
+	BUG_ON((task->ccs_flags & 15) == 15);
+	task->ccs_flags++;
 	return srcu_read_lock(&ccs_ss);
 }
 
 static inline void ccs_check_read_lock(void)
 {
-	WARN_ON(!(current->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD));
+	if (ccs_policy_loaded)
+		WARN_ON(!(current->ccs_flags & 15));
 }
 
 static inline void ccs_read_unlock(const int idx)
 {
 	struct task_struct *task = current;
-	WARN_ON(!(task->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD));
-	task->ccs_flags &= ~CCS_FLAGS_SRCU_READ_LOCK_HELD;
+	WARN_ON(!(task->ccs_flags & 15));
+	task->ccs_flags--;
 	srcu_read_unlock(&ccs_ss, idx);
 }
 
