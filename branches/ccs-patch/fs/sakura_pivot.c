@@ -124,7 +124,7 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 					    struct PATH_or_NAMEIDATA *new_path)
@@ -136,6 +136,7 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	struct ccs_path_info old_root_dir;
 	struct ccs_path_info new_root_dir;
 	bool is_enforce;
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
@@ -211,9 +212,9 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				    struct PATH_or_NAMEIDATA *new_path)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_check_pivot_root_permission2(old_path, new_path);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

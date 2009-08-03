@@ -472,12 +472,13 @@ bool ccs_is_domain_def(const unsigned char *buffer)
  *
  * Returns pointer to "struct ccs_domain_info" if found, NULL otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 struct ccs_domain_info *ccs_find_domain(const char *domainname)
 {
 	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
+	ccs_check_read_lock();
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
@@ -994,13 +995,14 @@ bool ccs_verbose_mode(const struct ccs_domain_info *domain)
  *
  * Returns true if the domain is not exceeded quota, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_domain_quota_ok(struct ccs_request_info *r)
 {
 	unsigned int count = 0;
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
+	ccs_check_read_lock();
 	if (r->mode != 1)
 		return false;
 	if (!domain)
@@ -1345,11 +1347,12 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
  *
  * Returns 0.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_read_manager_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
+	ccs_check_read_lock();
 	if (head->read_eof)
 		return 0;
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
@@ -1370,7 +1373,7 @@ static int ccs_read_manager_policy(struct ccs_io_buffer *head)
  * Returns true if the current process is permitted to modify policy
  * via /proc/ccs/ interface.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_policy_manager(void)
 {
@@ -1380,6 +1383,7 @@ static bool ccs_is_policy_manager(void)
 	const struct ccs_path_info *domainname
 		= ccs_current_domain()->domainname;
 	bool found = false;
+	ccs_check_read_lock();
 	if (!ccs_policy_loaded)
 		return true;
 	if (task->ccs_flags & CCS_TASK_IS_POLICY_MANAGER)
@@ -1454,12 +1458,13 @@ static char *ccs_find_condition_part(char *data)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
+	ccs_check_read_lock();
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
@@ -2221,12 +2226,13 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
  *
  * Returns 0.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *dpos;
 	struct list_head *apos;
+	ccs_check_read_lock();
 	if (head->read_eof)
 		return 0;
 	if (head->read_step == 0)
@@ -2296,7 +2302,7 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
  *     ( echo "select " $domainname; echo "use_profile " $profile ) |
  *     /usr/lib/ccs/loadpolicy -d
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 {
@@ -2304,6 +2310,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	char *cp = strchr(data, ' ');
 	struct ccs_domain_info *domain;
 	unsigned int profile;
+	ccs_check_read_lock();
 	if (!cp)
 		return -EINVAL;
 	*cp = '\0';
@@ -2330,11 +2337,12 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
  *     domainname = $0; } else if ( $1 == "use_profile" ) {
  *     print $2 " " domainname; domainname = ""; } } ; '
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
+	ccs_check_read_lock();
 	if (head->read_eof)
 		return 0;
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
@@ -2372,7 +2380,7 @@ static int ccs_write_pid(struct ccs_io_buffer *head)
  * process information of the specified PID on success,
  * empty string otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_read_pid(struct ccs_io_buffer *head)
 {
@@ -2382,6 +2390,7 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	struct task_struct *p;
 	struct ccs_domain_info *domain = NULL;
 	u32 ccs_flags = 0;
+	ccs_check_read_lock();
 	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
 		goto done; /* Do nothing if open(O_RDONLY). */
@@ -2468,10 +2477,11 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
  *
  * Returns 0 on success, -EINVAL otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 {
+	ccs_check_read_lock();
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
@@ -3144,7 +3154,7 @@ int ccs_open_control(const u8 type, struct file *file)
 	}
 	if (type != CCS_QUERY &&
 	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
-		head->srcu_idx = srcu_read_lock(&ccs_ss);
+		head->reader_idx = ccs_read_lock();
 	file->private_data = head;
 	/*
 	 * Call the handler now if the file is /proc/ccs/self_domain
@@ -3296,7 +3306,7 @@ int ccs_close_control(struct file *file)
 		atomic_dec(&ccs_query_observers);
 	if (type != CCS_QUERY &&
 	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
-		srcu_read_unlock(&ccs_ss, head->srcu_idx);
+		ccs_read_unlock(head->reader_idx);
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);
 	head->read_buf = NULL;

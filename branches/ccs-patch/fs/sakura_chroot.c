@@ -109,7 +109,7 @@ static int ccs_update_chroot_acl(const char *dir,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 {
@@ -118,6 +118,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 	struct ccs_path_info dir;
 	char *root_name;
 	bool is_enforce;
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
@@ -178,9 +179,9 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
  */
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_check_chroot_permission2(path);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

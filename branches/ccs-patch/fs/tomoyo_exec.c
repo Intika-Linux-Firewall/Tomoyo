@@ -126,7 +126,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
  *
  * Returns 0 on success, -EPERM otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_argv0_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
@@ -136,6 +136,7 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info argv_0;
+	ccs_check_read_lock();
 	argv_0.name = argv0;
 	ccs_fill_path_info(&argv_0);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -163,7 +164,7 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 int ccs_check_argv0_perm(struct ccs_request_info *r,
 			 const struct ccs_path_info *filename,
@@ -171,6 +172,7 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 {
 	int error = 0;
 	const bool is_enforce = (r->mode == 3);
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	if (!filename || !argv0 || !*argv0)

@@ -1276,7 +1276,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_check_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl)
@@ -1300,6 +1300,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 envc;
 	struct linux_binprm *bprm = NULL;
 	const struct ccs_condition *cond = acl->cond;
+	ccs_check_read_lock();
 	if (!cond)
 		return true;
 	condc = cond->condc;
@@ -2015,13 +2016,14 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_number_group_list) {
 		struct ccs_number_group_entry *group;
 		const char *name;
@@ -2060,13 +2062,14 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
  *
  * Returns true if @min and @max partially overlaps @group, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 			      const struct ccs_number_group_entry *group)
 {
 	struct ccs_number_group_member *member;
 	bool matched = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(member, &group->number_group_member_list,
 				list) {
 		if (member->is_deleted)

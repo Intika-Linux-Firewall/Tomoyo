@@ -215,7 +215,7 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				       char *dev_name, char *dir_name,
@@ -223,6 +223,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 {
 	const bool is_enforce = (r->mode == 3);
 	int error;
+	ccs_check_read_lock();
  retry:
 	error = -EPERM;
 	if (!type)
@@ -431,10 +432,10 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	if (!r.mode)
 		return 0;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	error = ccs_check_mount_permission2(&r, dev_name, dir_name, type,
 					    *flags);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

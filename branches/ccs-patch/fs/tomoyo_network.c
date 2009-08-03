@@ -271,7 +271,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
  *
  * Returns true if @address matches addresses in @group group, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 				      const struct ccs_address_group_entry *
@@ -280,6 +280,7 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
 	bool matched = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(member, &group->address_group_member_list,
 				list) {
 		if (member->is_deleted)
@@ -309,13 +310,14 @@ static bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
 		struct ccs_address_group_entry *group;
 		group = list_entry(gpos, struct ccs_address_group_entry, list);
@@ -580,7 +582,7 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 				    const u32 *address, const u16 port)
@@ -593,6 +595,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	const u32 ip = ntohl(*address);
 	bool found = false;
 	char buf[64];
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK);
@@ -667,10 +670,10 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 				   const u32 *address, const u16 port)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_check_network_entry2(is_ipv6, operation,
 						   address, port);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

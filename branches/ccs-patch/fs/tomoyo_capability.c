@@ -160,7 +160,7 @@ static int ccs_update_capability_acl(const u8 operation,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_capable2(const u8 operation)
 {
@@ -168,6 +168,7 @@ static bool ccs_capable2(const u8 operation)
 	struct ccs_acl_info *ptr;
 	bool is_enforce;
 	bool found = false;
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return true;
 	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
@@ -211,14 +212,12 @@ static bool ccs_capable2(const u8 operation)
  * @operation: Type of operation.
  *
  * Returns true on success, false otherwise.
- *
- * Caller holds srcu_read_lock(&ccs_ss).
  */
 bool ccs_capable(const u8 operation)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_capable2(operation);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */

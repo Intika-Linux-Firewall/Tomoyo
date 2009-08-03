@@ -167,7 +167,7 @@ struct ccs_execve_entry {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
-	int srcu_idx;
+	int reader_idx;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
@@ -299,6 +299,7 @@ struct ccs_domain_info {
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR 2
 #define CCS_TASK_IS_EXECUTE_HANDLER     4
 #define CCS_TASK_IS_POLICY_MANAGER      8
+#define CCS_FLAGS_SRCU_READ_LOCK_HELD  16
 
 /* Structure for "allow_read" keyword. */
 struct ccs_globally_readable_file_entry {
@@ -721,8 +722,8 @@ struct ccs_io_buffer {
 	int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
-	/* Index returned by srcu_read_lock().  */
-	int srcu_idx;
+	/* Index returned by ccs_read_lock().   */
+	int reader_idx;
 	/* The position currently reading from. */
 	struct list_head *read_var1;
 	/* Extra variables for reading.         */
@@ -1128,5 +1129,46 @@ static inline struct ccs_domain_info *ccs_current_domain(void)
 		task->ccs_domain_info = &ccs_kernel_domain;
 	return task->ccs_domain_info;
 }
+
+#if 1
+
+static inline int ccs_read_lock(void)
+{
+	struct task_struct *task = current;
+	WARN_ON(task->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD);
+	task->ccs_flags |= CCS_FLAGS_SRCU_READ_LOCK_HELD;
+	return srcu_read_lock(&ccs_ss);
+}
+
+static inline void ccs_check_read_lock(void)
+{
+	WARN_ON(!(current->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD));
+}
+
+static inline void ccs_read_unlock(const int idx)
+{
+	struct task_struct *task = current;
+	WARN_ON(!(task->ccs_flags & CCS_FLAGS_SRCU_READ_LOCK_HELD));
+	task->ccs_flags &= ~CCS_FLAGS_SRCU_READ_LOCK_HELD;
+	srcu_read_unlock(&ccs_ss, idx);
+}
+
+#else
+
+static inline int ccs_read_lock(void)
+{
+	return srcu_read_lock(&ccs_ss);
+}
+
+static inline void ccs_check_read_lock(void)
+{
+}
+
+static inline void ccs_read_unlock(const int idx)
+{
+	srcu_read_unlock(&ccs_ss, idx);
+}
+
+#endif
 
 #endif

@@ -103,7 +103,7 @@ static int ccs_update_umount_acl(const char *dir,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_may_umount2(struct vfsmount *mnt)
 {
@@ -113,6 +113,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	bool is_enforce;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info dir;
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
@@ -164,9 +165,9 @@ static int ccs_may_umount2(struct vfsmount *mnt)
  */
 int ccs_may_umount(struct vfsmount *mnt)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_may_umount2(mnt);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

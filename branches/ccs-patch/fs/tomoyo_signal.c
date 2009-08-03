@@ -134,7 +134,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_signal_acl2(const int sig, const int pid)
 {
@@ -145,6 +145,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	const u16 hash = sig;
 	bool is_enforce;
 	bool found = false;
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
@@ -230,9 +231,9 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
  */
 int ccs_check_signal_acl(const int sig, const int pid)
 {
-	const int idx = srcu_read_lock(&ccs_ss);
+	const int idx = ccs_read_lock();
 	const int error = ccs_check_signal_acl2(sig, pid);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 

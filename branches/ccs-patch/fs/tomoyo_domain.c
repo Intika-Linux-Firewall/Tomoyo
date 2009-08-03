@@ -201,12 +201,13 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_initializer_list) {
 		const char *no;
@@ -263,7 +264,7 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_not,
  * Returns true if executing @program reinitializes domain transition,
  * false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
 				      const struct ccs_path_info *program,
@@ -271,6 +272,7 @@ static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_initializer_entry *ptr;
 	bool flag = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -392,12 +394,13 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_not,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_keeper_list) {
 		struct ccs_domain_keeper_entry *ptr;
@@ -431,7 +434,7 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
  * Returns true if executing @program supresses domain transition,
  * false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 				 const struct ccs_path_info *program,
@@ -439,6 +442,7 @@ static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_keeper_entry *ptr;
 	bool flag = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -525,12 +529,13 @@ static int ccs_update_aggregator_entry(const char *original_name,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_aggregator_list) {
 		struct ccs_aggregator_entry *ptr;
 		ptr = list_entry(pos, struct ccs_aggregator_entry, list);
@@ -700,7 +705,7 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 {
@@ -716,6 +721,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_path_info rn; /* real name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
+	ccs_check_read_lock();
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
@@ -1047,7 +1053,7 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 		kfree(ee);
 		return NULL;
 	}
-	ee->srcu_idx = srcu_read_lock(&ccs_ss);
+	ee->reader_idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->task = current;
 	/***** CRITICAL SECTION START *****/
@@ -1098,7 +1104,7 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 	kfree(ee->program_path);
 	kfree(ee->tmp);
 	kfree(ee->dump.data);
-	srcu_read_unlock(&ccs_ss, ee->srcu_idx);
+	ccs_read_unlock(ee->reader_idx);
 	kfree(ee);
 }
 
@@ -1322,7 +1328,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
  *
  * Returns true if found, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 				     const u8 type)
@@ -1331,6 +1337,7 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	bool found = false;
+	ccs_check_read_lock();
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
@@ -1475,12 +1482,13 @@ int ccs_start_execve(struct linux_binprm *bprm)
  *
  * @retval: Return code of an execve() operation.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
+	ccs_check_read_lock();
 	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 	if (!ee)
 		return;

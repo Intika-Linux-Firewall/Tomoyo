@@ -307,12 +307,13 @@ static int ccs_update_globally_readable_entry(const char *filename,
  *
  * Returns true if any domain can open @filename for reading, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 {
 	struct ccs_globally_readable_file_entry *ptr;
 	bool found = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->is_deleted ||
 		    !ccs_path_matches_pattern(filename, ptr->filename))
@@ -343,12 +344,13 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_globally_readable_list) {
 		struct ccs_globally_readable_file_entry *ptr;
@@ -492,7 +494,7 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
  *
  * Returns true if @pathname matches pathnames in @group, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 			    const struct ccs_path_group_entry *group,
@@ -500,6 +502,7 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 {
 	struct ccs_path_group_member *member;
 	bool matched = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
 		if (member->is_deleted)
 			continue;
@@ -525,13 +528,14 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname,
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_path_group_list) {
 		struct ccs_path_group_entry *group;
 		group = list_entry(gpos, struct ccs_path_group_entry, list);
@@ -605,13 +609,14 @@ static int ccs_update_file_pattern_entry(const char *pattern,
  *
  * Returns pointer to "struct ccs_path_info".
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static const struct ccs_path_info *ccs_get_file_pattern
 (const struct ccs_path_info *filename)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -648,12 +653,13 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
 		struct ccs_pattern_entry *ptr;
 		ptr = list_entry(pos, struct ccs_pattern_entry, list);
@@ -721,12 +727,13 @@ static int ccs_update_no_rewrite_entry(const char *pattern,
  * Returns true if @filename is specified by "deny_rewrite" directive,
  * false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 {
 	struct ccs_no_rewrite_entry *ptr;
 	bool matched = false;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -758,12 +765,13 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
  *
  * Returns true on success, false otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
+	ccs_check_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			      &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
@@ -832,7 +840,7 @@ static int ccs_update_file_acl(const char *filename, u8 perm,
  *
  * Returns 0 on success, -EPERM otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_single_path_acl(struct ccs_request_info *r,
 				     const struct ccs_path_info *filename,
@@ -842,6 +850,7 @@ static int ccs_check_single_path_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
@@ -879,7 +888,7 @@ static int ccs_check_single_path_acl(struct ccs_request_info *r,
  *
  * Returns 0 on success, -EPERM otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
@@ -889,6 +898,7 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mkdev_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_MKDEV_ACL)
@@ -925,7 +935,7 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_file_perm(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
@@ -935,6 +945,7 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
+	ccs_check_read_lock();
 	if (!filename)
 		return 0;
 	if (mode == 6) {
@@ -1455,7 +1466,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
  *
  * Returns 0 on success, -EPERM otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename1,
@@ -1465,6 +1476,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
@@ -1507,7 +1519,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_single_path_permission(struct ccs_request_info *r,
 					    u8 operation,
@@ -1517,6 +1529,7 @@ static int ccs_check_single_path_permission(struct ccs_request_info *r,
 	const char *msg;
 	int error;
 	const bool is_enforce = (r->mode == 3);
+	ccs_check_read_lock();
 	if (!r->mode)
 		return 0;
  retry:
@@ -1563,7 +1576,7 @@ static int ccs_check_single_path_permission(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 				      const u8 operation,
@@ -1575,6 +1588,7 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 	const bool is_enforce = (r->mode == 3);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
+	ccs_check_read_lock();
 	if (!r->mode)
 		return 0;
  retry:
@@ -1609,11 +1623,12 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 int ccs_check_exec_perm(struct ccs_request_info *r,
 			const struct ccs_path_info *filename)
 {
+	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	if (!r->mode)
@@ -1647,7 +1662,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, current->ccs_flags &
 			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
 			      ccs_fetch_next_domain() : ccs_current_domain(),
@@ -1691,7 +1706,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 							 &buf);
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (r.mode != 3)
 		error = 0;
 	return error;
@@ -1721,7 +1736,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		return 0;
 	buf.name = NULL;
 	symlink_target.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1756,7 +1771,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		kfree(symlink_target.name);
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1784,7 +1799,7 @@ static int ccs_check_mkdev_perm(const u8 operation, struct dentry *dentry,
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1801,7 +1816,7 @@ static int ccs_check_mkdev_perm(const u8 operation, struct dentry *dentry,
 	error = ccs_check_mkdev_permission(&r, operation, &buf, dev);
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1825,7 +1840,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !filp->f_vfsmnt) {
@@ -1845,7 +1860,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 	error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL, &buf);
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1876,7 +1891,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	is_enforce = (r.mode == 3);
 	if (!r.mode || !mnt) {
@@ -1928,7 +1943,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  out:
 	kfree(buf1.name);
 	kfree(buf2.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -2028,7 +2043,7 @@ static int ccs_update_ioctl_acl(const char *filename,
  *
  * Returns 0 on success, -EPERM otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
@@ -2037,6 +2052,7 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
+	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ioctl_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
@@ -2070,7 +2086,7 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
- * Caller holds srcu_read_lock(&ccs_ss).
+ * Caller holds ccs_read_lock().
  */
 static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 				const struct ccs_path_info *filename,
@@ -2078,6 +2094,7 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 {
 	const bool is_enforce = (r->mode == 3);
 	int error = 0;
+	ccs_check_read_lock();
 	if (!filename)
 		return 0;
  retry:
@@ -2154,7 +2171,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
 	if (!r.mode || !filp->f_vfsmnt) {
 		error = 0;
@@ -2169,7 +2186,7 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 	error = ccs_check_ioctl_perm(&r, &buf, cmd);
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	if (r.mode != 3)
 		error = 0;
 	return error;
@@ -2797,7 +2814,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
-	idx = srcu_read_lock(&ccs_ss);
+	idx = ccs_read_lock();
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
 	if (!r.mode) {
 		error = 0;
@@ -2891,7 +2908,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	error = -ENOTDIR;
  out:
 	kfree(buf.name);
-	srcu_read_unlock(&ccs_ss, idx);
+	ccs_read_unlock(idx);
 	return error;
 }
 #endif
