@@ -924,7 +924,6 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 /* Garbage collector functions */
 
 enum ccs_gc_id {
-	CCS_ID_CONDITION,
 	CCS_ID_RESERVEDPORT,
 	CCS_ID_ADDRESS_GROUP,
 	CCS_ID_ADDRESS_GROUP_MEMBER,
@@ -1250,13 +1249,6 @@ static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_condition(struct ccs_condition *ptr)
-{
-	const size_t size = ptr->size;
-	ccs_put_condition(ptr);
-	return size;
-}
-
 static int ccs_gc_thread(void *unused)
 {
 	static DEFINE_MUTEX(ccs_gc_mutex);
@@ -1473,17 +1465,6 @@ static int ccs_gc_thread(void *unused)
 				break;
 		}
 	}
-	{
-		struct ccs_condition *ptr;
-		list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
-			if (atomic_read(&ptr->users))
-				continue;
-			if (ccs_add_to_gc(CCS_ID_CONDITION, ptr, &ccs_gc_queue))
-				list_del_rcu(&ptr->list);
-			else
-				break;
-		}
-	}
 	mutex_unlock(&ccs_policy_lock);
 	if (list_empty(&ccs_gc_queue))
 		goto done;
@@ -1538,9 +1519,6 @@ static int ccs_gc_thread(void *unused)
 				break;
 			case CCS_ID_RESERVEDPORT:
 				size = ccs_del_reservedport(p->element);
-				break;
-			case CCS_ID_CONDITION:
-				size = ccs_del_condition(p->element);
 				break;
 			case CCS_ID_ACL:
 				size = ccs_del_acl(p->element);
