@@ -121,8 +121,6 @@ static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
 	return false;
 }
 
-static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name);
-
 static bool ccs_check_and_save_path(const char *filename, bool *is_group,
 				    const void **saved_ptr)
 {
@@ -376,7 +374,7 @@ LIST_HEAD(ccs_path_group_list);
  *
  * Returns pointer to "struct ccs_path_group_entry" on success, NULL otherwise.
  */
-static struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
+struct ccs_path_group_entry *ccs_get_path_group(const char *group_name)
 {
 	struct ccs_path_group_entry *entry = NULL;
 	struct ccs_path_group_entry *group;
@@ -496,9 +494,9 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
  *
  * Caller holds srcu_read_lock(&ccs_ss).
  */
-static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-				   const struct ccs_path_group_entry *group,
-				   const bool may_use_pattern)
+bool ccs_path_matches_group(const struct ccs_path_info *pathname,
+			    const struct ccs_path_group_entry *group,
+			    const bool may_use_pattern)
 {
 	struct ccs_path_group_member *member;
 	bool matched = false;

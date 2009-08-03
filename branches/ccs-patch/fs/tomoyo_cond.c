@@ -240,64 +240,72 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 	return result;
 }
 
-/**
- * ccs_scan_symlink - Scan symlink's target.
- *
- * @target:   Pointer to "struct ccs_path_info".
- * @symlinkc: Length of @symlinkp.
- * @symlinkp: Poiner to "struct ccs_symlinkp_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_scan_symlink(struct ccs_path_info *target,
-			     u16 symlinkc,
-			     const struct ccs_symlinkp_entry *symlinkp)
+static bool ccs_scan_symlink_target(const struct ccs_path_info *symlink_target,
+				    const struct ccs_path_info *path,
+				    const struct ccs_path_group_entry *group,
+				    const bool match)
 {
-	if (!target)
+	if (!symlink_target)
 		return false;
-	while (symlinkc) {
-		const bool bool1 =
-			ccs_path_matches_pattern(target, symlinkp->value);
-		const bool bool2 = symlinkp->is_not;
-		if (bool1 == bool2)
-			return false;
-		symlinkp++;
-		symlinkc--;
-	}
-	return true;
+	if (path)
+		return ccs_path_matches_pattern(symlink_target, path) == match;
+	else if (group)
+		return ccs_path_matches_group(symlink_target, group, true) == match;
+	return false;
 }
 
-/**
- * ccs_scan_exepath - Scan executable's pathname.
- *
- * @file:     Pointer to "struct file".
- * @exepathc: Length of @exepathp.
- * @exepathp: Poiner to "struct ccs_exepath_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_scan_exepath(struct file *file, u16 exepathc,
-			     const struct ccs_exepath_entry *exepathp)
+static bool ccs_scan_exec_realpath(const struct file *file,
+				   const struct ccs_path_info *path,
+				   const struct ccs_path_group_entry *group,
+				   const bool match)
 {
-	struct ccs_path_info path;
+	bool result;
+	struct ccs_path_info exe;
 	if (!file)
 		return false;
-	path.name = ccs_realpath_from_dentry(file->f_dentry, file->f_vfsmnt);
-	if (!path.name)
+	exe.name = ccs_realpath_from_dentry(file->f_dentry, file->f_vfsmnt);
+	if (!exe.name)
 		return false;
-	ccs_fill_path_info(&path);
-	while (exepathc) {
-		const bool bool1 =
-			ccs_path_matches_pattern(&path, exepathp->value);
-		const bool bool2 = exepathp->is_not;
-		if (bool1 == bool2)
-			break;
-		exepathp++;
-		exepathc--;
-	}
-	kfree(path.name);
-	return !exepathc;
+	ccs_fill_path_info(&exe);
+	if (path)
+		result = ccs_path_matches_pattern(&exe, path) == match;
+	else if (group)
+		result = ccs_path_matches_group(&exe, group, true) == match;
+	else
+		result = false;
+	kfree(exe.name);
+	return result;
 }
+
+struct ccs_condition_element {
+	/*
+	 * Left hand operand. A "struct ccs_argv_entry" for ARGV_ENTRY, a
+	 * "struct ccs_envp_entry" for ENVP_ENTRY is attached to the tail of
+	 * the array of this struct.
+	 */
+	u8 left;
+	/*
+	 * Right hand operand.  An "unsigned long" for CONSTANT_VALUE,
+	 * two "unsigned long" for CONSTANT_VALUE_RANGE,
+	 * a "struct ccs_number_group *" for NUMBER_GROUP,
+	 * a "struct ccs_path_info *" for PATH_INFO,
+	 * a "struct ccs_group_info *" for PATH_GROUP is attached to the tail
+	 * of the array of this struct.
+	 */
+	u8 right;
+	/* Equation operator. 1 if equals or overlaps, 0 otherwise. */
+	u8 equals;
+	/*
+	 * Radix types for constant value .
+	 * 
+	 * Bit 3 and 2: Right hand operand's min value
+	 * Bit 1 and 0: Right hand operand's max value
+	 *
+	 * 01 is for decimal, 10 is for octal, 11 is for hexadecimal,
+	 * 00 is for invalid (i.e. not a value) expression.
+	 */
+	u8 type;
+};
 
 /* Value type definition. */
 #define VALUE_TYPE_DECIMAL     1
@@ -361,8 +369,37 @@ static void ccs_print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "%lu", value);
 	else if (type == VALUE_TYPE_OCTAL)
 		snprintf(buffer, buffer_len, "0%lo", value);
-	else
+	else if (type == VALUE_TYPE_HEXADECIMAL)
 		snprintf(buffer, buffer_len, "0x%lX", value);
+	else
+		snprintf(buffer, buffer_len, "type(%u)", type);
+}
+
+/**
+ * ccs_get_dqword - ccs_get_name() for a quoted string.
+ *
+ * @start: String to save.
+ *
+ * Returns pointer to "struct ccs_path_info" on success, NULL otherwise.
+ */
+static const struct ccs_path_info *ccs_get_dqword(char *start)
+{
+	char *cp;
+	if (*start++ != '"')
+		return NULL;
+	cp = start;
+	while (1) {
+		const char c = *cp++;
+		if (!c)
+			return NULL;
+		if (c != '"' || *cp)
+			continue;
+		*(cp - 1) = '\0';
+		break;
+	}
+	if (!ccs_is_correct_path(start, 0, 0, 0))
+		return NULL;
+	return ccs_get_name(start);
 }
 
 /**
@@ -379,8 +416,6 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 	const struct ccs_path_info *value;
 	bool is_not;
 	char c;
-	char *cp;
-	start += 10;
 	if (ccs_parse_ulong(&index, &start) != VALUE_TYPE_DECIMAL)
 		goto out;
 	if (*start++ != ']')
@@ -392,15 +427,7 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 		is_not = true;
 	else
 		goto out;
-	if (*start++ != '"')
-		goto out;
-	cp = start + strlen(start) - 1;
-	if (cp < start || *cp != '"')
-		goto out;
-	*cp = '\0';
-	if (!ccs_is_correct_path(start, 0, 0, 0))
-		goto out;
-	value = ccs_get_name(start);
+	value = ccs_get_dqword(start);
 	if (!value)
 		goto out;
 	argv->index = index;
@@ -424,9 +451,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 	const struct ccs_path_info *name;
 	const struct ccs_path_info *value;
 	bool is_not;
-	char *cp;
-	start += 11;
-	cp = start;
+	char *cp = start;
 	/*
 	 * Since environment variable names don't
 	 * contain '=', I can treat '"]=' and '"]!='
@@ -455,101 +480,13 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 	if (!strcmp(start, "NULL")) {
 		value = NULL;
 	} else {
-		if (*start++ != '"')
-			goto out;
-		cp = start + strlen(start) - 1;
-		if (cp < start || *cp != '"')
-			goto out;
-		*cp = '\0';
-		if (!ccs_is_correct_path(start, 0, 0, 0))
-			goto out;
-		value = ccs_get_name(start);
+		value = ccs_get_dqword(start);
 		if (!value)
 			goto out;
 	}
 	envp->name = name;
 	envp->is_not = is_not;
 	envp->value = value;
-	return true;
- out:
-	return false;
-}
-
-/**
- * ccs_parse_symlinkp - Parse an symlink.target condition part.
- *
- * @start:    String to parse.
- * @symlinkp: Pointer to "struct ccs_symlinkp_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_parse_symlinkp(char *start, struct ccs_symlinkp_entry *symlinkp)
-{
-	const struct ccs_path_info *value;
-	bool is_not;
-	char c;
-	char *cp;
-	start += 14;
-	c = *start++;
-	if (c == '=')
-		is_not = false;
-	else if (c == '!' && *start++ == '=')
-		is_not = true;
-	else
-		goto out;
-	if (*start++ != '"')
-		goto out;
-	cp = start + strlen(start) - 1;
-	if (cp < start || *cp != '"')
-		goto out;
-	*cp = '\0';
-	if (!ccs_is_correct_path(start, 0, 0, 0))
-		goto out;
-	value = ccs_get_name(start);
-	if (!value)
-		goto out;
-	symlinkp->is_not = is_not;
-	symlinkp->value = value;
-	return true;
- out:
-	return false;
-}
-
-/**
- * ccs_parse_exepathp - Parse an executable's pathname condition part.
- *
- * @start:    String to parse.
- * @exepathp: Pointer to "struct ccs_exepath_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_parse_exepathp(char *start, struct ccs_exepath_entry *exepathp)
-{
-	const struct ccs_path_info *value;
-	bool is_not;
-	char c;
-	char *cp;
-	start += 13;
-	c = *start++;
-	if (c == '=')
-		is_not = false;
-	else if (c == '!' && *start++ == '=')
-		is_not = true;
-	else
-		goto out;
-	if (*start++ != '"')
-		goto out;
-	cp = start + strlen(start) - 1;
-	if (cp < start || *cp != '"')
-		goto out;
-	*cp = '\0';
-	if (!ccs_is_correct_path(start, 1, 0, 0))
-		goto out;
-	value = ccs_get_name(start);
-	if (!value)
-		goto out;
-	exepathp->is_not = is_not;
-	exepathp->value = value;
 	return true;
  out:
 	return false;
@@ -596,6 +533,8 @@ enum ccs_conditions_index {
 	TASK_TYPE,            /* ((u8) task->ccs_flags) &
 				 CCS_TASK_IS_EXECUTE_HANDLER */
 	TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
+	EXEC_REALPATH,
+	SYMLINK_TARGET,
 	PATH1_UID,
 	PATH1_GID,
 	PATH1_INO,
@@ -605,6 +544,15 @@ enum ccs_conditions_index {
 	PATH1_TYPE,
 	PATH1_DEV_MAJOR,
 	PATH1_DEV_MINOR,
+	PATH2_UID,
+	PATH2_GID,
+	PATH2_INO,
+	PATH2_MAJOR,
+	PATH2_MINOR,
+	PATH2_PERM,
+	PATH2_TYPE,
+	PATH2_DEV_MAJOR,
+	PATH2_DEV_MINOR,
 	PATH1_PARENT_UID,
 	PATH1_PARENT_GID,
 	PATH1_PARENT_INO,
@@ -613,10 +561,17 @@ enum ccs_conditions_index {
 	PATH2_PARENT_GID,
 	PATH2_PARENT_INO,
 	PATH2_PARENT_PERM,
-	MAX_KEYWORD
+	MAX_KEYWORD,
+	CONSTANT_VALUE,
+	CONSTANT_VALUE_RANGE,
+	ARGV_ENTRY,
+	ENVP_ENTRY,
+	PATH_INFO,
+	PATH_GROUP,
+	NUMBER_GROUP,
 };
 
-static const char *ccs_condition_control_keyword[MAX_KEYWORD] = {
+static const char *ccs_condition_keyword[MAX_KEYWORD] = {
 	[TASK_UID]             = "task.uid",
 	[TASK_EUID]            = "task.euid",
 	[TASK_SUID]            = "task.suid",
@@ -653,6 +608,8 @@ static const char *ccs_condition_control_keyword[MAX_KEYWORD] = {
 	[MODE_OTHERS_EXECUTE]  = "others_execute",
 	[TASK_TYPE]            = "task.type",
 	[TASK_EXECUTE_HANDLER] = "execute_handler",
+	[EXEC_REALPATH]        = "exec.realpath",
+	[SYMLINK_TARGET]       = "symlink.target",
 	[PATH1_UID]            = "path1.uid",
 	[PATH1_GID]            = "path1.gid",
 	[PATH1_INO]            = "path1.ino",
@@ -662,6 +619,15 @@ static const char *ccs_condition_control_keyword[MAX_KEYWORD] = {
 	[PATH1_TYPE]           = "path1.type",
 	[PATH1_DEV_MAJOR]      = "path1.dev_major",
 	[PATH1_DEV_MINOR]      = "path1.dev_minor",
+	[PATH2_UID]            = "path2.uid",
+	[PATH2_GID]            = "path2.gid",
+	[PATH2_INO]            = "path2.ino",
+	[PATH2_MAJOR]          = "path2.major",
+	[PATH2_MINOR]          = "path2.minor",
+	[PATH2_PERM]           = "path2.perm",
+	[PATH2_TYPE]           = "path2.type",
+	[PATH2_DEV_MAJOR]      = "path2.dev_major",
+	[PATH2_DEV_MINOR]      = "path2.dev_minor",
 	[PATH1_PARENT_UID]     = "path1.parent.uid",
 	[PATH1_PARENT_GID]     = "path1.parent.gid",
 	[PATH1_PARENT_INO]     = "path1.parent.ino",
@@ -724,18 +690,19 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
  */
 struct ccs_condition *ccs_get_condition(char * const condition)
 {
+	static const bool debug = 0;
 	static const u8 offset = offsetof(struct ccs_condition, size);
 	char *start = condition;
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
-	unsigned long *condp;
-	struct ccs_exepath_entry *exepathp;
+	struct ccs_condition_element *condp;
+	unsigned long *ulong_p;
+	struct ccs_number_group_entry **number_group_p;
+	const struct ccs_path_info **path_info_p;
+	struct ccs_path_group_entry **path_group_p;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
-	struct ccs_symlinkp_entry *symlinkp;
 	u32 size;
-	u8 left;
-	u8 right;
 	u8 i;
 	bool found = false;
 	unsigned long left_min = 0;
@@ -743,17 +710,19 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
 	u16 condc = 0;
-	u16 exepathc = 0;
+	u16 ulong_count = 0;
+	u16 number_group_count = 0;
+	u16 path_info_count = 0;
+	u16 path_group_count = 0;
 	u16 argc = 0;
 	u16 envc = 0;
-	u16 symlinkc = 0;
 	u8 post_state[4] = { 0, 0, 0, 0 };
 	/* Calculate at runtime. */
-	static u8 ccs_condition_control_keyword_len[MAX_KEYWORD];
-	if (!ccs_condition_control_keyword_len[MAX_KEYWORD - 1]) {
+	static u8 ccs_condition_keyword_len[MAX_KEYWORD];
+	if (!ccs_condition_keyword_len[MAX_KEYWORD - 1]) {
 		for (i = 0; i < MAX_KEYWORD; i++)
-			ccs_condition_control_keyword_len[i]
-				= strlen(ccs_condition_control_keyword[i]);
+			ccs_condition_keyword_len[i]
+				= strlen(ccs_condition_keyword[i]);
 	}
 	if (!ccs_parse_post_condition(start, post_state))
 		goto out;
@@ -763,55 +732,55 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	else if (*start)
 		return NULL;
 	while (1) {
+		u8 left;
+		u8 right;
 		while (*start == ' ')
 			start++;
 		if (!*start)
 			break;
+		if (debug)
+			printk(KERN_WARNING "%u: start=<%s>\n", __LINE__,
+			       start);
 		if (!strncmp(start, "exec.argv[", 10)) {
 			argc++;
+			condc++;
 			start = strchr(start + 10, ' ');
 			if (!start)
 				break;
 			continue;
 		} else if (!strncmp(start, "exec.envp[\"", 11)) {
 			envc++;
+			condc++;
 			start = strchr(start + 11, ' ');
-			if (!start)
-				break;
-			continue;
-		} else if (!strncmp(start, "symlink.target", 14)) {
-			symlinkc++;
-			start = strchr(start + 14, ' ');
-			if (!start)
-				break;
-			continue;
-		} else if (!strncmp(start, "exec.realpath", 13)) {
-			exepathc++;
-			start = strchr(start + 13, ' ');
 			if (!start)
 				break;
 			continue;
 		}
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			const int len =
-				ccs_condition_control_keyword_len[left];
-			if (strncmp(start, ccs_condition_control_keyword[left],
-				    len))
+				ccs_condition_keyword_len[left];
+			if (strncmp(start, ccs_condition_keyword[left],
+				    len) ||
+			    (start[len] != '!' && start[len] != '='))
 				continue;
 			start += len;
 			break;
 		}
+		if (debug)
+			printk(KERN_WARNING "%u: start=<%s> left=%u\n",
+			       __LINE__, start, left);
 		if (left < MAX_KEYWORD)
 			goto check_operator_1;
 		if (!ccs_parse_ulong(&left_min, &start))
 			goto out;
-		condc++; /* body */
+		ulong_count++;
 		if (*start != '-')
 			goto check_operator_1;
 		start++;
-		if (!ccs_parse_ulong(&left_max, &start) || left_min > left_max)
+		if (!ccs_parse_ulong(&left_max, &start) ||
+		    left_min > left_max)
 			goto out;
-		condc++; /* body */
+		ulong_count++;
  check_operator_1:
 		if (strncmp(start, "!=", 2) == 0)
 			start += 2;
@@ -819,205 +788,271 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			start++;
 		else
 			goto out;
-		condc++; /* header */
+		condc++;
+		if (debug)
+			printk(KERN_WARNING "%u: start=<%s> left=%u\n",
+			       __LINE__, start, left);
+		if (*start == '@') {
+			while (*start && *start != ' ')
+				start++;
+			if (left == EXEC_REALPATH || left == SYMLINK_TARGET)
+				path_group_count++;
+			else
+				number_group_count++;
+			continue;
+		} else if (*start == '"') {
+			while (*start && *start != ' ')
+				start++;
+			if (left != EXEC_REALPATH && left != SYMLINK_TARGET)
+				goto out;
+			path_info_count++;
+			continue;
+		}
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			const int len =
-				ccs_condition_control_keyword_len[right];
-			if (strncmp(start, ccs_condition_control_keyword[right],
-				    len))
+				ccs_condition_keyword_len[right];
+			if (strncmp(start, ccs_condition_keyword[right],
+				    len) || (start[len] && start[len] != ' '))
 				continue;
 			start += len;
 			break;
 		}
+		if (debug)
+			printk(KERN_WARNING "%u: start=<%s> right=%u\n",
+			       __LINE__, start, right);
 		if (right < MAX_KEYWORD)
 			continue;
 		if (!ccs_parse_ulong(&right_min, &start))
 			goto out;
-		condc++; /* body */
+		ulong_count++;
 		if (*start != '-')
 			continue;
 		start++;
 		if (!ccs_parse_ulong(&right_max, &start) ||
 		    right_min > right_max)
 			goto out;
-		condc++; /* body */
+		ulong_count++;
 	}
+	if (debug)
+		printk(KERN_DEBUG "%u: cond=%u ul=%u ng=%u pi=%i pg=%u ac=%u "
+		       "ec=%u\n", __LINE__, condc, ulong_count,
+		       number_group_count, path_info_count, path_group_count,
+		       argc, envc);
 	size = sizeof(*entry)
-		+ condc * sizeof(unsigned long)
-		+ exepathc * sizeof(struct ccs_exepath_entry)
+		+ condc * sizeof(struct ccs_condition_element)
+		+ ulong_count * sizeof(unsigned long)
+		+ number_group_count * sizeof(struct ccs_number_group_entry *)
+		+ path_info_count * sizeof(struct ccs_path_info *)
+		+ path_group_count * sizeof(struct ccs_path_group_entry *)
 		+ argc * sizeof(struct ccs_argv_entry)
-		+ envc * sizeof(struct ccs_envp_entry)
-		+ symlinkc * sizeof(struct ccs_symlinkp_entry);
+		+ envc * sizeof(struct ccs_envp_entry);
 	entry = kzalloc(size, GFP_KERNEL);
 	if (!entry)
 		return NULL;
+	atomic_set(&entry->users, 1);
+	INIT_LIST_HEAD(&entry->list);
 	entry->size = size;
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
-	entry->exepathc = exepathc;
+	entry->ulong_count = ulong_count;
+	entry->number_group_count = number_group_count;
+	entry->path_info_count = path_info_count;
+	entry->path_group_count = path_group_count;
 	entry->argc = argc;
 	entry->envc = envc;
-	entry->symlinkc = symlinkc;
-	condp = (unsigned long *) (entry + 1);
-	exepathp = (struct ccs_exepath_entry *) (condp + condc);
-	argv = (struct ccs_argv_entry *) (exepathp + exepathc);
+	condp = (struct ccs_condition_element *) (entry + 1);
+	ulong_p = (unsigned long *) (condp + condc);
+	number_group_p = (struct ccs_number_group_entry **)
+		(ulong_p + ulong_count);
+	path_info_p = (const struct ccs_path_info **)
+		(number_group_p + number_group_count);
+	path_group_p = (struct ccs_path_group_entry **)
+		(path_info_p + path_info_count);
+	argv = (struct ccs_argv_entry *) (path_group_p + path_group_count);
 	envp = (struct ccs_envp_entry *) (argv + argc);
-	symlinkp = (struct ccs_symlinkp_entry *) (envp + envc);
 	start = condition;
 	if (!strncmp(start, "if ", 3))
 		start += 3;
 	else if (*start)
 		goto out;
 	while (1) {
+		u8 left = 0;
+		u8 right = 0;
 		u8 match = 0;
 		u8 left_1_type = 0;
 		u8 left_2_type = 0;
 		u8 right_1_type = 0;
 		u8 right_2_type = 0;
+		struct ccs_number_group_entry *number_group = NULL;
+		const struct ccs_path_info *path_info = NULL;
+		struct ccs_path_group_entry *path_group = NULL;
 		while (*start == ' ')
 			start++;
 		if (!*start)
 			break;
+		if (debug)
+			printk(KERN_WARNING "%u: start=<%s>\n", __LINE__,
+			       start);
 		if (!strncmp(start, "exec.argv[", 10)) {
 			char *cp = strchr(start + 10, ' ');
 			if (cp)
-				*cp = '\0';
-			if (!ccs_parse_argv(start, argv))
+				*cp++ = '\0';
+			if (!ccs_parse_argv(start + 10, argv))
 				goto out;
 			argv++;
 			argc--;
+			condc--;
 			if (cp)
-				*cp = ' ';
+				start = cp;
 			else
-				break;
-			start = cp;
-			continue;
+				start = "";
+			left = ARGV_ENTRY;
+			goto store_value;
 		} else if (!strncmp(start, "exec.envp[\"", 11)) {
 			char *cp = strchr(start + 11, ' ');
 			if (cp)
-				*cp = '\0';
-			if (!ccs_parse_envp(start, envp))
+				*cp++ = '\0';
+			if (!ccs_parse_envp(start + 11, envp))
 				goto out;
 			envp++;
 			envc--;
+			condc--;
 			if (cp)
-				*cp = ' ';
+				start = cp;
 			else
-				break;
-			start = cp;
-			continue;
-		} else if (!strncmp(start, "symlink.target", 14)) {
-			char *cp = strchr(start + 14, ' ');
-			if (cp)
-				*cp = '\0';
-			if (!ccs_parse_symlinkp(start, symlinkp))
-				goto out;
-			symlinkp++;
-			symlinkc--;
-			if (cp)
-				*cp = ' ';
-			else
-				break;
-			start = cp;
-			continue;
-		} else if (!strncmp(start, "exec.realpath", 13)) {
-			char *cp = strchr(start + 13, ' ');
-			if (cp)
-				*cp = '\0';
-			if (!ccs_parse_exepathp(start, exepathp))
-				goto out;
-			exepathp++;
-			exepathc--;
-			if (cp)
-				*cp = ' ';
-			else
-				break;
-			start = cp;
-			continue;
+				start = "";
+			left = ENVP_ENTRY;
+			goto store_value;
 		}
 		for (left = 0; left < MAX_KEYWORD; left++) {
 			const int len =
-				ccs_condition_control_keyword_len[left];
-			if (strncmp(start, ccs_condition_control_keyword[left],
-				    len))
+				ccs_condition_keyword_len[left];
+			if (strncmp(start, ccs_condition_keyword[left],
+				    len) ||
+			    (start[len] != '!' && start[len] != '='))
 				continue;
 			start += len;
-			break;
-		}
-		if (left < MAX_KEYWORD)
 			goto check_operator_2;
+		}
 		left_1_type = ccs_parse_ulong(&left_min, &start);
-		condc--; /* body */
+		left = CONSTANT_VALUE;
 		if (*start != '-')
 			goto check_operator_2;
 		start++;
 		left_2_type = ccs_parse_ulong(&left_max, &start);
-		condc--; /* body */
-		left++;
+		left = CONSTANT_VALUE_RANGE;
  check_operator_2:
 		if (!strncmp(start, "!=", 2)) {
 			start += 2;
 		} else if (*start == '=') {
-			match |= 1;
+			match = 1;
 			start++;
 		} else {
 			break; /* This shouldn't happen. */
 		}
-		condc--; /* header */
+		condc--;
+		if (*start == '@') {
+			char *cp = strchr(start + 1, ' ');
+			if (cp)
+				*cp++ = '\0';
+			if (left == EXEC_REALPATH || left == SYMLINK_TARGET) {
+				right = PATH_GROUP;
+				path_group = ccs_get_path_group(start + 1);
+				if (!path_group)
+					goto out;
+			} else {
+				right = NUMBER_GROUP;
+				number_group = ccs_get_number_group(start + 1);
+				if (!number_group)
+					goto out;
+			}
+			if (cp)
+				start = cp;
+			else
+				start = "";
+			goto store_value;
+		} else if (*start == '"') {
+			char *cp = strchr(start + 1, ' ');
+			if (cp)
+				*cp++ = '\0';
+			path_info = ccs_get_dqword(start);
+			if (!path_info)
+				goto out;
+			if (cp)
+				start = cp;
+			else
+				start = "";
+			right = PATH_INFO;
+			goto store_value;
+		}
 		for (right = 0; right < MAX_KEYWORD; right++) {
 			const int len =
-				ccs_condition_control_keyword_len[right];
-			if (strncmp(start, ccs_condition_control_keyword[right],
-				    len))
+				ccs_condition_keyword_len[right];
+			if (strncmp(start, ccs_condition_keyword[right],
+				    len) || (start[len] && start[len] != ' '))
 				continue;
 			start += len;
-			break;
-		}
-		if (right < MAX_KEYWORD)
 			goto store_value;
+		}
 		right_1_type = ccs_parse_ulong(&right_min, &start);
-		condc--; /* body */
+		right = CONSTANT_VALUE;
 		if (*start != '-')
 			goto store_value;
 		start++;
 		right_2_type = ccs_parse_ulong(&right_max, &start);
-		condc--; /* body */
-		right++;
+		right = CONSTANT_VALUE_RANGE;
  store_value:
-		*condp = (((u32) match) << 16) |
-			(((u32) left_1_type) << 18) |
-			(((u32) left_2_type) << 20) |
-			(((u32) right_1_type) << 22) |
-			(((u32) right_2_type) << 24) |
-			(((u32) left) << 8) |
-			((u32) right);
+		condp->left = left;
+		condp->right = right;
+		condp->equals = match;
+		condp->type = (left_1_type << 6) | (left_2_type << 4)
+			| (right_1_type << 2) | right_2_type;
+		if (debug)
+			printk(KERN_WARNING "%u: left=%u right=%u match=%u "
+			       "type=%u\n", __LINE__, condp->left,
+			       condp->right, condp->equals, condp->type);
 		condp++;
-		if (left >= MAX_KEYWORD) {
-			*condp = left_min;
-			condp++;
+		if (left_1_type) {
+			*ulong_p++ = left_min;
+			ulong_count--;
 		}
-		if (left == MAX_KEYWORD + 1) {
-			*condp = left_max;
-			condp++;
+		if (left_2_type) {
+			*ulong_p++ = left_max;
+			ulong_count--;
 		}
-		if (right >= MAX_KEYWORD) {
-			*condp = right_min;
-			condp++;
+		if (right_1_type) {
+			*ulong_p++ = right_min;
+			ulong_count--;
 		}
-		if (right == MAX_KEYWORD + 1) {
-			*condp = right_max;
-			condp++;
+		if (right_2_type) {
+			*ulong_p++ = right_max;
+			ulong_count--;
+		}
+		if (number_group) {
+			*number_group_p++ = number_group;
+			number_group_count--;
+		}
+		if (path_info) {
+			*path_info_p++ = path_info;
+			path_info_count--;
+		}
+		if (path_group) {
+			*path_group_p++ = path_group;
+			path_group_count--;
 		}
 	}
-	/*
-	  printk(KERN_DEBUG "argc=%u envc=%u symlinkc=%u condc=%u\n",
-	  argc, envc, symlinkc, condc);
-	*/
-	BUG_ON(exepathc);
+	if (debug)
+		printk(KERN_DEBUG "%u: cond=%u ul=%u ng=%u pi=%i pg=%u ac=%u "
+		       "ec=%u\n", __LINE__, condc, ulong_count,
+		       number_group_count, path_info_count, path_group_count,
+		       argc, envc);
+	BUG_ON(path_group_count);
+	BUG_ON(number_group_count);
+	BUG_ON(path_info_count);
+	BUG_ON(ulong_count);
 	BUG_ON(argc);
 	BUG_ON(envc);
-	BUG_ON(symlinkc);
 	BUG_ON(condc);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
@@ -1031,7 +1066,6 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	if (!found) {
 		if (ccs_memory_ok(entry, size)) {
-			atomic_set(&entry->users, 1);
 			list_add_rcu(&entry->list, &ccs_condition_list);
 		} else {
 			found = true;
@@ -1040,12 +1074,14 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	mutex_unlock(&ccs_policy_lock);
 	if (found) {
-		kfree(entry);
+		ccs_put_condition(entry);
 		entry = ptr;
 	}
 	return entry;
  out:
-	kfree(entry);
+	if (debug)
+		printk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
+	ccs_put_condition(entry);
 	return NULL;
 }
 
@@ -1062,6 +1098,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	struct dentry *dentry;
 	struct inode *inode;
 
+	/* Get information on "path1". */
 	dentry = obj->path1_dentry;
 	inode = dentry->d_inode;
 	if (inode) {
@@ -1079,6 +1116,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 		}
 	}
 
+	/* Get information on "path1.parent". */
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
 	dentry = dget(obj->path1_dentry->d_parent);
@@ -1101,29 +1139,49 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 	dput(dentry);
 
-	if (obj->path2_vfsmnt) {
-		/***** CRITICAL SECTION START *****/
-		spin_lock(&dcache_lock);
-		dentry = dget(obj->path2_dentry->d_parent);
-		spin_unlock(&dcache_lock);
-		/***** CRITICAL SECTION END *****/
-		inode = dentry->d_inode;
-		if (inode) {
-			if (inode->i_op && inode->i_op->revalidate &&
-			    inode->i_op->revalidate(dentry)) {
-				/* Nothing to do. */
-			} else {
-				obj->path2_parent_stat.uid = inode->i_uid;
-				obj->path2_parent_stat.gid = inode->i_gid;
-				obj->path2_parent_stat.ino = inode->i_ino;
-				obj->path2_parent_stat.mode = inode->i_mode;
-				obj->path2_parent_stat.dev = inode->i_dev;
-				obj->path2_parent_stat.rdev = inode->i_rdev;
-				obj->path2_parent_valid = true;
-			}
+	if (!obj->path2_vfsmnt)
+		return;
+	
+	/* Get information on "path2". */
+	dentry = obj->path2_dentry;
+	inode = dentry->d_inode;
+	if (inode) {
+		if (inode->i_op && inode->i_op->revalidate &&
+		    inode->i_op->revalidate(dentry)) {
+			/* Nothing to do. */
+		} else {
+			obj->path2_stat.uid = inode->i_uid;
+			obj->path2_stat.gid = inode->i_gid;
+			obj->path2_stat.ino = inode->i_ino;
+			obj->path2_stat.mode = inode->i_mode;
+			obj->path2_stat.dev = inode->i_dev;
+			obj->path2_stat.rdev = inode->i_rdev;
+			obj->path2_valid = true;
 		}
-		dput(dentry);
 	}
+
+	/* Get information on "path2.parent". */
+	/***** CRITICAL SECTION START *****/
+	spin_lock(&dcache_lock);
+	dentry = dget(obj->path2_dentry->d_parent);
+	spin_unlock(&dcache_lock);
+	/***** CRITICAL SECTION END *****/
+	inode = dentry->d_inode;
+	if (inode) {
+		if (inode->i_op && inode->i_op->revalidate &&
+		    inode->i_op->revalidate(dentry)) {
+			/* Nothing to do. */
+		} else {
+			obj->path2_parent_stat.uid = inode->i_uid;
+			obj->path2_parent_stat.gid = inode->i_gid;
+			obj->path2_parent_stat.ino = inode->i_ino;
+			obj->path2_parent_stat.mode = inode->i_mode;
+			obj->path2_parent_stat.dev = inode->i_dev;
+			obj->path2_parent_stat.rdev = inode->i_rdev;
+			obj->path2_parent_valid = true;
+		}
+	}
+	dput(dentry);
 }
 #else
 static void ccs_get_attributes(struct ccs_obj_info *obj)
@@ -1133,6 +1191,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	struct inode *inode;
 	struct kstat stat;
 
+	/* Get information on "path1". */
 	mnt = obj->path1_vfsmnt;
 	dentry = obj->path1_dentry;
 	inode = dentry->d_inode;
@@ -1150,6 +1209,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 		}
 	}
 
+	/* Get information on "path1.parent". */
 	dentry = dget_parent(obj->path1_dentry);
 	inode = dentry->d_inode;
 	if (inode) {
@@ -1168,24 +1228,43 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	dput(dentry);
 
 	mnt = obj->path2_vfsmnt;
-	if (mnt) {
-		dentry = dget_parent(obj->path2_dentry);
-		inode = dentry->d_inode;
-		if (inode) {
-			if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-				/* Nothing to do. */
-			} else {
-				obj->path2_parent_stat.uid = stat.uid;
-				obj->path2_parent_stat.gid = stat.gid;
-				obj->path2_parent_stat.ino = stat.ino;
-				obj->path2_parent_stat.mode = stat.mode;
-				obj->path2_parent_stat.dev = stat.dev;
-				obj->path2_parent_stat.rdev = stat.rdev;
-				obj->path2_parent_valid = true;
-			}
+	if (!mnt)
+		return;
+	
+	/* Get information on "path2". */
+	dentry = obj->path2_dentry;
+	inode = dentry->d_inode;
+	if (inode) {
+		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
+			/* Nothing to do. */
+		} else {
+			obj->path2_stat.uid = stat.uid;
+			obj->path2_stat.gid = stat.gid;
+			obj->path2_stat.ino = stat.ino;
+			obj->path2_stat.mode = stat.mode;
+			obj->path2_stat.dev = stat.dev;
+			obj->path2_stat.rdev = stat.rdev;
+			obj->path2_valid = true;
 		}
-		dput(dentry);
 	}
+
+	/* Get information on "path2.parent". */
+	dentry = dget_parent(obj->path2_dentry);
+	inode = dentry->d_inode;
+	if (inode) {
+		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
+			/* Nothing to do. */
+		} else {
+			obj->path2_parent_stat.uid = stat.uid;
+			obj->path2_parent_stat.gid = stat.gid;
+			obj->path2_parent_stat.ino = stat.ino;
+			obj->path2_parent_stat.mode = stat.mode;
+			obj->path2_parent_stat.dev = stat.dev;
+			obj->path2_parent_stat.rdev = stat.rdev;
+			obj->path2_parent_valid = true;
+		}
+	}
+	dput(dentry);
 }
 #endif
 
@@ -1208,45 +1287,80 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	unsigned long left_max = 0;
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
-	const unsigned long *ptr;
-	const struct ccs_exepath_entry *exepathp;
+	const struct ccs_condition_element *condp;
+	const unsigned long *ulong_p;
+	const struct ccs_number_group_entry **number_group_p;
+	const struct ccs_path_info **path_info_p;
+	const struct ccs_path_group_entry **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
-	const struct ccs_symlinkp_entry *symlinkp;
 	struct ccs_obj_info *obj;
 	u16 condc;
-	u16 exepathc;
 	u16 argc;
 	u16 envc;
-	u16 symlinkc;
 	struct linux_binprm *bprm = NULL;
 	const struct ccs_condition *cond = acl->cond;
 	if (!cond)
 		return true;
 	condc = cond->condc;
-	exepathc = cond->exepathc;
 	argc = cond->argc;
 	envc = cond->envc;
-	symlinkc = cond->symlinkc;
 	obj = r->obj;
 	if (r->ee)
 		bprm = r->ee->bprm;
 	if (!bprm && (argc || envc))
 		return false;
-	ptr = (unsigned long *) (cond + 1);
-	exepathp = (const struct ccs_exepath_entry *) (ptr + condc);
-	argv = (const struct ccs_argv_entry *) (exepathp + exepathc);
+	condp = (struct ccs_condition_element *) (cond + 1);
+	ulong_p = (const unsigned long *) (condp + condc);
+	number_group_p = (const struct ccs_number_group_entry **)
+		(ulong_p + cond->ulong_count);
+	path_info_p = (const struct ccs_path_info **)
+		(number_group_p + cond->number_group_count);
+	path_group_p = (const struct ccs_path_group_entry **)
+		(path_info_p + cond->path_info_count);
+	argv = (const struct ccs_argv_entry *)
+		(path_group_p + cond->path_group_count);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
-	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc); 
 	for (i = 0; i < condc; i++) {
-		const u32 header = *ptr;
-		const bool match = (header >> 16) & 1;
-		const u8 left = header >> 8;
-		const u8 right = header;
+		const bool match = condp->equals;
+		const u8 left = condp->left;
+		const u8 right = condp->right;
 		bool left_is_bitop = false;
 		bool right_is_bitop = false;
 		u8 j;
-		ptr++;
+		condp++;
+		/* Check argv[] and envp[] later. */
+		if (left == ARGV_ENTRY || left == ENVP_ENTRY)
+			continue;
+		/* Check string expressions. */
+		if (right == PATH_INFO || right == PATH_GROUP) {
+			const struct ccs_path_info *path = NULL;
+			const struct ccs_path_group_entry *group = NULL;
+			if (right == PATH_INFO)
+				path = *path_info_p++;
+			else
+				group = *path_group_p++;
+			switch (left) {
+				struct ccs_path_info *symlink;
+				struct ccs_execve_entry *ee;
+				struct file *file;
+			case SYMLINK_TARGET:
+				symlink = obj->symlink_target;
+				if (!ccs_scan_symlink_target(symlink, path,
+							     group, match))
+					goto out;
+				break;
+			case EXEC_REALPATH:
+				ee = r->ee;
+				file = ee ? ee->bprm->file : NULL;
+				if (!ccs_scan_exec_realpath(file, path, group,
+							    match))
+					goto out;
+				break;
+			}
+			continue;
+		}
+		/* Check numeric or bit-op expressions. */
 		for (j = 0; j < 2; j++) {
 			const u8 index = j ? right : left;
 			unsigned long min_v = 0;
@@ -1356,13 +1470,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				if (!bprm)
 					goto out;
 				max_v = bprm->argc;
-				i++;
 				break;
 			case EXEC_ENVC:
 				if (!bprm)
 					goto out;
 				max_v = bprm->envc;
-				i++;
 				break;
 			case TASK_STATE_0:
 				max_v = (u8) (task->ccs_flags >> 24);
@@ -1380,17 +1492,15 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			case TASK_EXECUTE_HANDLER:
 				max_v = CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
-			case MAX_KEYWORD:
-				max_v = *ptr;
-				ptr++;
-				i++;
+			case CONSTANT_VALUE:
+				max_v = *ulong_p++;
 				break;
-			case MAX_KEYWORD + 1:
-				min_v = *ptr;
-				ptr++;
-				max_v = *ptr;
-				ptr++;
-				i += 2;
+			case CONSTANT_VALUE_RANGE:
+				min_v = *ulong_p++;
+				max_v = *ulong_p++;
+				break;
+			case NUMBER_GROUP:
+				/* Fetch values later. */
 				break;
 			default:
 				if (!obj)
@@ -1425,36 +1535,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 						goto out;
 					max_v = MINOR(obj->path1_stat.dev);
 					break;
-				case PATH1_PARENT_UID:
-					if (!obj->path1_parent_valid)
-						goto out;
-					max_v = obj->path1_parent_stat.uid;
-					break;
-				case PATH1_PARENT_GID:
-					if (!obj->path1_parent_valid)
-						goto out;
-					max_v = obj->path1_parent_stat.gid;
-					break;
-				case PATH1_PARENT_INO:
-					if (!obj->path1_parent_valid)
-						goto out;
-					max_v = obj->path1_parent_stat.ino;
-					break;
-				case PATH2_PARENT_UID:
-					if (!obj->path2_parent_valid)
-						goto out;
-					max_v = obj->path2_parent_stat.uid;
-					break;
-				case PATH2_PARENT_GID:
-					if (!obj->path2_parent_valid)
-						goto out;
-					max_v = obj->path2_parent_stat.gid;
-					break;
-				case PATH2_PARENT_INO:
-					if (!obj->path2_parent_valid)
-						goto out;
-					max_v = obj->path2_parent_stat.ino;
-					break;
 				case PATH1_TYPE:
 					if (!obj->path1_valid)
 						goto out;
@@ -1476,11 +1556,87 @@ bool ccs_check_condition(struct ccs_request_info *r,
 					max_v = obj->path1_stat.mode
 						& S_IALLUGO;
 					break;
+				case PATH2_UID:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = obj->path2_stat.uid;
+					break;
+				case PATH2_GID:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = obj->path2_stat.gid;
+					break;
+				case PATH2_INO:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = obj->path2_stat.ino;
+					break;
+				case PATH2_MAJOR:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = MAJOR(obj->path2_stat.dev);
+					break;
+				case PATH2_MINOR:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = MINOR(obj->path2_stat.dev);
+					break;
+				case PATH2_TYPE:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = obj->path2_stat.mode & S_IFMT;
+					break;
+				case PATH2_DEV_MAJOR:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = MAJOR(obj->path2_stat.rdev);
+					break;
+				case PATH2_DEV_MINOR:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = MINOR(obj->path2_stat.rdev);
+					break;
+				case PATH2_PERM:
+					if (!obj->path2_valid)
+						goto out;
+					max_v = obj->path2_stat.mode
+						& S_IALLUGO;
+					break;
+				case PATH1_PARENT_UID:
+					if (!obj->path1_parent_valid)
+						goto out;
+					max_v = obj->path1_parent_stat.uid;
+					break;
+				case PATH1_PARENT_GID:
+					if (!obj->path1_parent_valid)
+						goto out;
+					max_v = obj->path1_parent_stat.gid;
+					break;
+				case PATH1_PARENT_INO:
+					if (!obj->path1_parent_valid)
+						goto out;
+					max_v = obj->path1_parent_stat.ino;
+					break;
 				case PATH1_PARENT_PERM:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.mode
 						& S_IALLUGO;
+					break;
+				case PATH2_PARENT_UID:
+					if (!obj->path2_parent_valid)
+						goto out;
+					max_v = obj->path2_parent_stat.uid;
+					break;
+				case PATH2_PARENT_GID:
+					if (!obj->path2_parent_valid)
+						goto out;
+					max_v = obj->path2_parent_stat.gid;
+					break;
+				case PATH2_PARENT_INO:
+					if (!obj->path2_parent_valid)
+						goto out;
+					max_v = obj->path2_parent_stat.ino;
 					break;
 				case PATH2_PARENT_PERM:
 					if (!obj->path2_parent_valid)
@@ -1491,7 +1647,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				}
 				break;
 			}
-			if (index != MAX_KEYWORD + 1)
+			if (index != CONSTANT_VALUE_RANGE)
 				min_v = max_v;
 			if (j) {
 				right_max = max_v;
@@ -1535,6 +1691,15 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			}
 			goto out;
 		}
+		if (right == NUMBER_GROUP) {
+			/* Fetch values now. */
+			const struct ccs_number_group_entry *group
+				= *number_group_p++;
+			if (ccs_number_matches_group(left_min, left_max, group)
+			    == match)
+				continue;
+			goto out;
+		}
 		/* Normal value range comparison. */
 		if (match) {
 			if (left_min <= right_max && left_max >= right_min)
@@ -1546,15 +1711,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
  out:
 		return false;
 	}
-	if (symlinkc) {
-		if (!obj || !ccs_scan_symlink(obj->symlink_target,
-					      symlinkc, symlinkp))
-			return false;
-	}
-	if (r->ee && exepathc) {
-		if (!ccs_scan_exepath(r->ee->bprm->file, exepathc, exepathp))
-			return false;
-	}
+	/* Check argv[] and envp[] now. */
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
@@ -1571,125 +1728,130 @@ bool ccs_check_condition(struct ccs_request_info *r,
 bool ccs_print_condition(struct ccs_io_buffer *head,
 			 const struct ccs_condition *cond)
 {
-	const unsigned long *ptr;
-	const struct ccs_exepath_entry *exepathp;
+	const struct ccs_condition_element *condp;
+	const unsigned long *ulong_p;
+	const struct ccs_number_group_entry **number_group_p;
+	const struct ccs_path_info **path_info_p;
+	const struct ccs_path_group_entry **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
-	const struct ccs_symlinkp_entry *symlinkp;
 	u16 condc;
-	u16 exepathc;
-	u16 argc;
-	u16 envc;
-	u16 symlinkc;
 	u16 i;
 	u16 j;
 	char buffer[32];
 	if (!cond)
 		goto no_condition;
 	condc = cond->condc;
-	exepathc = cond->exepathc;
-	argc = cond->argc;
-	envc = cond->envc;
-	symlinkc = cond->symlinkc;
-	ptr = (const unsigned long *) (cond + 1);
-	exepathp = (const struct ccs_exepath_entry *) (ptr + condc);
-	argv = (const struct ccs_argv_entry *) (exepathp + exepathc);
-	envp = (const struct ccs_envp_entry *) (argv + argc);
-	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc);
+	condp = (const struct ccs_condition_element *) (cond + 1);
+	ulong_p = (const unsigned long *) (condp + condc);
+	number_group_p = (const struct ccs_number_group_entry **)
+		(ulong_p + cond->ulong_count);
+	path_info_p = (const struct ccs_path_info **)
+		(number_group_p + cond->number_group_count);
+	path_group_p = (const struct ccs_path_group_entry **)
+		(path_info_p + cond->path_info_count);
+	argv = (const struct ccs_argv_entry *)
+		(path_group_p + cond->path_group_count);
+	envp = (const struct ccs_envp_entry *) (argv + cond->argc);
 	memset(buffer, 0, sizeof(buffer));
 	for (i = 0; i < condc; i++) {
-		const u32 header = *ptr;
-		const u8 match = (header >> 16) & 1;
-		const u8 left_1_type = (header >> 18) & 3;
-		const u8 left_2_type = (header >> 20) & 3;
-		const u8 right_1_type = (header >> 22) & 3;
-		const u8 right_2_type = (header >> 24) & 3;
-		const u8 left = header >> 8;
-		const u8 right = header;
-		ptr++;
+		const u8 match = condp->equals;
+		const u8 left_1_type = (condp->type >> 6) & 3;
+		const u8 left_2_type = (condp->type >> 4) & 3;
+		const u8 right_1_type = (condp->type >> 2) & 3;
+		const u8 right_2_type = condp->type & 3;
+		const u8 left = condp->left;
+		const u8 right = condp->right;
+		condp++;
 		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
 			goto out;
-		if (left < MAX_KEYWORD) {
-			const char *keyword =
-				ccs_condition_control_keyword[left];
-			if (!ccs_io_printf(head, "%s", keyword))
+		switch (left) {
+		case ARGV_ENTRY:
+			if (!ccs_io_printf(head, "exec.argv[%u]%s\"%s\"",
+					   argv->index, argv->is_not ?
+					   "!=" : "=", argv->value->name))
 				goto out;
-			goto print_operator;
+			argv++;
+			continue;
+		case ENVP_ENTRY:
+			if (!ccs_io_printf(head, "exec.envp[\"%s\"]%s",
+					   envp->name->name, envp->is_not ?
+					   "!=" : "="))
+				goto out;
+			if (envp->value) {
+				if (!ccs_io_printf(head, "\"%s\"",
+						   envp->value->name))
+					goto out;
+			} else {
+				if (!ccs_io_printf(head, "NULL"))
+					goto out;
+			}
+			envp++;
+			continue;
+		case CONSTANT_VALUE:
+		case CONSTANT_VALUE_RANGE:
+			ccs_print_ulong(buffer, sizeof(buffer) - 1,
+					*ulong_p++, left_1_type);
+			if (!ccs_io_printf(head, "%s", buffer))
+				goto out;
+			if (left == CONSTANT_VALUE)
+				break;
+			ccs_print_ulong(buffer, sizeof(buffer) - 1,
+					*ulong_p++, left_2_type);
+			if (!ccs_io_printf(head, "-%s", buffer))
+				goto out;
+			break;
+		default:
+			if (left >= MAX_KEYWORD)
+				goto out;
+			if (!ccs_io_printf(head, "%s",
+					  ccs_condition_keyword[left]))
+				goto out;
+			break;
 		}
-		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_1_type);
-		ptr++;
-		if (!ccs_io_printf(head, "%s", buffer))
-			goto out;
-		i++;
-		if (left == MAX_KEYWORD)
-			goto print_operator;
-		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, left_2_type);
-		ptr++;
-		if (!ccs_io_printf(head, "-%s", buffer))
-			goto out;
-		i++;
- print_operator:
 		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
 			goto out;
-		if (right < MAX_KEYWORD) {
-			const char *keyword =
-				ccs_condition_control_keyword[right];
-			if (!ccs_io_printf(head, "%s", keyword))
+		switch (right) {
+		case PATH_INFO:
+			if (!ccs_io_printf(head, "\"%s\"",
+					   (*path_info_p)->name))
 				goto out;
-			continue;
-		}
-		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_1_type);
-		ptr++;
-		if (!ccs_io_printf(head, "%s", buffer))
-			goto out;
-		i++;
-		if (right == MAX_KEYWORD)
-			continue;
-		ccs_print_ulong(buffer, sizeof(buffer) - 1, *ptr, right_2_type);
-		ptr++;
-		if (!ccs_io_printf(head, "-%s", buffer))
-			goto out;
-		i++;
-	}
-
-	if (!exepathc && !argc && !envc && !symlinkc)
-		goto post_condition;
-	if (!condc && !ccs_io_printf(head, " if"))
-		goto out;
-	for (i = 0; i < exepathc; exepathp++, i++) {
-		const char *op = exepathp->is_not ? "!=" : "=";
-		if (!ccs_io_printf(head, " exec.realpath%s\"%s\"",
-				   op, exepathp->value->name))
-			goto out;
-	}
-	for (i = 0; i < argc; argv++, i++) {
-		const char *op = argv->is_not ? "!=" : "=";
-		if (!ccs_io_printf(head, " exec.argv[%u]%s\"%s\"", argv->index,
-				   op, argv->value->name))
-			goto out;
-	}
-	/* buffer[1] = '\0'; */
-	for (i = 0; i < envc; envp++, i++) {
-		const char *op = envp->is_not ? "!=" : "=";
-		const char *value = envp->value ? envp->value->name : NULL;
-		if (!ccs_io_printf(head, " exec.envp[\"%s\"]%s",
-				   envp->name->name, op))
-			goto out;
-		if (value) {
-			if (!ccs_io_printf(head, "\"%s\"", value))
+			path_info_p++;
+			break;
+		case PATH_GROUP:
+			if (!ccs_io_printf(head, "@%s", (*path_group_p)->
+					   group_name->name))
 				goto out;
-		} else {
-			if (!ccs_io_printf(head, "NULL"))
+			path_group_p++;
+			break;
+		case NUMBER_GROUP:
+			if (!ccs_io_printf(head, "@%s", (*number_group_p)->
+					   group_name->name))
 				goto out;
+			number_group_p++;
+			break;
+		case CONSTANT_VALUE:
+		case CONSTANT_VALUE_RANGE:
+			ccs_print_ulong(buffer, sizeof(buffer) - 1,
+					*ulong_p++, right_1_type);
+			if (!ccs_io_printf(head, "%s", buffer))
+				goto out;
+			if (right == CONSTANT_VALUE)
+				break;
+			ccs_print_ulong(buffer, sizeof(buffer) - 1,
+					*ulong_p++, right_2_type);
+			if (!ccs_io_printf(head, "-%s", buffer))
+				goto out;
+			break;
+		default:
+			if (right >= MAX_KEYWORD)
+				goto out;
+			if (!ccs_io_printf(head, "%s",
+					   ccs_condition_keyword[right]))
+				goto out;
+			break;
 		}
 	}
-	for (i = 0; i < symlinkc; symlinkp++, i++) {
-		const char *op = symlinkp->is_not ? "!=" : "=";
-		if (!ccs_io_printf(head, " symlink.target%s\"%s\"", op,
-				   symlinkp->value->name))
-			goto out;
-	}
- post_condition:
 	i = cond->post_state[3];
 	if (!i)
 		goto no_condition;
@@ -1721,4 +1883,198 @@ struct ccs_condition *ccs_handler_cond(void)
 	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
 		return NULL;
 	return ccs_get_condition(str);
+}
+
+/* The list for "struct ccs_number_group_entry". */
+LIST_HEAD(ccs_number_group_list);
+
+/**
+ * ccs_get_number_group - Allocate memory for "struct ccs_number_group_entry".
+ *
+ * @group_name: The name of number group.
+ *
+ * Returns pointer to "struct ccs_number_group_entry" on success,
+ * NULL otherwise.
+ */
+struct ccs_number_group_entry *ccs_get_number_group(const char *group_name)
+{
+	struct ccs_number_group_entry *entry = NULL;
+	struct ccs_number_group_entry *group;
+	const struct ccs_path_info *saved_group_name;
+	int error = -ENOMEM;
+	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
+	    !group_name[0])
+		return NULL;
+	saved_group_name = ccs_get_name(group_name);
+	if (!saved_group_name)
+		return NULL;
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(group, &ccs_number_group_list, list) {
+		if (saved_group_name != group->group_name)
+			continue;
+		atomic_inc(&group->users);
+		error = 0;
+		break;
+	}
+	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
+		INIT_LIST_HEAD(&entry->number_group_member_list);
+		entry->group_name = saved_group_name;
+		saved_group_name = NULL;
+		atomic_set(&entry->users, 1);
+		list_add_tail_rcu(&entry->list, &ccs_number_group_list);
+		group = entry;
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_name(saved_group_name);
+	kfree(entry);
+	return !error ? group : NULL;
+}
+
+/**
+ * ccs_update_number_group_entry - Update "struct ccs_number_group_entry" list.
+ *
+ * @group_name: The name of pathname group.
+ * @min:        Min value.
+ * @max:        Max value.
+ * @is_delete:  True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_update_number_group_entry(const char *group_name,
+					 unsigned long min, unsigned long max,
+					 const bool is_delete)
+{
+	struct ccs_number_group_entry *group;
+	struct ccs_number_group_member *entry = NULL;
+	struct ccs_number_group_member *member;
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (min > max)
+		return -EINVAL;
+	group = ccs_get_number_group(group_name);
+	if (!group)
+		return -ENOMEM;
+	if (!is_delete)
+		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(member, &group->number_group_member_list,
+				list) {
+		if (member->min != min || member->max != max)
+			continue;
+		member->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
+		entry->min = min;
+		entry->max = max;
+		list_add_tail_rcu(&entry->list,
+				  &group->number_group_member_list);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_number_group(group);
+	kfree(entry);
+	return error;
+}
+
+/**
+ * ccs_write_number_group_policy - Write "struct ccs_number_group_entry" list.
+ *
+ * @data:      String to parse.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, nagative value otherwise.
+ */
+int ccs_write_number_group_policy(char *data, const bool is_delete)
+{
+	char *w[2];
+	unsigned long min;
+	unsigned long max;
+	if (!ccs_tokenize(data, w, sizeof(w)))
+		return -EINVAL;
+	switch(sscanf(w[1], "%lu-%lu", &min, &max)) {
+	case 1:
+		max = min;
+		break;
+	case 2:
+		break;
+	default:
+		return -EINVAL;
+	}
+	return ccs_update_number_group_entry(w[0], min, max, is_delete);
+}
+
+/**
+ * ccs_read_number_group_policy - Read "struct ccs_number_group_entry" list.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
+ */
+bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
+{
+	struct list_head *gpos;
+	struct list_head *mpos;
+	bool done = true;
+	list_for_each_cookie(gpos, head->read_var1, &ccs_number_group_list) {
+		struct ccs_number_group_entry *group;
+		const char *name;
+		group = list_entry(gpos, struct ccs_number_group_entry, list);
+		name = group->group_name->name;
+		list_for_each_cookie(mpos, head->read_var2,
+				     &group->number_group_member_list) {
+			const struct ccs_number_group_member *member
+				= list_entry(mpos,
+					     struct ccs_number_group_member,
+					     list);
+			const unsigned long min = member->min;
+			const unsigned long max = member->max;
+			if (member->is_deleted)
+				continue;
+			if (min == max)
+				done = ccs_io_printf(head, KEYWORD_NUMBER_GROUP
+						     "%s %lu\n", name, min);
+			else
+				done = ccs_io_printf(head, KEYWORD_NUMBER_GROUP
+						     "%s %lu-%lu\n", name,
+						     min, max);
+			if (!done)
+				break;
+		}
+	}
+	return done;
+}
+
+/**
+ * ccs_number_matches_group - Check whether the given number matches members of the given number group.
+ *
+ * @min:   Min number.
+ * @max:   Max number.
+ * @group: Pointer to "struct ccs_number_group_entry".
+ *
+ * Returns true if @min and @max partially overlaps @group, false otherwise.
+ *
+ * Caller holds srcu_read_lock(&ccs_ss).
+ */
+bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
+			      const struct ccs_number_group_entry *group)
+{
+	struct ccs_number_group_member *member;
+	bool matched = false;
+	list_for_each_entry_rcu(member, &group->number_group_member_list,
+				list) {
+		if (member->is_deleted)
+			continue;
+		if (min > member->max || max < member->min)
+			continue;
+		matched = true;
+		break;
+	}
+	return matched;
 }

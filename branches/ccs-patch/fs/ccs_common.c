@@ -2450,6 +2450,8 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 		return ccs_write_pattern_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_PATH_GROUP))
 		return ccs_write_path_group_policy(data, is_delete);
+	if (ccs_str_starts(&data, KEYWORD_NUMBER_GROUP))
+		return ccs_write_number_group_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_DENY_REWRITE))
 		return ccs_write_no_rewrite_policy(data, is_delete);
 	if (ccs_str_starts(&data, KEYWORD_ADDRESS_GROUP))
@@ -2517,11 +2519,17 @@ static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 			head->read_var2 = NULL;
 			head->read_step = 10;
 		case 10:
-			if (!ccs_read_address_group_policy(head))
+			if (!ccs_read_number_group_policy(head))
 				break;
+			head->read_var1 = NULL;
 			head->read_var2 = NULL;
 			head->read_step = 11;
 		case 11:
+			if (!ccs_read_address_group_policy(head))
+				break;
+			head->read_var2 = NULL;
+			head->read_step = 12;
+		case 12:
 			if (!ccs_read_reserved_port_policy(head))
 				break;
 			head->read_eof = true;

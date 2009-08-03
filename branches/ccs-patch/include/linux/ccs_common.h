@@ -86,6 +86,7 @@ struct ccs_obj_info {
 	bool validate_done;
 	bool path1_valid;
 	bool path1_parent_valid;
+	bool path2_valid;
 	bool path2_parent_valid;
 	struct dentry *path1_dentry;
 	struct vfsmount *path1_vfsmnt;
@@ -93,6 +94,7 @@ struct ccs_obj_info {
 	struct vfsmount *path2_vfsmnt;
 	struct ccs_mini_stat path1_stat;
 	/* I don't handle path2_stat for rename operation. */
+	struct ccs_mini_stat path2_stat;
 	struct ccs_mini_stat path1_parent_stat;
 	struct ccs_mini_stat path2_parent_stat;
 	struct ccs_path_info *symlink_target;
@@ -105,16 +107,22 @@ struct ccs_condition {
 	atomic_t users;
 	u32 size;
 	u16 condc;
-	u16 exepathc;
+	u16 ulong_count;
+	u16 number_group_count;
+	u16 path_info_count;
+	u16 path_group_count;
 	u16 argc;
 	u16 envc;
-	u16 symlinkc;
 	u8 post_state[4];
-	/* "unsigned long condition[condc]" follows here. */
-	/* "struct ccs_exepath_entry exepathp[exepathc]" follows here. */
-	/* "struct ccs_argv_entry argv[argc]" follows here. */
-	/* "struct ccs_envp_entry envp[envc]" follows here. */
-	/* "struct ccs_symlinkp_entry symlinkp[symlinkc]" follows here. */
+	/*
+	 * struct ccs_condition_element condition[condc];
+	 * unsigned long values[ulong_count];
+	 * struct ccs_number_group_entry *number_group[number_group_count];
+	 * struct ccs_path_info *path_info[path_info_count];
+	 * struct ccs_path_group_entry *path_group[path_group_count];
+	 * struct ccs_argv_entry argv[argc];
+	 * struct ccs_envp_entry envp[envc];
+	 */
 };
 
 struct ccs_execve_entry;
@@ -181,6 +189,22 @@ struct ccs_path_group_entry {
 	struct list_head list;
 	const struct ccs_path_info *group_name;
 	struct list_head path_group_member_list;
+	atomic_t users;
+};
+
+/* Structure for "number_group" directive. */
+struct ccs_number_group_member {
+	struct list_head list;
+	unsigned long min;
+	unsigned long max;
+	bool is_deleted;
+};
+
+/* Structure for "number_group" directive. */
+struct ccs_number_group_entry {
+	struct list_head list;
+	const struct ccs_path_info *group_name;
+	struct list_head number_group_member_list;
 	atomic_t users;
 };
 
@@ -387,18 +411,6 @@ struct ccs_argv_entry {
 /* Structure for envp[]. */
 struct ccs_envp_entry {
 	const struct ccs_path_info *name;
-	const struct ccs_path_info *value;
-	bool is_not;
-};
-
-/* Structure for symlink's target. */
-struct ccs_symlinkp_entry {
-	const struct ccs_path_info *value;
-	bool is_not;
-};
-
-/* Structure for executable's pathname. */
-struct ccs_exepath_entry {
 	const struct ccs_path_info *value;
 	bool is_not;
 };
@@ -651,6 +663,7 @@ enum ccs_ip_record_type {
 #define KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
 #define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
 #define KEYWORD_PATH_GROUP                "path_group "
+#define KEYWORD_NUMBER_GROUP              "number_group "
 #define KEYWORD_SELECT                    "select "
 #define KEYWORD_USE_PROFILE               "use_profile "
 #define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
@@ -769,6 +782,11 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size);
 /* Check whether the given filename matches the given pattern. */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
+bool ccs_path_matches_group(const struct ccs_path_info *pathname,
+			    const struct ccs_path_group_entry *group,
+			    const bool may_use_pattern);
+bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
+			      const struct ccs_number_group_entry *group);
 /* Print conditional part of an ACL entry. */
 bool ccs_print_condition(struct ccs_io_buffer *head,
 			 const struct ccs_condition *cond);
@@ -997,6 +1015,12 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head);
 /* Start garbage collector thread. */
 void ccs_run_gc(void);
 
+struct ccs_path_group_entry *ccs_get_path_group(const char *group_name);
+struct ccs_number_group_entry *ccs_get_number_group(const char *group_name);
+void ccs_put_number_group(struct ccs_number_group_entry *group);
+bool ccs_read_number_group_policy(struct ccs_io_buffer *head);
+int ccs_write_number_group_policy(char *data, const bool is_delete);
+
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 			       const struct ccs_path_info *b)
@@ -1024,6 +1048,7 @@ extern struct list_head ccs_domain_list;
 extern struct list_head ccs_address_group_list;
 extern struct list_head ccs_globally_readable_list;
 extern struct list_head ccs_path_group_list;
+extern struct list_head ccs_number_group_list;
 extern struct list_head ccs_pattern_list;
 extern struct list_head ccs_no_rewrite_list;
 extern struct list_head ccs_globally_usable_env_list;

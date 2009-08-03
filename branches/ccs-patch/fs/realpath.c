@@ -522,6 +522,45 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 	}
 }
 
+/**
+ * ccs_put_number_group - Delete memory for "struct ccs_number_group_entry".
+ *
+ * @group: Pointer to "struct ccs_number_group_entry".
+ */
+void ccs_put_number_group(struct ccs_number_group_entry *group)
+{
+	struct ccs_number_group_member *member;
+	struct ccs_number_group_member *next_member;
+	LIST_HEAD(q);
+	bool can_delete_group = false;
+	if (!group)
+		return;
+	mutex_lock(&ccs_policy_lock);
+	if (atomic_dec_and_test(&group->users)) {
+		list_for_each_entry_safe(member, next_member,
+					 &group->number_group_member_list,
+					 list) {
+			if (!member->is_deleted)
+				break;
+			list_del(&member->list);
+			list_add(&member->list, &q);
+		}
+		if (list_empty(&group->number_group_member_list)) {
+			list_del(&group->list);
+			can_delete_group = true;
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
+	list_for_each_entry_safe(member, next_member, &q, list) {
+		list_del(&member->list);
+		ccs_memory_free(member, sizeof(*member));
+	}
+	if (can_delete_group) {
+		ccs_put_name(group->group_name);
+		ccs_memory_free(group, sizeof(*group));
+	}
+}
+
 static LIST_HEAD(ccs_address_list);
 
 /**
@@ -583,6 +622,13 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 		ccs_memory_free(ptr, sizeof(*ptr));
 }
 
+struct ccs_condition_element {
+	u8 left;
+	u8 right;
+	u8 equals;
+	u8 type;
+};
+
 /**
  * ccs_put_condition - Delete memory for "struct ccs_condition".
  *
@@ -590,14 +636,19 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
  */
 void ccs_put_condition(struct ccs_condition *cond)
 {
-	const unsigned long *ptr;
+	const struct ccs_condition_element *condp;
+	const unsigned long *ulong_p;
+	struct ccs_number_group_entry **number_group_p;
+	const struct ccs_path_info **path_info_p;
+	struct ccs_path_group_entry **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
-	const struct ccs_symlinkp_entry *symlinkp;
 	u16 condc;
+	u16 number_group_count;
+	u16 path_info_count;
+	u16 path_group_count;
 	u16 argc;
 	u16 envc;
-	u16 symlinkc;
 	u16 i;
 	bool can_delete = false;
 	if (!cond)
@@ -611,21 +662,34 @@ void ccs_put_condition(struct ccs_condition *cond)
 	if (!can_delete)
 		return;
 	condc = cond->condc;
+	number_group_count = cond->number_group_count;
+	path_info_count = cond->path_info_count;
+	path_group_count = cond->path_group_count;
 	argc = cond->argc;
 	envc = cond->envc;
-	symlinkc = cond->symlinkc;
-	ptr = (const unsigned long *) (cond + 1);
-	argv = (const struct ccs_argv_entry *) (ptr + condc);
+	condp = (const struct ccs_condition_element *) (cond + 1);
+	ulong_p = (unsigned long *) (condp + condc);
+	number_group_p = (struct ccs_number_group_entry **)
+		(ulong_p + cond->ulong_count);
+	path_info_p = (const struct ccs_path_info **)
+		(number_group_p + number_group_count);
+	path_group_p = (struct ccs_path_group_entry **)
+		(path_info_p + path_info_count);
+	argv = (const struct ccs_argv_entry *)
+		(path_group_p + path_group_count);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
-	symlinkp = (const struct ccs_symlinkp_entry *) (envp + envc);
+	for (i = 0; i < cond->number_group_count; i++)
+		ccs_put_number_group(*number_group_p++);
+	for (i = 0; i < cond->path_info_count; i++)
+		ccs_put_name(*path_info_p++);
+	for (i = 0; i < cond->path_group_count; i++)
+		ccs_put_path_group(*path_group_p++);
 	for (i = 0; i < argc; argv++, i++)
 		ccs_put_name(argv->value);
 	for (i = 0; i < envc; envp++, i++) {
 		ccs_put_name(envp->name);
 		ccs_put_name(envp->value);
 	}
-	for (i = 0; i < symlinkc; symlinkp++, i++)
-		ccs_put_name(symlinkp->value);
 	ccs_memory_free(cond, cond->size);
 }
 
@@ -866,6 +930,8 @@ enum ccs_gc_id {
 	CCS_ID_ADDRESS_GROUP_MEMBER,
 	CCS_ID_PATH_GROUP,
 	CCS_ID_PATH_GROUP_MEMBER,
+	CCS_ID_NUMBER_GROUP,
+	CCS_ID_NUMBER_GROUP_MEMBER,
 	CCS_ID_GLOBAL_ENV,
 	CCS_ID_AGGREGATOR,
 	CCS_ID_DOMAIN_INITIALIZER,
@@ -1167,6 +1233,18 @@ static size_t ccs_del_address_group(struct ccs_address_group_entry *group)
 	return sizeof(*group);
 }
 
+static size_t ccs_del_number_group_member
+(struct ccs_number_group_member *member)
+{
+	return sizeof(*member);
+}
+
+static size_t ccs_del_number_group(struct ccs_number_group_entry *group)
+{
+	ccs_put_name(group->group_name);
+	return sizeof(*group);
+}
+
 static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 {
 	return sizeof(*ptr);
@@ -1174,25 +1252,9 @@ static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 
 static size_t ccs_del_condition(struct ccs_condition *ptr)
 {
-	int i;
-	u16 condc = ptr->condc;
-	u16 argc = ptr->argc;
-	u16 envc = ptr->envc;
-	u16 symlinkc = ptr->symlinkc;
-	unsigned long *ptr2 = (unsigned long *) (ptr + 1);
-	struct ccs_argv_entry *argv = (struct ccs_argv_entry *) (ptr2 + condc);
-	struct ccs_envp_entry *envp = (struct ccs_envp_entry *) (argv + argc);
-	struct ccs_symlinkp_entry *symlinkp
-		= (struct ccs_symlinkp_entry *) (envp + envc);
-	for (i = 0; i < argc; i++)
-		ccs_put_name(argv[i].value);
-	for (i = 0; i < envc; i++) {
-		ccs_put_name(envp[i].name);
-		ccs_put_name(envp[i].value);
-	}
-	for (i = 0; i < symlinkc; i++)
-		ccs_put_name(symlinkp[i].value);
-	return ptr->size;
+	const size_t size = ptr->size;
+	ccs_put_condition(ptr);
+	return size;
 }
 
 static int ccs_gc_thread(void *unused)
@@ -1374,6 +1436,32 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
+		struct ccs_number_group_entry *group;
+		list_for_each_entry_rcu(group, &ccs_number_group_list, list) {
+			struct ccs_number_group_member *member;
+			list_for_each_entry_rcu(member,
+						&group->
+						number_group_member_list,
+						list) {
+				if (!member->is_deleted)
+					continue;
+				if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP_MEMBER,
+						  member, &ccs_gc_queue))
+					list_del_rcu(&member->list);
+				else
+					break;
+			}
+			if (!list_empty(&group->number_group_member_list) ||
+			    atomic_read(&group->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP, group,
+					  &ccs_gc_queue))
+				list_del_rcu(&group->list);
+			else
+				break;
+		}
+	}
+	{
 		struct ccs_reserved_entry *ptr;
 		list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 			if (!ptr->is_deleted)
@@ -1441,6 +1529,12 @@ static int ccs_gc_thread(void *unused)
 				break;
 			case CCS_ID_ADDRESS_GROUP:
 				size = ccs_del_address_group(p->element);
+				break;
+			case CCS_ID_NUMBER_GROUP_MEMBER:
+				size = ccs_del_number_group_member(p->element);
+				break;
+			case CCS_ID_NUMBER_GROUP:
+				size = ccs_del_number_group(p->element);
 				break;
 			case CCS_ID_RESERVEDPORT:
 				size = ccs_del_reservedport(p->element);
