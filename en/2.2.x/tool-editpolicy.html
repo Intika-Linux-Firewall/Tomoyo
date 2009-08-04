@@ -202,7 +202,7 @@ The last "pathname of program" in the domainname is shown on the right side of t
 <p>Some commands are invoked by "/usr/bin/man" command, but it doesn't worth doing domain transitions. So, let's make /usr/bin/man not to transit domains. Switch to the screen for editing exception policy. Press "A" key and enter "keep_domain /usr/bin/man" (or "keep_domain &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man") and press "Enter" key.<br>
 <img src="editpolicy/adding-keep_domain-2.png" alt="Addint keep_domain" WIDTH="720" HEIGHT="400"></p>
 
-<p>Return to the screen for editing domain transition tree. The "<kernel> /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain is marked with "#" and its descendant domains are marked with "!".<br>
+<p>Return to the screen for editing domain transition tree. The "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/man" domain is marked with "#" and its descendant domains are marked with "!".<br>
 <img src="editpolicy/after-keep_domain-2.png" alt="After keep_domain" WIDTH="720" HEIGHT="400"></p>
 
 <p>It is meaningless to keep unreachable domains, let's delete them. Select domains that are marked with "!", and press "D" key and "Y" key.<br>
