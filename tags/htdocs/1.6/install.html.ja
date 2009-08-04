@@ -1,0 +1,658 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="install.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date: 2009-07-27 11:00:24 +0900 (Mon, 27 Jul 2009) $</p>
+<h1>第１章　TOMOYO Linux 対応カーネルとツールのインストール</h1>
+
+<p>このページでは、 TOMOYO Linux 対応カーネルとツールをインストールする手順について説明します。</p>
+
+<hr>
+
+<p>インストールする方法が３通りあります。あなたの環境や要件に応じてステップ１－Ａ／ステップ１－Ｂ／ステップ１－Ｃのいずれかを選択してください。</p>
+
+<ul>
+<li><a href="#install_from_repository">ステップ１－Ａ：バイナリパッケージをレポジトリからインストール</a></li>
+<li><a href="#install_manually">ステップ１－Ｂ：バイナリパッケージを手動でインストール</a></li>
+<li><a href="#install_from_source">ステップ１－Ｃ：ソースからインストール</a></li>
+</ul>
+
+<h2><a name="install_from_repository">ステップ１－Ａ：バイナリパッケージをレポジトリからインストール</a></h2>
+
+<p>TOMOYO Linux では、幾つかの i686 アーキテクチャ向けのバイナリカーネルとツールを提供しています。</p>
+
+<p>あなたの環境が以下のいずれかであり、かつ、ＣＰＵアーキテクチャが i686 である場合、レポジトリからインストールすることができます。</p>
+
+<ul>
+<li>RedHat Linux 9</li>
+<li>Fedora Core 3/4/5/6</li>
+<li>Fedora 7/8/9/10/11</li>
+<li>CentOS 3.9/4.7/5.3</li>
+<li>OpenSUSE 10.1/10.2/10.3/11.0/11.1</li>
+<li>Vine Linux 4.2</li>
+<li>Asianux 3.0</li>
+</ul>
+
+<p>レポジトリからインストールする場合、以下の操作を行ってください。</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# curl http://tomoyo.sourceforge.jp/repos/RedHatLinux9/ccs.repo &gt;&gt; /etc/yum.conf<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 3 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/FedoraCore3/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 4 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/FedoraCore4/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 5 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/FedoraCore5/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 6 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/FedoraCore6/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 7 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora7/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 8 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora8/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 9 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora9/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 10 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora10/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 11 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Fedora11/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+CentOS 3.9 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# curl http://tomoyo.sourceforge.jp/repos/CentOS3/ccs.repo >> /etc/yum.conf<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+CentOS 4.7 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+CentOS 5.3 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Asianux 3 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/Asianux3/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Vine Linux 4.2 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# echo "repomd http://tomoyo.sourceforge.jp/ repos/VineLinux4/" &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install ccs-kernel ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.1 (for i586 and later)</td><td>
+[root@tomoyo ~]# curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x4B975A98' &gt; /tmp/key<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# rug service-add --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE10.1/ ccs<br>
+[root@tomoyo ~]# rug subscribe ccs<br>
+[root@tomoyo ~]# rug install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.2 (for i586 and later)</td><td>
+[root@tomoyo ~]# curl 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x4B975A98' &gt; /tmp/key<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+[root@tomoyo ~]# rug service-add --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE10.2/ ccs<br>
+[root@tomoyo ~]# rug subscribe ccs<br>
+[root@tomoyo ~]# rug install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.3 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE10.3/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 11.0 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE11.0/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 11.1 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos/SUSE11.1/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr>
+</table>
+
+<hr>
+
+<h2><a name="install_manually">ステップ１－Ｂ：バイナリパッケージを手動でインストール</a></h2>
+
+<p>あなたの環境が以下のいずれかである場合、手動でバイナリパッケージをインストールすることができます。</p>
+
+<ul>
+<li>Debian Sarge/Etch/Lenny</li>
+<li>Asianux 2.0</li>
+<li>Ubuntu 6.06/6.10/7.04/7.10/8.04/8.10/9.04</li>
+</ul>
+
+<p>バイナリパッケージをインストールするには、以下のファイルをダウンロードしてインストールしてください。</p>
+
+<table border="1">
+<tr><td>
+Debian Sarge</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32750/kernel-image-2.4.27-4-686-smp-ccs1.6.8p1_2.4.27-10sarge7_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32750/kernel-pcmcia-modules-2.4.27-4-686-smp-ccs1.6.8p1_2.4.27-10sarge7_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32750/kernel-image-2.6.8-4-686-smp-ccs1.6.8p1_2.6.8-17sarge1_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32750/ccs-tools_1.6.8-2_i386.deb
+</td></tr><tr><td>
+Debian Etch</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32751/linux-image-2.6.18-6-686-ccs1.6.8-i686_2.6.18.dfsg.1-24etch2_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32751/ccs-tools_1.6.8-1_i386.deb
+</td></tr><tr><td>
+Debian Lenny</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32752/linux-image-2.6.26-15-686-tomoyo_2.6.26-15_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32752/tomoyo-ccstools_1.6.7-20090401-1~bpo50+1_i386.deb
+</td></tr><tr><td>
+Asianux 2.0</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32428/ccs-kernel-smp-2.6.9-78.13AXS2_tomoyo_1.6.8.i686.rpm
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32428/ccs-tools-1.6.8-2.i386.rpm
+</td></tr><tr><td>
+Ubuntu 6.06</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32745/linux-image-2.6.15-54-686-ccs1.6.8p1_2.6.15-54.77_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32745/linux-restricted-modules-2.6.15-54-686-ccs1.6.8p1_2.6.15.12-54.5_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32745/ccs-tools_1.6.8-2_i386.deb
+</td></tr><tr><td>
+Ubuntu 6.10</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32746/linux-image-2.6.17-12-generic-ccs1.6.7p1_2.6.17.1-12.44_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32746/linux-restricted-modules-2.6.17-12-generic-ccs1.6.7p1_2.6.17.9-12.4_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32746/ccs-tools_1.6.7-1_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32747/linux-image-2.6.20-17-ccs1.6.7p1_2.6.20-17.39_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32747/linux-restricted-modules-2.6.20-17-ccs1.6.7p1_2.6.20.6-17.31_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32747/ccs-tools_1.6.7-1_i386.deb
+</td></tr><tr><td>
+Ubuntu 7.10</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32748/linux-image-2.6.22-16-ccs1.6.7p1_2.6.22-16.62_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32748/linux-ubuntu-modules-2.6.22-16-ccs1.6.7p1_2.6.22-16.41_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32748/linux-restricted-modules-2.6.22-16-ccs1.6.7p1_2.6.22.4-16.12_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32748/linux-headers-2.6.22-16-ccs1.6.7p1_2.6.22-16.62_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32748/ccs-tools_1.6.7-1_i386.deb
+</td></tr><tr><td>
+Ubuntu 8.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-image-2.6.24-24-ccs1.6.8p1_2.6.24-24.55_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-ubuntu-modules-2.6.24-24-ccs1.6.8p1_2.6.24-24.39_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-restricted-modules-2.6.24-24-ccs1.6.8p1_2.6.24.18-24.1_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-headers-2.6.24-24-ccs1.6.8p1_2.6.24-24.55_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/linux-headers-lum-2.6.24-24-ccs1.6.8p1_2.6.24-24.39_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/32749/ccs-tools_1.6.8-2_i386.deb
+</td></tr><tr><td>
+Ubuntu 8.10</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/33545/linux-image-2.6.27-14-ccs1.6.8p1_2.6.27-14.35_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/33545/linux-restricted-modules-2.6.27-14-ccs1.6.8p1_2.6.27-14.19_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/33545/ccs-tools_1.6.8-2_i386.deb
+</td></tr><tr><td>
+Ubuntu 9.04</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/38843/linux-image-2.6.28-13-ccs1.6.8p1_2.6.28-13.45_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/38843/linux-restricted-modules-2.6.28-13-ccs1.6.8p1_2.6.28-13.17_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/38843/ccs-tools_1.6.8-2_i386.deb
+</td></tr>
+</table>
+
+<p>あなたの環境が Gentoo の場合、<a href="#Gentoo">Gentoo</a> を参照してください。 Gentoo 用のツールをインストールするには、 emerge ccs-tools を実行してください。</p>
+
+<hr>
+
+<h2><a name="install_from_source">ステップ１－Ｃ：ソースからインストール</a></h2>
+
+<p>ＣＰＵアーキテクチャが異なる場合やカーネルコンフィグをカスタマイズしたい場合、コンパイルする必要があります。</p>
+
+<p>ツールパッケージをコンパイルするには以下のコマンドを実行してください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# wget http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20090623.tar.gz<br>
+[root@tomoyo ~]# tar -zxf ccs-tools-1.6.8-20090623.tar.gz<br>
+[root@tomoyo ~]# make -C ccstools/ install
+</td></tr>
+</table>
+
+<p>カーネルをコンパイルするためには、以下のパッケージが必要です。</p>
+
+<ul>
+<li>gcc</li>
+<li>make</li>
+<li>ncurses</li>
+</ul>
+
+<p>make menuconfig を実行し、「File systems」画面の一番下に表示される以下の項目を選択してください。</p>
+
+<ul>
+<li>[*] SAKURA (Domain-Free Mandatory Access Control) support</li>
+<li>[*] TOMOYO (Domain-Based Mandatory Access Control) support</li>
+<li>(2048) Default maximal count for learning mode</li>
+<li>(/sbin/modprobe /sbin/hotplug) Built-in domain initializer programs</li>
+<li>[*]&nbsp;&nbsp;&nbsp;Auditing interface support</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
+<li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
+<li>&lt;M&gt; SYAORAN (Tamper-Proof Device Filesystem) support</li>
+</ul>
+
+<p>カーネル 2.6 には、 CONFIG_DEBUG_INFO という名前のコンパイルオプションが存在します。このオプションが有効である場合、コンパイルされたコードのサイズが約１０倍の大きさになります。このオプションを有効にすると、 /usr/src/ ディレクトリで約１ＧＢ、 /lib/modules/ ディレクトリで約３００ＭＢの余分なディスク領域を消費します。<br>
+ディスク領域を節約したい場合、以下のオプションを無効にしてください。</p>
+
+<table border="1">
+<tr><td>
+Kernel hacking ---&gt;[&nbsp;] &nbsp;&nbsp;Compile the kernel with debug info
+</td></tr>
+</table>
+
+<p>以下のリストからあなたの使いたいバージョンを選択してください。</p>
+
+<table border="1">
+<tr><td>
+<a name="2.6-vanilla">バニラ 2.6 カーネル</a><br>
+(2.6.11 以降に対応しています。)
+</td><td>
+# ソースディレクトリへ移動する。<br>
+cd /usr/src/<br>
+# カーネルのソースをダウンロードする。<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.30.4.tar.bz2<br>
+# 展開する。<br>
+tar -jxf linux-2.6.30.4.tar.bz2<br>
+# 展開されたソースのディレクトリへ移動する。<br>
+cd linux-2.6.30.4<br>
+# ソースから world writable 属性を取り除く。<br>
+find -print0 | xargs -0 chmod go-w --<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20090703.tar.gz<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.8-20090703.tar.gz<br>
+# カーネルパッチを適用する。<br>
+patch -sp1 &lt; patches/ccs-patch-2.6.30.diff<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr><tr><td>
+<a name="2.4-vanilla">バニラ 2.4 カーネル</a><br>
+(2.4.30 以降に対応しています。)
+</td><td>
+# ソースディレクトリへ移動する。<br>
+cd /usr/src/<br>
+# カーネルのソースをダウンロードする。<br>
+wget http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.37.4.tar.bz2<br>
+# 展開する。<br>
+tar -jxf linux-2.4.37.4.tar.bz2<br>
+# 展開されたソースのディレクトリへ移動する。<br>
+cd linux-2.4.37.4<br>
+# ソースから world writable 属性を取り除く。<br>
+find -print0 | xargs -0 chmod go-w --<br>
+# TOMOYO Linux カーネルパッチをダウンロードする。<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20090703.tar.gz<br>
+# 展開する。<br>
+tar -zxf ccs-patch-1.6.8-20090703.tar.gz<br>
+# カーネルパッチを適用する。<br>
+patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
+# TOMOYO Linux 用のオプションを選択する。<br>
+make -s menuconfig<br>
+# 通常通りコンパイルする。<br>
+make -s dep<br>
+make -s<br>
+make -s modules modules_install install
+</td></tr><tr><td>
+<a name="RedHatLinux9">RedHat Linux 9</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-rhl9-2.4.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-rhl9-2.4.20.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-rhl9-2.4.20.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i386 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore3">Fedora Core 3</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-fc3-2.6.12.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-fc3-2.6.12.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-fc3-2.6.12.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore4">Fedora Core 4</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-fc4-2.6.17.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-fc4-2.6.17.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-fc4-2.6.17.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore5">Fedora Core 5</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-fc5-2.6.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-fc5-2.6.20.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-fc5-2.6.20.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore6">Fedora Core 6</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-fc6-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-fc6-2.6.22.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-fc6-2.6.22.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora7">Fedora 7</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f7-2.6.23.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f7-2.6.23.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f7-2.6.23.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora8">Fedora 8</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f8-2.6.26.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f8-2.6.26.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f8-2.6.26.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora9">Fedora 9</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f9-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f9-2.6.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f9-2.6.27.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora10">Fedora 10</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f10-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f10-2.6.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f10-2.6.27.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora11">Fedora 11</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-f11-2.6.29.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-f11-2.6.29.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-f11-2.6.29.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /root/rpmbuild/SPECS/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS3.9">CentOS 3.9</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-c3-2.4.21.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-c3-2.4.21.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS4.7">CentOS 4.7</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-c4-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c4-2.6.9.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-c4-2.6.9.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS5.3">CentOS 5.3</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-c5-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-c5-2.6.18.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-c5-2.6.18.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Sarge-2.4">Debian Sarge (2.4.27)</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-debian_sarge-2.4.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_sarge-2.4.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-debian_sarge-2.4.27.sh<br>
+</td></tr><tr><td>
+<a name="Sarge-2.6">Debian Sarge (2.6.8)</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-debian_sarge-2.6.8.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_sarge-2.6.8.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-debian_sarge-2.6.8.sh<br>
+</td></tr><tr><td>
+<a name="Etch">Debian Etch</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-debian_etch.sh<br>
+</td></tr><tr><td>
+<a name="Lenny">Debian Lenny</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-debian_lenny.sh<br>
+</td></tr><tr><td>
+<a name="OpenSUSE10.1">OpenSUSE 10.1</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.1-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.1-2.6.16.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse10.1-2.6.16.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE10.2">OpenSUSE 10.2</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.2-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.2-2.6.18.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse10.2-2.6.18.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE10.3">OpenSUSE 10.3</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse10.3-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse10.3-2.6.22.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse10.3-2.6.22.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE11.0">OpenSUSE 11.0</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse11.0-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse11.0-2.6.25.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE11.1">OpenSUSE 11.1</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-suse11.1-2.6.27.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Asianux2">Asianux 2.0</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ax2-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ax2-2.6.9.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ax2-2.6.9.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i686 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Asianux3">Asianux 3.0</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ax3-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ax3-2.6.18.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ax3-2.6.18.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Ubuntu6.06">Ubuntu 6.06</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_6.06.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu6.10">Ubuntu 6.10</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_6.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.10.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_6.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu7.04">Ubuntu 7.04</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_7.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_7.04.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_7.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu7.10">Ubuntu 7.10</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_7.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_7.10.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_7.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu8.04">Ubuntu 8.04</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_8.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu8.10">Ubuntu 8.10</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_8.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_8.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu9.04">Ubuntu 9.04</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-ubuntu_9.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-ubuntu_9.04.sh<br>
+</td></tr><tr><td>
+<a name="VineLinux4.2">VineLinux 4.2</a>
+</td><td>
+# ビルドスクリプトをダウンロードする。<br>
+wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
+# ビルドスクリプトを実行する。<br>
+sh build-vl4.2-2.6.16.sh<br>
+# パッケージを作成する。<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Gentoo">Gentoo</a>
+</td><td>
+# layman パッケージをインストールする。<br>
+emerge layman<br>
+# subversion パッケージをインストールする。<br>
+emerge subversion<br>
+# レポジトリを登録する。<br>
+layman --fetch -o http://tomoyo.sourceforge.jp/repos/gentoo-overlay/tomoyo-overlay.xml -a tomoyo<br>
+# layman 用の make.conf を取り込むように /etc/make.conf を設定する。<br>
+echo "source /usr/portage/local/layman/make.conf" &gt;&gt; /etc/make.conf<br>
+# カーネルのソースをダウンロードする。<br>
+emerge ccs-sources<br>
+# genkernel コマンドを実行する。<br>
+genkernel --menuconfig all<br>
+# http://www.gentoo.org/doc/ja/kernel-upgrade.xml を見ながら grub の設定を行う。<br>
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
