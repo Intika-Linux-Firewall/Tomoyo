@@ -257,7 +257,8 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 
 <p>But don't worry. The policy seldom changes after you start production mode. By tuning policy before starting production mode, you can reduce memory usage to (usually) less than 1 MB.</p>
 
-<p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte. "Shared:" indicates memory used for holding words. "Private:" indicates memory used for holding access permissions. These memories never decrease.
+<p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte.<br>
+"Shared:" indicates memory used for holding words. "Private:" indicates memory used for holding access permissions. These memories never decrease.<br>
 "Dynamic:" indicates memory used for temporary purpose such as access permission checks and access logs. This memory decreases when it became unneeded.</p>
 
 <table border="1">
@@ -345,8 +346,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.2 <a name="domain_transition">Domain Transition</a></h2>
 
-<p>There are some programs that behave differently depending on the invocation name.
-For example, /sbin/pidof is a symbolic link to /sbin/killall5 . Since TOMOYO Linux uses canonicalized pathname, by default, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed.</p>
+<p>There are some programs that behave differently depending on the invocation name. For example, /sbin/pidof is a symbolic link to /sbin/killall5 . Since TOMOYO Linux uses canonicalized pathname, by default, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed.</p>
 
 <p>When a process tries to execute a program, the steps shown below are performed.</p>
 
@@ -1187,14 +1187,12 @@ echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
 <h3><a name="system_policy_allow_mount">allow_mount</a></h3>
-<p>To grant mount permission, use allow_mount keyword followed by "$devicefile $mountpoint $filesystem $options".<br>
-The $devicefile need to be a canonicalized file if the $filesystem requires device file.<br>
-The $mountpoint must be a canonicalized file.<br>
-The $options is a hexadecimal integer expression.</p>
+<p>To grant mount permission, use allow_mount keyword followed by "$devicefile $mountpoint $filesystem $options". The $devicefile need to be a canonicalized file if the $filesystem requires device file. The $mountpoint must be a canonicalized file. The $options is a hexadecimal integer expression.</p>
 
 <p>To grant "mount -o remount $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --remount $options".</p>
 
-<p>To grant "mount --bind $source_dir $dest_dir" and "mount --move $source_dir $dest_dir" permission, use allow_mount keyword followed by "$source_dir $dest_dir --bind $options" and "$source_dir $dest_dir --move $options" respectively.<br>
+<p>To grant "mount --bind $source_dir $dest_dir", use "allow_mount $source_dir $dest_dir --bind $options".<br>
+To grant "mount --move $source_dir $dest_dir" permission, use "allow_mount $source_dir $dest_dir --move $options".<br>
 The $source_dir and $dest_dir must be canonicalized directory.</p>
 
 <p>Kernel 2.6.15 and later supports "Shared Subtree" functionality.<br>
@@ -1352,6 +1350,7 @@ cat /proc/ccs/domain_policy</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
 
 <h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+
 <p>This keyword grants doing IOCTL request with the specified command numbers and the specified pathnames.</p>
 
 <table border="1">
@@ -1369,10 +1368,7 @@ cat /proc/ccs/domain_policy</p>
 <p>To restrict the contents of argv[0], use allow_argv0 keyword followed by "the pathname of program" and "the basename part of argv[0]".</p>
 
 <p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Some programs (e.g. busybox) behave differently depending on the basename of argv[0].
-
-When invoking a program via a symbolic link, the domain transition of TOMOYO Linux is done based on the Canonicalized Pathname of filename while the behavior of the program is determined based on argv[0] (usually same as filename).
-For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows
-programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
+When invoking a program via a symbolic link, the domain transition of TOMOYO Linux is done based on the Canonicalized Pathname of filename while the behavior of the program is determined based on argv[0] (usually same as filename). For example, in a system that provides /bin/ls and /bin/cat as hard links of busybox, it becomes a loophole that allows programs to behave as cat in the domain of /bin/ls by creating a symbolic link named /tmp/cat that points to /bin/ls and executing /tmp/cat .</p>
 <p>The purpose of this keyword is to restrict the combinations of filename and argv[0] so that such loopholes won't occur.</p>
 
 <h3><a name="domain_policy_allow_env">allow_env</a></h3>
@@ -1531,7 +1527,8 @@ For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ 
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
-<p>To declare pathname group, use path_group keyword followed by name of the group and pathname pattern. For example, if you want to group all files under home directory, you can define</p>
+<p>To declare pathname group, use path_group keyword followed by name of the group and pathname pattern.<br>
+For example, if you want to group all files under home directory, you can define</p>
 
 <table border="1">
 <tr><td>
@@ -1556,7 +1553,8 @@ allow_read @HOME-DIR-FILE
 
 <h3><a name="exception_policy_address_group">address_group</a></h3>
 
-<p>To declare address group, use address_group keyword followed by name of the group and IP address pattern. For example, if you want to group all local addresses, you can define</p>
+<p>To declare address group, use address_group keyword followed by name of the group and IP address pattern.<br>
+For example, if you want to group all local addresses, you can define</p>
 
 <table border="1">
 <tr><td>
@@ -1653,9 +1651,6 @@ allow_network TCP accept @local-address 1024-65535
 <p>If the part "from" and before is not given, this entry is applied to all program. If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
 
 <p>This directive is intended to reduce total number of domains and memory usage by suppressing unneeded domain transitions.</p>
-
-<p>To declare domain keepers, use keep_domain directive followed by domain definition. </p>
-<p>Any process that belongs to any domain declared with this directive, the process stays at the same domain unless any program registered with initialize_domain directive is executed.</p>
 
 <p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_no_keep_domain">no_keep_domain</a></p>
 
@@ -1775,7 +1770,7 @@ chown -R demo /proc/ccs/
 
 <p>TOMOYO Linux supports memory quota for limiting maximum memory allocated for holding TOMOYO Linux's policy.</p>
 
-<p>You can set memory quota by writing to /proc/ccs/meminfo like</p>
+<p>You can set memory quota by writing to /proc/ccs/meminfo like below from /etc/ccs/ccs-post-init .</p>
 
 <table border="1">
 <tr><td>
@@ -1783,8 +1778,6 @@ echo Shared: 2097152 &gt; /proc/ccs/meminfo<br>
 echo Private: 2097152 &gt; /proc/ccs/meminfo
 </td></tr>
 </table>
-
-<p>from /etc/ccs/ccs-post-init .</p>
 
 <h2>6.3 <a name="conditional_acl">Using conditional ACL.</a></h2>
 
@@ -1970,8 +1963,7 @@ echo Private: 2097152 &gt; /proc/ccs/meminfo
 
 <h2>6.4 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
-<p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition.
-But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in <a href="#conditional_acl">Using conditional ACL.</a></p>
+<p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition. But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in <a href="#conditional_acl">Using conditional ACL.</a></p>
 
 <table border="1">
 <tr><td>Variable</td><td>Meaning</td></tr>
@@ -2077,11 +2069,9 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 
 <p>TOMOYO Linux's approach is "know what programs needs to be executed from what programs beforehand and create policy that permits execution of minimal programs". Thus, you can not only reject unnecessary execution requests but also do different behavior.</p>
 
-<p>By default, if an execute request of a program which is not permitted by allow_execute keyword occurs in enforcing mode, the kernel rejects the execute request.
-But assuming that you know what programs needs to be executed from what programs beforehand, an execute request of a program which is not permitted by allow_execute keyword will not occur as long as the process is keeping control, and you can regard that the process is not keeping control (in other words, the process already lost control) if such request occurs.</p>
+<p>By default, if an execute request of a program which is not permitted by allow_execute keyword occurs in enforcing mode, the kernel rejects the execute request. But assuming that you know what programs needs to be executed from what programs beforehand, an execute request of a program which is not permitted by allow_execute keyword will not occur as long as the process is keeping control, and you can regard that the process is not keeping control (in other words, the process already lost control) if such request occurs.</p>
 
-<p>Attackers steal control of a process by attacking security holes such as buffer overflow and attempt to execute commands such as shells.
-If the process does not need to execute the shell (in other words, you needn't to give permission like "allow_execute /bin/bash"), it is considered that the process has already lost control at the moment of the execution request of shells.</p>
+<p>Attackers steal control of a process by attacking security holes such as buffer overflow and attempt to execute commands such as shells. If the process does not need to execute the shell (in other words, you needn't to give permission like "allow_execute /bin/bash"), it is considered that the process has already lost control at the moment of the execution request of shells.</p>
 
 <p>Normally, when execution of a program which is not permitted by the policy is requested, the kernel merely reject the request. But it is unlikely that the process gets back control (in other words, the process resumes proper operations) by just rejecting the request if the request is issued by the process that has lost control.<br>
 In Linux, "execute a program" means that the current process is overwritten by the requested program and transfer control to the requested program. This means that a process gets back control by overwriting the process with different program even if the process has lost control because of buffer overflow.</p>
