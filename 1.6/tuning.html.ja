@@ -1,24 +1,24 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="en-US">
+<html lang="ja-JP">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux Install manual</title>
+<title>TOMOYO Linux 導入手順書</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<p style="text-align:right;"><a href="tuning.html.ja">Japanese Page</a></p>
+<p style="text-align:right;"><a href="tuning.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>Phase 4: Tuning policy for your system.</h1>
+<h1>第４章：ポリシーのチューニング</h1>
 
-<p>This page describes how to tune TOMOYO's policy.</p>
+<p>このページでは、 TOMOYO のポリシーをチューニングする方法について説明します。</p>
 
 <hr>
 
-<h2>Step 1: Patterning File Access Permissions</h2>
+<h2>ステップ１：ファイルのパス名をパターン化する</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service to /etc/ccs/domain_policy.conf .<br>
-The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
+<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.conf に追加します。<br>
+以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
 
 <table border="1">
 <tr><td>
@@ -32,7 +32,7 @@ allow_read /var/www/html/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
-<p>You can use pathname grouping. By defining a pathname group</p>
+<p>パス名のグループを使用することができます。</p>
 
 <table border="1">
 <tr><td>
@@ -44,7 +44,7 @@ path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify</p>
+<p>という path_group を例外ポリシーで定義しておくことにより、</p>
 
 <table border="1">
 <tr><td>
@@ -54,13 +54,13 @@ allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
+<p>のように指定することができます。</p>
 
-<p>In the same way, modify access permissions for files using patterns that should be grouped.<br>
-The following example shows /usr/sbin/smbd should handle all log files equally.</p>
+<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
+以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
 
 <table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
@@ -76,7 +76,7 @@ allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
-<p>You can confirm the range of accessible files by using "ccs-pathmatch" command that lists pathnames matching to the given pathname patterns.</p>
+<p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
 
 <table border="1">
 <tr><td>
@@ -85,15 +85,15 @@ allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
-<h3>Operation example</h3>
+<h3>操作例</h3>
 
-<p>Save the domain policy currently in the kernel onto the disk.</p>
+<p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy d<br>
 </td></tr>
 </table>
-<p>List up pathnames that can be temporary files.</p>
+<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf<br>
@@ -119,7 +119,7 @@ allow_write /var/log/samba/\*.log
 /var/lock/mrtg/mrtg_l<br>
 </td></tr>
 </table>
-<p>Find domains that access these files.</p>
+<p>テンポラリファイルにアクセスしているドメインを探します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
@@ -135,32 +135,32 @@ allow_read/write /tmp/sh-thd-1163113704<br>
 allow_unlink /tmp/sh-thd-1163113704<br>
 </td></tr>
 </table>
-<p>Save the exception policy currently in the kernel onto the disk.</p>
+<p>カーネルに存在する例外ポリシーをディスクに保存します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-savepolicy e<br>
 </td></tr>
 </table>
-<p>Append patterns to the exception policy on the disk if needed.</p>
+<p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
 [root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
 </td></tr>
 </table>
-<p>Load the exception policy on the disk to the kernel.</p>
+<p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-loadpolicy ef<br>
 </td></tr>
 </table>
-<p>Patternize pathnames that match '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
+<p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
 </td></tr>
 </table>
-<p>Confirm that these files are patternized.</p>
+<p>パターン化されたことを確認します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
@@ -176,7 +176,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 /var/lock/mrtg/mrtg_l<br>
 </td></tr>
 </table>
-<p>Verify that the patterning are done as you have intended by diff'ing the domain policy before patternize and the one after the patternize.</p>
+<p>パターン化前後の差分を表示して、パターン化が適切に行われているかどうかを確認します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
@@ -272,19 +272,19 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 &gt; allow_unlink /etc/mtab~\$<br>
 </td></tr>
 </table>
-<p>Update the domain policy on the disk.</p>
+<p>ディスク上のドメインポリシーを更新します</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
 </td></tr>
 </table>
-<p>Load the domain policy on the disk to the kernel.</p>
+<p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-loadpolicy df<br>
 </td></tr>
 </table>
-<p>Confirm that the domain policy currently in the kernel is updated.</p>
+<p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
@@ -303,12 +303,12 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 
 <hr>
 
-<h2>Step 2: Patterning Network Access Permissions</h2>
+<h2>ステップ２：ネットワークのアドレスとポート番号をパターン化する</h2>
 
-<p>Similarly, if you enabled MAC for networking, make patterns for "allow_network" directives. Don't copy the following permissions.</a>
+<p>ネットワークに関する強制アクセス制御機能を有効にしている場合、 allow_network キーワードに対して同様にパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
 
 <table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 7<br>
@@ -326,7 +326,7 @@ allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
 </td></tr>
 </table>
 
-<p>By defining a address group</p>
+<p>上記の指定は</p>
 
 <table border="1">
 <tr><td>
@@ -336,7 +336,7 @@ address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 </td></tr>
 </table>
 
-<p>in the exception policy, you can simplify</p>
+<p>という address_group を例外ポリシーで定義しておくことにより、</p>
 
 <table border="1">
 <tr><td>
@@ -346,15 +346,15 @@ allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
 </td></tr>
 </table>
 
-<p>in the domain policy.</p>
+<p>のように指定することができます。</p>
 
 <hr>
 
-<h2>Step 3: Adding conditions to ACLs (Optional)</h2>
+<h2>ステップ３：アクセス許可に条件を付与（省略可）</h2>
 
-<p>You can add conditions to individual ACLs if necessary. By using this feature, you can enforce system's user ID based access control.</p>
+<p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
 
-<p>You can define the following path_group in the exception policy.</p>
+<p>例外ポリシーで以下のように path_group が定義されていると仮定します。</p>
 
 <table border="1">
 <tr><td>
@@ -375,11 +375,11 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 </td></tr>
 </table>
 
-<p>If you want to protect non-anonymous FTP service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "ftp") directory rather than exposing whole of home directories. If you use vsftpd, you can give like the following way.</p>
+<p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
 
 
 <table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 use_profile 3<br>
@@ -407,10 +407,10 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 </td></tr>
 </table>
 
-<p>If you want to protect Samba service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "samba") directory rather than exposing whole of home directories.</p>
+<p>Samba サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を Samba でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある samba ディレクトリ以下だけのアクセスを認めます。</p>
 
 <table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 use_profile 3<br>
@@ -438,10 +438,10 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 </td></tr>
 </table>
 
-<p>If you want to protect SSH service, by adding conditions in the following manner, you can forbid login as user "root".</p>
+<p>SSH サーバを保護する場合、以下のように条件を付けることで、 root ユーザとしてログインすることを禁止できます。</p>
 
 <table border="1">
-<tr><td>Before</td><td>After</td></tr>
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 3<br>
@@ -457,7 +457,7 @@ allow_execute /bin/bash if task.uid!=0 task.euid!=0
 
 <hr>
 
-<p><a href="index.html">Return to index page.</a></p>
+<p><a href="index.html">目次へ戻る</a></p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>
 </html>
