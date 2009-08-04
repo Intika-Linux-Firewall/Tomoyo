@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="learning.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第３章：システムの振る舞いを学習</h1>
+
+<p>このページでは、 TOMOYO の学習モードの使い方について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：ドメインを作成する</h2>
+
+<p>TOMOYO Linux 対応カーネルで再起動したら、 root としてログインしてください。</p>
+
+<p>どのアプリケーションを解析／保護の対象とするかを決めてください。</p>
+
+<p>以下の手順は CentOS 5.3 環境で Apache を保護する場合で説明します。</p>
+
+<p>対象となるアプリケーションを開始させます。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# service httpd start
+</td></tr>
+</table>
+
+<p>TOMOYO のポリシーエディタを実行してください。今回は現在カーネル内に存在しているポリシーを直接編集するので、 /etc/tomoyo/ というコマンドラインオプションを指定していないことに注意してください。</p>
+
+<p>CentOS 5.3 では、 Apache プログラムパス名は /usr/sbin/httpd です。<br>
+矢印キーや Home/End/PageUp/PageDown キーを使ってカーソルをスクロールして、 /usr/sbin/httpd の行を見つけてください。この絵では 416 行目です。</p>
+
+<p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
+
+<p>もし、 /usr/sbin/httpd が initialize_domain キーワードで指定されていた場合、 /usr/sbin/httpd を実行することにより &lt;kernel&gt; /usr/sbin/httpd という名前のドメインが作成されます。もし指定されていなかった場合、実行したドメインの子ドメイン（例えば &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash ドメインから /usr/sbin/httpd を実行した場合は &lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd ）が作成されます。この手順書では /usr/sbin/httpd が initialize_domain に指定されている場合で説明します。</p>
+
+<p>s キーを押してから 1 と入力し、 Enter キーを押してください。</p>
+
+<p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
+
+<p>/usr/sbin/httpd のプロファイル番号が 1 に変化しました。</p>
+
+<p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。その後、 tomoyo-pstree コマンドを実行して /usr/sbin/httpd プロセスに対してプロファイル 1 が割り当てられていることを確認してください。</p>
+
+<p><img src="pstree-httpd1.png" width="1020" height="802"></p>
+
+<hr>
+
+<h2>ステップ２：必要なアクセス許可を収集する</h2>
+
+<p>Apache の起動時／終了時に必要となるアクセス許可を学習させるために、 Apache を再起動します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# service httpd restart
+</td></tr>
+</table>
+
+<p>TOMOYO のポリシーエディタを実行し、 /usr/sbin/httpd の行へ移動してください。（あなたやシステムが実行したプログラムによりドメインが追加されることで、行番号が変化しているかもしれません。）</p>
+
+<p>Enter キーを押すと、現在までに収集されたアクセス許可が表示されます。</p>
+
+<p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を全て行ってください。</p>
+
+<p>収集されたアクセス許可はカーネル内のメモリにしか存在しないため、時々ポリシーファイルとしてディスク上に保存することを忘れないでください。システムを再起動した場合、カーネル内のメモリに存在しているアクセス許可は失われます。</p>
+
+<p>現在カーネル内のメモリに存在しているポリシーをディスク上に保存するには、 tomoyo-savepolicy コマンドを利用します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
+</td></tr>
+</table>
+
+<p>tomoyo-savepolicy コマンドを実行することにより、２個のファイル（ exception_policy.conf domain_policy.conf ）が /etc/tomoyo/ ディレクトリ内に作成されます。より正確に言うと、これらは作成時刻をファイル名の中に含んだ通常ファイルへのシンボリックリンクとして作成されます。</p>
+
+<p>現在ディスク上に保存されているポリシーをカーネル内のメモリに読み込ませるには、 tomoyo-loadpolicy コマンドを利用します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy af
+</td></tr>
+</table>
+
+<p>a オプションは２個のファイル（ exception_policy.conf domain_policy.conf ）を読み込ませることを、 f オプションはディスク上のポリシーを読み込ませる前にカーネル内のポリシーを消去することを意味します。もし f オプションが指定されなかった場合、ディスク上のポリシーが現在カーネル内に存在しているポリシーに追加されます。</p>
+
+<hr>
+
+<h2>ステップ３：収集されたアクセス許可を確認する</h2>
+
+<p>Apache に許可したい操作を一通り行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 2 に変更します。 Apache は（例えば /bin/sh /usr/bin/perl /usr/lib/sendmail のような）外部のプログラムを実行したことにより、 Apache に子ドメインや孫ドメインが作成されているかもしれません。 /usr/sbin/httpd のドメインだけでなくその子孫ドメインのプロファイル番号も変更するのを忘れないようにしてください。</p>
+
+<p>対象となるドメインを選択して、 s キーを押し、 2 と入力してから Enter キーを押してください。</p>
+
+<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
+
+<p>/usr/sbin/httpd およびその子孫ドメインのプロファイル番号が 2 に変更されました。</p>
+
+<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を再度行ってください。</p>
+
+<p>もしプロファイルで TOMOYO-VERBOSE=enabled と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと TOMOYO-WARNING: というメッセージがコンソールに表示されます。</p>
+
+<p><img src="permissive-warning.png" width="720" height="400"></p>
+
+<p>もし、 Apache に対して許可したい操作を全て行っても TOMOYO-WARNING: というメッセージが表示されなくなれば、次のステップへ進んでください。</p>
+
+<p>TOMOYO Linux を使う目的が解析であれば、ここで解析は終了です。</p>
+
+<p>TOMOYO Linux を使う目的が保護であれば、次の章へと進んでください。</p>
+
+<hr>
+
+<p><a href="index.html">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
