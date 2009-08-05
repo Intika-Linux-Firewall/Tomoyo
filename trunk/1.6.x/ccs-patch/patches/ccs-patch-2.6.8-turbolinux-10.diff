@@ -42,7 +42,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |   14 +++++++++++++
+ kernel/signal.c                    |    7 ++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   13 +++++++++++-
  kernel/time.c                      |    7 ++++++
@@ -54,7 +54,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/udp.c                     |    9 ++++++++
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 54 files changed, 323 insertions(+), 11 deletions(-)
+ 54 files changed, 316 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -986,7 +986,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.8-16 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.8-16 2009/08/05\n");
  }
 --- linux-2.6.8-16.orig/include/linux/init_task.h
 +++ linux-2.6.8-16/include/linux/init_task.h
@@ -1090,40 +1090,33 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  extern void k_getrusage(struct task_struct *, int, struct rusage *);
  
-@@ -2247,6 +2248,10 @@ asmlinkage long
+@@ -2247,6 +2248,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2277,6 +2282,11 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2276,6 +2279,8 @@ asmlinkage long sys_tgkill(int tgid, int
+ 	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
++	if (ccs_tgkill_permission(tgid, pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
-+
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
-@@ -2317,6 +2327,10 @@ sys_tkill(int pid, int sig)
+@@ -2316,6 +2321,8 @@ sys_tkill(int pid, int sig)
+ 	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
++	if (ccs_tkill_permission(pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
 --- linux-2.6.8-16.orig/kernel/sys.c
 +++ linux-2.6.8-16/kernel/sys.c
 @@ -28,6 +28,7 @@

@@ -55,9 +55,6 @@ int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		    void __user *newval, struct ctl_table *table);
 
-/* Check whether the given signal is allowed to use. */
-int ccs_check_signal_acl(const int sig, const int pid);
-
 /* Check whether the given capability is allowed to use. */
 _Bool ccs_capable(const u8 operation);
 
@@ -83,6 +80,9 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
 int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
 int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr);
+int ccs_kill_permission(pid_t pid, int sig);
+int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig);
+int ccs_tkill_permission(pid_t pid, int sig);
 
 #else
 
@@ -108,11 +108,6 @@ static inline int ccs_check_ioctl_permission(struct file *filp,
 static inline int ccs_parse_table(int __user *name, int nlen,
 				  void __user *oldval, void __user *newval,
 				  struct ctl_table *table)
-{
-	return 0;
-}
-
-static inline int ccs_check_signal_acl(const int sig, const int pid)
 {
 	return 0;
 }
@@ -198,6 +193,21 @@ static inline int ccs_check_uselib_permission(struct dentry *dentry,
 
 static inline int ccs_check_setattr_permission(struct dentry *dentry,
 					       struct iattr *attr)
+{
+	return 0;
+}
+
+static inline int ccs_kill_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tkill_permission(pid_t pid, int sig)
 {
 	return 0;
 }

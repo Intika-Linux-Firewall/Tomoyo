@@ -28,7 +28,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |   13 +++++++++++++
+ kernel/signal.c                 |    7 +++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    5 +++++
  kernel/time.c                   |    5 +++++
@@ -42,7 +42,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
- 40 files changed, 257 insertions(+), 2 deletions(-)
+ 40 files changed, 251 insertions(+), 2 deletions(-)
 
 --- linux-2.6.23.17-88.fc7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23.17-88.fc7/arch/alpha/kernel/ptrace.c
@@ -595,7 +595,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.23.17-88.fc7 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.23.17-88.fc7 2009/08/05\n");
  }
 --- linux-2.6.23.17-88.fc7.orig/include/linux/init_task.h
 +++ linux-2.6.23.17-88.fc7/include/linux/init_task.h
@@ -763,35 +763,29 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
  /*
   * SLAB caches for signal bits.
-@@ -2072,6 +2073,10 @@ asmlinkage long
+@@ -2072,6 +2073,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2130,6 +2135,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2130,6 +2133,8 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tgkill_permission(tgid, pid, sig))
 +		return -EPERM;
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2143,6 +2152,10 @@ sys_tkill(int pid, int sig)
+@@ -2143,6 +2148,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tkill_permission(pid, sig))
 +		return -EPERM;
  
  	return do_tkill(0, pid, sig);
