@@ -10,7 +10,7 @@
  *
  */
 
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /* The list for "struct ccs_reserved_entry". */

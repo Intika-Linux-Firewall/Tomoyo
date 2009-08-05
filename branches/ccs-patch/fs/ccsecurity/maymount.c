@@ -25,7 +25,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 #include <linux/nsproxy.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)

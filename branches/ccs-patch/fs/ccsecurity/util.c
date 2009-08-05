@@ -32,7 +32,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/unistd.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /* To support PID namespace. */

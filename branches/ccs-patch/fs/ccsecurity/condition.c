@@ -11,7 +11,7 @@
  */
 
 #include <linux/slab.h>
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /**

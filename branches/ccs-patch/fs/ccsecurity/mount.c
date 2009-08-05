@@ -19,7 +19,7 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 #include <linux/namespace.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)

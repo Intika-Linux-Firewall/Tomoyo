@@ -32,7 +32,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/kthread.h>
 #endif
 #include <linux/proc_fs.h>
-#include "ccs_common.h"
+#include "internal.h"
 
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

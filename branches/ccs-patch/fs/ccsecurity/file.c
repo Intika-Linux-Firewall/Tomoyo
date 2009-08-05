@@ -10,7 +10,7 @@
  *
  */
 
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 

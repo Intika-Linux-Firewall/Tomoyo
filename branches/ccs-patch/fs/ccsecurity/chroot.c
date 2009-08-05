@@ -17,7 +17,7 @@
 #else
 #include <linux/fs.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /**

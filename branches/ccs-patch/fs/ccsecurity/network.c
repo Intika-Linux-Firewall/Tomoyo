@@ -17,7 +17,7 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 #include <linux/ccsecurity_socket.h>
 

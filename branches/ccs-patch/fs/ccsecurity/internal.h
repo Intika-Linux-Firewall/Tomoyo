@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/ccs_common.h
+ * fs/ccsecurity/internal.h
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -43,7 +43,7 @@ struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
-#include "ccs_compat.h"
+#include "compat.h"
 
 /**
  * list_for_each_cookie - iterate over a list with cookie.

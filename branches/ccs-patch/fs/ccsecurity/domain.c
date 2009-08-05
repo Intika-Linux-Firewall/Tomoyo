@@ -20,7 +20,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #include <linux/fs_struct.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /* For compatibility with older kernels. */

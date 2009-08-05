@@ -17,7 +17,7 @@
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namespace.h>
 #endif
-#include "ccs_common.h"
+#include "internal.h"
 #include <linux/ccsecurity.h>
 
 /**

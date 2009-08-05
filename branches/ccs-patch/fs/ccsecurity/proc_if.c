@@ -16,7 +16,7 @@
 #include <linux/proc_fs.h>
 #include <linux/module.h>
 #include <linux/version.h>
-#include "ccs_common.h"
+#include "internal.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
 #if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9
