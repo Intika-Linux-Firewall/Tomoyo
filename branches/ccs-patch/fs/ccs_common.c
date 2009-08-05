@@ -138,6 +138,9 @@ static struct ccs_profile {
 	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
 } *ccs_profile_ptr[MAX_PROFILES];
 
+/* Lock for protecting ccs_profile->comment  */
+static DEFINE_SPINLOCK(ccs_profile_comment_lock);
+
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
 
@@ -1144,9 +1147,13 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		const struct ccs_path_info *new_comment
 			= ccs_get_name(cp + 1);
 		const struct ccs_path_info *old_comment;
+		/* Protect reader from ccs_put_name(). */
+		/***** CRITICAL SECTION START *****/
+		spin_lock(&ccs_profile_comment_lock);
 		old_comment = ccs_profile->comment;
 		ccs_profile->comment = new_comment;
-		/* BUG: Need to wait for SRCU before kfree(). */
+		spin_unlock(&ccs_profile_comment_lock);
+		/***** CRITICAL SECTION END *****/
 		ccs_put_name(old_comment);
 		ccs_profile_entry_used[0] = true;
 		return 0;
@@ -1231,9 +1238,15 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 		if (!ccs_profile_entry_used[type])
 			continue;
 		if (!type) { /* Print profile' comment tag. */
-			if (!ccs_io_printf(head, "%u-COMMENT=%s\n",
-					   index, ccs_profile->comment ?
-					   ccs_profile->comment->name : ""))
+			bool done;
+			/***** CRITICAL SECTION START *****/
+			spin_lock(&ccs_profile_comment_lock);
+			done = ccs_io_printf(head, "%u-COMMENT=%s\n",
+					     index, ccs_profile->comment ?
+					     ccs_profile->comment->name : "");
+			spin_unlock(&ccs_profile_comment_lock);
+			/***** CRITICAL SECTION END *****/
+			if (!done)
 				break;
 			continue;
 		}
