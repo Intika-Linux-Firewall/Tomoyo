@@ -1,5 +1,5 @@
 config CCSECURITY
-	bool "SAKURA and TOMOYO support"
+	bool "CCSecurity support"
 	default y
 	help
 	  Say Y here to support the name based mandatory access control.
@@ -69,32 +69,3 @@ config CCSECURITY_MAX_REJECT_LOG
 	  You can read the log via /proc/ccs/reject_log.
 	  If you don't need access reject logs,
 	  you may set this value to 0.
-
-config SYAORAN
-	tristate "SYAORAN (Tamper-Proof Device Filesystem) support"
-	default m
-	help
-	  Say Y or M here to support the Tamper-Proof Device Filesystem.
-
-	  SYAORAN stands for
-	  "Simple Yet All-important Object Realizing Abiding Nexus".
-	  SYAORAN is a filesystem for /dev with Mandatory Access Control.
-
-	  SAKURA can make root fs read-only, but the system can't work
-	  if /dev is read-only. Therefore you need to mount a writable
-	  filesystem (such as tmpfs) for /dev if root fs is read-only.
-
-	  But the writable /dev means that files on /dev might be tampered.
-	  For example, if /dev/null is deleted and re-created as a symbolic
-	  link to /dev/hda by an attacker, the contents of the IDE HDD
-	  will be destroyed at a blow.
-
-	  Also, TOMOYO controls file access by pathnames,
-	  not by security labels.
-	  Therefore /dev/null, for example, might be tampered
-	  if a process have write permission to /dev/null .
-
-	  SYAORAN can ensure /dev/null is a character device file
-	  with major=1 minor=3.
-
-	  You can use SAKURA to make /dev not unmountable.

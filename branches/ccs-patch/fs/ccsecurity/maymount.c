@@ -1,7 +1,5 @@
 /*
- * fs/sakura_maymount.c
- *
- * Implementation of the Domain-Free Mandatory Access Control.
+ * fs/ccsecurity/maymount.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -27,9 +25,8 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 #include <linux/nsproxy.h>
 #endif
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path

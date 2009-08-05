@@ -1,7 +1,5 @@
 /*
- * include/linux/ccs_common.h
- *
- * Common functions for SAKURA and TOMOYO.
+ * fs/ccsecurity/ccs_common.h
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -45,7 +43,7 @@ struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 
-#include <linux/ccs_compat.h>
+#include "ccs_compat.h"
 
 /**
  * list_for_each_cookie - iterate over a list with cookie.
@@ -1061,8 +1059,6 @@ extern struct list_head ccs_policy_manager_list;
 
 /* Has /sbin/init started? */
 extern bool ccs_policy_loaded;
-/* Log level for printk(). */
-extern const char *ccs_log_level;
 /* The kernel's domain. */
 extern struct ccs_domain_info ccs_kernel_domain;
 /* Lock for GC. */

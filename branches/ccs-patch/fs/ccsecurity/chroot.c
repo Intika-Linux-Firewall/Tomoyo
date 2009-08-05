@@ -1,7 +1,5 @@
 /*
- * fs/sakura_chroot.c
- *
- * Implementation of the Domain-Free Mandatory Access Control.
+ * fs/ccsecurity/chroot.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -19,8 +17,8 @@
 #else
 #include <linux/fs.h>
 #endif
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_chroot_log - Audit chroot log.

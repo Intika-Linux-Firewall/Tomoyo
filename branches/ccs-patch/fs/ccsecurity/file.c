@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_file.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/file.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -12,8 +10,8 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 /* Keyword array for single path operations. */

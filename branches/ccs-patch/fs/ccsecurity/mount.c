@@ -1,7 +1,5 @@
 /*
- * fs/sakura_mount.c
- *
- * Implementation of the Domain-Free Mandatory Access Control.
+ * fs/ccsecurity/mount.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -21,8 +19,8 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 #include <linux/namespace.h>
 #endif
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
 #define MS_UNBINDABLE	(1<<17)	/* change to unbindable */

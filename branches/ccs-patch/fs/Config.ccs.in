@@ -2,7 +2,7 @@
 # Mandatory Access Control configuration
 #
 [ -z "$CONFIG_CCSECURITY" ] && define_bool CONFIG_CCSECURITY y
-bool 'SAKURA and TOMOYO support' CONFIG_CCSECURITY
+bool 'CCSecurity support' CONFIG_CCSECURITY
 
 if [ "$CONFIG_CCSECURITY" = "y" ]; then
 
@@ -28,6 +28,3 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
   fi
 
 fi
-
-[ -z "$CONFIG_SYAORAN" ] && define_tristate CONFIG_SYAORAN m
-tristate 'SYAORAN (Tamper-Proof Device Filesystem) support' CONFIG_SYAORAN

@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_signal.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/signal.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -12,8 +10,8 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)

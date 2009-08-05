@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_exec.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/argv0.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -12,8 +10,8 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_argv0_log - Audit argv[0] log.

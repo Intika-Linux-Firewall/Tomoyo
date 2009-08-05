@@ -1,7 +1,5 @@
 /*
- * fs/sakura_bind.c
- *
- * Implementation of the Domain-Free Mandatory Access Control.
+ * fs/ccsecurity/autobind.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -12,8 +10,8 @@
  *
  */
 
-#include <linux/ccs_common.h>
-#include <linux/sakura.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /* The list for "struct ccs_reserved_entry". */
 LIST_HEAD(ccs_reservedport_list);

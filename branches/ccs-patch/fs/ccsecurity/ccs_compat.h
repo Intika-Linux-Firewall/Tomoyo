@@ -1,7 +1,5 @@
 /*
- * include/linux/ccs_compat.h
- *
- * For compatibility for older kernels.
+ * fs/ccsecurity/ccs_compat.h
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

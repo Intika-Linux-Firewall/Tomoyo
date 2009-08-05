@@ -1,7 +1,5 @@
 /*
- * fs/ccs_common.c
- *
- * Common functions for SAKURA and TOMOYO.
+ * fs/ccsecurity/util.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -34,8 +32,8 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/unistd.h>
 #endif
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
@@ -51,9 +49,6 @@ DEFINE_MUTEX(ccs_policy_lock);
 
 /* Has /sbin/init started? */
 bool ccs_policy_loaded;
-
-/* Log level for SAKURA's printk(). */
-const char *ccs_log_level = KERN_DEBUG;
 
 /* String table for functionality that takes 4 modes. */
 static const char *ccs_mode_4[4] = {
@@ -2725,7 +2720,6 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "TOMOYO: 1.7.0-pre   2009/07/03\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
-	ccs_log_level = KERN_WARNING;
 	{ /* Check all profiles currently assigned to domains are defined. */
 		struct ccs_domain_info *domain;
 		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {

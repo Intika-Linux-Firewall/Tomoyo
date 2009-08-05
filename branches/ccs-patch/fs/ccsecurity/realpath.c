@@ -1,7 +1,5 @@
 /*
- * fs/realpath.c
- *
- * Get the canonicalized absolute pathnames. The basis for SAKURA and TOMOYO.
+ * fs/ccsecurity/realpath.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -34,7 +32,7 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/kthread.h>
 #endif
 #include <linux/proc_fs.h>
-#include <linux/ccs_common.h>
+#include "ccs_common.h"
 
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

@@ -1,7 +1,5 @@
 /*
- * fs/proc/ccs_proc.c
- *
- * /proc interface for SAKURA and TOMOYO.
+ * fs/ccsecurity/proc_if.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -18,7 +16,7 @@
 #include <linux/proc_fs.h>
 #include <linux/module.h>
 #include <linux/version.h>
-#include <linux/ccs_common.h>
+#include "ccs_common.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
 #if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9

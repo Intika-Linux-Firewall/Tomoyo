@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_network.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/network.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -19,9 +17,9 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
-#include <linux/tomoyo_socket.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
+#include <linux/ccsecurity_socket.h>
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {

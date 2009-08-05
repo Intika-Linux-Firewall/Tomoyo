@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_domain.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/domain.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -22,8 +20,8 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #include <linux/fs_struct.h>
 #endif
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /* For compatibility with older kernels. */
 #ifndef for_each_process

@@ -1,7 +1,5 @@
 /*
- * fs/tomoyo_cond.c
- *
- * Implementation of the Domain-Based Mandatory Access Control.
+ * fs/ccsecurity/condition.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -13,8 +11,8 @@
  */
 
 #include <linux/slab.h>
-#include <linux/ccs_common.h>
-#include <linux/tomoyo.h>
+#include "ccs_common.h"
+#include <linux/ccsecurity.h>
 
 /**
  * ccs_check_argv - Check argv[] in "struct linux_binbrm".
