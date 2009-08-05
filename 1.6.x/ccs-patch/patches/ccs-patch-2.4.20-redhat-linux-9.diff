@@ -38,7 +38,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  kernel/kmod.c                |    3 +
  kernel/module.c              |    7 +++
  kernel/sched.c               |    3 +
- kernel/signal.c              |    9 ++++
+ kernel/signal.c              |    5 ++
  kernel/sys.c                 |   11 +++++
  kernel/sysctl.c              |   13 ++++++
  kernel/time.c                |    7 +++
@@ -50,7 +50,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |    9 ++++
  net/socket.c                 |   24 ++++++++++++
  net/unix/af_unix.c           |    4 ++
- 48 files changed, 402 insertions(+), 3 deletions(-)
+ 48 files changed, 398 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/Documentation/Configure.help
 +++ linux-2.4.20-46.9.legacy/Documentation/Configure.help
@@ -982,7 +982,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/05\n");
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
@@ -1091,24 +1091,20 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  /*
   * SLAB caches for signal bits.
-@@ -1812,6 +1813,10 @@ asmlinkage long
+@@ -1812,6 +1813,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -1835,6 +1840,10 @@ sys_tkill(int pid, int sig)
+@@ -1835,6 +1838,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tkill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;

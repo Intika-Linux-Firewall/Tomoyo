@@ -23,7 +23,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |   13 +++++++++++++
+ kernel/signal.c                 |    7 +++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -36,7 +36,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    5 +++++
- 34 files changed, 238 insertions(+), 3 deletions(-)
+ 34 files changed, 232 insertions(+), 3 deletions(-)
 
 --- linux-2.6.30.4.orig/fs/Kconfig
 +++ linux-2.6.30.4/fs/Kconfig
@@ -469,7 +469,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.4 2009/07/31\n");
++	printk(KERN_INFO "Hook version: 2.6.30.4 2009/08/05\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -639,35 +639,29 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /*
   * SLAB caches for signal bits.
-@@ -2268,6 +2269,10 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2268,6 +2269,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2329,6 +2334,10 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2329,6 +2332,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tgkill_permission(tgid, pid, sig))
 +		return -EPERM;
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2341,6 +2350,10 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2341,6 +2346,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tkill_permission(pid, sig))
 +		return -EPERM;
  
  	return do_tkill(0, pid, sig);

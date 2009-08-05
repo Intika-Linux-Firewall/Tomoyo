@@ -47,7 +47,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |   14 +++++++++++++
+ kernel/signal.c                    |    7 ++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   16 +++++++++++++--
  kernel/time.c                      |    7 ++++++
@@ -59,7 +59,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                     |   14 ++++++++++++-
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 57 files changed, 338 insertions(+), 12 deletions(-)
+ 57 files changed, 331 insertions(+), 12 deletions(-)
 
 --- linux-2.6.11.12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.11.12/arch/alpha/kernel/ptrace.c
@@ -1037,7 +1037,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.11.12 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.11.12 2009/08/05\n");
  }
 --- linux-2.6.11.12.orig/include/linux/init_task.h
 +++ linux-2.6.11.12/include/linux/init_task.h
@@ -1160,40 +1160,33 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  extern void k_getrusage(struct task_struct *, int, struct rusage *);
  
-@@ -2230,6 +2231,10 @@ asmlinkage long
+@@ -2230,6 +2231,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2260,6 +2265,11 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2259,6 +2262,8 @@ asmlinkage long sys_tgkill(int tgid, int
+ 	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
++	if (ccs_tgkill_permission(tgid, pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
-+
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
-@@ -2300,6 +2310,10 @@ sys_tkill(int pid, int sig)
+@@ -2299,6 +2304,8 @@ sys_tkill(int pid, int sig)
+ 	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
++	if (ccs_tkill_permission(pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
 --- linux-2.6.11.12.orig/kernel/sys.c
 +++ linux-2.6.11.12/kernel/sys.c
 @@ -31,6 +31,7 @@

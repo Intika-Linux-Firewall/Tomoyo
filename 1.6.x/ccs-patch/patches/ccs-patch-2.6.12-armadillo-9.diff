@@ -47,7 +47,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |   14 +++++++++++++
+ kernel/signal.c                    |    7 ++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   16 +++++++++++++--
  kernel/time.c                      |    7 ++++++
@@ -59,7 +59,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                     |    9 ++++++++
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 57 files changed, 337 insertions(+), 12 deletions(-)
+ 57 files changed, 330 insertions(+), 12 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
@@ -1037,7 +1037,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/08/05\n");
  }
 --- linux-2.6.12.3-a9-17.orig/include/linux/init_task.h
 +++ linux-2.6.12.3-a9-17/include/linux/init_task.h
@@ -1160,40 +1160,33 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  /*
   * SLAB caches for signal bits.
-@@ -2255,6 +2256,10 @@ asmlinkage long
+@@ -2255,6 +2256,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2285,6 +2290,11 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2284,6 +2287,8 @@ asmlinkage long sys_tgkill(int tgid, int
+ 	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
++	if (ccs_tgkill_permission(tgid, pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
-+
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
-@@ -2325,6 +2335,10 @@ sys_tkill(int pid, int sig)
+@@ -2324,6 +2329,8 @@ sys_tkill(int pid, int sig)
+ 	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
++	if (ccs_tkill_permission(pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
 --- linux-2.6.12.3-a9-17.orig/kernel/sys.c
 +++ linux-2.6.12.3-a9-17/kernel/sys.c
 @@ -33,6 +33,7 @@

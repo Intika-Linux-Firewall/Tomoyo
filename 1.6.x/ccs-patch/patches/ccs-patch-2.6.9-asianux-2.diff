@@ -45,7 +45,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |   14 +++++++++++++
+ kernel/signal.c                    |    7 ++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   14 ++++++++++++-
  kernel/time.c                      |    7 ++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/ipv6/udp.c                     |    8 +++++++
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 55 files changed, 334 insertions(+), 13 deletions(-)
+ 55 files changed, 327 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.13AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.13AXS2/arch/alpha/kernel/ptrace.c
@@ -1035,7 +1035,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-78.13AXS2 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.13AXS2 2009/08/05\n");
  }
 --- linux-2.6.9-78.13AXS2.orig/include/linux/init_task.h
 +++ linux-2.6.9-78.13AXS2/include/linux/init_task.h
@@ -1139,40 +1139,33 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  extern void k_getrusage(struct task_struct *, int, struct rusage *);
  
-@@ -2346,6 +2347,10 @@ asmlinkage long
+@@ -2346,6 +2347,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2376,6 +2381,11 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2375,6 +2378,8 @@ asmlinkage long sys_tgkill(int tgid, int
+ 	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
++	if (ccs_tgkill_permission(tgid, pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
-+
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
-@@ -2416,6 +2426,10 @@ sys_tkill(int pid, int sig)
+@@ -2415,6 +2420,8 @@ sys_tkill(int pid, int sig)
+ 	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
++	if (ccs_tkill_permission(pid, sig))
++		return -EPERM;
  
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
-+		return -EPERM;
  	info.si_signo = sig;
  	info.si_errno = 0;
- 	info.si_code = SI_TKILL;
 --- linux-2.6.9-78.13AXS2.orig/kernel/sys.c
 +++ linux-2.6.9-78.13AXS2/kernel/sys.c
 @@ -31,6 +31,7 @@

@@ -118,7 +118,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_signal_acl(const int sig, const int pid)
+static int ccs_check_signal_acl(const int sig, const int pid)
 {
 	struct ccs_request_info r;
 	struct ccs_domain_info *dest = NULL;
@@ -226,4 +226,53 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 		return ccs_update_signal_acl(sig, domainname + 1, domain,
 					     condition, is_delete);
 	return -EINVAL;
+}
+
+/**
+ * ccs_kill_permission - Permission check for kill().
+ *
+ * @pid: PID
+ * @sig: Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_kill_permission(pid_t pid, int sig)
+{
+        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+		    ccs_check_signal_acl(sig, pid)))
+                return -EPERM;
+	return 0;
+}
+
+/**
+ * ccs_tgkill_permission - Permission check for tgkill().
+ *
+ * @tgid: TGID
+ * @pid:  PID
+ * @sig:  Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+{
+        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+		    ccs_check_signal_acl(sig, pid)))
+                return -EPERM;
+	return 0;
+}
+
+/**
+ * ccs_tkill_permission - Permission check for tkill().
+ *
+ * @pid: PID
+ * @sig: Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_tkill_permission(pid_t pid, int sig)
+{
+        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+		    ccs_check_signal_acl(sig, pid)))
+		return -EPERM;
+	return 0;
 }

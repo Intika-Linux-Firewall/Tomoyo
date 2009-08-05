@@ -32,7 +32,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |   13 +++++++++++++
+ kernel/signal.c                 |    7 +++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |   11 +++++++++++
  kernel/time.c                   |    7 +++++++
@@ -45,7 +45,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/ipv6/udp.c                  |    9 +++++++++
  net/socket.c                    |   26 ++++++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 43 files changed, 288 insertions(+), 9 deletions(-)
+ 43 files changed, 282 insertions(+), 9 deletions(-)
 
 --- linux-2.6.18-24etch2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-24etch2/arch/alpha/kernel/ptrace.c
@@ -691,7 +691,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-24etch2 2009/07/23\n");
++	printk(KERN_INFO "Hook version: 2.6.18-24etch2 2009/08/05\n");
  }
 --- linux-2.6.18-24etch2.orig/include/linux/init_task.h
 +++ linux-2.6.18-24etch2/include/linux/init_task.h
@@ -852,35 +852,29 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  
  /*
   * SLAB caches for signal bits.
-@@ -2183,6 +2184,10 @@ asmlinkage long
+@@ -2183,6 +2184,8 @@ asmlinkage long
  sys_kill(int pid, int sig)
  {
  	struct siginfo info;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2241,6 +2246,10 @@ asmlinkage long sys_tgkill(int tgid, int
+@@ -2241,6 +2244,8 @@ asmlinkage long sys_tgkill(int tgid, int
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tgkill_permission(tgid, pid, sig))
 +		return -EPERM;
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2254,6 +2263,10 @@ sys_tkill(int pid, int sig)
+@@ -2254,6 +2259,8 @@ sys_tkill(int pid, int sig)
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
-+	if (sig && !ccs_capable(CCS_SYS_KILL))
-+		return -EPERM;
-+	if (sig && ccs_check_signal_acl(sig, pid))
++	if (ccs_tkill_permission(pid, sig))
 +		return -EPERM;
  
  	return do_tkill(0, pid, sig);
