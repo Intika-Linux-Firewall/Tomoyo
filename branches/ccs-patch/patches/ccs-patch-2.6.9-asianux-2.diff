@@ -34,8 +34,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/fcntl.c                         |    4 +++
  fs/ioctl.c                         |    7 ++++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   30 +++++++++++++++++++++++++++--
- fs/open.c                          |   15 ++++++++++++++
+ fs/namespace.c                     |   29 ++++++++++++++++++++++++++--
+ fs/open.c                          |   14 +++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
  include/linux/sched.h              |    4 +++
@@ -48,15 +48,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  kernel/time.c                      |    7 ++++++
  net/ipv4/raw.c                     |    4 +++
  net/ipv4/tcp_ipv4.c                |    5 ++++
- net/ipv4/udp.c                     |   10 ++++++++-
+ net/ipv4/udp.c                     |    9 +++++++-
  net/ipv6/raw.c                     |    4 +++
  net/ipv6/tcp_ipv6.c                |    3 ++
- net/ipv6/udp.c                     |    8 +++++++
- net/socket.c                       |   26 ++++++++++++++++++++++---
+ net/ipv6/udp.c                     |    7 ++++++
+ net/socket.c                       |   25 +++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 54 files changed, 325 insertions(+), 13 deletions(-)
+ 54 files changed, 320 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.13AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.13AXS2/arch/alpha/kernel/ptrace.c
@@ -64,7 +64,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/fpu.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "proto.h"
  
@@ -83,7 +83,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/traps.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ptrace.h"
  
@@ -102,7 +102,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  //#include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ptrace.h"
  
@@ -121,7 +121,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* 
   * Determines which bits in DCCR the user has access to.
@@ -140,7 +140,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/signal.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
@@ -159,7 +159,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
  #include <asm/desc.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -178,7 +178,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/types.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ia32priv.h"
  
@@ -197,7 +197,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
  #endif
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "entry.h"
  
@@ -216,7 +216,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Get the address of the live pt_regs for the specified task.
@@ -235,7 +235,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -254,7 +254,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -273,7 +273,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Called by kernel/ptrace.c when detaching..
@@ -292,7 +292,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Tracing a 32-bit process with a 64-bit strace and vice versa will not
@@ -311,7 +311,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/offsets.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* PSW bits we allow the debugger to modify */
  #define USER_PSW_BITS	(PSW_N | PSW_V | PSW_CB)
@@ -330,7 +330,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
@@ -349,7 +349,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/ptrace-common.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -368,7 +368,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/ptrace-common.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -387,7 +387,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgalloc.h>
  #include <asm/system.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_S390_SUPPORT
  #include "compat_ptrace.h"
@@ -406,7 +406,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -425,7 +425,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
@@ -444,7 +444,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define MAGIC_CONSTANT 0x80000000
  
@@ -465,7 +465,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
  #include <asm/spitfire.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Returning from ptrace is a bit tricky because the syscall return
   * low level code assumes any value returned which is negative and
@@ -486,7 +486,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include "asm/uaccess.h"
  #include "kern_util.h"
  #include "ptrace_user.h"
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Called by kernel/ptrace.c when detaching..
@@ -505,7 +505,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/ptrace.h>
  #include <asm/processor.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
@@ -524,7 +524,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/debugreg.h>
  #include <asm/i387.h>
  #include <asm/fpu32.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
@@ -543,7 +543,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/desc.h>
  #include <asm/proto.h>
  #include <asm/ia32.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -562,7 +562,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <linux/security.h>
  #include <linux/time.h>
  #include <linux/audit.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Taken over from the old code... */
  
@@ -588,7 +588,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Not all architectures have sys_utime, so implement this in terms
@@ -631,7 +631,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <linux/kmod.h>
  #endif
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  int core_uses_pid;
  char core_pattern[65] = "core";
@@ -686,7 +686,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
@@ -706,7 +706,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #include <asm/uaccess.h>
  #include <asm/ioctls.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
@@ -736,7 +736,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
@@ -757,7 +757,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	return 0;
  }
  
-+#include <linux/tomoyo_vfs.h>
++#include <linux/ccsecurity_vfs.h>
  /*
   *	open_namei()
   *
@@ -849,16 +849,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  exit5:
 --- linux-2.6.9-78.13AXS2.orig/fs/namespace.c
 +++ linux-2.6.9-78.13AXS2/fs/namespace.c
-@@ -23,6 +23,8 @@
+@@ -23,6 +23,7 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  extern int __init init_rootfs(void);
  
-@@ -427,6 +429,9 @@ static int do_umount(struct vfsmount *mn
+@@ -427,6 +428,9 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -868,7 +867,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -672,6 +677,8 @@ asmlinkage long sys_umount(char __user *
+@@ -672,6 +676,8 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -877,7 +876,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #ifdef CONFIG_FUMOUNT
          if (flags & MNT_FFORCE) {
-@@ -844,6 +851,9 @@ static int do_loopback(struct nameidata 
+@@ -844,6 +850,9 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -887,7 +886,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -865,7 +875,7 @@ static int do_loopback(struct nameidata 
+@@ -865,7 +874,7 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -896,7 +895,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -926,7 +936,9 @@ static int do_move_mount(struct nameidat
+@@ -926,7 +935,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -907,7 +906,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1025,6 +1037,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1025,6 +1036,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -917,7 +916,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1248,6 +1263,13 @@ long do_mount(char * dev_name, char * di
+@@ -1248,6 +1262,13 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -931,7 +930,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1505,6 +1527,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1505,6 +1526,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -940,7 +939,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
-@@ -1520,6 +1544,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1543,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -951,17 +950,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		goto out1;
 --- linux-2.6.9-78.13AXS2.orig/fs/open.c
 +++ linux-2.6.9-78.13AXS2/fs/open.c
-@@ -29,6 +29,9 @@
+@@ -29,6 +29,8 @@
  
  #include <asm/unistd.h>
  
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  int vfs_statfs(struct super_block *sb, struct kstatfs *buf)
  {
  	int retval = -ENODEV;
-@@ -272,6 +275,8 @@ static inline long do_sys_truncate(const
+@@ -272,6 +274,8 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -970,7 +968,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -328,6 +333,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -328,6 +332,10 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -981,7 +979,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
-@@ -620,6 +629,10 @@ asmlinkage long sys_chroot(const char __
+@@ -620,6 +628,10 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -992,7 +990,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1226,6 +1239,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1226,6 +1238,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1058,7 +1056,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/semaphore.h>
  #include <asm/cacheflush.h>
  #include "module-verify.h"
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #if 0
  #define DEBUGP printk
@@ -1088,7 +1086,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/tlb.h>
  
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_NUMA
  #define cpu_to_node_mask(cpu) node_to_cpumask(cpu_to_node(cpu))
@@ -1107,7 +1105,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  extern void k_getrusage(struct task_struct *, int, struct rusage *);
  
@@ -1144,7 +1142,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/io.h>
  #include <asm/unistd.h>
  #include <linux/getcpu.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
@@ -1192,7 +1190,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  static int proc_do_kdb(ctl_table *table, int write, struct file *filp, void *buffer, size_t *lenp, loff_t *ppos);
  #endif	/* CONFIG_KDB */
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
@@ -1236,7 +1234,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
  #include <linux/fs.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
@@ -1273,7 +1271,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
  #include <linux/netfilter_ipv4.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
  rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
@@ -1293,7 +1291,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  extern int sysctl_ip_dynaddr;
  int sysctl_tcp_tw_reuse;
@@ -1317,16 +1315,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
   			 * because the established check is already
 --- linux-2.6.9-78.13AXS2.orig/net/ipv4/udp.c
 +++ linux-2.6.9-78.13AXS2/net/ipv4/udp.c
-@@ -107,6 +107,8 @@
+@@ -107,6 +107,7 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
  #include <net/xfrm.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -141,6 +143,8 @@ static int udp_v4_get_port(struct sock *
+@@ -141,6 +142,8 @@ static int udp_v4_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			struct hlist_head *list;
  			int size = 0;
@@ -1335,7 +1332,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -160,6 +164,7 @@ static int udp_v4_get_port(struct sock *
+@@ -160,6 +163,7 @@ static int udp_v4_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1343,7 +1340,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -794,7 +799,10 @@ try_again:
+@@ -794,7 +798,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1361,7 +1358,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
  rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
@@ -1381,7 +1378,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  static void	tcp_v6_send_reset(struct sk_buff *skb);
  static void	tcp_v6_or_send_ack(struct sk_buff *skb, struct open_request *req);
@@ -1396,16 +1393,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  					goto next;
 --- linux-2.6.9-78.13AXS2.orig/net/ipv6/udp.c
 +++ linux-2.6.9-78.13AXS2/net/ipv6/udp.c
-@@ -57,6 +57,8 @@
+@@ -57,6 +57,7 @@
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -83,6 +85,8 @@ static int udp_v6_get_port(struct sock *
+@@ -83,6 +84,8 @@ static int udp_v6_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
  			struct hlist_head *list;
@@ -1414,7 +1410,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -102,6 +106,7 @@ static int udp_v6_get_port(struct sock *
+@@ -102,6 +105,7 @@ static int udp_v6_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1422,7 +1418,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -238,6 +243,9 @@ try_again:
+@@ -238,6 +242,9 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1434,17 +1430,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
    	if (copied > len) {
 --- linux-2.6.9-78.13AXS2.orig/net/socket.c
 +++ linux-2.6.9-78.13AXS2/net/socket.c
-@@ -96,6 +96,9 @@
+@@ -96,6 +96,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
  
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
 +
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -552,9 +555,12 @@ static inline int __sock_sendmsg(struct 
+@@ -552,9 +554,12 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1458,7 +1453,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1115,6 +1121,8 @@ static int __sock_create(int family, int
+@@ -1115,6 +1120,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1467,7 +1462,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (err)
  		return err;
  		
-@@ -1311,6 +1319,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1311,6 +1318,10 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1478,7 +1473,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1341,7 +1353,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1341,7 +1352,8 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1488,7 +1483,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1392,6 +1405,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1392,6 +1404,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1500,7 +1495,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1445,9 +1463,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1445,9 +1462,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
@@ -1519,7 +1514,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #include <linux/mount.h>
  #include <net/checksum.h>
  #include <linux/security.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int sysctl_unix_max_dgram_qlen = 10;
  

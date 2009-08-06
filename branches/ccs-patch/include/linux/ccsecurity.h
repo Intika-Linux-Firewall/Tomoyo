@@ -29,6 +29,10 @@ struct pt_regs;
 struct file;
 struct ctl_table;
 struct iattr;
+struct socket;
+struct sockaddr;
+struct sock;
+struct sk_buff;
 
 #if defined(CONFIG_CCSECURITY)
 
@@ -101,6 +105,18 @@ int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr);
 int ccs_kill_permission(pid_t pid, int sig);
 int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig);
 int ccs_tkill_permission(pid_t pid, int sig);
+
+int ccs_socket_create_permission(int family, int type, int protocol);
+int ccs_socket_listen_permission(struct socket *sock);
+int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
+				  int addr_len);
+int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
+			       int addr_len);
+int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr);
+int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
+				  int addr_len);
+int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
+				  const unsigned int flags);
 
 #else
 
@@ -276,6 +292,51 @@ static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 }
 
 static inline int ccs_tkill_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_socket_create_permission(int family, int type,
+					       int protocol)
+{
+	return 0;
+}
+
+static inline int ccs_socket_listen_permission(struct socket *sock)
+{
+	return 0;
+}
+
+static inline int ccs_socket_connect_permission(struct socket *sock,
+						struct sockaddr *addr,
+						int addr_len)
+{
+	return 0;
+}
+
+static inline int ccs_socket_bind_permission(struct socket *sock,
+					     struct sockaddr *addr,
+					     int addr_len)
+{
+	return 0;
+}
+
+static inline int ccs_socket_accept_permission(struct socket *sock,
+					       struct sockaddr *addr)
+{
+	return 0;
+}
+
+static inline int ccs_socket_sendmsg_permission(struct socket *sock,
+						struct sockaddr *addr,
+						int addr_len)
+{
+	return 0;
+}
+
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
 {
 	return 0;
 }

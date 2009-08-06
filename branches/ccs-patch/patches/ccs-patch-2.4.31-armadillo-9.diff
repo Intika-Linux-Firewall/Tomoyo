@@ -38,8 +38,8 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/fcntl.c                      |    4 +++
  fs/ioctl.c                      |   10 +++++++++
  fs/namei.c                      |   43 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   34 ++++++++++++++++++++++++++++++-
- fs/open.c                       |   16 ++++++++++++++
+ fs/namespace.c                  |   33 +++++++++++++++++++++++++++++-
+ fs/open.c                       |   15 +++++++++++++
  fs/proc/proc_misc.c             |    1 
  include/linux/sched.h           |    6 +++++
  kernel/kmod.c                   |    3 ++
@@ -51,13 +51,13 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  kernel/time.c                   |    7 ++++++
  net/ipv4/raw.c                  |    4 +++
  net/ipv4/tcp_ipv4.c             |    5 ++++
- net/ipv4/udp.c                  |   11 +++++++++-
+ net/ipv4/udp.c                  |   10 ++++++++-
  net/ipv6/raw.c                  |    4 +++
  net/ipv6/tcp_ipv6.c             |    3 ++
- net/ipv6/udp.c                  |   14 ++++++++++++-
- net/socket.c                    |   26 ++++++++++++++++++++++--
+ net/ipv6/udp.c                  |   13 +++++++++++-
+ net/socket.c                    |   25 +++++++++++++++++++++--
  net/unix/af_unix.c              |    4 +++
- 55 files changed, 343 insertions(+), 8 deletions(-)
+ 55 files changed, 338 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -65,7 +65,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/fpu.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "proto.h"
  
@@ -84,7 +84,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ptrace.h"
  
@@ -103,7 +103,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ptrace.h"
  
@@ -122,7 +122,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*   Changes for FRIO made by TONY & AKBAR HUSSAIN   Lineo Inc. */
  
@@ -141,7 +141,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -160,7 +160,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -179,7 +179,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/signal.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* cpu depend functions */
  extern long h8300_get_reg(struct task_struct *task, int regno);
@@ -198,7 +198,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/processor.h>
  #include <asm/i387.h>
  #include <asm/debugreg.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -217,7 +217,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <net/scm.h>
  #include <net/sock.h>
  #include <asm/ia32.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define DEBUG	0
  
@@ -236,7 +236,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
  #endif
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define offsetof(type,field)    ((unsigned long) &((type *) 0)->field)
  
@@ -255,7 +255,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -274,7 +274,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -293,7 +293,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/ptrace.h>
  #include <asm/processor.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #if 0
  #define DBPRINTK(...) printk(__VA_ARGS__)
@@ -312,7 +312,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/bootinfo.h>
  #include <asm/cpu.h>
  #include <asm/fpu.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Called by kernel/ptrace.c when detaching..
@@ -331,7 +331,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Called by kernel/ptrace.c when detaching..
@@ -359,7 +359,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #if 0
  /* Returning from ptrace is a bit tricky because the syscall return
@@ -380,7 +380,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/offset.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* These are used in entry.S, syscall_restore_rfi.  We need to record the
   * current stepping mode somewhere other than in PSW, because there is no
@@ -399,7 +399,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
@@ -418,7 +418,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Set of msr bits that gdb can change on behalf of a process.
@@ -437,7 +437,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/page.h>
  #include <asm/pgtable.h>
  #include <asm/system.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_ALTIVEC
  /*
@@ -456,7 +456,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgalloc.h>
  #include <asm/system.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  
  void FixPerRegisters(struct task_struct *task)
@@ -475,7 +475,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #else
  #define parent_31bit 0
  #endif
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  
  void FixPerRegisters(struct task_struct *task)
@@ -494,7 +494,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -513,7 +513,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/system.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* This mask defines the bits of the SR which the user is not allowed to
     change, which are everything except S, Q, M, PR, SZ, FR. */
@@ -532,7 +532,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/pgtable.h>
  #include <asm/system.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define MAGIC_CONSTANT 0x80000000
  
@@ -553,7 +553,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
  #include <asm/spitfire.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define MAGIC_CONSTANT 0x80000000
  
@@ -574,7 +574,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/ptrace.h>
  #include <asm/processor.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Returns the address where the register at REG_OFFS in P is stashed away.  */
  static v850_reg_t *reg_save_addr (unsigned reg_offs, struct task_struct *t)
@@ -593,7 +593,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/i387.h>
  #include <asm/fpu32.h>
  #include <linux/mm.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* determines which flags the user has access to. */
  /* 1 = access 0 = no access */
@@ -612,7 +612,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/processor.h>
  #include <asm/i387.h>
  #include <asm/debugreg.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * does not yet catch signals sent when the child dies.
@@ -652,7 +652,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/dnotify.h>
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Taken over from the old code... */
  
@@ -672,7 +672,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/kmod.h>
  #endif
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  int core_uses_pid;
  char core_pattern[65] = "core";
@@ -714,7 +714,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  extern int sock_fcntl (struct file *, unsigned int cmd, unsigned long arg);
  extern int fcntl_setlease(unsigned int fd, struct file *filp, long arg);
@@ -734,7 +734,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include <asm/uaccess.h>
  #include <asm/ioctls.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  static int file_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
  {
@@ -767,7 +767,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +#include <linux/module.h>
 +
  /* [Feb-1997 T. Schoebel-Theuer]
@@ -777,7 +777,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	return error;
  }
  
-+#include <linux/tomoyo_vfs.h>
++#include <linux/ccsecurity_vfs.h>
  /*
   *	open_namei()
   *
@@ -898,17 +898,16 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	dput(old_dentry);
 --- linux-2.4.31-a9-3.orig/fs/namespace.c
 +++ linux-2.4.31-a9-3/fs/namespace.c
-@@ -21,6 +21,9 @@
+@@ -21,6 +21,8 @@
  #include <linux/seq_file.h>
  #include <linux/namespace.h>
  
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  struct vfsmount *do_kern_mount(const char *type, int flags, char *name, void *data);
  int do_remount_sb(struct super_block *sb, int flags, void * data);
  void kill_super(struct super_block *sb);
-@@ -290,6 +293,8 @@ static int do_umount(struct vfsmount *mn
+@@ -290,6 +292,8 @@ static int do_umount(struct vfsmount *mn
  {
  	struct super_block * sb = mnt->mnt_sb;
  	int retval = 0;
@@ -917,7 +916,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -365,6 +370,8 @@ asmlinkage long sys_umount(char * name, 
+@@ -365,6 +369,8 @@ asmlinkage long sys_umount(char * name, 
  {
  	struct nameidata nd;
  	int retval;
@@ -926,7 +925,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	retval = __user_walk(name, LOOKUP_POSITIVE|LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -500,6 +507,9 @@ static int do_loopback(struct nameidata 
+@@ -500,6 +506,9 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -936,7 +935,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -516,7 +526,7 @@ static int do_loopback(struct nameidata 
+@@ -516,7 +525,7 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -945,7 +944,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -570,6 +580,10 @@ static int do_move_mount(struct nameidat
+@@ -570,6 +579,10 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -956,7 +955,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -641,6 +655,10 @@ static int do_add_mount(struct nameidata
+@@ -641,6 +654,10 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
@@ -967,7 +966,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -718,6 +736,13 @@ long do_mount(char * dev_name, char * di
+@@ -718,6 +735,13 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -981,7 +980,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -911,6 +936,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -911,6 +935,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -990,7 +989,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	lock_kernel();
  
-@@ -925,6 +952,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +951,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
@@ -1004,17 +1003,16 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	user_nd.dentry = dget(current->fs->root);
 --- linux-2.4.31-a9-3.orig/fs/open.c
 +++ linux-2.4.31-a9-3/fs/open.c
-@@ -20,6 +20,9 @@
+@@ -20,6 +20,8 @@
  
  #define special_file(m) (S_ISCHR(m)||S_ISBLK(m)||S_ISFIFO(m)||S_ISSOCK(m))
  
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  int vfs_statfs(struct super_block *sb, struct statfs *buf)
  {
  	int retval = -ENODEV;
-@@ -162,6 +165,9 @@ static inline long do_sys_truncate(const
+@@ -162,6 +164,9 @@ static inline long do_sys_truncate(const
  	if (error)
  		goto dput_and_out;
  
@@ -1024,7 +1022,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -215,6 +221,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -215,6 +220,10 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -1035,7 +1033,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -464,6 +474,10 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +473,10 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -1046,7 +1044,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -895,6 +909,8 @@ out_unlock:
+@@ -895,6 +908,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1110,7 +1108,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/slab.h>
  #include <linux/kmod.h>
  #include <linux/seq_file.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Originally by Anonymous (as far as I know...)
@@ -1147,7 +1145,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  extern void timer_bh(void);
  extern void tqueue_bh(void);
@@ -1166,7 +1164,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/sched.h>
  
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * SLAB caches for signal bits.
@@ -1194,7 +1192,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include <asm/uaccess.h>
  #include <asm/io.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
@@ -1240,7 +1238,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
@@ -1286,7 +1284,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/smp_lock.h>
  
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* 
   * The timezone where the local system is located.  Used as a default by some
@@ -1323,7 +1321,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <net/raw.h>
  #include <net/inet_common.h>
  #include <net/checksum.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  struct sock *raw_v4_htable[RAWV4_HTABLE_SIZE];
  rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
@@ -1343,7 +1341,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/inet.h>
  #include <linux/stddef.h>
  #include <linux/ipsec.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  extern int sysctl_ip_dynaddr;
  extern int sysctl_ip_default_ttl;
@@ -1367,16 +1365,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			 * because the established check is already
 --- linux-2.4.31-a9-3.orig/net/ipv4/udp.c
 +++ linux-2.4.31-a9-3/net/ipv4/udp.c
-@@ -107,6 +107,8 @@
+@@ -107,6 +107,7 @@
  #include <net/route.h>
  #include <net/inet_common.h>
  #include <net/checksum.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -144,6 +146,8 @@ static int udp_v4_get_port(struct sock *
+@@ -144,6 +145,8 @@ static int udp_v4_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1385,7 +1382,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  				goto gotit;
  			}
  			size = 0;
-@@ -161,6 +165,8 @@ static int udp_v4_get_port(struct sock *
+@@ -161,6 +164,8 @@ static int udp_v4_get_port(struct sock *
  				result = sysctl_local_port_range[0]
  					+ ((result - sysctl_local_port_range[0]) &
  					   (UDP_HTABLE_SIZE - 1));
@@ -1394,7 +1391,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -857,7 +863,10 @@ try_again:
+@@ -857,7 +862,10 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1412,7 +1409,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <net/inet_common.h>
  
  #include <net/rawv6.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  struct sock *raw_v6_htable[RAWV6_HTABLE_SIZE];
  rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
@@ -1432,7 +1429,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <net/inet_ecn.h>
  
  #include <asm/uaccess.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  static void	tcp_v6_send_reset(struct sk_buff *skb);
  static void	tcp_v6_or_send_ack(struct sk_buff *skb, struct open_request *req);
@@ -1447,16 +1444,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  					goto next;
 --- linux-2.4.31-a9-3.orig/net/ipv6/udp.c
 +++ linux-2.4.31-a9-3/net/ipv6/udp.c
-@@ -62,6 +62,8 @@
+@@ -62,6 +62,7 @@
  #include <net/inet_common.h>
  
  #include <net/checksum.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  struct udp_mib udp_stats_in6[NR_CPUS*2];
  
-@@ -89,6 +91,8 @@ static int udp_v6_get_port(struct sock *
+@@ -89,6 +90,8 @@ static int udp_v6_get_port(struct sock *
  					result = sysctl_local_port_range[0] +
  						((result - sysctl_local_port_range[0]) &
  						 (UDP_HTABLE_SIZE - 1));
@@ -1465,7 +1461,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  				goto gotit;
  			}
  			size = 0;
-@@ -101,14 +105,19 @@ static int udp_v6_get_port(struct sock *
+@@ -101,14 +104,19 @@ static int udp_v6_get_port(struct sock *
  		next:;
  		}
  		result = best;
@@ -1486,7 +1482,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  gotit:
  		udp_port_rover = snum = result;
  	} else {
-@@ -538,6 +547,9 @@ try_again:
+@@ -538,6 +546,9 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1498,16 +1494,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
    	if (copied > len) {
 --- linux-2.4.31-a9-3.orig/net/socket.c
 +++ linux-2.4.31-a9-3/net/socket.c
-@@ -84,6 +84,8 @@
+@@ -84,6 +84,7 @@
  #include <net/sock.h>
  #include <net/scm.h>
  #include <linux/netfilter.h>
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_read(struct file *file, char *buf,
-@@ -501,7 +503,10 @@ int sock_sendmsg(struct socket *sock, st
+@@ -501,7 +502,10 @@ int sock_sendmsg(struct socket *sock, st
  {
  	int err;
  	struct scm_cookie scm;
@@ -1519,7 +1514,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -847,7 +852,9 @@ int sock_create(int family, int type, in
+@@ -847,7 +851,9 @@ int sock_create(int family, int type, in
  		}
  		family = PF_PACKET;
  	}
@@ -1530,7 +1525,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1003,6 +1010,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1003,6 +1009,10 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1541,7 +1536,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1026,6 +1037,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1026,6 +1036,8 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > sysctl_somaxconn)
  			backlog = sysctl_somaxconn;
@@ -1550,7 +1545,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1066,6 +1079,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1066,6 +1078,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1562,7 +1557,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1116,6 +1134,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1116,6 +1133,10 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;
@@ -1579,7 +1574,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  #include <linux/rtnetlink.h>
  
  #include <asm/checksum.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int sysctl_unix_max_dgram_qlen = 10;
  

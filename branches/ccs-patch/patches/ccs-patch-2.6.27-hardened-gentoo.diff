@@ -11,8 +11,8 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   27 +++++++++++++++++++++++++++
- fs/open.c                       |   15 +++++++++++++++
+ fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/open.c                       |   14 ++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -30,14 +30,14 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
  net/ipv4/raw.c                  |    4 ++++
- net/ipv4/udp.c                  |    8 ++++++++
+ net/ipv4/udp.c                  |    7 +++++++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   24 ++++++++++++++++++++++++
+ net/socket.c                    |   23 +++++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 234 insertions(+), 2 deletions(-)
+ 35 files changed, 230 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -45,7 +45,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/types.h>
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "ia32priv.h"
  
@@ -64,7 +64,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/system.h>
  #include <asm/uaccess.h>
  #include <asm/bootinfo.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int ptrace_getregs(struct task_struct *child, __s64 __user *data);
  int ptrace_setregs(struct task_struct *child, __s64 __user *data);
@@ -83,7 +83,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
  #include <linux/security.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Taken over from the old code... */
  
@@ -109,7 +109,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
  #include "internal.h"
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int compat_log = 1;
  
@@ -128,7 +128,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
  #endif
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  static int do_ioctl32_pointer(unsigned int fd, unsigned int cmd,
  			      unsigned long arg, struct file *f)
@@ -158,7 +158,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  EXPORT_SYMBOL(pax_set_initial_flags_func);
  #endif
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
@@ -198,7 +198,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/poll.h>
  #include <asm/siginfo.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  void set_close_on_exec(unsigned int fd, int flag)
  {
@@ -219,7 +219,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/uaccess.h>
  
  #include <asm/ioctls.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /**
   * vfs_ioctl - call filesystem specific ioctl methods
@@ -247,7 +247,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
 +
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
@@ -278,7 +278,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	return may_open(nd, 0, flag & ~O_TRUNC);
  }
  
-+#include <linux/tomoyo_vfs.h>
++#include <linux/ccsecurity_vfs.h>
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
@@ -357,16 +357,15 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	if (!error)
 --- linux-2.6.27-hardened-r8.orig/fs/namespace.c
 +++ linux-2.6.27-hardened-r8/fs/namespace.c
-@@ -32,6 +32,8 @@
+@@ -32,6 +32,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
  #include "internal.h"
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -1042,6 +1044,9 @@ static int do_umount(struct vfsmount *mn
+@@ -1042,6 +1043,9 @@ static int do_umount(struct vfsmount *mn
  	if (retval)
  		return retval;
  
@@ -376,7 +375,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -1138,6 +1143,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
+@@ -1138,6 +1142,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct path path;
  	int retval;
@@ -385,7 +384,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	retval = user_path(name, &path);
  	if (retval)
-@@ -1485,6 +1492,9 @@ static noinline int do_loopback(struct n
+@@ -1485,6 +1491,9 @@ static noinline int do_loopback(struct n
  	err = -EINVAL;
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
@@ -395,7 +394,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1604,6 +1614,9 @@ static noinline int do_move_mount(struct
+@@ -1604,6 +1613,9 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -405,7 +404,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1708,6 +1721,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1708,6 +1720,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -415,7 +414,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1931,6 +1947,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1931,6 +1946,13 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -429,7 +428,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2205,6 +2228,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2205,6 +2227,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -438,7 +437,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2218,6 +2243,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2218,6 +2242,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -449,16 +448,15 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  		goto out1;
 --- linux-2.6.27-hardened-r8.orig/fs/open.c
 +++ linux-2.6.27-hardened-r8/fs/open.c
-@@ -30,6 +30,8 @@
+@@ -30,6 +30,7 @@
  #include <linux/audit.h>
  #include <linux/falloc.h>
  #include <linux/grsecurity.h>
-+#include <linux/sakura.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -273,6 +275,9 @@ static long do_sys_truncate(const char _
+@@ -273,6 +274,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
@@ -468,7 +466,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -329,6 +334,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -329,6 +333,10 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
@@ -479,7 +477,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -606,6 +615,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -606,6 +614,10 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -490,7 +488,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -1212,6 +1225,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1212,6 +1224,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -544,7 +542,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/posix-timers.h>
  
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
  {
@@ -563,7 +561,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/io.h>
  #include <asm/system.h>
  #include <asm/sections.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /* Per cpu memory for storing cpu states in case of system crash. */
  note_buf_t* crash_notes;
@@ -594,7 +592,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <linux/license.h>
  #include <asm/sections.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #if 0
  #define DEBUGP printk
@@ -622,7 +620,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <asm/pgtable.h>
  #include <asm/uaccess.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * ptrace a task: make the debugger its new parent and
@@ -650,7 +648,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <asm/tlb.h>
  #include <asm/irq_regs.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "sched_cpupri.h"
  
@@ -669,7 +667,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * SLAB caches for signal bits.
@@ -706,7 +704,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifndef SET_UNALIGN_CTL
  # define SET_UNALIGN_CTL(a,b)	(-EINVAL)
@@ -754,7 +752,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <asm/uaccess.h>
  #include <asm/processor.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
@@ -774,7 +772,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  #include "timeconst.h"
  
@@ -802,7 +800,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/math64.h>
  #include <linux/clocksource.h>
  #include <asm/timex.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  /*
   * Timekeeping variables
@@ -821,7 +819,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <net/route.h>
  #include <net/tcp_states.h>
  #include <net/xfrm.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  #ifdef INET_CSK_DEBUG
  const char inet_csk_timer_bug_msg[] = "inet_csk BUG: unknown timer value\n";
@@ -840,7 +838,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
  #include <net/ip.h>
-+#include <linux/sakura.h>
++#include <linux/ccsecurity.h>
  
  extern void gr_update_task_in_ip_table(struct task_struct *task, const struct inet_sock *inet);
  
@@ -859,7 +857,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
  #include <linux/netfilter_ipv4.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  static struct raw_hashinfo raw_v4_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v4_hashinfo.lock),
@@ -875,16 +873,15 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	if (len < copied) {
 --- linux-2.6.27-hardened-r8.orig/net/ipv4/udp.c
 +++ linux-2.6.27-hardened-r8/net/ipv4/udp.c
-@@ -104,6 +104,8 @@
+@@ -104,6 +104,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
  #include "udp_impl.h"
-+#include <linux/sakura.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  extern int gr_search_udp_recvmsg(const struct sock *sk,
  				 const struct sk_buff *skb);
-@@ -176,6 +178,8 @@ int udp_lib_get_port(struct sock *sk, un
+@@ -176,6 +177,8 @@ int udp_lib_get_port(struct sock *sk, un
  		/* 1st pass: look for empty (or shortest) hash chain */
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
@@ -893,7 +890,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  			head = &udptable[udp_hashfn(net, rover)];
  			if (hlist_empty(head))
-@@ -199,6 +203,7 @@ int udp_lib_get_port(struct sock *sk, un
+@@ -199,6 +202,7 @@ int udp_lib_get_port(struct sock *sk, un
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -901,7 +898,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  			if (! __udp_lib_lport_inuse(net, rover, udptable))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -878,6 +883,9 @@ try_again:
+@@ -878,6 +882,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -917,7 +914,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  static struct raw_hashinfo raw_v6_hashinfo = {
  	.lock = __RW_LOCK_UNLOCKED(raw_v6_hashinfo.lock),
@@ -937,7 +934,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
  #include "udp_impl.h"
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
  
  int udp_v6_get_port(struct sock *sk, unsigned short snum)
  {
@@ -953,17 +950,16 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	copied = len;
 --- linux-2.6.27-hardened-r8.orig/net/socket.c
 +++ linux-2.6.27-hardened-r8/net/socket.c
-@@ -113,6 +113,9 @@ extern int gr_search_accept(const struct
+@@ -113,6 +113,8 @@ extern int gr_search_accept(const struct
  extern int gr_search_socket(const int domain, const int type,
  			    const int protocol);
  
-+#include <linux/tomoyo.h>
-+#include <linux/tomoyo_socket.h>
++#include <linux/ccsecurity.h>
 +
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -574,6 +577,10 @@ static inline int __sock_sendmsg(struct 
+@@ -574,6 +576,10 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -974,7 +970,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	if (err)
  		return err;
  
-@@ -1140,6 +1147,8 @@ static int __sock_create(struct net *net
+@@ -1140,6 +1146,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -983,7 +979,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	if (err)
  		return err;
  
-@@ -1411,6 +1420,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1411,6 +1419,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -995,7 +991,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1447,6 +1461,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1447,6 +1460,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1004,7 +1000,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  			err = sock->ops->listen(sock, backlog);
  
  error:
-@@ -1524,6 +1540,11 @@ long do_accept(int fd, struct sockaddr _
+@@ -1524,6 +1539,11 @@ long do_accept(int fd, struct sockaddr _
  	if (err < 0)
  		goto out_fd;
  
@@ -1016,7 +1012,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1657,6 +1678,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1657,6 +1677,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -1032,7 +1028,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #include <net/checksum.h>
  #include <linux/security.h>
  #include <linux/grsecurity.h>
-+#include <linux/tomoyo.h>
++#include <linux/ccsecurity.h>
  
  static struct hlist_head unix_socket_table[UNIX_HASH_SIZE + 1];
  static DEFINE_SPINLOCK(unix_table_lock);
