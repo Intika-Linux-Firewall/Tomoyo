@@ -19,7 +19,6 @@
 #include <net/udp.h>
 #include "internal.h"
 #include <linux/ccsecurity.h>
-#include <linux/ccsecurity_socket.h>
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {
