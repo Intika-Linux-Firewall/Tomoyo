@@ -31,8 +31,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/x86_64/ia32/ptrace32.c        |    3 ++
  arch/x86_64/kernel/ptrace.c        |    3 ++
  arch/xtensa/kernel/ptrace.c        |    3 ++
- fs/Kconfig                         |    2 +
- fs/Makefile                        |    2 +
  fs/attr.c                          |    5 ++++
  fs/compat.c                        |    9 +++++++-
  fs/exec.c                          |   12 ++++++++++-
@@ -41,7 +39,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   30 +++++++++++++++++++++++++++--
  fs/open.c                          |   15 ++++++++++++++
- fs/proc/Makefile                   |    3 ++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
  include/linux/sched.h              |    4 +++
@@ -62,7 +59,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                     |   14 ++++++++++++-
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 60 files changed, 340 insertions(+), 11 deletions(-)
+ security/Kconfig                   |    2 +
+ security/Makefile                  |    3 ++
+ 59 files changed, 338 insertions(+), 11 deletions(-)
 
 --- linux-2.6.13.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.13.5/arch/alpha/kernel/ptrace.c
@@ -619,24 +618,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  
---- linux-2.6.13.5.orig/fs/Kconfig
-+++ linux-2.6.13.5/fs/Kconfig
-@@ -1747,5 +1747,7 @@ endmenu
- 
- source "fs/nls/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
- 
---- linux-2.6.13.5.orig/fs/Makefile
-+++ linux-2.6.13.5/fs/Makefile
-@@ -98,3 +98,5 @@ obj-$(CONFIG_BEFS_FS)		+= befs/
- obj-$(CONFIG_HOSTFS)		+= hostfs/
- obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.13.5.orig/fs/attr.c
 +++ linux-2.6.13.5/fs/attr.c
 @@ -15,6 +15,7 @@
@@ -1063,15 +1044,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.13.5.orig/fs/proc/Makefile
-+++ linux-2.6.13.5/fs/proc/Makefile
-@@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
- proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.13.5.orig/fs/proc/proc_misc.c
 +++ linux-2.6.13.5/fs/proc/proc_misc.c
 @@ -637,4 +637,5 @@ void __init proc_misc_init(void)
@@ -1662,3 +1634,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.13.5.orig/security/Kconfig
++++ linux-2.6.13.5/security/Kconfig
+@@ -87,5 +87,7 @@ config SECURITY_SECLVL
+ 
+ source security/selinux/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.13.5.orig/security/Makefile
++++ linux-2.6.13.5/security/Makefile
+@@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+ obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
+ obj-$(CONFIG_SECURITY_SECLVL)		+= seclvl.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o

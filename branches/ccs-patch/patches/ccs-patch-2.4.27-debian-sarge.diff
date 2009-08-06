@@ -2,152 +2,55 @@ This is TOMOYO Linux patch for Debian Sarge.
 
 Source code for this patch is "apt-get install kernel-source-2.4.27"
 ---
- Documentation/Configure.help |   86 +++++++++++++++++++++++++++++++++++++++++++
- arch/alpha/kernel/ptrace.c   |    3 +
- arch/arm/kernel/ptrace.c     |    3 +
- arch/cris/kernel/ptrace.c    |    3 +
- arch/i386/kernel/ptrace.c    |    3 +
- arch/ia64/ia32/sys_ia32.c    |    3 +
- arch/ia64/kernel/ptrace.c    |    3 +
- arch/m68k/kernel/ptrace.c    |    3 +
- arch/mips/kernel/ptrace.c    |    3 +
- arch/mips64/kernel/ptrace.c  |    5 ++
- arch/parisc/kernel/ptrace.c  |    3 +
- arch/ppc/kernel/ptrace.c     |    3 +
- arch/ppc64/kernel/ptrace.c   |    3 +
- arch/ppc64/kernel/ptrace32.c |    3 +
- arch/s390/kernel/ptrace.c    |    3 +
- arch/s390x/kernel/ptrace.c   |    3 +
- arch/sh/kernel/ptrace.c      |    3 +
- arch/sh64/kernel/ptrace.c    |    3 +
- arch/sparc/kernel/ptrace.c   |    5 ++
- arch/sparc64/kernel/ptrace.c |    5 ++
- arch/x86_64/ia32/ptrace32.c  |    3 +
- arch/x86_64/kernel/ptrace.c  |    3 +
- fs/Config.in                 |    3 +
- fs/Makefile                  |    2 -
- fs/attr.c                    |    4 ++
- fs/exec.c                    |   12 +++++-
- fs/fcntl.c                   |    4 ++
- fs/ioctl.c                   |   10 +++++
- fs/namei.c                   |   40 ++++++++++++++++++++
- fs/namespace.c               |   34 ++++++++++++++++-
- fs/open.c                    |   16 ++++++++
- fs/proc/Makefile             |    4 ++
- fs/proc/proc_misc.c          |    1 
- include/linux/sched.h        |    6 +++
- kernel/kmod.c                |    3 +
- kernel/module.c              |    7 +++
- kernel/sched.c               |    3 +
- kernel/signal.c              |    5 ++
- kernel/sys.c                 |    9 ++++
- kernel/sysctl.c              |   13 ++++++
- kernel/time.c                |    7 +++
- net/ipv4/raw.c               |    4 ++
- net/ipv4/tcp_ipv4.c          |    5 ++
- net/ipv4/udp.c               |   11 +++++
- net/ipv6/raw.c               |    4 ++
- net/ipv6/tcp_ipv6.c          |    3 +
- net/ipv6/udp.c               |    9 ++++
- net/socket.c                 |   26 ++++++++++++-
- net/unix/af_unix.c           |    4 ++
- 49 files changed, 397 insertions(+), 7 deletions(-)
+ arch/alpha/kernel/ptrace.c   |    3 +++
+ arch/arm/kernel/ptrace.c     |    3 +++
+ arch/cris/kernel/ptrace.c    |    3 +++
+ arch/i386/kernel/ptrace.c    |    3 +++
+ arch/ia64/ia32/sys_ia32.c    |    3 +++
+ arch/ia64/kernel/ptrace.c    |    3 +++
+ arch/m68k/kernel/ptrace.c    |    3 +++
+ arch/mips/kernel/ptrace.c    |    3 +++
+ arch/mips64/kernel/ptrace.c  |    5 +++++
+ arch/parisc/kernel/ptrace.c  |    3 +++
+ arch/ppc/kernel/ptrace.c     |    3 +++
+ arch/ppc64/kernel/ptrace.c   |    3 +++
+ arch/ppc64/kernel/ptrace32.c |    3 +++
+ arch/s390/kernel/ptrace.c    |    3 +++
+ arch/s390x/kernel/ptrace.c   |    3 +++
+ arch/sh/kernel/ptrace.c      |    3 +++
+ arch/sh64/kernel/ptrace.c    |    3 +++
+ arch/sparc/kernel/ptrace.c   |    5 +++++
+ arch/sparc64/kernel/ptrace.c |    5 +++++
+ arch/x86_64/ia32/ptrace32.c  |    3 +++
+ arch/x86_64/kernel/ptrace.c  |    3 +++
+ fs/Config.in                 |    3 +++
+ fs/Makefile                  |    2 ++
+ fs/attr.c                    |    4 ++++
+ fs/exec.c                    |   12 +++++++++++-
+ fs/fcntl.c                   |    4 ++++
+ fs/ioctl.c                   |   10 ++++++++++
+ fs/namei.c                   |   40 ++++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c               |   34 +++++++++++++++++++++++++++++++++-
+ fs/open.c                    |   16 ++++++++++++++++
+ fs/proc/proc_misc.c          |    1 +
+ include/linux/sched.h        |    6 ++++++
+ kernel/kmod.c                |    3 +++
+ kernel/module.c              |    7 +++++++
+ kernel/sched.c               |    3 +++
+ kernel/signal.c              |    5 +++++
+ kernel/sys.c                 |    9 +++++++++
+ kernel/sysctl.c              |   13 ++++++++++++-
+ kernel/time.c                |    7 +++++++
+ net/ipv4/raw.c               |    4 ++++
+ net/ipv4/tcp_ipv4.c          |    5 +++++
+ net/ipv4/udp.c               |   11 ++++++++++-
+ net/ipv6/raw.c               |    4 ++++
+ net/ipv6/tcp_ipv6.c          |    3 +++
+ net/ipv6/udp.c               |    9 +++++++++
+ net/socket.c                 |   26 ++++++++++++++++++++++++--
+ net/unix/af_unix.c           |    4 ++++
+ 47 files changed, 308 insertions(+), 6 deletions(-)
 
---- linux-2.4.27-10sarge7.orig/Documentation/Configure.help
-+++ linux-2.4.27-10sarge7/Documentation/Configure.help
-@@ -29070,6 +29070,92 @@ CONFIG_SOUND_WM97XX
-   
-   If unsure, say N.
- 
-+CONFIG_SAKURA
-+  Say Y here to support the Domain-Free Mandatory Access Control.
-+
-+  SAKURA stands for
-+  "Security Advancement Know-how Upon Read-only Approach".
-+  As the name shows, SAKURA was originally a methodology to make
-+  root fs read-only to avoid tampering the system files.
-+  But now, SAKURA is not only a methodology but also a kernel patch
-+  that improves the system security with less effort.
-+
-+  SAKURA can restrict operations that affect systemwide.
-+
-+CONFIG_TOMOYO
-+  Say Y here to support the Domain-Based Mandatory Access Control.
-+
-+  TOMOYO stands for "Task Oriented Management Obviates Your Onus".
-+  TOMOYO is intended to provide the Domain-Based MAC
-+  utilizing task_struct.
-+
-+  The word "domain" in TOMOYO is a class that a process
-+  (i.e. task_struct) belong to.
-+  The domain of a process changes whenever the process
-+  executes a program.
-+  This allows you to classify at the finest level.
-+  The access permission is granted to domains, not to processes.
-+  Policy is defined as "Which domain can access to which resource.".
-+
-+  The biggest feature of TOMOYO is that TOMOYO has "learning mode".
-+  The learning mode can automatically generate policy definition,
-+  and dramatically reduces the policy definition labors.
-+
-+  TOMOYO is applicable to figuring out the system's behavior, for
-+  TOMOYO uses the canonicalized absolute pathnames and
-+  TreeView style domain transitions.
-+
-+  You can make custom root fs with minimum files
-+  to run minimum applications with TOMOYO.
-+
-+CONFIG_TOMOYO_MAX_ACCEPT_ENTRY
-+  This is the default value for maximal ACL entries
-+  that are automatically appended into policy at "learning mode".
-+  Some programs access thousands of objects, so running
-+  such programs in "learning mode" dulls the system response
-+  and consumes much memory.
-+  This is the safeguard for such programs.
-+
-+CONFIG_TOMOYO_MAX_GRANT_LOG
-+  This is the default value for maximal entries for
-+  access grant logs that the kernel can hold on memory.
-+  You can read the log via /proc/ccs/grant_log.
-+  If you don't need access grant logs,
-+  you may set this value to 0.
-+
-+CONFIG_TOMOYO_MAX_REJECT_LOG
-+  This is the default value for maximal entries for
-+  access reject logs that the kernel can hold on memory.
-+  You can read the log via /proc/ccs/reject_log.
-+  If you don't need access reject logs,
-+  you may set this value to 0.
-+
-+CONFIG_SYAORAN
-+  Say Y or M here to support the Tamper-Proof Device Filesystem.
-+
-+  SYAORAN stands for
-+  "Simple Yet All-important Object Realizing Abiding Nexus".
-+  SYAORAN is a filesystem for /dev with Mandatory Access Control.
-+
-+  SAKURA can make root fs read-only, but the system can't work
-+  if /dev is read-only. Therefore you need to mount a writable
-+  filesystem (such as tmpfs) for /dev if root fs is read-only.
-+
-+  But the writable /dev means that files on /dev might be tampered.
-+  For example, if /dev/null is deleted and re-created as a symbolic
-+  link to /dev/hda by an attacker, the contents of the IDE HDD
-+  will be destroyed at a blow.
-+
-+  Also, TOMOYO controls file access by pathnames,
-+  not by security labels.
-+  Therefore /dev/null, for example, might be tampered
-+  if a process have write permission to /dev/null .
-+
-+  SYAORAN can ensure /dev/null is a character device file
-+  with major=1 minor=3.
-+
-+  You can use SAKURA to make /dev not unmountable.
-+
- #
- # A couple of things I keep forgetting:
- #   capitalize: AppleTalk, Ethernet, DOS, DMA, FAT, FTP, Internet,
 --- linux-2.4.27-10sarge7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.27-10sarge7/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,7 @@
@@ -567,18 +470,20 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  endmenu
  source fs/nls/Config.in
 +
-+source fs/Config.ccs.in
++source security/ccsecurity/Config.in
 +
  endmenu
 --- linux-2.4.27-10sarge7.orig/fs/Makefile
 +++ linux-2.4.27-10sarge7/fs/Makefile
-@@ -84,5 +84,5 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
+@@ -81,6 +81,8 @@ export-objs += mbcache.o posix_acl.o xat
+ obj-$(CONFIG_FS_MBCACHE)	+= mbcache.o
+ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.o xattr_acl.o
+ 
++subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
++
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
--
-+include Makefile-2.4.ccs
- include $(TOPDIR)/Rules.make
 --- linux-2.4.27-10sarge7.orig/fs/attr.c
 +++ linux-2.4.27-10sarge7/fs/attr.c
 @@ -12,6 +12,7 @@
@@ -985,17 +890,6 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->tty);
  		return 0;
---- linux-2.4.27-10sarge7.orig/fs/proc/Makefile
-+++ linux-2.4.27-10sarge7/fs/proc/Makefile
-@@ -18,4 +18,8 @@ ifeq ($(CONFIG_PROC_DEVICETREE),y)
- obj-y += proc_devtree.o
- endif
- 
-+export-objs += ccs_proc.o
-+obj-$(CONFIG_SAKURA) += ccs_proc.o
-+obj-$(CONFIG_TOMOYO) += ccs_proc.o
-+
- include $(TOPDIR)/Rules.make
 --- linux-2.4.27-10sarge7.orig/fs/proc/proc_misc.c
 +++ linux-2.4.27-10sarge7/fs/proc/proc_misc.c
 @@ -670,4 +670,5 @@ void __init proc_misc_init(void)

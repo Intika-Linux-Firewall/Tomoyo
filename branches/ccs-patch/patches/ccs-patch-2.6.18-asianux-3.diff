@@ -7,8 +7,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  arch/m32r/kernel/ptrace.c       |    3 +++
  arch/mips/kernel/ptrace32.c     |    3 +++
  arch/sparc/kernel/ptrace.c      |    5 +++++
- fs/Kconfig                      |    2 ++
- fs/Makefile                     |    2 ++
  fs/attr.c                       |    5 +++++
  fs/compat.c                     |    9 ++++++++-
  fs/exec.c                       |   12 +++++++++++-
@@ -17,7 +15,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   28 +++++++++++++++++++++++++++-
  fs/open.c                       |   14 ++++++++++++++
- fs/proc/Makefile                |    3 +++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -40,7 +37,9 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/udp.c                  |    9 +++++++++
  net/socket.c                    |   26 ++++++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 38 files changed, 267 insertions(+), 9 deletions(-)
+ security/Kconfig                |    2 ++
+ security/Makefile               |    3 +++
+ 37 files changed, 265 insertions(+), 9 deletions(-)
 
 --- linux-2.6.18-53.25AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-53.25AXS3/arch/alpha/kernel/ptrace.c
@@ -139,24 +138,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-53.25AXS3.orig/fs/Kconfig
-+++ linux-2.6.18-53.25AXS3/fs/Kconfig
-@@ -2055,5 +2055,7 @@ endmenu
- source "fs/nls/Kconfig"
- source "fs/dlm/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
- 
---- linux-2.6.18-53.25AXS3.orig/fs/Makefile
-+++ linux-2.6.18-53.25AXS3/fs/Makefile
-@@ -108,3 +108,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
- obj-$(CONFIG_GFS2_FS)           += gfs2/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.18-53.25AXS3.orig/fs/attr.c
 +++ linux-2.6.18-53.25AXS3/fs/attr.c
 @@ -15,6 +15,7 @@
@@ -574,15 +555,6 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-53.25AXS3.orig/fs/proc/Makefile
-+++ linux-2.6.18-53.25AXS3/fs/proc/Makefile
-@@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
- proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.18-53.25AXS3.orig/fs/proc/proc_misc.c
 +++ linux-2.6.18-53.25AXS3/fs/proc/proc_misc.c
 @@ -723,4 +723,5 @@ void __init proc_misc_init(void)
@@ -1192,3 +1164,22 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.18-53.25AXS3.orig/security/Kconfig
++++ linux-2.6.18-53.25AXS3/security/Kconfig
+@@ -107,5 +107,7 @@ config SECURITY_SECLVL
+ 
+ source security/selinux/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.18-53.25AXS3.orig/security/Makefile
++++ linux-2.6.18-53.25AXS3/security/Makefile
+@@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+ obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
+ obj-$(CONFIG_SECURITY_SECLVL)		+= seclvl.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o

@@ -4,8 +4,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
 ---
  arch/ia64/ia32/sys_ia32.c       |    3 +++
  arch/mips/kernel/ptrace32.c     |    3 +++
- fs/Kconfig                      |    2 ++
- fs/Makefile                     |    2 ++
  fs/attr.c                       |    5 +++++
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
@@ -15,7 +13,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   27 +++++++++++++++++++++++++++
  fs/open.c                       |   15 +++++++++++++++
- fs/proc/Makefile                |    3 +++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -38,7 +35,9 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
- 36 files changed, 236 insertions(+), 2 deletions(-)
+ security/Kconfig                |    2 ++
+ security/Makefile               |    3 +++
+ 35 files changed, 234 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-14.35.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-14.35/arch/ia64/ia32/sys_ia32.c
@@ -78,23 +77,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.27-14.35.orig/fs/Kconfig
-+++ linux-2.6.27-14.35/fs/Kconfig
-@@ -2093,4 +2093,6 @@ endif
- source "fs/nls/Kconfig"
- source "fs/dlm/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
---- linux-2.6.27-14.35.orig/fs/Makefile
-+++ linux-2.6.27-14.35/fs/Makefile
-@@ -122,3 +122,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
- obj-$(CONFIG_GFS2_FS)           += gfs2/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.27-14.35.orig/fs/attr.c
 +++ linux-2.6.27-14.35/fs/attr.c
 @@ -14,6 +14,7 @@
@@ -519,15 +501,6 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.27-14.35.orig/fs/proc/Makefile
-+++ linux-2.6.27-14.35/fs/proc/Makefile
-@@ -16,3 +16,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
- proc-$(CONFIG_PRINTK)	+= kmsg.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.27-14.35.orig/fs/proc/proc_misc.c
 +++ linux-2.6.27-14.35/fs/proc/proc_misc.c
 @@ -950,4 +950,5 @@ void __init proc_misc_init(void)
@@ -1075,3 +1048,22 @@ Source code for this patch is "apt-get install linux-source-2.6.27"
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, nd.path.mnt,
  				mode, 0);
  		mnt_drop_write(nd.path.mnt);
+--- linux-2.6.27-14.35.orig/security/Kconfig
++++ linux-2.6.27-14.35/security/Kconfig
+@@ -119,5 +119,7 @@ source security/selinux/Kconfig
+ source security/smack/Kconfig
+ source security/apparmor/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.27-14.35.orig/security/Makefile
++++ linux-2.6.27-14.35/security/Makefile
+@@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SMACK)		+= smack/b
+ obj-$(CONFIG_SECURITY_APPARMOR)         += commoncap.o apparmor/
+  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
+ obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o

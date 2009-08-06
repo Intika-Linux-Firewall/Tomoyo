@@ -2,8 +2,6 @@ This is TOMOYO Linux patch for kernel 2.6.29.6.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.29.6.tar.bz2
 ---
- fs/Kconfig                      |    2 ++
- fs/Makefile                     |    2 ++
  fs/attr.c                       |    3 +++
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
@@ -13,7 +11,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   27 +++++++++++++++++++++++++++
  fs/open.c                       |   15 +++++++++++++++
- fs/proc/Makefile                |    3 +++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -36,25 +33,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   24 ++++++++++++++++++++++++
  net/unix/af_unix.c              |    5 +++++
- 34 files changed, 238 insertions(+), 3 deletions(-)
+ security/Kconfig                |    2 ++
+ security/Makefile               |    3 +++
+ 33 files changed, 236 insertions(+), 3 deletions(-)
 
---- linux-2.6.29.6.orig/fs/Kconfig
-+++ linux-2.6.29.6/fs/Kconfig
-@@ -285,4 +285,6 @@ endif
- source "fs/nls/Kconfig"
- source "fs/dlm/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
---- linux-2.6.29.6.orig/fs/Makefile
-+++ linux-2.6.29.6/fs/Makefile
-@@ -124,3 +124,5 @@ obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
- obj-$(CONFIG_BTRFS_FS)		+= btrfs/
- obj-$(CONFIG_GFS2_FS)           += gfs2/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.29.6.orig/fs/attr.c
 +++ linux-2.6.29.6/fs/attr.c
 @@ -14,6 +14,7 @@
@@ -471,15 +453,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.29.6.orig/fs/proc/Makefile
-+++ linux-2.6.29.6/fs/proc/Makefile
-@@ -25,3 +25,6 @@ proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
- proc-$(CONFIG_PRINTK)	+= kmsg.o
- proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.29.6.orig/fs/proc/version.c
 +++ linux-2.6.29.6/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
@@ -1033,3 +1006,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+--- linux-2.6.29.6.orig/security/Kconfig
++++ linux-2.6.29.6/security/Kconfig
+@@ -135,5 +135,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+ source security/selinux/Kconfig
+ source security/smack/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.29.6.orig/security/Makefile
++++ linux-2.6.29.6/security/Makefile
+@@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
+ obj-$(CONFIG_SECURITY_SMACK)		+= smack/built-in.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
+ obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o

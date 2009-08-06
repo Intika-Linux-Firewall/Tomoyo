@@ -12,8 +12,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/sparc/kernel/ptrace.c      |    5 +++++
  arch/sparc64/kernel/ptrace.c    |    5 +++++
  arch/x86_64/ia32/ptrace32.c     |    3 +++
- fs/Kconfig                      |    2 ++
- fs/Makefile                     |    2 ++
  fs/attr.c                       |    5 +++++
  fs/compat.c                     |    9 ++++++++-
  fs/exec.c                       |   12 +++++++++++-
@@ -22,7 +20,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   28 +++++++++++++++++++++++++++-
  fs/open.c                       |   14 ++++++++++++++
- fs/proc/Makefile                |    3 +++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -46,7 +43,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/udp.c                  |    4 ++++
  net/socket.c                    |   25 ++++++++++++++++++++++++-
  net/unix/af_unix.c              |    4 ++++
- 44 files changed, 272 insertions(+), 6 deletions(-)
+ security/Kconfig                |    2 ++
+ security/Makefile               |    3 +++
+ 43 files changed, 270 insertions(+), 6 deletions(-)
 
 --- linux-2.6.20.21.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20.21/arch/alpha/kernel/ptrace.c
@@ -242,24 +241,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	switch (request) { 
  	case PTRACE_TRACEME:
---- linux-2.6.20.21.orig/fs/Kconfig
-+++ linux-2.6.20.21/fs/Kconfig
-@@ -2095,5 +2095,7 @@ endif
- source "fs/nls/Kconfig"
- source "fs/dlm/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
- 
---- linux-2.6.20.21.orig/fs/Makefile
-+++ linux-2.6.20.21/fs/Makefile
-@@ -115,3 +115,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
- obj-$(CONFIG_DEBUG_FS)		+= debugfs/
- obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
- obj-$(CONFIG_GFS2_FS)           += gfs2/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.20.21.orig/fs/attr.c
 +++ linux-2.6.20.21/fs/attr.c
 @@ -15,6 +15,7 @@
@@ -672,15 +653,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		/* XXX: this needs locking */
  		tty_vhangup(current->signal->tty);
---- linux-2.6.20.21.orig/fs/proc/Makefile
-+++ linux-2.6.20.21/fs/proc/Makefile
-@@ -14,3 +14,6 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
- proc-$(CONFIG_PRINTK)	+= kmsg.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.20.21.orig/fs/proc/proc_misc.c
 +++ linux-2.6.20.21/fs/proc/proc_misc.c
 @@ -747,4 +747,5 @@ void __init proc_misc_init(void)
@@ -1266,3 +1238,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.20.21.orig/security/Kconfig
++++ linux-2.6.20.21/security/Kconfig
+@@ -95,5 +95,7 @@ config SECURITY_ROOTPLUG
+ 
+ source security/selinux/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.20.21.orig/security/Makefile
++++ linux-2.6.20.21/security/Makefile
+@@ -16,3 +16,6 @@ obj-$(CONFIG_SECURITY)			+= security.o d
+ obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
+ obj-$(CONFIG_SECURITY_CAPABILITIES)	+= commoncap.o capability.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= commoncap.o root_plug.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o

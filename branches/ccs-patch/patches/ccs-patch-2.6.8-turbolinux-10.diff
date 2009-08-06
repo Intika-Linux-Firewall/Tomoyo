@@ -25,8 +25,6 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  arch/v850/kernel/ptrace.c          |    3 ++
  arch/x86_64/ia32/ptrace32.c        |    3 ++
  arch/x86_64/kernel/ptrace.c        |    3 ++
- fs/Kconfig                         |    2 +
- fs/Makefile                        |    2 +
  fs/attr.c                          |    5 ++++
  fs/compat.c                        |    7 +++++-
  fs/exec.c                          |   11 +++++++++-
@@ -35,7 +33,6 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   30 +++++++++++++++++++++++++++--
  fs/open.c                          |   15 ++++++++++++++
- fs/proc/Makefile                   |    3 ++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
  include/linux/sched.h              |    4 +++
@@ -54,7 +51,9 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/ipv6/udp.c                     |    9 ++++++++
  net/socket.c                       |   26 ++++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 +++
- 54 files changed, 316 insertions(+), 11 deletions(-)
+ security/Kconfig                   |    2 +
+ security/Makefile                  |    3 ++
+ 53 files changed, 314 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -535,24 +534,6 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.8-16.orig/fs/Kconfig
-+++ linux-2.6.8-16/fs/Kconfig
-@@ -1817,5 +1817,7 @@ endmenu
- 
- source "fs/nls/Kconfig"
- 
-+source "fs/Kconfig.ccs"
-+
- endmenu
- 
---- linux-2.6.8-16.orig/fs/Makefile
-+++ linux-2.6.8-16/fs/Makefile
-@@ -96,3 +96,5 @@ obj-$(CONFIG_GFS_FS)		+= gfs/
- obj-$(CONFIG_SUPERMOUNT)	+= supermount/
- obj-$(CONFIG_HOSTFS)		+= hostfs/
- obj-$(CONFIG_HPPFS)		+= hppfs/
-+
-+include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.8-16.orig/fs/attr.c
 +++ linux-2.6.8-16/fs/attr.c
 @@ -14,6 +14,7 @@
@@ -971,15 +952,6 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.8-16.orig/fs/proc/Makefile
-+++ linux-2.6.8-16/fs/proc/Makefile
-@@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
- 
- proc-$(CONFIG_PROC_KCORE)	+= kcore.o
- proc-$(CONFIG_PROC_DEVICETREE)	+= proc_devtree.o
-+
-+proc-$(CONFIG_SAKURA) += ccs_proc.o
-+proc-$(CONFIG_TOMOYO) += ccs_proc.o
 --- linux-2.6.8-16.orig/fs/proc/proc_misc.c
 +++ linux-2.6.8-16/fs/proc/proc_misc.c
 @@ -641,4 +641,5 @@ void __init proc_misc_init(void)
@@ -1513,3 +1485,22 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+--- linux-2.6.8-16.orig/security/Kconfig
++++ linux-2.6.8-16/security/Kconfig
+@@ -39,5 +39,7 @@ config SECURITY_ROOTPLUG
+ 
+ source security/selinux/Kconfig
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux-2.6.8-16.orig/security/Makefile
++++ linux-2.6.8-16/security/Makefile
+@@ -14,3 +14,6 @@ obj-$(CONFIG_SECURITY)			+= security.o d
+ # Must precede capability.o in order to stack properly.
+ obj-$(CONFIG_SECURITY_SELINUX)		+= selinux/built-in.o
+ obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
++
++subdir-$(CONFIG_CCSECURITY)+= ccsecurity
++obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o
