@@ -455,4 +455,28 @@ enum ccs_capability_acl_index {
 	CCS_MAX_CAPABILITY_INDEX
 };
 
+static inline int ccs_chown_permission(struct dentry *dentry,
+				       struct vfsmount *mnt,
+				       uid_t user, gid_t group)
+{
+	return 0;
+}
+
+static inline int ccs_chmod_permission(struct dentry *dentry,
+				       struct vfsmount *mnt,
+				       mode_t mode)
+{
+	return 0;
+}
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
+
 #endif
