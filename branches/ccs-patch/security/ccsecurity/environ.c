@@ -11,7 +11,6 @@
  */
 
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_env_log - Audit environment variable name log.

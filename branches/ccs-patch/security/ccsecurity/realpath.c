@@ -438,11 +438,11 @@ static void ccs_memory_free(const void *ptr, size_t size)
 }
 
 /**
- * ccs_put_path_group - Delete memory for "struct ccs_path_group_entry".
+ * ccs_put_path_group - Delete memory for "struct ccs_path_group".
  *
- * @group: Pointer to "struct ccs_path_group_entry".
+ * @group: Pointer to "struct ccs_path_group".
  */
-void ccs_put_path_group(struct ccs_path_group_entry *group)
+void ccs_put_path_group(struct ccs_path_group *group)
 {
 	struct ccs_path_group_member *member;
 	struct ccs_path_group_member *next_member;
@@ -521,11 +521,11 @@ void ccs_put_address_group(struct ccs_address_group_entry *group)
 }
 
 /**
- * ccs_put_number_group - Delete memory for "struct ccs_number_group_entry".
+ * ccs_put_number_group - Delete memory for "struct ccs_number_group".
  *
- * @group: Pointer to "struct ccs_number_group_entry".
+ * @group: Pointer to "struct ccs_number_group".
  */
-void ccs_put_number_group(struct ccs_number_group_entry *group)
+void ccs_put_number_group(struct ccs_number_group *group)
 {
 	struct ccs_number_group_member *member;
 	struct ccs_number_group_member *next_member;
@@ -620,13 +620,6 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 		ccs_memory_free(ptr, sizeof(*ptr));
 }
 
-struct ccs_condition_element {
-	u8 left;
-	u8 right;
-	u8 equals;
-	u8 type;
-};
-
 /**
  * ccs_put_condition - Delete memory for "struct ccs_condition".
  *
@@ -636,9 +629,9 @@ void ccs_put_condition(struct ccs_condition *cond)
 {
 	const struct ccs_condition_element *condp;
 	const unsigned long *ulong_p;
-	struct ccs_number_group_entry **number_group_p;
+	struct ccs_number_group **number_group_p;
 	const struct ccs_path_info **path_info_p;
-	struct ccs_path_group_entry **path_group_p;
+	struct ccs_path_group **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	u16 condc;
@@ -667,11 +660,11 @@ void ccs_put_condition(struct ccs_condition *cond)
 	envc = cond->envc;
 	condp = (const struct ccs_condition_element *) (cond + 1);
 	ulong_p = (unsigned long *) (condp + condc);
-	number_group_p = (struct ccs_number_group_entry **)
+	number_group_p = (struct ccs_number_group **)
 		(ulong_p + cond->ulong_count);
 	path_info_p = (const struct ccs_path_info **)
 		(number_group_p + number_group_count);
-	path_group_p = (struct ccs_path_group_entry **)
+	path_group_p = (struct ccs_path_group **)
 		(path_info_p + path_info_count);
 	argv = (const struct ccs_argv_entry *)
 		(path_group_p + path_group_count);
@@ -1050,10 +1043,10 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_single_path_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->u_is_group)
-				ccs_put_path_group(entry->u.group);
+			if (entry->name_is_group)
+				ccs_put_path_group(entry->name.group);
 			else
-				ccs_put_name(entry->u.filename);
+				ccs_put_name(entry->name.filename);
 		}
 		break;
 	case TYPE_MKDEV_ACL:
@@ -1061,10 +1054,14 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_mkdev_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->u_is_group)
-				ccs_put_path_group(entry->u.group);
+			if (entry->name_is_group)
+				ccs_put_path_group(entry->name.group);
 			else
-				ccs_put_name(entry->u.filename);
+				ccs_put_name(entry->name.filename);
+			if (entry->major_is_group)
+				ccs_put_number_group(entry->major.group);
+			if (entry->minor_is_group)
+				ccs_put_number_group(entry->minor.group);
 		}
 		break;
 	case TYPE_DOUBLE_PATH_ACL:
@@ -1072,14 +1069,14 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_double_path_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->u1_is_group)
-				ccs_put_path_group(entry->u1.group1);
+			if (entry->name1_is_group)
+				ccs_put_path_group(entry->name1.group);
 			else
-				ccs_put_name(entry->u1.filename1);
-			if (entry->u2_is_group)
-				ccs_put_path_group(entry->u2.group2);
+				ccs_put_name(entry->name1.filename);
+			if (entry->name2_is_group)
+				ccs_put_path_group(entry->name2.group);
 			else
-				ccs_put_name(entry->u2.filename2);
+				ccs_put_name(entry->name2.filename);
 		}
 		break;
 	case TYPE_IP_NETWORK_ACL:
@@ -1088,11 +1085,13 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			if (entry->record_type == IP_RECORD_TYPE_ADDRESS_GROUP)
-				ccs_put_address_group(entry->u.group);
+				ccs_put_address_group(entry->address.group);
 			else if (entry->record_type == IP_RECORD_TYPE_IPv6) {
-				ccs_put_ipv6_address(entry->u.ipv6.min);
-				ccs_put_ipv6_address(entry->u.ipv6.max);
+				ccs_put_ipv6_address(entry->address.ipv6.min);
+				ccs_put_ipv6_address(entry->address.ipv6.max);
 			}
+			if (entry->port_is_group)
+				ccs_put_number_group(entry->port.group);
 		}
 		break;
 	case TYPE_IOCTL_ACL:
@@ -1100,10 +1099,12 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_ioctl_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->u_is_group)
-				ccs_put_path_group(entry->u.group);
+			if (entry->name_is_group)
+				ccs_put_path_group(entry->name.group);
 			else
-				ccs_put_name(entry->u.filename);
+				ccs_put_name(entry->name.filename);
+			if (entry->cmd_is_group)
+				ccs_put_number_group(entry->cmd.group);
 		}
 		break;
 	case TYPE_ARGV0_ACL:
@@ -1111,6 +1112,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_argv0_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->filename);
 			ccs_put_name(entry->argv0);
 		}
 		break;
@@ -1209,7 +1211,7 @@ static size_t ccs_del_path_group_member(struct ccs_path_group_member *member)
 	return sizeof(*member);
 }
 
-static size_t ccs_del_path_group(struct ccs_path_group_entry *group)
+static size_t ccs_del_path_group(struct ccs_path_group *group)
 {
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
@@ -1236,7 +1238,7 @@ static size_t ccs_del_number_group_member
 	return sizeof(*member);
 }
 
-static size_t ccs_del_number_group(struct ccs_number_group_entry *group)
+static size_t ccs_del_number_group(struct ccs_number_group *group)
 {
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
@@ -1376,7 +1378,7 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
-		struct ccs_path_group_entry *group;
+		struct ccs_path_group *group;
 		list_for_each_entry_rcu(group, &ccs_path_group_list, list) {
 			struct ccs_path_group_member *member;
 			list_for_each_entry_rcu(member,
@@ -1426,7 +1428,7 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
-		struct ccs_number_group_entry *group;
+		struct ccs_number_group *group;
 		list_for_each_entry_rcu(group, &ccs_number_group_list, list) {
 			struct ccs_number_group_member *member;
 			list_for_each_entry_rcu(member,

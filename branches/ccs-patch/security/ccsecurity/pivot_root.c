@@ -18,7 +18,6 @@
 #include <linux/fs.h>
 #endif
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_pivot_root_log - Audit pivot_root log.

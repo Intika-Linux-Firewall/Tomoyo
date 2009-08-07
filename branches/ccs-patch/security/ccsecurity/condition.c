@@ -12,7 +12,6 @@
 
 #include <linux/slab.h>
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_check_argv - Check argv[] in "struct linux_binbrm".
@@ -240,7 +239,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 
 static bool ccs_scan_symlink_target(const struct ccs_path_info *symlink_target,
 				    const struct ccs_path_info *path,
-				    const struct ccs_path_group_entry *group,
+				    const struct ccs_path_group *group,
 				    const bool match)
 {
 	if (!symlink_target)
@@ -254,7 +253,7 @@ static bool ccs_scan_symlink_target(const struct ccs_path_info *symlink_target,
 
 static bool ccs_scan_exec_realpath(const struct file *file,
 				   const struct ccs_path_info *path,
-				   const struct ccs_path_group_entry *group,
+				   const struct ccs_path_group *group,
 				   const bool match)
 {
 	bool result;
@@ -274,41 +273,6 @@ static bool ccs_scan_exec_realpath(const struct file *file,
 	kfree(exe.name);
 	return result;
 }
-
-struct ccs_condition_element {
-	/*
-	 * Left hand operand. A "struct ccs_argv_entry" for ARGV_ENTRY, a
-	 * "struct ccs_envp_entry" for ENVP_ENTRY is attached to the tail of
-	 * the array of this struct.
-	 */
-	u8 left;
-	/*
-	 * Right hand operand.  An "unsigned long" for CONSTANT_VALUE,
-	 * two "unsigned long" for CONSTANT_VALUE_RANGE,
-	 * a "struct ccs_number_group *" for NUMBER_GROUP,
-	 * a "struct ccs_path_info *" for PATH_INFO,
-	 * a "struct ccs_group_info *" for PATH_GROUP is attached to the tail
-	 * of the array of this struct.
-	 */
-	u8 right;
-	/* Equation operator. 1 if equals or overlaps, 0 otherwise. */
-	u8 equals;
-	/*
-	 * Radix types for constant value .
-	 * 
-	 * Bit 3 and 2: Right hand operand's min value
-	 * Bit 1 and 0: Right hand operand's max value
-	 *
-	 * 01 is for decimal, 10 is for octal, 11 is for hexadecimal,
-	 * 00 is for invalid (i.e. not a value) expression.
-	 */
-	u8 type;
-};
-
-/* Value type definition. */
-#define VALUE_TYPE_DECIMAL     1
-#define VALUE_TYPE_OCTAL       2
-#define VALUE_TYPE_HEXADECIMAL 3
 
 /**
  * ccs_parse_ulong - Parse an "unsigned long" value.
@@ -695,9 +659,9 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	struct ccs_condition *ptr;
 	struct ccs_condition_element *condp;
 	unsigned long *ulong_p;
-	struct ccs_number_group_entry **number_group_p;
+	struct ccs_number_group **number_group_p;
 	const struct ccs_path_info **path_info_p;
-	struct ccs_path_group_entry **path_group_p;
+	struct ccs_path_group **path_group_p;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
 	u32 size;
@@ -839,9 +803,9 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	size = sizeof(*entry)
 		+ condc * sizeof(struct ccs_condition_element)
 		+ ulong_count * sizeof(unsigned long)
-		+ number_group_count * sizeof(struct ccs_number_group_entry *)
+		+ number_group_count * sizeof(struct ccs_number_group *)
 		+ path_info_count * sizeof(struct ccs_path_info *)
-		+ path_group_count * sizeof(struct ccs_path_group_entry *)
+		+ path_group_count * sizeof(struct ccs_path_group *)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry);
 	entry = kzalloc(size, GFP_KERNEL);
@@ -861,11 +825,11 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	entry->envc = envc;
 	condp = (struct ccs_condition_element *) (entry + 1);
 	ulong_p = (unsigned long *) (condp + condc);
-	number_group_p = (struct ccs_number_group_entry **)
+	number_group_p = (struct ccs_number_group **)
 		(ulong_p + ulong_count);
 	path_info_p = (const struct ccs_path_info **)
 		(number_group_p + number_group_count);
-	path_group_p = (struct ccs_path_group_entry **)
+	path_group_p = (struct ccs_path_group **)
 		(path_info_p + path_info_count);
 	argv = (struct ccs_argv_entry *) (path_group_p + path_group_count);
 	envp = (struct ccs_envp_entry *) (argv + argc);
@@ -882,9 +846,9 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		u8 left_2_type = 0;
 		u8 right_1_type = 0;
 		u8 right_2_type = 0;
-		struct ccs_number_group_entry *number_group = NULL;
+		struct ccs_number_group *number_group = NULL;
 		const struct ccs_path_info *path_info = NULL;
-		struct ccs_path_group_entry *path_group = NULL;
+		struct ccs_path_group *path_group = NULL;
 		while (*start == ' ')
 			start++;
 		if (!*start)
@@ -1287,9 +1251,9 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	unsigned long right_max = 0;
 	const struct ccs_condition_element *condp;
 	const unsigned long *ulong_p;
-	const struct ccs_number_group_entry **number_group_p;
+	const struct ccs_number_group **number_group_p;
 	const struct ccs_path_info **path_info_p;
-	const struct ccs_path_group_entry **path_group_p;
+	const struct ccs_path_group **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	struct ccs_obj_info *obj;
@@ -1311,11 +1275,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		return false;
 	condp = (struct ccs_condition_element *) (cond + 1);
 	ulong_p = (const unsigned long *) (condp + condc);
-	number_group_p = (const struct ccs_number_group_entry **)
+	number_group_p = (const struct ccs_number_group **)
 		(ulong_p + cond->ulong_count);
 	path_info_p = (const struct ccs_path_info **)
 		(number_group_p + cond->number_group_count);
-	path_group_p = (const struct ccs_path_group_entry **)
+	path_group_p = (const struct ccs_path_group **)
 		(path_info_p + cond->path_info_count);
 	argv = (const struct ccs_argv_entry *)
 		(path_group_p + cond->path_group_count);
@@ -1334,7 +1298,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		/* Check string expressions. */
 		if (right == PATH_INFO || right == PATH_GROUP) {
 			const struct ccs_path_info *path = NULL;
-			const struct ccs_path_group_entry *group = NULL;
+			const struct ccs_path_group *group = NULL;
 			if (right == PATH_INFO)
 				path = *path_info_p++;
 			else
@@ -1692,7 +1656,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		}
 		if (right == NUMBER_GROUP) {
 			/* Fetch values now. */
-			const struct ccs_number_group_entry *group
+			const struct ccs_number_group *group
 				= *number_group_p++;
 			if (ccs_number_matches_group(left_min, left_max, group)
 			    == match)
@@ -1729,9 +1693,9 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 {
 	const struct ccs_condition_element *condp;
 	const unsigned long *ulong_p;
-	const struct ccs_number_group_entry **number_group_p;
+	const struct ccs_number_group **number_group_p;
 	const struct ccs_path_info **path_info_p;
-	const struct ccs_path_group_entry **path_group_p;
+	const struct ccs_path_group **path_group_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	u16 condc;
@@ -1743,11 +1707,11 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 	condc = cond->condc;
 	condp = (const struct ccs_condition_element *) (cond + 1);
 	ulong_p = (const unsigned long *) (condp + condc);
-	number_group_p = (const struct ccs_number_group_entry **)
+	number_group_p = (const struct ccs_number_group **)
 		(ulong_p + cond->ulong_count);
 	path_info_p = (const struct ccs_path_info **)
 		(number_group_p + cond->number_group_count);
-	path_group_p = (const struct ccs_path_group_entry **)
+	path_group_p = (const struct ccs_path_group **)
 		(path_info_p + cond->path_info_count);
 	argv = (const struct ccs_argv_entry *)
 		(path_group_p + cond->path_group_count);
@@ -1884,21 +1848,21 @@ struct ccs_condition *ccs_handler_cond(void)
 	return ccs_get_condition(str);
 }
 
-/* The list for "struct ccs_number_group_entry". */
+/* The list for "struct ccs_number_group". */
 LIST_HEAD(ccs_number_group_list);
 
 /**
- * ccs_get_number_group - Allocate memory for "struct ccs_number_group_entry".
+ * ccs_get_number_group - Allocate memory for "struct ccs_number_group".
  *
  * @group_name: The name of number group.
  *
- * Returns pointer to "struct ccs_number_group_entry" on success,
+ * Returns pointer to "struct ccs_number_group" on success,
  * NULL otherwise.
  */
-struct ccs_number_group_entry *ccs_get_number_group(const char *group_name)
+struct ccs_number_group *ccs_get_number_group(const char *group_name)
 {
-	struct ccs_number_group_entry *entry = NULL;
-	struct ccs_number_group_entry *group;
+	struct ccs_number_group *entry = NULL;
+	struct ccs_number_group *group;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
@@ -1933,7 +1897,7 @@ struct ccs_number_group_entry *ccs_get_number_group(const char *group_name)
 }
 
 /**
- * ccs_update_number_group_entry - Update "struct ccs_number_group_entry" list.
+ * ccs_update_number_group - Update "struct ccs_number_group" list.
  *
  * @group_name: The name of pathname group.
  * @min:        Min value.
@@ -1942,11 +1906,10 @@ struct ccs_number_group_entry *ccs_get_number_group(const char *group_name)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_number_group_entry(const char *group_name,
-					 unsigned long min, unsigned long max,
-					 const bool is_delete)
+static int ccs_update_number_group(const char *group_name, unsigned long min,
+				   unsigned long max, const bool is_delete)
 {
-	struct ccs_number_group_entry *group;
+	struct ccs_number_group *group;
 	struct ccs_number_group_member *entry = NULL;
 	struct ccs_number_group_member *member;
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -1981,7 +1944,7 @@ static int ccs_update_number_group_entry(const char *group_name,
 }
 
 /**
- * ccs_write_number_group_policy - Write "struct ccs_number_group_entry" list.
+ * ccs_write_number_group_policy - Write "struct ccs_number_group" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -2004,11 +1967,11 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
 	default:
 		return -EINVAL;
 	}
-	return ccs_update_number_group_entry(w[0], min, max, is_delete);
+	return ccs_update_number_group(w[0], min, max, is_delete);
 }
 
 /**
- * ccs_read_number_group_policy - Read "struct ccs_number_group_entry" list.
+ * ccs_read_number_group_policy - Read "struct ccs_number_group" list.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
@@ -2023,9 +1986,9 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 	bool done = true;
 	ccs_check_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_number_group_list) {
-		struct ccs_number_group_entry *group;
+		struct ccs_number_group *group;
 		const char *name;
-		group = list_entry(gpos, struct ccs_number_group_entry, list);
+		group = list_entry(gpos, struct ccs_number_group, list);
 		name = group->group_name->name;
 		list_for_each_cookie(mpos, head->read_var2,
 				     &group->number_group_member_list) {
@@ -2056,14 +2019,14 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
  *
  * @min:   Min number.
  * @max:   Max number.
- * @group: Pointer to "struct ccs_number_group_entry".
+ * @group: Pointer to "struct ccs_number_group".
  *
  * Returns true if @min and @max partially overlaps @group, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
-			      const struct ccs_number_group_entry *group)
+			      const struct ccs_number_group *group)
 {
 	struct ccs_number_group_member *member;
 	bool matched = false;

@@ -18,7 +18,6 @@
 #include <linux/namespace.h>
 #endif
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_umount_log - Audit unmount log.

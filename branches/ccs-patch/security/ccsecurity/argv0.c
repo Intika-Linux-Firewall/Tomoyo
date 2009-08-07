@@ -11,7 +11,6 @@
  */
 
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_audit_argv0_log - Audit argv[0] log.

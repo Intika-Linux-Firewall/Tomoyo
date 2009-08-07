@@ -26,7 +26,6 @@
 #include <linux/nsproxy.h>
 #endif
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path

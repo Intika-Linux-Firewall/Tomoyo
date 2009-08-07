@@ -36,6 +36,7 @@
 #include <linux/hardirq.h>
 #endif
 #include <linux/in6.h>
+#include <linux/ccsecurity.h>
 
 struct dentry;
 struct vfsmount;
@@ -99,6 +100,42 @@ struct ccs_obj_info {
 	unsigned int dev;
 };
 
+/* Value type definition. */
+#define VALUE_TYPE_INVALID     0
+#define VALUE_TYPE_DECIMAL     1
+#define VALUE_TYPE_OCTAL       2
+#define VALUE_TYPE_HEXADECIMAL 3
+
+struct ccs_condition_element {
+	/*
+	 * Left hand operand. A "struct ccs_argv_entry" for ARGV_ENTRY, a
+	 * "struct ccs_envp_entry" for ENVP_ENTRY is attached to the tail of
+	 * the array of this struct.
+	 */
+	u8 left;
+	/*
+	 * Right hand operand.  An "unsigned long" for CONSTANT_VALUE,
+	 * two "unsigned long" for CONSTANT_VALUE_RANGE,
+	 * a "struct ccs_number_group *" for NUMBER_GROUP,
+	 * a "struct ccs_path_info *" for PATH_INFO,
+	 * a "struct ccs_group_info *" for PATH_GROUP is attached to the tail
+	 * of the array of this struct.
+	 */
+	u8 right;
+	/* Equation operator. 1 if equals or overlaps, 0 otherwise. */
+	u8 equals;
+	/*
+	 * Radix types for constant value .
+	 * 
+	 * Bit 3 and 2: Right hand operand's min value
+	 * Bit 1 and 0: Right hand operand's max value
+	 *
+	 * 01 is for decimal, 10 is for octal, 11 is for hexadecimal,
+	 * 00 is for invalid (i.e. not a value) expression.
+	 */
+	u8 type;
+};
+
 /* Structure for " if " and "; set" part. */
 struct ccs_condition {
 	struct list_head list;
@@ -115,9 +152,9 @@ struct ccs_condition {
 	/*
 	 * struct ccs_condition_element condition[condc];
 	 * unsigned long values[ulong_count];
-	 * struct ccs_number_group_entry *number_group[number_group_count];
+	 * struct ccs_number_group *number_group[number_group_count];
 	 * struct ccs_path_info *path_info[path_info_count];
-	 * struct ccs_path_group_entry *path_group[path_group_count];
+	 * struct ccs_path_group *path_group[path_group_count];
 	 * struct ccs_argv_entry argv[argc];
 	 * struct ccs_envp_entry envp[envc];
 	 */
@@ -183,7 +220,7 @@ struct ccs_path_group_member {
 };
 
 /* Structure for "path_group" directive. */
-struct ccs_path_group_entry {
+struct ccs_path_group {
 	struct list_head list;
 	const struct ccs_path_info *group_name;
 	struct list_head path_group_member_list;
@@ -196,10 +233,12 @@ struct ccs_number_group_member {
 	unsigned long min;
 	unsigned long max;
 	bool is_deleted;
+	u8 min_type;
+	u8 max_type;
 };
 
 /* Structure for "number_group" directive. */
-struct ccs_number_group_entry {
+struct ccs_number_group {
 	struct list_head list;
 	const struct ccs_path_info *group_name;
 	struct list_head number_group_member_list;
@@ -436,6 +475,20 @@ struct ccs_execute_handler_record {
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
 
+union ccs_name_union {
+	void *ptr;
+	const struct ccs_path_info *filename;
+	struct ccs_path_group *group;
+};
+
+union ccs_number_union {
+	struct {
+		unsigned int min;
+		unsigned int max;
+	} value;
+	struct ccs_number_group *group;
+};
+
 /*
  * Structure for "allow_read/write", "allow_execute", "allow_read",
  * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
@@ -444,70 +497,48 @@ struct ccs_execute_handler_record {
  */
 struct ccs_single_path_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
-	bool u_is_group; /* True if u points to "path_group" directive. */
+	/* True if name points to "path_group" directive. */
+	bool name_is_group;
 	u16 perm;
-	union {
-		const void *ptr;
-		/* Pointer to single pathname. */
-		const struct ccs_path_info *filename;
-		/* Pointer to pathname group. */
-		struct ccs_path_group_entry *group;
-	} u;
+	union ccs_name_union name;
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
 struct ccs_mkdev_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_MKDEV_ACL */
-	bool u_is_group; /* True if u points to "path_group" directive. */
-	u8 perm;
-	union {
-		const void *ptr;
-		/* Pointer to single pathname. */
-		const struct ccs_path_info *filename;
-		/* Pointer to pathname group. */
-		struct ccs_path_group_entry *group;
-	} u;
-	unsigned int min_major;
-	unsigned int max_major;
-	unsigned int min_minor;
-	unsigned int max_minor;
+	u8 perm; /* mkblock and/or mkchar */
+	/* True if name points to "path_group" directive. */
+	bool name_is_group;
+	/* True if major points to "number_group" directive. */
+	bool major_is_group;
+	/* True if minor points to "number_group" directive. */
+	bool minor_is_group;
+	union ccs_name_union name;
+	union ccs_number_union major;
+	union ccs_number_union minor;
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
 struct ccs_double_path_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
 	u8 perm;
-	bool u1_is_group; /* True if u1 points to "path_group" directive. */
-	bool u2_is_group; /* True if u2 points to "path_group" directive. */
-	union {
-		const void *ptr;
-		/* Pointer to single pathname. */
-		const struct ccs_path_info *filename1;
-		/* Pointer to pathname group. */
-		struct ccs_path_group_entry *group1;
-	} u1;
-	union {
-		const void *ptr;
-		/* Pointer to single pathname. */
-		const struct ccs_path_info *filename2;
-		/* Pointer to pathname group. */
-		struct ccs_path_group_entry *group2;
-	} u2;
+	/* True if name1 points to "path_group" directive. */
+	bool name1_is_group;
+	/* True if name2 points to "path_group" directive. */
+	bool name2_is_group;
+	union ccs_name_union name1;
+	union ccs_name_union name2;
 };
 
 /* Structure for "allow_ioctl" directive. */
 struct ccs_ioctl_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_IOCTL_ACL */
-	unsigned int cmd_min;
-	unsigned int cmd_max;
-	bool u_is_group; /* True if u points to "path_group" directive. */
-	union {
-		const void *ptr;
-		/* Pointer to single pathname. */
-		const struct ccs_path_info *filename;
-		/* Pointer to pathname group. */
-		struct ccs_path_group_entry *group;
-	} u;
+	/* True if name points to "path_group" directive. */
+	bool name_is_group;
+	/* True if cmd points to "number_group" directive. */
+	bool cmd_is_group;
+	union ccs_name_union name;
+	union ccs_number_union cmd;
 };
 
 /* Structure for "allow_argv0" directive. */
@@ -563,17 +594,15 @@ struct ccs_ip_network_acl_record {
 	/*
 	 * record_type takes one of the following constants.
 	 *   IP_RECORD_TYPE_ADDRESS_GROUP
-	 *                if u points to "address_group" directive.
+	 *                if address points to "address_group" directive.
 	 *   IP_RECORD_TYPE_IPv4
-	 *                if u points to an IPv4 address.
+	 *                if address points to an IPv4 address.
 	 *   IP_RECORD_TYPE_IPv6
-	 *                if u points to an IPv6 address.
+	 *                if address points to an IPv6 address.
 	 */
 	u8 record_type;
-	/* Start of port number range. */
-	u16 min_port;
-	/* End of port number range.   */
-	u16 max_port;
+	/* True if port points to "number_group" directive. */
+	bool port_is_group;
 	union {
 		struct {
 			/* Start of IPv4 address range. Host endian. */
@@ -589,7 +618,8 @@ struct ccs_ip_network_acl_record {
 		} ipv6;
 		/* Pointer to address group. */
 		struct ccs_address_group_entry *group;
-	} u;
+	} address;
+	union ccs_number_union port;
 };
 
 /* Index numbers for File Controls. */
@@ -755,269 +785,112 @@ struct ccs_io_buffer {
 
 /* Prototype definition. */
 
-/* Check conditional part of an ACL entry. */
-bool ccs_check_condition(struct ccs_request_info *r,
-			 const struct ccs_acl_info *acl);
-/* Check whether the domain has too many ACL entries to hold. */
+bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
-/* Dump a page to buffer. */
-bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
-		   struct ccs_page_dump *dump);
-/* Transactional sprintf() for policy dump. */
-bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
-/* Check whether the domainname is correct. */
+bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
+bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 bool ccs_is_correct_domain(const unsigned char *domainname);
-/* Check whether the token is correct. */
-bool ccs_is_correct_path(const char *filename, const s8 start_type,
-			 const s8 pattern_type, const s8 end_type);
-/* Check whether the token can be a domainname. */
+bool ccs_is_correct_path(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type);
 bool ccs_is_domain_def(const unsigned char *buffer);
-/* Format string. */
 void ccs_normalize_line(unsigned char *buffer);
-/* Tokenize string. */
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
-/* Check whether the given filename matches the given pattern. */
-bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
-			      const struct ccs_path_info *pattern);
-bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_path_group_entry *group,
-			    const bool may_use_pattern);
-bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
-			      const struct ccs_number_group_entry *group);
-/* Print conditional part of an ACL entry. */
-bool ccs_print_condition(struct ccs_io_buffer *head,
-			 const struct ccs_condition *cond);
-/* Read "address_group" entry in exception policy. */
+bool ccs_path_matches_pattern(const struct ccs_path_info *filename, const struct ccs_path_info *pattern);
+bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_path_group *group, const bool may_use_pattern);
+bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_number_group *group);
+bool ccs_print_condition(struct ccs_io_buffer *head, const struct ccs_condition *cond);
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
-/* Read "aggregator" entry in exception policy. */
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
-/*
- * Read "initialize_domain" and "no_initialize_domain" entry
- * in exception policy.
- */
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
-/* Read "keep_domain" and "no_keep_domain" entry in exception policy. */
 bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head);
-/* Read "file_pattern" entry in exception policy. */
 bool ccs_read_file_pattern(struct ccs_io_buffer *head);
-/* Read "allow_read" entry in exception policy. */
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
-/* Read "allow_env" entry in exception policy. */
 bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
-/* Read "deny_rewrite" entry in exception policy. */
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
-/* Read "path_group" entry in exception policy. */
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
-/* Read "deny_autobind" entry in exception policy. */
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
-/* Write domain policy violation warning message to console? */
 bool ccs_verbose_mode(const struct ccs_domain_info *domain);
-/* Allocate buffer for domain policy auditing. */
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
-/* Convert capability index to capability name. */
 const char *ccs_cap2keyword(const u8 operation);
-/* Convert double path operation to operation name. */
 const char *ccs_dp2keyword(const u8 operation);
-/* Get the last component of the given domainname. */
 const char *ccs_get_last_name(const struct ccs_domain_info *domain);
-/* Get the pathname of current process. */
 const char *ccs_get_exe(void);
-/* Get warning message. */
 const char *ccs_get_msg(const bool is_enforce);
-/* Convert network operation index to operation name. */
 const char *ccs_net2keyword(const u8 operation);
-/* Convert single path operation to operation name. */
 const char *ccs_sp2keyword(const u8 operation);
-/* Convert mkdev operation index to operation name. */
 const char *ccs_mkdev2keyword(const u8 operation);
-/* Fetch next_domain from the list. */
 struct ccs_domain_info *ccs_fetch_next_domain(void);
-/* Create conditional part of an ACL entry. */
 struct ccs_condition *ccs_get_condition(char * const condition);
-/* Delete memory for "struct ccs_condition". */
 void ccs_put_condition(struct ccs_condition *cond);
-/* Create conditional part for execute_handler process. */
 struct ccs_condition *ccs_handler_cond(void);
-/* Add an ACL entry to domain's ACL list. */
-int ccs_add_domain_acl(struct ccs_domain_info *domain,
-		       struct ccs_acl_info *acl);
-/* Ask supervisor's opinion. */
-int ccs_check_supervisor(struct ccs_request_info *r,
-			 const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
-/* Close /proc/ccs/ interface. */
+int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl);
+int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 int ccs_close_control(struct file *file);
-/* Delete an ACL entry from domain's ACL list. */
 int ccs_del_domain_acl(struct ccs_acl_info *acl);
-/* Delete a domain. */
 int ccs_delete_domain(char *data);
-/* Open operation for /proc/ccs/ interface. */
 int ccs_open_control(const u8 type, struct file *file);
-/* Poll operation for /proc/ccs/ interface. */
 int ccs_poll_control(struct file *file, poll_table *wait);
-/* Check whether there is a grant log. */
 int ccs_poll_grant_log(struct file *file, poll_table *wait);
-/* Check whether there is a reject log. */
 int ccs_poll_reject_log(struct file *file, poll_table *wait);
-/* Read operation for /proc/ccs/ interface. */
-int ccs_read_control(struct file *file, char __user *buffer,
-		     const int buffer_len);
-/* Read a grant log. */
+int ccs_read_control(struct file *file, char __user *buffer, const int buffer_len);
 int ccs_read_grant_log(struct ccs_io_buffer *head);
-/* Read a reject log. */
 int ccs_read_reject_log(struct ccs_io_buffer *head);
-/* Add "address_group" entry in exception policy. */
 int ccs_write_address_group_policy(char *data, const bool is_delete);
-/* Create "aggregator" entry in exception policy. */
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
-/* Create "allow_argv0" entry in domain policy. */
-int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete);
-/* Write an audit log. */
-int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
-			const char *fmt, ...)
-     __attribute__ ((format(printf, 3, 4)));
-/* Create "allow_capability" entry in domain policy. */
-int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete);
-/* Create "allow_chroot" entry in domain policy. */
-int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
-                            struct ccs_condition *condition,
-			    const bool is_delete);
-/*
- * Create "initialize_domain" and "no_initialize_domain" entry
- * in exception policy.
- */
-int ccs_write_domain_initializer_policy(char *data, const bool is_not,
-					const bool is_delete);
-/* Create "keep_domain" and "no_keep_domain" entry in exception policy. */
-int ccs_write_domain_keeper_policy(char *data, const bool is_not,
-				   const bool is_delete);
-/* Create "allow_env" entry in domain policy. */
-int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
-			 struct ccs_condition *condition,
-			 const bool is_delete);
-/*
- * Create "allow_read/write", "allow_execute", "allow_read", "allow_write",
- * "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
- * "allow_mkfifo", "allow_mksock", "allow_mkblock", "allow_mkchar",
- * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_rename",
- * "allow_link", "execute_handler" and "denied_execute_handler"
- * entry in domain policy.
- */
-int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition *condition,
-			  const bool is_delete);
-/* Create "allow_read" entry in exception policy. */
+int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
+int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_domain_initializer_policy(char *data, const bool is_not, const bool is_delete);
+int ccs_write_domain_keeper_policy(char *data, const bool is_not, const bool is_delete);
+int ccs_write_env_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_file_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
-/* Create "allow_env" entry in exception policy. */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
-/* Create "allow_ioctl" entry in domain policy. */
-int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete);
-/* Create "allow_mount" entry in domain policy. */
-int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
-                           struct ccs_condition *condition,
-			   const bool is_delete);
-/* Create "allow_network" entry in domain policy. */
-int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     struct ccs_condition *condition,
-			     const bool is_delete);
-/* Create "deny_rewrite" entry in exception policy. */
+int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_network_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
-/* Create "allow_unmount" entry in domain policy. */
-int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete);
-/* Create "path_group" entry in exception policy. */
+int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_path_group_policy(char *data, const bool is_delete);
-/* Create "file_pattern" entry in exception policy. */
 int ccs_write_pattern_policy(char *data, const bool is_delete);
-/* Create "allow_pivot_root" entry in domain policy. */
-int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
-                                struct ccs_condition *condition,
-				const bool is_delete);
-/* Create "deny_autobind" entry in exception policy. */
+int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
-/* Create "allow_signal" entry in domain policy. */
-int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete);
-/* Write operation for /proc/ccs/ interface. */
-int ccs_write_control(struct file *file, const char __user *buffer,
-		      const int buffer_len);
-/* Find a domain by the given name. */
+int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_control(struct file *file, const char __user *buffer, const int buffer_len);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
-/* Find or create a domain by the given name. */
-struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
-						      const u8 profile);
-/* Check mode for specified functionality. */
-unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
-			     const u8 index);
-/* Check whether it is safe to sleep. */
+struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname, const u8 profile);
+unsigned int ccs_check_flags(const struct ccs_domain_info *domain, const u8 index);
 bool ccs_can_sleep(void);
-/* Fill in "struct ccs_path_info" members. */
 void ccs_fill_path_info(struct ccs_path_info *ptr);
-/* Fill in "struct ccs_request_info" members. */
-void ccs_init_request_info(struct ccs_request_info *r,
-			   struct ccs_domain_info *domain, const u8 index);
-/* Run policy loader when /sbin/init starts. */
+void ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
 void ccs_load_policy(const char *filename);
-/* Print an IPv6 address. */
-void ccs_print_ipv6(char *buffer, const int buffer_len,
-		    const struct in6_addr *ip);
-/* Check whether the basename of program and argv0 is allowed to differ. */
-int ccs_check_argv0_perm(struct ccs_request_info *r,
-			 const struct ccs_path_info *filename,
-			 const char *argv0);
-/* Check whether the given environment is allowed to be received. */
+void ccs_print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
+int ccs_check_argv0_perm(struct ccs_request_info *r, const struct ccs_path_info *filename, const char *argv0);
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
-/* Check whether the given pathname is allowed to be executed. */
-int ccs_check_exec_perm(struct ccs_request_info *r,
-			const struct ccs_path_info *filename);
-
-/* Delete memory for "struct ccs_path_group_entry". */
-void ccs_put_path_group(struct ccs_path_group_entry *group);
-/* Delete memory for "struct ccs_address_group_entry". */
+int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
+void ccs_put_path_group(struct ccs_path_group *group);
 void ccs_put_address_group(struct ccs_address_group_entry *group);
-/*
- * Returns realpath(3) of the given pathname but ignores chroot'ed root.
- * These functions use kzalloc(), so caller must kfree()
- * if these functions didn't return NULL.
- */
 char *ccs_realpath(const char *pathname);
-/* Same with ccs_realpath() except that the pathname is already solved. */
 char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
-/* Encode binary string to ascii string. */
 char *ccs_encode(const char *str);
-/* Get ccs_realpath() of both symlink and dereferenced pathname. */
 int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
-/* Check memory quota. */
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
-/* Allocate memory for the given name. */
 const struct ccs_path_info *ccs_get_name(const char *name);
-/* Delete memory for the given name. */
 void ccs_put_name(const struct ccs_path_info *name);
-/* Allocate memory for the given IPv6 address. */
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
-/* Delete memory for the given IPv6 address. */
 void ccs_put_ipv6_address(const struct in6_addr *addr);
-/* Check for memory usage. */
 int ccs_read_memory_counter(struct ccs_io_buffer *head);
-/* Set memory quota. */
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
-/* Start garbage collector thread. */
 void ccs_run_gc(void);
-
-struct ccs_path_group_entry *ccs_get_path_group(const char *group_name);
-struct ccs_number_group_entry *ccs_get_number_group(const char *group_name);
-void ccs_put_number_group(struct ccs_number_group_entry *group);
+struct ccs_path_group *ccs_get_path_group(const char *group_name);
+struct ccs_number_group *ccs_get_number_group(const char *group_name);
+void ccs_put_number_group(struct ccs_number_group *group);
 bool ccs_read_number_group_policy(struct ccs_io_buffer *head);
 int ccs_write_number_group_policy(char *data, const bool is_delete);
+bool ccs_check_and_save_number(const char *filename, bool *is_group, union ccs_number_union *ptr);
+struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int profile);
+bool ccs_str_starts(char **src, const char *find);
+
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -1063,6 +936,15 @@ extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 /* Lock for GC. */
 extern struct srcu_struct ccs_ss;
+
+struct ccs_profile {
+	unsigned int value[CCS_MAX_CONTROL_INDEX];
+	const struct ccs_path_info *comment;
+	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
+};
+extern struct ccs_profile *ccs_profile_ptr[MAX_PROFILES];
+
+extern const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX];
 
 extern unsigned int ccs_audit_log_memory_size;
 extern unsigned int ccs_quota_for_audit_log;

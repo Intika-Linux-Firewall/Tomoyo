@@ -11,7 +11,6 @@
  */
 
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /* The list for "struct ccs_reserved_entry". */
 LIST_HEAD(ccs_reservedport_list);

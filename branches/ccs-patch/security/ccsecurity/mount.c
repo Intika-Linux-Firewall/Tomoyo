@@ -20,7 +20,6 @@
 #include <linux/namespace.h>
 #endif
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 15)
 #define MS_UNBINDABLE	(1<<17)	/* change to unbindable */

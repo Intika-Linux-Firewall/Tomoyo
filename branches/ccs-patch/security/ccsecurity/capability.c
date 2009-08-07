@@ -11,7 +11,6 @@
  */
 
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_cap2name - Convert capability operation to capability message.

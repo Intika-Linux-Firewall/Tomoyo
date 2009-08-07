@@ -18,7 +18,6 @@
 #include <net/ipv6.h>
 #include <net/udp.h>
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {
@@ -447,7 +446,8 @@ const char *ccs_net2keyword(const u8 operation)
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_network_entry(const u8 operation, const u8 record_type,
-				    const char *group_name,
+				    const char *address_group_name,
+				    const char *port_group_name,
 				    const u32 *min_address,
 				    const u32 *max_address,
 				    const u16 min_port, const u16 max_port,
@@ -455,28 +455,38 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    struct ccs_condition *condition,
 				    const bool is_delete)
 {
-	struct ccs_ip_network_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
+	struct ccs_ip_network_acl_record e;
+	struct ccs_ip_network_acl_record *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	/* using host byte order to allow u32 comparison than memcmp().*/
-	const u32 min_ip = ntohl(*min_address);
-	const u32 max_ip = ntohl(*max_address);
-	const struct in6_addr *saved_min_address = NULL;
-	const struct in6_addr *saved_max_address = NULL;
-	struct ccs_address_group_entry *group = NULL;
+	memset(&e, 0, sizeof(e));
+	e.head.type = TYPE_IP_NETWORK_ACL;
+	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
-	if (group_name) {
-		group = ccs_get_address_group(group_name);
-		if (!group)
+	if (address_group_name) {
+		e.address.group = ccs_get_address_group(address_group_name);
+		if (!e.address.group)
 			return -ENOMEM;
 	} else if (record_type == IP_RECORD_TYPE_IPv6) {
-		saved_min_address = ccs_get_ipv6_address((struct in6_addr *)
-							 min_address);
-		saved_max_address = ccs_get_ipv6_address((struct in6_addr *)
-							 max_address);
-		if (!saved_min_address || !saved_max_address)
+		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
+							  min_address);
+		e.address.ipv6.max = ccs_get_ipv6_address((struct in6_addr *)
+							  max_address);
+		if (!e.address.ipv6.min || !e.address.ipv6.max)
 			goto out;
+	} else {
+		/* use host byte order to allow u32 comparison than memcmp().*/
+		e.address.ipv4.min = ntohl(*min_address);
+		e.address.ipv4.max = ntohl(*max_address);
+	}
+	if (port_group_name) {
+		if (!ccs_check_and_save_number(port_group_name,
+					       &e.port_is_group, &e.port))
+		    goto out;
+	} else {
+		e.port.value.min = min_port;
+		e.port.value.max = max_port;
 	}
 	if (is_delete)
 		goto delete;
@@ -489,44 +499,14 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
-		if (acl->operation_type != operation ||
-		    acl->record_type != record_type ||
-		    acl->min_port != min_port || max_port != acl->max_port)
+		if (memcmp(acl, &e, sizeof(e)))
 			continue;
-		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			if (acl->u.group != group)
-				continue;
-		} else if (record_type == IP_RECORD_TYPE_IPv4) {
-			if (acl->u.ipv4.min != min_ip ||
-			    max_ip != acl->u.ipv4.max)
-				continue;
-		} else if (record_type == IP_RECORD_TYPE_IPv6) {
-			if (acl->u.ipv6.min != saved_min_address ||
-			    saved_max_address != acl->u.ipv6.max)
-				continue;
-		}
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_IP_NETWORK_ACL;
-		entry->head.cond = condition;
-		entry->operation_type = operation;
-		entry->record_type = record_type;
-		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			entry->u.group = group;
-			group = NULL;
-		} else if (record_type == IP_RECORD_TYPE_IPv4) {
-			entry->u.ipv4.min = min_ip;
-			entry->u.ipv4.max = max_ip;
-		} else {
-			entry->u.ipv6.min = saved_min_address;
-			saved_min_address = NULL;
-			entry->u.ipv6.max = saved_max_address;
-			saved_max_address = NULL;
-		}
-		entry->min_port = min_port;
-		entry->max_port = max_port;
+		memmove(entry, &e, sizeof(e));
+		memset(&e, 0, sizeof(e));
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
@@ -541,30 +521,21 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
-		if (acl->operation_type != operation ||
-		    acl->record_type != record_type ||
-		    acl->min_port != min_port || max_port != acl->max_port)
+		if (memcmp(acl, &e, sizeof(e)))
 			continue;
-		if (record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
-			if (acl->u.group != group)
-				continue;
-		} else if (record_type == IP_RECORD_TYPE_IPv4) {
-			if (acl->u.ipv4.min != min_ip ||
-			    max_ip != acl->u.ipv4.max)
-				continue;
-		} else if (record_type == IP_RECORD_TYPE_IPv6) {
-			if (acl->u.ipv6.min != saved_min_address ||
-			    saved_max_address != acl->u.ipv6.max)
-				continue;
-		}
 		error = ccs_del_domain_acl(ptr);
 		break;
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	ccs_put_ipv6_address(saved_min_address);
-	ccs_put_ipv6_address(saved_max_address);
-	ccs_put_address_group(group);
+	if (address_group_name)
+		ccs_put_address_group(e.address.group);
+	else if (record_type == IP_RECORD_TYPE_IPv6) {
+		ccs_put_ipv6_address(e.address.ipv6.min);
+		ccs_put_ipv6_address(e.address.ipv6.max);
+	}
+	if (port_group_name)
+		ccs_put_number_group(e.port.group);
 	kfree(entry);
 	return error;
 }
@@ -605,21 +576,32 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
-		if (acl->operation_type != operation || port < acl->min_port ||
-		    acl->max_port < port || !ccs_check_condition(&r, ptr))
+		if (acl->operation_type != operation)
+			continue;
+		if (acl->port_is_group) {
+			if (!ccs_number_matches_group(port, port,
+						      acl->port.group))
+				continue;
+		} else {
+			if (port < acl->port.value.min ||
+			    acl->port.value.max < port)
+				continue;
+		}
+		if (!ccs_check_condition(&r, ptr))
 			continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!ccs_address_matches_group(is_ipv6, address,
-						       acl->u.group))
+						       acl->address.group))
 				continue;
 		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {
 			if (is_ipv6 ||
-			    ip < acl->u.ipv4.min || acl->u.ipv4.max < ip)
+			    ip < acl->address.ipv4.min ||
+			    acl->address.ipv4.max < ip)
 				continue;
 		} else {
 			if (!is_ipv6 ||
-			    memcmp(acl->u.ipv6.min, address, 16) > 0 ||
-			    memcmp(address, acl->u.ipv6.max, 16) > 0)
+			    memcmp(acl->address.ipv6.min, address, 16) > 0 ||
+			    memcmp(address, acl->address.ipv6.max, 16) > 0)
 				continue;
 		}
 		r.cond = ptr->cond;
@@ -647,8 +629,8 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		ccs_update_network_entry(operation, is_ipv6 ?
 					 IP_RECORD_TYPE_IPv6 :
 					 IP_RECORD_TYPE_IPv4,
-					 NULL, address, address, port, port,
-					 r.domain, cond, false);
+					 NULL, NULL, address, address, port,
+					 port, r.domain, cond, false);
 		ccs_put_condition(cond);
 	}
 	return 0;
@@ -694,10 +676,10 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	u8 record_type;
 	u16 min_address[8];
 	u16 max_address[8];
-	const char *group_name = NULL;
+	const char *address_group_name = NULL;
+	const char *port_group_name = NULL;
 	u16 min_port;
 	u16 max_port;
-	u8 count;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
                 return -EINVAL;
 	if (!strcmp(w[0], "TCP"))
@@ -746,16 +728,24 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	default:
 		if (w[2][0] != '@')
 			goto out;
-		group_name = w[2] + 1;
+		address_group_name = w[2] + 1;
 		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
 		break;
 	}
-	count = sscanf(w[3], "%hu-%hu", &min_port, &max_port);
-	if (count != 1 && count != 2)
-		goto out;
-	if (count == 1)
+	switch (sscanf(w[3], "%hu-%hu", &min_port, &max_port)) {
+	case 2:
+		break;
+	case 1:
 		max_port = min_port;
-	return ccs_update_network_entry(operation, record_type, group_name,
+		break;
+	default:
+		if (w[3][0] != '@')
+			goto out;
+		port_group_name = w[3];
+		break;
+	}
+	return ccs_update_network_entry(operation, record_type,
+					address_group_name, port_group_name,
 					(u32 *) min_address,
 					(u32 *) max_address,
 					min_port, max_port, domain, condition,

@@ -12,7 +12,6 @@
 
 #include <linux/slab.h>
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /**
  * ccs_print_bprm - Print "struct linux_binprm" for auditing.

@@ -21,7 +21,6 @@
 #include <linux/fs_struct.h>
 #endif
 #include "internal.h"
-#include <linux/ccsecurity.h>
 
 /* For compatibility with older kernels. */
 #ifndef for_each_process
