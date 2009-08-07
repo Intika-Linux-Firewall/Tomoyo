@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/internal.h
+ * security/ccsecurity/internal.h
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -785,6 +785,8 @@ struct ccs_io_buffer {
 
 /* Prototype definition. */
 
+bool ccs_can_sleep(void);
+bool ccs_check_and_save_number(const char *filename, bool *is_group, union ccs_number_union *ptr);
 bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
@@ -792,11 +794,10 @@ bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute
 bool ccs_is_correct_domain(const unsigned char *domainname);
 bool ccs_is_correct_path(const char *filename, const s8 start_type, const s8 pattern_type, const s8 end_type);
 bool ccs_is_domain_def(const unsigned char *buffer);
-void ccs_normalize_line(unsigned char *buffer);
-bool ccs_tokenize(char *buffer, char *w[], size_t size);
-bool ccs_path_matches_pattern(const struct ccs_path_info *filename, const struct ccs_path_info *pattern);
-bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_path_group *group, const bool may_use_pattern);
+bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_number_group *group);
+bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_path_group *group, const bool may_use_pattern);
+bool ccs_path_matches_pattern(const struct ccs_path_info *filename, const struct ccs_path_info *pattern);
 bool ccs_print_condition(struct ccs_io_buffer *head, const struct ccs_condition *cond);
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
@@ -806,23 +807,30 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head);
 bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head);
 bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head);
 bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head);
+bool ccs_read_number_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
+bool ccs_str_starts(char **src, const char *find);
+bool ccs_tokenize(char *buffer, char *w[], size_t size);
 bool ccs_verbose_mode(const struct ccs_domain_info *domain);
+char *ccs_encode(const char *str);
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
+char *ccs_realpath(const char *pathname);
+char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
 const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_dp2keyword(const u8 operation);
-const char *ccs_get_last_name(const struct ccs_domain_info *domain);
 const char *ccs_get_exe(void);
+const char *ccs_get_last_name(const struct ccs_domain_info *domain);
 const char *ccs_get_msg(const bool is_enforce);
+const char *ccs_mkdev2keyword(const u8 operation);
 const char *ccs_net2keyword(const u8 operation);
 const char *ccs_sp2keyword(const u8 operation);
-const char *ccs_mkdev2keyword(const u8 operation);
-struct ccs_domain_info *ccs_fetch_next_domain(void);
-struct ccs_condition *ccs_get_condition(char * const condition);
-void ccs_put_condition(struct ccs_condition *cond);
-struct ccs_condition *ccs_handler_cond(void);
+const struct ccs_path_info *ccs_get_name(const char *name);
+const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl);
+int ccs_check_argv0_perm(struct ccs_request_info *r, const struct ccs_path_info *filename, const char *argv0);
+int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
+int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
 int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 int ccs_close_control(struct file *file);
 int ccs_del_domain_acl(struct ccs_acl_info *acl);
@@ -833,13 +841,16 @@ int ccs_poll_grant_log(struct file *file, poll_table *wait);
 int ccs_poll_reject_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer, const int buffer_len);
 int ccs_read_grant_log(struct ccs_io_buffer *head);
+int ccs_read_memory_counter(struct ccs_io_buffer *head);
 int ccs_read_reject_log(struct ccs_io_buffer *head);
+int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
 int ccs_write_address_group_policy(char *data, const bool is_delete);
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
 int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_control(struct file *file, const char __user *buffer, const int buffer_len);
 int ccs_write_domain_initializer_policy(char *data, const bool is_not, const bool is_delete);
 int ccs_write_domain_keeper_policy(char *data, const bool is_not, const bool is_delete);
 int ccs_write_env_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
@@ -847,50 +858,39 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain, struct ccs
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
 int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
-int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+int ccs_write_number_group_policy(char *data, const bool is_delete);
 int ccs_write_path_group_policy(char *data, const bool is_delete);
 int ccs_write_pattern_policy(char *data, const bool is_delete);
 int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
-int ccs_write_control(struct file *file, const char __user *buffer, const int buffer_len);
+int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
+struct ccs_condition *ccs_get_condition(char * const condition);
+struct ccs_condition *ccs_handler_cond(void);
+struct ccs_domain_info *ccs_fetch_next_domain(void);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname, const u8 profile);
+struct ccs_number_group *ccs_get_number_group(const char *group_name);
+struct ccs_path_group *ccs_get_path_group(const char *group_name);
+struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int profile);
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain, const u8 index);
-bool ccs_can_sleep(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
 void ccs_load_policy(const char *filename);
+void ccs_memory_free(const void *ptr, size_t size);
+void ccs_normalize_line(unsigned char *buffer);
 void ccs_print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
-int ccs_check_argv0_perm(struct ccs_request_info *r, const struct ccs_path_info *filename, const char *argv0);
-int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
-int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
-void ccs_put_path_group(struct ccs_path_group *group);
 void ccs_put_address_group(struct ccs_address_group_entry *group);
-char *ccs_realpath(const char *pathname);
-char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
-char *ccs_encode(const char *str);
-int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
-bool ccs_memory_ok(const void *ptr, const unsigned int size);
-const struct ccs_path_info *ccs_get_name(const char *name);
-void ccs_put_name(const struct ccs_path_info *name);
-const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
+void ccs_put_condition(struct ccs_condition *cond);
 void ccs_put_ipv6_address(const struct in6_addr *addr);
-int ccs_read_memory_counter(struct ccs_io_buffer *head);
-int ccs_write_memory_quota(struct ccs_io_buffer *head);
-void ccs_run_gc(void);
-struct ccs_path_group *ccs_get_path_group(const char *group_name);
-struct ccs_number_group *ccs_get_number_group(const char *group_name);
+void ccs_put_name(const struct ccs_path_info *name);
 void ccs_put_number_group(struct ccs_number_group *group);
-bool ccs_read_number_group_policy(struct ccs_io_buffer *head);
-int ccs_write_number_group_policy(char *data, const bool is_delete);
-bool ccs_check_and_save_number(const char *filename, bool *is_group, union ccs_number_union *ptr);
-struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int profile);
-bool ccs_str_starts(char **src, const char *find);
-
+void ccs_put_path_group(struct ccs_path_group *group);
+void ccs_run_gc(void);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

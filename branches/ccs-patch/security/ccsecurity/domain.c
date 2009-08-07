@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/domain.c
+ * security/ccsecurity/domain.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

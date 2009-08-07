@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/maymount.c
+ * security/ccsecurity/maymount.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/mount.c
+ * security/ccsecurity/mount.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

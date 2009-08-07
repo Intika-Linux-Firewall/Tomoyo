@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/proc_if.c
+ * security/ccsecurity/proc_if.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

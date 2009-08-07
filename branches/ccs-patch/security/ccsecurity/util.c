@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/util.c
+ * security/ccsecurity/util.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

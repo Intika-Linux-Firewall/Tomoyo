@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/chroot.c
+ * security/ccsecurity/chroot.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

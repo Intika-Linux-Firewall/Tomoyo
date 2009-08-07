@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/policy_io.c
+ * security/ccsecurity/policy_io.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

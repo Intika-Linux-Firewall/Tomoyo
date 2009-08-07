@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/audit.c
+ * security/ccsecurity/audit.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

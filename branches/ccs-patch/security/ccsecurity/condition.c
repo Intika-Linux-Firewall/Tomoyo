@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/condition.c
+ * security/ccsecurity/condition.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

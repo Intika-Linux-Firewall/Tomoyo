@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/signal.c
+ * security/ccsecurity/signal.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

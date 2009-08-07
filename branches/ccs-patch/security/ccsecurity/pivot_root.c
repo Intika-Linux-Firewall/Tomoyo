@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/pivot_root.c
+ * security/ccsecurity/pivot_root.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

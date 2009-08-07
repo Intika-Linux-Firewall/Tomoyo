@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/argv0.c
+ * security/ccsecurity/argv0.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/compat.h
+ * security/ccsecurity/compat.h
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

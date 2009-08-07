@@ -1,4 +1,4 @@
-obj-y += argv0.o audit.o autobind.o capability.o chroot.o condition.o domain.o environ.o file.o load_policy.o maymount.o mount.o network.o pivot_root.o policy_io.o proc_if.o realpath.o signal.o umount.o util.o
+obj-y += argv0.o audit.o autobind.o capability.o chroot.o condition.o domain.o environ.o file.o gc.o load_policy.o maymount.o memory.o mount.o network.o pivot_root.o policy_io.o proc_if.o realpath.o signal.o umount.o util.o
 
 ifeq ($(PATCHLEVEL),4)
 O_TARGET := ccsecurity.o

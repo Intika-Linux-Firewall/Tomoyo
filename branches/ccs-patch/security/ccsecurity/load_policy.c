@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/load_policy.c
+ * security/ccsecurity/load_policy.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

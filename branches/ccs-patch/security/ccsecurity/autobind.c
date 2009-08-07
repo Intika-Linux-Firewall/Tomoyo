@@ -1,5 +1,5 @@
 /*
- * fs/ccsecurity/autobind.c
+ * security/ccsecurity/autobind.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
