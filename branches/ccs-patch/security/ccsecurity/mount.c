@@ -426,6 +426,8 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
+	if (!ccs_capable(CCS_SYS_MOUNT))
+		return -EPERM;
 	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	if (!r.mode)
 		return 0;

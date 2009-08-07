@@ -38,7 +38,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/fcntl.c                      |    4 +++
  fs/ioctl.c                      |   10 +++++++++
  fs/namei.c                      |   43 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   33 +++++++++++++++++++++++++++++-
+ fs/namespace.c                  |   31 +++++++++++++++++++++++++++-
  fs/open.c                       |   15 +++++++++++++
  fs/proc/proc_misc.c             |    1 
  include/linux/sched.h           |    6 +++++
@@ -57,7 +57,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   13 +++++++++++-
  net/socket.c                    |   25 +++++++++++++++++++++--
  net/unix/af_unix.c              |    4 +++
- 55 files changed, 338 insertions(+), 8 deletions(-)
+ 55 files changed, 336 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -966,12 +966,10 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -718,6 +735,13 @@ long do_mount(char * dev_name, char * di
+@@ -718,6 +735,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -980,7 +978,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -911,6 +935,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -911,6 +933,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -989,7 +987,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	lock_kernel();
  
-@@ -925,6 +951,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +949,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  

@@ -31,7 +31,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/fcntl.c                         |    4 +++
  fs/ioctl.c                         |    7 ++++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   29 ++++++++++++++++++++++++++--
+ fs/namespace.c                     |   27 ++++++++++++++++++++++++--
  fs/open.c                          |   14 +++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
@@ -53,7 +53,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 53 files changed, 309 insertions(+), 11 deletions(-)
+ 53 files changed, 307 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -867,12 +867,10 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1026,6 +1040,13 @@ long do_mount(char * dev_name, char * di
+@@ -1026,6 +1040,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -881,7 +879,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1288,6 +1309,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1288,6 +1307,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -890,7 +888,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  
-@@ -1303,6 +1326,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1303,6 +1324,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

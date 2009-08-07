@@ -9,7 +9,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   14 ++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 226 insertions(+), 3 deletions(-)
+ 33 files changed, 224 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31-rc5.orig/fs/attr.c
 +++ linux-2.6.31-rc5/fs/attr.c
@@ -348,12 +348,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1905,6 +1920,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1905,6 +1920,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -362,7 +360,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/* Default to relatime unless overriden */
  	if (!(flags & MS_NOATIME))
  		mnt_flags |= MNT_RELATIME;
-@@ -2139,6 +2161,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2139,6 +2159,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -371,7 +369,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2152,6 +2176,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2152,6 +2174,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);

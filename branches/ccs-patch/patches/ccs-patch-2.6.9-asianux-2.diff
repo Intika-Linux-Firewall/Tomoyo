@@ -34,7 +34,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/fcntl.c                         |    4 +++
  fs/ioctl.c                         |    7 ++++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   29 ++++++++++++++++++++++++++--
+ fs/namespace.c                     |   27 ++++++++++++++++++++++++--
  fs/open.c                          |   14 +++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 54 files changed, 320 insertions(+), 13 deletions(-)
+ 54 files changed, 318 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.13AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.13AXS2/arch/alpha/kernel/ptrace.c
@@ -916,12 +916,10 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1248,6 +1262,13 @@ long do_mount(char * dev_name, char * di
+@@ -1248,6 +1262,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -930,7 +928,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1505,6 +1526,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1505,6 +1524,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -939,7 +937,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
-@@ -1520,6 +1543,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1541,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

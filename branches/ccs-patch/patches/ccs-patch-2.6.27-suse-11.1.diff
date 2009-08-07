@@ -11,7 +11,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   14 ++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
@@ -37,7 +37,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 229 insertions(+), 2 deletions(-)
+ 35 files changed, 227 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.25-0.1.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.25-0.1.1/arch/ia64/ia32/sys_ia32.c
@@ -416,12 +416,10 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1868,6 +1883,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1868,6 +1883,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -430,7 +428,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2131,6 +2153,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2131,6 +2151,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -439,7 +437,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2144,6 +2168,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2144,6 +2166,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);

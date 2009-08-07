@@ -35,7 +35,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/fcntl.c                         |    4 +++
  fs/ioctl.c                         |    5 ++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   29 ++++++++++++++++++++++++++--
+ fs/namespace.c                     |   27 ++++++++++++++++++++++++--
  fs/open.c                          |   14 +++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
@@ -58,7 +58,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 56 files changed, 323 insertions(+), 12 deletions(-)
+ 56 files changed, 321 insertions(+), 12 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
@@ -918,12 +918,10 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1026,6 +1040,13 @@ long do_mount(char * dev_name, char * di
+@@ -1026,6 +1040,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -932,7 +930,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1284,6 +1305,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1284,6 +1303,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -941,7 +939,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	lock_kernel();
  
-@@ -1299,6 +1322,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1299,6 +1320,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

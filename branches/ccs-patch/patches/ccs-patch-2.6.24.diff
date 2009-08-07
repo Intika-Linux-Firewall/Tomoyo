@@ -17,7 +17,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   14 ++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
@@ -44,7 +44,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 253 insertions(+), 2 deletions(-)
+ 42 files changed, 251 insertions(+), 2 deletions(-)
 
 --- linux-2.6.24.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24.7/arch/ia64/ia32/sys_ia32.c
@@ -538,12 +538,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1416,6 +1431,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1416,6 +1431,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -552,7 +550,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1692,6 +1714,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1692,6 +1712,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -561,7 +559,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  
-@@ -1708,6 +1732,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1708,6 +1730,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

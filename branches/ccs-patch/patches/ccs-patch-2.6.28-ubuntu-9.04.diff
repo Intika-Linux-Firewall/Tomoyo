@@ -9,7 +9,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   14 ++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
@@ -35,7 +35,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 231 insertions(+), 3 deletions(-)
+ 33 files changed, 229 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-13.45.orig/fs/attr.c
 +++ linux-2.6.28-13.45/fs/attr.c
@@ -367,12 +367,10 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1917,6 +1932,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1917,6 +1932,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -381,7 +379,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2180,6 +2202,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2180,6 +2200,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -390,7 +388,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2193,6 +2217,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2193,6 +2215,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);

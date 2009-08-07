@@ -11,7 +11,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   15 +++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
@@ -37,7 +37,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 233 insertions(+), 2 deletions(-)
+ 35 files changed, 231 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26.8-57.fc8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26.8-57.fc8/arch/ia64/ia32/sys_ia32.c
@@ -416,12 +416,10 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, &nd->path)))
-@@ -1929,6 +1944,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1929,6 +1944,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -430,7 +428,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2205,6 +2227,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2205,6 +2225,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -439,7 +437,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
  	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
  			    &new_nd);
-@@ -2219,6 +2243,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2219,6 +2241,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd.path, &new_nd.path);

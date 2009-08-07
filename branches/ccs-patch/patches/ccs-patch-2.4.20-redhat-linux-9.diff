@@ -29,7 +29,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   43 +++++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   32 ++++++++++++++++++++++++++++++++
+ fs/namespace.c               |   30 ++++++++++++++++++++++++++++++
  fs/open.c                    |   15 +++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |    6 ++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 304 insertions(+), 3 deletions(-)
+ 46 files changed, 302 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.20-46.9.legacy/arch/alpha/kernel/ptrace.c
@@ -782,12 +782,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -712,6 +730,13 @@ long do_mount(char * dev_name, char * di
+@@ -712,6 +730,11 @@ long do_mount(char * dev_name, char * di
  	if (dev_name && !memchr(dev_name, 0, PAGE_SIZE))
  		return -EINVAL;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -796,7 +794,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -905,6 +930,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -905,6 +928,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -805,7 +803,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	lock_kernel();
  
-@@ -919,6 +946,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -919,6 +944,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  

@@ -34,7 +34,7 @@ Source code for this patch is kernel-2.6.9-89.0.3.EL.src.rpm
  fs/fcntl.c                         |    4 +++
  fs/ioctl.c                         |    7 ++++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   28 ++++++++++++++++++++++++++-
+ fs/namespace.c                     |   26 ++++++++++++++++++++++++-
  fs/open.c                          |   14 +++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
@@ -57,7 +57,7 @@ Source code for this patch is kernel-2.6.9-89.0.3.EL.src.rpm
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 55 files changed, 324 insertions(+), 12 deletions(-)
+ 55 files changed, 322 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.0.3.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.0.3.EL/arch/alpha/kernel/ptrace.c
@@ -916,12 +916,10 @@ Source code for this patch is kernel-2.6.9-89.0.3.EL.src.rpm
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1064,6 +1079,13 @@ long do_mount(char * dev_name, char * di
+@@ -1064,6 +1079,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -930,7 +928,7 @@ Source code for this patch is kernel-2.6.9-89.0.3.EL.src.rpm
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1314,6 +1336,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1314,6 +1334,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -939,7 +937,7 @@ Source code for this patch is kernel-2.6.9-89.0.3.EL.src.rpm
  
  	lock_kernel();
  
-@@ -1329,6 +1353,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1329,6 +1351,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

@@ -11,7 +11,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/
  fs/fcntl.c                      |    5 +++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   26 ++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 ++++++++++++++++++++++++
  fs/open.c                       |   14 ++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
@@ -37,7 +37,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 230 insertions(+), 2 deletions(-)
+ 35 files changed, 228 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.25-170.2.72.fc10.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.25-170.2.72.fc10/arch/ia64/ia32/sys_ia32.c
@@ -414,12 +414,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1925,6 +1940,13 @@ long do_mount(char *dev_name, char *dir_
+@@ -1925,6 +1940,11 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -428,7 +426,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2188,6 +2210,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2188,6 +2208,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -437,7 +435,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2201,6 +2225,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2201,6 +2223,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);

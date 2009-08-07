@@ -30,7 +30,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   40 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   33 ++++++++++++++++++++++++++++++++-
+ fs/namespace.c               |   31 ++++++++++++++++++++++++++++++-
  fs/open.c                    |   15 +++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |    6 ++++++
@@ -49,7 +49,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 47 files changed, 303 insertions(+), 6 deletions(-)
+ 47 files changed, 301 insertions(+), 6 deletions(-)
 
 --- linux-2.4.27-10sarge7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.27-10sarge7/arch/alpha/kernel/ptrace.c
@@ -801,12 +801,10 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -718,6 +735,13 @@ long do_mount(char * dev_name, char * di
+@@ -718,6 +735,11 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	if (!ccs_capable(CCS_SYS_MOUNT))
-+		return -EPERM;
 +	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
 +					    &flags);
 +	if (retval)
@@ -815,7 +813,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -911,6 +935,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -911,6 +933,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -824,7 +822,7 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  
  	lock_kernel();
  
-@@ -925,6 +951,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +949,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
