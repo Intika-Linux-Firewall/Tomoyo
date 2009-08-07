@@ -455,6 +455,8 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 				    struct ccs_condition *condition,
 				    const bool is_delete)
 {
+	static const u8 offset = offsetof(struct ccs_ip_network_acl_record,
+					  head.cond);
 	struct ccs_acl_info *ptr;
 	struct ccs_ip_network_acl_record e;
 	struct ccs_ip_network_acl_record *entry = NULL;
@@ -462,6 +464,8 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 	memset(&e, 0, sizeof(e));
 	e.head.type = TYPE_IP_NETWORK_ACL;
 	e.head.cond = condition;
+	e.operation_type = operation;
+	e.record_type = record_type;
 	if (!domain)
 		return -EINVAL;
 	if (address_group_name) {
@@ -496,10 +500,11 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
-		if (ptr->cond != condition)
-			continue;
+		//if (ptr->cond != condition)
+		//continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
-		if (memcmp(acl, &e, sizeof(e)))
+		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
+			   sizeof(e) - offset))
 			continue;
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
@@ -518,10 +523,11 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
 			continue;
-		if (ptr->cond != condition)
-			continue;
+		//if (ptr->cond != condition)
+		//continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
-		if (memcmp(acl, &e, sizeof(e)))
+		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
+			   sizeof(e) - offset))
 			continue;
 		error = ccs_del_domain_acl(ptr);
 		break;

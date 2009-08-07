@@ -1350,7 +1350,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_mkdev_acl_record, head);
-		if (memcmp(acl + offset, ((char *) &e) + offset,
+		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
 			   sizeof(e) - offset))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
@@ -1378,7 +1378,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 		if (ptr->cond != condition)
 			continue;
 		acl = container_of(ptr, struct ccs_mkdev_acl_record, head);
-		if (memcmp(acl + offset, ((char *) &e) + offset,
+		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
 			   sizeof(e) - offset))
 			continue;
 		acl->perm &= ~perm;
