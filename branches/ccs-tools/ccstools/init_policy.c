@@ -195,7 +195,7 @@ static unsigned char revalidate_path(const char *path)
 }
 
 static _Bool file_only_profile = 0;
-static unsigned int ccs_version = 168;
+static unsigned int ccs_version = 170;
 static FILE *filp = NULL;
 
 static inline void echo(const char *str)
@@ -1769,6 +1769,7 @@ static void make_profile(void)
 		"0-COMMENT=-----Disabled Mode-----\n"
 		"0-MAC_FOR_FILE=disabled\n"
 		"0-MAC_FOR_IOCTL=disabled\n"
+		"0-MAC_FOR_FILEATTR=disabled\n"
 		"0-MAC_FOR_ARGV0=disabled\n"
 		"0-MAC_FOR_ENV=disabled\n"
 		"0-MAC_FOR_NETWORK=disabled\n"
@@ -1815,6 +1816,7 @@ static void make_profile(void)
 		"1-COMMENT=-----Learning Mode-----\n"
 		"1-MAC_FOR_FILE=learning\n"
 		"1-MAC_FOR_IOCTL=learning\n"
+		"1-MAC_FOR_FILEATTR=learning\n"
 		"1-MAC_FOR_ARGV0=learning\n"
 		"1-MAC_FOR_ENV=learning\n"
 		"1-MAC_FOR_NETWORK=learning\n"
@@ -1861,6 +1863,7 @@ static void make_profile(void)
 		"2-COMMENT=-----Permissive Mode-----\n"
 		"2-MAC_FOR_FILE=permissive\n"
 		"2-MAC_FOR_IOCTL=permissive\n"
+		"2-MAC_FOR_FILEATTR=permissive\n"
 		"2-MAC_FOR_ARGV0=permissive\n"
 		"2-MAC_FOR_ENV=permissive\n"
 		"2-MAC_FOR_NETWORK=permissive\n"
@@ -1907,6 +1910,7 @@ static void make_profile(void)
 		"3-COMMENT=-----Enforcing Mode-----\n"
 		"3-MAC_FOR_FILE=enforcing\n"
 		"3-MAC_FOR_IOCTL=enforcing\n"
+		"3-MAC_FOR_FILEATTR=enforcing\n"
 		"3-MAC_FOR_ARGV0=enforcing\n"
 		"3-MAC_FOR_ENV=enforcing\n"
 		"3-MAC_FOR_NETWORK=enforcing\n"

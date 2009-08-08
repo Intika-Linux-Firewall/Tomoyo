@@ -1,14 +1,14 @@
 Summary: TOMOYO Linux tools
 
 Name: ccs-tools
-Version: 1.6.8
-Release: 2
+Version: 1.7.0
+Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.6.8-2
+Conflicts: ccs-tools < 1.7.0-1
 
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20090623.tar.gz
 
@@ -42,9 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
-* ??? ??? ?? 2009 1.6.8-3
-- Convert /sbin/ccs-init and /sbin/tomoyo-init to binary programs.
-- Convert init_policy.sh and tomoyo_init_policy.sh to binary programs.
+* ??? ??? ?? 2009 1.7.0-1
+- Convert /sbin/ccs-init to binary program.
+- Convert init_policy.sh to binary program.
 - Removed no longer used realpath and make_alias programs.
 - Add "--with-domainname" option to ccs-findtemp program.
 
