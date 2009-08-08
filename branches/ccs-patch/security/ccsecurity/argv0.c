@@ -81,7 +81,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
 		entry->head.type = TYPE_ARGV0_ACL;
-		entry->head.cond = condition;	
+		entry->head.cond = condition;
 		entry->filename = saved_filename;
 		saved_filename = NULL;
 		entry->argv0 = saved_argv0;
@@ -206,7 +206,7 @@ int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain,
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	return ccs_update_argv0_entry(w[0], w[1], domain, condition,
 				      is_delete);
 }

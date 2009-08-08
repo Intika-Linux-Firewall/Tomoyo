@@ -559,7 +559,7 @@ int ccs_write_aggregator_policy(char *data, const bool is_delete)
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	return ccs_update_aggregator_entry(w[0], w[1], is_delete);
 }
 
@@ -609,7 +609,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 	struct ccs_domain_info *domain;
 	const struct ccs_path_info *saved_domainname;
 	bool found = false;
- 
+
 	if (!ccs_is_correct_domain(domainname))
 		return NULL;
 	saved_domainname = ccs_get_name(domainname);
@@ -844,7 +844,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
  out:
 	if (domain)
-                r->domain = domain;
+		r->domain = domain;
 	return retval;
 }
 

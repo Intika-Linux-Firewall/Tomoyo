@@ -140,7 +140,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 			if (ccs_acl_type2(ptr) != TYPE_CHROOT_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_chroot_acl_record,
-					   head); 
+					   head);
 			if (!ccs_path_matches_pattern(&dir, acl->dir) ||
 			    !ccs_check_condition(&r, ptr))
 				continue;

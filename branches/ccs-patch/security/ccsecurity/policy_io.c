@@ -644,7 +644,8 @@ static bool ccs_print_name_union(struct ccs_io_buffer *head, bool is_group,
 	if (pos && head->read_buf[pos - 1] == ' ')
 		head->read_avail--;
 	if (is_group)
-		return ccs_io_printf(head, " @%s", group->group->group_name->name);
+		return ccs_io_printf(head, " @%s",
+				     group->group->group_name->name);
 	return ccs_io_printf(head, " %s", group->filename->name);
 }
 
@@ -654,7 +655,8 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head, bool is_group,
 	unsigned int min;
 	unsigned int max;
 	if (is_group)
-		return ccs_io_printf(head, " @%s", group->group->group_name->name);
+		return ccs_io_printf(head, " @%s",
+				     group->group->group_name->name);
 	min = group->value.min;
 	max = group->value.max;
 	if (min == max)

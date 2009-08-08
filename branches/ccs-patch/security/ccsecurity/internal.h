@@ -126,7 +126,7 @@ struct ccs_condition_element {
 	u8 equals;
 	/*
 	 * Radix types for constant value .
-	 * 
+	 *
 	 * Bit 3 and 2: Right hand operand's min value
 	 * Bit 1 and 0: Right hand operand's max value
 	 *
@@ -655,7 +655,7 @@ enum ccs_mkdev_acl_type {
 	TYPE_MKCHAR_ACL,
 	MAX_MKDEV_OPERATION
 };
-	
+
 enum ccs_double_path_acl_index {
 	TYPE_LINK_ACL,
 	TYPE_RENAME_ACL,

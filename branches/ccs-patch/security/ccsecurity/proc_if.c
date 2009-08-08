@@ -109,7 +109,7 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 }
 
 /* Operations for /proc/ccs/interface. */
-static struct file_operations ccs_operations = {
+static const struct file_operations ccs_operations = {
 	.open    = ccs_open,
 	.release = ccs_release,
 	.poll    = ccs_poll,

@@ -1112,7 +1112,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 	unsigned int perm;
 	u8 type;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	if (strncmp(w[0], "allow_", 6)) {
 		if (sscanf(w[0], "%u", &perm) == 1)
 			return ccs_update_file_acl(w[1], (u8) perm, domain,
@@ -2189,7 +2189,7 @@ int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 	unsigned int cmd_max = 0;
 	const char *group = NULL;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	switch (sscanf(w[1], "%u-%u", &cmd_min, &cmd_max)) {
 	case 1:
 		cmd_max = cmd_min;

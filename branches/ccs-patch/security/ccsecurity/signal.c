@@ -262,9 +262,9 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
  */
 int ccs_kill_permission(pid_t pid, int sig)
 {
-        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_check_signal_acl(sig, pid)))
-                return -EPERM;
+		return -EPERM;
 	return 0;
 }
 
@@ -279,9 +279,9 @@ int ccs_kill_permission(pid_t pid, int sig)
  */
 int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 {
-        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_check_signal_acl(sig, pid)))
-                return -EPERM;
+		return -EPERM;
 	return 0;
 }
 
@@ -295,7 +295,7 @@ int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
  */
 int ccs_tkill_permission(pid_t pid, int sig)
 {
-        if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_check_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;

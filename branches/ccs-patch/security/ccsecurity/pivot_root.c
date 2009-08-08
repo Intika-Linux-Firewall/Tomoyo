@@ -79,8 +79,8 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 			continue;
 		acl = container_of(ptr, struct ccs_pivot_root_acl_record, head);
 		if (acl->old_root != saved_old_root ||
-                    acl->new_root != saved_new_root)
-                        continue;
+		    acl->new_root != saved_new_root)
+			continue;
 		if (is_delete)
 			error = ccs_del_domain_acl(ptr);
 		else
@@ -231,7 +231,7 @@ int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	return ccs_update_pivot_root_acl(w[1], w[0], domain, condition,
 					 is_delete);
 }

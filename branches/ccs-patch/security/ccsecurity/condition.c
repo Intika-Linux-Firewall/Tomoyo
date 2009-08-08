@@ -247,7 +247,8 @@ static bool ccs_scan_symlink_target(const struct ccs_path_info *symlink_target,
 	if (path)
 		return ccs_path_matches_pattern(symlink_target, path) == match;
 	else if (group)
-		return ccs_path_matches_group(symlink_target, group, true) == match;
+		return ccs_path_matches_group(symlink_target, group, true)
+			== match;
 	return false;
 }
 
@@ -652,7 +653,7 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
  */
 struct ccs_condition *ccs_get_condition(char * const condition)
 {
-	static const bool debug = 0;
+	static const bool debug;
 	static const u8 offset = offsetof(struct ccs_condition, size);
 	char *start = condition;
 	struct ccs_condition *entry = NULL;
@@ -1103,7 +1104,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 
 	if (!obj->path2_vfsmnt)
 		return;
-	
+
 	/* Get information on "path2". */
 	dentry = obj->path2_dentry;
 	inode = dentry->d_inode;
@@ -1192,7 +1193,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	mnt = obj->path2_vfsmnt;
 	if (!mnt)
 		return;
-	
+
 	/* Get information on "path2". */
 	dentry = obj->path2_dentry;
 	inode = dentry->d_inode;
@@ -1958,7 +1959,7 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
 	unsigned long max;
 	if (!ccs_tokenize(data, w, sizeof(w)))
 		return -EINVAL;
-	switch(sscanf(w[1], "%lu-%lu", &min, &max)) {
+	switch (sscanf(w[1], "%lu-%lu", &min, &max)) {
 	case 1:
 		max = min;
 		break;

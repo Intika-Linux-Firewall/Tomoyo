@@ -454,7 +454,7 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 {
 	char *w[4];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
-                return -EINVAL;
+		return -EINVAL;
 	return ccs_update_mount_acl(w[0], w[1], w[2],
 				    simple_strtoul(w[3], NULL, 0),
 				    domain, condition, is_delete);

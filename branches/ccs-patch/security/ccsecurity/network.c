@@ -243,7 +243,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	u16 min_address[8];
 	u16 max_address[8];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-                return -EINVAL;
+		return -EINVAL;
 	switch (ccs_parse_ip_address(w[1], min_address, max_address)) {
 	case 2:
 		is_ipv6 = true;
@@ -687,7 +687,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	u16 min_port;
 	u16 max_port;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
-                return -EINVAL;
+		return -EINVAL;
 	if (!strcmp(w[0], "TCP"))
 		sock_type = SOCK_STREAM;
 	else if (!strcmp(w[0], "UDP"))
