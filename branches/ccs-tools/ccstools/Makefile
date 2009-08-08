@@ -4,7 +4,7 @@ MAIN_FILES = ccstools init_policy ccs-init
 
 MISC_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param ccs-editpolicy-agent
 
-ALIAS_LIST = ccs-auditd ccs-queryd ccstree checkpolicy editpolicy findtemp ld-watch loadpolicy pathmatch patternize savepolicy setlevel setprofile sortpolicy domainmatch
+ALIAS_LIST = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy
 
 all: main misc
 
@@ -16,14 +16,13 @@ install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs/misc $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
 	chmod 755 domainmatch init_policy.sh tomoyo_init_policy.sh
-	cp -af --remove-destination ccstools ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
-	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/lib/ccs/ccstools $(INSTALLDIR)/usr/lib/ccs/$$i; done
-	for i in $(ALIAS_LIST); do ln -sf /usr/lib/ccs/$$i $(INSTALLDIR)/usr/sbin/ccs-`echo $$i | sed 's:^ccs-::'`; done
-	cp -af --remove-destination init_policy domainmatch init_policy.sh tomoyo_init_policy.sh $(INSTALLDIR)/usr/lib/ccs/
-	cp -af --remove-destination $(MISC_FILES) $(INSTALLDIR)/usr/lib/ccs/misc/
-	cp -af --remove-destination README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
+	cp -af --remove-destination ccstools $(INSTALLDIR)/usr/sbin/
+	cp -af --remove-destination ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
+	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/ccstools $(INSTALLDIR)/usr/sbin/$$i; done
+	cp -af --remove-destination ccs-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -af --remove-destination $(MISC_FILES) init_policy init_policy.sh tomoyo_init_policy.sh README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 	chown -R root:root ccs-init $(INSTALLDIR)/usr/lib/ccs/
-	chmod 4711 $(INSTALLDIR)/usr/lib/ccs/misc/force-logout
+	chmod 4711 $(INSTALLDIR)/usr/lib/ccs/force-logout
 	chmod 700 ccs-init
 	cp -af --remove-destination ccs-init $(INSTALLDIR)/sbin/
 	ln -f $(INSTALLDIR)/sbin/ccs-init $(INSTALLDIR)/sbin/tomoyo-init

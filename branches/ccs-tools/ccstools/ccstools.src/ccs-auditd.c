@@ -10,7 +10,7 @@
  */
 #include "ccstools.h"
 
-int ccsauditd_main(int argc, char *argv[])
+int auditd_main(int argc, char *argv[])
 {
 	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
 		proc_policy_grant_log,

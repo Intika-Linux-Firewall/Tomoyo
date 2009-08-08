@@ -1174,41 +1174,37 @@ int main(int argc, char *argv[])
 		change_policy_dir();
 	if (strrchr(argv0, '/'))
 		argv0 = strrchr(argv0, '/') + 1;
-retry:
-	if (!strcmp(argv0, "sortpolicy"))
+	if (!strcmp(argv0, "ccs-sortpolicy"))
 		ret = sortpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "setprofile"))
+	else if (!strcmp(argv0, "ccs-setprofile"))
 		ret = setprofile_main(argc, argv);
-	else if (!strcmp(argv0, "setlevel"))
+	else if (!strcmp(argv0, "ccs-setlevel"))
 		ret = setlevel_main(argc, argv);
-	else if (!strcmp(argv0, "diffpolicy"))
+	else if (!strcmp(argv0, "ccs-diffpolicy"))
 		ret = diffpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "savepolicy"))
+	else if (!strcmp(argv0, "ccs-savepolicy"))
 		ret = savepolicy_main(argc, argv);
-	else if (!strcmp(argv0, "pathmatch"))
+	else if (!strcmp(argv0, "ccs-pathmatch"))
 		ret = pathmatch_main(argc, argv);
-	else if (!strcmp(argv0, "loadpolicy"))
+	else if (!strcmp(argv0, "ccs-loadpolicy"))
 		ret = loadpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "ld-watch"))
+	else if (!strcmp(argv0, "ccs-ld-watch"))
 		ret = ldwatch_main(argc, argv);
-	else if (!strcmp(argv0, "findtemp"))
+	else if (!strcmp(argv0, "ccs-findtemp"))
 		ret = findtemp_main(argc, argv);
-	else if (!strcmp(argv0, "editpolicy"))
+	else if (!strcmp(argv0, "ccs-editpolicy"))
 		ret = editpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "checkpolicy"))
+	else if (!strcmp(argv0, "ccs-checkpolicy"))
 		ret = checkpolicy_main(argc, argv);
-	else if (!strcmp(argv0, "ccstree"))
-		ret = ccstree_main(argc, argv);
+	else if (!strcmp(argv0, "ccs-pstree"))
+		ret = pstree_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-queryd"))
-		ret = ccsqueryd_main(argc, argv);
+		ret = queryd_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-auditd"))
-		ret = ccsauditd_main(argc, argv);
-	else if (!strcmp(argv0, "patternize"))
+		ret = auditd_main(argc, argv);
+	else if (!strcmp(argv0, "ccs-patternize"))
 		ret = patternize_main(argc, argv);
-	else if (!strncmp(argv0, "ccs-", 4)) {
-		argv0 += 4;
-		goto retry;
-	} else
+	else
 		goto show_version;
 	return ret;
 show_version:
@@ -1219,7 +1215,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.6.8p1 build 2009/06/23\n");
+	printf("ccstools version 1.7.0-pre build 2009/08/08\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

@@ -1540,13 +1540,23 @@ static void make_manager(void)
 		return;
 	}
 	fprintf(stderr, "Creating manager policy... ");
-	tools_dir = get_realpath("/usr/lib/ccs");
-	fprintf(fp, "%s/loadpolicy\n", tools_dir);
-	fprintf(fp, "%s/editpolicy\n", tools_dir);
-	fprintf(fp, "%s/setlevel\n", tools_dir);
-	fprintf(fp, "%s/setprofile\n", tools_dir);
-	fprintf(fp, "%s/ld-watch\n", tools_dir);
-	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
+	if (ccs_version == 170) {
+		tools_dir = get_realpath("/usr/sbin");
+		fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
+		fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
+		fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
+		fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
+		fprintf(fp, "%s/ccs-ld-watch\n", tools_dir);
+		fprintf(fp, "%s/ccs-queryd\n", tools_dir);
+	} else {
+		tools_dir = get_realpath("/usr/lib/ccs");
+		fprintf(fp, "%s/loadpolicy\n", tools_dir);
+		fprintf(fp, "%s/editpolicy\n", tools_dir);
+		fprintf(fp, "%s/setlevel\n", tools_dir);
+		fprintf(fp, "%s/setprofile\n", tools_dir);
+		fprintf(fp, "%s/ld-watch\n", tools_dir);
+		fprintf(fp, "%s/ccs-queryd\n", tools_dir);
+	}
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !rename("manager.tmp", "manager.conf"))

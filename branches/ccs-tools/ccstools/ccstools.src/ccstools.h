@@ -339,9 +339,9 @@ int ldwatch_main(int argc, char *argv[]);
 int findtemp_main(int argc, char *argv[]);
 int editpolicy_main(int argc, char *argv[]);
 int checkpolicy_main(int argc, char *argv[]);
-int ccstree_main(int argc, char *argv[]);
-int ccsqueryd_main(int argc, char *argv[]);
-int ccsauditd_main(int argc, char *argv[]);
+int pstree_main(int argc, char *argv[]);
+int queryd_main(int argc, char *argv[]);
+int auditd_main(int argc, char *argv[]);
 int patternize_main(int argc, char *argv[]);
 void shprintf(const char *fmt, ...)
 	__attribute__ ((format(printf, 1, 2)));

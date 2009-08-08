@@ -528,7 +528,7 @@ not_domain_query:
 	goto write_answer;
 }
 
-int ccsqueryd_main(int argc, char *argv[])
+int queryd_main(int argc, char *argv[])
 {
 	domain_policy_fd = open(proc_policy_domain_policy, O_WRONLY);
 	int pipe_fd[2] = { EOF, EOF };
