@@ -1,5 +1,5 @@
 /*
- * ccs-auditd.c
+ * auditd.c
  *
  * TOMOYO Linux's utilities.
  *

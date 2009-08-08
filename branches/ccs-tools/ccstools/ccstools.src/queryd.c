@@ -1,5 +1,5 @@
 /*
- * ccs-queryd.c
+ * queryd.c
  *
  * TOMOYO Linux's utilities.
  *

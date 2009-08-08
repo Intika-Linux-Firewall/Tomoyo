@@ -1,5 +1,5 @@
 /*
- * ccs-pstree.c
+ * pstree.c
  *
  * TOMOYO Linux's utilities.
  *
