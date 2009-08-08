@@ -10,7 +10,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -20,7 +20,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -35,7 +35,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 229 insertions(+), 3 deletions(-)
+ 33 files changed, 247 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-13.45.orig/fs/attr.c
 +++ linux-2.6.28-13.45/fs/attr.c
@@ -439,7 +439,79 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1165,6 +1177,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -623,6 +635,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write(file->f_path.mnt);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -630,6 +645,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME | ATTR_FILE;
+ 	err = fnotify_change(dentry, file->f_path.mnt, &newattrs, file);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -652,6 +668,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -659,6 +678,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, path.mnt, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -711,6 +731,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -736,6 +758,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -755,6 +779,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -778,6 +804,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, file->f_path.mnt, user, group, file);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1165,6 +1193,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -457,7 +529,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-13.45 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.28-13.45 2009/08/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -654,6 +726,15 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2292,6 +2299,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.28-13.45.orig/kernel/sys.c
 +++ linux-2.6.28-13.45/kernel/sys.c
 @@ -42,6 +42,7 @@

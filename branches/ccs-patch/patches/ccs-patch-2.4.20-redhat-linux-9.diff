@@ -30,13 +30,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   43 +++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   30 ++++++++++++++++++++++++++++++
- fs/open.c                    |   15 +++++++++++++++
+ fs/open.c                    |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |    6 ++++++
  kernel/kmod.c                |    3 +++
  kernel/module.c              |    7 +++++++
  kernel/sched.c               |    3 +++
- kernel/signal.c              |    5 +++++
+ kernel/signal.c              |    7 +++++++
  kernel/sys.c                 |   11 +++++++++++
  kernel/sysctl.c              |   13 ++++++++++++-
  kernel/time.c                |    7 +++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 302 insertions(+), 3 deletions(-)
+ 46 files changed, 317 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.20-46.9.legacy/arch/alpha/kernel/ptrace.c
@@ -858,7 +858,55 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -882,6 +895,8 @@ out_unlock:
+@@ -480,6 +493,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+ 	newattrs.ia_mode = (mode & S_IALLUGO) | (inode->i_mode & ~S_IALLUGO);
+@@ -511,6 +527,9 @@ asmlinkage long sys_chmod(const char * f
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -591,6 +610,8 @@ asmlinkage long sys_chown(const char * f
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -604,6 +625,8 @@ asmlinkage long sys_lchown(const char * 
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -618,6 +641,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 
+ 	file = fget(fd);
+ 	if (file) {
++		error = ccs_chown_permission(file->f_dentry, file->f_vfsmnt,
++					     user, group);
++		if (!error)
+ 		error = chown_common(file->f_dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -882,6 +908,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -873,7 +921,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/08\n");
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
@@ -1000,6 +1048,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  	info.si_signo = sig;
  	info.si_errno = 0;
+@@ -1875,6 +1880,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.4.20-46.9.legacy.orig/kernel/sys.c
 +++ linux-2.4.20-46.9.legacy/kernel/sys.c
 @@ -22,6 +22,7 @@

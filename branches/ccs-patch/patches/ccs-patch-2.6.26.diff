@@ -12,7 +12,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   15 +++++++++++++++
+ fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -22,7 +22,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -37,7 +37,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 231 insertions(+), 2 deletions(-)
+ 35 files changed, 247 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26.8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26.8/arch/ia64/ia32/sys_ia32.c
@@ -489,7 +489,63 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -1214,6 +1227,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -592,6 +605,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_drop_write;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -628,6 +644,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_drop_write;
++	error = ccs_chmod_permission(nd.path.dentry, nd.path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+@@ -694,6 +713,8 @@ asmlinkage long sys_chown(const char __u
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(nd.path.dentry, nd.path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.path.dentry, user, group);
+ 	mnt_drop_write(nd.path.mnt);
+ out_release:
+@@ -719,6 +740,8 @@ asmlinkage long sys_fchownat(int dfd, co
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(nd.path.dentry, nd.path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.path.dentry, user, group);
+ 	mnt_drop_write(nd.path.mnt);
+ out_release:
+@@ -738,6 +761,8 @@ asmlinkage long sys_lchown(const char __
+ 	error = mnt_want_write(nd.path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(ns.path.dentry, nd.path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.path.dentry, user, group);
+ 	mnt_drop_write(nd.path.mnt);
+ out_release:
+@@ -762,6 +787,8 @@ asmlinkage long sys_fchown(unsigned int 
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1214,6 +1241,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -504,7 +560,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.26.8 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.26.8 2009/08/08\n");
  }
 --- linux-2.6.26.8.orig/include/linux/init_task.h
 +++ linux-2.6.26.8/include/linux/init_task.h
@@ -699,6 +755,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2291,6 +2298,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.26.8.orig/kernel/sys.c
 +++ linux-2.6.26.8/kernel/sys.c
 @@ -42,6 +42,7 @@

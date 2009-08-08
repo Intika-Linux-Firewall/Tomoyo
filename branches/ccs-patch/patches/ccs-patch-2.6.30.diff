@@ -10,7 +10,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -20,7 +20,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 224 insertions(+), 3 deletions(-)
+ 33 files changed, 242 insertions(+), 3 deletions(-)
 
 --- linux-2.6.30.4.orig/fs/attr.c
 +++ linux-2.6.30.4/fs/attr.c
@@ -420,7 +420,79 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1157,6 +1169,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -615,6 +627,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write(file->f_path.mnt);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -622,6 +637,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	err = notify_change(dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -644,6 +660,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -651,6 +670,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -699,6 +719,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -724,6 +746,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -743,6 +767,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -766,6 +792,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1157,6 +1185,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -438,7 +510,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.4 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.30.4 2009/08/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -635,6 +707,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2358,6 +2365,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.30.4.orig/kernel/sys.c
 +++ linux-2.6.30.4/kernel/sys.c
 @@ -44,6 +44,7 @@

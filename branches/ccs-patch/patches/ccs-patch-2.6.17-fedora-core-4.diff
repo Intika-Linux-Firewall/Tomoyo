@@ -19,7 +19,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   25 ++++++++++++++++++++++++-
- fs/open.c                       |   15 ++++++++++++++-
+ fs/open.c                       |   30 +++++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -29,7 +29,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |   11 +++++++++++
  kernel/time.c                   |    7 +++++++
@@ -44,7 +44,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 274 insertions(+), 10 deletions(-)
+ 42 files changed, 291 insertions(+), 10 deletions(-)
 
 --- linux-2.6.17-1.2142_FC4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.17-1.2142_FC4/arch/alpha/kernel/ptrace.c
@@ -646,7 +646,64 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1202,6 +1213,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -645,6 +656,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -679,6 +693,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+@@ -741,6 +758,8 @@ asmlinkage long sys_chown(const char __u
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -760,6 +779,8 @@ asmlinkage long sys_fchownat(int dfd, co
+ 	follow = (flag & AT_SYMLINK_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
+ 	error = __user_walk_fd(dfd, filename, follow, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -774,6 +795,8 @@ asmlinkage long sys_lchown(const char __
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -791,6 +814,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 		struct dentry * dentry;
+ 		dentry = file->f_dentry;
+ 		audit_inode(NULL, dentry->d_inode, 0);
++		error = ccs_chown_permission(dentry, file->f_vfsmnt, user,
++					     group);
++		if (!error)
+ 		error = chown_common(dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -1202,6 +1228,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -661,7 +718,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.17-1.2142_FC4 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.17-1.2142_FC4 2009/08/08\n");
  }
 --- linux-2.6.17-1.2142_FC4.orig/include/linux/init_task.h
 +++ linux-2.6.17-1.2142_FC4/include/linux/init_task.h
@@ -849,6 +906,15 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2274,6 +2281,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.17-1.2142_FC4.orig/kernel/sys.c
 +++ linux-2.6.17-1.2142_FC4/kernel/sys.c
 @@ -38,6 +38,7 @@

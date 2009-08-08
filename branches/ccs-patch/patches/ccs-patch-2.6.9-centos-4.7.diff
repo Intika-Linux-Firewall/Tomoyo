@@ -35,7 +35,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  fs/ioctl.c                         |    7 ++++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   26 ++++++++++++++++++++++++-
- fs/open.c                          |   14 +++++++++++++
+ fs/open.c                          |   27 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
  include/linux/sched.h              |    4 +++
@@ -43,7 +43,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |    7 ++++++
+ kernel/signal.c                    |    9 ++++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   13 +++++++++++-
  kernel/time.c                      |    7 ++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 55 files changed, 320 insertions(+), 12 deletions(-)
+ 55 files changed, 335 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-78.0.22.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.0.22.EL/arch/alpha/kernel/ptrace.c
@@ -988,7 +988,55 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1082,6 +1094,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -620,6 +632,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	down(&inode->i_sem);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -653,6 +668,9 @@ asmlinkage long sys_chmod(const char __u
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	down(&inode->i_sem);
+ 	if (mode == (mode_t) -1)
+@@ -710,6 +728,8 @@ asmlinkage long sys_chown(const char __u
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -723,6 +743,8 @@ asmlinkage long sys_lchown(const char __
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -737,6 +759,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 
+ 	file = fget(fd);
+ 	if (file) {
++		error = ccs_chown_permission(file->f_dentry, file->f_vfsmnt,
++					     user, group);
++		if (!error)
+ 		error = chown_common(file->f_dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -1082,6 +1107,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1003,7 +1051,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-78.0.22.EL 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.0.22.EL 2009/08/08\n");
  }
 --- linux-2.6.9-78.0.22.EL.orig/include/linux/init_task.h
 +++ linux-2.6.9-78.0.22.EL/include/linux/init_task.h
@@ -1153,6 +1201,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/4.7/updates/SRPMS
  
  	info.si_signo = sig;
  	info.si_errno = 0;
+@@ -2455,6 +2462,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.9-78.0.22.EL.orig/kernel/sys.c
 +++ linux-2.6.9-78.0.22.EL/kernel/sys.c
 @@ -31,6 +31,7 @@

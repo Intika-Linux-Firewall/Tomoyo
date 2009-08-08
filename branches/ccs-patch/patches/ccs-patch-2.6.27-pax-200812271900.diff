@@ -12,7 +12,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    2 ++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -22,7 +22,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -37,7 +37,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 229 insertions(+), 2 deletions(-)
+ 35 files changed, 247 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/arch/ia64/ia32/sys_ia32.c
@@ -486,7 +486,79 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1140,6 +1152,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -600,6 +612,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = mnt_want_write(file->f_path.mnt);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -607,6 +622,7 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	err = notify_change(dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -630,6 +646,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -637,6 +656,7 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -685,6 +705,8 @@ asmlinkage long sys_chown(const char __u
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -710,6 +732,8 @@ asmlinkage long sys_fchownat(int dfd, co
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -729,6 +753,8 @@ asmlinkage long sys_lchown(const char __
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -753,6 +779,8 @@ asmlinkage long sys_fchown(unsigned int 
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1140,6 +1168,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -502,7 +574,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	printk(KERN_INFO
-+	       "Hook version: 2.6.27.10+pax-200812271900 2009/08/05\n");
++	       "Hook version: 2.6.27.10+pax-200812271900 2009/08/08\n");
  }
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/include/linux/init_task.h
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/include/linux/init_task.h
@@ -697,6 +769,15 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2293,6 +2300,8 @@ sys_rt_sigqueueinfo(pid_t pid, int sig, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/kernel/sys.c
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/kernel/sys.c
 @@ -42,6 +42,7 @@

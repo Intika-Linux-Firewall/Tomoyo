@@ -20,7 +20,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   13 +++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -30,7 +30,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    5 +++++
  kernel/time.c                   |    5 +++++
@@ -46,7 +46,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 44 files changed, 257 insertions(+), 2 deletions(-)
+ 44 files changed, 273 insertions(+), 2 deletions(-)
 
 --- linux-2.6.22-16.62.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.22-16.62/arch/alpha/kernel/ptrace.c
@@ -649,7 +649,63 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1093,6 +1104,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -515,6 +526,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -551,6 +565,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+@@ -619,6 +636,8 @@ asmlinkage long sys_chown(const char __u
+ 	error = user_path_walk(filename, &nd);
+ 	if (error)
+ 		goto out;
++	error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
+ 	path_release(&nd);
+ out:
+@@ -639,6 +658,8 @@ asmlinkage long sys_fchownat(int dfd, co
+ 	error = __user_walk_fd(dfd, filename, follow, &nd);
+ 	if (error)
+ 		goto out;
++	error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
+ 	path_release(&nd);
+ out:
+@@ -653,6 +674,8 @@ asmlinkage long sys_lchown(const char __
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (error)
+ 		goto out;
++	error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++	if (!error)
+ 	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
+ 	path_release(&nd);
+ out:
+@@ -672,6 +695,8 @@ asmlinkage long sys_fchown(unsigned int 
+ 
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry->d_inode);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, file->f_path.mnt, user, group, file);
+ 	fput(file);
+ out:
+@@ -1093,6 +1118,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -664,7 +720,7 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.22-16.62 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.22-16.62 2009/08/08\n");
  }
 --- linux-2.6.22-16.62.orig/include/linux/init_task.h
 +++ linux-2.6.22-16.62/include/linux/init_task.h
@@ -850,6 +906,15 @@ Source code for this patch is "apt-get install linux-source-2.6.22"
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2247,6 +2254,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.22-16.62.orig/kernel/sys.c
 +++ linux-2.6.22-16.62/kernel/sys.c
 @@ -39,6 +39,7 @@

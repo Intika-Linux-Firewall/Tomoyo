@@ -14,7 +14,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   25 ++++++++++++++++++++++++-
- fs/open.c                       |   13 +++++++++++++
+ fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -24,7 +24,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |   11 +++++++++++
  kernel/time.c                   |    7 +++++++
@@ -39,7 +39,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 255 insertions(+), 8 deletions(-)
+ 37 files changed, 272 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-128.4.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-128.4.1.el5/arch/alpha/kernel/ptrace.c
@@ -542,7 +542,64 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1285,6 +1296,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -718,6 +729,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -752,6 +766,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+@@ -814,6 +831,8 @@ asmlinkage long sys_chown(const char __u
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -833,6 +852,8 @@ asmlinkage long sys_fchownat(int dfd, co
+ 	follow = (flag & AT_SYMLINK_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
+ 	error = __user_walk_fd(dfd, filename, follow, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -847,6 +868,8 @@ asmlinkage long sys_lchown(const char __
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -864,6 +887,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 		struct dentry * dentry;
+ 		dentry = file->f_dentry;
+ 		audit_inode(NULL, dentry);
++		error = ccs_chown_permission(dentry, file->f_vfsmnt, user,
++					     group);
++		if (!error)
+ 		error = chown_common(dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -1285,6 +1311,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -754,6 +811,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2098,6 +2105,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.18-128.4.1.el5.orig/kernel/sys.c
 +++ linux-2.6.18-128.4.1.el5/kernel/sys.c
 @@ -37,6 +37,7 @@

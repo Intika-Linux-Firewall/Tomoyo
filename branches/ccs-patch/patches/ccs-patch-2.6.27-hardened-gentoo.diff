@@ -12,7 +12,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -22,7 +22,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -37,7 +37,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 228 insertions(+), 2 deletions(-)
+ 35 files changed, 244 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -486,7 +486,63 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -1212,6 +1224,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -642,6 +654,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write(file->f_path.mnt);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 
+ 	if (!gr_acl_handle_fchmod(dentry, file->f_path.mnt, mode)) {
+ 		err = -EACCES;
+@@ -686,6 +701,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 
+ 	if (!gr_acl_handle_chmod(path.dentry, path.mnt, mode)) {
+ 		error = -EACCES;
+@@ -759,6 +777,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -784,6 +804,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -803,6 +825,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -826,6 +850,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group, file->f_path.mnt);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1212,6 +1238,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -501,7 +557,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2009/08/08\n");
  }
 --- linux-2.6.27-hardened-r8.orig/include/linux/init_task.h
 +++ linux-2.6.27-hardened-r8/include/linux/init_task.h
@@ -696,6 +752,15 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2299,6 +2306,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.27-hardened-r8.orig/kernel/sys.c
 +++ linux-2.6.27-hardened-r8/kernel/sys.c
 @@ -43,6 +43,7 @@

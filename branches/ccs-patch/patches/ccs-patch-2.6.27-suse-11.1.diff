@@ -12,7 +12,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -22,7 +22,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -37,7 +37,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 227 insertions(+), 2 deletions(-)
+ 35 files changed, 245 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.25-0.1.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.25-0.1.1/arch/ia64/ia32/sys_ia32.c
@@ -488,7 +488,79 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -1163,6 +1175,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -620,6 +632,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write_file(file->f_path.mnt, file);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -627,6 +642,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME | ATTR_FILE;
+ 	err = fnotify_change(dentry, file->f_path.mnt, &newattrs, file);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -649,6 +665,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -656,6 +675,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, path.mnt, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -708,6 +728,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -733,6 +755,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -752,6 +776,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, path.mnt, user, group, NULL);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -775,6 +801,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, file->f_path.mnt, user, group, file);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1163,6 +1191,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -503,7 +575,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27.25-0.1.1 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.27.25-0.1.1 2009/08/08\n");
  }
 --- linux-2.6.27.25-0.1.1.orig/include/linux/init_task.h
 +++ linux-2.6.27.25-0.1.1/include/linux/init_task.h
@@ -698,6 +770,15 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2300,6 +2307,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.27.25-0.1.1.orig/kernel/sys.c
 +++ linux-2.6.27.25-0.1.1/kernel/sys.c
 @@ -42,6 +42,7 @@

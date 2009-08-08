@@ -31,13 +31,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   42 ++++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   31 ++++++++++++++++++++++++++++++-
- fs/open.c                    |   15 +++++++++++++++
+ fs/open.c                    |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |    6 ++++++
  kernel/kmod.c                |    3 +++
  kernel/module.c              |    7 +++++++
  kernel/sched.c               |    3 +++
- kernel/signal.c              |    5 +++++
+ kernel/signal.c              |    7 +++++++
  kernel/sys.c                 |    9 +++++++++
  kernel/sysctl.c              |   13 ++++++++++++-
  kernel/time.c                |    7 +++++++
@@ -49,7 +49,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 47 files changed, 302 insertions(+), 5 deletions(-)
+ 47 files changed, 317 insertions(+), 5 deletions(-)
 
 --- linux-2.4.34.6.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.34.6/arch/alpha/kernel/ptrace.c
@@ -879,7 +879,55 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -895,6 +908,8 @@ out_unlock:
+@@ -495,6 +508,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+ 	newattrs.ia_mode = (mode & S_IALLUGO) | (inode->i_mode & ~S_IALLUGO);
+@@ -526,6 +542,9 @@ asmlinkage long sys_chmod(const char * f
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -606,6 +625,8 @@ asmlinkage long sys_chown(const char * f
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -619,6 +640,8 @@ asmlinkage long sys_lchown(const char * 
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -633,6 +656,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 
+ 	file = fget(fd);
+ 	if (file) {
++		error = ccs_chown_permission(file->f_dentry, file->f_vfsmnt,
++					     user, group);
++		if (!error)
+ 		error = chown_common(file->f_dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -895,6 +921,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -894,7 +942,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.34.6 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.4.34.6 2009/08/08\n");
  }
 --- linux-2.4.34.6.orig/include/linux/sched.h
 +++ linux-2.4.34.6/include/linux/sched.h
@@ -1021,6 +1069,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
         info.si_signo = sig;
         info.si_errno = 0;
+@@ -1067,6 +1072,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.4.34.6.orig/kernel/sys.c
 +++ linux-2.4.34.6/kernel/sys.c
 @@ -17,6 +17,7 @@

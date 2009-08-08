@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                         |    5 ++++
  fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   27 ++++++++++++++++++++++++--
- fs/open.c                          |   14 +++++++++++++
+ fs/open.c                          |   27 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 
  include/linux/init_task.h          |    2 +
  include/linux/sched.h              |    4 +++
@@ -47,7 +47,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/kmod.c                      |    3 ++
  kernel/module.c                    |    7 ++++--
  kernel/sched.c                     |    3 ++
- kernel/signal.c                    |    7 ++++++
+ kernel/signal.c                    |    9 ++++++++
  kernel/sys.c                       |   11 ++++++++++
  kernel/sysctl.c                    |   11 ++++++++++
  kernel/time.c                      |    7 ++++++
@@ -62,7 +62,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    4 +++
  security/Kconfig                   |    2 +
  security/Makefile                  |    3 ++
- 60 files changed, 327 insertions(+), 9 deletions(-)
+ 60 files changed, 342 insertions(+), 9 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -1032,7 +1032,55 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -1057,6 +1069,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -615,6 +627,9 @@ asmlinkage long sys_fchmod(unsigned int 
+ 	err = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_putf;
+ 	down(&inode->i_sem);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -648,6 +663,9 @@ asmlinkage long sys_chmod(const char __u
+ 	error = -EPERM;
+ 	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
++	if (error)
++		goto dput_and_out;
+ 
+ 	down(&inode->i_sem);
+ 	if (mode == (mode_t) -1)
+@@ -705,6 +723,8 @@ asmlinkage long sys_chown(const char __u
+ 
+ 	error = user_path_walk(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -718,6 +738,8 @@ asmlinkage long sys_lchown(const char __
+ 
+ 	error = user_path_walk_link(filename, &nd);
+ 	if (!error) {
++		error = ccs_chown_permission(nd.dentry, nd.mnt, user, group);
++		if (!error)
+ 		error = chown_common(nd.dentry, user, group);
+ 		path_release(&nd);
+ 	}
+@@ -732,6 +754,9 @@ asmlinkage long sys_fchown(unsigned int 
+ 
+ 	file = fget(fd);
+ 	if (file) {
++		error = ccs_chown_permission(file->f_dentry, file->f_vfsmnt,
++					     user, group);
++		if (!error)
+ 		error = chown_common(file->f_dentry, user, group);
+ 		fput(file);
+ 	}
+@@ -1057,6 +1082,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1047,7 +1095,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.14.7 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.14.7 2009/08/08\n");
  }
 --- linux-2.6.14.7.orig/include/linux/init_task.h
 +++ linux-2.6.14.7/include/linux/init_task.h
@@ -1216,6 +1264,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
+@@ -2384,6 +2391,8 @@ sys_rt_sigqueueinfo(int pid, int sig, si
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.14.7.orig/kernel/sys.c
 +++ linux-2.6.14.7/kernel/sys.c
 @@ -35,6 +35,7 @@

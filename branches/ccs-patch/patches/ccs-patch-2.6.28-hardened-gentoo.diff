@@ -10,7 +10,7 @@ Source code for this patch is "emerge hardened-sources"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   14 ++++++++++++++
+ fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -20,7 +20,7 @@ Source code for this patch is "emerge hardened-sources"
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
- kernel/signal.c                 |    7 +++++++
+ kernel/signal.c                 |    9 +++++++++
  kernel/sys.c                    |   11 +++++++++++
  kernel/sysctl.c                 |    4 ++++
  kernel/time.c                   |    5 +++++
@@ -35,7 +35,7 @@ Source code for this patch is "emerge hardened-sources"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 229 insertions(+), 3 deletions(-)
+ 33 files changed, 245 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-hardened-r7.orig/fs/attr.c
 +++ linux-2.6.28-hardened-r7/fs/attr.c
@@ -439,7 +439,63 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -1211,6 +1223,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -641,6 +653,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write(file->f_path.mnt);
+ 	if (err)
+ 		goto out_putf;
++	err = ccs_chmod_permission(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 
+ 	if (!gr_acl_handle_fchmod(dentry, file->f_path.mnt, mode)) {
+ 		err = -EACCES;
+@@ -685,6 +700,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = ccs_chmod_permission(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 
+ 	if (!gr_acl_handle_chmod(path.dentry, path.mnt, mode)) {
+ 		error = -EACCES;
+@@ -758,6 +776,8 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -783,6 +803,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -802,6 +824,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
++	error = ccs_chown_permission(path.dentry, path.mnt, user, group);
++	if (!error)
+ 	error = chown_common(path.dentry, user, group, path.mnt);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+@@ -825,6 +849,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
++	error = ccs_chown_permission(dentry, file->f_vfsmnt, user, group);
++	if (!error)
+ 	error = chown_common(dentry, user, group, file->f_path.mnt);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+@@ -1211,6 +1237,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -457,7 +513,7 @@ Source code for this patch is "emerge hardened-sources"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r7 2009/08/05\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r7 2009/08/08\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -654,6 +710,15 @@ Source code for this patch is "emerge hardened-sources"
  
  	return do_tkill(0, pid, sig);
  }
+@@ -2300,6 +2307,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+ 	if (info.si_code >= 0)
+ 		return -EPERM;
+ 	info.si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, &info, pid);
 --- linux-2.6.28-hardened-r7.orig/kernel/sys.c
 +++ linux-2.6.28-hardened-r7/kernel/sys.c
 @@ -42,6 +42,7 @@
