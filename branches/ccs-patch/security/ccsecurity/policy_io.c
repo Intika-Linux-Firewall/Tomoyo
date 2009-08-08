@@ -35,6 +35,7 @@ static struct {
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
 	[CCS_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 	[CCS_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
+	[CCS_MAC_FOR_FILEATTR]    = { "MAC_FOR_FILEATTR",    0, 3 },
 	[CCS_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 	[CCS_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
@@ -619,8 +620,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		error = ccs_write_argv0_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
 		error = ccs_write_env_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_IOCTL))
-		error = ccs_write_ioctl_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_MOUNT))
 		error = ccs_write_mount_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, KEYWORD_ALLOW_UNMOUNT))
@@ -785,26 +784,39 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_ioctl_acl - Print an ioctl ACL entry.
+ * ccs_print_path_number_acl - Print an ioctl/chmod/chown/chgrp ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ioctl_acl_record".
+ * @ptr:  Pointer to "struct ccs_path_number_acl_record".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_ioctl_acl(struct ccs_io_buffer *head,
-				struct ccs_ioctl_acl_record *ptr,
-				const struct ccs_condition *cond)
+static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
+				      struct ccs_path_number_acl_record *ptr,
+				      const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_IOCTL) ||
-	    !ccs_print_name_union(head, ptr->name_is_group, &ptr->name) ||
-	    !ccs_print_number_union(head, ptr->cmd_is_group, &ptr->cmd) ||
-	    !ccs_print_condition(head, cond))
-		goto out;
+	int pos;
+	u8 bit;
+	const u8 perm = ptr->perm;
+	for (bit = head->read_bit; bit < MAX_PATH_NUMBER_OPERATION; bit++) {
+		const char *msg;
+		if (!(perm & (1 << bit)))
+			continue;
+		msg = ccs_path_number2keyword(bit);
+		pos = head->read_avail;
+		if (!ccs_io_printf(head, "allow_%s", msg) ||
+		    !ccs_print_name_union(head, ptr->name_is_group,
+					  &ptr->name) ||
+		    !ccs_print_number_union(head, ptr->number_is_group,
+					    &ptr->number) ||
+		    !ccs_print_condition(head, cond))
+			goto out;
+	}
+	head->read_bit = 0;
 	return true;
  out:
+	head->read_bit = bit;
 	head->read_avail = pos;
 	return false;
 }
@@ -1161,10 +1173,11 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 				       head);
 		return ccs_print_double_path_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_IOCTL_ACL) {
-		struct ccs_ioctl_acl_record *acl
-			= container_of(ptr, struct ccs_ioctl_acl_record, head);
-		return ccs_print_ioctl_acl(head, acl, cond);
+	if (acl_type == TYPE_PATH_NUMBER_ACL) {
+		struct ccs_path_number_acl_record *acl
+			= container_of(ptr, struct ccs_path_number_acl_record,
+				       head);
+		return ccs_print_path_number_acl(head, acl, cond);
 	}
 	if (acl_type == TYPE_ARGV0_ACL) {
 		struct ccs_argv0_acl_record *acl

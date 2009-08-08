@@ -196,17 +196,17 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 				ccs_put_number_group(entry->port.group);
 		}
 		break;
-	case TYPE_IOCTL_ACL:
+	case TYPE_PATH_NUMBER_ACL:
 		{
-			struct ccs_ioctl_acl_record *entry;
+			struct ccs_path_number_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			if (entry->name_is_group)
 				ccs_put_path_group(entry->name.group);
 			else
 				ccs_put_name(entry->name.filename);
-			if (entry->cmd_is_group)
-				ccs_put_number_group(entry->cmd.group);
+			if (entry->number_is_group)
+				ccs_put_number_group(entry->number.group);
 		}
 		break;
 	case TYPE_ARGV0_ACL:

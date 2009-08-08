@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -105,7 +105,6 @@ int savepolicy_main(int argc, char *argv[])
 	_Bool write_to_stdout = false;
 	int save_profile = 0;
 	int save_manager = 0;
-	int save_system_policy = 0;
 	int save_exception_policy = 0;
 	int save_domain_policy = 0;
 	int save_meminfo = 0;
@@ -142,7 +141,6 @@ int savepolicy_main(int argc, char *argv[])
 		policy_dir = disk_policy_dir;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
-		char *s = strchr(ptr, 's');
 		char *e = strchr(ptr, 'e');
 		char *d = strchr(ptr, 'd');
 		char *a = strchr(ptr, 'a');
@@ -151,8 +149,6 @@ int savepolicy_main(int argc, char *argv[])
 		char *m = strchr(ptr, 'm');
 		char *u = strchr(ptr, 'u');
 		char *i = strchr(ptr, '-');
-		if (s || a)
-			save_system_policy = 1;
 		if (e || a)
 			save_exception_policy = 1;
 		if (d || a)
@@ -169,20 +165,19 @@ int savepolicy_main(int argc, char *argv[])
 			force_save = true;
 		if (i)
 			write_to_stdout = true;
-		if (strcspn(ptr, "sedafpmu-"))
+		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
 	if (!write_to_stdout && !policy_dir)
 		goto usage;
-	if (write_to_stdout && save_system_policy +
+	if (write_to_stdout &&
 	    save_exception_policy + save_domain_policy +
 	    save_profile + save_manager + save_meminfo != 1)
 		goto usage;
-	if (!write_to_stdout && !force_save && save_system_policy +
+	if (!write_to_stdout && !force_save &&
 	    save_exception_policy + save_domain_policy + save_profile +
 	    save_manager + save_meminfo == 0) {
 		force_save = true;
-		save_system_policy = 1;
 		save_exception_policy = 1;
 		save_domain_policy = 1;
 	}
@@ -193,8 +188,6 @@ int savepolicy_main(int argc, char *argv[])
 
 	if (!network_mode) {
 		/* Exclude nonexistent policy. */
-		if (access(proc_policy_system_policy, R_OK))
-			save_system_policy = 0;
 		if (access(proc_policy_exception_policy, R_OK))
 			save_exception_policy = 0;
 		if (access(proc_policy_domain_policy, R_OK))
@@ -207,16 +200,11 @@ int savepolicy_main(int argc, char *argv[])
 			save_meminfo = 0;
 	}
 
-	if (network_mode && ccs_major == 2 && ccs_minor == 2)
-		save_system_policy = 0;
-
 	if (write_to_stdout) {
 		if (save_profile)
 			cat_file(proc_policy_profile);
 		else if (save_manager)
 			cat_file(proc_policy_manager);
-		else if (save_system_policy)
-			cat_file(proc_policy_system_policy);
 		else if (save_exception_policy)
 			cat_file(proc_policy_exception_policy);
 		else if (save_domain_policy)
@@ -231,21 +219,6 @@ int savepolicy_main(int argc, char *argv[])
 	if (save_manager)
 		move_proc_to_file(proc_policy_manager, BASE_POLICY_MANAGER,
 				  DISK_POLICY_MANAGER);
-
-	if (save_system_policy) {
-		filename = make_filename("system_policy", now);
-		if (move_proc_to_file(proc_policy_system_policy,
-				      BASE_POLICY_SYSTEM_POLICY, filename)
-		    && !write_to_stdout) {
-			if (!force_save &&
-			    is_identical_file("system_policy.conf", filename)) {
-				unlink(filename);
-			} else {
-				unlink("system_policy.conf");
-				symlink(filename, "system_policy.conf");
-			}
-		}
-	}
 
 	if (save_exception_policy) {
 		filename = make_filename("exception_policy", now);
@@ -282,19 +255,18 @@ int savepolicy_main(int argc, char *argv[])
 done:
 	return 0;
 usage:
-	printf("%s [s][e][d][a][f][p][m][u] [{-|policy_dir} "
+	printf("%s [e][d][a][f][p][m][u] [{-|policy_dir} "
 	       "[remote_ip:remote_port]]\n"
-	       "s : Save system_policy.\n"
 	       "e : Save exception_policy.\n"
 	       "d : Save domain_policy.\n"
-	       "a : Save system_policy,exception_policy,domain_policy.\n"
+	       "a : Save exception_policy,domain_policy.\n"
 	       "p : Save profile.\n"
 	       "m : Save manager.\n"
 	       "u : Write meminfo to stdout. Implies '-'\n"
 	       "- : Write policy to stdout. "
-	       "(Only one of 'sedpmu' is possible when using '-'.)\n"
+	       "(Only one of 'edpmu' is possible when using '-'.)\n"
 	       "f : Save even if on-disk policy and on-memory policy "
-	       "are the same. (Valid for 'sed'.)\n\n"
+	       "are the same. (Valid for 'ed'.)\n\n"
 	       "If no options given, this program assumes 'a' and 'f' "
 	       "are given.\n", argv[0]);
 	return 0;
@@ -443,7 +415,6 @@ int loadpolicy_main(int argc, char *argv[])
 	_Bool read_from_stdin = false;
 	int load_profile = 0;
 	int load_manager = 0;
-	int load_system_policy = 0;
 	int load_exception_policy = 0;
 	int load_domain_policy = 0;
 	int load_meminfo = 0;
@@ -474,7 +445,6 @@ int loadpolicy_main(int argc, char *argv[])
 		policy_dir = disk_policy_dir;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
-		char *s = strchr(ptr, 's');
 		char *e = strchr(ptr, 'e');
 		char *d = strchr(ptr, 'd');
 		char *a = strchr(ptr, 'a');
@@ -483,8 +453,6 @@ int loadpolicy_main(int argc, char *argv[])
 		char *m = strchr(ptr, 'm');
 		char *u = strchr(ptr, 'u');
 		char *i = strchr(ptr, '-');
-		if (s || a)
-			load_system_policy = 1;
 		if (e || a)
 			load_exception_policy = 1;
 		if (d || a)
@@ -499,16 +467,16 @@ int loadpolicy_main(int argc, char *argv[])
 			refresh_policy = true;
 		if (i)
 			read_from_stdin = true;
-		if (strcspn(ptr, "sedafpmu-"))
+		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
 	if (!read_from_stdin && !policy_dir)
 		goto usage;
-	if (read_from_stdin && load_system_policy +
+	if (read_from_stdin &&
 	    load_exception_policy + load_domain_policy +
 	    load_profile + load_manager + load_meminfo != 1)
 		goto usage;
-	if (load_system_policy + load_exception_policy +
+	if (load_exception_policy +
 	    load_domain_policy + load_profile + load_manager +
 	    load_meminfo == 0)
 		goto usage;
@@ -516,10 +484,6 @@ int loadpolicy_main(int argc, char *argv[])
 		printf("Directory %s doesn't exist.\n", policy_dir);
 		return 1;
 	}
-
-	if ((network_mode && ccs_major == 2 && ccs_minor == 2) ||
-	    (!network_mode && access(proc_policy_system_policy, F_OK)))
-		load_system_policy = 0;
 
 	if (load_profile) {
 		if (read_from_stdin)
@@ -546,18 +510,6 @@ int loadpolicy_main(int argc, char *argv[])
 			move_file_to_proc(BASE_POLICY_MEMINFO,
 					  DISK_POLICY_MEMINFO,
 					  proc_policy_meminfo);
-	}
-
-	if (load_system_policy) {
-		if (refresh_policy)
-			delete_proc_policy(proc_policy_system_policy);
-		if (read_from_stdin)
-			move_file_to_proc(NULL, NULL,
-					  proc_policy_system_policy);
-		else
-			move_file_to_proc(BASE_POLICY_SYSTEM_POLICY,
-					  DISK_POLICY_SYSTEM_POLICY,
-					  proc_policy_system_policy);
 	}
 
 	if (load_exception_policy) {
@@ -597,19 +549,18 @@ int loadpolicy_main(int argc, char *argv[])
 	}
 	return 0;
 usage:
-	printf("%s [s][e][d][a][f][p][m][u] [{-|policy_dir} "
+	printf("%s [e][d][a][f][p][m][u] [{-|policy_dir} "
 	       "[remote_ip:remote_port]]\n"
-	       "s : Load system_policy.\n"
 	       "e : Load exception_policy.\n"
 	       "d : Load domain_policy.\n"
-	       "a : Load system_policy,exception_policy,domain_policy.\n"
+	       "a : Load exception_policy,domain_policy.\n"
 	       "p : Load profile.\n"
 	       "m : Load manager.\n"
 	       "u : Load meminfo.\n"
 	       "- : Read policy from stdin. "
-	       "(Only one of 'sedpmu' is possible when using '-'.)\n"
+	       "(Only one of 'edpmu' is possible when using '-'.)\n"
 	       "f : Delete on-memory policy before loading on-disk policy. "
-	       "(Valid for 'sed'.)\n\n",
+	       "(Valid for 'ed'.)\n\n",
 	       argv[0]);
 	return 0;
 }

@@ -276,69 +276,6 @@ static bool ccs_scan_exec_realpath(const struct file *file,
 }
 
 /**
- * ccs_parse_ulong - Parse an "unsigned long" value.
- *
- * @result: Pointer to "unsigned long".
- * @str:    Pointer to string to parse.
- *
- * Returns value type on success, 0 otherwise.
- *
- * The @src is updated to point the first character after the value
- * on success.
- */
-static u8 ccs_parse_ulong(unsigned long *result, char **str)
-{
-	const char *cp = *str;
-	char *ep;
-	int base = 10;
-	if (*cp == '0') {
-		char c = *(cp + 1);
-		if (c == 'x' || c == 'X') {
-			base = 16;
-			cp += 2;
-		} else if (c >= '0' && c <= '7') {
-			base = 8;
-			cp++;
-		}
-	}
-	*result = simple_strtoul(cp, &ep, base);
-	if (cp == ep)
-		return 0;
-	*str = ep;
-	switch (base) {
-	case 16:
-		return VALUE_TYPE_HEXADECIMAL;
-	case 8:
-		return VALUE_TYPE_OCTAL;
-	default:
-		return VALUE_TYPE_DECIMAL;
-	}
-}
-
-/**
- * ccs_print_ulong - Print an "unsigned long" value.
- *
- * @buffer:     Pointer to buffer.
- * @buffer_len: Size of @buffer.
- * @value:      An "unsigned long" value.
- * @type:       Type of @value.
- *
- * Returns nothing.
- */
-static void ccs_print_ulong(char *buffer, const int buffer_len,
-			    const unsigned long value, const int type)
-{
-	if (type == VALUE_TYPE_DECIMAL)
-		snprintf(buffer, buffer_len, "%lu", value);
-	else if (type == VALUE_TYPE_OCTAL)
-		snprintf(buffer, buffer_len, "0%lo", value);
-	else if (type == VALUE_TYPE_HEXADECIMAL)
-		snprintf(buffer, buffer_len, "0x%lX", value);
-	else
-		snprintf(buffer, buffer_len, "type(%u)", type);
-}
-
-/**
  * ccs_get_dqword - ccs_get_name() for a quoted string.
  *
  * @start: String to save.

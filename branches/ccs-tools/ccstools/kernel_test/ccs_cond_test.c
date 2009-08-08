@@ -1,11 +1,9 @@
 /*
- * tomoyo_cond_test.c
- *
- * Testing program for fs/tomoyo_cond.c
+ * ccs_cond_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "include.h"

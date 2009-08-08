@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -45,14 +45,16 @@ struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX] = {
 	[DIRECTIVE_ALLOW_ENV]        = { "allow_env", NULL, 0, 0 },
 	[DIRECTIVE_ADDRESS_GROUP]    = { "address_group", NULL, 0, 0 },
 	[DIRECTIVE_AGGREGATOR]       = { "aggregator", NULL, 0, 0 },
-	[DIRECTIVE_ALIAS]            = { "alias", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_CAPABILITY] = { "allow_capability", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_CHROOT]     = { "allow_chroot", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_MOUNT]      = { "allow_mount", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_PIVOT_ROOT] = { "allow_pivot_root", NULL, 0, 0 },
 	[DIRECTIVE_DENY_AUTOBIND]    = { "deny_autobind", NULL, 0, 0 },
 	[DIRECTIVE_DENY_REWRITE]     = { "deny_rewrite", NULL, 0, 0 },
-	[DIRECTIVE_DENY_UNMOUNT]     = { "deny_unmount", NULL, 0, 0 },
+	[DIRECTIVE_ALLOW_UNMOUNT]    = { "allow_unmount", NULL, 0, 0 },
+	[DIRECTIVE_ALLOW_CHMOD]      = { "allow_chmod", NULL, 0, 0 },
+	[DIRECTIVE_ALLOW_CHOWN]      = { "allow_chown", NULL, 0, 0 },
+	[DIRECTIVE_ALLOW_CHGRP]      = { "allow_chgrp", NULL, 0, 0 },
 	[DIRECTIVE_FILE_PATTERN]     = { "file_pattern", NULL, 0, 0 },
 	[DIRECTIVE_EXECUTE_HANDLER]  = { "execute_handler", NULL, 0, 0 },
 	[DIRECTIVE_DENIED_EXECUTE_HANDLER] = {
@@ -67,6 +69,7 @@ struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX] = {
 		"no_initialize_domain", NULL, 0, 0 },
 	[DIRECTIVE_NO_KEEP_DOMAIN]       = { "no_keep_domain", NULL, 0, 0 },
 	[DIRECTIVE_PATH_GROUP]       = { "path_group", NULL, 0, 0 },
+	[DIRECTIVE_NUMBER_GROUP]     = { "number_group", NULL, 0, 0 },
 	[DIRECTIVE_QUOTA_EXCEEDED]   = { "quota_exceeded", NULL, 0, 0 },
 	[DIRECTIVE_USE_PROFILE]      = { "use_profile", NULL, 0, 0 },
 	[DIRECTIVE_TRANSITION_FAILED] = { "transition_failed", NULL, 0, 0 },

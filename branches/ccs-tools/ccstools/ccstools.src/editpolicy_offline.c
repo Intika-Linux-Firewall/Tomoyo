@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -93,7 +93,7 @@ void send_fd(char *data, int *fd)
 
 void editpolicy_offline_daemon(void)
 {
-	struct misc_policy mp[4];
+	struct misc_policy mp[3];
 	struct domain_policy dp;
 	memset(&dp, 0, sizeof(dp));
 	memset(&mp, 0, sizeof(mp));
@@ -135,26 +135,20 @@ void editpolicy_offline_daemon(void)
 			else if (!strcmp(shared_buffer,
 					 proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, true);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_system_policy))
-				handle_misc_policy(&mp[1], fp, true);
 			else if (!strcmp(shared_buffer, proc_policy_profile))
-				handle_misc_policy(&mp[2], fp, true);
+				handle_misc_policy(&mp[1], fp, true);
 			else if (!strcmp(shared_buffer, proc_policy_manager))
-				handle_misc_policy(&mp[3], fp, true);
+				handle_misc_policy(&mp[2], fp, true);
 		} else if (str_starts(shared_buffer, "GET ")) {
 			if (!strcmp(shared_buffer, proc_policy_domain_policy))
 				handle_domain_policy(&dp, fp, false);
 			else if (!strcmp(shared_buffer,
 					 proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, false);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_system_policy))
-				handle_misc_policy(&mp[1], fp, false);
 			else if (!strcmp(shared_buffer, proc_policy_profile))
-				handle_misc_policy(&mp[2], fp, false);
+				handle_misc_policy(&mp[1], fp, false);
 			else if (!strcmp(shared_buffer, proc_policy_manager))
-				handle_misc_policy(&mp[3], fp, false);
+				handle_misc_policy(&mp[2], fp, false);
 		}
 		fclose(fp);
 	}

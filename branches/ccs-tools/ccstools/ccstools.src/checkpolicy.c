@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -871,6 +871,22 @@ static void check_domain_policy(void)
 		/* Nothing to do. */
 	} else if (!strcmp(shared_buffer, "quota_exceeded")) {
 		/* Nothing to do. */
+	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_MOUNT)) {
+		check_mount_policy(shared_buffer);
+	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_UNMOUNT)) {
+		if (!is_correct_path(shared_buffer, 1, 0, 1)) {
+			printf("%u: ERROR: '%s' is a bad pattern.\n",
+			       line, shared_buffer);
+			errors++;
+		}
+	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_CHROOT)) {
+		if (!is_correct_path(shared_buffer, 1, 0, 1)) {
+			printf("%u: ERROR: '%s' is a bad pattern.\n",
+			       line, shared_buffer);
+			errors++;
+		}
+	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_PIVOT_ROOT)) {
+		check_pivot_root_policy(shared_buffer);
 	} else {
 		char *cp = find_condition_part(shared_buffer);
 		if (cp && !check_condition(cp))
@@ -913,24 +929,6 @@ static void check_exception_policy(void)
 		check_path_group_policy(shared_buffer);
 	} else if (str_starts(shared_buffer, KEYWORD_ADDRESS_GROUP)) {
 		check_address_group_policy(shared_buffer);
-	} else if (str_starts(shared_buffer, KEYWORD_ALIAS)) {
-		char *cp = strchr(shared_buffer, ' ');
-		if (!cp) {
-			printf("%u: ERROR: Too few parameters.\n", line);
-			errors++;
-		} else {
-			*cp++ = '\0';
-			if (!is_correct_path(shared_buffer, 1, -1, -1)) {
-				printf("%u: ERROR: '%s' is a bad pathname.\n",
-				       line, shared_buffer);
-				errors++;
-			}
-			if (!is_correct_path(cp, 1, -1, -1)) {
-				printf("%u: ERROR: '%s' is a bad pathname.\n",
-				       line, cp);
-				errors++;
-			}
-		}
 	} else if (str_starts(shared_buffer, KEYWORD_AGGREGATOR)) {
 		char *cp = strchr(shared_buffer, ' ');
 		if (!cp) {
@@ -967,32 +965,6 @@ static void check_exception_policy(void)
 			       line, shared_buffer);
 			errors++;
 		}
-	} else {
-		printf("%u: ERROR: Unknown command '%s'.\n",
-		       line, shared_buffer);
-		errors++;
-	}
-}
-
-static void check_system_policy(void)
-{
-	str_starts(shared_buffer, KEYWORD_DELETE);
-	if (str_starts(shared_buffer, KEYWORD_ALLOW_MOUNT)) {
-		check_mount_policy(shared_buffer);
-	} else if (str_starts(shared_buffer, KEYWORD_DENY_UNMOUNT)) {
-		if (!is_correct_path(shared_buffer, 1, 0, 1)) {
-			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       line, shared_buffer);
-			errors++;
-		}
-	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_CHROOT)) {
-		if (!is_correct_path(shared_buffer, 1, 0, 1)) {
-			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       line, shared_buffer);
-			errors++;
-		}
-	} else if (str_starts(shared_buffer, KEYWORD_ALLOW_PIVOT_ROOT)) {
-		check_pivot_root_policy(shared_buffer);
 	} else if (str_starts(shared_buffer, KEYWORD_DENY_AUTOBIND)) {
 		check_reserved_port_policy(shared_buffer);
 	} else {
@@ -1007,9 +979,6 @@ int checkpolicy_main(int argc, char *argv[])
 	int policy_type = POLICY_TYPE_UNKNOWN;
 	if (argc > 1) {
 		switch (argv[1][0]) {
-		case 's':
-			policy_type = POLICY_TYPE_SYSTEM_POLICY;
-			break;
 		case 'e':
 			policy_type = POLICY_TYPE_EXCEPTION_POLICY;
 			break;
@@ -1056,9 +1025,6 @@ int checkpolicy_main(int argc, char *argv[])
 			break;
 		case POLICY_TYPE_EXCEPTION_POLICY:
 			check_exception_policy();
-			break;
-		case POLICY_TYPE_SYSTEM_POLICY:
-			check_system_policy();
 			break;
 		}
 	}

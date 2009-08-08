@@ -42,6 +42,13 @@ static const char *ccs_dp_keyword[MAX_DOUBLE_PATH_OPERATION] = {
 	[TYPE_RENAME_ACL]  = "rename",
 };
 
+static const char *ccs_path_number_keyword[MAX_PATH_NUMBER_OPERATION] = {
+	[TYPE_IOCTL] = "ioctl",
+	[TYPE_CHMOD] = "chmod",
+	[TYPE_CHOWN] = "chown",
+	[TYPE_CHGRP] = "chgrp",
+};
+
 /**
  * ccs_sp2keyword - Get the name of single path operation.
  *
@@ -79,6 +86,12 @@ const char *ccs_dp2keyword(const u8 operation)
 {
 	return (operation < MAX_DOUBLE_PATH_OPERATION)
 		? ccs_dp_keyword[operation] : NULL;
+}
+
+const char *ccs_path_number2keyword(const u8 operation)
+{
+	return (operation < MAX_PATH_NUMBER_OPERATION)
+		? ccs_path_number_keyword[operation] : NULL;
 }
 
 /**
@@ -169,6 +182,14 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 				struct ccs_condition *condition,
 				const bool is_delete);
 
+static int ccs_update_path_number_acl(const u8 type, const char *filename,
+				      const char *group,
+				      const union ccs_number_union *number,
+				      struct ccs_domain_info * const domain,
+				      struct ccs_condition *condition,
+				      const bool is_delete);
+
+
 /**
  * ccs_audit_single_path_log - Audit single path request log.
  *
@@ -244,25 +265,31 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_ioctl_log - Audit ioctl related request log.
+ * ccs_audit_path_number_log - Audit ioctl/chmod/chown/chgrp related request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
- * @cmd:        The ioctl number.
+ * @type:       Type of operation.
  * @filename:   Pathname.
+ * @value:      Value.
  * @is_granted: True if this is a granted log.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_ioctl_log(struct ccs_request_info *r,
-			       const unsigned int cmd, const char *filename,
-			       const bool is_granted)
+static int ccs_audit_path_number_log(struct ccs_request_info *r, const u8 type,
+				     const char *filename,
+				     const unsigned long value,
+				     const bool is_granted)
 {
+	char buffer[64];
+	const char *operation = ccs_path_number2keyword(type);
+	ccs_print_ulong(buffer, sizeof(buffer) - 1, value, type == TYPE_CHMOD ?
+			VALUE_TYPE_OCTAL : VALUE_TYPE_DECIMAL);
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access 'ioctl %s %u' denied "
-		       "for %s\n", ccs_get_msg(r->mode == 3), filename, cmd,
-		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, "allow_ioctl %s %u\n",
-				   filename, cmd);
+		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' denied "
+		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
+		       filename, buffer, ccs_get_last_name(r->domain));
+	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
+				   operation, filename, buffer);
 }
 
 /* The list for "struct ccs_globally_readable_file_entry". */
@@ -1141,6 +1168,20 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 		return ccs_update_double_path_acl(type, w[1], w[2],
 						  domain, condition, is_delete);
 	}
+	for (type = 0; type < MAX_PATH_NUMBER_OPERATION; type++) {
+		union ccs_number_union num;
+		const char *group = NULL;
+		if (strcmp(w[0], ccs_path_number_keyword[type]))
+			continue;
+		if (!ccs_parse_number_union(w[2], &num)) {
+			if (w[2][0] != '@')
+				return -EINVAL;
+			group = w[2];
+		}
+		return ccs_update_path_number_acl(type, w[1], group, &num,
+						  domain, condition,
+						  is_delete);
+	}
 	if (!w[3][0])
 		goto out;
 	for (type = 0; type < MAX_MKDEV_OPERATION; type++) {
@@ -1988,34 +2029,36 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 }
 
 /**
- * ccs_update_ioctl_acl - Update file's ioctl ACL.
+ * ccs_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
  *
+ * @type:      Type of operation.
  * @filename:  Filename.
- * @cmd_min:   Minimum ioctl command number.
- * @cmd_max:   Maximum ioctl command number.
+ * @group:     Name of number group. May be NULL.
+ * @number:    Pointer to "union ccs_number_union".
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_ioctl_acl(const char *filename,
-				const char *group,
-				const unsigned int cmd_min,
-				const unsigned int cmd_max,
-				struct ccs_domain_info * const domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+static int ccs_update_path_number_acl(const u8 type, const char *filename,
+				      const char *group,
+				      const union ccs_number_union *number,
+				      struct ccs_domain_info * const domain,
+				      struct ccs_condition *condition,
+				      const bool is_delete)
 {
-	static const u8 offset = offsetof(struct ccs_ioctl_acl_record,
+	static const u8 offset = offsetof(struct ccs_path_number_acl_record,
 					  name_is_group);
+	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
-	struct ccs_ioctl_acl_record e;
-	struct ccs_ioctl_acl_record *entry = NULL;
+	struct ccs_path_number_acl_record e;
+	struct ccs_path_number_acl_record *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_IOCTL_ACL;
+	e.head.type = TYPE_PATH_NUMBER_ACL;
 	e.head.cond = condition;
+	e.perm = perm;
 	if (!domain)
 		return -EINVAL;
 	if (!ccs_check_and_save_path(filename, &e.name_is_group, &e.name))
@@ -2023,26 +2066,31 @@ static int ccs_update_ioctl_acl(const char *filename,
 	if (!e.name.group)
 		return -ENOMEM;
 	if (group) {
-		if (!ccs_check_and_save_number(group, &e.cmd_is_group, &e.cmd))
+		if (!ccs_check_and_save_number(group, &e.number_is_group,
+					       &e.number))
 			goto out;
 	} else {
-		e.cmd.value.min = cmd_min;
-		e.cmd.value.max = cmd_max;
+		memmove(&e.number, number, sizeof(*number));
 	}
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_ioctl_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_IOCTL_ACL)
+		struct ccs_path_number_acl_record *acl;
+		if (ccs_acl_type1(ptr) != TYPE_PATH_NUMBER_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
-		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
+		acl = container_of(ptr, struct ccs_path_number_acl_record,
+				   head);
 		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
 			   sizeof(e) - offset))
 			continue;
+		/* Special case. Clear all bits if marked as deleted. */
+		if (ptr->type & ACL_DELETED)
+			acl->perm = 0;
+		acl->perm |= perm;
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
 	}
@@ -2057,16 +2105,18 @@ static int ccs_update_ioctl_acl(const char *filename,
  delete:
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_ioctl_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
+		struct ccs_path_number_acl_record *acl;
+		if (ccs_acl_type2(ptr) != TYPE_PATH_NUMBER_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
-		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
+		acl = container_of(ptr, struct ccs_path_number_acl_record,
+				   head);
 		if (memcmp(((char *) acl) + offset, ((char *) &e) + offset,
 			   sizeof(e) - offset))
 			continue;
-		error = ccs_del_domain_acl(ptr);
+		acl->perm &= ~perm;
+		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
 	}
 	mutex_unlock(&ccs_policy_lock);
@@ -2080,36 +2130,41 @@ static int ccs_update_ioctl_acl(const char *filename,
 }
 
 /**
- * ccs_check_ioctl_acl - Check permission for ioctl operation.
+ * ccs_check_path_number_acl - Check permission for ioctl/chmod/chown/chgrp operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
+ * @type:     Operation.
  * @filename: Filename to check.
- * @cmd:      Ioctl command number.
+ * @number:   Number.
  *
  * Returns 0 on success, -EPERM otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_ioctl_acl(struct ccs_request_info *r,
-			       const struct ccs_path_info *filename,
-			       const unsigned int cmd)
+static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
+				     const struct ccs_path_info *filename,
+				     const unsigned long number)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
+	const u8 perm = 1 << type;
 	int error = -EPERM;
 	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_ioctl_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_IOCTL_ACL)
+		struct ccs_path_number_acl_record *acl;
+		if (ccs_acl_type2(ptr) != TYPE_PATH_NUMBER_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_ioctl_acl_record, head);
-		if (acl->cmd_is_group) {
-			if (!ccs_number_matches_group(cmd, cmd,
-						      acl->cmd.group))
+		acl = container_of(ptr, struct ccs_path_number_acl_record,
+				   head);
+		if (!(acl->perm & perm))
+			continue;
+		if (acl->number_is_group) {
+			if (!ccs_number_matches_group(number, number,
+						      acl->number.group))
 				continue;
 		} else {
-			if (cmd < acl->cmd.value.min ||
-			    cmd > acl->cmd.value.max)
+			if (number < acl->number.value.min ||
+			    number > acl->number.value.max)
 				continue;
 		}
 		if (!ccs_check_condition(r, ptr))
@@ -2131,19 +2186,20 @@ static int ccs_check_ioctl_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_ioctl_perm - Check permission for ioctl.
+ * ccs_check_path_number_perm - Check permission for ioctl/chmod/chown/chgrp.
  *
- * @r:         Pointer to "strct ccs_request_info".
- * @filename:  Filename to check.
- * @cmd:       Ioctl command number.
+ * @r:        Pointer to "strct ccs_request_info".
+ * @filename: Filename to check.
+ * @numr:     Number.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_ioctl_perm(struct ccs_request_info *r,
-				const struct ccs_path_info *filename,
-				const unsigned int cmd)
+static int ccs_check_path_number_perm(struct ccs_request_info *r,
+				      const u8 type,
+				      const struct ccs_path_info *filename,
+				      const unsigned long number)
 {
 	const bool is_enforce = (r->mode == 3);
 	int error = 0;
@@ -2151,61 +2207,84 @@ static int ccs_check_ioctl_perm(struct ccs_request_info *r,
 	if (!filename)
 		return 0;
  retry:
-	error = ccs_check_ioctl_acl(r, filename, cmd);
-	ccs_audit_ioctl_log(r, cmd, filename->name, !error);
+	error = ccs_check_path_number_acl(r, type, filename, number);
+	ccs_audit_path_number_log(r, type, filename->name, number, !error);
 	if (!error)
 		return 0;
 	if (is_enforce) {
-		int err = ccs_check_supervisor(r, "allow_ioctl %s %u\n",
-					       filename->name, cmd);
+		char buffer[64];
+		int err;
+		ccs_print_ulong(buffer, sizeof(buffer),number,
+				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
+				VALUE_TYPE_DECIMAL);
+		err = ccs_check_supervisor(r, "allow_%s %s %s\n",
+					   ccs_path_number2keyword(type),
+					   filename->name, buffer);
 		if (err == 1)
 			goto retry;
 		return err;
 	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_ioctl_acl(ccs_get_file_pattern(filename)->name,
-				     NULL, cmd, cmd, r->domain, cond, false);
+		union ccs_number_union num;
+		memset(&num, 0, sizeof(num));
+		if (type == TYPE_CHMOD) {
+			num.value.min_type = 8;
+			num.value.max_type = 8;
+		} else {
+			num.value.min_type = 10;
+			num.value.max_type = 10;
+		}
+		num.value.min = number;
+		num.value.max = number;
+		ccs_update_path_number_acl(type, ccs_get_file_pattern(filename)
+					   ->name, NULL, &num, r->domain, cond,
+					   false);
 		ccs_put_condition(cond);
 	}
 	return 0;
 }
 
 /**
- * ccs_write_ioctl_policy - Update ioctl related list.
+ * ccs_check_path_number_permission - Check permission for "ioctl/chmod/chown/chgrp".
  *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
- * @is_delete: True if it is a delete request.
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount".
+ * @number: Number.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete)
+static int ccs_check_path_number_permission(const u8 type,
+					    struct dentry *dentry,
+					    struct vfsmount *vfsmnt,
+					    unsigned long number)
 {
-	char *w[2];
-	unsigned int cmd_min = 0;
-	unsigned int cmd_max = 0;
-	const char *group = NULL;
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-		return -EINVAL;
-	switch (sscanf(w[1], "%u-%u", &cmd_min, &cmd_max)) {
-	case 1:
-		cmd_max = cmd_min;
-		break;
-	case 2:
-		if (cmd_min > cmd_max)
-			return -EINVAL;
-		break;
-	default:
-		if (w[1][0] != '@')
-			return -EINVAL;
-		group = w[1];
-		break;
+	struct ccs_request_info r;
+	struct ccs_obj_info obj;
+	int error = -ENOMEM;
+	struct ccs_path_info buf;
+	int idx;
+	if (!ccs_can_sleep() || !vfsmnt || !dentry)
+		return 0;
+	buf.name = NULL;
+	idx = ccs_read_lock();
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL); /* */
+	if (!r.mode) {
+		error = 0;
+		goto out;
 	}
-	return ccs_update_ioctl_acl(w[0], group, cmd_min, cmd_max, domain,
-				    condition, is_delete);
+	if (!ccs_get_path(&buf, dentry, vfsmnt))
+		goto out;
+	memset(&obj, 0, sizeof(obj));
+	obj.path1_dentry = dentry;
+	obj.path1_vfsmnt = vfsmnt;
+	r.obj = &obj;
+	error = ccs_check_path_number_perm(&r, type, &buf, number);
+ out:
+	kfree(buf.name);
+	ccs_read_unlock(idx);
+	if (r.mode != 3)
+		error = 0;
+	return error;
 }
 
 /**
@@ -2220,32 +2299,49 @@ int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain,
 int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 			       unsigned long arg)
 {
-	struct ccs_request_info r;
-	struct ccs_obj_info obj;
-	int error = -ENOMEM;
-	struct ccs_path_info buf;
-	int idx;
-	if (!ccs_can_sleep())
+	return ccs_check_path_number_permission(TYPE_IOCTL,
+						filp->f_dentry, filp->f_vfsmnt,
+						cmd);
+}
+
+/**
+ * ccs_chmod_permission - Check permission for "chmod".
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount".
+ * @mode:   Mode.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
+			 mode_t mode)
+{
+	if (mode == (mode_t) -1)
 		return 0;
-	buf.name = NULL;
-	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL);
-	if (!r.mode || !filp->f_vfsmnt) {
-		error = 0;
-		goto out;
-	}
-	if (!ccs_get_path(&buf, filp->f_dentry, filp->f_vfsmnt))
-		goto out;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = filp->f_dentry;
-	obj.path1_vfsmnt = filp->f_vfsmnt;
-	r.obj = &obj;
-	error = ccs_check_ioctl_perm(&r, &buf, cmd);
- out:
-	kfree(buf.name);
-	ccs_read_unlock(idx);
-	if (r.mode != 3)
-		error = 0;
+	return ccs_check_path_number_permission(TYPE_CHMOD, dentry, vfsmnt,
+						mode);
+}
+
+/**
+ * ccs_chown_permission - Check permission for "chown/chgrp".
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @vfsmnt: Pointer to "struct vfsmount".
+ * @user:   User ID.
+ * @group:  Group ID.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
+			 uid_t user, gid_t group)
+{
+	int error = 0;
+	if (user != (uid_t) -1)
+		error = ccs_check_path_number_permission(TYPE_CHOWN, dentry,
+							 vfsmnt, user);
+	if (!error && group != (gid_t) -1)
+		error = ccs_check_path_number_permission(TYPE_CHGRP, dentry,
+							 vfsmnt, group);
 	return error;
 }
 

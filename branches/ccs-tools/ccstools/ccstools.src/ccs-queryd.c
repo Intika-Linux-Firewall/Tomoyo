@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -100,8 +100,7 @@ static _Bool check_path_info(const char *buffer)
 	static int update_list_len = 0;
 	char *sp = strdup(buffer);
 	char *str = sp;
-	const char *path_list[3] = {
-		proc_policy_system_policy,
+	const char *path_list[2] = {
 		proc_policy_exception_policy,
 		proc_policy_domain_policy
 	};
@@ -120,7 +119,7 @@ static _Bool check_path_info(const char *buffer)
 			fill_path_info(&old);
 			if (!path_matches_pattern(&old, &update_list[i]))
 				continue;
-			for (j = 0; j < 3; j++) {
+			for (j = 0; j < 2; j++) {
 				FILE *fp = fopen(path_list[j], "r+");
 				if (!fp)
 					continue;

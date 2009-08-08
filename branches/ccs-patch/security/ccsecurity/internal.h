@@ -290,7 +290,7 @@ enum ccs_acl_entry_type_index {
 	TYPE_SINGLE_PATH_ACL,
 	TYPE_MKDEV_ACL,
 	TYPE_DOUBLE_PATH_ACL,
-	TYPE_IOCTL_ACL,
+	TYPE_PATH_NUMBER_ACL,
 	TYPE_ARGV0_ACL,
 	TYPE_ENV_ACL,
 	TYPE_CAPABILITY_ACL,
@@ -483,8 +483,10 @@ union ccs_name_union {
 
 union ccs_number_union {
 	struct {
-		unsigned int min;
-		unsigned int max;
+		unsigned long min;
+		unsigned long max;
+		u8 min_type;
+		u8 max_type;
 	} value;
 	struct ccs_number_group *group;
 };
@@ -530,15 +532,19 @@ struct ccs_double_path_acl_record {
 	union ccs_name_union name2;
 };
 
-/* Structure for "allow_ioctl" directive. */
-struct ccs_ioctl_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_IOCTL_ACL */
+/*
+ * Structure for "allow_ioctl", "allow_chmod", "allow_chown" and "allow_chgrp"
+ * directive.
+ */
+struct ccs_path_number_acl_record {
+	struct ccs_acl_info head; /* type = TYPE_PATH_NUMBER_ACL */
+	u8 perm;
 	/* True if name points to "path_group" directive. */
 	bool name_is_group;
-	/* True if cmd points to "number_group" directive. */
-	bool cmd_is_group;
+	/* True if number points to "number_group" directive. */
+	bool number_is_group;
 	union ccs_name_union name;
-	union ccs_number_union cmd;
+	union ccs_number_union number;
 };
 
 /* Structure for "allow_argv0" directive. */
@@ -650,7 +656,7 @@ enum ccs_single_path_acl_index {
 	MAX_SINGLE_PATH_OPERATION
 };
 
-enum ccs_mkdev_acl_type {
+enum ccs_mkdev_acl_index {
 	TYPE_MKBLOCK_ACL,
 	TYPE_MKCHAR_ACL,
 	MAX_MKDEV_OPERATION
@@ -660,6 +666,14 @@ enum ccs_double_path_acl_index {
 	TYPE_LINK_ACL,
 	TYPE_RENAME_ACL,
 	MAX_DOUBLE_PATH_OPERATION
+};
+
+enum ccs_path_number_acl_index {
+	TYPE_IOCTL,
+	TYPE_CHMOD,
+	TYPE_CHOWN,
+	TYPE_CHGRP,
+	MAX_PATH_NUMBER_OPERATION
 };
 
 enum ccs_ip_record_type {
@@ -676,6 +690,9 @@ enum ccs_ip_record_type {
 #define KEYWORD_ALLOW_CHROOT              "allow_chroot "
 #define KEYWORD_ALLOW_ENV                 "allow_env "
 #define KEYWORD_ALLOW_IOCTL               "allow_ioctl "
+#define KEYWORD_ALLOW_CHMOD               "allow_chmod "
+#define KEYWORD_ALLOW_CHOWN               "allow_chown "
+#define KEYWORD_ALLOW_CHGRP               "allow_chgrp "
 #define KEYWORD_ALLOW_MOUNT               "allow_mount "
 #define KEYWORD_ALLOW_NETWORK             "allow_network "
 #define KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
@@ -707,6 +724,7 @@ enum ccs_ip_record_type {
 enum ccs_profile_index {
 	CCS_MAC_FOR_FILE,          /* domain_policy.conf */
 	CCS_MAC_FOR_IOCTL,         /* domain_policy.conf */
+	CCS_MAC_FOR_FILEATTR,      /* domain_policy.conf */
 	CCS_MAC_FOR_ARGV0,         /* domain_policy.conf */
 	CCS_MAC_FOR_ENV,           /* domain_policy.conf */
 	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
@@ -857,7 +875,6 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain, struct ccs_
 int ccs_write_file_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_globally_readable_policy(char *data, const bool is_delete);
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
-int ccs_write_ioctl_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
@@ -891,6 +908,10 @@ void ccs_put_name(const struct ccs_path_info *name);
 void ccs_put_number_group(struct ccs_number_group *group);
 void ccs_put_path_group(struct ccs_path_group *group);
 void ccs_run_gc(void);
+const char *ccs_path_number2keyword(const u8 operation);
+bool ccs_parse_number_union(char *data, union ccs_number_union *num);
+u8 ccs_parse_ulong(unsigned long *result, char **str);
+void ccs_print_ulong(char *buffer, const int buffer_len, const unsigned long value, const u8 type);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

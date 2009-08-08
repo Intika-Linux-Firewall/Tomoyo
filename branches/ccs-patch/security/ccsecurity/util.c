@@ -60,6 +60,94 @@ struct ccs_profile *ccs_profile_ptr[MAX_PROFILES];
 /* Utility functions. */
 
 /**
+ * ccs_parse_ulong - Parse an "unsigned long" value.
+ *
+ * @result: Pointer to "unsigned long".
+ * @str:    Pointer to string to parse.
+ *
+ * Returns value type on success, 0 otherwise.
+ *
+ * The @src is updated to point the first character after the value
+ * on success.
+ */
+u8 ccs_parse_ulong(unsigned long *result, char **str)
+{
+	const char *cp = *str;
+	char *ep;
+	int base = 10;
+	if (*cp == '0') {
+		char c = *(cp + 1);
+		if (c == 'x' || c == 'X') {
+			base = 16;
+			cp += 2;
+		} else if (c >= '0' && c <= '7') {
+			base = 8;
+			cp++;
+		}
+	}
+	*result = simple_strtoul(cp, &ep, base);
+	if (cp == ep)
+		return 0;
+	*str = ep;
+	switch (base) {
+	case 16:
+		return VALUE_TYPE_HEXADECIMAL;
+	case 8:
+		return VALUE_TYPE_OCTAL;
+	default:
+		return VALUE_TYPE_DECIMAL;
+	}
+}
+
+/**
+ * ccs_print_ulong - Print an "unsigned long" value.
+ *
+ * @buffer:     Pointer to buffer.
+ * @buffer_len: Size of @buffer.
+ * @value:      An "unsigned long" value.
+ * @type:       Type of @value.
+ *
+ * Returns nothing.
+ */
+void ccs_print_ulong(char *buffer, const int buffer_len,
+		     const unsigned long value, const u8 type)
+{
+	if (type == VALUE_TYPE_DECIMAL)
+		snprintf(buffer, buffer_len, "%lu", value);
+	else if (type == VALUE_TYPE_OCTAL)
+		snprintf(buffer, buffer_len, "0%lo", value);
+	else if (type == VALUE_TYPE_HEXADECIMAL)
+		snprintf(buffer, buffer_len, "0x%lX", value);
+	else
+		snprintf(buffer, buffer_len, "type(%u)", type);
+}
+
+bool ccs_parse_number_union(char *data, union ccs_number_union *num)
+{
+	u8 type;
+	unsigned long v;
+	memset(num, 0, sizeof(*num));
+	type = ccs_parse_ulong(&v, &data);
+	if (!type)
+		return false;
+	num->value.min = v;
+	num->value.min_type = type;
+	if (!*data) {
+		num->value.max = v;
+		num->value.max_type = type;
+		return true;
+	}
+	if (*data++ != '-')
+		return false;
+	type = ccs_parse_ulong(&v, &data);
+	if (!type || *data)
+		return false;
+	num->value.max = v;
+	num->value.max_type = type;
+	return true;
+}
+
+/**
  * ccs_is_byte_range - Check whether the string isa \ooo style octal value.
  *
  * @str: Pointer to the string.

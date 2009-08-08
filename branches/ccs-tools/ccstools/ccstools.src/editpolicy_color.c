@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -30,10 +30,6 @@ void editpolicy_color_init(void)
 		  COLOR_GREEN,      "DOMAIN_HEAD" },
 		{ DOMAIN_CURSOR,    COLOR_BLACK,
 		  COLOR_GREEN,      "DOMAIN_CURSOR" },
-		{ SYSTEM_HEAD,      COLOR_WHITE,
-		  COLOR_BLUE,       "SYSTEM_HEAD" },
-		{ SYSTEM_CURSOR,    COLOR_WHITE,
-		  COLOR_BLUE,       "SYSTEM_CURSOR" },
 		{ EXCEPTION_HEAD,   COLOR_BLACK,
 		  COLOR_CYAN,       "EXCEPTION_HEAD" },
 		{ EXCEPTION_CURSOR, COLOR_BLACK,
@@ -141,8 +137,6 @@ int editpolicy_color_head(const int screen)
 	switch (screen) {
 	case SCREEN_DOMAIN_LIST:
 		return DOMAIN_HEAD;
-	case SCREEN_SYSTEM_LIST:
-		return SYSTEM_HEAD;
 	case SCREEN_EXCEPTION_LIST:
 		return EXCEPTION_HEAD;
 	case SCREEN_PROFILE_LIST:
@@ -161,8 +155,6 @@ int editpolicy_color_cursor(const int screen)
 	switch (screen) {
 	case SCREEN_DOMAIN_LIST:
 		return DOMAIN_CURSOR;
-	case SCREEN_SYSTEM_LIST:
-		return SYSTEM_CURSOR;
 	case SCREEN_EXCEPTION_LIST:
 		return EXCEPTION_CURSOR;
 	case SCREEN_PROFILE_LIST:
@@ -179,9 +171,9 @@ int editpolicy_color_cursor(const int screen)
 void editpolicy_line_draw(const int screen)
 {
 	static int before_current[MAXSCREEN] = { -1, -1, -1, -1,
-						 -1, -1, -1, -1 };
+						 -1, -1, -1 };
 	static int before_y[MAXSCREEN]       = { -1, -1, -1, -1,
-						 -1, -1, -1, -1 };
+						 -1, -1, -1 };
 	int current = editpolicy_get_current();
 	int y;
 	int x;

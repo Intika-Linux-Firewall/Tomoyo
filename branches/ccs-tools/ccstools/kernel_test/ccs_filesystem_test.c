@@ -1,12 +1,9 @@
 /*
- * sakura_filedomain_test.c
- *
- * Testing program for fs/sakura_mount.c fs/sakura_umount.c fs/sakura_maymount.c
- * fs/sakura_chroot.c fs/sakura_pivot.c
+ * ccs_filesystem_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #define _GNU_SOURCE

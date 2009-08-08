@@ -117,6 +117,20 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 				  int addr_len);
 int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 				  const unsigned int flags);
+int ccs_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
+			 uid_t user, gid_t group);
+int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *mnt,
+			 mode_t mode);
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
 
 #else
 
@@ -341,6 +355,30 @@ static inline int ccs_socket_recvmsg_permission(struct sock *sk,
 	return 0;
 }
 
+static inline int ccs_chown_permission(struct dentry *dentry,
+				       struct vfsmount *mnt,
+				       uid_t user, gid_t group)
+{
+	return 0;
+}
+
+static inline int ccs_chmod_permission(struct dentry *dentry,
+				       struct vfsmount *mnt,
+				       mode_t mode)
+{
+	return 0;
+}
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
+
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -454,29 +492,5 @@ enum ccs_capability_acl_index {
 	CCS_CONCEAL_MOUNT,
 	CCS_MAX_CAPABILITY_INDEX
 };
-
-static inline int ccs_chown_permission(struct dentry *dentry,
-				       struct vfsmount *mnt,
-				       uid_t user, gid_t group)
-{
-	return 0;
-}
-
-static inline int ccs_chmod_permission(struct dentry *dentry,
-				       struct vfsmount *mnt,
-				       mode_t mode)
-{
-	return 0;
-}
-
-static inline int ccs_sigqueue_permission(pid_t pid, int sig)
-{
-	return 0;
-}
-
-static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
-{
-	return 0;
-}
 
 #endif

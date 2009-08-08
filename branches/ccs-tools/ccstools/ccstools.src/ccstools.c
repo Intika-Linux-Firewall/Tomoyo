@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -1051,7 +1051,6 @@ const char *proc_policy_dir           = "/proc/ccs/",
 	*disk_policy_dir              = "/etc/ccs/",
 	*proc_policy_domain_policy    = "/proc/ccs/domain_policy",
 	*proc_policy_exception_policy = "/proc/ccs/exception_policy",
-	*proc_policy_system_policy    = "/proc/ccs/system_policy",
 	*proc_policy_profile          = "/proc/ccs/profile",
 	*proc_policy_manager          = "/proc/ccs/manager",
 	*proc_policy_meminfo          = "/proc/ccs/meminfo",
@@ -1126,8 +1125,6 @@ static void change_policy_dir(void)
 		= "/sys/kernel/security/tomoyo/domain_policy";
 	proc_policy_exception_policy
 		= "/sys/kernel/security/tomoyo/exception_policy";
-	proc_policy_system_policy
-		= "/sys/kernel/security/tomoyo/system_policy";
 	proc_policy_profile
 		= "/sys/kernel/security/tomoyo/profile";
 	proc_policy_manager

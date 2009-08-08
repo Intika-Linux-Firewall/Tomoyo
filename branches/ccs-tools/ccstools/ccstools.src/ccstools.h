@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 
@@ -44,7 +44,6 @@
 #define false    0
 
 enum screen_type {
-	SCREEN_SYSTEM_LIST,
 	SCREEN_EXCEPTION_LIST,
 	SCREEN_DOMAIN_LIST,
 	SCREEN_ACL_LIST,
@@ -59,7 +58,6 @@ enum policy_type {
 	POLICY_TYPE_UNKNOWN,
 	POLICY_TYPE_DOMAIN_POLICY,
 	POLICY_TYPE_EXCEPTION_POLICY,
-	POLICY_TYPE_SYSTEM_POLICY
 };
 
 #define VALUE_TYPE_DECIMAL     1
@@ -78,7 +76,6 @@ enum socket_operation_type {
 };
 
 #define KEYWORD_AGGREGATOR               "aggregator "
-#define KEYWORD_ALIAS                    "alias "
 #define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
 #define KEYWORD_ALLOW_ENV                "allow_env "
 #define KEYWORD_ALLOW_IOCTL              "allow_ioctl "
@@ -92,7 +89,10 @@ enum socket_operation_type {
 #define KEYWORD_DELETE                   "delete "
 #define KEYWORD_DENY_AUTOBIND            "deny_autobind "
 #define KEYWORD_DENY_REWRITE             "deny_rewrite "
-#define KEYWORD_DENY_UNMOUNT             "deny_unmount "
+#define KEYWORD_ALLOW_UNMOUNT            "allow_unmount "
+#define KEYWORD_ALLOW_CHMOD              "allow_chmod "
+#define KEYWORD_ALLOW_CHOWN              "allow_chown "
+#define KEYWORD_ALLOW_CHGRP              "allow_chgrp "
 #define KEYWORD_FILE_PATTERN             "file_pattern "
 #define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define KEYWORD_SELECT                   "select "
@@ -103,6 +103,7 @@ enum socket_operation_type {
 #define KEYWORD_KEEP_DOMAIN              "keep_domain "
 #define KEYWORD_PATH_GROUP               "path_group "
 #define KEYWORD_ADDRESS_GROUP            "address_group "
+#define KEYWORD_NUMBER_GROUP             "number_group "
 #define KEYWORD_NO_INITIALIZE_DOMAIN     "no_" KEYWORD_INITIALIZE_DOMAIN
 #define KEYWORD_NO_KEEP_DOMAIN           "no_" KEYWORD_KEEP_DOMAIN
 #define KEYWORD_EXECUTE_HANDLER          "execute_handler "
@@ -122,8 +123,6 @@ enum socket_operation_type {
 #define BASE_POLICY_DOMAIN_POLICY    "domain_policy.base"
 #define DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
 #define BASE_POLICY_EXCEPTION_POLICY "exception_policy.base"
-#define DISK_POLICY_SYSTEM_POLICY    "system_policy.conf"
-#define BASE_POLICY_SYSTEM_POLICY    "system_policy.base"
 #define DISK_POLICY_PROFILE          "profile.conf"
 #define BASE_POLICY_PROFILE          "profile.base"
 #define DISK_POLICY_MANAGER          "manager.conf"
@@ -164,14 +163,16 @@ enum editpolicy_directives {
 	DIRECTIVE_ALLOW_ENV,
 	DIRECTIVE_ADDRESS_GROUP,
 	DIRECTIVE_AGGREGATOR,
-	DIRECTIVE_ALIAS,
 	DIRECTIVE_ALLOW_CAPABILITY,
 	DIRECTIVE_ALLOW_CHROOT,
 	DIRECTIVE_ALLOW_MOUNT,
 	DIRECTIVE_ALLOW_PIVOT_ROOT,
 	DIRECTIVE_DENY_AUTOBIND,
 	DIRECTIVE_DENY_REWRITE,
-	DIRECTIVE_DENY_UNMOUNT,
+	DIRECTIVE_ALLOW_UNMOUNT,
+	DIRECTIVE_ALLOW_CHMOD,
+	DIRECTIVE_ALLOW_CHOWN,
+	DIRECTIVE_ALLOW_CHGRP,
 	DIRECTIVE_FILE_PATTERN,
 	DIRECTIVE_EXECUTE_HANDLER,
 	DIRECTIVE_DENIED_EXECUTE_HANDLER,
@@ -182,6 +183,7 @@ enum editpolicy_directives {
 	DIRECTIVE_NO_INITIALIZE_DOMAIN,
 	DIRECTIVE_NO_KEEP_DOMAIN,
 	DIRECTIVE_PATH_GROUP,
+	DIRECTIVE_NUMBER_GROUP,
 	DIRECTIVE_QUOTA_EXCEEDED,
 	DIRECTIVE_USE_PROFILE,
 	DIRECTIVE_TRANSITION_FAILED,
@@ -189,7 +191,7 @@ enum editpolicy_directives {
 };
 
 enum color_pair {
-	NORMAL, DOMAIN_HEAD, DOMAIN_CURSOR, SYSTEM_HEAD, SYSTEM_CURSOR,
+	NORMAL, DOMAIN_HEAD, DOMAIN_CURSOR,
 	EXCEPTION_HEAD, EXCEPTION_CURSOR, ACL_HEAD, ACL_CURSOR,
 	PROFILE_HEAD, PROFILE_CURSOR, MANAGER_HEAD, MANAGER_CURSOR,
 	MEMORY_HEAD, MEMORY_CURSOR, DISP_ERR
@@ -421,7 +423,6 @@ extern const char *proc_policy_dir,
 	*disk_policy_dir,
 	*proc_policy_domain_policy,
 	*proc_policy_exception_policy,
-	*proc_policy_system_policy,
 	*proc_policy_profile,
 	*proc_policy_manager,
 	*proc_policy_meminfo,

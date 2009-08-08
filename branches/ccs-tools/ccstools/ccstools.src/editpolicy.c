@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.7.0-pre   2009/08/08
  *
  */
 #include "ccstools.h"
@@ -554,7 +554,6 @@ static _Bool show_command_key(const int screen, const _Bool readonly)
 		break;
 	}
 	switch (screen) {
-	case SCREEN_SYSTEM_LIST:
 	case SCREEN_EXCEPTION_LIST:
 	case SCREEN_ACL_LIST:
 	case SCREEN_MANAGER_LIST:
@@ -912,7 +911,6 @@ static void read_generic_policy(void)
 				continue;
 		}
 		switch (current_screen) {
-		case SCREEN_SYSTEM_LIST:
 		case SCREEN_EXCEPTION_LIST:
 		case SCREEN_ACL_LIST:
 			directive = find_directive(true, shared_buffer);
@@ -950,7 +948,6 @@ static void read_generic_policy(void)
 		qsort(generic_acl_list, generic_acl_list_count,
 		      sizeof(struct generic_acl), generic_acl_compare);
 		break;
-	case SCREEN_SYSTEM_LIST:
 	case SCREEN_EXCEPTION_LIST:
 		qsort(generic_acl_list, generic_acl_list_count,
 		      sizeof(struct generic_acl), generic_acl_compare0);
@@ -1384,7 +1381,6 @@ static void show_list(struct domain_policy *dp)
 	}
 	list_indent = 0;
 	switch (current_screen) {
-	case SCREEN_SYSTEM_LIST:
 	case SCREEN_EXCEPTION_LIST:
 	case SCREEN_ACL_LIST:
 		for (i = 0; i < list_item_count[current_screen]; i++) {
@@ -1405,7 +1401,6 @@ static void show_list(struct domain_policy *dp)
 		case SCREEN_DOMAIN_LIST:
 			tmp_col = show_domain_line(dp, index);
 			break;
-		case SCREEN_SYSTEM_LIST:
 		case SCREEN_EXCEPTION_LIST:
 		case SCREEN_ACL_LIST:
 			tmp_col = show_acl_line(index, list_indent);
@@ -1716,7 +1711,6 @@ static void add_entry(struct readline_data *rl)
 	case SCREEN_ACL_LIST:
 		fprintf(fp, "select %s\n", current_domain);
 		/* Fall through. */
-	case SCREEN_SYSTEM_LIST:
 	case SCREEN_EXCEPTION_LIST:
 		directive = find_directive(false, line);
 		if (directive != DIRECTIVE_NONE)
@@ -1890,17 +1884,12 @@ out:
 
 static int select_window(struct domain_policy *dp, const int current)
 {
-	const _Bool s_ok = offline_mode ||
-		(network_mode && !(ccs_major == 2 && ccs_minor == 2)) ||
-		(!network_mode && access(proc_policy_system_policy, F_OK) == 0);
 	const _Bool e_ok = offline_mode || network_mode ||
 		access(proc_policy_exception_policy, F_OK) == 0;
 	const _Bool d_ok = offline_mode || network_mode ||
 		access(proc_policy_domain_policy, F_OK) == 0;
 	move(0, 0);
 	printw("Press one of below keys to switch window.\n\n");
-	if (s_ok)
-		printw("s     <<< System Policy Editor >>>\n");
 	if (e_ok)
 		printw("e     <<< Exception Policy Editor >>>\n");
 	if (d_ok)
@@ -1920,8 +1909,6 @@ static int select_window(struct domain_policy *dp, const int current)
 	refresh();
 	while (true) {
 		int c = getch2();
-		if (s_ok && (c == 'S' || c == 's'))
-			return SCREEN_SYSTEM_LIST;
 		if (e_ok && (c == 'E' || c == 'e'))
 			return SCREEN_EXCEPTION_LIST;
 		if (d_ok && (c == 'D' || c == 'd'))
@@ -1972,10 +1959,7 @@ static int generic_list_loop(struct domain_policy *dp)
 		       sizeof(saved_current_item_index));
 		first = false;
 	}
-	if (current_screen == SCREEN_SYSTEM_LIST) {
-		policy_file = proc_policy_system_policy;
-		list_caption = "System Policy Editor";
-	} else if (current_screen == SCREEN_EXCEPTION_LIST) {
+	if (current_screen == SCREEN_EXCEPTION_LIST) {
 		policy_file = proc_policy_exception_policy;
 		list_caption = "Exception Policy Editor";
 	} else if (current_screen == SCREEN_ACL_LIST) {
@@ -2030,15 +2014,10 @@ start2:
 		    current_screen == SCREEN_ACL_LIST)
 			return SCREEN_DOMAIN_LIST;
 		if (c == '\t') {
-			if (current_screen == SCREEN_DOMAIN_LIST) {
-				if (ccs_major == 2 && ccs_minor == 2)
-					return SCREEN_EXCEPTION_LIST;
-				return SCREEN_SYSTEM_LIST;
-			} else if (current_screen == SCREEN_SYSTEM_LIST) {
+			if (current_screen == SCREEN_DOMAIN_LIST)
 				return SCREEN_EXCEPTION_LIST;
-			} else {
+			else
 				return SCREEN_DOMAIN_LIST;
-			}
 		}
 		if (need_reload) {
 			need_reload = false;
@@ -2125,7 +2104,6 @@ start2:
 			if (readonly_mode)
 				break;
 			switch (current_screen) {
-			case SCREEN_SYSTEM_LIST:
 			case SCREEN_EXCEPTION_LIST:
 			case SCREEN_ACL_LIST:
 			case SCREEN_DOMAIN_LIST:
@@ -2139,7 +2117,6 @@ start2:
 			if (readonly_mode)
 				break;
 			switch (current_screen) {
-			case SCREEN_SYSTEM_LIST:
 			case SCREEN_EXCEPTION_LIST:
 			case SCREEN_ACL_LIST:
 			case SCREEN_DOMAIN_LIST:
@@ -2223,7 +2200,6 @@ start2:
 			case SCREEN_DOMAIN_LIST:
 				line = domain_name(dp, current);
 				break;
-			case SCREEN_SYSTEM_LIST:
 			case SCREEN_EXCEPTION_LIST:
 			case SCREEN_ACL_LIST:
 				directive = generic_acl_list[current].directive;
@@ -2299,9 +2275,7 @@ int editpolicy_main(int argc, char *argv[])
 				network_mode = true;
 				if (!check_remote_host())
 					return 1;
-			} else if (!strcmp(ptr, "s"))
-				current_screen = SCREEN_SYSTEM_LIST;
-			else if (!strcmp(ptr, "e"))
+			} else if (!strcmp(ptr, "e"))
 				current_screen = SCREEN_EXCEPTION_LIST;
 			else if (!strcmp(ptr, "d"))
 				current_screen = SCREEN_DOMAIN_LIST;
@@ -2348,8 +2322,6 @@ usage:
 		}
 		close(fd[1]);
 		persistent_fd = fd[0];
-		copy_file(BASE_POLICY_SYSTEM_POLICY, proc_policy_system_policy);
-		copy_file(DISK_POLICY_SYSTEM_POLICY, proc_policy_system_policy);
 		copy_file(BASE_POLICY_EXCEPTION_POLICY,
 			  proc_policy_exception_policy);
 		copy_file(DISK_POLICY_EXCEPTION_POLICY,
@@ -2367,15 +2339,12 @@ usage:
 			return 1;
 		}
 		if (!readonly_mode) {
-			const int fd1 = open2(proc_policy_system_policy,
+			const int fd1 = open2(proc_policy_exception_policy,
 					      O_RDWR);
-			const int fd2 = open2(proc_policy_exception_policy,
-					      O_RDWR);
-			const int fd3 = open2(proc_policy_domain_policy,
+			const int fd2 = open2(proc_policy_domain_policy,
 					      O_RDWR);
 			if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
-			    (fd2 != EOF && write(fd2, "", 0) != 0) ||
-			    (fd3 != EOF && write(fd3, "", 0) != 0)) {
+			    (fd2 != EOF && write(fd2, "", 0) != 0)) {
 				fprintf(stderr,
 					"You need to register this program to "
 					"%s to run this program.\n",
@@ -2384,7 +2353,6 @@ usage:
 			}
 			close(fd1);
 			close(fd2);
-			close(fd3);
 		}
 	}
 	initscr();
@@ -2402,18 +2370,10 @@ usage:
 	}
 	while (current_screen < MAXSCREEN) {
 		if (!offline_mode && !network_mode) {
-			if (current_screen == SCREEN_DOMAIN_LIST &&
-			    access(proc_policy_domain_policy, F_OK))
-				current_screen = SCREEN_SYSTEM_LIST;
-			else if (current_screen == SCREEN_SYSTEM_LIST &&
-				 access(proc_policy_system_policy, F_OK))
+			if (current_screen == SCREEN_DOMAIN_LIST)
 				current_screen = SCREEN_EXCEPTION_LIST;
-			else if (current_screen == SCREEN_EXCEPTION_LIST &&
-				 access(proc_policy_exception_policy, F_OK)) {
+			else
 				current_screen = SCREEN_DOMAIN_LIST;
-				if (access(proc_policy_domain_policy, F_OK))
-					current_screen = SCREEN_SYSTEM_LIST;
-			}
 		}
 		resize_window();
 		current_screen = generic_list_loop(&dp);
@@ -2425,17 +2385,7 @@ usage:
 	endwin();
 	if (offline_mode && !readonly_mode) {
 		time_t now = time(NULL);
-		char *filename = make_filename("system_policy", now);
-		if (move_proc_to_file(proc_policy_system_policy,
-				      BASE_POLICY_SYSTEM_POLICY, filename)) {
-			if (is_identical_file("system_policy.conf", filename)) {
-				unlink(filename);
-			} else {
-				unlink("system_policy.conf");
-				symlink(filename, "system_policy.conf");
-			}
-		}
-		filename = make_filename("exception_policy", now);
+		const char *filename = make_filename("exception_policy", now);
 		if (move_proc_to_file(proc_policy_exception_policy,
 				      BASE_POLICY_EXCEPTION_POLICY, filename)) {
 			if (is_identical_file("exception_policy.conf",
