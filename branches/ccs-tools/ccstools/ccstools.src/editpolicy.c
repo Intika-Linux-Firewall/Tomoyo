@@ -1884,17 +1884,11 @@ out:
 
 static int select_window(struct domain_policy *dp, const int current)
 {
-	const _Bool e_ok = offline_mode || network_mode ||
-		access(proc_policy_exception_policy, F_OK) == 0;
-	const _Bool d_ok = offline_mode || network_mode ||
-		access(proc_policy_domain_policy, F_OK) == 0;
 	move(0, 0);
 	printw("Press one of below keys to switch window.\n\n");
-	if (e_ok)
-		printw("e     <<< Exception Policy Editor >>>\n");
-	if (d_ok)
-		printw("d     <<< Domain Transition Editor >>>\n");
-	if (d_ok && current_screen == SCREEN_DOMAIN_LIST &&
+	printw("e     <<< Exception Policy Editor >>>\n");
+	printw("d     <<< Domain Transition Editor >>>\n");
+	if (current_screen == SCREEN_DOMAIN_LIST &&
 	    !is_initializer_source(dp, current) &&
 	    !is_deleted_domain(dp, current))
 		printw("a     <<< Domain Policy Editor >>>\n");
@@ -1909,11 +1903,11 @@ static int select_window(struct domain_policy *dp, const int current)
 	refresh();
 	while (true) {
 		int c = getch2();
-		if (e_ok && (c == 'E' || c == 'e'))
+		if (c == 'E' || c == 'e')
 			return SCREEN_EXCEPTION_LIST;
-		if (d_ok && (c == 'D' || c == 'd'))
+		if (c == 'D' || c == 'd')
 			return SCREEN_DOMAIN_LIST;
-		if (d_ok && (c == 'A' || c == 'a')) {
+		if (c == 'A' || c == 'a') {
 			if (current_screen == SCREEN_DOMAIN_LIST &&
 			    !is_initializer_source(dp, current) &&
 			    !is_deleted_domain(dp, current)) {
@@ -2369,12 +2363,6 @@ usage:
 		timeout(1000);
 	}
 	while (current_screen < MAXSCREEN) {
-		if (!offline_mode && !network_mode) {
-			if (current_screen == SCREEN_DOMAIN_LIST)
-				current_screen = SCREEN_EXCEPTION_LIST;
-			else
-				current_screen = SCREEN_DOMAIN_LIST;
-		}
 		resize_window();
 		current_screen = generic_list_loop(&dp);
 	}
