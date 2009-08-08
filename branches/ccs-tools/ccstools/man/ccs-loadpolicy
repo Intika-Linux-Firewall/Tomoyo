@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-loadpolicy 1.6.8
+ccs-loadpolicy 1.7.0-pre
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,17 +13,15 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-loadpolicy [s][e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_port]]
+Usage: ccs-loadpolicy [e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_port]]
 
 This program loads TOMOYO Linux's policy from files or standard input into kernel.
-
- s     Load system policy. ( policy_dir/system_policy.base + policy_dir/system_policy.conf => /proc/ccs/system_policy )
 
  e     Load exception policy. ( policy_dirpolicy_dir/exception_policy.base + policy_dir/exception_policy.conf => /proc/ccs/exception_policy )
 
  d     Load domain policy. ( policy_dir/domain_policy.base + policy_dir/domain_policy.conf => /proc/ccs/domain_policy )
 
- a     Load system policy, exception policy and domain policy.
+ a     Load exception policy and domain policy.
 
  p     Load profile. ( policy_dir/profile.base + policy_dir/profile.conf => /proc/ccs/profile )
 
@@ -72,9 +70,7 @@ cat << EOF | help2man -i - -N -s 8 -n "Load TOMOYO Linux's policy manually" $0 |
 
 [NOTES]
 
- This is a symbolic link to /usr/lib/ccs/loadpolicy .
-
- You need to register either path to this program ( /usr/lib/ccs/loadpolicy ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/ccs-loadpolicy ) or a domain for this program in /proc/ccs/manager before invoking this program.
 
 [AUTHORS]
 

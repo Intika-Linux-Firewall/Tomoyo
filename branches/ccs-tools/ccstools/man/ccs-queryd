@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-queryd 1.6.8
+ccs-queryd 1.7.0-pre
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -38,7 +38,7 @@ else
 cat << EOF | help2man -i - -N -s 8 -n "Handle TOMOYO Linux's delayed enforcing mode" $0 | gzip -9 > man8/ccs-queryd.8.gz
 [NOTES]
 
- You need to register either path to this program ( /usr/lib/ccs/ccs-queryd ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/ccs-queryd ) or a domain for this program in /proc/ccs/manager before invoking this program.
 
 [AUTHORS]
 

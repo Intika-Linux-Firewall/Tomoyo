@@ -15,7 +15,7 @@ misc: $(MISC_FILES)
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs/misc $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
-	chmod 755 domainmatch init_policy.sh tomoyo_init_policy.sh
+	chmod 755 ccs-domainmatch init_policy.sh tomoyo_init_policy.sh
 	cp -af --remove-destination ccstools $(INSTALLDIR)/usr/sbin/
 	cp -af --remove-destination ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
 	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/ccstools $(INSTALLDIR)/usr/sbin/$$i; done

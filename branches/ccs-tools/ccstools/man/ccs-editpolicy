@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-editpolicy 1.6.8
+ccs-editpolicy 1.7.0-pre
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,11 +13,9 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-editpolicy [{s|e|d|p|m|u}] [readonly] [refresh=interval] [policy_dir|remote_ip:remote_port]
+Usage: ccs-editpolicy [{e|d|p|m|u}] [readonly] [refresh=interval] [policy_dir|remote_ip:remote_port]
 
 This program edits TOMOYO Linux's policy currently loaded in the kernel.
-
- s     Set initial screen to system policy editor.
 
  e     Set initial screen to exception policy editor.
 
@@ -60,9 +58,7 @@ cat << EOF | help2man -i - -N -s 8 -n "Edit TOMOYO Linux's policy" $0 | gzip -9 
 
 [NOTES]
 
- This is a symbolic link to /usr/lib/ccs/editpolicy .
-
- You need to register either path to this program ( /usr/lib/ccs/editpolicy ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/ccs-editpolicy ) or a domain for this program in /proc/ccs/manager before invoking this program.
 
 [AUTHORS]
 
