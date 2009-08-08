@@ -301,7 +301,9 @@ struct task_entry {
 	char *name;
 	char *domain;
 	u8 profile;
-	_Bool done;
+	_Bool selected;
+	int index;
+	int depth;
 };
 
 /***** STRUCTURES DEFINITION END *****/
@@ -369,6 +371,7 @@ int find_or_assign_new_domain(struct domain_policy *dp, const char *domainname,
 			      const _Bool is_dis, const _Bool is_dd);
 const char *domain_name(const struct domain_policy *dp, const int index);
 void send_fd(char *data, int *fd);
+void read_process_list(_Bool show_all);
 void editpolicy_offline_daemon(void);
 void editpolicy_init_keyword_map(void);
 void editpolicy_line_draw(const int screen);
@@ -418,6 +421,8 @@ extern int path_group_list_len;
 extern int current_y[MAXSCREEN];
 extern int list_item_count[MAXSCREEN];
 extern struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX];
+extern struct task_entry *task_list;
+extern int task_list_len;
 
 extern const char *proc_policy_dir,
 	*disk_policy_dir,

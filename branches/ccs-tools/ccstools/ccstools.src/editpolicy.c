@@ -53,31 +53,30 @@ static int domainname_attribute_compare(const void *a, const void *b);
 static void read_domain_and_exception_policy(struct domain_policy *dp);
 static void show_current(struct domain_policy *dp);
 static const char *eat(const char *str);
-static int show_domain_line(struct domain_policy *dp, int index);
-static int show_acl_line(int index, int list_indent);
-static int show_profile_line(int index);
-static int show_literal_line(int index);
-static int show_meminfo_line(int index);
+static int show_domain_line(struct domain_policy *dp, const int index);
+static int show_acl_line(const int index, const int list_indent);
+static int show_profile_line(const int index);
+static int show_literal_line(const int index);
+static int show_meminfo_line(const int index);
 static void show_list(struct domain_policy *dp);
 static void resize_window(void);
 static void up_arrow_key(struct domain_policy *dp);
 static void down_arrow_key(struct domain_policy *dp);
 static void page_up_key(struct domain_policy *dp);
 static void page_down_key(struct domain_policy *dp);
-static void show_current(struct domain_policy *dp);
 static void adjust_cursor_pos(const int item_count);
 static void set_cursor_pos(const int index);
 static int count(const unsigned char *array, const int len);
 static int count2(const struct generic_acl *array, int len);
-static int select_item(struct domain_policy *dp, const int current);
+static _Bool select_item(struct domain_policy *dp, const int index);
 static int generic_acl_compare(const void *a, const void *b);
-static void delete_entry(struct domain_policy *dp, int current);
+static void delete_entry(struct domain_policy *dp, const int index);
 static void add_entry(struct readline_data *rl);
 static void find_entry(struct domain_policy *dp, _Bool input, _Bool forward,
-		       int current, struct readline_data *rl);
-static void set_profile(struct domain_policy *dp, int current);
-static void set_level(struct domain_policy *dp, int current);
-static void set_quota(struct domain_policy *dp, int current);
+		       const int current, struct readline_data *rl);
+static void set_profile(struct domain_policy *dp, const int current);
+static void set_level(struct domain_policy *dp, const int current);
+static void set_quota(struct domain_policy *dp, const int current);
 static int select_window(struct domain_policy *dp, const int current);
 static _Bool show_command_key(const int screen, const _Bool readonly);
 static int generic_list_loop(struct domain_policy *dp);
@@ -122,6 +121,16 @@ static int count(const unsigned char *array, const int len)
 }
 
 static int count2(const struct generic_acl *array, int len)
+{
+	int i;
+	int c = 0;
+	for (i = 0; i < len; i++)
+		if (array[i].selected)
+			c++;
+	return c;
+}
+
+static int count3(const struct task_entry *array, int len)
 {
 	int i;
 	int c = 0;
@@ -352,7 +361,7 @@ static int domainname_attribute_compare(const void *a, const void *b)
 }
 
 
-static int show_domain_line(struct domain_policy *dp, int index)
+static int show_domain_line(struct domain_policy *dp, const int index)
 {
 	int tmp_col = 0;
 	const struct domain_initializer_entry *domain_initializer;
@@ -437,7 +446,7 @@ done:
 	return tmp_col;
 }
 
-static int show_acl_line(int index, int list_indent)
+static int show_acl_line(const int index, const int list_indent)
 {
 	u8 directive = generic_acl_list[index].directive;
 	const char *cp1 = directives[directive].alias;
@@ -452,7 +461,7 @@ static int show_acl_line(int index, int list_indent)
 	return strlen(cp1) + strlen(cp2) + 8 + list_indent;
 }
 
-static int show_profile_line(int index)
+static int show_profile_line(const int index)
 {
 	const char *cp = generic_acl_list[index].operand;
 	const u8 profile = generic_acl_list[index].directive;
@@ -464,7 +473,7 @@ static int show_profile_line(int index)
 	return strlen(number) + strlen(cp) + 8;
 }
 
-static int show_literal_line(int index)
+static int show_literal_line(const int index)
 {
 	const char *cp = generic_acl_list[index].operand;
 	printw("%c%4d: %s ",
@@ -473,7 +482,7 @@ static int show_literal_line(int index)
 	return strlen(cp) + 8;
 }
 
-static int show_meminfo_line(int index)
+static int show_meminfo_line(const int index)
 {
 	unsigned int now = 0;
 	unsigned int quota = 0;
@@ -607,11 +616,16 @@ int path_group_list_len = 0;
 static const char *policy_file = NULL;
 static const char *list_caption = NULL;
 static char *current_domain = NULL;
+static unsigned int current_pid = 0;
 
 static int current_screen = SCREEN_DOMAIN_LIST;
 
 struct generic_acl *generic_acl_list = NULL;
 int generic_acl_list_count = 0;
+
+struct task_entry *task_list = NULL;
+int task_list_len = 0;
+static int dump_index = 0;
 
 static struct domain_keeper_entry *domain_keeper_list = NULL;
 static int domain_keeper_list_len = 0;
@@ -881,7 +895,11 @@ static void read_generic_policy(void)
 			/* Don't set error message if failed. */
 			fp = fopen(policy_file, "r+");
 		if (fp) {
-			fprintf(fp, "select domain=%s\n", current_domain);
+			if (current_pid)
+				fprintf(fp, "select pid=%u\n", current_pid);
+			else
+				fprintf(fp, "select domain=%s\n",
+					current_domain);
 			if (network_mode)
 				fputc(0, fp);
 			fflush(fp);
@@ -960,6 +978,236 @@ static void read_generic_policy(void)
 		qsort(generic_acl_list, generic_acl_list_count,
 		      sizeof(struct generic_acl), string_acl_compare);
 	}
+}
+
+static pid_t get_ppid(const pid_t pid)
+{
+	char buffer[1024];
+	FILE *fp;
+	pid_t ppid = 1;
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
+	fp = fopen(buffer, "r");
+	if (fp) {
+		while (memset(buffer, 0, sizeof(buffer)),
+		       fgets(buffer, sizeof(buffer) - 1, fp)) {
+			if (sscanf(buffer, "PPid: %u", &ppid) == 1)
+				break;
+		}
+		fclose(fp);
+	}
+	return ppid;
+}
+
+static char *get_name(const pid_t pid)
+{
+	char buffer[1024];
+	FILE *fp;
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
+	fp = fopen(buffer, "r");
+	if (fp) {
+		static const int offset = sizeof(buffer) / 6;
+		while (memset(buffer, 0, sizeof(buffer)),
+		       fgets(buffer, sizeof(buffer) - 1, fp)) {
+			if (!strncmp(buffer, "Name:\t", 6)) {
+				char *cp = buffer + 6;
+				memmove(buffer, cp, strlen(cp) + 1);
+				cp = strchr(buffer, '\n');
+				if (cp)
+					*cp = '\0';
+				break;
+			}
+		}
+		fclose(fp);
+		if (buffer[0] && strlen(buffer) < offset - 1) {
+			const char *src = buffer;
+			char *dest = buffer + offset;
+			while (1) {
+				unsigned char c = *src++;
+				if (!c) {
+					*dest = '\0';
+					break;
+				}
+				if (c == '\\') {
+					c = *src++;
+					if (c == '\\') {
+						memmove(dest, "\\\\", 2);
+						dest += 2;
+					} else if (c == 'n') {
+						memmove(dest, "\\012", 4);
+						dest += 4;
+					} else {
+						break;
+					}
+				} else if (c > ' ' && c <= 126) {
+					*dest++ = c;
+				} else {
+					*dest++ = '\\';
+					*dest++ = (c >> 6) + '0';
+					*dest++ = ((c >> 3) & 7) + '0';
+					*dest++ = (c & 7) + '0';
+				}
+			}
+			return strdup(buffer + offset);
+		}
+	}
+	return NULL;
+}
+
+static void sort_process_entry(const pid_t pid, const int depth)
+{
+	int i;
+	for (i = 0; i < task_list_len; i++) {
+		if (pid != task_list[i].pid)
+			continue;
+		task_list[i].index = dump_index++;
+		task_list[i].depth = depth;
+		task_list[i].selected = true;
+	}
+	for (i = 0; i < task_list_len; i++) {
+		if (pid != task_list[i].ppid)
+			continue;
+		sort_process_entry(task_list[i].pid, depth + 1);
+	}
+}
+
+static int task_entry_compare(const void *a, const void *b)
+{
+	const struct task_entry *a0 = (struct task_entry *) a;
+	const struct task_entry *b0 = (struct task_entry *) b;
+	return a0->index - b0->index;
+}
+
+void read_process_list(_Bool show_all)
+{
+	int i;
+	while (task_list_len) {
+		task_list_len--;
+		free((void *) task_list[task_list_len].name);
+		free((void *) task_list[task_list_len].domain);
+	}
+	dump_index = 0;
+	if (network_mode) {
+		FILE *fp = open_write(show_all ? "proc:all_process_status" :
+				      "proc:process_status");
+		if (!fp)
+			return;
+		get();
+		while (freadline(fp)) {
+			unsigned int pid = 0;
+			unsigned int ppid = 0;
+			int profile = -1;
+			char *name;
+			char *domain;
+			sscanf(shared_buffer, "PID=%u PPID=%u", &pid, &ppid);
+			name = strstr(shared_buffer, "NAME=");
+			if (name)
+				name = strdup(name + 5);
+			if (!name)
+				name = strdup("<UNKNOWN>");
+			if (!name)
+				out_of_memory();
+			if (!freadline(fp))
+				break;
+			sscanf(shared_buffer, "%u %u", &pid, &profile);
+			domain = strchr(shared_buffer, '<');
+			if (domain)
+				domain = strdup(domain);
+			if (!domain)
+				domain = strdup("<UNKNOWN>");
+			if (!domain)
+				out_of_memory();
+			task_list = realloc(task_list,
+					    (task_list_len + 1) *
+					    sizeof(struct task_entry));
+			if (!task_list)
+				out_of_memory();
+			memset(&task_list[task_list_len], 0,
+			       sizeof(task_list[0]));
+			task_list[task_list_len].pid = pid;
+			task_list[task_list_len].ppid = ppid;
+			task_list[task_list_len].profile = profile;
+			task_list[task_list_len].name = name;
+			task_list[task_list_len].domain = domain;
+			task_list_len++;
+		}
+		put();
+		fclose(fp);
+	} else {
+		struct dirent **namelist;
+		int i;
+		int n;
+		int status_fd = open(proc_policy_process_status, O_RDWR);
+		if (status_fd == EOF)
+			return;
+		n = scandir("/proc/", &namelist, 0, 0);
+		for (i = 0; i < n; i++) {
+			char *name;
+			char *domain;
+			int profile = -1;
+			unsigned int pid = 0;
+			char buffer[128];
+			char test[16];
+			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1)
+				goto skip;
+			memset(buffer, 0, sizeof(buffer));
+			if (!show_all) {
+				snprintf(buffer, sizeof(buffer) - 1,
+					 "/proc/%u/exe", pid);
+				if (readlink(buffer, test, sizeof(test)) <= 0)
+					goto skip;
+			}
+			name = get_name(pid);
+			if (!name)
+				name = strdup("<UNKNOWN>");
+			if (!name)
+				out_of_memory();
+			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
+			write(status_fd, buffer, strlen(buffer));
+			get();
+			memset(shared_buffer, 0, sizeof(shared_buffer));
+			read(status_fd, shared_buffer,
+			     sizeof(shared_buffer) - 1);
+			sscanf(shared_buffer, "%u %u", &pid, &profile);
+			domain = strchr(shared_buffer, '<');
+			if (domain)
+				domain = strdup(domain);
+			if (!domain)
+				domain = strdup("<UNKNOWN>");
+			if (!domain)
+				out_of_memory();
+			put();
+			task_list = realloc(task_list, (task_list_len + 1) *
+					    sizeof(struct task_entry));
+			if (!task_list)
+				out_of_memory();
+			memset(&task_list[task_list_len], 0,
+ 			       sizeof(task_list[0]));
+ 			task_list[task_list_len].pid = pid;
+ 			task_list[task_list_len].ppid = get_ppid(pid);
+ 			task_list[task_list_len].profile = profile;
+ 			task_list[task_list_len].name = name;
+ 			task_list[task_list_len].domain = domain;
+ 			task_list_len++;
+skip:
+ 			free((void *) namelist[i]);
+ 		}
+ 		if (n >= 0)
+ 			free((void *) namelist);
+ 		close(status_fd);
+ 	}
+ 	sort_process_entry(1, 0);
+ 	for (i = 0; i < task_list_len; i++) {
+ 		if (task_list[i].selected) {
+ 			task_list[i].selected = false;
+ 			continue;
+ 		}
+ 		task_list[i].index = dump_index++;
+ 		task_list[i].depth = 0;
+ 	}
+ 	qsort(task_list, task_list_len, sizeof(struct task_entry),
+ 	      task_entry_compare);
 }
 
 static int add_domain_initializer_entry(const char *domainname,
@@ -1334,6 +1582,27 @@ no_domain:
 	memset(dp->list_selected, 0, dp->list_len);
 }
 
+static int show_process_line(const int index)
+{
+ 	int tmp_col = 0;
+ 	int i;
+ 	printw("%c%4d:%3u ",
+ 	       task_list[index].selected ? '&' : ' ',
+ 	       index, task_list[index].profile);
+ 	tmp_col += 10;
+ 	for (i = 0; i < task_list[index].depth - 1; i++) {
+ 		printw("%s", eat("    "));
+ 		tmp_col += 4;
+ 	}
+ 	get();
+ 	shprintf("%s%s (%u) %s", task_list[index].depth ?
+ 		 " +- " : "", task_list[index].name,
+ 		 task_list[index].pid, task_list[index].domain);
+ 	printw("%s", eat(shared_buffer));
+ 	tmp_col += strlen(shared_buffer);
+ 	put();
+ 	return tmp_col;
+}
 
 static void show_list(struct domain_policy *dp)
 {
@@ -1463,55 +1732,72 @@ static void down_arrow_key(struct domain_policy *dp)
 
 static void page_up_key(struct domain_policy *dp)
 {
-	if (current_item_index[current_screen] + current_y[current_screen]
-	    > body_lines) {
-		current_item_index[current_screen] -= body_lines;
-		if (current_item_index[current_screen] < 0)
-			current_item_index[current_screen] = 0;
-		show_list(dp);
-	} else if (current_item_index[current_screen]
-		   + current_y[current_screen] > 0) {
-		current_item_index[current_screen] = 0;
-		current_y[current_screen] = 0;
-		show_list(dp);
+	int p0 = current_item_index[current_screen];
+	int p1 = current_y[current_screen];
+	_Bool refresh;
+	if (p0 + p1 > body_lines) {
+		p0 -= body_lines;
+		if (p0 < 0)
+			p0 = 0;
+	} else if (p0 + p1 > 0) {
+		p0 = 0;
+		p1 = 0;
+	} else {
+		return;
 	}
+	refresh = (current_item_index[current_screen] != p0);
+	current_item_index[current_screen] = p0;
+	current_y[current_screen] = p1;
+	if (refresh)
+                show_list(dp);
+	else
+		show_current(dp);
 }
 
 static void page_down_key(struct domain_policy *dp)
 {
-	if (list_item_count[current_screen] - current_item_index[current_screen]
-	    > body_lines) {
-		current_item_index[current_screen] += body_lines;
-		if (current_item_index[current_screen]
-		    + current_y[current_screen]
-		    > list_item_count[current_screen] - 1)
-			current_y[current_screen]
-				= list_item_count[current_screen] - 1
-				- current_item_index[current_screen];
-		show_list(dp);
-	} else if (current_item_index[current_screen]
-		   + current_y[current_screen]
-		   < list_item_count[current_screen] - 1) {
-		current_y[current_screen]
-			= list_item_count[current_screen]
-			- current_item_index[current_screen] - 1;
-		show_current(dp);
+	int count = list_item_count[current_screen] - 1;
+	int p0 = current_item_index[current_screen];
+	int p1 = current_y[current_screen];
+	_Bool refresh;
+	//if (current_screen == SCREEN_DOMAIN_LIST)
+	//count += task_list_len;
+	if (p0 + p1 + body_lines < count) {
+		p0 += body_lines;
+	} else if (p0 + p1 < count) {
+		while (p0 + p1 < count) {
+			if (p1 + 1 < body_lines)
+				p1++;
+			else
+				p0++;
+		}
+	} else {
+		return;
 	}
+	refresh = (current_item_index[current_screen] != p0);
+	current_item_index[current_screen] = p0;
+	current_y[current_screen] = p1;
+	if (refresh)
+                show_list(dp);
+	else
+                show_current(dp);
 }
 
 int editpolicy_get_current(void)
 {
-	if (list_item_count[current_screen] == 0)
-		return EOF;
-	if (current_item_index[current_screen] + current_y[current_screen] < 0
-	    || current_item_index[current_screen] + current_y[current_screen]
-	    >= list_item_count[current_screen]) {
-		fprintf(stderr, "ERROR: current_item_index=%d current_y=%d\n",
-			current_item_index[current_screen],
-			current_y[current_screen]);
+	int count = list_item_count[current_screen];
+	const int p0 = current_item_index[current_screen];
+	const int p1 = current_y[current_screen];
+	//if (current_screen == SCREEN_DOMAIN_LIST)
+	//count += task_list_len;
+	if (!count)
+                return EOF;
+	if (p0 + p1 < 0 || p0 + p1 >= count) {
+                fprintf(stderr, "ERROR: current_item_index=%d current_y=%d\n",
+			p0, p1);
 		exit(127);
 	}
-	return current_item_index[current_screen] + current_y[current_screen];
+	return p0 + p1;
 }
 
 static void show_current(struct domain_policy *dp)
@@ -1568,27 +1854,29 @@ static void set_cursor_pos(const int index)
 	}
 }
 
-static int select_item(struct domain_policy *dp, const int current)
+static _Bool select_item(struct domain_policy *dp, const int index)
 {
-	if (current >= 0) {
-		int x;
-		int y;
-		if (current_screen == SCREEN_DOMAIN_LIST) {
-			if (is_deleted_domain(dp, current) ||
-			    is_initializer_source(dp, current))
-				return 0;
-			dp->list_selected[current] ^= 1;
-		} else {
-			generic_acl_list[current].selected ^= 1;
-		}
-		getyx(stdscr, y, x);
-		editpolicy_sttr_save();    /* add color */
-		show_list(dp);
-		editpolicy_sttr_restore(); /* add color */
-		move(y, x);
-		return 1;
-	}
-	return 0;
+	int x;
+	int y;
+	if (index < 0)
+		return false;
+	if (current_screen == SCREEN_DOMAIN_LIST) {
+		if (index < dp->list_len) {
+			if (is_deleted_domain(dp, index) ||
+			    is_initializer_source(dp, index))
+				return false;
+			dp->list_selected[index] ^= 1;
+		} else
+			task_list[index - dp->list_len].selected ^= 1;
+	} else {
+		generic_acl_list[index].selected ^= 1;
+        }
+	getyx(stdscr, y, x);
+	editpolicy_sttr_save();    /* add color */
+	show_list(dp);
+	editpolicy_sttr_restore(); /* add color */
+	move(y, x);
+	return true;
 }
 
 static int generic_acl_compare(const void *a, const void *b)
@@ -1612,15 +1900,15 @@ static int generic_acl_compare(const void *a, const void *b)
 	}
 }
 
-static void delete_entry(struct domain_policy *dp, int current)
+static void delete_entry(struct domain_policy *dp, const int index)
 {
 	int c;
 	move(1, 0);
 	editpolicy_color_change(DISP_ERR, true);	/* add color */
 	if (current_screen == SCREEN_DOMAIN_LIST) {
 		c = count(dp->list_selected, dp->list_len);
-		if (!c)
-			c = select_item(dp, current);
+		if (!c && index < dp->list_len)
+			c = select_item(dp, index);
 		if (!c)
 			printw("Select domain using Space key first.");
 		else
@@ -1629,7 +1917,7 @@ static void delete_entry(struct domain_policy *dp, int current)
 	} else {
 		c = count2(generic_acl_list, generic_acl_list_count);
 		if (!c)
-			c = select_item(dp, current);
+			c = select_item(dp, index);
 		if (!c)
 			printw("Select entry using Space key first.");
 		else
@@ -1650,31 +1938,36 @@ static void delete_entry(struct domain_policy *dp, int current)
 		return;
 	}
 	if (current_screen == SCREEN_DOMAIN_LIST) {
-		int index;
+		int i;
 		FILE *fp = open_write(proc_policy_domain_policy);
 		if (!fp)
 			return;
-		for (index = 1; index < dp->list_len; index++) {
-			if (!dp->list_selected[index])
+		for (i = 1; i < dp->list_len; i++) {
+			if (!dp->list_selected[i])
 				continue;
-			fprintf(fp, "delete %s\n", domain_name(dp, index));
+			fprintf(fp, "delete %s\n", domain_name(dp, i));
 		}
 		close_write(fp);
 	} else {
-		int index;
+		int i;
 		FILE *fp = open_write(policy_file);
 		if (!fp)
 			return;
-		if (current_screen == SCREEN_ACL_LIST)
-			fprintf(fp, "select %s\n", current_domain);
-		for (index = 0; index < generic_acl_list_count; index++) {
+		if (current_screen == SCREEN_ACL_LIST) {
+			if (current_pid)
+				fprintf(fp, "select pid=%u\n", current_pid);
+			else
+				fprintf(fp, "select domain=%s\n",
+					current_domain);
+		}
+		for (i = 0; i < generic_acl_list_count; i++) {
 			u8 directive;
-			if (!generic_acl_list[index].selected)
+			if (!generic_acl_list[i].selected)
 				continue;
-			directive = generic_acl_list[index].directive;
+			directive = generic_acl_list[i].directive;
 			fprintf(fp, "delete %s %s\n",
 				directives[directive].original,
-				generic_acl_list[index].operand);
+				generic_acl_list[i].operand);
 		}
 		close_write(fp);
 	}
@@ -1709,7 +2002,10 @@ static void add_entry(struct readline_data *rl)
 		}
 		break;
 	case SCREEN_ACL_LIST:
-		fprintf(fp, "select %s\n", current_domain);
+		if (current_pid)
+			fprintf(fp, "select pid=%u\n", current_pid);
+		else
+			fprintf(fp, "select domain=%s\n", current_domain);
 		/* Fall through. */
 	case SCREEN_EXCEPTION_LIST:
 		directive = find_directive(false, line);
@@ -1729,7 +2025,7 @@ out:
 }
 
 static void find_entry(struct domain_policy *dp, _Bool input, _Bool forward,
-		       int current, struct readline_data *rl)
+		       const int current, struct readline_data *rl)
 {
 	int index = current;
 	char *line = NULL;
@@ -1782,7 +2078,7 @@ out:
 	show_list(dp);
 }
 
-static void set_profile(struct domain_policy *dp, int current)
+static void set_profile(struct domain_policy *dp, const int current)
 {
 	int index;
 	FILE *fp;
@@ -1807,15 +2103,21 @@ static void set_profile(struct domain_policy *dp, int current)
 	for (index = 0; index < dp->list_len; index++) {
 		if (!dp->list_selected[index])
 			continue;
-		fprintf(fp, "select %s\n" KEYWORD_USE_PROFILE "%s\n",
+		fprintf(fp, "select domain=%s\n" KEYWORD_USE_PROFILE "%s\n",
 			domain_name(dp, index), line);
+	}
+	for (index = 0; index < task_list_len; index++) {
+		if (!task_list[index].selected)
+			continue;
+		fprintf(fp, "select pid=%u\n" KEYWORD_USE_PROFILE "%s\n",
+			task_list[index].pid, line);
 	}
 	close_write(fp);
 out:
 	free(line);
 }
 
-static void set_level(struct domain_policy *dp, int current)
+static void set_level(struct domain_policy *dp, const int current)
 {
 	int index;
 	FILE *fp;
@@ -1849,7 +2151,7 @@ out:
 	free(line);
 }
 
-static void set_quota(struct domain_policy *dp, int current)
+static void set_quota(struct domain_policy *dp, const int current)
 {
 	int index;
 	FILE *fp;
@@ -1882,6 +2184,47 @@ out:
 	free(line);
 }
 
+static _Bool select_acl_window(struct domain_policy *dp, const int current,
+			       const _Bool may_refresh)
+{
+	int index;
+	if (current_screen != SCREEN_DOMAIN_LIST)
+		return false;
+	current_pid = 0;
+	index = list_item_count[current_screen];
+	if (current >= index) {
+		current_pid = task_list[current - index].pid;
+	} else if (is_initializer_source(dp, current)) {
+		int redirect_index;
+		if (!may_refresh)
+			return false;
+		get();
+		shprintf(ROOT_NAME "%s",
+			 strrchr(domain_name(dp, current), ' '));
+		redirect_index = find_domain(dp, shared_buffer, false, false);
+		put();
+		if (redirect_index == EOF)
+			return false;
+		current_item_index[current_screen]
+			= redirect_index - current_y[current_screen];
+		while (current_item_index[current_screen] < 0) {
+			current_item_index[current_screen]++;
+			current_y[current_screen]--;
+		}
+		show_list(dp);
+	} else if (is_deleted_domain(dp, current)) {
+		return false;
+	}
+	free(current_domain);
+	if (current >= index)
+		current_domain = strdup(task_list[current - index].domain);
+	else
+		current_domain = strdup(domain_name(dp, current));
+	if (!current_domain)
+		out_of_memory();
+	return true;
+}
+
 static int select_window(struct domain_policy *dp, const int current)
 {
 	move(0, 0);
@@ -1907,18 +2250,9 @@ static int select_window(struct domain_policy *dp, const int current)
 			return SCREEN_EXCEPTION_LIST;
 		if (c == 'D' || c == 'd')
 			return SCREEN_DOMAIN_LIST;
-		if (c == 'A' || c == 'a') {
-			if (current_screen == SCREEN_DOMAIN_LIST &&
-			    !is_initializer_source(dp, current) &&
-			    !is_deleted_domain(dp, current)) {
-				free(current_domain);
-				current_domain = strdup(domain_name(dp,
-								    current));
-				if (!current_domain)
-					out_of_memory();
-				return SCREEN_ACL_LIST;
-			}
-		}
+		if (c == 'A' || c == 'a')
+			if (select_acl_window(dp, current, false))
+                                return SCREEN_ACL_LIST;
 		if (c == 'P' || c == 'p')
 			return SCREEN_PROFILE_LIST;
 		if (c == 'M' || c == 'm')
@@ -1936,6 +2270,66 @@ static int select_window(struct domain_policy *dp, const int current)
 		if (c == EOF)
 			return MAXSCREEN;
 	}
+}
+
+static void copy_mark_state(struct domain_policy *dp, const int current)
+{
+	int index = list_item_count[current_screen];
+	if (current_screen == SCREEN_DOMAIN_LIST) {
+		if (current >= index) {
+			const u8 selected = task_list[current - index].selected;
+			for (index = current - index; index < task_list_len;
+			     index++)
+				task_list[index].selected = selected;
+		} else {
+			const u8 selected = dp->list_selected[current];
+			if (is_deleted_domain(dp, current) ||
+			    is_initializer_source(dp, current))
+				return;
+			for (index = current;
+			     index < dp->list_len; index++) {
+				if (is_deleted_domain(dp, index) ||
+				    is_initializer_source(dp, index))
+					continue;
+				dp->list_selected[index] = selected;
+			}
+		}
+	} else {
+		const u8 selected = generic_acl_list[current].selected;
+		for (index = current; index < generic_acl_list_count; index++)
+			generic_acl_list[index].selected = selected;
+	}
+	show_list(dp);
+}
+
+static void copy_to_history(struct domain_policy *dp, const int current,
+			    struct readline_data *rl)
+{
+	const char *line;
+	if (current == EOF)
+		return;
+	get();
+	switch (current_screen) {
+		u8 directive;
+	case SCREEN_DOMAIN_LIST:
+		line = domain_name(dp, current);
+		break;
+	case SCREEN_EXCEPTION_LIST:
+	case SCREEN_ACL_LIST:
+		directive = generic_acl_list[current].directive;
+		shprintf("%s %s", directives[directive].alias,
+			 generic_acl_list[current].operand);
+		line = shared_buffer;
+		break;
+	case SCREEN_MEMINFO_LIST:
+		line = NULL;
+		break;
+	default:
+		shprintf("%s", generic_acl_list[current].operand);
+		line = shared_buffer;
+	}
+	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
+	put();
 }
 
 static int generic_list_loop(struct domain_policy *dp)
@@ -2020,8 +2414,6 @@ start2:
 		if (c == ERR)
 			continue; /* Ignore invalid key. */
 		switch (c) {
-			int index;
-			const char *line;
 		case KEY_RESIZE:
 			resize_window();
 			show_list(dp);
@@ -2045,29 +2437,7 @@ start2:
 		case 'C':
 			if (current == EOF)
 				break;
-			if (current_screen == SCREEN_DOMAIN_LIST) {
-				const u8 selected
-					= dp->list_selected[current];
-				if (is_deleted_domain(dp, current) ||
-				    is_initializer_source(dp, current))
-					break;
-				for (index = current;
-				     index < dp->list_len; index++) {
-					if (is_deleted_domain(dp, index) ||
-					    is_initializer_source(dp, index))
-						continue;
-					dp->list_selected[index]
-						= selected;
-				}
-			} else {
-				const u8 selected
-					= generic_acl_list[current].selected;
-				for (index = current;
-				     index < generic_acl_list_count; index++) {
-					generic_acl_list[index].selected
-						= selected;
-				}
-			}
+			copy_mark_state(dp, current);
 			show_list(dp);
 			break;
 		case 'f':
@@ -2122,35 +2492,8 @@ start2:
 			break;
 		case '\r':
 		case '\n':
-			if (current_screen != SCREEN_DOMAIN_LIST)
-				break;
-			if (is_initializer_source(dp, current)) {
-				int redirect_index;
-				get();
-				shprintf(ROOT_NAME "%s",
-					 strrchr(domain_name(dp, current),
-						 ' '));
-				redirect_index = find_domain(dp, shared_buffer,
-							     false, false);
-				put();
-				if (redirect_index == EOF)
-					break;
-				current_item_index[current_screen]
-					= redirect_index
-					- current_y[current_screen];
-				while (current_item_index[current_screen] < 0) {
-					current_item_index[current_screen]++;
-					current_y[current_screen]--;
-				}
-				show_list(dp);
-			} else if (!is_deleted_domain(dp, current)) {
-				free(current_domain);
-				current_domain = strdup(domain_name(dp,
-								    current));
-				if (!current_domain)
-					out_of_memory();
+			if (select_acl_window(dp, current, true))
 				return SCREEN_ACL_LIST;
-			}
 			break;
 		case 's':
 		case 'S':
@@ -2186,32 +2529,7 @@ start2:
 			max_eat_col[current_screen] = max_col;
 			goto start2;
 		case KEY_IC:
-			if (current == EOF)
-				break;
-			get();
-			switch (current_screen) {
-				u8 directive;
-			case SCREEN_DOMAIN_LIST:
-				line = domain_name(dp, current);
-				break;
-			case SCREEN_EXCEPTION_LIST:
-			case SCREEN_ACL_LIST:
-				directive = generic_acl_list[current].directive;
-				shprintf("%s %s", directives[directive].alias,
-					 generic_acl_list[current].operand);
-				line = shared_buffer;
-				break;
-			case SCREEN_MEMINFO_LIST:
-				line = NULL;
-				break;
-			default:
-				shprintf("%s",
-					 generic_acl_list[current].operand);
-				line = shared_buffer;
-			}
-			rl.count = simple_add_history(line, rl.history,
-						      rl.count, rl.max);
-			put();
+			copy_to_history(dp, current, &rl);
 			break;
 		case 'o':
 		case 'O':
