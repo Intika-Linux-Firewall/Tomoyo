@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.25-170.2.72.fc10.src.rpm ]
+if [ ! -r kernel-2.6.27.29-170.2.78.fc10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/kernel-2.6.27.29-170.2.78.fc10.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.25-170.2.72.fc10.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.29-170.2.78.fc10.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090703.tar.gz ]
@@ -25,9 +25,9 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /root/rpmbuild/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2009-06-22 07:21:39.000000000 +0900
-+++ kernel.spec	2009-06-25 09:21:58.000000000 +0900
-@@ -12,7 +12,7 @@
+--- kernel.spec	2009-07-31 16:58:28.000000000 +0900
++++ kernel.spec	2009-08-09 21:44:29.850002207 +0900
+@@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
  #
@@ -36,7 +36,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
-@@ -384,6 +384,11 @@
+@@ -387,6 +387,11 @@
  # to versions below the minimum
  #
  
@@ -48,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -422,7 +427,7 @@
+@@ -425,7 +430,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  #
  # This macro does requires, provides, conflicts, obsoletes for a kernel package.
-@@ -450,7 +455,7 @@
+@@ -453,7 +458,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -75,8 +75,8 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1419,6 +1424,10 @@
- ApplyPatch linux-2.6-dev-zero-avoid-oom-lockup.patch
+@@ -1418,6 +1423,10 @@
+ 
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1445,6 +1454,9 @@
+@@ -1444,6 +1453,9 @@
  for i in *.config
  do
    mv $i .config
