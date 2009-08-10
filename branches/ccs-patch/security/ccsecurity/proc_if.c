@@ -109,7 +109,11 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 }
 
 /* Operations for /proc/ccs/interface. */
-static const struct file_operations ccs_operations = {
+static
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
+const
+#endif
+struct file_operations ccs_operations = {
 	.open    = ccs_open,
 	.release = ccs_release,
 	.poll    = ccs_poll,

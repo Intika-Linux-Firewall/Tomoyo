@@ -624,7 +624,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
-+	error = ccs_chmod_permission(nd.path.dentry, nd.path.mnt, mode);
++	error = ccs_chmod_permission(nd.dentry, nd.mnt, mode);
 +	if (error)
 +		goto dput_and_out;
  
@@ -681,7 +681,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24.7 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.24.7 2009/08/10\n");
  }
 --- linux-2.6.24.7.orig/include/linux/init_task.h
 +++ linux-2.6.24.7/include/linux/init_task.h

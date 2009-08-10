@@ -11,10 +11,10 @@
  */
 
 #include <linux/version.h>
+#include "internal.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/kthread.h>
 #endif
-#include "internal.h"
 
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,

@@ -531,7 +531,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
-+	error = ccs_chown_permission(ns.path.dentry, nd.path.mnt, user, group);
++	error = ccs_chown_permission(nd.path.dentry, nd.path.mnt, user, group);
 +	if (!error)
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
@@ -560,7 +560,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.26.8 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.26.8 2009/08/10\n");
  }
 --- linux-2.6.26.8.orig/include/linux/init_task.h
 +++ linux-2.6.26.8/include/linux/init_task.h

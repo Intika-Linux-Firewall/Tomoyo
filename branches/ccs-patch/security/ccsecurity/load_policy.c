@@ -14,6 +14,10 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define __KERNEL_SYSCALLS__
 #endif
+#include "internal.h"
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#include <linux/unistd.h>
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
@@ -21,10 +25,6 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW;
 #else
 static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#include <linux/unistd.h>
-#endif
-#include "internal.h"
 
 /* Path to the policy loader. The default is /sbin/ccs-init. */
 static const char *ccs_loader;
