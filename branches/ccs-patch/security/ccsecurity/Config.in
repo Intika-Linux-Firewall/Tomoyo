@@ -1,6 +1,9 @@
 #
 # Mandatory Access Control configuration
 #
+mainmenu_option next_comment
+comment 'Security options'
+
 [ -z "$CONFIG_CCSECURITY" ] && define_bool CONFIG_CCSECURITY y
 bool 'CCSecurity support' CONFIG_CCSECURITY
 
@@ -28,3 +31,5 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
   fi
 
 fi
+
+endmenu
