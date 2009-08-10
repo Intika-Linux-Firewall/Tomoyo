@@ -49,6 +49,48 @@ static const char *ccs_path_number_keyword[MAX_PATH_NUMBER_OPERATION] = {
 	[TYPE_CHGRP] = "chgrp",
 };
 
+void ccs_put_name_union(struct ccs_name_union *ptr)
+{
+	if (ptr->is_group)
+		ccs_put_path_group(ptr->group);
+	else
+		ccs_put_name(ptr->filename);
+}	
+
+void ccs_put_number_union(struct ccs_number_union *ptr)
+{
+	if (ptr->is_group)
+		ccs_put_number_group(ptr->group);
+}
+
+bool ccs_compare_number_union(const unsigned long value,
+			      const struct ccs_number_union *ptr)
+{
+	if (ptr->is_group)
+		return ccs_number_matches_group(value, value, ptr->group);
+	return value >= ptr->values[0] && value <= ptr->values[1];
+}
+
+bool ccs_compare_name_union(const struct ccs_path_info *name,
+			    const struct ccs_name_union *ptr)
+{
+	if (ptr->is_group)
+		return ccs_path_matches_group(name, ptr->group, 1);
+	return ccs_path_matches_pattern(name, ptr->filename);
+}
+
+static bool ccs_compare_name_union_pattern(const struct ccs_path_info *name,
+					   const struct ccs_name_union *ptr,
+					   const bool may_use_pattern)
+{
+	if (ptr->is_group)
+		return ccs_path_matches_group(name, ptr->group,
+					      may_use_pattern);
+	if (may_use_pattern || !ptr->filename->is_patterned)
+		return ccs_path_matches_pattern(name, ptr->filename);
+	return false;
+}
+
 /**
  * ccs_sp2keyword - Get the name of single path operation.
  *
@@ -131,33 +173,33 @@ static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
 	return false;
 }
 
-static bool ccs_check_and_save_path(const char *filename, bool *is_group,
-				    union ccs_name_union *ptr)
+static bool ccs_check_and_save_path(const char *filename,
+				    struct ccs_name_union *ptr)
 {
 	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return false;
 	if (filename[0] == '@') {
 		ptr->group = ccs_get_path_group(filename + 1);
-		*is_group = true;
+		ptr->is_group = true;
 	} else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		if (!strcmp(filename, "pipe:"))
 			filename = "pipe:[\\$]";
 #endif
 		ptr->filename = ccs_get_name(filename);
-		*is_group = false;
+		ptr->is_group = false;
 	}
 	return true;
 }
 
-bool ccs_check_and_save_number(const char *filename, bool *is_group,
-			       union ccs_number_union *ptr)
+bool ccs_check_and_save_number(const char *filename,
+			       struct ccs_number_union *ptr)
 {
 	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return false;
 	if (filename[0] == '@') {
 		ptr->group = ccs_get_number_group(filename + 1);
-		*is_group = true;
+		ptr->is_group = true;
 	}
 	return true;
 }
@@ -184,7 +226,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 
 static int ccs_update_path_number_acl(const u8 type, const char *filename,
 				      const char *group,
-				      const union ccs_number_union *number,
+				      const struct ccs_number_union *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
 				      const bool is_delete);
@@ -894,20 +936,10 @@ static int ccs_check_single_path_acl(struct ccs_request_info *r,
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
-			continue;
-		if (acl->name_is_group) {
-			if (!ccs_path_matches_group(filename, acl->name.group,
+		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		    !ccs_compare_name_union_pattern(filename, &acl->name,
 						    may_use_pattern))
-				continue;
-		} else if (may_use_pattern ||
-			   !acl->name.filename->is_patterned) {
-			if (!ccs_path_matches_pattern(filename,
-						      acl->name.filename))
-				continue;
-		} else {
 			continue;
-		}
 		r->cond = ptr->cond;
 		error = 0;
 		break;
@@ -942,35 +974,14 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 		if (ccs_acl_type2(ptr) != TYPE_MKDEV_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_mkdev_acl_record, head);
-		if (acl->major_is_group) {
-			if (!ccs_number_matches_group(major, major,
-						      acl->major.group))
+		if (!ccs_compare_number_union(major, &acl->major))
 				continue;
-		} else {
-			if (major < acl->major.value.min ||
-			    major > acl->major.value.max)
-				continue;
-		}
-		if (acl->minor_is_group) {
-			if (!ccs_number_matches_group(minor, minor,
-						      acl->minor.group))
-				continue;
-		} else {
-			if (minor < acl->minor.value.min ||
-			    minor > acl->minor.value.max)
-				continue;
-		}
+		if (!ccs_compare_number_union(minor, &acl->minor))
+			continue;
 		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
 			continue;
-		if (acl->name_is_group) {
-			if (!ccs_path_matches_group(filename, acl->name.group,
-						    1))
-				continue;
-		} else {
-			if (!ccs_path_matches_pattern(filename,
-						      acl->name.filename))
-				continue;
-		}
+		if (!ccs_compare_name_union(filename, &acl->name))
+			continue;
 		r->cond = ptr->cond;
 		error = 0;
 		break;
@@ -1169,7 +1180,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 						  domain, condition, is_delete);
 	}
 	for (type = 0; type < MAX_PATH_NUMBER_OPERATION; type++) {
-		union ccs_number_union num;
+		struct ccs_number_union num;
 		const char *group = NULL;
 		if (strcmp(w[0], ccs_path_number_keyword[type]))
 			continue;
@@ -1252,9 +1263,9 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename, &e.name_is_group, &e.name))
+	if (!ccs_check_and_save_path(filename, &e.name))
 		return -EINVAL;
-	if (!e.name.ptr)
+	if (!e.name.group && !e.name.filename)
 		return -ENOMEM;
 	if (is_delete)
 		goto delete;
@@ -1268,7 +1279,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
-		if (acl->name.ptr != e.name.ptr)
+		if (memcmp(&acl->name, &e.name, sizeof(e.name)))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
@@ -1302,7 +1313,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
-		if (acl->name.ptr != e.name.ptr)
+		if (memcmp(&acl->name, &e.name, sizeof(e.name)))
 			continue;
 		acl->perm &= ~perm;
 		if ((acl->perm & ccs_rw_mask) != ccs_rw_mask)
@@ -1314,10 +1325,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	if (e.name_is_group)
-		ccs_put_path_group(e.name.group);
-	else
-		ccs_put_name(e.name.filename);
+	ccs_put_name_union(&e.name);
 	kfree(entry);
 	return error;
 }
@@ -1349,7 +1357,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 				const bool is_delete)
 {
 	static const u8 offset = offsetof(struct ccs_mkdev_acl_record,
-					  name_is_group);
+					  name);
 	struct ccs_acl_info *ptr;
 	struct ccs_mkdev_acl_record e;
 	struct ccs_mkdev_acl_record *entry = NULL;
@@ -1360,25 +1368,23 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	memset(&e, 0, sizeof(e));
 	e.head.type = TYPE_MKDEV_ACL;
 	e.head.cond = condition;
-	if (!ccs_check_and_save_path(filename, &e.name_is_group, &e.name))
+	if (!ccs_check_and_save_path(filename, &e.name))
 		return -EINVAL;
 	if (!e.name.group)
 		return -ENOMEM;
 	if (major_group) {
-		if (!ccs_check_and_save_number(major_group, &e.major_is_group,
-					       &e.major))
+		if (!ccs_check_and_save_number(major_group, &e.major))
 			goto out;
 	} else {
-		e.major.value.min = min_major;
-		e.major.value.max = max_major;
+		e.major.values[0] = min_major;
+		e.major.values[1] = max_major;
 	}
 	if (minor_group) {
-		if (!ccs_check_and_save_number(minor_group, &e.minor_is_group,
-					       &e.minor))
+		if (!ccs_check_and_save_number(minor_group, &e.minor))
 			goto out;
 	} else {
-		e.minor.value.min = min_minor;
-		e.minor.value.max = max_minor;
+		e.minor.values[0] = min_minor;
+		e.minor.values[1] = max_minor;
 	}
 	if (is_delete)
 		goto delete;
@@ -1428,14 +1434,9 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	if (e.name_is_group)
-		ccs_put_path_group(e.name.group);
-	else
-		ccs_put_name(e.name.filename);
-	if (e.major_is_group)
-		ccs_put_number_group(e.major.group);
-	if (e.minor_is_group)
-		ccs_put_number_group(e.minor.group);
+	ccs_put_name_union(&e.name);
+	ccs_put_number_union(&e.major);
+	ccs_put_number_union(&e.minor);
 	kfree(entry);
 	return error;
 }
@@ -1468,10 +1469,11 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename1, &e.name1_is_group, &e.name1) ||
-	    !ccs_check_and_save_path(filename2, &e.name2_is_group, &e.name2))
+	if (!ccs_check_and_save_path(filename1, &e.name1) ||
+	    !ccs_check_and_save_path(filename2, &e.name2))
 		return -EINVAL;
-	if (!e.name1.ptr || !e.name2.ptr)
+	if ((!e.name1.group && !e.name1.filename) ||
+	    (!e.name2.group && !e.name2.filename))
 		goto out;
 	if (is_delete)
 		goto delete;
@@ -1485,8 +1487,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
-		if (acl->name1.ptr != e.name1.ptr ||
-		    acl->name2.ptr != e.name2.ptr)
+		if (memcmp(&acl->name1, &e.name1, sizeof(e.name1)) ||
+		    memcmp(&acl->name2, &e.name2, sizeof(e.name2)))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
 		if (ptr->type & ACL_DELETED)
@@ -1514,8 +1516,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
-		if (acl->name1.ptr != e.name1.ptr ||
-		    acl->name2.ptr != e.name2.ptr)
+		if (memcmp(&acl->name1, &e.name1, sizeof(e.name1)) ||
+		    memcmp(&acl->name2, &e.name2, sizeof(e.name2)))
 			continue;
 		acl->perm &= ~perm;
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
@@ -1523,14 +1525,8 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	if (e.name1_is_group)
-		ccs_put_path_group(e.name1.group);
-	else
-		ccs_put_name(e.name1.filename);
-	if (e.name2_is_group)
-		ccs_put_path_group(e.name2.group);
-	else
-		ccs_put_name(e.name2.filename);
+	ccs_put_name_union(&e.name1);
+	ccs_put_name_union(&e.name2);
 	kfree(entry);
 	return error;
 }
@@ -1562,26 +1558,10 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
+		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		    !ccs_compare_name_union(filename1, &acl->name1) ||
+		    !ccs_compare_name_union(filename2, &acl->name2))
 			continue;
-		if (acl->name1_is_group) {
-			if (!ccs_path_matches_group(filename1,
-						    acl->name1.group, true))
-				continue;
-		} else {
-			if (!ccs_path_matches_pattern(filename1,
-						      acl->name1.filename))
-				continue;
-		}
-		if (acl->name2_is_group) {
-			if (!ccs_path_matches_group(filename2,
-						    acl->name2.group, true))
-				continue;
-		} else {
-			if (!ccs_path_matches_pattern(filename2,
-						      acl->name2.filename))
-				continue;
-		}
 		r->cond = ptr->cond;
 		error = 0;
 		break;
@@ -2034,7 +2014,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  * @type:      Type of operation.
  * @filename:  Filename.
  * @group:     Name of number group. May be NULL.
- * @number:    Pointer to "union ccs_number_union".
+ * @number:    Pointer to "struct ccs_number_union".
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
@@ -2043,13 +2023,13 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  */
 static int ccs_update_path_number_acl(const u8 type, const char *filename,
 				      const char *group,
-				      const union ccs_number_union *number,
+				      const struct ccs_number_union *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
 				      const bool is_delete)
 {
 	static const u8 offset = offsetof(struct ccs_path_number_acl_record,
-					  name_is_group);
+					  name);
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_number_acl_record e;
@@ -2061,13 +2041,12 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	e.perm = perm;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename, &e.name_is_group, &e.name))
+	if (!ccs_check_and_save_path(filename, &e.name))
 		return -EINVAL;
 	if (!e.name.group)
 		return -ENOMEM;
 	if (group) {
-		if (!ccs_check_and_save_number(group, &e.number_is_group,
-					       &e.number))
+		if (!ccs_check_and_save_number(group, &e.number))
 			goto out;
 	} else {
 		memmove(&e.number, number, sizeof(*number));
@@ -2121,10 +2100,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	if (e.name_is_group)
-		ccs_put_path_group(e.name.group);
-	else
-		ccs_put_name(e.name.filename);
+	ccs_put_name_union(&e.name);
 	kfree(entry);
 	return error;
 }
@@ -2156,28 +2132,10 @@ static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
 			continue;
 		acl = container_of(ptr, struct ccs_path_number_acl_record,
 				   head);
-		if (!(acl->perm & perm))
+		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		    !ccs_compare_number_union(number, &acl->number) ||
+		    !ccs_compare_name_union(filename, &acl->name))
 			continue;
-		if (acl->number_is_group) {
-			if (!ccs_number_matches_group(number, number,
-						      acl->number.group))
-				continue;
-		} else {
-			if (number < acl->number.value.min ||
-			    number > acl->number.value.max)
-				continue;
-		}
-		if (!ccs_check_condition(r, ptr))
-			continue;
-		if (acl->name_is_group) {
-			if (!ccs_path_matches_group(filename, acl->name.group,
-						    true))
-				continue;
-		} else {
-			if (!ccs_path_matches_pattern(filename,
-						      acl->name.filename))
-				continue;
-		}
 		r->cond = ptr->cond;
 		error = 0;
 		break;
@@ -2225,17 +2183,17 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 		return err;
 	} else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
-		union ccs_number_union num;
+		struct ccs_number_union num;
 		memset(&num, 0, sizeof(num));
 		if (type == TYPE_CHMOD) {
-			num.value.min_type = 8;
-			num.value.max_type = 8;
+			num.min_type = 8;
+			num.max_type = 8;
 		} else {
-			num.value.min_type = 10;
-			num.value.max_type = 10;
+			num.min_type = 10;
+			num.max_type = 10;
 		}
-		num.value.min = number;
-		num.value.max = number;
+		num.values[0] = number;
+		num.values[1] = number;
 		ccs_update_path_number_acl(type, ccs_get_file_pattern(filename)
 					   ->name, NULL, &num, r->domain, cond,
 					   false);

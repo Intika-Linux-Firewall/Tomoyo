@@ -122,7 +122,7 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "type(%u)", type);
 }
 
-bool ccs_parse_number_union(char *data, union ccs_number_union *num)
+bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 {
 	u8 type;
 	unsigned long v;
@@ -130,11 +130,11 @@ bool ccs_parse_number_union(char *data, union ccs_number_union *num)
 	type = ccs_parse_ulong(&v, &data);
 	if (!type)
 		return false;
-	num->value.min = v;
-	num->value.min_type = type;
+	num->values[0] = v;
+	num->min_type = type;
 	if (!*data) {
-		num->value.max = v;
-		num->value.max_type = type;
+		num->values[1] = v;
+		num->max_type = type;
 		return true;
 	}
 	if (*data++ != '-')
@@ -142,8 +142,8 @@ bool ccs_parse_number_union(char *data, union ccs_number_union *num)
 	type = ccs_parse_ulong(&v, &data);
 	if (!type || *data)
 		return false;
-	num->value.max = v;
-	num->value.max_type = type;
+	num->values[1] = v;
+	num->max_type = type;
 	return true;
 }
 

@@ -145,10 +145,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_single_path_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->name_is_group)
-				ccs_put_path_group(entry->name.group);
-			else
-				ccs_put_name(entry->name.filename);
+			ccs_put_name_union(&entry->name);
 		}
 		break;
 	case TYPE_MKDEV_ACL:
@@ -156,14 +153,9 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_mkdev_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->name_is_group)
-				ccs_put_path_group(entry->name.group);
-			else
-				ccs_put_name(entry->name.filename);
-			if (entry->major_is_group)
-				ccs_put_number_group(entry->major.group);
-			if (entry->minor_is_group)
-				ccs_put_number_group(entry->minor.group);
+			ccs_put_name_union(&entry->name);
+			ccs_put_number_union(&entry->major);
+			ccs_put_number_union(&entry->minor);
 		}
 		break;
 	case TYPE_DOUBLE_PATH_ACL:
@@ -171,14 +163,8 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_double_path_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->name1_is_group)
-				ccs_put_path_group(entry->name1.group);
-			else
-				ccs_put_name(entry->name1.filename);
-			if (entry->name2_is_group)
-				ccs_put_path_group(entry->name2.group);
-			else
-				ccs_put_name(entry->name2.filename);
+			ccs_put_name_union(&entry->name1);
+			ccs_put_name_union(&entry->name2);
 		}
 		break;
 	case TYPE_IP_NETWORK_ACL:
@@ -192,8 +178,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 				ccs_put_ipv6_address(entry->address.ipv6.min);
 				ccs_put_ipv6_address(entry->address.ipv6.max);
 			}
-			if (entry->port_is_group)
-				ccs_put_number_group(entry->port.group);
+			ccs_put_number_union(&entry->port);
 		}
 		break;
 	case TYPE_PATH_NUMBER_ACL:
@@ -201,12 +186,8 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_path_number_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			if (entry->name_is_group)
-				ccs_put_path_group(entry->name.group);
-			else
-				ccs_put_name(entry->name.filename);
-			if (entry->number_is_group)
-				ccs_put_number_group(entry->number.group);
+			ccs_put_name_union(&entry->name);
+			ccs_put_number_union(&entry->number);
 		}
 		break;
 	case TYPE_ARGV0_ACL:

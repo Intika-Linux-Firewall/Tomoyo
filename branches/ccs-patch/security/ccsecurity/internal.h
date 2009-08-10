@@ -475,20 +475,18 @@ struct ccs_execute_handler_record {
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
 
-union ccs_name_union {
-	void *ptr;
+struct ccs_name_union {
 	const struct ccs_path_info *filename;
 	struct ccs_path_group *group;
+	u8 is_group;
 };
 
-union ccs_number_union {
-	struct {
-		unsigned long min;
-		unsigned long max;
-		u8 min_type;
-		u8 max_type;
-	} value;
+struct ccs_number_union {
+	unsigned long values[2];
 	struct ccs_number_group *group;
+	u8 min_type;
+	u8 max_type;
+	u8 is_group;
 };
 
 /*
@@ -499,37 +497,25 @@ union ccs_number_union {
  */
 struct ccs_single_path_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
-	/* True if name points to "path_group" directive. */
-	bool name_is_group;
 	u16 perm;
-	union ccs_name_union name;
+	struct ccs_name_union name;
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
 struct ccs_mkdev_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_MKDEV_ACL */
 	u8 perm; /* mkblock and/or mkchar */
-	/* True if name points to "path_group" directive. */
-	bool name_is_group;
-	/* True if major points to "number_group" directive. */
-	bool major_is_group;
-	/* True if minor points to "number_group" directive. */
-	bool minor_is_group;
-	union ccs_name_union name;
-	union ccs_number_union major;
-	union ccs_number_union minor;
+	struct ccs_name_union name;
+	struct ccs_number_union major;
+	struct ccs_number_union minor;
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
 struct ccs_double_path_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
 	u8 perm;
-	/* True if name1 points to "path_group" directive. */
-	bool name1_is_group;
-	/* True if name2 points to "path_group" directive. */
-	bool name2_is_group;
-	union ccs_name_union name1;
-	union ccs_name_union name2;
+	struct ccs_name_union name1;
+	struct ccs_name_union name2;
 };
 
 /*
@@ -539,12 +525,8 @@ struct ccs_double_path_acl_record {
 struct ccs_path_number_acl_record {
 	struct ccs_acl_info head; /* type = TYPE_PATH_NUMBER_ACL */
 	u8 perm;
-	/* True if name points to "path_group" directive. */
-	bool name_is_group;
-	/* True if number points to "number_group" directive. */
-	bool number_is_group;
-	union ccs_name_union name;
-	union ccs_number_union number;
+	struct ccs_name_union name;
+	struct ccs_number_union number;
 };
 
 /* Structure for "allow_argv0" directive. */
@@ -607,8 +589,6 @@ struct ccs_ip_network_acl_record {
 	 *                if address points to an IPv6 address.
 	 */
 	u8 record_type;
-	/* True if port points to "number_group" directive. */
-	bool port_is_group;
 	union {
 		struct {
 			/* Start of IPv4 address range. Host endian. */
@@ -625,7 +605,7 @@ struct ccs_ip_network_acl_record {
 		/* Pointer to address group. */
 		struct ccs_address_group_entry *group;
 	} address;
-	union ccs_number_union port;
+	struct ccs_number_union port;
 };
 
 /* Index numbers for File Controls. */
@@ -804,7 +784,7 @@ struct ccs_io_buffer {
 /* Prototype definition. */
 
 bool ccs_can_sleep(void);
-bool ccs_check_and_save_number(const char *filename, bool *is_group, union ccs_number_union *ptr);
+bool ccs_check_and_save_number(const char *filename, struct ccs_number_union *ptr);
 bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
@@ -909,9 +889,12 @@ void ccs_put_number_group(struct ccs_number_group *group);
 void ccs_put_path_group(struct ccs_path_group *group);
 void ccs_run_gc(void);
 const char *ccs_path_number2keyword(const u8 operation);
-bool ccs_parse_number_union(char *data, union ccs_number_union *num);
+bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
 void ccs_print_ulong(char *buffer, const int buffer_len, const unsigned long value, const u8 type);
+void ccs_put_name_union(struct ccs_name_union *ptr);
+void ccs_put_number_union(struct ccs_number_union *ptr);
+bool ccs_compare_number_union(const unsigned long value, const struct ccs_number_union *ptr);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

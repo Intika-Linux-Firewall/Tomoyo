@@ -636,31 +636,31 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	return error;
 }
 
-static bool ccs_print_name_union(struct ccs_io_buffer *head, bool is_group,
-				 union ccs_name_union *group)
+static bool ccs_print_name_union(struct ccs_io_buffer *head,
+				 struct ccs_name_union *ptr)
 {
 	const int pos = head->read_avail;
 	if (pos && head->read_buf[pos - 1] == ' ')
 		head->read_avail--;
-	if (is_group)
+	if (ptr->is_group)
 		return ccs_io_printf(head, " @%s",
-				     group->group->group_name->name);
-	return ccs_io_printf(head, " %s", group->filename->name);
+				     ptr->group->group_name->name);
+	return ccs_io_printf(head, " %s", ptr->filename->name);
 }
 
-static bool ccs_print_number_union(struct ccs_io_buffer *head, bool is_group,
-				   union ccs_number_union *group)
+static bool ccs_print_number_union(struct ccs_io_buffer *head,
+				   struct ccs_number_union *ptr)
 {
-	unsigned int min;
-	unsigned int max;
-	if (is_group)
+	unsigned long min;
+	unsigned long max;
+	if (ptr->is_group)
 		return ccs_io_printf(head, " @%s",
-				     group->group->group_name->name);
-	min = group->value.min;
-	max = group->value.max;
+				     ptr->group->group_name->name);
+	min = ptr->values[0];
+	max = ptr->values[1];
 	if (min == max)
-		return ccs_io_printf(head, " %u", min);
-	return ccs_io_printf(head, " %u-%u", min, max);
+		return ccs_io_printf(head, " %lu", min);
+	return ccs_io_printf(head, " %lu-%lu", min, max);
 }
 
 /**
@@ -692,8 +692,7 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 		msg = ccs_sp2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
-		    !ccs_print_name_union(head, ptr->name_is_group,
-					  &ptr->name) ||
+		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -728,12 +727,9 @@ static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
 		msg = ccs_mkdev2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
-		    !ccs_print_name_union(head, ptr->name_is_group,
-					  &ptr->name) ||
-		    !ccs_print_number_union(head, ptr->major_is_group,
-					    &ptr->major) ||
-		    !ccs_print_number_union(head, ptr->minor_is_group,
-					    &ptr->minor) ||
+		    !ccs_print_name_union(head, &ptr->name) ||
+		    !ccs_print_number_union(head, &ptr->major) ||
+		    !ccs_print_number_union(head, &ptr->minor) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -768,10 +764,8 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 		msg = ccs_dp2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
-		    !ccs_print_name_union(head, ptr->name1_is_group,
-					  &ptr->name1) ||
-		    !ccs_print_name_union(head, ptr->name2_is_group,
-					  &ptr->name2) ||
+		    !ccs_print_name_union(head, &ptr->name1) ||
+		    !ccs_print_name_union(head, &ptr->name2) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -806,10 +800,8 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 		msg = ccs_path_number2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
-		    !ccs_print_name_union(head, ptr->name_is_group,
-					  &ptr->name) ||
-		    !ccs_print_number_union(head, ptr->number_is_group,
-					    &ptr->number) ||
+		    !ccs_print_name_union(head, &ptr->name) ||
+		    !ccs_print_number_union(head, &ptr->number) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -973,7 +965,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 			goto out;
 		break;
 	}
-	if (!ccs_print_number_union(head, ptr->port_is_group, &ptr->port) ||
+	if (!ccs_print_number_union(head, &ptr->port) ||
 	    !ccs_print_condition(head, cond))
 		goto out;
 	return true;

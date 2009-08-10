@@ -998,6 +998,7 @@ void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
 			is_delete = true;
 		else if (str_starts(shared_buffer, "select "))
 			is_select = true;
+		str_starts(shared_buffer, "domain=");
 		if (is_domain_def(shared_buffer)) {
 			if (is_delete) {
 				index = find_domain(dp, shared_buffer, false,

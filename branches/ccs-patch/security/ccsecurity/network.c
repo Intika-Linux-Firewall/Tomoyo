@@ -485,12 +485,11 @@ static int ccs_update_network_entry(const u8 operation, const u8 record_type,
 		e.address.ipv4.max = ntohl(*max_address);
 	}
 	if (port_group_name) {
-		if (!ccs_check_and_save_number(port_group_name,
-					       &e.port_is_group, &e.port))
+		if (!ccs_check_and_save_number(port_group_name, &e.port))
 		    goto out;
 	} else {
-		e.port.value.min = min_port;
-		e.port.value.max = max_port;
+		e.port.values[0] = min_port;
+		e.port.values[1] = max_port;
 	}
 	if (is_delete)
 		goto delete;
@@ -584,16 +583,8 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
 		if (acl->operation_type != operation)
 			continue;
-		if (acl->port_is_group) {
-			if (!ccs_number_matches_group(port, port,
-						      acl->port.group))
-				continue;
-		} else {
-			if (port < acl->port.value.min ||
-			    acl->port.value.max < port)
-				continue;
-		}
-		if (!ccs_check_condition(&r, ptr))
+		if (!ccs_compare_number_union(port, &acl->port) ||
+		    !ccs_check_condition(&r, ptr))
 			continue;
 		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!ccs_address_matches_group(is_ipv6, address,
