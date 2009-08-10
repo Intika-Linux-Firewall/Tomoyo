@@ -1,0 +1,884 @@
+Index: branches/ccs-patch/security/ccsecurity/util.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/util.c	(revision 2888)
++++ branches/ccs-patch/security/ccsecurity/util.c	(working copy)
+@@ -127,6 +127,13 @@
+ 	u8 type;
+ 	unsigned long v;
+ 	memset(num, 0, sizeof(*num));
++	if (data[0] == '@') {
++		if (!ccs_is_correct_path(data, 0, 0, 0))
++			return false;
++		num->group = ccs_get_number_group(data + 1);
++		num->is_group = true;
++		return num->group != NULL;
++	}
+ 	type = ccs_parse_ulong(&v, &data);
+ 	if (!type)
+ 		return false;
+Index: branches/ccs-patch/security/ccsecurity/file.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/file.c	(revision 2888)
++++ branches/ccs-patch/security/ccsecurity/file.c	(working copy)
+@@ -51,15 +51,17 @@
+ 
+ void ccs_put_name_union(struct ccs_name_union *ptr)
+ {
++	if (!ptr)
++		return;
+ 	if (ptr->is_group)
+ 		ccs_put_path_group(ptr->group);
+ 	else
+ 		ccs_put_name(ptr->filename);
+-}	
++}
+ 
+ void ccs_put_number_union(struct ccs_number_union *ptr)
+ {
+-	if (ptr->is_group)
++	if (ptr && ptr->is_group)
+ 		ccs_put_number_group(ptr->group);
+ }
+ 
+@@ -173,37 +175,25 @@
+ 	return false;
+ }
+ 
+-static bool ccs_check_and_save_path(const char *filename,
+-				    struct ccs_name_union *ptr)
++static bool ccs_parse_name_union(const char *filename,
++				 struct ccs_name_union *ptr)
+ {
+ 	if (!ccs_is_correct_path(filename, 0, 0, 0))
+ 		return false;
+ 	if (filename[0] == '@') {
+ 		ptr->group = ccs_get_path_group(filename + 1);
+ 		ptr->is_group = true;
+-	} else {
++		return ptr->group != NULL;
++	}
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+-		if (!strcmp(filename, "pipe:"))
+-			filename = "pipe:[\\$]";
++	if (!strcmp(filename, "pipe:"))
++		filename = "pipe:[\\$]";
+ #endif
+-		ptr->filename = ccs_get_name(filename);
+-		ptr->is_group = false;
+-	}
+-	return true;
++	ptr->filename = ccs_get_name(filename);
++	ptr->is_group = false;
++	return ptr->filename != NULL;
+ }
+ 
+-bool ccs_check_and_save_number(const char *filename,
+-			       struct ccs_number_union *ptr)
+-{
+-	if (!ccs_is_correct_path(filename, 0, 0, 0))
+-		return false;
+-	if (filename[0] == '@') {
+-		ptr->group = ccs_get_number_group(filename + 1);
+-		ptr->is_group = true;
+-	}
+-	return true;
+-}
+-
+ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
+ 				      const char *filename2,
+ 				      struct ccs_domain_info * const domain,
+@@ -214,24 +204,16 @@
+ 				      struct ccs_condition *condition,
+ 				      const bool is_delete);
+ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
+-				const char *major_group,
+-				const char *minor_group,
+-				const unsigned int min_major,
+-				const unsigned int max_major,
+-				const unsigned int min_minor,
+-				const unsigned int max_minor,
++				char *major, char *minor,
+ 				struct ccs_domain_info * const domain,
+ 				struct ccs_condition *condition,
+ 				const bool is_delete);
+-
+ static int ccs_update_path_number_acl(const u8 type, const char *filename,
+-				      const char *group,
+-				      const struct ccs_number_union *number,
++				      char *number,
+ 				      struct ccs_domain_info * const domain,
+ 				      struct ccs_condition *condition,
+ 				      const bool is_delete);
+ 
+-
+ /**
+  * ccs_audit_single_path_log - Audit single path request log.
+  *
+@@ -868,8 +850,8 @@
+ /**
+  * ccs_update_file_acl - Update file's read/write/execute ACL.
+  *
+- * @filename:  Filename.
+  * @perm:      Permission (between 1 to 7).
++ * @filename:  Filename.
+  * @domain:    Pointer to "struct ccs_domain_info".
+  * @condition: Pointer to "struct ccs_condition". May be NULL.
+  * @is_delete: True if it is a delete request.
+@@ -881,7 +863,7 @@
+  * "allow_read" instead of "4", "allow_write" instead of "2",
+  * "allow_execute" instead of "1".
+  */
+-static int ccs_update_file_acl(const char *filename, u8 perm,
++static int ccs_update_file_acl(u8 perm, const char *filename,
+ 			       struct ccs_domain_info * const domain,
+ 			       struct ccs_condition *condition,
+ 			       const bool is_delete)
+@@ -1044,7 +1026,7 @@
+ 		/* Don't use patterns for execute permission. */
+ 		const struct ccs_path_info *pattern = mode != 1 ?
+ 			ccs_get_file_pattern(filename) : filename;
+-		ccs_update_file_acl(pattern->name, mode, r->domain, cond,
++		ccs_update_file_acl(mode, pattern->name, r->domain, cond,
+ 				    false);
+ 		ccs_put_condition(cond);
+ 	}
+@@ -1153,7 +1135,7 @@
+ 		return -EINVAL;
+ 	if (strncmp(w[0], "allow_", 6)) {
+ 		if (sscanf(w[0], "%u", &perm) == 1)
+-			return ccs_update_file_acl(w[1], (u8) perm, domain,
++			return ccs_update_file_acl((u8) perm, w[1], domain,
+ 						   condition, is_delete);
+ 		if (!strcmp(w[0], KEYWORD_EXECUTE_HANDLER))
+ 			type = TYPE_EXECUTE_HANDLER;
+@@ -1161,8 +1143,8 @@
+ 			type = TYPE_DENIED_EXECUTE_HANDLER;
+ 		else
+ 			goto out;
+-		return ccs_update_execute_handler(type, w[1],
+-						  domain, is_delete);
++		return ccs_update_execute_handler(type, w[1], domain,
++						  is_delete);
+ 	}
+ 	w[0] += 6;
+ 	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
+@@ -1176,59 +1158,21 @@
+ 	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
+ 		if (strcmp(w[0], ccs_dp_keyword[type]))
+ 			continue;
+-		return ccs_update_double_path_acl(type, w[1], w[2],
+-						  domain, condition, is_delete);
++		return ccs_update_double_path_acl(type, w[1], w[2], domain,
++						  condition, is_delete);
+ 	}
+ 	for (type = 0; type < MAX_PATH_NUMBER_OPERATION; type++) {
+-		struct ccs_number_union num;
+-		const char *group = NULL;
+ 		if (strcmp(w[0], ccs_path_number_keyword[type]))
+ 			continue;
+-		if (!ccs_parse_number_union(w[2], &num)) {
+-			if (w[2][0] != '@')
+-				return -EINVAL;
+-			group = w[2];
+-		}
+-		return ccs_update_path_number_acl(type, w[1], group, &num,
+-						  domain, condition,
+-						  is_delete);
++		return ccs_update_path_number_acl(type, w[1], w[2], domain,
++						  condition, is_delete);
+ 	}
+ 	if (!w[3][0])
+ 		goto out;
+ 	for (type = 0; type < MAX_MKDEV_OPERATION; type++) {
+-		unsigned int min_major = 0;
+-		unsigned int max_major = 0;
+-		unsigned int min_minor = 0;
+-		unsigned int max_minor = 0;
+-		const char *major_group = NULL;
+-		const char *minor_group = NULL;
+ 		if (strcmp(w[0], ccs_mkdev_keyword[type]))
+ 			continue;
+-		switch (sscanf(w[2], "%u-%u", &min_major, &max_major)) {
+-		case 1:
+-			max_major = min_major;
+-			break;
+-		case 2:
+-			break;
+-		default:
+-			if (w[2][0] != '@')
+-				goto out;
+-			major_group = w[2];
+-		}
+-		switch (sscanf(w[3], "%u-%u", &min_minor, &max_minor)) {
+-		case 1:
+-			max_minor = min_minor;
+-			break;
+-		case 2:
+-			break;
+-		default:
+-			if (w[3][0] != '@')
+-				goto out;
+-			minor_group = w[3];
+-		}
+-		return ccs_update_mkdev_acl(type, w[1], major_group,
+-					    minor_group, min_major, max_major,
+-					    min_minor, max_minor, domain,
++		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], domain,
+ 					    condition, is_delete);
+ 	}
+  out:
+@@ -1263,10 +1207,8 @@
+ 	e.head.cond = condition;
+ 	if (!domain)
+ 		return -EINVAL;
+-	if (!ccs_check_and_save_path(filename, &e.name))
++	if (!ccs_parse_name_union(filename, &e.name))
+ 		return -EINVAL;
+-	if (!e.name.group && !e.name.filename)
+-		return -ENOMEM;
+ 	if (is_delete)
+ 		goto delete;
+ 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -1335,10 +1277,8 @@
+  *
+  * @type:      Type of operation.
+  * @filename:  Filename.
+- * @min_major:
+- * @max_major:
+- * @min_minor:
+- * @max_minor:
++ * @major:     Device major number.
++ * @minor:     Device minor number.
+  * @domain:    Pointer to "struct ccs_domain_info".
+  * @condition: Pointer to "struct ccs_condition". May be NULL.
+  * @is_delete: True if it is a delete request.
+@@ -1346,12 +1286,7 @@
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
+-				const char *major_group,
+-				const char *minor_group,
+-				const unsigned int min_major,
+-				const unsigned int max_major,
+-				const unsigned int min_minor,
+-				const unsigned int max_minor,
++				char *major, char *minor,
+ 				struct ccs_domain_info * const domain,
+ 				struct ccs_condition *condition,
+ 				const bool is_delete)
+@@ -1368,24 +1303,12 @@
+ 	memset(&e, 0, sizeof(e));
+ 	e.head.type = TYPE_MKDEV_ACL;
+ 	e.head.cond = condition;
+-	if (!ccs_check_and_save_path(filename, &e.name))
++	if (!ccs_parse_name_union(filename, &e.name))
+ 		return -EINVAL;
+-	if (!e.name.group)
+-		return -ENOMEM;
+-	if (major_group) {
+-		if (!ccs_check_and_save_number(major_group, &e.major))
+-			goto out;
+-	} else {
+-		e.major.values[0] = min_major;
+-		e.major.values[1] = max_major;
+-	}
+-	if (minor_group) {
+-		if (!ccs_check_and_save_number(minor_group, &e.minor))
+-			goto out;
+-	} else {
+-		e.minor.values[0] = min_minor;
+-		e.minor.values[1] = max_minor;
+-	}
++	if (!ccs_parse_number_union(major, &e.major))
++		goto out;
++	if (!ccs_parse_number_union(minor, &e.minor))
++		goto out;
+ 	if (is_delete)
+ 		goto delete;
+ 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -1469,12 +1392,9 @@
+ 	e.head.cond = condition;
+ 	if (!domain)
+ 		return -EINVAL;
+-	if (!ccs_check_and_save_path(filename1, &e.name1) ||
+-	    !ccs_check_and_save_path(filename2, &e.name2))
++	if (!ccs_parse_name_union(filename1, &e.name1) ||
++	    !ccs_parse_name_union(filename2, &e.name2))
+ 		return -EINVAL;
+-	if ((!e.name1.group && !e.name1.filename) ||
+-	    (!e.name2.group && !e.name2.filename))
+-		goto out;
+ 	if (is_delete)
+ 		goto delete;
+ 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -1662,12 +1582,17 @@
+ 		if (error == 1)
+ 			goto retry;
+ 	} else if (ccs_domain_quota_ok(r)) {
+-		struct ccs_condition *cond = ccs_handler_cond();
+-		ccs_update_mkdev_acl(operation,
+-				     ccs_get_file_pattern(filename)->name,
+-				     NULL, NULL, major, major, minor, minor,
+-				     r->domain, cond, false);
+-		ccs_put_condition(cond);
++		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		if (buf) {
++			struct ccs_condition *cond = ccs_handler_cond();
++			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %u %u", msg,
++				 ccs_get_file_pattern(filename)->name,  major,
++				 minor);
++			buf[PAGE_SIZE - 1] = '\0';
++			ccs_write_file_policy(buf, r->domain, cond, false);
++			ccs_put_condition(cond);
++			kfree(buf);
++		}
+ 	}
+ 	if (!is_enforce)
+ 		error = 0;
+@@ -2013,8 +1938,7 @@
+  *
+  * @type:      Type of operation.
+  * @filename:  Filename.
+- * @group:     Name of number group. May be NULL.
+- * @number:    Pointer to "struct ccs_number_union".
++ * @number:    Number.
+  * @domain:    Pointer to "struct ccs_domain_info".
+  * @condition: Pointer to "struct ccs_condition". May be NULL.
+  * @is_delete: True if it is a delete request.
+@@ -2022,8 +1946,7 @@
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_update_path_number_acl(const u8 type, const char *filename,
+-				      const char *group,
+-				      const struct ccs_number_union *number,
++				      char *number,
+ 				      struct ccs_domain_info * const domain,
+ 				      struct ccs_condition *condition,
+ 				      const bool is_delete)
+@@ -2041,16 +1964,10 @@
+ 	e.perm = perm;
+ 	if (!domain)
+ 		return -EINVAL;
+-	if (!ccs_check_and_save_path(filename, &e.name))
++	if (!ccs_parse_name_union(filename, &e.name))
+ 		return -EINVAL;
+-	if (!e.name.group)
+-		return -ENOMEM;
+-	if (group) {
+-		if (!ccs_check_and_save_number(group, &e.number))
+-			goto out;
+-	} else {
+-		memmove(&e.number, number, sizeof(*number));
+-	}
++	if (!ccs_parse_number_union(number, &e.number))
++		goto out;
+ 	if (is_delete)
+ 		goto delete;
+ 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -2101,6 +2018,7 @@
+ 	mutex_unlock(&ccs_policy_lock);
+  out:
+ 	ccs_put_name_union(&e.name);
++	ccs_put_number_union(&e.number);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -2172,7 +2090,7 @@
+ 	if (is_enforce) {
+ 		char buffer[64];
+ 		int err;
+-		ccs_print_ulong(buffer, sizeof(buffer),number,
++		ccs_print_ulong(buffer, sizeof(buffer), number,
+ 				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
+ 				VALUE_TYPE_DECIMAL);
+ 		err = ccs_check_supervisor(r, "allow_%s %s %s\n",
+@@ -2182,22 +2100,21 @@
+ 			goto retry;
+ 		return err;
+ 	} else if (ccs_domain_quota_ok(r)) {
+-		struct ccs_condition *cond = ccs_handler_cond();
+-		struct ccs_number_union num;
+-		memset(&num, 0, sizeof(num));
+-		if (type == TYPE_CHMOD) {
+-			num.min_type = 8;
+-			num.max_type = 8;
+-		} else {
+-			num.min_type = 10;
+-			num.max_type = 10;
++		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		char buffer[64];
++		ccs_print_ulong(buffer, sizeof(buffer), number,
++				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
++				VALUE_TYPE_DECIMAL);
++		if (buf) {
++			struct ccs_condition *cond = ccs_handler_cond();
++			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %s",
++				 ccs_path_number2keyword(type), 
++				 ccs_get_file_pattern(filename)->name, buf);
++			buf[PAGE_SIZE - 1] = '\0';
++			ccs_write_file_policy(buf, r->domain, cond, false);
++			ccs_put_condition(cond);
++			kfree(buf);
+ 		}
+-		num.values[0] = number;
+-		num.values[1] = number;
+-		ccs_update_path_number_acl(type, ccs_get_file_pattern(filename)
+-					   ->name, NULL, &num, r->domain, cond,
+-					   false);
+-		ccs_put_condition(cond);
+ 	}
+ 	return 0;
+ }
+Index: branches/ccs-patch/security/ccsecurity/internal.h
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/internal.h	(revision 2888)
++++ branches/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -784,7 +784,6 @@
+ /* Prototype definition. */
+ 
+ bool ccs_can_sleep(void);
+-bool ccs_check_and_save_number(const char *filename, struct ccs_number_union *ptr);
+ bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
+ bool ccs_domain_quota_ok(struct ccs_request_info *r);
+ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
+Index: branches/ccs-patch/security/ccsecurity/network.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/network.c	(revision 2888)
++++ branches/ccs-patch/security/ccsecurity/network.c	(working copy)
+@@ -104,21 +104,59 @@
+ }
+ 
+ /**
++ * ccs_parse_ip_address - Parse an IP address.
++ *
++ * @address: String to parse.
++ * @min:     Pointer to store min address.
++ * @max:     Pointer to store max address.
++ *
++ * Returns 2 if @address is an IPv6, 1 if @address is an IPv4, 0 otherwise.
++ */
++static int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
++{
++	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
++			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
++			   &min[0], &min[1], &min[2], &min[3],
++			   &min[4], &min[5], &min[6], &min[7],
++			   &max[0], &max[1], &max[2], &max[3],
++			   &max[4], &max[5], &max[6], &max[7]);
++	if (count == 8 || count == 16) {
++		u8 i;
++		if (count == 8)
++			memmove(max, min, sizeof(u16) * 8);
++		for (i = 0; i < 8; i++) {
++			min[i] = htons(min[i]);
++			max[i] = htons(max[i]);
++		}
++		return 2;
++	}
++	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
++		       &min[0], &min[1], &min[2], &min[3],
++		       &max[0], &max[1], &max[2], &max[3]);
++	if (count == 4 || count == 8) {
++		u32 ip = htonl((((u8) min[0]) << 24) + (((u8) min[1]) << 16)
++			       + (((u8) min[2]) << 8) + (u8) min[3]);
++		memmove(min, &ip, sizeof(ip));
++		if (count == 8)
++			ip = htonl((((u8) max[0]) << 24) + (((u8) max[1]) << 16)
++				   + (((u8) max[2]) << 8) + (u8) max[3]);
++		memmove(max, &ip, sizeof(ip));
++		return 1;
++	}
++	return 0;
++}
++
++/**
+  * ccs_update_address_group_entry - Update "struct ccs_address_group_entry" list.
+  *
+  * @group_name:  The name of address group.
+- * @is_ipv6:     True if @min_address and @max_address are IPv6 addresses.
+- * @min_address: Start of IPv4 or IPv6 address range.
+- * @max_address: End of IPv4 or IPv6 address range.
++ * @address:     IP address.
+  * @is_delete:   True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+ static int ccs_update_address_group_entry(const char *group_name,
+-					  const bool is_ipv6,
+-					  const u16 *min_address,
+-					  const u16 *max_address,
+-					  const bool is_delete)
++					  char *address, const bool is_delete)
+ {
+ 	struct ccs_address_group_entry *group;
+ 	struct ccs_address_group_member *entry = NULL;
+@@ -126,12 +164,17 @@
+ 	const struct in6_addr *saved_min_address = NULL;
+ 	const struct in6_addr *saved_max_address = NULL;
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	const u32 min_ipv4_address = ntohl(*(u32 *) min_address);
+-	const u32 max_ipv4_address = ntohl(*(u32 *) max_address);
+-	group = ccs_get_address_group(group_name);
++	u32 min_ipv4_address = 0;
++	u32 max_ipv4_address = 0;
++	u16 min_address[8];
++	u16 max_address[8];
++	bool is_ipv6 = false;
++	group = ccs_get_address_group(group_name + 1);
+ 	if (!group)
+ 		return -ENOMEM;
+-	if (is_ipv6) {
++	switch (ccs_parse_ip_address(address, min_address, max_address)) {
++	case 2:
++		is_ipv6 = true;
+ 		saved_min_address
+ 			= ccs_get_ipv6_address((struct in6_addr *)
+ 					       min_address);
+@@ -140,6 +183,13 @@
+ 					       max_address);
+ 		if (!saved_min_address || !saved_max_address)
+ 			goto out;
++		break;
++	case 1:
++		min_ipv4_address = ntohl(*(u32 *) min_address);
++		max_ipv4_address = ntohl(*(u32 *) max_address);
++		break;
++	default:
++		goto out;
+ 	}
+ 	if (!is_delete)
+ 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -186,49 +236,6 @@
+ }
+ 
+ /**
+- * ccs_parse_ip_address - Parse an IP address.
+- *
+- * @address: String to parse.
+- * @min:     Pointer to store min address.
+- * @max:     Pointer to store max address.
+- *
+- * Returns 2 if @address is an IPv6, 1 if @address is an IPv4, 0 otherwise.
+- */
+-static int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
+-{
+-	int count = sscanf(address, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx"
+-			   "-%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
+-			   &min[0], &min[1], &min[2], &min[3],
+-			   &min[4], &min[5], &min[6], &min[7],
+-			   &max[0], &max[1], &max[2], &max[3],
+-			   &max[4], &max[5], &max[6], &max[7]);
+-	if (count == 8 || count == 16) {
+-		u8 i;
+-		if (count == 8)
+-			memmove(max, min, sizeof(u16) * 8);
+-		for (i = 0; i < 8; i++) {
+-			min[i] = htons(min[i]);
+-			max[i] = htons(max[i]);
+-		}
+-		return 2;
+-	}
+-	count = sscanf(address, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+-		       &min[0], &min[1], &min[2], &min[3],
+-		       &max[0], &max[1], &max[2], &max[3]);
+-	if (count == 4 || count == 8) {
+-		u32 ip = htonl((((u8) min[0]) << 24) + (((u8) min[1]) << 16)
+-			       + (((u8) min[2]) << 8) + (u8) min[3]);
+-		memmove(min, &ip, sizeof(ip));
+-		if (count == 8)
+-			ip = htonl((((u8) max[0]) << 24) + (((u8) max[1]) << 16)
+-				   + (((u8) max[2]) << 8) + (u8) max[3]);
+-		memmove(max, &ip, sizeof(ip));
+-		return 1;
+-	}
+-	return 0;
+-}
+-
+-/**
+  * ccs_write_address_group_policy - Write "struct ccs_address_group_entry" list.
+  *
+  * @data:      String to parse.
+@@ -239,23 +246,9 @@
+ int ccs_write_address_group_policy(char *data, const bool is_delete)
+ {
+ 	char *w[2];
+-	bool is_ipv6;
+-	u16 min_address[8];
+-	u16 max_address[8];
+ 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+ 		return -EINVAL;
+-	switch (ccs_parse_ip_address(w[1], min_address, max_address)) {
+-	case 2:
+-		is_ipv6 = true;
+-		break;
+-	case 1:
+-		is_ipv6 = false;
+-		break;
+-	default:
+-		return -EINVAL;
+-	}
+-	return ccs_update_address_group_entry(w[0], is_ipv6, min_address,
+-					      max_address, is_delete);
++	return ccs_update_address_group_entry(w[0], w[1], is_delete);
+ }
+ 
+ /**
+@@ -432,26 +425,19 @@
+ /**
+  * ccs_update_network_entry - Update "struct ccs_ip_network_acl_record" list.
+  *
++ * @protocol:    Protocol name.
+  * @operation:   Type of operation.
+- * @record_type: Type of address.
+- * @group:       Name of group. May be NULL.
+- * @min_address: Start of IPv4 or IPv6 address range.
+- * @max_address: End of IPv4 or IPv6 address range.
+- * @min_port:    Start of port number range.
+- * @max_port:    End of port number range.
++ * @address:     Address.
++ * @port:        Port number.
+  * @domain:      Pointer to "struct ccs_domain_info".
+  * @condition:   Pointer to "struct ccs_condition". May be NULL.
+  * @is_delete:   True if it is a delete request.
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_update_network_entry(const u8 operation, const u8 record_type,
+-				    const char *address_group_name,
+-				    const char *port_group_name,
+-				    const u32 *min_address,
+-				    const u32 *max_address,
+-				    const u16 min_port, const u16 max_port,
+-				    struct ccs_domain_info *domain,
++static int ccs_update_network_entry(const char *protocol,
++				    const char *operation, char *address,
++				    char *port, struct ccs_domain_info *domain,
+ 				    struct ccs_condition *condition,
+ 				    const bool is_delete)
+ {
+@@ -460,37 +446,78 @@
+ 	struct ccs_acl_info *ptr;
+ 	struct ccs_ip_network_acl_record e;
+ 	struct ccs_ip_network_acl_record *entry = NULL;
++	u16 min_address[8];
++	u16 max_address[8];
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
++	u8 sock_type;
+ 	memset(&e, 0, sizeof(e));
+ 	e.head.type = TYPE_IP_NETWORK_ACL;
+ 	e.head.cond = condition;
+-	e.operation_type = operation;
+-	e.record_type = record_type;
+ 	if (!domain)
+ 		return -EINVAL;
+-	if (address_group_name) {
+-		e.address.group = ccs_get_address_group(address_group_name);
+-		if (!e.address.group)
+-			return -ENOMEM;
+-	} else if (record_type == IP_RECORD_TYPE_IPv6) {
++	if (!strcmp(protocol, "TCP"))
++		sock_type = SOCK_STREAM;
++	else if (!strcmp(protocol, "UDP"))
++		sock_type = SOCK_DGRAM;
++	else if (!strcmp(protocol, "RAW"))
++		sock_type = SOCK_RAW;
++	else
++		return -EINVAL;
++	if (!strcmp(operation, "bind"))
++		switch (sock_type) {
++		case SOCK_STREAM:
++			e.operation_type = NETWORK_ACL_TCP_BIND;
++			break;
++		case SOCK_DGRAM:
++			e.operation_type = NETWORK_ACL_UDP_BIND;
++			break;
++		default:
++			e.operation_type = NETWORK_ACL_RAW_BIND;
++			break;
++		}
++	else if (!strcmp(operation, "connect"))
++		switch (sock_type) {
++		case SOCK_STREAM:
++			e.operation_type = NETWORK_ACL_TCP_CONNECT;
++			break;
++		case SOCK_DGRAM:
++			e.operation_type = NETWORK_ACL_UDP_CONNECT;
++			break;
++		default:
++			e.operation_type = NETWORK_ACL_RAW_CONNECT;
++			break;
++		}
++	else if (sock_type == SOCK_STREAM && !strcmp(operation, "listen"))
++		e.operation_type = NETWORK_ACL_TCP_LISTEN;
++	else if (sock_type == SOCK_STREAM && !strcmp(operation, "accept"))
++		e.operation_type = NETWORK_ACL_TCP_ACCEPT;
++	else
++		return -EINVAL;
++	switch (ccs_parse_ip_address(address, min_address, max_address)) {
++	case 2:
++		e.record_type = IP_RECORD_TYPE_IPv6;
+ 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
+ 							  min_address);
+ 		e.address.ipv6.max = ccs_get_ipv6_address((struct in6_addr *)
+ 							  max_address);
+ 		if (!e.address.ipv6.min || !e.address.ipv6.max)
+ 			goto out;
+-	} else {
+-		/* use host byte order to allow u32 comparison than memcmp().*/
++		break;
++	case 1:
++		e.record_type = IP_RECORD_TYPE_IPv4;
++		/* use host byte order to allow u32 comparison.*/
+ 		e.address.ipv4.min = ntohl(*min_address);
+ 		e.address.ipv4.max = ntohl(*max_address);
++		break;
++	default:
++		e.record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
++		e.address.group = ccs_get_address_group(address + 1);
++		if (!e.address.group)
++			return -ENOMEM;
++		break;
+ 	}
+-	if (port_group_name) {
+-		if (!ccs_check_and_save_number(port_group_name, &e.port))
+-		    goto out;
+-	} else {
+-		e.port.values[0] = min_port;
+-		e.port.values[1] = max_port;
+-	}
++	if (!ccs_parse_number_union(port, &e.port))
++		goto out;
+ 	if (is_delete)
+ 		goto delete;
+ 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+@@ -533,14 +560,13 @@
+ 	}
+ 	mutex_unlock(&ccs_policy_lock);
+  out:
+-	if (address_group_name)
++	if (address[0] == '@')
+ 		ccs_put_address_group(e.address.group);
+-	else if (record_type == IP_RECORD_TYPE_IPv6) {
++	else if (e.record_type == IP_RECORD_TYPE_IPv6) {
+ 		ccs_put_ipv6_address(e.address.ipv6.min);
+ 		ccs_put_ipv6_address(e.address.ipv6.max);
+ 	}
+-	if (port_group_name)
+-		ccs_put_number_group(e.port.group);
++	ccs_put_number_union(&e.port);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -622,13 +648,15 @@
+ 			goto retry;
+ 		return err;
+ 	} else if (ccs_domain_quota_ok(&r)) {
+-		struct ccs_condition *cond = ccs_handler_cond();
+-		ccs_update_network_entry(operation, is_ipv6 ?
+-					 IP_RECORD_TYPE_IPv6 :
+-					 IP_RECORD_TYPE_IPv4,
+-					 NULL, NULL, address, address, port,
+-					 port, r.domain, cond, false);
+-		ccs_put_condition(cond);
++		char *tmp = kmalloc(PAGE_SIZE, GFP_KERNEL);
++		if (tmp) {
++			struct ccs_condition *cond = ccs_handler_cond();
++			snprintf(tmp, PAGE_SIZE - 1, "%s %s %u", keyword, buf,
++				 port);
++			ccs_write_network_policy(tmp, r.domain, cond, false);
++			ccs_put_condition(cond);
++			kfree(tmp);
++		}
+ 	}
+ 	return 0;
+ }
+@@ -668,87 +696,10 @@
+ 			     const bool is_delete)
+ {
+ 	char *w[4];
+-	u8 sock_type;
+-	u8 operation;
+-	u8 record_type;
+-	u16 min_address[8];
+-	u16 max_address[8];
+-	const char *address_group_name = NULL;
+-	const char *port_group_name = NULL;
+-	u16 min_port;
+-	u16 max_port;
+ 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
+ 		return -EINVAL;
+-	if (!strcmp(w[0], "TCP"))
+-		sock_type = SOCK_STREAM;
+-	else if (!strcmp(w[0], "UDP"))
+-		sock_type = SOCK_DGRAM;
+-	else if (!strcmp(w[0], "RAW"))
+-		sock_type = SOCK_RAW;
+-	else
+-		goto out;
+-	if (!strcmp(w[1], "bind"))
+-		switch (sock_type) {
+-		case SOCK_STREAM:
+-			operation = NETWORK_ACL_TCP_BIND;
+-			break;
+-		case SOCK_DGRAM:
+-			operation = NETWORK_ACL_UDP_BIND;
+-			break;
+-		default:
+-			operation = NETWORK_ACL_RAW_BIND;
+-		}
+-	else if (!strcmp(w[1], "connect"))
+-		switch (sock_type) {
+-		case SOCK_STREAM:
+-			operation = NETWORK_ACL_TCP_CONNECT;
+-			break;
+-		case SOCK_DGRAM:
+-			operation = NETWORK_ACL_UDP_CONNECT;
+-			break;
+-		default:
+-			operation = NETWORK_ACL_RAW_CONNECT;
+-		}
+-	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
+-		operation = NETWORK_ACL_TCP_LISTEN;
+-	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
+-		operation = NETWORK_ACL_TCP_ACCEPT;
+-	else
+-		goto out;
+-	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
+-	case 2:
+-		record_type = IP_RECORD_TYPE_IPv6;
+-		break;
+-	case 1:
+-		record_type = IP_RECORD_TYPE_IPv4;
+-		break;
+-	default:
+-		if (w[2][0] != '@')
+-			goto out;
+-		address_group_name = w[2] + 1;
+-		record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
+-		break;
+-	}
+-	switch (sscanf(w[3], "%hu-%hu", &min_port, &max_port)) {
+-	case 2:
+-		break;
+-	case 1:
+-		max_port = min_port;
+-		break;
+-	default:
+-		if (w[3][0] != '@')
+-			goto out;
+-		port_group_name = w[3];
+-		break;
+-	}
+-	return ccs_update_network_entry(operation, record_type,
+-					address_group_name, port_group_name,
+-					(u32 *) min_address,
+-					(u32 *) max_address,
+-					min_port, max_port, domain, condition,
+-					is_delete);
+- out:
+-	return -EINVAL;
++	return ccs_update_network_entry(w[0], w[1], w[2], w[3], domain,
++					condition, is_delete);
+ }
+ 
+ /**
