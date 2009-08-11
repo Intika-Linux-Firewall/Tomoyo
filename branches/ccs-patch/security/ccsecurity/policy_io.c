@@ -639,9 +639,9 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 }
 
 static bool ccs_print_name_union(struct ccs_io_buffer *head,
-				 struct ccs_name_union *ptr)
+				 const struct ccs_name_union *ptr)
 {
-	const int pos = head->read_avail;
+	int pos = head->read_avail;
 	if (pos && head->read_buf[pos - 1] == ' ')
 		head->read_avail--;
 	if (ptr->is_group)
@@ -650,15 +650,27 @@ static bool ccs_print_name_union(struct ccs_io_buffer *head,
 	return ccs_io_printf(head, " %s", ptr->filename->name);
 }
 
-static bool ccs_print_number_union(struct ccs_io_buffer *head,
-				   struct ccs_number_union *ptr)
+static bool ccs_print_name_union_quoted(struct ccs_io_buffer *head,
+					const struct ccs_name_union *ptr)
+{
+	if (ptr->is_group)
+		return ccs_io_printf(head, "@%s",
+				     ptr->group->group_name->name);
+	return ccs_io_printf(head, "\"%s\"", ptr->filename->name);
+}
+
+static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
+					  const struct ccs_number_union *ptr,
+					  const bool need_space)
 {
 	unsigned long min;
 	unsigned long max;
 	u8 min_type;
 	u8 max_type;
+	if (need_space && !ccs_io_printf(head, " "))
+		return false;
 	if (ptr->is_group)
-		return ccs_io_printf(head, " @%s",
+		return ccs_io_printf(head, "@%s",
 				     ptr->group->group_name->name);
 	min_type = ptr->min_type;
 	max_type = ptr->max_type;
@@ -666,15 +678,15 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head,
 	max = ptr->values[1];
 	switch (min_type) {
 	case CCS_VALUE_TYPE_HEXADECIMAL:
-		if (!ccs_io_printf(head, " 0x%lX", min))
+		if (!ccs_io_printf(head, "0x%lX", min))
 			return false;
 		break;
 	case CCS_VALUE_TYPE_OCTAL:
-		if (!ccs_io_printf(head, " 0%lo", min))
+		if (!ccs_io_printf(head, "0%lo", min))
 			return false;
 		break;
 	default:
-		if (!ccs_io_printf(head, " %lu", min))
+		if (!ccs_io_printf(head, "%lu", min))
 			return false;
 		break;
 	}
@@ -688,6 +700,129 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head,
 	default:
 		return ccs_io_printf(head, "-%lu", max);
 	}
+}
+
+static bool ccs_print_number_union(struct ccs_io_buffer *head,
+				   const struct ccs_number_union *ptr)
+{
+	return ccs_print_number_union_common(head, ptr, true);
+}
+
+static bool ccs_print_number_union_nospace(struct ccs_io_buffer *head,
+					   const struct ccs_number_union *ptr)
+{
+	return ccs_print_number_union_common(head, ptr, false);
+}
+
+/**
+ * ccs_print_condition - Print condition part.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_print_condition(struct ccs_io_buffer *head,
+				const struct ccs_condition *cond)
+{
+	const struct ccs_condition_element *condp;
+	const struct ccs_number_union *numbers_p;
+	const struct ccs_name_union *names_p;
+	const struct ccs_argv_entry *argv;
+	const struct ccs_envp_entry *envp;
+	u16 condc;
+	u16 i;
+	u16 j;
+	char buffer[32];
+	if (!cond)
+		goto no_condition;
+	condc = cond->condc;
+	condp = (const struct ccs_condition_element *) (cond + 1);
+	numbers_p = (const struct ccs_number_union *) (condp + condc);
+	names_p = (const struct ccs_name_union *)
+		(numbers_p + cond->numbers_count);
+	argv = (const struct ccs_argv_entry *) (names_p + cond->names_count);
+	envp = (const struct ccs_envp_entry *) (argv + cond->argc);
+	memset(buffer, 0, sizeof(buffer));
+	if (condc && !ccs_io_printf(head, "%s", " if"))
+		goto out;
+	for (i = 0; i < condc; i++) {
+		const u8 match = condp->equals;
+		const u8 left = condp->left;
+		const u8 right = condp->right;
+		condp++;
+		switch (left) {
+		case CCS_ARGV_ENTRY:
+			if (!ccs_io_printf(head, " exec.argv[%u]%s\"%s\"",
+					   argv->index, argv->is_not ?
+					   "!=" : "=", argv->value->name))
+				goto out;
+			argv++;
+			continue;
+		case CCS_ENVP_ENTRY:
+			if (!ccs_io_printf(head, " exec.envp[\"%s\"]%s",
+					   envp->name->name, envp->is_not ?
+					   "!=" : "="))
+				goto out;
+			if (envp->value) {
+				if (!ccs_io_printf(head, "\"%s\"",
+						   envp->value->name))
+					goto out;
+			} else {
+				if (!ccs_io_printf(head, "NULL"))
+					goto out;
+			}
+			envp++;
+			continue;
+		case CCS_NUMBER_UNION:
+			if (!ccs_print_number_union(head, numbers_p++))
+				goto out;
+			break;
+		default:
+			if (left >= CCS_MAX_CONDITION_KEYWORD)
+				goto out;
+			if (!ccs_io_printf(head, " %s",
+					   ccs_condition_keyword[left]))
+				goto out;
+			break;
+		}
+		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
+			goto out;
+		switch (right) {
+		case CCS_NAME_UNION:
+			if (!ccs_print_name_union_quoted(head, names_p++))
+				goto out;
+			break;
+		case CCS_NUMBER_UNION:
+			if (!ccs_print_number_union_nospace(head, numbers_p++))
+				goto out;
+			break;
+		default:
+			if (right >= CCS_MAX_CONDITION_KEYWORD)
+				goto out;
+			if (!ccs_io_printf(head, "%s",
+					   ccs_condition_keyword[right]))
+				goto out;
+			break;
+		}
+	}
+	i = cond->post_state[3];
+	if (!i)
+		goto no_condition;
+	if (!ccs_io_printf(head, " ; set"))
+		goto out;
+	for (j = 0; j < 3; j++) {
+		if (!(i & (1 << j)))
+			continue;
+		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
+				   cond->post_state[j]))
+			goto out;
+	}
+ no_condition:
+	if (ccs_io_printf(head, "\n"))
+		return true;
+ out:
+	return false;
 }
 
 /**

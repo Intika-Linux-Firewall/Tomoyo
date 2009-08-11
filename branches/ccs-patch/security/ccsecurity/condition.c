@@ -237,24 +237,8 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 	return result;
 }
 
-static bool ccs_scan_symlink_target(const struct ccs_path_info *symlink_target,
-				    const struct ccs_path_info *path,
-				    const struct ccs_path_group *group,
-				    const bool match)
-{
-	if (!symlink_target)
-		return false;
-	if (path)
-		return ccs_path_matches_pattern(symlink_target, path) == match;
-	else if (group)
-		return ccs_path_matches_group(symlink_target, group, true)
-			== match;
-	return false;
-}
-
 static bool ccs_scan_exec_realpath(const struct file *file,
-				   const struct ccs_path_info *path,
-				   const struct ccs_path_group *group,
+				   const struct ccs_name_union *ptr,
 				   const bool match)
 {
 	bool result;
@@ -265,13 +249,26 @@ static bool ccs_scan_exec_realpath(const struct file *file,
 	if (!exe.name)
 		return false;
 	ccs_fill_path_info(&exe);
-	if (path)
-		result = ccs_path_matches_pattern(&exe, path) == match;
-	else if (group)
-		result = ccs_path_matches_group(&exe, group, true) == match;
-	else
-		result = false;
+	result = ccs_compare_name_union(&exe, ptr);
 	kfree(exe.name);
+	return result == match;
+}
+
+static bool ccs_parse_name_union_quoted(char *filename,
+					struct ccs_name_union *ptr)
+{
+	bool result;
+	char *cp = NULL;
+	if (*filename == '"') {
+		cp = filename + strlen(filename) - 1;
+		if (*cp != '"')
+			return false;
+		*cp = '\0';
+		filename++;
+	}
+	result = ccs_parse_name_union(filename, ptr);
+	if (cp)
+		*cp = '"';
 	return result;
 }
 
@@ -395,83 +392,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 /* The list for "struct ccs_condition". */
 static LIST_HEAD(ccs_condition_list);
 
-enum ccs_conditions_index {
-	CCS_TASK_UID,             /* current_uid()   */
-	CCS_TASK_EUID,            /* current_euid()  */
-	CCS_TASK_SUID,            /* current_suid()  */
-	CCS_TASK_FSUID,           /* current_fsuid() */
-	CCS_TASK_GID,             /* current_gid()   */
-	CCS_TASK_EGID,            /* current_egid()  */
-	CCS_TASK_SGID,            /* current_sgid()  */
-	CCS_TASK_FSGID,           /* current_fsgid() */
-	CCS_TASK_PID,             /* sys_getpid()   */
-	CCS_TASK_PPID,            /* sys_getppid()  */
-	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
-	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
-	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
-	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
-	CCS_TYPE_SOCKET,          /* S_IFSOCK */
-	CCS_TYPE_SYMLINK,         /* S_IFLNK */
-	CCS_TYPE_FILE,            /* S_IFREG */
-	CCS_TYPE_BLOCK_DEV,       /* S_IFBLK */
-	CCS_TYPE_DIRECTORY,       /* S_IFDIR */
-	CCS_TYPE_CHAR_DEV,        /* S_IFCHR */
-	CCS_TYPE_FIFO,            /* S_IFIFO */
-	CCS_MODE_SETUID,          /* S_ISUID */
-	CCS_MODE_SETGID,          /* S_ISGID */
-	CCS_MODE_STICKY,          /* S_ISVTX */
-	CCS_MODE_OWNER_READ,      /* S_IRUSR */
-	CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
-	CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
-	CCS_MODE_GROUP_READ,      /* S_IRGRP */
-	CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
-	CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
-	CCS_MODE_OTHERS_READ,     /* S_IROTH */
-	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
-	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-				     CCS_TASK_IS_EXECUTE_HANDLER */
-	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
-	CCS_EXEC_REALPATH,
-	CCS_SYMLINK_TARGET,
-	CCS_PATH1_UID,
-	CCS_PATH1_GID,
-	CCS_PATH1_INO,
-	CCS_PATH1_MAJOR,
-	CCS_PATH1_MINOR,
-	CCS_PATH1_PERM,
-	CCS_PATH1_TYPE,
-	CCS_PATH1_DEV_MAJOR,
-	CCS_PATH1_DEV_MINOR,
-	CCS_PATH2_UID,
-	CCS_PATH2_GID,
-	CCS_PATH2_INO,
-	CCS_PATH2_MAJOR,
-	CCS_PATH2_MINOR,
-	CCS_PATH2_PERM,
-	CCS_PATH2_TYPE,
-	CCS_PATH2_DEV_MAJOR,
-	CCS_PATH2_DEV_MINOR,
-	CCS_PATH1_PARENT_UID,
-	CCS_PATH1_PARENT_GID,
-	CCS_PATH1_PARENT_INO,
-	CCS_PATH1_PARENT_PERM,
-	CCS_PATH2_PARENT_UID,
-	CCS_PATH2_PARENT_GID,
-	CCS_PATH2_PARENT_INO,
-	CCS_PATH2_PARENT_PERM,
-	CCS_MAX_KEYWORD,
-	CCS_CONSTANT_VALUE,
-	CCS_CONSTANT_VALUE_RANGE,
-	CCS_ARGV_ENTRY,
-	CCS_ENVP_ENTRY,
-	CCS_PATH_INFO,
-	CCS_PATH_GROUP,
-	CCS_NUMBER_GROUP,
-};
-
-static const char *ccs_condition_keyword[CCS_MAX_KEYWORD] = {
+const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_TASK_UID]             = "task.uid",
 	[CCS_TASK_EUID]            = "task.euid",
 	[CCS_TASK_SUID]            = "task.suid",
@@ -596,34 +517,20 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
 	struct ccs_condition_element *condp;
-	unsigned long *ulong_p;
-	struct ccs_number_group **number_group_p;
-	const struct ccs_path_info **path_info_p;
-	struct ccs_path_group **path_group_p;
+	struct ccs_number_union *numbers_p;
+	struct ccs_name_union *names_p;
 	struct ccs_argv_entry *argv;
 	struct ccs_envp_entry *envp;
 	u32 size;
 	u8 i;
 	bool found = false;
-	unsigned long left_min = 0;
-	unsigned long left_max = 0;
-	unsigned long right_min = 0;
-	unsigned long right_max = 0;
 	u16 condc = 0;
-	u16 ulong_count = 0;
-	u16 number_group_count = 0;
-	u16 path_info_count = 0;
-	u16 path_group_count = 0;
+	u16 numbers_count = 0;
+	u16 names_count = 0;
 	u16 argc = 0;
 	u16 envc = 0;
 	u8 post_state[4] = { 0, 0, 0, 0 };
-	/* Calculate at runtime. */
-	static u8 ccs_condition_keyword_len[CCS_MAX_KEYWORD];
-	if (!ccs_condition_keyword_len[CCS_MAX_KEYWORD - 1]) {
-		for (i = 0; i < CCS_MAX_KEYWORD; i++)
-			ccs_condition_keyword_len[i]
-				= strlen(ccs_condition_keyword[i]);
-	}
+	char *end_of_string;
 	if (!ccs_parse_post_condition(start, post_state))
 		goto out;
 	start = condition;
@@ -631,121 +538,83 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		start += 3;
 	else if (*start)
 		return NULL;
+	end_of_string = start + strlen(start);
 	while (1) {
 		u8 left;
 		u8 right;
-		while (*start == ' ')
-			start++;
-		if (!*start)
+		char *word = start;
+		char *cp;
+		char *eq;
+		bool is_not = false;
+		if (!*word)
 			break;
+		cp = strchr(start, ' ');
+		if (cp) {
+			*cp = '\0';
+			start = cp + 1;
+		} else {
+			start = "";
+		}
 		if (debug)
-			printk(KERN_WARNING "%u: start=<%s>\n", __LINE__,
-			       start);
-		if (!strncmp(start, "exec.argv[", 10)) {
+			printk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+		if (!strncmp(word, "exec.argv[", 10)) {
 			argc++;
 			condc++;
-			start = strchr(start + 10, ' ');
-			if (!start)
-				break;
 			continue;
-		} else if (!strncmp(start, "exec.envp[\"", 11)) {
+		} else if (!strncmp(word, "exec.envp[\"", 11)) {
 			envc++;
 			condc++;
-			start = strchr(start + 11, ' ');
-			if (!start)
-				break;
 			continue;
 		}
-		for (left = 0; left < CCS_MAX_KEYWORD; left++) {
-			const int len =
-				ccs_condition_keyword_len[left];
-			if (strncmp(start, ccs_condition_keyword[left],
-				    len) ||
-			    (start[len] != '!' && start[len] != '='))
+		eq = strchr(word, '=');
+		if (!eq)
+			goto out;
+		if (eq > word && *(eq - 1) == '!') {
+			is_not = true;
+			eq--;
+		}
+		*eq = '\0';
+		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
+			if (strcmp(word, ccs_condition_keyword[left]))
 				continue;
-			start += len;
 			break;
 		}
 		if (debug)
-			printk(KERN_WARNING "%u: start=<%s> left=%u\n",
-			       __LINE__, start, left);
-		if (left < CCS_MAX_KEYWORD)
-			goto check_operator_1;
-		if (!ccs_parse_ulong(&left_min, &start))
-			goto out;
-		ulong_count++;
-		if (*start != '-')
-			goto check_operator_1;
-		start++;
-		if (!ccs_parse_ulong(&left_max, &start) ||
-		    left_min > left_max)
-			goto out;
-		ulong_count++;
- check_operator_1:
-		if (strncmp(start, "!=", 2) == 0)
-			start += 2;
-		else if (*start == '=')
-			start++;
-		else
-			goto out;
+			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
+			       word, left);
+		if (left == CCS_MAX_CONDITION_KEYWORD)
+			numbers_count++;
+		*eq = is_not ? '!' : '=';
+		word = eq + 1;
+		if (is_not)
+			word++;
 		condc++;
 		if (debug)
-			printk(KERN_WARNING "%u: start=<%s> left=%u\n",
-			       __LINE__, start, left);
-		if (*start == '@') {
-			while (*start && *start != ' ')
-				start++;
-			if (left == CCS_EXEC_REALPATH ||
-			    left == CCS_SYMLINK_TARGET)
-				path_group_count++;
-			else
-				number_group_count++;
-			continue;
-		} else if (*start == '"') {
-			while (*start && *start != ' ')
-				start++;
-			if (left != CCS_EXEC_REALPATH &&
-			    left != CCS_SYMLINK_TARGET)
-				goto out;
-			path_info_count++;
+			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
+			       word, left);
+		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
+			names_count++;
 			continue;
 		}
-		for (right = 0; right < CCS_MAX_KEYWORD; right++) {
-			const int len =
-				ccs_condition_keyword_len[right];
-			if (strncmp(start, ccs_condition_keyword[right],
-				    len) || (start[len] && start[len] != ' '))
+		for (right = 0; right < CCS_MAX_CONDITION_KEYWORD; right++) {
+			if (strcmp(word, ccs_condition_keyword[right]))
 				continue;
-			start += len;
 			break;
 		}
 		if (debug)
-			printk(KERN_WARNING "%u: start=<%s> right=%u\n",
-			       __LINE__, start, right);
-		if (right < CCS_MAX_KEYWORD)
-			continue;
-		if (!ccs_parse_ulong(&right_min, &start))
-			goto out;
-		ulong_count++;
-		if (*start != '-')
-			continue;
-		start++;
-		if (!ccs_parse_ulong(&right_max, &start) ||
-		    right_min > right_max)
-			goto out;
-		ulong_count++;
+			printk(KERN_WARNING "%u: <%s> right=%u\n", __LINE__,
+			       word, right);
+		if (right == CCS_MAX_CONDITION_KEYWORD)
+			numbers_count++;
 	}
 	if (debug)
-		printk(KERN_DEBUG "%u: cond=%u ul=%u ng=%u pi=%i pg=%u ac=%u "
-		       "ec=%u\n", __LINE__, condc, ulong_count,
-		       number_group_count, path_info_count, path_group_count,
+		printk(KERN_DEBUG "%u: cond=%u numbers=%u names=%u ac=%u "
+		       "ec=%u\n", __LINE__, condc, numbers_count, names_count,
 		       argc, envc);
 	size = sizeof(*entry)
 		+ condc * sizeof(struct ccs_condition_element)
-		+ ulong_count * sizeof(unsigned long)
-		+ number_group_count * sizeof(struct ccs_number_group *)
-		+ path_info_count * sizeof(struct ccs_path_info *)
-		+ path_group_count * sizeof(struct ccs_path_group *)
+		+ numbers_count * sizeof(struct ccs_number_union)
+		+ names_count * sizeof(struct ccs_name_union)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry);
 	entry = kzalloc(size, GFP_KERNEL);
@@ -757,203 +626,135 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
-	entry->ulong_count = ulong_count;
-	entry->number_group_count = number_group_count;
-	entry->path_info_count = path_info_count;
-	entry->path_group_count = path_group_count;
+	entry->numbers_count = numbers_count;
+	entry->names_count = names_count;
 	entry->argc = argc;
 	entry->envc = envc;
 	condp = (struct ccs_condition_element *) (entry + 1);
-	ulong_p = (unsigned long *) (condp + condc);
-	number_group_p = (struct ccs_number_group **)
-		(ulong_p + ulong_count);
-	path_info_p = (const struct ccs_path_info **)
-		(number_group_p + number_group_count);
-	path_group_p = (struct ccs_path_group **)
-		(path_info_p + path_info_count);
-	argv = (struct ccs_argv_entry *) (path_group_p + path_group_count);
+	numbers_p = (struct ccs_number_union *) (condp + condc);
+	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
+	argv = (struct ccs_argv_entry *) (names_p + names_count);
 	envp = (struct ccs_envp_entry *) (argv + argc);
+	for (start = condition; start < end_of_string; start++)
+		if (!*start)
+			*start = ' ';
 	start = condition;
 	if (!strncmp(start, "if ", 3))
 		start += 3;
 	else if (*start)
 		goto out;
 	while (1) {
-		u8 left = 0;
-		u8 right = 0;
-		u8 match = 0;
-		u8 left_1_type = 0;
-		u8 left_2_type = 0;
-		u8 right_1_type = 0;
-		u8 right_2_type = 0;
-		struct ccs_number_group *number_group = NULL;
-		const struct ccs_path_info *path_info = NULL;
-		struct ccs_path_group *path_group = NULL;
-		while (*start == ' ')
-			start++;
-		if (!*start)
+		u8 left;
+		u8 right;
+		char *word = start;
+		char *cp;
+		char *eq;
+		bool is_not = false;
+		if (!*word)
 			break;
+		cp = strchr(start, ' ');
+		if (cp) {
+			*cp = '\0';
+			start = cp + 1;
+		} else {
+			start = "";
+		}
 		if (debug)
-			printk(KERN_WARNING "%u: start=<%s>\n", __LINE__,
-			       start);
-		if (!strncmp(start, "exec.argv[", 10)) {
-			char *cp = strchr(start + 10, ' ');
-			if (cp)
-				*cp++ = '\0';
-			if (!ccs_parse_argv(start + 10, argv))
+			printk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+		if (!strncmp(word, "exec.argv[", 10)) {
+			if (!ccs_parse_argv(word + 10, argv))
 				goto out;
 			argv++;
 			argc--;
 			condc--;
-			if (cp)
-				start = cp;
-			else
-				start = "";
 			left = CCS_ARGV_ENTRY;
+			right = -1;
 			goto store_value;
-		} else if (!strncmp(start, "exec.envp[\"", 11)) {
-			char *cp = strchr(start + 11, ' ');
-			if (cp)
-				*cp++ = '\0';
-			if (!ccs_parse_envp(start + 11, envp))
+		} else if (!strncmp(word, "exec.envp[\"", 11)) {
+			if (!ccs_parse_envp(word + 11, envp))
 				goto out;
 			envp++;
 			envc--;
 			condc--;
-			if (cp)
-				start = cp;
-			else
-				start = "";
 			left = CCS_ENVP_ENTRY;
+			right = -1;
 			goto store_value;
 		}
-		for (left = 0; left < CCS_MAX_KEYWORD; left++) {
-			const int len =
-				ccs_condition_keyword_len[left];
-			if (strncmp(start, ccs_condition_keyword[left],
-				    len) ||
-			    (start[len] != '!' && start[len] != '='))
+		eq = strchr(word, '=');
+		if (!eq) {
+			if (debug)
+				printk(KERN_WARNING "%u: No operator.\n",
+				       __LINE__);
+			goto out;
+		}
+		if (eq > word && *(eq - 1) == '!') {
+			is_not = true;
+			eq--;
+		}
+		*eq = '\0';
+		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
+			if (strcmp(word, ccs_condition_keyword[left]))
 				continue;
-			start += len;
-			goto check_operator_2;
+			break;
 		}
-		left_1_type = ccs_parse_ulong(&left_min, &start);
-		left = CCS_CONSTANT_VALUE;
-		if (*start != '-')
-			goto check_operator_2;
-		start++;
-		left_2_type = ccs_parse_ulong(&left_max, &start);
-		left = CCS_CONSTANT_VALUE_RANGE;
- check_operator_2:
-		if (!strncmp(start, "!=", 2)) {
-			start += 2;
-		} else if (*start == '=') {
-			match = 1;
-			start++;
-		} else {
-			break; /* This shouldn't happen. */
-		}
-		condc--;
-		if (*start == '@') {
-			char *cp = strchr(start + 1, ' ');
-			if (cp)
-				*cp++ = '\0';
-			if (left == CCS_EXEC_REALPATH ||
-			    left == CCS_SYMLINK_TARGET) {
-				right = CCS_PATH_GROUP;
-				path_group = ccs_get_path_group(start + 1);
-				if (!path_group)
-					goto out;
-			} else {
-				right = CCS_NUMBER_GROUP;
-				number_group = ccs_get_number_group(start + 1);
-				if (!number_group)
-					goto out;
-			}
-			if (cp)
-				start = cp;
-			else
-				start = "";
-			goto store_value;
-		} else if (*start == '"') {
-			char *cp = strchr(start + 1, ' ');
-			if (cp)
-				*cp++ = '\0';
-			path_info = ccs_get_dqword(start);
-			if (!path_info)
+		if (debug)
+			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
+			       word, left);
+		if (left == CCS_MAX_CONDITION_KEYWORD) {
+			left = CCS_NUMBER_UNION;
+			if (!ccs_parse_number_union(word, numbers_p))
 				goto out;
-			if (cp)
-				start = cp;
-			else
-				start = "";
-			right = CCS_PATH_INFO;
+			if (numbers_p->is_group)
+				goto out;
+			numbers_p++;
+			numbers_count--;
+		}
+		*eq = is_not ? '!' : '=';
+		word = eq + 1;
+		if (is_not)
+			word++;
+		condc--;
+		if (debug)
+			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
+			       word, left);
+		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
+			right = CCS_NAME_UNION;
+			if (!ccs_parse_name_union_quoted(word, names_p++))
+				goto out;
+			names_count--;
 			goto store_value;
 		}
-		for (right = 0; right < CCS_MAX_KEYWORD; right++) {
-			const int len =
-				ccs_condition_keyword_len[right];
-			if (strncmp(start, ccs_condition_keyword[right],
-				    len) || (start[len] && start[len] != ' '))
+		for (right = 0; right < CCS_MAX_CONDITION_KEYWORD; right++) {
+			if (strcmp(word, ccs_condition_keyword[right]))
 				continue;
-			start += len;
-			goto store_value;
+			break;
 		}
-		right_1_type = ccs_parse_ulong(&right_min, &start);
-		right = CCS_CONSTANT_VALUE;
-		if (*start != '-')
-			goto store_value;
-		start++;
-		right_2_type = ccs_parse_ulong(&right_max, &start);
-		right = CCS_CONSTANT_VALUE_RANGE;
+		if (right == CCS_MAX_CONDITION_KEYWORD) {
+			right = CCS_NUMBER_UNION;
+			if (!ccs_parse_number_union(word, numbers_p++))
+				goto out;
+			numbers_count--;
+		}
  store_value:
 		condp->left = left;
 		condp->right = right;
-		condp->equals = match;
-		condp->type = (left_1_type << 6) | (left_2_type << 4)
-			| (right_1_type << 2) | right_2_type;
+		condp->equals = !is_not;
 		if (debug)
-			printk(KERN_WARNING "%u: left=%u right=%u match=%u "
-			       "type=%u\n", __LINE__, condp->left,
-			       condp->right, condp->equals, condp->type);
+			printk(KERN_WARNING "%u: left=%u right=%u match=%u\n",
+			       __LINE__, condp->left, condp->right,
+			       condp->equals);
 		condp++;
-		if (left_1_type) {
-			*ulong_p++ = left_min;
-			ulong_count--;
-		}
-		if (left_2_type) {
-			*ulong_p++ = left_max;
-			ulong_count--;
-		}
-		if (right_1_type) {
-			*ulong_p++ = right_min;
-			ulong_count--;
-		}
-		if (right_2_type) {
-			*ulong_p++ = right_max;
-			ulong_count--;
-		}
-		if (number_group) {
-			*number_group_p++ = number_group;
-			number_group_count--;
-		}
-		if (path_info) {
-			*path_info_p++ = path_info;
-			path_info_count--;
-		}
-		if (path_group) {
-			*path_group_p++ = path_group;
-			path_group_count--;
-		}
 	}
-	if (debug)
-		printk(KERN_DEBUG "%u: cond=%u ul=%u ng=%u pi=%i pg=%u ac=%u "
-		       "ec=%u\n", __LINE__, condc, ulong_count,
-		       number_group_count, path_info_count, path_group_count,
-		       argc, envc);
-	BUG_ON(path_group_count);
-	BUG_ON(number_group_count);
-	BUG_ON(path_info_count);
-	BUG_ON(ulong_count);
+	if (debug) {
+		for (start = condition; start < end_of_string; start++)
+			if (!*start)
+				*start = ' ';
+		printk(KERN_DEBUG "%u: <%s> cond=%u numbers=%u names=%u ac=%u "
+		       "ec=%u\n", __LINE__, condition, condc, numbers_count,
+		       names_count, argc, envc);
+	}
+	BUG_ON(names_count);
+	BUG_ON(numbers_count);
 	BUG_ON(argc);
 	BUG_ON(envc);
 	BUG_ON(condc);
@@ -1191,10 +992,8 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
 	const struct ccs_condition_element *condp;
-	const unsigned long *ulong_p;
-	const struct ccs_number_group **number_group_p;
-	const struct ccs_path_info **path_info_p;
-	const struct ccs_path_group **path_group_p;
+	const struct ccs_number_union *numbers_p;
+	const struct ccs_name_union *names_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	struct ccs_obj_info *obj;
@@ -1215,15 +1014,10 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (!bprm && (argc || envc))
 		return false;
 	condp = (struct ccs_condition_element *) (cond + 1);
-	ulong_p = (const unsigned long *) (condp + condc);
-	number_group_p = (const struct ccs_number_group **)
-		(ulong_p + cond->ulong_count);
-	path_info_p = (const struct ccs_path_info **)
-		(number_group_p + cond->number_group_count);
-	path_group_p = (const struct ccs_path_group **)
-		(path_info_p + cond->path_info_count);
-	argv = (const struct ccs_argv_entry *)
-		(path_group_p + cond->path_group_count);
+	numbers_p = (const struct ccs_number_union *) (condp + condc);
+	names_p = (const struct ccs_name_union *)
+		(numbers_p + cond->numbers_count);
+	argv = (const struct ccs_argv_entry *) (names_p + cond->names_count);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
 	for (i = 0; i < condc; i++) {
 		const bool match = condp->equals;
@@ -1237,28 +1031,23 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		if (left == CCS_ARGV_ENTRY || left == CCS_ENVP_ENTRY)
 			continue;
 		/* Check string expressions. */
-		if (right == CCS_PATH_INFO || right == CCS_PATH_GROUP) {
-			const struct ccs_path_info *path = NULL;
-			const struct ccs_path_group *group = NULL;
-			if (right == CCS_PATH_INFO)
-				path = *path_info_p++;
-			else
-				group = *path_group_p++;
+		if (right == CCS_NAME_UNION) {
+			const struct ccs_name_union *ptr = names_p++; 
 			switch (left) {
 				struct ccs_path_info *symlink;
 				struct ccs_execve_entry *ee;
 				struct file *file;
 			case CCS_SYMLINK_TARGET:
 				symlink = obj->symlink_target;
-				if (!ccs_scan_symlink_target(symlink, path,
-							     group, match))
+				if (!symlink ||
+				    ccs_compare_name_union(symlink, ptr)
+				    != match)
 					goto out;
 				break;
 			case CCS_EXEC_REALPATH:
 				ee = r->ee;
 				file = ee ? ee->bprm->file : NULL;
-				if (!ccs_scan_exec_realpath(file, path, group,
-							    match))
+				if (!ccs_scan_exec_realpath(file, ptr, match))
 					goto out;
 				break;
 			}
@@ -1267,143 +1056,135 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		/* Check numeric or bit-op expressions. */
 		for (j = 0; j < 2; j++) {
 			const u8 index = j ? right : left;
-			unsigned long min_v = 0;
-			unsigned long max_v = 0;
+			unsigned long value = 0;
 			bool is_bitop = false;
 			switch (index) {
 			case CCS_TASK_UID:
-				max_v = current_uid();
+				value = current_uid();
 				break;
 			case CCS_TASK_EUID:
-				max_v = current_euid();
+				value = current_euid();
 				break;
 			case CCS_TASK_SUID:
-				max_v = current_suid();
+				value = current_suid();
 				break;
 			case CCS_TASK_FSUID:
-				max_v = current_fsuid();
+				value = current_fsuid();
 				break;
 			case CCS_TASK_GID:
-				max_v = current_gid();
+				value = current_gid();
 				break;
 			case CCS_TASK_EGID:
-				max_v = current_egid();
+				value = current_egid();
 				break;
 			case CCS_TASK_SGID:
-				max_v = current_sgid();
+				value = current_sgid();
 				break;
 			case CCS_TASK_FSGID:
-				max_v = current_fsgid();
+				value = current_fsgid();
 				break;
 			case CCS_TASK_PID:
-				max_v = sys_getpid();
+				value = sys_getpid();
 				break;
 			case CCS_TASK_PPID:
-				max_v = sys_getppid();
+				value = sys_getppid();
 				break;
 			case CCS_TYPE_SOCKET:
-				max_v = S_IFSOCK;
+				value = S_IFSOCK;
 				break;
 			case CCS_TYPE_SYMLINK:
-				max_v = S_IFLNK;
+				value = S_IFLNK;
 				break;
 			case CCS_TYPE_FILE:
-				max_v = S_IFREG;
+				value = S_IFREG;
 				break;
 			case CCS_TYPE_BLOCK_DEV:
-				max_v = S_IFBLK;
+				value = S_IFBLK;
 				break;
 			case CCS_TYPE_DIRECTORY:
-				max_v = S_IFDIR;
+				value = S_IFDIR;
 				break;
 			case CCS_TYPE_CHAR_DEV:
-				max_v = S_IFCHR;
+				value = S_IFCHR;
 				break;
 			case CCS_TYPE_FIFO:
-				max_v = S_IFIFO;
+				value = S_IFIFO;
 				break;
 			case CCS_MODE_SETUID:
-				max_v = S_ISUID;
+				value = S_ISUID;
 				is_bitop = true;
 				break;
 			case CCS_MODE_SETGID:
-				max_v = S_ISGID;
+				value = S_ISGID;
 				is_bitop = true;
 				break;
 			case CCS_MODE_STICKY:
-				max_v = S_ISVTX;
+				value = S_ISVTX;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_READ:
-				max_v = S_IRUSR;
+				value = S_IRUSR;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_WRITE:
-				max_v = S_IWUSR;
+				value = S_IWUSR;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_EXECUTE:
-				max_v = S_IXUSR;
+				value = S_IXUSR;
 				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_READ:
-				max_v = S_IRGRP;
+				value = S_IRGRP;
 				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_WRITE:
-				max_v = S_IWGRP;
+				value = S_IWGRP;
 				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_EXECUTE:
-				max_v = S_IXGRP;
+				value = S_IXGRP;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_READ:
-				max_v = S_IROTH;
+				value = S_IROTH;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_WRITE:
-				max_v = S_IWOTH;
+				value = S_IWOTH;
 				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_EXECUTE:
-				max_v = S_IXOTH;
+				value = S_IXOTH;
 				is_bitop = true;
 				break;
 			case CCS_EXEC_ARGC:
 				if (!bprm)
 					goto out;
-				max_v = bprm->argc;
+				value = bprm->argc;
 				break;
 			case CCS_EXEC_ENVC:
 				if (!bprm)
 					goto out;
-				max_v = bprm->envc;
+				value = bprm->envc;
 				break;
 			case CCS_TASK_STATE_0:
-				max_v = (u8) (task->ccs_flags >> 24);
+				value = (u8) (task->ccs_flags >> 24);
 				break;
 			case CCS_TASK_STATE_1:
-				max_v = (u8) (task->ccs_flags >> 16);
+				value = (u8) (task->ccs_flags >> 16);
 				break;
 			case CCS_TASK_STATE_2:
-				max_v = (u8) (task->ccs_flags >> 8);
+				value = (u8) (task->ccs_flags >> 8);
 				break;
 			case CCS_TASK_TYPE:
-				max_v = ((u8) task->ccs_flags)
+				value = ((u8) task->ccs_flags)
 					& CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
 			case CCS_TASK_EXECUTE_HANDLER:
-				max_v = CCS_TASK_IS_EXECUTE_HANDLER;
+				value = CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
-			case CCS_CONSTANT_VALUE:
-				max_v = *ulong_p++;
-				break;
-			case CCS_CONSTANT_VALUE_RANGE:
-				min_v = *ulong_p++;
-				max_v = *ulong_p++;
-				break;
-			case CCS_NUMBER_GROUP:
+			case CCS_NUMBER_UNION:
 				/* Fetch values later. */
 				break;
 			default:
@@ -1417,151 +1198,172 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				case CCS_PATH1_UID:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = obj->path1_stat.uid;
+					value = obj->path1_stat.uid;
 					break;
 				case CCS_PATH1_GID:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = obj->path1_stat.gid;
+					value = obj->path1_stat.gid;
 					break;
 				case CCS_PATH1_INO:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = obj->path1_stat.ino;
+					value = obj->path1_stat.ino;
 					break;
 				case CCS_PATH1_MAJOR:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = MAJOR(obj->path1_stat.dev);
+					value = MAJOR(obj->path1_stat.dev);
 					break;
 				case CCS_PATH1_MINOR:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = MINOR(obj->path1_stat.dev);
+					value = MINOR(obj->path1_stat.dev);
 					break;
 				case CCS_PATH1_TYPE:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = obj->path1_stat.mode & S_IFMT;
+					value = obj->path1_stat.mode & S_IFMT;
 					break;
 				case CCS_PATH1_DEV_MAJOR:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = MAJOR(obj->path1_stat.rdev);
+					value = MAJOR(obj->path1_stat.rdev);
 					break;
 				case CCS_PATH1_DEV_MINOR:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = MINOR(obj->path1_stat.rdev);
+					value = MINOR(obj->path1_stat.rdev);
 					break;
 				case CCS_PATH1_PERM:
 					if (!obj->path1_valid)
 						goto out;
-					max_v = obj->path1_stat.mode
+					value = obj->path1_stat.mode
 						& S_IALLUGO;
 					break;
 				case CCS_PATH2_UID:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = obj->path2_stat.uid;
+					value = obj->path2_stat.uid;
 					break;
 				case CCS_PATH2_GID:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = obj->path2_stat.gid;
+					value = obj->path2_stat.gid;
 					break;
 				case CCS_PATH2_INO:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = obj->path2_stat.ino;
+					value = obj->path2_stat.ino;
 					break;
 				case CCS_PATH2_MAJOR:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = MAJOR(obj->path2_stat.dev);
+					value = MAJOR(obj->path2_stat.dev);
 					break;
 				case CCS_PATH2_MINOR:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = MINOR(obj->path2_stat.dev);
+					value = MINOR(obj->path2_stat.dev);
 					break;
 				case CCS_PATH2_TYPE:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = obj->path2_stat.mode & S_IFMT;
+					value = obj->path2_stat.mode & S_IFMT;
 					break;
 				case CCS_PATH2_DEV_MAJOR:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = MAJOR(obj->path2_stat.rdev);
+					value = MAJOR(obj->path2_stat.rdev);
 					break;
 				case CCS_PATH2_DEV_MINOR:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = MINOR(obj->path2_stat.rdev);
+					value = MINOR(obj->path2_stat.rdev);
 					break;
 				case CCS_PATH2_PERM:
 					if (!obj->path2_valid)
 						goto out;
-					max_v = obj->path2_stat.mode
+					value = obj->path2_stat.mode
 						& S_IALLUGO;
 					break;
 				case CCS_PATH1_PARENT_UID:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = obj->path1_parent_stat.uid;
+					value = obj->path1_parent_stat.uid;
 					break;
 				case CCS_PATH1_PARENT_GID:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = obj->path1_parent_stat.gid;
+					value = obj->path1_parent_stat.gid;
 					break;
 				case CCS_PATH1_PARENT_INO:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = obj->path1_parent_stat.ino;
+					value = obj->path1_parent_stat.ino;
 					break;
 				case CCS_PATH1_PARENT_PERM:
 					if (!obj->path1_parent_valid)
 						goto out;
-					max_v = obj->path1_parent_stat.mode
+					value = obj->path1_parent_stat.mode
 						& S_IALLUGO;
 					break;
 				case CCS_PATH2_PARENT_UID:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = obj->path2_parent_stat.uid;
+					value = obj->path2_parent_stat.uid;
 					break;
 				case CCS_PATH2_PARENT_GID:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = obj->path2_parent_stat.gid;
+					value = obj->path2_parent_stat.gid;
 					break;
 				case CCS_PATH2_PARENT_INO:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = obj->path2_parent_stat.ino;
+					value = obj->path2_parent_stat.ino;
 					break;
 				case CCS_PATH2_PARENT_PERM:
 					if (!obj->path2_parent_valid)
 						goto out;
-					max_v = obj->path2_parent_stat.mode
+					value = obj->path2_parent_stat.mode
 						& S_IALLUGO;
 					break;
 				}
 				break;
 			}
-			if (index != CCS_CONSTANT_VALUE_RANGE)
-				min_v = max_v;
+			value = value;
 			if (j) {
-				right_max = max_v;
-				right_min = min_v;
+				right_max = value;
+				right_min = value;
 				right_is_bitop = is_bitop;
 			} else {
-				left_max = max_v;
-				left_min = min_v;
+				left_max = value;
+				left_min = value;
 				left_is_bitop = is_bitop;
 			}
+		}
+		if (left == CCS_NUMBER_UNION) {
+			/* Fetch values now. */
+			const struct ccs_number_union *ptr = numbers_p++;
+			left_min = ptr->values[0];
+			left_max = ptr->values[1];
+		}
+		if (right == CCS_NUMBER_UNION) {
+			/* Fetch values now. */
+			const struct ccs_number_union *ptr = numbers_p++;
+			if (ptr->is_group) {
+				if (ccs_number_matches_group(left_min,
+							     left_max,
+							     ptr->group)
+				    == match)
+					continue;
+			} else {
+				if ((left_min <= ptr->values[1] &&
+				     left_max >= ptr->values[0]) == match)
+					continue;
+			}
+			goto out;
 		}
 		/*
 		 * Bit operation is valid only when counterpart value
@@ -1601,15 +1403,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			}
 			goto out;
 		}
-		if (right == CCS_NUMBER_GROUP) {
-			/* Fetch values now. */
-			const struct ccs_number_group *group
-				= *number_group_p++;
-			if (ccs_number_matches_group(left_min, left_max, group)
-			    == match)
-				continue;
-			goto out;
-		}
 		/* Normal value range comparison. */
 		if (match) {
 			if (left_min <= right_max && left_max >= right_min)
@@ -1625,160 +1418,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	if (r->ee && (argc || envc))
 		return ccs_scan_bprm(r->ee, argc, argv, envc, envp);
 	return true;
-}
-
-/**
- * ccs_print_condition - Print condition part.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
- *
- * Returns true on success, false otherwise.
- */
-bool ccs_print_condition(struct ccs_io_buffer *head,
-			 const struct ccs_condition *cond)
-{
-	const struct ccs_condition_element *condp;
-	const unsigned long *ulong_p;
-	const struct ccs_number_group **number_group_p;
-	const struct ccs_path_info **path_info_p;
-	const struct ccs_path_group **path_group_p;
-	const struct ccs_argv_entry *argv;
-	const struct ccs_envp_entry *envp;
-	u16 condc;
-	u16 i;
-	u16 j;
-	char buffer[32];
-	if (!cond)
-		goto no_condition;
-	condc = cond->condc;
-	condp = (const struct ccs_condition_element *) (cond + 1);
-	ulong_p = (const unsigned long *) (condp + condc);
-	number_group_p = (const struct ccs_number_group **)
-		(ulong_p + cond->ulong_count);
-	path_info_p = (const struct ccs_path_info **)
-		(number_group_p + cond->number_group_count);
-	path_group_p = (const struct ccs_path_group **)
-		(path_info_p + cond->path_info_count);
-	argv = (const struct ccs_argv_entry *)
-		(path_group_p + cond->path_group_count);
-	envp = (const struct ccs_envp_entry *) (argv + cond->argc);
-	memset(buffer, 0, sizeof(buffer));
-	for (i = 0; i < condc; i++) {
-		const u8 match = condp->equals;
-		const u8 left_1_type = (condp->type >> 6) & 3;
-		const u8 left_2_type = (condp->type >> 4) & 3;
-		const u8 right_1_type = (condp->type >> 2) & 3;
-		const u8 right_2_type = condp->type & 3;
-		const u8 left = condp->left;
-		const u8 right = condp->right;
-		condp++;
-		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
-			goto out;
-		switch (left) {
-		case CCS_ARGV_ENTRY:
-			if (!ccs_io_printf(head, "exec.argv[%u]%s\"%s\"",
-					   argv->index, argv->is_not ?
-					   "!=" : "=", argv->value->name))
-				goto out;
-			argv++;
-			continue;
-		case CCS_ENVP_ENTRY:
-			if (!ccs_io_printf(head, "exec.envp[\"%s\"]%s",
-					   envp->name->name, envp->is_not ?
-					   "!=" : "="))
-				goto out;
-			if (envp->value) {
-				if (!ccs_io_printf(head, "\"%s\"",
-						   envp->value->name))
-					goto out;
-			} else {
-				if (!ccs_io_printf(head, "NULL"))
-					goto out;
-			}
-			envp++;
-			continue;
-		case CCS_CONSTANT_VALUE:
-		case CCS_CONSTANT_VALUE_RANGE:
-			ccs_print_ulong(buffer, sizeof(buffer) - 1,
-					*ulong_p++, left_1_type);
-			if (!ccs_io_printf(head, "%s", buffer))
-				goto out;
-			if (left == CCS_CONSTANT_VALUE)
-				break;
-			ccs_print_ulong(buffer, sizeof(buffer) - 1,
-					*ulong_p++, left_2_type);
-			if (!ccs_io_printf(head, "-%s", buffer))
-				goto out;
-			break;
-		default:
-			if (left >= CCS_MAX_KEYWORD)
-				goto out;
-			if (!ccs_io_printf(head, "%s",
-					  ccs_condition_keyword[left]))
-				goto out;
-			break;
-		}
-		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
-			goto out;
-		switch (right) {
-		case CCS_PATH_INFO:
-			if (!ccs_io_printf(head, "\"%s\"",
-					   (*path_info_p)->name))
-				goto out;
-			path_info_p++;
-			break;
-		case CCS_PATH_GROUP:
-			if (!ccs_io_printf(head, "@%s", (*path_group_p)->
-					   group_name->name))
-				goto out;
-			path_group_p++;
-			break;
-		case CCS_NUMBER_GROUP:
-			if (!ccs_io_printf(head, "@%s", (*number_group_p)->
-					   group_name->name))
-				goto out;
-			number_group_p++;
-			break;
-		case CCS_CONSTANT_VALUE:
-		case CCS_CONSTANT_VALUE_RANGE:
-			ccs_print_ulong(buffer, sizeof(buffer) - 1,
-					*ulong_p++, right_1_type);
-			if (!ccs_io_printf(head, "%s", buffer))
-				goto out;
-			if (right == CCS_CONSTANT_VALUE)
-				break;
-			ccs_print_ulong(buffer, sizeof(buffer) - 1,
-					*ulong_p++, right_2_type);
-			if (!ccs_io_printf(head, "-%s", buffer))
-				goto out;
-			break;
-		default:
-			if (right >= CCS_MAX_KEYWORD)
-				goto out;
-			if (!ccs_io_printf(head, "%s",
-					   ccs_condition_keyword[right]))
-				goto out;
-			break;
-		}
-	}
-	i = cond->post_state[3];
-	if (!i)
-		goto no_condition;
-	if (!ccs_io_printf(head, " ; set"))
-		goto out;
-	for (j = 0; j < 3; j++) {
-		if (!(i & (1 << j)))
-			continue;
-		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
-				   cond->post_state[j]))
-			goto out;
-	}
- no_condition:
-	if (ccs_io_printf(head, "\n"))
-		return true;
- out:
-	return false;
 }
 
 /**

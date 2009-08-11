@@ -49,6 +49,42 @@ static const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CHGRP] = "chgrp",
 };
 
+/**
+ * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
+ *
+ * @pathname:        The name of pathname.
+ * @group:           Pointer to "struct ccs_path_group".
+ * @may_use_pattern: True if wild card is permitted.
+ *
+ * Returns true if @pathname matches pathnames in @group, false otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static bool ccs_path_matches_group(const struct ccs_path_info *pathname,
+				   const struct ccs_path_group *group,
+				   const bool may_use_pattern)
+{
+	struct ccs_path_group_member *member;
+	bool matched = false;
+	ccs_check_read_lock();
+	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
+		if (member->is_deleted)
+			continue;
+		if (!member->member_name->is_patterned) {
+			if (ccs_pathcmp(pathname, member->member_name))
+				continue;
+		} else if (may_use_pattern) {
+			if (!ccs_path_matches_pattern(pathname,
+						      member->member_name))
+				continue;
+		} else
+			continue;
+		matched = true;
+		break;
+	}
+	return matched;
+}
+
 void ccs_put_name_union(struct ccs_name_union *ptr)
 {
 	if (!ptr)
@@ -73,8 +109,8 @@ bool ccs_compare_number_union(const unsigned long value,
 	return value >= ptr->values[0] && value <= ptr->values[1];
 }
 
-static bool ccs_compare_name_union(const struct ccs_path_info *name,
-				   const struct ccs_name_union *ptr)
+bool ccs_compare_name_union(const struct ccs_path_info *name,
+			    const struct ccs_name_union *ptr)
 {
 	if (ptr->is_group)
 		return ccs_path_matches_group(name, ptr->group, 1);
@@ -173,25 +209,6 @@ static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
 		return true;
 	}
 	return false;
-}
-
-static bool ccs_parse_name_union(const char *filename,
-				 struct ccs_name_union *ptr)
-{
-	if (!ccs_is_correct_path(filename, 0, 0, 0))
-		return false;
-	if (filename[0] == '@') {
-		ptr->group = ccs_get_path_group(filename + 1);
-		ptr->is_group = true;
-		return ptr->group != NULL;
-	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
-	if (!strcmp(filename, "pipe:"))
-		filename = "pipe:[\\$]";
-#endif
-	ptr->filename = ccs_get_name(filename);
-	ptr->is_group = false;
-	return ptr->filename != NULL;
 }
 
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
@@ -499,10 +516,6 @@ static int ccs_update_path_group(const char *group_name,
 	group = ccs_get_path_group(group_name);
 	if (!group)
 		return -ENOMEM;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
-	if (!strcmp(member_name, "pipe:"))
-		member_name = "pipe:[\\$]";
-#endif
 	saved_member_name = ccs_get_name(member_name);
 	if (!saved_member_name)
 		goto out;
@@ -545,42 +558,6 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
 	return ccs_update_path_group(w[0], w[1], is_delete);
-}
-
-/**
- * ccs_path_matches_group - Check whether the given pathname matches members of the given pathname group.
- *
- * @pathname:        The name of pathname.
- * @group:           Pointer to "struct ccs_path_group".
- * @may_use_pattern: True if wild card is permitted.
- *
- * Returns true if @pathname matches pathnames in @group, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_path_group *group,
-			    const bool may_use_pattern)
-{
-	struct ccs_path_group_member *member;
-	bool matched = false;
-	ccs_check_read_lock();
-	list_for_each_entry_rcu(member, &group->path_group_member_list, list) {
-		if (member->is_deleted)
-			continue;
-		if (!member->member_name->is_patterned) {
-			if (ccs_pathcmp(pathname, member->member_name))
-				continue;
-		} else if (may_use_pattern) {
-			if (!ccs_path_matches_pattern(pathname,
-						      member->member_name))
-				continue;
-		} else
-			continue;
-		matched = true;
-		break;
-	}
-	return matched;
 }
 
 /**

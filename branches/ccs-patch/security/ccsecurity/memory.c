@@ -240,16 +240,13 @@ void ccs_put_ipv6_address(const struct in6_addr *addr)
 void ccs_put_condition(struct ccs_condition *cond)
 {
 	const struct ccs_condition_element *condp;
-	const unsigned long *ulong_p;
-	struct ccs_number_group **number_group_p;
-	const struct ccs_path_info **path_info_p;
-	struct ccs_path_group **path_group_p;
+	struct ccs_number_union *numbers_p;
+	struct ccs_name_union *names_p;
 	const struct ccs_argv_entry *argv;
 	const struct ccs_envp_entry *envp;
 	u16 condc;
-	u16 number_group_count;
-	u16 path_info_count;
-	u16 path_group_count;
+	u16 numbers_count;
+	u16 names_count;
 	u16 argc;
 	u16 envc;
 	u16 i;
@@ -265,28 +262,19 @@ void ccs_put_condition(struct ccs_condition *cond)
 	if (!can_delete)
 		return;
 	condc = cond->condc;
-	number_group_count = cond->number_group_count;
-	path_info_count = cond->path_info_count;
-	path_group_count = cond->path_group_count;
+	numbers_count = cond->numbers_count;
+	names_count = cond->names_count;
 	argc = cond->argc;
 	envc = cond->envc;
 	condp = (const struct ccs_condition_element *) (cond + 1);
-	ulong_p = (unsigned long *) (condp + condc);
-	number_group_p = (struct ccs_number_group **)
-		(ulong_p + cond->ulong_count);
-	path_info_p = (const struct ccs_path_info **)
-		(number_group_p + number_group_count);
-	path_group_p = (struct ccs_path_group **)
-		(path_info_p + path_info_count);
-	argv = (const struct ccs_argv_entry *)
-		(path_group_p + path_group_count);
+	numbers_p = (struct ccs_number_union *) (condp + condc);
+	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
+	argv = (const struct ccs_argv_entry *) (names_p + names_count);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
-	for (i = 0; i < cond->number_group_count; i++)
-		ccs_put_number_group(*number_group_p++);
-	for (i = 0; i < cond->path_info_count; i++)
-		ccs_put_name(*path_info_p++);
-	for (i = 0; i < cond->path_group_count; i++)
-		ccs_put_path_group(*path_group_p++);
+	for (i = 0; i < cond->numbers_count; i++)
+		ccs_put_number_union(numbers_p++);
+	for (i = 0; i < cond->names_count; i++)
+		ccs_put_name_union(names_p++);
 	for (i = 0; i < argc; argv++, i++)
 		ccs_put_name(argv->value);
 	for (i = 0; i < envc; envp++, i++) {

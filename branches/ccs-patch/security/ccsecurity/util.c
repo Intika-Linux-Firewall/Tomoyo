@@ -122,6 +122,20 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "type(%u)", type);
 }
 
+bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
+{
+	if (!ccs_is_correct_path(filename, 0, 0, 0))
+		return false;
+	if (filename[0] == '@') {
+		ptr->group = ccs_get_path_group(filename + 1);
+		ptr->is_group = true;
+		return ptr->group != NULL;
+	}
+	ptr->filename = ccs_get_name(filename);
+	ptr->is_group = false;
+	return ptr->filename != NULL;
+}
+
 bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 {
 	u8 type;

@@ -114,26 +114,13 @@ struct ccs_condition_element {
 	 */
 	u8 left;
 	/*
-	 * Right hand operand.  An "unsigned long" for CCS_CONSTANT_VALUE,
-	 * two "unsigned long" for CCS_CONSTANT_VALUE_RANGE,
-	 * a "struct ccs_number_group *" for CCS_NUMBER_GROUP,
-	 * a "struct ccs_path_info *" for CCS_PATH_INFO,
-	 * a "struct ccs_group_info *" for CCS_PATH_GROUP is attached to the
-	 * tail of the array of this struct.
+	 * Right hand operand. A "struct ccs_number_union" for
+	 * CCS_NUMBER_UNION, a "struct ccs_name_union" for CCS_NAME_UNION is
+	 * attached to the tail of the array of this struct.
 	 */
 	u8 right;
-	/* Equation operator. 1 if equals or overlaps, 0 otherwise. */
-	u8 equals;
-	/*
-	 * Radix types for constant value .
-	 *
-	 * Bit 3 and 2: Right hand operand's min value
-	 * Bit 1 and 0: Right hand operand's max value
-	 *
-	 * 01 is for decimal, 10 is for octal, 11 is for hexadecimal,
-	 * 00 is for invalid (i.e. not a value) expression.
-	 */
-	u8 type;
+	/* Equation operator. true if equals or overlaps, false otherwise. */
+	bool equals;
 };
 
 /* Structure for " if " and "; set" part. */
@@ -142,19 +129,15 @@ struct ccs_condition {
 	atomic_t users;
 	u32 size;
 	u16 condc;
-	u16 ulong_count;
-	u16 number_group_count;
-	u16 path_info_count;
-	u16 path_group_count;
+	u16 numbers_count;
+	u16 names_count;
 	u16 argc;
 	u16 envc;
 	u8 post_state[4];
 	/*
 	 * struct ccs_condition_element condition[condc];
-	 * unsigned long values[ulong_count];
-	 * struct ccs_number_group *number_group[number_group_count];
-	 * struct ccs_path_info *path_info[path_info_count];
-	 * struct ccs_path_group *path_group[path_group_count];
+	 * struct ccs_number_union values[numbers_count];
+	 * struct ccs_name_union names[names_count];
 	 * struct ccs_argv_entry argv[argc];
 	 * struct ccs_envp_entry envp[envc];
 	 */
@@ -775,6 +758,79 @@ struct ccs_io_buffer {
 	u8 type;
 };
 
+enum ccs_conditions_index {
+	CCS_TASK_UID,             /* current_uid()   */
+	CCS_TASK_EUID,            /* current_euid()  */
+	CCS_TASK_SUID,            /* current_suid()  */
+	CCS_TASK_FSUID,           /* current_fsuid() */
+	CCS_TASK_GID,             /* current_gid()   */
+	CCS_TASK_EGID,            /* current_egid()  */
+	CCS_TASK_SGID,            /* current_sgid()  */
+	CCS_TASK_FSGID,           /* current_fsgid() */
+	CCS_TASK_PID,             /* sys_getpid()   */
+	CCS_TASK_PPID,            /* sys_getppid()  */
+	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
+	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
+	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
+	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
+	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
+	CCS_TYPE_SOCKET,          /* S_IFSOCK */
+	CCS_TYPE_SYMLINK,         /* S_IFLNK */
+	CCS_TYPE_FILE,            /* S_IFREG */
+	CCS_TYPE_BLOCK_DEV,       /* S_IFBLK */
+	CCS_TYPE_DIRECTORY,       /* S_IFDIR */
+	CCS_TYPE_CHAR_DEV,        /* S_IFCHR */
+	CCS_TYPE_FIFO,            /* S_IFIFO */
+	CCS_MODE_SETUID,          /* S_ISUID */
+	CCS_MODE_SETGID,          /* S_ISGID */
+	CCS_MODE_STICKY,          /* S_ISVTX */
+	CCS_MODE_OWNER_READ,      /* S_IRUSR */
+	CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
+	CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
+	CCS_MODE_GROUP_READ,      /* S_IRGRP */
+	CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
+	CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
+	CCS_MODE_OTHERS_READ,     /* S_IROTH */
+	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
+	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
+	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
+				     CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_EXEC_REALPATH,
+	CCS_SYMLINK_TARGET,
+	CCS_PATH1_UID,
+	CCS_PATH1_GID,
+	CCS_PATH1_INO,
+	CCS_PATH1_MAJOR,
+	CCS_PATH1_MINOR,
+	CCS_PATH1_PERM,
+	CCS_PATH1_TYPE,
+	CCS_PATH1_DEV_MAJOR,
+	CCS_PATH1_DEV_MINOR,
+	CCS_PATH2_UID,
+	CCS_PATH2_GID,
+	CCS_PATH2_INO,
+	CCS_PATH2_MAJOR,
+	CCS_PATH2_MINOR,
+	CCS_PATH2_PERM,
+	CCS_PATH2_TYPE,
+	CCS_PATH2_DEV_MAJOR,
+	CCS_PATH2_DEV_MINOR,
+	CCS_PATH1_PARENT_UID,
+	CCS_PATH1_PARENT_GID,
+	CCS_PATH1_PARENT_INO,
+	CCS_PATH1_PARENT_PERM,
+	CCS_PATH2_PARENT_UID,
+	CCS_PATH2_PARENT_GID,
+	CCS_PATH2_PARENT_INO,
+	CCS_PATH2_PARENT_PERM,
+	CCS_MAX_CONDITION_KEYWORD,
+	CCS_NUMBER_UNION,
+	CCS_NAME_UNION,
+	CCS_ARGV_ENTRY,
+	CCS_ENVP_ENTRY
+};
+
 /* Prototype definition. */
 
 bool ccs_can_sleep(void);
@@ -787,9 +843,7 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type, const s8 pat
 bool ccs_is_domain_def(const unsigned char *buffer);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_number_group *group);
-bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_path_group *group, const bool may_use_pattern);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename, const struct ccs_path_info *pattern);
-bool ccs_print_condition(struct ccs_io_buffer *head, const struct ccs_condition *cond);
 bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_aggregator_policy(struct ccs_io_buffer *head);
 bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head);
@@ -885,6 +939,9 @@ void ccs_print_ulong(char *buffer, const int buffer_len, const unsigned long val
 void ccs_put_name_union(struct ccs_name_union *ptr);
 void ccs_put_number_union(struct ccs_number_union *ptr);
 bool ccs_compare_number_union(const unsigned long value, const struct ccs_number_union *ptr);
+bool ccs_compare_name_union(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
+bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
+
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -930,6 +987,8 @@ extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 /* Lock for GC. */
 extern struct srcu_struct ccs_ss;
+
+extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 
 struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
