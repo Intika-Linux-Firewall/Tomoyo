@@ -127,6 +127,13 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	u8 type;
 	unsigned long v;
 	memset(num, 0, sizeof(*num));
+	if (data[0] == '@') {
+		if (!ccs_is_correct_path(data, 0, 0, 0))
+			return false;
+		num->group = ccs_get_number_group(data + 1);
+		num->is_group = true;
+		return num->group != NULL;
+	}
 	type = ccs_parse_ulong(&v, &data);
 	if (!type)
 		return false;

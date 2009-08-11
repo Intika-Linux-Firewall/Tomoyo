@@ -653,14 +653,39 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head,
 {
 	unsigned long min;
 	unsigned long max;
+	u8 min_type;
+	u8 max_type;
 	if (ptr->is_group)
 		return ccs_io_printf(head, " @%s",
 				     ptr->group->group_name->name);
+	min_type = ptr->min_type;
+	max_type = ptr->max_type;
 	min = ptr->values[0];
 	max = ptr->values[1];
-	if (min == max)
-		return ccs_io_printf(head, " %lu", min);
-	return ccs_io_printf(head, " %lu-%lu", min, max);
+	switch (min_type) {
+	case VALUE_TYPE_HEXADECIMAL:
+		if (!ccs_io_printf(head, " 0x%lX", min))
+			return false;
+		break;
+	case VALUE_TYPE_OCTAL:
+		if (!ccs_io_printf(head, " 0%lo", min))
+			return false;
+		break;
+	default:
+		if (!ccs_io_printf(head, " %lu", min))
+			return false;
+		break;
+	}
+	if (min == max && min_type == max_type)
+		return true;
+	switch (max_type) {
+	case VALUE_TYPE_HEXADECIMAL:
+		return ccs_io_printf(head, "-0x%lX", max);
+	case VALUE_TYPE_OCTAL:
+		return ccs_io_printf(head, "-0%lo", max);
+	default:
+		return ccs_io_printf(head, "-%lu", max);
+	}
 }
 
 /**

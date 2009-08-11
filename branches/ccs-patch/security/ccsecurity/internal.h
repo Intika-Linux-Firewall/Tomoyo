@@ -784,7 +784,6 @@ struct ccs_io_buffer {
 /* Prototype definition. */
 
 bool ccs_can_sleep(void);
-bool ccs_check_and_save_number(const char *filename, struct ccs_number_union *ptr);
 bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);

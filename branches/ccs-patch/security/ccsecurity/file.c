@@ -51,15 +51,17 @@ static const char *ccs_path_number_keyword[MAX_PATH_NUMBER_OPERATION] = {
 
 void ccs_put_name_union(struct ccs_name_union *ptr)
 {
+	if (!ptr)
+		return;
 	if (ptr->is_group)
 		ccs_put_path_group(ptr->group);
 	else
 		ccs_put_name(ptr->filename);
-}	
+}
 
 void ccs_put_number_union(struct ccs_number_union *ptr)
 {
-	if (ptr->is_group)
+	if (ptr && ptr->is_group)
 		ccs_put_number_group(ptr->group);
 }
 
@@ -173,35 +175,23 @@ static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
 	return false;
 }
 
-static bool ccs_check_and_save_path(const char *filename,
-				    struct ccs_name_union *ptr)
+static bool ccs_parse_name_union(const char *filename,
+				 struct ccs_name_union *ptr)
 {
 	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return false;
 	if (filename[0] == '@') {
 		ptr->group = ccs_get_path_group(filename + 1);
 		ptr->is_group = true;
-	} else {
+		return ptr->group != NULL;
+	}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
-		if (!strcmp(filename, "pipe:"))
-			filename = "pipe:[\\$]";
+	if (!strcmp(filename, "pipe:"))
+		filename = "pipe:[\\$]";
 #endif
-		ptr->filename = ccs_get_name(filename);
-		ptr->is_group = false;
-	}
-	return true;
-}
-
-bool ccs_check_and_save_number(const char *filename,
-			       struct ccs_number_union *ptr)
-{
-	if (!ccs_is_correct_path(filename, 0, 0, 0))
-		return false;
-	if (filename[0] == '@') {
-		ptr->group = ccs_get_number_group(filename + 1);
-		ptr->is_group = true;
-	}
-	return true;
+	ptr->filename = ccs_get_name(filename);
+	ptr->is_group = false;
+	return ptr->filename != NULL;
 }
 
 static int ccs_update_double_path_acl(const u8 type, const char *filename1,
@@ -214,23 +204,15 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      struct ccs_condition *condition,
 				      const bool is_delete);
 static int ccs_update_mkdev_acl(const u8 type, const char *filename,
-				const char *major_group,
-				const char *minor_group,
-				const unsigned int min_major,
-				const unsigned int max_major,
-				const unsigned int min_minor,
-				const unsigned int max_minor,
+				char *major, char *minor,
 				struct ccs_domain_info * const domain,
 				struct ccs_condition *condition,
 				const bool is_delete);
-
 static int ccs_update_path_number_acl(const u8 type, const char *filename,
-				      const char *group,
-				      const struct ccs_number_union *number,
+				      char *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
 				      const bool is_delete);
-
 
 /**
  * ccs_audit_single_path_log - Audit single path request log.
@@ -868,8 +850,8 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 /**
  * ccs_update_file_acl - Update file's read/write/execute ACL.
  *
- * @filename:  Filename.
  * @perm:      Permission (between 1 to 7).
+ * @filename:  Filename.
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
@@ -881,7 +863,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  * "allow_read" instead of "4", "allow_write" instead of "2",
  * "allow_execute" instead of "1".
  */
-static int ccs_update_file_acl(const char *filename, u8 perm,
+static int ccs_update_file_acl(u8 perm, const char *filename,
 			       struct ccs_domain_info * const domain,
 			       struct ccs_condition *condition,
 			       const bool is_delete)
@@ -1044,7 +1026,7 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 		/* Don't use patterns for execute permission. */
 		const struct ccs_path_info *pattern = mode != 1 ?
 			ccs_get_file_pattern(filename) : filename;
-		ccs_update_file_acl(pattern->name, mode, r->domain, cond,
+		ccs_update_file_acl(mode, pattern->name, r->domain, cond,
 				    false);
 		ccs_put_condition(cond);
 	}
@@ -1153,7 +1135,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 		return -EINVAL;
 	if (strncmp(w[0], "allow_", 6)) {
 		if (sscanf(w[0], "%u", &perm) == 1)
-			return ccs_update_file_acl(w[1], (u8) perm, domain,
+			return ccs_update_file_acl((u8) perm, w[1], domain,
 						   condition, is_delete);
 		if (!strcmp(w[0], KEYWORD_EXECUTE_HANDLER))
 			type = TYPE_EXECUTE_HANDLER;
@@ -1161,8 +1143,8 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			type = TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			goto out;
-		return ccs_update_execute_handler(type, w[1],
-						  domain, is_delete);
+		return ccs_update_execute_handler(type, w[1], domain,
+						  is_delete);
 	}
 	w[0] += 6;
 	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
@@ -1176,59 +1158,21 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
 		if (strcmp(w[0], ccs_dp_keyword[type]))
 			continue;
-		return ccs_update_double_path_acl(type, w[1], w[2],
-						  domain, condition, is_delete);
+		return ccs_update_double_path_acl(type, w[1], w[2], domain,
+						  condition, is_delete);
 	}
 	for (type = 0; type < MAX_PATH_NUMBER_OPERATION; type++) {
-		struct ccs_number_union num;
-		const char *group = NULL;
 		if (strcmp(w[0], ccs_path_number_keyword[type]))
 			continue;
-		if (!ccs_parse_number_union(w[2], &num)) {
-			if (w[2][0] != '@')
-				return -EINVAL;
-			group = w[2];
-		}
-		return ccs_update_path_number_acl(type, w[1], group, &num,
-						  domain, condition,
-						  is_delete);
+		return ccs_update_path_number_acl(type, w[1], w[2], domain,
+						  condition, is_delete);
 	}
 	if (!w[3][0])
 		goto out;
 	for (type = 0; type < MAX_MKDEV_OPERATION; type++) {
-		unsigned int min_major = 0;
-		unsigned int max_major = 0;
-		unsigned int min_minor = 0;
-		unsigned int max_minor = 0;
-		const char *major_group = NULL;
-		const char *minor_group = NULL;
 		if (strcmp(w[0], ccs_mkdev_keyword[type]))
 			continue;
-		switch (sscanf(w[2], "%u-%u", &min_major, &max_major)) {
-		case 1:
-			max_major = min_major;
-			break;
-		case 2:
-			break;
-		default:
-			if (w[2][0] != '@')
-				goto out;
-			major_group = w[2];
-		}
-		switch (sscanf(w[3], "%u-%u", &min_minor, &max_minor)) {
-		case 1:
-			max_minor = min_minor;
-			break;
-		case 2:
-			break;
-		default:
-			if (w[3][0] != '@')
-				goto out;
-			minor_group = w[3];
-		}
-		return ccs_update_mkdev_acl(type, w[1], major_group,
-					    minor_group, min_major, max_major,
-					    min_minor, max_minor, domain,
+		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], domain,
 					    condition, is_delete);
 	}
  out:
@@ -1263,10 +1207,8 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename, &e.name))
+	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	if (!e.name.group && !e.name.filename)
-		return -ENOMEM;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -1335,10 +1277,8 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
  *
  * @type:      Type of operation.
  * @filename:  Filename.
- * @min_major:
- * @max_major:
- * @min_minor:
- * @max_minor:
+ * @major:     Device major number.
+ * @minor:     Device minor number.
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
@@ -1346,12 +1286,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_mkdev_acl(const u8 type, const char *filename,
-				const char *major_group,
-				const char *minor_group,
-				const unsigned int min_major,
-				const unsigned int max_major,
-				const unsigned int min_minor,
-				const unsigned int max_minor,
+				char *major, char *minor,
 				struct ccs_domain_info * const domain,
 				struct ccs_condition *condition,
 				const bool is_delete)
@@ -1368,24 +1303,12 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	memset(&e, 0, sizeof(e));
 	e.head.type = TYPE_MKDEV_ACL;
 	e.head.cond = condition;
-	if (!ccs_check_and_save_path(filename, &e.name))
+	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	if (!e.name.group)
-		return -ENOMEM;
-	if (major_group) {
-		if (!ccs_check_and_save_number(major_group, &e.major))
-			goto out;
-	} else {
-		e.major.values[0] = min_major;
-		e.major.values[1] = max_major;
-	}
-	if (minor_group) {
-		if (!ccs_check_and_save_number(minor_group, &e.minor))
-			goto out;
-	} else {
-		e.minor.values[0] = min_minor;
-		e.minor.values[1] = max_minor;
-	}
+	if (!ccs_parse_number_union(major, &e.major))
+		goto out;
+	if (!ccs_parse_number_union(minor, &e.minor))
+		goto out;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -1469,12 +1392,9 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename1, &e.name1) ||
-	    !ccs_check_and_save_path(filename2, &e.name2))
+	if (!ccs_parse_name_union(filename1, &e.name1) ||
+	    !ccs_parse_name_union(filename2, &e.name2))
 		return -EINVAL;
-	if ((!e.name1.group && !e.name1.filename) ||
-	    (!e.name2.group && !e.name2.filename))
-		goto out;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -1662,12 +1582,17 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 		if (error == 1)
 			goto retry;
 	} else if (ccs_domain_quota_ok(r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_mkdev_acl(operation,
-				     ccs_get_file_pattern(filename)->name,
-				     NULL, NULL, major, major, minor, minor,
-				     r->domain, cond, false);
-		ccs_put_condition(cond);
+		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		if (buf) {
+			struct ccs_condition *cond = ccs_handler_cond();
+			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %u %u", msg,
+				 ccs_get_file_pattern(filename)->name,  major,
+				 minor);
+			buf[PAGE_SIZE - 1] = '\0';
+			ccs_write_file_policy(buf, r->domain, cond, false);
+			ccs_put_condition(cond);
+			kfree(buf);
+		}
 	}
 	if (!is_enforce)
 		error = 0;
@@ -2013,8 +1938,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  *
  * @type:      Type of operation.
  * @filename:  Filename.
- * @group:     Name of number group. May be NULL.
- * @number:    Pointer to "struct ccs_number_union".
+ * @number:    Number.
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". May be NULL.
  * @is_delete: True if it is a delete request.
@@ -2022,8 +1946,7 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_path_number_acl(const u8 type, const char *filename,
-				      const char *group,
-				      const struct ccs_number_union *number,
+				      char *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
 				      const bool is_delete)
@@ -2041,16 +1964,10 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	e.perm = perm;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_check_and_save_path(filename, &e.name))
+	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	if (!e.name.group)
-		return -ENOMEM;
-	if (group) {
-		if (!ccs_check_and_save_number(group, &e.number))
-			goto out;
-	} else {
-		memmove(&e.number, number, sizeof(*number));
-	}
+	if (!ccs_parse_number_union(number, &e.number))
+		goto out;
 	if (is_delete)
 		goto delete;
 	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -2101,6 +2018,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name_union(&e.name);
+	ccs_put_number_union(&e.number);
 	kfree(entry);
 	return error;
 }
@@ -2172,7 +2090,7 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 	if (is_enforce) {
 		char buffer[64];
 		int err;
-		ccs_print_ulong(buffer, sizeof(buffer),number,
+		ccs_print_ulong(buffer, sizeof(buffer), number,
 				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
 				VALUE_TYPE_DECIMAL);
 		err = ccs_check_supervisor(r, "allow_%s %s %s\n",
@@ -2182,22 +2100,21 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	} else if (ccs_domain_quota_ok(r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		struct ccs_number_union num;
-		memset(&num, 0, sizeof(num));
-		if (type == TYPE_CHMOD) {
-			num.min_type = 8;
-			num.max_type = 8;
-		} else {
-			num.min_type = 10;
-			num.max_type = 10;
+		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		char buffer[64];
+		ccs_print_ulong(buffer, sizeof(buffer), number,
+				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
+				VALUE_TYPE_DECIMAL);
+		if (buf) {
+			struct ccs_condition *cond = ccs_handler_cond();
+			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %s",
+				 ccs_path_number2keyword(type), 
+				 ccs_get_file_pattern(filename)->name, buf);
+			buf[PAGE_SIZE - 1] = '\0';
+			ccs_write_file_policy(buf, r->domain, cond, false);
+			ccs_put_condition(cond);
+			kfree(buf);
 		}
-		num.values[0] = number;
-		num.values[1] = number;
-		ccs_update_path_number_acl(type, ccs_get_file_pattern(filename)
-					   ->name, NULL, &num, r->domain, cond,
-					   false);
-		ccs_put_condition(cond);
 	}
 	return 0;
 }
