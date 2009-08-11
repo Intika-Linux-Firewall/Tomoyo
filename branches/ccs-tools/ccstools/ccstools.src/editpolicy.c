@@ -2223,11 +2223,9 @@ out:
 static _Bool select_acl_window(struct domain_policy *dp, const int current,
 			       const _Bool may_refresh)
 {
-	int index;
 	if (current_screen != SCREEN_DOMAIN_LIST)
 		return false;
 	current_pid = 0;
-	index = list_item_count[current_screen];
 	if (domain_sort_type) {
 		current_pid = task_list[current].pid;
 	} else if (is_initializer_source(dp, current)) {
@@ -2248,6 +2246,7 @@ static _Bool select_acl_window(struct domain_policy *dp, const int current,
 			current_y[current_screen]--;
 		}
 		show_list(dp);
+		return false;
 	} else if (is_deleted_domain(dp, current)) {
 		return false;
 	}
@@ -2310,7 +2309,7 @@ static int select_window(struct domain_policy *dp, const int current)
 
 static void copy_mark_state(struct domain_policy *dp, const int current)
 {
-	int index = list_item_count[current_screen];
+	int index;
 	if (current_screen == SCREEN_DOMAIN_LIST) {
 		if (domain_sort_type) {
 			const u8 selected = task_list[current].selected;
