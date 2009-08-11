@@ -34,9 +34,10 @@ static struct {
 	const unsigned int max_value;
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
 	[CCS_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
+	[CCS_AUTOLEARN_EXEC_REALPATH] = { "AUTOLEARN_EXEC_REALPATH", 0, 1 },
+	[CCS_AUTOLEARN_EXEC_ARGV0] = { "AUTOLEARN_EXEC_ARGV0", 0, 1 },
 	[CCS_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
 	[CCS_MAC_FOR_FILEATTR]    = { "MAC_FOR_FILEATTR",    0, 3 },
-	[CCS_MAC_FOR_ARGV0]       = { "MAC_FOR_ARGV0",       0, 3 },
 	[CCS_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
 	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
@@ -210,6 +211,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			int j;
 			const char **modes;
 			switch (i) {
+			case CCS_AUTOLEARN_EXEC_REALPATH:
+			case CCS_AUTOLEARN_EXEC_ARGV0:
 			case CCS_RESTRICT_AUTOBIND:
 			case CCS_VERBOSE:
 				modes = ccs_mode_2;
@@ -617,8 +620,6 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		error = ccs_write_network_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_SIGNAL))
 		error = ccs_write_signal_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ARGV0))
-		error = ccs_write_argv0_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
 		error = ccs_write_env_policy(data, domain, cond, is_delete);
 	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
@@ -835,31 +836,6 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 	return true;
  out:
 	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
-}
-
-/**
- * ccs_print_argv0_acl - Print an argv[0] ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_argv0_acl_record".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_argv0_acl(struct ccs_io_buffer *head,
-				struct ccs_argv0_acl_record *ptr,
-				const struct ccs_condition *cond)
-{
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ARGV0 "%s %s",
-			   ptr->filename->name, ptr->argv0->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
-	return true;
- out:
 	head->read_avail = pos;
 	return false;
 }
@@ -1196,11 +1172,6 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			= container_of(ptr, struct ccs_path_number_acl_record,
 				       head);
 		return ccs_print_path_number_acl(head, acl, cond);
-	}
-	if (acl_type == CCS_TYPE_ARGV0_ACL) {
-		struct ccs_argv0_acl_record *acl
-			= container_of(ptr, struct ccs_argv0_acl_record, head);
-		return ccs_print_argv0_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_ENV_ACL) {
 		struct ccs_env_acl_record *acl

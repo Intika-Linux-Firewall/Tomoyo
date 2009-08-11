@@ -291,7 +291,6 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_MKDEV_ACL,
 	CCS_TYPE_DOUBLE_PATH_ACL,
 	CCS_TYPE_PATH_NUMBER_ACL,
-	CCS_TYPE_ARGV0_ACL,
 	CCS_TYPE_ENV_ACL,
 	CCS_TYPE_CAPABILITY_ACL,
 	CCS_TYPE_IP_NETWORK_ACL,
@@ -529,13 +528,6 @@ struct ccs_path_number_acl_record {
 	struct ccs_number_union number;
 };
 
-/* Structure for "allow_argv0" directive. */
-struct ccs_argv0_acl_record {
-	struct ccs_acl_info head;             /* type = CCS_TYPE_ARGV0_ACL   */
-	const struct ccs_path_info *filename; /* Pointer to single pathname. */
-	const struct ccs_path_info *argv0;    /* = strrchr(argv[0], '/') + 1 */
-};
-
 /* Structure for "allow_env" directive in domain policy. */
 struct ccs_env_acl_record {
 	struct ccs_acl_info head;        /* type = CCS_TYPE_ENV_ACL  */
@@ -667,7 +659,6 @@ enum ccs_ip_record_type {
 /* Keywords for ACLs. */
 #define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
-#define CCS_KEYWORD_ALLOW_ARGV0               "allow_argv0 "
 #define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
 #define CCS_KEYWORD_ALLOW_CHROOT              "allow_chroot "
 #define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
@@ -705,9 +696,10 @@ enum ccs_ip_record_type {
 /* Index numbers for Access Controls. */
 enum ccs_profile_index {
 	CCS_MAC_FOR_FILE,          /* domain_policy.conf */
+	CCS_AUTOLEARN_EXEC_REALPATH,
+	CCS_AUTOLEARN_EXEC_ARGV0,
 	CCS_MAC_FOR_IOCTL,         /* domain_policy.conf */
 	CCS_MAC_FOR_FILEATTR,      /* domain_policy.conf */
-	CCS_MAC_FOR_ARGV0,         /* domain_policy.conf */
 	CCS_MAC_FOR_ENV,           /* domain_policy.conf */
 	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
 	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
@@ -827,7 +819,6 @@ const char *ccs_sp2keyword(const u8 operation);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl);
-int ccs_check_argv0_perm(struct ccs_request_info *r, const struct ccs_path_info *filename, const char *argv0);
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
 int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
 int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
@@ -845,7 +836,6 @@ int ccs_read_reject_log(struct ccs_io_buffer *head);
 int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
 int ccs_write_address_group_policy(char *data, const bool is_delete);
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
-int ccs_write_argv0_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);

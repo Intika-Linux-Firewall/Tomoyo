@@ -641,61 +641,6 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 }
 
 /**
- * ccs_get_argv0 - Get argv[0].
- *
- * @ee: Pointer to "struct ccs_execve_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_get_argv0(struct ccs_execve_entry *ee)
-{
-	struct linux_binprm *bprm = ee->bprm;
-	char *arg_ptr = ee->tmp;
-	int arg_len = 0;
-	unsigned long pos = bprm->p;
-	int offset = pos % PAGE_SIZE;
-	bool done = false;
-	if (!bprm->argc)
-		goto out;
-	while (1) {
-		if (!ccs_dump_page(bprm, pos, &ee->dump))
-			goto out;
-		pos += PAGE_SIZE - offset;
-		/* Read. */
-		while (offset < PAGE_SIZE) {
-			const char *kaddr = ee->dump.data;
-			const unsigned char c = kaddr[offset++];
-			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
-				if (c == '\\') {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = '\\';
-				} else if (c == '/') {
-					arg_len = 0;
-				} else if (c > ' ' && c < 127) {
-					arg_ptr[arg_len++] = c;
-				} else {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = (c >> 6) + '0';
-					arg_ptr[arg_len++]
-						= ((c >> 3) & 7) + '0';
-					arg_ptr[arg_len++] = (c & 7) + '0';
-				}
-			} else {
-				arg_ptr[arg_len] = '\0';
-				done = true;
-				break;
-			}
-		}
-		offset = 0;
-		if (done)
-			break;
-	}
-	return true;
- out:
-	return false;
-}
-
-/**
  * ccs_find_next_domain - Find a domain.
  *
  * @ee: Pointer to "struct ccs_execve_entry".
@@ -744,28 +689,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 			goto out;
 		}
 		goto calculate_domain;
-	}
-
-	/* Compare basename of program_path and argv[0] */
-	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_ARGV0);
-	if (bprm->argc > 0 && r->mode) {
-		char *base_argv0 = ee->tmp;
-		const char *base_filename;
-		retval = -ENOMEM;
-		if (!ccs_get_argv0(ee))
-			goto out;
-		base_filename = strrchr(ee->program_path, '/');
-		if (!base_filename)
-			base_filename = ee->program_path;
-		else
-			base_filename++;
-		if (strcmp(base_argv0, base_filename)) {
-			retval = ccs_check_argv0_perm(r, &rn, base_argv0);
-			if (retval == 1)
-				goto retry;
-			if (retval < 0)
-				goto out;
-		}
 	}
 
 	/* Check 'aggregator' directive. */

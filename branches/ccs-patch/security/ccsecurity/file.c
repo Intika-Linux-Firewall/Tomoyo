@@ -974,6 +974,112 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 }
 
 /**
+ * ccs_get_argv0 - Get argv[0].
+ *
+ * @ee: Pointer to "struct ccs_execve_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_get_argv0(struct ccs_execve_entry *ee)
+{
+	struct linux_binprm *bprm = ee->bprm;
+	char *arg_ptr = ee->tmp;
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int offset = pos % PAGE_SIZE;
+	bool done = false;
+	if (!bprm->argc)
+		goto out;
+	while (1) {
+		if (!ccs_dump_page(bprm, pos, &ee->dump))
+			goto out;
+		pos += PAGE_SIZE - offset;
+		/* Read. */
+		while (offset < PAGE_SIZE) {
+			const char *kaddr = ee->dump.data;
+			const unsigned char c = kaddr[offset++];
+			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+				if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c == '/') {
+					arg_len = 0;
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++]
+						= ((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+				done = true;
+				break;
+			}
+		}
+		offset = 0;
+		if (done)
+			break;
+	}
+	return true;
+ out:
+	return false;
+}
+
+static void ccs_update_execute_policy(struct ccs_request_info *r,
+				      const struct ccs_path_info *filename)
+{
+	char *buf;
+	int len = 256;
+	struct ccs_condition *cond = NULL;
+	struct ccs_execve_entry *ee = r->ee;
+	char *realpath = NULL;
+	char *argv0 = NULL;
+	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+		struct file *file = ee->bprm->file;
+		realpath = ccs_realpath_from_dentry(file->f_dentry,
+						    file->f_vfsmnt);
+		if (realpath)
+			len += strlen(realpath) + 17;
+	}
+	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+		if (ccs_get_argv0(ee)) {
+			argv0 = ee->tmp;
+			len += strlen(argv0) + 16;
+		}
+	}
+	buf = kmalloc(len, GFP_KERNEL);
+	if (!buf)
+		goto default_condition;
+	snprintf(buf, len - 1, "if");
+	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1,
+			 " task.type=execute_handler");
+	}
+	if (realpath) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1, " exec.realpath=\"%s\"",
+			 realpath);
+		kfree(realpath);
+	}
+	if (argv0) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1, " exec.argv[0]=\"%s\"",
+			 argv0);
+	}
+	cond = ccs_get_condition(buf);
+	kfree(buf);
+ default_condition:
+	if (!cond)
+		cond = ccs_handler_cond();
+	ccs_update_file_acl(1, filename->name, r->domain, cond, false);
+	ccs_put_condition(cond);
+}
+
+/**
  * ccs_check_file_perm - Check permission for opening files.
  *
  * @r:         Pointer to "strct ccs_request_info".
@@ -1024,13 +1130,15 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 			goto retry;
 		return err;
 	} else if (ccs_domain_quota_ok(r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		/* Don't use patterns for execute permission. */
-		const struct ccs_path_info *pattern = mode != 1 ?
-			ccs_get_file_pattern(filename) : filename;
-		ccs_update_file_acl(mode, pattern->name, r->domain, cond,
-				    false);
-		ccs_put_condition(cond);
+		if (mode == 1) {
+			ccs_update_execute_policy(r, filename);
+		} else {
+			struct ccs_condition *cond = ccs_handler_cond();
+			ccs_update_file_acl(mode,
+					    ccs_get_file_pattern(filename)
+					    ->name, r->domain, cond, false);
+			ccs_put_condition(cond);
+		}
 	}
 	return 0;
 }

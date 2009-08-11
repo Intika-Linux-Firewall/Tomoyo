@@ -193,15 +193,6 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			ccs_put_number_union(&entry->number);
 		}
 		break;
-	case CCS_TYPE_ARGV0_ACL:
-		{
-			struct ccs_argv0_acl_record *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->filename);
-			ccs_put_name(entry->argv0);
-		}
-		break;
 	case CCS_TYPE_ENV_ACL:
 		{
 			struct ccs_env_acl_record *entry;
