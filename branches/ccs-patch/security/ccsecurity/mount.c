@@ -31,19 +31,19 @@
 /* Keywords for mount restrictions. */
 
 /* Allow to call 'mount --bind /source_dir /dest_dir' */
-#define MOUNT_BIND_KEYWORD                               "--bind"
+#define CCS_MOUNT_BIND_KEYWORD                           "--bind"
 /* Allow to call 'mount --move /old_dir    /new_dir ' */
-#define MOUNT_MOVE_KEYWORD                               "--move"
+#define CCS_MOUNT_MOVE_KEYWORD                           "--move"
 /* Allow to call 'mount -o remount /dir             ' */
-#define MOUNT_REMOUNT_KEYWORD                            "--remount"
+#define CCS_MOUNT_REMOUNT_KEYWORD                        "--remount"
 /* Allow to call 'mount --make-unbindable /dir'       */
-#define MOUNT_MAKE_UNBINDABLE_KEYWORD                    "--make-unbindable"
+#define CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD                "--make-unbindable"
 /* Allow to call 'mount --make-private /dir'          */
-#define MOUNT_MAKE_PRIVATE_KEYWORD                       "--make-private"
+#define CCS_MOUNT_MAKE_PRIVATE_KEYWORD                   "--make-private"
 /* Allow to call 'mount --make-slave /dir'            */
-#define MOUNT_MAKE_SLAVE_KEYWORD                         "--make-slave"
+#define CCS_MOUNT_MAKE_SLAVE_KEYWORD                     "--make-slave"
 /* Allow to call 'mount --make-shared /dir'           */
-#define MOUNT_MAKE_SHARED_KEYWORD                        "--make-shared"
+#define CCS_MOUNT_MAKE_SHARED_KEYWORD                    "--make-shared"
 
 /**
  * ccs_audit_mount_log - Audit mount log.
@@ -66,20 +66,20 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 		const bool is_enforce = (r->mode == 3);
 		const char *msg = ccs_get_msg(is_enforce);
 		const char *domainname = ccs_get_last_name(r->domain);
-		if (!strcmp(type, MOUNT_REMOUNT_KEYWORD))
+		if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
 			printk(KERN_WARNING
 			       "SAKURA-%s: mount -o remount %s 0x%lX "
 			       "denied for %s.\n", msg, dir_name, flags,
 			       domainname);
-		else if (!strcmp(type, MOUNT_BIND_KEYWORD)
-			 || !strcmp(type, MOUNT_MOVE_KEYWORD))
+		else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
+			 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
 			printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
 			       "denied for %s\n", msg, type, dev_name,
 			       dir_name, flags, domainname);
-		else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-			 !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-			 !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
-			 !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD))
+		else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+			 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
+			 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
+			 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
 			printk(KERN_WARNING
 			       "SAKURA-%s: mount %s %s 0x%lX denied for %s\n",
 			       msg, type, dir_name, flags, domainname);
@@ -89,7 +89,7 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 			       "denied for %s\n", msg, type, dev_name,
 			       dir_name, flags, domainname);
 	}
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_MOUNT
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_MOUNT
 				   "%s %s %s 0x%lu\n", dev_name, dir_name,
 				   type, flags);
 }
@@ -141,13 +141,13 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		return -ENOMEM;
 	if (!dev_name)
 		dev_name = "<NULL>";
-	if (!strcmp(saved_fs->name, MOUNT_REMOUNT_KEYWORD))
+	if (!strcmp(saved_fs->name, CCS_MOUNT_REMOUNT_KEYWORD))
 		/* Fix dev_name to "any" for remount permission. */
 		dev_name = "any";
-	if (!strcmp(saved_fs->name, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-	    !strcmp(saved_fs->name, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-	    !strcmp(saved_fs->name, MOUNT_MAKE_SLAVE_KEYWORD) ||
-	    !strcmp(saved_fs->name, MOUNT_MAKE_SHARED_KEYWORD))
+	if (!strcmp(saved_fs->name, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
+	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
+	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_SHARED_KEYWORD))
 		dev_name = "any";
 	if (!ccs_is_correct_path(dev_name, 0, 0, 0) ||
 	    !ccs_is_correct_path(dir_name, 0, 0, 0)) {
@@ -163,7 +163,7 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mount_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_MOUNT_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_MOUNT_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -180,7 +180,7 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_MOUNT_ACL;
+		entry->head.type = CCS_TYPE_MOUNT_ACL;
 		entry->head.cond = condition;
 		entry->dev_name = saved_dev;
 		saved_dev = NULL;
@@ -259,31 +259,31 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 	}
 	if (flags & MS_REMOUNT) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_REMOUNT_KEYWORD,
+						    CCS_MOUNT_REMOUNT_KEYWORD,
 						    flags & ~MS_REMOUNT);
 	} else if (flags & MS_MOVE) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MOVE_KEYWORD,
+						    CCS_MOUNT_MOVE_KEYWORD,
 						    flags & ~MS_MOVE);
 	} else if (flags & MS_BIND) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_BIND_KEYWORD,
+						    CCS_MOUNT_BIND_KEYWORD,
 						    flags & ~MS_BIND);
 	} else if (flags & MS_UNBINDABLE) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-					    MOUNT_MAKE_UNBINDABLE_KEYWORD,
+					    CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
 						    flags & ~MS_UNBINDABLE);
 	} else if (flags & MS_PRIVATE) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_PRIVATE_KEYWORD,
+					    CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
 						    flags & ~MS_PRIVATE);
 	} else if (flags & MS_SLAVE) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_SLAVE_KEYWORD,
+					    CCS_MOUNT_MAKE_SLAVE_KEYWORD,
 						    flags & ~MS_SLAVE);
 	} else if (flags & MS_SHARED) {
 		error = ccs_check_mount_permission2(r, dev_name, dir_name,
-						    MOUNT_MAKE_SHARED_KEYWORD,
+					    CCS_MOUNT_MAKE_SHARED_KEYWORD,
 						    flags & ~MS_SHARED);
 	} else {
 		struct ccs_acl_info *ptr;
@@ -309,15 +309,15 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		ccs_fill_path_info(&rdir);
 
 		/* Compare fs name. */
-		if (!strcmp(type, MOUNT_REMOUNT_KEYWORD)) {
+		if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD)) {
 			/* dev_name is ignored. */
-		} else if (!strcmp(type, MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-			   !strcmp(type, MOUNT_MAKE_PRIVATE_KEYWORD) ||
-			   !strcmp(type, MOUNT_MAKE_SLAVE_KEYWORD) ||
-			   !strcmp(type, MOUNT_MAKE_SHARED_KEYWORD)) {
+		} else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+			   !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
+			   !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
+			   !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD)) {
 			/* dev_name is ignored. */
-		} else if (!strcmp(type, MOUNT_BIND_KEYWORD) ||
-			   !strcmp(type, MOUNT_MOVE_KEYWORD)) {
+		} else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD) ||
+			   !strcmp(type, CCS_MOUNT_MOVE_KEYWORD)) {
 			need_dev = -1; /* dev_name is a directory */
 		} else {
 			fstype = get_fs_type(type);
@@ -349,7 +349,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		ccs_fill_path_info(&rdev);
 		list_for_each_entry_rcu(ptr, &r->domain->acl_info_list, list) {
 			struct ccs_mount_acl_record *acl;
-			if (ccs_acl_type2(ptr) != TYPE_MOUNT_ACL)
+			if (ccs_acl_type2(ptr) != CCS_TYPE_MOUNT_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_mount_acl_record,
 					   head);
@@ -384,7 +384,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		if (!error)
 			goto out;
 		if (is_enforce)
-			error = ccs_check_supervisor(r, KEYWORD_ALLOW_MOUNT
+			error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
 						     "%s %s %s 0x%lX\n",
 						     requested_dev_name,
 						     requested_dir_name,

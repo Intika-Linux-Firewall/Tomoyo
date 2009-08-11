@@ -101,25 +101,25 @@ struct ccs_obj_info {
 };
 
 /* Value type definition. */
-#define VALUE_TYPE_INVALID     0
-#define VALUE_TYPE_DECIMAL     1
-#define VALUE_TYPE_OCTAL       2
-#define VALUE_TYPE_HEXADECIMAL 3
+#define CCS_VALUE_TYPE_INVALID     0
+#define CCS_VALUE_TYPE_DECIMAL     1
+#define CCS_VALUE_TYPE_OCTAL       2
+#define CCS_VALUE_TYPE_HEXADECIMAL 3
 
 struct ccs_condition_element {
 	/*
-	 * Left hand operand. A "struct ccs_argv_entry" for ARGV_ENTRY, a
-	 * "struct ccs_envp_entry" for ENVP_ENTRY is attached to the tail of
-	 * the array of this struct.
+	 * Left hand operand. A "struct ccs_argv_entry" for CCS_ARGV_ENTRY, a
+	 * "struct ccs_envp_entry" for CCS_ENVP_ENTRY is attached to the tail
+	 * of the array of this struct.
 	 */
 	u8 left;
 	/*
-	 * Right hand operand.  An "unsigned long" for CONSTANT_VALUE,
-	 * two "unsigned long" for CONSTANT_VALUE_RANGE,
-	 * a "struct ccs_number_group *" for NUMBER_GROUP,
-	 * a "struct ccs_path_info *" for PATH_INFO,
-	 * a "struct ccs_group_info *" for PATH_GROUP is attached to the tail
-	 * of the array of this struct.
+	 * Right hand operand.  An "unsigned long" for CCS_CONSTANT_VALUE,
+	 * two "unsigned long" for CCS_CONSTANT_VALUE_RANGE,
+	 * a "struct ccs_number_group *" for CCS_NUMBER_GROUP,
+	 * a "struct ccs_path_info *" for CCS_PATH_INFO,
+	 * a "struct ccs_group_info *" for CCS_PATH_GROUP is attached to the
+	 * tail of the array of this struct.
 	 */
 	u8 right;
 	/* Equation operator. 1 if equals or overlaps, 0 otherwise. */
@@ -287,25 +287,25 @@ struct ccs_acl_info {
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
-	TYPE_SINGLE_PATH_ACL,
-	TYPE_MKDEV_ACL,
-	TYPE_DOUBLE_PATH_ACL,
-	TYPE_PATH_NUMBER_ACL,
-	TYPE_ARGV0_ACL,
-	TYPE_ENV_ACL,
-	TYPE_CAPABILITY_ACL,
-	TYPE_IP_NETWORK_ACL,
-	TYPE_SIGNAL_ACL,
-	TYPE_MOUNT_ACL,
-	TYPE_UMOUNT_ACL,
-	TYPE_CHROOT_ACL,
-	TYPE_PIVOT_ROOT_ACL,
-	TYPE_EXECUTE_HANDLER,
-	TYPE_DENIED_EXECUTE_HANDLER
+	CCS_TYPE_SINGLE_PATH_ACL,
+	CCS_TYPE_MKDEV_ACL,
+	CCS_TYPE_DOUBLE_PATH_ACL,
+	CCS_TYPE_PATH_NUMBER_ACL,
+	CCS_TYPE_ARGV0_ACL,
+	CCS_TYPE_ENV_ACL,
+	CCS_TYPE_CAPABILITY_ACL,
+	CCS_TYPE_IP_NETWORK_ACL,
+	CCS_TYPE_SIGNAL_ACL,
+	CCS_TYPE_MOUNT_ACL,
+	CCS_TYPE_UMOUNT_ACL,
+	CCS_TYPE_CHROOT_ACL,
+	CCS_TYPE_PIVOT_ROOT_ACL,
+	CCS_TYPE_EXECUTE_HANDLER,
+	CCS_TYPE_DENIED_EXECUTE_HANDLER
 };
 
-/* This ACL entry is deleted.           */
-#define ACL_DELETED        0x80
+/* This ACL entry is deleted. */
+#define CCS_ACL_DELETED        0x80
 
 /* Structure for domain information. */
 struct ccs_domain_info {
@@ -330,7 +330,7 @@ struct ccs_domain_info {
 };
 
 /* Profile number is an integer between 0 and 255. */
-#define MAX_PROFILES 256
+#define CCS_MAX_PROFILES 256
 
 #define CCS_CHECK_READ_FOR_OPEN_EXEC     16
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
@@ -395,20 +395,20 @@ struct ccs_aggregator_entry {
 
 /* Structure for "allow_unmount" keyword. */
 struct ccs_umount_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_UMOUNT_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_UMOUNT_ACL */
 	const struct ccs_path_info *dir;
 };
 
 /* Structure for "allow_pivot_root" keyword. */
 struct ccs_pivot_root_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_PIVOT_ROOT_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_PIVOT_ROOT_ACL */
 	const struct ccs_path_info *old_root;
 	const struct ccs_path_info *new_root;
 };
 
 /* Structure for "allow_mount" keyword. */
 struct ccs_mount_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_MOUNT_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
 	const struct ccs_path_info *dev_name;
 	const struct ccs_path_info *dir_name;
 	const struct ccs_path_info *fs_type;
@@ -417,7 +417,7 @@ struct ccs_mount_acl_record {
 
 /* Structure for "allow_chroot" keyword. */
 struct ccs_chroot_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_CHROOT_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_CHROOT_ACL */
 	const struct ccs_path_info *dir;
 };
 
@@ -471,7 +471,7 @@ struct ccs_envp_entry {
  * redirect the user to honey pot etc.).
  */
 struct ccs_execute_handler_record {
-	struct ccs_acl_info head;            /* type = TYPE_*EXECUTE_HANDLER */
+	struct ccs_acl_info head;        /* type = CCS_TYPE_*EXECUTE_HANDLER */
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
 
@@ -496,14 +496,14 @@ struct ccs_number_union {
  * "allow_rewrite" directive.
  */
 struct ccs_single_path_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_SINGLE_PATH_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_SINGLE_PATH_ACL */
 	u16 perm;
 	struct ccs_name_union name;
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
 struct ccs_mkdev_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_MKDEV_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_MKDEV_ACL */
 	u8 perm; /* mkblock and/or mkchar */
 	struct ccs_name_union name;
 	struct ccs_number_union major;
@@ -512,7 +512,7 @@ struct ccs_mkdev_acl_record {
 
 /* Structure for "allow_rename" and "allow_link" directive. */
 struct ccs_double_path_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_DOUBLE_PATH_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_DOUBLE_PATH_ACL */
 	u8 perm;
 	struct ccs_name_union name1;
 	struct ccs_name_union name2;
@@ -523,7 +523,7 @@ struct ccs_double_path_acl_record {
  * directive.
  */
 struct ccs_path_number_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_PATH_NUMBER_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
 	u8 perm;
 	struct ccs_name_union name;
 	struct ccs_number_union number;
@@ -531,26 +531,26 @@ struct ccs_path_number_acl_record {
 
 /* Structure for "allow_argv0" directive. */
 struct ccs_argv0_acl_record {
-	struct ccs_acl_info head;             /* type = TYPE_ARGV0_ACL       */
+	struct ccs_acl_info head;             /* type = CCS_TYPE_ARGV0_ACL   */
 	const struct ccs_path_info *filename; /* Pointer to single pathname. */
 	const struct ccs_path_info *argv0;    /* = strrchr(argv[0], '/') + 1 */
 };
 
 /* Structure for "allow_env" directive in domain policy. */
 struct ccs_env_acl_record {
-	struct ccs_acl_info head;        /* type = TYPE_ENV_ACL  */
+	struct ccs_acl_info head;        /* type = CCS_TYPE_ENV_ACL  */
 	const struct ccs_path_info *env; /* environment variable */
 };
 
 /* Structure for "allow_capability" directive. */
 struct ccs_capability_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_CAPABILITY_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_CAPABILITY_ACL */
 	u8 operation;
 };
 
 /* Structure for "allow_signal" directive. */
 struct ccs_signal_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_SIGNAL_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
 	u16 sig;
 	/* Pointer to destination pattern. */
 	const struct ccs_path_info *domainname;
@@ -564,28 +564,28 @@ struct ccs_ipv6addr_entry {
 
 /* Structure for "allow_network" directive. */
 struct ccs_ip_network_acl_record {
-	struct ccs_acl_info head; /* type = TYPE_IP_NETWORK_ACL */
+	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
 	/*
 	 * operation_type takes one of the following constants.
-	 *   NETWORK_ACL_UDP_BIND for UDP's bind() operation.
-	 *   NETWORK_ACL_UDP_CONNECT for UDP's connect()/send()/recv()
+	 *   CCS_NETWORK_ACL_UDP_BIND for UDP's bind() operation.
+	 *   CCS_NETWORK_ACL_UDP_CONNECT for UDP's connect()/send()/recv()
 	 *                               operation.
-	 *   NETWORK_ACL_TCP_BIND for TCP's bind() operation.
-	 *   NETWORK_ACL_TCP_LISTEN for TCP's listen() operation.
-	 *   NETWORK_ACL_TCP_CONNECT for TCP's connect() operation.
-	 *   NETWORK_ACL_TCP_ACCEPT for TCP's accept() operation.
-	 *   NETWORK_ACL_RAW_BIND for IP's bind() operation.
-	 *   NETWORK_ACL_RAW_CONNECT for IP's connect()/send()/recv()
+	 *   CCS_NETWORK_ACL_TCP_BIND for TCP's bind() operation.
+	 *   CCS_NETWORK_ACL_TCP_LISTEN for TCP's listen() operation.
+	 *   CCS_NETWORK_ACL_TCP_CONNECT for TCP's connect() operation.
+	 *   CCS_NETWORK_ACL_TCP_ACCEPT for TCP's accept() operation.
+	 *   CCS_NETWORK_ACL_RAW_BIND for IP's bind() operation.
+	 *   CCS_NETWORK_ACL_RAW_CONNECT for IP's connect()/send()/recv()
 	 *                               operation.
 	 */
 	u8 operation_type;
 	/*
 	 * record_type takes one of the following constants.
-	 *   IP_RECORD_TYPE_ADDRESS_GROUP
+	 *   CCS_IP_RECORD_TYPE_ADDRESS_GROUP
 	 *                if address points to "address_group" directive.
-	 *   IP_RECORD_TYPE_IPv4
+	 *   CCS_IP_RECORD_TYPE_IPv4
 	 *                if address points to an IPv4 address.
-	 *   IP_RECORD_TYPE_IPv6
+	 *   CCS_IP_RECORD_TYPE_IPv6
 	 *                if address points to an IPv6 address.
 	 */
 	u8 record_type;
@@ -611,91 +611,93 @@ struct ccs_ip_network_acl_record {
 /* Index numbers for File Controls. */
 
 /*
- * TYPE_READ_WRITE_ACL is special. TYPE_READ_WRITE_ACL is automatically set
- * if both TYPE_READ_ACL and TYPE_WRITE_ACL are set. Both TYPE_READ_ACL and
- * TYPE_WRITE_ACL are automatically set if TYPE_READ_WRITE_ACL is set.
- * TYPE_READ_WRITE_ACL is automatically cleared if either TYPE_READ_ACL or
- * TYPE_WRITE_ACL is cleared. Both TYPE_READ_ACL and TYPE_WRITE_ACL are
- * automatically cleared if TYPE_READ_WRITE_ACL is cleared.
+ * CCS_TYPE_READ_WRITE_ACL is special. CCS_TYPE_READ_WRITE_ACL is automatically
+ * set if both CCS_TYPE_READ_ACL and CCS_TYPE_WRITE_ACL are set.
+ * Both CCS_TYPE_READ_ACL and CCS_TYPE_WRITE_ACL are automatically set if
+ * CCS_TYPE_READ_WRITE_ACL is set.
+ * CCS_TYPE_READ_WRITE_ACL is automatically cleared if either CCS_TYPE_READ_ACL
+ * or CCS_TYPE_WRITE_ACL is cleared. Both CCS_TYPE_READ_ACL and
+ * CCS_TYPE_WRITE_ACL are automatically cleared if CCS_TYPE_READ_WRITE_ACL is
+ * cleared.
  */
 
 enum ccs_single_path_acl_index {
-	TYPE_READ_WRITE_ACL,
-	TYPE_EXECUTE_ACL,
-	TYPE_READ_ACL,
-	TYPE_WRITE_ACL,
-	TYPE_CREATE_ACL,
-	TYPE_UNLINK_ACL,
-	TYPE_MKDIR_ACL,
-	TYPE_RMDIR_ACL,
-	TYPE_MKFIFO_ACL,
-	TYPE_MKSOCK_ACL,
-	TYPE_TRUNCATE_ACL,
-	TYPE_SYMLINK_ACL,
-	TYPE_REWRITE_ACL,
-	MAX_SINGLE_PATH_OPERATION
+	CCS_TYPE_READ_WRITE_ACL,
+	CCS_TYPE_EXECUTE_ACL,
+	CCS_TYPE_READ_ACL,
+	CCS_TYPE_WRITE_ACL,
+	CCS_TYPE_CREATE_ACL,
+	CCS_TYPE_UNLINK_ACL,
+	CCS_TYPE_MKDIR_ACL,
+	CCS_TYPE_RMDIR_ACL,
+	CCS_TYPE_MKFIFO_ACL,
+	CCS_TYPE_MKSOCK_ACL,
+	CCS_TYPE_TRUNCATE_ACL,
+	CCS_TYPE_SYMLINK_ACL,
+	CCS_TYPE_REWRITE_ACL,
+	CCS_MAX_SINGLE_PATH_OPERATION
 };
 
 enum ccs_mkdev_acl_index {
-	TYPE_MKBLOCK_ACL,
-	TYPE_MKCHAR_ACL,
-	MAX_MKDEV_OPERATION
+	CCS_TYPE_MKBLOCK_ACL,
+	CCS_TYPE_MKCHAR_ACL,
+	CCS_MAX_MKDEV_OPERATION
 };
 
 enum ccs_double_path_acl_index {
-	TYPE_LINK_ACL,
-	TYPE_RENAME_ACL,
-	MAX_DOUBLE_PATH_OPERATION
+	CCS_TYPE_LINK_ACL,
+	CCS_TYPE_RENAME_ACL,
+	CCS_MAX_DOUBLE_PATH_OPERATION
 };
 
 enum ccs_path_number_acl_index {
-	TYPE_IOCTL,
-	TYPE_CHMOD,
-	TYPE_CHOWN,
-	TYPE_CHGRP,
-	MAX_PATH_NUMBER_OPERATION
+	CCS_TYPE_IOCTL,
+	CCS_TYPE_CHMOD,
+	CCS_TYPE_CHOWN,
+	CCS_TYPE_CHGRP,
+	CCS_MAX_PATH_NUMBER_OPERATION
 };
 
 enum ccs_ip_record_type {
-	IP_RECORD_TYPE_ADDRESS_GROUP,
-	IP_RECORD_TYPE_IPv4,
-	IP_RECORD_TYPE_IPv6
+	CCS_IP_RECORD_TYPE_ADDRESS_GROUP,
+	CCS_IP_RECORD_TYPE_IPv4,
+	CCS_IP_RECORD_TYPE_IPv6
 };
 
 /* Keywords for ACLs. */
-#define KEYWORD_ADDRESS_GROUP             "address_group "
-#define KEYWORD_AGGREGATOR                "aggregator "
-#define KEYWORD_ALLOW_ARGV0               "allow_argv0 "
-#define KEYWORD_ALLOW_CAPABILITY          "allow_capability "
-#define KEYWORD_ALLOW_CHROOT              "allow_chroot "
-#define KEYWORD_ALLOW_ENV                 "allow_env "
-#define KEYWORD_ALLOW_IOCTL               "allow_ioctl "
-#define KEYWORD_ALLOW_CHMOD               "allow_chmod "
-#define KEYWORD_ALLOW_CHOWN               "allow_chown "
-#define KEYWORD_ALLOW_CHGRP               "allow_chgrp "
-#define KEYWORD_ALLOW_MOUNT               "allow_mount "
-#define KEYWORD_ALLOW_NETWORK             "allow_network "
-#define KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
-#define KEYWORD_ALLOW_READ                "allow_read "
-#define KEYWORD_ALLOW_SIGNAL              "allow_signal "
-#define KEYWORD_DELETE                    "delete "
-#define KEYWORD_DENY_AUTOBIND             "deny_autobind "
-#define KEYWORD_DENY_REWRITE              "deny_rewrite "
-#define KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
-#define KEYWORD_FILE_PATTERN              "file_pattern "
-#define KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
-#define KEYWORD_KEEP_DOMAIN               "keep_domain "
-#define KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
-#define KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
-#define KEYWORD_PATH_GROUP                "path_group "
-#define KEYWORD_NUMBER_GROUP              "number_group "
-#define KEYWORD_SELECT                    "select "
-#define KEYWORD_USE_PROFILE               "use_profile "
-#define KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
-#define KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
-#define KEYWORD_EXECUTE_HANDLER           "execute_handler"
-#define KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
-#define KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
+#define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
+#define CCS_KEYWORD_AGGREGATOR                "aggregator "
+#define CCS_KEYWORD_ALLOW_ARGV0               "allow_argv0 "
+#define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
+#define CCS_KEYWORD_ALLOW_CHROOT              "allow_chroot "
+#define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
+#define CCS_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
+#define CCS_KEYWORD_ALLOW_CHMOD               "allow_chmod "
+#define CCS_KEYWORD_ALLOW_CHOWN               "allow_chown "
+#define CCS_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
+#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
+#define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
+#define CCS_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
+#define CCS_KEYWORD_ALLOW_READ                "allow_read "
+#define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
+#define CCS_KEYWORD_DELETE                    "delete "
+#define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
+#define CCS_KEYWORD_DENY_REWRITE              "deny_rewrite "
+#define CCS_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
+#define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
+#define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
+#define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
+#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
+#define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
+#define CCS_KEYWORD_PATH_GROUP                "path_group "
+#define CCS_KEYWORD_NUMBER_GROUP              "number_group "
+#define CCS_KEYWORD_SELECT                    "select "
+#define CCS_KEYWORD_USE_PROFILE               "use_profile "
+#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
+#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
+#define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
+#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
+#define CCS_KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
 /* A domain definition starts with <kernel>. */
 #define ROOT_NAME                         "<kernel>"
 #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
@@ -872,7 +874,6 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname, const u8 profile);
 struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
-struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int profile);
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain, const u8 index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
@@ -905,7 +906,7 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 /* Get type of an ACL entry. */
 static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
 {
-	return ptr->type & ~ACL_DELETED;
+	return ptr->type & ~CCS_ACL_DELETED;
 }
 
 /* Get type of an ACL entry. */
@@ -945,7 +946,7 @@ struct ccs_profile {
 	const struct ccs_path_info *comment;
 	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
 };
-extern struct ccs_profile *ccs_profile_ptr[MAX_PROFILES];
+extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 extern const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX];
 

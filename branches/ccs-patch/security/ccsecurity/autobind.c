@@ -140,7 +140,8 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 		max_port = ptr->max_port;
 		snprintf(buffer, sizeof(buffer) - 1, "%u%c%u", min_port,
 			 min_port != max_port ? '-' : '\0', max_port);
-		if (!ccs_io_printf(head, KEYWORD_DENY_AUTOBIND "%s\n", buffer))
+		if (!ccs_io_printf(head, CCS_KEYWORD_DENY_AUTOBIND "%s\n",
+				   buffer))
 			return false;
 	}
 	return true;

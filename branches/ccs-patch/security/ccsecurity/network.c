@@ -21,14 +21,14 @@
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {
-	NETWORK_ACL_UDP_BIND,
-	NETWORK_ACL_UDP_CONNECT,
-	NETWORK_ACL_TCP_BIND,
-	NETWORK_ACL_TCP_LISTEN,
-	NETWORK_ACL_TCP_CONNECT,
-	NETWORK_ACL_TCP_ACCEPT,
-	NETWORK_ACL_RAW_BIND,
-	NETWORK_ACL_RAW_CONNECT
+	CCS_NETWORK_ACL_UDP_BIND,
+	CCS_NETWORK_ACL_UDP_CONNECT,
+	CCS_NETWORK_ACL_TCP_BIND,
+	CCS_NETWORK_ACL_TCP_LISTEN,
+	CCS_NETWORK_ACL_TCP_CONNECT,
+	CCS_NETWORK_ACL_TCP_ACCEPT,
+	CCS_NETWORK_ACL_RAW_BIND,
+	CCS_NETWORK_ACL_RAW_CONNECT
 };
 
 /**
@@ -50,7 +50,7 @@ static int ccs_audit_network_log(struct ccs_request_info *r,
 		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(r->mode == 3), operation, address, port,
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_NETWORK
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_NETWORK
 				   "%s %s %u\n", operation, address, port);
 }
 
@@ -347,7 +347,7 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 						 HIPQUAD(max_address));
 				}
 			}
-			done = ccs_io_printf(head, KEYWORD_ADDRESS_GROUP
+			done = ccs_io_printf(head, CCS_KEYWORD_ADDRESS_GROUP
 					     "%s %s\n", group->group_name->name,
 					     buf);
 			if (!done)
@@ -394,28 +394,28 @@ const char *ccs_net2keyword(const u8 operation)
 {
 	const char *keyword = "unknown";
 	switch (operation) {
-	case NETWORK_ACL_UDP_BIND:
+	case CCS_NETWORK_ACL_UDP_BIND:
 		keyword = "UDP bind";
 		break;
-	case NETWORK_ACL_UDP_CONNECT:
+	case CCS_NETWORK_ACL_UDP_CONNECT:
 		keyword = "UDP connect";
 		break;
-	case NETWORK_ACL_TCP_BIND:
+	case CCS_NETWORK_ACL_TCP_BIND:
 		keyword = "TCP bind";
 		break;
-	case NETWORK_ACL_TCP_LISTEN:
+	case CCS_NETWORK_ACL_TCP_LISTEN:
 		keyword = "TCP listen";
 		break;
-	case NETWORK_ACL_TCP_CONNECT:
+	case CCS_NETWORK_ACL_TCP_CONNECT:
 		keyword = "TCP connect";
 		break;
-	case NETWORK_ACL_TCP_ACCEPT:
+	case CCS_NETWORK_ACL_TCP_ACCEPT:
 		keyword = "TCP accept";
 		break;
-	case NETWORK_ACL_RAW_BIND:
+	case CCS_NETWORK_ACL_RAW_BIND:
 		keyword = "RAW bind";
 		break;
-	case NETWORK_ACL_RAW_CONNECT:
+	case CCS_NETWORK_ACL_RAW_CONNECT:
 		keyword = "RAW connect";
 		break;
 	}
@@ -451,7 +451,7 @@ static int ccs_update_network_entry(const char *protocol,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	u8 sock_type;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_IP_NETWORK_ACL;
+	e.head.type = CCS_TYPE_IP_NETWORK_ACL;
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
@@ -466,36 +466,36 @@ static int ccs_update_network_entry(const char *protocol,
 	if (!strcmp(operation, "bind"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = NETWORK_ACL_TCP_BIND;
+			e.operation_type = CCS_NETWORK_ACL_TCP_BIND;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = NETWORK_ACL_UDP_BIND;
+			e.operation_type = CCS_NETWORK_ACL_UDP_BIND;
 			break;
 		default:
-			e.operation_type = NETWORK_ACL_RAW_BIND;
+			e.operation_type = CCS_NETWORK_ACL_RAW_BIND;
 			break;
 		}
 	else if (!strcmp(operation, "connect"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = NETWORK_ACL_TCP_CONNECT;
+			e.operation_type = CCS_NETWORK_ACL_TCP_CONNECT;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = NETWORK_ACL_UDP_CONNECT;
+			e.operation_type = CCS_NETWORK_ACL_UDP_CONNECT;
 			break;
 		default:
-			e.operation_type = NETWORK_ACL_RAW_CONNECT;
+			e.operation_type = CCS_NETWORK_ACL_RAW_CONNECT;
 			break;
 		}
 	else if (sock_type == SOCK_STREAM && !strcmp(operation, "listen"))
-		e.operation_type = NETWORK_ACL_TCP_LISTEN;
+		e.operation_type = CCS_NETWORK_ACL_TCP_LISTEN;
 	else if (sock_type == SOCK_STREAM && !strcmp(operation, "accept"))
-		e.operation_type = NETWORK_ACL_TCP_ACCEPT;
+		e.operation_type = CCS_NETWORK_ACL_TCP_ACCEPT;
 	else
 		return -EINVAL;
 	switch (ccs_parse_ip_address(address, min_address, max_address)) {
 	case 2:
-		e.record_type = IP_RECORD_TYPE_IPv6;
+		e.record_type = CCS_IP_RECORD_TYPE_IPv6;
 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
 							  min_address);
 		e.address.ipv6.max = ccs_get_ipv6_address((struct in6_addr *)
@@ -504,7 +504,7 @@ static int ccs_update_network_entry(const char *protocol,
 			goto out;
 		break;
 	case 1:
-		e.record_type = IP_RECORD_TYPE_IPv4;
+		e.record_type = CCS_IP_RECORD_TYPE_IPv4;
 		/* use host byte order to allow u32 comparison.*/
 		e.address.ipv4.min = ntohl(* (u32 *) min_address);
 		e.address.ipv4.max = ntohl(* (u32 *) max_address);
@@ -512,7 +512,7 @@ static int ccs_update_network_entry(const char *protocol,
 	default:
 		if (address[0] != '@')
 			return -EINVAL;
-		e.record_type = IP_RECORD_TYPE_ADDRESS_GROUP;
+		e.record_type = CCS_IP_RECORD_TYPE_ADDRESS_GROUP;
 		e.address.group = ccs_get_address_group(address + 1);
 		if (!e.address.group)
 			return -ENOMEM;
@@ -526,7 +526,7 @@ static int ccs_update_network_entry(const char *protocol,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_IP_NETWORK_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_IP_NETWORK_ACL)
 			continue;
 		//if (ptr->cond != condition)
 		//continue;
@@ -549,7 +549,7 @@ static int ccs_update_network_entry(const char *protocol,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_IP_NETWORK_ACL)
 			continue;
 		//if (ptr->cond != condition)
 		//continue;
@@ -564,7 +564,7 @@ static int ccs_update_network_entry(const char *protocol,
  out:
 	if (address[0] == '@')
 		ccs_put_address_group(e.address.group);
-	else if (e.record_type == IP_RECORD_TYPE_IPv6) {
+	else if (e.record_type == CCS_IP_RECORD_TYPE_IPv6) {
 		ccs_put_ipv6_address(e.address.ipv6.min);
 		ccs_put_ipv6_address(e.address.ipv6.max);
 	}
@@ -606,7 +606,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
  retry:
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_IP_NETWORK_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_IP_NETWORK_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
 		if (acl->operation_type != operation)
@@ -614,11 +614,11 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		if (!ccs_compare_number_union(port, &acl->port) ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
-		if (acl->record_type == IP_RECORD_TYPE_ADDRESS_GROUP) {
+		if (acl->record_type == CCS_IP_RECORD_TYPE_ADDRESS_GROUP) {
 			if (!ccs_address_matches_group(is_ipv6, address,
 						       acl->address.group))
 				continue;
-		} else if (acl->record_type == IP_RECORD_TYPE_IPv4) {
+		} else if (acl->record_type == CCS_IP_RECORD_TYPE_IPv4) {
 			if (is_ipv6 ||
 			    ip < acl->address.ipv4.min ||
 			    acl->address.ipv4.max < ip)
@@ -643,7 +643,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	if (found)
 		return 0;
 	if (is_enforce) {
-		int err = ccs_check_supervisor(&r, KEYWORD_ALLOW_NETWORK
+		int err = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
 					       "%s %s %u\n", keyword, buf,
 					       port);
 		if (err == 1)
@@ -717,7 +717,7 @@ static inline int ccs_check_network_listen_acl(const bool is_ipv6,
 					       const u8 *address,
 					       const u16 port)
 {
-	return ccs_check_network_entry(is_ipv6, NETWORK_ACL_TCP_LISTEN,
+	return ccs_check_network_entry(is_ipv6, CCS_NETWORK_ACL_TCP_LISTEN,
 				       (const u32 *) address, ntohs(port));
 }
 
@@ -739,13 +739,13 @@ static inline int ccs_check_network_connect_acl(const bool is_ipv6,
 	u8 operation;
 	switch (sock_type) {
 	case SOCK_STREAM:
-		operation = NETWORK_ACL_TCP_CONNECT;
+		operation = CCS_NETWORK_ACL_TCP_CONNECT;
 		break;
 	case SOCK_DGRAM:
-		operation = NETWORK_ACL_UDP_CONNECT;
+		operation = CCS_NETWORK_ACL_UDP_CONNECT;
 		break;
 	default:
-		operation = NETWORK_ACL_RAW_CONNECT;
+		operation = CCS_NETWORK_ACL_RAW_CONNECT;
 	}
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
@@ -767,13 +767,13 @@ static int ccs_check_network_bind_acl(const bool is_ipv6, const int sock_type,
 	u8 operation;
 	switch (sock_type) {
 	case SOCK_STREAM:
-		operation = NETWORK_ACL_TCP_BIND;
+		operation = CCS_NETWORK_ACL_TCP_BIND;
 		break;
 	case SOCK_DGRAM:
-		operation = NETWORK_ACL_UDP_BIND;
+		operation = CCS_NETWORK_ACL_UDP_BIND;
 		break;
 	default:
-		operation = NETWORK_ACL_RAW_BIND;
+		operation = CCS_NETWORK_ACL_RAW_BIND;
 	}
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
@@ -794,7 +794,7 @@ static inline int ccs_check_network_accept_acl(const bool is_ipv6,
 {
 	int retval;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_check_network_entry(is_ipv6, NETWORK_ACL_TCP_ACCEPT,
+	retval = ccs_check_network_entry(is_ipv6, CCS_NETWORK_ACL_TCP_ACCEPT,
 					 (const u32 *) address, ntohs(port));
 	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
@@ -817,9 +817,9 @@ static inline int ccs_check_network_sendmsg_acl(const bool is_ipv6,
 {
 	u8 operation;
 	if (sock_type == SOCK_DGRAM)
-		operation = NETWORK_ACL_UDP_CONNECT;
+		operation = CCS_NETWORK_ACL_UDP_CONNECT;
 	else
-		operation = NETWORK_ACL_RAW_CONNECT;
+		operation = CCS_NETWORK_ACL_RAW_CONNECT;
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
 }
@@ -842,7 +842,7 @@ static inline int ccs_check_network_recvmsg_acl(const bool is_ipv6,
 	int retval;
 	const u8 operation
 		= (sock_type == SOCK_DGRAM) ?
-		NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT;
+		CCS_NETWORK_ACL_UDP_CONNECT : CCS_NETWORK_ACL_RAW_CONNECT;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	retval = ccs_check_network_entry(is_ipv6, operation,
 					 (const u32 *) address, ntohs(port));

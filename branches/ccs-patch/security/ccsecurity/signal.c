@@ -36,7 +36,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 		       ccs_get_msg(r->mode == 3), signal, dest,
 		       ccs_get_last_name(r->domain));
 	}
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_SIGNAL
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_SIGNAL
 				   "%d %s\n", signal, dest_domain);
 }
 
@@ -74,7 +74,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_SIGNAL_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -86,7 +86,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 		break;
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_SIGNAL_ACL;
+		entry->head.type = CCS_TYPE_SIGNAL_ACL;
 		entry->head.cond = condition;
 		entry->sig = hash;
 		entry->domainname = saved_dest_pattern;
@@ -100,7 +100,7 @@ static int ccs_update_signal_acl(const int sig, const char *dest_pattern,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_SIGNAL_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -177,7 +177,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
  retry:
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_SIGNAL_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_SIGNAL_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_signal_acl_record, head);
 		if (acl->sig == hash && ccs_check_condition(&r, ptr)) {
@@ -200,7 +200,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	if (found)
 		return 0;
 	if (is_enforce) {
-		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_SIGNAL
+		int error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
 						 "%d %s\n", sig, dest_pattern);
 		if (error == 1)
 			goto retry;

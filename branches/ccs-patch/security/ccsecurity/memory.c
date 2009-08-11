@@ -299,7 +299,7 @@ void ccs_put_condition(struct ccs_condition *cond)
 static unsigned int ccs_string_memory_size;
 static unsigned int ccs_quota_for_string;
 
-#define MAX_HASH 256
+#define CCS_MAX_HASH 256
 
 /* Structure for string data. */
 struct ccs_name_entry {
@@ -310,7 +310,7 @@ struct ccs_name_entry {
 };
 
 /* The list for "struct ccs_name_entry". */
-static struct list_head ccs_name_list[MAX_HASH];
+static struct list_head ccs_name_list[CCS_MAX_HASH];
 static DEFINE_MUTEX(ccs_name_list_lock);
 
 /**
@@ -337,7 +337,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	hash = full_name_hash((const unsigned char *) name, len - 1);
 	/***** EXCLUSIVE SECTION START *****/
 	mutex_lock(&ccs_name_list_lock);
-	list_for_each_entry(ptr, &ccs_name_list[hash % MAX_HASH], list) {
+	list_for_each_entry(ptr, &ccs_name_list[hash % CCS_MAX_HASH], list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 			continue;
 		atomic_inc(&ptr->users);
@@ -362,7 +362,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	atomic_set(&ptr->users, 1);
 	ccs_fill_path_info(&ptr->entry);
 	ptr->size = allocated_len;
-	list_add_tail(&ptr->list, &ccs_name_list[hash % MAX_HASH]);
+	list_add_tail(&ptr->list, &ccs_name_list[hash % CCS_MAX_HASH]);
  out:
 	mutex_unlock(&ccs_name_list_lock);
 	/***** EXCLUSIVE SECTION END *****/
@@ -412,7 +412,7 @@ static int __init ccs_realpath_init(void)
 		panic("Bad size.");
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
-	for (i = 0; i < MAX_HASH; i++)
+	for (i = 0; i < CCS_MAX_HASH; i++)
 		INIT_LIST_HEAD(&ccs_name_list[i]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);

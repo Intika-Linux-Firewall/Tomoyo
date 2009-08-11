@@ -38,7 +38,7 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
 		       "denied for %s\n", ccs_get_msg(r->mode == 3), new_root,
 		       old_root, ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_PIVOT_ROOT
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
 				   "%s %s\n", new_root, old_root);
 }
 
@@ -73,7 +73,7 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_pivot_root_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_PIVOT_ROOT_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_PIVOT_ROOT_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -88,7 +88,7 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_PIVOT_ROOT_ACL;
+		entry->head.type = CCS_TYPE_PIVOT_ROOT_ACL;
 		entry->head.cond = condition;
 		entry->old_root = saved_old_root;
 		saved_old_root = NULL;
@@ -161,7 +161,7 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 		struct ccs_acl_info *ptr;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_pivot_root_acl_record *acl;
-			if (ccs_acl_type2(ptr) != TYPE_PIVOT_ROOT_ACL)
+			if (ccs_acl_type2(ptr) != CCS_TYPE_PIVOT_ROOT_ACL)
 				continue;
 			acl = container_of(ptr,
 					   struct ccs_pivot_root_acl_record,
@@ -181,7 +181,7 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	if (!error)
 		goto out;
 	if (is_enforce)
-		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_PIVOT_ROOT
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
 					     "%s %s\n", new_root, old_root);
 	else if (ccs_domain_quota_ok(&r))
 		ccs_update_pivot_root_acl(old_root, new_root, r.domain, NULL,

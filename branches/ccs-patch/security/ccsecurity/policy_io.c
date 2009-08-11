@@ -107,13 +107,13 @@ bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
  *
  * Returns pointer to "struct ccs_profile" on success, NULL otherwise.
  */
-struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
-						   profile)
+static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
+							  profile)
 {
 	struct ccs_profile *ptr;
 	struct ccs_profile *entry;
 	int i;
-	if (profile >= MAX_PROFILES)
+	if (profile >= CCS_MAX_PROFILES)
 		return NULL;
 	ptr = ccs_profile_ptr[profile];
 	if (ptr)
@@ -180,7 +180,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
-	if (ccs_str_starts(&data, KEYWORD_MAC_FOR_CAPABILITY)) {
+	if (ccs_str_starts(&data, CCS_KEYWORD_MAC_FOR_CAPABILITY)) {
 		if (sscanf(cp + 1, "%u", &value) != 1) {
 			for (i = 0; i < 4; i++) {
 				if (strcmp(cp + 1, ccs_mode_4[i]))
@@ -250,7 +250,8 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 	int step;
 	if (head->read_eof)
 		return 0;
-	for (step = head->read_step; step < MAX_PROFILES * ccs_total; step++) {
+	for (step = head->read_step; step < CCS_MAX_PROFILES * ccs_total;
+	     step++) {
 		const u8 index = step / ccs_total;
 		u8 type = step % ccs_total;
 		const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
@@ -277,7 +278,7 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			const int i = type - CCS_MAX_CONTROL_INDEX;
 			const u8 value = ccs_profile->capability_value[i];
 			if (!ccs_io_printf(head,
-					   "%u-" KEYWORD_MAC_FOR_CAPABILITY
+					   "%u-" CCS_KEYWORD_MAC_FOR_CAPABILITY
 					   "%s=%s\n", index,
 					   ccs_capability_control_keyword[i],
 					   ccs_mode_4[value]))
@@ -305,7 +306,7 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			}
 		}
 	}
-	if (step == MAX_PROFILES * ccs_total)
+	if (step == CCS_MAX_PROFILES * ccs_total)
 		head->read_eof = true;
 	return 0;
 }
@@ -373,7 +374,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 static int ccs_write_manager_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = ccs_str_starts(&data, KEYWORD_DELETE);
+	bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
 	if (!strcmp(data, "manage_by_non_root")) {
 		ccs_manage_by_non_root = !is_delete;
 		return 0;
@@ -566,9 +567,9 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	struct ccs_condition *cond = NULL;
 	char *cp;
 	int error;
-	if (ccs_str_starts(&data, KEYWORD_DELETE))
+	if (ccs_str_starts(&data, CCS_KEYWORD_DELETE))
 		is_delete = true;
-	else if (ccs_str_starts(&data, KEYWORD_SELECT))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_SELECT))
 		is_select = true;
 	if (is_select && ccs_is_select_one(head, data))
 		return 0;
@@ -589,17 +590,17 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	if (!domain)
 		return -EINVAL;
 
-	if (sscanf(data, KEYWORD_USE_PROFILE "%u", &profile) == 1
-	    && profile < MAX_PROFILES) {
+	if (sscanf(data, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1
+	    && profile < CCS_MAX_PROFILES) {
 		if (ccs_profile_ptr[profile] || !ccs_policy_loaded)
 			domain->profile = (u8) profile;
 		return 0;
 	}
-	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
+	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
 		domain->ignore_global_allow_read = !is_delete;
 		return 0;
 	}
-	if (!strcmp(data, KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
+	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
 		domain->ignore_global_allow_env = !is_delete;
 		return 0;
 	}
@@ -609,24 +610,24 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		if (!cond)
 			return -EINVAL;
 	}
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_CAPABILITY))
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CAPABILITY))
 		error = ccs_write_capability_policy(data, domain, cond,
 						    is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_NETWORK))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_NETWORK))
 		error = ccs_write_network_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_SIGNAL))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_SIGNAL))
 		error = ccs_write_signal_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ARGV0))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ARGV0))
 		error = ccs_write_argv0_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
 		error = ccs_write_env_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_MOUNT))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
 		error = ccs_write_mount_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_UNMOUNT))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_UNMOUNT))
 		error = ccs_write_umount_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_CHROOT))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CHROOT))
 		error = ccs_write_chroot_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, KEYWORD_ALLOW_PIVOT_ROOT))
+	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_PIVOT_ROOT))
 		error = ccs_write_pivot_root_policy(data, domain, cond,
 						    is_delete);
 	else
@@ -663,11 +664,11 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head,
 	min = ptr->values[0];
 	max = ptr->values[1];
 	switch (min_type) {
-	case VALUE_TYPE_HEXADECIMAL:
+	case CCS_VALUE_TYPE_HEXADECIMAL:
 		if (!ccs_io_printf(head, " 0x%lX", min))
 			return false;
 		break;
-	case VALUE_TYPE_OCTAL:
+	case CCS_VALUE_TYPE_OCTAL:
 		if (!ccs_io_printf(head, " 0%lo", min))
 			return false;
 		break;
@@ -679,9 +680,9 @@ static bool ccs_print_number_union(struct ccs_io_buffer *head,
 	if (min == max && min_type == max_type)
 		return true;
 	switch (max_type) {
-	case VALUE_TYPE_HEXADECIMAL:
+	case CCS_VALUE_TYPE_HEXADECIMAL:
 		return ccs_io_printf(head, "-0x%lX", max);
-	case VALUE_TYPE_OCTAL:
+	case CCS_VALUE_TYPE_OCTAL:
 		return ccs_io_printf(head, "-0%lo", max);
 	default:
 		return ccs_io_printf(head, "-%lu", max);
@@ -704,15 +705,15 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < MAX_SINGLE_PATH_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_SINGLE_PATH_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
-		if (head->read_execute_only && bit != TYPE_EXECUTE_ACL)
+		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE_ACL)
 			continue;
 		/* Print "read/write" instead of "read" and "write". */
-		if ((bit == TYPE_READ_ACL || bit == TYPE_WRITE_ACL)
-		    && (perm & (1 << TYPE_READ_WRITE_ACL)))
+		if ((bit == CCS_TYPE_READ_ACL || bit == CCS_TYPE_WRITE_ACL)
+		    && (perm & (1 << CCS_TYPE_READ_WRITE_ACL)))
 			continue;
 		msg = ccs_sp2keyword(bit);
 		pos = head->read_avail;
@@ -745,7 +746,7 @@ static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < MAX_MKDEV_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_MKDEV_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
@@ -782,7 +783,7 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < MAX_DOUBLE_PATH_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_DOUBLE_PATH_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
@@ -818,7 +819,7 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < MAX_PATH_NUMBER_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
@@ -852,7 +853,7 @@ static bool ccs_print_argv0_acl(struct ccs_io_buffer *head,
 				const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_ARGV0 "%s %s",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ARGV0 "%s %s",
 			   ptr->filename->name, ptr->argv0->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -877,7 +878,7 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
 			      const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s", ptr->env->name))
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
 		goto out;
@@ -901,7 +902,7 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
 				     const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_CAPABILITY "%s",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
 			   ccs_cap2keyword(ptr->operation)))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -972,20 +973,20 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 				  const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_NETWORK "%s ",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
 			   ccs_net2keyword(ptr->operation_type)))
 		goto out;
 	switch (ptr->record_type) {
-	case IP_RECORD_TYPE_ADDRESS_GROUP:
+	case CCS_IP_RECORD_TYPE_ADDRESS_GROUP:
 		if (!ccs_io_printf(head, "@%s",
 				   ptr->address.group->group_name->name))
 			goto out;
 		break;
-	case IP_RECORD_TYPE_IPv4:
+	case CCS_IP_RECORD_TYPE_IPv4:
 		if (!ccs_print_ipv4_entry(head, ptr))
 			goto out;
 		break;
-	case IP_RECORD_TYPE_IPv6:
+	case CCS_IP_RECORD_TYPE_IPv6:
 		if (!ccs_print_ipv6_entry(head, ptr))
 			goto out;
 		break;
@@ -1013,7 +1014,7 @@ static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
 				 const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_SIGNAL "%u %s",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
 			   ptr->sig, ptr->domainname->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -1055,7 +1056,7 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
 				const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
 			   ptr->dev_name->name, ptr->dir_name->name,
 			   ptr->fs_type->name, ptr->flags))
 		goto out;
@@ -1081,7 +1082,7 @@ static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
 				 const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_UNMOUNT "%s\n",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_UNMOUNT "%s\n",
 			   ptr->dir->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -1106,7 +1107,7 @@ static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
 				 const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_CHROOT "%s\n",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CHROOT "%s\n",
 			   ptr->dir->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -1131,7 +1132,7 @@ static bool ccs_print_pivot_root_acl(struct ccs_io_buffer *head,
 				     const struct ccs_condition *cond)
 {
 	int pos = head->read_avail;
-	if (!ccs_io_printf(head, KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
 			   ptr->new_root->name, ptr->old_root->name))
 		goto out;
 	if (!ccs_print_condition(head, cond))
@@ -1155,97 +1156,97 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 {
 	const struct ccs_condition *cond = ptr->cond;
 	const u8 acl_type = ccs_acl_type2(ptr);
-	if (acl_type & ACL_DELETED)
+	if (acl_type & CCS_ACL_DELETED)
 		return true;
-	if (acl_type == TYPE_SINGLE_PATH_ACL) {
+	if (acl_type == CCS_TYPE_SINGLE_PATH_ACL) {
 		struct ccs_single_path_acl_record *acl
 			= container_of(ptr, struct ccs_single_path_acl_record,
 				       head);
 		return ccs_print_single_path_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_EXECUTE_HANDLER) {
+	if (acl_type == CCS_TYPE_EXECUTE_HANDLER) {
 		struct ccs_execute_handler_record *acl
 			= container_of(ptr, struct ccs_execute_handler_record,
 				       head);
-		const char *keyword = KEYWORD_EXECUTE_HANDLER;
+		const char *keyword = CCS_KEYWORD_EXECUTE_HANDLER;
 		return ccs_print_execute_handler_record(head, keyword, acl);
 	}
-	if (acl_type == TYPE_DENIED_EXECUTE_HANDLER) {
+	if (acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
 		struct ccs_execute_handler_record *acl
 			= container_of(ptr, struct ccs_execute_handler_record,
 				       head);
-		const char *keyword = KEYWORD_DENIED_EXECUTE_HANDLER;
+		const char *keyword = CCS_KEYWORD_DENIED_EXECUTE_HANDLER;
 		return ccs_print_execute_handler_record(head, keyword, acl);
 	}
 	if (head->read_execute_only)
 		return true;
-	if (acl_type == TYPE_MKDEV_ACL) {
+	if (acl_type == CCS_TYPE_MKDEV_ACL) {
 		struct ccs_mkdev_acl_record *acl
 			= container_of(ptr, struct ccs_mkdev_acl_record, head);
 		return ccs_print_mkdev_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_DOUBLE_PATH_ACL) {
+	if (acl_type == CCS_TYPE_DOUBLE_PATH_ACL) {
 		struct ccs_double_path_acl_record *acl
 			= container_of(ptr, struct ccs_double_path_acl_record,
 				       head);
 		return ccs_print_double_path_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_PATH_NUMBER_ACL) {
+	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
 		struct ccs_path_number_acl_record *acl
 			= container_of(ptr, struct ccs_path_number_acl_record,
 				       head);
 		return ccs_print_path_number_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_ARGV0_ACL) {
+	if (acl_type == CCS_TYPE_ARGV0_ACL) {
 		struct ccs_argv0_acl_record *acl
 			= container_of(ptr, struct ccs_argv0_acl_record, head);
 		return ccs_print_argv0_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_ENV_ACL) {
+	if (acl_type == CCS_TYPE_ENV_ACL) {
 		struct ccs_env_acl_record *acl
 			= container_of(ptr, struct ccs_env_acl_record, head);
 		return ccs_print_env_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_CAPABILITY_ACL) {
+	if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl_record *acl
 			= container_of(ptr, struct ccs_capability_acl_record,
 				       head);
 		return ccs_print_capability_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_IP_NETWORK_ACL) {
+	if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
 		struct ccs_ip_network_acl_record *acl
 			= container_of(ptr, struct ccs_ip_network_acl_record,
 				       head);
 		return ccs_print_network_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_SIGNAL_ACL) {
+	if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl_record *acl
 			= container_of(ptr, struct ccs_signal_acl_record, head);
 		return ccs_print_signal_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_MOUNT_ACL) {
+	if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl_record *acl
 			= container_of(ptr, struct ccs_mount_acl_record, head);
 		return ccs_print_mount_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_UMOUNT_ACL) {
+	if (acl_type == CCS_TYPE_UMOUNT_ACL) {
 		struct ccs_umount_acl_record *acl
 			= container_of(ptr, struct ccs_umount_acl_record, head);
 		return ccs_print_umount_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_CHROOT_ACL) {
+	if (acl_type == CCS_TYPE_CHROOT_ACL) {
 		struct ccs_chroot_acl_record *acl
 			= container_of(ptr, struct ccs_chroot_acl_record, head);
 		return ccs_print_chroot_acl(head, acl, cond);
 	}
-	if (acl_type == TYPE_PIVOT_ROOT_ACL) {
+	if (acl_type == CCS_TYPE_PIVOT_ROOT_ACL) {
 		struct ccs_pivot_root_acl_record *acl
 			= container_of(ptr, struct ccs_pivot_root_acl_record,
 				       head);
 		return ccs_print_pivot_root_acl(head, acl, cond);
 	}
 	/* Workaround for gcc 3.2.2's inline bug. */
-	if (acl_type & ACL_DELETED)
+	if (acl_type & CCS_ACL_DELETED)
 		return true;
 	BUG(); /* This must not happen. */
 	return false;
@@ -1287,11 +1288,11 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 			transition_failed = "transition_failed\n";
 		if (domain->ignore_global_allow_read)
 			ignore_global_allow_read
-				= KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
+				= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
 		if (domain->ignore_global_allow_env)
 			ignore_global_allow_env
-				= KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-		if (!ccs_io_printf(head, "%s\n" KEYWORD_USE_PROFILE "%u\n"
+				= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
+		if (!ccs_io_printf(head, "%s\n" CCS_KEYWORD_USE_PROFILE "%u\n"
 				   "%s%s%s%s\n", domain->domainname->name,
 				   domain->profile, quota_exceeded,
 				   transition_failed,
@@ -1347,7 +1348,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 		return -EINVAL;
 	*cp = '\0';
 	profile = simple_strtoul(data, NULL, 10);
-	if (profile >= MAX_PROFILES)
+	if (profile >= CCS_MAX_PROFILES)
 		return -EINVAL;
 	domain = ccs_find_domain(cp + 1);
 	if (domain && (ccs_profile_ptr[profile] || !ccs_policy_loaded))
@@ -1470,34 +1471,34 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = ccs_str_starts(&data, KEYWORD_DELETE);
-	if (ccs_str_starts(&data, KEYWORD_KEEP_DOMAIN))
+	bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
+	if (ccs_str_starts(&data, CCS_KEYWORD_KEEP_DOMAIN))
 		return ccs_write_domain_keeper_policy(data, false, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_NO_KEEP_DOMAIN))
+	if (ccs_str_starts(&data, CCS_KEYWORD_NO_KEEP_DOMAIN))
 		return ccs_write_domain_keeper_policy(data, true, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_INITIALIZE_DOMAIN))
+	if (ccs_str_starts(&data, CCS_KEYWORD_INITIALIZE_DOMAIN))
 		return ccs_write_domain_initializer_policy(data, false,
 							   is_delete);
-	if (ccs_str_starts(&data, KEYWORD_NO_INITIALIZE_DOMAIN))
+	if (ccs_str_starts(&data, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
 		return ccs_write_domain_initializer_policy(data, true,
 							   is_delete);
-	if (ccs_str_starts(&data, KEYWORD_AGGREGATOR))
+	if (ccs_str_starts(&data, CCS_KEYWORD_AGGREGATOR))
 		return ccs_write_aggregator_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_READ))
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_READ))
 		return ccs_write_globally_readable_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ALLOW_ENV))
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
 		return ccs_write_globally_usable_env_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_FILE_PATTERN))
+	if (ccs_str_starts(&data, CCS_KEYWORD_FILE_PATTERN))
 		return ccs_write_pattern_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_PATH_GROUP))
+	if (ccs_str_starts(&data, CCS_KEYWORD_PATH_GROUP))
 		return ccs_write_path_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_NUMBER_GROUP))
+	if (ccs_str_starts(&data, CCS_KEYWORD_NUMBER_GROUP))
 		return ccs_write_number_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_DENY_REWRITE))
+	if (ccs_str_starts(&data, CCS_KEYWORD_DENY_REWRITE))
 		return ccs_write_no_rewrite_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_ADDRESS_GROUP))
+	if (ccs_str_starts(&data, CCS_KEYWORD_ADDRESS_GROUP))
 		return ccs_write_address_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, KEYWORD_DENY_AUTOBIND))
+	if (ccs_str_starts(&data, CCS_KEYWORD_DENY_AUTOBIND))
 		return ccs_write_reserved_port_policy(data, is_delete);
 	return -EINVAL;
 }

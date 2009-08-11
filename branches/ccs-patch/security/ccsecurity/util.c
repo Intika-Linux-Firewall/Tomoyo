@@ -55,7 +55,7 @@ const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
 };
 
 /* Profile table. Memory is allocated as needed. */
-struct ccs_profile *ccs_profile_ptr[MAX_PROFILES];
+struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 /* Utility functions. */
 
@@ -91,11 +91,11 @@ u8 ccs_parse_ulong(unsigned long *result, char **str)
 	*str = ep;
 	switch (base) {
 	case 16:
-		return VALUE_TYPE_HEXADECIMAL;
+		return CCS_VALUE_TYPE_HEXADECIMAL;
 	case 8:
-		return VALUE_TYPE_OCTAL;
+		return CCS_VALUE_TYPE_OCTAL;
 	default:
-		return VALUE_TYPE_DECIMAL;
+		return CCS_VALUE_TYPE_DECIMAL;
 	}
 }
 
@@ -112,11 +112,11 @@ u8 ccs_parse_ulong(unsigned long *result, char **str)
 void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type)
 {
-	if (type == VALUE_TYPE_DECIMAL)
+	if (type == CCS_VALUE_TYPE_DECIMAL)
 		snprintf(buffer, buffer_len, "%lu", value);
-	else if (type == VALUE_TYPE_OCTAL)
+	else if (type == CCS_VALUE_TYPE_OCTAL)
 		snprintf(buffer, buffer_len, "0%lo", value);
-	else if (type == VALUE_TYPE_HEXADECIMAL)
+	else if (type == CCS_VALUE_TYPE_HEXADECIMAL)
 		snprintf(buffer, buffer_len, "0x%lX", value);
 	else
 		snprintf(buffer, buffer_len, "type(%u)", type);
@@ -765,7 +765,7 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (!pattern->is_patterned)
 		return !ccs_pathcmp(filename, pattern);
-	/* Dont compare if the number of '/' differs. */
+	/* Don't compare if the number of '/' differs. */
 	if (filename->depth != pattern->depth)
 		return false;
 	/* Compare the initial length without patterns. */
@@ -881,8 +881,8 @@ unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 		domain = ccs_current_domain();
 	profile = domain->profile;
 	return ccs_policy_loaded && index < CCS_MAX_CONTROL_INDEX
-#if MAX_PROFILES != 256
-		&& profile < MAX_PROFILES
+#if CCS_MAX_PROFILES != 256
+		&& profile < CCS_MAX_PROFILES
 #endif
 		&& ccs_profile_ptr[profile] ?
 		ccs_profile_ptr[profile]->value[index] : 0;
@@ -902,8 +902,8 @@ static u8 ccs_check_capability_flags(const struct ccs_domain_info *domain,
 	const u8 profile = domain ? domain->profile :
 		ccs_current_domain()->profile;
 	return ccs_policy_loaded && index < CCS_MAX_CAPABILITY_INDEX
-#if MAX_PROFILES != 256
-		&& profile < MAX_PROFILES
+#if CCS_MAX_PROFILES != 256
+		&& profile < CCS_MAX_PROFILES
 #endif
 		&& ccs_profile_ptr[profile] ?
 		ccs_profile_ptr[profile]->capability_value[index] : 0;
@@ -977,57 +977,57 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	if (!domain)
 		return true;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		if (ptr->type & ACL_DELETED)
+		if (ptr->type & CCS_ACL_DELETED)
 			continue;
 		switch (ccs_acl_type2(ptr)) {
 			struct ccs_single_path_acl_record *acl1;
 			struct ccs_double_path_acl_record *acl2;
 			u16 perm;
-		case TYPE_SINGLE_PATH_ACL:
+		case CCS_TYPE_SINGLE_PATH_ACL:
 			acl1 = container_of(ptr,
 					    struct ccs_single_path_acl_record,
 					    head);
 			perm = acl1->perm;
-			if (perm & (1 << TYPE_EXECUTE_ACL))
+			if (perm & (1 << CCS_TYPE_EXECUTE_ACL))
 				count++;
-			if (perm &
-			    ((1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL)))
+			if (perm & ((1 << CCS_TYPE_READ_ACL) |
+				    (1 << CCS_TYPE_WRITE_ACL)))
 				count++;
-			if (perm & (1 << TYPE_CREATE_ACL))
+			if (perm & (1 << CCS_TYPE_CREATE_ACL))
 				count++;
-			if (perm & (1 << TYPE_UNLINK_ACL))
+			if (perm & (1 << CCS_TYPE_UNLINK_ACL))
 				count++;
-			if (perm & (1 << TYPE_MKDIR_ACL))
+			if (perm & (1 << CCS_TYPE_MKDIR_ACL))
 				count++;
-			if (perm & (1 << TYPE_RMDIR_ACL))
+			if (perm & (1 << CCS_TYPE_RMDIR_ACL))
 				count++;
-			if (perm & (1 << TYPE_MKFIFO_ACL))
+			if (perm & (1 << CCS_TYPE_MKFIFO_ACL))
 				count++;
-			if (perm & (1 << TYPE_MKSOCK_ACL))
+			if (perm & (1 << CCS_TYPE_MKSOCK_ACL))
 				count++;
-			if (perm & (1 << TYPE_MKBLOCK_ACL))
+			if (perm & (1 << CCS_TYPE_MKBLOCK_ACL))
 				count++;
-			if (perm & (1 << TYPE_MKCHAR_ACL))
+			if (perm & (1 << CCS_TYPE_MKCHAR_ACL))
 				count++;
-			if (perm & (1 << TYPE_TRUNCATE_ACL))
+			if (perm & (1 << CCS_TYPE_TRUNCATE_ACL))
 				count++;
-			if (perm & (1 << TYPE_SYMLINK_ACL))
+			if (perm & (1 << CCS_TYPE_SYMLINK_ACL))
 				count++;
-			if (perm & (1 << TYPE_REWRITE_ACL))
+			if (perm & (1 << CCS_TYPE_REWRITE_ACL))
 				count++;
 			break;
-		case TYPE_DOUBLE_PATH_ACL:
+		case CCS_TYPE_DOUBLE_PATH_ACL:
 			acl2 = container_of(ptr,
 					    struct ccs_double_path_acl_record,
 					    head);
 			perm = acl2->perm;
-			if (perm & (1 << TYPE_LINK_ACL))
+			if (perm & (1 << CCS_TYPE_LINK_ACL))
 				count++;
-			if (perm & (1 << TYPE_RENAME_ACL))
+			if (perm & (1 << CCS_TYPE_RENAME_ACL))
 				count++;
 			break;
-		case TYPE_EXECUTE_HANDLER:
-		case TYPE_DENIED_EXECUTE_HANDLER:
+		case CCS_TYPE_EXECUTE_HANDLER:
+		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
 			break;
 		default:
 			count++;

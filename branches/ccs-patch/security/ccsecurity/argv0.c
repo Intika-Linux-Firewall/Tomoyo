@@ -29,7 +29,7 @@ static int ccs_audit_argv0_log(struct ccs_request_info *r, const char *filename,
 		printk(KERN_WARNING "TOMOYO-%s: Run %s as %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), filename, argv0,
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ARGV0
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_ARGV0
 				   "%s %s\n", filename, argv0);
 }
 
@@ -68,7 +68,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_argv0_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_ARGV0_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_ARGV0_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -80,7 +80,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 		break;
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_ARGV0_ACL;
+		entry->head.type = CCS_TYPE_ARGV0_ACL;
 		entry->head.cond = condition;
 		entry->filename = saved_filename;
 		saved_filename = NULL;
@@ -95,7 +95,7 @@ static int ccs_update_argv0_entry(const char *filename, const char *argv0,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_argv0_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_ARGV0_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -138,7 +138,7 @@ static int ccs_check_argv0_acl(struct ccs_request_info *r,
 	ccs_fill_path_info(&argv_0);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_argv0_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_ARGV0_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_ARGV0_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_argv0_acl_record, head);
 		if (!ccs_check_condition(r, ptr) ||
@@ -179,8 +179,8 @@ int ccs_check_argv0_perm(struct ccs_request_info *r,
 	if (!error)
 		return 0;
 	if (is_enforce)
-		return ccs_check_supervisor(r, KEYWORD_ALLOW_ARGV0 "%s %s\n",
-					    filename->name, argv0);
+		return ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_ARGV0
+					    "%s %s\n", filename->name, argv0);
 	else if (ccs_domain_quota_ok(r)) {
 		struct ccs_condition *cond = ccs_handler_cond();
 		ccs_update_argv0_entry(filename->name, argv0,

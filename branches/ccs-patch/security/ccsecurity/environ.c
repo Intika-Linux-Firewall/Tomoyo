@@ -28,7 +28,7 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), env,
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_ENV "%s\n",
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",
 				   env);
 }
 
@@ -136,7 +136,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 				  list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_ALLOW_ENV "%s\n",
+		done = ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s\n",
 				     ptr->env->name);
 		if (!done)
 			break;
@@ -173,7 +173,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_ENV_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_ENV_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -184,7 +184,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 		break;
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_ENV_ACL;
+		entry->head.type = CCS_TYPE_ENV_ACL;
 		entry->head.cond = condition;
 		entry->env = saved_env;
 		saved_env = NULL;
@@ -197,7 +197,7 @@ static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_ENV_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -235,7 +235,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 	ccs_fill_path_info(&env);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_ENV_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_ENV_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_env_acl_record, head);
 		if (!ccs_check_condition(r, ptr) ||
@@ -276,7 +276,8 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 	if (!error)
 		return 0;
 	if (is_enforce) {
-		error = ccs_check_supervisor(r, KEYWORD_ALLOW_ENV "%s\n", env);
+		error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n",
+					     env);
 		if (error == 1)
 			goto retry;
 		return error;

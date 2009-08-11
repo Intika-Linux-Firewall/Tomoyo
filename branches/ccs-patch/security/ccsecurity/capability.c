@@ -81,7 +81,7 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
 		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), ccs_cap2name(operation),
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CAPABILITY
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY
 				   "%s\n", ccs_cap2keyword(operation));
 }
 
@@ -111,7 +111,7 @@ static int ccs_update_capability_acl(const u8 operation,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_CAPABILITY_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -122,7 +122,7 @@ static int ccs_update_capability_acl(const u8 operation,
 		break;
 	}
 	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_CAPABILITY_ACL;
+		entry->head.type = CCS_TYPE_CAPABILITY_ACL;
 		entry->head.cond = condition;
 		entry->operation = operation;
 		error = ccs_add_domain_acl(domain, &entry->head);
@@ -134,7 +134,7 @@ static int ccs_update_capability_acl(const u8 operation,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_CAPABILITY_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -175,7 +175,7 @@ static bool ccs_capable2(const u8 operation)
  retry:
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_CAPABILITY_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_CAPABILITY_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_capability_acl_record, head);
 		if (acl->operation != operation ||
@@ -189,7 +189,8 @@ static bool ccs_capable2(const u8 operation)
 	if (found)
 		return true;
 	if (is_enforce) {
-		int error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CAPABILITY
+		int error = ccs_check_supervisor(&r,
+						 CCS_KEYWORD_ALLOW_CAPABILITY
 						 "%s\n",
 						 ccs_cap2keyword(operation));
 		if (error == 1)

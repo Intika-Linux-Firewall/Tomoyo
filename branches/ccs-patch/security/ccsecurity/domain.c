@@ -66,7 +66,7 @@ int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
 			atomic_inc(&acl->cond->users);
 		list_add_tail_rcu(&acl->list, &domain->acl_info_list);
 	} else {
-		acl->type &= ~ACL_DELETED;
+		acl->type &= ~CCS_ACL_DELETED;
 	}
 	return 0;
 }
@@ -81,7 +81,7 @@ int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
 int ccs_del_domain_acl(struct ccs_acl_info *acl)
 {
 	if (acl)
-		acl->type |= ACL_DELETED;
+		acl->type |= CCS_ACL_DELETED;
 	return 0;
 }
 
@@ -100,8 +100,8 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 	const char *handler = ee->handler->name;
 	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_FILE);
 	return ccs_write_audit_log(true, r, "%s %s\n",
-				   is_default ? KEYWORD_EXECUTE_HANDLER :
-				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
+				   is_default ? CCS_KEYWORD_EXECUTE_HANDLER :
+				   CCS_KEYWORD_DENIED_EXECUTE_HANDLER, handler);
 }
 
 /**
@@ -221,7 +221,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 			domain = ptr->domainname->name;
 		}
 		done = ccs_io_printf(head,
-				     "%s" KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
+				     "%s" CCS_KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
 				     no, ptr->program->name, from, domain);
 		if (!done)
 			break;
@@ -412,9 +412,9 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 			from = " from ";
 			program = ptr->program->name;
 		}
-		done = ccs_io_printf(head,
-				     "%s" KEYWORD_KEEP_DOMAIN "%s%s%s\n", no,
-				     program, from, ptr->domainname->name);
+		done = ccs_io_printf(head, "%s" CCS_KEYWORD_KEEP_DOMAIN
+				     "%s%s%s\n", no, program, from,
+				     ptr->domainname->name);
 		if (!done)
 			break;
 	}
@@ -538,7 +538,7 @@ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 		ptr = list_entry(pos, struct ccs_aggregator_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_AGGREGATOR "%s %s\n",
+		done = ccs_io_printf(head, CCS_KEYWORD_AGGREGATOR "%s %s\n",
 				     ptr->original_name->name,
 				     ptr->aggregated_name->name);
 		if (!done)
@@ -1445,7 +1445,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
 	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	if (ccs_find_execute_handler(ee, TYPE_EXECUTE_HANDLER)) {
+	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(ee);
 		if (!retval)
 			ccs_audit_execute_handler_log(ee, true);
@@ -1454,7 +1454,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
 	retval = ccs_find_next_domain(ee);
 	if (retval != -EPERM)
 		goto ok;
-	if (ccs_find_execute_handler(ee, TYPE_DENIED_EXECUTE_HANDLER)) {
+	if (ccs_find_execute_handler(ee, CCS_TYPE_DENIED_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(ee);
 		if (!retval)
 			ccs_audit_execute_handler_log(ee, false);

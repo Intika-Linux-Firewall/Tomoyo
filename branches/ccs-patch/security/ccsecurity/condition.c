@@ -316,7 +316,7 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
 	const struct ccs_path_info *value;
 	bool is_not;
 	char c;
-	if (ccs_parse_ulong(&index, &start) != VALUE_TYPE_DECIMAL)
+	if (ccs_parse_ulong(&index, &start) != CCS_VALUE_TYPE_DECIMAL)
 		goto out;
 	if (*start++ != ']')
 		goto out;
@@ -393,149 +393,149 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 }
 
 /* The list for "struct ccs_condition". */
-LIST_HEAD(ccs_condition_list);
+static LIST_HEAD(ccs_condition_list);
 
 enum ccs_conditions_index {
-	TASK_UID,             /* current_uid()   */
-	TASK_EUID,            /* current_euid()  */
-	TASK_SUID,            /* current_suid()  */
-	TASK_FSUID,           /* current_fsuid() */
-	TASK_GID,             /* current_gid()   */
-	TASK_EGID,            /* current_egid()  */
-	TASK_SGID,            /* current_sgid()  */
-	TASK_FSGID,           /* current_fsgid() */
-	TASK_PID,             /* sys_getpid()   */
-	TASK_PPID,            /* sys_getppid()  */
-	EXEC_ARGC,            /* "struct linux_binprm *"->argc */
-	EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
-	TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
-	TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
-	TYPE_SOCKET,          /* S_IFSOCK */
-	TYPE_SYMLINK,         /* S_IFLNK */
-	TYPE_FILE,            /* S_IFREG */
-	TYPE_BLOCK_DEV,       /* S_IFBLK */
-	TYPE_DIRECTORY,       /* S_IFDIR */
-	TYPE_CHAR_DEV,        /* S_IFCHR */
-	TYPE_FIFO,            /* S_IFIFO */
-	MODE_SETUID,          /* S_ISUID */
-	MODE_SETGID,          /* S_ISGID */
-	MODE_STICKY,          /* S_ISVTX */
-	MODE_OWNER_READ,      /* S_IRUSR */
-	MODE_OWNER_WRITE,     /* S_IWUSR */
-	MODE_OWNER_EXECUTE,   /* S_IXUSR */
-	MODE_GROUP_READ,      /* S_IRGRP */
-	MODE_GROUP_WRITE,     /* S_IWGRP */
-	MODE_GROUP_EXECUTE,   /* S_IXGRP */
-	MODE_OTHERS_READ,     /* S_IROTH */
-	MODE_OTHERS_WRITE,    /* S_IWOTH */
-	MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-	TASK_TYPE,            /* ((u8) task->ccs_flags) &
-				 CCS_TASK_IS_EXECUTE_HANDLER */
-	TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
-	EXEC_REALPATH,
-	SYMLINK_TARGET,
-	PATH1_UID,
-	PATH1_GID,
-	PATH1_INO,
-	PATH1_MAJOR,
-	PATH1_MINOR,
-	PATH1_PERM,
-	PATH1_TYPE,
-	PATH1_DEV_MAJOR,
-	PATH1_DEV_MINOR,
-	PATH2_UID,
-	PATH2_GID,
-	PATH2_INO,
-	PATH2_MAJOR,
-	PATH2_MINOR,
-	PATH2_PERM,
-	PATH2_TYPE,
-	PATH2_DEV_MAJOR,
-	PATH2_DEV_MINOR,
-	PATH1_PARENT_UID,
-	PATH1_PARENT_GID,
-	PATH1_PARENT_INO,
-	PATH1_PARENT_PERM,
-	PATH2_PARENT_UID,
-	PATH2_PARENT_GID,
-	PATH2_PARENT_INO,
-	PATH2_PARENT_PERM,
-	MAX_KEYWORD,
-	CONSTANT_VALUE,
-	CONSTANT_VALUE_RANGE,
-	ARGV_ENTRY,
-	ENVP_ENTRY,
-	PATH_INFO,
-	PATH_GROUP,
-	NUMBER_GROUP,
+	CCS_TASK_UID,             /* current_uid()   */
+	CCS_TASK_EUID,            /* current_euid()  */
+	CCS_TASK_SUID,            /* current_suid()  */
+	CCS_TASK_FSUID,           /* current_fsuid() */
+	CCS_TASK_GID,             /* current_gid()   */
+	CCS_TASK_EGID,            /* current_egid()  */
+	CCS_TASK_SGID,            /* current_sgid()  */
+	CCS_TASK_FSGID,           /* current_fsgid() */
+	CCS_TASK_PID,             /* sys_getpid()   */
+	CCS_TASK_PPID,            /* sys_getppid()  */
+	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
+	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
+	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
+	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
+	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
+	CCS_TYPE_SOCKET,          /* S_IFSOCK */
+	CCS_TYPE_SYMLINK,         /* S_IFLNK */
+	CCS_TYPE_FILE,            /* S_IFREG */
+	CCS_TYPE_BLOCK_DEV,       /* S_IFBLK */
+	CCS_TYPE_DIRECTORY,       /* S_IFDIR */
+	CCS_TYPE_CHAR_DEV,        /* S_IFCHR */
+	CCS_TYPE_FIFO,            /* S_IFIFO */
+	CCS_MODE_SETUID,          /* S_ISUID */
+	CCS_MODE_SETGID,          /* S_ISGID */
+	CCS_MODE_STICKY,          /* S_ISVTX */
+	CCS_MODE_OWNER_READ,      /* S_IRUSR */
+	CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
+	CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
+	CCS_MODE_GROUP_READ,      /* S_IRGRP */
+	CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
+	CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
+	CCS_MODE_OTHERS_READ,     /* S_IROTH */
+	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
+	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
+	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
+				     CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_EXEC_REALPATH,
+	CCS_SYMLINK_TARGET,
+	CCS_PATH1_UID,
+	CCS_PATH1_GID,
+	CCS_PATH1_INO,
+	CCS_PATH1_MAJOR,
+	CCS_PATH1_MINOR,
+	CCS_PATH1_PERM,
+	CCS_PATH1_TYPE,
+	CCS_PATH1_DEV_MAJOR,
+	CCS_PATH1_DEV_MINOR,
+	CCS_PATH2_UID,
+	CCS_PATH2_GID,
+	CCS_PATH2_INO,
+	CCS_PATH2_MAJOR,
+	CCS_PATH2_MINOR,
+	CCS_PATH2_PERM,
+	CCS_PATH2_TYPE,
+	CCS_PATH2_DEV_MAJOR,
+	CCS_PATH2_DEV_MINOR,
+	CCS_PATH1_PARENT_UID,
+	CCS_PATH1_PARENT_GID,
+	CCS_PATH1_PARENT_INO,
+	CCS_PATH1_PARENT_PERM,
+	CCS_PATH2_PARENT_UID,
+	CCS_PATH2_PARENT_GID,
+	CCS_PATH2_PARENT_INO,
+	CCS_PATH2_PARENT_PERM,
+	CCS_MAX_KEYWORD,
+	CCS_CONSTANT_VALUE,
+	CCS_CONSTANT_VALUE_RANGE,
+	CCS_ARGV_ENTRY,
+	CCS_ENVP_ENTRY,
+	CCS_PATH_INFO,
+	CCS_PATH_GROUP,
+	CCS_NUMBER_GROUP,
 };
 
-static const char *ccs_condition_keyword[MAX_KEYWORD] = {
-	[TASK_UID]             = "task.uid",
-	[TASK_EUID]            = "task.euid",
-	[TASK_SUID]            = "task.suid",
-	[TASK_FSUID]           = "task.fsuid",
-	[TASK_GID]             = "task.gid",
-	[TASK_EGID]            = "task.egid",
-	[TASK_SGID]            = "task.sgid",
-	[TASK_FSGID]           = "task.fsgid",
-	[TASK_PID]             = "task.pid",
-	[TASK_PPID]            = "task.ppid",
-	[EXEC_ARGC]            = "exec.argc",
-	[EXEC_ENVC]            = "exec.envc",
-	[TASK_STATE_0]         = "task.state[0]",
-	[TASK_STATE_1]         = "task.state[1]",
-	[TASK_STATE_2]         = "task.state[2]",
-	[TYPE_SOCKET]          = "socket",
-	[TYPE_SYMLINK]         = "symlink",
-	[TYPE_FILE]            = "file",
-	[TYPE_BLOCK_DEV]       = "block",
-	[TYPE_DIRECTORY]       = "directory",
-	[TYPE_CHAR_DEV]        = "char",
-	[TYPE_FIFO]            = "fifo",
-	[MODE_SETUID]          = "setuid",
-	[MODE_SETGID]          = "setgid",
-	[MODE_STICKY]          = "sticky",
-	[MODE_OWNER_READ]      = "owner_read",
-	[MODE_OWNER_WRITE]     = "owner_write",
-	[MODE_OWNER_EXECUTE]   = "owner_execute",
-	[MODE_GROUP_READ]      = "group_read",
-	[MODE_GROUP_WRITE]     = "group_write",
-	[MODE_GROUP_EXECUTE]   = "group_execute",
-	[MODE_OTHERS_READ]     = "others_read",
-	[MODE_OTHERS_WRITE]    = "others_write",
-	[MODE_OTHERS_EXECUTE]  = "others_execute",
-	[TASK_TYPE]            = "task.type",
-	[TASK_EXECUTE_HANDLER] = "execute_handler",
-	[EXEC_REALPATH]        = "exec.realpath",
-	[SYMLINK_TARGET]       = "symlink.target",
-	[PATH1_UID]            = "path1.uid",
-	[PATH1_GID]            = "path1.gid",
-	[PATH1_INO]            = "path1.ino",
-	[PATH1_MAJOR]          = "path1.major",
-	[PATH1_MINOR]          = "path1.minor",
-	[PATH1_PERM]           = "path1.perm",
-	[PATH1_TYPE]           = "path1.type",
-	[PATH1_DEV_MAJOR]      = "path1.dev_major",
-	[PATH1_DEV_MINOR]      = "path1.dev_minor",
-	[PATH2_UID]            = "path2.uid",
-	[PATH2_GID]            = "path2.gid",
-	[PATH2_INO]            = "path2.ino",
-	[PATH2_MAJOR]          = "path2.major",
-	[PATH2_MINOR]          = "path2.minor",
-	[PATH2_PERM]           = "path2.perm",
-	[PATH2_TYPE]           = "path2.type",
-	[PATH2_DEV_MAJOR]      = "path2.dev_major",
-	[PATH2_DEV_MINOR]      = "path2.dev_minor",
-	[PATH1_PARENT_UID]     = "path1.parent.uid",
-	[PATH1_PARENT_GID]     = "path1.parent.gid",
-	[PATH1_PARENT_INO]     = "path1.parent.ino",
-	[PATH1_PARENT_PERM]    = "path1.parent.perm",
-	[PATH2_PARENT_UID]     = "path2.parent.uid",
-	[PATH2_PARENT_GID]     = "path2.parent.gid",
-	[PATH2_PARENT_INO]     = "path2.parent.ino",
-	[PATH2_PARENT_PERM]    = "path2.parent.perm",
+static const char *ccs_condition_keyword[CCS_MAX_KEYWORD] = {
+	[CCS_TASK_UID]             = "task.uid",
+	[CCS_TASK_EUID]            = "task.euid",
+	[CCS_TASK_SUID]            = "task.suid",
+	[CCS_TASK_FSUID]           = "task.fsuid",
+	[CCS_TASK_GID]             = "task.gid",
+	[CCS_TASK_EGID]            = "task.egid",
+	[CCS_TASK_SGID]            = "task.sgid",
+	[CCS_TASK_FSGID]           = "task.fsgid",
+	[CCS_TASK_PID]             = "task.pid",
+	[CCS_TASK_PPID]            = "task.ppid",
+	[CCS_EXEC_ARGC]            = "exec.argc",
+	[CCS_EXEC_ENVC]            = "exec.envc",
+	[CCS_TASK_STATE_0]         = "task.state[0]",
+	[CCS_TASK_STATE_1]         = "task.state[1]",
+	[CCS_TASK_STATE_2]         = "task.state[2]",
+	[CCS_TYPE_SOCKET]          = "socket",
+	[CCS_TYPE_SYMLINK]         = "symlink",
+	[CCS_TYPE_FILE]            = "file",
+	[CCS_TYPE_BLOCK_DEV]       = "block",
+	[CCS_TYPE_DIRECTORY]       = "directory",
+	[CCS_TYPE_CHAR_DEV]        = "char",
+	[CCS_TYPE_FIFO]            = "fifo",
+	[CCS_MODE_SETUID]          = "setuid",
+	[CCS_MODE_SETGID]          = "setgid",
+	[CCS_MODE_STICKY]          = "sticky",
+	[CCS_MODE_OWNER_READ]      = "owner_read",
+	[CCS_MODE_OWNER_WRITE]     = "owner_write",
+	[CCS_MODE_OWNER_EXECUTE]   = "owner_execute",
+	[CCS_MODE_GROUP_READ]      = "group_read",
+	[CCS_MODE_GROUP_WRITE]     = "group_write",
+	[CCS_MODE_GROUP_EXECUTE]   = "group_execute",
+	[CCS_MODE_OTHERS_READ]     = "others_read",
+	[CCS_MODE_OTHERS_WRITE]    = "others_write",
+	[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
+	[CCS_TASK_TYPE]            = "task.type",
+	[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
+	[CCS_EXEC_REALPATH]        = "exec.realpath",
+	[CCS_SYMLINK_TARGET]       = "symlink.target",
+	[CCS_PATH1_UID]            = "path1.uid",
+	[CCS_PATH1_GID]            = "path1.gid",
+	[CCS_PATH1_INO]            = "path1.ino",
+	[CCS_PATH1_MAJOR]          = "path1.major",
+	[CCS_PATH1_MINOR]          = "path1.minor",
+	[CCS_PATH1_PERM]           = "path1.perm",
+	[CCS_PATH1_TYPE]           = "path1.type",
+	[CCS_PATH1_DEV_MAJOR]      = "path1.dev_major",
+	[CCS_PATH1_DEV_MINOR]      = "path1.dev_minor",
+	[CCS_PATH2_UID]            = "path2.uid",
+	[CCS_PATH2_GID]            = "path2.gid",
+	[CCS_PATH2_INO]            = "path2.ino",
+	[CCS_PATH2_MAJOR]          = "path2.major",
+	[CCS_PATH2_MINOR]          = "path2.minor",
+	[CCS_PATH2_PERM]           = "path2.perm",
+	[CCS_PATH2_TYPE]           = "path2.type",
+	[CCS_PATH2_DEV_MAJOR]      = "path2.dev_major",
+	[CCS_PATH2_DEV_MINOR]      = "path2.dev_minor",
+	[CCS_PATH1_PARENT_UID]     = "path1.parent.uid",
+	[CCS_PATH1_PARENT_GID]     = "path1.parent.gid",
+	[CCS_PATH1_PARENT_INO]     = "path1.parent.ino",
+	[CCS_PATH1_PARENT_PERM]    = "path1.parent.perm",
+	[CCS_PATH2_PARENT_UID]     = "path2.parent.uid",
+	[CCS_PATH2_PARENT_GID]     = "path2.parent.gid",
+	[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
+	[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
 /**
@@ -618,9 +618,9 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	u16 envc = 0;
 	u8 post_state[4] = { 0, 0, 0, 0 };
 	/* Calculate at runtime. */
-	static u8 ccs_condition_keyword_len[MAX_KEYWORD];
-	if (!ccs_condition_keyword_len[MAX_KEYWORD - 1]) {
-		for (i = 0; i < MAX_KEYWORD; i++)
+	static u8 ccs_condition_keyword_len[CCS_MAX_KEYWORD];
+	if (!ccs_condition_keyword_len[CCS_MAX_KEYWORD - 1]) {
+		for (i = 0; i < CCS_MAX_KEYWORD; i++)
 			ccs_condition_keyword_len[i]
 				= strlen(ccs_condition_keyword[i]);
 	}
@@ -656,7 +656,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				break;
 			continue;
 		}
-		for (left = 0; left < MAX_KEYWORD; left++) {
+		for (left = 0; left < CCS_MAX_KEYWORD; left++) {
 			const int len =
 				ccs_condition_keyword_len[left];
 			if (strncmp(start, ccs_condition_keyword[left],
@@ -669,7 +669,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		if (debug)
 			printk(KERN_WARNING "%u: start=<%s> left=%u\n",
 			       __LINE__, start, left);
-		if (left < MAX_KEYWORD)
+		if (left < CCS_MAX_KEYWORD)
 			goto check_operator_1;
 		if (!ccs_parse_ulong(&left_min, &start))
 			goto out;
@@ -695,7 +695,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		if (*start == '@') {
 			while (*start && *start != ' ')
 				start++;
-			if (left == EXEC_REALPATH || left == SYMLINK_TARGET)
+			if (left == CCS_EXEC_REALPATH ||
+			    left == CCS_SYMLINK_TARGET)
 				path_group_count++;
 			else
 				number_group_count++;
@@ -703,12 +704,13 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		} else if (*start == '"') {
 			while (*start && *start != ' ')
 				start++;
-			if (left != EXEC_REALPATH && left != SYMLINK_TARGET)
+			if (left != CCS_EXEC_REALPATH &&
+			    left != CCS_SYMLINK_TARGET)
 				goto out;
 			path_info_count++;
 			continue;
 		}
-		for (right = 0; right < MAX_KEYWORD; right++) {
+		for (right = 0; right < CCS_MAX_KEYWORD; right++) {
 			const int len =
 				ccs_condition_keyword_len[right];
 			if (strncmp(start, ccs_condition_keyword[right],
@@ -720,7 +722,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		if (debug)
 			printk(KERN_WARNING "%u: start=<%s> right=%u\n",
 			       __LINE__, start, right);
-		if (right < MAX_KEYWORD)
+		if (right < CCS_MAX_KEYWORD)
 			continue;
 		if (!ccs_parse_ulong(&right_min, &start))
 			goto out;
@@ -807,7 +809,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				start = cp;
 			else
 				start = "";
-			left = ARGV_ENTRY;
+			left = CCS_ARGV_ENTRY;
 			goto store_value;
 		} else if (!strncmp(start, "exec.envp[\"", 11)) {
 			char *cp = strchr(start + 11, ' ');
@@ -822,10 +824,10 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				start = cp;
 			else
 				start = "";
-			left = ENVP_ENTRY;
+			left = CCS_ENVP_ENTRY;
 			goto store_value;
 		}
-		for (left = 0; left < MAX_KEYWORD; left++) {
+		for (left = 0; left < CCS_MAX_KEYWORD; left++) {
 			const int len =
 				ccs_condition_keyword_len[left];
 			if (strncmp(start, ccs_condition_keyword[left],
@@ -836,12 +838,12 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			goto check_operator_2;
 		}
 		left_1_type = ccs_parse_ulong(&left_min, &start);
-		left = CONSTANT_VALUE;
+		left = CCS_CONSTANT_VALUE;
 		if (*start != '-')
 			goto check_operator_2;
 		start++;
 		left_2_type = ccs_parse_ulong(&left_max, &start);
-		left = CONSTANT_VALUE_RANGE;
+		left = CCS_CONSTANT_VALUE_RANGE;
  check_operator_2:
 		if (!strncmp(start, "!=", 2)) {
 			start += 2;
@@ -856,13 +858,14 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			char *cp = strchr(start + 1, ' ');
 			if (cp)
 				*cp++ = '\0';
-			if (left == EXEC_REALPATH || left == SYMLINK_TARGET) {
-				right = PATH_GROUP;
+			if (left == CCS_EXEC_REALPATH ||
+			    left == CCS_SYMLINK_TARGET) {
+				right = CCS_PATH_GROUP;
 				path_group = ccs_get_path_group(start + 1);
 				if (!path_group)
 					goto out;
 			} else {
-				right = NUMBER_GROUP;
+				right = CCS_NUMBER_GROUP;
 				number_group = ccs_get_number_group(start + 1);
 				if (!number_group)
 					goto out;
@@ -883,10 +886,10 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				start = cp;
 			else
 				start = "";
-			right = PATH_INFO;
+			right = CCS_PATH_INFO;
 			goto store_value;
 		}
-		for (right = 0; right < MAX_KEYWORD; right++) {
+		for (right = 0; right < CCS_MAX_KEYWORD; right++) {
 			const int len =
 				ccs_condition_keyword_len[right];
 			if (strncmp(start, ccs_condition_keyword[right],
@@ -896,12 +899,12 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			goto store_value;
 		}
 		right_1_type = ccs_parse_ulong(&right_min, &start);
-		right = CONSTANT_VALUE;
+		right = CCS_CONSTANT_VALUE;
 		if (*start != '-')
 			goto store_value;
 		start++;
 		right_2_type = ccs_parse_ulong(&right_max, &start);
-		right = CONSTANT_VALUE_RANGE;
+		right = CCS_CONSTANT_VALUE_RANGE;
  store_value:
 		condp->left = left;
 		condp->right = right;
@@ -1231,13 +1234,13 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		u8 j;
 		condp++;
 		/* Check argv[] and envp[] later. */
-		if (left == ARGV_ENTRY || left == ENVP_ENTRY)
+		if (left == CCS_ARGV_ENTRY || left == CCS_ENVP_ENTRY)
 			continue;
 		/* Check string expressions. */
-		if (right == PATH_INFO || right == PATH_GROUP) {
+		if (right == CCS_PATH_INFO || right == CCS_PATH_GROUP) {
 			const struct ccs_path_info *path = NULL;
 			const struct ccs_path_group *group = NULL;
-			if (right == PATH_INFO)
+			if (right == CCS_PATH_INFO)
 				path = *path_info_p++;
 			else
 				group = *path_group_p++;
@@ -1245,13 +1248,13 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				struct ccs_path_info *symlink;
 				struct ccs_execve_entry *ee;
 				struct file *file;
-			case SYMLINK_TARGET:
+			case CCS_SYMLINK_TARGET:
 				symlink = obj->symlink_target;
 				if (!ccs_scan_symlink_target(symlink, path,
 							     group, match))
 					goto out;
 				break;
-			case EXEC_REALPATH:
+			case CCS_EXEC_REALPATH:
 				ee = r->ee;
 				file = ee ? ee->bprm->file : NULL;
 				if (!ccs_scan_exec_realpath(file, path, group,
@@ -1268,139 +1271,139 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			unsigned long max_v = 0;
 			bool is_bitop = false;
 			switch (index) {
-			case TASK_UID:
+			case CCS_TASK_UID:
 				max_v = current_uid();
 				break;
-			case TASK_EUID:
+			case CCS_TASK_EUID:
 				max_v = current_euid();
 				break;
-			case TASK_SUID:
+			case CCS_TASK_SUID:
 				max_v = current_suid();
 				break;
-			case TASK_FSUID:
+			case CCS_TASK_FSUID:
 				max_v = current_fsuid();
 				break;
-			case TASK_GID:
+			case CCS_TASK_GID:
 				max_v = current_gid();
 				break;
-			case TASK_EGID:
+			case CCS_TASK_EGID:
 				max_v = current_egid();
 				break;
-			case TASK_SGID:
+			case CCS_TASK_SGID:
 				max_v = current_sgid();
 				break;
-			case TASK_FSGID:
+			case CCS_TASK_FSGID:
 				max_v = current_fsgid();
 				break;
-			case TASK_PID:
+			case CCS_TASK_PID:
 				max_v = sys_getpid();
 				break;
-			case TASK_PPID:
+			case CCS_TASK_PPID:
 				max_v = sys_getppid();
 				break;
-			case TYPE_SOCKET:
+			case CCS_TYPE_SOCKET:
 				max_v = S_IFSOCK;
 				break;
-			case TYPE_SYMLINK:
+			case CCS_TYPE_SYMLINK:
 				max_v = S_IFLNK;
 				break;
-			case TYPE_FILE:
+			case CCS_TYPE_FILE:
 				max_v = S_IFREG;
 				break;
-			case TYPE_BLOCK_DEV:
+			case CCS_TYPE_BLOCK_DEV:
 				max_v = S_IFBLK;
 				break;
-			case TYPE_DIRECTORY:
+			case CCS_TYPE_DIRECTORY:
 				max_v = S_IFDIR;
 				break;
-			case TYPE_CHAR_DEV:
+			case CCS_TYPE_CHAR_DEV:
 				max_v = S_IFCHR;
 				break;
-			case TYPE_FIFO:
+			case CCS_TYPE_FIFO:
 				max_v = S_IFIFO;
 				break;
-			case MODE_SETUID:
+			case CCS_MODE_SETUID:
 				max_v = S_ISUID;
 				is_bitop = true;
 				break;
-			case MODE_SETGID:
+			case CCS_MODE_SETGID:
 				max_v = S_ISGID;
 				is_bitop = true;
 				break;
-			case MODE_STICKY:
+			case CCS_MODE_STICKY:
 				max_v = S_ISVTX;
 				is_bitop = true;
 				break;
-			case MODE_OWNER_READ:
+			case CCS_MODE_OWNER_READ:
 				max_v = S_IRUSR;
 				is_bitop = true;
 				break;
-			case MODE_OWNER_WRITE:
+			case CCS_MODE_OWNER_WRITE:
 				max_v = S_IWUSR;
 				is_bitop = true;
 				break;
-			case MODE_OWNER_EXECUTE:
+			case CCS_MODE_OWNER_EXECUTE:
 				max_v = S_IXUSR;
 				is_bitop = true;
 				break;
-			case MODE_GROUP_READ:
+			case CCS_MODE_GROUP_READ:
 				max_v = S_IRGRP;
 				is_bitop = true;
 				break;
-			case MODE_GROUP_WRITE:
+			case CCS_MODE_GROUP_WRITE:
 				max_v = S_IWGRP;
 				is_bitop = true;
 				break;
-			case MODE_GROUP_EXECUTE:
+			case CCS_MODE_GROUP_EXECUTE:
 				max_v = S_IXGRP;
 				is_bitop = true;
 				break;
-			case MODE_OTHERS_READ:
+			case CCS_MODE_OTHERS_READ:
 				max_v = S_IROTH;
 				is_bitop = true;
 				break;
-			case MODE_OTHERS_WRITE:
+			case CCS_MODE_OTHERS_WRITE:
 				max_v = S_IWOTH;
 				is_bitop = true;
 				break;
-			case MODE_OTHERS_EXECUTE:
+			case CCS_MODE_OTHERS_EXECUTE:
 				max_v = S_IXOTH;
 				is_bitop = true;
 				break;
-			case EXEC_ARGC:
+			case CCS_EXEC_ARGC:
 				if (!bprm)
 					goto out;
 				max_v = bprm->argc;
 				break;
-			case EXEC_ENVC:
+			case CCS_EXEC_ENVC:
 				if (!bprm)
 					goto out;
 				max_v = bprm->envc;
 				break;
-			case TASK_STATE_0:
+			case CCS_TASK_STATE_0:
 				max_v = (u8) (task->ccs_flags >> 24);
 				break;
-			case TASK_STATE_1:
+			case CCS_TASK_STATE_1:
 				max_v = (u8) (task->ccs_flags >> 16);
 				break;
-			case TASK_STATE_2:
+			case CCS_TASK_STATE_2:
 				max_v = (u8) (task->ccs_flags >> 8);
 				break;
-			case TASK_TYPE:
+			case CCS_TASK_TYPE:
 				max_v = ((u8) task->ccs_flags)
 					& CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
-			case TASK_EXECUTE_HANDLER:
+			case CCS_TASK_EXECUTE_HANDLER:
 				max_v = CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
-			case CONSTANT_VALUE:
+			case CCS_CONSTANT_VALUE:
 				max_v = *ulong_p++;
 				break;
-			case CONSTANT_VALUE_RANGE:
+			case CCS_CONSTANT_VALUE_RANGE:
 				min_v = *ulong_p++;
 				max_v = *ulong_p++;
 				break;
-			case NUMBER_GROUP:
+			case CCS_NUMBER_GROUP:
 				/* Fetch values later. */
 				break;
 			default:
@@ -1411,135 +1414,135 @@ bool ccs_check_condition(struct ccs_request_info *r,
 					obj->validate_done = true;
 				}
 				switch (index) {
-				case PATH1_UID:
+				case CCS_PATH1_UID:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.uid;
 					break;
-				case PATH1_GID:
+				case CCS_PATH1_GID:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.gid;
 					break;
-				case PATH1_INO:
+				case CCS_PATH1_INO:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.ino;
 					break;
-				case PATH1_MAJOR:
+				case CCS_PATH1_MAJOR:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = MAJOR(obj->path1_stat.dev);
 					break;
-				case PATH1_MINOR:
+				case CCS_PATH1_MINOR:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = MINOR(obj->path1_stat.dev);
 					break;
-				case PATH1_TYPE:
+				case CCS_PATH1_TYPE:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.mode & S_IFMT;
 					break;
-				case PATH1_DEV_MAJOR:
+				case CCS_PATH1_DEV_MAJOR:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = MAJOR(obj->path1_stat.rdev);
 					break;
-				case PATH1_DEV_MINOR:
+				case CCS_PATH1_DEV_MINOR:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = MINOR(obj->path1_stat.rdev);
 					break;
-				case PATH1_PERM:
+				case CCS_PATH1_PERM:
 					if (!obj->path1_valid)
 						goto out;
 					max_v = obj->path1_stat.mode
 						& S_IALLUGO;
 					break;
-				case PATH2_UID:
+				case CCS_PATH2_UID:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = obj->path2_stat.uid;
 					break;
-				case PATH2_GID:
+				case CCS_PATH2_GID:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = obj->path2_stat.gid;
 					break;
-				case PATH2_INO:
+				case CCS_PATH2_INO:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = obj->path2_stat.ino;
 					break;
-				case PATH2_MAJOR:
+				case CCS_PATH2_MAJOR:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = MAJOR(obj->path2_stat.dev);
 					break;
-				case PATH2_MINOR:
+				case CCS_PATH2_MINOR:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = MINOR(obj->path2_stat.dev);
 					break;
-				case PATH2_TYPE:
+				case CCS_PATH2_TYPE:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = obj->path2_stat.mode & S_IFMT;
 					break;
-				case PATH2_DEV_MAJOR:
+				case CCS_PATH2_DEV_MAJOR:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = MAJOR(obj->path2_stat.rdev);
 					break;
-				case PATH2_DEV_MINOR:
+				case CCS_PATH2_DEV_MINOR:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = MINOR(obj->path2_stat.rdev);
 					break;
-				case PATH2_PERM:
+				case CCS_PATH2_PERM:
 					if (!obj->path2_valid)
 						goto out;
 					max_v = obj->path2_stat.mode
 						& S_IALLUGO;
 					break;
-				case PATH1_PARENT_UID:
+				case CCS_PATH1_PARENT_UID:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.uid;
 					break;
-				case PATH1_PARENT_GID:
+				case CCS_PATH1_PARENT_GID:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.gid;
 					break;
-				case PATH1_PARENT_INO:
+				case CCS_PATH1_PARENT_INO:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.ino;
 					break;
-				case PATH1_PARENT_PERM:
+				case CCS_PATH1_PARENT_PERM:
 					if (!obj->path1_parent_valid)
 						goto out;
 					max_v = obj->path1_parent_stat.mode
 						& S_IALLUGO;
 					break;
-				case PATH2_PARENT_UID:
+				case CCS_PATH2_PARENT_UID:
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.uid;
 					break;
-				case PATH2_PARENT_GID:
+				case CCS_PATH2_PARENT_GID:
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.gid;
 					break;
-				case PATH2_PARENT_INO:
+				case CCS_PATH2_PARENT_INO:
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.ino;
 					break;
-				case PATH2_PARENT_PERM:
+				case CCS_PATH2_PARENT_PERM:
 					if (!obj->path2_parent_valid)
 						goto out;
 					max_v = obj->path2_parent_stat.mode
@@ -1548,7 +1551,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 				}
 				break;
 			}
-			if (index != CONSTANT_VALUE_RANGE)
+			if (index != CCS_CONSTANT_VALUE_RANGE)
 				min_v = max_v;
 			if (j) {
 				right_max = max_v;
@@ -1567,8 +1570,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
 		if (left_is_bitop && right_is_bitop)
 			goto out;
 		if (left_is_bitop) {
-			if (right == PATH1_PERM || right == PATH1_PARENT_PERM
-			    || right == PATH2_PARENT_PERM) {
+			switch (right) {
+			case CCS_PATH1_PERM:
+			case CCS_PATH1_PARENT_PERM:
+			case CCS_PATH2_PERM:
+			case CCS_PATH2_PARENT_PERM:
 				if (match) {
 					if ((right_max & left_max))
 						continue;
@@ -1580,8 +1586,11 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			goto out;
 		}
 		if (right_is_bitop) {
-			if (left == PATH1_PERM || left == PATH1_PARENT_PERM
-			    || left == PATH2_PARENT_PERM) {
+			switch (left) {
+			case CCS_PATH1_PERM:
+			case CCS_PATH1_PARENT_PERM:
+			case CCS_PATH2_PERM:
+			case CCS_PATH2_PARENT_PERM:
 				if (match) {
 					if ((left_max & right_max))
 						continue;
@@ -1592,7 +1601,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			}
 			goto out;
 		}
-		if (right == NUMBER_GROUP) {
+		if (right == CCS_NUMBER_GROUP) {
 			/* Fetch values now. */
 			const struct ccs_number_group *group
 				= *number_group_p++;
@@ -1667,14 +1676,14 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "%s", i ? " " : " if "))
 			goto out;
 		switch (left) {
-		case ARGV_ENTRY:
+		case CCS_ARGV_ENTRY:
 			if (!ccs_io_printf(head, "exec.argv[%u]%s\"%s\"",
 					   argv->index, argv->is_not ?
 					   "!=" : "=", argv->value->name))
 				goto out;
 			argv++;
 			continue;
-		case ENVP_ENTRY:
+		case CCS_ENVP_ENTRY:
 			if (!ccs_io_printf(head, "exec.envp[\"%s\"]%s",
 					   envp->name->name, envp->is_not ?
 					   "!=" : "="))
@@ -1689,13 +1698,13 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 			}
 			envp++;
 			continue;
-		case CONSTANT_VALUE:
-		case CONSTANT_VALUE_RANGE:
+		case CCS_CONSTANT_VALUE:
+		case CCS_CONSTANT_VALUE_RANGE:
 			ccs_print_ulong(buffer, sizeof(buffer) - 1,
 					*ulong_p++, left_1_type);
 			if (!ccs_io_printf(head, "%s", buffer))
 				goto out;
-			if (left == CONSTANT_VALUE)
+			if (left == CCS_CONSTANT_VALUE)
 				break;
 			ccs_print_ulong(buffer, sizeof(buffer) - 1,
 					*ulong_p++, left_2_type);
@@ -1703,7 +1712,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 				goto out;
 			break;
 		default:
-			if (left >= MAX_KEYWORD)
+			if (left >= CCS_MAX_KEYWORD)
 				goto out;
 			if (!ccs_io_printf(head, "%s",
 					  ccs_condition_keyword[left]))
@@ -1713,31 +1722,31 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
 			goto out;
 		switch (right) {
-		case PATH_INFO:
+		case CCS_PATH_INFO:
 			if (!ccs_io_printf(head, "\"%s\"",
 					   (*path_info_p)->name))
 				goto out;
 			path_info_p++;
 			break;
-		case PATH_GROUP:
+		case CCS_PATH_GROUP:
 			if (!ccs_io_printf(head, "@%s", (*path_group_p)->
 					   group_name->name))
 				goto out;
 			path_group_p++;
 			break;
-		case NUMBER_GROUP:
+		case CCS_NUMBER_GROUP:
 			if (!ccs_io_printf(head, "@%s", (*number_group_p)->
 					   group_name->name))
 				goto out;
 			number_group_p++;
 			break;
-		case CONSTANT_VALUE:
-		case CONSTANT_VALUE_RANGE:
+		case CCS_CONSTANT_VALUE:
+		case CCS_CONSTANT_VALUE_RANGE:
 			ccs_print_ulong(buffer, sizeof(buffer) - 1,
 					*ulong_p++, right_1_type);
 			if (!ccs_io_printf(head, "%s", buffer))
 				goto out;
-			if (right == CONSTANT_VALUE)
+			if (right == CCS_CONSTANT_VALUE)
 				break;
 			ccs_print_ulong(buffer, sizeof(buffer) - 1,
 					*ulong_p++, right_2_type);
@@ -1745,7 +1754,7 @@ bool ccs_print_condition(struct ccs_io_buffer *head,
 				goto out;
 			break;
 		default:
-			if (right >= MAX_KEYWORD)
+			if (right >= CCS_MAX_KEYWORD)
 				goto out;
 			if (!ccs_io_printf(head, "%s",
 					   ccs_condition_keyword[right]))
@@ -1939,10 +1948,12 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 			if (member->is_deleted)
 				continue;
 			if (min == max)
-				done = ccs_io_printf(head, KEYWORD_NUMBER_GROUP
+				done = ccs_io_printf(head,
+						     CCS_KEYWORD_NUMBER_GROUP
 						     "%s %lu\n", name, min);
 			else
-				done = ccs_io_printf(head, KEYWORD_NUMBER_GROUP
+				done = ccs_io_printf(head,
+						     CCS_KEYWORD_NUMBER_GROUP
 						     "%s %lu-%lu\n", name,
 						     min, max);
 			if (!done)

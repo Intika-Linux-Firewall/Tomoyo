@@ -14,39 +14,39 @@
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 /* Keyword array for single path operations. */
-static const char *ccs_sp_keyword[MAX_SINGLE_PATH_OPERATION] = {
-	[TYPE_READ_WRITE_ACL] = "read/write",
-	[TYPE_EXECUTE_ACL]    = "execute",
-	[TYPE_READ_ACL]       = "read",
-	[TYPE_WRITE_ACL]      = "write",
-	[TYPE_CREATE_ACL]     = "create",
-	[TYPE_UNLINK_ACL]     = "unlink",
-	[TYPE_MKDIR_ACL]      = "mkdir",
-	[TYPE_RMDIR_ACL]      = "rmdir",
-	[TYPE_MKFIFO_ACL]     = "mkfifo",
-	[TYPE_MKSOCK_ACL]     = "mksock",
-	[TYPE_TRUNCATE_ACL]   = "truncate",
-	[TYPE_SYMLINK_ACL]    = "symlink",
-	[TYPE_REWRITE_ACL]    = "rewrite",
+static const char *ccs_sp_keyword[CCS_MAX_SINGLE_PATH_OPERATION] = {
+	[CCS_TYPE_READ_WRITE_ACL] = "read/write",
+	[CCS_TYPE_EXECUTE_ACL]    = "execute",
+	[CCS_TYPE_READ_ACL]       = "read",
+	[CCS_TYPE_WRITE_ACL]      = "write",
+	[CCS_TYPE_CREATE_ACL]     = "create",
+	[CCS_TYPE_UNLINK_ACL]     = "unlink",
+	[CCS_TYPE_MKDIR_ACL]      = "mkdir",
+	[CCS_TYPE_RMDIR_ACL]      = "rmdir",
+	[CCS_TYPE_MKFIFO_ACL]     = "mkfifo",
+	[CCS_TYPE_MKSOCK_ACL]     = "mksock",
+	[CCS_TYPE_TRUNCATE_ACL]   = "truncate",
+	[CCS_TYPE_SYMLINK_ACL]    = "symlink",
+	[CCS_TYPE_REWRITE_ACL]    = "rewrite",
 };
 
 /* Keyword array for mkdev operations. */
-static const char *ccs_mkdev_keyword[MAX_MKDEV_OPERATION] = {
-	[TYPE_MKBLOCK_ACL]    = "mkblock",
-	[TYPE_MKCHAR_ACL]     = "mkchar",
+static const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION] = {
+	[CCS_TYPE_MKBLOCK_ACL]    = "mkblock",
+	[CCS_TYPE_MKCHAR_ACL]     = "mkchar",
 };
 
 /* Keyword array for double path operations. */
-static const char *ccs_dp_keyword[MAX_DOUBLE_PATH_OPERATION] = {
-	[TYPE_LINK_ACL]    = "link",
-	[TYPE_RENAME_ACL]  = "rename",
+static const char *ccs_dp_keyword[CCS_MAX_DOUBLE_PATH_OPERATION] = {
+	[CCS_TYPE_LINK_ACL]    = "link",
+	[CCS_TYPE_RENAME_ACL]  = "rename",
 };
 
-static const char *ccs_path_number_keyword[MAX_PATH_NUMBER_OPERATION] = {
-	[TYPE_IOCTL] = "ioctl",
-	[TYPE_CHMOD] = "chmod",
-	[TYPE_CHOWN] = "chown",
-	[TYPE_CHGRP] = "chgrp",
+static const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
+	[CCS_TYPE_IOCTL] = "ioctl",
+	[CCS_TYPE_CHMOD] = "chmod",
+	[CCS_TYPE_CHOWN] = "chown",
+	[CCS_TYPE_CHGRP] = "chgrp",
 };
 
 void ccs_put_name_union(struct ccs_name_union *ptr)
@@ -73,8 +73,8 @@ bool ccs_compare_number_union(const unsigned long value,
 	return value >= ptr->values[0] && value <= ptr->values[1];
 }
 
-bool ccs_compare_name_union(const struct ccs_path_info *name,
-			    const struct ccs_name_union *ptr)
+static bool ccs_compare_name_union(const struct ccs_path_info *name,
+				   const struct ccs_name_union *ptr)
 {
 	if (ptr->is_group)
 		return ccs_path_matches_group(name, ptr->group, 1);
@@ -102,7 +102,7 @@ static bool ccs_compare_name_union_pattern(const struct ccs_path_info *name,
  */
 const char *ccs_sp2keyword(const u8 operation)
 {
-	return (operation < MAX_SINGLE_PATH_OPERATION)
+	return (operation < CCS_MAX_SINGLE_PATH_OPERATION)
 		? ccs_sp_keyword[operation] : NULL;
 }
 
@@ -115,7 +115,7 @@ const char *ccs_sp2keyword(const u8 operation)
  */
 const char *ccs_mkdev2keyword(const u8 operation)
 {
-	return (operation < MAX_MKDEV_OPERATION)
+	return (operation < CCS_MAX_MKDEV_OPERATION)
 		? ccs_mkdev_keyword[operation] : NULL;
 }
 
@@ -128,13 +128,13 @@ const char *ccs_mkdev2keyword(const u8 operation)
  */
 const char *ccs_dp2keyword(const u8 operation)
 {
-	return (operation < MAX_DOUBLE_PATH_OPERATION)
+	return (operation < CCS_MAX_DOUBLE_PATH_OPERATION)
 		? ccs_dp_keyword[operation] : NULL;
 }
 
 const char *ccs_path_number2keyword(const u8 operation)
 {
-	return (operation < MAX_PATH_NUMBER_OPERATION)
+	return (operation < CCS_MAX_PATH_NUMBER_OPERATION)
 		? ccs_path_number_keyword[operation] : NULL;
 }
 
@@ -306,8 +306,9 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r, const u8 type,
 {
 	char buffer[64];
 	const char *operation = ccs_path_number2keyword(type);
-	ccs_print_ulong(buffer, sizeof(buffer) - 1, value, type == TYPE_CHMOD ?
-			VALUE_TYPE_OCTAL : VALUE_TYPE_DECIMAL);
+	ccs_print_ulong(buffer, sizeof(buffer) - 1, value,
+			type == CCS_TYPE_CHMOD ?
+			CCS_VALUE_TYPE_OCTAL : CCS_VALUE_TYPE_DECIMAL);
 	if (!is_granted && ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
@@ -420,7 +421,7 @@ bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 				 list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_ALLOW_READ "%s\n",
+		done = ccs_io_printf(head, CCS_KEYWORD_ALLOW_READ "%s\n",
 				     ptr->filename->name);
 		if (!done)
 			break;
@@ -607,7 +608,8 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 					     list);
 			if (member->is_deleted)
 				continue;
-			done = ccs_io_printf(head, KEYWORD_PATH_GROUP "%s %s\n",
+			done = ccs_io_printf(head, CCS_KEYWORD_PATH_GROUP
+					     "%s %s\n",
 					     group->group_name->name,
 					     member->member_name->name);
 			if (!done)
@@ -726,7 +728,7 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 		ptr = list_entry(pos, struct ccs_pattern_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_FILE_PATTERN "%s\n",
+		done = ccs_io_printf(head, CCS_KEYWORD_FILE_PATTERN "%s\n",
 				     ptr->pattern->name);
 		if (!done)
 			break;
@@ -839,7 +841,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 		ptr = list_entry(pos, struct ccs_no_rewrite_entry, list);
 		if (ptr->is_deleted)
 			continue;
-		done = ccs_io_printf(head, KEYWORD_DENY_REWRITE "%s\n",
+		done = ccs_io_printf(head, CCS_KEYWORD_DENY_REWRITE "%s\n",
 				     ptr->pattern->name);
 		if (!done)
 			break;
@@ -880,14 +882,14 @@ static int ccs_update_file_acl(u8 perm, const char *filename,
 		 */
 		return 0;
 	if (perm & 4)
-		ccs_update_single_path_acl(TYPE_READ_ACL, filename, domain,
+		ccs_update_single_path_acl(CCS_TYPE_READ_ACL, filename, domain,
 					   condition, is_delete);
 	if (perm & 2)
-		ccs_update_single_path_acl(TYPE_WRITE_ACL, filename, domain,
-					   condition, is_delete);
+		ccs_update_single_path_acl(CCS_TYPE_WRITE_ACL, filename,
+					   domain, condition, is_delete);
 	if (perm & 1)
-		ccs_update_single_path_acl(TYPE_EXECUTE_ACL, filename, domain,
-					   condition, is_delete);
+		ccs_update_single_path_acl(CCS_TYPE_EXECUTE_ACL, filename,
+					   domain, condition, is_delete);
 	return 0;
 }
 
@@ -914,7 +916,7 @@ static int ccs_check_single_path_acl(struct ccs_request_info *r,
 	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_SINGLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_single_path_acl_record,
 				   head);
@@ -953,7 +955,7 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mkdev_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_MKDEV_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_MKDEV_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_mkdev_acl_record, head);
 		if (!ccs_compare_number_union(major, &acl->major))
@@ -994,17 +996,17 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	if (!filename)
 		return 0;
 	if (mode == 6) {
-		msg = ccs_sp2keyword(TYPE_READ_WRITE_ACL);
-		perm = 1 << TYPE_READ_WRITE_ACL;
+		msg = ccs_sp2keyword(CCS_TYPE_READ_WRITE_ACL);
+		perm = 1 << CCS_TYPE_READ_WRITE_ACL;
 	} else if (mode == 4) {
-		msg = ccs_sp2keyword(TYPE_READ_ACL);
-		perm = 1 << TYPE_READ_ACL;
+		msg = ccs_sp2keyword(CCS_TYPE_READ_ACL);
+		perm = 1 << CCS_TYPE_READ_ACL;
 	} else if (mode == 2) {
-		msg = ccs_sp2keyword(TYPE_WRITE_ACL);
-		perm = 1 << TYPE_WRITE_ACL;
+		msg = ccs_sp2keyword(CCS_TYPE_WRITE_ACL);
+		perm = 1 << CCS_TYPE_WRITE_ACL;
 	} else if (mode == 1) {
-		msg = ccs_sp2keyword(TYPE_EXECUTE_ACL);
-		perm = 1 << TYPE_EXECUTE_ACL;
+		msg = ccs_sp2keyword(CCS_TYPE_EXECUTE_ACL);
+		perm = 1 << CCS_TYPE_EXECUTE_ACL;
 	} else
 		BUG();
  retry:
@@ -1074,7 +1076,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		/* Only one entry can exist in a domain. */
 		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
-				ptr->type |= ACL_DELETED;
+				ptr->type |= CCS_ACL_DELETED;
 		}
 		error = ccs_add_domain_acl(NULL, &acl->head);
 		break;
@@ -1086,7 +1088,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 		/* Only one entry can exist in a domain. */
 		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
-				ptr->type |= ACL_DELETED;
+				ptr->type |= CCS_ACL_DELETED;
 		}
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
@@ -1137,17 +1139,17 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 		if (sscanf(w[0], "%u", &perm) == 1)
 			return ccs_update_file_acl((u8) perm, w[1], domain,
 						   condition, is_delete);
-		if (!strcmp(w[0], KEYWORD_EXECUTE_HANDLER))
-			type = TYPE_EXECUTE_HANDLER;
-		else if (!strcmp(w[0], KEYWORD_DENIED_EXECUTE_HANDLER))
-			type = TYPE_DENIED_EXECUTE_HANDLER;
+		if (!strcmp(w[0], CCS_KEYWORD_EXECUTE_HANDLER))
+			type = CCS_TYPE_EXECUTE_HANDLER;
+		else if (!strcmp(w[0], CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
+			type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
 		else
 			goto out;
 		return ccs_update_execute_handler(type, w[1], domain,
 						  is_delete);
 	}
 	w[0] += 6;
-	for (type = 0; type < MAX_SINGLE_PATH_OPERATION; type++) {
+	for (type = 0; type < CCS_MAX_SINGLE_PATH_OPERATION; type++) {
 		if (strcmp(w[0], ccs_sp_keyword[type]))
 			continue;
 		return ccs_update_single_path_acl(type, w[1], domain,
@@ -1155,13 +1157,13 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!w[2][0])
 		goto out;
-	for (type = 0; type < MAX_DOUBLE_PATH_OPERATION; type++) {
+	for (type = 0; type < CCS_MAX_DOUBLE_PATH_OPERATION; type++) {
 		if (strcmp(w[0], ccs_dp_keyword[type]))
 			continue;
 		return ccs_update_double_path_acl(type, w[1], w[2], domain,
 						  condition, is_delete);
 	}
-	for (type = 0; type < MAX_PATH_NUMBER_OPERATION; type++) {
+	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++) {
 		if (strcmp(w[0], ccs_path_number_keyword[type]))
 			continue;
 		return ccs_update_path_number_acl(type, w[1], w[2], domain,
@@ -1169,7 +1171,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!w[3][0])
 		goto out;
-	for (type = 0; type < MAX_MKDEV_OPERATION; type++) {
+	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++) {
 		if (strcmp(w[0], ccs_mkdev_keyword[type]))
 			continue;
 		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], domain,
@@ -1196,14 +1198,14 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 				      const bool is_delete)
 {
 	static const u16 ccs_rw_mask =
-		(1 << TYPE_READ_ACL) | (1 << TYPE_WRITE_ACL);
+		(1 << CCS_TYPE_READ_ACL) | (1 << CCS_TYPE_WRITE_ACL);
 	struct ccs_acl_info *ptr;
 	struct ccs_single_path_acl_record e;
 	struct ccs_single_path_acl_record *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	const u16 perm = 1 << type;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_SINGLE_PATH_ACL;
+	e.head.type = CCS_TYPE_SINGLE_PATH_ACL;
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
@@ -1215,7 +1217,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1224,12 +1226,12 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		if (memcmp(&acl->name, &e.name, sizeof(e.name)))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
-		if (ptr->type & ACL_DELETED)
+		if (ptr->type & CCS_ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
 		if ((acl->perm & ccs_rw_mask) == ccs_rw_mask)
-			acl->perm |= 1 << TYPE_READ_WRITE_ACL;
-		else if (acl->perm & (1 << TYPE_READ_WRITE_ACL))
+			acl->perm |= 1 << CCS_TYPE_READ_WRITE_ACL;
+		else if (acl->perm & (1 << CCS_TYPE_READ_WRITE_ACL))
 			acl->perm |= ccs_rw_mask;
 		error = ccs_add_domain_acl(NULL, ptr);
 		break;
@@ -1238,7 +1240,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 		memmove(entry, &e, sizeof(e));
 		memset(&e, 0, sizeof(e));
 		entry->perm = perm;
-		if (perm == (1 << TYPE_READ_WRITE_ACL))
+		if (perm == (1 << CCS_TYPE_READ_WRITE_ACL))
 			entry->perm |= ccs_rw_mask;
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
@@ -1249,7 +1251,7 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_single_path_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_SINGLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_SINGLE_PATH_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1259,8 +1261,8 @@ static int ccs_update_single_path_acl(const u8 type, const char *filename,
 			continue;
 		acl->perm &= ~perm;
 		if ((acl->perm & ccs_rw_mask) != ccs_rw_mask)
-			acl->perm &= ~(1 << TYPE_READ_WRITE_ACL);
-		else if (!(acl->perm & (1 << TYPE_READ_WRITE_ACL)))
+			acl->perm &= ~(1 << CCS_TYPE_READ_WRITE_ACL);
+		else if (!(acl->perm & (1 << CCS_TYPE_READ_WRITE_ACL)))
 			acl->perm &= ~ccs_rw_mask;
 		error = ccs_del_domain_acl(acl->perm ? NULL : ptr);
 		break;
@@ -1301,7 +1303,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	if (!domain)
 		return -EINVAL;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_MKDEV_ACL;
+	e.head.type = CCS_TYPE_MKDEV_ACL;
 	e.head.cond = condition;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
@@ -1315,7 +1317,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mkdev_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_MKDEV_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_MKDEV_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1324,7 +1326,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 			   sizeof(e) - offset))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
-		if (ptr->type & ACL_DELETED)
+		if (ptr->type & CCS_ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
 		error = ccs_add_domain_acl(NULL, ptr);
@@ -1343,7 +1345,7 @@ static int ccs_update_mkdev_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mkdev_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_MKDEV_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_MKDEV_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1388,7 +1390,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	const u8 perm = 1 << type;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_DOUBLE_PATH_ACL;
+	e.head.type = CCS_TYPE_DOUBLE_PATH_ACL;
 	e.head.cond = condition;
 	if (!domain)
 		return -EINVAL;
@@ -1401,7 +1403,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1411,7 +1413,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 		    memcmp(&acl->name2, &e.name2, sizeof(e.name2)))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
-		if (ptr->type & ACL_DELETED)
+		if (ptr->type & CCS_ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
 		error = ccs_add_domain_acl(NULL, ptr);
@@ -1430,7 +1432,7 @@ static int ccs_update_double_path_acl(const u8 type, const char *filename1,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_DOUBLE_PATH_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1474,7 +1476,7 @@ static int ccs_check_double_path_acl(struct ccs_request_info *r, const u8 type,
 	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_double_path_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_DOUBLE_PATH_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_DOUBLE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_double_path_acl_record,
 				   head);
@@ -1537,9 +1539,9 @@ static int ccs_check_single_path_permission(struct ccs_request_info *r,
 	 * we need to check "allow_rewrite" permission if the filename is
 	 * specified by "deny_rewrite" keyword.
 	 */
-	if (!error && operation == TYPE_TRUNCATE_ACL &&
+	if (!error && operation == CCS_TYPE_TRUNCATE_ACL &&
 	    ccs_is_no_rewrite_file(filename)) {
-		operation = TYPE_REWRITE_ACL;
+		operation = CCS_TYPE_REWRITE_ACL;
 		goto retry;
 	}
 	return error;
@@ -1681,12 +1683,14 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 */
 	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
 	    && ccs_is_no_rewrite_file(&buf))
-		error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL,
+		error = ccs_check_single_path_permission(&r,
+							 CCS_TYPE_REWRITE_ACL,
 							 &buf);
 	if (!error)
 		error = ccs_check_file_perm(&r, &buf, acc_mode);
 	if (!error && (flag & O_TRUNC))
-		error = ccs_check_single_path_permission(&r, TYPE_TRUNCATE_ACL,
+		error = ccs_check_single_path_permission(&r,
+							 CCS_TYPE_TRUNCATE_ACL,
 							 &buf);
  out:
 	kfree(buf.name);
@@ -1702,7 +1706,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
- * @target:    Symlink's target if @operation is TYPE_SYMLINK_ACL.
+ * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK_ACL.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -1734,15 +1738,15 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	obj.path1_vfsmnt = mnt;
 	r.obj = &obj;
 	switch (operation) {
-	case TYPE_MKDIR_ACL:
-	case TYPE_RMDIR_ACL:
+	case CCS_TYPE_MKDIR_ACL:
+	case CCS_TYPE_RMDIR_ACL:
 		if (!buf.is_dir) {
 			/* ccs_get_path() reserves space for appending "/". */
 			strcat((char *) buf.name, "/");
 			ccs_fill_path_info(&buf);
 		}
 		break;
-	case TYPE_SYMLINK_ACL:
+	case CCS_TYPE_SYMLINK_ACL:
 		symlink_target.name = ccs_encode(target);
 		if (!symlink_target.name)
 			goto out;
@@ -1751,7 +1755,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 		break;
 	}
 	error = ccs_check_single_path_permission(&r, operation, &buf);
-	if (operation == TYPE_SYMLINK_ACL)
+	if (operation == CCS_TYPE_SYMLINK_ACL)
 		kfree(symlink_target.name);
  out:
 	kfree(buf.name);
@@ -1764,7 +1768,7 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 /**
  * ccs_check_mkdev_perm - Check permission for "mkblock" and "mkchar".
  *
- * @operation: Type of operation. (TYPE_MKCHAR_ACL or TYPE_MKBLOCK_ACL)
+ * @operation: Type of operation. (CCS_TYPE_MKCHAR_ACL or CCS_TYPE_MKBLOCK_ACL)
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
  * @dev:       Device number.
@@ -1841,7 +1845,8 @@ int ccs_check_rewrite_permission(struct file *filp)
 	obj.path1_dentry = filp->f_dentry;
 	obj.path1_vfsmnt = filp->f_vfsmnt;
 	r.obj = &obj;
-	error = ccs_check_single_path_permission(&r, TYPE_REWRITE_ACL, &buf);
+	error = ccs_check_single_path_permission(&r, CCS_TYPE_REWRITE_ACL,
+						 &buf);
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -1885,8 +1890,8 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	if (!ccs_get_path(&buf1, dentry1, mnt) ||
 	    !ccs_get_path(&buf2, dentry2, mnt))
 		goto out;
-	if (operation == TYPE_RENAME_ACL) {
-		/* TYPE_LINK_ACL can't reach here for directory. */
+	if (operation == CCS_TYPE_RENAME_ACL) {
+		/* CCS_TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
 			/* ccs_get_path() reserves space for appending "/". */
 			if (!buf1.is_dir) {
@@ -1959,7 +1964,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	struct ccs_path_number_acl_record *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	memset(&e, 0, sizeof(e));
-	e.head.type = TYPE_PATH_NUMBER_ACL;
+	e.head.type = CCS_TYPE_PATH_NUMBER_ACL;
 	e.head.cond = condition;
 	e.perm = perm;
 	if (!domain)
@@ -1974,7 +1979,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_PATH_NUMBER_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -1984,7 +1989,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 			   sizeof(e) - offset))
 			continue;
 		/* Special case. Clear all bits if marked as deleted. */
-		if (ptr->type & ACL_DELETED)
+		if (ptr->type & CCS_ACL_DELETED)
 			acl->perm = 0;
 		acl->perm |= perm;
 		error = ccs_add_domain_acl(NULL, ptr);
@@ -2002,7 +2007,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_PATH_NUMBER_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -2046,7 +2051,7 @@ static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
 	ccs_check_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_PATH_NUMBER_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_path_number_acl_record,
 				   head);
@@ -2091,8 +2096,8 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 		char buffer[64];
 		int err;
 		ccs_print_ulong(buffer, sizeof(buffer), number,
-				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
-				VALUE_TYPE_DECIMAL);
+				type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
+				CCS_VALUE_TYPE_DECIMAL);
 		err = ccs_check_supervisor(r, "allow_%s %s %s\n",
 					   ccs_path_number2keyword(type),
 					   filename->name, buffer);
@@ -2103,8 +2108,8 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
 		char buffer[64];
 		ccs_print_ulong(buffer, sizeof(buffer), number,
-				type == TYPE_CHMOD ? VALUE_TYPE_OCTAL :
-				VALUE_TYPE_DECIMAL);
+				type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
+				CCS_VALUE_TYPE_DECIMAL);
 		if (buf) {
 			struct ccs_condition *cond = ccs_handler_cond();
 			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %s",
@@ -2174,7 +2179,7 @@ static int ccs_check_path_number_permission(const u8 type,
 int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
 			       unsigned long arg)
 {
-	return ccs_check_path_number_permission(TYPE_IOCTL,
+	return ccs_check_path_number_permission(CCS_TYPE_IOCTL,
 						filp->f_dentry, filp->f_vfsmnt,
 						cmd);
 }
@@ -2193,7 +2198,7 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 {
 	if (mode == (mode_t) -1)
 		return 0;
-	return ccs_check_path_number_permission(TYPE_CHMOD, dentry, vfsmnt,
+	return ccs_check_path_number_permission(CCS_TYPE_CHMOD, dentry, vfsmnt,
 						mode);
 }
 
@@ -2212,10 +2217,10 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 {
 	int error = 0;
 	if (user != (uid_t) -1)
-		error = ccs_check_path_number_permission(TYPE_CHOWN, dentry,
+		error = ccs_check_path_number_permission(CCS_TYPE_CHOWN, dentry,
 							 vfsmnt, user);
 	if (!error && group != (gid_t) -1)
-		error = ccs_check_path_number_permission(TYPE_CHGRP, dentry,
+		error = ccs_check_path_number_permission(CCS_TYPE_CHGRP, dentry,
 							 vfsmnt, group);
 	return error;
 }
@@ -2681,7 +2686,7 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 	case S_IFREG:
 		error = ccs_pre_vfs_create(dir, dentry);
 		if (!error)
-			error = ccs_check_1path_perm(TYPE_CREATE_ACL,
+			error = ccs_check_1path_perm(CCS_TYPE_CREATE_ACL,
 						     dentry, mnt, NULL);
 		return error;
 	}
@@ -2694,19 +2699,19 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 		return error;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		error = ccs_check_mkdev_perm(TYPE_MKCHAR_ACL, dentry, mnt,
+		error = ccs_check_mkdev_perm(CCS_TYPE_MKCHAR_ACL, dentry, mnt,
 					     dev);
 		break;
 	case S_IFBLK:
-		error = ccs_check_mkdev_perm(TYPE_MKBLOCK_ACL, dentry, mnt,
+		error = ccs_check_mkdev_perm(CCS_TYPE_MKBLOCK_ACL, dentry, mnt,
 					     dev);
 		break;
 	case S_IFIFO:
-		error = ccs_check_1path_perm(TYPE_MKFIFO_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_MKFIFO_ACL, dentry, mnt,
 					     NULL);
 		break;
 	case S_IFSOCK:
-		error = ccs_check_1path_perm(TYPE_MKSOCK_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_MKSOCK_ACL, dentry, mnt,
 					     NULL);
 		break;
 	}
@@ -2720,7 +2725,7 @@ int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
 {
 	int error = ccs_pre_vfs_mkdir(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_MKDIR_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_MKDIR_ACL, dentry, mnt,
 					     NULL);
 	return error;
 }
@@ -2731,7 +2736,7 @@ int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
 {
 	int error = ccs_pre_vfs_rmdir(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_RMDIR_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_RMDIR_ACL, dentry, mnt,
 					     NULL);
 	return error;
 }
@@ -2745,7 +2750,7 @@ int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_unlink(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_UNLINK_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_UNLINK_ACL, dentry, mnt,
 					     NULL);
 	return error;
 }
@@ -2759,7 +2764,7 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_symlink(dir, dentry);
 	if (!error)
-		error = ccs_check_1path_perm(TYPE_SYMLINK_ACL, dentry, mnt,
+		error = ccs_check_1path_perm(CCS_TYPE_SYMLINK_ACL, dentry, mnt,
 					     from);
 	return error;
 }
@@ -2768,7 +2773,7 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 				  loff_t length, unsigned int time_attrs)
 {
-	return ccs_check_1path_perm(TYPE_TRUNCATE_ACL, dentry, mnt, NULL);
+	return ccs_check_1path_perm(CCS_TYPE_TRUNCATE_ACL, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */
@@ -2783,7 +2788,7 @@ int ccs_check_rename_permission(struct inode *old_dir,
 		return -EPERM;
 	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_check_2path_perm(TYPE_RENAME_ACL, old_dentry,
+		error = ccs_check_2path_perm(CCS_TYPE_RENAME_ACL, old_dentry,
 					     new_dentry, mnt);
 	return error;
 }
@@ -2797,7 +2802,7 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 		return -EPERM;
 	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_check_2path_perm(TYPE_LINK_ACL, old_dentry,
+		error = ccs_check_2path_perm(CCS_TYPE_LINK_ACL, old_dentry,
 					     new_dentry, mnt);
 	return error;
 }

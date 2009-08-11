@@ -35,7 +35,7 @@ static int ccs_audit_umount_log(struct ccs_request_info *r,
 		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), dir,
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_UNMOUNT
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_UNMOUNT
 				   "%s\n", dir);
 }
 
@@ -66,7 +66,7 @@ static int ccs_update_umount_acl(const char *dir,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_umount_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_UMOUNT_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_UMOUNT_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -80,7 +80,7 @@ static int ccs_update_umount_acl(const char *dir,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_UMOUNT_ACL;
+		entry->head.type = CCS_TYPE_UMOUNT_ACL;
 		entry->head.cond = condition;
 		entry->dir = saved_dir;
 		saved_dir = NULL;
@@ -126,7 +126,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	ccs_fill_path_info(&dir);
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_umount_acl_record *acl;
-		if (ccs_acl_type2(ptr) != TYPE_UMOUNT_ACL)
+		if (ccs_acl_type2(ptr) != CCS_TYPE_UMOUNT_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_umount_acl_record, head);
 		if (!ccs_path_matches_pattern(&dir, acl->dir) ||
@@ -140,7 +140,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	if (!error)
 		goto out;
 	if (is_enforce)
-		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_UNMOUNT "%s",
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_UNMOUNT "%s",
 					     dir0);
 	else if (ccs_domain_quota_ok(&r))
 		ccs_update_umount_acl(dir0, r.domain, NULL, false);

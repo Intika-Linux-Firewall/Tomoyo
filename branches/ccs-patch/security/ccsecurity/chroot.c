@@ -35,7 +35,7 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
 		printk(KERN_WARNING "SAKURA-%s: chroot %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), root,
 		       ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, KEYWORD_ALLOW_CHROOT
+	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CHROOT
 				   "%s\n", root);
 }
 
@@ -66,7 +66,7 @@ static int ccs_update_chroot_acl(const char *dir,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_chroot_acl_record *acl;
-		if (ccs_acl_type1(ptr) != TYPE_CHROOT_ACL)
+		if (ccs_acl_type1(ptr) != CCS_TYPE_CHROOT_ACL)
 			continue;
 		if (ptr->cond != condition)
 			continue;
@@ -80,7 +80,7 @@ static int ccs_update_chroot_acl(const char *dir,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = TYPE_CHROOT_ACL;
+		entry->head.type = CCS_TYPE_CHROOT_ACL;
 		entry->head.cond = condition;
 		entry->dir = saved_dir;
 		saved_dir = NULL;
@@ -137,7 +137,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 		struct ccs_acl_info *ptr;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_chroot_acl_record *acl;
-			if (ccs_acl_type2(ptr) != TYPE_CHROOT_ACL)
+			if (ccs_acl_type2(ptr) != CCS_TYPE_CHROOT_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_chroot_acl_record,
 					   head);
@@ -153,7 +153,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 	if (!error)
 		goto out;
 	if (is_enforce)
-		error = ccs_check_supervisor(&r, KEYWORD_ALLOW_CHROOT"%s\n",
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT"%s\n",
 					     root_name);
 	else if (ccs_domain_quota_ok(&r))
 		ccs_update_chroot_acl(root_name, r.domain, NULL, false);
