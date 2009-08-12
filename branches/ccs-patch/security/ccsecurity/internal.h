@@ -64,6 +64,20 @@ extern asmlinkage long sys_getppid(void);
 	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
 	     (cookie) = pos, pos = rcu_dereference(pos->next))
 
+struct ccs_name_union {
+	const struct ccs_path_info *filename;
+	struct ccs_path_group *group;
+	u8 is_group;
+};
+
+struct ccs_number_union {
+	unsigned long values[2];
+	struct ccs_number_group *group;
+	u8 min_type;
+	u8 max_type;
+	u8 is_group;
+};
+
 /* Subset of "struct stat". */
 struct ccs_mini_stat {
 	uid_t uid;
@@ -378,29 +392,29 @@ struct ccs_aggregator_entry {
 /* Structure for "allow_unmount" keyword. */
 struct ccs_umount_acl_record {
 	struct ccs_acl_info head; /* type = CCS_TYPE_UMOUNT_ACL */
-	const struct ccs_path_info *dir;
+	struct ccs_name_union dir;
 };
 
 /* Structure for "allow_pivot_root" keyword. */
 struct ccs_pivot_root_acl_record {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PIVOT_ROOT_ACL */
-	const struct ccs_path_info *old_root;
-	const struct ccs_path_info *new_root;
+	struct ccs_name_union old_root;
+	struct ccs_name_union new_root;
 };
 
 /* Structure for "allow_mount" keyword. */
 struct ccs_mount_acl_record {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
-	const struct ccs_path_info *dev_name;
-	const struct ccs_path_info *dir_name;
-	const struct ccs_path_info *fs_type;
-	unsigned long flags;
+	struct ccs_name_union dev_name;
+	struct ccs_name_union dir_name;
+	struct ccs_name_union fs_type;
+	struct ccs_number_union flags;
 };
 
 /* Structure for "allow_chroot" keyword. */
 struct ccs_chroot_acl_record {
 	struct ccs_acl_info head; /* type = CCS_TYPE_CHROOT_ACL */
-	const struct ccs_path_info *dir;
+	struct ccs_name_union dir;
 };
 
 /* Structure for "deny_autobind" keyword. */
@@ -455,20 +469,6 @@ struct ccs_envp_entry {
 struct ccs_execute_handler_record {
 	struct ccs_acl_info head;        /* type = CCS_TYPE_*EXECUTE_HANDLER */
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
-};
-
-struct ccs_name_union {
-	const struct ccs_path_info *filename;
-	struct ccs_path_group *group;
-	u8 is_group;
-};
-
-struct ccs_number_union {
-	unsigned long values[2];
-	struct ccs_number_group *group;
-	u8 min_type;
-	u8 max_type;
-	u8 is_group;
 };
 
 /*
@@ -912,7 +912,6 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain, struct ccs_condition *condition, const bool is_delete);
 struct ccs_condition *ccs_get_condition(char * const condition);
-struct ccs_condition *ccs_handler_cond(void);
 struct ccs_domain_info *ccs_fetch_next_domain(void);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname, const u8 profile);
@@ -941,13 +940,19 @@ void ccs_put_number_union(struct ccs_number_union *ptr);
 bool ccs_compare_number_union(const unsigned long value, const struct ccs_number_union *ptr);
 bool ccs_compare_name_union(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
-
+const char *ccs_file_pattern(const struct ccs_path_info *filename);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 			       const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
+}
+
+static inline int ccs_memcmp(void *a, void *b, const u8 offset, const u8 size)
+{
+	return memcmp(((char *) a) + offset, ((char *) b) + offset,
+		      size - offset);
 }
 
 /* Get type of an ACL entry. */

@@ -1421,20 +1421,6 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	return true;
 }
 
-/**
- * ccs_handler_cond - Create conditional part for execute_handler process.
- *
- * Returns pointer to "struct ccs_condition" if current process is an
- * execute handler, NULL otherwise.
- */
-struct ccs_condition *ccs_handler_cond(void)
-{
-	char str[] = "if task.type=execute_handler";
-	if (!(current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER))
-		return NULL;
-	return ccs_get_condition(str);
-}
-
 /* The list for "struct ccs_number_group". */
 LIST_HEAD(ccs_number_group_list);
 

@@ -122,41 +122,30 @@ static void put_filesystem(struct file_system_type *fs)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
-				const char *fs_type, const unsigned long flags,
-				struct ccs_domain_info *domain,
+static int ccs_update_mount_acl(char *dev_name, char *dir_name, char *fs_type,
+				char *flags, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete)
 {
 	struct ccs_mount_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	const struct ccs_path_info *saved_fs;
-	const struct ccs_path_info *saved_dev;
-	const struct ccs_path_info *saved_dir;
+	struct ccs_mount_acl_record e;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(fs_type, 0, 0, 0))
-		return -EINVAL;
-	saved_fs = ccs_get_name(fs_type);
-	if (!saved_fs)
-		return -ENOMEM;
+	memset(&e, 0, sizeof(e));
+	e.head.type = CCS_TYPE_MOUNT_ACL;
+	e.head.cond = condition;
 	if (!dev_name)
 		dev_name = "<NULL>";
-	if (!strcmp(saved_fs->name, CCS_MOUNT_REMOUNT_KEYWORD))
-		/* Fix dev_name to "any" for remount permission. */
+	if (!strcmp(fs_type, CCS_MOUNT_REMOUNT_KEYWORD) ||
+	    !strcmp(fs_type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+	    !strcmp(fs_type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
+	    !strcmp(fs_type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
+	    !strcmp(fs_type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
 		dev_name = "any";
-	if (!strcmp(saved_fs->name, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
-	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
-	    !strcmp(saved_fs->name, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-		dev_name = "any";
-	if (!ccs_is_correct_path(dev_name, 0, 0, 0) ||
-	    !ccs_is_correct_path(dir_name, 0, 0, 0)) {
-		ccs_put_name(saved_fs);
-		return -EINVAL;
-	}
-	saved_dev = ccs_get_name(dev_name);
-	saved_dir = ccs_get_name(dir_name);
-	if (!saved_dev || !saved_dir)
+	if (!ccs_parse_name_union(dev_name, &e.dev_name) ||
+	    !ccs_parse_name_union(dir_name, &e.dir_name) ||
+	    !ccs_parse_name_union(fs_type, &e.fs_type) ||
+	    !ccs_parse_number_union(flags, &e.flags))
 		goto out;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -165,13 +154,9 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		struct ccs_mount_acl_record *acl;
 		if (ccs_acl_type1(ptr) != CCS_TYPE_MOUNT_ACL)
 			continue;
-		if (ptr->cond != condition)
-			continue;
 		acl = container_of(ptr, struct ccs_mount_acl_record, head);
-		if (acl->flags != flags ||
-		    ccs_pathcmp(acl->dev_name, saved_dev) ||
-		    ccs_pathcmp(acl->dir_name, saved_dir) ||
-		    ccs_pathcmp(acl->fs_type, saved_fs))
+		if (ccs_memcmp(acl, &e, offsetof(struct ccs_mount_acl_record,
+						 head.cond), sizeof(e)))
 			continue;
 		if (is_delete)
 			error = ccs_del_domain_acl(ptr);
@@ -180,23 +165,17 @@ static int ccs_update_mount_acl(const char *dev_name, const char *dir_name,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = CCS_TYPE_MOUNT_ACL;
-		entry->head.cond = condition;
-		entry->dev_name = saved_dev;
-		saved_dev = NULL;
-		entry->dir_name = saved_dir;
-		saved_dir = NULL;
-		entry->fs_type = saved_fs;
-		saved_fs = NULL;
-		entry->flags = flags;
+		memmove(entry, &e, sizeof(e));
+		memset(&e, 0, sizeof(e));
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	ccs_put_name(saved_dev);
-	ccs_put_name(saved_dir);
-	ccs_put_name(saved_fs);
+	ccs_put_name_union(&e.dev_name);
+	ccs_put_name_union(&e.dir_name);
+	ccs_put_name_union(&e.fs_type);
+	ccs_put_number_union(&e.flags);
 	kfree(entry);
 	return error;
 }
@@ -291,6 +270,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		const char *requested_type = NULL;
 		const char *requested_dir_name = NULL;
 		const char *requested_dev_name = NULL;
+		struct ccs_path_info rtype;
 		struct ccs_path_info rdev;
 		struct ccs_path_info rdir;
 		int need_dev = 0;
@@ -300,6 +280,8 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 			error = -ENOMEM;
 			goto out;
 		}
+		rtype.name = requested_type;
+		ccs_fill_path_info(&rtype);
 		requested_dir_name = ccs_realpath(dir_name);
 		if (!requested_dir_name) {
 			error = -ENOENT;
@@ -353,58 +335,36 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 				continue;
 			acl = container_of(ptr, struct ccs_mount_acl_record,
 					   head);
-
-			/* Compare options */
-			if (acl->flags != flags)
+			if (!ccs_compare_number_union(flags, &acl->flags) ||
+			    !ccs_compare_name_union(&rtype, &acl->fs_type) ||
+			    !ccs_compare_name_union(&rdir, &acl->dir_name) ||
+			    (need_dev &&
+			     !ccs_compare_name_union(&rdev, &acl->dev_name)) ||
+			    !ccs_check_condition(r, ptr))
 				continue;
-
-			/* Compare fs name. */
-			if (strcmp(type, acl->fs_type->name))
-				continue;
-
-			/* Compare mount point. */
-			if (!ccs_path_matches_pattern(&rdir, acl->dir_name))
-				continue;
-
-			/* Compare device name. */
-			if (need_dev &&
-			    !ccs_path_matches_pattern(&rdev, acl->dev_name))
-				continue;
-
-			if (!ccs_check_condition(r, ptr))
-				continue;
-
-			/* OK. */
 			r->cond = ptr->cond;
 			error = 0;
 			break;
 		}
 		ccs_audit_mount_log(r, requested_dev_name, requested_dir_name,
 				    requested_type, flags, !error);
-		if (!error)
-			goto out;
-		if (is_enforce)
+		if (error)
 			error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
 						     "%s %s %s 0x%lX\n",
-						     requested_dev_name,
-						     requested_dir_name,
+						     ccs_file_pattern(&rdev),
+						     ccs_file_pattern(&rdir),
 						     requested_type, flags);
-		else if (ccs_domain_quota_ok(r))
-			ccs_update_mount_acl(requested_dev_name,
-					     requested_dir_name,
-					     requested_type, flags,
-					     r->domain, NULL, false);
- out:
+out:
 		kfree(requested_dev_name);
 		kfree(requested_dir_name);
 		if (fstype)
 			put_filesystem(fstype);
 		kfree(requested_type);
 	}
-	if (!is_enforce)
-		error = 0;
 	if (error == 1)
 		goto retry;
+	if (!is_enforce)
+		error = 0;
 	return error;
 }
 
@@ -455,7 +415,6 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	char *w[4];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
 		return -EINVAL;
-	return ccs_update_mount_acl(w[0], w[1], w[2],
-				    simple_strtoul(w[3], NULL, 0),
-				    domain, condition, is_delete);
+	return ccs_update_mount_acl(w[0], w[1], w[2], w[3], domain, condition,
+				    is_delete);
 }

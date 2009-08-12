@@ -164,7 +164,7 @@ static bool ccs_capable2(const u8 operation)
 	struct ccs_request_info r;
 	struct ccs_acl_info *ptr;
 	bool is_enforce;
-	bool found = false;
+	int error;
 	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return true;
@@ -173,6 +173,7 @@ static bool ccs_capable2(const u8 operation)
 	if (!r.mode)
 		return true;
  retry:
+	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
 		if (ccs_acl_type2(ptr) != CCS_TYPE_CAPABILITY_ACL)
@@ -182,26 +183,19 @@ static bool ccs_capable2(const u8 operation)
 		    !ccs_check_condition(&r, ptr))
 			continue;
 		r.cond = ptr->cond;
-		found = true;
+		error = 0;
 		break;
 	}
-	ccs_audit_capability_log(&r, operation, found);
-	if (found)
-		return true;
-	if (is_enforce) {
-		int error = ccs_check_supervisor(&r,
-						 CCS_KEYWORD_ALLOW_CAPABILITY
-						 "%s\n",
-						 ccs_cap2keyword(operation));
-		if (error == 1)
-			goto retry;
-		return !error;
-	} else if (ccs_domain_quota_ok(&r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_capability_acl(operation, r.domain, cond, false);
-		ccs_put_condition(cond);
-	}
-	return true;
+	ccs_audit_capability_log(&r, operation, !error);
+	if (error)
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY
+					     "%s\n",
+					     ccs_cap2keyword(operation));
+	if (error == 1)
+		goto retry;
+	if (!is_enforce)
+		error = 0;
+	return !error;
 }
 
 /**

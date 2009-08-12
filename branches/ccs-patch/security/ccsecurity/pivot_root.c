@@ -51,22 +51,20 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
+static int ccs_update_pivot_root_acl(char *old_root, char *new_root,
 				     struct ccs_domain_info *domain,
 				     struct ccs_condition *condition,
 				     const bool is_delete)
 {
 	struct ccs_pivot_root_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	const struct ccs_path_info *saved_old_root;
-	const struct ccs_path_info *saved_new_root;
+	struct ccs_pivot_root_acl_record e;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(old_root, 1, 0, 1) ||
-	    !ccs_is_correct_path(new_root, 1, 0, 1))
-		return -EINVAL;
-	saved_old_root = ccs_get_name(old_root);
-	saved_new_root = ccs_get_name(new_root);
-	if (!saved_old_root || !saved_new_root)
+	memset(&e, 0, sizeof(e));
+	e.head.type = CCS_TYPE_PIVOT_ROOT_ACL;
+	e.head.cond = condition;
+	if (!ccs_parse_name_union(old_root, &e.old_root) ||
+	    !ccs_parse_name_union(new_root, &e.new_root))
 		goto out;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
@@ -75,11 +73,10 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 		struct ccs_pivot_root_acl_record *acl;
 		if (ccs_acl_type1(ptr) != CCS_TYPE_PIVOT_ROOT_ACL)
 			continue;
-		if (ptr->cond != condition)
-			continue;
 		acl = container_of(ptr, struct ccs_pivot_root_acl_record, head);
-		if (acl->old_root != saved_old_root ||
-		    acl->new_root != saved_new_root)
+		if (ccs_memcmp(acl, &e,
+			       offsetof(struct ccs_pivot_root_acl_record,
+					head.cond), sizeof(e)))
 			continue;
 		if (is_delete)
 			error = ccs_del_domain_acl(ptr);
@@ -88,20 +85,15 @@ static int ccs_update_pivot_root_acl(const char *old_root, const char *new_root,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = CCS_TYPE_PIVOT_ROOT_ACL;
-		entry->head.cond = condition;
-		entry->old_root = saved_old_root;
-		saved_old_root = NULL;
-		entry->new_root = saved_new_root;
-		saved_new_root = NULL;
+		memmove(entry, &e, sizeof(e));
+		memset(&e, 0, sizeof(e));
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
-		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	ccs_put_name(saved_old_root);
-	ccs_put_name(saved_new_root);
+	ccs_put_name_union(&e.old_root);
+	ccs_put_name_union(&e.new_root);
 	kfree(entry);
 	return error;
 }
@@ -166,10 +158,10 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 			acl = container_of(ptr,
 					   struct ccs_pivot_root_acl_record,
 					   head);
-			if (!ccs_path_matches_pattern(&old_root_dir,
-						      acl->old_root) ||
-			    !ccs_path_matches_pattern(&new_root_dir,
-						      acl->new_root) ||
+			if (!ccs_compare_name_union(&old_root_dir,
+						    &acl->old_root) ||
+			    !ccs_compare_name_union(&new_root_dir,
+						    &acl->new_root) ||
 			    !ccs_check_condition(&r, ptr))
 				continue;
 			r.cond = ptr->cond;
@@ -178,14 +170,11 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 		}
 	}
 	ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
-	if (!error)
-		goto out;
-	if (is_enforce)
+	if (error)
 		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
-					     "%s %s\n", new_root, old_root);
-	else if (ccs_domain_quota_ok(&r))
-		ccs_update_pivot_root_acl(old_root, new_root, r.domain, NULL,
-					  false);
+					     "%s %s\n",
+					     ccs_file_pattern(&new_root_dir),
+					     ccs_file_pattern(&old_root_dir));
  out:
 	kfree(old_root);
 	kfree(new_root);

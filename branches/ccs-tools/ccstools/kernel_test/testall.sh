@@ -11,7 +11,7 @@ newns ccs_rewrite_test
 newns ccs_capability_test
 newns ccs_signal_test
 newns ccs_network_test
-newns ccs_argv0_test
+# newns ccs_argv0_test
 newns ccs_env_test
 newns ccs_new_file_test
 newns ccs_new_capability_test
@@ -27,7 +27,7 @@ newns ccs_rewrite_test | grep -vF OK | grep -F '('
 newns ccs_capability_test | grep -vF OK | grep -F '('
 newns ccs_signal_test | grep -vF OK | grep -F '('
 newns ccs_network_test | grep -vF OK | grep -F '('
-newns ccs_argv0_test | grep -vF OK | grep -F '('
+# newns ccs_argv0_test | grep -vF OK | grep -F '('
 newns ccs_env_test | grep -vF OK | grep -F '('
 echo
 echo

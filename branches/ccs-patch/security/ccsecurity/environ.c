@@ -273,20 +273,14 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
  retry:
 	error = ccs_check_env_acl(r, env);
 	ccs_audit_env_log(r, env, !error);
-	if (!error)
-		return 0;
-	if (is_enforce) {
+	if (error)
 		error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n",
 					     env);
-		if (error == 1)
-			goto retry;
-		return error;
-	} else if (ccs_domain_quota_ok(r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_env_entry(env, r->domain, cond, false);
-		ccs_put_condition(cond);
-	}
-	return 0;
+	if (error == 1)
+		goto retry;
+	if (!is_enforce)
+		error = 0;
+	return error;
 }
 
 /**

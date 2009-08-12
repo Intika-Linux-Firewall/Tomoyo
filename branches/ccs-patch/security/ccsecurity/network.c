@@ -594,7 +594,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	bool is_enforce;
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 ip = ntohl(*address);
-	bool found = false;
+	int error;
 	char buf[64];
 	ccs_check_read_lock();
 	if (!ccs_can_sleep())
@@ -604,6 +604,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	if (!r.mode)
 		return 0;
  retry:
+	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_ip_network_acl_record *acl;
 		if (ccs_acl_type2(ptr) != CCS_TYPE_IP_NETWORK_ACL)
@@ -630,7 +631,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 				continue;
 		}
 		r.cond = ptr->cond;
-		found = true;
+		error = 0;
 		break;
 	}
 	memset(buf, 0, sizeof(buf));
@@ -639,28 +640,15 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 			       (const struct in6_addr *) address);
 	else
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
-	ccs_audit_network_log(&r, keyword, buf, port, found);
-	if (found)
-		return 0;
-	if (is_enforce) {
-		int err = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
-					       "%s %s %u\n", keyword, buf,
-					       port);
-		if (err == 1)
-			goto retry;
-		return err;
-	} else if (ccs_domain_quota_ok(&r)) {
-		char *tmp = kmalloc(PAGE_SIZE, GFP_KERNEL);
-		if (tmp) {
-			struct ccs_condition *cond = ccs_handler_cond();
-			snprintf(tmp, PAGE_SIZE - 1, "%s %s %u", keyword, buf,
-				 port);
-			ccs_write_network_policy(tmp, r.domain, cond, false);
-			ccs_put_condition(cond);
-			kfree(tmp);
-		}
-	}
-	return 0;
+	ccs_audit_network_log(&r, keyword, buf, port, !error);
+	if (error)
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
+					     "%s %s %u\n", keyword, buf, port);
+	if (error == 1)
+		goto retry;
+	if (!is_enforce)
+		error = 0;
+	return error;
 }
 
 /**

@@ -136,7 +136,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
 	bool is_enforce;
-	bool found = false;
+	int error;
 	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
@@ -175,6 +175,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	}
 	dest_pattern = dest->domainname->name;
  retry:
+	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_signal_acl_record *acl;
 		if (ccs_acl_type2(ptr) != CCS_TYPE_SIGNAL_ACL)
@@ -192,25 +193,17 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 				continue;
 			}
 			r.cond = ptr->cond;
-			found = true;
+			error = 0;
 			break;
 		}
 	}
-	ccs_audit_signal_log(&r, sig, dest_pattern, found);
-	if (found)
-		return 0;
-	if (is_enforce) {
-		int error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
-						 "%d %s\n", sig, dest_pattern);
-		if (error == 1)
-			goto retry;
-		return error;
-	} else if (ccs_domain_quota_ok(&r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_signal_acl(sig, dest_pattern, r.domain, cond, false);
-		ccs_put_condition(cond);
-	}
-	return 0;
+	ccs_audit_signal_log(&r, sig, dest_pattern, !error);
+	if (error)
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
+					     "%d %s\n", sig, dest_pattern);
+	if (error == 1)
+		goto retry;
+	return error;
 }
 
 /**

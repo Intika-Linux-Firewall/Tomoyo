@@ -211,22 +211,7 @@ static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
 	return false;
 }
 
-static int ccs_update_double_path_acl(const u8 type, const char *filename1,
-				      const char *filename2,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete);
 static int ccs_update_single_path_acl(const u8 type, const char *filename,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete);
-static int ccs_update_mkdev_acl(const u8 type, const char *filename,
-				char *major, char *minor,
-				struct ccs_domain_info * const domain,
-				struct ccs_condition *condition,
-				const bool is_delete);
-static int ccs_update_path_number_acl(const u8 type, const char *filename,
-				      char *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
 				      const bool is_delete);
@@ -316,22 +301,17 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_path_number_log(struct ccs_request_info *r, const u8 type,
-				     const char *filename,
-				     const unsigned long value,
+static int ccs_audit_path_number_log(struct ccs_request_info *r,
+				     const char *operation,
+				     const char *filename, const char *value,
 				     const bool is_granted)
 {
-	char buffer[64];
-	const char *operation = ccs_path_number2keyword(type);
-	ccs_print_ulong(buffer, sizeof(buffer) - 1, value,
-			type == CCS_TYPE_CHMOD ?
-			CCS_VALUE_TYPE_OCTAL : CCS_VALUE_TYPE_DECIMAL);
 	if (!is_granted && ccs_verbose_mode(r->domain))
 		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
-		       filename, buffer, ccs_get_last_name(r->domain));
+		       filename, value, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
-				   operation, filename, buffer);
+				   operation, filename, value);
 }
 
 /* The list for "struct ccs_globally_readable_file_entry". */
@@ -643,16 +623,15 @@ static int ccs_update_file_pattern_entry(const char *pattern,
 }
 
 /**
- * ccs_get_file_pattern - Get patterned pathname.
+ * ccs_file_pattern - Get patterned pathname.
  *
  * @filename: Pointer to "struct ccs_path_info".
  *
- * Returns pointer to "struct ccs_path_info".
+ * Returns pointer to patterned pathname.
  *
  * Caller holds ccs_read_lock().
  */
-static const struct ccs_path_info *ccs_get_file_pattern
-(const struct ccs_path_info *filename)
+const char *ccs_file_pattern(const struct ccs_path_info *filename)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
@@ -670,7 +649,7 @@ static const struct ccs_path_info *ccs_get_file_pattern
 			break;
 		}
 	}
-	return pattern ? pattern : filename;
+	return pattern ? pattern->name : filename->name;
 }
 
 /**
@@ -951,112 +930,6 @@ static int ccs_check_mkdev_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_get_argv0 - Get argv[0].
- *
- * @ee: Pointer to "struct ccs_execve_entry".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_get_argv0(struct ccs_execve_entry *ee)
-{
-	struct linux_binprm *bprm = ee->bprm;
-	char *arg_ptr = ee->tmp;
-	int arg_len = 0;
-	unsigned long pos = bprm->p;
-	int offset = pos % PAGE_SIZE;
-	bool done = false;
-	if (!bprm->argc)
-		goto out;
-	while (1) {
-		if (!ccs_dump_page(bprm, pos, &ee->dump))
-			goto out;
-		pos += PAGE_SIZE - offset;
-		/* Read. */
-		while (offset < PAGE_SIZE) {
-			const char *kaddr = ee->dump.data;
-			const unsigned char c = kaddr[offset++];
-			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
-				if (c == '\\') {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = '\\';
-				} else if (c == '/') {
-					arg_len = 0;
-				} else if (c > ' ' && c < 127) {
-					arg_ptr[arg_len++] = c;
-				} else {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = (c >> 6) + '0';
-					arg_ptr[arg_len++]
-						= ((c >> 3) & 7) + '0';
-					arg_ptr[arg_len++] = (c & 7) + '0';
-				}
-			} else {
-				arg_ptr[arg_len] = '\0';
-				done = true;
-				break;
-			}
-		}
-		offset = 0;
-		if (done)
-			break;
-	}
-	return true;
- out:
-	return false;
-}
-
-static void ccs_update_execute_policy(struct ccs_request_info *r,
-				      const struct ccs_path_info *filename)
-{
-	char *buf;
-	int len = 256;
-	struct ccs_condition *cond = NULL;
-	struct ccs_execve_entry *ee = r->ee;
-	char *realpath = NULL;
-	char *argv0 = NULL;
-	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
-		struct file *file = ee->bprm->file;
-		realpath = ccs_realpath_from_dentry(file->f_dentry,
-						    file->f_vfsmnt);
-		if (realpath)
-			len += strlen(realpath) + 17;
-	}
-	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
-		if (ccs_get_argv0(ee)) {
-			argv0 = ee->tmp;
-			len += strlen(argv0) + 16;
-		}
-	}
-	buf = kmalloc(len, GFP_KERNEL);
-	if (!buf)
-		goto default_condition;
-	snprintf(buf, len - 1, "if");
-	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER) {
-		const int pos = strlen(buf);
-		snprintf(buf + pos, len - pos - 1,
-			 " task.type=execute_handler");
-	}
-	if (realpath) {
-		const int pos = strlen(buf);
-		snprintf(buf + pos, len - pos - 1, " exec.realpath=\"%s\"",
-			 realpath);
-		kfree(realpath);
-	}
-	if (argv0) {
-		const int pos = strlen(buf);
-		snprintf(buf + pos, len - pos - 1, " exec.argv[0]=\"%s\"",
-			 argv0);
-	}
-	cond = ccs_get_condition(buf);
-	kfree(buf);
- default_condition:
-	if (!cond)
-		cond = ccs_handler_cond();
-	ccs_update_file_acl(1, filename->name, r->domain, cond, false);
-	ccs_put_condition(cond);
-}
-
-/**
  * ccs_check_file_perm - Check permission for opening files.
  *
  * @r:         Pointer to "strct ccs_request_info".
@@ -1098,26 +971,15 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	    && ccs_is_globally_readable_file(filename))
 		error = 0;
 	ccs_audit_single_path_log(r, msg, filename->name, !error);
-	if (!error)
-		return 0;
-	if (is_enforce) {
-		int err = ccs_check_supervisor(r, "allow_%s %s\n", msg,
-					       filename->name);
-		if (err == 1 && !r->ee)
-			goto retry;
-		return err;
-	} else if (ccs_domain_quota_ok(r)) {
-		if (mode == 1) {
-			ccs_update_execute_policy(r, filename);
-		} else {
-			struct ccs_condition *cond = ccs_handler_cond();
-			ccs_update_file_acl(mode,
-					    ccs_get_file_pattern(filename)
-					    ->name, r->domain, cond, false);
-			ccs_put_condition(cond);
-		}
-	}
-	return 0;
+	if (error)
+		error = ccs_check_supervisor(r, "allow_%s %s\n", msg,
+					     mode == 1 ? filename->name :
+					     ccs_file_pattern(filename));
+	if (error == 1 && !r->ee)
+		goto retry;
+	if (!is_enforce)
+		error = 0;
+	return error;
 }
 
 /**
@@ -1199,71 +1061,6 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	ccs_put_name(saved_filename);
 	kfree(entry);
 	return error;
-}
-
-/**
- * ccs_write_file_policy - Update file related list.
- *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition *condition,
-			  const bool is_delete)
-{
-	char *w[4];
-	unsigned int perm;
-	u8 type;
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
-		return -EINVAL;
-	if (strncmp(w[0], "allow_", 6)) {
-		if (sscanf(w[0], "%u", &perm) == 1)
-			return ccs_update_file_acl((u8) perm, w[1], domain,
-						   condition, is_delete);
-		if (!strcmp(w[0], CCS_KEYWORD_EXECUTE_HANDLER))
-			type = CCS_TYPE_EXECUTE_HANDLER;
-		else if (!strcmp(w[0], CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
-			type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
-		else
-			goto out;
-		return ccs_update_execute_handler(type, w[1], domain,
-						  is_delete);
-	}
-	w[0] += 6;
-	for (type = 0; type < CCS_MAX_SINGLE_PATH_OPERATION; type++) {
-		if (strcmp(w[0], ccs_sp_keyword[type]))
-			continue;
-		return ccs_update_single_path_acl(type, w[1], domain,
-						  condition, is_delete);
-	}
-	if (!w[2][0])
-		goto out;
-	for (type = 0; type < CCS_MAX_DOUBLE_PATH_OPERATION; type++) {
-		if (strcmp(w[0], ccs_dp_keyword[type]))
-			continue;
-		return ccs_update_double_path_acl(type, w[1], w[2], domain,
-						  condition, is_delete);
-	}
-	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path_number_keyword[type]))
-			continue;
-		return ccs_update_path_number_acl(type, w[1], w[2], domain,
-						  condition, is_delete);
-	}
-	if (!w[3][0])
-		goto out;
-	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++) {
-		if (strcmp(w[0], ccs_mkdev_keyword[type]))
-			continue;
-		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], domain,
-					    condition, is_delete);
-	}
- out:
-	return -EINVAL;
 }
 
 /**
@@ -1602,23 +1399,13 @@ static int ccs_check_single_path_permission(struct ccs_request_info *r,
 	error = ccs_check_single_path_acl(r, filename, 1 << operation, 1);
 	msg = ccs_sp2keyword(operation);
 	ccs_audit_single_path_log(r, msg, filename->name, !error);
-	if (!error)
-		goto ok;
-	if (is_enforce) {
-		error = ccs_check_supervisor(r, "allow_%s %s\n",
-					     msg, filename->name);
-		if (error == 1)
-			goto retry;
-	} else if (ccs_domain_quota_ok(r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_single_path_acl(operation,
-					   ccs_get_file_pattern(filename)
-					   ->name, r->domain, cond, false);
-		ccs_put_condition(cond);
-	}
+	if (error)
+		error = ccs_check_supervisor(r, "allow_%s %s\n", msg,
+					     ccs_file_pattern(filename));
+	if (error == 1)
+		goto retry;
 	if (!is_enforce)
 		error = 0;
- ok:
 	/*
 	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
 	 * we need to check "allow_rewrite" permission if the filename is
@@ -1649,8 +1436,8 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 				      const struct ccs_path_info *filename,
 				      const unsigned int dev)
 {
-	const char *msg;
 	int error;
+	const char *msg = ccs_sp2keyword(operation);
 	const bool is_enforce = (r->mode == 3);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
@@ -1659,28 +1446,13 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 		return 0;
  retry:
 	error = ccs_check_mkdev_acl(r, filename, 1 << operation, major, minor);
-	msg = ccs_sp2keyword(operation);
 	ccs_audit_mkdev_log(r, msg, filename->name, major, minor, !error);
-	if (!error)
-		return 0;
-	if (is_enforce) {
+	if (error)
 		error = ccs_check_supervisor(r, "allow_%s %s %u %u\n", msg,
-					     filename->name, major, minor);
-		if (error == 1)
-			goto retry;
-	} else if (ccs_domain_quota_ok(r)) {
-		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
-		if (buf) {
-			struct ccs_condition *cond = ccs_handler_cond();
-			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %u %u", msg,
-				 ccs_get_file_pattern(filename)->name,  major,
-				 minor);
-			buf[PAGE_SIZE - 1] = '\0';
-			ccs_write_file_policy(buf, r->domain, cond, false);
-			ccs_put_condition(cond);
-			kfree(buf);
-		}
-	}
+					     ccs_file_pattern(filename), major,
+					     minor);
+	if (error == 1)
+		goto retry;
 	if (!is_enforce)
 		error = 0;
 	return error;
@@ -1955,10 +1727,10 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
+	const char *msg = ccs_dp2keyword(operation);
 	struct ccs_path_info buf1;
 	struct ccs_path_info buf2;
 	bool is_enforce;
-	const char *msg;
 	struct ccs_obj_info obj;
 	int idx;
 	if (!ccs_can_sleep())
@@ -1997,23 +1769,13 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	r.obj = &obj;
  retry:
 	error = ccs_check_double_path_acl(&r, operation, &buf1, &buf2);
-	msg = ccs_dp2keyword(operation);
 	ccs_audit_double_path_log(&r, msg, buf1.name, buf2.name, !error);
-	if (!error)
-		goto out;
-	if (is_enforce) {
-		error = ccs_check_supervisor(&r, "allow_%s %s %s\n",
-					     msg, buf1.name, buf2.name);
-		if (error == 1)
-			goto retry;
-	} else if (ccs_domain_quota_ok(&r)) {
-		struct ccs_condition *cond = ccs_handler_cond();
-		ccs_update_double_path_acl(operation,
-					   ccs_get_file_pattern(&buf1)->name,
-					   ccs_get_file_pattern(&buf2)->name,
-					   r.domain, cond, false);
-		ccs_put_condition(cond);
-	}
+	if (error)
+		error = ccs_check_supervisor(&r, "allow_%s %s %s\n", msg,
+					     ccs_file_pattern(&buf1),
+					     ccs_file_pattern(&buf2));
+	if (error == 1)
+		goto retry;
  out:
 	kfree(buf1.name);
 	kfree(buf2.name);
@@ -2168,45 +1930,28 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 				      const unsigned long number)
 {
 	const bool is_enforce = (r->mode == 3);
-	int error = 0;
+	char buffer[64];
+	int error;
+	const char *msg = ccs_path_number2keyword(type);
 	ccs_check_read_lock();
 	if (!filename)
 		return 0;
+	ccs_print_ulong(buffer, sizeof(buffer), number,
+			type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
+			(type == CCS_TYPE_IOCTL ? CCS_VALUE_TYPE_HEXADECIMAL :
+			 CCS_VALUE_TYPE_DECIMAL));
  retry:
 	error = ccs_check_path_number_acl(r, type, filename, number);
-	ccs_audit_path_number_log(r, type, filename->name, number, !error);
+	ccs_audit_path_number_log(r, msg, filename->name, buffer, !error);
 	if (!error)
 		return 0;
-	if (is_enforce) {
-		char buffer[64];
-		int err;
-		ccs_print_ulong(buffer, sizeof(buffer), number,
-				type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
-				CCS_VALUE_TYPE_DECIMAL);
-		err = ccs_check_supervisor(r, "allow_%s %s %s\n",
-					   ccs_path_number2keyword(type),
-					   filename->name, buffer);
-		if (err == 1)
-			goto retry;
-		return err;
-	} else if (ccs_domain_quota_ok(r)) {
-		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
-		char buffer[64];
-		ccs_print_ulong(buffer, sizeof(buffer), number,
-				type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
-				CCS_VALUE_TYPE_DECIMAL);
-		if (buf) {
-			struct ccs_condition *cond = ccs_handler_cond();
-			snprintf(buf, PAGE_SIZE - 1, "allow_%s %s %s",
-				 ccs_path_number2keyword(type), 
-				 ccs_get_file_pattern(filename)->name, buf);
-			buf[PAGE_SIZE - 1] = '\0';
-			ccs_write_file_policy(buf, r->domain, cond, false);
-			ccs_put_condition(cond);
-			kfree(buf);
-		}
-	}
-	return 0;
+	error = ccs_check_supervisor(r, "allow_%s %s %s\n", msg,
+				     ccs_file_pattern(filename), buffer);
+	if (error == 1)
+		goto retry;
+	if (!is_enforce)
+		error = 0;
+	return error;
 }
 
 /**
@@ -2308,6 +2053,71 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 		error = ccs_check_path_number_permission(CCS_TYPE_CHGRP, dentry,
 							 vfsmnt, group);
 	return error;
+}
+
+/**
+ * ccs_write_file_policy - Update file related list.
+ *
+ * @data:      String to parse.
+ * @domain:    Pointer to "struct ccs_domain_info".
+ * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
+			  struct ccs_condition *condition,
+			  const bool is_delete)
+{
+	char *w[4];
+	unsigned int perm;
+	u8 type;
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+		return -EINVAL;
+	if (strncmp(w[0], "allow_", 6)) {
+		if (sscanf(w[0], "%u", &perm) == 1)
+			return ccs_update_file_acl((u8) perm, w[1], domain,
+						   condition, is_delete);
+		if (!strcmp(w[0], CCS_KEYWORD_EXECUTE_HANDLER))
+			type = CCS_TYPE_EXECUTE_HANDLER;
+		else if (!strcmp(w[0], CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
+			type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
+		else
+			goto out;
+		return ccs_update_execute_handler(type, w[1], domain,
+						  is_delete);
+	}
+	w[0] += 6;
+	for (type = 0; type < CCS_MAX_SINGLE_PATH_OPERATION; type++) {
+		if (strcmp(w[0], ccs_sp_keyword[type]))
+			continue;
+		return ccs_update_single_path_acl(type, w[1], domain,
+						  condition, is_delete);
+	}
+	if (!w[2][0])
+		goto out;
+	for (type = 0; type < CCS_MAX_DOUBLE_PATH_OPERATION; type++) {
+		if (strcmp(w[0], ccs_dp_keyword[type]))
+			continue;
+		return ccs_update_double_path_acl(type, w[1], w[2], domain,
+						  condition, is_delete);
+	}
+	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++) {
+		if (strcmp(w[0], ccs_path_number_keyword[type]))
+			continue;
+		return ccs_update_path_number_acl(type, w[1], w[2], domain,
+						  condition, is_delete);
+	}
+	if (!w[3][0])
+		goto out;
+	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++) {
+		if (strcmp(w[0], ccs_mkdev_keyword[type]))
+			continue;
+		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], domain,
+					    condition, is_delete);
+	}
+ out:
+	return -EINVAL;
 }
 
 /*

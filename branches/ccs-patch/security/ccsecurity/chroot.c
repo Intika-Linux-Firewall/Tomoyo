@@ -47,20 +47,19 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_chroot_acl(const char *dir,
-				 struct ccs_domain_info *domain,
+static int ccs_update_chroot_acl(char *dir, struct ccs_domain_info *domain,
 				 struct ccs_condition *condition,
 				 const bool is_delete)
 {
 	struct ccs_chroot_acl_record *entry = NULL;
 	struct ccs_acl_info *ptr;
-	const struct ccs_path_info *saved_dir;
+	struct ccs_chroot_acl_record e;
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(dir, 1, 0, 1))
-		return -EINVAL;
-	saved_dir = ccs_get_name(dir);
-	if (!saved_dir)
-		return -ENOMEM;
+	memset(&e, 0, sizeof(e));
+	e.head.type = CCS_TYPE_CHROOT_ACL;
+	e.head.cond = condition;
+	if (!ccs_parse_name_union(dir, &e.dir))
+		return error;
 	if (!is_delete)
 		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
@@ -68,10 +67,9 @@ static int ccs_update_chroot_acl(const char *dir,
 		struct ccs_chroot_acl_record *acl;
 		if (ccs_acl_type1(ptr) != CCS_TYPE_CHROOT_ACL)
 			continue;
-		if (ptr->cond != condition)
-			continue;
 		acl = container_of(ptr, struct ccs_chroot_acl_record, head);
-		if (acl->dir != saved_dir)
+		if (ccs_memcmp(acl, &e, offsetof(struct ccs_chroot_acl_record,
+						 head.cond), sizeof(e)))
 			continue;
 		if (is_delete)
 			error = ccs_del_domain_acl(ptr);
@@ -80,15 +78,13 @@ static int ccs_update_chroot_acl(const char *dir,
 		break;
 	}
 	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = CCS_TYPE_CHROOT_ACL;
-		entry->head.cond = condition;
-		entry->dir = saved_dir;
-		saved_dir = NULL;
+		memmove(entry, &e, sizeof(e));
+		memset(&e, 0, sizeof(e));
 		error = ccs_add_domain_acl(domain, &entry->head);
 		entry = NULL;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_dir);
+	ccs_put_name_union(&e.dir);
 	kfree(entry);
 	return error;
 }
@@ -141,7 +137,7 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 				continue;
 			acl = container_of(ptr, struct ccs_chroot_acl_record,
 					   head);
-			if (!ccs_path_matches_pattern(&dir, acl->dir) ||
+			if (!ccs_compare_name_union(&dir, &acl->dir) ||
 			    !ccs_check_condition(&r, ptr))
 				continue;
 			r.cond = ptr->cond;
@@ -150,13 +146,9 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 		}
 	}
 	ccs_audit_chroot_log(&r, root_name, !error);
-	if (!error)
-		goto out;
-	if (is_enforce)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT"%s\n",
-					     root_name);
-	else if (ccs_domain_quota_ok(&r))
-		ccs_update_chroot_acl(root_name, r.domain, NULL, false);
+	if (error)
+		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT
+					     "%s\n", ccs_file_pattern(&dir));
  out:
 	kfree(root_name);
 	if (error == 1)

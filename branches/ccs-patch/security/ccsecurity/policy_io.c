@@ -553,6 +553,31 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	return true;
 }
 
+static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
+				    struct ccs_condition *cond,
+				    const bool is_delete)
+{
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CAPABILITY))
+		return ccs_write_capability_policy(data, domain, cond,
+						   is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_NETWORK))
+		return ccs_write_network_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_SIGNAL))
+		return ccs_write_signal_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
+		return ccs_write_env_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
+		return ccs_write_mount_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_UNMOUNT))
+		return ccs_write_umount_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CHROOT))
+		return ccs_write_chroot_policy(data, domain, cond, is_delete);
+	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_PIVOT_ROOT))
+		return ccs_write_pivot_root_policy(data, domain, cond,
+						   is_delete);
+	return ccs_write_file_policy(data, domain, cond, is_delete);
+}
+
 /**
  * ccs_write_domain_policy - Write domain policy.
  *
@@ -613,26 +638,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		if (!cond)
 			return -EINVAL;
 	}
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CAPABILITY))
-		error = ccs_write_capability_policy(data, domain, cond,
-						    is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_NETWORK))
-		error = ccs_write_network_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_SIGNAL))
-		error = ccs_write_signal_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
-		error = ccs_write_env_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
-		error = ccs_write_mount_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_UNMOUNT))
-		error = ccs_write_umount_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CHROOT))
-		error = ccs_write_chroot_policy(data, domain, cond, is_delete);
-	else if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_PIVOT_ROOT))
-		error = ccs_write_pivot_root_policy(data, domain, cond,
-						    is_delete);
-	else
-		error = ccs_write_file_policy(data, domain, cond, is_delete);
+	error = ccs_write_domain_policy2(data, domain, cond, is_delete);
 	if (cond)
 		ccs_put_condition(cond);
 	return error;
@@ -855,15 +861,14 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
-		    !ccs_print_condition(head, cond))
-			goto out;
+		    !ccs_print_condition(head, cond)) {
+			head->read_bit = bit;
+			head->read_avail = pos;
+			return false;
+		}
 	}
 	head->read_bit = 0;
 	return true;
- out:
-	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -892,15 +897,14 @@ static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
 		    !ccs_print_number_union(head, &ptr->minor) ||
-		    !ccs_print_condition(head, cond))
-			goto out;
+		    !ccs_print_condition(head, cond)) {
+			head->read_bit = bit;
+			head->read_avail = pos;
+			return false;
+		}
 	}
 	head->read_bit = 0;
 	return true;
- out:
-	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -928,15 +932,14 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
 		    !ccs_print_name_union(head, &ptr->name2) ||
-		    !ccs_print_condition(head, cond))
-			goto out;
+		    !ccs_print_condition(head, cond)) {
+			head->read_bit = bit;
+			head->read_avail = pos;
+			return false;
+		}
 	}
 	head->read_bit = 0;
 	return true;
- out:
-	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -964,15 +967,14 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->number) ||
-		    !ccs_print_condition(head, cond))
-			goto out;
+		    !ccs_print_condition(head, cond)) {
+			head->read_bit = bit;
+			head->read_avail = pos;
+			return false;
+		}
 	}
 	head->read_bit = 0;
 	return true;
- out:
-	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -988,15 +990,13 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
 			      struct ccs_env_acl_record *ptr,
 			      const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1012,16 +1012,14 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
 				     struct ccs_capability_acl_record *ptr,
 				     const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
+	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
-			   ccs_cap2keyword(ptr->operation)))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+			   ccs_cap2keyword(ptr->operation)) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1083,7 +1081,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 				  struct ccs_ip_network_acl_record *ptr,
 				  const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
+	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
 			   ccs_net2keyword(ptr->operation_type)))
 		goto out;
@@ -1124,16 +1122,14 @@ static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
 				 struct ccs_signal_acl_record *ptr,
 				 const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
+	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
-			   ptr->sig, ptr->domainname->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+			   ptr->sig, ptr->domainname->name) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1166,17 +1162,17 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
 				struct ccs_mount_acl_record *ptr,
 				const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-			   ptr->dev_name->name, ptr->dir_name->name,
-			   ptr->fs_type->name, ptr->flags))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT) ||
+	    !ccs_print_name_union(head, &ptr->dev_name) ||
+	    !ccs_print_name_union(head, &ptr->dir_name) ||
+	    !ccs_print_name_union(head, &ptr->fs_type) ||
+	    !ccs_print_number_union(head, &ptr->flags) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1192,16 +1188,14 @@ static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
 				 struct ccs_umount_acl_record *ptr,
 				 const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_UNMOUNT "%s\n",
-			   ptr->dir->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_UNMOUNT) ||
+	    !ccs_print_name_union(head, &ptr->dir) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1217,16 +1211,14 @@ static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
 				 struct ccs_chroot_acl_record *ptr,
 				 const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CHROOT "%s\n",
-			   ptr->dir->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CHROOT) ||
+	    !ccs_print_name_union(head, &ptr->dir) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1242,16 +1234,15 @@ static bool ccs_print_pivot_root_acl(struct ccs_io_buffer *head,
 				     struct ccs_pivot_root_acl_record *ptr,
 				     const struct ccs_condition *cond)
 {
-	int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_PIVOT_ROOT "%s %s\n",
-			   ptr->new_root->name, ptr->old_root->name))
-		goto out;
-	if (!ccs_print_condition(head, cond))
-		goto out;
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_PIVOT_ROOT) ||
+	    !ccs_print_name_union(head, &ptr->new_root) ||
+	    !ccs_print_name_union(head, &ptr->old_root) ||
+	    !ccs_print_condition(head, cond)) {
+		head->read_avail = pos;
+		return false;
+	}
 	return true;
- out:
-	head->read_avail = pos;
-	return false;
 }
 
 /**
@@ -1690,6 +1681,107 @@ static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 	return 0;
 }
 
+/**
+ * ccs_get_argv0 - Get argv[0].
+ *
+ * @ee: Pointer to "struct ccs_execve_entry".
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_get_argv0(struct ccs_execve_entry *ee)
+{
+	struct linux_binprm *bprm = ee->bprm;
+	char *arg_ptr = ee->tmp;
+	int arg_len = 0;
+	unsigned long pos = bprm->p;
+	int offset = pos % PAGE_SIZE;
+	bool done = false;
+	if (!bprm->argc)
+		goto out;
+	while (1) {
+		if (!ccs_dump_page(bprm, pos, &ee->dump))
+			goto out;
+		pos += PAGE_SIZE - offset;
+		/* Read. */
+		while (offset < PAGE_SIZE) {
+			const char *kaddr = ee->dump.data;
+			const unsigned char c = kaddr[offset++];
+			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+				if (c == '\\') {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = '\\';
+				} else if (c == '/') {
+					arg_len = 0;
+				} else if (c > ' ' && c < 127) {
+					arg_ptr[arg_len++] = c;
+				} else {
+					arg_ptr[arg_len++] = '\\';
+					arg_ptr[arg_len++] = (c >> 6) + '0';
+					arg_ptr[arg_len++]
+						= ((c >> 3) & 7) + '0';
+					arg_ptr[arg_len++] = (c & 7) + '0';
+				}
+			} else {
+				arg_ptr[arg_len] = '\0';
+				done = true;
+				break;
+			}
+		}
+		offset = 0;
+		if (done)
+			break;
+	}
+	return true;
+ out:
+	return false;
+}
+
+static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
+						       *ee)
+{
+	struct ccs_condition *cond;
+	char *buf;
+	int len = 256;
+	char *realpath = NULL;
+	char *argv0 = NULL;
+	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+		struct file *file = ee->bprm->file;
+		realpath = ccs_realpath_from_dentry(file->f_dentry,
+						    file->f_vfsmnt);
+		if (realpath)
+			len += strlen(realpath) + 17;
+	}
+	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+		if (ccs_get_argv0(ee)) {
+			argv0 = ee->tmp;
+			len += strlen(argv0) + 16;
+		}
+	}
+	buf = kmalloc(len, GFP_KERNEL);
+	if (!buf)
+		return NULL;
+	snprintf(buf, len - 1, "if");
+	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1,
+			 " task.type=execute_handler");
+	}
+	if (realpath) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1, " exec.realpath=\"%s\"",
+			 realpath);
+		kfree(realpath);
+	}
+	if (argv0) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1, " exec.argv[0]=\"%s\"",
+			 argv0);
+	}
+	cond = ccs_get_condition(buf);
+	kfree(buf);
+	return cond;
+}
+
 /* Wait queue for ccs_query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
 
@@ -1721,7 +1813,7 @@ static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  * Returns 0 if the supervisor decided to permit the access request which
  * violated the policy in enforcing mode, 1 if the supervisor decided to
  * retry the access request which violated the policy in enforcing mode,
- * -EPERM otherwise.
+ * 0 if it is not in enforcing mode, -EPERM otherwise.
  */
 int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
@@ -1735,6 +1827,36 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	char *header;
 	if (!r->domain)
 		r->domain = ccs_current_domain();
+	switch (r->mode) {
+		char *buffer;
+		struct ccs_condition *cond;
+	case 1:
+		if (!ccs_domain_quota_ok(r))
+			return 0;
+		va_start(args, fmt);
+		len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 4;
+		va_end(args);
+		buffer = kmalloc(len, GFP_KERNEL);
+		if (!buffer)
+			return 0;
+		va_start(args, fmt);
+		vsnprintf(buffer, len - 1, fmt, args);
+		va_end(args);
+		ccs_normalize_line(buffer);
+		if (r->ee && !strncmp(buffer, "allow_execute ", 14))
+			cond = ccs_get_execute_condition(r->ee);
+		else if ((current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
+			char str[] = "if task.type=execute_handler";
+			cond = ccs_get_condition(str);
+		} else
+			cond = NULL;
+		ccs_write_domain_policy2(buffer, r->domain, cond, false);
+		ccs_put_condition(cond);
+		kfree(buffer);
+		/* fall through */
+	case 2:
+		return 0;
+	}
 	if (!atomic_read(&ccs_query_observers)) {
 		int i;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)

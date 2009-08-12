@@ -230,9 +230,10 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_mount_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->dev_name);
-			ccs_put_name(entry->dir_name);
-			ccs_put_name(entry->fs_type);
+			ccs_put_name_union(&entry->dev_name);
+			ccs_put_name_union(&entry->dir_name);
+			ccs_put_name_union(&entry->fs_type);
+			ccs_put_number_union(&entry->flags);
 		}
 		break;
 	case CCS_TYPE_UMOUNT_ACL:
@@ -240,7 +241,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_umount_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->dir);
+			ccs_put_name_union(&entry->dir);
 		}
 		break;
 	case CCS_TYPE_CHROOT_ACL:
@@ -248,7 +249,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_chroot_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->dir);
+			ccs_put_name_union(&entry->dir);
 		}
 		break;
 	case CCS_TYPE_PIVOT_ROOT_ACL:
@@ -256,8 +257,8 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_pivot_root_acl_record *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name(entry->old_root);
-			ccs_put_name(entry->new_root);
+			ccs_put_name_union(&entry->old_root);
+			ccs_put_name_union(&entry->new_root);
 		}
 		break;
 	default:
