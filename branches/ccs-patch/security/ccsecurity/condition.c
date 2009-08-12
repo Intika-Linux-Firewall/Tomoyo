@@ -622,7 +622,6 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		return NULL;
 	atomic_set(&entry->users, 1);
 	INIT_LIST_HEAD(&entry->list);
-	entry->size = size;
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
@@ -758,6 +757,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	BUG_ON(argc);
 	BUG_ON(envc);
 	BUG_ON(condc);
+	entry->size = size;
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
 		if (memcmp(((u8 *) ptr) + offset, ((u8 *) entry) + offset,
@@ -778,6 +778,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	mutex_unlock(&ccs_policy_lock);
 	if (found) {
+		entry->size = 0;
 		ccs_put_condition(entry);
 		entry = ptr;
 	}
