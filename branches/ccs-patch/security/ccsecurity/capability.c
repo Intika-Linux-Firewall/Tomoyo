@@ -86,71 +86,6 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_update_capability_acl - Update "struct ccs_capability_acl_record" list.
- *
- * @operation: Type of operation.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_capability_acl(const u8 operation,
-				     struct ccs_domain_info *domain,
-				     struct ccs_condition *condition,
-				     const bool is_delete)
-{
-	struct ccs_capability_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!domain)
-		return -EINVAL;
-	if (is_delete)
-		goto delete;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_CAPABILITY_ACL)
-			continue;
-		if (ptr->cond != condition)
-			continue;
-		acl = container_of(ptr, struct ccs_capability_acl_record, head);
-		if (acl->operation != operation)
-			continue;
-		error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = CCS_TYPE_CAPABILITY_ACL;
-		entry->head.cond = condition;
-		entry->operation = operation;
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	goto out;
- delete:
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type2(ptr) != CCS_TYPE_CAPABILITY_ACL)
-			continue;
-		if (ptr->cond != condition)
-			continue;
-		acl = container_of(ptr, struct ccs_capability_acl_record, head);
-		if (acl->operation != operation)
-			continue;
-		error = ccs_del_domain_acl(ptr);
-		break;
-	}
-	mutex_unlock(&ccs_policy_lock);
- out:
-	kfree(entry);
-	return error;
-}
-
-/**
  * ccs_capable - Check permission for capability.
  *
  * @operation: Type of operation.
@@ -176,7 +111,7 @@ static bool ccs_capable2(const u8 operation)
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_capability_acl_record *acl;
-		if (ccs_acl_type2(ptr) != CCS_TYPE_CAPABILITY_ACL)
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_CAPABILITY_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_capability_acl_record, head);
 		if (acl->operation != operation ||
@@ -228,15 +163,45 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete)
 {
+	struct ccs_capability_acl_record e = {
+		.head.type = CCS_TYPE_CAPABILITY_ACL,
+		.head.cond = condition,
+	};
+	struct ccs_capability_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	u8 capability;
 	for (capability = 0; capability < CCS_MAX_CAPABILITY_INDEX;
 	     capability++) {
 		if (strcmp(data, ccs_cap2keyword(capability)))
 			continue;
-		return ccs_update_capability_acl(capability, domain, condition,
-						 is_delete);
+		break;
 	}
-	return -EINVAL;
+	if (capability == CCS_MAX_CAPABILITY_INDEX)
+		return -EINVAL;
+	e.operation = capability;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_capability_acl_record *acl =
+			container_of(ptr, struct ccs_capability_acl_record,
+				     head);
+		if (ptr->type != CCS_TYPE_CAPABILITY_ACL ||
+		    ptr->cond != condition || acl->operation != capability)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	kfree(entry);
+	return error;
 }
 
 /**

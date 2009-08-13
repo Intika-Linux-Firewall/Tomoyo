@@ -78,6 +78,56 @@ struct ccs_number_union {
 	u8 is_group;
 };
 
+/* Structure for "path_group" directive. */
+struct ccs_path_group {
+	struct list_head list;
+	const struct ccs_path_info *group_name;
+	struct list_head member_list;
+	atomic_t users;
+};
+
+/* Structure for "number_group" directive. */
+struct ccs_number_group {
+	struct list_head list;
+	const struct ccs_path_info *group_name;
+	struct list_head member_list;
+	atomic_t users;
+};
+
+/* Structure for "address_group" directive. */
+struct ccs_address_group {
+	struct list_head list;
+	const struct ccs_path_info *group_name;
+	struct list_head member_list;
+	atomic_t users;
+};
+
+/* Structure for "path_group" directive. */
+struct ccs_path_group_member {
+	struct list_head list;
+	bool is_deleted;
+	const struct ccs_path_info *member_name;
+};
+
+/* Structure for "number_group" directive. */
+struct ccs_number_group_member {
+	struct list_head list;
+	bool is_deleted;
+	struct ccs_number_union number;
+};
+
+/* Structure for "address_group" directive. */
+struct ccs_address_group_member {
+	struct list_head list;
+	bool is_deleted;
+	bool is_ipv6;
+	union {
+		u32 ipv4;                    /* Host byte order    */
+		const struct in6_addr *ipv6; /* Network byte order */
+	} min, max;
+};
+
+
 /* Subset of "struct stat". */
 struct ccs_mini_stat {
 	uid_t uid;
@@ -209,58 +259,6 @@ struct ccs_execve_entry {
 	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
 };
 
-/* Structure for "path_group" directive. */
-struct ccs_path_group_member {
-	struct list_head list;
-	const struct ccs_path_info *member_name;
-	bool is_deleted;
-};
-
-/* Structure for "path_group" directive. */
-struct ccs_path_group {
-	struct list_head list;
-	const struct ccs_path_info *group_name;
-	struct list_head path_group_member_list;
-	atomic_t users;
-};
-
-/* Structure for "number_group" directive. */
-struct ccs_number_group_member {
-	struct list_head list;
-	unsigned long min;
-	unsigned long max;
-	bool is_deleted;
-	u8 min_type;
-	u8 max_type;
-};
-
-/* Structure for "number_group" directive. */
-struct ccs_number_group {
-	struct list_head list;
-	const struct ccs_path_info *group_name;
-	struct list_head number_group_member_list;
-	atomic_t users;
-};
-
-/* Structure for "address_group" directive. */
-struct ccs_address_group_member {
-	struct list_head list;
-	union {
-		u32 ipv4;                    /* Host byte order    */
-		const struct in6_addr *ipv6; /* Network byte order */
-	} min, max;
-	bool is_deleted;
-	bool is_ipv6;
-};
-
-/* Structure for "address_group" directive. */
-struct ccs_address_group_entry {
-	struct list_head list;
-	const struct ccs_path_info *group_name;
-	struct list_head address_group_member_list;
-	atomic_t users;
-};
-
 /* Structure for holding requested pathname. */
 struct ccs_path_info_with_data {
 	/* Keep "head" first, for this pointer is passed to ccs_free(). */
@@ -274,12 +272,8 @@ struct ccs_path_info_with_data {
 struct ccs_acl_info {
 	struct list_head list;
 	struct ccs_condition *cond;
-	/*
-	 * Type of this ACL entry.
-	 *
-	 * MSB is is_deleted flag.
-	 */
-	u8 type;
+	bool is_deleted;
+	u8 type; /* = one of values in "enum ccs_acl_entry_type_index" */
 } __attribute__((__packed__));
 
 /* Index numbers for Access Controls. */
@@ -299,9 +293,6 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_EXECUTE_HANDLER,
 	CCS_TYPE_DENIED_EXECUTE_HANDLER
 };
-
-/* This ACL entry is deleted. */
-#define CCS_ACL_DELETED        0x80
 
 /* Structure for domain information. */
 struct ccs_domain_info {
@@ -336,57 +327,57 @@ struct ccs_domain_info {
 /* Structure for "allow_read" keyword. */
 struct ccs_globally_readable_file_entry {
 	struct list_head list;
-	const struct ccs_path_info *filename;
 	bool is_deleted;
+	const struct ccs_path_info *filename;
 };
 
 /* Structure for "file_pattern" keyword. */
 struct ccs_pattern_entry {
 	struct list_head list;
-	const struct ccs_path_info *pattern;
 	bool is_deleted;
+	const struct ccs_path_info *pattern;
 };
 
 /* Structure for "deny_rewrite" keyword. */
 struct ccs_no_rewrite_entry {
 	struct list_head list;
-	const struct ccs_path_info *pattern;
 	bool is_deleted;
+	const struct ccs_path_info *pattern;
 };
 
 /* Structure for "allow_env" keyword. */
 struct ccs_globally_usable_env_entry {
 	struct list_head list;
-	const struct ccs_path_info *env;
 	bool is_deleted;
+	const struct ccs_path_info *env;
 };
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
 struct ccs_domain_initializer_entry {
 	struct list_head list;
-	const struct ccs_path_info *domainname;    /* This may be NULL */
-	const struct ccs_path_info *program;
 	bool is_deleted;
 	bool is_not;       /* True if this entry is "no_initialize_domain".  */
 	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+	const struct ccs_path_info *domainname;    /* This may be NULL */
+	const struct ccs_path_info *program;
 };
 
 /* Structure for "keep_domain" and "no_keep_domain" keyword. */
 struct ccs_domain_keeper_entry {
 	struct list_head list;
-	const struct ccs_path_info *domainname;
-	const struct ccs_path_info *program;       /* This may be NULL */
 	bool is_deleted;
 	bool is_not;       /* True if this entry is "no_keep_domain".        */
 	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+	const struct ccs_path_info *domainname;
+	const struct ccs_path_info *program;       /* This may be NULL */
 };
 
 /* Structure for "aggregator" keyword. */
 struct ccs_aggregator_entry {
 	struct list_head list;
+	bool is_deleted;
 	const struct ccs_path_info *original_name;
 	const struct ccs_path_info *aggregated_name;
-	bool is_deleted;
 };
 
 /* Structure for "allow_unmount" keyword. */
@@ -428,10 +419,10 @@ struct ccs_reserved_entry {
 /* Structure for policy manager. */
 struct ccs_policy_manager_entry {
 	struct list_head list;
+	bool is_deleted; /* True if this entry is deleted. */
+	bool is_domain;  /* True if manager is a domainname. */
 	/* A path to program or a domainname. */
 	const struct ccs_path_info *manager;
-	bool is_domain;  /* True if manager is a domainname. */
-	bool is_deleted; /* True if this entry is deleted. */
 };
 
 /* Structure for argv[]. */
@@ -578,7 +569,7 @@ struct ccs_ip_network_acl_record {
 			const struct in6_addr *max;
 		} ipv6;
 		/* Pointer to address group. */
-		struct ccs_address_group_entry *group;
+		struct ccs_address_group *group;
 	} address;
 	struct ccs_number_union port;
 };
@@ -872,12 +863,10 @@ const char *ccs_net2keyword(const u8 operation);
 const char *ccs_sp2keyword(const u8 operation);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
-int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl);
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
 int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
 int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 int ccs_close_control(struct file *file);
-int ccs_del_domain_acl(struct ccs_acl_info *acl);
 int ccs_delete_domain(char *data);
 int ccs_open_control(const u8 type, struct file *file);
 int ccs_poll_control(struct file *file, poll_table *wait);
@@ -924,7 +913,7 @@ void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
 void ccs_normalize_line(unsigned char *buffer);
 void ccs_print_ipv6(char *buffer, const int buffer_len, const struct in6_addr *ip);
-void ccs_put_address_group(struct ccs_address_group_entry *group);
+void ccs_put_address_group(struct ccs_address_group *group);
 void ccs_put_condition(struct ccs_condition *cond);
 void ccs_put_ipv6_address(const struct in6_addr *addr);
 void ccs_put_name(const struct ccs_path_info *name);
@@ -941,6 +930,24 @@ bool ccs_compare_number_union(const unsigned long value, const struct ccs_number
 bool ccs_compare_name_union(const struct ccs_path_info *name, const struct ccs_name_union *ptr);
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
 const char *ccs_file_pattern(const struct ccs_path_info *filename);
+struct ccs_address_group *ccs_get_address_group(const char *group_name);
+struct ccs_number_group *ccs_get_number_group(const char *group_name);
+struct ccs_path_group *ccs_get_path_group(const char *group_name);
+void ccs_put_address_group(struct ccs_address_group *group);
+void ccs_put_number_group(struct ccs_number_group *group);
+void ccs_put_path_group(struct ccs_path_group *group);
+int ccs_write_address_group_policy(char *data, const bool is_delete);
+int ccs_write_number_group_policy(char *data, const bool is_delete);
+int ccs_write_path_group_policy(char *data, const bool is_delete);
+bool ccs_read_address_group_policy(struct ccs_io_buffer *head);
+bool ccs_read_number_group_policy(struct ccs_io_buffer *head);
+bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
+bool ccs_address_matches_group(const bool is_ipv6, const u32 *address, const struct ccs_address_group *group);
+bool ccs_number_matches_group(const unsigned long min, const unsigned long max, const struct ccs_number_group *group);
+bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct ccs_path_group *group, const bool may_use_pattern);
+int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
+bool ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
+bool ccs_commit_ok(void *ptr, void *data, const unsigned int size);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -953,18 +960,6 @@ static inline int ccs_memcmp(void *a, void *b, const u8 offset, const u8 size)
 {
 	return memcmp(((char *) a) + offset, ((char *) b) + offset,
 		      size - offset);
-}
-
-/* Get type of an ACL entry. */
-static inline u8 ccs_acl_type1(struct ccs_acl_info *ptr)
-{
-	return ptr->type & ~CCS_ACL_DELETED;
-}
-
-/* Get type of an ACL entry. */
-static inline u8 ccs_acl_type2(struct ccs_acl_info *ptr)
-{
-	return ptr->type;
 }
 
 /* Lock for protecting policy. */
@@ -982,7 +977,6 @@ extern struct list_head ccs_globally_usable_env_list;
 extern struct list_head ccs_domain_initializer_list;
 extern struct list_head ccs_domain_keeper_list;
 extern struct list_head ccs_aggregator_list;
-extern struct list_head ccs_condition_list;
 extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
 
@@ -1105,6 +1099,35 @@ static inline void ccs_read_unlock(const int idx)
 	srcu_read_unlock(&ccs_ss, idx);
 }
 
+#endif
+
+static inline void ccs_add_domain_acl(struct ccs_domain_info *domain,
+				      struct ccs_acl_info *acl)
+{
+	if (acl->cond)
+		atomic_inc(&acl->cond->users);
+	list_add_tail_rcu(&acl->list, &domain->acl_info_list);
+}
+
+#if defined(CONFIG_SLOB)
+static inline int ccs_round2(size_t size)
+{
+	return size;
+}
+#else
+static inline int ccs_round2(size_t size)
+{
+#if PAGE_SIZE == 4096
+	size_t bsize = 32;
+#else
+	size_t bsize = 64;
+#endif
+	if (!size)
+		return 0;
+	while (size > bsize)
+		bsize <<= 1;
+	return bsize;
+}
 #endif
 
 #endif

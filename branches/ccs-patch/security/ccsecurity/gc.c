@@ -139,7 +139,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 {
 	size_t size;
 	ccs_put_condition(acl->cond);
-	switch (ccs_acl_type1(acl)) {
+	switch (acl->type) {
 	case CCS_TYPE_SINGLE_PATH_ACL:
 		{
 			struct ccs_single_path_acl_record *entry;
@@ -305,7 +305,7 @@ static size_t ccs_del_address_group_member
 	return sizeof(*member);
 }
 
-static size_t ccs_del_address_group(struct ccs_address_group_entry *group)
+static size_t ccs_del_address_group(struct ccs_address_group *group)
 {
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
@@ -439,7 +439,7 @@ static int ccs_gc_thread(void *unused)
 			struct ccs_acl_info *acl;
 			list_for_each_entry_rcu(acl, &domain->acl_info_list,
 						list) {
-				if (!(acl->type & CCS_ACL_DELETED))
+				if (!acl->is_deleted)
 					continue;
 				if (ccs_add_to_gc(CCS_ID_ACL, acl,
 						  &ccs_gc_queue))
@@ -460,8 +460,7 @@ static int ccs_gc_thread(void *unused)
 		struct ccs_path_group *group;
 		list_for_each_entry_rcu(group, &ccs_path_group_list, list) {
 			struct ccs_path_group_member *member;
-			list_for_each_entry_rcu(member,
-						&group->path_group_member_list,
+			list_for_each_entry_rcu(member, &group->member_list,
 						list) {
 				if (!member->is_deleted)
 					continue;
@@ -471,7 +470,7 @@ static int ccs_gc_thread(void *unused)
 				else
 					break;
 			}
-			if (!list_empty(&group->path_group_member_list) ||
+			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (ccs_add_to_gc(CCS_ID_PATH_GROUP, group,
@@ -482,11 +481,10 @@ static int ccs_gc_thread(void *unused)
 		}
 	}
 	{
-		struct ccs_address_group_entry *group;
+		struct ccs_address_group *group;
 		list_for_each_entry_rcu(group, &ccs_address_group_list, list) {
 			struct ccs_address_group_member *member;
-			list_for_each_entry_rcu(member,
-					&group->address_group_member_list,
+			list_for_each_entry_rcu(member, &group->member_list,
 						list) {
 				if (!member->is_deleted)
 					break;
@@ -496,7 +494,7 @@ static int ccs_gc_thread(void *unused)
 				else
 					break;
 			}
-			if (!list_empty(&group->address_group_member_list) ||
+			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, group,
@@ -510,9 +508,7 @@ static int ccs_gc_thread(void *unused)
 		struct ccs_number_group *group;
 		list_for_each_entry_rcu(group, &ccs_number_group_list, list) {
 			struct ccs_number_group_member *member;
-			list_for_each_entry_rcu(member,
-						&group->
-						number_group_member_list,
+			list_for_each_entry_rcu(member, &group->member_list,
 						list) {
 				if (!member->is_deleted)
 					continue;
@@ -522,7 +518,7 @@ static int ccs_gc_thread(void *unused)
 				else
 					break;
 			}
-			if (!list_empty(&group->number_group_member_list) ||
+			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP, group,

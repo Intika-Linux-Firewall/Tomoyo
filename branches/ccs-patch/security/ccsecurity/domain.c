@@ -52,40 +52,6 @@ const char *ccs_get_last_name(const struct ccs_domain_info *domain)
 }
 
 /**
- * ccs_add_domain_acl - Add the given ACL to the given domain.
- *
- * @domain: Pointer to "struct ccs_domain_info". May be NULL.
- * @acl:    Pointer to "struct ccs_acl_info".
- *
- * Returns 0.
- */
-int ccs_add_domain_acl(struct ccs_domain_info *domain, struct ccs_acl_info *acl)
-{
-	if (domain) {
-		if (acl->cond)
-			atomic_inc(&acl->cond->users);
-		list_add_tail_rcu(&acl->list, &domain->acl_info_list);
-	} else {
-		acl->type &= ~CCS_ACL_DELETED;
-	}
-	return 0;
-}
-
-/**
- * ccs_del_domain_acl - Delete the given ACL from the domain.
- *
- * @acl: Pointer to "struct ccs_acl_info". May be NULL.
- *
- * Returns 0.
- */
-int ccs_del_domain_acl(struct ccs_acl_info *acl)
-{
-	if (acl)
-		acl->type |= CCS_ACL_DELETED;
-	return 0;
-}
-
-/**
  * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
  * @ee:         Pointer to "struct ccs_execve_entry".
@@ -140,53 +106,43 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 {
 	struct ccs_domain_initializer_entry *entry = NULL;
 	struct ccs_domain_initializer_entry *ptr;
-	const struct ccs_path_info *saved_program;
-	const struct ccs_path_info *saved_domainname = NULL;
+	struct ccs_domain_initializer_entry e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	bool is_last_name = false;
 	if (!ccs_is_correct_path(program, 1, -1, -1))
 		return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
 		if (!ccs_is_domain_def(domainname) &&
 		    ccs_is_correct_path(domainname, 1, -1, -1))
-			is_last_name = true;
+			e.is_last_name = true;
 		else if (!ccs_is_correct_domain(domainname))
 			return -EINVAL;
-		saved_domainname = ccs_get_name(domainname);
-		if (!saved_domainname)
-			return -ENOMEM;
+		e.domainname = ccs_get_name(domainname);
+		if (!e.domainname)
+			goto out;
 	}
-	saved_program = ccs_get_name(program);
-	if (!saved_program) {
-		ccs_put_name(saved_domainname);
-		return -ENOMEM;
-	}
+	e.program = ccs_get_name(program);
+	if (!e.program)
+		goto out;
 	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
-		if (ptr->is_not != is_not ||
-		    ptr->domainname != saved_domainname ||
-		    ptr->program != saved_program)
+		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
+			       sizeof(e)))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->domainname = saved_domainname;
-		saved_domainname = NULL;
-		entry->program = saved_program;
-		saved_program = NULL;
-		entry->is_not = is_not;
-		entry->is_last_name = is_last_name;
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		list_add_tail_rcu(&entry->list, &ccs_domain_initializer_list);
 		entry = NULL;
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_domainname);
-	ccs_put_name(saved_program);
+ out:
+	ccs_put_name(e.domainname);
+	ccs_put_name(e.program);
 	kfree(entry);
 	return error;
 }
@@ -313,53 +269,43 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 {
 	struct ccs_domain_keeper_entry *entry = NULL;
 	struct ccs_domain_keeper_entry *ptr;
-	const struct ccs_path_info *saved_domainname;
-	const struct ccs_path_info *saved_program = NULL;
+	struct ccs_domain_keeper_entry e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	bool is_last_name = false;
 	if (!ccs_is_domain_def(domainname) &&
 	    ccs_is_correct_path(domainname, 1, -1, -1))
-		is_last_name = true;
+		e.is_last_name = true;
 	else if (!ccs_is_correct_domain(domainname))
 		return -EINVAL;
 	if (program) {
 		if (!ccs_is_correct_path(program, 1, -1, -1))
 			return -EINVAL;
-		saved_program = ccs_get_name(program);
-		if (!saved_program)
-			return -ENOMEM;
+		e.program = ccs_get_name(program);
+		if (!e.program)
+			goto out;
 	}
-	saved_domainname = ccs_get_name(domainname);
-	if (!saved_domainname) {
-		ccs_put_name(saved_program);
-		return -ENOMEM;
-	}
+	e.domainname = ccs_get_name(domainname);
+	if (!e.domainname)
+		goto out;
 	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
-		if (ptr->is_not != is_not ||
-		    ptr->domainname != saved_domainname ||
-		    ptr->program != saved_program)
+		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
+			       sizeof(e)))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->domainname = saved_domainname;
-		saved_domainname = NULL;
-		entry->program = saved_program;
-		saved_program = NULL;
-		entry->is_not = is_not;
-		entry->is_last_name = is_last_name;
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		list_add_tail_rcu(&entry->list, &ccs_domain_keeper_list);
 		entry = NULL;
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_domainname);
-	ccs_put_name(saved_program);
+ out:
+	ccs_put_name(e.domainname);
+	ccs_put_name(e.program);
 	kfree(entry);
 	return error;
 }
@@ -479,42 +425,35 @@ static int ccs_update_aggregator_entry(const char *original_name,
 {
 	struct ccs_aggregator_entry *entry = NULL;
 	struct ccs_aggregator_entry *ptr;
-	const struct ccs_path_info *saved_original_name;
-	const struct ccs_path_info *saved_aggregated_name;
+	struct ccs_aggregator_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_is_correct_path(original_name, 1, 0, -1) ||
 	    !ccs_is_correct_path(aggregated_name, 1, -1, -1))
 		return -EINVAL;
-	saved_original_name = ccs_get_name(original_name);
-	saved_aggregated_name = ccs_get_name(aggregated_name);
-	if (!saved_original_name || !saved_aggregated_name) {
-		ccs_put_name(saved_original_name);
-		ccs_put_name(saved_aggregated_name);
-		return -ENOMEM;
-	}
+	e.original_name = ccs_get_name(original_name);
+	e.aggregated_name = ccs_get_name(aggregated_name);
+	if (!e.original_name || !e.aggregated_name)
+		goto out;
 	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
-		if (ptr->original_name != saved_original_name ||
-		    ptr->aggregated_name != saved_aggregated_name)
+		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), original_name),
+			       sizeof(e)))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->original_name = saved_original_name;
-		saved_original_name = NULL;
-		entry->aggregated_name = saved_aggregated_name;
-		saved_aggregated_name = NULL;
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		list_add_tail_rcu(&entry->list, &ccs_aggregator_list);
 		entry = NULL;
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_original_name);
-	ccs_put_name(saved_aggregated_name);
+ out:
+	ccs_put_name(e.original_name);
+	ccs_put_name(e.aggregated_name);
 	kfree(entry);
 	return error;
 }

@@ -112,75 +112,6 @@ static void put_filesystem(struct file_system_type *fs)
 #endif
 
 /**
- * ccs_update_mount_acl - Update "struct ccs_mount_acl_record" list.
- *
- * @dev_name:  Name of device file.
- * @dir_name:  Name of mount point.
- * @fs_type:   Name of filesystem.
- * @flags:     Mount options.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_mount_acl(char *dev_name, char *dir_name, char *fs_type,
-				char *flags, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
-{
-	struct ccs_mount_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	struct ccs_mount_acl_record e;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	memset(&e, 0, sizeof(e));
-	e.head.type = CCS_TYPE_MOUNT_ACL;
-	e.head.cond = condition;
-	if (!dev_name)
-		dev_name = "<NULL>";
-	if (!strcmp(fs_type, CCS_MOUNT_REMOUNT_KEYWORD) ||
-	    !strcmp(fs_type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-	    !strcmp(fs_type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
-	    !strcmp(fs_type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
-	    !strcmp(fs_type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-		dev_name = "any";
-	if (!ccs_parse_name_union(dev_name, &e.dev_name) ||
-	    !ccs_parse_name_union(dir_name, &e.dir_name) ||
-	    !ccs_parse_name_union(fs_type, &e.fs_type) ||
-	    !ccs_parse_number_union(flags, &e.flags))
-		goto out;
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_mount_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_MOUNT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_mount_acl_record, head);
-		if (ccs_memcmp(acl, &e, offsetof(struct ccs_mount_acl_record,
-						 head.cond), sizeof(e)))
-			continue;
-		if (is_delete)
-			error = ccs_del_domain_acl(ptr);
-		else
-			error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		memmove(entry, &e, sizeof(e));
-		memset(&e, 0, sizeof(e));
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
- out:
-	ccs_put_name_union(&e.dev_name);
-	ccs_put_name_union(&e.dir_name);
-	ccs_put_name_union(&e.fs_type);
-	ccs_put_number_union(&e.flags);
-	kfree(entry);
-	return error;
-}
-
-/**
  * ccs_check_mount_permission2 - Check permission for mount() operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
@@ -331,7 +262,7 @@ static int ccs_check_mount_permission2(struct ccs_request_info *r,
 		ccs_fill_path_info(&rdev);
 		list_for_each_entry_rcu(ptr, &r->domain->acl_info_list, list) {
 			struct ccs_mount_acl_record *acl;
-			if (ccs_acl_type2(ptr) != CCS_TYPE_MOUNT_ACL)
+			if (ptr->is_deleted || ptr->type != CCS_TYPE_MOUNT_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_mount_acl_record,
 					   head);
@@ -412,9 +343,44 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
+	struct ccs_mount_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	struct ccs_mount_acl_record e = { .head.type = CCS_TYPE_MOUNT_ACL,
+					  .head.cond = condition };
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[4];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
 		return -EINVAL;
-	return ccs_update_mount_acl(w[0], w[1], w[2], w[3], domain, condition,
-				    is_delete);
+	if (!ccs_parse_name_union(w[0], &e.dev_name) ||
+	    !ccs_parse_name_union(w[1], &e.dir_name) ||
+	    !ccs_parse_name_union(w[2], &e.fs_type) ||
+	    !ccs_parse_number_union(w[3], &e.flags))
+		goto out;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_mount_acl_record *acl =
+			container_of(ptr, struct ccs_mount_acl_record, head);
+		if (ptr->type != CCS_TYPE_MOUNT_ACL || ptr->cond != condition
+		    || ccs_memcmp(acl, &e, offsetof(typeof(e), dev_name),
+				  sizeof(e)))
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+ out:
+	ccs_put_name_union(&e.dev_name);
+	ccs_put_name_union(&e.dir_name);
+	ccs_put_name_union(&e.fs_type);
+	ccs_put_number_union(&e.flags);
+	kfree(entry);
+	return error;
 }

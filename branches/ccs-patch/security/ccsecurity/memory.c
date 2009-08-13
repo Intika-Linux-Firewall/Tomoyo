@@ -25,17 +25,38 @@ static unsigned int ccs_quota_for_non_string;
  */
 bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
-	atomic_add(size, &ccs_non_string_memory_size);
+	size_t s = ccs_round2(size);
+	atomic_add(s, &ccs_non_string_memory_size);
 	if (ptr && (!ccs_quota_for_non_string ||
 		    atomic_read(&ccs_non_string_memory_size)
 		    <= ccs_quota_for_non_string))
 		return true;
-	atomic_sub(size, &ccs_non_string_memory_size);
+	atomic_sub(s, &ccs_non_string_memory_size);
 	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
 	if (!ccs_policy_loaded)
 		panic("MAC Initialization failed.\n");
 	return false;
 }
+
+/**
+ * ccs_commit_ok - Check memory quota.
+ *
+ * @ptr:    Pointer to allocated memory.
+ * @data:   Data to copy from.
+ * @size:   Size in byte.
+ *
+ * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
+ */
+bool ccs_commit_ok(void *ptr, void *data, const unsigned int size)
+{
+	if (ccs_memory_ok(ptr, size)) {
+		memmove(ptr, data, size);
+		memset(data, 0, size);
+		return true;
+	}
+	return false;
+}
+
 
 /**
  * ccs_memory_free - Free memory for elements.
@@ -45,130 +66,8 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
  */
 void ccs_memory_free(const void *ptr, size_t size)
 {
-	atomic_sub(size, &ccs_non_string_memory_size);
+	atomic_sub(ccs_round2(size), &ccs_non_string_memory_size);
 	kfree(ptr);
-}
-
-/**
- * ccs_put_path_group - Delete memory for "struct ccs_path_group".
- *
- * @group: Pointer to "struct ccs_path_group".
- */
-void ccs_put_path_group(struct ccs_path_group *group)
-{
-	struct ccs_path_group_member *member;
-	struct ccs_path_group_member *next_member;
-	LIST_HEAD(q);
-	bool can_delete_group = false;
-	if (!group)
-		return;
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&group->users)) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->path_group_member_list,
-					 list) {
-			if (!member->is_deleted)
-				break;
-			list_del(&member->list);
-			list_add(&member->list, &q);
-		}
-		if (list_empty(&group->path_group_member_list)) {
-			list_del(&group->list);
-			can_delete_group = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q, list) {
-		list_del(&member->list);
-		ccs_put_name(member->member_name);
-		ccs_memory_free(member, sizeof(*member));
-	}
-	if (can_delete_group) {
-		ccs_put_name(group->group_name);
-		ccs_memory_free(group, sizeof(*group));
-	}
-}
-
-/**
- * ccs_put_address_group - Delete memory for "struct ccs_address_group_entry".
- *
- * @group: Pointer to "struct ccs_address_group_entry".
- */
-void ccs_put_address_group(struct ccs_address_group_entry *group)
-{
-	struct ccs_address_group_member *member;
-	struct ccs_address_group_member *next_member;
-	LIST_HEAD(q);
-	bool can_delete_group = false;
-	if (!group)
-		return;
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&group->users)) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->address_group_member_list,
-					 list) {
-			if (!member->is_deleted)
-				break;
-			list_del(&member->list);
-			list_add(&member->list, &q);
-		}
-		if (list_empty(&group->address_group_member_list)) {
-			list_del(&group->list);
-			can_delete_group = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q, list) {
-		list_del(&member->list);
-		if (member->is_ipv6) {
-			ccs_put_ipv6_address(member->min.ipv6);
-			ccs_put_ipv6_address(member->max.ipv6);
-		}
-		ccs_memory_free(member, sizeof(*member));
-	}
-	if (can_delete_group) {
-		ccs_put_name(group->group_name);
-		ccs_memory_free(group, sizeof(*group));
-	}
-}
-
-/**
- * ccs_put_number_group - Delete memory for "struct ccs_number_group".
- *
- * @group: Pointer to "struct ccs_number_group".
- */
-void ccs_put_number_group(struct ccs_number_group *group)
-{
-	struct ccs_number_group_member *member;
-	struct ccs_number_group_member *next_member;
-	LIST_HEAD(q);
-	bool can_delete_group = false;
-	if (!group)
-		return;
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&group->users)) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->number_group_member_list,
-					 list) {
-			if (!member->is_deleted)
-				break;
-			list_del(&member->list);
-			list_add(&member->list, &q);
-		}
-		if (list_empty(&group->number_group_member_list)) {
-			list_del(&group->list);
-			can_delete_group = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q, list) {
-		list_del(&member->list);
-		ccs_memory_free(member, sizeof(*member));
-	}
-	if (can_delete_group) {
-		ccs_put_name(group->group_name);
-		ccs_memory_free(group, sizeof(*group));
-	}
 }
 
 static LIST_HEAD(ccs_address_list);
@@ -253,6 +152,7 @@ void ccs_put_condition(struct ccs_condition *cond)
 	bool can_delete = false;
 	if (!cond)
 		return;
+	BUG_ON(atomic_read(&cond->users) <= 0);
 	mutex_lock(&ccs_policy_lock);
 	if (atomic_dec_and_test(&cond->users)) {
 		list_del(&cond->list);
@@ -271,9 +171,9 @@ void ccs_put_condition(struct ccs_condition *cond)
 	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
 	argv = (const struct ccs_argv_entry *) (names_p + names_count);
 	envp = (const struct ccs_envp_entry *) (argv + argc);
-	for (i = 0; i < cond->numbers_count; i++)
+	for (i = 0; i < numbers_count; i++)
 		ccs_put_number_union(numbers_p++);
-	for (i = 0; i < cond->names_count; i++)
+	for (i = 0; i < names_count; i++)
 		ccs_put_name_union(names_p++);
 	for (i = 0; i < argc; argv++, i++)
 		ccs_put_name(argv->value);
@@ -331,8 +231,10 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		atomic_inc(&ptr->users);
 		goto out;
 	}
-	ptr = kzalloc(sizeof(*ptr) + len, GFP_KERNEL);
-	allocated_len = ptr ? sizeof(*ptr) + len : 0;
+	allocated_len = ccs_round2(sizeof(*ptr) + len);
+	ptr = kzalloc(allocated_len, GFP_KERNEL);
+	if (!ptr)
+		allocated_len = 0;
 	ccs_string_memory_size += allocated_len;
 	if (!allocated_len ||
 	    (ccs_quota_for_string &&

@@ -40,57 +40,6 @@ static int ccs_audit_umount_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_update_umount_acl - Update "struct ccs_umount_acl_record" list.
- *
- * @dir:       The name of directrory.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_umount_acl(const char *dir,
-				 struct ccs_domain_info *domain,
-				 struct ccs_condition *condition,
-				 const bool is_delete)
-{
-	struct ccs_umount_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	struct ccs_umount_acl_record e;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	memset(&e, 0, sizeof(e));
-	e.head.type = CCS_TYPE_UMOUNT_ACL;
-	e.head.cond = condition;
-	if (!ccs_parse_name_union(dir, &e.dir))
-		return error;
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_umount_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_UMOUNT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_umount_acl_record, head);
-		if (ccs_memcmp(acl, &e, offsetof(struct ccs_umount_acl_record,
-						 head.cond), sizeof(e)))
-			continue;
-		if (is_delete)
-			error = ccs_del_domain_acl(ptr);
-		else
-			error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		memmove(entry, &e, sizeof(e));
-		memset(&e, 0, sizeof(e));
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name_union(&e.dir);
-	kfree(entry);
-	return error;
-}
-
-/**
  * ccs_may_umount2 - Check permission for unmount.
  *
  * @mnt: Pointer to "struct vfsmount".
@@ -123,7 +72,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	ccs_fill_path_info(&dir);
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_umount_acl_record *acl;
-		if (ccs_acl_type2(ptr) != CCS_TYPE_UMOUNT_ACL)
+		if (ptr->type != CCS_TYPE_UMOUNT_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_umount_acl_record, head);
 		if (!ccs_compare_name_union(&dir, &acl->dir) ||
@@ -175,5 +124,34 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	return ccs_update_umount_acl(data, domain, condition, is_delete);
+	struct ccs_umount_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	struct ccs_umount_acl_record e = { .head.type = CCS_TYPE_UMOUNT_ACL,
+					   .head.cond = condition };
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_parse_name_union(data, &e.dir))
+		return error;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_umount_acl_record *acl =
+			container_of(ptr, struct ccs_umount_acl_record, head);
+		if (ptr->type != CCS_TYPE_UMOUNT_ACL ||
+		    ptr->cond != condition || memcmp(&acl->dir, &e.dir,
+						     sizeof(e.dir)))
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_name_union(&e.dir);
+	kfree(entry);
+	return error;
 }

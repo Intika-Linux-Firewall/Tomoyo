@@ -329,40 +329,36 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 {
 	struct ccs_policy_manager_entry *entry = NULL;
 	struct ccs_policy_manager_entry *ptr;
-	const struct ccs_path_info *saved_manager;
+	struct ccs_policy_manager_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	bool is_domain = false;
 	if (ccs_is_domain_def(manager)) {
 		if (!ccs_is_correct_domain(manager))
 			return -EINVAL;
-		is_domain = true;
+		e.is_domain = true;
 	} else {
 		if (!ccs_is_correct_path(manager, 1, -1, -1))
 			return -EINVAL;
 	}
-	saved_manager = ccs_get_name(manager);
-	if (!saved_manager)
+	e.manager = ccs_get_name(manager);
+	if (!e.manager)
 		return -ENOMEM;
 	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
-		if (ptr->manager != saved_manager)
+		if (ptr->manager != e.manager)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->manager = saved_manager;
-		saved_manager = NULL;
-		entry->is_domain = is_domain;
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		list_add_tail_rcu(&entry->list, &ccs_policy_manager_list);
 		entry = NULL;
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_manager);
+	ccs_put_name(e.manager);
 	kfree(entry);
 	return error;
 }
@@ -708,8 +704,8 @@ static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
 	}
 }
 
-static bool ccs_print_number_union(struct ccs_io_buffer *head,
-				   const struct ccs_number_union *ptr)
+bool ccs_print_number_union(struct ccs_io_buffer *head,
+			    const struct ccs_number_union *ptr)
 {
 	return ccs_print_number_union_common(head, ptr, true);
 }
@@ -1257,8 +1253,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    struct ccs_acl_info *ptr)
 {
 	const struct ccs_condition *cond = ptr->cond;
-	const u8 acl_type = ccs_acl_type2(ptr);
-	if (acl_type & CCS_ACL_DELETED)
+	const u8 acl_type = ptr->type;
+	if (ptr->is_deleted)
 		return true;
 	if (acl_type == CCS_TYPE_SINGLE_PATH_ACL) {
 		struct ccs_single_path_acl_record *acl
@@ -1342,9 +1338,6 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 				       head);
 		return ccs_print_pivot_root_acl(head, acl, cond);
 	}
-	/* Workaround for gcc 3.2.2's inline bug. */
-	if (acl_type & CCS_ACL_DELETED)
-		return true;
 	BUG(); /* This must not happen. */
 	return false;
 }
@@ -1877,6 +1870,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), GFP_KERNEL);
 	if (!ccs_query_entry)
 		goto out;
+	len = ccs_round2(len);
 	ccs_query_entry->query = kzalloc(len, GFP_KERNEL);
 	if (!ccs_query_entry->query)
 		goto out;

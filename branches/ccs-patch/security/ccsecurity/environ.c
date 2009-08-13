@@ -36,49 +36,6 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 LIST_HEAD(ccs_globally_usable_env_list);
 
 /**
- * ccs_update_globally_usable_env_entry - Update "struct ccs_globally_usable_env_entry" list.
- *
- * @env:       The name of environment variable.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_globally_usable_env_entry(const char *env,
-						const bool is_delete)
-{
-	struct ccs_globally_usable_env_entry *entry = NULL;
-	struct ccs_globally_usable_env_entry *ptr;
-	const struct ccs_path_info *saved_env;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0) || strchr(env, '='))
-		return -EINVAL;
-	saved_env = ccs_get_name(env);
-	if (!saved_env)
-		return -ENOMEM;
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
-		if (ptr->env != saved_env)
-			continue;
-		ptr->is_deleted = is_delete;
-		error = 0;
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->env = saved_env;
-		saved_env = NULL;
-		list_add_tail_rcu(&entry->list, &ccs_globally_usable_env_list);
-		entry = NULL;
-		error = 0;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name(saved_env);
-	kfree(entry);
-	return error;
-}
-
-/**
  * ccs_is_globally_usable_env - Check whether the given environment variable is acceptable for all domains.
  *
  * @env: The name of environment variable.
@@ -112,7 +69,34 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
  */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 {
-	return ccs_update_globally_usable_env_entry(data, is_delete);
+	struct ccs_globally_usable_env_entry *entry = NULL;
+	struct ccs_globally_usable_env_entry e = { };
+	struct ccs_globally_usable_env_entry *ptr;
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
+		return -EINVAL;
+	e.env = ccs_get_name(data);
+	if (!e.env)
+		return error;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
+		if (ptr->env != e.env)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		list_add_tail_rcu(&entry->list, &ccs_globally_usable_env_list);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_name(e.env);
+	kfree(entry);
+	return error;
 }
 
 /**
@@ -145,76 +129,6 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_update_env_entry - Update "struct ccs_env_acl_record" list.
- *
- * @env:       The name of environment variable.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_env_entry(const char *env, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
-{
-	struct ccs_env_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	const struct ccs_path_info *saved_env;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(env, 0, 0, 0) || strchr(env, '='))
-		return -EINVAL;
-	saved_env = ccs_get_name(env);
-	if (!saved_env)
-		goto out;
-	if (is_delete)
-		goto delete;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_ENV_ACL)
-			continue;
-		if (ptr->cond != condition)
-			continue;
-		acl = container_of(ptr, struct ccs_env_acl_record, head);
-		if (acl->env != saved_env)
-			continue;
-		error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->head.type = CCS_TYPE_ENV_ACL;
-		entry->head.cond = condition;
-		entry->env = saved_env;
-		saved_env = NULL;
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	goto out;
- delete:
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type2(ptr) != CCS_TYPE_ENV_ACL)
-			continue;
-		if (ptr->cond != condition)
-			continue;
-		acl = container_of(ptr, struct ccs_env_acl_record, head);
-		if (acl->env != saved_env)
-			continue;
-		error = ccs_del_domain_acl(ptr);
-		break;
-	}
-	mutex_unlock(&ccs_policy_lock);
- out:
-	ccs_put_name(saved_env);
-	kfree(entry);
-	return error;
-}
-
-/**
  * ccs_check_env_acl - Check permission for environment variable's name.
  *
  * @r:       Pointer to "struct ccs_request_info".
@@ -235,7 +149,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 	ccs_fill_path_info(&env);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl_record *acl;
-		if (ccs_acl_type2(ptr) != CCS_TYPE_ENV_ACL)
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_env_acl_record, head);
 		if (!ccs_check_condition(r, ptr) ||
@@ -297,5 +211,38 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete)
 {
-	return ccs_update_env_entry(data, domain, condition, is_delete);
+	struct ccs_env_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	struct ccs_env_acl_record e = {
+		.head.type = CCS_TYPE_ENV_ACL,
+		.head.cond = condition
+	};
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
+		return -EINVAL;
+	e.env = ccs_get_name(data);
+	if (!e.env)
+		return error;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_env_acl_record *acl =
+			container_of(ptr, struct ccs_env_acl_record, head);
+		if (ptr->type != CCS_TYPE_ENV_ACL || ptr->cond != condition ||
+		    acl->env != e.env)
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_name(e.env);
+	kfree(entry);
+	return error;
 }

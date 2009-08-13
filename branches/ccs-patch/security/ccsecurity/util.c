@@ -991,9 +991,9 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	if (!domain)
 		return true;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		if (ptr->type & CCS_ACL_DELETED)
+		if (ptr->is_deleted)
 			continue;
-		switch (ccs_acl_type2(ptr)) {
+		switch (ptr->type) {
 			struct ccs_single_path_acl_record *acl1;
 			struct ccs_double_path_acl_record *acl2;
 			u16 perm;

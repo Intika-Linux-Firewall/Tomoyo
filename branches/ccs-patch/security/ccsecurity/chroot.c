@@ -39,56 +39,6 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
 				   "%s\n", root);
 }
 
-/**
- * ccs_update_chroot_acl - Update "struct ccs_chroot_acl_record" list.
- *
- * @dir:       The name of directory.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_chroot_acl(char *dir, struct ccs_domain_info *domain,
-				 struct ccs_condition *condition,
-				 const bool is_delete)
-{
-	struct ccs_chroot_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	struct ccs_chroot_acl_record e;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	memset(&e, 0, sizeof(e));
-	e.head.type = CCS_TYPE_CHROOT_ACL;
-	e.head.cond = condition;
-	if (!ccs_parse_name_union(dir, &e.dir))
-		return error;
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_chroot_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_CHROOT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_chroot_acl_record, head);
-		if (ccs_memcmp(acl, &e, offsetof(struct ccs_chroot_acl_record,
-						 head.cond), sizeof(e)))
-			continue;
-		if (is_delete)
-			error = ccs_del_domain_acl(ptr);
-		else
-			error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		memmove(entry, &e, sizeof(e));
-		memset(&e, 0, sizeof(e));
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	ccs_put_name_union(&e.dir);
-	kfree(entry);
-	return error;
-}
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path
 #else
@@ -133,7 +83,8 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 		struct ccs_acl_info *ptr;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_chroot_acl_record *acl;
-			if (ccs_acl_type2(ptr) != CCS_TYPE_CHROOT_ACL)
+			if (ptr->is_deleted ||
+			    ptr->type != CCS_TYPE_CHROOT_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_chroot_acl_record,
 					   head);
@@ -188,5 +139,35 @@ int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	return ccs_update_chroot_acl(data, domain, condition, is_delete);
+	struct ccs_chroot_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	struct ccs_chroot_acl_record e = {
+		.head.type = CCS_TYPE_CHROOT_ACL,
+		.head.cond = condition
+	};
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_parse_name_union(data, &e.dir))
+		return error;
+	if (!is_delete)
+		entry = kmalloc(sizeof(e), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_chroot_acl_record *acl =
+			container_of(ptr, struct ccs_chroot_acl_record, head);
+		if (ptr->type != CCS_TYPE_CHROOT_ACL || ptr->cond != condition
+		    || memcmp(&acl->dir, &e.dir, sizeof(e.dir)))
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+	ccs_put_name_union(&e.dir);
+	kfree(entry);
+	return error;
 }

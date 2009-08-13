@@ -30,9 +30,13 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 				     const bool is_delete)
 {
 	struct ccs_reserved_entry *ptr;
+	struct ccs_reserved_entry e = {
+		.min_port = min_port,
+		.max_port = max_port
+	};
 	int error = -ENOMEM;
 	u8 *ccs_tmp_map = kzalloc(8192, GFP_KERNEL);
-	struct ccs_reserved_entry *entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	struct ccs_reserved_entry *entry = kmalloc(sizeof(e), GFP_KERNEL);
 	if (!ccs_tmp_map || !entry) {
 		kfree(entry);
 		kfree(ccs_tmp_map);
@@ -42,15 +46,13 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		error = -ENOENT;
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
-		if (ptr->min_port != min_port || max_port != ptr->max_port)
+		if (ptr->min_port != min_port || ptr->max_port != max_port)
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		entry->min_port = min_port;
-		entry->max_port = max_port;
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		list_add_tail_rcu(&entry->list, &ccs_reservedport_list);
 		entry = NULL;
 		error = 0;

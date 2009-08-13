@@ -15,7 +15,7 @@ static void BUG(const char *msg)
 		sleep(100);
 }
 
-static const char *policy_file = "/proc/ccs/domain_policy";
+static const char *policy_file = NULL;
 static const char *policy = NULL;
 
 static void get_meminfo(unsigned int *string, unsigned int *non_string)
@@ -67,10 +67,10 @@ static inline void check_policy_deleted(FILE *fp, const int id)
 	check_policy_common(0, id);
 }
 
-static const char *testcases[] = {
+static const char *domain_testcases[] = {
 	"allow_create /tmp/mknod_reg_test",
-	"allow_create /tmp/open_test if 0=0",
 	"allow_create /tmp/open_test if path1.parent.uid=task.uid",
+	"allow_create /tmp/open_test if 0=0",
 	"allow_create /tmp/open_test",
 	"allow_execute /bin/true if task.uid!=10 path1.parent.uid=0",
 	"allow_execute /bin/true",
@@ -159,21 +159,20 @@ static const char *testcases[] = {
 	NULL
 };
 
-int main(int argc, char *argv[]) {
-	unsigned int string0;
-	unsigned int non_string0;
+static void domain_policy_test(const unsigned int string0,
+			       const unsigned int non_string0)
+{
 	unsigned int string1;
 	unsigned int non_string1;
 	int j;
-	mount("/proc", "/proc/", "proc", 0, NULL);
-	get_meminfo(&string0, &non_string0);
-	for (j = 0; testcases[j]; j++) {
+	policy_file = "/proc/ccs/domain_policy";
+	for (j = 0; domain_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
 		if (!fp)
 			BUG("BUG: Policy write error\n");
 		fprintf(fp, "<kernel>\n");
-		policy = testcases[j];
+		policy = domain_testcases[j];
 		printf("Processing: %s\n", policy);
 		for (i = 0; i < 100; i++) {
 			fprintf(fp, "%s\n", policy);
@@ -200,6 +199,148 @@ int main(int argc, char *argv[]) {
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
+	for (j = 0; j < 10; j++) {
+		int i;
+		FILE *fp = fopen(policy_file, "w");
+		if (!fp)
+			BUG("BUG: Policy write error\n");
+		fprintf(fp, "<kernel> /sbin/init\n");
+		for (i = 0; domain_testcases[i]; i++) 
+			fprintf(fp, "%s\n", domain_testcases[i]);
+		fprintf(fp, "delete <kernel> /sbin/init\n");
+		fclose(fp);
+		for (i = 0; i < 50; i++) {
+			usleep(100000);
+			get_meminfo(&string1, &non_string1);
+			if (string0 == string1 && non_string0 == non_string1)
+				break;
+		}
+		if (string0 != string1 || non_string0 != non_string1) {
+			printf("string: %d\n", string1 - string0);
+			printf("non-string: %d\n", non_string1 - non_string0);
+			BUG("Policy read/write test: Fail\n");
+		}
+	}
+}
+
+static const char *exception_testcases[] = {
+	"allow_read /tmp/mknod_reg_test",
+	"allow_env HOME",
+	"path_group PG1 /",
+	"path_group PG2 /",
+	"address_group AG3 0.0.0.0",
+	"address_group AG3 1.2.3.4-5.6.7.8",
+	"address_group AG3 f:ee:ddd:cccc:b:aa:999:8888",
+	"address_group AG4 0:1:2:3:4:5:6:7-8:90:a00:b000:c00:d0:e:f000",
+	"number_group NG1 1000",
+	"number_group NG2 10-0x100000",
+	"number_group NG3 01234567-0xABCDEF89",
+	"deny_autobind 1024",
+	"deny_autobind 32668-65535",
+	"deny_autobind 0-1023",
+	"initialize_domain /usr/sbin/sshd",
+	"no_initialize_domain /usr/sbin/sshd",
+	"initialize_domain /usr/sbin/sshd from /bin/bash",
+	"no_initialize_domain /usr/sbin/sshd from /bin/bash",
+	"initialize_domain /usr/sbin/sshd from <kernel> /bin/mingetty/bin/bash",
+	"no_initialize_domain /usr/sbin/sshd from <kernel> /bin/mingetty/bin/bash",
+	"keep_domain <kernel> /usr/sbin/sshd /bin/bash",
+	"no_keep_domain <kernel> /usr/sbin/sshd /bin/bash",
+	"keep_domain /bin/pwd from <kernel> /usr/sbin/sshd /bin/bash",
+	"no_keep_domain /bin/pwd from <kernel> /usr/sbin/sshd /bin/bash",
+	"keep_domain /bin/pwd from /bin/bash",
+	"no_keep_domain /bin/pwd from /bin/bash",
+	"file_pattern /proc/\\$/task/\\$/environ",
+	"file_pattern /proc/\\$/task/\\$/auxv",
+	"allow_read /etc/ld.so.cache",
+	"allow_read /proc/meminfo",
+	"allow_read /proc/sys/kernel/version",
+	"allow_read /etc/localtime",
+	"allow_read /proc/self/task/\\$/attr/current",
+	"allow_read /proc/self/task/\\$/oom_score",
+	"allow_read /proc/self/wchan",
+	"allow_read /lib/ld-2.5.so",
+	"file_pattern pipe:[\\$]",
+	"file_pattern socket:[\\$]",
+	"file_pattern /var/cache/logwatch/logwatch.\\*/",
+	"file_pattern /var/cache/logwatch/logwatch.\\*/\\*",
+	"deny_rewrite /var/log/\\*",
+	"deny_rewrite /var/log/\\*/\\*",
+	"aggregator /etc/rc.d/rc\\?.d/\\?\\+\\+smb /etc/rc.d/init.d/smb",
+	"aggregator /etc/rc.d/rc\\?.d/\\?\\+\\+crond /etc/rc.d/init.d/crond",
+	NULL
+};
+
+static void exception_policy_test(const unsigned int string0,
+				  const unsigned int non_string0)
+{
+	unsigned int string1;
+	unsigned int non_string1;
+	int j;
+	policy_file = "/proc/ccs/exception_policy";
+	for (j = 0; exception_testcases[j]; j++) {
+		int i;
+		FILE *fp = fopen(policy_file, "w");
+		if (!fp)
+			BUG("BUG: Policy write error\n");
+		policy = exception_testcases[j];
+		printf("Processing: %s\n", policy);
+		for (i = 0; i < 100; i++) {
+			fprintf(fp, "%s\n", policy);
+			if (!i)
+				check_policy_written(fp, 1);
+			fprintf(fp, "delete %s\n", policy);
+		}
+		check_policy_deleted(fp, 1);
+		for (i = 0; i < 100; i++)
+			fprintf(fp, "%s\n", policy);
+		check_policy_written(fp, 2);
+		fprintf(fp, "delete %s\n", policy);
+		check_policy_deleted(fp, 2);
+		fclose(fp);
+		for (i = 0; i < 30; i++) {
+			usleep(100000);
+			get_meminfo(&string1, &non_string1);
+			if (string0 == string1 && non_string0 == non_string1)
+				break;
+		}
+		if (string0 != string1 || non_string0 != non_string1) {
+			printf("string: %d\n", string1 - string0);
+			printf("non-string: %d\n", non_string1 - non_string0);
+			BUG("Policy read/write test: Fail\n");
+		}
+	}
+	for (j = 0; j < 10; j++) {
+		int i;
+		FILE *fp = fopen(policy_file, "w");
+		if (!fp)
+			BUG("BUG: Policy write error\n");
+		for (i = 0; exception_testcases[i]; i++)
+			fprintf(fp, "%s\n", exception_testcases[i]);
+		for (i = 0; exception_testcases[i]; i++)
+			fprintf(fp, "delete %s\n", exception_testcases[i]);
+		fclose(fp);
+		for (i = 0; i < 50; i++) {
+			usleep(100000);
+			get_meminfo(&string1, &non_string1);
+			if (string0 == string1 && non_string0 == non_string1)
+				break;
+		}
+		if (string0 != string1 || non_string0 != non_string1) {
+			printf("string: %d\n", string1 - string0);
+			printf("non-string: %d\n", non_string1 - non_string0);
+			BUG("Policy read/write test: Fail\n");
+		}
+	}
+}
+
+int main(int argc, char *argv[]) {
+	unsigned int string0;
+	unsigned int non_string0;
+	mount("/proc", "/proc/", "proc", 0, NULL);
+	get_meminfo(&string0, &non_string0);
+	domain_policy_test(string0, non_string0);
+	exception_policy_test(string0, non_string0);
 	BUG("Policy read/write test: Success\n");
 	return 0;
 }

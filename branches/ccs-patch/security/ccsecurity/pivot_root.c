@@ -42,62 +42,6 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 				   "%s %s\n", new_root, old_root);
 }
 
-/**
- * ccs_update_pivot_root_acl - Update "struct ccs_pivot_root_acl_record" list.
- *
- * @old_root:  The name of old root directory.
- * @new_root:  The name of new root directory.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_pivot_root_acl(char *old_root, char *new_root,
-				     struct ccs_domain_info *domain,
-				     struct ccs_condition *condition,
-				     const bool is_delete)
-{
-	struct ccs_pivot_root_acl_record *entry = NULL;
-	struct ccs_acl_info *ptr;
-	struct ccs_pivot_root_acl_record e;
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	memset(&e, 0, sizeof(e));
-	e.head.type = CCS_TYPE_PIVOT_ROOT_ACL;
-	e.head.cond = condition;
-	if (!ccs_parse_name_union(old_root, &e.old_root) ||
-	    !ccs_parse_name_union(new_root, &e.new_root))
-		goto out;
-	if (!is_delete)
-		entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-	mutex_lock(&ccs_policy_lock);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_pivot_root_acl_record *acl;
-		if (ccs_acl_type1(ptr) != CCS_TYPE_PIVOT_ROOT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_pivot_root_acl_record, head);
-		if (ccs_memcmp(acl, &e,
-			       offsetof(struct ccs_pivot_root_acl_record,
-					head.cond), sizeof(e)))
-			continue;
-		if (is_delete)
-			error = ccs_del_domain_acl(ptr);
-		else
-			error = ccs_add_domain_acl(NULL, ptr);
-		break;
-	}
-	if (!is_delete && error && ccs_memory_ok(entry, sizeof(*entry))) {
-		memmove(entry, &e, sizeof(e));
-		memset(&e, 0, sizeof(e));
-		error = ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-	}
-	mutex_unlock(&ccs_policy_lock);
- out:
-	ccs_put_name_union(&e.old_root);
-	ccs_put_name_union(&e.new_root);
-	kfree(entry);
-	return error;
-}
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 #define PATH_or_NAMEIDATA path
 #else
@@ -153,7 +97,8 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 		struct ccs_acl_info *ptr;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_pivot_root_acl_record *acl;
-			if (ccs_acl_type2(ptr) != CCS_TYPE_PIVOT_ROOT_ACL)
+			if (ptr->is_deleted ||
+			    ptr->type != CCS_TYPE_PIVOT_ROOT_ACL)
 				continue;
 			acl = container_of(ptr,
 					   struct ccs_pivot_root_acl_record,
@@ -218,9 +163,42 @@ int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete)
 {
+	struct ccs_pivot_root_acl_record *entry = NULL;
+	struct ccs_acl_info *ptr;
+	struct ccs_pivot_root_acl_record e = {
+		.head.type = CCS_TYPE_PIVOT_ROOT_ACL,
+		.head.cond = condition };
+	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	return ccs_update_pivot_root_acl(w[1], w[0], domain, condition,
-					 is_delete);
+	if (!ccs_parse_name_union(w[1], &e.old_root) ||
+	    !ccs_parse_name_union(w[0], &e.new_root))
+		goto out;
+	if (!is_delete)
+		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
+	mutex_lock(&ccs_policy_lock);
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_pivot_root_acl_record *acl =
+			container_of(ptr, struct ccs_pivot_root_acl_record, head);
+		if (ptr->type != CCS_TYPE_PIVOT_ROOT_ACL ||
+		    ptr->cond != condition ||
+		    ccs_memcmp(acl, &e, offsetof(typeof(e), old_root),
+			       sizeof(e)))
+			continue;
+		ptr->is_deleted = is_delete;
+		error = 0;
+		break;
+	}
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
+		ccs_add_domain_acl(domain, &entry->head);
+		entry = NULL;
+		error = 0;
+	}
+	mutex_unlock(&ccs_policy_lock);
+ out:
+	ccs_put_name_union(&e.old_root);
+	ccs_put_name_union(&e.new_root);
+	kfree(entry);
+	return error;
 }

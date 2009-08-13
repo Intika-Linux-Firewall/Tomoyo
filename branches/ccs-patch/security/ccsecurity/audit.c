@@ -302,7 +302,11 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		goto out;
 	}
 	new_entry->log = buf;
-	new_entry->size = len + sizeof(*new_entry);
+	/*
+	 * The new_entry->size is used for memory quota checks.
+	 * Don't go beyond strlen(new_entry->log).
+	 */
+	new_entry->size = ccs_round2(len) + ccs_round2(sizeof(*new_entry));
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_audit_log_lock);
 	if (ccs_quota_for_audit_log && ccs_audit_log_memory_size
