@@ -1,0 +1,472 @@
+Index: branches/ccs-patch/security/ccsecurity/util.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/util.c	(revision 2906)
++++ branches/ccs-patch/security/ccsecurity/util.c	(working copy)
+@@ -18,8 +18,7 @@
+ bool ccs_policy_loaded;
+ 
+ /* Capability name used by domain policy. */
+-const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
+-= {
++const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX] = {
+ 	[CCS_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
+ 	[CCS_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
+ 	[CCS_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
+@@ -903,27 +902,6 @@
+ }
+ 
+ /**
+- * ccs_check_capability_flags - Check mode for specified capability.
+- *
+- * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
+- * @index:  The capability to check mode.
+- *
+- * Returns the mode of specified capability.
+- */
+-static u8 ccs_check_capability_flags(const struct ccs_domain_info *domain,
+-				     const u8 index)
+-{
+-	const u8 profile = domain ? domain->profile :
+-		ccs_current_domain()->profile;
+-	return ccs_policy_loaded && index < CCS_MAX_CAPABILITY_INDEX
+-#if CCS_MAX_PROFILES != 256
+-		&& profile < CCS_MAX_PROFILES
+-#endif
+-		&& ccs_profile_ptr[profile] ?
+-		ccs_profile_ptr[profile]->capability_value[index] : 0;
+-}
+-
+-/**
+  * ccs_cap2keyword - Convert capability operation to capability name.
+  *
+  * @operation: The capability index.
+@@ -933,7 +911,7 @@
+ const char *ccs_cap2keyword(const u8 operation)
+ {
+ 	return operation < CCS_MAX_CAPABILITY_INDEX
+-		? ccs_capability_control_keyword[operation] : NULL;
++		? ccs_capability_list[operation] : NULL;
+ }
+ 
+ /**
+@@ -953,9 +931,6 @@
+ 	r->profile = domain->profile;
+ 	if (index < CCS_MAX_CONTROL_INDEX)
+ 		r->mode = ccs_check_flags(domain, index);
+-	else
+-		r->mode = ccs_check_capability_flags(domain, index
+-						     - CCS_MAX_CONTROL_INDEX);
+ }
+ 
+ /**
+Index: branches/ccs-patch/security/ccsecurity/capability.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/capability.c	(revision 2906)
++++ branches/ccs-patch/security/ccsecurity/capability.c	(working copy)
+@@ -65,6 +65,13 @@
+ 	return NULL;
+ }
+ 
++static inline bool ccs_capability_enabled(const u8 profile, const u8 operation)
++{
++	return operation < CCS_MAX_CAPABILITY_INDEX ?
++		ccs_profile_ptr[profile]->enabled_capabilities[operation] :
++		false;
++}
++
+ /**
+  * ccs_audit_capability_log - Audit capability log.
+  *
+@@ -103,10 +110,12 @@
+ 	ccs_check_read_lock();
+ 	if (!ccs_can_sleep())
+ 		return true;
+-	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
++	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY);
+ 	is_enforce = (r.mode == 3);
+ 	if (!r.mode)
+ 		return true;
++	if (!ccs_capability_enabled(r.profile, operation))
++		return true;
+  retry:
+ 	error = -EPERM;
+ 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+Index: branches/ccs-patch/security/ccsecurity/internal.h
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/internal.h	(revision 2906)
++++ branches/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -662,7 +662,7 @@
+ #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
+ #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
+ #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
+-#define CCS_KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
++#define CCS_KEYWORD_CAPABILITIES              "SUPPORTED_CAPABILITIES"
+ /* A domain definition starts with <kernel>. */
+ #define ROOT_NAME                         "<kernel>"
+ #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
+@@ -678,6 +678,7 @@
+ 	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
+ 	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
+ 	CCS_MAC_FOR_NAMESPACE,     /* domain_policy.conf */
++	CCS_MAC_FOR_CAPABILITY,    /* domain_policy.conf */
+ 	CCS_RESTRICT_AUTOBIND,     /* exception_policy.conf */
+ 	CCS_MAX_ACCEPT_ENTRY,
+ #ifdef CONFIG_CCSECURITY_AUDIT
+@@ -992,11 +993,11 @@
+ struct ccs_profile {
+ 	unsigned int value[CCS_MAX_CONTROL_INDEX];
+ 	const struct ccs_path_info *comment;
+-	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
++	bool enabled_capabilities[CCS_MAX_CAPABILITY_INDEX];
+ };
+ extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
+ 
+-extern const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX];
++extern const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX];
+ 
+ extern unsigned int ccs_audit_log_memory_size;
+ extern unsigned int ccs_quota_for_audit_log;
+Index: branches/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- branches/ccs-patch/security/ccsecurity/policy_io.c	(revision 2906)
++++ branches/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -42,6 +42,7 @@
+ 	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
+ 	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
+ 	[CCS_MAC_FOR_NAMESPACE]   = { "MAC_FOR_NAMESPACE",   0, 3 },
++	[CCS_MAC_FOR_CAPABILITY]  = { "MAC_FOR_CAPABILITY",   0, 3 },
+ 	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
+ 	[CCS_MAX_ACCEPT_ENTRY]
+ 	= { "MAX_ACCEPT_ENTRY", CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY, INT_MAX },
+@@ -181,28 +182,26 @@
+ 		ccs_profile_entry_used[0] = true;
+ 		return 0;
+ 	}
+-	if (ccs_str_starts(&data, CCS_KEYWORD_MAC_FOR_CAPABILITY)) {
+-		if (sscanf(cp + 1, "%u", &value) != 1) {
+-			for (i = 0; i < 4; i++) {
+-				if (strcmp(cp + 1, ccs_mode_4[i]))
++	if (!strcmp(data, CCS_KEYWORD_CAPABILITIES)) {
++		unsigned char capabilities[CCS_MAX_CAPABILITY_INDEX];
++		memset(capabilities, 0, sizeof(capabilities));
++		cp++;
++		while (1) {
++			char *cp2 = strchr(cp, ' ');
++			if (cp2)
++				*cp2 = '\0';
++			for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
++				if (strcmp(cp, ccs_capability_list[i]))
+ 					continue;
+-				value = i;
++				capabilities[i] = 1;
++			}
++			if (!cp2)
+ 				break;
+-			}
+-			if (i == 4)
+-				return -EINVAL;
++			cp = cp2 + 1;
+ 		}
+-		if (value > 3)
+-			value = 3;
+-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+-			if (strcmp(data, ccs_capability_control_keyword[i]))
+-				continue;
+-			ccs_profile->capability_value[i] = value;
+-			ccs_profile_entry_used[i + 1 + CCS_MAX_CONTROL_INDEX]
+-				= true;
+-			return 0;
+-		}
+-		return -EINVAL;
++		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++)
++			ccs_profile->enabled_capabilities[i] = capabilities[i];
++		return 0;
+ 	}
+ 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
+ 		if (strcmp(data, ccs_control_array[i].keyword))
+@@ -239,6 +238,27 @@
+ 	return -EINVAL;
+ }
+ 
++static bool ccs_print_capability_list(struct ccs_io_buffer *head, u8 index)
++{
++	const int pos = head->read_avail;
++	int i;
++	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
++	if (!ccs_io_printf(head, "%u-" CCS_KEYWORD_CAPABILITIES "=", index))
++		return false;
++	for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
++		if (!ccs_profile->enabled_capabilities[i])
++			continue;
++		if (!ccs_io_printf(head, " %s", ccs_capability_list[i]))
++			goto out;
++	}
++	if (!ccs_io_printf(head, "\n"))
++		goto out;
++	return true;
++ out:
++	head->read_avail = pos;
++	return false;
++}
++
+ /**
+  * ccs_read_profile - Read profile table.
+  *
+@@ -248,8 +268,7 @@
+  */
+ static int ccs_read_profile(struct ccs_io_buffer *head)
+ {
+-	static const int ccs_total
+-		= CCS_MAX_CONTROL_INDEX + CCS_MAX_CAPABILITY_INDEX + 1;
++	static const int ccs_total = CCS_MAX_CONTROL_INDEX + 2;
+ 	int step;
+ 	if (head->read_eof)
+ 		return 0;
+@@ -276,17 +295,13 @@
+ 				break;
+ 			continue;
+ 		}
+-		type--;
+-		if (type >= CCS_MAX_CONTROL_INDEX) {
+-			const int i = type - CCS_MAX_CONTROL_INDEX;
+-			const u8 value = ccs_profile->capability_value[i];
+-			if (!ccs_io_printf(head,
+-					   "%u-" CCS_KEYWORD_MAC_FOR_CAPABILITY
+-					   "%s=%s\n", index,
+-					   ccs_capability_control_keyword[i],
+-					   ccs_mode_4[value]))
++		if (type == 1) {
++			if (!ccs_print_capability_list(head, index))
+ 				break;
+-		} else {
++			continue;
++		}
++		type -= 2;
++		{
+ 			const unsigned int value = ccs_profile->value[type];
+ 			const char **modes = NULL;
+ 			const char *keyword = ccs_control_array[type].keyword;
+Index: branches/ccs-tools/ccstools/init_policy.c
+===================================================================
+--- branches/ccs-tools/ccstools/init_policy.c	(revision 2906)
++++ branches/ccs-tools/ccstools/init_policy.c	(working copy)
+@@ -1774,6 +1774,7 @@
+ 		"0-MAC_FOR_NETWORK=disabled\n"
+ 		"0-MAC_FOR_SIGNAL=disabled\n"
+ 		"0-MAC_FOR_NAMESPACE=disabled\n"
++		"0-MAC_FOR_CAPABILITY=disabled\n"
+ 		"0-AUTOLEARN_EXEC_REALPATH=enabled\n"
+ 		"0-AUTOLEARN_EXEC_ARGV0=enabled\n"
+ 		"0-RESTRICT_AUTOBIND=disabled\n"
+@@ -1782,38 +1783,14 @@
+ 		"0-MAX_REJECT_LOG=1024\n"
+ 		"0-TOMOYO_VERBOSE=enabled\n"
+ 		"0-SLEEP_PERIOD=0\n"
+-		"0-MAC_FOR_CAPABILITY::inet_tcp_create=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::inet_tcp_listen=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::inet_tcp_connect=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::use_inet_udp=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::use_inet_ip=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::use_route=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::use_packet=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_MOUNT=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_UMOUNT=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_REBOOT=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_CHROOT=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_KILL=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_VHANGUP=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_TIME=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_NICE=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_SETHOSTNAME=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::use_kernel_module=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::create_fifo=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::create_block_dev=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::create_char_dev=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::create_unix_socket=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_LINK=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_SYMLINK=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_RENAME=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_UNLINK=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_CHMOD=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_CHOWN=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_IOCTL=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::SYS_PTRACE=disabled\n"
+-		"0-MAC_FOR_CAPABILITY::conceal_mount=disabled\n"
++		"0-SUPPORTED_CAPABILITIES=inet_tcp_create inet_tcp_listen "
++		"inet_tcp_connect use_inet_udp use_inet_ip use_route "
++		"use_packet SYS_MOUNT SYS_UMOUNT SYS_REBOOT SYS_CHROOT "
++		"SYS_KILL SYS_VHANGUP SYS_TIME SYS_NICE SYS_SETHOSTNAME "
++		"use_kernel_module create_fifo create_block_dev "
++		"create_char_dev create_unix_socket SYS_LINK SYS_SYMLINK "
++		"SYS_RENAME SYS_UNLINK SYS_CHMOD SYS_CHOWN SYS_IOCTL "
++		"SYS_KEXEC_LOAD SYS_PIVOT_ROOT SYS_PTRACE conceal_mount\n"
+ 		"1-COMMENT=-----Learning Mode-----\n"
+ 		"1-MAC_FOR_FILE=learning\n"
+ 		"1-MAC_FOR_IOCTL=learning\n"
+@@ -1822,6 +1799,7 @@
+ 		"1-MAC_FOR_NETWORK=learning\n"
+ 		"1-MAC_FOR_SIGNAL=learning\n"
+ 		"1-MAC_FOR_NAMESPACE=learning\n"
++		"1-MAC_FOR_CAPABILITY=learning\n"
+ 		"1-AUTOLEARN_EXEC_REALPATH=enabled\n"
+ 		"1-AUTOLEARN_EXEC_ARGV0=enabled\n"
+ 		"1-RESTRICT_AUTOBIND=enabled\n"
+@@ -1830,38 +1808,14 @@
+ 		"1-MAX_REJECT_LOG=1024\n"
+ 		"1-TOMOYO_VERBOSE=disabled\n"
+ 		"1-SLEEP_PERIOD=0\n"
+-		"1-MAC_FOR_CAPABILITY::inet_tcp_create=learning\n"
+-		"1-MAC_FOR_CAPABILITY::inet_tcp_listen=learning\n"
+-		"1-MAC_FOR_CAPABILITY::inet_tcp_connect=learning\n"
+-		"1-MAC_FOR_CAPABILITY::use_inet_udp=learning\n"
+-		"1-MAC_FOR_CAPABILITY::use_inet_ip=learning\n"
+-		"1-MAC_FOR_CAPABILITY::use_route=learning\n"
+-		"1-MAC_FOR_CAPABILITY::use_packet=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_MOUNT=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_UMOUNT=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_REBOOT=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_CHROOT=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_KILL=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_VHANGUP=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_TIME=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_NICE=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_SETHOSTNAME=learning\n"
+-		"1-MAC_FOR_CAPABILITY::use_kernel_module=learning\n"
+-		"1-MAC_FOR_CAPABILITY::create_fifo=learning\n"
+-		"1-MAC_FOR_CAPABILITY::create_block_dev=learning\n"
+-		"1-MAC_FOR_CAPABILITY::create_char_dev=learning\n"
+-		"1-MAC_FOR_CAPABILITY::create_unix_socket=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_LINK=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_SYMLINK=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_RENAME=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_UNLINK=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_CHMOD=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_CHOWN=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_IOCTL=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT=learning\n"
+-		"1-MAC_FOR_CAPABILITY::SYS_PTRACE=learning\n"
+-		"1-MAC_FOR_CAPABILITY::conceal_mount=learning\n"
++		"1-SUPPORTED_CAPABILITIES=inet_tcp_create inet_tcp_listen "
++		"inet_tcp_connect use_inet_udp use_inet_ip use_route "
++		"use_packet SYS_MOUNT SYS_UMOUNT SYS_REBOOT SYS_CHROOT "
++		"SYS_KILL SYS_VHANGUP SYS_TIME SYS_NICE SYS_SETHOSTNAME "
++		"use_kernel_module create_fifo create_block_dev "
++		"create_char_dev create_unix_socket SYS_LINK SYS_SYMLINK "
++		"SYS_RENAME SYS_UNLINK SYS_CHMOD SYS_CHOWN SYS_IOCTL "
++		"SYS_KEXEC_LOAD SYS_PIVOT_ROOT SYS_PTRACE conceal_mount\n"
+ 		"2-COMMENT=-----Permissive Mode-----\n"
+ 		"2-MAC_FOR_FILE=permissive\n"
+ 		"2-MAC_FOR_IOCTL=permissive\n"
+@@ -1870,6 +1824,7 @@
+ 		"2-MAC_FOR_NETWORK=permissive\n"
+ 		"2-MAC_FOR_SIGNAL=permissive\n"
+ 		"2-MAC_FOR_NAMESPACE=permissive\n"
++		"2-MAC_FOR_CAPABILITY=permissive\n"
+ 		"2-AUTOLEARN_EXEC_REALPATH=enabled\n"
+ 		"2-AUTOLEARN_EXEC_ARGV0=enabled\n"
+ 		"2-RESTRICT_AUTOBIND=enabled\n"
+@@ -1878,38 +1833,14 @@
+ 		"2-MAX_REJECT_LOG=1024\n"
+ 		"2-TOMOYO_VERBOSE=enabled\n"
+ 		"2-SLEEP_PERIOD=0\n"
+-		"2-MAC_FOR_CAPABILITY::inet_tcp_create=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::inet_tcp_listen=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::inet_tcp_connect=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::use_inet_udp=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::use_inet_ip=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::use_route=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::use_packet=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_MOUNT=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_UMOUNT=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_REBOOT=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_CHROOT=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_KILL=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_VHANGUP=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_TIME=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_NICE=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_SETHOSTNAME=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::use_kernel_module=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::create_fifo=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::create_block_dev=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::create_char_dev=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::create_unix_socket=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_LINK=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_SYMLINK=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_RENAME=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_UNLINK=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_CHMOD=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_CHOWN=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_IOCTL=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::SYS_PTRACE=permissive\n"
+-		"2-MAC_FOR_CAPABILITY::conceal_mount=permissive\n"
++		"2-SUPPORTED_CAPABILITIES=inet_tcp_create inet_tcp_listen "
++		"inet_tcp_connect use_inet_udp use_inet_ip use_route "
++		"use_packet SYS_MOUNT SYS_UMOUNT SYS_REBOOT SYS_CHROOT "
++		"SYS_KILL SYS_VHANGUP SYS_TIME SYS_NICE SYS_SETHOSTNAME "
++		"use_kernel_module create_fifo create_block_dev "
++		"create_char_dev create_unix_socket SYS_LINK SYS_SYMLINK "
++		"SYS_RENAME SYS_UNLINK SYS_CHMOD SYS_CHOWN SYS_IOCTL "
++		"SYS_KEXEC_LOAD SYS_PIVOT_ROOT SYS_PTRACE conceal_mount\n"
+ 		"3-COMMENT=-----Enforcing Mode-----\n"
+ 		"3-MAC_FOR_FILE=enforcing\n"
+ 		"3-MAC_FOR_IOCTL=enforcing\n"
+@@ -1918,6 +1849,7 @@
+ 		"3-MAC_FOR_NETWORK=enforcing\n"
+ 		"3-MAC_FOR_SIGNAL=enforcing\n"
+ 		"3-MAC_FOR_NAMESPACE=enforcing\n"
++		"3-MAC_FOR_CAPABILITY=enforcing\n"
+ 		"3-AUTOLEARN_EXEC_REALPATH=enabled\n"
+ 		"3-AUTOLEARN_EXEC_ARGV0=enabled\n"
+ 		"3-RESTRICT_AUTOBIND=enabled\n"
+@@ -1926,38 +1858,14 @@
+ 		"3-MAX_REJECT_LOG=1024\n"
+ 		"3-TOMOYO_VERBOSE=enabled\n"
+ 		"3-SLEEP_PERIOD=0\n"
+-		"3-MAC_FOR_CAPABILITY::inet_tcp_create=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::inet_tcp_listen=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::inet_tcp_connect=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::use_inet_udp=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::use_inet_ip=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::use_route=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::use_packet=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_MOUNT=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_UMOUNT=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_REBOOT=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_CHROOT=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_KILL=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_VHANGUP=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_TIME=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_NICE=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_SETHOSTNAME=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::use_kernel_module=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::create_fifo=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::create_block_dev=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::create_char_dev=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::create_unix_socket=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_LINK=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_SYMLINK=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_RENAME=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_UNLINK=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_CHMOD=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_CHOWN=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_IOCTL=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_KEXEC_LOAD=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_PIVOT_ROOT=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::SYS_PTRACE=enforcing\n"
+-		"3-MAC_FOR_CAPABILITY::conceal_mount=enforcing\n"
++		"3-SUPPORTED_CAPABILITIES=inet_tcp_create inet_tcp_listen "
++		"inet_tcp_connect use_inet_udp use_inet_ip use_route "
++		"use_packet SYS_MOUNT SYS_UMOUNT SYS_REBOOT SYS_CHROOT "
++		"SYS_KILL SYS_VHANGUP SYS_TIME SYS_NICE SYS_SETHOSTNAME "
++		"use_kernel_module create_fifo create_block_dev "
++		"create_char_dev create_unix_socket SYS_LINK SYS_SYMLINK "
++		"SYS_RENAME SYS_UNLINK SYS_CHMOD SYS_CHOWN SYS_IOCTL "
++		"SYS_KEXEC_LOAD SYS_PIVOT_ROOT SYS_PTRACE conceal_mount\n"
+ 	};
+ 	static const char file_only_profile_text[] = {
+ 		"0-COMMENT=-----Disabled Mode-----\n"
