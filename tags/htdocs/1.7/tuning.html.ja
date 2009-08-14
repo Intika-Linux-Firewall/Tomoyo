@@ -1,0 +1,463 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tuning.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第４章：ポリシーのチューニング</h1>
+
+<p>このページでは、 TOMOYO のポリシーをチューニングする方法について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：ファイルのパス名をパターン化する</h2>
+
+<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.conf に追加します。<br>
+以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+allow_read /var/www/html/\*<br>
+allow_read /var/www/html/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>パス名のグループを使用することができます。</p>
+
+<table border="1">
+<tr><td>
+path_group WEB-CONTENTS /var/www/html/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>という path_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+allow_read @WEB-CONTENTS
+</td></tr>
+</table>
+
+<p>のように指定することができます。</p>
+
+<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
+以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+allow_write /var/log/samba/host1.log<br>
+allow_write /var/log/samba/host2.log<br>
+allow_write /var/log/samba/host3.log<br>
+allow_write /var/log/samba/host4.log<br>
+allow_write /var/log/samba/host5.log
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+allow_write /var/log/samba/\*.log
+</td></tr>
+</table>
+
+<p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
+/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+</td></tr>
+</table>
+
+<h3>操作例</h3>
+
+<p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy d<br>
+</td></tr>
+</table>
+<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.conf<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>テンポラリファイルにアクセスしているドメインを探します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
+allow_create /etc/mtab~2302<br>
+allow_write /etc/mtab~2302<br>
+allow_link /etc/mtab~2302 /etc/mtab~<br>
+allow_unlink /etc/mtab~2302<br>
+[root@tomoyo ~]# /usr/sbin/ccs-domainmatch /tmp/sh-thd-1163113704<br>
+&lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
+allow_create /tmp/sh-thd-1163113704<br>
+allow_read/write /tmp/sh-thd-1163113704<br>
+allow_unlink /tmp/sh-thd-1163113704<br>
+</td></tr>
+</table>
+<p>カーネルに存在する例外ポリシーをディスクに保存します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy e<br>
+</td></tr>
+</table>
+<p>必要に応じてディスク上の例外ポリシーにパターンを追加します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/ccs/exception_policy.conf<br>
+</td></tr>
+</table>
+<p>ディスク上の例外ポリシーをカーネルに読み込みます。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy ef<br>
+</td></tr>
+</table>
+<p>/etc/mtab~\$ および /tmp/sh-thd-\$ に一致するパス名のパターン化を行います。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/ccs/domain_policy.conf &gt; /etc/ccs/domain_policy.tmp<br>
+</td></tr>
+</table>
+<p>パターン化されたことを確認します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /etc/ccs/domain_policy.tmp<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>パターン化前後の差分を表示して、パターン化が適切に行われているかどうかを確認します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# diff /etc/ccs/domain_policy.conf /etc/ccs/domain_policy.tmp<br>
+2326,2331c2326,2331<br>
+&lt; allow_read/write /tmp/sh-thd-1163110572<br>
+&lt; allow_read/write /tmp/sh-thd-1163113704<br>
+&lt; allow_create /tmp/sh-thd-1163110572<br>
+&lt; allow_create /tmp/sh-thd-1163113704<br>
+&lt; allow_unlink /tmp/sh-thd-1163110572<br>
+&lt; allow_unlink /tmp/sh-thd-1163113704<br>
+---<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+3331,3336c3331,3336<br>
+&lt; allow_write /etc/mtab~2328<br>
+&lt; allow_write /etc/mtab~2329<br>
+&lt; allow_write /etc/mtab~2330<br>
+&lt; allow_write /etc/mtab~2331<br>
+&lt; allow_write /etc/mtab~2332<br>
+&lt; allow_write /etc/mtab~2383<br>
+---<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+3338,3349c3338,3349<br>
+&lt; allow_create /etc/mtab~2328<br>
+&lt; allow_create /etc/mtab~2329<br>
+&lt; allow_create /etc/mtab~2330<br>
+&lt; allow_create /etc/mtab~2331<br>
+&lt; allow_create /etc/mtab~2332<br>
+&lt; allow_create /etc/mtab~2383<br>
+&lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2331 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3351,3356c3351,3356<br>
+&lt; allow_unlink /etc/mtab~2328<br>
+&lt; allow_unlink /etc/mtab~2329<br>
+&lt; allow_unlink /etc/mtab~2330<br>
+&lt; allow_unlink /etc/mtab~2331<br>
+&lt; allow_unlink /etc/mtab~2332<br>
+&lt; allow_unlink /etc/mtab~2383<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+3439,3440c3439,3440<br>
+&lt; allow_write /etc/mtab~2302<br>
+&lt; allow_write /etc/mtab~2339<br>
+---<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+3443,3446c3443,3446<br>
+&lt; allow_create /etc/mtab~2302<br>
+&lt; allow_create /etc/mtab~2339<br>
+&lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3449,3450c3449,3450<br>
+&lt; allow_unlink /etc/mtab~2302<br>
+&lt; allow_unlink /etc/mtab~2339<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+</td></tr>
+</table>
+<p>ディスク上のドメインポリシーを更新します</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# cat /etc/ccs/domain_policy.tmp &gt; /etc/ccs/domain_policy.conf<br>
+</td></tr>
+</table>
+<p>ディスク上のドメインポリシーをカーネルに読み込みます。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-loadpolicy df<br>
+</td></tr>
+</table>
+<p>カーネルに読み込まれているドメインポリシーが更新されていることを確認します。</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<hr>
+
+<h2>ステップ２：ネットワークのアドレスとポート番号をパターン化する</h2>
+
+<p>ネットワークに関する強制アクセス制御機能を有効にしている場合、 allow_network キーワードに対して同様にパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
+allow_network TCP accept 10.0.0.10 56709<br>
+allow_network TCP accept 10.0.0.200 16384
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
+</td></tr>
+</table>
+
+<p>という address_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 7<br>
+allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
+</td></tr>
+</table>
+
+<p>のように指定することができます。</p>
+
+<hr>
+
+<h2>ステップ３：アクセス許可に条件を付与（省略可）</h2>
+
+<p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
+
+<p>例外ポリシーで以下のように path_group が定義されていると仮定します。</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-FTP-FILE /home/\*/ftp/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*/\*<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/\*/<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*/\*<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
+</td></tr>
+</table>
+
+<p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
+
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+allow_read/write @HOME-FTP-FILE<br>
+allow_mkdir @HOME-FTP-DIR<br>
+allow_rmdir @HOME-FTP-DIR<br>
+allow_create @HOME-FTP-FILE<br>
+allow_truncate @HOME-FTP-FILE<br>
+allow_unlink @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+use_profile 3<br>
+<br>
+allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_mkdir @HOME-FTP-DIR if task.uid=path1.parent.uid<br>
+allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
+allow_create @HOME-FTP-FILE if task.uid=path1.parent.uid<br>
+allow_truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=path2.parent.uid
+</td></tr>
+</table>
+
+<p>Samba サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を Samba でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある samba ディレクトリ以下だけのアクセスを認めます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+allow_read/write @HOME-SMB-FILE<br>
+allow_mkdir @HOME-SMB-DIR<br>
+allow_rmdir @HOME-SMB-DIR<br>
+allow_create @HOME-SMB-FILE<br>
+allow_truncate @HOME-SMB-FILE<br>
+allow_unlink @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+<br>
+allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_mkdir @HOME-SMB-DIR if task.euid=path1.parent.uid<br>
+allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
+allow_create @HOME-SMB-FILE if task.euid=path1.parent.uid<br>
+allow_truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+</td></tr>
+</table>
+
+<p>SSH サーバを保護する場合、以下のように条件を付けることで、 root ユーザとしてログインすることを禁止できます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+allow_execute /bin/bash
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+use_profile 3<br>
+<br>
+allow_execute /bin/bash if task.uid!=0 task.euid!=0
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

@@ -12,8 +12,8 @@
 
 #include "internal.h"
 
-static atomic_t ccs_non_string_memory_size;
-static unsigned int ccs_quota_for_non_string;
+static atomic_t ccs_policy_memory_size;
+static unsigned int ccs_quota_for_policy;
 
 /**
  * ccs_memory_ok - Check memory quota.
@@ -26,12 +26,12 @@ static unsigned int ccs_quota_for_non_string;
 bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
 	size_t s = ccs_round2(size);
-	atomic_add(s, &ccs_non_string_memory_size);
-	if (ptr && (!ccs_quota_for_non_string ||
-		    atomic_read(&ccs_non_string_memory_size)
-		    <= ccs_quota_for_non_string))
+	atomic_add(s, &ccs_policy_memory_size);
+	if (ptr && (!ccs_quota_for_policy ||
+		    atomic_read(&ccs_policy_memory_size)
+		    <= ccs_quota_for_policy))
 		return true;
-	atomic_sub(s, &ccs_non_string_memory_size);
+	atomic_sub(s, &ccs_policy_memory_size);
 	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
 	if (!ccs_policy_loaded)
 		panic("MAC Initialization failed.\n");
@@ -66,7 +66,7 @@ bool ccs_commit_ok(void *ptr, void *data, const unsigned int size)
  */
 void ccs_memory_free(const void *ptr, size_t size)
 {
-	atomic_sub(ccs_round2(size), &ccs_non_string_memory_size);
+	atomic_sub(ccs_round2(size), &ccs_policy_memory_size);
 	kfree(ptr);
 }
 
@@ -184,9 +184,6 @@ void ccs_put_condition(struct ccs_condition *cond)
 	ccs_memory_free(cond, cond->size);
 }
 
-static unsigned int ccs_string_memory_size;
-static unsigned int ccs_quota_for_string;
-
 #define CCS_MAX_HASH 256
 
 /* Structure for string data. */
@@ -233,13 +230,9 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	}
 	allocated_len = ccs_round2(sizeof(*ptr) + len);
 	ptr = kzalloc(allocated_len, GFP_KERNEL);
-	if (!ptr)
-		allocated_len = 0;
-	ccs_string_memory_size += allocated_len;
-	if (!allocated_len ||
-	    (ccs_quota_for_string &&
-	     ccs_string_memory_size > ccs_quota_for_string)) {
-		ccs_string_memory_size -= allocated_len;
+	if (!ptr || (ccs_quota_for_policy &&
+		     atomic_read(&ccs_policy_memory_size) + allocated_len
+		     > ccs_quota_for_policy)) {
 		kfree(ptr);
 		ptr = NULL;
 		printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
@@ -247,6 +240,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 			panic("MAC Initialization failed.\n");
 		goto out;
 	}
+	atomic_add(allocated_len, &ccs_policy_memory_size);
 	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 	memmove((char *) ptr->entry.name, name, len);
 	atomic_set(&ptr->users, 1);
@@ -275,13 +269,14 @@ void ccs_put_name(const struct ccs_path_info *name)
 	mutex_lock(&ccs_name_list_lock);
 	if (atomic_dec_and_test(&ptr->users)) {
 		list_del(&ptr->list);
-		ccs_string_memory_size -= ptr->size;
 		can_delete = true;
 	}
 	mutex_unlock(&ccs_name_list_lock);
 	/***** EXCLUSIVE SECTION END *****/
-	if (can_delete)
+	if (can_delete) {
+		atomic_sub(ptr->size, &ccs_policy_memory_size);
 		kfree(ptr);
+	}
 }
 
 struct srcu_struct ccs_ss;
@@ -350,43 +345,33 @@ unsigned int ccs_quota_for_query;
 int ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
 	if (!head->read_eof) {
-		const unsigned int string = ccs_string_memory_size;
-		const unsigned int nonstring
-			= atomic_read(&ccs_non_string_memory_size);
-		const unsigned int audit_log = ccs_audit_log_memory_size;
-		const unsigned int query = ccs_query_memory_size;
-		char buffer[64];
-		memset(buffer, 0, sizeof(buffer));
-		if (ccs_quota_for_string)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_string);
-		else
-			buffer[0] = '\0';
-		ccs_io_printf(head, "Policy (string):         %10u%s\n",
-			      string, buffer);
-		if (ccs_quota_for_non_string)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_non_string);
-		else
-			buffer[0] = '\0';
-		ccs_io_printf(head, "Policy (non-string):     %10u%s\n",
-			      nonstring, buffer);
-		if (ccs_quota_for_audit_log)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_audit_log);
-		else
-			buffer[0] = '\0';
-		ccs_io_printf(head, "Audit logs:              %10u%s\n",
-			      audit_log, buffer);
-		if (ccs_quota_for_query)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "   (Quota: %10u)", ccs_quota_for_query);
-		else
-			buffer[0] = '\0';
-		ccs_io_printf(head, "Interactive enforcement: %10u%s\n",
-			      query, buffer);
-		ccs_io_printf(head, "Total:                   %10u\n",
-			      string + nonstring + audit_log + query);
+		const unsigned int usage[3] = {
+			atomic_read(&ccs_policy_memory_size),
+			ccs_audit_log_memory_size,
+			ccs_query_memory_size
+		};
+		const unsigned int quota[3] = {
+			ccs_quota_for_policy,
+			ccs_quota_for_audit_log,
+			ccs_quota_for_query
+		};
+		static const char *header[4] = {
+			"Policy:     ",
+			"Audit logs: ",
+			"Query lists:",
+			"Total:      "
+		};
+		unsigned int total = 0;
+		int i;
+		for (i = 0; i < 3; i++) {
+			total += usage[i];
+			ccs_io_printf(head, "%s %10u", header[i], usage[i]);
+			if (quota[i])
+				ccs_io_printf(head, "   (Quota: %10u)",
+					      quota[i]);
+			ccs_io_printf(head, "\n");
+		}
+		ccs_io_printf(head, "%s %10u\n", header[3], total);
 		head->read_eof = true;
 	}
 	return 0;
@@ -403,13 +388,11 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int size;
-	if (sscanf(data, "Policy (string): %u", &size) == 1)
-		ccs_quota_for_string = size;
-	else if (sscanf(data, "Policy (non-string): %u", &size) == 1)
-		ccs_quota_for_non_string = size;
+	if (sscanf(data, "Policy: %u", &size) == 1)
+		ccs_quota_for_policy = size;
 	else if (sscanf(data, "Audit logs: %u", &size) == 1)
 		ccs_quota_for_audit_log = size;
-	else if (sscanf(data, "Interactive enforcement: %u", &size) == 1)
+	else if (sscanf(data, "Query lists: %u", &size) == 1)
 		ccs_quota_for_query = size;
 	return 0;
 }

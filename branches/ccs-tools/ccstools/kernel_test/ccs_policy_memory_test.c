@@ -18,15 +18,10 @@ static void BUG(const char *msg)
 static const char *policy_file = NULL;
 static const char *policy = NULL;
 
-static void get_meminfo(unsigned int *string, unsigned int *non_string)
+static void get_meminfo(unsigned int *policy_memory)
 {
 	FILE *fp = fopen("/proc/ccs/meminfo", "r");
-	char buffer[8192];
-	if (!fp || !fgets(buffer, sizeof(buffer) - 1, fp) ||
-	    sscanf(buffer, "Policy (string): %u", string) != 1 ||
-	    !fgets(buffer, sizeof(buffer) - 1, fp) ||
-	    sscanf(buffer, "Policy (non-string): %u", non_string) != 1 ||
-	    fclose(fp))
+	if (!fp || fscanf(fp, "Policy: %u", policy_memory) != 1 || fclose(fp))
 		BUG("BUG: Policy read error\n");
 }
 
@@ -159,11 +154,9 @@ static const char *domain_testcases[] = {
 	NULL
 };
 
-static void domain_policy_test(const unsigned int string0,
-			       const unsigned int non_string0)
+static void domain_policy_test(const unsigned int before)
 {
-	unsigned int string1;
-	unsigned int non_string1;
+	unsigned int after;
 	int j;
 	policy_file = "/proc/ccs/domain_policy";
 	for (j = 0; domain_testcases[j]; j++) {
@@ -189,13 +182,12 @@ static void domain_policy_test(const unsigned int string0,
 		fclose(fp);
 		for (i = 0; i < 30; i++) {
 			usleep(100000);
-			get_meminfo(&string1, &non_string1);
-			if (string0 == string1 && non_string0 == non_string1)
+			get_meminfo(&after);
+			if (before == after)
 				break;
 		}
-		if (string0 != string1 || non_string0 != non_string1) {
-			printf("string: %d\n", string1 - string0);
-			printf("non-string: %d\n", non_string1 - non_string0);
+		if (before != after) {
+			printf("Policy: %d\n", after - before);
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
@@ -211,13 +203,12 @@ static void domain_policy_test(const unsigned int string0,
 		fclose(fp);
 		for (i = 0; i < 50; i++) {
 			usleep(100000);
-			get_meminfo(&string1, &non_string1);
-			if (string0 == string1 && non_string0 == non_string1)
+			get_meminfo(&after);
+			if (before == after)
 				break;
 		}
-		if (string0 != string1 || non_string0 != non_string1) {
-			printf("string: %d\n", string1 - string0);
-			printf("non-string: %d\n", non_string1 - non_string0);
+		if (before != after) {
+			printf("Policy: %d\n", after - before);
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
@@ -271,11 +262,9 @@ static const char *exception_testcases[] = {
 	NULL
 };
 
-static void exception_policy_test(const unsigned int string0,
-				  const unsigned int non_string0)
+static void exception_policy_test(const unsigned int before)
 {
-	unsigned int string1;
-	unsigned int non_string1;
+	unsigned int after;
 	int j;
 	policy_file = "/proc/ccs/exception_policy";
 	for (j = 0; exception_testcases[j]; j++) {
@@ -300,13 +289,12 @@ static void exception_policy_test(const unsigned int string0,
 		fclose(fp);
 		for (i = 0; i < 30; i++) {
 			usleep(100000);
-			get_meminfo(&string1, &non_string1);
-			if (string0 == string1 && non_string0 == non_string1)
+			get_meminfo(&after);
+			if (before == after)
 				break;
 		}
-		if (string0 != string1 || non_string0 != non_string1) {
-			printf("string: %d\n", string1 - string0);
-			printf("non-string: %d\n", non_string1 - non_string0);
+		if (before != after) {
+			printf("Policy: %d\n", after - before);
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
@@ -322,25 +310,23 @@ static void exception_policy_test(const unsigned int string0,
 		fclose(fp);
 		for (i = 0; i < 50; i++) {
 			usleep(100000);
-			get_meminfo(&string1, &non_string1);
-			if (string0 == string1 && non_string0 == non_string1)
+			get_meminfo(&after);
+			if (before == after)
 				break;
 		}
-		if (string0 != string1 || non_string0 != non_string1) {
-			printf("string: %d\n", string1 - string0);
-			printf("non-string: %d\n", non_string1 - non_string0);
+		if (before != after) {
+			printf("Policy: %d\n", after - before);
 			BUG("Policy read/write test: Fail\n");
 		}
 	}
 }
 
 int main(int argc, char *argv[]) {
-	unsigned int string0;
-	unsigned int non_string0;
+	unsigned int before;
 	mount("/proc", "/proc/", "proc", 0, NULL);
-	get_meminfo(&string0, &non_string0);
-	domain_policy_test(string0, non_string0);
-	exception_policy_test(string0, non_string0);
+	get_meminfo(&before);
+	domain_policy_test(before);
+	exception_policy_test(before);
 	BUG("Policy read/write test: Success\n");
 	return 0;
 }

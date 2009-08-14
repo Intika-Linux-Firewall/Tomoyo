@@ -485,23 +485,29 @@ static int show_literal_line(const int index)
 static int show_meminfo_line(const int index)
 {
 	unsigned int now = 0;
-	unsigned int quota = 0;
+	unsigned int quota = -1;
 	const char *data = generic_acl_list[index].operand;
 	get();
-	if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for string data    = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
-	else if (sscanf(data, "Private: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for numeric data   = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
-	else if (sscanf(data, "Dynamic: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for temporary data = %10u bytes    "
-			 "Quota = %10u bytes",
-			 now, quota ? quota : -1);
+	if (sscanf(data, "Policy: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory used for policy      = %10u bytes   "
+			 "(Quota: %10u bytes)", now, quota);
+	else if (sscanf(data, "Audit logs: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory used for audit logs  = %10u bytes   "
+			 "(Quota: %10u bytes)", now, quota);
+	else if (sscanf(data, "Query lists: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory used for query lists = %10u bytes   "
+			 "(Quota: %10u bytes)", now, quota);
 	else if (sscanf(data, "Total: %u", &now) == 1)
-		shprintf("Total memory in use       = %10u bytes", now);
+		shprintf("Total memory in use         = %10u bytes", now);
+	else if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory for string data      = %10u bytes    "
+			 "Quota = %10u bytes", now, quota);
+	else if (sscanf(data, "Private: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory for numeric data     = %10u bytes    "
+			 "Quota = %10u bytes", now, quota);
+	else if (sscanf(data, "Dynamic: %u (Quota: %u)", &now, &quota) >= 1)
+		shprintf("Memory for temporary data   = %10u bytes    "
+			 "Quota = %10u bytes", now, quota);
 	else
 		shprintf("%s", data);
 	if (shared_buffer[0])
