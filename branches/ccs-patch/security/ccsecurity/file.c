@@ -1125,7 +1125,7 @@ static int ccs_check_mkdev_permission(struct ccs_request_info *r,
 				      const unsigned int dev)
 {
 	int error;
-	const char *msg = ccs_sp2keyword(operation);
+	const char *msg = ccs_mkdev2keyword(operation);
 	const bool is_enforce = (r->mode == 3);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
