@@ -828,8 +828,13 @@ const char *ccs_get_exe(void)
 	down_read(&mm->mmap_sem);
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
 		if ((vma->vm_flags & VM_EXECUTABLE) && vma->vm_file) {
-			cp = ccs_realpath_from_dentry(vma->vm_file->f_dentry,
-						      vma->vm_file->f_vfsmnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+			struct path path = { vma->vm_file->f_vfsmnt,
+					     vma->vm_file->f_dentry };
+			cp = ccs_realpath_from_path(&path);
+#else
+			cp = ccs_realpath_from_path(&vma->vm_file->f_path);
+#endif
 			break;
 		}
 	}
@@ -920,9 +925,11 @@ const char *ccs_cap2keyword(const u8 operation)
  * @r:      Pointer to "struct ccs_request_info" to initialize.
  * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  Index number of functionality.
+ *
+ * Returns mode.
  */
-void ccs_init_request_info(struct ccs_request_info *r,
-			   struct ccs_domain_info *domain, const u8 index)
+int ccs_init_request_info(struct ccs_request_info *r,
+			  struct ccs_domain_info *domain, const u8 index)
 {
 	memset(r, 0, sizeof(*r));
 	if (!domain)
@@ -931,6 +938,7 @@ void ccs_init_request_info(struct ccs_request_info *r,
 	r->profile = domain->profile;
 	if (index < CCS_MAX_CONTROL_INDEX)
 		r->mode = ccs_check_flags(domain, index);
+	return r->mode;
 }
 
 /**

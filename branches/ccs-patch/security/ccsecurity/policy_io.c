@@ -1754,8 +1754,12 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 	char *argv0 = NULL;
 	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
 		struct file *file = ee->bprm->file;
-		realpath = ccs_realpath_from_dentry(file->f_dentry,
-						    file->f_vfsmnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+		struct path path = { file->f_vfsmnt, file->f_dentry };
+		realpath = ccs_realpath_from_path(&path);
+#else
+		realpath = ccs_realpath_from_path(&file->f_path);
+#endif
 		if (realpath)
 			len += strlen(realpath) + 17;
 	}

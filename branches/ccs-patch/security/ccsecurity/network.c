@@ -184,12 +184,10 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	int error;
 	char buf[64];
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK))
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
  retry:
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {

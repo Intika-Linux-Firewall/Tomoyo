@@ -108,12 +108,9 @@ static bool ccs_capable2(const u8 operation)
 	bool is_enforce;
 	int error;
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
-		return true;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY);
-	if (!r.mode)
-		return true;
-	if (!ccs_capability_enabled(r.profile, operation))
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY) ||
+	    !ccs_capability_enabled(r.profile, operation))
 		return true;
 	is_enforce = (r.mode == 3);
  retry:

@@ -60,12 +60,10 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	bool is_enforce;
 	int error;
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL))
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
 	if (sys_getpid() == pid) {

@@ -236,3 +236,30 @@ void srcu_read_unlock(struct srcu_struct *sp, const int idx);
 void synchronize_srcu(struct srcu_struct *sp);
 
 #endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+
+struct path {
+        struct vfsmount *mnt;
+        struct dentry *dentry;
+};
+
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+
+#include <linux/mount.h>
+
+static inline void path_get(struct path *path)
+{
+	dget(path->dentry);
+	mntget(path->mnt);
+}
+
+static inline void path_put(struct path *path)
+{
+	dput(path->dentry);
+	mntput(path->mnt);
+}
+
+#endif

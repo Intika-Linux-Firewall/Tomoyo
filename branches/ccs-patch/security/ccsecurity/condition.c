@@ -237,15 +237,24 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 	return result;
 }
 
-static bool ccs_scan_exec_realpath(const struct file *file,
+static bool ccs_scan_exec_realpath(struct file *file,
 				   const struct ccs_name_union *ptr,
 				   const bool match)
 {
 	bool result;
 	struct ccs_path_info exe;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+	struct path path;
+#endif
 	if (!file)
 		return false;
-	exe.name = ccs_realpath_from_dentry(file->f_dentry, file->f_vfsmnt);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+	exe.name = ccs_realpath_from_path(&file->f_path);
+#else
+	path.mnt = file->f_vfsmnt;
+	path.dentry = file->f_dentry;
+	exe.name = ccs_realpath_from_path(&path);
+#endif
 	if (!exe.name)
 		return false;
 	ccs_fill_path_info(&exe);

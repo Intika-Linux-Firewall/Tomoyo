@@ -30,8 +30,7 @@
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
-				    const char *new_root,
-				    const char *old_root,
+				    const char *new_root, const char *old_root,
 				    const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
@@ -42,27 +41,25 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 				   "%s %s\n", new_root, old_root);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-#define PATH_or_NAMEIDATA path
-#else
-#define PATH_or_NAMEIDATA nameidata
-#endif
 /**
- * ccs_check_pivot_root_permission2 - Check permission for pivot_root().
+ * ccs_check_pivot_root_acl - Check permission for pivot_root().
  *
- * @old_path: Pointer to "struct path" (for 2.6.27 and later).
- *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
- * @new_path: Pointer to "struct path" (for 2.6.27 and later).
- *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @old: Pointer to "struct path".
+ * @new: Pointer to "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
-					    struct PATH_or_NAMEIDATA *new_path)
+static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
 {
 	struct ccs_request_info r;
+	struct ccs_obj_info obj = {
+		.path1_dentry = new->dentry,
+		.path1_vfsmnt = new->mnt,
+		.path2_dentry = old->dentry,
+		.path2_vfsmnt = old->mnt
+	};
 	int error;
 	char *old_root;
 	char *new_root;
@@ -70,23 +67,15 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	struct ccs_path_info new_root_dir;
 	bool is_enforce;
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
+	r.obj = &obj;
  retry:
 	error = -EPERM;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
-	old_root = ccs_realpath_from_dentry(old_path->path.dentry,
-					    old_path->path.mnt);
-	new_root = ccs_realpath_from_dentry(new_path->path.dentry,
-					    new_path->path.mnt);
-#else
-	old_root = ccs_realpath_from_dentry(old_path->dentry, old_path->mnt);
-	new_root = ccs_realpath_from_dentry(new_path->dentry, new_path->mnt);
-#endif
+	old_root = ccs_realpath_from_path(old);
+	new_root = ccs_realpath_from_path(new);
 	if (!old_root || !new_root)
 		goto out;
 	old_root_dir.name = old_root;
@@ -130,6 +119,12 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
 /**
  * ccs_check_pivot_root_permission - Check permission for pivot_root().
  *
@@ -143,8 +138,15 @@ static int ccs_check_pivot_root_permission2(struct PATH_or_NAMEIDATA *old_path,
 int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				    struct PATH_or_NAMEIDATA *new_path)
 {
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+	struct path old = { old_path->path.mnt, old_path->path.dentry };
+	struct path new = { new_path->path.mnt, new_path->path.dentry };
+#else
+	struct path old = { old_path->mnt, old_path->dentry };
+	struct path new = { new_path->mnt, new_path->dentry };
+#endif
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_pivot_root_permission2(old_path, new_path);
+	const int error = ccs_check_pivot_root_acl(&old, &new);
 	ccs_read_unlock(idx);
 	return error;
 }
@@ -167,7 +169,8 @@ int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
 	struct ccs_acl_info *ptr;
 	struct ccs_pivot_root_acl_record e = {
 		.head.type = CCS_TYPE_PIVOT_ROOT_ACL,
-		.head.cond = condition };
+		.head.cond = condition
+	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0] ||

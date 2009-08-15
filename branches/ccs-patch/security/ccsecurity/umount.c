@@ -56,16 +56,20 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	bool is_enforce;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info dir;
+	struct path path = { mnt, mnt->mnt_root };
+	struct ccs_obj_info obj = {
+		.path1_dentry = mnt->mnt_root,
+		.path1_vfsmnt = mnt
+	};
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
+	r.obj = &obj;
  retry:
 	error = -EPERM;
-	dir0 = ccs_realpath_from_dentry(mnt->mnt_root, mnt);
+	dir0 = ccs_realpath_from_path(&path);
 	if (!dir0)
 		goto out;
 	dir.name = dir0;

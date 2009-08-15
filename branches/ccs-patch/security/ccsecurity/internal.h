@@ -853,7 +853,7 @@ bool ccs_verbose_mode(const struct ccs_domain_info *domain);
 char *ccs_encode(const char *str);
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath(const char *pathname);
-char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt);
+char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_dp2keyword(const u8 operation);
 const char *ccs_get_exe(void);
@@ -909,7 +909,7 @@ struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
 unsigned int ccs_check_flags(const struct ccs_domain_info *domain, const u8 index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
-void ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
+int ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
 void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
 void ccs_normalize_line(unsigned char *buffer);
@@ -949,6 +949,7 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname, const struct c
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 bool ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
 bool ccs_commit_ok(void *ptr, void *data, const unsigned int size);
+int ccs_get_path(const char *pathname, struct path *path);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

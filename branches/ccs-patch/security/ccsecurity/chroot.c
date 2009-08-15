@@ -39,42 +39,35 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
 				   "%s\n", root);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-#define PATH_or_NAMEIDATA path
-#else
-#define PATH_or_NAMEIDATA nameidata
-#endif
 /**
- * ccs_check_chroot_permission2 - Check permission for chroot().
+ * ccs_check_chroot_acl - Check permission for chroot().
  *
- * @path: Pointer to "struct path" (for 2.6.27 and later).
- *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @path: Pointer to "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
+static int ccs_check_chroot_acl(struct path *path)
 {
 	struct ccs_request_info r;
 	int error;
 	struct ccs_path_info dir;
 	char *root_name;
 	bool is_enforce;
+	struct ccs_obj_info obj = {
+		.path1_dentry = path->dentry,
+		.path1_vfsmnt = path->mnt
+	};
 	ccs_check_read_lock();
-	if (!ccs_can_sleep())
+	if (!ccs_can_sleep() ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
 		return 0;
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE);
 	is_enforce = (r.mode == 3);
-	if (!r.mode)
-		return 0;
+	r.obj = &obj;
  retry:
 	error = -EPERM;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
-	root_name = ccs_realpath_from_dentry(path->path.dentry, path->path.mnt);
-#else
-	root_name = ccs_realpath_from_dentry(path->dentry, path->mnt);
-#endif
+	root_name = ccs_realpath_from_path(path);
 	if (!root_name)
 		goto out;
 	dir.name = root_name;
@@ -109,6 +102,12 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
 /**
  * ccs_check_chroot_permission - Check permission for chroot().
  *
@@ -119,8 +118,13 @@ static int ccs_check_chroot_permission2(struct PATH_or_NAMEIDATA *path)
  */
 int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+	struct path tmp_path = { path->path.mnt, path->path.dentry };
+#else
+	struct path tmp_path = { path->mnt, path->dentry };
+#endif
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_chroot_permission2(path);
+	const int error = ccs_check_chroot_acl(&tmp_path);
 	ccs_read_unlock(idx);
 	return error;
 }

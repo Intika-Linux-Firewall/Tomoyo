@@ -156,7 +156,7 @@ static bool ccs_strendswith(const char *name, const char *tail)
 }
 
 /**
- * ccs_get_path - Get realpath.
+ * ccs_get_realpath - Get realpath.
  *
  * @buf:    Pointer to "struct ccs_path_info".
  * @dentry: Pointer to "struct dentry".
@@ -164,10 +164,11 @@ static bool ccs_strendswith(const char *name, const char *tail)
  *
  * Returns true success, false otherwise.
  */
-static bool ccs_get_path(struct ccs_path_info *buf, struct dentry *dentry,
-			 struct vfsmount *mnt)
+static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
+			     struct vfsmount *mnt)
 {
-	buf->name = ccs_realpath_from_dentry(dentry, mnt);
+	struct path path = { mnt, dentry }; 
+	buf->name = ccs_realpath_from_path(&path);
 	if (buf->name) {
 		ccs_fill_path_info(buf);
 		return true;
@@ -1184,9 +1185,12 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag)
 {
 	struct ccs_request_info r;
-	struct ccs_obj_info obj;
+	struct ccs_obj_info obj = {
+		.path1_dentry = dentry,
+		.path1_vfsmnt = mnt
+	};
 	const u8 acc_mode = ACC_MODE(flag);
-	int error = -ENOMEM;
+	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
@@ -1197,34 +1201,21 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
+	r.mode = 0;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, current->ccs_flags &
-			      CCS_CHECK_READ_FOR_OPEN_EXEC ?
-			      ccs_fetch_next_domain() : ccs_current_domain(),
-			      CCS_MAC_FOR_FILE);
-	if (!r.mode || !mnt) {
-		error = 0;
+	if (!mnt || !acc_mode ||
+	    (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) ||
+	    !ccs_init_request_info(&r, current->ccs_flags &
+				   CCS_CHECK_READ_FOR_OPEN_EXEC ?
+				   ccs_fetch_next_domain() :
+				   ccs_current_domain(),
+				   CCS_MAC_FOR_FILE))
 		goto out;
-	}
-	if (acc_mode == 0) {
-		error = 0;
-		goto out;
-	}
-	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
-		/*
-		 * I don't check directories here because mkdir() and rmdir()
-		 * don't call me.
-		 */
-		error = 0;
-		goto out;
-	}
-	if (!ccs_get_path(&buf, dentry, mnt))
-		goto out;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = dentry;
-	obj.path1_vfsmnt = mnt;
 	r.obj = &obj;
-	error = 0;
+	if (!ccs_get_realpath(&buf, dentry, mnt)) {
+		error = -ENOMEM; 
+		goto out;
+	}
 	/*
 	 * If the filename is specified by "deny_rewrite" keyword,
 	 * we need to check "allow_rewrite" permission when the filename is not
@@ -1263,10 +1254,13 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 				struct vfsmount *mnt, const char *target)
 {
 	struct ccs_request_info r;
-	struct ccs_obj_info obj;
+	struct ccs_obj_info obj = {
+		.path1_dentry = dentry,
+		.path1_vfsmnt = mnt
+	};
 	int error = -ENOMEM;
 	struct ccs_path_info buf;
-	bool is_enforce;
+	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
 	int idx;
 	if (!ccs_can_sleep())
@@ -1274,26 +1268,22 @@ static int ccs_check_1path_perm(const u8 operation, struct dentry *dentry,
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt) {
+	if (!mnt || !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE)) {
 		error = 0;
 		goto out;
 	}
-	if (!ccs_get_path(&buf, dentry, mnt))
+	is_enforce = (r.mode == 3);
+	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = dentry;
-	obj.path1_vfsmnt = mnt;
 	r.obj = &obj;
 	switch (operation) {
 	case CCS_TYPE_MKDIR_ACL:
 	case CCS_TYPE_RMDIR_ACL:
-		if (!buf.is_dir) {
-			/* ccs_get_path() reserves space for appending "/". */
-			strcat((char *) buf.name, "/");
-			ccs_fill_path_info(&buf);
-		}
+		if (buf.is_dir)
+			break;
+		/* ccs_get_realpath() reserves space for appending "/". */
+		strcat((char *) buf.name, "/");
+		ccs_fill_path_info(&buf);
 		break;
 	case CCS_TYPE_SYMLINK_ACL:
 		symlink_target.name = ccs_encode(target);
@@ -1328,27 +1318,26 @@ static int ccs_check_mkdev_perm(const u8 operation, struct dentry *dentry,
 				struct vfsmount *mnt, unsigned int dev)
 {
 	struct ccs_request_info r;
-	struct ccs_obj_info obj;
+	struct ccs_obj_info obj = {
+		.path1_dentry = dentry,
+		.path1_vfsmnt = mnt,
+		.dev = dev
+	};
 	int error = -ENOMEM;
 	struct ccs_path_info buf;
-	bool is_enforce;
+	bool is_enforce = false;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt) {
+	if (!mnt || !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE)) {
 		error = 0;
 		goto out;
 	}
-	if (!ccs_get_path(&buf, dentry, mnt))
+	is_enforce = (r.mode == 3);
+	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = dentry;
-	obj.path1_vfsmnt = mnt;
-	obj.dev = dev;
 	r.obj = &obj;
 	error = ccs_check_mkdev_permission(&r, operation, &buf, dev);
  out:
@@ -1369,30 +1358,30 @@ static int ccs_check_mkdev_perm(const u8 operation, struct dentry *dentry,
 int ccs_check_rewrite_permission(struct file *filp)
 {
 	struct ccs_request_info r;
-	struct ccs_obj_info obj;
+	struct ccs_obj_info obj = {
+		.path1_dentry = filp->f_dentry,
+		.path1_vfsmnt = filp->f_vfsmnt
+	};
 	int error = -ENOMEM;
-	bool is_enforce;
+	bool is_enforce = false;
 	struct ccs_path_info buf;
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	is_enforce = (r.mode == 3);
-	if (!r.mode || !filp->f_vfsmnt) {
+	if (!filp->f_vfsmnt ||
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE)) {
 		error = 0;
 		goto out;
 	}
-	if (!ccs_get_path(&buf, filp->f_dentry, filp->f_vfsmnt))
+	is_enforce = (r.mode == 3);
+	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
 	if (!ccs_is_no_rewrite_file(&buf)) {
 		error = 0;
 		goto out;
 	}
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = filp->f_dentry;
-	obj.path1_vfsmnt = filp->f_vfsmnt;
 	r.obj = &obj;
 	error = ccs_check_single_path_permission(&r, CCS_TYPE_REWRITE_ACL,
 						 &buf);
@@ -1422,27 +1411,31 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 	const char *msg = ccs_dp2keyword(operation);
 	struct ccs_path_info buf1;
 	struct ccs_path_info buf2;
-	bool is_enforce;
-	struct ccs_obj_info obj;
+	bool is_enforce = false;
+	struct ccs_obj_info obj = {
+		.path1_dentry = dentry1,
+		.path1_vfsmnt = mnt,
+		.path2_dentry = dentry2,
+		.path2_vfsmnt = mnt
+	};
 	int idx;
 	if (!ccs_can_sleep())
 		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	is_enforce = (r.mode == 3);
-	if (!r.mode || !mnt) {
+	if (!mnt || !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE)) {
 		error = 0;
 		goto out;
 	}
-	if (!ccs_get_path(&buf1, dentry1, mnt) ||
-	    !ccs_get_path(&buf2, dentry2, mnt))
+	is_enforce = (r.mode == 3);
+	if (!ccs_get_realpath(&buf1, dentry1, mnt) ||
+	    !ccs_get_realpath(&buf2, dentry2, mnt))
 		goto out;
 	if (operation == CCS_TYPE_RENAME_ACL) {
 		/* CCS_TYPE_LINK_ACL can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-			/* ccs_get_path() reserves space for appending "/". */
+			/* ccs_get_realpath() reserves space for appending "/". */
 			if (!buf1.is_dir) {
 				strcat((char *) buf1.name, "/");
 				ccs_fill_path_info(&buf1);
@@ -1453,11 +1446,6 @@ static int ccs_check_2path_perm(const u8 operation, struct dentry *dentry1,
 			}
 		}
 	}
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = dentry1;
-	obj.path1_vfsmnt = mnt;
-	obj.path2_dentry = dentry2;
-	obj.path2_vfsmnt = mnt;
 	r.obj = &obj;
  retry:
 	error = ccs_check_double_path_acl(&r, operation, &buf1, &buf2);
@@ -1643,7 +1631,10 @@ static int ccs_check_path_number_permission(const u8 type,
 					    unsigned long number)
 {
 	struct ccs_request_info r;
-	struct ccs_obj_info obj;
+	struct ccs_obj_info obj = {
+		.path1_dentry = dentry,
+		.path1_vfsmnt = vfsmnt
+	};
 	int error = -ENOMEM;
 	struct ccs_path_info buf;
 	int idx;
@@ -1651,16 +1642,13 @@ static int ccs_check_path_number_permission(const u8 type,
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_IOCTL); /* */
-	if (!r.mode) {
+	if (!ccs_init_request_info(&r, NULL, type == CCS_TYPE_IOCTL ?
+				   CCS_MAC_FOR_IOCTL : CCS_MAC_FOR_FILEATTR)) {
 		error = 0;
 		goto out;
 	}
-	if (!ccs_get_path(&buf, dentry, vfsmnt))
+	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
 		goto out;
-	memset(&obj, 0, sizeof(obj));
-	obj.path1_dentry = dentry;
-	obj.path1_vfsmnt = vfsmnt;
 	r.obj = &obj;
 	error = ccs_check_path_number_perm(&r, type, &buf, number);
  out:
@@ -2417,8 +2405,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE);
-	if (!r.mode) {
+	if (!ccs_init_request_info(&r, NULL, CCS_MAC_FOR_FILE)) {
 		error = 0;
 		goto out;
 	}

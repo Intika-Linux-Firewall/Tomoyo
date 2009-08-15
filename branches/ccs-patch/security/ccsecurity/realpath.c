@@ -34,11 +34,29 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #include <linux/proc_fs.h>
 #include "internal.h"
 
+static int ccs_kern_path(const char *pathname, int flags, struct path *path)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
+	if (!pathname || kern_path(pathname, flags, path))
+		return -ENOENT;
+#else
+	struct nameidata nd;
+	if (!pathname || path_lookup(pathname, flags, &nd))
+		return -ENOENT;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	*path = nd.path;
+#else
+	path->dentry = nd.dentry;
+	path->mnt = nd.mnt;
+#endif
+#endif
+	return 0;
+}
+
 /**
  * ccs_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
  *
- * @dentry: Pointer to "struct dentry".
- * @vfsmnt: Pointer to "struct vfsmount".
+ * @path:   Pointer to "struct path".
  * @buffer: Pointer to buffer to return value in.
  * @buflen: Sizeof @buffer.
  *
@@ -52,12 +70,13 @@ static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
  * \ooo style octal string.
  * Character \ is converted to \\ string.
  */
-static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
-				 char *buffer, int buflen)
+static int ccs_get_absolute_path(struct path *path, char *buffer, int buflen)
 {
 	/***** CRITICAL SECTION START *****/
 	char *start = buffer;
 	char *end = buffer + buflen;
+	struct dentry *dentry = path->dentry;
+	struct vfsmount *vfsmnt = path->mnt;
 	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
 
 	if (buflen < 256)
@@ -187,22 +206,19 @@ static int ccs_get_absolute_path(struct dentry *dentry, struct vfsmount *vfsmnt,
 #define SOCKFS_MAGIC 0x534F434B
 
 /**
- * ccs_realpath_from_dentry2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
+ * ccs_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
  *
- * @dentry:      Pointer to "struct dentry".
- * @mnt:         Pointer to "struct vfsmount".
+ * @path:        Pointer to "struct path".
  * @newname:     Pointer to buffer to return value in.
  * @newname_len: Size of @newname.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_realpath_from_dentry2(struct dentry *dentry,
-				     struct vfsmount *mnt,
-				     char *newname, int newname_len)
+static int ccs_realpath_from_path2(struct path *path, char *newname,
+				   int newname_len)
 {
 	int error = -EINVAL;
-	struct dentry *d_dentry;
-	struct vfsmount *d_mnt;
+	struct dentry *dentry = path->dentry;
 	if (!dentry || !newname || newname_len <= 2048)
 		goto out;
 	/* Get better name for socket. */
@@ -258,17 +274,15 @@ static int ccs_realpath_from_dentry2(struct dentry *dentry,
 		goto out;
 	}
 #endif
-	if (!mnt)
+	if (!path->mnt)
 		goto out;
-	d_dentry = dget(dentry);
-	d_mnt = mntget(mnt);
+	path_get(path);
 	/***** CRITICAL SECTION START *****/
 	ccs_realpath_lock();
-	error = ccs_get_absolute_path(d_dentry, d_mnt, newname, newname_len);
+	error = ccs_get_absolute_path(path, newname, newname_len);
 	ccs_realpath_unlock();
 	/***** CRITICAL SECTION END *****/
-	dput(d_dentry);
-	mntput(d_mnt);
+	path_put(path);
  out:
 	if (error)
 		printk(KERN_WARNING "ccs_realpath: Pathname too long. (%d)\n",
@@ -277,22 +291,20 @@ static int ccs_realpath_from_dentry2(struct dentry *dentry,
 }
 
 /**
- * ccs_realpath_from_dentry - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+ * ccs_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
  *
- * @dentry: Pointer to "struct dentry".
- * @mnt:    Pointer to "struct vfsmount".
+ * @path: Pointer to "struct path".
  *
- * Returns the realpath of the given @dentry and @mnt on success,
- * NULL otherwise.
+ * Returns the realpath of the given @path on success, NULL otherwise.
  *
  * These functions use kzalloc(), so caller must kfree()
  * if these functions didn't return NULL.
  */
-char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
+char *ccs_realpath_from_path(struct path *path)
 {
 	char *buf = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
-	if (buf && ccs_realpath_from_dentry2(dentry, mnt, buf,
-					     CCS_MAX_PATHNAME_LEN - 2) == 0)
+	if (buf &&
+	    ccs_realpath_from_path2(path, buf, CCS_MAX_PATHNAME_LEN - 2) == 0)
 		return buf;
 	kfree(buf);
 	return NULL;
@@ -307,16 +319,10 @@ char *ccs_realpath_from_dentry(struct dentry *dentry, struct vfsmount *mnt)
  */
 char *ccs_realpath(const char *pathname)
 {
-	struct nameidata nd;
-	if (pathname && path_lookup(pathname, ccs_lookup_flags, &nd) == 0) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		char *buf = ccs_realpath_from_dentry(nd.path.dentry,
-						     nd.path.mnt);
-		path_put(&nd.path);
-#else
-		char *buf = ccs_realpath_from_dentry(nd.dentry, nd.mnt);
-		path_release(&nd);
-#endif
+	struct path path;
+	if (ccs_kern_path(pathname, ccs_lookup_flags, &path) == 0) {
+		char *buf = ccs_realpath_from_path(&path);
+		path_put(&path);
 		return buf;
 	}
 	return NULL;
@@ -332,21 +338,13 @@ char *ccs_realpath(const char *pathname)
  */
 int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee)
 {
-	struct nameidata nd;
+	struct path path;
 	int ret;
-	if (!pathname ||
-	    path_lookup(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &nd))
+	if (ccs_kern_path(pathname, ccs_lookup_flags ^ LOOKUP_FOLLOW, &path))
 		return -ENOENT;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	ret = ccs_realpath_from_dentry2(nd.path.dentry, nd.path.mnt,
-					ee->program_path,
-					CCS_MAX_PATHNAME_LEN - 1);
-	path_put(&nd.path);
-#else
-	ret = ccs_realpath_from_dentry2(nd.dentry, nd.mnt, ee->program_path,
-					CCS_MAX_PATHNAME_LEN - 1);
-	path_release(&nd);
-#endif
+	ret = ccs_realpath_from_path2(&path, ee->program_path,
+				      CCS_MAX_PATHNAME_LEN - 1);
+	path_put(&path);
 	return ret;
 }
 
@@ -400,3 +398,15 @@ char *ccs_encode(const char *str)
 	return cp0;
 }
 
+/**
+ * ccs_get_path - Get dentry/vfsmmount of a pathname.
+ *
+ * @pathname: The pathname to solve.
+ * @path:     Pointer to "struct path".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_get_path(const char *pathname, struct path *path)
+{
+	return ccs_kern_path(pathname, ccs_lookup_flags, path);
+}
