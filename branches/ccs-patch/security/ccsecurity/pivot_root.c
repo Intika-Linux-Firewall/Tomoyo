@@ -170,7 +170,9 @@ int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
 		.head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[2];
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
+	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0] ||
+	    (w[0][0] != '@' && !ccs_is_correct_path(w[0], 1, 0, 1)) ||
+	    (w[1][0] != '@' && !ccs_is_correct_path(w[1], 1, 0, 1)))
 		return -EINVAL;
 	if (!ccs_parse_name_union(w[1], &e.old_root) ||
 	    !ccs_parse_name_union(w[0], &e.new_root))

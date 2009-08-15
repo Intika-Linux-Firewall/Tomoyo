@@ -8,18 +8,18 @@
  */
 #include "include.h"
 
-static int is_enforce = 0;
+static int should_fail = 0;
 
 static void show_prompt(const char *str)
 {
 	printf("Testing %40s: (%s) ", str,
-	       is_enforce ? "must fail" : "should success");
+	       should_fail ? "must fail" : "should success");
 	errno = 0;
 }
 
 static void show_result(int result)
 {
-	if (is_enforce) {
+	if (should_fail) {
 		if (result == EOF) {
 			if (errno == EPERM)
 				printf("OK: Permission denied.\n");
@@ -44,8 +44,8 @@ static void stage_env_test(void)
 	int status = 0;
 	memset(buffer, 0, sizeof(buffer));
 	{
-		is_enforce = 0;
-		write_status("MAC_FOR_ENV=permissive\n");
+		should_fail = 0;
+		fprintf(profile_fp, "255-MAC_FOR_ENV=permissive\n");
 		if (fork() == 0) {
 			execve("/bin/true", argv, envp);
 			_exit(errno);
@@ -57,8 +57,8 @@ static void stage_env_test(void)
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
 
-		is_enforce = 1;
-		write_status("MAC_FOR_ENV=enforcing\n");
+		should_fail = 1;
+		fprintf(profile_fp, "255-MAC_FOR_ENV=enforcing\n");
 		if (fork() == 0) {
 			execve("/bin/true", argv, envp);
 			_exit(errno);
@@ -70,7 +70,7 @@ static void stage_env_test(void)
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
 
-		is_enforce = 0;
+		should_fail = 0;
 		if (fork() == 0) {
 			envp[0] = "";
 			execve("/bin/true", argv, envp);
@@ -88,11 +88,6 @@ static void stage_env_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
 	stage_env_test();
 	clear_status();
 	return 0;

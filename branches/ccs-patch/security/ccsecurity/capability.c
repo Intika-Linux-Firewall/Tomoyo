@@ -65,6 +65,13 @@ static const char *ccs_cap2name(const u8 operation)
 	return NULL;
 }
 
+static inline bool ccs_capability_enabled(const u8 profile, const u8 operation)
+{
+	return operation < CCS_MAX_CAPABILITY_INDEX ?
+		ccs_profile_ptr[profile]->enabled_capabilities[operation] :
+		false;
+}
+
 /**
  * ccs_audit_capability_log - Audit capability log.
  *
@@ -103,10 +110,12 @@ static bool ccs_capable2(const u8 operation)
 	ccs_check_read_lock();
 	if (!ccs_can_sleep())
 		return true;
-	ccs_init_request_info(&r, NULL, CCS_MAX_CONTROL_INDEX + operation);
-	is_enforce = (r.mode == 3);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY);
 	if (!r.mode)
 		return true;
+	if (!ccs_capability_enabled(r.profile, operation))
+		return true;
+	is_enforce = (r.mode == 3);
  retry:
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {

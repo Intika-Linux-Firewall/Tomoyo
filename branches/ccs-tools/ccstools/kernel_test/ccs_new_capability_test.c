@@ -17,39 +17,34 @@ static int child(void *arg)
 	return errno;
 }
 
-static int domain_fd = EOF;
 static const char *capability = "";
-static char self_domain[4096] = "";
 
 static int write_policy(void)
 {
 	FILE *fp = fopen(proc_policy_domain_policy, "r");
 	char buffer[8192];
-	char *cp;
 	int domain_found = 0;
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
-	cp = "allow_capability ";
-	write(domain_fd, cp, strlen(cp));
-	write(domain_fd, capability, strlen(capability));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "allow_capability %s\n", capability);
+	fflush(domain_fp);
 	if (!fp) {
 		printf("allow_capability %s : BUG: capability read failed\n",
 		       capability);
 		return 0;
 	}
 	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		cp = strchr(buffer, '\n');
+		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
 		if (!strncmp(buffer, "<kernel>", 8))
 			domain_found = !strcmp(self_domain, buffer);
-		if (domain_found) {
-			if (!strncmp(buffer, "allow_capability ", 17) &&
-			    !strcmp(buffer + 17, capability)) {
-				policy_found = 1;
-				break;
-			}
+		if (!domain_found)
+			continue;
+		if (!strncmp(buffer, "allow_capability ", 17) &&
+		    !strcmp(buffer + 17, capability)) {
+			policy_found = 1;
+			break;
 		}
 	}
 	fclose(fp);
@@ -64,27 +59,26 @@ static int write_policy(void)
 
 static void delete_policy(void)
 {
-	const char *cp = "allow_capability ";
-	write(domain_fd, "delete ", 7);
-	write(domain_fd, cp, strlen(cp));
-	write(domain_fd, capability, strlen(capability));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "delete allow_capability %s\n",
+		capability);
+	fflush(domain_fp);
 }
 
 static void show_result(int result, char should_success)
 {
+	int err = errno;
 	printf("allow_capability %s : ", capability);
 	if (should_success) {
 		if (result != EOF)
 			printf("OK\n");
 		else
-			printf("FAILED: %s\n", strerror(errno));
+			printf("FAILED: %s\n", strerror(err));
 	} else {
 		if (result == EOF) {
-			if (errno == EPERM)
+			if (err == EPERM)
 				printf("OK: Permission denied.\n");
 			else
-				printf("FAILED: %s\n", strerror(errno));
+				printf("FAILED: %s\n", strerror(err));
 		} else {
 			printf("BUG\n");
 		}
@@ -93,20 +87,14 @@ static void show_result(int result, char should_success)
 
 static void set_capability(void)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1,
-		 "MAC_FOR_CAPABILITY::%s=enforcing\n", capability);
-	write_status(buffer);
+	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=enforcing\n");
+	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
 }
 
 static void unset_capability(void)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1,
-		 "MAC_FOR_CAPABILITY::%s=disabled\n", capability);
-	write_status(buffer);
+	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=disabled\n");
+	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
 }
 
 static void stage_capability_test(void)
@@ -709,22 +697,7 @@ static void stage_capability_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	domain_fd = open(proc_policy_domain_policy, O_WRONLY);
-	if (domain_fd == EOF && errno == ENOENT) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	{
-		int self_fd = open(proc_policy_self_domain, O_RDONLY);
-		memset(self_domain, 0, sizeof(self_domain));
-		read(self_fd, self_domain, sizeof(self_domain) - 1);
-		close(self_fd);
-		write(domain_fd, self_domain, strlen(self_domain));
-		write(domain_fd, "\n", 1);
-	}
 	stage_capability_test();
-	close(domain_fd);
 	clear_status();
 	return 0;
 }

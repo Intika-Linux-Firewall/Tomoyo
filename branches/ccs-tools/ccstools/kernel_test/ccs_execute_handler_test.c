@@ -12,23 +12,17 @@ int main(int raw_argc, char *raw_argv[])
 {
 	char buffer[4096];
 	char *cp;
-	char *cp2;
-	FILE *fp;
 	int error;
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	ccs_test_init();
 	memset(buffer, 0, sizeof(buffer));
-	fp = fopen(proc_policy_process_status, "r+");
-	if (!fp)
-		return 1;
-	fprintf(fp, "info %d\n", pid);
-	fflush(fp);
-	fgets(buffer, sizeof(buffer) - 1, fp);
-	fclose(fp);
+	{
+		FILE *fp = fopen(proc_policy_process_status, "r+");
+		if (!fp)
+			return 1;
+		fprintf(fp, "info %d\n", getpid());
+		fflush(fp);
+		fgets(buffer, sizeof(buffer) - 1, fp);
+		fclose(fp);
+	}
 	if (strstr(buffer, " execute_handler=yes")) {
 		int i;
 		int argc;
@@ -74,22 +68,12 @@ int main(int raw_argc, char *raw_argv[])
 			execve(filename, argv, envp);
 		return 1;
 	}
-	memset(buffer, 0, sizeof(buffer));
-	fp = fopen(proc_policy_self_domain, "r");
-	if (!fp)
+	ccs_test_init();
+	cp = strrchr(self_domain, ' ');
+	if (!cp)
 		return 1;
-	fgets(buffer, sizeof(buffer) - 1, fp);
-	fclose(fp);
-	cp2 = strrchr(buffer, ' ');
-	if (!cp2)
-		return 1;
-	cp2++;
-	fp = fopen(proc_policy_domain_policy, "r+");
-	if (!fp)
-		return 1;
-	fprintf(fp, "select pid=%u\n", pid);
-	fprintf(fp, "execute_handler %s\n", cp2);
-	fflush(fp);
+	cp++;
+	fprintf(domain_fp, "execute_handler %s\n", cp);
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: execute handler succeeded",
 				 NULL };
@@ -103,14 +87,12 @@ int main(int raw_argc, char *raw_argv[])
 		printf("BUG: execute handler failed\n");
 		fflush(stdout);
 	}
-	fprintf(fp, "delete execute_handler %s\n", cp2);
-	fprintf(fp, "denied_execute_handler %s\n", cp2);
-	fprintf(fp, "delete allow_execute /bin/echo\n");
-	fprintf(fp, "%s %s\n", buffer, cp2);
-	fprintf(fp, "use_profile 0\n");
-	fflush(fp);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(domain_fp, "delete execute_handler %s\n", cp);
+	fprintf(domain_fp, "denied_execute_handler %s\n", cp);
+	fprintf(domain_fp, "delete allow_execute /bin/echo\n");
+	fprintf(domain_fp, "%s %s\n", self_domain, cp);
+	fprintf(domain_fp, "use_profile 0\n");
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: denied execute handler succeeded",
 				 NULL };
@@ -121,12 +103,11 @@ int main(int raw_argc, char *raw_argv[])
 	wait(&error);
 	error = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
 	if (error) {
-		printf("BUG: execute handler failed\n");
+		printf("BUG: denied execute handler failed\n");
 		fflush(stdout);
 	}
-	cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
-	fprintf(fp, "delete denied_execute_handler %s\n", cp2);
-	fclose(fp);
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	fprintf(domain_fp, "delete denied_execute_handler %s\n", cp);
+	clear_status();
 	return 0;
 }

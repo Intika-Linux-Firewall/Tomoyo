@@ -10,18 +10,18 @@
  */
 #include "include.h"
 
-static int is_enforce = 0;
+static int should_fail = 0;
 
 static void show_prompt(const char *str)
 {
 	printf("Testing %35s: (%s) ", str,
-	       is_enforce ? "must fail" : "must success");
+	       should_fail ? "must fail" : "must success");
 	errno = 0;
 }
 
 static void show_result(int result)
 {
-	if (is_enforce) {
+	if (should_fail) {
 		if (result == EOF) {
 			if (errno == EPERM)
 				printf("OK: Permission denied.\n");
@@ -38,51 +38,16 @@ static void show_result(int result)
 	}
 }
 
-
-static void set_status(int status)
-{
-	char buffer[128];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "MAC_FOR_FILE=%d\n", status);
-	write_status(buffer);
-}
-
 static void add_domain_policy(const char *data)
 {
-	char buffer[4096];
-	FILE *fp;
-	set_status(0);
-	fp = fopen(proc_policy_self_domain, "r");
-	if (fp) {
-		fgets(buffer, sizeof(buffer) - 1, fp);
-		fclose(fp);
-	} else {
-		fprintf(stderr, "BUG! Can't read %s\n",
-			proc_policy_self_domain);
-	}
-	fp = fopen(proc_policy_domain_policy, "w");
-	if (fp) {
-		fprintf(fp, "%s\n", buffer);
-		fprintf(fp, "%s\n", data);
-		fclose(fp);
-	} else {
-		fprintf(stderr, "BUG! Can't write %s\n",
-			proc_policy_domain_policy);
-	}
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	fprintf(domain_fp, "%s\n", data);
 }
 
 static void add_exception_policy(const char *data)
 {
-	FILE *fp;
-	set_status(0);
-	fp = fopen(proc_policy_exception_policy, "w");
-	if (fp) {
-		fprintf(fp, "%s\n", data);
-		fclose(fp);
-	} else {
-		fprintf(stderr, "BUG! Can't write %s\n",
-			proc_policy_exception_policy);
-	}
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	fprintf(exception_fp, "%s\n", data);
 }
 
 #define REWRITE_PATH "/tmp/rewrite_test"
@@ -100,8 +65,8 @@ static void stage_rewrite_test(void)
 	close(open(REWRITE_PATH, O_WRONLY | O_APPEND | O_CREAT, 0600));
 
 	/* Enforce mode */
-	set_status(3);
-	is_enforce = 0;
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	should_fail = 0;
 
 	show_prompt("open(O_RDONLY)");
 	fd = open(REWRITE_PATH, O_RDONLY);
@@ -113,7 +78,7 @@ static void stage_rewrite_test(void)
 	show_result(fd);
 	close(fd);
 
-	is_enforce = 1;
+	should_fail = 1;
 	show_prompt("open(O_WRONLY)");
 	fd = open(REWRITE_PATH, O_WRONLY);
 	show_result(fd);
@@ -141,8 +106,8 @@ static void stage_rewrite_test(void)
 	close(fd);
 
 	/* Permissive mode */
-	set_status(2);
-	is_enforce = 0;
+	fprintf(profile_fp, "255-MAC_FOR_FILE=permissive\n");
+	should_fail = 0;
 
 	show_prompt("open(O_RDONLY)");
 	fd = open(REWRITE_PATH, O_RDONLY);

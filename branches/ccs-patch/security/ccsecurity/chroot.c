@@ -146,6 +146,8 @@ int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
 		.head.cond = condition
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (data[0] != '@' && !ccs_is_correct_path(data, 1, 0, 1))
+		return -EINVAL;
 	if (!ccs_parse_name_union(data, &e.dir))
 		return error;
 	if (!is_delete)

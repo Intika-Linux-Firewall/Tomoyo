@@ -8,14 +8,9 @@
  */
 #include "include.h"
 
-static FILE *fp_domain = NULL;
-static FILE *fp_exception = NULL;
-static FILE *fp_level = NULL;
-
 static void set_level(const int i)
 {
-	fprintf(fp_level, "255-MAC_FOR_FILE=%d\n", i);
-	fflush(fp_level);
+	fprintf(profile_fp, "255-MAC_FOR_FILE=%d\n", i);
 }
 
 static void test(int rw_loop, int truncate_loop, int append_loop,
@@ -34,13 +29,11 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "/tmp/file:a=%d:t=%d:c=%d:m=%d",
 		 append_loop, truncate_loop, create_loop, rw_loop);
-	fprintf(fp_exception, "deny_rewrite %s\n", buffer);
-	fflush(fp_exception);
+	fprintf(exception_fp, "deny_rewrite %s\n", buffer);
 	flags = rw_flags[rw_loop] | truncate_flags[truncate_loop] |
 		append_flags[append_loop] | create_flags[create_loop];
 	for (i = 1; i < 8; i++)
-		fprintf(fp_domain, "delete %d %s\n", i, buffer);
-	fflush(fp_domain);
+		fprintf(domain_fp, "delete %d %s\n", i, buffer);
 	for (level = 0; level < 4; level++) {
 		set_level(0);
 		if (create_loop == 1)
@@ -70,11 +63,10 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		*/
 	}
 	for (i = 1; i < 8; i++)
-		fprintf(fp_domain, "delete %d %s\n", i, buffer);
-	fprintf(fp_domain, "delete allow_truncate %s\n", buffer);
-	fprintf(fp_domain, "delete allow_create %s\n", buffer);
-	fprintf(fp_domain, "delete allow_rewrite %s\n", buffer);
-	fflush(fp_domain);
+		fprintf(domain_fp, "delete %d %s\n", i, buffer);
+	fprintf(domain_fp, "delete allow_truncate %s\n", buffer);
+	fprintf(domain_fp, "delete allow_create %s\n", buffer);
+	fprintf(domain_fp, "delete allow_rewrite %s\n", buffer);
 	fd = open(buffer, flags, 0666);
 	if (fd != EOF) {
 		close(fd);
@@ -84,55 +76,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 
 int main(int argc, char *argv[])
 {
-	static char self_domain[4096];
-	ccs_test_pre_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	fp_level = fopen(proc_policy_profile, "w");
-	if (!fp_level) {
-		fprintf(stderr, "Can't open %s\n", proc_policy_profile);
-		exit(1);
-	}
-	fprintf(fp_level, "255-COMMENT=Test\n255-TOMOYO_VERBOSE=disabled\n"
+	ccs_test_init();
+	fprintf(profile_fp, "255-COMMENT=Test\n255-TOMOYO_VERBOSE=disabled\n"
 		"255-MAC_FOR_FILE=disabled\n255-MAX_ACCEPT_ENTRY=2048\n");
-	fflush(fp_level);
-	fp_domain = fopen(proc_policy_domain_policy, "w");
-	if (!fp_domain) {
-		fprintf(stderr, "Can't open %s\n", proc_policy_domain_policy);
-		exit(1);
-	}
-	fp_exception = fopen(proc_policy_exception_policy, "w");
-	if (!fp_exception) {
-		fprintf(stderr, "Can't open %s\n",
-			proc_policy_exception_policy);
-		exit(1);
-	}
-	{
-		FILE *fp = fopen(proc_policy_self_domain, "r");
-		if (!fp) {
-			fprintf(stderr, "Can't open %s\n",
-				proc_policy_self_domain);
-			exit(1);
-		}
-		memset(self_domain, 0, sizeof(self_domain));
-		fgets(self_domain, sizeof(self_domain) - 1, fp);
-		fclose(fp);
-	}
-	{
-		FILE *fp = fopen(proc_policy_domain_status, "w");
-		if (!fp) {
-			fprintf(stderr, "Can't open %s\n",
-				proc_policy_domain_status);
-			exit(1);
-		}
-		fprintf(fp, "255 %s\n", self_domain);
-		fclose(fp);
-	}
-	fprintf(fp_domain, "%s\n", self_domain);
-
 	{
 		int append_loop;
 		for (append_loop = 0; append_loop < 2; append_loop++) {
@@ -151,8 +97,8 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	fprintf(fp_level, "255-MAC_FOR_FILE=disabled\n");
-	fflush(fp_level);
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	printf("Done\n");
+	clear_status();
 	return 0;
 }

@@ -8,18 +8,18 @@
  */
 #include "include.h"
 
-static int is_enforce = 0;
+static int should_fail = 0;
 
 static void show_prompt(const char *str)
 {
 	printf("Testing %35s: (%s) ", str,
-	       is_enforce ? "must fail" : "should success");
+	       should_fail ? "must fail" : "should success");
 	errno = 0;
 }
 
 static void show_result(int result)
 {
-	if (is_enforce) {
+	if (should_fail) {
 		if (result == EOF) {
 			if (errno == EPERM)
 				printf("OK: Permission denied.\n");
@@ -215,23 +215,18 @@ static void creanup_files(void)
 static void set_file_enforce(int enforce)
 {
 	if (enforce)
-		write_status("MAC_FOR_FILE=enforcing\n");
+		fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	else
-		write_status("MAC_FOR_FILE=permissive\n");
+		fprintf(profile_fp, "255-MAC_FOR_FILE=permissive\n");
 }
 
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
 
 	printf("***** Testing file hooks in enforce mode. *****\n");
 	create_files();
-	is_enforce = 1;
+	should_fail = 1;
 	set_file_enforce(1);
 	stage_file_test();
 	set_file_enforce(0);
@@ -239,7 +234,7 @@ int main(int argc, char *argv[])
 	creanup_files();
 
 	printf("***** Testing file hooks in permissive mode. *****\n");
-	is_enforce = 0;
+	should_fail = 0;
 	create_files();
 	set_file_enforce(0);
 	stage_file_test();

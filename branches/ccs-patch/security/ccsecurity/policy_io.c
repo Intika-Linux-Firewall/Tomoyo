@@ -42,6 +42,7 @@ static struct {
 	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
 	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
 	[CCS_MAC_FOR_NAMESPACE]   = { "MAC_FOR_NAMESPACE",   0, 3 },
+	[CCS_MAC_FOR_CAPABILITY]  = { "MAC_FOR_CAPABILITY",   0, 3 },
 	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY", CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY, INT_MAX },
@@ -181,28 +182,26 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
-	if (ccs_str_starts(&data, CCS_KEYWORD_MAC_FOR_CAPABILITY)) {
-		if (sscanf(cp + 1, "%u", &value) != 1) {
-			for (i = 0; i < 4; i++) {
-				if (strcmp(cp + 1, ccs_mode_4[i]))
+	if (!strcmp(data, CCS_KEYWORD_CAPABILITIES)) {
+		unsigned char capabilities[CCS_MAX_CAPABILITY_INDEX];
+		memset(capabilities, 0, sizeof(capabilities));
+		cp++;
+		while (1) {
+			char *cp2 = strchr(cp, ' ');
+			if (cp2)
+				*cp2 = '\0';
+			for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+				if (strcmp(cp, ccs_capability_list[i]))
 					continue;
-				value = i;
-				break;
+				capabilities[i] = 1;
 			}
-			if (i == 4)
-				return -EINVAL;
+			if (!cp2)
+				break;
+			cp = cp2 + 1;
 		}
-		if (value > 3)
-			value = 3;
-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-			if (strcmp(data, ccs_capability_control_keyword[i]))
-				continue;
-			ccs_profile->capability_value[i] = value;
-			ccs_profile_entry_used[i + 1 + CCS_MAX_CONTROL_INDEX]
-				= true;
-			return 0;
-		}
-		return -EINVAL;
+		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++)
+			ccs_profile->enabled_capabilities[i] = capabilities[i];
+		return 0;
 	}
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword))
@@ -239,6 +238,27 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	return -EINVAL;
 }
 
+static bool ccs_print_capability_list(struct ccs_io_buffer *head, u8 index)
+{
+	const int pos = head->read_avail;
+	int i;
+	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
+	if (!ccs_io_printf(head, "%u-" CCS_KEYWORD_CAPABILITIES "={", index))
+		return false;
+	for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+		if (!ccs_profile->enabled_capabilities[i])
+			continue;
+		if (!ccs_io_printf(head, " %s", ccs_capability_list[i]))
+			goto out;
+	}
+	if (!ccs_io_printf(head, " }\n"))
+		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
 /**
  * ccs_read_profile - Read profile table.
  *
@@ -248,8 +268,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
  */
 static int ccs_read_profile(struct ccs_io_buffer *head)
 {
-	static const int ccs_total
-		= CCS_MAX_CONTROL_INDEX + CCS_MAX_CAPABILITY_INDEX + 1;
+	static const int ccs_total = CCS_MAX_CONTROL_INDEX + 2;
 	int step;
 	if (head->read_eof)
 		return 0;
@@ -276,17 +295,13 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 				break;
 			continue;
 		}
-		type--;
-		if (type >= CCS_MAX_CONTROL_INDEX) {
-			const int i = type - CCS_MAX_CONTROL_INDEX;
-			const u8 value = ccs_profile->capability_value[i];
-			if (!ccs_io_printf(head,
-					   "%u-" CCS_KEYWORD_MAC_FOR_CAPABILITY
-					   "%s=%s\n", index,
-					   ccs_capability_control_keyword[i],
-					   ccs_mode_4[value]))
+		if (type == 1) {
+			if (!ccs_print_capability_list(head, index))
 				break;
-		} else {
+			continue;
+		}
+		type -= 2;
+		{
 			const unsigned int value = ccs_profile->value[type];
 			const char **modes = NULL;
 			const char *keyword = ccs_control_array[type].keyword;

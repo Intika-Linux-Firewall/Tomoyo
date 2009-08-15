@@ -662,7 +662,7 @@ enum ccs_ip_record_type {
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
-#define CCS_KEYWORD_MAC_FOR_CAPABILITY        "MAC_FOR_CAPABILITY::"
+#define CCS_KEYWORD_CAPABILITIES              "SUPPORTED_CAPABILITIES"
 /* A domain definition starts with <kernel>. */
 #define ROOT_NAME                         "<kernel>"
 #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
@@ -678,6 +678,7 @@ enum ccs_profile_index {
 	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
 	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
 	CCS_MAC_FOR_NAMESPACE,     /* domain_policy.conf */
+	CCS_MAC_FOR_CAPABILITY,    /* domain_policy.conf */
 	CCS_RESTRICT_AUTOBIND,     /* exception_policy.conf */
 	CCS_MAX_ACCEPT_ENTRY,
 #ifdef CONFIG_CCSECURITY_AUDIT
@@ -992,11 +993,11 @@ extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
-	unsigned char capability_value[CCS_MAX_CAPABILITY_INDEX];
+	bool enabled_capabilities[CCS_MAX_CAPABILITY_INDEX];
 };
 extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
-extern const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX];
+extern const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX];
 
 extern unsigned int ccs_audit_log_memory_size;
 extern unsigned int ccs_quota_for_audit_log;

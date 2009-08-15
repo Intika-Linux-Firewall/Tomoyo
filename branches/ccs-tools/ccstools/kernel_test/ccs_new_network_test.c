@@ -10,9 +10,7 @@
  */
 #include "include.h"
 
-static int domain_fd = EOF;
 static const char *policy = "";
-static char self_domain[4096] = "";
 
 static int write_policy(void)
 {
@@ -22,8 +20,7 @@ static int write_policy(void)
 	int domain_found = 0;
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "%s\n", policy);
 	if (!fp) {
 		printf("%s : BUG: policy read failed\n", policy);
 		return 0;
@@ -52,9 +49,7 @@ static int write_policy(void)
 
 static void delete_policy(void)
 {
-	write(domain_fd, "delete ", 7);
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "delete %s\n", policy);
 }
 
 static void show_result(int result, char should_success)
@@ -189,19 +184,17 @@ static void stage_network_test(void)
 
 	{ /* IPv4 address_group */
 		char buffer[1024];
-		FILE *fp = fopen(proc_policy_exception_policy, "w");
 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in saddr;
-		write_status("TOMOYO_VERBOSE=enabled\n");
+		fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin_family = AF_INET;
 		saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		saddr.sin_port = htons(10001);
-		fprintf(fp, "address_group TESTADDRESS 127.0.0.1\n");
-		fflush(fp);
+		fprintf(exception_fp, "address_group TESTADDRESS 127.0.0.1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP bind @TESTADDRESS 10001");
 		errno = 0;
@@ -212,12 +205,10 @@ static void stage_network_test(void)
 					 sizeof(saddr)), 1);
 			delete_policy();
 		}
-		fprintf(fp, "delete address_group TESTADDRESS 127.0.0.1\n");
-		fflush(fp);
+		fprintf(exception_fp, "delete address_group TESTADDRESS 127.0.0.1\n");
 		saddr.sin_port = htons(20002);
-		fprintf(fp, "address_group TESTADDRESS "
+		fprintf(exception_fp, "address_group TESTADDRESS "
 			"127.0.0.0-127.0.0.2\n");
-		fflush(fp);
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP bind @TESTADDRESS 20002");
 		errno = 0;
@@ -228,14 +219,13 @@ static void stage_network_test(void)
 					 sizeof(saddr)), 1);
 			delete_policy();
 		}
-		fprintf(fp, "delete address_group TESTADDRESS "
+		fprintf(exception_fp, "delete address_group TESTADDRESS "
 			"127.0.0.0-127.0.0.2\n");
-		fflush(fp);
 		if (fd1 != EOF)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		write_status("TOMOYO_VERBOSE=disabled\n");
+		fprintf(profile_fp, "255-TOMOYO_VERBOSE=disabled\n");
 	}
 
 	i = socket(PF_INET6, SOCK_STREAM, 0);
@@ -336,19 +326,17 @@ static void stage_network_test(void)
 
 	{ /* IPv6 address_group */
 		char buffer[1024];
-		FILE *fp = fopen(proc_policy_exception_policy, "w");
 		int fd1 = socket(PF_INET6, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 		struct sockaddr_in6 saddr;
-		write_status("TOMOYO_VERBOSE=enabled\n");
+		fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
 		saddr.sin6_family = AF_INET6;
 		saddr.sin6_addr = in6addr_loopback;
 		saddr.sin6_port = htons(30003);
-		fprintf(fp, "address_group TESTADDRESS 0:0:0:0:0:0:0:1\n");
-		fflush(fp);
+		fprintf(exception_fp, "address_group TESTADDRESS 0:0:0:0:0:0:0:1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP bind @TESTADDRESS 30003");
 		errno = 0;
@@ -359,13 +347,11 @@ static void stage_network_test(void)
 					 sizeof(saddr)), 1);
 			delete_policy();
 		}
-		fprintf(fp, "delete address_group "
+		fprintf(exception_fp, "delete address_group "
 			"TESTADDRESS 0:0:0:0:0:0:0:1\n");
-		fflush(fp);
 		saddr.sin6_port = htons(40004);
-		fprintf(fp, "address_group TESTADDRESS "
+		fprintf(exception_fp, "address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
-		fflush(fp);
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP bind @TESTADDRESS 40004");
 		errno = 0;
@@ -376,14 +362,13 @@ static void stage_network_test(void)
 					 sizeof(saddr)), 1);
 			delete_policy();
 		}
-		fprintf(fp, "delete address_group TESTADDRESS "
+		fprintf(exception_fp, "delete address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
-		fflush(fp);
 		if (fd1 != EOF)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		write_status("TOMOYO_VERBOSE=disabled\n");
+		fprintf(profile_fp, "255-TOMOYO_VERBOSE=disabled\n");
 	}
 
 }
@@ -391,24 +376,9 @@ static void stage_network_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	domain_fd = open(proc_policy_domain_policy, O_WRONLY);
-	if (domain_fd == EOF && errno == ENOENT) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	{
-		int self_fd = open(proc_policy_self_domain, O_RDONLY);
-		memset(self_domain, 0, sizeof(self_domain));
-		read(self_fd, self_domain, sizeof(self_domain) - 1);
-		close(self_fd);
-		write(domain_fd, self_domain, strlen(self_domain));
-		write(domain_fd, "\n", 1);
-	}
-	write_status("MAC_FOR_NETWORK=enforcing\n");
-	write_status("MAX_REJECT_LOG=1024\n");
+	fprintf(profile_fp, "255-MAC_FOR_NETWORK=enforcing\n");
+	fprintf(profile_fp, "255-MAX_REJECT_LOG=1024\n");
 	stage_network_test();
-	close(domain_fd);
 	clear_status();
 	return 0;
 }

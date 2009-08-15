@@ -18,8 +18,7 @@ DEFINE_MUTEX(ccs_policy_lock);
 bool ccs_policy_loaded;
 
 /* Capability name used by domain policy. */
-const char *ccs_capability_control_keyword[CCS_MAX_CAPABILITY_INDEX]
-= {
+const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
 	[CCS_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
 	[CCS_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
@@ -903,27 +902,6 @@ unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 }
 
 /**
- * ccs_check_capability_flags - Check mode for specified capability.
- *
- * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
- * @index:  The capability to check mode.
- *
- * Returns the mode of specified capability.
- */
-static u8 ccs_check_capability_flags(const struct ccs_domain_info *domain,
-				     const u8 index)
-{
-	const u8 profile = domain ? domain->profile :
-		ccs_current_domain()->profile;
-	return ccs_policy_loaded && index < CCS_MAX_CAPABILITY_INDEX
-#if CCS_MAX_PROFILES != 256
-		&& profile < CCS_MAX_PROFILES
-#endif
-		&& ccs_profile_ptr[profile] ?
-		ccs_profile_ptr[profile]->capability_value[index] : 0;
-}
-
-/**
  * ccs_cap2keyword - Convert capability operation to capability name.
  *
  * @operation: The capability index.
@@ -933,7 +911,7 @@ static u8 ccs_check_capability_flags(const struct ccs_domain_info *domain,
 const char *ccs_cap2keyword(const u8 operation)
 {
 	return operation < CCS_MAX_CAPABILITY_INDEX
-		? ccs_capability_control_keyword[operation] : NULL;
+		? ccs_capability_list[operation] : NULL;
 }
 
 /**
@@ -953,9 +931,6 @@ void ccs_init_request_info(struct ccs_request_info *r,
 	r->profile = domain->profile;
 	if (index < CCS_MAX_CONTROL_INDEX)
 		r->mode = ccs_check_flags(domain, index);
-	else
-		r->mode = ccs_check_capability_flags(domain, index
-						     - CCS_MAX_CONTROL_INDEX);
 }
 
 /**

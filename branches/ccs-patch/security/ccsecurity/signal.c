@@ -166,8 +166,9 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 	int sig;
 	char *domainname = strchr(data, ' ');
 	if (sscanf(data, "%d", &sig) != 1 || !domainname ||
-	    !ccs_is_correct_domain(domainname))
+	    !ccs_is_correct_domain(domainname + 1))
 		return -EINVAL;
+	e.sig = sig;
 	e.domainname = ccs_get_name(domainname + 1);
 	if (!e.domainname)
 		return -ENOMEM;
@@ -237,6 +238,22 @@ int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_tkill_permission(pid_t pid, int sig)
+{
+	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+		    ccs_check_signal_acl(sig, pid)))
+		return -EPERM;
+	return 0;
+}
+
+int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
+		    ccs_check_signal_acl(sig, pid)))
+		return -EPERM;
+	return 0;
+}
+
+int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_check_signal_acl(sig, pid)))

@@ -44,7 +44,7 @@ static void stage_argv0_test(void)
 	memset(buffer, 0, sizeof(buffer));
 	{
 		is_enforce = 0;
-		write_status("MAC_FOR_ARGV0=permissive\n");
+		fprintf(profile_fp, "255-MAC_FOR_ARGV0=permissive\n");
 		if (fork() == 0) {
 			execv("/bin/true", argv);
 			_exit(errno);
@@ -57,7 +57,7 @@ static void stage_argv0_test(void)
 		show_result(errno ? EOF : 0);
 
 		is_enforce = 1;
-		write_status("MAC_FOR_ARGV0=enforcing\n");
+		fprintf(profile_fp, "255-MAC_FOR_ARGV0=enforcing\n");
 		if (fork() == 0) {
 			execv("/bin/true", argv);
 			_exit(errno);

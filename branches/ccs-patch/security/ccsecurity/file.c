@@ -319,6 +319,8 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 	struct ccs_globally_readable_file_entry *ptr;
 	struct ccs_globally_readable_file_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(data, 1, 0, -1))
+		return -EINVAL;
 	e.filename = ccs_get_name(data);
 	if (!e.filename)
 		return -ENOMEM;
@@ -515,6 +517,8 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 	struct ccs_no_rewrite_entry *ptr;
 	struct ccs_no_rewrite_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(data, 0, 0, 0))
+		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return error;
@@ -795,7 +799,7 @@ static inline int ccs_update_execute_handler(const u8 type,
 		error = 0;
 		break;
 	}
-	if (error && ccs_commit_ok(entry, &e, sizeof(e))) {
+	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
 		/* Only one entry can exist in a domain. */
 		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			if (ptr->type == type)
@@ -1699,7 +1703,7 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 	if (mode == (mode_t) -1)
 		return 0;
 	return ccs_check_path_number_permission(CCS_TYPE_CHMOD, dentry, vfsmnt,
-						mode);
+						mode & S_IALLUGO);
 }
 
 /**

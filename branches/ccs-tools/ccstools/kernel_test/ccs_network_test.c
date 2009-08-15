@@ -98,9 +98,9 @@ static void set_enforce(int flag)
 {
 	is_enforce = flag;
 	if (flag)
-		write_status("MAC_FOR_NETWORK=enforcing\n");
+		fprintf(profile_fp, "255-MAC_FOR_NETWORK=enforcing\n");
 	else
-		write_status("MAC_FOR_NETWORK=permissive\n");
+		fprintf(profile_fp, "255-MAC_FOR_NETWORK=permissive\n");
 }
 
 static void stage_network_test(void)

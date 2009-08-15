@@ -8,45 +8,37 @@
  */
 #include "include.h"
 
-static int domain_fd = EOF;
-static char self_domain[4096];
-
 static void try_open(const char *policy, const char *file, const int mode,
 		     const char should_success) {
 	FILE *fp;
 	char buffer[8192];
-	char *cp;
 	int domain_found = 0;
 	int policy_found = 0;
 	int err = 0;
-	int fd;
 	memset(buffer, 0, sizeof(buffer));
-	cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	fp = fopen(proc_policy_domain_policy, "r+");
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	printf("%s: ", policy);
 	fflush(stdout);
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "%s\n", policy);
 	if (!fp) {
 		printf("BUG: policy read failed\n");
 		return;
 	}
 	fprintf(fp, "select pid=%d\n", pid);
 	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		cp = strchr(buffer, '\n');
+		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
 		if (!strncmp(buffer, "<kernel>", 8))
 			domain_found = !strcmp(self_domain, buffer);
-		if (domain_found) {
-			/* printf("<%s>\n", buffer); */
-			if (!strcmp(buffer, policy)) {
-				policy_found = 1;
-				break;
-			}
+		if (!domain_found)
+			continue;
+		/* printf("<%s>\n", buffer); */
+		if (!strcmp(buffer, policy)) {
+			policy_found = 1;
+			break;
 		}
 	}
 	fclose(fp);
@@ -54,14 +46,15 @@ static void try_open(const char *policy, const char *file, const int mode,
 		printf("BUG: policy write failed\n");
 		return;
 	}
-	errno = 0;
-	fd = open(file, mode, 0);
-	err = errno;
-	if (fd != EOF)
-		close(fd);
-	write(domain_fd, "delete ", 7);
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	{
+		int fd;
+		errno = 0;
+		fd = open(file, mode, 0);
+		err = errno;
+		if (fd != EOF)
+			close(fd);
+	}
+	fprintf(domain_fp, "delete %s\n", policy);
 	if (should_success) {
 		if (!err)
 			printf("OK\n");
@@ -254,22 +247,15 @@ static void try_signal(const char *condition, const unsigned char s0,
 	char *cp;
 	int sig = (rand() % 10000) + 100;
 	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "select pid=%d\n", pid);
-	write(domain_fd, buffer, strlen(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "allow_signal %d %s %s", sig,
-		 "<kernel>", condition);
+	fprintf(domain_fp, "select pid=%d\n", pid);
+	snprintf(buffer, sizeof(buffer) - 1, "allow_signal %d <kernel> %s",
+		 sig, condition);
 	printf("%s: ", buffer);
-	fflush(stdout);
-	write(domain_fd, buffer, strlen(buffer));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "%s\n", buffer);
 	errno = 0;
 	kill(1, sig);
 	err = errno;
-	snprintf(buffer, sizeof(buffer) - 1, "allow_signal %d %s %s", sig,
-		 "<kernel>", condition);
-	write(domain_fd, "delete ", 7);
-	write(domain_fd, buffer, strlen(buffer));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "delete %s\n", buffer);
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "info %d\n", pid);
 	write(fd, buffer, strlen(buffer));
@@ -314,40 +300,15 @@ static void stage_signal_test(void)
 
 int main(int argc, char *argv[])
 {
-	const char *cp;
-	int self_fd;
 	ccs_test_init();
-	self_fd = open(proc_policy_self_domain, O_RDONLY);
-	domain_fd = open(proc_policy_domain_policy, O_WRONLY);
-	if (domain_fd == EOF && errno == ENOENT) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	memset(self_domain, 0, sizeof(self_domain));
-	read(self_fd, self_domain, sizeof(self_domain) - 1);
-	close(self_fd);
-	write(domain_fd, self_domain, strlen(self_domain));
-	write(domain_fd, "\n", 1);
-	cp = "use_profile 255\n";
-	write(domain_fd, cp, strlen(cp));
-	cp = "ignore_global_allow_read\n";
-	write(domain_fd, cp, strlen(cp));
-	cp = "allow_read/write ";
-	write(domain_fd, cp, strlen(cp));
-	cp = proc_policy_domain_policy;
-	write(domain_fd, cp, strlen(cp));
-	write(domain_fd, "\n", 1);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(domain_fp, "ignore_global_allow_read\n");
+	fprintf(domain_fp, "allow_read/write %s\n", proc_policy_domain_policy);
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	stage_open_test();
-	cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
-	cp = "255-MAC_FOR_SIGNAL=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	fprintf(profile_fp, "255-MAC_FOR_SIGNAL=enforcing\n");
 	stage_signal_test();
-	cp = "255-MAC_FOR_SIGNAL=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_SIGNAL=disabled\n");
 	clear_status();
 	return 0;
 }

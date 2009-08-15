@@ -92,9 +92,10 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 #endif
 	if (!ccs_can_sleep())
 		return 0;
-	ccs_init_request_info(&r, NULL,
-			      CCS_MAX_CONTROL_INDEX + CCS_CONCEAL_MOUNT);
+	ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY);
 	if (!r.mode)
+		return 0;
+	if (!ccs_profile_ptr[r.profile]->enabled_capabilities[CCS_CONCEAL_MOUNT])
 		return 0;
 	if (!namespace)
 		return 0;

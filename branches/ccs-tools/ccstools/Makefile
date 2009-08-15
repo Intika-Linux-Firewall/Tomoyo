@@ -15,17 +15,16 @@ misc: $(MISC_FILES)
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs/misc $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
-	chmod 755 ccs-domainmatch init_policy.sh tomoyo_init_policy.sh
+	chmod 755 ccs-domainmatch init_policy.sh
 	cp -af --remove-destination ccstools $(INSTALLDIR)/usr/sbin/
 	cp -af --remove-destination ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
 	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/ccstools $(INSTALLDIR)/usr/sbin/$$i; done
 	cp -af --remove-destination ccs-domainmatch $(INSTALLDIR)/usr/sbin/
-	cp -af --remove-destination $(MISC_FILES) init_policy init_policy.sh tomoyo_init_policy.sh README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
+	cp -af --remove-destination $(MISC_FILES) init_policy init_policy.sh README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 	chown -R root:root ccs-init $(INSTALLDIR)/usr/lib/ccs/
 	chmod 4711 $(INSTALLDIR)/usr/lib/ccs/force-logout
 	chmod 700 ccs-init
 	cp -af --remove-destination ccs-init $(INSTALLDIR)/sbin/
-	ln -f $(INSTALLDIR)/sbin/ccs-init $(INSTALLDIR)/sbin/tomoyo-init
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8/
 	cp -af --remove-destination man/man8/* $(INSTALLDIR)/usr/share/man/man8/
 

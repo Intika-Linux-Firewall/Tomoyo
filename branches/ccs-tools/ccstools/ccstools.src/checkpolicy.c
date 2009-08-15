@@ -356,7 +356,7 @@ static void check_capability_policy(char *data)
 		"create_block_dev", "create_char_dev", "create_unix_socket",
 		"SYS_LINK", "SYS_SYMLINK", "SYS_RENAME", "SYS_UNLINK",
 		"SYS_CHMOD", "SYS_CHOWN", "SYS_IOCTL", "SYS_KEXEC_LOAD",
-		"SYS_PIVOT_ROOT", "SYS_PTRACE", NULL
+		"SYS_PIVOT_ROOT", "SYS_PTRACE", "conceal_mount", NULL
 	};
 	int i;
 	for (i = 0; capability_keywords[i]; i++) {

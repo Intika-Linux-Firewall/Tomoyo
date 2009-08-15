@@ -10,7 +10,7 @@
  */
 #include "include.h"
 
-static int fd = EOF;
+static FILE *policy_fp = NULL;
 static const char *policy_file = "";
 
 static void try_io(const char *policy, const char should_success)
@@ -20,8 +20,7 @@ static void try_io(const char *policy, const char should_success)
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
 	printf("%s: ", policy);
-	write(fd, policy, strlen(policy));
-	write(fd, "\n", 1);
+	fprintf(policy_fp, "%s\n", policy);
 	if (!fp) {
 		printf("BUG: policy read failed\n");
 		return;
@@ -47,19 +46,14 @@ static void try_io(const char *policy, const char should_success)
 		else
 			printf("BUG: policy write not rejected.\n");
 	}
-	write(fd, "delete ", 7);
-	write(fd, policy, strlen(policy));
-	write(fd, "\n", 1);
+	fprintf(policy_fp, "delete %s\n", policy);
 }
 
 static void stage_policy_io_test(void)
 {
 	int i;
-#if 0
 	policy_file = proc_policy_domain_policy;
-	fd = open(policy_file, O_WRONLY);
-	if (fd == EOF && errno == ENOENT)
-		goto no_domain;
+	policy_fp = domain_fp;
 	for (i = 0; i < 3; i++) {
 		try_io("allow_chroot /", 1);
 		try_io("allow_chroot ", 0);
@@ -74,30 +68,18 @@ static void stage_policy_io_test(void)
 		try_io("allow_chroot /mnt0/", 1);
 		try_io("allow_chroot /mnt\\?\\*/", 1);
 		try_io("allow_chroot /mnt\\?\\*/", 1);
-		try_io("deny_autobind 0-65535", 1);
-		try_io("deny_autobind 0-65536", 0);
-		try_io("deny_autobind 65-100", 1);
-		try_io("deny_autobind 100-65", 0);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 65535", 1);
-		try_io("deny_autobind 65536", 0);
-		try_io("deny_autobind *", 0);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 0-65535", 1);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 0-65535", 1);
-		try_io("deny_unmount /", 1);
-		try_io("deny_unmount /proc0", 0);
-		try_io("deny_unmount /sys1/", 1);
-		try_io("deny_unmount /initrd2/", 1);
-		try_io("deny_unmount /initrd/dev3/", 1);
-		try_io("deny_unmount /initrd4/root", 0);
-		try_io("deny_unmount foo5/", 0);
-		try_io("deny_unmount bar6", 0);
-		try_io("deny_unmount /initrd/\\*\\+/", 1);
-		try_io("deny_unmount /initrd/\\@\\*/", 1);
-		try_io("deny_unmount *", 0);
-		try_io("deny_unmount /initrd2/", 1);
+		try_io("allow_unmount /", 1);
+		try_io("allow_unmount /proc0", 0);
+		try_io("allow_unmount /sys1/", 1);
+		try_io("allow_unmount /initrd2/", 1);
+		try_io("allow_unmount /initrd/dev3/", 1);
+		try_io("allow_unmount /initrd4/root", 0);
+		try_io("allow_unmount foo5/", 0);
+		try_io("allow_unmount bar6", 0);
+		try_io("allow_unmount /initrd/\\*\\+/", 1);
+		try_io("allow_unmount /initrd/\\@\\*/", 1);
+		try_io("allow_unmount *", 0);
+		try_io("allow_unmount /initrd2/", 1);
 		try_io("allow_pivot_root / /proc3/", 1);
 		try_io("allow_pivot_root / /proc3", 0);
 		try_io("allow_pivot_root /foo /proc3/", 0);
@@ -128,13 +110,8 @@ static void stage_policy_io_test(void)
 		       "binfmt_misc 0x0", 0);
 		try_io("allow_mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
 	}
-	close(fd);
- no_domain:
-#endif
 	policy_file = proc_policy_exception_policy;
-	fd = open(policy_file, O_WRONLY);
-	if (fd == EOF && errno == ENOENT)
-		return;
+	policy_fp = exception_fp;
 	for (i = 0; i < 3; i++) {
 		try_io("allow_read /tmp/abc", 1);
 		try_io("allow_read /tmp/abc\\*", 1);
@@ -226,8 +203,19 @@ static void stage_policy_io_test(void)
 		try_io("no_initialize_domain /foo from <kernel> /bar", 1);
 		try_io("no_initialize_domain /\\* from <kernel>", 0);
 		try_io("no_initialize_domain /foo from <kernel> \\*", 0);
+		try_io("deny_autobind 0-65535", 1);
+		try_io("deny_autobind 0-65536", 0);
+		try_io("deny_autobind 65-100", 1);
+		try_io("deny_autobind 100-65", 0);
+		try_io("deny_autobind 500", 1);
+		try_io("deny_autobind 65535", 1);
+		try_io("deny_autobind 65536", 0);
+		try_io("deny_autobind *", 0);
+		try_io("deny_autobind 500", 1);
+		try_io("deny_autobind 0-65535", 1);
+		try_io("deny_autobind 500", 1);
+		try_io("deny_autobind 0-65535", 1);
 	}
-	close(fd);
 }
 
 int main(int argc, char *argv[])

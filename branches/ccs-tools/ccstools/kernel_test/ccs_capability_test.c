@@ -15,12 +15,12 @@ static int child(void *arg)
 	return errno;
 }
 
-static int domain_fd = EOF;
+static int should_success = 0;
 static int is_enforce = 0;
 
 static void show_prompt(const char *str)
 {
-	if (domain_fd != EOF)
+	if (should_success)
 		printf("Testing %34s: (%s) ", str, "should success");
 	else
 		printf("Testing %34s: (%s) ", str,
@@ -30,7 +30,7 @@ static void show_prompt(const char *str)
 
 static void show_result(int result)
 {
-	if (domain_fd != EOF) {
+	if (should_success) {
 		if (result != EOF)
 			printf("OK\n");
 		else
@@ -54,30 +54,19 @@ static void show_result(int result)
 
 static void set_capability(const char *capability)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "MAC_FOR_CAPABILITY::%s=%d\n",
-		 capability, is_enforce ? 3 : 2);
-	write_status(buffer);
-	if (domain_fd != EOF) {
-		snprintf(buffer, sizeof(buffer) - 1, "allow_capability %s\n",
-			 capability);
-		write(domain_fd, buffer, strlen(buffer));
-	}
+	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=%s\n",
+		is_enforce ? "enforcing" : "permissive");
+	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	if (should_success)
+		fprintf(domain_fp, "allow_capability %s\n", capability);
 }
 
 static void unset_capability(const char *capability)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "MAC_FOR_CAPABILITY::%s=%d\n",
-		 capability, 0);
-	write_status(buffer);
-	if (domain_fd != EOF) {
-		snprintf(buffer, sizeof(buffer) - 1,
-			 "delete allow_capability %s\n", capability);
-		write(domain_fd, buffer, strlen(buffer));
-	}
+	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=disabled\n");
+	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	if (should_success)
+		fprintf(domain_fp, "delete allow_capability %s\n", capability);
 }
 
 static void stage_capability_test(void)
@@ -461,12 +450,6 @@ static void stage_capability_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_pre_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
 	ccs_test_init();
 	printf("***** Testing capability hooks in enforce mode. *****\n");
 	is_enforce = 1;
@@ -476,22 +459,13 @@ int main(int argc, char *argv[])
 	is_enforce = 0;
 	stage_capability_test();
 	printf("\n\n");
-	domain_fd = open(proc_policy_domain_policy, O_WRONLY);
+	should_success = 1;
 	printf("***** Testing capability hooks in enforce mode with policy. "
 	       "*****\n");
 	is_enforce = 1;
-	{
-		char self_domain[4096];
-		int self_fd = open(proc_policy_self_domain, O_RDONLY);
-		memset(self_domain, 0, sizeof(self_domain));
-		read(self_fd, self_domain, sizeof(self_domain) - 1);
-		close(self_fd);
-		write(domain_fd, self_domain, strlen(self_domain));
-		write(domain_fd, "\n", 1);
-	}
+	fprintf(domain_fp, "select pid=%u\n", getpid());
 	stage_capability_test();
 	printf("\n\n");
-	close(domain_fd);
 	clear_status();
 	return 0;
 }

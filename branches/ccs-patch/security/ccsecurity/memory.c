@@ -12,6 +12,20 @@
 
 #include "internal.h"
 
+static void ccs_warn_oom(const char *function)
+{
+	/* Reduce error messages. */
+	static pid_t ccs_last_pid;
+	const pid_t pid = current->pid;
+	if (ccs_last_pid != pid) {
+		printk(KERN_WARNING "ERROR: Out of memory at %s.\n",
+		       function);
+		ccs_last_pid = pid;
+	}
+	if (!ccs_policy_loaded)
+		panic("MAC Initialization failed.\n");
+}
+
 static atomic_t ccs_policy_memory_size;
 static unsigned int ccs_quota_for_policy;
 
@@ -32,9 +46,7 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
 		    <= ccs_quota_for_policy))
 		return true;
 	atomic_sub(s, &ccs_policy_memory_size);
-	printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
-	if (!ccs_policy_loaded)
-		panic("MAC Initialization failed.\n");
+	ccs_warn_oom(__func__);
 	return false;
 }
 
@@ -235,9 +247,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		     > ccs_quota_for_policy)) {
 		kfree(ptr);
 		ptr = NULL;
-		printk(KERN_WARNING "ERROR: Out of memory. (%s)\n", __func__);
-		if (!ccs_policy_loaded)
-			panic("MAC Initialization failed.\n");
+		ccs_warn_oom(__func__);
 		goto out;
 	}
 	atomic_add(allocated_len, &ccs_policy_memory_size);

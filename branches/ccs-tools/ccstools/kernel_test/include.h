@@ -89,54 +89,24 @@ int reboot(int cmd);
 int init_module(const char *name, struct module *image);
 int delete_module(const char *name);
 
-static const char *proc_policy_dir    = "/proc/ccs/",
-	*proc_policy_domain_policy    = "/proc/ccs/domain_policy",
-	*proc_policy_exception_policy = "/proc/ccs/exception_policy",
-	*proc_policy_profile          = "/proc/ccs/profile",
-	*proc_policy_manager          = "/proc/ccs/manager",
-	*proc_policy_query            = "/proc/ccs/query",
-	*proc_policy_grant_log        = "/proc/ccs/grant_log",
-	*proc_policy_reject_log       = "/proc/ccs/reject_log",
-	*proc_policy_domain_status    = "/proc/ccs/.domain_status",
-	*proc_policy_process_status   = "/proc/ccs/.process_status",
-	*proc_policy_self_domain      = "/proc/ccs/self_domain";
+#define proc_policy_dir              "/proc/ccs/"
+#define proc_policy_domain_policy    "/proc/ccs/domain_policy"
+#define proc_policy_exception_policy "/proc/ccs/exception_policy"
+#define proc_policy_profile          "/proc/ccs/profile"
+#define proc_policy_manager          "/proc/ccs/manager"
+#define proc_policy_query            "/proc/ccs/query"
+#define proc_policy_grant_log        "/proc/ccs/grant_log"
+#define proc_policy_reject_log       "/proc/ccs/reject_log"
+#define proc_policy_domain_status    "/proc/ccs/.domain_status"
+#define proc_policy_process_status   "/proc/ccs/.process_status"
+#define proc_policy_self_domain      "/proc/ccs/self_domain"
 
-static void ccs_test_pre_init(void)
-{
-	if (access("/sys/kernel/security/tomoyo/", F_OK) == 0) {
-		proc_policy_dir              = "/sys/kernel/security/tomoyo/";
-		proc_policy_domain_policy    =
-			"/sys/kernel/security/tomoyo/domain_policy";
-		proc_policy_exception_policy =
-			"/sys/kernel/security/tomoyo/exception_policy";
-		proc_policy_profile          =
-			"/sys/kernel/security/tomoyo/profile";
-		proc_policy_manager          =
-			"/sys/kernel/security/tomoyo/manager";
-		proc_policy_query            =
-			"/sys/kernel/security/tomoyo/query";
-		proc_policy_grant_log        =
-			"/sys/kernel/security/tomoyo/grant_log";
-		proc_policy_reject_log       =
-			"/sys/kernel/security/tomoyo/reject_log";
-		proc_policy_domain_status    =
-			"/sys/kernel/security/tomoyo/.domain_status";
-		proc_policy_process_status   =
-			"/sys/kernel/security/tomoyo/.process_status";
-		proc_policy_self_domain      =
-			"/sys/kernel/security/tomoyo/self_domain";
-	}
-}
-
-static int profile_fd = EOF;
+static FILE *profile_fp = NULL;
+static FILE *domain_fp = NULL;
+static FILE *exception_fp = NULL;
+static char self_domain[4096] = "";
 static int is_kernel26 = 0;
 static pid_t pid = 0;
-
-static void write_status(const char *cp)
-{
-	write(profile_fd, "255-", 4);
-	write(profile_fd, cp, strlen(cp));
-}
 
 static void clear_status(void)
 {
@@ -165,37 +135,49 @@ static void clear_status(void)
 		  if (strcmp(cp, "TOMOYO_VERBOSE") == 0)
 		  continue;
 		*/
-		write(profile_fd, "255-", 4);
-		write(profile_fd, cp, strlen(cp));
+		fprintf(profile_fp, "255-%s", cp);
 		if (!strcmp(cp, "COMMENT"))
 			mode = "=Profile for kernel test\n";
 		else if (sscanf(mode, "%u", &v) == 1)
 			mode = "=0\n";
 		else
 			mode = "=disabled\n";
-		write(profile_fd, mode, strlen(mode));
+		fprintf(profile_fp, "%s", mode);
 	}
-	/* write(profile_fd, "255-SLEEP_PERIOD=1\n", 19); */
-	/* write(profile_fd, "255-TOMOYO_VERBOSE=1\n", 21); */
-	write(profile_fd, "255-MAX_ACCEPT_ENTRY=2048\n", 26);
+	/* fprintf(profile_fp, "255-SLEEP_PERIOD=1\n"); */
+	/* fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n"); */
+	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
+	fflush(profile_fp);
 	fclose(fp);
 }
 
 static void ccs_test_init(void)
 {
-	ccs_test_pre_init();
 	pid = getpid();
 	if (access(proc_policy_dir, F_OK)) {
 		fprintf(stderr, "You can't use this program for this kernel."
 			"\n");
 		exit(1);
 	}
-	profile_fd = open(proc_policy_profile, O_WRONLY);
-	if (profile_fd == EOF) {
+	profile_fp = fopen(proc_policy_profile, "w");
+	if (!profile_fp) {
 		fprintf(stderr, "Can't open %s .\n", proc_policy_profile);
 		exit(1);
 	}
-	if (write(profile_fd, "", 0) != 0) {
+	setlinebuf(profile_fp);
+	domain_fp = fopen(proc_policy_domain_policy, "w");
+	if (!domain_fp) {
+		fprintf(stderr, "Can't open %s .\n", proc_policy_domain_policy);
+		exit(1);
+	}
+	setlinebuf(domain_fp);
+	exception_fp = fopen(proc_policy_exception_policy, "w");
+	if (!exception_fp) {
+		fprintf(stderr, "Can't open %s .\n", proc_policy_exception_policy);
+		exit(1);
+	}
+	setlinebuf(exception_fp);
+	if (fputc('\n', profile_fp) != '\n' || fflush(profile_fp)) {
 		fprintf(stderr, "You need to register this program to %s to "
 			"run this program.\n", proc_policy_manager);
 		exit(1);
@@ -204,29 +186,23 @@ static void ccs_test_init(void)
 	{
 		FILE *fp = fopen("/proc/sys/kernel/osrelease", "r");
 		int version = 0;
-		if (!fp || fscanf(fp, "2.%d.", &version) != 1) {
+		if (!fp || fscanf(fp, "2.%d.", &version) != 1 || fclose(fp)) {
 			fprintf(stderr, "Can't read /proc/sys/kernel/osrelease"
 				"\n");
 			exit(1);
 		}
-		fclose(fp);
 		if (version == 6)
 			is_kernel26 = 1;
 	}
 	{
-		char buffer[4096];
 		FILE *fp = fopen(proc_policy_self_domain, "r");
-		memset(buffer, 0, sizeof(buffer));
-		if (fp) {
-			fgets(buffer, sizeof(buffer) - 1, fp);
-			fclose(fp);
-		} else
+		memset(self_domain, 0, sizeof(self_domain));
+		if (!fp || !fgets(self_domain, sizeof(self_domain) - 1, fp) ||
+		    fclose(fp)) {
+			fprintf(stderr, "Can't open %s .\n", proc_policy_self_domain);
 			exit(1);
-		fp = fopen(proc_policy_domain_status, "w");
-		if (fp) {
-			fprintf(fp, "255 %s\n", buffer);
-			fclose(fp);
-		} else
-			exit(1);
+		}
 	}
+	fprintf(domain_fp, "select pid=%u\n", pid);
+	fprintf(domain_fp, "use_profile 255\n");
 }

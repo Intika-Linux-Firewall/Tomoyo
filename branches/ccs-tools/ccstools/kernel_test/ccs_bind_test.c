@@ -406,24 +406,16 @@ static void ipv6_udp_sendto(void)
 	wait(NULL);
 }
 
-static int exception_fd = EOF;
-
 static void set_reserved_range(int low, int high)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "deny_autobind %d-%d\n",
-		 min_port, max_port);
-	write(exception_fd, buffer, strlen(buffer));
+	fprintf(exception_fp, "deny_autobind %d-%d\n",
+		min_port, max_port);
 }
 
 static void unset_reserved_range(int low, int high)
 {
-	static char buffer[1024];
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "delete deny_autobind %d-%d\n",
-		 min_port, max_port);
-	write(exception_fd, buffer, strlen(buffer));
+	fprintf(exception_fp, "delete deny_autobind %d-%d\n",
+		min_port, max_port);
 }
 
 static void ipv4_listener_loop(int ipv4_listener_socket,
@@ -506,17 +498,6 @@ int main(int argc, char *argv[])
 	pid_t ipv4_pid = 0;
 	pid_t ipv6_pid = 0;
 	ccs_test_init();
-	exception_fd = open(proc_policy_exception_policy, O_RDWR);
-	if (exception_fd == EOF) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	if (write(exception_fd, "", 0) != 0) {
-		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", proc_policy_manager);
-		return 1;
-	}
 	{
 		FILE *fp = fopen("/proc/sys/net/ipv4/ip_local_port_range", "r");
 		int original_range[2];
@@ -536,7 +517,7 @@ int main(int argc, char *argv[])
 				"/proc/sys/net/ipv4/ip_local_port_range .\n");
 			exit(1);
 		}
-		write_status("RESTRICT_AUTOBIND=enabled\n");
+		fprintf(profile_fp, "255-RESTRICT_AUTOBIND=enabled\n");
 		{
 			struct sockaddr_in addr;
 			socklen_t size = sizeof(addr);
@@ -626,12 +607,11 @@ int main(int argc, char *argv[])
 		kill(ipv6_pid, SIGHUP);
 		close(ipv4_listener_socket);
 		close(ipv6_listener_socket);
-		write_status("RESTRICT_AUTOBIND=disabled\n");
+		fprintf(profile_fp, "255-RESTRICT_AUTOBIND=disabled\n");
 		fprintf(fp, "%d %d\n", original_range[0], original_range[1]);
 		fclose(fp);
 	}
 	printf("Done.\n");
-	close(exception_fd);
 	clear_status();
 	return 0;
 }

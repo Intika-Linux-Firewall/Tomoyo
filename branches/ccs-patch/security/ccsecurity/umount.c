@@ -72,7 +72,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	ccs_fill_path_info(&dir);
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 		struct ccs_umount_acl_record *acl;
-		if (ptr->type != CCS_TYPE_UMOUNT_ACL)
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_UMOUNT_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_umount_acl_record, head);
 		if (!ccs_compare_name_union(&dir, &acl->dir) ||
@@ -129,6 +129,8 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 	struct ccs_umount_acl_record e = { .head.type = CCS_TYPE_UMOUNT_ACL,
 					   .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (data[0] != '@' && !ccs_is_correct_path(data, 1, 0, 1))
+		return -EINVAL;
 	if (!ccs_parse_name_union(data, &e.dir))
 		return error;
 	if (!is_delete)

@@ -34,11 +34,10 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /sbin/ccs-init
-/sbin/tomoyo-init
 /usr/lib/ccs/
 /usr/sbin/
 /usr/share/man/
-%attr(4755,root,root) /usr/lib/ccs/misc/force-logout
+%attr(4755,root,root) /usr/lib/ccs/force-logout
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog

@@ -10,43 +10,35 @@
  */
 #include "include.h"
 
-static int domain_fd = EOF;
-static int exception_fd = EOF;
 static const char *policy = "";
-static char self_domain[4096] = "";
-static _Bool has_cond = 1;
 
 static int write_policy(void)
 {
 	FILE *fp;
 	char buffer[8192];
-	char *cp;
 	int domain_found = 0;
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
-	cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	fp = fopen(proc_policy_domain_policy, "r");
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	fprintf(domain_fp, "%s\n", policy);
 	if (!fp) {
 		printf("%s : BUG: policy read failed\n", policy);
 		return 0;
 	}
 	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-		cp = strchr(buffer, '\n');
+		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
 		if (!strncmp(buffer, "<kernel>", 8))
 			domain_found = !strcmp(self_domain, buffer);
-		if (domain_found) {
-			/* printf("<%s>\n", buffer); */
-			if (!strcmp(buffer, policy)) {
-				policy_found = 1;
-				break;
-			}
+		if (!domain_found)
+			continue;
+		/* printf("<%s>\n", buffer); */
+		if (!strcmp(buffer, policy)) {
+			policy_found = 1;
+			break;
 		}
 	}
 	fclose(fp);
@@ -60,9 +52,7 @@ static int write_policy(void)
 
 static void delete_policy(void)
 {
-	write(domain_fd, "delete ", 7);
-	write(domain_fd, policy, strlen(policy));
-	write(domain_fd, "\n", 1);
+	fprintf(domain_fp, "delete %s\n", policy);
 }
 
 static void show_result(int result, char should_success)
@@ -88,51 +78,41 @@ static void show_result(int result, char should_success)
 
 static void create2(const char *pathname)
 {
-	const char *cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	close(creat(pathname, 0600));
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	errno = 0;
 }
 
 static void mkdir2(const char *pathname)
 {
-	const char *cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	mkdir(pathname, 0600);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	errno = 0;
 }
 
 static void unlink2(const char *pathname)
 {
-	const char *cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	unlink(pathname);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	errno = 0;
 }
 
 static void rmdir2(const char *pathname)
 {
-	const char *cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	rmdir(pathname);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	errno = 0;
 }
 
 static void mkfifo2(const char *pathname)
 {
-	const char *cp = "255-MAC_FOR_FILE=disabled\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 	mkfifo(pathname, 0600);
-	cp = "255-MAC_FOR_FILE=enforcing\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	errno = 0;
 }
 
@@ -141,8 +121,6 @@ static void stage_file_test(void)
 	char *filename = "";
 	policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range "
 		"if task.uid=0 task.gid=0";
-	if (!has_cond)
-		policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range";
 	if (write_policy()) {
 		static int name[] = { CTL_NET, NET_IPV4,
 				      NET_IPV4_LOCAL_PORT_RANGE };
@@ -154,8 +132,6 @@ static void stage_file_test(void)
 	}
 	policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range "
 		"if task.euid=0 0=0 1-100=10-1000";
-	if (!has_cond)
-		policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range";
 	if (write_policy()) {
 		static int name[] = { CTL_NET, NET_IPV4,
 				      NET_IPV4_LOCAL_PORT_RANGE };
@@ -167,9 +143,6 @@ static void stage_file_test(void)
 	}
 	policy = "allow_read/write /proc/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
-	if (!has_cond)
-		policy = "allow_read/write "
-			"/proc/sys/net/ipv4/ip_local_port_range";
 	if (write_policy()) {
 		static int name[] = { CTL_NET, NET_IPV4,
 				      NET_IPV4_LOCAL_PORT_RANGE };
@@ -182,8 +155,6 @@ static void stage_file_test(void)
 
 	policy = "allow_read /bin/true "
 		"if path1.uid=0 path1.parent.uid=0 10=10-100";
-	if (!has_cond)
-		policy = "allow_read /bin/true";
 	if (write_policy()) {
 		show_result(uselib("/bin/true"), 1);
 		delete_policy();
@@ -191,8 +162,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_execute /bin/true if task.uid!=10 path1.parent.uid=0";
-	if (!has_cond)
-		policy = "allow_execute /bin/true";
 	if (write_policy()) {
 		int pipe_fd[2] = { EOF, EOF };
 		int err = 0;
@@ -231,8 +200,6 @@ static void stage_file_test(void)
 
 	policy = "allow_read /dev/null if path1.type=char path1.dev_major=1 "
 		"path1.dev_minor=3";
-	if (!has_cond)
-		policy = "allow_read /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDONLY);
 		show_result(fd, 1);
@@ -246,8 +213,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_read /dev/null if path1.perm=0666";
-	if (!has_cond)
-		policy = "allow_read /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDONLY);
 		show_result(fd, 1);
@@ -261,8 +226,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_read /dev/null if path1.perm!=0777";
-	if (!has_cond)
-		policy = "allow_read /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDONLY);
 		show_result(fd, 1);
@@ -281,8 +244,6 @@ static void stage_file_test(void)
 		"path1.perm!=group_execute path1.perm=others_read "
 		"path1.perm=others_write path1.perm!=others_execute "
 		"path1.perm!=setuid path1.perm!=setgid path1.perm!=sticky";
-	if (!has_cond)
-		policy = "allow_read /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDONLY);
 		show_result(fd, 1);
@@ -298,8 +259,6 @@ static void stage_file_test(void)
 	policy = "allow_mkfifo /tmp/mknod_fifo_test "
 		"if path1.parent.perm=01777 path1.parent.perm=sticky "
 		"path1.parent.uid=0 path1.parent.gid=0";
-	if (!has_cond)
-		policy = "allow_mkfifo /tmp/mknod_fifo_test";
 	if (write_policy()) {
 		filename = "/tmp/mknod_fifo_test";
 		show_result(mknod(filename, S_IFIFO, 0), 1);
@@ -319,9 +278,6 @@ static void stage_file_test(void)
 			 "allow_write %s if path1.major=%u path1.minor=%u",
 			 filename, (unsigned int) MAJOR(sbuf.st_dev),
 			 (unsigned int) MINOR(sbuf.st_dev));
-		if (!has_cond)
-			snprintf(buffer, sizeof(buffer) - 1,
-				 "allow_write %s", filename);
 		policy = buffer;
 		if (write_policy()) {
 			int fd = open(filename, O_WRONLY);
@@ -337,8 +293,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_read/write /tmp/fifo if path1.type=fifo";
-	if (!has_cond)
-		policy = "allow_read/write /tmp/fifo";
 	mkfifo2("/tmp/fifo");
 	if (write_policy()) {
 		int fd = open("/tmp/fifo", O_RDWR);
@@ -353,8 +307,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_read /dev/null if path1.parent.ino=path1.parent.ino";
-	if (!has_cond)
-		policy = "allow_read /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDONLY);
 		show_result(fd, 1);
@@ -368,8 +320,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_write /dev/null if path1.uid=path1.gid";
-	if (!has_cond)
-		policy = "allow_write /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_WRONLY);
 		show_result(fd, 1);
@@ -383,8 +333,6 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_read/write /dev/null if task.uid=path1.parent.uid";
-	if (!has_cond)
-		policy = "allow_read/write /dev/null";
 	if (write_policy()) {
 		int fd = open("/dev/null", O_RDWR);
 		show_result(fd, 1);
@@ -398,12 +346,8 @@ static void stage_file_test(void)
 	}
 
 	policy = "allow_create /tmp/open_test if path1.parent.uid=task.uid";
-	if (!has_cond)
-		policy = "allow_create /tmp/open_test";
 	if (write_policy()) {
 		policy = "allow_write /tmp/open_test if path1.parent.uid=0";
-		if (!has_cond)
-			policy = "allow_write /tmp/open_test";
 		if (write_policy()) {
 			int fd = open("/tmp/open_test",
 				      O_WRONLY | O_CREAT | O_EXCL, 0666);
@@ -421,18 +365,12 @@ static void stage_file_test(void)
 		}
 		policy = "allow_create /tmp/open_test "
 			"if path1.parent.uid=task.uid";
-		if (!has_cond)
-			policy = "allow_create /tmp/open_test";
 		delete_policy();
 	}
 
 	policy = "allow_write /tmp/open_test if task.uid=0 path1.ino!=0";
-	if (!has_cond)
-		policy = "allow_write /tmp/open_test";
 	if (write_policy()) {
 		policy = "allow_create /tmp/open_test if 0=0";
-		if (!has_cond)
-			policy = "allow_create /tmp/open_test";
 		if (write_policy()) {
 			int fd = open("/tmp/open_test",
 				      O_WRONLY | O_CREAT | O_EXCL, 0666);
@@ -450,8 +388,6 @@ static void stage_file_test(void)
 		}
 		policy = "allow_write /tmp/open_test "
 			"if task.uid=0 path1.ino!=0";
-		if (!has_cond)
-			policy = "allow_write /tmp/open_test";
 		delete_policy();
 	}
 
@@ -459,12 +395,8 @@ static void stage_file_test(void)
 	create2(filename);
 
 	policy = "allow_truncate /tmp/truncate_test if task.uid=path1.uid";
-	if (!has_cond)
-		policy = "allow_truncate /tmp/truncate_test";
 	if (write_policy()) {
 		policy = "allow_write /tmp/truncate_test if 1!=100-1000000";
-		if (!has_cond)
-			policy = "allow_write /tmp/truncate_test";
 		if (write_policy()) {
 			int fd = open(filename, O_WRONLY | O_TRUNC);
 			show_result(fd, 1);
@@ -478,8 +410,6 @@ static void stage_file_test(void)
 		}
 		policy = "allow_truncate /tmp/truncate_test "
 			"if task.uid=path1.uid";
-		if (!has_cond)
-			policy = "allow_truncate /tmp/truncate_test";
 		delete_policy();
 	}
 
@@ -511,11 +441,9 @@ static void stage_file_test(void)
 	policy = "allow_truncate /tmp/truncate_test";
 	if (write_policy()) {
 		int fd;
-		const char *cp = "255-MAC_FOR_FILE=disabled\n";
-		write(profile_fd, cp, strlen(cp));
+		fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 		fd = open(filename, O_WRONLY);
-		cp = "255-MAC_FOR_FILE=enforcing\n";
-		write(profile_fd, cp, strlen(cp));
+		fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 		show_result(ftruncate(fd, 0), 1);
 		delete_policy();
 		show_result(ftruncate(fd, 0), 0);
@@ -610,9 +538,6 @@ static void stage_file_test(void)
 		show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 	}
 
-	if (!has_cond)
-		goto skip_symlink_target;
-
 	policy = "allow_symlink /tmp/symlink_source_test "
 		"if symlink.target=\"/tmp/symlink_\\*_test\"";
 	if (write_policy()) {
@@ -652,8 +577,6 @@ static void stage_file_test(void)
 		unlink2(filename);
 		show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 	}
-
- skip_symlink_target:
 
 	policy = "allow_link /tmp/link_source_test /tmp/link_dest_test";
 	if (write_policy()) {
@@ -704,8 +627,7 @@ static void stage_file_test(void)
 	create2(filename);
 	policy = "allow_read/write /tmp/rewrite_test";
 	if (write_policy()) {
-		char *cp = "deny_rewrite /tmp/rewrite_test\n";
-		write(exception_fd, cp, strlen(cp));
+		fprintf(exception_fp, "deny_rewrite /tmp/rewrite_test\n");
 		policy = "allow_truncate /tmp/rewrite_test";
 		if (write_policy()) {
 			int fd;
@@ -737,11 +659,9 @@ static void stage_file_test(void)
 
 			show_result(truncate(filename, 0), 0);
 
-			cp = "255-MAC_FOR_FILE=disabled\n";
-			write(profile_fd, cp, strlen(cp));
+			fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
 			fd = open(filename, O_WRONLY | O_APPEND);
-			cp = "255-MAC_FOR_FILE=enforcing\n";
-			write(profile_fd, cp, strlen(cp));
+			fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 			show_result(ftruncate(fd, 0), 0);
 
 			show_result(fcntl(fd, F_SETFL,
@@ -753,14 +673,12 @@ static void stage_file_test(void)
 		}
 		policy = "allow_read/write /tmp/rewrite_test";
 		delete_policy();
-		cp = "delete deny_rewrite /tmp/rewrite_test\n";
-		write(exception_fd, cp, strlen(cp));
+		fprintf(exception_fp, "delete deny_rewrite /tmp/rewrite_test\n");
 	}
 	unlink2(filename);
 
-	if (has_cond) {
-		const char *cp = "255-MAC_FOR_IOCTL=enforcing\n";
-		write(profile_fd, cp, strlen(cp));
+	{
+		fprintf(profile_fp, "255-MAC_FOR_IOCTL=enforcing\n");
 		policy = "allow_ioctl socket:[family=2:type=2:protocol=17] "
 			"35122-35124 if task.uid=0";
 		if (write_policy()) {
@@ -780,41 +698,19 @@ static void stage_file_test(void)
 			if (fd != EOF)
 				close(fd);
 		}
-		cp = "255-MAC_FOR_IOCTL=disabled\n";
-		write(profile_fd, cp, strlen(cp));
+		fprintf(profile_fp, "255-MAC_FOR_IOCTL=disabled\n");
 	}
 }
 
 int main(int argc, char *argv[])
 {
-	char *cp;
 	ccs_test_init();
-	domain_fd = open(proc_policy_domain_policy, O_WRONLY);
-	if (domain_fd == EOF && errno == ENOENT) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
-	exception_fd = open(proc_policy_exception_policy, O_WRONLY);
-	{
-		int self_fd = open(proc_policy_self_domain, O_RDONLY);
-		memset(self_domain, 0, sizeof(self_domain));
-		read(self_fd, self_domain, sizeof(self_domain) - 1);
-		close(self_fd);
-		write(domain_fd, self_domain, strlen(self_domain));
-		cp = " /bin/true\n";
-		write(domain_fd, cp, strlen(cp));
-		write(domain_fd, self_domain, strlen(self_domain));
-		write(domain_fd, "\n", 1);
-		cp = "use_profile 255\n";
-		write(domain_fd, cp, strlen(cp));
-	}
-	has_cond = !access("/proc/ccs/version", F_OK);
-	cp = "255-MAX_REJECT_LOG=1024\n";
-	write(profile_fd, cp, strlen(cp));
+	fprintf(domain_fp, "%s /bin/true\n", self_domain);
+	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "select pid=%u\n", pid);
+	fprintf(profile_fp, "255-MAX_REJECT_LOG=1024\n");
 	stage_file_test();
-	cp = "use_profile 0\n";
-	write(domain_fd, cp, strlen(cp));
+	fprintf(domain_fp, "use_profile 0\n");
 	clear_status();
 	return 0;
 }
