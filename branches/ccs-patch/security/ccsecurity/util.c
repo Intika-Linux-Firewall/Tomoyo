@@ -982,81 +982,50 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		if (ptr->is_deleted)
 			continue;
 		switch (ptr->type) {
-			struct ccs_path_acl *acl1;
-			struct ccs_path_path_acl *acl2;
-			struct ccs_path_number_acl *acl3;
-			struct ccs_path_number_number_acl *acl4;
 			u16 perm;
+			u8 i;
 		case CCS_TYPE_PATH_ACL:
-			acl1 = container_of(ptr, struct ccs_path_acl,
-					    head);
-			perm = acl1->perm;
-			if (perm & (1 << CCS_TYPE_EXECUTE))
-				count++;
-			if (perm & ((1 << CCS_TYPE_READ) |
-				    (1 << CCS_TYPE_WRITE)))
-				count++;
-			if (perm & (1 << CCS_TYPE_CREATE))
-				count++;
-			if (perm & (1 << CCS_TYPE_UNLINK))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKDIR))
-				count++;
-			if (perm & (1 << CCS_TYPE_RMDIR))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKFIFO))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKSOCK))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKBLOCK))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKCHAR))
-				count++;
-			if (perm & (1 << CCS_TYPE_TRUNCATE))
-				count++;
-			if (perm & (1 << CCS_TYPE_SYMLINK))
-				count++;
-			if (perm & (1 << CCS_TYPE_REWRITE))
-				count++;
+			perm = container_of(ptr, struct ccs_path_acl, head)->
+				perm;
+			for (i = 0; i < CCS_MAX_PATH_OPERATION; i++)
+				if (perm & (1 << i))
+					count++;
+			if (perm & (1 << CCS_TYPE_READ_WRITE))
+				count -= 2;
 			break;
 		case CCS_TYPE_PATH_PATH_ACL:
-			acl2 = container_of(ptr,
-					    struct ccs_path_path_acl,
-					    head);
-			perm = acl2->perm;
-			if (perm & (1 << CCS_TYPE_LINK))
-				count++;
-			if (perm & (1 << CCS_TYPE_RENAME))
-				count++;
+			perm = container_of(ptr, struct ccs_path_path_acl,
+					    head)->perm;
+			for (i = 0; i < CCS_MAX_PATH_PATH_OPERATION; i++)
+				if (perm & (1 << i))
+					count++;
 			break;
 		case CCS_TYPE_EXECUTE_HANDLER:
 		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
 			break;
 		case CCS_TYPE_PATH_NUMBER_ACL:
-			acl3 = container_of(ptr,
-					    struct ccs_path_number_acl,
-					    head);
-			perm = acl3->perm;
-			if (perm & (1 << CCS_TYPE_IOCTL))
-				count++;
-			if (perm & (1 << CCS_TYPE_CHMOD))
-				count++;
-			if (perm & (1 << CCS_TYPE_CHOWN))
-				count++;
-			if (perm & (1 << CCS_TYPE_CHGRP))
-				count++;
+			perm = container_of(ptr, struct ccs_path_number_acl,
+					    head)->perm;
+			for (i = 0; i < CCS_MAX_PATH_NUMBER_OPERATION; i++)
+				if (perm & (1 << i))
+					count++;
 			break;
 		case CCS_TYPE_PATH_NUMBER_NUMBER_ACL:
-			acl4 = container_of(ptr,
-				    struct ccs_path_number_number_acl,
-					    head);
-			perm = acl4->perm;
-			if (perm & (1 << CCS_TYPE_MKBLOCK))
-				count++;
-			if (perm & (1 << CCS_TYPE_MKCHAR))
-				count++;
+			perm = container_of(ptr,
+					    struct ccs_path_number_number_acl,
+					    head)->perm;
+			for (i = 0; i < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION;
+			     i++)
+				if (perm & (1 << i))
+					count++;
 			break;
-			
+		case CCS_TYPE_IP_NETWORK_ACL:
+			perm = container_of(ptr, struct ccs_ip_network_acl,
+					    head)->perm;
+			for (i = 0; i < CCS_MAX_NETWORK_OPERATION; i++)
+				if (perm & (1 << i))
+					count++;
+			break;
 		default:
 			count++;
 		}

@@ -77,10 +77,22 @@ enum ccs_path_number_acl_index {
 	CCS_MAX_PATH_NUMBER_OPERATION
 };
 
-enum ccs_ip_record_type {
-	CCS_IP_RECORD_TYPE_ADDRESS_GROUP,
-	CCS_IP_RECORD_TYPE_IPv4,
-	CCS_IP_RECORD_TYPE_IPv6
+enum ccs_network_acl_index {
+	CCS_NETWORK_UDP_BIND,    /* UDP's bind() operation. */
+	CCS_NETWORK_UDP_CONNECT, /* UDP's connect()/send()/recv() operation. */
+	CCS_NETWORK_TCP_BIND,    /* TCP's bind() operation. */
+	CCS_NETWORK_TCP_LISTEN,  /* TCP's listen() operation. */
+	CCS_NETWORK_TCP_CONNECT, /* TCP's connect() operation. */
+	CCS_NETWORK_TCP_ACCEPT,  /* TCP's accept() operation. */
+	CCS_NETWORK_RAW_BIND,    /* IP's bind() operation. */
+	CCS_NETWORK_RAW_CONNECT, /* IP's connect()/send()/recv() operation. */
+	CCS_MAX_NETWORK_OPERATION
+};
+
+enum ccs_ip_address_type {
+	CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP,
+	CCS_IP_ADDRESS_TYPE_IPv4,
+	CCS_IP_ADDRESS_TYPE_IPv6
 };
 
 enum ccs_profile_index {
@@ -752,30 +764,17 @@ struct ccs_ipv6addr_entry {
 /* Structure for "allow_network" directive. */
 struct ccs_ip_network_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
+	u16 perm;
 	/*
-	 * operation_type takes one of the following constants.
-	 *   CCS_NETWORK_UDP_BIND for UDP's bind() operation.
-	 *   CCS_NETWORK_UDP_CONNECT for UDP's connect()/send()/recv()
-	 *                               operation.
-	 *   CCS_NETWORK_TCP_BIND for TCP's bind() operation.
-	 *   CCS_NETWORK_TCP_LISTEN for TCP's listen() operation.
-	 *   CCS_NETWORK_TCP_CONNECT for TCP's connect() operation.
-	 *   CCS_NETWORK_TCP_ACCEPT for TCP's accept() operation.
-	 *   CCS_NETWORK_RAW_BIND for IP's bind() operation.
-	 *   CCS_NETWORK_RAW_CONNECT for IP's connect()/send()/recv()
-	 *                               operation.
-	 */
-	u8 operation_type;
-	/*
-	 * record_type takes one of the following constants.
-	 *   CCS_IP_RECORD_TYPE_ADDRESS_GROUP
+	 * address_type takes one of the following constants.
+	 *   CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP
 	 *                if address points to "address_group" directive.
-	 *   CCS_IP_RECORD_TYPE_IPv4
+	 *   CCS_IP_ADDRESS_TYPE_IPv4
 	 *                if address points to an IPv4 address.
-	 *   CCS_IP_RECORD_TYPE_IPv6
+	 *   CCS_IP_ADDRESS_TYPE_IPv6
 	 *                if address points to an IPv6 address.
 	 */
-	u8 record_type;
+	u8 address_type;
 	union {
 		struct {
 			/* Start of IPv4 address range. Host endian. */

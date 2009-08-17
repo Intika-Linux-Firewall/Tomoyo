@@ -19,18 +19,6 @@
 #include <net/udp.h>
 #include "internal.h"
 
-/* Index numbers for Network Controls. */
-enum ccs_network_acl_index {
-	CCS_NETWORK_UDP_BIND,
-	CCS_NETWORK_UDP_CONNECT,
-	CCS_NETWORK_TCP_BIND,
-	CCS_NETWORK_TCP_LISTEN,
-	CCS_NETWORK_TCP_CONNECT,
-	CCS_NETWORK_TCP_ACCEPT,
-	CCS_NETWORK_RAW_BIND,
-	CCS_NETWORK_RAW_CONNECT
-};
-
 /**
  * ccs_audit_network_log - Audit network log.
  *
@@ -179,6 +167,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	struct ccs_acl_info *ptr;
 	const char *keyword = ccs_net2keyword(operation);
 	bool is_enforce;
+	const u16 perm = 1 << operation;
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 ip = ntohl(*address);
 	int error;
@@ -195,16 +184,16 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_IP_NETWORK_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_ip_network_acl, head);
-		if (acl->operation_type != operation)
+		if (!(acl->perm & perm))
 			continue;
 		if (!ccs_compare_number_union(port, &acl->port) ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
-		if (acl->record_type == CCS_IP_RECORD_TYPE_ADDRESS_GROUP) {
+		if (acl->address_type == CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP) {
 			if (!ccs_address_matches_group(is_ipv6, address,
 						       acl->address.group))
 				continue;
-		} else if (acl->record_type == CCS_IP_RECORD_TYPE_IPv4) {
+		} else if (acl->address_type == CCS_IP_ADDRESS_TYPE_IPv4) {
 			if (is_ipv6 ||
 			    ip < acl->address.ipv4.min ||
 			    acl->address.ipv4.max < ip)
@@ -294,36 +283,36 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	if (!strcmp(w[1], "bind"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = CCS_NETWORK_TCP_BIND;
+			e.perm = 1 << CCS_NETWORK_TCP_BIND;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = CCS_NETWORK_UDP_BIND;
+			e.perm = 1 << CCS_NETWORK_UDP_BIND;
 			break;
 		default:
-			e.operation_type = CCS_NETWORK_RAW_BIND;
+			e.perm = 1 << CCS_NETWORK_RAW_BIND;
 			break;
 		}
 	else if (!strcmp(w[1], "connect"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = CCS_NETWORK_TCP_CONNECT;
+			e.perm = 1 << CCS_NETWORK_TCP_CONNECT;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = CCS_NETWORK_UDP_CONNECT;
+			e.perm = 1 << CCS_NETWORK_UDP_CONNECT;
 			break;
 		default:
-			e.operation_type = CCS_NETWORK_RAW_CONNECT;
+			e.perm = 1 << CCS_NETWORK_RAW_CONNECT;
 			break;
 		}
 	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
-		e.operation_type = CCS_NETWORK_TCP_LISTEN;
+		e.perm = 1 << CCS_NETWORK_TCP_LISTEN;
 	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
-		e.operation_type = CCS_NETWORK_TCP_ACCEPT;
+		e.perm = 1 << CCS_NETWORK_TCP_ACCEPT;
 	else
 		return -EINVAL;
 	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
 	case 2:
-		e.record_type = CCS_IP_RECORD_TYPE_IPv6;
+		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
 		e.address.ipv6.min = ccs_get_ipv6_address((struct in6_addr *)
 							  min_address);
 		e.address.ipv6.max = ccs_get_ipv6_address((struct in6_addr *)
@@ -332,7 +321,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			goto out;
 		break;
 	case 1:
-		e.record_type = CCS_IP_RECORD_TYPE_IPv4;
+		e.address_type = CCS_IP_ADDRESS_TYPE_IPv4;
 		/* use host byte order to allow u32 comparison.*/
 		e.address.ipv4.min = ntohl(* (u32 *) min_address);
 		e.address.ipv4.max = ntohl(* (u32 *) max_address);
@@ -340,7 +329,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	default:
 		if (w[2][0] != '@')
 			return -EINVAL;
-		e.record_type = CCS_IP_RECORD_TYPE_ADDRESS_GROUP;
+		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
 		e.address.group = ccs_get_address_group(w[2] + 1);
 		if (!e.address.group)
 			return -ENOMEM;
@@ -357,10 +346,19 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 				     head);
 		if (ptr->type != CCS_TYPE_IP_NETWORK_ACL ||
 		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), operation_type),
+		    ccs_memcmp(acl, &e, offsetof(typeof(e), address_type),
 			       sizeof(e)))
 			continue;
-		ptr->is_deleted = is_delete;
+		if (is_delete) {
+			acl->perm &= ~e.perm;
+			if (!acl->perm)
+				ptr->is_deleted = true;
+		} else {
+			if (ptr->is_deleted)
+				acl->perm = 0;
+			acl->perm |= e.perm;
+			ptr->is_deleted = false;
+		}
 		error = 0;
 		break;
 	}
@@ -373,7 +371,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
  out:
 	if (w[2][0] == '@')
 		ccs_put_address_group(e.address.group);
-	else if (e.record_type == CCS_IP_RECORD_TYPE_IPv6) {
+	else if (e.address_type == CCS_IP_ADDRESS_TYPE_IPv6) {
 		ccs_put_ipv6_address(e.address.ipv6.min);
 		ccs_put_ipv6_address(e.address.ipv6.max);
 	}

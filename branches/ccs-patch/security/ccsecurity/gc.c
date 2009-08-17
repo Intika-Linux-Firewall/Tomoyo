@@ -172,11 +172,11 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			struct ccs_ip_network_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			switch (entry->record_type) {
-			case CCS_IP_RECORD_TYPE_ADDRESS_GROUP:
+			switch (entry->address_type) {
+			case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
 				ccs_put_address_group(entry->address.group);
 				break;
-			case CCS_IP_RECORD_TYPE_IPv6:
+			case CCS_IP_ADDRESS_TYPE_IPv6:
 				ccs_put_ipv6_address(entry->address.ipv6.min);
 				ccs_put_ipv6_address(entry->address.ipv6.max);
 				break;

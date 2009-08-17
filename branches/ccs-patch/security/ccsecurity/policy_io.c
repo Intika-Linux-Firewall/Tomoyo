@@ -902,7 +902,6 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 	u8 bit;
 	const u16 perm = ptr->perm;
 	for (bit = head->read_bit; bit < CCS_MAX_PATH_OPERATION; bit++) {
-		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
 		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE)
@@ -911,9 +910,8 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 		if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
 		    && (perm & (1 << CCS_TYPE_READ_WRITE)))
 			continue;
-		msg = ccs_path2keyword(bit);
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", msg) ||
+		if (!ccs_io_printf(head, "allow_%s", ccs_path2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_condition(head, cond)) {
 			head->read_bit = bit;
@@ -941,13 +939,13 @@ static bool ccs_print_path_number_number_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION; bit++) {
-		const char *msg;
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION;
+	     bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
-		msg = ccs_path_number_number2keyword(bit);
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", msg) ||
+		if (!ccs_io_printf(head, "allow_%s",
+				   ccs_path_number_number2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
 		    !ccs_print_number_union(head, &ptr->minor) ||
@@ -978,12 +976,11 @@ static bool ccs_print_path_path_acl(struct ccs_io_buffer *head,
 	u8 bit;
 	const u8 perm = ptr->perm;
 	for (bit = head->read_bit; bit < CCS_MAX_PATH_PATH_OPERATION; bit++) {
-		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
-		msg = ccs_path_path2keyword(bit);
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", msg) ||
+		if (!ccs_io_printf(head, "allow_%s",
+				   ccs_path_path2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
 		    !ccs_print_name_union(head, &ptr->name2) ||
 		    !ccs_print_condition(head, cond)) {
@@ -1012,13 +1009,13 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_OPERATION; bit++) {
-		const char *msg;
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_OPERATION;
+	     bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
-		msg = ccs_path_number2keyword(bit);
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", msg) ||
+		if (!ccs_io_printf(head, "allow_%s",
+				   ccs_path_number2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->number) ||
 		    !ccs_print_condition(head, cond)) {
@@ -1135,30 +1132,39 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 				  struct ccs_ip_network_acl *ptr,
 				  const struct ccs_condition *cond)
 {
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
-			   ccs_net2keyword(ptr->operation_type)))
-		goto out;
-	switch (ptr->record_type) {
-	case CCS_IP_RECORD_TYPE_ADDRESS_GROUP:
-		if (!ccs_io_printf(head, "@%s",
-				   ptr->address.group->group_name->name))
+	int pos;
+	u8 bit;
+	const u16 perm = ptr->perm;
+	for (bit = head->read_bit; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
+		if (!(perm & (1 << bit)))
+			continue;
+		pos = head->read_avail;
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
+				   ccs_net2keyword(bit)))
 			goto out;
-		break;
-	case CCS_IP_RECORD_TYPE_IPv4:
-		if (!ccs_print_ipv4_entry(head, ptr))
+		switch (ptr->address_type) {
+		case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
+			if (!ccs_io_printf(head, "@%s", ptr->address.group->
+					   group_name->name))
+				goto out;
+			break;
+		case CCS_IP_ADDRESS_TYPE_IPv4:
+			if (!ccs_print_ipv4_entry(head, ptr))
+				goto out;
+			break;
+		case CCS_IP_ADDRESS_TYPE_IPv6:
+			if (!ccs_print_ipv6_entry(head, ptr))
+				goto out;
+			break;
+		}
+		if (!ccs_print_number_union(head, &ptr->port) ||
+		    !ccs_print_condition(head, cond))
 			goto out;
-		break;
-	case CCS_IP_RECORD_TYPE_IPv6:
-		if (!ccs_print_ipv6_entry(head, ptr))
-			goto out;
-		break;
 	}
-	if (!ccs_print_number_union(head, &ptr->port) ||
-	    !ccs_print_condition(head, cond))
-		goto out;
+	head->read_bit = 0;
 	return true;
  out:
+	head->read_bit = bit;
 	head->read_avail = pos;
 	return false;
 }
