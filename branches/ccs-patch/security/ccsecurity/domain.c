@@ -64,7 +64,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 {
 	struct ccs_request_info *r = &ee->r;
 	const char *handler = ee->handler->name;
-	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_FILE);
+	r->mode = ccs_check_flags(r->domain, CCS_MAC_EXECUTE);
 	return ccs_write_audit_log(true, r, "%s %s\n",
 				   is_default ? CCS_KEYWORD_EXECUTE_HANDLER :
 				   CCS_KEYWORD_DENIED_EXECUTE_HANDLER, handler);
@@ -81,7 +81,7 @@ static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
 {
 	int error;
 	struct ccs_request_info r;
-	ccs_init_request_info(&r, domain, CCS_MAC_FOR_FILE);
+	ccs_init_request_info(&r, domain, CCS_MAC_EXECUTE);
 	error = ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 	return error;
 }
@@ -1299,12 +1299,12 @@ int ccs_start_execve(struct linux_binprm *bprm)
 		ccs_load_policy(bprm->filename);
 	if (!ee)
 		return -ENOMEM;
-	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FOR_FILE);
+	ccs_init_request_info(&ee->r, NULL, CCS_MAC_EXECUTE);
 	ee->r.ee = ee;
 	ee->bprm = bprm;
 	ee->r.obj = &ee->obj;
-	ee->obj.path1_dentry = bprm->file->f_dentry;
-	ee->obj.path1_vfsmnt = bprm->file->f_vfsmnt;
+	ee->obj.path1.dentry = bprm->file->f_dentry;
+	ee->obj.path1.mnt = bprm->file->f_vfsmnt;
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER)) {
@@ -1324,7 +1324,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
-	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_FOR_ENV);
+	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_ENVIRON);
 	retval = ccs_check_environ(ee);
 	if (retval < 0)
 		goto out;

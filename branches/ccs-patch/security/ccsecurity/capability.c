@@ -65,13 +65,6 @@ static const char *ccs_cap2name(const u8 operation)
 	return NULL;
 }
 
-static inline bool ccs_capability_enabled(const u8 profile, const u8 operation)
-{
-	return operation < CCS_MAX_CAPABILITY_INDEX ?
-		ccs_profile_ptr[profile]->enabled_capabilities[operation] :
-		false;
-}
-
 /**
  * ccs_audit_capability_log - Audit capability log.
  *
@@ -109,17 +102,16 @@ static bool ccs_capable2(const u8 operation)
 	int error;
 	ccs_check_read_lock();
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY) ||
-	    !ccs_capability_enabled(r.profile, operation))
+	    !ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation))
 		return true;
 	is_enforce = (r.mode == 3);
  retry:
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_capability_acl_record *acl;
+		struct ccs_capability_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_CAPABILITY_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_capability_acl_record, head);
+		acl = container_of(ptr, struct ccs_capability_acl, head);
 		if (acl->operation != operation ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
@@ -156,7 +148,7 @@ bool ccs_capable(const u8 operation)
 EXPORT_SYMBOL(ccs_capable); /* for net/unix/af_unix.c */
 
 /**
- * ccs_write_capability_policy - Write "struct ccs_capability_acl_record" list.
+ * ccs_write_capability_policy - Write "struct ccs_capability_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -169,11 +161,11 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete)
 {
-	struct ccs_capability_acl_record e = {
+	struct ccs_capability_acl e = {
 		.head.type = CCS_TYPE_CAPABILITY_ACL,
 		.head.cond = condition,
 	};
-	struct ccs_capability_acl_record *entry = NULL;
+	struct ccs_capability_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	u8 capability;
@@ -190,8 +182,8 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_capability_acl_record *acl =
-			container_of(ptr, struct ccs_capability_acl_record,
+		struct ccs_capability_acl *acl =
+			container_of(ptr, struct ccs_capability_acl,
 				     head);
 		if (ptr->type != CCS_TYPE_CAPABILITY_ACL ||
 		    ptr->cond != condition || acl->operation != capability)

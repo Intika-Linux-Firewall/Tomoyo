@@ -13,6 +13,272 @@
 #ifndef _LINUX_CCS_COMMON_H
 #define _LINUX_CCS_COMMON_H
 
+/* Index numbers for Access Controls. */
+enum ccs_acl_entry_type_index {
+	CCS_TYPE_PATH_ACL,
+	CCS_TYPE_PATH_PATH_ACL,
+	CCS_TYPE_PATH_NUMBER_ACL,
+	CCS_TYPE_PATH_NUMBER_NUMBER_ACL,
+	CCS_TYPE_ENV_ACL,
+	CCS_TYPE_CAPABILITY_ACL,
+	CCS_TYPE_IP_NETWORK_ACL,
+	CCS_TYPE_SIGNAL_ACL,
+	CCS_TYPE_MOUNT_ACL,
+	CCS_TYPE_UMOUNT_ACL,
+	CCS_TYPE_CHROOT_ACL,
+	CCS_TYPE_PIVOT_ROOT_ACL,
+	CCS_TYPE_EXECUTE_HANDLER,
+	CCS_TYPE_DENIED_EXECUTE_HANDLER
+};
+
+/*
+ * CCS_TYPE_READ_WRITE is special. CCS_TYPE_READ_WRITE is automatically set if
+ * both CCS_TYPE_READ and CCS_TYPE_WRITE are set. Both CCS_TYPE_READ and
+ * CCS_TYPE_WRITE are automatically set if CCS_TYPE_READ_WRITE is set.
+ * CCS_TYPE_READ_WRITE is automatically cleared if either CCS_TYPE_READ or
+ * CCS_TYPE_WRITE is cleared. Both CCS_TYPE_READ and CCS_TYPE_WRITE are
+ * automatically cleared if CCS_TYPE_READ_WRITE is cleared.
+ */
+
+enum ccs_path_acl_index {
+	CCS_TYPE_READ_WRITE,
+	CCS_TYPE_EXECUTE,
+	CCS_TYPE_READ,
+	CCS_TYPE_WRITE,
+	CCS_TYPE_CREATE,
+	CCS_TYPE_UNLINK,
+	CCS_TYPE_MKDIR,
+	CCS_TYPE_RMDIR,
+	CCS_TYPE_MKFIFO,
+	CCS_TYPE_MKSOCK,
+	CCS_TYPE_TRUNCATE,
+	CCS_TYPE_SYMLINK,
+	CCS_TYPE_REWRITE,
+	CCS_MAX_PATH_OPERATION
+};
+
+enum ccs_path_number_number_acl_index {
+	CCS_TYPE_MKBLOCK,
+	CCS_TYPE_MKCHAR,
+	CCS_MAX_PATH_NUMBER_NUMBER_OPERATION
+};
+
+enum ccs_path_path_acl_index {
+	CCS_TYPE_LINK,
+	CCS_TYPE_RENAME,
+	CCS_MAX_PATH_PATH_OPERATION
+};
+
+enum ccs_path_number_acl_index {
+	CCS_TYPE_IOCTL,
+	CCS_TYPE_CHMOD,
+	CCS_TYPE_CHOWN,
+	CCS_TYPE_CHGRP,
+	CCS_MAX_PATH_NUMBER_OPERATION
+};
+
+enum ccs_ip_record_type {
+	CCS_IP_RECORD_TYPE_ADDRESS_GROUP,
+	CCS_IP_RECORD_TYPE_IPv4,
+	CCS_IP_RECORD_TYPE_IPv6
+};
+
+enum ccs_profile_index {
+	CCS_AUTOLEARN_EXEC_REALPATH,
+	CCS_AUTOLEARN_EXEC_ARGV0,
+	CCS_RESTRICT_AUTOBIND,
+	CCS_MAX_ACCEPT_ENTRY,
+#ifdef CONFIG_CCSECURITY_AUDIT
+	CCS_MAX_GRANT_LOG,
+	CCS_MAX_REJECT_LOG,
+#endif
+	CCS_VERBOSE,
+	CCS_SLEEP_PERIOD,
+	CCS_MAX_CONTROL_INDEX
+};
+
+/* Indexes for /proc/ccs/ interfaces. */
+enum ccs_proc_interface_index {
+	CCS_DOMAINPOLICY,
+	CCS_EXCEPTIONPOLICY,
+	CCS_DOMAIN_STATUS,
+	CCS_PROCESS_STATUS,
+	CCS_MEMINFO,
+	CCS_GRANTLOG,
+	CCS_REJECTLOG,
+	CCS_SELFDOMAIN,
+	CCS_VERSION,
+	CCS_PROFILE,
+	CCS_QUERY,
+	CCS_MANAGER,
+	CCS_EXECUTE_HANDLER
+};
+
+enum ccs_mac_index {
+	CCS_MAC_EXECUTE,
+	CCS_MAC_OPEN,
+	CCS_MAC_CREATE,
+	CCS_MAC_UNLINK,
+	CCS_MAC_MKDIR,
+	CCS_MAC_RMDIR,
+	CCS_MAC_MKFIFO,
+	CCS_MAC_MKSOCK,
+	CCS_MAC_TRUNCATE,
+	CCS_MAC_SYMLINK,
+	CCS_MAC_REWRITE,
+	CCS_MAC_MKBLOCK,
+	CCS_MAC_MKCHAR,
+	CCS_MAC_LINK,
+	CCS_MAC_RENAME,
+	CCS_MAC_CHMOD,
+	CCS_MAC_CHOWN,
+	CCS_MAC_CHGRP,
+	CCS_MAC_IOCTL,
+	CCS_MAC_CHROOT,
+	CCS_MAC_MOUNT,
+	CCS_MAC_UMOUNT,
+	CCS_MAC_PIVOT_ROOT,
+	CCS_MAC_ENVIRON,
+	CCS_MAC_NETWORK,
+	CCS_MAC_SIGNAL,
+	CCS_MAX_MAC_INDEX
+};
+
+enum ccs_conditions_index {
+	CCS_TASK_UID,             /* current_uid()   */
+	CCS_TASK_EUID,            /* current_euid()  */
+	CCS_TASK_SUID,            /* current_suid()  */
+	CCS_TASK_FSUID,           /* current_fsuid() */
+	CCS_TASK_GID,             /* current_gid()   */
+	CCS_TASK_EGID,            /* current_egid()  */
+	CCS_TASK_SGID,            /* current_sgid()  */
+	CCS_TASK_FSGID,           /* current_fsgid() */
+	CCS_TASK_PID,             /* sys_getpid()   */
+	CCS_TASK_PPID,            /* sys_getppid()  */
+	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
+	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
+	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
+	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
+	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
+	CCS_TYPE_IS_SOCKET,       /* S_IFSOCK */
+	CCS_TYPE_IS_SYMLINK,      /* S_IFLNK */
+	CCS_TYPE_IS_FILE,         /* S_IFREG */
+	CCS_TYPE_IS_BLOCK_DEV,    /* S_IFBLK */
+	CCS_TYPE_IS_DIRECTORY,    /* S_IFDIR */
+	CCS_TYPE_IS_CHAR_DEV,     /* S_IFCHR */
+	CCS_TYPE_IS_FIFO,         /* S_IFIFO */
+	CCS_MODE_SETUID,          /* S_ISUID */
+	CCS_MODE_SETGID,          /* S_ISGID */
+	CCS_MODE_STICKY,          /* S_ISVTX */
+	CCS_MODE_OWNER_READ,      /* S_IRUSR */
+	CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
+	CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
+	CCS_MODE_GROUP_READ,      /* S_IRGRP */
+	CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
+	CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
+	CCS_MODE_OTHERS_READ,     /* S_IROTH */
+	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
+	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
+	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
+				     CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
+	CCS_EXEC_REALPATH,
+	CCS_SYMLINK_TARGET,
+	CCS_PATH1_UID,
+	CCS_PATH1_GID,
+	CCS_PATH1_INO,
+	CCS_PATH1_MAJOR,
+	CCS_PATH1_MINOR,
+	CCS_PATH1_PERM,
+	CCS_PATH1_TYPE,
+	CCS_PATH1_DEV_MAJOR,
+	CCS_PATH1_DEV_MINOR,
+	CCS_PATH2_UID,
+	CCS_PATH2_GID,
+	CCS_PATH2_INO,
+	CCS_PATH2_MAJOR,
+	CCS_PATH2_MINOR,
+	CCS_PATH2_PERM,
+	CCS_PATH2_TYPE,
+	CCS_PATH2_DEV_MAJOR,
+	CCS_PATH2_DEV_MINOR,
+	CCS_PATH1_PARENT_UID,
+	CCS_PATH1_PARENT_GID,
+	CCS_PATH1_PARENT_INO,
+	CCS_PATH1_PARENT_PERM,
+	CCS_PATH2_PARENT_UID,
+	CCS_PATH2_PARENT_GID,
+	CCS_PATH2_PARENT_INO,
+	CCS_PATH2_PARENT_PERM,
+	CCS_MAX_CONDITION_KEYWORD,
+	CCS_NUMBER_UNION,
+	CCS_NAME_UNION,
+	CCS_ARGV_ENTRY,
+	CCS_ENVP_ENTRY
+};
+
+/* Keywords for ACLs. */
+#define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
+#define CCS_KEYWORD_AGGREGATOR                "aggregator "
+#define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
+#define CCS_KEYWORD_ALLOW_CHROOT              "allow_chroot "
+#define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
+#define CCS_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
+#define CCS_KEYWORD_ALLOW_CHMOD               "allow_chmod "
+#define CCS_KEYWORD_ALLOW_CHOWN               "allow_chown "
+#define CCS_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
+#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
+#define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
+#define CCS_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
+#define CCS_KEYWORD_ALLOW_READ                "allow_read "
+#define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
+#define CCS_KEYWORD_DELETE                    "delete "
+#define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
+#define CCS_KEYWORD_DENY_REWRITE              "deny_rewrite "
+#define CCS_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
+#define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
+#define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
+#define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
+#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
+#define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
+#define CCS_KEYWORD_PATH_GROUP                "path_group "
+#define CCS_KEYWORD_NUMBER_GROUP              "number_group "
+#define CCS_KEYWORD_SELECT                    "select "
+#define CCS_KEYWORD_USE_PROFILE               "use_profile "
+#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
+#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
+#define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
+#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
+
+/* A domain definition starts with <kernel>. */
+#define ROOT_NAME                         "<kernel>"
+#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
+
+/* Value type definition. */
+#define CCS_VALUE_TYPE_INVALID     0
+#define CCS_VALUE_TYPE_DECIMAL     1
+#define CCS_VALUE_TYPE_OCTAL       2
+#define CCS_VALUE_TYPE_HEXADECIMAL 3
+
+/*
+ * This is the max length of a token.
+ *
+ * A token consists of only ASCII printable characters.
+ * Non printable characters in a token is represented in \ooo style
+ * octal string. Thus, \ itself is represented as \\.
+ */
+#define CCS_MAX_PATHNAME_LEN 4000
+
+#define CCS_EXEC_TMPSIZE     4096
+
+/* Profile number is an integer between 0 and 255. */
+#define CCS_MAX_PROFILES 256
+
+#define CCS_CHECK_READ_FOR_OPEN_EXEC     16
+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
+#define CCS_TASK_IS_EXECUTE_HANDLER      64
+#define CCS_TASK_IS_POLICY_MANAGER      128
+
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/utime.h>
@@ -151,10 +417,8 @@ struct ccs_obj_info {
 	bool path1_parent_valid;
 	bool path2_valid;
 	bool path2_parent_valid;
-	struct dentry *path1_dentry;
-	struct vfsmount *path1_vfsmnt;
-	struct dentry *path2_dentry;
-	struct vfsmount *path2_vfsmnt;
+	struct path path1;
+	struct path path2;
 	struct ccs_mini_stat path1_stat;
 	/* I don't handle path2_stat for rename operation. */
 	struct ccs_mini_stat path2_stat;
@@ -163,12 +427,6 @@ struct ccs_obj_info {
 	struct ccs_path_info *symlink_target;
 	unsigned int dev;
 };
-
-/* Value type definition. */
-#define CCS_VALUE_TYPE_INVALID     0
-#define CCS_VALUE_TYPE_DECIMAL     1
-#define CCS_VALUE_TYPE_OCTAL       2
-#define CCS_VALUE_TYPE_HEXADECIMAL 3
 
 struct ccs_condition_element {
 	/*
@@ -231,17 +489,6 @@ struct ccs_path_info {
 	u16 depth;         /* = ccs_path_depth(name)               */
 };
 
-/*
- * This is the max length of a token.
- *
- * A token consists of only ASCII printable characters.
- * Non printable characters in a token is represented in \ooo style
- * octal string. Thus, \ itself is represented as \\.
- */
-#define CCS_MAX_PATHNAME_LEN 4000
-
-#define CCS_EXEC_TMPSIZE     4096
-
 /* Structure for execve() operation. */
 struct ccs_execve_entry {
 	struct list_head list;
@@ -276,24 +523,6 @@ struct ccs_acl_info {
 	u8 type; /* = one of values in "enum ccs_acl_entry_type_index" */
 } __attribute__((__packed__));
 
-/* Index numbers for Access Controls. */
-enum ccs_acl_entry_type_index {
-	CCS_TYPE_SINGLE_PATH_ACL,
-	CCS_TYPE_MKDEV_ACL,
-	CCS_TYPE_DOUBLE_PATH_ACL,
-	CCS_TYPE_PATH_NUMBER_ACL,
-	CCS_TYPE_ENV_ACL,
-	CCS_TYPE_CAPABILITY_ACL,
-	CCS_TYPE_IP_NETWORK_ACL,
-	CCS_TYPE_SIGNAL_ACL,
-	CCS_TYPE_MOUNT_ACL,
-	CCS_TYPE_UMOUNT_ACL,
-	CCS_TYPE_CHROOT_ACL,
-	CCS_TYPE_PIVOT_ROOT_ACL,
-	CCS_TYPE_EXECUTE_HANDLER,
-	CCS_TYPE_DENIED_EXECUTE_HANDLER
-};
-
 /* Structure for domain information. */
 struct ccs_domain_info {
 	struct list_head list;
@@ -315,14 +544,6 @@ struct ccs_domain_info {
 	 */
 	bool domain_transition_failed;
 };
-
-/* Profile number is an integer between 0 and 255. */
-#define CCS_MAX_PROFILES 256
-
-#define CCS_CHECK_READ_FOR_OPEN_EXEC     16
-#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
-#define CCS_TASK_IS_EXECUTE_HANDLER      64
-#define CCS_TASK_IS_POLICY_MANAGER      128
 
 /* Structure for "allow_read" keyword. */
 struct ccs_globally_readable_file_entry {
@@ -381,20 +602,20 @@ struct ccs_aggregator_entry {
 };
 
 /* Structure for "allow_unmount" keyword. */
-struct ccs_umount_acl_record {
+struct ccs_umount_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_UMOUNT_ACL */
 	struct ccs_name_union dir;
 };
 
 /* Structure for "allow_pivot_root" keyword. */
-struct ccs_pivot_root_acl_record {
+struct ccs_pivot_root_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PIVOT_ROOT_ACL */
 	struct ccs_name_union old_root;
 	struct ccs_name_union new_root;
 };
 
 /* Structure for "allow_mount" keyword. */
-struct ccs_mount_acl_record {
+struct ccs_mount_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
 	struct ccs_name_union dev_name;
 	struct ccs_name_union dir_name;
@@ -403,7 +624,7 @@ struct ccs_mount_acl_record {
 };
 
 /* Structure for "allow_chroot" keyword. */
-struct ccs_chroot_acl_record {
+struct ccs_chroot_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_CHROOT_ACL */
 	struct ccs_name_union dir;
 };
@@ -468,15 +689,15 @@ struct ccs_execute_handler_record {
  * "allow_mkfifo", "allow_mksock", "allow_truncate", "allow_symlink" and
  * "allow_rewrite" directive.
  */
-struct ccs_single_path_acl_record {
-	struct ccs_acl_info head; /* type = CCS_TYPE_SINGLE_PATH_ACL */
+struct ccs_path_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
 	u16 perm;
 	struct ccs_name_union name;
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
-struct ccs_mkdev_acl_record {
-	struct ccs_acl_info head; /* type = CCS_TYPE_MKDEV_ACL */
+struct ccs_path_number_number_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_NUMBER_ACL */
 	u8 perm; /* mkblock and/or mkchar */
 	struct ccs_name_union name;
 	struct ccs_number_union major;
@@ -484,9 +705,9 @@ struct ccs_mkdev_acl_record {
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
-struct ccs_double_path_acl_record {
-	struct ccs_acl_info head; /* type = CCS_TYPE_DOUBLE_PATH_ACL */
-	u8 perm;
+struct ccs_path_path_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_PATH_ACL */
+	u8 perm; /* rename and/or link */
 	struct ccs_name_union name1;
 	struct ccs_name_union name2;
 };
@@ -495,27 +716,27 @@ struct ccs_double_path_acl_record {
  * Structure for "allow_ioctl", "allow_chmod", "allow_chown" and "allow_chgrp"
  * directive.
  */
-struct ccs_path_number_acl_record {
+struct ccs_path_number_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
-	u8 perm;
+	u8 perm; /* ioctl and/or chmod and/or chown and/or chgrp */
 	struct ccs_name_union name;
 	struct ccs_number_union number;
 };
 
 /* Structure for "allow_env" directive in domain policy. */
-struct ccs_env_acl_record {
+struct ccs_env_acl {
 	struct ccs_acl_info head;        /* type = CCS_TYPE_ENV_ACL  */
 	const struct ccs_path_info *env; /* environment variable */
 };
 
 /* Structure for "allow_capability" directive. */
-struct ccs_capability_acl_record {
+struct ccs_capability_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_CAPABILITY_ACL */
 	u8 operation;
 };
 
 /* Structure for "allow_signal" directive. */
-struct ccs_signal_acl_record {
+struct ccs_signal_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
 	u16 sig;
 	/* Pointer to destination pattern. */
@@ -529,19 +750,19 @@ struct ccs_ipv6addr_entry {
 };
 
 /* Structure for "allow_network" directive. */
-struct ccs_ip_network_acl_record {
+struct ccs_ip_network_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
 	/*
 	 * operation_type takes one of the following constants.
-	 *   CCS_NETWORK_ACL_UDP_BIND for UDP's bind() operation.
-	 *   CCS_NETWORK_ACL_UDP_CONNECT for UDP's connect()/send()/recv()
+	 *   CCS_NETWORK_UDP_BIND for UDP's bind() operation.
+	 *   CCS_NETWORK_UDP_CONNECT for UDP's connect()/send()/recv()
 	 *                               operation.
-	 *   CCS_NETWORK_ACL_TCP_BIND for TCP's bind() operation.
-	 *   CCS_NETWORK_ACL_TCP_LISTEN for TCP's listen() operation.
-	 *   CCS_NETWORK_ACL_TCP_CONNECT for TCP's connect() operation.
-	 *   CCS_NETWORK_ACL_TCP_ACCEPT for TCP's accept() operation.
-	 *   CCS_NETWORK_ACL_RAW_BIND for IP's bind() operation.
-	 *   CCS_NETWORK_ACL_RAW_CONNECT for IP's connect()/send()/recv()
+	 *   CCS_NETWORK_TCP_BIND for TCP's bind() operation.
+	 *   CCS_NETWORK_TCP_LISTEN for TCP's listen() operation.
+	 *   CCS_NETWORK_TCP_CONNECT for TCP's connect() operation.
+	 *   CCS_NETWORK_TCP_ACCEPT for TCP's accept() operation.
+	 *   CCS_NETWORK_RAW_BIND for IP's bind() operation.
+	 *   CCS_NETWORK_RAW_CONNECT for IP's connect()/send()/recv()
 	 *                               operation.
 	 */
 	u8 operation_type;
@@ -574,140 +795,6 @@ struct ccs_ip_network_acl_record {
 	struct ccs_number_union port;
 };
 
-/* Index numbers for File Controls. */
-
-/*
- * CCS_TYPE_READ_WRITE_ACL is special. CCS_TYPE_READ_WRITE_ACL is automatically
- * set if both CCS_TYPE_READ_ACL and CCS_TYPE_WRITE_ACL are set.
- * Both CCS_TYPE_READ_ACL and CCS_TYPE_WRITE_ACL are automatically set if
- * CCS_TYPE_READ_WRITE_ACL is set.
- * CCS_TYPE_READ_WRITE_ACL is automatically cleared if either CCS_TYPE_READ_ACL
- * or CCS_TYPE_WRITE_ACL is cleared. Both CCS_TYPE_READ_ACL and
- * CCS_TYPE_WRITE_ACL are automatically cleared if CCS_TYPE_READ_WRITE_ACL is
- * cleared.
- */
-
-enum ccs_single_path_acl_index {
-	CCS_TYPE_READ_WRITE_ACL,
-	CCS_TYPE_EXECUTE_ACL,
-	CCS_TYPE_READ_ACL,
-	CCS_TYPE_WRITE_ACL,
-	CCS_TYPE_CREATE_ACL,
-	CCS_TYPE_UNLINK_ACL,
-	CCS_TYPE_MKDIR_ACL,
-	CCS_TYPE_RMDIR_ACL,
-	CCS_TYPE_MKFIFO_ACL,
-	CCS_TYPE_MKSOCK_ACL,
-	CCS_TYPE_TRUNCATE_ACL,
-	CCS_TYPE_SYMLINK_ACL,
-	CCS_TYPE_REWRITE_ACL,
-	CCS_MAX_SINGLE_PATH_OPERATION
-};
-
-enum ccs_mkdev_acl_index {
-	CCS_TYPE_MKBLOCK_ACL,
-	CCS_TYPE_MKCHAR_ACL,
-	CCS_MAX_MKDEV_OPERATION
-};
-
-enum ccs_double_path_acl_index {
-	CCS_TYPE_LINK_ACL,
-	CCS_TYPE_RENAME_ACL,
-	CCS_MAX_DOUBLE_PATH_OPERATION
-};
-
-enum ccs_path_number_acl_index {
-	CCS_TYPE_IOCTL,
-	CCS_TYPE_CHMOD,
-	CCS_TYPE_CHOWN,
-	CCS_TYPE_CHGRP,
-	CCS_MAX_PATH_NUMBER_OPERATION
-};
-
-enum ccs_ip_record_type {
-	CCS_IP_RECORD_TYPE_ADDRESS_GROUP,
-	CCS_IP_RECORD_TYPE_IPv4,
-	CCS_IP_RECORD_TYPE_IPv6
-};
-
-/* Keywords for ACLs. */
-#define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
-#define CCS_KEYWORD_AGGREGATOR                "aggregator "
-#define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
-#define CCS_KEYWORD_ALLOW_CHROOT              "allow_chroot "
-#define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
-#define CCS_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
-#define CCS_KEYWORD_ALLOW_CHMOD               "allow_chmod "
-#define CCS_KEYWORD_ALLOW_CHOWN               "allow_chown "
-#define CCS_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
-#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
-#define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
-#define CCS_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
-#define CCS_KEYWORD_ALLOW_READ                "allow_read "
-#define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
-#define CCS_KEYWORD_DELETE                    "delete "
-#define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
-#define CCS_KEYWORD_DENY_REWRITE              "deny_rewrite "
-#define CCS_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
-#define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
-#define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
-#define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
-#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
-#define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
-#define CCS_KEYWORD_PATH_GROUP                "path_group "
-#define CCS_KEYWORD_NUMBER_GROUP              "number_group "
-#define CCS_KEYWORD_SELECT                    "select "
-#define CCS_KEYWORD_USE_PROFILE               "use_profile "
-#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
-#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
-#define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
-#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
-#define CCS_KEYWORD_CAPABILITIES              "SUPPORTED_CAPABILITIES"
-/* A domain definition starts with <kernel>. */
-#define ROOT_NAME                         "<kernel>"
-#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
-
-/* Index numbers for Access Controls. */
-enum ccs_profile_index {
-	CCS_MAC_FOR_FILE,          /* domain_policy.conf */
-	CCS_AUTOLEARN_EXEC_REALPATH,
-	CCS_AUTOLEARN_EXEC_ARGV0,
-	CCS_MAC_FOR_IOCTL,         /* domain_policy.conf */
-	CCS_MAC_FOR_FILEATTR,      /* domain_policy.conf */
-	CCS_MAC_FOR_ENV,           /* domain_policy.conf */
-	CCS_MAC_FOR_NETWORK,       /* domain_policy.conf */
-	CCS_MAC_FOR_SIGNAL,        /* domain_policy.conf */
-	CCS_MAC_FOR_NAMESPACE,     /* domain_policy.conf */
-	CCS_MAC_FOR_CAPABILITY,    /* domain_policy.conf */
-	CCS_RESTRICT_AUTOBIND,     /* exception_policy.conf */
-	CCS_MAX_ACCEPT_ENTRY,
-#ifdef CONFIG_CCSECURITY_AUDIT
-	CCS_MAX_GRANT_LOG,
-	CCS_MAX_REJECT_LOG,
-#endif
-	CCS_VERBOSE,
-	CCS_SLEEP_PERIOD,
-	CCS_MAX_CONTROL_INDEX
-};
-
-/* Indexes for /proc/ccs/ interfaces. */
-enum ccs_proc_interface_index {
-	CCS_DOMAINPOLICY,
-	CCS_EXCEPTIONPOLICY,
-	CCS_SYSTEMPOLICY,
-	CCS_DOMAIN_STATUS,
-	CCS_PROCESS_STATUS,
-	CCS_MEMINFO,
-	CCS_GRANTLOG,
-	CCS_REJECTLOG,
-	CCS_SELFDOMAIN,
-	CCS_VERSION,
-	CCS_PROFILE,
-	CCS_QUERY,
-	CCS_MANAGER,
-	CCS_UPDATESCOUNTER,
-	CCS_EXECUTE_HANDLER
-};
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
@@ -750,79 +837,6 @@ struct ccs_io_buffer {
 	u8 type;
 };
 
-enum ccs_conditions_index {
-	CCS_TASK_UID,             /* current_uid()   */
-	CCS_TASK_EUID,            /* current_euid()  */
-	CCS_TASK_SUID,            /* current_suid()  */
-	CCS_TASK_FSUID,           /* current_fsuid() */
-	CCS_TASK_GID,             /* current_gid()   */
-	CCS_TASK_EGID,            /* current_egid()  */
-	CCS_TASK_SGID,            /* current_sgid()  */
-	CCS_TASK_FSGID,           /* current_fsgid() */
-	CCS_TASK_PID,             /* sys_getpid()   */
-	CCS_TASK_PPID,            /* sys_getppid()  */
-	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
-	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
-	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
-	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
-	CCS_TYPE_SOCKET,          /* S_IFSOCK */
-	CCS_TYPE_SYMLINK,         /* S_IFLNK */
-	CCS_TYPE_FILE,            /* S_IFREG */
-	CCS_TYPE_BLOCK_DEV,       /* S_IFBLK */
-	CCS_TYPE_DIRECTORY,       /* S_IFDIR */
-	CCS_TYPE_CHAR_DEV,        /* S_IFCHR */
-	CCS_TYPE_FIFO,            /* S_IFIFO */
-	CCS_MODE_SETUID,          /* S_ISUID */
-	CCS_MODE_SETGID,          /* S_ISGID */
-	CCS_MODE_STICKY,          /* S_ISVTX */
-	CCS_MODE_OWNER_READ,      /* S_IRUSR */
-	CCS_MODE_OWNER_WRITE,     /* S_IWUSR */
-	CCS_MODE_OWNER_EXECUTE,   /* S_IXUSR */
-	CCS_MODE_GROUP_READ,      /* S_IRGRP */
-	CCS_MODE_GROUP_WRITE,     /* S_IWGRP */
-	CCS_MODE_GROUP_EXECUTE,   /* S_IXGRP */
-	CCS_MODE_OTHERS_READ,     /* S_IROTH */
-	CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
-	CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-	CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-				     CCS_TASK_IS_EXECUTE_HANDLER */
-	CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
-	CCS_EXEC_REALPATH,
-	CCS_SYMLINK_TARGET,
-	CCS_PATH1_UID,
-	CCS_PATH1_GID,
-	CCS_PATH1_INO,
-	CCS_PATH1_MAJOR,
-	CCS_PATH1_MINOR,
-	CCS_PATH1_PERM,
-	CCS_PATH1_TYPE,
-	CCS_PATH1_DEV_MAJOR,
-	CCS_PATH1_DEV_MINOR,
-	CCS_PATH2_UID,
-	CCS_PATH2_GID,
-	CCS_PATH2_INO,
-	CCS_PATH2_MAJOR,
-	CCS_PATH2_MINOR,
-	CCS_PATH2_PERM,
-	CCS_PATH2_TYPE,
-	CCS_PATH2_DEV_MAJOR,
-	CCS_PATH2_DEV_MINOR,
-	CCS_PATH1_PARENT_UID,
-	CCS_PATH1_PARENT_GID,
-	CCS_PATH1_PARENT_INO,
-	CCS_PATH1_PARENT_PERM,
-	CCS_PATH2_PARENT_UID,
-	CCS_PATH2_PARENT_GID,
-	CCS_PATH2_PARENT_INO,
-	CCS_PATH2_PARENT_PERM,
-	CCS_MAX_CONDITION_KEYWORD,
-	CCS_NUMBER_UNION,
-	CCS_NAME_UNION,
-	CCS_ARGV_ENTRY,
-	CCS_ENVP_ENTRY
-};
-
 /* Prototype definition. */
 
 bool ccs_can_sleep(void);
@@ -852,16 +866,15 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size);
 bool ccs_verbose_mode(const struct ccs_domain_info *domain);
 char *ccs_encode(const char *str);
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
-char *ccs_realpath(const char *pathname);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
-const char *ccs_dp2keyword(const u8 operation);
+const char *ccs_path_path2keyword(const u8 operation);
 const char *ccs_get_exe(void);
 const char *ccs_get_last_name(const struct ccs_domain_info *domain);
 const char *ccs_get_msg(const bool is_enforce);
-const char *ccs_mkdev2keyword(const u8 operation);
+const char *ccs_path_number_number2keyword(const u8 operation);
 const char *ccs_net2keyword(const u8 operation);
-const char *ccs_sp2keyword(const u8 operation);
+const char *ccs_path2keyword(const u8 operation);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
@@ -994,7 +1007,8 @@ extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
-	bool enabled_capabilities[CCS_MAX_CAPABILITY_INDEX];
+	u8 mac_mode[CCS_MAX_MAC_INDEX];
+	u8 mac_capability_mode[CCS_MAX_CAPABILITY_INDEX];
 };
 extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 

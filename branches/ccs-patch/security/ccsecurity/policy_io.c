@@ -15,16 +15,48 @@
 /* Lock for protecting ccs_profile->comment  */
 static DEFINE_SPINLOCK(ccs_profile_comment_lock);
 
-static bool ccs_profile_entry_used[CCS_MAX_CONTROL_INDEX +
-				   CCS_MAX_CAPABILITY_INDEX + 1];
-
-/* String table for functionality that takes 4 modes. */
-static const char *ccs_mode_4[4] = {
-	"disabled", "learning", "permissive", "enforcing"
-};
 /* String table for functionality that takes 2 modes. */
-static const char *ccs_mode_2[4] = {
-	"disabled", "enabled", "enabled", "enabled"
+static const char *ccs_mode_2[2] = {
+	"disabled", "enabled"
+};
+
+static const char *ccs_keyword_mode[4] = {
+	"MAC_MODE_DISABLED", "MAC_MODE_LEARNING",
+	"MAC_MODE_PERMISSIVE", "MAC_MODE_ENFORCING"
+};
+
+static const char *ccs_keyword_capability_mode[4] = {
+	"MAC_MODE_CAPABILITY_DISABLED", "MAC_MODE_CAPABILITY_LEARNING",
+	"MAC_MODE_CAPABILITY_PERMISSIVE", "MAC_MODE_CAPABILITY_ENFORCING"
+};
+
+static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
+	[CCS_MAC_EXECUTE]    = "execute",
+	[CCS_MAC_OPEN]       = "open",
+	[CCS_MAC_CREATE]     = "create",
+	[CCS_MAC_UNLINK]     = "unlink",
+	[CCS_MAC_MKDIR]      = "mkdir",
+	[CCS_MAC_RMDIR]      = "rmdir",
+	[CCS_MAC_MKFIFO]     = "mkfifo",
+	[CCS_MAC_MKSOCK]     = "mksock",
+	[CCS_MAC_TRUNCATE]   = "truncate",
+	[CCS_MAC_SYMLINK]    = "symlink",
+	[CCS_MAC_REWRITE]    = "rewrite",
+	[CCS_MAC_MKBLOCK]    = "mkblock",
+	[CCS_MAC_MKCHAR]     = "mkchar",
+	[CCS_MAC_LINK]       = "link",
+	[CCS_MAC_RENAME]     = "rename",
+	[CCS_MAC_CHMOD]      = "chmod",
+	[CCS_MAC_CHOWN]      = "chown",
+	[CCS_MAC_CHGRP]      = "chgrp",
+	[CCS_MAC_IOCTL]      = "ioctl",
+	[CCS_MAC_CHROOT]     = "chroot",
+	[CCS_MAC_MOUNT]      = "mount",
+	[CCS_MAC_UMOUNT]     = "umount",
+	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
+	[CCS_MAC_ENVIRON]    = "env",
+	[CCS_MAC_NETWORK]    = "network",
+	[CCS_MAC_SIGNAL]     = "signal"
 };
 
 /* Table for profile. */
@@ -33,16 +65,8 @@ static struct {
 	unsigned int current_value;
 	const unsigned int max_value;
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
-	[CCS_MAC_FOR_FILE]        = { "MAC_FOR_FILE",        0, 3 },
 	[CCS_AUTOLEARN_EXEC_REALPATH] = { "AUTOLEARN_EXEC_REALPATH", 0, 1 },
 	[CCS_AUTOLEARN_EXEC_ARGV0] = { "AUTOLEARN_EXEC_ARGV0", 0, 1 },
-	[CCS_MAC_FOR_IOCTL]       = { "MAC_FOR_IOCTL",       0, 3 },
-	[CCS_MAC_FOR_FILEATTR]    = { "MAC_FOR_FILEATTR",    0, 3 },
-	[CCS_MAC_FOR_ENV]         = { "MAC_FOR_ENV",         0, 3 },
-	[CCS_MAC_FOR_NETWORK]     = { "MAC_FOR_NETWORK",     0, 3 },
-	[CCS_MAC_FOR_SIGNAL]      = { "MAC_FOR_SIGNAL",      0, 3 },
-	[CCS_MAC_FOR_NAMESPACE]   = { "MAC_FOR_NAMESPACE",   0, 3 },
-	[CCS_MAC_FOR_CAPABILITY]  = { "MAC_FOR_CAPABILITY",   0, 3 },
 	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY", CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY, INT_MAX },
@@ -127,10 +151,6 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 		ptr = entry;
 		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
 			ptr->value[i] = ccs_control_array[i].current_value;
-		/*
-		 * Needn't to initialize "ptr->capability_value"
-		 * because they are always 0.
-		 */
 		mb(); /* Avoid out-of-order execution. */
 		ccs_profile_ptr[profile] = ptr;
 		entry = NULL;
@@ -152,6 +172,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	char *data = head->write_buf;
 	unsigned int i;
 	unsigned int value;
+	int mode;
 	char *cp;
 	struct ccs_profile *ccs_profile;
 	i = simple_strtoul(data, &cp, 10);
@@ -179,12 +200,30 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		spin_unlock(&ccs_profile_comment_lock);
 		/***** CRITICAL SECTION END *****/
 		ccs_put_name(old_comment);
-		ccs_profile_entry_used[0] = true;
 		return 0;
 	}
-	if (!strcmp(data, CCS_KEYWORD_CAPABILITIES)) {
-		unsigned char capabilities[CCS_MAX_CAPABILITY_INDEX];
-		memset(capabilities, 0, sizeof(capabilities));
+	for (mode = 0; mode < 4; mode++) {
+		if (strcmp(data, ccs_keyword_mode[mode]))
+			continue;
+		cp++;
+		while (1) {
+			char *cp2 = strchr(cp, ' ');
+			if (cp2)
+				*cp2 = '\0';
+			for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
+				if (strcmp(cp, ccs_mac_keywords[i]))
+					continue;
+				ccs_profile->mac_mode[i] = mode;
+			}
+			if (!cp2)
+				break;
+			cp = cp2 + 1;
+		}
+		return 0;
+	}
+	for (mode = 0; mode < 4; mode++) {
+		if (strcmp(data, ccs_keyword_capability_mode[mode]))
+			continue;
 		cp++;
 		while (1) {
 			char *cp2 = strchr(cp, ' ');
@@ -193,14 +232,12 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
 				if (strcmp(cp, ccs_capability_list[i]))
 					continue;
-				capabilities[i] = 1;
+				ccs_profile->mac_capability_mode[i] = mode;
 			}
 			if (!cp2)
 				break;
 			cp = cp2 + 1;
 		}
-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++)
-			ccs_profile->enabled_capabilities[i] = capabilities[i];
 		return 0;
 	}
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
@@ -208,20 +245,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			continue;
 		if (sscanf(cp + 1, "%u", &value) != 1) {
 			int j;
-			const char **modes;
-			switch (i) {
-			case CCS_AUTOLEARN_EXEC_REALPATH:
-			case CCS_AUTOLEARN_EXEC_ARGV0:
-			case CCS_RESTRICT_AUTOBIND:
-			case CCS_VERBOSE:
-				modes = ccs_mode_2;
-				break;
-			default:
-				modes = ccs_mode_4;
-				break;
-			}
-			for (j = 0; j < 4; j++) {
-				if (strcmp(cp + 1, modes[j]))
+			for (j = 0; j < 2; j++) {
+				if (strcmp(cp + 1, ccs_mode_2[j]))
 					continue;
 				value = j;
 				break;
@@ -232,27 +257,53 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			value = ccs_control_array[i].max_value;
 		}
 		ccs_profile->value[i] = value;
-		ccs_profile_entry_used[i + 1] = true;
 		return 0;
 	}
 	return -EINVAL;
 }
 
-static bool ccs_print_capability_list(struct ccs_io_buffer *head, u8 index)
+static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 {
 	const int pos = head->read_avail;
 	int i;
+	int mode;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	if (!ccs_io_printf(head, "%u-" CCS_KEYWORD_CAPABILITIES "={", index))
-		return false;
-	for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-		if (!ccs_profile->enabled_capabilities[i])
-			continue;
-		if (!ccs_io_printf(head, " %s", ccs_capability_list[i]))
+	for (mode = 0; mode < 4; mode++) {
+		if (!ccs_io_printf(head, "%u-%s={", index, ccs_keyword_mode[mode]))
+			goto out;
+		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
+			if (ccs_profile->mac_mode[i] != mode)
+				continue;
+			if (!ccs_io_printf(head, " %s", ccs_mac_keywords[i]))
+				goto out;
+		}
+		if (!ccs_io_printf(head, " }\n"))
 			goto out;
 	}
-	if (!ccs_io_printf(head, " }\n"))
-		goto out;
+	return true;
+ out:
+	head->read_avail = pos;
+	return false;
+}
+
+static bool ccs_print_capability_mode(struct ccs_io_buffer *head, u8 index)
+{
+	const int pos = head->read_avail;
+	int i;
+	int mode;
+	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
+	for (mode = 0; mode < 4; mode++) {
+		if (!ccs_io_printf(head, "%u-%s={", index, ccs_keyword_capability_mode[mode]))
+			goto out;
+		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+			if (ccs_profile->mac_capability_mode[i] != mode)
+				continue;
+			if (!ccs_io_printf(head, " %s", ccs_capability_list[i]))
+				goto out;
+		}
+		if (!ccs_io_printf(head, " }\n"))
+			goto out;
+	}
 	return true;
  out:
 	head->read_avail = pos;
@@ -280,8 +331,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 		head->read_step = step;
 		if (!ccs_profile)
 			continue;
-		if (!ccs_profile_entry_used[type])
-			continue;
 		if (!type) { /* Print profile' comment tag. */
 			bool done;
 			/***** CRITICAL SECTION START *****/
@@ -294,28 +343,22 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			if (!done)
 				break;
 			continue;
-		}
-		if (type == 1) {
-			if (!ccs_print_capability_list(head, index))
+		} else if (type == 1) {
+			if (!ccs_print_mac_mode(head, index))
+				break;
+			continue;
+		} else if (type == 2) {
+			if (!ccs_print_capability_mode(head, index))
 				break;
 			continue;
 		}
-		type -= 2;
+		type -= 3;
 		{
 			const unsigned int value = ccs_profile->value[type];
-			const char **modes = NULL;
 			const char *keyword = ccs_control_array[type].keyword;
-			switch (ccs_control_array[type].max_value) {
-			case 3:
-				modes = ccs_mode_4;
-				break;
-			case 1:
-				modes = ccs_mode_2;
-				break;
-			}
-			if (modes) {
+			if (ccs_control_array[type].max_value == 1) {
 				if (!ccs_io_printf(head, "%u-%s=%s\n", index,
-						   keyword, modes[value]))
+						   keyword, ccs_mode_2[value]))
 					break;
 			} else {
 				if (!ccs_io_printf(head, "%u-%s=%u\n", index,
@@ -843,32 +886,32 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_single_path_acl - Print a single path ACL entry.
+ * ccs_print_path_acl - Print a single path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_single_path_acl_record".
+ * @ptr:  Pointer to "struct ccs_path_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
-				      struct ccs_single_path_acl_record *ptr,
+static bool ccs_print_path_acl(struct ccs_io_buffer *head,
+				      struct ccs_path_acl *ptr,
 				      const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_SINGLE_PATH_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
-		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE_ACL)
+		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE)
 			continue;
 		/* Print "read/write" instead of "read" and "write". */
-		if ((bit == CCS_TYPE_READ_ACL || bit == CCS_TYPE_WRITE_ACL)
-		    && (perm & (1 << CCS_TYPE_READ_WRITE_ACL)))
+		if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
+		    && (perm & (1 << CCS_TYPE_READ_WRITE)))
 			continue;
-		msg = ccs_sp2keyword(bit);
+		msg = ccs_path2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
@@ -883,26 +926,26 @@ static bool ccs_print_single_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_mkdev_acl - Print a mkdev ACL entry.
+ * ccs_print_path_number_number_acl - Print a path_number_number ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_mkdev_acl_record".
+ * @ptr:  Pointer to "struct ccs_path_number_number_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
-				struct ccs_mkdev_acl_record *ptr,
+static bool ccs_print_path_number_number_acl(struct ccs_io_buffer *head,
+				struct ccs_path_number_number_acl *ptr,
 				const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_MKDEV_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
-		msg = ccs_mkdev2keyword(bit);
+		msg = ccs_path_number_number2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
@@ -919,26 +962,26 @@ static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_double_path_acl - Print a double path ACL entry.
+ * ccs_print_path_path_acl - Print a double path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_double_path_acl_record".
+ * @ptr:  Pointer to "struct ccs_path_path_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
-				      struct ccs_double_path_acl_record *ptr,
+static bool ccs_print_path_path_acl(struct ccs_io_buffer *head,
+				      struct ccs_path_path_acl *ptr,
 				      const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_DOUBLE_PATH_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_PATH_OPERATION; bit++) {
 		const char *msg;
 		if (!(perm & (1 << bit)))
 			continue;
-		msg = ccs_dp2keyword(bit);
+		msg = ccs_path_path2keyword(bit);
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", msg) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
@@ -957,13 +1000,13 @@ static bool ccs_print_double_path_acl(struct ccs_io_buffer *head,
  * ccs_print_path_number_acl - Print an ioctl/chmod/chown/chgrp ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_number_acl_record".
+ * @ptr:  Pointer to "struct ccs_path_number_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
-				      struct ccs_path_number_acl_record *ptr,
+				      struct ccs_path_number_acl *ptr,
 				      const struct ccs_condition *cond)
 {
 	int pos;
@@ -992,13 +1035,13 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
  * ccs_print_env_acl - Print an evironment variable name's ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_env_acl_record".
+ * @ptr:  Pointer to "struct ccs_env_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_env_acl(struct ccs_io_buffer *head,
-			      struct ccs_env_acl_record *ptr,
+			      struct ccs_env_acl *ptr,
 			      const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1014,13 +1057,13 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
  * ccs_print_capability_acl - Print a capability ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_capability_acl_record".
+ * @ptr:  Pointer to "struct ccs_capability_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
-				     struct ccs_capability_acl_record *ptr,
+				     struct ccs_capability_acl *ptr,
 				     const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1037,12 +1080,12 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
  * ccs_print_ipv4_entry - Print IPv4 address of a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl_record".
+ * @ptr:  Pointer to "struct ccs_ip_network_acl".
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_ipv4_entry(struct ccs_io_buffer *head,
-				 struct ccs_ip_network_acl_record *ptr)
+				 struct ccs_ip_network_acl *ptr)
 {
 	const u32 min_address = ptr->address.ipv4.min;
 	const u32 max_address = ptr->address.ipv4.max;
@@ -1058,12 +1101,12 @@ static bool ccs_print_ipv4_entry(struct ccs_io_buffer *head,
  * ccs_print_ipv6_entry - Print IPv6 address of a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl_record".
+ * @ptr:  Pointer to "struct ccs_ip_network_acl".
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_ipv6_entry(struct ccs_io_buffer *head,
-				 struct ccs_ip_network_acl_record *ptr)
+				 struct ccs_ip_network_acl *ptr)
 {
 	char buf[64];
 	const struct in6_addr *min_address = ptr->address.ipv6.min;
@@ -1083,13 +1126,13 @@ static bool ccs_print_ipv6_entry(struct ccs_io_buffer *head,
  * ccs_print_network_acl - Print a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl_record".
+ * @ptr:  Pointer to "struct ccs_ip_network_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_network_acl(struct ccs_io_buffer *head,
-				  struct ccs_ip_network_acl_record *ptr,
+				  struct ccs_ip_network_acl *ptr,
 				  const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1124,13 +1167,13 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
  * ccs_print_signal_acl - Print a signal ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct signale_acl_record".
+ * @ptr:  Pointer to "struct signale_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
-				 struct ccs_signal_acl_record *ptr,
+				 struct ccs_signal_acl *ptr,
 				 const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1164,13 +1207,13 @@ static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
  * ccs_print_mount_acl - Print a mount ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_mount_acl_record".
+ * @ptr:  Pointer to "struct ccs_mount_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
-				struct ccs_mount_acl_record *ptr,
+				struct ccs_mount_acl *ptr,
 				const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1190,13 +1233,13 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
  * ccs_print_umount_acl - Print a mount ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_umount_acl_record".
+ * @ptr:  Pointer to "struct ccs_umount_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
-				 struct ccs_umount_acl_record *ptr,
+				 struct ccs_umount_acl *ptr,
 				 const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1213,13 +1256,13 @@ static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
  * ccs_print_chroot_acl - Print a chroot ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_chroot_acl_record".
+ * @ptr:  Pointer to "struct ccs_chroot_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
-				 struct ccs_chroot_acl_record *ptr,
+				 struct ccs_chroot_acl *ptr,
 				 const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1236,13 +1279,13 @@ static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
  * ccs_print_pivot_root_acl - Print a pivot_root ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_pivot_root_acl_record".
+ * @ptr:  Pointer to "struct ccs_pivot_root_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_pivot_root_acl(struct ccs_io_buffer *head,
-				     struct ccs_pivot_root_acl_record *ptr,
+				     struct ccs_pivot_root_acl *ptr,
 				     const struct ccs_condition *cond)
 {
 	const int pos = head->read_avail;
@@ -1271,11 +1314,11 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	const u8 acl_type = ptr->type;
 	if (ptr->is_deleted)
 		return true;
-	if (acl_type == CCS_TYPE_SINGLE_PATH_ACL) {
-		struct ccs_single_path_acl_record *acl
-			= container_of(ptr, struct ccs_single_path_acl_record,
+	if (acl_type == CCS_TYPE_PATH_ACL) {
+		struct ccs_path_acl *acl
+			= container_of(ptr, struct ccs_path_acl,
 				       head);
-		return ccs_print_single_path_acl(head, acl, cond);
+		return ccs_print_path_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_EXECUTE_HANDLER) {
 		struct ccs_execute_handler_record *acl
@@ -1293,63 +1336,63 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (head->read_execute_only)
 		return true;
-	if (acl_type == CCS_TYPE_MKDEV_ACL) {
-		struct ccs_mkdev_acl_record *acl
-			= container_of(ptr, struct ccs_mkdev_acl_record, head);
-		return ccs_print_mkdev_acl(head, acl, cond);
+	if (acl_type == CCS_TYPE_PATH_NUMBER_NUMBER_ACL) {
+		struct ccs_path_number_number_acl *acl
+			= container_of(ptr, struct ccs_path_number_number_acl, head);
+		return ccs_print_path_number_number_acl(head, acl, cond);
 	}
-	if (acl_type == CCS_TYPE_DOUBLE_PATH_ACL) {
-		struct ccs_double_path_acl_record *acl
-			= container_of(ptr, struct ccs_double_path_acl_record,
+	if (acl_type == CCS_TYPE_PATH_PATH_ACL) {
+		struct ccs_path_path_acl *acl
+			= container_of(ptr, struct ccs_path_path_acl,
 				       head);
-		return ccs_print_double_path_acl(head, acl, cond);
+		return ccs_print_path_path_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
-		struct ccs_path_number_acl_record *acl
-			= container_of(ptr, struct ccs_path_number_acl_record,
+		struct ccs_path_number_acl *acl
+			= container_of(ptr, struct ccs_path_number_acl,
 				       head);
 		return ccs_print_path_number_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_ENV_ACL) {
-		struct ccs_env_acl_record *acl
-			= container_of(ptr, struct ccs_env_acl_record, head);
+		struct ccs_env_acl *acl
+			= container_of(ptr, struct ccs_env_acl, head);
 		return ccs_print_env_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
-		struct ccs_capability_acl_record *acl
-			= container_of(ptr, struct ccs_capability_acl_record,
+		struct ccs_capability_acl *acl
+			= container_of(ptr, struct ccs_capability_acl,
 				       head);
 		return ccs_print_capability_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
-		struct ccs_ip_network_acl_record *acl
-			= container_of(ptr, struct ccs_ip_network_acl_record,
+		struct ccs_ip_network_acl *acl
+			= container_of(ptr, struct ccs_ip_network_acl,
 				       head);
 		return ccs_print_network_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_SIGNAL_ACL) {
-		struct ccs_signal_acl_record *acl
-			= container_of(ptr, struct ccs_signal_acl_record, head);
+		struct ccs_signal_acl *acl
+			= container_of(ptr, struct ccs_signal_acl, head);
 		return ccs_print_signal_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_MOUNT_ACL) {
-		struct ccs_mount_acl_record *acl
-			= container_of(ptr, struct ccs_mount_acl_record, head);
+		struct ccs_mount_acl *acl
+			= container_of(ptr, struct ccs_mount_acl, head);
 		return ccs_print_mount_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_UMOUNT_ACL) {
-		struct ccs_umount_acl_record *acl
-			= container_of(ptr, struct ccs_umount_acl_record, head);
+		struct ccs_umount_acl *acl
+			= container_of(ptr, struct ccs_umount_acl, head);
 		return ccs_print_umount_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_CHROOT_ACL) {
-		struct ccs_chroot_acl_record *acl
-			= container_of(ptr, struct ccs_chroot_acl_record, head);
+		struct ccs_chroot_acl *acl
+			= container_of(ptr, struct ccs_chroot_acl, head);
 		return ccs_print_chroot_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_PIVOT_ROOT_ACL) {
-		struct ccs_pivot_root_acl_record *acl
-			= container_of(ptr, struct ccs_pivot_root_acl_record,
+		struct ccs_pivot_root_acl *acl
+			= container_of(ptr, struct ccs_pivot_root_acl,
 				       head);
 		return ccs_print_pivot_root_acl(head, acl, cond);
 	}

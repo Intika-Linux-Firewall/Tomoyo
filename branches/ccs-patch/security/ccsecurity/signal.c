@@ -61,7 +61,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	int error;
 	ccs_check_read_lock();
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_SIGNAL))
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL))
 		return 0;
 	is_enforce = (r.mode == 3);
 	if (!sig)
@@ -97,10 +97,10 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
  retry:
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_signal_acl_record *acl;
+		struct ccs_signal_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_SIGNAL_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_signal_acl_record, head);
+		acl = container_of(ptr, struct ccs_signal_acl, head);
 		if (acl->sig == hash && ccs_check_condition(&r, ptr)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len))
@@ -143,7 +143,7 @@ static int ccs_check_signal_acl(const int sig, const int pid)
 }
 
 /**
- * ccs_write_signal_policy - Write "struct ccs_signal_acl_record" list.
+ * ccs_write_signal_policy - Write "struct ccs_signal_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -156,9 +156,9 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	struct ccs_signal_acl_record *entry = NULL;
+	struct ccs_signal_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_signal_acl_record e = { .head.type = CCS_TYPE_SIGNAL_ACL,
+	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
 					   .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	int sig;
@@ -174,8 +174,8 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_signal_acl_record *acl =
-			container_of(ptr, struct ccs_signal_acl_record, head);
+		struct ccs_signal_acl *acl =
+			container_of(ptr, struct ccs_signal_acl, head);
 		if (ptr->type != CCS_TYPE_SIGNAL_ACL || ptr->cond != condition
 		    || acl->sig != sig || acl->domainname != e.domainname)
 			continue;

@@ -58,12 +58,12 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	struct ccs_path_info dir;
 	struct path path = { mnt, mnt->mnt_root };
 	struct ccs_obj_info obj = {
-		.path1_dentry = mnt->mnt_root,
-		.path1_vfsmnt = mnt
+		.path1.dentry = mnt->mnt_root,
+		.path1.mnt = mnt
 	};
 	ccs_check_read_lock();
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_UMOUNT))
 		return 0;
 	is_enforce = (r.mode == 3);
 	r.obj = &obj;
@@ -75,10 +75,10 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	dir.name = dir0;
 	ccs_fill_path_info(&dir);
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_umount_acl_record *acl;
+		struct ccs_umount_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_UMOUNT_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_umount_acl_record, head);
+		acl = container_of(ptr, struct ccs_umount_acl, head);
 		if (!ccs_compare_name_union(&dir, &acl->dir) ||
 		    !ccs_check_condition(&r, ptr))
 			continue;
@@ -115,7 +115,7 @@ int ccs_may_umount(struct vfsmount *mnt)
 }
 
 /**
- * ccs_write_umount_policy - Write "struct ccs_umount_acl_record" list.
+ * ccs_write_umount_policy - Write "struct ccs_umount_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -128,9 +128,9 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	struct ccs_umount_acl_record *entry = NULL;
+	struct ccs_umount_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_umount_acl_record e = { .head.type = CCS_TYPE_UMOUNT_ACL,
+	struct ccs_umount_acl e = { .head.type = CCS_TYPE_UMOUNT_ACL,
 					   .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (data[0] != '@' && !ccs_is_correct_path(data, 1, 0, 1))
@@ -141,8 +141,8 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_umount_acl_record *acl =
-			container_of(ptr, struct ccs_umount_acl_record, head);
+		struct ccs_umount_acl *acl =
+			container_of(ptr, struct ccs_umount_acl, head);
 		if (ptr->type != CCS_TYPE_UMOUNT_ACL ||
 		    ptr->cond != condition || memcmp(&acl->dir, &e.dir,
 						     sizeof(e.dir)))

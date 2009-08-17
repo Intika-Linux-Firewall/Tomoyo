@@ -137,12 +137,20 @@ static void clear_status(void)
 		*/
 		fprintf(profile_fp, "255-%s", cp);
 		if (!strcmp(cp, "COMMENT"))
-			mode = "=Profile for kernel test\n";
+			mode = "Profile for kernel test\n";
 		else if (sscanf(mode, "%u", &v) == 1)
-			mode = "=0\n";
+			mode = "0\n";
+		else if (!strcmp(cp, "MAC_MODE_LEARNING") ||
+			 !strcmp(cp, "MAC_MODE_PERMISSIVE") ||
+			 !strcmp(cp, "MAC_MODE_ENFORCING"))
+			cp = "MAC_MODE_DISABLED";
+		else if (!strcmp(cp, "MAC_MODE_CAPABILITY_LEARNING") ||
+			 !strcmp(cp, "MAC_MODE_CAPABILITY_PERMISSIVE") ||
+			 !strcmp(cp, "MAC_MODE_CAPABILITY_ENFORCING"))
+			cp = "MAC_MODE_CAPABILITY_DISABLED";
 		else
-			mode = "=disabled\n";
-		fprintf(profile_fp, "%s", mode);
+			mode = "disabled\n";
+		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
 	/* fprintf(profile_fp, "255-SLEEP_PERIOD=1\n"); */
 	/* fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n"); */
@@ -205,4 +213,8 @@ static void ccs_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/domain_policy\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/domain_policy\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/profile\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/profile\n");
 }

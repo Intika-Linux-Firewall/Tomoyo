@@ -311,24 +311,6 @@ char *ccs_realpath_from_path(struct path *path)
 }
 
 /**
- * ccs_realpath - Get realpath of a pathname.
- *
- * @pathname: The pathname to solve.
- *
- * Returns the realpath of @pathname on success, NULL otherwise.
- */
-char *ccs_realpath(const char *pathname)
-{
-	struct path path;
-	if (ccs_kern_path(pathname, ccs_lookup_flags, &path) == 0) {
-		char *buf = ccs_realpath_from_path(&path);
-		path_put(&path);
-		return buf;
-	}
-	return NULL;
-}
-
-/**
  * ccs_symlink_path - Get symlink's pathname.
  *
  * @pathname: The pathname to solve.

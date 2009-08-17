@@ -148,10 +148,10 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 	env.name = environ;
 	ccs_fill_path_info(&env);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl_record *acl;
+		struct ccs_env_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_env_acl_record, head);
+		acl = container_of(ptr, struct ccs_env_acl, head);
 		if (!ccs_check_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
@@ -198,7 +198,7 @@ int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
 }
 
 /**
- * ccs_write_env_policy - Write "struct ccs_env_acl_record" list.
+ * ccs_write_env_policy - Write "struct ccs_env_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -211,9 +211,9 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete)
 {
-	struct ccs_env_acl_record *entry = NULL;
+	struct ccs_env_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_env_acl_record e = {
+	struct ccs_env_acl e = {
 		.head.type = CCS_TYPE_ENV_ACL,
 		.head.cond = condition
 	};
@@ -227,8 +227,8 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl_record *acl =
-			container_of(ptr, struct ccs_env_acl_record, head);
+		struct ccs_env_acl *acl =
+			container_of(ptr, struct ccs_env_acl, head);
 		if (ptr->type != CCS_TYPE_ENV_ACL || ptr->cond != condition ||
 		    acl->env != e.env)
 			continue;

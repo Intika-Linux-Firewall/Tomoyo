@@ -417,13 +417,13 @@ const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_TASK_STATE_0]         = "task.state[0]",
 	[CCS_TASK_STATE_1]         = "task.state[1]",
 	[CCS_TASK_STATE_2]         = "task.state[2]",
-	[CCS_TYPE_SOCKET]          = "socket",
-	[CCS_TYPE_SYMLINK]         = "symlink",
-	[CCS_TYPE_FILE]            = "file",
-	[CCS_TYPE_BLOCK_DEV]       = "block",
-	[CCS_TYPE_DIRECTORY]       = "directory",
-	[CCS_TYPE_CHAR_DEV]        = "char",
-	[CCS_TYPE_FIFO]            = "fifo",
+	[CCS_TYPE_IS_SOCKET]       = "socket",
+	[CCS_TYPE_IS_SYMLINK]      = "symlink",
+	[CCS_TYPE_IS_FILE]         = "file",
+	[CCS_TYPE_IS_BLOCK_DEV]    = "block",
+	[CCS_TYPE_IS_DIRECTORY]    = "directory",
+	[CCS_TYPE_IS_CHAR_DEV]     = "char",
+	[CCS_TYPE_IS_FIFO]         = "fifo",
 	[CCS_MODE_SETUID]          = "setuid",
 	[CCS_MODE_SETGID]          = "setgid",
 	[CCS_MODE_STICKY]          = "sticky",
@@ -812,7 +812,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	struct inode *inode;
 
 	/* Get information on "path1". */
-	dentry = obj->path1_dentry;
+	dentry = obj->path1.dentry;
 	inode = dentry->d_inode;
 	if (inode) {
 		if (inode->i_op && inode->i_op->revalidate &&
@@ -832,7 +832,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	/* Get information on "path1.parent". */
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
-	dentry = dget(obj->path1_dentry->d_parent);
+	dentry = dget(obj->path1.dentry->d_parent);
 	spin_unlock(&dcache_lock);
 	/***** CRITICAL SECTION END *****/
 	inode = dentry->d_inode;
@@ -856,7 +856,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 		return;
 
 	/* Get information on "path2". */
-	dentry = obj->path2_dentry;
+	dentry = obj->path2.dentry;
 	inode = dentry->d_inode;
 	if (inode) {
 		if (inode->i_op && inode->i_op->revalidate &&
@@ -876,7 +876,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	/* Get information on "path2.parent". */
 	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
-	dentry = dget(obj->path2_dentry->d_parent);
+	dentry = dget(obj->path2.dentry->d_parent);
 	spin_unlock(&dcache_lock);
 	/***** CRITICAL SECTION END *****/
 	inode = dentry->d_inode;
@@ -905,8 +905,8 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	struct kstat stat;
 
 	/* Get information on "path1". */
-	mnt = obj->path1_vfsmnt;
-	dentry = obj->path1_dentry;
+	mnt = obj->path1.mnt;
+	dentry = obj->path1.dentry;
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
@@ -923,7 +923,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 
 	/* Get information on "path1.parent". */
-	dentry = dget_parent(obj->path1_dentry);
+	dentry = dget_parent(obj->path1.dentry);
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
@@ -940,12 +940,12 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 	dput(dentry);
 
-	mnt = obj->path2_vfsmnt;
+	mnt = obj->path2.mnt;
 	if (!mnt)
 		return;
 
 	/* Get information on "path2". */
-	dentry = obj->path2_dentry;
+	dentry = obj->path2.dentry;
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
@@ -962,7 +962,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 
 	/* Get information on "path2.parent". */
-	dentry = dget_parent(obj->path2_dentry);
+	dentry = dget_parent(obj->path2.dentry);
 	inode = dentry->d_inode;
 	if (inode) {
 		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
@@ -1098,25 +1098,25 @@ bool ccs_check_condition(struct ccs_request_info *r,
 			case CCS_TASK_PPID:
 				value = sys_getppid();
 				break;
-			case CCS_TYPE_SOCKET:
+			case CCS_TYPE_IS_SOCKET:
 				value = S_IFSOCK;
 				break;
-			case CCS_TYPE_SYMLINK:
+			case CCS_TYPE_IS_SYMLINK:
 				value = S_IFLNK;
 				break;
-			case CCS_TYPE_FILE:
+			case CCS_TYPE_IS_FILE:
 				value = S_IFREG;
 				break;
-			case CCS_TYPE_BLOCK_DEV:
+			case CCS_TYPE_IS_BLOCK_DEV:
 				value = S_IFBLK;
 				break;
-			case CCS_TYPE_DIRECTORY:
+			case CCS_TYPE_IS_DIRECTORY:
 				value = S_IFDIR;
 				break;
-			case CCS_TYPE_CHAR_DEV:
+			case CCS_TYPE_IS_CHAR_DEV:
 				value = S_IFCHR;
 				break;
-			case CCS_TYPE_FIFO:
+			case CCS_TYPE_IS_FIFO:
 				value = S_IFIFO;
 				break;
 			case CCS_MODE_SETUID:

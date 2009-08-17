@@ -154,8 +154,7 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		error = -ENOENT;
 		goto out;
 	}
-	obj.path2_dentry = path.dentry;
-	obj.path2_vfsmnt = path.mnt;
+	obj.path2 = path;
 	requested_dir_name = ccs_realpath_from_path(&path);
 	if (!requested_dir_name) {
 		error = -ENOMEM;
@@ -191,8 +190,7 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 			error = -ENOENT;
 			goto out;
 		}
-		obj.path1_dentry = path.dentry;
-		obj.path1_vfsmnt = path.mnt;
+		obj.path1 = path;
 		requested_dev_name = ccs_realpath_from_path(&path);
 		if (!requested_dev_name) {
 			error = -ENOENT;
@@ -211,10 +209,10 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	rdev.name = requested_dev_name;
 	ccs_fill_path_info(&rdev);
 	list_for_each_entry_rcu(ptr, &r->domain->acl_info_list, list) {
-		struct ccs_mount_acl_record *acl;
+		struct ccs_mount_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_MOUNT_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_mount_acl_record,
+		acl = container_of(ptr, struct ccs_mount_acl,
 				   head);
 		if (!ccs_compare_number_union(flags, &acl->flags) ||
 		    !ccs_compare_name_union(&rtype, &acl->fs_type) ||
@@ -242,16 +240,10 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		put_filesystem(fstype);
 	kfree(requested_type);
 	/* Drop refcount obtained by ccs_get_path(). */
-	if (obj.path2_dentry) {
-		path.dentry = obj.path2_dentry;
-		path.mnt = obj.path2_vfsmnt;
-		path_put(&path);
-	}
-	if (obj.path1_dentry) {
-		path.dentry = obj.path1_dentry;
-		path.mnt = obj.path1_vfsmnt;
-		path_put(&path);
-	}
+	if (obj.path2.dentry)
+		path_put(&obj.path2);
+	if (obj.path1.dentry)
+		path_put(&obj.path1);
 	return error;
 }
 
@@ -365,7 +357,7 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	if (!ccs_capable(CCS_SYS_MOUNT))
 		return -EPERM;
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_MOUNT))
 		return 0;
 	if (!type)
 		type = "<NULL>";
@@ -376,7 +368,7 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 }
 
 /**
- * ccs_write_mount_policy - Write "struct ccs_mount_acl_record" list.
+ * ccs_write_mount_policy - Write "struct ccs_mount_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -389,9 +381,9 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
 			   const bool is_delete)
 {
-	struct ccs_mount_acl_record *entry = NULL;
+	struct ccs_mount_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_mount_acl_record e = { .head.type = CCS_TYPE_MOUNT_ACL,
+	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
 					  .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[4];
@@ -406,8 +398,8 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_mount_acl_record *acl =
-			container_of(ptr, struct ccs_mount_acl_record, head);
+		struct ccs_mount_acl *acl =
+			container_of(ptr, struct ccs_mount_acl, head);
 		if (ptr->type != CCS_TYPE_MOUNT_ACL || ptr->cond != condition
 		    || ccs_memcmp(acl, &e, offsetof(typeof(e), dev_name),
 				  sizeof(e)))

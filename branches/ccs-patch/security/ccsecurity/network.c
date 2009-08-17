@@ -21,14 +21,14 @@
 
 /* Index numbers for Network Controls. */
 enum ccs_network_acl_index {
-	CCS_NETWORK_ACL_UDP_BIND,
-	CCS_NETWORK_ACL_UDP_CONNECT,
-	CCS_NETWORK_ACL_TCP_BIND,
-	CCS_NETWORK_ACL_TCP_LISTEN,
-	CCS_NETWORK_ACL_TCP_CONNECT,
-	CCS_NETWORK_ACL_TCP_ACCEPT,
-	CCS_NETWORK_ACL_RAW_BIND,
-	CCS_NETWORK_ACL_RAW_CONNECT
+	CCS_NETWORK_UDP_BIND,
+	CCS_NETWORK_UDP_CONNECT,
+	CCS_NETWORK_TCP_BIND,
+	CCS_NETWORK_TCP_LISTEN,
+	CCS_NETWORK_TCP_CONNECT,
+	CCS_NETWORK_TCP_ACCEPT,
+	CCS_NETWORK_RAW_BIND,
+	CCS_NETWORK_RAW_CONNECT
 };
 
 /**
@@ -132,28 +132,28 @@ const char *ccs_net2keyword(const u8 operation)
 {
 	const char *keyword = "unknown";
 	switch (operation) {
-	case CCS_NETWORK_ACL_UDP_BIND:
+	case CCS_NETWORK_UDP_BIND:
 		keyword = "UDP bind";
 		break;
-	case CCS_NETWORK_ACL_UDP_CONNECT:
+	case CCS_NETWORK_UDP_CONNECT:
 		keyword = "UDP connect";
 		break;
-	case CCS_NETWORK_ACL_TCP_BIND:
+	case CCS_NETWORK_TCP_BIND:
 		keyword = "TCP bind";
 		break;
-	case CCS_NETWORK_ACL_TCP_LISTEN:
+	case CCS_NETWORK_TCP_LISTEN:
 		keyword = "TCP listen";
 		break;
-	case CCS_NETWORK_ACL_TCP_CONNECT:
+	case CCS_NETWORK_TCP_CONNECT:
 		keyword = "TCP connect";
 		break;
-	case CCS_NETWORK_ACL_TCP_ACCEPT:
+	case CCS_NETWORK_TCP_ACCEPT:
 		keyword = "TCP accept";
 		break;
-	case CCS_NETWORK_ACL_RAW_BIND:
+	case CCS_NETWORK_RAW_BIND:
 		keyword = "RAW bind";
 		break;
-	case CCS_NETWORK_ACL_RAW_CONNECT:
+	case CCS_NETWORK_RAW_CONNECT:
 		keyword = "RAW connect";
 		break;
 	}
@@ -185,16 +185,16 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	char buf[64];
 	ccs_check_read_lock();
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NETWORK))
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_NETWORK))
 		return 0;
 	is_enforce = (r.mode == 3);
  retry:
 	error = -EPERM;
 	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_ip_network_acl_record *acl;
+		struct ccs_ip_network_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_IP_NETWORK_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_ip_network_acl_record, head);
+		acl = container_of(ptr, struct ccs_ip_network_acl, head);
 		if (acl->operation_type != operation)
 			continue;
 		if (!ccs_compare_number_union(port, &acl->port) ||
@@ -257,7 +257,7 @@ static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
 }
 
 /**
- * ccs_write_network_policy - Write "struct ccs_ip_network_acl_record" list.
+ * ccs_write_network_policy - Write "struct ccs_ip_network_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -270,9 +270,9 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     struct ccs_condition *condition,
 			     const bool is_delete)
 {
-	struct ccs_ip_network_acl_record *entry = NULL;
+	struct ccs_ip_network_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_ip_network_acl_record e = {
+	struct ccs_ip_network_acl e = {
 		.head.type = CCS_TYPE_IP_NETWORK_ACL,
 		.head.cond = condition,
 	};
@@ -294,31 +294,31 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	if (!strcmp(w[1], "bind"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = CCS_NETWORK_ACL_TCP_BIND;
+			e.operation_type = CCS_NETWORK_TCP_BIND;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = CCS_NETWORK_ACL_UDP_BIND;
+			e.operation_type = CCS_NETWORK_UDP_BIND;
 			break;
 		default:
-			e.operation_type = CCS_NETWORK_ACL_RAW_BIND;
+			e.operation_type = CCS_NETWORK_RAW_BIND;
 			break;
 		}
 	else if (!strcmp(w[1], "connect"))
 		switch (sock_type) {
 		case SOCK_STREAM:
-			e.operation_type = CCS_NETWORK_ACL_TCP_CONNECT;
+			e.operation_type = CCS_NETWORK_TCP_CONNECT;
 			break;
 		case SOCK_DGRAM:
-			e.operation_type = CCS_NETWORK_ACL_UDP_CONNECT;
+			e.operation_type = CCS_NETWORK_UDP_CONNECT;
 			break;
 		default:
-			e.operation_type = CCS_NETWORK_ACL_RAW_CONNECT;
+			e.operation_type = CCS_NETWORK_RAW_CONNECT;
 			break;
 		}
 	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
-		e.operation_type = CCS_NETWORK_ACL_TCP_LISTEN;
+		e.operation_type = CCS_NETWORK_TCP_LISTEN;
 	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
-		e.operation_type = CCS_NETWORK_ACL_TCP_ACCEPT;
+		e.operation_type = CCS_NETWORK_TCP_ACCEPT;
 	else
 		return -EINVAL;
 	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
@@ -352,8 +352,8 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_ip_network_acl_record *acl =
-			container_of(ptr, struct ccs_ip_network_acl_record,
+		struct ccs_ip_network_acl *acl =
+			container_of(ptr, struct ccs_ip_network_acl,
 				     head);
 		if (ptr->type != CCS_TYPE_IP_NETWORK_ACL ||
 		    ptr->cond != condition ||
@@ -395,7 +395,7 @@ static inline int ccs_check_network_listen_acl(const bool is_ipv6,
 					       const u8 *address,
 					       const u16 port)
 {
-	return ccs_check_network_entry(is_ipv6, CCS_NETWORK_ACL_TCP_LISTEN,
+	return ccs_check_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN,
 				       (const u32 *) address, ntohs(port));
 }
 
@@ -417,13 +417,13 @@ static inline int ccs_check_network_connect_acl(const bool is_ipv6,
 	u8 operation;
 	switch (sock_type) {
 	case SOCK_STREAM:
-		operation = CCS_NETWORK_ACL_TCP_CONNECT;
+		operation = CCS_NETWORK_TCP_CONNECT;
 		break;
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_ACL_UDP_CONNECT;
+		operation = CCS_NETWORK_UDP_CONNECT;
 		break;
 	default:
-		operation = CCS_NETWORK_ACL_RAW_CONNECT;
+		operation = CCS_NETWORK_RAW_CONNECT;
 	}
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
@@ -445,13 +445,13 @@ static int ccs_check_network_bind_acl(const bool is_ipv6, const int sock_type,
 	u8 operation;
 	switch (sock_type) {
 	case SOCK_STREAM:
-		operation = CCS_NETWORK_ACL_TCP_BIND;
+		operation = CCS_NETWORK_TCP_BIND;
 		break;
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_ACL_UDP_BIND;
+		operation = CCS_NETWORK_UDP_BIND;
 		break;
 	default:
-		operation = CCS_NETWORK_ACL_RAW_BIND;
+		operation = CCS_NETWORK_RAW_BIND;
 	}
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
@@ -472,7 +472,7 @@ static inline int ccs_check_network_accept_acl(const bool is_ipv6,
 {
 	int retval;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_check_network_entry(is_ipv6, CCS_NETWORK_ACL_TCP_ACCEPT,
+	retval = ccs_check_network_entry(is_ipv6, CCS_NETWORK_TCP_ACCEPT,
 					 (const u32 *) address, ntohs(port));
 	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
@@ -495,9 +495,9 @@ static inline int ccs_check_network_sendmsg_acl(const bool is_ipv6,
 {
 	u8 operation;
 	if (sock_type == SOCK_DGRAM)
-		operation = CCS_NETWORK_ACL_UDP_CONNECT;
+		operation = CCS_NETWORK_UDP_CONNECT;
 	else
-		operation = CCS_NETWORK_ACL_RAW_CONNECT;
+		operation = CCS_NETWORK_RAW_CONNECT;
 	return ccs_check_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
 }
@@ -520,7 +520,7 @@ static inline int ccs_check_network_recvmsg_acl(const bool is_ipv6,
 	int retval;
 	const u8 operation
 		= (sock_type == SOCK_DGRAM) ?
-		CCS_NETWORK_ACL_UDP_CONNECT : CCS_NETWORK_ACL_RAW_CONNECT;
+		CCS_NETWORK_UDP_CONNECT : CCS_NETWORK_RAW_CONNECT;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	retval = ccs_check_network_entry(is_ipv6, operation,
 					 (const u32 *) address, ntohs(port));

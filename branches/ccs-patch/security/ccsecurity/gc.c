@@ -140,17 +140,17 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 	size_t size;
 	ccs_put_condition(acl->cond);
 	switch (acl->type) {
-	case CCS_TYPE_SINGLE_PATH_ACL:
+	case CCS_TYPE_PATH_ACL:
 		{
-			struct ccs_single_path_acl_record *entry;
+			struct ccs_path_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name);
 		}
 		break;
-	case CCS_TYPE_MKDEV_ACL:
+	case CCS_TYPE_PATH_NUMBER_NUMBER_ACL:
 		{
-			struct ccs_mkdev_acl_record *entry;
+			struct ccs_path_number_number_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name);
@@ -158,9 +158,9 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			ccs_put_number_union(&entry->minor);
 		}
 		break;
-	case CCS_TYPE_DOUBLE_PATH_ACL:
+	case CCS_TYPE_PATH_PATH_ACL:
 		{
-			struct ccs_double_path_acl_record *entry;
+			struct ccs_path_path_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name1);
@@ -169,7 +169,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_IP_NETWORK_ACL:
 		{
-			struct ccs_ip_network_acl_record *entry;
+			struct ccs_ip_network_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			switch (entry->record_type) {
@@ -186,7 +186,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_PATH_NUMBER_ACL:
 		{
-			struct ccs_path_number_acl_record *entry;
+			struct ccs_path_number_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name);
@@ -195,7 +195,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_ENV_ACL:
 		{
-			struct ccs_env_acl_record *entry;
+			struct ccs_env_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name(entry->env);
@@ -203,14 +203,14 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_CAPABILITY_ACL:
 		{
-			struct ccs_capability_acl_record *entry;
+			struct ccs_capability_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 		}
 		break;
 	case CCS_TYPE_SIGNAL_ACL:
 		{
-			struct ccs_signal_acl_record *entry;
+			struct ccs_signal_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name(entry->domainname);
@@ -227,7 +227,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_MOUNT_ACL:
 		{
-			struct ccs_mount_acl_record *entry;
+			struct ccs_mount_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->dev_name);
@@ -238,7 +238,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_UMOUNT_ACL:
 		{
-			struct ccs_umount_acl_record *entry;
+			struct ccs_umount_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->dir);
@@ -246,7 +246,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_CHROOT_ACL:
 		{
-			struct ccs_chroot_acl_record *entry;
+			struct ccs_chroot_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->dir);
@@ -254,7 +254,7 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 		break;
 	case CCS_TYPE_PIVOT_ROOT_ACL:
 		{
-			struct ccs_pivot_root_acl_record *entry;
+			struct ccs_pivot_root_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->old_root);

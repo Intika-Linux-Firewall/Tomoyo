@@ -56,12 +56,11 @@ static int ccs_check_chroot_acl(struct path *path)
 	char *root_name;
 	bool is_enforce;
 	struct ccs_obj_info obj = {
-		.path1_dentry = path->dentry,
-		.path1_vfsmnt = path->mnt
+		.path1 = *path
 	};
 	ccs_check_read_lock();
 	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_NAMESPACE))
+	    !ccs_init_request_info(&r, NULL, CCS_MAC_CHROOT))
 		return 0;
 	is_enforce = (r.mode == 3);
 	r.obj = &obj;
@@ -75,11 +74,11 @@ static int ccs_check_chroot_acl(struct path *path)
 	if (dir.is_dir) {
 		struct ccs_acl_info *ptr;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-			struct ccs_chroot_acl_record *acl;
+			struct ccs_chroot_acl *acl;
 			if (ptr->is_deleted ||
 			    ptr->type != CCS_TYPE_CHROOT_ACL)
 				continue;
-			acl = container_of(ptr, struct ccs_chroot_acl_record,
+			acl = container_of(ptr, struct ccs_chroot_acl,
 					   head);
 			if (!ccs_compare_name_union(&dir, &acl->dir) ||
 			    !ccs_check_condition(&r, ptr))
@@ -130,7 +129,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 }
 
 /**
- * ccs_write_chroot_policy - Write "struct ccs_chroot_acl_record" list.
+ * ccs_write_chroot_policy - Write "struct ccs_chroot_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -143,9 +142,9 @@ int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	struct ccs_chroot_acl_record *entry = NULL;
+	struct ccs_chroot_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
-	struct ccs_chroot_acl_record e = {
+	struct ccs_chroot_acl e = {
 		.head.type = CCS_TYPE_CHROOT_ACL,
 		.head.cond = condition
 	};
@@ -158,8 +157,8 @@ int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_chroot_acl_record *acl =
-			container_of(ptr, struct ccs_chroot_acl_record, head);
+		struct ccs_chroot_acl *acl =
+			container_of(ptr, struct ccs_chroot_acl, head);
 		if (ptr->type != CCS_TYPE_CHROOT_ACL || ptr->cond != condition
 		    || memcmp(&acl->dir, &e.dir, sizeof(e.dir)))
 			continue;

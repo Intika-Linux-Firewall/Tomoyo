@@ -91,9 +91,8 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 #endif
 	if (!namespace || !ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_FOR_CAPABILITY) ||
-	    !ccs_profile_ptr[r.profile]->
-	    enabled_capabilities[CCS_CONCEAL_MOUNT])
+	    !ccs_init_request_info(&r, NULL,
+				   CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT))
 		return 0;
 	found = false;
 	list_for_each(p, &namespace->list) {
