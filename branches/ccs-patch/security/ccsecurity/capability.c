@@ -212,6 +212,8 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
  */
 int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr)
 {
+	if (attr->ia_valid & ATTR_FORCE)
+		return 0;
 	if ((attr->ia_valid & ATTR_MODE) && !ccs_capable(CCS_SYS_CHMOD))
 		return -EPERM;
 	if ((attr->ia_valid & (ATTR_UID | ATTR_GID)) &&
