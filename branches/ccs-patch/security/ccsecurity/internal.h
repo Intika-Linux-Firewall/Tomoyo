@@ -10,8 +10,34 @@
  *
  */
 
-#ifndef _LINUX_CCS_COMMON_H
-#define _LINUX_CCS_COMMON_H
+#ifndef _SECURITY_CCSECURITY_INTERNAL_H
+#define _SECURITY_CCSECURITY_INTERNAL_H
+
+#include <linux/string.h>
+#include <linux/mm.h>
+#include <linux/utime.h>
+#include <linux/file.h>
+#include <linux/smp_lock.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/slab.h>
+#include <linux/poll.h>
+#include <linux/binfmts.h>
+#include <asm/uaccess.h>
+#include <stdarg.h>
+#include <linux/delay.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#include <linux/kmod.h>
+#include <asm/hardirq.h>
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
+#include <asm/hardirq.h>
+#else
+#include <linux/hardirq.h>
+#endif
+#include <linux/in6.h>
+#include <linux/ccsecurity.h>
+#include "compat.h"
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
@@ -291,38 +317,11 @@ enum ccs_conditions_index {
 #define CCS_TASK_IS_EXECUTE_HANDLER      64
 #define CCS_TASK_IS_POLICY_MANAGER      128
 
-#include <linux/string.h>
-#include <linux/mm.h>
-#include <linux/utime.h>
-#include <linux/file.h>
-#include <linux/smp_lock.h>
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/slab.h>
-#include <linux/poll.h>
-#include <linux/binfmts.h>
-#include <asm/uaccess.h>
-#include <stdarg.h>
-#include <linux/delay.h>
-#include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#include <linux/kmod.h>
-#include <asm/hardirq.h>
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
-#include <asm/hardirq.h>
-#else
-#include <linux/hardirq.h>
-#endif
-#include <linux/in6.h>
-#include <linux/ccsecurity.h>
-
 struct dentry;
 struct vfsmount;
 struct in6_addr;
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
-
-#include "compat.h"
 
 /**
  * list_for_each_cookie - iterate over a list with cookie.

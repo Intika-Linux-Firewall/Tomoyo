@@ -852,7 +852,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 	dput(dentry);
 
-	if (!obj->path2_vfsmnt)
+	if (!obj->path2.mnt)
 		return;
 
 	/* Get information on "path2". */
