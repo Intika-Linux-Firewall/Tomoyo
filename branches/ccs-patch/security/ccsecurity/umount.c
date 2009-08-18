@@ -32,7 +32,7 @@ static int ccs_audit_umount_log(struct ccs_request_info *r,
 				const char *dir, const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "SAKURA-%s: umount %s denied for %s\n",
+		printk(KERN_WARNING "%s: umount %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), dir,
 		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_UNMOUNT

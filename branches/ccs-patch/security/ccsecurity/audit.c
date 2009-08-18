@@ -241,27 +241,8 @@ static LIST_HEAD(ccs_grant_log);
 /* The list for "struct ccs_log_entry". */
 static LIST_HEAD(ccs_reject_log);
 
-static int ccs_grant_log_count;
-static int ccs_reject_log_count;
-
-/**
- * ccs_can_save_audit_log - Check whether the kernel can save new audit log.
- *
- * @domain:     Pointer to "struct ccs_domain_info".
- *              NULL for ccs_current_domain().
- * @is_granted: True if this is a granted log.
- *
- * Returns true if the kernel can save, false otherwise.
- */
-static bool ccs_can_save_audit_log(const struct ccs_domain_info *domain,
-				   const bool is_granted)
-{
-	if (is_granted)
-		return ccs_grant_log_count
-			< ccs_check_flags(domain, CCS_MAX_GRANT_LOG);
-	return ccs_reject_log_count
-		< ccs_check_flags(domain, CCS_MAX_REJECT_LOG);
-}
+static unsigned int ccs_grant_log_count;
+static unsigned int ccs_reject_log_count;
 
 /**
  * ccs_write_audit_log - Write audit log.
@@ -284,7 +265,16 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	bool quota_exceeded = false;
 	if (!r->domain)
 		r->domain = ccs_current_domain();
-	if (!ccs_can_save_audit_log(r->domain, is_granted))
+	if (is_granted) {
+		if (ccs_grant_log_count >=
+		    ccs_check_flags(r->domain, CCS_MAX_GRANT_LOG))
+			goto out;
+	} else {
+		if (ccs_reject_log_count >=
+		    ccs_check_flags(r->domain, CCS_MAX_REJECT_LOG))
+		    goto out;
+	}
+	if (ccs_profile_ptr[r->profile]->dont_audit[is_granted][r->type])
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;

@@ -25,7 +25,7 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 			     const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Environ %s denied for %s\n",
+		printk(KERN_WARNING "%s: Environ %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), env,
 		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",

@@ -78,7 +78,7 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
 				    const u8 operation, const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: %s denied for %s\n",
+		printk(KERN_WARNING "%s: %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), ccs_cap2name(operation),
 		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY

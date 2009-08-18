@@ -67,25 +67,22 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 		const char *msg = ccs_get_msg(is_enforce);
 		const char *domainname = ccs_get_last_name(r->domain);
 		if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
-			printk(KERN_WARNING
-			       "SAKURA-%s: mount -o remount %s 0x%lX "
+			printk(KERN_WARNING "%s: mount -o remount %s 0x%lX "
 			       "denied for %s.\n", msg, dir_name, flags,
 			       domainname);
 		else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
 			 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
-			printk(KERN_WARNING "SAKURA-%s: mount %s %s %s 0x%lX "
+			printk(KERN_WARNING "%s: mount %s %s %s 0x%lX "
 			       "denied for %s\n", msg, type, dev_name,
 			       dir_name, flags, domainname);
 		else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-			printk(KERN_WARNING
-			       "SAKURA-%s: mount %s %s 0x%lX denied for %s\n",
-			       msg, type, dir_name, flags, domainname);
+			printk(KERN_WARNING "%s: mount %s %s 0x%lX denied for "
+			       "%s\n", msg, type, dir_name, flags, domainname);
 		else
-			printk(KERN_WARNING
-			       "SAKURA-%s: mount -t %s %s %s 0x%lX "
+			printk(KERN_WARNING "%s: mount -t %s %s %s 0x%lX "
 			       "denied for %s\n", msg, type, dev_name,
 			       dir_name, flags, domainname);
 	}
@@ -277,7 +274,7 @@ static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
 	case 0:
 		break;
 	default:
-		printk(KERN_WARNING "SAKURA-ERROR: "
+		printk(KERN_WARNING "ERROR: "
 		       "%s%s%sare given for single mount operation.\n",
 		       flags & MS_REMOUNT ? "'remount' " : "",
 		       flags & MS_MOVE    ? "'move' " : "",
@@ -292,7 +289,7 @@ static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
 	case 0:
 		break;
 	default:
-		printk(KERN_WARNING "SAKURA-ERROR: "
+		printk(KERN_WARNING "ERROR: "
 		       "%s%s%s%sare given for single mount operation.\n",
 		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
 		       flags & MS_PRIVATE    ? "'private' " : "",

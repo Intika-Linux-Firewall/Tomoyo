@@ -17,42 +17,6 @@ DEFINE_MUTEX(ccs_policy_lock);
 /* Has /sbin/init started? */
 bool ccs_policy_loaded;
 
-/* Capability name used by domain policy. */
-const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX] = {
-	[CCS_INET_STREAM_SOCKET_CREATE]  = "inet_tcp_create",
-	[CCS_INET_STREAM_SOCKET_LISTEN]  = "inet_tcp_listen",
-	[CCS_INET_STREAM_SOCKET_CONNECT] = "inet_tcp_connect",
-	[CCS_USE_INET_DGRAM_SOCKET]      = "use_inet_udp",
-	[CCS_USE_INET_RAW_SOCKET]        = "use_inet_ip",
-	[CCS_USE_ROUTE_SOCKET]           = "use_route",
-	[CCS_USE_PACKET_SOCKET]          = "use_packet",
-	[CCS_SYS_MOUNT]                  = "SYS_MOUNT",
-	[CCS_SYS_UMOUNT]                 = "SYS_UMOUNT",
-	[CCS_SYS_REBOOT]                 = "SYS_REBOOT",
-	[CCS_SYS_CHROOT]                 = "SYS_CHROOT",
-	[CCS_SYS_KILL]                   = "SYS_KILL",
-	[CCS_SYS_VHANGUP]                = "SYS_VHANGUP",
-	[CCS_SYS_SETTIME]                = "SYS_TIME",
-	[CCS_SYS_NICE]                   = "SYS_NICE",
-	[CCS_SYS_SETHOSTNAME]            = "SYS_SETHOSTNAME",
-	[CCS_USE_KERNEL_MODULE]          = "use_kernel_module",
-	[CCS_CREATE_FIFO]                = "create_fifo",
-	[CCS_CREATE_BLOCK_DEV]           = "create_block_dev",
-	[CCS_CREATE_CHAR_DEV]            = "create_char_dev",
-	[CCS_CREATE_UNIX_SOCKET]         = "create_unix_socket",
-	[CCS_SYS_LINK]                   = "SYS_LINK",
-	[CCS_SYS_SYMLINK]                = "SYS_SYMLINK",
-	[CCS_SYS_RENAME]                 = "SYS_RENAME",
-	[CCS_SYS_UNLINK]                 = "SYS_UNLINK",
-	[CCS_SYS_CHMOD]                  = "SYS_CHMOD",
-	[CCS_SYS_CHOWN]                  = "SYS_CHOWN",
-	[CCS_SYS_IOCTL]                  = "SYS_IOCTL",
-	[CCS_SYS_KEXEC_LOAD]             = "SYS_KEXEC_LOAD",
-	[CCS_SYS_PIVOT_ROOT]             = "SYS_PIVOT_ROOT",
-	[CCS_SYS_PTRACE]                 = "SYS_PTRACE",
-	[CCS_CONCEAL_MOUNT]              = "conceal_mount",
-};
-
 /* Profile table. Memory is allocated as needed. */
 struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
@@ -907,19 +871,6 @@ unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
 }
 
 /**
- * ccs_cap2keyword - Convert capability operation to capability name.
- *
- * @operation: The capability index.
- *
- * Returns the name of the specified capability's name.
- */
-const char *ccs_cap2keyword(const u8 operation)
-{
-	return operation < CCS_MAX_CAPABILITY_INDEX
-		? ccs_capability_list[operation] : NULL;
-}
-
-/**
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
  * @r:      Pointer to "struct ccs_request_info" to initialize.
@@ -936,13 +887,11 @@ int ccs_init_request_info(struct ccs_request_info *r,
 		domain = ccs_current_domain();
 	r->domain = domain;
 	r->profile = domain->profile;
+	r->type = index;
 	if (!ccs_policy_loaded || !ccs_profile_ptr[r->profile])
 		r->mode = 0;
-	else if (index < CCS_MAX_MAC_INDEX)
-		r->mode = ccs_profile_ptr[r->profile]->mac_mode[index];
 	else
-		r->mode = ccs_profile_ptr[r->profile]->
-			mac_capability_mode[index - CCS_MAX_MAC_INDEX];
+		r->mode = ccs_profile_ptr[r->profile]->mac_mode[index];
 	return r->mode;
 }
 
@@ -1034,7 +983,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
-		printk(KERN_WARNING "TOMOYO-WARNING: "
+		printk(KERN_WARNING "WARNING: "
 		       "Domain '%s' has so many ACLs to hold. "
 		       "Stopped learning mode.\n", domain->domainname->name);
 	}

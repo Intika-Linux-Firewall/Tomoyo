@@ -228,7 +228,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
 				     const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied "
+		printk(KERN_WARNING "%s: Access '%s %s' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
 		       filename, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s\n", operation,
@@ -253,7 +253,7 @@ static int ccs_audit_path_path_log(struct ccs_request_info *r,
 				     const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
+		printk(KERN_WARNING "%s: Access '%s %s %s' "
 		       "denied for %s\n", ccs_get_msg(r->mode == 3),
 		       operation, filename1, filename2,
 		       ccs_get_last_name(r->domain));
@@ -279,7 +279,7 @@ static int ccs_audit_path_number_number_log(struct ccs_request_info *r,
 			       const unsigned int minor, const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %u %u' denied "
+		printk(KERN_WARNING "%s: Access '%s %s %u %u' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
 		       filename, major, minor, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %u %u\n",
@@ -303,7 +303,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 				     const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' denied "
+		printk(KERN_WARNING "%s: Access '%s %s %s' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
 		       filename, value, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",

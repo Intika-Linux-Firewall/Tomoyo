@@ -35,7 +35,7 @@ static int ccs_audit_network_log(struct ccs_request_info *r,
 				 const u16 port, const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "TOMOYO-%s: %s to %s %u denied for %s\n",
+		printk(KERN_WARNING "%s: %s to %s %u denied for %s\n",
 		       ccs_get_msg(r->mode == 3), operation, address, port,
 		       ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_NETWORK

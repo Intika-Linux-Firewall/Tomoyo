@@ -25,12 +25,12 @@ static const char *ccs_keyword_mode[4] = {
 	"MAC_MODE_PERMISSIVE", "MAC_MODE_ENFORCING"
 };
 
-static const char *ccs_keyword_capability_mode[4] = {
-	"MAC_MODE_CAPABILITY_DISABLED", "MAC_MODE_CAPABILITY_LEARNING",
-	"MAC_MODE_CAPABILITY_PERMISSIVE", "MAC_MODE_CAPABILITY_ENFORCING"
+static const char *ccs_keyword_audit[2] = {
+	"NO_AUDIT_GRANT_LOG", "NO_AUDIT_REJECT_LOG"
 };
 
-static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
+static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
+				    CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_MAC_EXECUTE]    = "execute",
 	[CCS_MAC_OPEN]       = "open",
 	[CCS_MAC_CREATE]     = "create",
@@ -56,7 +56,42 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
 	[CCS_MAC_ENVIRON]    = "env",
 	[CCS_MAC_NETWORK]    = "network",
-	[CCS_MAC_SIGNAL]     = "signal"
+	[CCS_MAC_SIGNAL]     = "signal",
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CREATE]
+	= "inet_tcp_create",
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_LISTEN]
+	= "inet_tcp_listen",
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CONNECT]
+	= "inet_tcp_connect",
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_DGRAM_SOCKET] = "use_inet_udp",
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_RAW_SOCKET]   = "use_inet_ip",
+	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]      = "use_route",
+	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]     = "use_packet",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_MOUNT]             = "SYS_MOUNT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UMOUNT]            = "SYS_UMOUNT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]            = "SYS_REBOOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHROOT]            = "SYS_CHROOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KILL]              = "SYS_KILL",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]           = "SYS_VHANGUP",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]           = "SYS_TIME",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]              = "SYS_NICE",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]       = "SYS_SETHOSTNAME",
+	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]     = "use_kernel_module",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_FIFO]           = "create_fifo",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_BLOCK_DEV]      = "create_block_dev",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_CHAR_DEV]       = "create_char_dev",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]    = "create_unix_socket",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_LINK]              = "SYS_LINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SYMLINK]           = "SYS_SYMLINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_RENAME]            = "SYS_RENAME",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UNLINK]            = "SYS_UNLINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHMOD]             = "SYS_CHMOD",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHOWN]             = "SYS_CHOWN",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_IOCTL]             = "SYS_IOCTL",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]        = "SYS_KEXEC_LOAD",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PIVOT_ROOT]        = "SYS_PIVOT_ROOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]            = "SYS_PTRACE",
+	[CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT]         = "conceal_mount"
 };
 
 /* Table for profile. */
@@ -67,7 +102,6 @@ static struct {
 } ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
 	[CCS_AUTOLEARN_EXEC_REALPATH] = { "AUTOLEARN_EXEC_REALPATH", 0, 1 },
 	[CCS_AUTOLEARN_EXEC_ARGV0] = { "AUTOLEARN_EXEC_ARGV0", 0, 1 },
-	[CCS_RESTRICT_AUTOBIND]   = { "RESTRICT_AUTOBIND",   0, 1 },
 	[CCS_MAX_ACCEPT_ENTRY]
 	= { "MAX_ACCEPT_ENTRY", CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY, INT_MAX },
 #ifdef CONFIG_CCSECURITY_AUDIT
@@ -76,13 +110,25 @@ static struct {
 	[CCS_MAX_REJECT_LOG]
 	= { "MAX_REJECT_LOG", CONFIG_CCSECURITY_MAX_REJECT_LOG, INT_MAX },
 #endif
-	[CCS_VERBOSE]             = { "TOMOYO_VERBOSE",      1, 1 },
-	[CCS_SLEEP_PERIOD]
-	= { "SLEEP_PERIOD",        0, 3000 }, /* in 0.1 second */
+	[CCS_VERBOSE] = { "PRINT_VIOLATION",      1, 1 },
+	[CCS_SLEEP_PERIOD] = { "SLEEP_PERIOD", 0, 3000 }, /* in 0.1 second */
 };
 
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
+
+/**
+ * ccs_cap2keyword - Convert capability operation to capability name.
+ *
+ * @operation: The capability index.
+ *
+ * Returns the name of the specified capability's name.
+ */
+const char *ccs_cap2keyword(const u8 operation)
+{
+	return operation < CCS_MAX_CAPABILITY_INDEX
+		? ccs_mac_keywords[CCS_MAX_MAC_INDEX + operation] : NULL;
+}
 
 /**
  * ccs_quiet_setup - Set CCS_VERBOSE=0 by default.
@@ -160,6 +206,25 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	return ptr;
 }
 
+static int ccs_find_match(char *str)
+{
+	int i;
+	if (ccs_str_starts(&str, CCS_KEYWORD_CAPABILITY))
+		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+			if (strcmp(str,
+				   ccs_mac_keywords[CCS_MAX_MAC_INDEX + i]))
+				continue;
+			return CCS_MAX_MAC_INDEX + i;
+		}
+	else
+		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
+			if (strcmp(str, ccs_mac_keywords[i]))
+				continue;
+			return i;
+		}
+	return -1;
+}
+
 /**
  * ccs_write_profile - Write profile table.
  *
@@ -207,33 +272,33 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			continue;
 		cp++;
 		while (1) {
+			int index;
 			char *cp2 = strchr(cp, ' ');
 			if (cp2)
 				*cp2 = '\0';
-			for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
-				if (strcmp(cp, ccs_mac_keywords[i]))
-					continue;
-				ccs_profile->mac_mode[i] = mode;
-			}
+			index = ccs_find_match(cp);
+			if (index >= 0)
+				ccs_profile->mac_mode[index] = mode;
 			if (!cp2)
 				break;
 			cp = cp2 + 1;
 		}
 		return 0;
 	}
-	for (mode = 0; mode < 4; mode++) {
-		if (strcmp(data, ccs_keyword_capability_mode[mode]))
+	for (mode = 0; mode < 2; mode++) {
+		if (strcmp(data, ccs_keyword_audit[mode]))
 			continue;
+		memset(ccs_profile->dont_audit[mode], 0,
+		       sizeof(ccs_profile->dont_audit[mode]));
 		cp++;
 		while (1) {
+			int index;
 			char *cp2 = strchr(cp, ' ');
 			if (cp2)
 				*cp2 = '\0';
-			for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-				if (strcmp(cp, ccs_capability_list[i]))
-					continue;
-				ccs_profile->mac_capability_mode[i] = mode;
-			}
+			index = ccs_find_match(cp);
+			if (index >= 0)
+				ccs_profile->dont_audit[mode][index] = true;
 			if (!cp2)
 				break;
 			cp = cp2 + 1;
@@ -269,12 +334,17 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 	int mode;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
 	for (mode = 0; mode < 4; mode++) {
-		if (!ccs_io_printf(head, "%u-%s={", index, ccs_keyword_mode[mode]))
+		if (!ccs_io_printf(head, "%u-%s={", index,
+				   ccs_keyword_mode[mode]))
 			goto out;
-		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
+		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX;
+		     i++) {
 			if (ccs_profile->mac_mode[i] != mode)
 				continue;
-			if (!ccs_io_printf(head, " %s", ccs_mac_keywords[i]))
+			if (!ccs_io_printf(head, " %s%s",
+					   i >= CCS_MAX_MAC_INDEX ?
+					   CCS_KEYWORD_CAPABILITY : "",
+					   ccs_mac_keywords[i]))
 				goto out;
 		}
 		if (!ccs_io_printf(head, " }\n"))
@@ -286,19 +356,24 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 	return false;
 }
 
-static bool ccs_print_capability_mode(struct ccs_io_buffer *head, u8 index)
+static bool ccs_print_audit_mode(struct ccs_io_buffer *head, u8 index)
 {
 	const int pos = head->read_avail;
 	int i;
 	int mode;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	for (mode = 0; mode < 4; mode++) {
-		if (!ccs_io_printf(head, "%u-%s={", index, ccs_keyword_capability_mode[mode]))
+	for (mode = 0; mode < 2; mode++) {
+		if (!ccs_io_printf(head, "%u-%s={", index,
+				   ccs_keyword_audit[mode]))
 			goto out;
-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-			if (ccs_profile->mac_capability_mode[i] != mode)
+		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX;
+		     i++) {
+			if (!ccs_profile->dont_audit[mode][i])
 				continue;
-			if (!ccs_io_printf(head, " %s", ccs_capability_list[i]))
+			if (!ccs_io_printf(head, " %s%s",
+					   i >= CCS_MAX_MAC_INDEX ?
+					   CCS_KEYWORD_CAPABILITY : "",
+					   ccs_mac_keywords[i]))
 				goto out;
 		}
 		if (!ccs_io_printf(head, " }\n"))
@@ -348,7 +423,7 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 				break;
 			continue;
 		} else if (type == 2) {
-			if (!ccs_print_capability_mode(head, index))
+			if (!ccs_print_audit_mode(head, index))
 				break;
 			continue;
 		}

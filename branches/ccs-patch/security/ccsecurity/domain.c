@@ -693,7 +693,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		ccs_audit_domain_creation_log(r->domain);
  done:
 	if (!domain) {
-		printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
+		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
 		       new_domain_name);
 		if (is_enforce)
 			retval = -EPERM;

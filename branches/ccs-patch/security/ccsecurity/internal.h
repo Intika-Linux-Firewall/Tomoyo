@@ -98,7 +98,6 @@ enum ccs_ip_address_type {
 enum ccs_profile_index {
 	CCS_AUTOLEARN_EXEC_REALPATH,
 	CCS_AUTOLEARN_EXEC_ARGV0,
-	CCS_RESTRICT_AUTOBIND,
 	CCS_MAX_ACCEPT_ENTRY,
 #ifdef CONFIG_CCSECURITY_AUDIT
 	CCS_MAX_GRANT_LOG,
@@ -261,6 +260,7 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
+#define CCS_KEYWORD_CAPABILITY                "capability::"
 
 /* A domain definition starts with <kernel>. */
 #define ROOT_NAME                         "<kernel>"
@@ -485,9 +485,10 @@ struct ccs_request_info {
 	struct ccs_obj_info *obj;
 	struct ccs_execve_entry *ee;
 	struct ccs_condition *cond;
-	u16 retry;
+	u8 retry;
 	u8 profile;
 	u8 mode;
+	u8 type;
 };
 
 /* Structure for holding a token. */
@@ -1006,12 +1007,10 @@ extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
-	u8 mac_mode[CCS_MAX_MAC_INDEX];
-	u8 mac_capability_mode[CCS_MAX_CAPABILITY_INDEX];
+	u8 mac_mode[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+	bool dont_audit[2][CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
 };
 extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
-
-extern const char *ccs_capability_list[CCS_MAX_CAPABILITY_INDEX];
 
 extern unsigned int ccs_audit_log_memory_size;
 extern unsigned int ccs_quota_for_audit_log;

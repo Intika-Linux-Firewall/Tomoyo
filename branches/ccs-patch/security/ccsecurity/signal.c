@@ -32,7 +32,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 		else
 			dest = dest_domain;
 		printk(KERN_WARNING
-		       "TOMOYO-%s: Signal %d to %s denied for %s\n",
+		       "%s: Signal %d to %s denied for %s\n",
 		       ccs_get_msg(r->mode == 3), signal, dest,
 		       ccs_get_last_name(r->domain));
 	}

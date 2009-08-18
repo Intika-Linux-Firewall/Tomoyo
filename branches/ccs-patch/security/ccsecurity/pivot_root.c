@@ -34,7 +34,7 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 				    const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "SAKURA-%s: pivot_root %s %s "
+		printk(KERN_WARNING "%s: pivot_root %s %s "
 		       "denied for %s\n", ccs_get_msg(r->mode == 3), new_root,
 		       old_root, ccs_get_last_name(r->domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_PIVOT_ROOT

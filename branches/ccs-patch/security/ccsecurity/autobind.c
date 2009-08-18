@@ -82,8 +82,6 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 bool ccs_lport_reserved(const u16 port)
 {
 	/***** CRITICAL SECTION START *****/
-	if (!ccs_check_flags(NULL, CCS_RESTRICT_AUTOBIND))
-		return false;
 	return ccs_reserved_port_map[port >> 8] & (1 << (port & 7))
 		? true : false;
 	/***** CRITICAL SECTION END *****/

@@ -177,8 +177,7 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "SAKURA: 1.7.0-pre   2009/08/08\n");
-	printk(KERN_INFO "TOMOYO: 1.7.0-pre   2009/08/08\n");
+	printk(KERN_INFO "CCSecurity: 1.7.0-pre   2009/08/18\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;
 	{ /* Check all profiles currently assigned to domains are defined. */
