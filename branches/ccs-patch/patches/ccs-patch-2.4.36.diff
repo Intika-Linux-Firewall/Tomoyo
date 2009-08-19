@@ -475,15 +475,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
 +source security/ccsecurity/Config.in
 --- linux-2.4.36.9.orig/fs/Makefile
 +++ linux-2.4.36.9/fs/Makefile
-@@ -77,6 +77,8 @@ obj-y				+= binfmt_script.o
- 
- obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
-+
+@@ -80,5 +80,7 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
++subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
++obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
+ 
+ include $(TOPDIR)/Rules.make
 --- linux-2.4.36.9.orig/fs/attr.c
 +++ linux-2.4.36.9/fs/attr.c
 @@ -12,6 +12,7 @@

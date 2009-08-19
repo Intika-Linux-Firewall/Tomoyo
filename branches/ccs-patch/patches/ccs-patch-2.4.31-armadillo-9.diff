@@ -637,15 +637,14 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
 +source security/ccsecurity/Config.in
 --- linux-2.4.31-a9-3.orig/fs/Makefile
 +++ linux-2.4.31-a9-3/fs/Makefile
-@@ -79,6 +79,8 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- obj-$(CONFIG_BINFMT_ELF_FDPIC)	+= binfmt_elf_fdpic.o
- obj-$(CONFIG_BINFMT_FLAT)	+= binfmt_flat.o
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
-+
+@@ -82,5 +82,7 @@ obj-$(CONFIG_BINFMT_FLAT)	+= binfmt_flat
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
++subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
++obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
+ 
+ include $(TOPDIR)/Rules.make
 --- linux-2.4.31-a9-3.orig/fs/attr.c
 +++ linux-2.4.31-a9-3/fs/attr.c
 @@ -12,6 +12,7 @@

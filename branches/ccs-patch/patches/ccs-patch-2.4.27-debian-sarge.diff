@@ -475,15 +475,14 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +source security/ccsecurity/Config.in
 --- linux-2.4.27-10sarge7.orig/fs/Makefile
 +++ linux-2.4.27-10sarge7/fs/Makefile
-@@ -81,6 +81,8 @@ export-objs += mbcache.o posix_acl.o xat
- obj-$(CONFIG_FS_MBCACHE)	+= mbcache.o
- obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.o xattr_acl.o
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
-+
+@@ -84,5 +84,7 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
++subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
++obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
+ 
+ include $(TOPDIR)/Rules.make
 --- linux-2.4.27-10sarge7.orig/fs/attr.c
 +++ linux-2.4.27-10sarge7/fs/attr.c
 @@ -12,6 +12,7 @@

@@ -455,15 +455,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
 +source security/ccsecurity/Config.in
 --- linux-2.4.20-46.9.legacy.orig/fs/Makefile
 +++ linux-2.4.20-46.9.legacy/fs/Makefile
-@@ -82,6 +82,8 @@ obj-y				+= binfmt_script.o
- 
- obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
-+
+@@ -85,5 +85,7 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
++subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
++obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
+ 
+ include $(TOPDIR)/Rules.make
 --- linux-2.4.20-46.9.legacy.orig/fs/attr.c
 +++ linux-2.4.20-46.9.legacy/fs/attr.c
 @@ -12,6 +12,7 @@

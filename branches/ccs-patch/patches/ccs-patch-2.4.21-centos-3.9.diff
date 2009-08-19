@@ -455,15 +455,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
 +source security/ccsecurity/Config.in
 --- linux-2.4.21-58.EL.orig/fs/Makefile
 +++ linux-2.4.21-58.EL/fs/Makefile
-@@ -93,6 +93,8 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
- obj-$(CONFIG_NFS_ACL)		+= solaris_acl.o
- obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ccsecurity
-+
+@@ -96,5 +96,7 @@ obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
  # persistent filesystems
  obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
  
++subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
++obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
+ 
+ include $(TOPDIR)/Rules.make
 --- linux-2.4.21-58.EL.orig/fs/attr.c
 +++ linux-2.4.21-58.EL/fs/attr.c
 @@ -12,6 +12,7 @@
