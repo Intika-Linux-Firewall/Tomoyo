@@ -473,6 +473,411 @@ static void cleanup_test_file_truncate(void)
 	set_profile(0, "truncate");
 }
 
+static void test_inet_tcp_create(void)
+{
+	int err;
+	result = socket(AF_INET, SOCK_STREAM, 0);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_inet_tcp_listen(void)
+{
+	int err;
+	int fd = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr;
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr.sin_port = htons(0);
+	bind(fd, (struct sockaddr *) &addr, sizeof(addr));
+	errno = 0;
+	result = listen(fd, 5);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_inet_tcp_connect(void)
+{
+	int err;
+	int fd1 = socket(AF_INET, SOCK_STREAM, 0);
+	int fd2 = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr;
+	socklen_t size = sizeof(addr);
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+	addr.sin_port = htons(0);
+	bind(fd1, (struct sockaddr *) &addr, sizeof(addr));
+	listen(fd1, 5);
+	getsockname(fd1, (struct sockaddr *) &addr, &size);
+	errno = 0;
+	result = connect(fd2, (struct sockaddr *) &addr, sizeof(addr));
+	err = errno;
+	close(fd1);
+	close(fd2);
+	errno = err;
+}
+
+static void test_use_inet_udp(void)
+{
+	int err;
+	result = socket(AF_INET, SOCK_DGRAM, 0);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_use_inet_ip(void)
+{
+	int err;
+	result = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_use_route(void)
+{
+	int err;
+	result = socket(AF_ROUTE, SOCK_RAW, 0);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_use_packet(void)
+{
+	int err;
+	result = socket(AF_PACKET, SOCK_RAW, 0);
+	err = errno;
+	close(result);
+	errno = err;
+}
+
+static void test_SYS_MOUNT(void)
+{
+	int err;
+	result = mount("none", "/tmp", "tmpfs", 0, NULL);
+	err = errno;
+	umount("/tmp");
+	errno = err;
+}
+
+static void test_SYS_UMOUNT(void)
+{
+	mount("none", "/tmp", "tmpfs", 0, NULL);
+	errno = 0;
+	result = umount("/tmp");
+}
+
+static void test_SYS_REBOOT(void)
+{
+	FILE *fp = fopen("/proc/sys/kernel/ctrl-alt-del", "a+");
+	unsigned int c;
+	if (fp && fscanf(fp, "%u", &c) == 1) {
+		errno = 0;
+		result = reboot(LINUX_REBOOT_CMD_CAD_ON);
+		err = errno;
+		fprintf(fp, "%u\n", c);
+	} else {
+		errno = 0;
+		result = reboot(0x0000C0DE); /* Use invalid value */
+		err = errno;
+	}
+	if (fp)
+		fclose(fp);
+	errno = err;
+}
+
+static void test_SYS_CHROOT(void)
+{
+	result = chroot("/");
+}
+
+static void test_SYS_KILL(void)
+{
+	int err;
+	signal(SIGINT, SIG_IGN);
+	errno = 0;
+	result = kill(pid, SIGINT);
+	err = errno;
+	signal(SIGINT, SIG_DFL);
+	errno = err;
+}
+
+static void test_SYS_VHANGUP(void)
+{
+	int pty_fd = EOF;
+	int status = 0;
+	int pipe_fd[2] = { EOF, EOF };
+	pipe(pipe_fd);
+	switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
+	case 0:
+		errno = 0;
+		vhangup();
+		/* Unreachable if vhangup() succeeded. */
+		status = errno;
+		write(pipe_fd[1], &status, sizeof(status));
+		_exit(0);
+	case -1:
+		status = ENOMEM;
+		break;
+	default:
+		close(pipe_fd[1]);
+		read(pipe_fd[0], &status, sizeof(status));
+		wait(NULL);
+		close(pipe_fd[0]);
+		close(pty_fd);
+	}
+	errno = status;
+	result = status ? EOF : 0;
+}
+
+static void test_SYS_TIME(void)
+{
+	time_t now = time(NULL);
+	errno = 0;
+	result = stime(&now);
+}
+
+static void test_SYS_NICE(void)
+{
+	result = nice(0);
+}
+
+static void test_SYS_SETHOSTNAME(void)
+{
+	char buffer[4096];
+	int len;
+	memset(buffer, 0, sizeof(buffer));
+	gethostname(buffer, sizeof(buffer) - 1);
+	len = strlen(buffer);
+	errno = 0;
+	result = sethostname(buffer, len);
+}
+
+static void test_use_kernel_module(void)
+{
+	result = init_module("", NULL);
+}
+
+static void test_create_fifo(void)
+{
+	int err;
+	char tmp[32];
+	strcpy(tmp, "/tmp/XXXXXX");
+	close(mkstemp(tmp));
+	unlink(tmp);
+	errno = 0;
+	result = mknod(tmp, S_IFIFO, 0);
+	err = errno;
+	unlink(tmp);
+	errno = err;
+}
+
+static void test_create_block_dev(void)
+{
+	int err;
+	char tmp[32];
+	strcpy(tmp, "/tmp/XXXXXX");
+	close(mkstemp(tmp));
+	unlink(tmp);
+	errno = 0;
+	result = mknod(tmp, S_IFBLK, MKDEV(1, 0));
+	err = errno;
+	unlink(tmp);
+	errno = err;
+}
+
+static void test_create_char_dev(void)
+{
+	int err;
+	char tmp[32];
+	strcpy(tmp, "/tmp/XXXXXX");
+	close(mkstemp(tmp));
+	unlink(tmp);
+	errno = 0;
+	result = mknod(tmp, S_IFCHR, MKDEV(1, 3));
+	err = errno;
+	unlink(tmp);
+	errno = err;
+}
+
+static void test_create_unix_socket(void)
+{
+	int err;
+	struct sockaddr_un addr;
+	char tmp[32];
+	int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	strcpy(tmp, "/tmp/XXXXXX");
+	strncpy(addr.sun_path, tmp, sizeof(addr.sun_path) - 1);
+	errno = 0;
+	result = bind(fd, (struct sockaddr *) &addr, sizeof(addr));
+	err = errno;
+	unlink(tmp);
+	close(fd);
+	errno = err;
+}
+
+static void test_SYS_LINK(void)
+{
+	int err;
+	char tmp1[32];
+	char tmp2[32];
+	strcpy(tmp1, "/tmp/link_source_XXXXXX");
+	close(mkstemp(tmp1));
+	strcpy(tmp2, "/tmp/link_target_XXXXXX");
+	errno = 0;
+	result = link(tmp1, tmp2);
+	err = errno;
+	unlink(tmp2);
+	unlink(tmp1);
+	errno = err;
+}
+
+static void test_SYS_SYMLINK(void)
+{
+	int err;
+	char tmp1[32];
+	char tmp2[32];
+	strcpy(tmp1, "/tmp/symlink_target_XXXXXX");
+	close(mkstemp(tmp1));
+	strcpy(tmp2, "/tmp/symlink_source_XXXXXX");
+	errno = 0;
+	result = symlink(tmp1, tmp2);
+	err = errno;
+	unlink(tmp2);
+	unlink(tmp1);
+	errno = err;
+}
+
+static void test_SYS_RENAME(void)
+{
+	int err;
+	char tmp1[32];
+	char tmp2[32];
+	strcpy(tmp1, "/tmp/rename_old_XXXXXX");
+	close(mkstemp(tmp1));
+	strcpy(tmp2, "/tmp/rename_new_XXXXXX");
+	errno = 0;
+	result = rename(tmp1, tmp2);
+	err = errno;
+	unlink(tmp2);
+	unlink(tmp1);
+	errno = err;
+}
+
+static void test_SYS_UNLINK(void)
+{
+	char tmp[32];
+	strcpy(tmp, "/tmp/unlinkXXXXXX");
+	close(mkstemp(tmp));
+	errno = 0;
+	result = unlink(tmp);
+}
+
+static void test_SYS_CHMOD(void)
+{
+	result = chmod("/dev/null", 0222);
+	if (!result)
+		chmod("/dev/null", 0666);
+}
+
+static void test_SYS_CHOWN(void)
+{
+	result = chown("/dev/null", 1, 1);
+	if (!result)
+		chown("/dev/null", 0, 0);
+}
+
+static void test_SYS_IOCTL(void)
+{
+	struct ifreq ifreq;
+	int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+	int err;
+	memset(&ifreq, 0, sizeof(ifreq));
+	snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name) - 1, "lo");
+	errno = 0;
+	result = ioctl(fd, 35123, &ifreq);
+	err = errno;
+	close(fd);
+	errno = err;
+}
+
+static void test_SYS_KEXEC_LOAD(void)
+{
+#ifdef __NR_sys_kexec_load
+	if (is_kernel26) {
+		result = sys_kexec_load(0, 0, NULL, 0);
+		return;
+	}
+#endif
+	errno = ENOSYS;
+	result = EOF;
+}
+
+static int child(void *arg)
+{
+	errno = 0;
+	pivot_root("/proc", "/proc/ccs");
+	return errno;
+}
+
+static void test_SYS_PIVOT_ROOT(void)
+{
+	int error;
+	char *stack = malloc(8192);
+	pid_t pid = clone(child, stack + (8192 / 2), CLONE_NEWNS, NULL);
+	while (waitpid(pid, &error, __WALL) == EOF && errno == EINTR)
+		error += 0; /* Dummy. */
+	errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
+	result = errno ? EOF : 0;
+}
+
+static void test_SYS_PTRACE(void)
+{
+	int status = 0;
+	int pipe_fd[2] = { EOF, EOF };
+	pipe(pipe_fd);
+	switch (fork()) {
+	case 0:
+		errno = 0;
+		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+		status = errno;
+		write(pipe_fd[1], &status, sizeof(status));
+		_exit(0);
+	case -1:
+		status = ENOMEM;
+		break;
+	default:
+		close(pipe_fd[1]);
+		read(pipe_fd[0], &status, sizeof(status));
+		wait(NULL);
+		close(pipe_fd[0]);
+	}
+	errno = status;
+	result = status ? EOF : 0;
+}
+
+static void test_conceal_mount(void)
+{
+	int err = 0;
+	while (umount("/tmp") == 0)
+		err += 0;
+	mount("none", "/tmp", "tmpfs", 0, NULL);
+	errno = 0;
+	result = mount("none", "/tmp", "tmpfs", 0, NULL);
+	err = errno;
+	while (umount("/tmp") == 0)
+		err += 0;
+	errno = err;
+}
+
 static struct test_struct {
 	void (*do_setup) (void);
 	void (*do_test) (void);
@@ -584,6 +989,38 @@ static struct test_struct {
 	{ setup_all_test_file, test_file_open_22, cleanup_test_file, "open", "allow_read/write /tmp/testfile22 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_22, cleanup_test_file, "truncate", "allow_truncate /tmp/testfile22 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_22, cleanup_test_file, "rewrite", "allow_rewrite /tmp/testfile22 if task.uid=path1.gid" },
+	{ NULL, test_inet_tcp_create, NULL,    "capability::inet_tcp_create",    "allow_capability inet_tcp_create" },
+	{ NULL, test_inet_tcp_listen, NULL,    "capability::inet_tcp_listen",    "allow_capability inet_tcp_listen" },
+	{ NULL, test_inet_tcp_connect, NULL,   "capability::inet_tcp_connect",   "allow_capability inet_tcp_connect" },
+	{ NULL, test_use_inet_udp, NULL,       "capability::use_inet_udp",       "allow_capability use_inet_udp" },
+	{ NULL, test_use_inet_ip, NULL,        "capability::use_inet_ip",        "allow_capability use_inet_ip" },
+	{ NULL, test_use_route, NULL,          "capability::use_route",          "allow_capability use_route" },
+	{ NULL, test_use_packet, NULL,         "capability::use_packet",         "allow_capability use_packet" },
+	{ NULL, test_SYS_MOUNT, NULL,          "capability::SYS_MOUNT",          "allow_capability SYS_MOUNT" },
+	{ NULL, test_SYS_UMOUNT, NULL,         "capability::SYS_UMOUNT",         "allow_capability SYS_UMOUNT" },
+	{ NULL, test_SYS_REBOOT, NULL,         "capability::SYS_REBOOT",         "allow_capability SYS_REBOOT" },
+	{ NULL, test_SYS_CHROOT, NULL,         "capability::SYS_CHROOT",         "allow_capability SYS_CHROOT" },
+	{ NULL, test_SYS_KILL, NULL,           "capability::SYS_KILL",           "allow_capability SYS_KILL" },
+	{ NULL, test_SYS_VHANGUP, NULL,        "capability::SYS_VHANGUP",        "allow_capability SYS_VHANGUP" },
+	{ NULL, test_SYS_TIME, NULL,           "capability::SYS_TIME",           "allow_capability SYS_TIME" },
+	{ NULL, test_SYS_NICE, NULL,           "capability::SYS_NICE",           "allow_capability SYS_NICE" },
+	{ NULL, test_SYS_SETHOSTNAME, NULL,    "capability::SYS_SETHOSTNAME",    "allow_capability SYS_SETHOSTNAME" },
+	{ NULL, test_use_kernel_module, NULL,  "capability::use_kernel_module",  "allow_capability use_kernel_module" },
+	{ NULL, test_create_fifo, NULL,        "capability::create_fifo",        "allow_capability create_fifo" },
+	{ NULL, test_create_block_dev, NULL,   "capability::create_block_dev",   "allow_capability create_block_dev" },
+	{ NULL, test_create_char_dev, NULL,    "capability::create_char_dev",    "allow_capability create_char_dev" },
+	{ NULL, test_create_unix_socket, NULL, "capability::create_unix_socket", "allow_capability create_unix_socket" },
+	{ NULL, test_SYS_LINK, NULL,           "capability::SYS_LINK",           "allow_capability SYS_LINK" },
+	{ NULL, test_SYS_SYMLINK, NULL,        "capability::SYS_SYMLINK",        "allow_capability SYS_SYMLINK" },
+	{ NULL, test_SYS_RENAME, NULL,         "capability::SYS_RENAME",         "allow_capability SYS_RENAME" },
+	{ NULL, test_SYS_UNLINK, NULL,         "capability::SYS_UNLINK",         "allow_capability SYS_UNLINK" },
+	{ NULL, test_SYS_CHMOD, NULL,          "capability::SYS_CHMOD",          "allow_capability SYS_CHMOD" },
+	{ NULL, test_SYS_CHOWN, NULL,          "capability::SYS_CHOWN",          "allow_capability SYS_CHOWN" },
+	{ NULL, test_SYS_IOCTL, NULL,          "capability::SYS_IOCTL",          "allow_capability SYS_IOCTL" },
+	{ NULL, test_SYS_KEXEC_LOAD, NULL,     "capability::SYS_KEXEC_LOAD",     "allow_capability SYS_KEXEC_LOAD" },
+	{ NULL, test_SYS_PIVOT_ROOT, NULL,     "capability::SYS_PIVOT_ROOT",     "allow_capability SYS_PIVOT_ROOT" },
+	{ NULL, test_SYS_PTRACE, NULL,         "capability::SYS_PTRACE",         "allow_capability SYS_PTRACE" },
+	{ NULL, test_conceal_mount, NULL,      "capability::conceal_mount",      "allow_capability conceal_mount" },
 	{ NULL }
 };
 

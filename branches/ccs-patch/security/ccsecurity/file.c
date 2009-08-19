@@ -1341,7 +1341,6 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 		goto out;
 	r.obj = &obj;
 	switch (operation) {
-	case CCS_TYPE_MKDIR:
 	case CCS_TYPE_RMDIR:
 		if (buf.is_dir)
 			break;
@@ -1727,6 +1726,11 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
 		goto out;
 	r.obj = &obj;
+	if (type == CCS_TYPE_MKDIR && !buf.is_dir) {
+		/* ccs_get_realpath() reserves space for appending "/". */
+		strcat((char *) buf.name, "/");
+		ccs_fill_path_info(&buf);
+	}
 	error = ccs_path_number_perm2(&r, type, &buf, number);
  out:
 	kfree(buf.name);
