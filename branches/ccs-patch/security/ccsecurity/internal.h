@@ -1007,7 +1007,8 @@ struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
 	u8 mac_mode[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
-	bool dont_audit[2][CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+	bool no_grant_log[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+	bool no_reject_log[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
 };
 extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 

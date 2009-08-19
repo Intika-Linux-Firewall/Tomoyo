@@ -20,14 +20,12 @@ static const char *ccs_mode_2[2] = {
 	"disabled", "enabled"
 };
 
-static const char *ccs_keyword_mode[4] = {
-	"MAC_MODE_DISABLED", "MAC_MODE_LEARNING",
-	"MAC_MODE_PERMISSIVE", "MAC_MODE_ENFORCING"
+static const char *ccs_mode_4[4] = {
+	"disabled", "learning", "permissive", "enforcing"
 };
 
-static const char *ccs_keyword_audit[2] = {
-	"NO_AUDIT_GRANT_LOG", "NO_AUDIT_REJECT_LOG"
-};
+static bool ccs_mac_keywords_used[CCS_MAX_MAC_INDEX +
+				  CCS_MAX_CAPABILITY_INDEX];
 
 static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 				    CCS_MAX_CAPABILITY_INDEX] = {
@@ -206,25 +204,6 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	return ptr;
 }
 
-static int ccs_find_match(char *str)
-{
-	int i;
-	if (ccs_str_starts(&str, CCS_KEYWORD_CAPABILITY))
-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-			if (strcmp(str,
-				   ccs_mac_keywords[CCS_MAX_MAC_INDEX + i]))
-				continue;
-			return CCS_MAX_MAC_INDEX + i;
-		}
-	else
-		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
-			if (strcmp(str, ccs_mac_keywords[i]))
-				continue;
-			return i;
-		}
-	return -1;
-}
-
 /**
  * ccs_write_profile - Write profile table.
  *
@@ -237,6 +216,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	char *data = head->write_buf;
 	unsigned int i;
 	unsigned int value;
+	int index = -1;
 	int mode;
 	char *cp;
 	struct ccs_profile *ccs_profile;
@@ -252,10 +232,9 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	cp = strchr(data, '=');
 	if (!cp)
 		return -EINVAL;
-	*cp = '\0';
+	*cp++ = '\0';
 	if (!strcmp(data, "COMMENT")) {
-		const struct ccs_path_info *new_comment
-			= ccs_get_name(cp + 1);
+		const struct ccs_path_info *new_comment = ccs_get_name(cp);
 		const struct ccs_path_info *old_comment;
 		/* Protect reader from ccs_put_name(). */
 		/***** CRITICAL SECTION START *****/
@@ -267,56 +246,45 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_put_name(old_comment);
 		return 0;
 	}
-	for (mode = 0; mode < 4; mode++) {
-		if (strcmp(data, ccs_keyword_mode[mode]))
-			continue;
-		cp++;
-		while (1) {
-			int index;
-			char *cp2 = strchr(cp, ' ');
-			if (cp2)
-				*cp2 = '\0';
-			index = ccs_find_match(cp);
-			if (index >= 0)
-				ccs_profile->mac_mode[index] = mode;
-			if (!cp2)
-				break;
-			cp = cp2 + 1;
+	if (!ccs_str_starts(&data, "MAC::"))
+		goto not_mac;
+	if (ccs_str_starts(&data, CCS_KEYWORD_CAPABILITY))
+		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
+			if (strcmp(data,
+				   ccs_mac_keywords[CCS_MAX_MAC_INDEX + i]))
+				continue;
+			index = CCS_MAX_MAC_INDEX + i;
+			break;
 		}
-		return 0;
-	}
-	for (mode = 0; mode < 2; mode++) {
-		if (strcmp(data, ccs_keyword_audit[mode]))
-			continue;
-		memset(ccs_profile->dont_audit[mode], 0,
-		       sizeof(ccs_profile->dont_audit[mode]));
-		cp++;
-		while (1) {
-			int index;
-			char *cp2 = strchr(cp, ' ');
-			if (cp2)
-				*cp2 = '\0';
-			index = ccs_find_match(cp);
-			if (index >= 0)
-				ccs_profile->dont_audit[mode][index] = true;
-			if (!cp2)
-				break;
-			cp = cp2 + 1;
+	else
+		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
+			if (strcmp(data, ccs_mac_keywords[i]))
+				continue;
+			index = i;
+			break;
 		}
-		return 0;
-	}
+	if (index < 0)
+		return -EINVAL;
+	ccs_mac_keywords_used[index] = 1;
+	ccs_profile->no_grant_log[index] = !!strstr(cp, "no_grant_log");
+	ccs_profile->no_reject_log[index] = !!strstr(cp, "no_reject_log");
+	for (mode = 0; mode < 4; mode++)
+		if (strstr(cp, ccs_mode_4[mode]))
+			ccs_profile->mac_mode[index] = mode;
+	return 0;
+ not_mac:
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword))
 			continue;
-		if (sscanf(cp + 1, "%u", &value) != 1) {
+		if (sscanf(cp, "%u", &value) != 1) {
 			int j;
 			for (j = 0; j < 2; j++) {
-				if (strcmp(cp + 1, ccs_mode_2[j]))
+				if (strcmp(cp, ccs_mode_2[j]))
 					continue;
 				value = j;
 				break;
 			}
-			if (j == 4)
+			if (j == 2)
 				return -EINVAL;
 		} else if (value > ccs_control_array[i].max_value) {
 			value = ccs_control_array[i].max_value;
@@ -331,52 +299,19 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 {
 	const int pos = head->read_avail;
 	int i;
-	int mode;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	for (mode = 0; mode < 4; mode++) {
-		if (!ccs_io_printf(head, "%u-%s={", index,
-				   ccs_keyword_mode[mode]))
-			goto out;
-		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX;
-		     i++) {
-			if (ccs_profile->mac_mode[i] != mode)
-				continue;
-			if (!ccs_io_printf(head, " %s%s",
-					   i >= CCS_MAX_MAC_INDEX ?
-					   CCS_KEYWORD_CAPABILITY : "",
-					   ccs_mac_keywords[i]))
-				goto out;
-		}
-		if (!ccs_io_printf(head, " }\n"))
-			goto out;
-	}
-	return true;
- out:
-	head->read_avail = pos;
-	return false;
-}
-
-static bool ccs_print_audit_mode(struct ccs_io_buffer *head, u8 index)
-{
-	const int pos = head->read_avail;
-	int i;
-	int mode;
-	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	for (mode = 0; mode < 2; mode++) {
-		if (!ccs_io_printf(head, "%u-%s={", index,
-				   ccs_keyword_audit[mode]))
-			goto out;
-		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX;
-		     i++) {
-			if (!ccs_profile->dont_audit[mode][i])
-				continue;
-			if (!ccs_io_printf(head, " %s%s",
-					   i >= CCS_MAX_MAC_INDEX ?
-					   CCS_KEYWORD_CAPABILITY : "",
-					   ccs_mac_keywords[i]))
-				goto out;
-		}
-		if (!ccs_io_printf(head, " }\n"))
+	for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX; i++) {
+		if (!ccs_mac_keywords_used[index])
+			continue;
+		if (!ccs_io_printf(head, "%u-MAC::%s%s=%s %s %s\n", index,
+				   i >= CCS_MAX_MAC_INDEX ?
+				   CCS_KEYWORD_CAPABILITY : "",
+				   ccs_mac_keywords[i],
+				   ccs_mode_4[ccs_profile->mac_mode[i]],
+				   ccs_profile->no_grant_log[i] ? 
+				   "no_grant_log" : "",
+				   ccs_profile->no_reject_log[i] ? 
+				   "no_reject_log" : ""))
 			goto out;
 	}
 	return true;
@@ -422,12 +357,8 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			if (!ccs_print_mac_mode(head, index))
 				break;
 			continue;
-		} else if (type == 2) {
-			if (!ccs_print_audit_mode(head, index))
-				break;
-			continue;
 		}
-		type -= 3;
+		type -= 2;
 		{
 			const unsigned int value = ccs_profile->value[type];
 			const char *keyword = ccs_control_array[type].keyword;
