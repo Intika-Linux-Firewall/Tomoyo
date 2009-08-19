@@ -2,61 +2,61 @@ This is TOMOYO Linux patch for Asianux 2.0.
 
 Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-78.14AXS2.src.rpm
 ---
- arch/alpha/kernel/ptrace.c         |    3 ++
- arch/arm/kernel/ptrace.c           |    3 ++
- arch/arm26/kernel/ptrace.c         |    3 ++
- arch/cris/arch-v10/kernel/ptrace.c |    3 ++
- arch/h8300/kernel/ptrace.c         |    3 ++
- arch/i386/kernel/ptrace.c          |    3 ++
- arch/ia64/ia32/sys_ia32.c          |    3 ++
- arch/ia64/kernel/ptrace.c          |    3 ++
- arch/m32r/kernel/ptrace.c          |    3 ++
- arch/m68k/kernel/ptrace.c          |    3 ++
- arch/m68knommu/kernel/ptrace.c     |    3 ++
- arch/mips/kernel/ptrace.c          |    3 ++
- arch/mips/kernel/ptrace32.c        |    3 ++
- arch/parisc/kernel/ptrace.c        |    3 ++
- arch/ppc/kernel/ptrace.c           |    3 ++
- arch/ppc64/kernel/ptrace.c         |    3 ++
- arch/ppc64/kernel/ptrace32.c       |    3 ++
- arch/s390/kernel/ptrace.c          |    3 ++
- arch/sh/kernel/ptrace.c            |    3 ++
- arch/sh64/kernel/ptrace.c          |    3 ++
- arch/sparc/kernel/ptrace.c         |    5 ++++
- arch/sparc64/kernel/ptrace.c       |    5 ++++
- arch/um/kernel/ptrace.c            |    3 ++
- arch/v850/kernel/ptrace.c          |    3 ++
- arch/x86_64/ia32/ptrace32.c        |    3 ++
- arch/x86_64/kernel/ptrace.c        |    3 ++
- fs/attr.c                          |    5 ++++
- fs/compat.c                        |   12 +++++++++--
- fs/exec.c                          |   17 ++++++++++++++--
- fs/fcntl.c                         |    4 +++
- fs/ioctl.c                         |    7 ++++++
- fs/namei.c                         |   38 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   27 ++++++++++++++++++++++++--
- fs/open.c                          |   27 ++++++++++++++++++++++++++
- fs/proc/proc_misc.c                |    1 
- include/linux/init_task.h          |    2 +
- include/linux/sched.h              |    4 +++
- kernel/kmod.c                      |    3 ++
- kernel/module.c                    |    7 ++++--
- kernel/sched.c                     |    3 ++
- kernel/signal.c                    |    9 ++++++++
- kernel/sys.c                       |   11 ++++++++++
- kernel/sysctl.c                    |   14 ++++++++++++-
- kernel/time.c                      |    7 ++++++
- net/ipv4/raw.c                     |    4 +++
- net/ipv4/tcp_ipv4.c                |    5 ++++
- net/ipv4/udp.c                     |    9 +++++++-
- net/ipv6/raw.c                     |    4 +++
- net/ipv6/tcp_ipv6.c                |    3 ++
- net/ipv6/udp.c                     |    7 ++++++
- net/socket.c                       |   25 +++++++++++++++++++++---
- net/unix/af_unix.c                 |    4 +++
- security/Kconfig                   |    2 +
- security/Makefile                  |    3 ++
- 54 files changed, 333 insertions(+), 13 deletions(-)
+ arch/alpha/kernel/ptrace.c         |    3 +++
+ arch/arm/kernel/ptrace.c           |    3 +++
+ arch/arm26/kernel/ptrace.c         |    3 +++
+ arch/cris/arch-v10/kernel/ptrace.c |    3 +++
+ arch/h8300/kernel/ptrace.c         |    3 +++
+ arch/i386/kernel/ptrace.c          |    3 +++
+ arch/ia64/ia32/sys_ia32.c          |    3 +++
+ arch/ia64/kernel/ptrace.c          |    3 +++
+ arch/m32r/kernel/ptrace.c          |    3 +++
+ arch/m68k/kernel/ptrace.c          |    3 +++
+ arch/m68knommu/kernel/ptrace.c     |    3 +++
+ arch/mips/kernel/ptrace.c          |    3 +++
+ arch/mips/kernel/ptrace32.c        |    3 +++
+ arch/parisc/kernel/ptrace.c        |    3 +++
+ arch/ppc/kernel/ptrace.c           |    3 +++
+ arch/ppc64/kernel/ptrace.c         |    3 +++
+ arch/ppc64/kernel/ptrace32.c       |    3 +++
+ arch/s390/kernel/ptrace.c          |    3 +++
+ arch/sh/kernel/ptrace.c            |    3 +++
+ arch/sh64/kernel/ptrace.c          |    3 +++
+ arch/sparc/kernel/ptrace.c         |    5 +++++
+ arch/sparc64/kernel/ptrace.c       |    5 +++++
+ arch/um/kernel/ptrace.c            |    3 +++
+ arch/v850/kernel/ptrace.c          |    3 +++
+ arch/x86_64/ia32/ptrace32.c        |    3 +++
+ arch/x86_64/kernel/ptrace.c        |    3 +++
+ fs/attr.c                          |    5 +++++
+ fs/compat.c                        |   12 ++++++++++--
+ fs/exec.c                          |   17 +++++++++++++++--
+ fs/fcntl.c                         |    4 ++++
+ fs/ioctl.c                         |    7 +++++++
+ fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
+ fs/namespace.c                     |   26 ++++++++++++++++++++++++--
+ fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/proc/proc_misc.c                |    1 +
+ include/linux/init_task.h          |    2 ++
+ include/linux/sched.h              |    4 ++++
+ kernel/kmod.c                      |    3 +++
+ kernel/module.c                    |    7 +++++--
+ kernel/sched.c                     |    3 +++
+ kernel/signal.c                    |    9 +++++++++
+ kernel/sys.c                       |   11 +++++++++++
+ kernel/sysctl.c                    |   14 +++++++++++++-
+ kernel/time.c                      |    7 +++++++
+ net/ipv4/raw.c                     |    4 ++++
+ net/ipv4/tcp_ipv4.c                |    5 +++++
+ net/ipv4/udp.c                     |    9 ++++++++-
+ net/ipv6/raw.c                     |    4 ++++
+ net/ipv6/tcp_ipv6.c                |    3 +++
+ net/ipv6/udp.c                     |    7 +++++++
+ net/socket.c                       |   25 ++++++++++++++++++++++---
+ net/unix/af_unix.c                 |    4 ++++
+ security/Kconfig                   |    2 ++
+ security/Makefile                  |    3 +++
+ 54 files changed, 325 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.14AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.14AXS2/arch/alpha/kernel/ptrace.c
@@ -570,7 +570,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		audit_notify_watch(inode, MAY_WRITE);
  		error = security_inode_setattr(dentry, attr);
  		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
 +		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
  	} else {
@@ -578,7 +578,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
@@ -640,7 +640,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -652,7 +652,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		    S_ISREG(inode->i_mode)) {
  			int err = permission(inode, MAY_EXEC, &nd);
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -694,7 +694,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -715,7 +715,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error) {
                  fput(filp);
                  goto out;
@@ -746,7 +746,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -765,85 +765,79 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_check_mknod_permission(dir->d_inode, dentry,
-+						   nd->mnt, mode, 0);
++		error = ccs_mknod_permission(dir->d_inode, dentry, nd->mnt,
++					     mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1806,6 +1817,10 @@ asmlinkage long sys_mknod(const char __u
+@@ -1806,6 +1817,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode,
-+						   new_decode_dev(dev));
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1883,6 +1898,10 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1883,6 +1897,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
-+							   dentry, nd.mnt,
-+							   mode);
++			error = ccs_mkdir_permission(nd.dentry->d_inode,
++						     dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1997,6 +2016,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1997,6 +2014,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt);
++		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2078,6 +2100,9 @@ asmlinkage long sys_unlink(const char __
+@@ -2078,6 +2098,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2148,6 +2173,10 @@ asmlinkage long sys_symlink(const char _
+@@ -2148,6 +2171,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_symlink_permission(nd.dentry->d_inode,
-+							     dentry, nd.mnt,
-+							     from);
++			error = ccs_symlink_permission(nd.dentry->d_inode,
++						       dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2239,6 +2268,10 @@ asmlinkage long sys_link(const char __us
+@@ -2239,6 +2265,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
-+		error = ccs_check_link_permission(old_nd.dentry,
-+						  nd.dentry->d_inode,
-+						  new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
++					    new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2469,6 +2502,11 @@ static inline int do_rename(const char *
+@@ -2469,6 +2498,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)
-+
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
@@ -916,19 +910,18 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1248,6 +1262,11 @@ long do_mount(char * dev_name, char * di
+@@ -1248,6 +1262,10 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1505,6 +1524,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1505,6 +1523,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -937,12 +930,12 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
-@@ -1520,6 +1541,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1540,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -961,34 +954,33 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -328,6 +332,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -328,6 +332,9 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME);
-@@ -620,6 +628,10 @@ asmlinkage long sys_chroot(const char __
+@@ -620,6 +627,10 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -653,6 +665,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -653,6 +664,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -998,7 +990,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -689,6 +704,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -689,6 +703,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -1008,7 +1000,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -752,6 +770,8 @@ asmlinkage long sys_chown(const char __u
+@@ -752,6 +769,8 @@ asmlinkage long sys_chown(const char __u
  #endif /* CONFIG_FUMOUNT */
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -1017,7 +1009,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -771,6 +791,8 @@ asmlinkage long sys_lchown(const char __
+@@ -771,6 +790,8 @@ asmlinkage long sys_lchown(const char __
  #endif /* CONFIG_FUMOUNT */
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -1026,7 +1018,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -788,6 +810,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -788,6 +809,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -1036,7 +1028,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1226,6 +1251,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1226,6 +1250,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1577,8 +1569,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)

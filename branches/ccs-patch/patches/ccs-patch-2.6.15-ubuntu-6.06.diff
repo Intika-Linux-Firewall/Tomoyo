@@ -17,9 +17,9 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   25 ++++++++++++++++++++++++-
- fs/open.c                       |   28 +++++++++++++++++++++++++++-
+ fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 +++++++++++++++++++++++-
+ fs/open.c                       |   27 ++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 288 insertions(+), 10 deletions(-)
+ 42 files changed, 280 insertions(+), 10 deletions(-)
 
 --- linux-2.6.15-54.78.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-54.78/arch/alpha/kernel/ptrace.c
@@ -254,7 +254,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
  		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
 +		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
  	} else {
@@ -262,7 +262,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
@@ -320,7 +320,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -332,7 +332,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -361,7 +361,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -391,7 +391,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -411,7 +411,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -430,85 +430,79 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
-+						   nd->mnt, mode, 0);
++		error = ccs_mknod_permission(dir->d_inode, path.dentry,
++					     nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1781,6 +1792,10 @@ SYSCALL_DEFINE3(mknod, const char __user
+@@ -1781,6 +1792,9 @@ SYSCALL_DEFINE3(mknod, const char __user
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode,
-+						   new_decode_dev(dev));
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1849,6 +1864,10 @@ SYSCALL_DEFINE2(mkdir, const char __user
+@@ -1849,6 +1863,9 @@ SYSCALL_DEFINE2(mkdir, const char __user
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
-+							   dentry, nd.mnt,
-+							   mode);
++			error = ccs_mkdir_permission(nd.dentry->d_inode,
++						     dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1952,6 +1971,9 @@ SYSCALL_DEFINE1(rmdir, const char __user
+@@ -1952,6 +1969,9 @@ SYSCALL_DEFINE1(rmdir, const char __user
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt);
++		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2027,6 +2049,9 @@ SYSCALL_DEFINE1(unlink, const char __use
+@@ -2027,6 +2047,9 @@ SYSCALL_DEFINE1(unlink, const char __use
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2089,6 +2114,10 @@ SYSCALL_DEFINE2(symlink, const char __us
+@@ -2089,6 +2112,9 @@ SYSCALL_DEFINE2(symlink, const char __us
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_symlink_permission(nd.dentry->d_inode,
-+							     dentry, nd.mnt,
-+							     from);
++			error = ccs_symlink_permission(nd.dentry->d_inode,
++						       dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2172,6 +2201,10 @@ SYSCALL_DEFINE2(link, const char __user 
+@@ -2172,6 +2198,9 @@ SYSCALL_DEFINE2(link, const char __user 
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
-+		error = ccs_check_link_permission(old_nd.dentry,
-+						  nd.dentry->d_inode,
-+						  new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
++					    new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2392,6 +2425,11 @@ static inline int do_rename(const char *
+@@ -2392,6 +2421,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)
-+
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
@@ -572,19 +566,18 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1282,6 +1296,11 @@ long do_mount(char *dev_name, char *dir_
+@@ -1282,6 +1296,10 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1545,6 +1564,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -1545,6 +1563,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -593,12 +586,12 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	lock_kernel();
  
-@@ -1561,6 +1582,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -1561,6 +1581,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -617,35 +610,34 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -339,7 +343,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -339,7 +343,9 @@ static inline long do_sys_ftruncate(unsi
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
 -
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, file);
-@@ -627,6 +634,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -627,6 +633,10 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -658,6 +669,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -658,6 +668,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -655,7 +647,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -691,6 +705,9 @@ SYSCALL_DEFINE2(chmod, const char __user
+@@ -691,6 +704,9 @@ SYSCALL_DEFINE2(chmod, const char __user
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -665,7 +657,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -748,6 +765,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -748,6 +764,8 @@ SYSCALL_DEFINE3(chown, const char __user
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -674,7 +666,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -762,6 +781,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -762,6 +780,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -683,7 +675,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -776,6 +797,9 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -776,6 +796,9 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  
  	file = fget(fd);
  	if (file) {
@@ -693,7 +685,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1159,6 +1183,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1159,6 +1182,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -1302,8 +1294,8 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)

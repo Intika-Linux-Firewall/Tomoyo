@@ -148,19 +148,20 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			ccs_put_name_union(&entry->name);
 		}
 		break;
-	case CCS_TYPE_PATH_NUMBER_NUMBER_ACL:
+	case CCS_TYPE_PATH_NUMBER3_ACL:
 		{
-			struct ccs_path_number_number_acl *entry;
+			struct ccs_path_number3_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name);
+			ccs_put_number_union(&entry->mode);
 			ccs_put_number_union(&entry->major);
 			ccs_put_number_union(&entry->minor);
 		}
 		break;
-	case CCS_TYPE_PATH_PATH_ACL:
+	case CCS_TYPE_PATH2_ACL:
 		{
-			struct ccs_path_path_acl *entry;
+			struct ccs_path2_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name1);

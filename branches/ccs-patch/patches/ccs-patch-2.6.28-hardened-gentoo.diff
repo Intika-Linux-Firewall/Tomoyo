@@ -6,11 +6,11 @@ Source code for this patch is "emerge hardened-sources"
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
  fs/exec.c                       |   10 +++++++++-
- fs/fcntl.c                      |    5 +++++
+ fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   35 +++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   28 ++++++++++++++++++++++++++++
+ fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   23 +++++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -35,7 +35,7 @@ Source code for this patch is "emerge hardened-sources"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 245 insertions(+), 3 deletions(-)
+ 33 files changed, 240 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-hardened-r7.orig/fs/attr.c
 +++ linux-2.6.28-hardened-r7/fs/attr.c
@@ -52,7 +52,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	error = security_inode_setattr(dentry, attr);
 +	if (!error)
-+		error = ccs_check_setattr_permission(dentry, attr);
++		error = ccs_setattr_permission(dentry, attr);
  	if (error)
  		return error;
  
@@ -90,7 +90,7 @@ Source code for this patch is "emerge hardened-sources"
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -120,7 +120,7 @@ Source code for this patch is "emerge hardened-sources"
  	error = vfs_permission(&nd, MAY_READ | MAY_EXEC | MAY_OPEN);
  	if (error)
  		goto exit;
-+	error = ccs_check_uselib_permission(nd.path.dentry, nd.path.mnt);
++	error = ccs_uselib_permission(nd.path.dentry, nd.path.mnt);
 +	if (error)
 +		goto exit;
  
@@ -130,7 +130,7 @@ Source code for this patch is "emerge hardened-sources"
  	err = vfs_permission(&nd, MAY_EXEC | MAY_OPEN);
  	if (err)
  		goto out_path_put;
-+	err = ccs_check_open_exec_permission(nd.path.dentry, nd.path.mnt);
++	err = ccs_open_exec_permission(nd.path.dentry, nd.path.mnt);
 +	if (err)
 +		goto out_path_put;
  
@@ -155,12 +155,11 @@ Source code for this patch is "emerge hardened-sources"
  
  void set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -155,6 +156,10 @@ static int setfl(int fd, struct file * f
+@@ -155,6 +156,9 @@ static int setfl(int fd, struct file * f
  	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (((arg ^ filp->f_flags) & O_APPEND) &&
-+	    ccs_check_rewrite_permission(filp))
++	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -190,7 +189,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -210,7 +209,7 @@ Source code for this patch is "emerge hardened-sources"
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->path.mnt, flag);
++	error = ccs_open_permission(dentry, nd->path.mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -221,8 +220,8 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_check_mknod_permission(dir->d_inode, path->dentry,
-+					   nd->path.mnt, mode, 0);
++	error = ccs_mknod_permission(dir->d_inode, path->dentry, nd->path.mnt,
++				     mode, 0);
 +	if (!error)
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	if (!error)
@@ -235,75 +234,73 @@ Source code for this patch is "emerge hardened-sources"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -2062,6 +2073,10 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2062,6 +2073,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_check_mknod_permission(nd.path.dentry->d_inode, dentry,
-+					   nd.path.mnt, mode,
-+					   new_decode_dev(dev));
++	error = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
++				     nd.path.mnt, mode, dev);
 +	if (!error)
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2141,6 +2156,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2141,6 +2155,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_check_mkdir_permission(nd.path.dentry->d_inode, dentry,
-+					   nd.path.mnt, mode);
++	error = ccs_mkdir_permission(nd.path.dentry->d_inode, dentry,
++				     nd.path.mnt, mode);
 +	if (!error)
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  
-@@ -2270,6 +2288,9 @@ static long do_rmdir(int dfd, const char
+@@ -2270,6 +2287,9 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
-+	error = ccs_check_rmdir_permission(nd.path.dentry->d_inode, dentry,
-+					   nd.path.mnt);
++	error = ccs_rmdir_permission(nd.path.dentry->d_inode, dentry,
++				     nd.path.mnt);
 +	if (!error)
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  	if (!error && (saved_dev || saved_ino))
-@@ -2370,6 +2391,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2370,6 +2390,9 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
-+		error = ccs_check_unlink_permission(nd.path.dentry->d_inode,
-+						    dentry, nd.path.mnt);
++		error = ccs_unlink_permission(nd.path.dentry->d_inode,
++					      dentry, nd.path.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		if (!error && (saved_ino || saved_dev))
  			gr_handle_delete(saved_ino, saved_dev);
-@@ -2458,6 +2482,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2458,6 +2481,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_check_symlink_permission(nd.path.dentry->d_inode, dentry,
-+					     nd.path.mnt, from);
++	error = ccs_symlink_permission(nd.path.dentry->d_inode, dentry,
++				       nd.path.mnt, from);
 +	if (!error)
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
  	if (!error)
  		gr_handle_create(dentry, nd.path.mnt);
-@@ -2570,6 +2597,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2570,6 +2596,9 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
-+	error = ccs_check_link_permission(old_path.dentry,
-+					  nd.path.dentry->d_inode, new_dentry,
-+					  nd.path.mnt);
++	error = ccs_link_permission(old_path.dentry, nd.path.dentry->d_inode,
++				    new_dentry, nd.path.mnt);
 +	if (!error)
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
  	if (!error)
  		gr_handle_create(new_dentry, nd.path.mnt);
-@@ -2814,6 +2845,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2814,6 +2843,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.path.mnt);
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry,
++				      newnd.path.mnt);
 +	if (!error)
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
@@ -367,19 +364,18 @@ Source code for this patch is "emerge hardened-sources"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1922,6 +1937,11 @@ long do_mount(char *dev_name, char *dir_
+@@ -1922,6 +1937,10 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -2196,6 +2216,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2196,6 +2215,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -388,12 +384,12 @@ Source code for this patch is "emerge hardened-sources"
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2209,6 +2231,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2209,6 +2230,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old, &new);
++		error = ccs_pivot_root_permission(&old, &new);
  	if (error) {
  		path_put(&old);
  		goto out1;
@@ -411,35 +407,34 @@ Source code for this patch is "emerge hardened-sources"
  	if (error)
  		goto put_write_and_out;
  
-+	error = ccs_check_truncate_permission(path.dentry, path.mnt, length, 0);
++	error = ccs_truncate_permission(path.dentry, path.mnt, length, 0);
 +	if (error)
 +		goto put_write_and_out;
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -328,6 +332,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -328,6 +332,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -605,6 +613,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -605,6 +612,10 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&path))
++	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
  	if (gr_handle_chroot_chroot(path.dentry, path.mnt))
  		goto dput_and_out;
-@@ -641,6 +653,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -641,6 +652,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write(file->f_path.mnt);
  	if (err)
  		goto out_putf;
@@ -449,7 +444,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (!gr_acl_handle_fchmod(dentry, file->f_path.mnt, mode)) {
  		err = -EACCES;
-@@ -685,6 +700,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -685,6 +699,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -459,7 +454,7 @@ Source code for this patch is "emerge hardened-sources"
  
  	if (!gr_acl_handle_chmod(path.dentry, path.mnt, mode)) {
  		error = -EACCES;
-@@ -758,6 +776,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -758,6 +775,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -468,7 +463,7 @@ Source code for this patch is "emerge hardened-sources"
  	error = chown_common(path.dentry, user, group, path.mnt);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -783,6 +803,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -783,6 +802,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -477,7 +472,7 @@ Source code for this patch is "emerge hardened-sources"
  	error = chown_common(path.dentry, user, group, path.mnt);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -802,6 +824,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -802,6 +823,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -486,7 +481,7 @@ Source code for this patch is "emerge hardened-sources"
  	error = chown_common(path.dentry, user, group, path.mnt);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -825,6 +849,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -825,6 +848,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -495,7 +490,7 @@ Source code for this patch is "emerge hardened-sources"
  	error = chown_common(dentry, user, group, file->f_path.mnt);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1211,6 +1237,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1211,6 +1236,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -1058,8 +1053,8 @@ Source code for this patch is "emerge hardened-sources"
  			goto out_mknod_dput;
  		}
  
-+		err = ccs_check_mknod_permission(nd.path.dentry->d_inode,
-+						 dentry, nd.path.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.path.dentry->d_inode, dentry,
++					   nd.path.mnt, mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
  		mnt_drop_write(nd.path.mnt);

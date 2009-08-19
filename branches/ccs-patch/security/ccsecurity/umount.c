@@ -61,7 +61,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		.path1.dentry = mnt->mnt_root,
 		.path1.mnt = mnt
 	};
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAC_UMOUNT))
 		return 0;
@@ -80,7 +80,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 			continue;
 		acl = container_of(ptr, struct ccs_umount_acl, head);
 		if (!ccs_compare_name_union(&dir, &acl->dir) ||
-		    !ccs_check_condition(&r, ptr))
+		    !ccs_condition(&r, ptr))
 			continue;
 		r.cond = ptr->cond;
 		error = 0;
@@ -88,7 +88,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	}
 	ccs_audit_umount_log(&r, dir0, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_UNMOUNT
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_UNMOUNT
 					     "%s", ccs_file_pattern(&dir));
  out:
 	kfree(dir0);

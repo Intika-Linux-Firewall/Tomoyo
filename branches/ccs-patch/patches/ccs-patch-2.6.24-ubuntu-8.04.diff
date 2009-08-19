@@ -14,11 +14,11 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
  fs/exec.c                       |   11 ++++++++++-
- fs/fcntl.c                      |    5 +++++
+ fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   24 ++++++++++++++++++++++++
- fs/open.c                       |   28 ++++++++++++++++++++++++++++
+ fs/namei.c                      |   32 +++++++++++++++++++++++++++++++-
+ fs/namespace.c                  |   23 +++++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 267 insertions(+), 2 deletions(-)
+ 42 files changed, 262 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24-24.57.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-24.57/arch/ia64/ia32/sys_ia32.c
@@ -217,7 +217,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, mnt, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if (file && file->f_op && file->f_op->fsetattr)
  				error = file->f_op->fsetattr(file, attr);
@@ -226,7 +226,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (!error)
  			error = security_inode_setattr(dentry, mnt, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
@@ -264,7 +264,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -294,7 +294,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -306,7 +306,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		if (S_ISREG(inode->i_mode)) {
  			int err = vfs_permission(&nd, MAY_EXEC);
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -330,12 +330,11 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -217,6 +218,10 @@ static int setfl(int fd, struct file * f
+@@ -217,6 +218,9 @@ static int setfl(int fd, struct file * f
  	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (((arg ^ filp->f_flags) & O_APPEND) &&
-+	    ccs_check_rewrite_permission(filp))
++	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -365,7 +364,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -385,7 +384,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -396,8 +395,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_check_mknod_permission(dir->d_inode, path->dentry, nd->mnt,
-+					   mode, 0);
++	error = ccs_mknod_permission(dir->d_inode, path->dentry, nd->mnt, mode,
++				     0);
 +	if (!error)
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
@@ -410,77 +409,76 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  /*
   *	open_namei()
   *
-@@ -1987,6 +1998,10 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1987,6 +1998,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode,
-+						   new_decode_dev(dev));
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -2065,6 +2080,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2065,6 +2079,8 @@ asmlinkage long sys_mkdirat(int dfd, con
  
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
-+	error = ccs_check_mkdir_permission(nd.dentry->d_inode, dentry, nd.mnt,
-+					   mode);
++	error = ccs_mkdir_permission(nd.dentry->d_inode, dentry, nd.mnt, mode);
 +	if (!error)
  	error = vfs_mkdir(nd.dentry->d_inode, dentry, nd.mnt, mode);
  	dput(dentry);
  out_unlock:
-@@ -2173,6 +2191,8 @@ static long do_rmdir(int dfd, const char
+@@ -2173,6 +2189,8 @@ static long do_rmdir(int dfd, const char
  	error = PTR_ERR(dentry);
  	if (IS_ERR(dentry))
  		goto exit2;
-+	error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry, nd.mnt);
++	error = ccs_rmdir_permission(nd.dentry->d_inode, dentry, nd.mnt);
 +	if (!error)
  	error = vfs_rmdir(nd.dentry->d_inode, dentry, nd.mnt);
  	dput(dentry);
  exit2:
-@@ -2253,6 +2273,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2253,6 +2271,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry, nd.mnt);
  	exit2:
  		dput(dentry);
-@@ -2335,6 +2358,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2335,6 +2356,9 @@ asmlinkage long sys_symlinkat(const char
  	if (IS_ERR(dentry))
  		goto out_unlock;
  
-+	error = ccs_check_symlink_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, from);
++	error = ccs_symlink_permission(nd.dentry->d_inode, dentry, nd.mnt,
++				       from);
 +	if (!error)
  	error = vfs_symlink(nd.dentry->d_inode, dentry, nd.mnt, from,
  			    S_IALLUGO);
  	dput(dentry);
-@@ -2432,6 +2458,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2432,6 +2456,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
-+	error = ccs_check_link_permission(old_nd.dentry, nd.dentry->d_inode,
-+					  new_dentry, nd.mnt);
++	error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
++				    new_dentry, nd.mnt);
 +	if (!error)
  	error = vfs_link(old_nd.dentry, old_nd.mnt, nd.dentry->d_inode,
  			 new_dentry, nd.mnt);
  	dput(new_dentry);
-@@ -2665,6 +2694,10 @@ static int do_rename(int olddfd, const c
+@@ -2665,7 +2692,10 @@ static int do_rename(int olddfd, const c
  	error = -ENOTEMPTY;
  	if (new_dentry == trap)
  		goto exit5;
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
+-
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry,
++				      newnd.mnt);
 +	if (!error)
- 
  	error = vfs_rename(old_dir->d_inode, old_dentry, oldnd.mnt,
  			   new_dir->d_inode, new_dentry, newnd.mnt);
+ exit5:
 --- linux-2.6.24-24.57.orig/fs/namespace.c
 +++ linux-2.6.24-24.57/fs/namespace.c
 @@ -29,6 +29,7 @@
@@ -540,19 +538,18 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	newmnt->mnt_flags = mnt_flags;
  
-@@ -1436,6 +1451,11 @@ long do_mount(char *dev_name, char *dir_
+@@ -1436,6 +1451,10 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1717,6 +1737,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1717,6 +1736,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -561,12 +558,12 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	lock_kernel();
  
-@@ -1733,6 +1755,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1733,6 +1754,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -584,35 +581,34 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (error)
  		goto put_write_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (error)
 +		goto put_write_and_out;
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -321,6 +325,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,6 +325,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -542,6 +550,10 @@ asmlinkage long sys_chroot(const char __
+@@ -542,6 +549,10 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -575,6 +587,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -575,6 +586,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -622,7 +618,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -609,6 +624,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -609,6 +623,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -632,7 +628,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -676,6 +694,8 @@ asmlinkage long sys_chown(const char __u
+@@ -676,6 +693,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -641,7 +637,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -696,6 +716,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -696,6 +715,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -650,7 +646,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -710,6 +732,8 @@ asmlinkage long sys_lchown(const char __
+@@ -710,6 +731,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -659,7 +655,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -729,6 +753,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -729,6 +752,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -668,7 +664,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	fput(file);
  out:
-@@ -1162,6 +1188,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1162,6 +1187,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1243,8 +1239,8 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)

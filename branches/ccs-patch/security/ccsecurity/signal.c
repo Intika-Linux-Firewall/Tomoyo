@@ -41,7 +41,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 }
 
 /**
- * ccs_check_signal_acl2 - Check permission for signal.
+ * ccs_signal_acl2 - Check permission for signal.
  *
  * @sig: Signal number.
  * @pid: Target's PID.
@@ -50,7 +50,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_signal_acl2(const int sig, const int pid)
+static int ccs_signal_acl2(const int sig, const int pid)
 {
 	struct ccs_request_info r;
 	struct ccs_domain_info *dest = NULL;
@@ -59,7 +59,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	const u16 hash = sig;
 	bool is_enforce;
 	int error;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL))
 		return 0;
@@ -101,7 +101,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_SIGNAL_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_signal_acl, head);
-		if (acl->sig == hash && ccs_check_condition(&r, ptr)) {
+		if (acl->sig == hash && ccs_condition(&r, ptr)) {
 			const int len = acl->domainname->total_len;
 			if (strncmp(acl->domainname->name, dest_pattern, len))
 				continue;
@@ -119,7 +119,7 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 	}
 	ccs_audit_signal_log(&r, sig, dest_pattern, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
 					     "%d %s\n", sig, dest_pattern);
 	if (error == 1)
 		goto retry;
@@ -127,17 +127,17 @@ static int ccs_check_signal_acl2(const int sig, const int pid)
 }
 
 /**
- * ccs_check_signal_acl - Check permission for signal.
+ * ccs_signal_acl - Check permission for signal.
  *
  * @sig: Signal number.
  * @pid: Target's PID.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_signal_acl(const int sig, const int pid)
+static int ccs_signal_acl(const int sig, const int pid)
 {
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_signal_acl2(sig, pid);
+	const int error = ccs_signal_acl2(sig, pid);
 	ccs_read_unlock(idx);
 	return error;
 }
@@ -205,7 +205,7 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 int ccs_kill_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_check_signal_acl(sig, pid)))
+		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
 }
@@ -222,7 +222,7 @@ int ccs_kill_permission(pid_t pid, int sig)
 int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_check_signal_acl(sig, pid)))
+		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
 }
@@ -238,7 +238,7 @@ int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 int ccs_tkill_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_check_signal_acl(sig, pid)))
+		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
 }
@@ -246,7 +246,7 @@ int ccs_tkill_permission(pid_t pid, int sig)
 int ccs_sigqueue_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_check_signal_acl(sig, pid)))
+		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
 }
@@ -254,7 +254,7 @@ int ccs_sigqueue_permission(pid_t pid, int sig)
 int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_check_signal_acl(sig, pid)))
+		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
 }

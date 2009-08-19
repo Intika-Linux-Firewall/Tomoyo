@@ -149,7 +149,7 @@ const char *ccs_net2keyword(const u8 operation)
 }
 
 /**
- * ccs_check_network_entry2 - Check permission for network operation.
+ * ccs_network_entry2 - Check permission for network operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @operation: Type of operation.
@@ -160,7 +160,7 @@ const char *ccs_net2keyword(const u8 operation)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
+static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 				    const u32 *address, const u16 port)
 {
 	struct ccs_request_info r;
@@ -172,7 +172,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 	const u32 ip = ntohl(*address);
 	int error;
 	char buf[64];
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAC_NETWORK))
 		return 0;
@@ -187,7 +187,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		if (!(acl->perm & perm))
 			continue;
 		if (!ccs_compare_number_union(port, &acl->port) ||
-		    !ccs_check_condition(&r, ptr))
+		    !ccs_condition(&r, ptr))
 			continue;
 		if (acl->address_type == CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP) {
 			if (!ccs_address_matches_group(is_ipv6, address,
@@ -216,7 +216,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
 	ccs_audit_network_log(&r, keyword, buf, port, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
 					     "%s %s %u\n", keyword, buf, port);
 	if (error == 1)
 		goto retry;
@@ -226,7 +226,7 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
 }
 
 /**
- * ccs_check_network_entry - Check permission for network operation.
+ * ccs_network_entry - Check permission for network operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @operation: Type of operation.
@@ -235,11 +235,11 @@ static int ccs_check_network_entry2(const bool is_ipv6, const u8 operation,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_network_entry(const bool is_ipv6, const u8 operation,
+static int ccs_network_entry(const bool is_ipv6, const u8 operation,
 				   const u32 *address, const u16 port)
 {
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_network_entry2(is_ipv6, operation,
+	const int error = ccs_network_entry2(is_ipv6, operation,
 						   address, port);
 	ccs_read_unlock(idx);
 	return error;
@@ -381,7 +381,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 }
 
 /**
- * ccs_check_network_listen_acl - Check permission for listen() operation.
+ * ccs_network_listen_acl - Check permission for listen() operation.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
@@ -389,16 +389,16 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_check_network_listen_acl(const bool is_ipv6,
+static inline int ccs_network_listen_acl(const bool is_ipv6,
 					       const u8 *address,
 					       const u16 port)
 {
-	return ccs_check_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN,
+	return ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN,
 				       (const u32 *) address, ntohs(port));
 }
 
 /**
- * ccs_check_network_connect_acl - Check permission for connect() operation.
+ * ccs_network_connect_acl - Check permission for connect() operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @sock_type: Type of socket. (TCP or UDP or RAW)
@@ -407,7 +407,7 @@ static inline int ccs_check_network_listen_acl(const bool is_ipv6,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_check_network_connect_acl(const bool is_ipv6,
+static inline int ccs_network_connect_acl(const bool is_ipv6,
 						const int sock_type,
 						const u8 *address,
 						const u16 port)
@@ -423,12 +423,12 @@ static inline int ccs_check_network_connect_acl(const bool is_ipv6,
 	default:
 		operation = CCS_NETWORK_RAW_CONNECT;
 	}
-	return ccs_check_network_entry(is_ipv6, operation,
+	return ccs_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
 }
 
 /**
- * ccs_check_network_bind_acl - Check permission for bind() operation.
+ * ccs_network_bind_acl - Check permission for bind() operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @sock_type: Type of socket. (TCP or UDP or RAW)
@@ -437,7 +437,7 @@ static inline int ccs_check_network_connect_acl(const bool is_ipv6,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_network_bind_acl(const bool is_ipv6, const int sock_type,
+static int ccs_network_bind_acl(const bool is_ipv6, const int sock_type,
 				      const u8 *address, const u16 port)
 {
 	u8 operation;
@@ -451,12 +451,12 @@ static int ccs_check_network_bind_acl(const bool is_ipv6, const int sock_type,
 	default:
 		operation = CCS_NETWORK_RAW_BIND;
 	}
-	return ccs_check_network_entry(is_ipv6, operation,
+	return ccs_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
 }
 
 /**
- * ccs_check_network_accept_acl - Check permission for accept() operation.
+ * ccs_network_accept_acl - Check permission for accept() operation.
  *
  * @is_ipv6: True if @address is an IPv6 address.
  * @address: An IPv4 or IPv6 address.
@@ -464,20 +464,20 @@ static int ccs_check_network_bind_acl(const bool is_ipv6, const int sock_type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_check_network_accept_acl(const bool is_ipv6,
+static inline int ccs_network_accept_acl(const bool is_ipv6,
 					       const u8 *address,
 					       const u16 port)
 {
 	int retval;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_check_network_entry(is_ipv6, CCS_NETWORK_TCP_ACCEPT,
+	retval = ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_ACCEPT,
 					 (const u32 *) address, ntohs(port));
 	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
 
 /**
- * ccs_check_network_sendmsg_acl - Check permission for sendmsg() operation.
+ * ccs_network_sendmsg_acl - Check permission for sendmsg() operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @sock_type: Type of socket. (UDP or RAW)
@@ -486,7 +486,7 @@ static inline int ccs_check_network_accept_acl(const bool is_ipv6,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_check_network_sendmsg_acl(const bool is_ipv6,
+static inline int ccs_network_sendmsg_acl(const bool is_ipv6,
 						const int sock_type,
 						const u8 *address,
 						const u16 port)
@@ -496,12 +496,12 @@ static inline int ccs_check_network_sendmsg_acl(const bool is_ipv6,
 		operation = CCS_NETWORK_UDP_CONNECT;
 	else
 		operation = CCS_NETWORK_RAW_CONNECT;
-	return ccs_check_network_entry(is_ipv6, operation,
+	return ccs_network_entry(is_ipv6, operation,
 				       (const u32 *) address, ntohs(port));
 }
 
 /**
- * ccs_check_network_recvmsg_acl - Check permission for recvmsg() operation.
+ * ccs_network_recvmsg_acl - Check permission for recvmsg() operation.
  *
  * @is_ipv6:   True if @address is an IPv6 address.
  * @sock_type: Type of socket. (UDP or RAW)
@@ -510,7 +510,7 @@ static inline int ccs_check_network_sendmsg_acl(const bool is_ipv6,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_check_network_recvmsg_acl(const bool is_ipv6,
+static inline int ccs_network_recvmsg_acl(const bool is_ipv6,
 						const int sock_type,
 						const u8 *address,
 						const u16 port)
@@ -520,7 +520,7 @@ static inline int ccs_check_network_recvmsg_acl(const bool is_ipv6,
 		= (sock_type == SOCK_DGRAM) ?
 		CCS_NETWORK_UDP_CONNECT : CCS_NETWORK_RAW_CONNECT;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	retval = ccs_check_network_entry(is_ipv6, operation,
+	retval = ccs_network_entry(is_ipv6, operation,
 					 (const u32 *) address, ntohs(port));
 	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
@@ -585,13 +585,13 @@ int ccs_socket_listen_permission(struct socket *sock)
 		struct sockaddr_in *addr4;
 	case AF_INET6:
 		addr6 = (struct sockaddr_in6 *) addr;
-		error = ccs_check_network_listen_acl(true,
+		error = ccs_network_listen_acl(true,
 						     addr6->sin6_addr.s6_addr,
 						     addr6->sin6_port);
 		break;
 	case AF_INET:
 		addr4 = (struct sockaddr_in *) addr;
-		error = ccs_check_network_listen_acl(false,
+		error = ccs_network_listen_acl(false,
 						     (u8 *) &addr4->sin_addr,
 						     addr4->sin_port);
 		break;
@@ -628,7 +628,7 @@ int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr6->sin6_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_connect_acl(true, type,
+		error = ccs_network_connect_acl(true, type,
 						      addr6->sin6_addr.s6_addr,
 						      port);
 		break;
@@ -640,7 +640,7 @@ int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr4->sin_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_connect_acl(false, type,
+		error = ccs_network_connect_acl(false, type,
 						      (u8 *) &addr4->sin_addr,
 						      port);
 		break;
@@ -686,7 +686,7 @@ int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr6->sin6_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_bind_acl(true, type,
+		error = ccs_network_bind_acl(true, type,
 						   addr6->sin6_addr.s6_addr,
 						   port);
 		break;
@@ -698,7 +698,7 @@ int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr4->sin_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_bind_acl(false, type,
+		error = ccs_network_bind_acl(false, type,
 						   (u8 *) &addr4->sin_addr,
 						   port);
 		break;
@@ -733,13 +733,13 @@ int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr)
 		struct sockaddr_in *addr4;
 	case AF_INET6:
 		addr6 = (struct sockaddr_in6 *) addr;
-		error = ccs_check_network_accept_acl(true,
+		error = ccs_network_accept_acl(true,
 						     addr6->sin6_addr.s6_addr,
 						     addr6->sin6_port);
 		break;
 	case AF_INET:
 		addr4 = (struct sockaddr_in *) addr;
-		error = ccs_check_network_accept_acl(false,
+		error = ccs_network_accept_acl(false,
 						     (u8 *) &addr4->sin_addr,
 						     addr4->sin_port);
 		break;
@@ -770,7 +770,7 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr6->sin6_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_sendmsg_acl(true, type,
+		error = ccs_network_sendmsg_acl(true, type,
 						      addr6->sin6_addr.s6_addr,
 						      port);
 		break;
@@ -782,7 +782,7 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 			port = addr4->sin_port;
 		else
 			port = htons(sock->sk->sk_protocol);
-		error = ccs_check_network_sendmsg_acl(false, type,
+		error = ccs_network_sendmsg_acl(false, type,
 						      (u8 *) &addr4->sin_addr,
 						      port);
 		break;
@@ -882,7 +882,7 @@ int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 			ipv6_addr_copy(&sin6, &ipv6_hdr(skb)->saddr);
 			port = htons(sk->sk_protocol);
 		}
-		error = ccs_check_network_recvmsg_acl(true, type,
+		error = ccs_network_recvmsg_acl(true, type,
 						      (u8 *) &sin6, port);
 		break;
 	case PF_INET:
@@ -893,7 +893,7 @@ int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 			sin4.s_addr = ip_hdr(skb)->saddr;
 			port = htons(sk->sk_protocol);
 		}
-		error = ccs_check_network_recvmsg_acl(false, type,
+		error = ccs_network_recvmsg_acl(false, type,
 						      (u8 *) &sin4, port);
 		break;
 	}

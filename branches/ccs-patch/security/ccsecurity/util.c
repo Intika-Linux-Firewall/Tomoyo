@@ -451,7 +451,7 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname)
 {
 	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
@@ -848,14 +848,14 @@ bool ccs_can_sleep(void)
 }
 
 /**
- * ccs_check_flags - Check mode for specified functionality.
+ * ccs_flags - Check mode for specified functionality.
  *
  * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  The functionality to check mode.
  *
  * Returns the mode of specified functionality.
  */
-unsigned int ccs_check_flags(const struct ccs_domain_info *domain,
+unsigned int ccs_flags(const struct ccs_domain_info *domain,
 			     const u8 index)
 {
 	u8 profile;
@@ -905,7 +905,7 @@ int ccs_init_request_info(struct ccs_request_info *r,
  */
 bool ccs_verbose_mode(const struct ccs_domain_info *domain)
 {
-	return ccs_check_flags(domain, CCS_VERBOSE) != 0;
+	return ccs_flags(domain, CCS_VERBOSE) != 0;
 }
 
 /**
@@ -922,7 +922,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	unsigned int count = 0;
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (r->mode != 1)
 		return false;
 	if (!domain)
@@ -942,10 +942,10 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			if (perm & (1 << CCS_TYPE_READ_WRITE))
 				count -= 2;
 			break;
-		case CCS_TYPE_PATH_PATH_ACL:
-			perm = container_of(ptr, struct ccs_path_path_acl,
+		case CCS_TYPE_PATH2_ACL:
+			perm = container_of(ptr, struct ccs_path2_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_PATH_PATH_OPERATION; i++)
+			for (i = 0; i < CCS_MAX_PATH2_OPERATION; i++)
 				if (perm & (1 << i))
 					count++;
 			break;
@@ -959,11 +959,11 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 				if (perm & (1 << i))
 					count++;
 			break;
-		case CCS_TYPE_PATH_NUMBER_NUMBER_ACL:
+		case CCS_TYPE_PATH_NUMBER3_ACL:
 			perm = container_of(ptr,
-					    struct ccs_path_number_number_acl,
+					    struct ccs_path_number3_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION;
+			for (i = 0; i < CCS_MAX_PATH_NUMBER3_OPERATION;
 			     i++)
 				if (perm & (1 << i))
 					count++;
@@ -979,7 +979,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			count++;
 		}
 	}
-	if (count < ccs_check_flags(domain, CCS_MAX_ACCEPT_ENTRY))
+	if (count < ccs_flags(domain, CCS_MAX_ACCEPT_ENTRY))
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;

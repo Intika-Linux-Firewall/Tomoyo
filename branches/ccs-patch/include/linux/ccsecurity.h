@@ -38,22 +38,21 @@ struct sk_buff;
 
 /* Check whether the given pathname is allowed to chroot to. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-int ccs_check_chroot_permission(struct path *path);
+int ccs_chroot_permission(struct path *path);
 #else
-int ccs_check_chroot_permission(struct nameidata *nd);
+int ccs_chroot_permission(struct nameidata *nd);
 #endif
 
 /* Check whether the mount operation with the given parameters is allowed. */
-int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
-			       const unsigned long *flags);
+int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
+			 const unsigned long *flags);
 
 /* Check whether the current process is allowed to pivot_root. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-int ccs_check_pivot_root_permission(struct path *old_path,
-				    struct path *new_path);
+int ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
 #else
-int ccs_check_pivot_root_permission(struct nameidata *old_nd,
-				    struct nameidata *new_nd);
+int ccs_pivot_root_permission(struct nameidata *old_nd,
+			      struct nameidata *new_nd);
 #endif
 
 /* Check whether the given mount operation hides an mounted partition. */
@@ -69,39 +68,38 @@ int ccs_may_umount(struct vfsmount *mnt);
 /* Check whether the given local port is reserved. */
 _Bool ccs_lport_reserved(const u16 port);
 
-int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-			      const int flag);
-int ccs_check_rewrite_permission(struct file *filp);
-int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
-			       unsigned long arg);
+int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+			const int flag);
+int ccs_rewrite_permission(struct file *filp);
+int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+			 unsigned long arg);
 int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		    void __user *newval, struct ctl_table *table);
 
 /* Check whether the given capability is allowed to use. */
 _Bool ccs_capable(const u8 operation);
 
-int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt, int mode, unsigned dev);
-int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt, int mode);
-int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt);
-int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
-				struct vfsmount *mnt);
-int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
-				 struct vfsmount *mnt, char *from);
-int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-				  loff_t length, unsigned int time_attrs);
-int ccs_check_rename_permission(struct inode *old_dir,
-				struct dentry *old_dentry,
-				struct inode *new_dir,
-				struct dentry *new_dentry,
-				struct vfsmount *mnt);
-int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-			      struct dentry *new_dentry, struct vfsmount *mnt);
-int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
-int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
-int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr);
+int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
+			 struct vfsmount *mnt, unsigned int mode,
+			 unsigned int dev);
+int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
+			 struct vfsmount *mnt, unsigned int mode);
+int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
+			 struct vfsmount *mnt);
+int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
+			  struct vfsmount *mnt);
+int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
+			   struct vfsmount *mnt, char *from);
+int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
+			    loff_t length, unsigned int time_attrs);
+int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
+			  struct inode *new_dir, struct dentry *new_dentry,
+			  struct vfsmount *mnt);
+int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
+			struct dentry *new_dentry, struct vfsmount *mnt);
+int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
+int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
+int ccs_setattr_permission(struct dentry *dentry, struct iattr *attr);
 int ccs_kill_permission(pid_t pid, int sig);
 int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig);
 int ccs_tkill_permission(pid_t pid, int sig);
@@ -127,31 +125,30 @@ int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig);
 #else
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-static inline int ccs_check_chroot_permission(struct path *path)
+static inline int ccs_chroot_permission(struct path *path)
 {
 	return 0;
 }
 #else
-static inline int ccs_check_chroot_permission(struct nameidata *nd)
+static inline int ccs_chroot_permission(struct nameidata *nd)
 {
 	return 0;
 }
 #endif
-static inline int ccs_check_mount_permission(char *dev_name, char *dir_name,
-					     char *type,
-					     const unsigned long *flags)
+static inline int ccs_mount_permission(char *dev_name, char *dir_name,
+				       char *type, const unsigned long *flags)
 {
 	return 0;
 }
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-static inline int ccs_check_pivot_root_permission(struct path *old_path,
-						  struct path *new_path)
+static inline int ccs_pivot_root_permission(struct path *old_path,
+					    struct path *new_path)
 {
 	return 0;
 }
 #else
-static inline int ccs_check_pivot_root_permission(struct nameidata *old_nd,
-						  struct nameidata *new_nd)
+static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
+					    struct nameidata *new_nd)
 {
 	return 0;
 }
@@ -176,21 +173,19 @@ static inline _Bool ccs_lport_reserved(const u16 port)
 	return 0;
 }
 
-static inline int ccs_check_open_permission(struct dentry *dentry,
-					    struct vfsmount *mnt,
-					    const int flag)
+static inline int ccs_open_permission(struct dentry *dentry,
+				      struct vfsmount *mnt, const int flag)
 {
 	return 0;
 }
 
-static inline int ccs_check_rewrite_permission(struct file *filp)
+static inline int ccs_rewrite_permission(struct file *filp)
 {
 	return 0;
 }
 
-static inline int ccs_check_ioctl_permission(struct file *filp,
-					     unsigned int cmd,
-					     unsigned long arg)
+static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				       unsigned long arg)
 {
 	return 0;
 }
@@ -207,82 +202,80 @@ static inline _Bool ccs_capable(const u8 operation)
 	return 1;
 }
 
-static inline int ccs_check_mknod_permission(struct inode *dir,
-					     struct dentry *dentry,
-					     struct vfsmount *mnt, int mode,
-					     unsigned dev)
+static inline int ccs_mknod_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode,
+				       unsigned int dev)
 {
 	return 0;
 }
 
-static inline int ccs_check_mkdir_permission(struct inode *dir,
-					     struct dentry *dentry,
-					     struct vfsmount *mnt, int mode)
+static inline int ccs_mkdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode)
 {
 	return 0;
 }
 
-static inline int ccs_check_rmdir_permission(struct inode *dir,
-					     struct dentry *dentry,
-					     struct vfsmount *mnt)
+static inline int ccs_rmdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_unlink_permission(struct inode *dir,
-					      struct dentry *dentry,
-					      struct vfsmount *mnt)
+static inline int ccs_unlink_permission(struct inode *dir,
+					struct dentry *dentry,
+					struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_symlink_permission(struct inode *dir,
-					       struct dentry *dentry,
-					       struct vfsmount *mnt,
-					       char *from)
+static inline int ccs_symlink_permission(struct inode *dir,
+					 struct dentry *dentry,
+					 struct vfsmount *mnt, char *from)
 {
 	return 0;
 }
 
-static inline int ccs_check_truncate_permission(struct dentry *dentry,
-						struct vfsmount *mnt,
-						loff_t length,
-						unsigned int time_attrs)
+static inline int ccs_truncate_permission(struct dentry *dentry,
+					  struct vfsmount *mnt, loff_t length,
+					  unsigned int time_attrs)
 {
 	return 0;
 }
 
-static inline int ccs_check_rename_permission(struct inode *old_dir,
-					      struct dentry *old_dentry,
-					      struct inode *new_dir,
-					      struct dentry *new_dentry,
-					      struct vfsmount *mnt)
+static inline int ccs_rename_permission(struct inode *old_dir,
+					struct dentry *old_dentry,
+					struct inode *new_dir,
+					struct dentry *new_dentry,
+					struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_link_permission(struct dentry *old_dentry,
-					    struct inode *new_dir,
-					    struct dentry *new_dentry,
-					    struct vfsmount *mnt)
+static inline int ccs_link_permission(struct dentry *old_dentry,
+				      struct inode *new_dir,
+				      struct dentry *new_dentry,
+				      struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_open_exec_permission(struct dentry *dentry,
-						 struct vfsmount *mnt)
+static inline int ccs_open_exec_permission(struct dentry *dentry,
+					   struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_uselib_permission(struct dentry *dentry,
-					      struct vfsmount *mnt)
+static inline int ccs_uselib_permission(struct dentry *dentry,
+					struct vfsmount *mnt)
 {
 	return 0;
 }
 
-static inline int ccs_check_setattr_permission(struct dentry *dentry,
-					       struct iattr *attr)
+static inline int ccs_setattr_permission(struct dentry *dentry,
+					 struct iattr *attr)
 {
 	return 0;
 }
@@ -348,15 +341,14 @@ static inline int ccs_socket_recvmsg_permission(struct sock *sk,
 }
 
 static inline int ccs_chown_permission(struct dentry *dentry,
-				       struct vfsmount *mnt,
-				       uid_t user, gid_t group)
+				       struct vfsmount *mnt, uid_t user,
+				       gid_t group)
 {
 	return 0;
 }
 
 static inline int ccs_chmod_permission(struct dentry *dentry,
-				       struct vfsmount *mnt,
-				       mode_t mode)
+				       struct vfsmount *mnt, mode_t mode)
 {
 	return 0;
 }

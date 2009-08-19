@@ -18,32 +18,32 @@ static const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_EXECUTE]    = "execute",
 	[CCS_TYPE_READ]       = "read",
 	[CCS_TYPE_WRITE]      = "write",
-	[CCS_TYPE_CREATE]     = "create",
 	[CCS_TYPE_UNLINK]     = "unlink",
-	[CCS_TYPE_MKDIR]      = "mkdir",
 	[CCS_TYPE_RMDIR]      = "rmdir",
-	[CCS_TYPE_MKFIFO]     = "mkfifo",
-	[CCS_TYPE_MKSOCK]     = "mksock",
 	[CCS_TYPE_TRUNCATE]   = "truncate",
 	[CCS_TYPE_SYMLINK]    = "symlink",
 	[CCS_TYPE_REWRITE]    = "rewrite",
 };
 
-static const char *ccs_path_number_number_keyword[CCS_MAX_PATH_NUMBER_NUMBER_OPERATION] = {
+static const char *ccs_path_number3_keyword[CCS_MAX_PATH_NUMBER3_OPERATION] = {
 	[CCS_TYPE_MKBLOCK]    = "mkblock",
 	[CCS_TYPE_MKCHAR]     = "mkchar",
 };
 
-static const char *ccs_path_path_keyword[CCS_MAX_PATH_PATH_OPERATION] = {
+static const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION] = {
 	[CCS_TYPE_LINK]    = "link",
 	[CCS_TYPE_RENAME]  = "rename",
 };
 
 static const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
-	[CCS_TYPE_IOCTL] = "ioctl",
-	[CCS_TYPE_CHMOD] = "chmod",
-	[CCS_TYPE_CHOWN] = "chown",
-	[CCS_TYPE_CHGRP] = "chgrp",
+	[CCS_TYPE_CREATE] = "create",
+	[CCS_TYPE_MKDIR]  = "mkdir",
+	[CCS_TYPE_MKFIFO] = "mkfifo",
+	[CCS_TYPE_MKSOCK] = "mksock",
+	[CCS_TYPE_IOCTL]  = "ioctl",
+	[CCS_TYPE_CHMOD]  = "chmod",
+	[CCS_TYPE_CHOWN]  = "chown",
+	[CCS_TYPE_CHGRP]  = "chgrp",
 };
 
 static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
@@ -51,32 +51,32 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_EXECUTE]    = CCS_MAC_EXECUTE,
 	[CCS_TYPE_READ]       = CCS_MAC_OPEN,
 	[CCS_TYPE_WRITE]      = CCS_MAC_OPEN,
-	[CCS_TYPE_CREATE]     = CCS_MAC_CREATE,
 	[CCS_TYPE_UNLINK]     = CCS_MAC_UNLINK,
-	[CCS_TYPE_MKDIR]      = CCS_MAC_MKDIR,
 	[CCS_TYPE_RMDIR]      = CCS_MAC_RMDIR,
-	[CCS_TYPE_MKFIFO]     = CCS_MAC_MKFIFO,
-	[CCS_TYPE_MKSOCK]     = CCS_MAC_MKSOCK,
 	[CCS_TYPE_TRUNCATE]   = CCS_MAC_TRUNCATE,
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_SYMLINK,
 	[CCS_TYPE_REWRITE]    = CCS_MAC_REWRITE,
 };
 
-static const u8 ccs_pnn2mac[CCS_MAX_PATH_NUMBER_NUMBER_OPERATION] = {
-	[CCS_TYPE_MKBLOCK]    = CCS_MAC_MKBLOCK,
-	[CCS_TYPE_MKCHAR]     = CCS_MAC_MKCHAR,
+static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
+	[CCS_TYPE_MKBLOCK] = CCS_MAC_MKBLOCK,
+	[CCS_TYPE_MKCHAR]  = CCS_MAC_MKCHAR,
 };
 
-static const u8 ccs_pp2mac[CCS_MAX_PATH_PATH_OPERATION] = {
-	[CCS_TYPE_LINK]    = CCS_MAC_LINK,
-	[CCS_TYPE_RENAME]  = CCS_MAC_RENAME,
+static const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
+	[CCS_TYPE_LINK]   = CCS_MAC_LINK,
+	[CCS_TYPE_RENAME] = CCS_MAC_RENAME,
 };
 
 static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
-	[CCS_TYPE_IOCTL] = CCS_MAC_IOCTL,
-	[CCS_TYPE_CHMOD] = CCS_MAC_CHMOD,
-	[CCS_TYPE_CHOWN] = CCS_MAC_CHOWN,
-	[CCS_TYPE_CHGRP] = CCS_MAC_CHGRP,
+	[CCS_TYPE_CREATE] = CCS_MAC_CREATE,
+	[CCS_TYPE_MKDIR]  = CCS_MAC_MKDIR,
+	[CCS_TYPE_MKFIFO] = CCS_MAC_MKFIFO,
+	[CCS_TYPE_MKSOCK] = CCS_MAC_MKSOCK,
+	[CCS_TYPE_IOCTL]  = CCS_MAC_IOCTL,
+	[CCS_TYPE_CHMOD]  = CCS_MAC_CHMOD,
+	[CCS_TYPE_CHOWN]  = CCS_MAC_CHOWN,
+	[CCS_TYPE_CHGRP]  = CCS_MAC_CHGRP,
 };
 
 
@@ -138,29 +138,29 @@ const char *ccs_path2keyword(const u8 operation)
 }
 
 /**
- * ccs_path_number_number2keyword - Get the name of mkdev operation.
+ * ccs_path_number32keyword - Get the name of mkdev operation.
  *
  * @operation: Type of operation.
  *
  * Returns the name of mkdev operation.
  */
-const char *ccs_path_number_number2keyword(const u8 operation)
+const char *ccs_path_number32keyword(const u8 operation)
 {
-	return (operation < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION)
-		? ccs_path_number_number_keyword[operation] : NULL;
+	return (operation < CCS_MAX_PATH_NUMBER3_OPERATION)
+		? ccs_path_number3_keyword[operation] : NULL;
 }
 
 /**
- * ccs_path_path2keyword - Get the name of double path operation.
+ * ccs_path22keyword - Get the name of double path operation.
  *
  * @operation: Type of operation.
  *
  * Returns the name of double path operation.
  */
-const char *ccs_path_path2keyword(const u8 operation)
+const char *ccs_path22keyword(const u8 operation)
 {
-	return (operation < CCS_MAX_PATH_PATH_OPERATION)
-		? ccs_path_path_keyword[operation] : NULL;
+	return (operation < CCS_MAX_PATH2_OPERATION)
+		? ccs_path2_keyword[operation] : NULL;
 }
 
 const char *ccs_path_number2keyword(const u8 operation)
@@ -236,7 +236,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_path_path_log - Audit double path request log.
+ * ccs_audit_path2_log - Audit double path request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
@@ -246,7 +246,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_path_path_log(struct ccs_request_info *r,
+static int ccs_audit_path2_log(struct ccs_request_info *r,
 				     const char *operation,
 				     const char *filename1,
 				     const char *filename2,
@@ -262,28 +262,33 @@ static int ccs_audit_path_path_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_path_number_number_log - Audit mkdev request log.
+ * ccs_audit_path_number3_log - Audit mkdev request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
  * @filename:   First pathname.
+ * @mode:       Create mode.
  * @major:      Device major number.
  * @minor:      Device minor number.
  * @is_granted: True if this is a granted log.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_path_number_number_log(struct ccs_request_info *r,
-			       const char *operation, const char *filename,
-			       const unsigned int major,
-			       const unsigned int minor, const bool is_granted)
+static int ccs_audit_path_number3_log(struct ccs_request_info *r,
+				      const char *operation,
+				      const char *filename,
+				      const unsigned int mode,
+				      const unsigned int major,
+				      const unsigned int minor,
+				      const bool is_granted)
 {
 	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Access '%s %s %u %u' denied "
+		printk(KERN_WARNING "%s: Access '%s %s 0%o %u %u' denied "
 		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
-		       filename, major, minor, ccs_get_last_name(r->domain));
-	return ccs_write_audit_log(is_granted, r, "allow_%s %s %u %u\n",
-				   operation, filename, major, minor);
+		       filename, mode, major, minor,
+		       ccs_get_last_name(r->domain));
+	return ccs_write_audit_log(is_granted, r, "allow_%s %s 0%o %u %u\n",
+				   operation, filename, mode, major, minor);
 }
 
 /**
@@ -326,7 +331,7 @@ static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 {
 	struct ccs_globally_readable_file_entry *ptr;
 	bool found = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->is_deleted ||
 		    !ccs_path_matches_pattern(filename, ptr->filename))
@@ -390,7 +395,7 @@ bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_globally_readable_list) {
 		struct ccs_globally_readable_file_entry *ptr;
@@ -422,7 +427,7 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -492,7 +497,7 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
 		struct ccs_pattern_entry *ptr;
 		ptr = list_entry(pos, struct ccs_pattern_entry, list);
@@ -523,7 +528,7 @@ static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 {
 	struct ccs_no_rewrite_entry *ptr;
 	bool matched = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -588,7 +593,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			      &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
@@ -648,7 +653,7 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
 }
 
 /**
- * ccs_check_path_acl - Check permission for single path operation.
+ * ccs_path_acl - Check permission for single path operation.
  *
  * @r:               Pointer to "struct ccs_request_info".
  * @filename:        Filename to check.
@@ -659,7 +664,7 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_acl(struct ccs_request_info *r,
+static int ccs_path_acl(struct ccs_request_info *r,
 				     const struct ccs_path_info *filename,
 				     const u16 perm,
 				     const bool may_use_pattern)
@@ -667,14 +672,14 @@ static int ccs_check_path_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_path_acl,
 				   head);
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_name_union_pattern(filename, &acl->name,
 						    may_use_pattern))
 			continue;
@@ -686,11 +691,12 @@ static int ccs_check_path_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_path_number_number_acl - Check permission for mkdev operation.
+ * ccs_path_number3_acl - Check permission for mkdev operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @filename: Filename to check.
  * @perm:     Permission.
+ * @mode:     Create mode.
  * @major:    Device major number.
  * @minor:    Device minor number.
  *
@@ -698,25 +704,28 @@ static int ccs_check_path_acl(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_number_number_acl(struct ccs_request_info *r,
-			       const struct ccs_path_info *filename,
-			       const u16 perm, const unsigned int major,
-			       const unsigned int minor)
+static int ccs_path_number3_acl(struct ccs_request_info *r,
+				const struct ccs_path_info *filename,
+				const u16 perm, const unsigned int mode,
+				const unsigned int major,
+				const unsigned int minor)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_path_number_number_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER_NUMBER_ACL)
+		struct ccs_path_number3_acl *acl;
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER3_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_path_number_number_acl, head);
+		acl = container_of(ptr, struct ccs_path_number3_acl, head);
+		if (!ccs_compare_number_union(mode, &acl->mode))
+				continue;
 		if (!ccs_compare_number_union(major, &acl->major))
 				continue;
 		if (!ccs_compare_number_union(minor, &acl->minor))
 			continue;
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr))
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr))
 			continue;
 		if (!ccs_compare_name_union(filename, &acl->name))
 			continue;
@@ -728,7 +737,7 @@ static int ccs_check_path_number_number_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_file_perm - Check permission for opening files.
+ * ccs_file_perm - Check permission for opening files.
  *
  * @r:         Pointer to "strct ccs_request_info".
  * @filename:  Filename to check.
@@ -738,7 +747,7 @@ static int ccs_check_path_number_number_acl(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_file_perm(struct ccs_request_info *r,
+static int ccs_file_perm(struct ccs_request_info *r,
 			       const struct ccs_path_info *filename,
 			       const u8 mode)
 {
@@ -746,7 +755,7 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!filename)
 		return 0;
 	if (mode == 6) {
@@ -764,13 +773,13 @@ static int ccs_check_file_perm(struct ccs_request_info *r,
 	} else
 		BUG();
  retry:
-	error = ccs_check_path_acl(r, filename, perm, mode != 1);
+	error = ccs_path_acl(r, filename, perm, mode != 1);
 	if (error && mode == 4 && !r->domain->ignore_global_allow_read
 	    && ccs_is_globally_readable_file(filename))
 		error = 0;
 	ccs_audit_path_log(r, msg, filename->name, !error);
 	if (error)
-		error = ccs_check_supervisor(r, "allow_%s %s\n", msg,
+		error = ccs_supervisor(r, "allow_%s %s\n", msg,
 					     mode == 1 ? filename->name :
 					     ccs_file_pattern(filename));
 	if (error == 1 && !r->ee)
@@ -922,10 +931,11 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 }
 
 /**
- * ccs_update_path_number_number_acl - Update "struct ccs_path_number_number_acl" list.
+ * ccs_update_path_number3_acl - Update "struct ccs_path_number3_acl" list.
  *
  * @type:      Type of operation.
  * @filename:  Filename.
+ * @mode:      Create mode.
  * @major:     Device major number.
  * @minor:     Device minor number.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -934,22 +944,25 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_update_path_number_number_acl(const u8 type, const char *filename,
-				       char *major, char *minor,
-				       struct ccs_domain_info * const domain,
-				       struct ccs_condition *condition,
-				       const bool is_delete)
+static inline int ccs_update_path_number3_acl(const u8 type,
+					      const char *filename, char *mode,
+					      char *major, char *minor,
+					      struct ccs_domain_info * const
+					      domain,
+					      struct ccs_condition *condition,
+					      const bool is_delete)
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
-	struct ccs_path_number_number_acl e = {
-		.head.type = CCS_TYPE_PATH_NUMBER_NUMBER_ACL,
+	struct ccs_path_number3_acl e = {
+		.head.type = CCS_TYPE_PATH_NUMBER3_ACL,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path_number_number_acl *entry = NULL;
+	struct ccs_path_number3_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename, &e.name) ||
+	    !ccs_parse_number_union(mode, &e.mode) ||
 	    !ccs_parse_number_union(major, &e.major) ||
 	    !ccs_parse_number_union(minor, &e.minor))
 		goto out;
@@ -957,9 +970,9 @@ static inline int ccs_update_path_number_number_acl(const u8 type, const char *f
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_path_number_number_acl *acl =
-			container_of(ptr, struct ccs_path_number_number_acl, head);
-		if (ptr->type != CCS_TYPE_PATH_NUMBER_NUMBER_ACL ||
+		struct ccs_path_number3_acl *acl =
+			container_of(ptr, struct ccs_path_number3_acl, head);
+		if (ptr->type != CCS_TYPE_PATH_NUMBER3_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
 			continue;
@@ -984,6 +997,7 @@ static inline int ccs_update_path_number_number_acl(const u8 type, const char *f
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name_union(&e.name);
+	ccs_put_number_union(&e.mode);
 	ccs_put_number_union(&e.major);
 	ccs_put_number_union(&e.minor);
 	kfree(entry);
@@ -991,7 +1005,7 @@ static inline int ccs_update_path_number_number_acl(const u8 type, const char *f
 }
 
 /**
- * ccs_update_path_path_acl - Update "struct ccs_path_path_acl" list.
+ * ccs_update_path2_acl - Update "struct ccs_path2_acl" list.
  *
  * @type:      Type of operation.
  * @filename1: First filename.
@@ -1002,7 +1016,7 @@ static inline int ccs_update_path_number_number_acl(const u8 type, const char *f
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_update_path_path_acl(const u8 type,
+static inline int ccs_update_path2_acl(const u8 type,
 					     const char *filename1,
 					     const char *filename2,
 					     struct ccs_domain_info * const
@@ -1012,12 +1026,12 @@ static inline int ccs_update_path_path_acl(const u8 type,
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
-	struct ccs_path_path_acl e = {
-		.head.type = CCS_TYPE_PATH_PATH_ACL,
+	struct ccs_path2_acl e = {
+		.head.type = CCS_TYPE_PATH2_ACL,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path_path_acl *entry = NULL;
+	struct ccs_path2_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename1, &e.name1) ||
 	    !ccs_parse_name_union(filename2, &e.name2))
@@ -1026,10 +1040,10 @@ static inline int ccs_update_path_path_acl(const u8 type,
 		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_path_path_acl *acl =
-			container_of(ptr, struct ccs_path_path_acl,
+		struct ccs_path2_acl *acl =
+			container_of(ptr, struct ccs_path2_acl,
 				     head);
-		if (ptr->type != CCS_TYPE_PATH_PATH_ACL ||
+		if (ptr->type != CCS_TYPE_PATH2_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), name1), sizeof(e)))
 			continue;
@@ -1060,7 +1074,7 @@ static inline int ccs_update_path_path_acl(const u8 type,
 }
 
 /**
- * ccs_check_path_path_acl - Check permission for double path operation.
+ * ccs_path2_acl - Check permission for double path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @type:      Type of operation.
@@ -1071,7 +1085,7 @@ static inline int ccs_update_path_path_acl(const u8 type,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_path_acl(struct ccs_request_info *r, const u8 type,
+static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename1,
 				     const struct ccs_path_info *filename2)
 {
@@ -1079,14 +1093,14 @@ static int ccs_check_path_path_acl(struct ccs_request_info *r, const u8 type,
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_path_path_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_PATH_ACL)
+		struct ccs_path2_acl *acl;
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH2_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_path_path_acl,
+		acl = container_of(ptr, struct ccs_path2_acl,
 				   head);
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_name_union(filename1, &acl->name1) ||
 		    !ccs_compare_name_union(filename2, &acl->name2))
 			continue;
@@ -1098,7 +1112,7 @@ static int ccs_check_path_path_acl(struct ccs_request_info *r, const u8 type,
 }
 
 /**
- * ccs_check_path_permission - Check permission for single path operation.
+ * ccs_path_permission - Check permission for single path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
@@ -1108,7 +1122,7 @@ static int ccs_check_path_path_acl(struct ccs_request_info *r, const u8 type,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_permission(struct ccs_request_info *r,
+static int ccs_path_permission(struct ccs_request_info *r,
 					    u8 operation,
 					    const struct ccs_path_info *
 					    filename)
@@ -1118,16 +1132,16 @@ static int ccs_check_path_permission(struct ccs_request_info *r,
 	bool is_enforce;
  repeat:
 	r->mode = ccs_profile_ptr[r->profile]->mac_mode[ccs_p2mac[operation]];
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!r->mode)
 		return 0;
 	is_enforce = (r->mode == 3);
  retry:
-	error = ccs_check_path_acl(r, filename, 1 << operation, 1);
+	error = ccs_path_acl(r, filename, 1 << operation, 1);
 	msg = ccs_path2keyword(operation);
 	ccs_audit_path_log(r, msg, filename->name, !error);
 	if (error)
-		error = ccs_check_supervisor(r, "allow_%s %s\n", msg,
+		error = ccs_supervisor(r, "allow_%s %s\n", msg,
 					     ccs_file_pattern(filename));
 	if (error == 1)
 		goto retry;
@@ -1147,37 +1161,41 @@ static int ccs_check_path_permission(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_path_number_number_permission - Check permission for mkdev operation.
+ * ccs_path_number3_perm2 - Check permission for mkdev operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
  * @filename:  Filename to check.
+ * @mode:      Create mode.
  * @dev:       Device number.
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_number_number_permission(struct ccs_request_info *r,
-				      const u8 operation,
-				      const struct ccs_path_info *filename,
-				      const unsigned int dev)
+static int ccs_path_number3_perm2(struct ccs_request_info *r,
+				  const u8 operation,
+				  const struct ccs_path_info *filename,
+				  const unsigned int mode,
+				  const unsigned int dev)
 {
 	int error;
-	const char *msg = ccs_path_number_number2keyword(operation);
+	const char *msg = ccs_path_number32keyword(operation);
 	const bool is_enforce = (r->mode == 3);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!r->mode)
 		return 0;
  retry:
-	error = ccs_check_path_number_number_acl(r, filename, 1 << operation, major, minor);
-	ccs_audit_path_number_number_log(r, msg, filename->name, major, minor, !error);
+	error = ccs_path_number3_acl(r, filename, 1 << operation, mode, major,
+				     minor);
+	ccs_audit_path_number3_log(r, msg, filename->name, mode, major, minor,
+				   !error);
 	if (error)
-		error = ccs_check_supervisor(r, "allow_%s %s %u %u\n", msg,
-					     ccs_file_pattern(filename), major,
-					     minor);
+		error = ccs_supervisor(r, "allow_%s %s 0%o %u %u\n", msg,
+				       ccs_file_pattern(filename), mode,
+				       major, minor);
 	if (error == 1)
 		goto retry;
 	if (!is_enforce)
@@ -1186,7 +1204,7 @@ static int ccs_check_path_number_number_permission(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_exec_perm - Check permission for "execute".
+ * ccs_exec_perm - Check permission for "execute".
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @filename: Check permission for "execute".
@@ -1195,19 +1213,19 @@ static int ccs_check_path_number_number_permission(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-int ccs_check_exec_perm(struct ccs_request_info *r,
+int ccs_exec_perm(struct ccs_request_info *r,
 			const struct ccs_path_info *filename)
 {
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	if (!r->mode)
 		return 0;
-	return ccs_check_file_perm(r, filename, 1);
+	return ccs_file_perm(r, filename, 1);
 }
 
 /**
- * ccs_check_open_permission - Check permission for "read" and "write".
+ * ccs_open_permission - Check permission for "read" and "write".
  *
  * @dentry: Pointer to "struct dentry".
  * @mnt:    Pointer to "struct vfsmount".
@@ -1215,7 +1233,7 @@ int ccs_check_exec_perm(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			      const int flag)
 {
 	struct ccs_request_info r;
@@ -1255,7 +1273,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		}
 		if (ccs_is_no_rewrite_file(&buf)) {
 			r.obj = &obj;
-			error = ccs_check_path_permission(&r, CCS_TYPE_REWRITE,
+			error = ccs_path_permission(&r, CCS_TYPE_REWRITE,
 							  &buf);
 		}
 	}
@@ -1266,7 +1284,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			goto out;
 		}
 		r.obj = &obj;
-		error = ccs_check_file_perm(&r, &buf, acc_mode);
+		error = ccs_file_perm(&r, &buf, acc_mode);
 	}
 	if (!error && (flag & O_TRUNC) &&
 	    ccs_init_request_info(&r, domain, CCS_MAC_TRUNCATE)) {
@@ -1275,7 +1293,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			goto out;
 		}
 		r.obj = &obj;
-		error = ccs_check_path_permission(&r, CCS_TYPE_TRUNCATE,
+		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE,
 						  &buf);
 	}
  out:
@@ -1287,7 +1305,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /**
- * ccs_check_path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "truncate" and "symlink".
+ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate" and "symlink".
  *
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
@@ -1296,7 +1314,7 @@ int ccs_check_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_path_perm(const u8 operation, struct dentry *dentry,
+static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 				struct vfsmount *mnt, const char *target)
 {
 	struct ccs_request_info r;
@@ -1339,7 +1357,7 @@ static int ccs_check_path_perm(const u8 operation, struct dentry *dentry,
 		obj.symlink_target = &symlink_target;
 		break;
 	}
-	error = ccs_check_path_permission(&r, operation, &buf);
+	error = ccs_path_permission(&r, operation, &buf);
 	if (operation == CCS_TYPE_SYMLINK)
 		kfree(symlink_target.name);
  out:
@@ -1351,17 +1369,19 @@ static int ccs_check_path_perm(const u8 operation, struct dentry *dentry,
 }
 
 /**
- * ccs_check_path_number_number_perm - Check permission for "mkblock" and "mkchar".
+ * ccs_path_number3_perm - Check permission for "mkblock" and "mkchar".
  *
  * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
+ ` @mode:      Create mode.
  * @dev:       Device number.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_path_number_number_perm(const u8 operation, struct dentry *dentry,
-				struct vfsmount *mnt, unsigned int dev)
+static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
+				 struct vfsmount *mnt, const unsigned int mode,
+				 const unsigned int dev)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1377,7 +1397,8 @@ static int ccs_check_path_number_number_perm(const u8 operation, struct dentry *
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || !ccs_init_request_info(&r, NULL, ccs_pnn2mac[operation])) {
+	if (!mnt ||
+	    !ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])) {
 		error = 0;
 		goto out;
 	}
@@ -1385,7 +1406,7 @@ static int ccs_check_path_number_number_perm(const u8 operation, struct dentry *
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
-	error = ccs_check_path_number_number_permission(&r, operation, &buf, dev);
+	error = ccs_path_number3_perm2(&r, operation, &buf, mode, dev);
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -1395,13 +1416,13 @@ static int ccs_check_path_number_number_perm(const u8 operation, struct dentry *
 }
 
 /**
- * ccs_check_rewrite_permission - Check permission for "rewrite".
+ * ccs_rewrite_permission - Check permission for "rewrite".
  *
  * @filp: Pointer to "struct file".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_rewrite_permission(struct file *filp)
+int ccs_rewrite_permission(struct file *filp)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1429,7 +1450,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 		goto out;
 	}
 	r.obj = &obj;
-	error = ccs_check_path_permission(&r, CCS_TYPE_REWRITE, &buf);
+	error = ccs_path_permission(&r, CCS_TYPE_REWRITE, &buf);
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -1439,7 +1460,7 @@ int ccs_check_rewrite_permission(struct file *filp)
 }
 
 /**
- * ccs_check_path_path_perm - Check permission for "rename" and "link".
+ * ccs_path2_perm - Check permission for "rename" and "link".
  *
  * @operation: Type of operation.
  * @dentry1:   Pointer to "struct dentry".
@@ -1448,12 +1469,12 @@ int ccs_check_rewrite_permission(struct file *filp)
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_path_path_perm(const u8 operation, struct dentry *dentry1,
+static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 				struct dentry *dentry2, struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
-	const char *msg = ccs_path_path2keyword(operation);
+	const char *msg = ccs_path22keyword(operation);
 	struct ccs_path_info buf1;
 	struct ccs_path_info buf2;
 	bool is_enforce = false;
@@ -1495,10 +1516,10 @@ static int ccs_check_path_path_perm(const u8 operation, struct dentry *dentry1,
 	}
 	r.obj = &obj;
  retry:
-	error = ccs_check_path_path_acl(&r, operation, &buf1, &buf2);
-	ccs_audit_path_path_log(&r, msg, buf1.name, buf2.name, !error);
+	error = ccs_path2_acl(&r, operation, &buf1, &buf2);
+	ccs_audit_path2_log(&r, msg, buf1.name, buf2.name, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, "allow_%s %s %s\n", msg,
+		error = ccs_supervisor(&r, "allow_%s %s %s\n", msg,
 					     ccs_file_pattern(&buf1),
 					     ccs_file_pattern(&buf2));
 	if (error == 1)
@@ -1585,7 +1606,7 @@ static inline int ccs_update_path_number_acl(const u8 type,
 }
 
 /**
- * ccs_check_path_number_acl - Check permission for ioctl/chmod/chown/chgrp operation.
+ * ccs_path_number_acl - Check permission for ioctl/chmod/chown/chgrp operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @type:     Operation.
@@ -1596,7 +1617,7 @@ static inline int ccs_update_path_number_acl(const u8 type,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
+static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 				     const struct ccs_path_info *filename,
 				     const unsigned long number)
 {
@@ -1604,14 +1625,14 @@ static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_path_number_acl,
 				   head);
-		if (!(acl->perm & perm) || !ccs_check_condition(r, ptr) ||
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_number_union(number, &acl->number) ||
 		    !ccs_compare_name_union(filename, &acl->name))
 			continue;
@@ -1623,7 +1644,7 @@ static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
 }
 
 /**
- * ccs_check_path_number_perm - Check permission for ioctl/chmod/chown/chgrp.
+ * ccs_path_number_perm2 - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
  * @r:        Pointer to "strct ccs_request_info".
  * @filename: Filename to check.
@@ -1633,29 +1654,41 @@ static int ccs_check_path_number_acl(struct ccs_request_info *r, const u8 type,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_path_number_perm(struct ccs_request_info *r,
-				      const u8 type,
-				      const struct ccs_path_info *filename,
-				      const unsigned long number)
+static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
+				 const struct ccs_path_info *filename,
+				 const unsigned long number)
 {
 	const bool is_enforce = (r->mode == 3);
 	char buffer[64];
 	int error;
+	u8 radix;
 	const char *msg = ccs_path_number2keyword(type);
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!filename)
 		return 0;
-	ccs_print_ulong(buffer, sizeof(buffer), number,
-			type == CCS_TYPE_CHMOD ? CCS_VALUE_TYPE_OCTAL :
-			(type == CCS_TYPE_IOCTL ? CCS_VALUE_TYPE_HEXADECIMAL :
-			 CCS_VALUE_TYPE_DECIMAL));
+	switch (type) {
+	case CCS_TYPE_CREATE:
+	case CCS_TYPE_MKDIR:
+	case CCS_TYPE_MKFIFO:
+	case CCS_TYPE_MKSOCK:
+	case CCS_TYPE_CHMOD:
+		radix = CCS_VALUE_TYPE_OCTAL;
+		break;
+	case CCS_TYPE_IOCTL:
+		radix = CCS_VALUE_TYPE_HEXADECIMAL;
+		break;
+	default:
+		radix = CCS_VALUE_TYPE_DECIMAL;
+		break;
+	}
+	ccs_print_ulong(buffer, sizeof(buffer), number, radix);
  retry:
-	error = ccs_check_path_number_acl(r, type, filename, number);
+	error = ccs_path_number_acl(r, type, filename, number);
 	ccs_audit_path_number_log(r, msg, filename->name, buffer, !error);
 	if (!error)
 		return 0;
-	error = ccs_check_supervisor(r, "allow_%s %s %s\n", msg,
-				     ccs_file_pattern(filename), buffer);
+	error = ccs_supervisor(r, "allow_%s %s %s\n", msg,
+			       ccs_file_pattern(filename), buffer);
 	if (error == 1)
 		goto retry;
 	if (!is_enforce)
@@ -1664,7 +1697,7 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_path_number_permission - Check permission for "ioctl/chmod/chown/chgrp".
+ * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
  * @dentry: Pointer to "struct dentry".
  * @vfsmnt: Pointer to "struct vfsmount".
@@ -1672,10 +1705,8 @@ static int ccs_check_path_number_perm(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_path_number_permission(const u8 type,
-					    struct dentry *dentry,
-					    struct vfsmount *vfsmnt,
-					    unsigned long number)
+static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
+				struct vfsmount *vfsmnt, unsigned long number)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1696,7 +1727,7 @@ static int ccs_check_path_number_permission(const u8 type,
 	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
 		goto out;
 	r.obj = &obj;
-	error = ccs_check_path_number_perm(&r, type, &buf, number);
+	error = ccs_path_number_perm2(&r, type, &buf, number);
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -1706,7 +1737,7 @@ static int ccs_check_path_number_permission(const u8 type,
 }
 
 /**
- * ccs_check_ioctl_permission - Check permission for "ioctl".
+ * ccs_ioctl_permission - Check permission for "ioctl".
  *
  * @file: Pointer to "struct file".
  * @cmd:  Ioctl command number.
@@ -1714,12 +1745,11 @@ static int ccs_check_path_number_permission(const u8 type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_ioctl_permission(struct file *filp, unsigned int cmd,
+int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 			       unsigned long arg)
 {
-	return ccs_check_path_number_permission(CCS_TYPE_IOCTL,
-						filp->f_dentry, filp->f_vfsmnt,
-						cmd);
+	return ccs_path_number_perm(CCS_TYPE_IOCTL, filp->f_dentry,
+				    filp->f_vfsmnt, cmd);
 }
 
 /**
@@ -1736,8 +1766,8 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 {
 	if (mode == (mode_t) -1)
 		return 0;
-	return ccs_check_path_number_permission(CCS_TYPE_CHMOD, dentry, vfsmnt,
-						mode & S_IALLUGO);
+	return ccs_path_number_perm(CCS_TYPE_CHMOD, dentry, vfsmnt,
+				    mode & S_IALLUGO);
 }
 
 /**
@@ -1755,11 +1785,11 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 {
 	int error = 0;
 	if (user != (uid_t) -1)
-		error = ccs_check_path_number_permission(CCS_TYPE_CHOWN, dentry,
-							 vfsmnt, user);
+		error = ccs_path_number_perm(CCS_TYPE_CHOWN, dentry, vfsmnt,
+					     user);
 	if (!error && group != (gid_t) -1)
-		error = ccs_check_path_number_permission(CCS_TYPE_CHGRP, dentry,
-							 vfsmnt, group);
+		error = ccs_path_number_perm(CCS_TYPE_CHGRP, dentry, vfsmnt,
+					     group);
 	return error;
 }
 
@@ -1777,7 +1807,7 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  struct ccs_condition *condition,
 			  const bool is_delete)
 {
-	char *w[4];
+	char *w[5];
 	unsigned int perm;
 	u8 type;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
@@ -1804,11 +1834,11 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!w[2][0])
 		goto out;
-	for (type = 0; type < CCS_MAX_PATH_PATH_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path_path_keyword[type]))
+	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++) {
+		if (strcmp(w[0], ccs_path2_keyword[type]))
 			continue;
-		return ccs_update_path_path_acl(type, w[1], w[2], domain,
-						condition, is_delete);
+		return ccs_update_path2_acl(type, w[1], w[2], domain,
+					    condition, is_delete);
 	}
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++) {
 		if (strcmp(w[0], ccs_path_number_keyword[type]))
@@ -1816,13 +1846,14 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 		return ccs_update_path_number_acl(type, w[1], w[2], domain,
 						  condition, is_delete);
 	}
-	if (!w[3][0])
+	if (!w[3][0] || !w[4][0])
 		goto out;
-	for (type = 0; type < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path_number_number_keyword[type]))
+	for (type = 0; type < CCS_MAX_PATH_NUMBER3_OPERATION; type++) {
+		if (strcmp(w[0], ccs_path_number3_keyword[type]))
 			continue;
-		return ccs_update_path_number_number_acl(type, w[1], w[2], w[3], domain,
-					    condition, is_delete);
+		return ccs_update_path_number3_acl(type, w[1], w[2], w[3],
+						   w[4], domain, condition,
+						   is_delete);
 	}
  out:
 	return -EINVAL;
@@ -2272,8 +2303,9 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
  * This function is exported because
  * vfs_mknod() is called from net/unix/af_unix.c.
  */
-int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt, int mode, unsigned dev)
+int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
+			 struct vfsmount *mnt, const unsigned int mode,
+			 unsigned int dev)
 {
 	int error;
 	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
@@ -2289,63 +2321,64 @@ int ccs_check_mknod_permission(struct inode *dir, struct dentry *dentry,
 	case S_IFREG:
 		error = ccs_pre_vfs_create(dir, dentry);
 		if (!error)
-			error = ccs_check_path_perm(CCS_TYPE_CREATE,
-						     dentry, mnt, NULL);
+			error = ccs_path_number_perm(CCS_TYPE_CREATE, dentry,
+						     mnt, mode & S_IALLUGO);
 		return error;
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 	error = ccs_pre_vfs_mknod(dir, dentry);
 #else
 	error = ccs_pre_vfs_mknod(dir, dentry, mode);
+	dev = new_decode_dev(dev);
 #endif
 	if (error)
 		return error;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		error = ccs_check_path_number_number_perm(CCS_TYPE_MKCHAR,
-							  dentry, mnt, dev);
+		error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dentry, mnt,
+					      mode & S_IALLUGO, dev);
 		break;
 	case S_IFBLK:
-		error = ccs_check_path_number_number_perm(CCS_TYPE_MKBLOCK,
-							  dentry, mnt, dev);
+		error = ccs_path_number3_perm(CCS_TYPE_MKBLOCK, dentry, mnt,
+					      mode & S_IALLUGO, dev);
 		break;
 	case S_IFIFO:
-		error = ccs_check_path_perm(CCS_TYPE_MKFIFO, dentry, mnt,
-					     NULL);
+		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dentry, mnt,
+					     mode & S_IALLUGO);
 		break;
 	case S_IFSOCK:
-		error = ccs_check_path_perm(CCS_TYPE_MKSOCK, dentry, mnt,
-					     NULL);
+		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dentry, mnt,
+					     mode & S_IALLUGO);
 		break;
 	}
 	return error;
 }
-EXPORT_SYMBOL(ccs_check_mknod_permission);
+EXPORT_SYMBOL(ccs_mknod_permission);
 
 /* Permission checks for vfs_mkdir(). */
-int ccs_check_mkdir_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt, int mode)
+int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
+			 struct vfsmount *mnt, unsigned int mode)
 {
 	int error = ccs_pre_vfs_mkdir(dir, dentry);
 	if (!error)
-		error = ccs_check_path_perm(CCS_TYPE_MKDIR, dentry, mnt,
-					     NULL);
+		error = ccs_path_number_perm(CCS_TYPE_MKDIR, dentry, mnt,
+					     mode);
 	return error;
 }
 
 /* Permission checks for vfs_rmdir(). */
-int ccs_check_rmdir_permission(struct inode *dir, struct dentry *dentry,
+int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
 			       struct vfsmount *mnt)
 {
 	int error = ccs_pre_vfs_rmdir(dir, dentry);
 	if (!error)
-		error = ccs_check_path_perm(CCS_TYPE_RMDIR, dentry, mnt,
+		error = ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt,
 					     NULL);
 	return error;
 }
 
 /* Permission checks for vfs_unlink(). */
-int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
+int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 				struct vfsmount *mnt)
 {
 	int error;
@@ -2353,13 +2386,13 @@ int ccs_check_unlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_unlink(dir, dentry);
 	if (!error)
-		error = ccs_check_path_perm(CCS_TYPE_UNLINK, dentry, mnt,
+		error = ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt,
 					     NULL);
 	return error;
 }
 
 /* Permission checks for vfs_symlink(). */
-int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
+int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 				 struct vfsmount *mnt, char *from)
 {
 	int error;
@@ -2367,20 +2400,20 @@ int ccs_check_symlink_permission(struct inode *dir, struct dentry *dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_symlink(dir, dentry);
 	if (!error)
-		error = ccs_check_path_perm(CCS_TYPE_SYMLINK, dentry, mnt,
+		error = ccs_path_perm(CCS_TYPE_SYMLINK, dentry, mnt,
 					     from);
 	return error;
 }
 
 /* Permission checks for notify_change(). */
-int ccs_check_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
+int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 				  loff_t length, unsigned int time_attrs)
 {
-	return ccs_check_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
+	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */
-int ccs_check_rename_permission(struct inode *old_dir,
+int ccs_rename_permission(struct inode *old_dir,
 				struct dentry *old_dentry,
 				struct inode *new_dir,
 				struct dentry *new_dentry,
@@ -2391,13 +2424,13 @@ int ccs_check_rename_permission(struct inode *old_dir,
 		return -EPERM;
 	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_check_path_path_perm(CCS_TYPE_RENAME, old_dentry,
+		error = ccs_path2_perm(CCS_TYPE_RENAME, old_dentry,
 					     new_dentry, mnt);
 	return error;
 }
 
 /* Permission checks for vfs_link(). */
-int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
+int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			      struct dentry *new_dentry, struct vfsmount *mnt)
 {
 	int error;
@@ -2405,25 +2438,25 @@ int ccs_check_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 		return -EPERM;
 	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_check_path_path_perm(CCS_TYPE_LINK, old_dentry,
+		error = ccs_path2_perm(CCS_TYPE_LINK, old_dentry,
 						 new_dentry, mnt);
 	return error;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
 /* Permission checks for open_exec(). */
-int ccs_check_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
+int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
 	return (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) ?
 		/* 01 means "read". */
-		ccs_check_open_permission(dentry, mnt, 01) : 0;
+		ccs_open_permission(dentry, mnt, 01) : 0;
 }
 
 /* Permission checks for sys_uselib(). */
-int ccs_check_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
+int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
 	/* 01 means "read". */
-	return ccs_check_open_permission(dentry, mnt, 01);
+	return ccs_open_permission(dentry, mnt, 01);
 }
 #endif
 
@@ -2524,7 +2557,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			if (table->strategy) {
 				/* printk("sysctl='%s'\n", buffer); */
 				ccs_fill_path_info(&buf);
-				if (ccs_check_file_perm(&r, &buf, op)) {
+				if (ccs_file_perm(&r, &buf, op)) {
 					error = -EPERM;
 					goto out;
 				}
@@ -2537,7 +2570,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		}
 		/* printk("sysctl='%s'\n", buffer); */
 		ccs_fill_path_info(&buf);
-		error = ccs_check_file_perm(&r, &buf, op);
+		error = ccs_file_perm(&r, &buf, op);
 		goto out;
 	}
 	error = -ENOTDIR;

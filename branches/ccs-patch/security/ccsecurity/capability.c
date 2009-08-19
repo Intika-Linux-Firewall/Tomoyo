@@ -100,7 +100,7 @@ static bool ccs_capable2(const u8 operation)
 	struct ccs_acl_info *ptr;
 	bool is_enforce;
 	int error;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation))
 		return true;
@@ -113,7 +113,7 @@ static bool ccs_capable2(const u8 operation)
 			continue;
 		acl = container_of(ptr, struct ccs_capability_acl, head);
 		if (acl->operation != operation ||
-		    !ccs_check_condition(&r, ptr))
+		    !ccs_condition(&r, ptr))
 			continue;
 		r.cond = ptr->cond;
 		error = 0;
@@ -121,7 +121,7 @@ static bool ccs_capable2(const u8 operation)
 	}
 	ccs_audit_capability_log(&r, operation, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY
 					     "%s\n",
 					     ccs_cap2keyword(operation));
 	if (error == 1)
@@ -203,14 +203,14 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 }
 
 /**
- * ccs_check_setattr_permission - Check permission for chmod/chown.
+ * ccs_setattr_permission - Check permission for chmod/chown.
  *
  * @dentry: Pointer to "struct dentry".
  * @attr:   Pointer to "struct iattr".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_setattr_permission(struct dentry *dentry, struct iattr *attr)
+int ccs_setattr_permission(struct dentry *dentry, struct iattr *attr)
 {
 	if (attr->ia_valid & ATTR_FORCE)
 		return 0;

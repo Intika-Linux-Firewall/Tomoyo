@@ -64,7 +64,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 {
 	struct ccs_request_info *r = &ee->r;
 	const char *handler = ee->handler->name;
-	r->mode = ccs_check_flags(r->domain, CCS_MAC_EXECUTE);
+	r->mode = ccs_flags(r->domain, CCS_MAC_EXECUTE);
 	return ccs_write_audit_log(true, r, "%s %s\n",
 				   is_default ? CCS_KEYWORD_EXECUTE_HANDLER :
 				   CCS_KEYWORD_DENIED_EXECUTE_HANDLER, handler);
@@ -160,7 +160,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_initializer_list) {
 		const char *no;
@@ -225,7 +225,7 @@ static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_initializer_entry *ptr;
 	bool flag = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -343,7 +343,7 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_keeper_list) {
 		struct ccs_domain_keeper_entry *ptr;
@@ -385,7 +385,7 @@ static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_keeper_entry *ptr;
 	bool flag = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -471,7 +471,7 @@ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_aggregator_list) {
 		struct ccs_aggregator_entry *ptr;
 		ptr = list_entry(pos, struct ccs_aggregator_entry, list);
@@ -602,7 +602,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_path_info rn; /* real name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
@@ -647,7 +647,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 
 	/* Check execute permission. */
 	r->mode = mode;
-	retval = ccs_check_exec_perm(r, &rn);
+	retval = ccs_exec_perm(r, &rn);
 	if (retval == 1)
 		goto retry;
 	if (retval < 0)
@@ -680,7 +680,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	if (domain)
 		goto done;
 	if (is_enforce) {
-		int error = ccs_check_supervisor(r,
+		int error = ccs_supervisor(r,
 						 "# wants to create domain\n"
 						 "%s\n", new_domain_name);
 		if (error == 1)
@@ -711,13 +711,13 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 }
 
 /**
- * ccs_check_environ - Check permission for environment variable names.
+ * ccs_environ - Check permission for environment variable names.
  *
  * @ee: Pointer to "struct ccs_execve_entry".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_check_environ(struct ccs_execve_entry *ee)
+static int ccs_environ(struct ccs_execve_entry *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	struct linux_binprm *bprm = ee->bprm;
@@ -768,7 +768,7 @@ static int ccs_check_environ(struct ccs_execve_entry *ee)
 			}
 			if (c)
 				continue;
-			if (ccs_check_env_perm(r, arg_ptr)) {
+			if (ccs_env_perm(r, arg_ptr)) {
 				error = -EPERM;
 				break;
 			}
@@ -1196,7 +1196,7 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	bool found = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
@@ -1324,8 +1324,8 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
-	ee->r.mode = ccs_check_flags(ee->r.domain, CCS_MAC_ENVIRON);
-	retval = ccs_check_environ(ee);
+	ee->r.mode = ccs_flags(ee->r.domain, CCS_MAC_ENVIRON);
+	retval = ccs_environ(ee);
 	if (retval < 0)
 		goto out;
 	task->ccs_flags |= CCS_CHECK_READ_FOR_OPEN_EXEC;
@@ -1347,7 +1347,7 @@ void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 	if (!ee)
 		return;

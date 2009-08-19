@@ -34,7 +34,7 @@
 #endif
 
 /**
- * ccs_check_conceal_mount - Check whether this mount request shadows existing mounts.
+ * ccs_conceal_mount - Check whether this mount request shadows existing mounts.
  *
  * @path:   Pointer to "struct path" (for 2.6.27 and later).
  *          Pointer to "struct nameidata" (for 2.6.26 and earlier).
@@ -43,7 +43,7 @@
  *
  * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
  */
-static bool ccs_check_conceal_mount(struct PATH_or_NAMEIDATA *path,
+static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
 				    struct vfsmount *vfsmnt,
 				    struct dentry *dentry)
 {
@@ -102,7 +102,7 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 		/***** CRITICAL SECTION START *****/
 		ccs_realpath_lock();
 		if (IS_ROOT(dentry) || !d_unhashed(dentry))
-			found = ccs_check_conceal_mount(path, vfsmnt, dentry);
+			found = ccs_conceal_mount(path, vfsmnt, dentry);
 		ccs_realpath_unlock();
 		/***** CRITICAL SECTION END *****/
 		if (found)

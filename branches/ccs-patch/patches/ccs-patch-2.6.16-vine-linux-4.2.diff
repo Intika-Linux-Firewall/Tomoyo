@@ -15,11 +15,11 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  fs/attr.c                       |    5 +++++
  fs/compat.c                     |    9 ++++++++-
  fs/exec.c                       |   12 +++++++++++-
- fs/fcntl.c                      |    5 +++++
+ fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   25 ++++++++++++++++++++++++-
- fs/open.c                       |   30 +++++++++++++++++++++++++++++-
+ fs/namei.c                      |   34 ++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 +++++++++++++++++++++++-
+ fs/open.c                       |   29 ++++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -44,7 +44,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 290 insertions(+), 11 deletions(-)
+ 42 files changed, 283 insertions(+), 11 deletions(-)
 
 --- linux-2.6.16-76.51vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.51vl4/arch/alpha/kernel/ptrace.c
@@ -254,7 +254,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
  		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
 +		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
  	} else {
@@ -262,7 +262,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
@@ -320,7 +320,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -332,7 +332,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -357,12 +357,11 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  void fastcall set_close_on_exec(unsigned int fd, int flag)
  {
-@@ -215,6 +216,10 @@ static int setfl(int fd, struct file * f
+@@ -215,6 +216,9 @@ static int setfl(int fd, struct file * f
  	if (((arg ^ filp->f_flags) & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (((arg ^ filp->f_flags) & O_APPEND) &&
-+	    ccs_check_rewrite_permission(filp))
++	if (((arg ^ filp->f_flags) & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -392,7 +391,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -412,7 +411,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -431,84 +430,80 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
-+						   nd->mnt, mode, 0);
++		error = ccs_mknod_permission(dir->d_inode, path.dentry,
++					     nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		mutex_unlock(&dir->d_inode->i_mutex);
  		dput(nd->dentry);
-@@ -1847,6 +1858,10 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1847,6 +1858,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode,
-+						   new_decode_dev(dev));
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1920,6 +1935,10 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1920,6 +1934,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
-+							   dentry, nd.mnt,
-+							   mode);
++			error = ccs_mkdir_permission(nd.dentry->d_inode,
++						     dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2028,6 +2047,9 @@ static long do_rmdir(int dfd, const char
+@@ -2028,6 +2045,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt);
++		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2108,6 +2130,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2108,6 +2128,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2186,6 +2211,10 @@ asmlinkage long sys_symlinkat(const char
+@@ -2186,6 +2209,9 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_symlink_permission(nd.dentry->d_inode,
-+							     dentry, nd.mnt,
-+							     from);
++			error = ccs_symlink_permission(nd.dentry->d_inode,
++						       dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2278,6 +2307,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2278,6 +2304,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
-+		error = ccs_check_link_permission(old_nd.dentry,
-+						  nd.dentry->d_inode,
-+						  new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
++					    new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2504,6 +2537,11 @@ static int do_rename(int olddfd, const c
+@@ -2504,6 +2533,11 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
-+	if (!error)
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry, newnd.mnt);
++	if (error)
++		goto exit5;
 +
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
@@ -573,19 +568,18 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1287,6 +1301,11 @@ long do_mount(char *dev_name, char *dir_
+@@ -1287,6 +1301,10 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1585,6 +1604,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1585,6 +1603,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -594,12 +588,12 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	lock_kernel();
  
-@@ -1601,6 +1622,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1601,6 +1621,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -618,35 +612,34 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -321,7 +325,10 @@ static long do_sys_ftruncate(unsigned in
+@@ -321,7 +325,9 @@ static long do_sys_ftruncate(unsigned in
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
 -
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, 0, file);
-@@ -610,6 +617,10 @@ asmlinkage long sys_chroot(const char __
+@@ -610,6 +616,10 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -641,6 +652,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -641,6 +651,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -656,7 +649,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -675,6 +689,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -675,6 +688,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -666,7 +659,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -737,6 +754,8 @@ asmlinkage long sys_chown(const char __u
+@@ -737,6 +753,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -675,7 +668,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -756,6 +775,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -756,6 +774,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	follow = (flag & AT_SYMLINK_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (!error) {
@@ -684,7 +677,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -770,6 +791,8 @@ asmlinkage long sys_lchown(const char __
+@@ -770,6 +790,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -693,7 +686,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -784,6 +807,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -784,6 +806,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -703,7 +696,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1192,6 +1218,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1192,6 +1217,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1312,8 +1305,8 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)

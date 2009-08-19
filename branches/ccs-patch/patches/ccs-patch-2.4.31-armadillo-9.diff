@@ -2,62 +2,62 @@ This is TOMOYO Linux patch for Armadillo-9.
 
 Source code for this patch is http://download.atmark-techno.com/armadillo-9/source/linux-2.4.31-a9-3.tar.gz
 ---
- arch/alpha/kernel/ptrace.c      |    3 ++
- arch/arm/kernel/ptrace.c        |    3 ++
- arch/armnommu/kernel/ptrace.c   |    3 ++
- arch/blackfin/kernel/ptrace.c   |    3 ++
- arch/cris/kernel/ptrace.c       |    3 ++
- arch/frv/kernel/ptrace.c        |    3 ++
- arch/h8300/kernel/ptrace.c      |    3 ++
- arch/i386/kernel/ptrace.c       |    3 ++
- arch/ia64/ia32/sys_ia32.c       |    3 ++
- arch/ia64/kernel/ptrace.c       |    3 ++
- arch/m68k/kernel/ptrace.c       |    3 ++
- arch/m68knommu/kernel/ptrace.c  |    3 ++
- arch/microblaze/kernel/ptrace.c |    3 ++
- arch/mips/kernel/ptrace.c       |    3 ++
- arch/mips64/kernel/ptrace.c     |    5 ++++
- arch/niosnommu/kernel/ptrace.c  |    5 ++++
- arch/parisc/kernel/ptrace.c     |    3 ++
- arch/ppc/kernel/ptrace.c        |    3 ++
- arch/ppc64/kernel/ptrace.c      |    3 ++
- arch/ppc64/kernel/ptrace32.c    |    3 ++
- arch/s390/kernel/ptrace.c       |    3 ++
- arch/s390x/kernel/ptrace.c      |    3 ++
- arch/sh/kernel/ptrace.c         |    3 ++
- arch/sh64/kernel/ptrace.c       |    3 ++
- arch/sparc/kernel/ptrace.c      |    5 ++++
- arch/sparc64/kernel/ptrace.c    |    5 ++++
- arch/v850/kernel/ptrace.c       |    3 ++
- arch/x86_64/ia32/ptrace32.c     |    3 ++
- arch/x86_64/kernel/ptrace.c     |    3 ++
- fs/Config.in                    |    3 ++
- fs/Makefile                     |    2 +
- fs/attr.c                       |    4 +++
- fs/exec.c                       |   12 ++++++++++-
- fs/fcntl.c                      |    4 +++
- fs/ioctl.c                      |   10 +++++++++
- fs/namei.c                      |   43 ++++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   31 +++++++++++++++++++++++++++-
- fs/open.c                       |   28 ++++++++++++++++++++++++++
- fs/proc/proc_misc.c             |    1 
- include/linux/sched.h           |    6 +++++
- kernel/kmod.c                   |    3 ++
- kernel/module.c                 |    7 ++++++
- kernel/sched.c                  |    3 ++
- kernel/signal.c                 |    7 ++++++
- kernel/sys.c                    |    9 ++++++++
- kernel/sysctl.c                 |   16 +++++++++++++-
- kernel/time.c                   |    7 ++++++
- net/ipv4/raw.c                  |    4 +++
- net/ipv4/tcp_ipv4.c             |    5 ++++
- net/ipv4/udp.c                  |   10 ++++++++-
- net/ipv6/raw.c                  |    4 +++
- net/ipv6/tcp_ipv6.c             |    3 ++
- net/ipv6/udp.c                  |   13 +++++++++++-
- net/socket.c                    |   25 +++++++++++++++++++++--
- net/unix/af_unix.c              |    4 +++
- 55 files changed, 351 insertions(+), 8 deletions(-)
+ arch/alpha/kernel/ptrace.c      |    3 +++
+ arch/arm/kernel/ptrace.c        |    3 +++
+ arch/armnommu/kernel/ptrace.c   |    3 +++
+ arch/blackfin/kernel/ptrace.c   |    3 +++
+ arch/cris/kernel/ptrace.c       |    3 +++
+ arch/frv/kernel/ptrace.c        |    3 +++
+ arch/h8300/kernel/ptrace.c      |    3 +++
+ arch/i386/kernel/ptrace.c       |    3 +++
+ arch/ia64/ia32/sys_ia32.c       |    3 +++
+ arch/ia64/kernel/ptrace.c       |    3 +++
+ arch/m68k/kernel/ptrace.c       |    3 +++
+ arch/m68knommu/kernel/ptrace.c  |    3 +++
+ arch/microblaze/kernel/ptrace.c |    3 +++
+ arch/mips/kernel/ptrace.c       |    3 +++
+ arch/mips64/kernel/ptrace.c     |    5 +++++
+ arch/niosnommu/kernel/ptrace.c  |    5 +++++
+ arch/parisc/kernel/ptrace.c     |    3 +++
+ arch/ppc/kernel/ptrace.c        |    3 +++
+ arch/ppc64/kernel/ptrace.c      |    3 +++
+ arch/ppc64/kernel/ptrace32.c    |    3 +++
+ arch/s390/kernel/ptrace.c       |    3 +++
+ arch/s390x/kernel/ptrace.c      |    3 +++
+ arch/sh/kernel/ptrace.c         |    3 +++
+ arch/sh64/kernel/ptrace.c       |    3 +++
+ arch/sparc/kernel/ptrace.c      |    5 +++++
+ arch/sparc64/kernel/ptrace.c    |    5 +++++
+ arch/v850/kernel/ptrace.c       |    3 +++
+ arch/x86_64/ia32/ptrace32.c     |    3 +++
+ arch/x86_64/kernel/ptrace.c     |    3 +++
+ fs/Config.in                    |    3 +++
+ fs/Makefile                     |    2 ++
+ fs/attr.c                       |    4 ++++
+ fs/exec.c                       |   12 +++++++++++-
+ fs/fcntl.c                      |    4 ++++
+ fs/ioctl.c                      |   10 ++++++++++
+ fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   30 +++++++++++++++++++++++++++++-
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/proc/proc_misc.c             |    1 +
+ include/linux/sched.h           |    6 ++++++
+ kernel/kmod.c                   |    3 +++
+ kernel/module.c                 |    7 +++++++
+ kernel/sched.c                  |    3 +++
+ kernel/signal.c                 |    7 +++++++
+ kernel/sys.c                    |    9 +++++++++
+ kernel/sysctl.c                 |   16 ++++++++++++++--
+ kernel/time.c                   |    7 +++++++
+ net/ipv4/raw.c                  |    4 ++++
+ net/ipv4/tcp_ipv4.c             |    5 +++++
+ net/ipv4/udp.c                  |   10 +++++++++-
+ net/ipv6/raw.c                  |    4 ++++
+ net/ipv6/tcp_ipv6.c             |    3 +++
+ net/ipv6/udp.c                  |   13 ++++++++++++-
+ net/socket.c                    |   25 +++++++++++++++++++++++--
+ net/unix/af_unix.c              |    4 ++++
+ 55 files changed, 344 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -659,7 +659,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		attr->ia_atime = now;
  	if (!(ia_valid & ATTR_MTIME_SET))
  		attr->ia_mtime = now;
-+	error = ccs_check_setattr_permission(dentry, attr);
++	error = ccs_setattr_permission(dentry, attr);
 +	if (error)
 +		return error;
  
@@ -680,7 +680,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -692,7 +692,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -721,7 +721,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* Did FASYNC state change? */
@@ -741,7 +741,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	filp = fget(fd);
  	if (!filp)
  		goto out;
-+	error = ccs_check_ioctl_permission(filp, cmd, arg);
++	error = ccs_ioctl_permission(filp, cmd, arg);
 +	if (error) {
 +		fput(filp);
 +		goto out;
@@ -780,31 +780,29 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  /*
   *	open_namei()
   *
-@@ -1055,6 +1059,11 @@ do_last:
+@@ -1055,6 +1059,9 @@ do_last:
  
  	/* Negative dentry, just create the file */
  	if (!dentry->d_inode) {
-+		error = ccs_check_mknod_permission(dir->d_inode, dentry,
-+						   nd->mnt,
-+						   mode & ~current->fs->umask,
-+						   0);
++		error = ccs_mknod_permission(dir->d_inode, dentry, nd->mnt,
++					     mode & ~current->fs->umask, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, dentry,
  				   mode & ~current->fs->umask);
  		up(&dir->d_inode->i_sem);
-@@ -1141,6 +1150,11 @@ ok:
+@@ -1141,6 +1148,11 @@ ok:
  			goto exit;
  	}
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		goto exit;
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1279,6 +1293,7 @@ asmlinkage long sys_mknod(const char * f
+@@ -1279,6 +1291,7 @@ asmlinkage long sys_mknod(const char * f
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -812,77 +810,74 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1291,6 +1306,9 @@ asmlinkage long sys_mknod(const char * f
+@@ -1291,6 +1304,9 @@ asmlinkage long sys_mknod(const char * f
  
  	mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode, dev);
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode);
-@@ -1357,6 +1375,11 @@ asmlinkage long sys_mkdir(const char * p
+@@ -1357,6 +1373,10 @@ asmlinkage long sys_mkdir(const char * p
  		dentry = lookup_create(&nd, 1);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
-+							   dentry, nd.mnt,
-+							   mode &
-+							   ~current->fs->umask);
++			error = ccs_mkdir_permission(nd.dentry->d_inode,
++						     dentry, nd.mnt, mode &
++						     ~current->fs->umask);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry,
  					  mode & ~current->fs->umask);
  			dput(dentry);
-@@ -1466,6 +1489,9 @@ asmlinkage long sys_rmdir(const char * p
+@@ -1466,6 +1486,9 @@ asmlinkage long sys_rmdir(const char * p
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt);
++		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1528,6 +1554,9 @@ asmlinkage long sys_unlink(const char * 
+@@ -1528,6 +1551,9 @@ asmlinkage long sys_unlink(const char * 
  		/* Why not before? Because we want correct error value */
  		if (nd.last.name[nd.last.len])
  			goto slashes;
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -1592,6 +1621,10 @@ asmlinkage long sys_symlink(const char *
+@@ -1592,6 +1618,9 @@ asmlinkage long sys_symlink(const char *
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_symlink_permission(nd.dentry->d_inode,
-+							     dentry, nd.mnt,
-+							     from);
++			error = ccs_symlink_permission(nd.dentry->d_inode,
++						       dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from);
  			dput(dentry);
  		}
-@@ -1676,6 +1709,10 @@ asmlinkage long sys_link(const char * ol
+@@ -1676,6 +1705,10 @@ asmlinkage long sys_link(const char * ol
  		new_dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(new_dentry);
  		if (!IS_ERR(new_dentry)) {
-+			error = ccs_check_link_permission(old_nd.dentry,
-+							  nd.dentry->d_inode,
-+							  new_dentry, nd.mnt);
++			error = ccs_link_permission(old_nd.dentry,
++						    nd.dentry->d_inode,
++						    new_dentry, nd.mnt);
 +			if (!error)
  			error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  			dput(new_dentry);
  		}
-@@ -1906,12 +1943,18 @@ static inline int do_rename(const char *
+@@ -1906,12 +1939,17 @@ static inline int do_rename(const char *
  	error = PTR_ERR(new_dentry);
  	if (IS_ERR(new_dentry))
  		goto exit4;
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (error)
 +		goto exit5;
  
@@ -965,19 +960,18 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -718,6 +735,11 @@ long do_mount(char * dev_name, char * di
+@@ -718,6 +735,10 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -911,6 +933,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -911,6 +932,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -986,11 +980,11 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	lock_kernel();
  
-@@ -925,6 +949,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +948,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
-+	error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++	error = ccs_pivot_root_permission(&old_nd, &new_nd);
 +	if (error) {
 +		path_release(&old_nd);
 +		goto out1;
@@ -1013,35 +1007,34 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
 +
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -215,6 +220,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -215,6 +220,9 @@ static inline long do_sys_ftruncate(unsi
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -464,6 +473,10 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +472,10 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -495,6 +508,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -495,6 +507,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -1051,7 +1044,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
  	newattrs.ia_mode = (mode & S_IALLUGO) | (inode->i_mode & ~S_IALLUGO);
-@@ -526,6 +542,9 @@ asmlinkage long sys_chmod(const char * f
+@@ -526,6 +541,9 @@ asmlinkage long sys_chmod(const char * f
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -1061,7 +1054,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -606,6 +625,8 @@ asmlinkage long sys_chown(const char * f
+@@ -606,6 +624,8 @@ asmlinkage long sys_chown(const char * f
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -1070,7 +1063,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -619,6 +640,8 @@ asmlinkage long sys_lchown(const char * 
+@@ -619,6 +639,8 @@ asmlinkage long sys_lchown(const char * 
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -1079,7 +1072,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -633,6 +656,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -633,6 +655,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -1089,7 +1082,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -895,6 +921,8 @@ out_unlock:
+@@ -895,6 +920,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1636,8 +1629,8 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		 * All right, let's create it.
  		 */
  		mode = S_IFSOCK | (sock->inode->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)

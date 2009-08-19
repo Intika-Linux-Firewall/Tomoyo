@@ -40,7 +40,7 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_chroot_acl - Check permission for chroot().
+ * ccs_chroot_acl - Check permission for chroot().
  *
  * @path: Pointer to "struct path".
  *
@@ -48,7 +48,7 @@ static int ccs_audit_chroot_log(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_chroot_acl(struct path *path)
+static int ccs_chroot_acl(struct path *path)
 {
 	struct ccs_request_info r;
 	int error;
@@ -58,7 +58,7 @@ static int ccs_check_chroot_acl(struct path *path)
 	struct ccs_obj_info obj = {
 		.path1 = *path
 	};
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAC_CHROOT))
 		return 0;
@@ -81,7 +81,7 @@ static int ccs_check_chroot_acl(struct path *path)
 			acl = container_of(ptr, struct ccs_chroot_acl,
 					   head);
 			if (!ccs_compare_name_union(&dir, &acl->dir) ||
-			    !ccs_check_condition(&r, ptr))
+			    !ccs_condition(&r, ptr))
 				continue;
 			r.cond = ptr->cond;
 			error = 0;
@@ -90,7 +90,7 @@ static int ccs_check_chroot_acl(struct path *path)
 	}
 	ccs_audit_chroot_log(&r, root_name, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT
 					     "%s\n", ccs_file_pattern(&dir));
  out:
 	kfree(root_name);
@@ -108,14 +108,14 @@ static int ccs_check_chroot_acl(struct path *path)
 #endif
 
 /**
- * ccs_check_chroot_permission - Check permission for chroot().
+ * ccs_chroot_permission - Check permission for chroot().
  *
  * @path: Pointer to "struct path" (for 2.6.27 and later).
  *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
+int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
 	struct path tmp_path = { path->path.mnt, path->path.dentry };
@@ -123,7 +123,7 @@ int ccs_check_chroot_permission(struct PATH_or_NAMEIDATA *path)
 	struct path tmp_path = { path->mnt, path->dentry };
 #endif
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_chroot_acl(&tmp_path);
+	const int error = ccs_chroot_acl(&tmp_path);
 	ccs_read_unlock(idx);
 	return error;
 }

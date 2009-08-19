@@ -526,7 +526,7 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
 static int ccs_read_manager_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (head->read_eof)
 		return 0;
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
@@ -557,7 +557,7 @@ static bool ccs_is_policy_manager(void)
 	const struct ccs_path_info *domainname
 		= ccs_current_domain()->domainname;
 	bool found = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_policy_loaded)
 		return true;
 	if (task->ccs_flags & CCS_TASK_IS_POLICY_MANAGER)
@@ -638,7 +638,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
@@ -999,29 +999,30 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_number_number_acl - Print a path_number_number ACL entry.
+ * ccs_print_path_number3_acl - Print a path_number3 ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_number_number_acl".
+ * @ptr:  Pointer to "struct ccs_path_number3_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_path_number_number_acl(struct ccs_io_buffer *head,
-				struct ccs_path_number_number_acl *ptr,
+static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
+				struct ccs_path_number3_acl *ptr,
 				const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_NUMBER_OPERATION;
+	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER3_OPERATION;
 	     bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s",
-				   ccs_path_number_number2keyword(bit)) ||
+				   ccs_path_number32keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
+		    !ccs_print_number_union(head, &ptr->mode) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
 		    !ccs_print_number_union(head, &ptr->minor) ||
 		    !ccs_print_condition(head, cond)) {
@@ -1035,27 +1036,27 @@ static bool ccs_print_path_number_number_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_path_acl - Print a double path ACL entry.
+ * ccs_print_path2_acl - Print a double path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_path_acl".
+ * @ptr:  Pointer to "struct ccs_path2_acl".
  * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_path_path_acl(struct ccs_io_buffer *head,
-				      struct ccs_path_path_acl *ptr,
+static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
+				      struct ccs_path2_acl *ptr,
 				      const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_PATH_OPERATION; bit++) {
+	for (bit = head->read_bit; bit < CCS_MAX_PATH2_OPERATION; bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s",
-				   ccs_path_path2keyword(bit)) ||
+				   ccs_path22keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
 		    !ccs_print_name_union(head, &ptr->name2) ||
 		    !ccs_print_condition(head, cond)) {
@@ -1417,16 +1418,16 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (head->read_execute_only)
 		return true;
-	if (acl_type == CCS_TYPE_PATH_NUMBER_NUMBER_ACL) {
-		struct ccs_path_number_number_acl *acl
-			= container_of(ptr, struct ccs_path_number_number_acl, head);
-		return ccs_print_path_number_number_acl(head, acl, cond);
+	if (acl_type == CCS_TYPE_PATH_NUMBER3_ACL) {
+		struct ccs_path_number3_acl *acl
+			= container_of(ptr, struct ccs_path_number3_acl, head);
+		return ccs_print_path_number3_acl(head, acl, cond);
 	}
-	if (acl_type == CCS_TYPE_PATH_PATH_ACL) {
-		struct ccs_path_path_acl *acl
-			= container_of(ptr, struct ccs_path_path_acl,
+	if (acl_type == CCS_TYPE_PATH2_ACL) {
+		struct ccs_path2_acl *acl
+			= container_of(ptr, struct ccs_path2_acl,
 				       head);
-		return ccs_print_path_path_acl(head, acl, cond);
+		return ccs_print_path2_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
 		struct ccs_path_number_acl *acl
@@ -1494,7 +1495,7 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *dpos;
 	struct list_head *apos;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (head->read_eof)
 		return 0;
 	if (head->read_step == 0)
@@ -1572,7 +1573,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	char *cp = strchr(data, ' ');
 	struct ccs_domain_info *domain;
 	unsigned int profile;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!cp)
 		return -EINVAL;
 	*cp = '\0';
@@ -1604,7 +1605,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (head->read_eof)
 		return 0;
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
@@ -1652,7 +1653,7 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	struct task_struct *p;
 	struct ccs_domain_info *domain = NULL;
 	u32 ccs_flags = 0;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
 		goto done; /* Do nothing if open(O_RDONLY). */
@@ -1743,7 +1744,7 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
  */
 static int ccs_read_exception_policy(struct ccs_io_buffer *head)
 {
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!head->read_eof) {
 		switch (head->read_step) {
 		case 0:
@@ -1876,7 +1877,7 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 	int len = 256;
 	char *realpath = NULL;
 	char *argv0 = NULL;
-	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
 		struct file *file = ee->bprm->file;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 		struct path path = { file->f_vfsmnt, file->f_dentry };
@@ -1887,7 +1888,7 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 		if (realpath)
 			len += strlen(realpath) + 17;
 	}
-	if (ccs_check_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
 		if (ccs_get_argv0(ee)) {
 			argv0 = ee->tmp;
 			len += strlen(argv0) + 16;
@@ -1941,7 +1942,7 @@ static LIST_HEAD(ccs_query_list);
 static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 
 /**
- * ccs_check_supervisor - Ask for the supervisor's decision.
+ * ccs_supervisor - Ask for the supervisor's decision.
  *
  * @r:       Pointer to "struct ccs_request_info".
  * @fmt:     The printf()'s format string, followed by parameters.
@@ -1951,7 +1952,7 @@ static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  * retry the access request which violated the policy in enforcing mode,
  * 0 if it is not in enforcing mode, -EPERM otherwise.
  */
-int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
+int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
 	int error = -EPERM;
@@ -1997,7 +1998,7 @@ int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		int i;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
-		for (i = 0; i < ccs_check_flags(r->domain, CCS_SLEEP_PERIOD);
+		for (i = 0; i < ccs_flags(r->domain, CCS_SLEEP_PERIOD);
 		     i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);
@@ -2395,7 +2396,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		ccs_read_control(file, NULL, 0);
 	/*
 	 * If the file is /proc/ccs/query , increment the observer counter.
-	 * The obserber counter is used by ccs_check_supervisor() to see if
+	 * The obserber counter is used by ccs_supervisor() to see if
 	 * there is some process monitoring /proc/ccs/query.
 	 */
 	else if (type == CCS_QUERY)

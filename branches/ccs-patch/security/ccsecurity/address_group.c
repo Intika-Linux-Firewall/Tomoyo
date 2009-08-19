@@ -183,7 +183,7 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
 		struct ccs_address_group *group;
 		group = list_entry(gpos, struct ccs_address_group, list);
@@ -253,7 +253,7 @@ bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 	struct ccs_address_group_member *member;
 	const u32 ip = ntohl(*address);
 	bool matched = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (member->is_deleted)
 			continue;

@@ -17,9 +17,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   25 ++++++++++++++++++++++++-
- fs/open.c                       |   28 +++++++++++++++++++++++++++-
+ fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   24 +++++++++++++++++++++++-
+ fs/open.c                       |   27 ++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    2 ++
  include/linux/sched.h           |    4 ++++
@@ -44,7 +44,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 287 insertions(+), 9 deletions(-)
+ 42 files changed, 279 insertions(+), 9 deletions(-)
 
 --- linux-2.6.15.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15.7/arch/alpha/kernel/ptrace.c
@@ -254,7 +254,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (inode->i_op && inode->i_op->setattr) {
  		error = security_inode_setattr(dentry, attr);
  		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
 +		if (!error)
  			error = inode->i_op->setattr(dentry, attr);
  	} else {
@@ -262,7 +262,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (!error)
  			error = security_inode_setattr(dentry, attr);
 +		if (!error)
-+			error = ccs_check_setattr_permission(dentry, attr);
++			error = ccs_setattr_permission(dentry, attr);
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
@@ -320,7 +320,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit;
  
-+	error = ccs_check_uselib_permission(nd.dentry, nd.mnt);
++	error = ccs_uselib_permission(nd.dentry, nd.mnt);
 +	if (error)
 +		goto exit;
 +
@@ -332,7 +332,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!err && !(inode->i_mode & 0111))
  				err = -EACCES;
 +			if (!err)
-+				err = ccs_check_open_exec_permission(nd.dentry,
++				err = ccs_open_exec_permission(nd.dentry,
 +								     nd.mnt);
  			file = ERR_PTR(err);
  			if (!err) {
@@ -361,7 +361,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!(arg & O_APPEND) && IS_APPEND(inode))
  		return -EPERM;
  
-+	if (!(arg & O_APPEND) && ccs_check_rewrite_permission(filp))
++	if (!(arg & O_APPEND) && ccs_rewrite_permission(filp))
 +		return -EPERM;
 +
  	/* O_NOATIME can only be set by the owner or superuser */
@@ -391,7 +391,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -411,7 +411,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			return -EPERM;
  
 +	/* includes O_APPEND and O_TRUNC checks */
-+	error = ccs_check_open_permission(dentry, nd->mnt, flag);
++	error = ccs_open_permission(dentry, nd->mnt, flag);
 +	if (error)
 +		return error;
 +
@@ -430,85 +430,79 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
-+		error = ccs_check_mknod_permission(dir->d_inode, path.dentry,
-+						   nd->mnt, mode, 0);
++		error = ccs_mknod_permission(dir->d_inode, path.dentry,
++					     nd->mnt, mode, 0);
 +		if (!error)
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1765,6 +1776,10 @@ asmlinkage long sys_mknod(const char __u
+@@ -1765,6 +1776,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt, mode,
-+						   new_decode_dev(dev));
++		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1833,6 +1848,10 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1833,6 +1847,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
-+			error = ccs_check_mkdir_permission(nd.dentry->d_inode,
-+							   dentry, nd.mnt,
-+							   mode);
++			error = ccs_mkdir_permission(nd.dentry->d_inode,
++						     dentry, nd.mnt, mode);
 +			if (!error)
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1936,6 +1955,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1936,6 +1953,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
-+		error = ccs_check_rmdir_permission(nd.dentry->d_inode, dentry,
-+						   nd.mnt);
++		error = ccs_rmdir_permission(nd.dentry->d_inode, dentry,
++					     nd.mnt);
 +		if (!error)
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2011,6 +2033,9 @@ asmlinkage long sys_unlink(const char __
+@@ -2011,6 +2031,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
-+		error = ccs_check_unlink_permission(nd.dentry->d_inode, dentry,
-+						    nd.mnt);
++		error = ccs_unlink_permission(nd.dentry->d_inode, dentry,
++					      nd.mnt);
 +		if (!error)
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2072,6 +2097,10 @@ asmlinkage long sys_symlink(const char _
+@@ -2072,6 +2095,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
-+			error = ccs_check_symlink_permission(nd.dentry->d_inode,
-+							     dentry, nd.mnt,
-+							     from);
++			error = ccs_symlink_permission(nd.dentry->d_inode,
++						       dentry, nd.mnt, from);
 +			if (!error)
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2154,6 +2183,10 @@ asmlinkage long sys_link(const char __us
+@@ -2154,6 +2180,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
-+		error = ccs_check_link_permission(old_nd.dentry,
-+						  nd.dentry->d_inode,
-+						  new_dentry, nd.mnt);
++		error = ccs_link_permission(old_nd.dentry, nd.dentry->d_inode,
++					    new_dentry, nd.mnt);
 +		if (!error)
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2374,6 +2407,11 @@ static inline int do_rename(const char *
+@@ -2374,6 +2403,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
-+	error = ccs_check_rename_permission(old_dir->d_inode, old_dentry,
-+					    new_dir->d_inode, new_dentry,
-+					    newnd.mnt);
++	error = ccs_rename_permission(old_dir->d_inode, old_dentry,
++				      new_dir->d_inode, new_dentry, newnd.mnt);
 +	if (!error)
-+
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
@@ -572,19 +566,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1279,6 +1293,11 @@ long do_mount(char *dev_name, char *dir_
+@@ -1279,6 +1293,10 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
-+	retval = ccs_check_mount_permission(dev_name, dir_name, type_page,
-+					    &flags);
++	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
 +	if (retval)
 +		return retval;
 +
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1543,6 +1562,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1543,6 +1561,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -593,12 +586,12 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  
-@@ -1559,6 +1580,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1559,6 +1579,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_check_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -617,35 +610,34 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_check_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -315,7 +319,10 @@ static inline long do_sys_ftruncate(unsi
+@@ -315,7 +319,9 @@ static inline long do_sys_ftruncate(unsi
  	error = -EPERM;
  	if (IS_APPEND(inode))
  		goto out_putf;
 -
-+	error = ccs_check_truncate_permission(dentry, file->f_vfsmnt, length,
-+					      0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, file);
-@@ -588,6 +595,10 @@ asmlinkage long sys_chroot(const char __
+@@ -588,6 +594,10 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
 +	if (!ccs_capable(CCS_SYS_CHROOT))
 +		goto dput_and_out;
-+	if (ccs_check_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -619,6 +630,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -619,6 +629,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -655,7 +647,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -652,6 +666,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -652,6 +665,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -665,7 +657,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -709,6 +726,8 @@ asmlinkage long sys_chown(const char __u
+@@ -709,6 +725,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -674,7 +666,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -722,6 +741,8 @@ asmlinkage long sys_lchown(const char __
+@@ -722,6 +740,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -683,7 +675,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -736,6 +757,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -736,6 +756,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -693,7 +685,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1119,6 +1143,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1119,6 +1142,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1300,8 +1292,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		 */
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current->fs->umask);
-+		err = ccs_check_mknod_permission(nd.dentry->d_inode, dentry,
-+						 nd.mnt, mode, 0);
++		err = ccs_mknod_permission(nd.dentry->d_inode, dentry, nd.mnt,
++					   mode, 0);
 +		if (!err)
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)

@@ -109,7 +109,7 @@ static void put_filesystem(struct file_system_type *fs)
 #endif
 
 /**
- * ccs_check_mount_acl2 - Check permission for mount() operation.
+ * ccs_mount_acl2 - Check permission for mount() operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
@@ -121,7 +121,7 @@ static void put_filesystem(struct file_system_type *fs)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
+static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 				char *dir_name, char *type,
 				unsigned long flags)
 {
@@ -216,7 +216,7 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		    !ccs_compare_name_union(&rdir, &acl->dir_name) ||
 		    (need_dev &&
 		     !ccs_compare_name_union(&rdev, &acl->dev_name)) ||
-		    !ccs_check_condition(r, ptr))
+		    !ccs_condition(r, ptr))
 			continue;
 		r->cond = ptr->cond;
 		error = 0;
@@ -225,7 +225,7 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	ccs_audit_mount_log(r, requested_dev_name, requested_dir_name,
 			    requested_type, flags, !error);
 	if (error)
-		error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
+		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
 					     "%s %s %s 0x%lX\n",
 					     ccs_file_pattern(&rdev),
 					     ccs_file_pattern(&rdir),
@@ -245,7 +245,7 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
 }
 
 /**
- * ccs_check_mount_acl - Check permission for mount() operation.
+ * ccs_mount_acl - Check permission for mount() operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
@@ -257,12 +257,12 @@ static int ccs_check_mount_acl2(struct ccs_request_info *r, char *dev_name,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
+static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 			       char *dir_name, char *type, unsigned long flags)
 {
 	const bool is_enforce = (r->mode == 3);
 	int error;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
  retry:
 	error = -EPERM;
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
@@ -298,35 +298,35 @@ static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
 		return -EINVAL;
 	}
 	if (flags & MS_REMOUNT)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_REMOUNT_KEYWORD,
 					    flags & ~MS_REMOUNT);
 	else if (flags & MS_MOVE)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_MOVE_KEYWORD,
 					    flags & ~MS_MOVE);
 	else if (flags & MS_BIND)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_BIND_KEYWORD,
 					    flags & ~MS_BIND);
 	else if (flags & MS_UNBINDABLE)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
 					    flags & ~MS_UNBINDABLE);
 	else if (flags & MS_PRIVATE)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
 					    flags & ~MS_PRIVATE);
 	else if (flags & MS_SLAVE)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_MAKE_SLAVE_KEYWORD,
 					    flags & ~MS_SLAVE);
 	else if (flags & MS_SHARED)
-		error = ccs_check_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir_name,
 					    CCS_MOUNT_MAKE_SHARED_KEYWORD,
 					    flags & ~MS_SHARED);
 	else
-		error = ccs_check_mount_acl2(r, dev_name, dir_name, type,
+		error = ccs_mount_acl2(r, dev_name, dir_name, type,
 					     flags);
 	if (error == 1)
 		goto retry;
@@ -336,7 +336,7 @@ static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
 }
 
 /**
- * ccs_check_mount_permission - Check permission for mount() operation.
+ * ccs_mount_permission - Check permission for mount() operation.
  *
  * @dev_name: Name of device file.
  * @dir_name: Name of mount point.
@@ -345,7 +345,7 @@ static int ccs_check_mount_acl(struct ccs_request_info *r, char *dev_name,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
+int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
 			       const unsigned long *flags)
 {
 	struct ccs_request_info r;
@@ -359,7 +359,7 @@ int ccs_check_mount_permission(char *dev_name, char *dir_name, char *type,
 	if (!type)
 		type = "<NULL>";
 	idx = ccs_read_lock();
-	error = ccs_check_mount_acl(&r, dev_name, dir_name, type, *flags);
+	error = ccs_mount_acl(&r, dev_name, dir_name, type, *flags);
 	ccs_read_unlock(idx);
 	return error;
 }

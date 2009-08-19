@@ -49,7 +49,7 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
 {
 	struct ccs_globally_usable_env_entry *ptr;
 	bool found = false;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->is_deleted || !ccs_path_matches_pattern(env, ptr->env))
 			continue;
@@ -112,7 +112,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_globally_usable_env_list) {
 		struct ccs_globally_usable_env_entry *ptr;
@@ -129,7 +129,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_check_env_acl - Check permission for environment variable's name.
+ * ccs_env_acl - Check permission for environment variable's name.
  *
  * @r:       Pointer to "struct ccs_request_info".
  * @environ: The name of environment variable.
@@ -138,13 +138,13 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
+static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 {
 	const struct ccs_domain_info *domain = r->domain;
 	int error = -EPERM;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	env.name = environ;
 	ccs_fill_path_info(&env);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -152,7 +152,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_env_acl, head);
-		if (!ccs_check_condition(r, ptr) ||
+		if (!ccs_condition(r, ptr) ||
 		    !ccs_path_matches_pattern(&env, acl->env))
 			continue;
 		r->cond = ptr->cond;
@@ -166,7 +166,7 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
 }
 
 /**
- * ccs_check_env_perm - Check permission for environment variable's name.
+ * ccs_env_perm - Check permission for environment variable's name.
  *
  * @r:       Pointer to "struct ccs_request_info".
  * @env:     The name of environment variable.
@@ -175,20 +175,20 @@ static int ccs_check_env_acl(struct ccs_request_info *r, const char *environ)
  *
  * Caller holds ccs_read_lock().
  */
-int ccs_check_env_perm(struct ccs_request_info *r, const char *env)
+int ccs_env_perm(struct ccs_request_info *r, const char *env)
 {
 	int error = 0;
 	const bool is_enforce = (r->mode == 3);
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep())
 		return 0;
 	if (!env || !*env)
 		return 0;
  retry:
-	error = ccs_check_env_acl(r, env);
+	error = ccs_env_acl(r, env);
 	ccs_audit_env_log(r, env, !error);
 	if (error)
-		error = ccs_check_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n",
+		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n",
 					     env);
 	if (error == 1)
 		goto retry;

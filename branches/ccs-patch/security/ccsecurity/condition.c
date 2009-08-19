@@ -14,7 +14,7 @@
 #include "internal.h"
 
 /**
- * ccs_check_argv - Check argv[] in "struct linux_binbrm".
+ * ccs_argv - Check argv[] in "struct linux_binbrm".
  *
  * @index:   Index number of @arg_ptr.
  * @arg_ptr: Contents of argv[@index].
@@ -24,7 +24,7 @@
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_check_argv(const unsigned int index, const char *arg_ptr,
+static bool ccs_argv(const unsigned int index, const char *arg_ptr,
 			   const int argc, const struct ccs_argv_entry *argv,
 			   u8 *checked)
 {
@@ -47,7 +47,7 @@ static bool ccs_check_argv(const unsigned int index, const char *arg_ptr,
 }
 
 /**
- * ccs_check_envp - Check envp[] in "struct linux_binbrm".
+ * ccs_envp - Check envp[] in "struct linux_binbrm".
  *
  * @env_name:  The name of environment variable.
  * @env_value: The value of environment variable.
@@ -57,7 +57,7 @@ static bool ccs_check_argv(const unsigned int index, const char *arg_ptr,
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_check_envp(const char *env_name, const char *env_value,
+static bool ccs_envp(const char *env_name, const char *env_value,
 			   const int envc, const struct ccs_envp_entry *envp,
 			   u8 *checked)
 {
@@ -174,7 +174,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 				continue;
 			/* Check. */
 			if (argv_count) {
-				if (!ccs_check_argv(bprm->argc - argv_count,
+				if (!ccs_argv(bprm->argc - argv_count,
 						    arg_ptr, argc, argv,
 						    checked)) {
 					result = false;
@@ -185,7 +185,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 				char *cp = strchr(arg_ptr, '=');
 				if (cp) {
 					*cp = '\0';
-					if (!ccs_check_envp(arg_ptr, cp + 1,
+					if (!ccs_envp(arg_ptr, cp + 1,
 							    envc, envp,
 							    checked + argc)) {
 						result = false;
@@ -982,7 +982,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 
 /**
- * ccs_check_condition - Check condition part.
+ * ccs_condition - Check condition part.
  *
  * @r:    Pointer to "struct ccs_request_info".
  * @acl: Pointer to "struct ccs_acl_info".
@@ -991,7 +991,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
  *
  * Caller holds ccs_read_lock().
  */
-bool ccs_check_condition(struct ccs_request_info *r,
+bool ccs_condition(struct ccs_request_info *r,
 			 const struct ccs_acl_info *acl)
 {
 	const struct task_struct *task = current;
@@ -1011,7 +1011,7 @@ bool ccs_check_condition(struct ccs_request_info *r,
 	u16 envc;
 	struct linux_binprm *bprm = NULL;
 	const struct ccs_condition *cond = acl->cond;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!cond)
 		return true;
 	condc = cond->condc;

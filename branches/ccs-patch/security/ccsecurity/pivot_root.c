@@ -42,7 +42,7 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_check_pivot_root_acl - Check permission for pivot_root().
+ * ccs_pivot_root_acl - Check permission for pivot_root().
  *
  * @old: Pointer to "struct path".
  * @new: Pointer to "struct path".
@@ -51,7 +51,7 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
+static int ccs_pivot_root_acl(struct path *old, struct path *new)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -64,7 +64,7 @@ static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
 	struct ccs_path_info old_root_dir;
 	struct ccs_path_info new_root_dir;
 	bool is_enforce;
-	ccs_check_read_lock();
+	ccs_assert_read_lock();
 	if (!ccs_can_sleep() ||
 	    !ccs_init_request_info(&r, NULL, CCS_MAC_PIVOT_ROOT))
 		return 0;
@@ -94,7 +94,7 @@ static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
 						    &acl->old_root) ||
 			    !ccs_compare_name_union(&new_root_dir,
 						    &acl->new_root) ||
-			    !ccs_check_condition(&r, ptr))
+			    !ccs_condition(&r, ptr))
 				continue;
 			r.cond = ptr->cond;
 			error = 0;
@@ -103,7 +103,7 @@ static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
 	}
 	ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
 	if (error)
-		error = ccs_check_supervisor(&r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
 					     "%s %s\n",
 					     ccs_file_pattern(&new_root_dir),
 					     ccs_file_pattern(&old_root_dir));
@@ -124,7 +124,7 @@ static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
 #endif
 
 /**
- * ccs_check_pivot_root_permission - Check permission for pivot_root().
+ * ccs_pivot_root_permission - Check permission for pivot_root().
  *
  * @old_path: Pointer to "struct path" (for 2.6.27 and later).
  *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
@@ -133,7 +133,7 @@ static int ccs_check_pivot_root_acl(struct path *old, struct path *new)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
+int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 				    struct PATH_or_NAMEIDATA *new_path)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
@@ -144,7 +144,7 @@ int ccs_check_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 	struct path new = { new_path->mnt, new_path->dentry };
 #endif
 	const int idx = ccs_read_lock();
-	const int error = ccs_check_pivot_root_acl(&old, &new);
+	const int error = ccs_pivot_root_acl(&old, &new);
 	ccs_read_unlock(idx);
 	return error;
 }

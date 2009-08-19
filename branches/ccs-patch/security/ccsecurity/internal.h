@@ -42,9 +42,9 @@
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
 	CCS_TYPE_PATH_ACL,
-	CCS_TYPE_PATH_PATH_ACL,
+	CCS_TYPE_PATH2_ACL,
 	CCS_TYPE_PATH_NUMBER_ACL,
-	CCS_TYPE_PATH_NUMBER_NUMBER_ACL,
+	CCS_TYPE_PATH_NUMBER3_ACL,
 	CCS_TYPE_ENV_ACL,
 	CCS_TYPE_CAPABILITY_ACL,
 	CCS_TYPE_IP_NETWORK_ACL,
@@ -71,31 +71,31 @@ enum ccs_path_acl_index {
 	CCS_TYPE_EXECUTE,
 	CCS_TYPE_READ,
 	CCS_TYPE_WRITE,
-	CCS_TYPE_CREATE,
 	CCS_TYPE_UNLINK,
-	CCS_TYPE_MKDIR,
 	CCS_TYPE_RMDIR,
-	CCS_TYPE_MKFIFO,
-	CCS_TYPE_MKSOCK,
 	CCS_TYPE_TRUNCATE,
 	CCS_TYPE_SYMLINK,
 	CCS_TYPE_REWRITE,
 	CCS_MAX_PATH_OPERATION
 };
 
-enum ccs_path_number_number_acl_index {
+enum ccs_path_number3_acl_index {
 	CCS_TYPE_MKBLOCK,
 	CCS_TYPE_MKCHAR,
-	CCS_MAX_PATH_NUMBER_NUMBER_OPERATION
+	CCS_MAX_PATH_NUMBER3_OPERATION
 };
 
-enum ccs_path_path_acl_index {
+enum ccs_path2_acl_index {
 	CCS_TYPE_LINK,
 	CCS_TYPE_RENAME,
-	CCS_MAX_PATH_PATH_OPERATION
+	CCS_MAX_PATH2_OPERATION
 };
 
 enum ccs_path_number_acl_index {
+	CCS_TYPE_CREATE,
+	CCS_TYPE_MKDIR,
+	CCS_TYPE_MKFIFO,
+	CCS_TYPE_MKSOCK,
 	CCS_TYPE_IOCTL,
 	CCS_TYPE_CHMOD,
 	CCS_TYPE_CHOWN,
@@ -697,9 +697,8 @@ struct ccs_execute_handler_record {
 
 /*
  * Structure for "allow_read/write", "allow_execute", "allow_read",
- * "allow_write", "allow_create", "allow_unlink", "allow_mkdir", "allow_rmdir",
- * "allow_mkfifo", "allow_mksock", "allow_truncate", "allow_symlink" and
- * "allow_rewrite" directive.
+ * "allow_write", "allow_unlink", "allow_rmdir", "allow_truncate",
+ * "allow_symlink" and "allow_rewrite" directive.
  */
 struct ccs_path_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
@@ -708,29 +707,30 @@ struct ccs_path_acl {
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
-struct ccs_path_number_number_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_NUMBER_ACL */
-	u8 perm; /* mkblock and/or mkchar */
+struct ccs_path_number3_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER3_ACL */
+	u8 perm;
 	struct ccs_name_union name;
+	struct ccs_number_union mode;
 	struct ccs_number_union major;
 	struct ccs_number_union minor;
 };
 
 /* Structure for "allow_rename" and "allow_link" directive. */
-struct ccs_path_path_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_PATH_ACL */
-	u8 perm; /* rename and/or link */
+struct ccs_path2_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
+	u8 perm;
 	struct ccs_name_union name1;
 	struct ccs_name_union name2;
 };
 
 /*
- * Structure for "allow_ioctl", "allow_chmod", "allow_chown" and "allow_chgrp"
- * directive.
+ * Structure for "allow_create", "allow_mkdir", "allow_mkfifo", "allow_mksock",
+ * "allow_ioctl", "allow_chmod", "allow_chown" and "allow_chgrp" directive.
  */
 struct ccs_path_number_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
-	u8 perm; /* ioctl and/or chmod and/or chown and/or chgrp */
+	u8 perm;
 	struct ccs_name_union name;
 	struct ccs_number_union number;
 };
@@ -839,7 +839,7 @@ struct ccs_io_buffer {
 /* Prototype definition. */
 
 bool ccs_can_sleep(void);
-bool ccs_check_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
+bool ccs_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
@@ -867,18 +867,18 @@ char *ccs_encode(const char *str);
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
-const char *ccs_path_path2keyword(const u8 operation);
+const char *ccs_path22keyword(const u8 operation);
 const char *ccs_get_exe(void);
 const char *ccs_get_last_name(const struct ccs_domain_info *domain);
 const char *ccs_get_msg(const bool is_enforce);
-const char *ccs_path_number_number2keyword(const u8 operation);
+const char *ccs_path_number32keyword(const u8 operation);
 const char *ccs_net2keyword(const u8 operation);
 const char *ccs_path2keyword(const u8 operation);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
-int ccs_check_env_perm(struct ccs_request_info *r, const char *env);
-int ccs_check_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
-int ccs_check_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
+int ccs_env_perm(struct ccs_request_info *r, const char *env);
+int ccs_exec_perm(struct ccs_request_info *r, const struct ccs_path_info *filename);
+int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 int ccs_close_control(struct file *file);
 int ccs_delete_domain(char *data);
 int ccs_open_control(const u8 type, struct file *file);
@@ -919,7 +919,7 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname, const u8 profile);
 struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
-unsigned int ccs_check_flags(const struct ccs_domain_info *domain, const u8 index);
+unsigned int ccs_flags(const struct ccs_domain_info *domain, const u8 index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 int ccs_init_request_info(struct ccs_request_info *r, struct ccs_domain_info *domain, const u8 index);
 void ccs_load_policy(const char *filename);
@@ -1082,7 +1082,7 @@ static inline int ccs_read_lock(void)
 	return srcu_read_lock(&ccs_ss);
 }
 
-static inline void ccs_check_read_lock(void)
+static inline void ccs_assert_read_lock(void)
 {
 	if (ccs_policy_loaded)
 		WARN_ON(!(current->ccs_flags & 15));
@@ -1103,7 +1103,7 @@ static inline int ccs_read_lock(void)
 	return srcu_read_lock(&ccs_ss);
 }
 
-static inline void ccs_check_read_lock(void)
+static inline void ccs_assert_read_lock(void)
 {
 }
 
