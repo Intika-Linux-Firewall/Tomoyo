@@ -132,7 +132,7 @@ static void clear_status(void)
 		if (strcmp(buffer, "0"))
 			continue;
 		/*
-		  if (strcmp(cp, "TOMOYO_VERBOSE") == 0)
+		  if (strcmp(cp, "PRINT_VIOLATION") == 0)
 		  continue;
 		*/
 		fprintf(profile_fp, "255-%s", cp);
@@ -153,7 +153,7 @@ static void clear_status(void)
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
 	/* fprintf(profile_fp, "255-SLEEP_PERIOD=1\n"); */
-	/* fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n"); */
+	/* fprintf(profile_fp, "255-PRINT_VIOLATION=enabled\n"); */
 	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
 	fflush(profile_fp);
 	fclose(fp);

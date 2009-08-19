@@ -339,7 +339,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
 +		error = ccs_mknod_permission(nd.dentry->d_inode, dentry,
-+					     nd.mnt, dev);
++					     nd.mnt, mode, dev);
 +		if (!error)
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
