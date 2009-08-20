@@ -37,8 +37,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  security/Makefile               |    3 +++
  33 files changed, 253 insertions(+), 3 deletions(-)
 
---- linux-2.6.28-14.47.orig/fs/attr.c
-+++ linux-2.6.28-14.47/fs/attr.c
+--- linux-2.6.28-15.49.orig/fs/attr.c
++++ linux-2.6.28-15.49/fs/attr.c
 @@ -14,6 +14,7 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -56,8 +56,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (error)
  		return error;
  
---- linux-2.6.28-14.47.orig/fs/compat.c
-+++ linux-2.6.28-14.47/fs/compat.c
+--- linux-2.6.28-15.49.orig/fs/compat.c
++++ linux-2.6.28-15.49/fs/compat.c
 @@ -56,6 +56,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -66,7 +66,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  int compat_log = 1;
  
-@@ -1437,7 +1438,7 @@ int compat_do_execve(char * filename,
+@@ -1442,7 +1443,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -75,8 +75,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.28-14.47.orig/fs/compat_ioctl.c
-+++ linux-2.6.28-14.47/fs/compat_ioctl.c
+--- linux-2.6.28-15.49.orig/fs/compat_ioctl.c
++++ linux-2.6.28-15.49/fs/compat_ioctl.c
 @@ -113,6 +113,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -105,8 +105,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.28-14.47.orig/fs/exec.c
-+++ linux-2.6.28-14.47/fs/exec.c
+--- linux-2.6.28-15.49.orig/fs/exec.c
++++ linux-2.6.28-15.49/fs/exec.c
 @@ -61,6 +61,8 @@
  #include <linux/a.out.h>
  #endif
@@ -136,7 +136,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	file = nameidata_to_filp(&nd, O_RDONLY|O_LARGEFILE);
  	if (IS_ERR(file))
-@@ -1340,7 +1348,7 @@ int do_execve(char * filename,
+@@ -1338,7 +1346,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -145,8 +145,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.28-14.47.orig/fs/fcntl.c
-+++ linux-2.6.28-14.47/fs/fcntl.c
+--- linux-2.6.28-15.49.orig/fs/fcntl.c
++++ linux-2.6.28-15.49/fs/fcntl.c
 @@ -24,6 +24,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -165,8 +165,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.28-14.47.orig/fs/ioctl.c
-+++ linux-2.6.28-14.47/fs/ioctl.c
+--- linux-2.6.28-15.49.orig/fs/ioctl.c
++++ linux-2.6.28-15.49/fs/ioctl.c
 @@ -17,6 +17,7 @@
  #include <linux/buffer_head.h>
  
@@ -193,8 +193,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (error)
  		goto out_fput;
  
---- linux-2.6.28-14.47.orig/fs/namei.c
-+++ linux-2.6.28-14.47/fs/namei.c
+--- linux-2.6.28-15.49.orig/fs/namei.c
++++ linux-2.6.28-15.49/fs/namei.c
 @@ -35,6 +35,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -305,8 +305,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	error = vfs_rename(old_dir->d_inode, old_dentry, oldnd.path.mnt,
  			   new_dir->d_inode, new_dentry, newnd.path.mnt);
  	mnt_drop_write(oldnd.path.mnt);
---- linux-2.6.28-14.47.orig/fs/namespace.c
-+++ linux-2.6.28-14.47/fs/namespace.c
+--- linux-2.6.28-15.49.orig/fs/namespace.c
++++ linux-2.6.28-15.49/fs/namespace.c
 @@ -31,6 +31,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -393,8 +393,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.28-14.47.orig/fs/open.c
-+++ linux-2.6.28-14.47/fs/open.c
+--- linux-2.6.28-15.49.orig/fs/open.c
++++ linux-2.6.28-15.49/fs/open.c
 @@ -29,6 +29,7 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -515,8 +515,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.28-14.47.orig/fs/proc/version.c
-+++ linux-2.6.28-14.47/fs/proc/version.c
+--- linux-2.6.28-15.49.orig/fs/proc/version.c
++++ linux-2.6.28-15.49/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -524,12 +524,12 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-14.47 2009/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.28-15.49 2009/08/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.28-14.47.orig/include/linux/init_task.h
-+++ linux-2.6.28-14.47/include/linux/init_task.h
+--- linux-2.6.28-15.49.orig/include/linux/init_task.h
++++ linux-2.6.28-15.49/include/linux/init_task.h
 @@ -113,6 +113,14 @@ extern struct group_info init_groups;
  # define CAP_INIT_BSET  CAP_INIT_EFF_SET
  #endif
@@ -553,8 +553,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  }
  
  
---- linux-2.6.28-14.47.orig/include/linux/sched.h
-+++ linux-2.6.28-14.47/include/linux/sched.h
+--- linux-2.6.28-15.49.orig/include/linux/sched.h
++++ linux-2.6.28-15.49/include/linux/sched.h
 @@ -29,6 +29,8 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -564,7 +564,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  /*
   * Scheduling policies
   */
-@@ -1355,6 +1357,10 @@ struct task_struct {
+@@ -1356,6 +1358,10 @@ struct task_struct {
  	unsigned long default_timer_slack_ns;
  
  	struct list_head	*scm_work_list;
@@ -575,8 +575,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  };
  
  /*
---- linux-2.6.28-14.47.orig/kernel/compat.c
-+++ linux-2.6.28-14.47/kernel/compat.c
+--- linux-2.6.28-15.49.orig/kernel/compat.c
++++ linux-2.6.28-15.49/kernel/compat.c
 @@ -26,6 +26,7 @@
  #include <linux/times.h>
  
@@ -594,8 +594,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.28-14.47.orig/kernel/kexec.c
-+++ linux-2.6.28-14.47/kernel/kexec.c
+--- linux-2.6.28-15.49.orig/kernel/kexec.c
++++ linux-2.6.28-15.49/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -613,8 +613,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.28-14.47.orig/kernel/kmod.c
-+++ linux-2.6.28-14.47/kernel/kmod.c
+--- linux-2.6.28-15.49.orig/kernel/kmod.c
++++ linux-2.6.28-15.49/kernel/kmod.c
 @@ -174,6 +174,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -627,8 +627,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.28-14.47.orig/kernel/module.c
-+++ linux-2.6.28-14.47/kernel/module.c
+--- linux-2.6.28-15.49.orig/kernel/module.c
++++ linux-2.6.28-15.49/kernel/module.c
 @@ -51,6 +51,7 @@
  #include <asm/sections.h>
  #include <linux/tracepoint.h>
@@ -655,8 +655,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.28-14.47.orig/kernel/ptrace.c
-+++ linux-2.6.28-14.47/kernel/ptrace.c
+--- linux-2.6.28-15.49.orig/kernel/ptrace.c
++++ linux-2.6.28-15.49/kernel/ptrace.c
 @@ -24,6 +24,7 @@
  
  #include <asm/pgtable.h>
@@ -683,8 +683,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.28-14.47.orig/kernel/sched.c
-+++ linux-2.6.28-14.47/kernel/sched.c
+--- linux-2.6.28-15.49.orig/kernel/sched.c
++++ linux-2.6.28-15.49/kernel/sched.c
 @@ -76,6 +76,7 @@
  
  #include <asm/tlb.h>
@@ -693,7 +693,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  #include "sched_cpupri.h"
  
-@@ -5028,6 +5029,8 @@ int can_nice(const struct task_struct *p
+@@ -5077,6 +5078,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -702,8 +702,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.28-14.47.orig/kernel/signal.c
-+++ linux-2.6.28-14.47/kernel/signal.c
+--- linux-2.6.28-15.49.orig/kernel/signal.c
++++ linux-2.6.28-15.49/kernel/signal.c
 @@ -34,6 +34,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -712,7 +712,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  /*
   * SLAB caches for signal bits.
-@@ -2202,6 +2203,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2210,6 +2211,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -721,7 +721,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2263,6 +2266,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2271,6 +2274,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -730,7 +730,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2275,6 +2280,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2283,6 +2288,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -739,7 +739,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2292,6 +2299,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2300,6 +2307,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -748,8 +748,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.28-14.47.orig/kernel/sys.c
-+++ linux-2.6.28-14.47/kernel/sys.c
+--- linux-2.6.28-15.49.orig/kernel/sys.c
++++ linux-2.6.28-15.49/kernel/sys.c
 @@ -42,6 +42,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -796,8 +796,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.28-14.47.orig/kernel/sysctl.c
-+++ linux-2.6.28-14.47/kernel/sysctl.c
+--- linux-2.6.28-15.49.orig/kernel/sysctl.c
++++ linux-2.6.28-15.49/kernel/sysctl.c
 @@ -51,6 +51,7 @@
  
  #include <asm/uaccess.h>
@@ -816,8 +816,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.28-14.47.orig/kernel/time.c
-+++ linux-2.6.28-14.47/kernel/time.c
+--- linux-2.6.28-15.49.orig/kernel/time.c
++++ linux-2.6.28-15.49/kernel/time.c
 @@ -40,6 +40,7 @@
  
  #include <asm/uaccess.h>
@@ -844,8 +844,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.28-14.47.orig/kernel/time/ntp.c
-+++ linux-2.6.28-14.47/kernel/time/ntp.c
+--- linux-2.6.28-15.49.orig/kernel/time/ntp.c
++++ linux-2.6.28-15.49/kernel/time/ntp.c
 @@ -18,6 +18,7 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -870,8 +870,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.28-14.47.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.28-14.47/net/ipv4/inet_connection_sock.c
+--- linux-2.6.28-15.49.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.28-15.49/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -889,8 +889,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->ib_net == net && tb->port == rover)
  					goto next;
---- linux-2.6.28-14.47.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.28-14.47/net/ipv4/inet_hashtables.c
+--- linux-2.6.28-15.49.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.28-15.49/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,7 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -908,8 +908,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.28-14.47.orig/net/ipv4/raw.c
-+++ linux-2.6.28-14.47/net/ipv4/raw.c
+--- linux-2.6.28-15.49.orig/net/ipv4/raw.c
++++ linux-2.6.28-15.49/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -928,8 +928,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.28-14.47.orig/net/ipv4/udp.c
-+++ linux-2.6.28-14.47/net/ipv4/udp.c
+--- linux-2.6.28-15.49.orig/net/ipv4/udp.c
++++ linux-2.6.28-15.49/net/ipv4/udp.c
 @@ -103,6 +103,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -959,8 +959,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.28-14.47.orig/net/ipv6/raw.c
-+++ linux-2.6.28-14.47/net/ipv6/raw.c
+--- linux-2.6.28-15.49.orig/net/ipv6/raw.c
++++ linux-2.6.28-15.49/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -979,8 +979,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.28-14.47.orig/net/ipv6/udp.c
-+++ linux-2.6.28-14.47/net/ipv6/udp.c
+--- linux-2.6.28-15.49.orig/net/ipv6/udp.c
++++ linux-2.6.28-15.49/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -999,8 +999,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.28-14.47.orig/net/socket.c
-+++ linux-2.6.28-14.47/net/socket.c
+--- linux-2.6.28-15.49.orig/net/socket.c
++++ linux-2.6.28-15.49/net/socket.c
 @@ -97,6 +97,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1073,8 +1073,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	if (err)
  		goto out_put;
  
---- linux-2.6.28-14.47.orig/net/unix/af_unix.c
-+++ linux-2.6.28-14.47/net/unix/af_unix.c
+--- linux-2.6.28-15.49.orig/net/unix/af_unix.c
++++ linux-2.6.28-15.49/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1093,8 +1093,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, nd.path.mnt,
  				mode, 0);
  		mnt_drop_write(nd.path.mnt);
---- linux-2.6.28-14.47.orig/security/Kconfig
-+++ linux-2.6.28-14.47/security/Kconfig
+--- linux-2.6.28-15.49.orig/security/Kconfig
++++ linux-2.6.28-15.49/security/Kconfig
 @@ -127,5 +127,7 @@ source security/selinux/Kconfig
  source security/smack/Kconfig
  source security/apparmor/Kconfig
@@ -1103,8 +1103,8 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
 +
  endmenu
  
---- linux-2.6.28-14.47.orig/security/Makefile
-+++ linux-2.6.28-14.47/security/Makefile
+--- linux-2.6.28-15.49.orig/security/Makefile
++++ linux-2.6.28-15.49/security/Makefile
 @@ -18,3 +18,6 @@ obj-$(CONFIG_SECURITY_SMACK)		+= smack/b
  obj-$(CONFIG_SECURITY_APPARMOR)         += commoncap.o apparmor/
   obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o

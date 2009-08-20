@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27.29-170.2.78.fc10.src.rpm ]
+if [ ! -r kernel-2.6.27.29-170.2.79.fc10.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/kernel-2.6.27.29-170.2.78.fc10.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/10/SRPMS/kernel-2.6.27.29-170.2.79.fc10.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.27.29-170.2.78.fc10.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.27.29-170.2.79.fc10.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090703.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /root/rpmbuild/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2009-07-31 16:58:28.000000000 +0900
-+++ kernel.spec	2009-08-09 21:44:29.850002207 +0900
+--- kernel.spec	2009-08-15 09:30:08.000000000 +0900
++++ kernel.spec	2009-08-20 15:51:04.000000000 +0900
 @@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -878,7 +883,7 @@
+@@ -880,7 +885,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1418,6 +1423,10 @@
+@@ -1422,6 +1427,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1444,6 +1453,9 @@
+@@ -1448,6 +1457,9 @@
  for i in *.config
  do
    mv $i .config

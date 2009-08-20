@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Fedora 11.
 
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/kernel-2.6.29.6-217.2.3.fc11.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/kernel-2.6.29.6-217.2.8.fc11.src.rpm
 ---
  fs/attr.c                       |    3 +++
  fs/compat.c                     |    3 ++-
@@ -37,8 +37,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  security/Makefile               |    3 +++
  33 files changed, 254 insertions(+), 4 deletions(-)
 
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/attr.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/attr.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/attr.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/attr.c
 @@ -14,6 +14,7 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -56,8 +56,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (error)
  		return error;
  
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/compat.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/compat.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/compat.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/compat.c
 @@ -57,6 +57,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -75,8 +75,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/compat_ioctl.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/compat_ioctl.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/compat_ioctl.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/compat_ioctl.c
 @@ -113,6 +113,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -105,8 +105,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/exec.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/exec.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/exec.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/exec.c
 @@ -57,6 +57,7 @@
  #include <asm/mmu_context.h>
  #include <asm/tlb.h>
@@ -144,8 +144,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/fcntl.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/fcntl.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/fcntl.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/fcntl.c
 @@ -24,6 +24,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -164,8 +164,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/ioctl.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/ioctl.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/ioctl.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/ioctl.c
 @@ -17,6 +17,7 @@
  #include <linux/buffer_head.h>
  
@@ -192,8 +192,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (error)
  		goto out_fput;
  
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/namei.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/namei.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/namei.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/namei.c
 @@ -35,6 +35,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -305,8 +305,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/namespace.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/namespace.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/namespace.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/namespace.c
 @@ -31,6 +31,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -393,8 +393,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/open.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/open.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/open.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/open.c
 @@ -29,6 +29,7 @@
  #include <linux/rcupdate.h>
  #include <linux/audit.h>
@@ -517,8 +517,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.29.6-217.2.3.fc11.orig/fs/proc/version.c
-+++ linux-2.6.29.6-217.2.3.fc11/fs/proc/version.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/fs/proc/version.c
++++ linux-2.6.29.6-217.2.8.fc11/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -526,12 +526,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29.6-217.2.3.fc11 2009/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.29.6-217.2.8.fc11 2009/08/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.29.6-217.2.3.fc11.orig/include/linux/init_task.h
-+++ linux-2.6.29.6-217.2.3.fc11/include/linux/init_task.h
+--- linux-2.6.29.6-217.2.8.fc11.orig/include/linux/init_task.h
++++ linux-2.6.29.6-217.2.8.fc11/include/linux/init_task.h
 @@ -120,6 +120,14 @@ extern struct group_info init_groups;
  
  extern struct cred init_cred;
@@ -555,8 +555,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  }
  
  
---- linux-2.6.29.6-217.2.3.fc11.orig/include/linux/sched.h
-+++ linux-2.6.29.6-217.2.3.fc11/include/linux/sched.h
+--- linux-2.6.29.6-217.2.8.fc11.orig/include/linux/sched.h
++++ linux-2.6.29.6-217.2.8.fc11/include/linux/sched.h
 @@ -29,6 +29,8 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -577,8 +577,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/compat.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/compat.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/compat.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/compat.c
 @@ -27,6 +27,7 @@
  #include <linux/ptrace.h>
  
@@ -596,8 +596,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/kexec.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/kexec.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/kexec.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -615,8 +615,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/kmod.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/kmod.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/kmod.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/kmod.c
 @@ -175,6 +175,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -629,8 +629,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/module.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/module.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/module.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/module.c
 @@ -51,6 +51,7 @@
  #include <linux/tracepoint.h>
  #include <linux/ftrace.h>
@@ -657,8 +657,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/ptrace.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/ptrace.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/ptrace.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/ptrace.c
 @@ -25,6 +25,7 @@
  
  #include <asm/pgtable.h>
@@ -685,8 +685,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/sched.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/sched.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/sched.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/sched.c
 @@ -76,6 +76,7 @@
  
  #include <asm/tlb.h>
@@ -704,8 +704,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/signal.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/signal.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/signal.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/signal.c
 @@ -34,6 +34,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -750,8 +750,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/sys.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/sys.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/sys.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/sys.c
 @@ -43,6 +43,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -798,8 +798,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/sysctl.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/sysctl.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/sysctl.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/sysctl.c
 @@ -51,6 +51,7 @@
  
  #include <asm/uaccess.h>
@@ -818,8 +818,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/time.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/time.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/time.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/time.c
 @@ -41,6 +41,7 @@
  
  #include <asm/uaccess.h>
@@ -846,8 +846,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.29.6-217.2.3.fc11.orig/kernel/time/ntp.c
-+++ linux-2.6.29.6-217.2.3.fc11/kernel/time/ntp.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/kernel/time/ntp.c
++++ linux-2.6.29.6-217.2.8.fc11/kernel/time/ntp.c
 @@ -18,6 +18,7 @@
  #include <linux/clocksource.h>
  #include <linux/workqueue.h>
@@ -872,8 +872,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  		/* if the quartz is off by more than 10% something is VERY wrong! */
  		if (txc->modes & ADJ_TICK &&
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv4/inet_connection_sock.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -891,8 +891,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover)
  					goto next;
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv4/inet_hashtables.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,7 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -910,8 +910,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv4/raw.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv4/raw.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv4/raw.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -930,8 +930,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv4/udp.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv4/udp.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv4/udp.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv4/udp.c
 @@ -105,6 +105,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -960,8 +960,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv6/raw.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv6/raw.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv6/raw.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -980,8 +980,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.29.6-217.2.3.fc11.orig/net/ipv6/udp.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/ipv6/udp.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/ipv6/udp.c
++++ linux-2.6.29.6-217.2.8.fc11/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -1000,8 +1000,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.29.6-217.2.3.fc11.orig/net/socket.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/socket.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/socket.c
++++ linux-2.6.29.6-217.2.8.fc11/net/socket.c
 @@ -96,6 +96,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1074,8 +1074,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  	if (err)
  		goto out_put;
  
---- linux-2.6.29.6-217.2.3.fc11.orig/net/unix/af_unix.c
-+++ linux-2.6.29.6-217.2.3.fc11/net/unix/af_unix.c
+--- linux-2.6.29.6-217.2.8.fc11.orig/net/unix/af_unix.c
++++ linux-2.6.29.6-217.2.8.fc11/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1095,8 +1095,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
---- linux-2.6.29.6-217.2.3.fc11.orig/security/Kconfig
-+++ linux-2.6.29.6-217.2.3.fc11/security/Kconfig
+--- linux-2.6.29.6-217.2.8.fc11.orig/security/Kconfig
++++ linux-2.6.29.6-217.2.8.fc11/security/Kconfig
 @@ -115,5 +115,7 @@ config SECURITY_ROOTPLUG
  source security/selinux/Kconfig
  source security/smack/Kconfig
@@ -1105,8 +1105,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
 +
  endmenu
  
---- linux-2.6.29.6-217.2.3.fc11.orig/security/Makefile
-+++ linux-2.6.29.6-217.2.3.fc11/security/Makefile
+--- linux-2.6.29.6-217.2.8.fc11.orig/security/Makefile
++++ linux-2.6.29.6-217.2.8.fc11/security/Makefile
 @@ -17,3 +17,6 @@ obj-$(CONFIG_SECURITY_SELINUX)		+= selin
  obj-$(CONFIG_SECURITY_SMACK)		+= smack/built-in.o
  obj-$(CONFIG_SECURITY_ROOTPLUG)		+= root_plug.o
