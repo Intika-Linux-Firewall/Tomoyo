@@ -17,11 +17,11 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  fs/namespace.c                  |   23 +++++++++++++++++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
@@ -41,7 +41,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 39 files changed, 253 insertions(+), 3 deletions(-)
+ 39 files changed, 264 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23.17-88.fc7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23.17-88.fc7/arch/alpha/kernel/ptrace.c
@@ -614,16 +614,30 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.23.17-88.fc7 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.23.17-88.fc7 2009/08/20\n");
  }
 --- linux-2.6.23.17-88.fc7.orig/include/linux/init_task.h
 +++ linux-2.6.23.17-88.fc7/include/linux/init_task.h
-@@ -168,6 +168,8 @@ extern struct group_info init_groups;
+@@ -113,6 +113,14 @@ extern struct group_info init_groups;
+ 	.pid = &init_struct_pid,				\
+ }
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -168,6 +176,7 @@ extern struct group_info init_groups;
  	},								\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -638,12 +652,14 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  /*
   * Scheduling policies
   */
-@@ -1204,6 +1206,8 @@ struct task_struct {
+@@ -1204,6 +1206,10 @@ struct task_struct {
  #ifdef CONFIG_FAULT_INJECTION
  	int make_it_fail;
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  /*
@@ -687,12 +703,14 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  	 * Verify we have a legal set of flags
 --- linux-2.6.23.17-88.fc7.orig/kernel/kmod.c
 +++ linux-2.6.23.17-88.fc7/kernel/kmod.c
-@@ -173,6 +173,9 @@ static int ____call_usermodehelper(void 
+@@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

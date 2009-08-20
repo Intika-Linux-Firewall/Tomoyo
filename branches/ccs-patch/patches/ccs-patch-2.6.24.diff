@@ -20,11 +20,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/namespace.c                  |   23 +++++++++++++++++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
@@ -44,7 +44,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 261 insertions(+), 3 deletions(-)
+ 42 files changed, 272 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24.7/arch/ia64/ia32/sys_ia32.c
@@ -676,16 +676,30 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24.7 2009/08/10\n");
++	printk(KERN_INFO "Hook version: 2.6.24.7 2009/08/20\n");
  }
 --- linux-2.6.24.7.orig/include/linux/init_task.h
 +++ linux-2.6.24.7/include/linux/init_task.h
-@@ -173,6 +173,8 @@ extern struct group_info init_groups;
+@@ -114,6 +114,14 @@ extern struct group_info init_groups;
+ 	.pid = &init_struct_pid,				\
+ }
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -173,6 +181,7 @@ extern struct group_info init_groups;
  	.dirties = INIT_PROP_LOCAL_SINGLE(dirties),			\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -700,12 +714,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Scheduling policies
   */
-@@ -1178,6 +1180,8 @@ struct task_struct {
+@@ -1178,6 +1180,10 @@ struct task_struct {
  	int make_it_fail;
  #endif
  	struct prop_local_single dirties;
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  /*
@@ -749,12 +765,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 * Verify we have a legal set of flags
 --- linux-2.6.24.7.orig/kernel/kmod.c
 +++ linux-2.6.24.7/kernel/kmod.c
-@@ -173,6 +173,9 @@ static int ____call_usermodehelper(void 
+@@ -173,6 +173,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

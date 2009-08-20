@@ -38,10 +38,10 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
- include/linux/init_task.h          |    2 ++
- include/linux/sched.h              |    4 ++++
+ include/linux/init_task.h          |    9 +++++++++
+ include/linux/sched.h              |    6 ++++++
  kernel/compat.c                    |    3 +++
- kernel/kmod.c                      |    3 +++
+ kernel/kmod.c                      |    5 +++++
  kernel/module.c                    |    7 +++++--
  kernel/sched.c                     |    3 +++
  kernel/signal.c                    |    9 +++++++++
@@ -58,7 +58,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 56 files changed, 328 insertions(+), 12 deletions(-)
+ 56 files changed, 339 insertions(+), 12 deletions(-)
 
 --- linux-2.6.12.3-a9-17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12.3-a9-17/arch/alpha/kernel/ptrace.c
@@ -1045,16 +1045,30 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/08/20\n");
  }
 --- linux-2.6.12.3-a9-17.orig/include/linux/init_task.h
 +++ linux-2.6.12.3-a9-17/include/linux/init_task.h
-@@ -111,6 +111,8 @@ extern struct group_info init_groups;
+@@ -63,6 +63,14 @@
+ 
+ extern struct group_info init_groups;
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -111,6 +119,7 @@ extern struct group_info init_groups;
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -1069,12 +1083,14 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  /*
   * cloning flags:
   */
-@@ -740,6 +742,8 @@ struct task_struct {
+@@ -740,6 +742,10 @@ struct task_struct {
  	nodemask_t mems_allowed;
  	int cpuset_mems_generation;
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
@@ -1099,12 +1115,14 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	return 0;
 --- linux-2.6.12.3-a9-17.orig/kernel/kmod.c
 +++ linux-2.6.12.3-a9-17/kernel/kmod.c
-@@ -143,6 +143,9 @@ static int ____call_usermodehelper(void 
+@@ -143,6 +143,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

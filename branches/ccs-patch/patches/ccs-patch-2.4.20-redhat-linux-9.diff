@@ -32,8 +32,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  fs/namespace.c               |   29 +++++++++++++++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
- include/linux/sched.h        |    6 ++++++
- kernel/kmod.c                |    3 +++
+ include/linux/sched.h        |   14 ++++++++++++++
+ kernel/kmod.c                |    5 +++++
  kernel/module.c              |    7 +++++++
  kernel/sched.c               |    3 +++
  kernel/signal.c              |    7 +++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 310 insertions(+), 3 deletions(-)
+ 46 files changed, 320 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.20-46.9.legacy/arch/alpha/kernel/ptrace.c
@@ -913,45 +913,55 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/20\n");
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
-@@ -33,6 +33,8 @@ extern unsigned long event;
+@@ -33,6 +33,15 @@ extern unsigned long event;
  struct exec_domain;
  extern int panic_timeout;
  
++#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
 +
  /*
   * cloning flags:
   */
-@@ -522,6 +524,8 @@ struct task_struct {
+@@ -522,6 +531,10 @@ struct task_struct {
  
  	unsigned long ptrace_message;
  	siginfo_t *last_siginfo; /* For ptrace use.  */
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  /*
-@@ -674,6 +678,8 @@ extern struct exec_domain	default_exec_d
+@@ -674,6 +687,7 @@ extern struct exec_domain	default_exec_d
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      switch_lock:        SPIN_LOCK_UNLOCKED,                             \
      journal_info:	NULL,						\
-+	ccs_domain_info: NULL,            \
-+	ccs_flags: 0                      \
++	INIT_CCSECURITY							\
  }
  
  
 --- linux-2.4.20-46.9.legacy.orig/kernel/kmod.c
 +++ linux-2.4.20-46.9.legacy/kernel/kmod.c
-@@ -135,6 +135,9 @@ int exec_usermodehelper(char *program_pa
+@@ -135,6 +135,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)

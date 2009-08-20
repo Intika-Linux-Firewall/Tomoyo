@@ -12,11 +12,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/namespace.c                  |   23 +++++++++++++++++++++++
  fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    5 +++++
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 238 insertions(+), 3 deletions(-)
+ 33 files changed, 249 insertions(+), 3 deletions(-)
 
 --- linux-2.6.31-rc6.orig/fs/attr.c
 +++ linux-2.6.31-rc6/fs/attr.c
@@ -504,18 +504,32 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31-rc6 2009/08/14\n");
++	printk(KERN_INFO "Hook version: 2.6.31-rc6 2009/08/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
 --- linux-2.6.31-rc6.orig/include/linux/init_task.h
 +++ linux-2.6.31-rc6/include/linux/init_task.h
-@@ -173,6 +173,8 @@ extern struct cred init_cred;
+@@ -105,6 +105,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_COUNTERS(tsk)
+ #endif
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -173,6 +181,7 @@ extern struct cred init_cred;
  	INIT_LOCKDEP							\
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -530,12 +544,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  /*
   * Scheduling policies
   */
-@@ -1479,6 +1481,8 @@ struct task_struct {
+@@ -1479,6 +1481,10 @@ struct task_struct {
  	/* bitmask of trace recursion */
  	unsigned long trace_recursion;
  #endif /* CONFIG_TRACING */
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
@@ -579,12 +595,14 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	 * Verify we have a legal set of flags
 --- linux-2.6.31-rc6.orig/kernel/kmod.c
 +++ linux-2.6.31-rc6/kernel/kmod.c
-@@ -176,6 +176,9 @@ static int ____call_usermodehelper(void 
+@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  

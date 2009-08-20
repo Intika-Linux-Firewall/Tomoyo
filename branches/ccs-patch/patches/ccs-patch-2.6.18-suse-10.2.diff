@@ -21,11 +21,11 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  fs/namespace.c                  |   24 +++++++++++++++++++++++-
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
@@ -44,7 +44,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 281 insertions(+), 9 deletions(-)
+ 42 files changed, 292 insertions(+), 9 deletions(-)
 
 --- linux-2.6.18.8-0.13.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8-0.13/arch/alpha/kernel/ptrace.c
@@ -707,16 +707,30 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18.8-0.13 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.18.8-0.13 2009/08/20\n");
  }
 --- linux-2.6.18.8-0.13.orig/include/linux/init_task.h
 +++ linux-2.6.18.8-0.13/include/linux/init_task.h
-@@ -128,6 +128,8 @@ extern struct group_info init_groups;
+@@ -76,6 +76,14 @@
+ 
+ extern struct group_info init_groups;
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -128,6 +136,7 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -731,12 +745,14 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  /*
   * Scheduling policies
   */
-@@ -996,6 +998,8 @@ struct task_struct {
+@@ -996,6 +998,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
@@ -780,12 +796,14 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  	 * Verify we have a legal set of flags
 --- linux-2.6.18.8-0.13.orig/kernel/kmod.c
 +++ linux-2.6.18.8-0.13/kernel/kmod.c
-@@ -148,6 +148,9 @@ static int ____call_usermodehelper(void 
+@@ -148,6 +148,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

@@ -16,11 +16,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  fs/namespace.c                  |   24 +++++++++++++++++++++++-
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    5 +++++
  kernel/sched.c                  |    3 +++
@@ -39,7 +39,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 263 insertions(+), 8 deletions(-)
+ 37 files changed, 274 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18-128.4.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-128.4.1.el5/arch/alpha/kernel/ptrace.c
@@ -605,16 +605,30 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-128.4.1.el5 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.6.18-128.4.1.el5 2009/08/20\n");
  }
 --- linux-2.6.18-128.4.1.el5.orig/include/linux/init_task.h
 +++ linux-2.6.18-128.4.1.el5/include/linux/init_task.h
-@@ -125,6 +125,8 @@ extern struct group_info init_groups;
+@@ -76,6 +76,14 @@
+ 
+ extern struct group_info init_groups;
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -125,6 +133,7 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
  	INIT_LOCKDEP							\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -629,12 +643,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  /*
   * Scheduling policies
   */
-@@ -1069,6 +1071,8 @@ struct task_struct {
+@@ -1069,6 +1071,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
@@ -678,12 +694,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	 * Verify we have a legal set of flags
 --- linux-2.6.18-128.4.1.el5.orig/kernel/kmod.c
 +++ linux-2.6.18-128.4.1.el5/kernel/kmod.c
-@@ -147,6 +147,9 @@ __exec_usermodehelper(char *path, char *
+@@ -147,6 +147,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

@@ -41,8 +41,8 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/namespace.c                  |   30 +++++++++++++++++++++++++++++-
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
- include/linux/sched.h           |    6 ++++++
- kernel/kmod.c                   |    3 +++
+ include/linux/sched.h           |   14 ++++++++++++++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    7 +++++++
  kernel/sched.c                  |    3 +++
  kernel/signal.c                 |    7 +++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   13 ++++++++++++-
  net/socket.c                    |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 55 files changed, 344 insertions(+), 8 deletions(-)
+ 55 files changed, 354 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -1097,45 +1097,55 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/08/08\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/08/20\n");
  }
 --- linux-2.4.31-a9-3.orig/include/linux/sched.h
 +++ linux-2.4.31-a9-3/include/linux/sched.h
-@@ -32,6 +32,8 @@ extern unsigned long event;
+@@ -32,6 +32,15 @@ extern unsigned long event;
  
  struct exec_domain;
  
++#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
 +
  /*
   * cloning flags:
   */
-@@ -477,6 +479,8 @@ struct task_struct {
+@@ -477,6 +486,10 @@ struct task_struct {
  #ifdef CONFIG_SYSCALLTIMER
  	int curr_syscall;
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  #ifdef CONFIG_SYSCALLTIMER
-@@ -583,6 +587,8 @@ extern struct exec_domain	default_exec_d
+@@ -583,6 +596,7 @@ extern struct exec_domain	default_exec_d
      alloc_lock:		SPIN_LOCK_UNLOCKED,				\
      journal_info:	NULL,						\
      CURR_SYSCALL							\
-+	ccs_domain_info: NULL,            \
-+	ccs_flags: 0                      \
++	INIT_CCSECURITY							\
  }
  
  
 --- linux-2.4.31-a9-3.orig/kernel/kmod.c
 +++ linux-2.4.31-a9-3/kernel/kmod.c
-@@ -132,6 +132,9 @@ int exec_usermodehelper(char *program_pa
+@@ -132,6 +132,11 @@ int exec_usermodehelper(char *program_pa
  	/* Allow execve args to be in kernel space. */
  	set_fs(KERNEL_DS);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	/* Go, go, go... */
  	if (execve(program_path, argv, envp) < 0)

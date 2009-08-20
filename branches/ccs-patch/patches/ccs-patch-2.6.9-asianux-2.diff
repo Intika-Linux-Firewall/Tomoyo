@@ -37,9 +37,9 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
- include/linux/init_task.h          |    2 ++
- include/linux/sched.h              |    4 ++++
- kernel/kmod.c                      |    3 +++
+ include/linux/init_task.h          |    9 +++++++++
+ include/linux/sched.h              |    6 ++++++
+ kernel/kmod.c                      |    5 +++++
  kernel/module.c                    |    7 +++++--
  kernel/sched.c                     |    3 +++
  kernel/signal.c                    |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 325 insertions(+), 13 deletions(-)
+ 54 files changed, 336 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.14AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.14AXS2/arch/alpha/kernel/ptrace.c
@@ -1043,16 +1043,30 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-78.14AXS2 2009/08/09\n");
++	printk(KERN_INFO "Hook version: 2.6.9-78.14AXS2 2009/08/20\n");
  }
 --- linux-2.6.9-78.14AXS2.orig/include/linux/init_task.h
 +++ linux-2.6.9-78.14AXS2/include/linux/init_task.h
-@@ -112,6 +112,8 @@ extern struct group_info init_groups;
+@@ -60,6 +60,14 @@
+ 
+ extern struct group_info init_groups;
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -112,6 +120,7 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
  	.journal_info	= NULL,						\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -1067,23 +1081,27 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  /*
   * cloning flags:
   */
-@@ -655,6 +657,8 @@ struct task_struct {
+@@ -655,6 +657,10 @@ struct task_struct {
    	struct mempolicy *mempolicy;
    	short il_next;		/* could be shared with used_math */
  #endif
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
 --- linux-2.6.9-78.14AXS2.orig/kernel/kmod.c
 +++ linux-2.6.9-78.14AXS2/kernel/kmod.c
-@@ -169,6 +169,9 @@ static int ____exec_usermodehelper(char 
+@@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
  
  	key_put(old_session);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)

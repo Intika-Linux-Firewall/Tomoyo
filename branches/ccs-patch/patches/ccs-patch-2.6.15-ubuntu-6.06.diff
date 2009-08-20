@@ -21,11 +21,11 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  fs/namespace.c                  |   24 +++++++++++++++++++++++-
  fs/open.c                       |   27 ++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
- include/linux/init_task.h       |    2 ++
- include/linux/sched.h           |    4 ++++
+ include/linux/init_task.h       |    9 +++++++++
+ include/linux/sched.h           |    6 ++++++
  kernel/compat.c                 |    3 +++
  kernel/kexec.c                  |    3 +++
- kernel/kmod.c                   |    3 +++
+ kernel/kmod.c                   |    5 +++++
  kernel/module.c                 |    7 +++++--
  kernel/ptrace.c                 |    3 +++
  kernel/sched.c                  |    3 +++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 280 insertions(+), 10 deletions(-)
+ 42 files changed, 291 insertions(+), 10 deletions(-)
 
 --- linux-2.6.15-54.78.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-54.78/arch/alpha/kernel/ptrace.c
@@ -700,16 +700,30 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15-54.78 2009/08/09\n");
++	printk(KERN_INFO "Hook version: 2.6.15-54.78 2009/08/20\n");
  }
 --- linux-2.6.15-54.78.orig/include/linux/init_task.h
 +++ linux-2.6.15-54.78/include/linux/init_task.h
-@@ -121,6 +121,8 @@ extern struct group_info init_groups;
+@@ -72,6 +72,14 @@
+ 
+ extern struct group_info init_groups;
+ 
++#ifdef CONFIG_CCSECURITY
++#define INIT_CCSECURITY          \
++	.ccs_domain_info = NULL, \
++	.ccs_flags = 0,
++#else
++#define INIT_CCSECURITY
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -121,6 +129,7 @@ extern struct group_info init_groups;
  	.journal_info	= NULL,						\
  	.cpu_timers	= INIT_CPU_TIMERS(tsk.cpu_timers),		\
  	.fs_excl	= ATOMIC_INIT(0),				\
-+	.ccs_domain_info = NULL,                 \
-+	.ccs_flags = 0,                          \
++	INIT_CCSECURITY                                                 \
  }
  
  
@@ -724,12 +738,14 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  /*
   * cloning flags:
   */
-@@ -858,6 +860,8 @@ struct task_struct {
+@@ -858,6 +860,10 @@ struct task_struct {
  #endif
  	atomic_t fs_excl;	/* holding fs exclusive resources */
  	struct list_head	*scm_work_list;
++#ifdef CONFIG_CCSECURITY
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
++#endif
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
@@ -773,12 +789,14 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	 * Verify we have a legal set of flags
 --- linux-2.6.15-54.78.orig/kernel/kmod.c
 +++ linux-2.6.15-54.78/kernel/kmod.c
-@@ -149,6 +149,9 @@ static int ____call_usermodehelper(void 
+@@ -149,6 +149,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
  
++#ifdef CONFIG_CCSECURITY
 +	current->ccs_domain_info = NULL;
 +	current->ccs_flags = 0;
++#endif
 +
  	retval = -EPERM;
  	if (current->fs->root)
