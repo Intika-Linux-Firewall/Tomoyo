@@ -518,15 +518,6 @@ struct ccs_execve_entry {
 	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
 };
 
-/* Structure for holding requested pathname. */
-struct ccs_path_info_with_data {
-	/* Keep "head" first, for this pointer is passed to ccs_free(). */
-	struct ccs_path_info head;
-	char barrier1[16]; /* Safeguard for overrun. */
-	char body[CCS_MAX_PATHNAME_LEN];
-	char barrier2[16]; /* Safeguard for overrun. */
-};
-
 /* Common header for holding ACL entries. */
 struct ccs_acl_info {
 	struct list_head list;

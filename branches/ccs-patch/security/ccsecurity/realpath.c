@@ -72,7 +72,6 @@ static int ccs_kern_path(const char *pathname, int flags, struct path *path)
  */
 static int ccs_get_absolute_path(struct path *path, char *buffer, int buflen)
 {
-	/***** CRITICAL SECTION START *****/
 	char *start = buffer;
 	char *end = buffer + buflen;
 	struct dentry *dentry = path->dentry;
@@ -200,7 +199,6 @@ static int ccs_get_absolute_path(struct path *path, char *buffer, int buflen)
 	return 0;
  out:
 	return -ENOMEM;
-	/***** CRITICAL SECTION END *****/
 }
 
 #define SOCKFS_MAGIC 0x534F434B
@@ -277,11 +275,9 @@ static int ccs_realpath_from_path2(struct path *path, char *newname,
 	if (!path->mnt)
 		goto out;
 	path_get(path);
-	/***** CRITICAL SECTION START *****/
 	ccs_realpath_lock();
 	error = ccs_get_absolute_path(path, newname, newname_len);
 	ccs_realpath_unlock();
-	/***** CRITICAL SECTION END *****/
 	path_put(path);
  out:
 	if (error)

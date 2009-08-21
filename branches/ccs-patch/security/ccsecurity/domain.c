@@ -836,7 +836,6 @@ static void ccs_unescape(unsigned char *dest)
 static inline int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
 {
 	int depth = 0;
-	/***** CRITICAL SECTION START *****/
 	ccs_realpath_lock();
 	for (;;) {
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -851,7 +850,6 @@ static inline int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
 		depth++;
 	}
 	ccs_realpath_unlock();
-	/***** CRITICAL SECTION END *****/
 	return depth;
 }
 
@@ -868,7 +866,6 @@ static int ccs_get_root_depth(void)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	struct path root;
 #endif
-	/***** CRITICAL SECTION START *****/
 	read_lock(&current->fs->lock);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	root = current->fs->root;
@@ -880,7 +877,6 @@ static int ccs_get_root_depth(void)
 	vfsmnt = mntget(current->fs->rootmnt);
 #endif
 	read_unlock(&current->fs->lock);
-	/***** CRITICAL SECTION END *****/
 	depth = ccs_root_depth(dentry, vfsmnt);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	path_put(&root);
@@ -915,11 +911,9 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	ee->reader_idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->task = current;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_execve_list_lock);
 	list_add(&ee->list, &ccs_execve_list);
 	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
 	return ee;
 }
 
@@ -933,7 +927,6 @@ static struct ccs_execve_entry *ccs_find_execve_entry(void)
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = NULL;
 	struct ccs_execve_entry *p;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_execve_list_lock);
 	list_for_each_entry(p, &ccs_execve_list, list) {
 		if (p->task != task)
@@ -942,7 +935,6 @@ static struct ccs_execve_entry *ccs_find_execve_entry(void)
 		break;
 	}
 	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
 	return ee;
 }
 
@@ -955,11 +947,9 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 {
 	if (!ee)
 		return;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_execve_list_lock);
 	list_del(&ee->list);
 	spin_unlock(&ccs_execve_list_lock);
-	/***** CRITICAL SECTION END *****/
 	kfree(ee->program_path);
 	kfree(ee->tmp);
 	kfree(ee->dump.data);

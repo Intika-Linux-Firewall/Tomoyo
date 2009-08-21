@@ -47,7 +47,6 @@ static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
 				    struct vfsmount *vfsmnt,
 				    struct dentry *dentry)
 {
-	/***** CRITICAL SECTION START *****/
 	while (1) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
 		if (path->path.mnt->mnt_root == vfsmnt->mnt_root &&
@@ -68,7 +67,6 @@ static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
 		dentry = dentry->d_parent;
 	}
 	return false;
-	/***** CRITICAL SECTION END *****/
 }
 
 /**
@@ -99,12 +97,10 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 		struct vfsmount *vfsmnt = list_entry(p, struct vfsmount,
 						     mnt_list);
 		struct dentry *dentry = vfsmnt->mnt_root;
-		/***** CRITICAL SECTION START *****/
 		ccs_realpath_lock();
 		if (IS_ROOT(dentry) || !d_unhashed(dentry))
 			found = ccs_conceal_mount(path, vfsmnt, dentry);
 		ccs_realpath_unlock();
-		/***** CRITICAL SECTION END *****/
 		if (found)
 			break;
 	}

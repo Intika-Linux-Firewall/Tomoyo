@@ -72,7 +72,6 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	}
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
-		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		if (pid > 0)
 			p = find_task_by_pid((pid_t) pid);
@@ -85,7 +84,6 @@ static int ccs_signal_acl2(const int sig, const int pid)
 		if (p)
 			dest = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
-		/***** CRITICAL SECTION END *****/
 	}
 	if (!dest)
 		return 0; /* I can't find destinatioin. */

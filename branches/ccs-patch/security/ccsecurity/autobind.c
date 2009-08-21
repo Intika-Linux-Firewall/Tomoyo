@@ -81,10 +81,8 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
  */
 bool ccs_lport_reserved(const u16 port)
 {
-	/***** CRITICAL SECTION START *****/
 	return ccs_reserved_port_map[port >> 8] & (1 << (port & 7))
 		? true : false;
-	/***** CRITICAL SECTION END *****/
 }
 EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
 

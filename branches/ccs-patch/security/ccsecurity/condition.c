@@ -154,7 +154,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 			const char *kaddr = dump->data;
 			const unsigned char c = kaddr[offset++];
 			arg.name = arg_ptr;
-			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
 				if (c == '\\') {
 					arg_ptr[arg_len++] = '\\';
 					arg_ptr[arg_len++] = '\\';
@@ -830,11 +830,9 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 
 	/* Get information on "path1.parent". */
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
 	dentry = dget(obj->path1.dentry->d_parent);
 	spin_unlock(&dcache_lock);
-	/***** CRITICAL SECTION END *****/
 	inode = dentry->d_inode;
 	if (inode) {
 		if (inode->i_op && inode->i_op->revalidate &&
@@ -874,11 +872,9 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 
 	/* Get information on "path2.parent". */
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&dcache_lock);
 	dentry = dget(obj->path2.dentry->d_parent);
 	spin_unlock(&dcache_lock);
-	/***** CRITICAL SECTION END *****/
 	inode = dentry->d_inode;
 	if (inode) {
 		if (inode->i_op && inode->i_op->revalidate &&

@@ -297,7 +297,6 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	 * Don't go beyond strlen(new_entry->log).
 	 */
 	new_entry->size = ccs_round2(len) + ccs_round2(sizeof(*new_entry));
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_audit_log_lock);
 	if (ccs_quota_for_audit_log && ccs_audit_log_memory_size
 	    + new_entry->size >= ccs_quota_for_audit_log) {
@@ -313,7 +312,6 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		}
 	}
 	spin_unlock(&ccs_audit_log_lock);
-	/***** CRITICAL SECTION END *****/
 	if (quota_exceeded) {
 		kfree(buf);
 		kfree(new_entry);
@@ -346,7 +344,6 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_audit_log_lock);
 	if (!list_empty(&ccs_grant_log)) {
 		ptr = list_entry(ccs_grant_log.next, struct ccs_log_entry,
@@ -356,7 +353,6 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 		ccs_audit_log_memory_size -= ptr->size;
 	}
 	spin_unlock(&ccs_audit_log_lock);
-	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
 		head->read_avail = strlen(ptr->log) + 1;
@@ -401,7 +397,6 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_audit_log_lock);
 	if (!list_empty(&ccs_reject_log)) {
 		ptr = list_entry(ccs_reject_log.next, struct ccs_log_entry,
@@ -411,7 +406,6 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 		ccs_audit_log_memory_size -= ptr->size;
 	}
 	spin_unlock(&ccs_audit_log_lock);
-	/***** CRITICAL SECTION END *****/
 	if (ptr) {
 		head->read_buf = ptr->log;
 		head->read_avail = strlen(ptr->log) + 1;

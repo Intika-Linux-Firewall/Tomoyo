@@ -122,7 +122,6 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
 	bool in_use = false;
 	struct task_struct *p;
-	/***** CRITICAL SECTION START *****/
 	read_lock(&tasklist_lock);
 	for_each_process(p) {
 		if (p->ccs_domain_info != domain)
@@ -131,7 +130,6 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 		break;
 	}
 	read_unlock(&tasklist_lock);
-	/***** CRITICAL SECTION END *****/
 	return in_use;
 }
 

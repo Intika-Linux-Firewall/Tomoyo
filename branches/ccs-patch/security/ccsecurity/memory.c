@@ -227,12 +227,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	if (!name)
 		return NULL;
 	len = strlen(name) + 1;
-	if (len > CCS_MAX_PATHNAME_LEN) {
-		printk(KERN_WARNING "ERROR: Name too long. (%s)\n", __func__);
-		return NULL;
-	}
 	hash = full_name_hash((const unsigned char *) name, len - 1);
-	/***** EXCLUSIVE SECTION START *****/
 	mutex_lock(&ccs_name_list_lock);
 	list_for_each_entry(ptr, &ccs_name_list[hash % CCS_MAX_HASH], list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
@@ -259,7 +254,6 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	list_add_tail(&ptr->list, &ccs_name_list[hash % CCS_MAX_HASH]);
  out:
 	mutex_unlock(&ccs_name_list_lock);
-	/***** EXCLUSIVE SECTION END *****/
 	return ptr ? &ptr->entry : NULL;
 }
 
@@ -275,14 +269,12 @@ void ccs_put_name(const struct ccs_path_info *name)
 	if (!name)
 		return;
 	ptr = container_of(name, struct ccs_name_entry, entry);
-	/***** EXCLUSIVE SECTION START *****/
 	mutex_lock(&ccs_name_list_lock);
 	if (atomic_dec_and_test(&ptr->users)) {
 		list_del(&ptr->list);
 		can_delete = true;
 	}
 	mutex_unlock(&ccs_name_list_lock);
-	/***** EXCLUSIVE SECTION END *****/
 	if (can_delete) {
 		atomic_sub(ptr->size, &ccs_policy_memory_size);
 		kfree(ptr);

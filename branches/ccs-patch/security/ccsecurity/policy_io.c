@@ -237,12 +237,10 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		const struct ccs_path_info *new_comment = ccs_get_name(cp);
 		const struct ccs_path_info *old_comment;
 		/* Protect reader from ccs_put_name(). */
-		/***** CRITICAL SECTION START *****/
 		spin_lock(&ccs_profile_comment_lock);
 		old_comment = ccs_profile->comment;
 		ccs_profile->comment = new_comment;
 		spin_unlock(&ccs_profile_comment_lock);
-		/***** CRITICAL SECTION END *****/
 		ccs_put_name(old_comment);
 		return 0;
 	}
@@ -343,13 +341,11 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 			continue;
 		if (!type) { /* Print profile' comment tag. */
 			bool done;
-			/***** CRITICAL SECTION START *****/
 			spin_lock(&ccs_profile_comment_lock);
 			done = ccs_io_printf(head, "%u-COMMENT=%s\n",
 					     index, ccs_profile->comment ?
 					     ccs_profile->comment->name : "");
 			spin_unlock(&ccs_profile_comment_lock);
-			/***** CRITICAL SECTION END *****/
 			if (!done)
 				break;
 			continue;
@@ -576,13 +572,11 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	}
 	if (sscanf(data, "pid=%u", &pid) == 1) {
 		struct task_struct *p;
-		/***** CRITICAL SECTION START *****/
 		read_lock(&tasklist_lock);
 		p = find_task_by_pid(pid);
 		if (p)
 			domain = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
-		/***** CRITICAL SECTION END *****/
 	} else if (!strncmp(data, "domain=", 7)) {
 		if (ccs_is_domain_def(data + 7))
 			domain = ccs_find_domain(data + 7);
@@ -1594,7 +1588,6 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	if (ccs_str_starts(&buf, "info "))
 		task_info = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
-	/***** CRITICAL SECTION START *****/
 	read_lock(&tasklist_lock);
 	p = find_task_by_pid(pid);
 	if (p) {
@@ -1602,7 +1595,6 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 		ccs_flags = p->ccs_flags;
 	}
 	read_unlock(&tasklist_lock);
-	/***** CRITICAL SECTION END *****/
 	if (!domain)
 		goto done;
 	if (!task_info)
@@ -1950,7 +1942,6 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	if (!ccs_query_entry->query)
 		goto out;
 	INIT_LIST_HEAD(&ccs_query_entry->list);
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	if (ccs_quota_for_query && ccs_query_memory_size + len +
 	    sizeof(*ccs_query_entry) >= ccs_quota_for_query) {
@@ -1960,7 +1951,6 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		ccs_query_entry->serial = ccs_serial++;
 	}
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	if (quota_exceeded)
 		goto out;
 	pos = snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
@@ -1971,11 +1961,9 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	vsnprintf(ccs_query_entry->query + pos, len - 1 - pos, fmt, args);
 	ccs_query_entry->query_len = strlen(ccs_query_entry->query) + 1;
 	va_end(args);
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_add_tail(&ccs_query_entry->list, &ccs_query_list);
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	/* Give 10 seconds for supervisor's opinion. */
 	for (ccs_query_entry->timer = 0;
 	     atomic_read(&ccs_query_observers) && ccs_query_entry->timer < 100;
@@ -1986,12 +1974,10 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		if (ccs_query_entry->answer)
 			break;
 	}
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_del(&ccs_query_entry->list);
 	ccs_query_memory_size -= len + sizeof(*ccs_query_entry);
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	switch (ccs_query_entry->answer) {
 	case 3: /* Asked to retry by administrator. */
 		error = 1;
@@ -2032,7 +2018,6 @@ static int ccs_poll_query(struct file *file, poll_table *wait)
 	bool found = false;
 	u8 i;
 	for (i = 0; i < 2; i++) {
-		/***** CRITICAL SECTION START *****/
 		spin_lock(&ccs_query_list_lock);
 		list_for_each(tmp, &ccs_query_list) {
 			struct ccs_query_entry *ptr
@@ -2043,7 +2028,6 @@ static int ccs_poll_query(struct file *file, poll_table *wait)
 			break;
 		}
 		spin_unlock(&ccs_query_list_lock);
-		/***** CRITICAL SECTION END *****/
 		if (found)
 			return POLLIN | POLLRDNORM;
 		if (i)
@@ -2073,7 +2057,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
@@ -2086,7 +2069,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	if (!len) {
 		head->read_step = 0;
 		return 0;
@@ -2095,7 +2077,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	if (!buf)
 		return 0;
 	pos = 0;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
@@ -2113,7 +2094,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	if (buf[0]) {
 		head->read_avail = len;
 		head->readbuf_size = head->read_avail;
@@ -2138,7 +2118,6 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 	struct list_head *tmp;
 	unsigned int serial;
 	unsigned int answer;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
@@ -2146,10 +2125,8 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		ptr->timer = 0;
 	}
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	if (sscanf(data, "A%u=%u", &serial, &answer) != 2)
 		return -EINVAL;
-	/***** CRITICAL SECTION START *****/
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
 		struct ccs_query_entry *ptr
@@ -2161,7 +2138,6 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		break;
 	}
 	spin_unlock(&ccs_query_list_lock);
-	/***** CRITICAL SECTION END *****/
 	return 0;
 }
 
@@ -2285,14 +2261,10 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		head->read = NULL;
 		head->poll = NULL;
-	} else if (type != CCS_QUERY &&
-		   type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
-		/*
-		 * Don't allocate buffer for reading if the file is one of
-		 * /proc/ccs/grant_log , /proc/ccs/reject_log , /proc/ccs/query.
-		 */
+	} else if (!head->poll) {
+		/* Don't allocate read_buf for poll() access. */
 		if (!head->readbuf_size)
-			head->readbuf_size = 4096 * 2;
+			head->readbuf_size = 4096;
 		head->read_buf = kzalloc(head->readbuf_size, GFP_KERNEL);
 		if (!head->read_buf) {
 			kfree(head);
@@ -2306,7 +2278,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		 */
 		head->write = NULL;
 	} else if (head->write) {
-		head->writebuf_size = 4096 * 2;
+		head->writebuf_size = 4096;
 		head->write_buf = kzalloc(head->writebuf_size, GFP_KERNEL);
 		if (!head->write_buf) {
 			kfree(head->read_buf);
@@ -2375,12 +2347,23 @@ int ccs_read_control(struct file *file, char __user *buffer,
 		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
+ retry:
 	/* Call the policy handler. */
 	len = head->read(head);
 	if (len < 0)
 		goto out;
 	/* Write to buffer. */
 	len = head->read_avail;
+	if (!len && !head->poll && !head->read_eof) {
+		const int len = head->readbuf_size * 2;
+		cp = kzalloc(len, GFP_KERNEL);
+		if (cp) {
+			kfree(head->read_buf);
+			head->read_buf = cp;
+			head->readbuf_size = len;
+			goto retry;
+		}
+	}
 	if (len > buffer_len)
 		len = buffer_len;
 	if (!len)
@@ -2429,9 +2412,19 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 	while (avail_len > 0) {
 		char c;
 		if (head->write_avail >= head->writebuf_size - 1) {
-			error = -ENOMEM;
-			break;
-		} else if (get_user(c, buffer)) {
+			const int len = head->writebuf_size * 2;
+			char *cp = kzalloc(len, GFP_KERNEL);
+			if (!cp) {
+				error = -ENOMEM;
+				break;
+			}
+			memmove(cp, cp0, head->write_avail);
+			kfree(cp0);
+			head->write_buf = cp;
+			cp0 = cp;
+			head->writebuf_size = len;
+		}
+		if (get_user(c, buffer)) {
 			error = -EFAULT;
 			break;
 		}
