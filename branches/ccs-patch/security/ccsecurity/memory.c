@@ -12,7 +12,7 @@
 
 #include "internal.h"
 
-static void ccs_warn_oom(const char *function)
+void ccs_warn_oom(const char *function)
 {
 	/* Reduce error messages. */
 	static pid_t ccs_last_pid;
@@ -291,12 +291,6 @@ struct srcu_struct ccs_ss;
 static int __init ccs_realpath_init(void)
 {
 	int i;
-	/* Constraint for ccs_get_name(). */
-	if (CCS_MAX_PATHNAME_LEN > PAGE_SIZE)
-		panic("Bad size.");
-	/* Constraint for "struct ccs_execve_entry"->tmp users. */
-	if (CCS_MAX_PATHNAME_LEN > CCS_EXEC_TMPSIZE)
-		panic("Bad size.");
 	if (init_srcu_struct(&ccs_ss))
 		panic("Out of memory.");
 	for (i = 0; i < CCS_MAX_HASH; i++)

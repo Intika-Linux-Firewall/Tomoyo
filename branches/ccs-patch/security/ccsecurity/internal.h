@@ -298,15 +298,6 @@ enum ccs_conditions_index {
 #define CCS_VALUE_TYPE_OCTAL       2
 #define CCS_VALUE_TYPE_HEXADECIMAL 3
 
-/*
- * This is the max length of a token.
- *
- * A token consists of only ASCII printable characters.
- * Non printable characters in a token is represented in \ooo style
- * octal string. Thus, \ itself is represented as \\.
- */
-#define CCS_MAX_PATHNAME_LEN 4000
-
 #define CCS_EXEC_TMPSIZE     4096
 
 /* Profile number is an integer between 0 and 255. */
@@ -511,7 +502,7 @@ struct ccs_execve_entry {
 	int reader_idx;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
-	char *program_path; /* Size is CCS_MAX_PATHNAME_LEN bytes */
+	char *handler_path; /* = kstrdup(handler->name, GFP_KERNEL) */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
 	/* For temporary use. */
@@ -880,7 +871,7 @@ int ccs_read_control(struct file *file, char __user *buffer, const int buffer_le
 int ccs_read_grant_log(struct ccs_io_buffer *head);
 int ccs_read_memory_counter(struct ccs_io_buffer *head);
 int ccs_read_reject_log(struct ccs_io_buffer *head);
-int ccs_symlink_path(const char *pathname, struct ccs_execve_entry *ee);
+int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_write_address_group_policy(char *data, const bool is_delete);
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 3, 4)));
@@ -953,6 +944,7 @@ int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 bool ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_union *ptr);
 bool ccs_commit_ok(void *ptr, void *data, const unsigned int size);
 int ccs_get_path(const char *pathname, struct path *path);
+void ccs_warn_oom(const char *function);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,

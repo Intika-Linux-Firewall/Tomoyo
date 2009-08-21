@@ -110,12 +110,76 @@ static pid_t pid = 0;
 
 static void clear_status(void)
 {
+	static const char *keywords[] = {
+		"execute",
+		"open",
+		"create",
+		"unlink",
+		"mkdir",
+		"rmdir",
+		"mkfifo",
+		"mksock",
+		"truncate",
+		"symlink",
+		"rewrite",
+		"mkblock",
+		"mkchar",
+		"link",
+		"rename",
+		"chmod",
+		"chown",
+		"chgrp",
+		"ioctl",
+		"chroot",
+		"mount",
+		"umount",
+		"pivot_root",
+		"env",
+		"network",
+		"signal",
+		"capability::inet_tcp_create",
+		"capability::inet_tcp_listen",
+		"capability::inet_tcp_connect",
+		"capability::use_inet_udp",
+		"capability::use_inet_ip",
+		"capability::use_route",
+		"capability::use_packet",
+		"capability::SYS_MOUNT",
+		"capability::SYS_UMOUNT",
+		"capability::SYS_REBOOT",
+		"capability::SYS_CHROOT",
+		"capability::SYS_KILL",
+		"capability::SYS_VHANGUP",
+		"capability::SYS_TIME",
+		"capability::SYS_NICE",
+		"capability::SYS_SETHOSTNAME",
+		"capability::use_kernel_module",
+		"capability::create_fifo",
+		"capability::create_block_dev",
+		"capability::create_char_dev",
+		"capability::create_unix_socket",
+		"capability::SYS_LINK",
+		"capability::SYS_SYMLINK",
+		"capability::SYS_RENAME",
+		"capability::SYS_UNLINK",
+		"capability::SYS_CHMOD",
+		"capability::SYS_CHOWN",
+		"capability::SYS_IOCTL",
+		"capability::SYS_KEXEC_LOAD",
+		"capability::SYS_PIVOT_ROOT",
+		"capability::SYS_PTRACE",
+		"capability::conceal_mount",
+		NULL
+	};
+	int i;
 	FILE *fp = fopen(proc_policy_profile, "r");
 	static char buffer[4096];
 	if (!fp) {
 		fprintf(stderr, "Can't open %s\n", proc_policy_profile);
 		exit(1);
 	}
+	for (i = 0; keywords[i]; i++)
+		fprintf(profile_fp, "255-MAC::%s=disabled\n", keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
 		const char *mode;
@@ -140,14 +204,6 @@ static void clear_status(void)
 			mode = "Profile for kernel test\n";
 		else if (sscanf(mode, "%u", &v) == 1)
 			mode = "0\n";
-		else if (!strcmp(cp, "MAC_MODE_LEARNING") ||
-			 !strcmp(cp, "MAC_MODE_PERMISSIVE") ||
-			 !strcmp(cp, "MAC_MODE_ENFORCING"))
-			cp = "MAC_MODE_DISABLED";
-		else if (!strcmp(cp, "MAC_MODE_CAPABILITY_LEARNING") ||
-			 !strcmp(cp, "MAC_MODE_CAPABILITY_PERMISSIVE") ||
-			 !strcmp(cp, "MAC_MODE_CAPABILITY_ENFORCING"))
-			cp = "MAC_MODE_CAPABILITY_DISABLED";
 		else
 			mode = "disabled\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);

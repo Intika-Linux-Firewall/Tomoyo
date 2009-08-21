@@ -299,7 +299,7 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 	int i;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
 	for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX; i++) {
-		if (!ccs_mac_keywords_used[index])
+		if (!ccs_mac_keywords_used[i])
 			continue;
 		if (!ccs_io_printf(head, "%u-MAC::%s%s=%s %s %s\n", index,
 				   i >= CCS_MAX_MAC_INDEX ?
@@ -1762,7 +1762,7 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 		while (offset < PAGE_SIZE) {
 			const char *kaddr = ee->dump.data;
 			const unsigned char c = kaddr[offset++];
-			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
 				if (c == '\\') {
 					arg_ptr[arg_len++] = '\\';
 					arg_ptr[arg_len++] = '\\';

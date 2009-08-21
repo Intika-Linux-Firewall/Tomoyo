@@ -169,6 +169,15 @@ const char *ccs_path_number2keyword(const u8 operation)
 		? ccs_path_number_keyword[operation] : NULL;
 }
 
+static void ccs_add_slash(struct ccs_path_info *buf)
+{
+	if (buf->is_dir)
+		return;
+	/* This is OK because ccs_encode() reserves space for appending "/". */
+	strcat((char *) buf->name, "/");
+	ccs_fill_path_info(buf);
+}
+
 /**
  * ccs_strendswith - Check whether the token ends with the given token.
  *
@@ -1274,7 +1283,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		if (ccs_is_no_rewrite_file(&buf)) {
 			r.obj = &obj;
 			error = ccs_path_permission(&r, CCS_TYPE_REWRITE,
-							  &buf);
+						    &buf);
 		}
 	}
 	if (!error && acc_mode &&
@@ -1293,8 +1302,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			goto out;
 		}
 		r.obj = &obj;
-		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE,
-						  &buf);
+		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
 	}
  out:
 	kfree(buf.name);
@@ -1342,11 +1350,7 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 	r.obj = &obj;
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
-		if (buf.is_dir)
-			break;
-		/* ccs_get_realpath() reserves space for appending "/". */
-		strcat((char *) buf.name, "/");
-		ccs_fill_path_info(&buf);
+		ccs_add_slash(&buf);
 		break;
 	case CCS_TYPE_SYMLINK:
 		symlink_target.name = ccs_encode(target);
@@ -1500,17 +1504,8 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 	if (operation == CCS_TYPE_RENAME) {
 		/* CCS_TYPE_LINK can't reach here for directory. */
 		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-			/*
-			 * ccs_get_realpath() reserves space for appending "/".
-			 */
-			if (!buf1.is_dir) {
-				strcat((char *) buf1.name, "/");
-				ccs_fill_path_info(&buf1);
-			}
-			if (!buf2.is_dir) {
-				strcat((char *) buf2.name, "/");
-				ccs_fill_path_info(&buf2);
-			}
+			ccs_add_slash(&buf1);
+			ccs_add_slash(&buf2);
 		}
 	}
 	r.obj = &obj;
@@ -1726,11 +1721,8 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
 		goto out;
 	r.obj = &obj;
-	if (type == CCS_TYPE_MKDIR && !buf.is_dir) {
-		/* ccs_get_realpath() reserves space for appending "/". */
-		strcat((char *) buf.name, "/");
-		ccs_fill_path_info(&buf);
-	}
+	if (type == CCS_TYPE_MKDIR)
+		ccs_add_slash(&buf);
 	error = ccs_path_number_perm2(&r, type, &buf, number);
  out:
 	kfree(buf.name);
@@ -2476,6 +2468,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	int error = -ENOMEM;
 	int op = 0;
 	struct ccs_path_info buf;
+	char *buffer = NULL;
 	struct ccs_request_info r;
 	int idx;
 	if (oldval)
@@ -2486,16 +2479,15 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		return 0;
 	if (!ccs_can_sleep())
 		return 0;
-	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (!ccs_init_request_info(&r, NULL, CCS_MAC_OPEN)) {
 		error = 0;
 		goto out;
 	}
-	buf.name = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
-	if (!buf.name)
+	buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	if (!buffer)
 		goto out;
-	snprintf((char *) buf.name, CCS_MAX_PATHNAME_LEN - 1, "/proc/sys");
+	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
  repeat:
 	if (!nlen) {
 		error = -ENOTDIR;
@@ -2512,7 +2504,6 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		      ; table++) {
 		int pos;
 		const char *cp;
-		char *buffer = (char *) buf.name;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
 		if (n != table->ctl_name && table->ctl_name != CTL_ANY)
 			continue;
@@ -2524,47 +2515,31 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		cp = table->procname;
 		error = -ENOMEM;
 		if (cp) {
-			if (pos + 1 >= CCS_MAX_PATHNAME_LEN - 1)
+			int len = strlen(cp);
+			if (len + 2 > PAGE_SIZE - 1)
 				goto out;
 			buffer[pos++] = '/';
-			while (*cp) {
-				const unsigned char c
-					= *(const unsigned char *) cp;
-				if (c == '\\') {
-					if (pos + 2 >= CCS_MAX_PATHNAME_LEN - 1)
-						goto out;
-					buffer[pos++] = '\\';
-					buffer[pos++] = '\\';
-				} else if (c > ' ' && c < 127) {
-					if (pos + 1 >= CCS_MAX_PATHNAME_LEN - 1)
-						goto out;
-					buffer[pos++] = c;
-				} else {
-					if (pos + 4 >= CCS_MAX_PATHNAME_LEN - 1)
-						goto out;
-					buffer[pos++] = '\\';
-					buffer[pos++] = (c >> 6) + '0';
-					buffer[pos++] = ((c >> 3) & 7) + '0';
-					buffer[pos++] = (c & 7) + '0';
-				}
-				cp++;
-			}
+			memmove(buffer + pos, cp, len + 1);
+			
 		} else {
 			/* Assume nobody assigns "=\$=" for procname. */
-			snprintf(buffer + pos, CCS_MAX_PATHNAME_LEN - pos - 1,
+			snprintf(buffer + pos, PAGE_SIZE - pos - 1,
 				 "/=%d=", table->ctl_name);
-			if (!memchr(buffer, '\0', CCS_MAX_PATHNAME_LEN - 2))
+			if (!memchr(buffer, '\0', PAGE_SIZE - 2))
 				goto out;
 		}
 		if (table->child) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
 			if (table->strategy) {
 				/* printk("sysctl='%s'\n", buffer); */
-				ccs_fill_path_info(&buf);
-				if (ccs_file_perm(&r, &buf, op)) {
-					error = -EPERM;
-					goto out;
+				buf.name = ccs_encode(buffer);
+				if (buf.name) {
+					ccs_fill_path_info(&buf);
+					error = ccs_file_perm(&r, &buf, op);
+					kfree(buf.name);
 				}
+				if (error)
+					goto out;
 			}
 #endif
 			name++;
@@ -2573,14 +2548,18 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			goto repeat;
 		}
 		/* printk("sysctl='%s'\n", buffer); */
-		ccs_fill_path_info(&buf);
-		error = ccs_file_perm(&r, &buf, op);
+		buf.name = ccs_encode(buffer);
+		if (buf.name) {
+			ccs_fill_path_info(&buf);
+			error = ccs_file_perm(&r, &buf, op);
+			kfree(buf.name);
+		}
 		goto out;
 	}
 	error = -ENOTDIR;
  out:
-	kfree(buf.name);
 	ccs_read_unlock(idx);
+	kfree(buffer);
 	return error;
 }
 #endif

@@ -598,21 +598,20 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	const u8 mode = r->mode;
 	const bool is_enforce = (mode == 3);
 	const u32 ccs_flags = current->ccs_flags;
-	char *new_domain_name = NULL;
-	struct ccs_path_info rn; /* real name */
+	struct ccs_path_info rn = { }; /* real name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
+	bool need_kfree = false;
 	ccs_assert_read_lock();
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
 	/* Get symlink's pathname of program. */
-	retval = ccs_symlink_path(bprm->filename, ee);
+	retval = ccs_symlink_path(bprm->filename, &rn);
 	if (retval < 0)
 		goto out;
+	need_kfree = true;
 
-	rn.name = ee->program_path;
-	ccs_fill_path_info(&rn);
 	ln.name = ccs_get_last_name(r->domain);
 	ccs_fill_path_info(&ln);
 
@@ -638,9 +637,9 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 			if (ptr->is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
-			strncpy(ee->program_path, ptr->aggregated_name->name,
-				CCS_MAX_PATHNAME_LEN - 1);
-			ccs_fill_path_info(&rn);
+			kfree(rn.name);
+			need_kfree = false;
+			rn = *ptr->aggregated_name;
 			break;
 		}
 	}
@@ -654,11 +653,10 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		goto out;
 
  calculate_domain:
-	new_domain_name = ee->tmp;
 	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
 		/* Transit to the child of ccs_kernel_domain domain. */
-		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
-			 ROOT_NAME " " "%s", ee->program_path);
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
+			 rn.name);
 	} else if (r->domain == &ccs_kernel_domain && !ccs_policy_loaded) {
 		/*
 		 * Needn't to transit from kernel domain before starting
@@ -671,30 +669,29 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		domain = r->domain;
 	} else {
 		/* Normal domain transition. */
-		snprintf(new_domain_name, CCS_EXEC_TMPSIZE - 1,
-			 "%s %s", old_domain_name, ee->program_path);
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+			 old_domain_name, rn.name);
 	}
-	if (domain || strlen(new_domain_name) >= CCS_MAX_PATHNAME_LEN)
+	if (domain || strlen(ee->tmp) >= CCS_EXEC_TMPSIZE - 10)
 		goto done;
-	domain = ccs_find_domain(new_domain_name);
+	domain = ccs_find_domain(ee->tmp);
 	if (domain)
 		goto done;
 	if (is_enforce) {
-		int error = ccs_supervisor(r,
-						 "# wants to create domain\n"
-						 "%s\n", new_domain_name);
+		int error = ccs_supervisor(r, "# wants to create domain\n"
+					   "%s\n", ee->tmp);
 		if (error == 1)
 			goto retry;
 		if (error < 0)
 			goto done;
 	}
-	domain = ccs_find_or_assign_new_domain(new_domain_name, r->profile);
+	domain = ccs_find_or_assign_new_domain(ee->tmp, r->profile);
 	if (domain)
 		ccs_audit_domain_creation_log(r->domain);
  done:
 	if (!domain) {
 		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
-		       new_domain_name);
+		       ee->tmp);
 		if (is_enforce)
 			retval = -EPERM;
 		else {
@@ -707,6 +704,8 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
  out:
 	if (domain)
 		r->domain = domain;
+	if (need_kfree)
+		kfree(rn.name);
 	return retval;
 }
 
@@ -748,7 +747,7 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 		while (offset < PAGE_SIZE) {
 			const char *kaddr = ee->dump.data;
 			const unsigned char c = kaddr[offset++];
-			if (c && arg_len < CCS_MAX_PATHNAME_LEN - 10) {
+			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
 				if (c == '=') {
 					arg_ptr[arg_len++] = '\0';
 				} else if (c == '\\') {
@@ -900,11 +899,8 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	struct ccs_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return NULL;
-	ee->program_path = kzalloc(CCS_MAX_PATHNAME_LEN, GFP_KERNEL);
 	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
-	if (!ee->program_path || !ee->tmp) {
-		kfree(ee->program_path);
-		kfree(ee->tmp);
+	if (!ee->tmp) {
 		kfree(ee);
 		return NULL;
 	}
@@ -950,7 +946,7 @@ static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 	spin_lock(&ccs_execve_list_lock);
 	list_del(&ee->list);
 	spin_unlock(&ccs_execve_list_lock);
-	kfree(ee->program_path);
+	kfree(ee->handler_path);
 	kfree(ee->tmp);
 	kfree(ee->dump.data);
 	ccs_read_unlock(ee->reader_idx);
@@ -1076,7 +1072,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			kfree(exe);
 		} else {
 			exe = ee->tmp;
-			strncpy(ee->tmp, "<unknown>", CCS_EXEC_TMPSIZE - 1);
+			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "<unknown>");
 			retval = copy_strings_kernel(1, &exe, bprm);
 		}
 		if (retval < 0)
@@ -1087,8 +1083,8 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	/* Set argv[1] */
 	{
 		char *cp = ee->tmp;
-		strncpy(ee->tmp, ccs_current_domain()->domainname->name,
-			CCS_EXEC_TMPSIZE - 1);
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s",
+			 ccs_current_domain()->domainname->name);
 		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
@@ -1098,8 +1094,14 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	/* Set argv[0] */
 	{
 		int depth = ccs_get_root_depth();
-		char *cp = ee->program_path;
-		strncpy(cp, ee->handler->name, CCS_MAX_PATHNAME_LEN - 1);
+		int len = ee->handler->total_len + 1;
+		char *cp = kmalloc(len, GFP_KERNEL);
+		if (!cp) {
+			retval = ENOMEM;
+			goto out;
+		}
+		ee->handler_path = cp;
+		memmove(cp, ee->handler->name, len);
 		ccs_unescape(cp);
 		retval = -ENOENT;
 		if (!*cp || *cp != '/')
@@ -1111,8 +1113,8 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 				goto out;
 			depth--;
 		}
-		memmove(ee->program_path, cp, strlen(cp) + 1);
-		cp = ee->program_path;
+		memmove(ee->handler_path, cp, strlen(cp) + 1);
+		cp = ee->handler_path;
 		retval = copy_strings_kernel(1, &cp, bprm);
 		if (retval < 0)
 			goto out;
@@ -1125,46 +1127,22 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 #endif
 
 	/* OK, now restart the process with execute handler program's dentry. */
-	filp = open_exec(ee->program_path);
+	filp = open_exec(ee->handler_path);
 	if (IS_ERR(filp)) {
 		retval = PTR_ERR(filp);
 		goto out;
 	}
 	bprm->file = filp;
-	bprm->filename = ee->program_path;
+	bprm->filename = ee->handler_path;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	bprm->interp = bprm->filename;
 #endif
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
-	{
-		/*
-		 * Backup ee->program_path because ccs_find_next_domain() will
-		 * overwrite ee->program_path and ee->tmp.
-		 */
-		const int len = strlen(ee->program_path) + 1;
-		char *cp = kzalloc(len, GFP_KERNEL);
-		if (!cp) {
-			retval = -ENOMEM;
-			goto out;
-		}
-		memmove(cp, ee->program_path, len);
-		bprm->filename = cp;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-		bprm->interp = bprm->filename;
-#endif
-		task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		retval = ccs_find_next_domain(ee);
-		task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		/* Restore ee->program_path for search_binary_handler(). */
-		memmove(ee->program_path, cp, len);
-		bprm->filename = ee->program_path;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-		bprm->interp = bprm->filename;
-#endif
-		kfree(cp);
-	}
+	task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	retval = ccs_find_next_domain(ee);
+	task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  out:
 	return retval;
 }

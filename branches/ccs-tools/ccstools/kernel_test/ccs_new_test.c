@@ -91,33 +91,33 @@ static int write_exception_policy(const char *policy, int is_delete)
 
 static int set_profile(const int mode, const char *name)
 {
-	static const char *modes[4] = { "DISABLED", "LEARNING", "PERMISSIVE", "ENFORCING" };
+	static const char *modes[4] = { "disabled", "learning", "permissive", "enforcing" };
 	FILE *fp = fopen(proc_policy_profile, "r");
 	char buffer[8192];
 	int policy_found = 0;
-	const int len = strlen(modes[mode]);
+	const int len = strlen(name);
 	if (!fp) {
 		BUG("Can't read %s", proc_policy_profile);
 		return 0;
 	}
-	fprintf(profile_fp, "255-MAC_MODE_%s=%s\n", modes[mode], name);
+	fprintf(profile_fp, "255-MAC::%s=%s\n", name, modes[mode]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
-		if (strncmp(buffer, "255-MAC_MODE_", 13) ||
-		    strncmp(buffer + 13, modes[mode], len) ||
-		    buffer[13 + len] != '=')
+		if (strncmp(buffer, "255-MAC::", 9) ||
+		    strncmp(buffer + 9, name, len) ||
+		    buffer[9 + len] != '=')
 			continue;
-		if (strstr(buffer + 14 + len, name))
+		if (strstr(buffer + 10 + len, modes[mode]))
 			policy_found = 1;
 		break;
 	}
 	fclose(fp);
 	if (!policy_found) {
-		BUG("Can't change profile to 255-MAC_MODE_%s=%s",
-		    modes[mode], name);
+		BUG("Can't change profile to 255-MAC::%s=%s",
+		    name, modes[mode]);
 		return 0;
 	}
 	errno = 0;
