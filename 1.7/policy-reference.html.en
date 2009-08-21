@@ -15,9 +15,7 @@
 <h2>2. <a href="#Common_Rules">Introduction</a></h2>
 <p>2.1 <a href="#word_expression_rules">Word Expression Rules</a></p>
 <p>2.2 <a href="#wildcard_expression_rules">Wildcard Expression Rules</a></p>
-<p>2.3 <a href="#word_length_rules">Word Length Rules</a></p>
-<p>2.4 <a href="#line_length_rules">Line Length Rules</a></p>
-<p>2.5 <a href="#memory_allocation_rules">Memory Allocation Rules</a></p>
+<p>2.3 <a href="#memory_usage_infomation">Memory Usage Information</a></p>
 <h2>3. <a href="#Policy_Files">Policy Files</a></h2>
 <p>3.1 <a href="#policy_file_locations">Policy File's Location</a></p>
 <p>3.2 <a href="#policy_file_modifiers">Policy File's Modification</a></p>
@@ -28,12 +26,11 @@
 <h2>5. <a href="#Syntax_Details">Syntax Details</a></h2>
 <h2>6. <a href="#Advanced_Features">Advanced Features</a></h2>
 <p>6.1 <a href="#non_root_policy_update">Allowing policy modification by non root user.</a></p>
-<p>6.2 <a href="#memory_quota">Enabling memory quota.</a></p>
-<p>6.3 <a href="#conditional_acl">Using conditional ACL.</a></p>
-<p>6.4 <a href="#stateful_acl">Using stateful ACL.</a></p>
-<p>6.5 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
-<p>6.6 <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
-<p>6.7 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
+<p>6.2 <a href="#conditional_acl">Using conditional ACL.</a></p>
+<p>6.3 <a href="#stateful_acl">Using stateful ACL.</a></p>
+<p>6.4 <a href="#sleep_penalty">Sleep penalty for policy violation.</a></p>
+<p>6.5 <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
+<p>6.6 <a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">Keywords Index</a></h1>
@@ -42,13 +39,41 @@
 
 <ul>
 <li><a href="#profile_MAC::execute">MAC::execute</a></li>
-<li><a href="#profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></li>
-<li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
-<li><a href="#profile_MAC_FOR_CAPABILITY">MAC_FOR_CAPABILITY</a></li>
-<li><a href="#profile_SUPPORTED_CAPABILITIES">SUPPORTED_CAPABILITIES</a></li>
-<li><a href="#profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></li>
-<li><a href="#profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></li>
-<li><a href="#profile_MAC_FOR_NAMESPACE">MAC_FOR_NAMESPACE</a></li>
+<li><a href="#profile_MAC::env">MAC::env</a></li>
+<li><a href="#profile_MAC::capability::inet_tcp_create">MAC::capability::inet_tcp_create</a></li>
+<li><a href="#profile_MAC::capability::inet_tcp_listen">MAC::capability::inet_tcp_listen</a></li>
+<li><a href="#profile_MAC::capability::inet_tcp_connect">MAC::capability::inet_tcp_connect</a></li>
+<li><a href="#profile_MAC::capability::use_inet_udp">MAC::capability::use_inet_udp</a></li>
+<li><a href="#profile_MAC::capability::use_inet_ip">MAC::capability::use_inet_ip</a></li>
+<li><a href="#profile_MAC::capability::use_route">MAC::capability::use_route</a></li>
+<li><a href="#profile_MAC::capability::use_packet">MAC::capability::use_packet</a></li>
+<li><a href="#profile_MAC::capability::use_kernel_module">MAC::capability::use_kernel_module</a></li>
+<li><a href="#profile_MAC::capability::create_fifo">MAC::capability::create_fifo</a></li>
+<li><a href="#profile_MAC::capability::create_block_dev">MAC::capability::create_block_dev</a></li>
+<li><a href="#profile_MAC::capability::create_char_dev">MAC::capability::create_char_dev</a></li>
+<li><a href="#profile_MAC::capability::create_unix_socket">MAC::capability::create_unix_socket</a></li>
+<li><a href="#profile_MAC::capability::SYS_MOUNT">MAC::capability::SYS_MOUNT</a></li>
+<li><a href="#profile_MAC::capability::SYS_UMOUNT">MAC::capability::SYS_UMOUNT</a></li>
+<li><a href="#profile_MAC::capability::SYS_REBOOT">MAC::capability::SYS_REBOOT</a></li>
+<li><a href="#profile_MAC::capability::SYS_CHROOT">MAC::capability::SYS_CHROOT</a></li>
+<li><a href="#profile_MAC::capability::SYS_KILL">MAC::capability::SYS_KILL</a></li>
+<li><a href="#profile_MAC::capability::SYS_VHANGUP">MAC::capability::SYS_VHANGUP</a></li>
+<li><a href="#profile_MAC::capability::SYS_TIME">MAC::capability::SYS_TIME</a></li>
+<li><a href="#profile_MAC::capability::SYS_NICE">MAC::capability::SYS_NICE</a></li>
+<li><a href="#profile_MAC::capability::SYS_SETHOSTNAME">MAC::capability::SYS_SETHOSTNAME</a></li>
+<li><a href="#profile_MAC::capability::SYS_LINK">MAC::capability::SYS_LINK</a></li>
+<li><a href="#profile_MAC::capability::SYS_SYMLINK">MAC::capability::SYS_SYMLINK</a></li>
+<li><a href="#profile_MAC::capability::SYS_RENAME">MAC::capability::SYS_RENAME</a></li>
+<li><a href="#profile_MAC::capability::SYS_UNLINK">MAC::capability::SYS_UNLINK</a></li>
+<li><a href="#profile_MAC::capability::SYS_CHMOD">MAC::capability::SYS_CHMOD</a></li>
+<li><a href="#profile_MAC::capability::SYS_CHOWN">MAC::capability::SYS_CHOWN</a></li>
+<li><a href="#profile_MAC::capability::SYS_IOCTL">MAC::capability::SYS_IOCTL</a></li>
+<li><a href="#profile_MAC::capability::SYS_KEXEC_LOAD">MAC::capability::SYS_KEXEC_LOAD</a></li>
+<li><a href="#profile_MAC::capability::SYS_PIVOT_ROOT">MAC::capability::SYS_PIVOT_ROOT</a></li>
+<li><a href="#profile_MAC::capability::SYS_PTRACE">MAC::capability::SYS_PTRACE</a></li>
+<li><a href="#profile_MAC::capability::conceal_mount">MAC::capability::conceal_mount</a></li>
+<li><a href="#profile_MAC::network">MAC::network</a></li>
+<li><a href="#profile_MAC::signal">MAC::signal</a></li>
 <li><a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></li>
 <li><a href="#profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></li>
 <li><a href="#profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></li>
@@ -201,23 +226,9 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 </td></tr>
 </table>
 
-<h2>2.3 <a name="word_length_rules">Word Length Rules</a></h2>
-
-<p>There is no limitation regarding the length of pathnames in Linux. But to perform pathname based access control, it is impossible to support pathnames with infinite length. Thus, in TOMOYO Linux, the length of a word is limited to 4000 bytes including trailing NUL character.</p>
-
-<h2>2.4 <a name="line_length_rules">Line Length Rules</a></h2>
-
-<p>In TOMOYO Linux, the length of a line is limited to 8192 bytes including trailing NUL character.</p>
-
-<h2>2.5 <a name="memory_allocation_rules">Memory Allocation Rules</a></h2>
+<h2>2.3 <a name="memory_usage_infomation">Memory Allocation Rules</a></h2>
 
 <p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte.</p>
-
-<table border="1">
-<tr><td>Policy:</td><td>Memory used for holding access permissions.</td></tr>
-<tr><td>Audit logs:</td><td>Memory used for holding access logs.</td></tr>
-<tr><td>Query lists:</td><td>Memory used for handling policy violation in enforcing mode.</td></tr>
-</table>
 
 <table border="1">
 <tr><td>
@@ -226,6 +237,25 @@ Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376<br>
 Audit&nbsp;logs:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
 Query&nbsp;lists:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
 Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
+</td></tr>
+</table>
+
+<ul>
+<li>Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Memory used for holding access permissions.</li>
+<li>Audit logs:&nbsp;&nbsp;&nbsp;Memory used for holding access logs.</li>
+<li>Query lists:&nbsp;&nbsp;Memory used for handling policy violation in enforcing mode.</li>
+</ul>
+
+<p>TOMOYO Linux supports memory quota for limiting maximum memory used by TOMOYO Linux.</p>
+
+<p>You can set memory quota by writing to /etc/ccs/meminfo.conf .</p>
+
+<table border="1">
+<tr><td>
+# cat /etc/ccs/meminfo.conf<br>
+Policy:     16777216<br>
+Audit logs:  1048576<br>
+Query lists: 1048576
 </td></tr>
 </table>
 
@@ -245,6 +275,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
 <tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>Managers (Programs that can modify policy via /proc/ccs/ interface)</td></tr>
 <tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>Exception policy (Collection of exceptions for domain policy)</td></tr>
 <tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>Domain policy (Access permissions given to individual domains)</td></tr>
+<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>/etc/ccs/meminfo.conf</td><td>Memory usage and quota.</td></tr>
 </table>
 
 <p>There are more interfaces for obtaining information. These interfaces don't have corresponding policy files.</p>
@@ -253,7 +284,6 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
 <tr><td>The kernel's interface</td><td>Meaning</td></tr>
 <tr><td><a href="#query">/proc/ccs/query</a></td><td>Access requests that are waiting for administrator's decision.</td></tr>
 <tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>The list of domainnames and profile numbers currently defined in domain policy.</td></tr>
-<tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>Memory usage.</td></tr>
 <tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>Access requests that didn't violate domain policy.</td></tr>
 <tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>Access requests that violated domain policy.</td></tr>
 <tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>The name of domain the current process belongs to.</td></tr>
@@ -468,7 +498,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
 
 <h2>4.3 <a name="access_logs">Access Logs</a></h2>
 
-<p>TOMOYO Linux generates two types of access logs. One contains access requests that didn't violate domain policy. The other contains access requests that violated domain policy. The former is called grant log and is readable via /proc/ccs/grant_log . The latter is called reject log and is readable via /proc/ccs/reject_log . A utility program /usr/lib/ccs/ccs-auditd is included for reading these logs and saving the logs as files.</p>
+<p>TOMOYO Linux generates two types of access logs. One contains access requests that didn't violate domain policy. The other contains access requests that violated domain policy. The former is called grant log and is readable via /proc/ccs/grant_log . The latter is called reject log and is readable via /proc/ccs/reject_log . A utility program /usr/sbin/ccs-auditd is included for reading these logs and saving the logs as files.</p>
 
 <p>Some examples are shown below. The first log is generated by execute request.</p>
 
@@ -517,7 +547,7 @@ execute_handler /bin/audit-exec-param
 
 <p>This log shows that a process that belongs to a domain named "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash" attempted to execute a program, but since the execute_handler keyword is specified to the domain, /bin/audit-exec-param was executed, and arguments passed to /bin/audit-exec-param were "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022". To avoid /bin/audit-exec-param affected by environment variables such as LD_PRELOAD, environment variables are moved to arguments.</p>
 
-<p>In this way, an access log consists of 3 lines (or 4 lines since /usr/lib/ccs/ccs-auditd inserts an empty line), and they are in the domain policy format and appendable to the domain policy. Pick up portions you want to permit from reject log and save (for example, /var/log/tomoyo/diff.txt) and you can add to domain policy by doing</p>
+<p>In this way, an access log consists of 3 lines (or 4 lines since /usr/sbin/ccs-auditd inserts an empty line), and they are in the domain policy format and appendable to the domain policy. Pick up portions you want to permit from reject log and save (for example, /var/log/tomoyo/diff.txt) and you can add to domain policy by doing</p>
 
 <table border="1">
 <tr><td>
@@ -579,19 +609,11 @@ echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></h3>
-
 <p>Specifies access control level regarding ioctl requests.</p>
 
-<table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
-<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
-<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
-</table>
+<p>Specifies access control level regarding chroot()/mount()/umount()/pivot_root() requests.</p>
 
-<h3><a name="profile_MAC_FOR_ENV">MAC_FOR_ENV</a></h3>
+<h3><a name="profile_MAC::env">MAC::env</a></h3>
 
 <p>Specifies access control level regarding environment variable names (a.k.a. envp[]).</p>
 
@@ -603,9 +625,9 @@ echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_MAC_FOR_CAPABILITY">MAC_FOR_CAPABILITY</a></h3>
+<h3><a name="profile_MAC::capability::inet_tcp_create">MAC::capability::inet_tcp_create</a></h3>
 
-<p>Specifies access control level regarding capabilities.</p>
+<p>Specifies access control level regarding creation of TCP sockets.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -615,47 +637,379 @@ echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_SUPPORTED_CAPABILITIES">SUPPORTED_CAPABILITIES</a></h3>
+<h3><a name="profile_MAC::capability::inet_tcp_listen">MAC::capability::inet_tcp_listen</a></h3>
 
-<p>Specifies which functionalities to support. Only functionalities listed in SUPPORTED_CAPABILITIES are checked by MAC_FOR_CAPABILITY.</p>
+<p>Specifies access control level regarding TCP socket's listen operation.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>inet_tcp_create</td><td>Check creation of TCP sockets.</td></tr>
-<tr><td>inet_tcp_listen</td><td>Check TCP socket's listen operation.</td></tr>
-<tr><td>inet_tcp_connect</td><td>Check TCP socket's connect operation.</td></tr>
-<tr><td>use_inet_udp</td><td>Check use of UDP sockets.</td></tr>
-<tr><td>use_inet_ip</td><td>Check use of RAW sockets.</td></tr>
-<tr><td>use_route</td><td>Check use of ROUTE sockets.</td></tr>
-<tr><td>use_packet</td><td>Check use of PACKET sockets.</td></tr>
-<tr><td>use_kernel_module</td><td>Check use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
-<tr><td>create_fifo</td><td>Check creation of FIFO using mknod(2) syscall.</td></tr>
-<tr><td>create_block_dev</td><td>Check creation of block device file using mknod(2) syscall.</td></tr>
-<tr><td>create_char_dev</td><td>Check creation of character device file using mknod(2) syscall.</td></tr>
-<tr><td>create_unix_socket</td><td>Check creation of UNIX domain socket using mknod(2) syscall.</td></tr>
-<tr><td>SYS_MOUNT</td><td>Check use of mount(2) syscall.</td></tr>
-<tr><td>SYS_UMOUNT</td><td>Check use of umount(2) syscall.</td></tr>
-<tr><td>SYS_REBOOT</td><td>Check use of reboot(2) syscall.</td></tr>
-<tr><td>SYS_CHROOT</td><td>Check use of chroot(2) syscall.</td></tr>
-<tr><td>SYS_KILL</td><td>Check use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</td></tr>
-<tr><td>SYS_VHANGUP</td><td>Check use of vhangup(2) syscall.</td></tr>
-<tr><td>SYS_TIME</td><td>Check use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
-<tr><td>SYS_NICE</td><td>Check use of nice(2) setpriority(2) syscall.</td></tr>
-<tr><td>SYS_SETHOSTNAME</td><td>Check use of sethostname(2) setdomainname(2) syscall.</td></tr>
-<tr><td>SYS_LINK</td><td>Check use of link(2) syscall.</td></tr>
-<tr><td>SYS_SYMLINK</td><td>Check use of symlink(2) syscall.</td></tr>
-<tr><td>SYS_RENAME</td><td>Check use of rename(2) syscall.</td></tr>
-<tr><td>SYS_UNLINK</td><td>Check use of unlink(2) syscall.</td></tr>
-<tr><td>SYS_CHMOD</td><td>Check use of chmod(2) fchmod(2) syscall.</td></tr>
-<tr><td>SYS_CHOWN</td><td>Check use of chown(2) fchown(2) lchown(2) syscall.</td></tr>
-<tr><td>SYS_IOCTL</td><td>Check use of ioctl(2) compat_sys_ioctl(2) syscall.</td></tr>
-<tr><td>SYS_KEXEC_LOAD</td><td>Check use of kexec_load(2) syscall.</td></tr>
-<tr><td>SYS_PIVOT_ROOT</td><td>Check use of pivot_root(2) syscall.</td></tr>
-<tr><td>SYS_PTRACE</td><td>Check use of ptrace(2) syscall.</td></tr>
-<tr><td>conceal_mount</td><td>Check mount requests that shadow existent mounts.</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></h3>
+<h3><a name="profile_MAC::capability::inet_tcp_connect">MAC::capability::inet_tcp_connect</a></h3>
+
+<p>Specifies access control level regarding TCP socket's connect operation.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::use_inet_udp">MAC::capability::use_inet_udp</a></h3>
+
+<p>Specifies access control level regarding use of UDP sockets.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::use_inet_ip">MAC::capability::use_inet_ip</a></h3>
+
+<p>Specifies access control level regarding use of RAW sockets.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::use_route">MAC::capability::use_route</a></h3>
+
+<p>Specifies access control level regarding use of ROUTE sockets.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::use_packet">MAC::capability::use_packet</a></h3>
+
+<p>Specifies access control level regarding use of PACKET sockets.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::use_kernel_module">MAC::capability::use_kernel_module</a></h3>
+
+<p>Specifies access control level regarding use of create_module(2) init_module(2) delete_module(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::create_fifo">MAC::capability::create_fifo</a></h3>
+
+<p>Specifies access control level regarding creation of FIFO using mknod(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::create_block_dev">MAC::capability::create_block_dev</a></h3>
+
+<p>Specifies access control level regarding creation of block device file using mknod(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::create_char_dev">MAC::capability::create_char_dev</a></h3>
+
+<p>Specifies access control level regarding creation of character device file using mknod(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::create_unix_socket">MAC::capability::create_unix_socket</a></h3>
+
+<p>Specifies access control level regarding creation of UNIX domain socket using mknod(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_MOUNT">MAC::capability::SYS_MOUNT</a></h3>
+
+<p>Specifies access control level regarding use of mount(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_UMOUNT">MAC::capability::SYS_UMOUNT</a></h3>
+
+<p>Specifies access control level regarding use of umount(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_REBOOT">MAC::capability::SYS_REBOOT</a></h3>
+
+<p>Specifies access control level regarding use of reboot(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_CHROOT">MAC::capability::SYS_CHROOT</a></h3>
+
+<p>Specifies access control level regarding use of chroot(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_KILL">MAC::capability::SYS_KILL</a></h3>
+
+<p>Specifies access control level regarding use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_VHANGUP">MAC::capability::SYS_VHANGUP</a></h3>
+
+<p>Specifies access control level regarding use of vhangup(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_TIME">MAC::capability::SYS_TIME</a></h3>
+
+<p>Specifies access control level regarding use of stime(2) settimeofday(2) adjtimex(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_NICE">MAC::capability::SYS_NICE</a></h3>
+
+<p>Specifies access control level regarding use of nice(2) setpriority(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_SETHOSTNAME">MAC::capability::SYS_SETHOSTNAME</a></h3>
+
+<p>Specifies access control level regarding use of sethostname(2) setdomainname(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_LINK">MAC::capability::SYS_LINK</a></h3>
+
+<p>Specifies access control level regarding use of link(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_SYMLINK">MAC::capability::SYS_SYMLINK</a></h3>
+
+<p>Specifies access control level regarding use of symlink(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_RENAME">MAC::capability::SYS_RENAME</a></h3>
+
+<p>Specifies access control level regarding use of rename(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_UNLINK">MAC::capability::SYS_UNLINK</a></h3>
+
+<p>Specifies access control level regarding use of unlink(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_CHMOD">MAC::capability::SYS_CHMOD</a></h3>
+
+<p>Specifies access control level regarding use of chmod(2) fchmod(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_CHOWN">MAC::capability::SYS_CHOWN</a></h3>
+
+<p>Specifies access control level regarding use of chown(2) fchown(2) lchown(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_IOCTL">MAC::capability::SYS_IOCTL</a></h3>
+
+<p>Specifies access control level regarding use of ioctl(2) compat_sys_ioctl(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_KEXEC_LOAD">MAC::capability::SYS_KEXEC_LOAD</a></h3>
+
+<p>Specifies access control level regarding use of kexec_load(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_PIVOT_ROOT">MAC::capability::SYS_PIVOT_ROOT</a></h3>
+
+<p>Specifies access control level regarding use of pivot_root(2) syscall.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::SYS_PTRACE">MAC::capability::SYS_PTRACE</a></h3>
+
+<p>Specifies access control level regarding use of ptrace(2) syscall.<br>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::capability::conceal_mount">MAC::capability::conceal_mount</a></h3>
+
+<p>Specifies access control level regarding mount requests that shadow existent mounts.</p>
+
+<table border="1">
+<tr><td>Value</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+</table>
+
+<h3><a name="profile_MAC::network">MAC::network</a></h3>
 
 <p>Specifies access control level regarding network access requests.</p>
 
@@ -667,21 +1021,9 @@ echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></h3>
+<h3><a name="profile_MAC::signal">MAC::signal</a></h3>
 
 <p>Specifies access control level regarding signal transmission requests.</p>
-
-<table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
-<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
-<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
-</table>
-
-<h3><a name="profile_MAC_FOR_NAMESPACE">MAC_FOR_NAMESPACE</a></h3>
-
-<p>Specifies access control level regarding chroot()/mount()/umount()/pivot_root() requests.</p>
 
 <table border="1">
 <tr><td>Value</td><td>Meaning</td></tr>
@@ -1022,7 +1364,7 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>This keyword indicates that this domain has failed to create a new domain since "the name of the domain to be created was too long" or "the kernel was unable to allocate memory" but processed the execute request without domain transition to avoid rejecting the execute request. You need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_MAC::execute">MAC::execute</a>=enforcing to this domain.
 
-<p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">Enabling quota for memory used for holding policy.</a></p>
+<p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">Memory Usage Information</a></p>
 
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
@@ -1038,8 +1380,6 @@ cat /proc/ccs/exception_policy</p>
 
 <p>To declare pathname pattern, use file_pattern keyword followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This keyword is not applicable to neither granting execute permissions nor domain definitions.<br>
 For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
-
-<p>When file access requests arise in learning mode, the requested pathname is automatically patterned according to patterns specified using this keyword.</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1272,28 +1612,13 @@ chown -R demo /proc/ccs/
 <table border="1">
 <tr><td>
 # chmod 755 /etc/ccs/ccs-post-init<br>
-# chown -R demo /etc/ccs/<br>
-# chmod 755 /usr/lib/ccs/
+# chown -R demo /etc/ccs/
 </td></tr>
 </table>
 
 <p>Then, user demo will be able to access policy directories and policy editors.</p>
 
-<h2>6.2 <a name="memory_quota">Enabling memory quota.</a></h2>
-
-<p>TOMOYO Linux supports memory quota for limiting maximum memory used by TOMOYOLinux.</p>
-
-<p>You can set memory quota by writing to /etc/ccs/meminfo.conf .</p>
-
-<table border="1">
-<tr><td>
-Policy:     16777216<br>
-Audit logs:  1048576<br>
-Query lists: 1048576
-</td></tr>
-</table>
-
-<h2>6.3 <a name="conditional_acl">Using conditional ACL.</a></h2>
+<h2>6.2 <a name="conditional_acl">Using conditional ACL.</a></h2>
 
 <p>You can add conditions (e.g. UID and GID) as needed. The condition clause are appended to the tail of each permission using "if" directive.</p>
 
@@ -1341,7 +1666,7 @@ Query lists: 1048576
 
 <p>"path2.parent" is available only for operations that require 2 pathnames (i.e. <a href="#domain_policy_allow_link">allow_link</a> and <a href="#domain_policy_allow_rename">allow_rename</a> keywords).</p>
 
-<p>"path2" except "path2.parent" is not supported. (If "path2" already exist for "rename" operation, "unlink" or "rmdir" operation is performed implicitly.)</p>
+<p>"path2" is available only for mount operations.</p>
 
 <p>"path1" is not supported when accessing via "sysctl" (i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open").</p>
 
@@ -1475,7 +1800,7 @@ Query lists: 1048576
 <tr><td>symlink.target!="value"</td><td>The content of a symlink to be created does not match "value".</td></tr>
 </table>
 
-<h2>6.4 <a name="stateful_acl">Using stateful ACL.</a></h2>
+<h2>6.3 <a name="stateful_acl">Using stateful ACL.</a></h2>
 
 <p>Since TOMOYO Linux doesn't require modification of userland applications, it is impossible to change the range of accessible resources without domain transition. But there are cases you wish to change the range of accessible resources without domain transition. For example, you might wish to change the range of accessible resources depending on the client's IP address. To support such cases, you can assign state variables to each processes and you can use the state variables in <a href="#conditional_acl">Using conditional ACL.</a></p>
 
@@ -1505,7 +1830,7 @@ Query lists: 1048576
 <li>If an IP address is included in both @TRUSTED_HOSTS and @UNTRUSTED_HOSTS, the permission which matched first is used. So, be careful with using order dependent policy.</li>
 </ul>
 
-<h2>6.5 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
+<h2>6.4 <a name="sleep_penalty">Sleep penalty for policy violation.</a></h2>
 
 <p>You can make the process which violated policy in enforcing mode sleep for specified period.</p>
 
@@ -1519,7 +1844,7 @@ Query lists: 1048576
 
 <p>This feature is not applied against network's receive operation so that attackers cannot make services sleep for long time (in other words, delay your system's response) by intentionally sending TCP connection requests and UDP packets from unwanted sources.</p>
 
-<h2>6.6 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
+<h2>6.5 <a name="execute_handler">Judging execute request outside the kernel.</a></h2>
 
 <p>Basically, TOMOYO Linux controls whether to execute a program or not according to the domain policy. You can check parameters using exec.argv and exec.envp described in <a href="#conditional_acl">Using conditional ACL.</a> But this approach support only simple pattern matching and you need to specify what programs are permitted to be executed beforehand.</p>
 
@@ -1579,7 +1904,7 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 <p>A source code named audit-exec-param.c is included as a sample program of how to use this mechanism in the ccs-tools source package. You can customize freely.</p>
 <p>This mechanism is just providing a hook. How to utilize this hook is up to you.</p>
 
-<h2>6.7 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
+<h2>6.6 <a name="denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a></h2>
 
 <p>TOMOYO Linux's approach is "know what programs needs to be executed from what programs beforehand and create policy that permits execution of minimal programs". Thus, you can not only reject unnecessary execution requests but also do different behavior.</p>
 
