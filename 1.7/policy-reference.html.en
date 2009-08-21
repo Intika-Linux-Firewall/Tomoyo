@@ -41,7 +41,7 @@
 <p>Used by /proc/ccs/profile and /etc/ccs/profile.conf</p>
 
 <ul>
-<li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
+<li><a href="#profile_MAC::execute">MAC::execute</a></li>
 <li><a href="#profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></li>
 <li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
 <li><a href="#profile_MAC_FOR_CAPABILITY">MAC_FOR_CAPABILITY</a></li>
@@ -49,11 +49,10 @@
 <li><a href="#profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></li>
 <li><a href="#profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></li>
 <li><a href="#profile_MAC_FOR_NAMESPACE">MAC_FOR_NAMESPACE</a></li>
-<li><a href="#profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></li>
 <li><a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></li>
 <li><a href="#profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></li>
 <li><a href="#profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></li>
-<li><a href="#profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></li>
+<li><a href="#profile_REPORT_VIOLATION">REPORT_VIOLATION</a></li>
 <li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
 </ul>
 
@@ -563,12 +562,12 @@ If you saved current policy using "ccs-savepolicy" command, the currently assign
 <p>(Example)<br>
 cat /proc/ccs/profile<br>
 ccs-savepolicy -p<br>
-ccs-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
+ccs-setlevel 1-MAC::execute=learning<br>
+echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
-<h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
+<h3><a name="profile_MAC::execute">MAC::execute</a></h3>
 
 <p>Specifies access control level regarding file access requests.</p>
 
@@ -692,16 +691,6 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
 </table>
 
-<h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
-
-<p>Specifies access control level regarding automatic local port selection requests.</p>
-
-<table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>enabled</td><td>Enabled. Forbid specified port number from being selected when automatic local port selection request happens.</td></tr>
-</table>
-
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
 
 <p>Limits the max number of ACL entries that are automatically appended during learning mode. Default is 2048.</p>
@@ -714,7 +703,7 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>Limits the max number of reject logs that the kernel can hold. Default is 1024.</p>
 
-<h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
+<h3><a name="profile_REPORT_VIOLATION">REPORT_VIOLATION</a></h3>
 
 <p>Specifies whether to print domain policy violation messages or not.</p>
 
@@ -1013,13 +1002,13 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>This domain executes only one program specified by this keyword. You can use this keyword for domains you want to validate parameters before executing the requested program.</p>
 
-<p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
+<p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_MAC::execute">MAC::execute</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
 
-<p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC::execute">MAC::execute</a> <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
-<p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is enforcing, execute request is rejected.</p>
+<p>This domain executes this program only when execute request was rejected and the mode of <a href="#profile_MAC::execute">MAC::execute</a> is enforcing. If this keyword is not specified and the mode of <a href="#profile_MAC::execute">MAC::execute</a> is enforcing, execute request is rejected.</p>
 
 <p>Exception is, if the <a href="#domain_policy_execute_handler">execute_handler</a> keyword is specified, denied_execute_handler keyword is ignored.</p>
 
@@ -1031,7 +1020,7 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>This keyword indicates that this domain has failed to create a new domain since "the name of the domain to be created was too long" or "the kernel was unable to allocate memory" but processed the execute request without domain transition to avoid rejecting the execute request. You need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing to this domain.
+<p>This keyword indicates that this domain has failed to create a new domain since "the name of the domain to be created was too long" or "the kernel was unable to allocate memory" but processed the execute request without domain transition to avoid rejecting the execute request. You need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_MAC::execute">MAC::execute</a>=enforcing to this domain.
 
 <p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">Enabling quota for memory used for holding policy.</a></p>
 
@@ -1050,7 +1039,7 @@ cat /proc/ccs/exception_policy</p>
 <p>To declare pathname pattern, use file_pattern keyword followed by pathname pattern. The pathname pattern must be a canonicalized Pathname. This keyword is not applicable to neither granting execute permissions nor domain definitions.<br>
 For example, canonicalized pathname that contains a process ID (i.e. /proc/PID/ files) needs to be grouped in order to make access control work well.</p>
 
-<p>When file access requests arise in learning mode ( profile's <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> is set to "learning" ) , the requested pathname is automatically patterned according to patterns specified using this keyword. This keyword does not affect modes other than learning mode. This keyword is used for only reducing the burden of policy tuning which is needed after the learning mode by making already known pathname patterns as templates.</p>
+<p>When file access requests arise in learning mode, the requested pathname is automatically patterned according to patterns specified using this keyword.</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1620,7 +1609,7 @@ Thus, TOMOYO Linux provides a mechanism that executes different program instead 
 
 <table border="1">
 <tr><td>Example of /proc/ccs/profile</td><td>Example of /proc/ccs/domain_policy</td><td>Meaning</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>If a process which belongs to a domain with profile 3 requested execution of a program which is not permitted by the domain policy, execute /bin/true instead of rejecting the execute request.</td></tr>
+<tr><td>3-MAC::execute=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>If a process which belongs to a domain with profile 3 requested execution of a program which is not permitted by the domain policy, execute /bin/true instead of rejecting the execute request.</td></tr>
 </table>
 
 <p>Notes on this feature is the same as <a href="#execute_handler">Judging execute request outside the kernel.</a></p>
