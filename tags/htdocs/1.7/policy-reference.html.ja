@@ -41,7 +41,7 @@
 <p>/proc/ccs/profile および /etc/ccs/profile.conf で使われるもの</p>
 
 <ul>
-<li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
+<li><a href="#profile_MAC::execute">MAC::execute</a></li>
 <li><a href="#profile_MAC_FOR_IOCTL">MAC_FOR_IOCTL</a></li>
 <li><a href="#profile_MAC_FOR_ENV">MAC_FOR_ENV</a></li>
 <li><a href="#profile_MAC_FOR_CAPABILITY">MAC_FOR_CAPABILITY</a></li>
@@ -49,11 +49,10 @@
 <li><a href="#profile_MAC_FOR_NETWORK">MAC_FOR_NETWORK</a></li>
 <li><a href="#profile_MAC_FOR_SIGNAL">MAC_FOR_SIGNAL</a></li>
 <li><a href="#profile_MAC_FOR_NAMESPACE">MAC_FOR_NAMESPACE</a></li>
-<li><a href="#profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></li>
 <li><a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></li>
 <li><a href="#profile_MAX_GRANT_LOG">MAX_GRANT_LOG</a></li>
 <li><a href="#profile_MAX_REJECT_LOG">MAX_REJECT_LOG</a></li>
-<li><a href="#profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></li>
+<li><a href="#profile_REPORT_VIOLATION">REPORT_VIOLATION</a></li>
 <li><a href="#profile_SLEEP_PERIOD">SLEEP_PERIOD</a></li>
 </ul>
 
@@ -563,12 +562,12 @@ allow_execute /bin/cat
 <p>（例）<br>
 cat /proc/ccs/profile<br>
 ccs-savepolicy -p<br>
-ccs-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
+ccs-setlevel 1-MAC::execute=learning<br>
+echo 1-MAC::execute=learning | ccs-loadpolicy -p</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
-<h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
+<h3><a name="profile_MAC::execute">MAC::execute</a></h3>
 
 <p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
 
@@ -692,16 +691,6 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 <tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
-<h3><a name="profile_RESTRICT_AUTOBIND">RESTRICT_AUTOBIND</a></h3>
-
-<p>ローカルのポート番号を自動選択させる際に特定のポート番号を選択させないようにするかどうかを指定します。</p>
-
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>enabled</td><td>有効。ローカルのポート番号を自動選択させる際に、特定のポート番号を選択させないようにします。</td></tr>
-</table>
-
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
 
 <p>学習モードに於いて自動的に追加されるアクセス許可の上限を指定します。デフォルトは 2048 件です。</p>
@@ -714,7 +703,7 @@ echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>カーネル内に保持する、ポリシによって許可されなかったアクセス要求のログの件数を指定します。デフォルトは 1024 件です。</p>
 
-<h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
+<h3><a name="profile_REPORT_VIOLATION">REPORT_VIOLATION</a></h3>
 
 <p>ドメインポリシに対する違反を表示するかどうかを指定します。</p>
 
@@ -1014,13 +1003,13 @@ allow_chroot /</p>
 
 <p>これは、このドメインに対しては常にこのキーワードで指定されたプログラムだけを実行することを示しています。特定のドメインで実行されるプログラムの実行要求を全て特定のプログラムを経由して起動させたい場合に使います。</p>
 
-<p>このキーワードが指定されている場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
+<p>このキーワードが指定されている場合、 <a href="#profile_MAC::execute">MAC::execute</a> の値に関わらず常にこのキーワードで指定されたプログラムが実行されます。そのため、このキーワードに適切なプログラムへのパス名が指定されていなかった場合、このキーワードが指定されているドメインからは一切のプログラムを実行できなくなります。</p>
 
-<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>関連項目： <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_MAC::execute">MAC::execute</a> <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
-<p>これは、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
+<p>これは、 <a href="#profile_MAC::execute">MAC::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合には、常にこのキーワードで指定されたプログラムを実行することを示しています。このキーワードが指定されていない場合、 <a href="#profile_MAC::execute">MAC::execute</a> が enforcing の状態に於いて許可されていないプログラムの実行が要求された場合にはプログラムの実行を拒否します。</p>
 
 <p>ただし、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードが指定されている場合、このキーワードは無視されます。</p>
 
@@ -1032,7 +1021,7 @@ allow_chroot /</p>
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC::execute">MAC::execute</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
 
 <p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
 
@@ -1050,8 +1039,6 @@ cat /proc/ccs/exception_policy</p>
 
 <p>パス名のパターン化を指示するには、 file_pattern というキーワードに続けて、パス名のパターンを指定します。パス名は正規化されたパス名でなければなりません。このキーワードは実行許可を与える場合とドメイン定義には適用されません。<br>
 例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
-
-<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
 
 <h3><a name="exception_policy_path_group">path_group</a></h3>
 
@@ -1620,7 +1607,7 @@ Query lists: 1048576
 
 <table border="1">
 <tr><td>/proc/ccs/profile の例</td><td>/proc/ccs/domain_policy の例</td><td>意味</td></tr>
-<tr><td>3-MAC_FOR_FILE=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
+<tr><td>3-MAC::execute=enforcing</td><td>use_profile 3<br>denied_execute_handler /bin/true</td><td>プロファイル 3 が割り当てられているドメインに属しているプロセスが、許可されていないプログラムの実行を要求した場合、代わりに /bin/true を実行します。</td></tr>
 </table>
 
 <p>この機能を使用する際の注意事項は<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>と同じです。</p>
