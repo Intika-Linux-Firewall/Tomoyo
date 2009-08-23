@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.25.20-0.4.src.rpm ]
+if [ ! -r kernel-source-2.6.25.20-0.5.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.20-0.4.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.0/rpm/src/kernel-source-2.6.25.20-0.5.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.25.20-0.4.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.25.20-0.5.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090703.tar.gz ]
@@ -85,8 +85,8 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
  Version:        2.6.25.20
--Release: 0.4
-+Release: 0.4_tomoyo_1.6.8p1
+-Release: 0.5
++Release: 0.5_tomoyo_1.6.8p1
  License:        GPL v2 or later
  Group:          System/Kernel
  Url:            http://www.kernel.org/
