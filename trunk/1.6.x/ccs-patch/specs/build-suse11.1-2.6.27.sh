@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.25-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.29-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.25-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.29-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.25-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.29-0.1.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090703.tar.gz ]
@@ -75,8 +75,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2009-07-04 16:19:12.000000000 +0900
-+++ kernel-default.spec	2009-07-24 16:58:40.000000000 +0900
+--- kernel-default.spec	2009-08-16 19:10:29.000000000 +0900
++++ kernel-default.spec	2009-08-23 15:15:49.000000000 +0900
 @@ -57,13 +57,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
@@ -88,13 +88,13 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.25
--Release:        0.<RELEASE1>
+ Version:        2.6.27.29
+-Release:        0.1.1
 +Release:        0.1.1_tomoyo_1.6.8p1
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -223,7 +223,7 @@
+@@ -224,7 +224,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
  # 31 is the maximum; see scripts/kabi-checks)
@@ -103,7 +103,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -308,6 +308,10 @@
+@@ -309,6 +309,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.27
