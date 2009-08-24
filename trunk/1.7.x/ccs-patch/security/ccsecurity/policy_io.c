@@ -20,10 +20,12 @@ static const char *ccs_mode_2[2] = {
 	"disabled", "enabled"
 };
 
+/* String table for functionality that takes 4 modes. */
 static const char *ccs_mode_4[4] = {
 	"disabled", "learning", "permissive", "enforcing"
 };
 
+/* String table for /proc/ccs/profile */
 static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 				    CCS_MAX_CAPABILITY_INDEX +
 				    CCS_MAX_MAC_CATEGORY_INDEX] = {
@@ -170,7 +172,7 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 };
 
 /* Table for profile. */
-static struct {
+static const struct {
 	const char *keyword;
 	unsigned int current_value;
 	const unsigned int max_value;
@@ -191,6 +193,9 @@ static struct {
 
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
+
+/* Disable VERBOSE mode by default? */
+static bool ccs_no_verbose;
 
 /**
  * ccs_cap2keyword - Convert capability operation to capability name.
@@ -214,7 +219,7 @@ const char *ccs_cap2keyword(const u8 operation)
  */
 static int __init ccs_quiet_setup(char *str)
 {
-	ccs_control_array[CCS_VERBOSE].current_value = 0;
+	ccs_no_verbose = true;
 	return 0;
 }
 
@@ -272,6 +277,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 		ptr = entry;
 		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
 			ptr->value[i] = ccs_control_array[i].current_value;
+		ptr->value[CCS_VERBOSE] = !ccs_no_verbose;
 		ptr->default_config = CCS_MAC_MODE_DISABLED;
 		memset(ptr->config, CCS_MAC_MODE_USE_DEFAULT,
 		       sizeof(ptr->config));
@@ -779,6 +785,14 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 	return error;
 }
 
+/**
+ * ccs_print_name_union - Print a ccs_name_union.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_name_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 static bool ccs_print_name_union(struct ccs_io_buffer *head,
 				 const struct ccs_name_union *ptr)
 {
@@ -791,6 +805,14 @@ static bool ccs_print_name_union(struct ccs_io_buffer *head,
 	return ccs_io_printf(head, " %s", ptr->filename->name);
 }
 
+/**
+ * ccs_print_name_union_quoted - Print a ccs_name_union with double quotes.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ * @ptr:  Pointer to "struct ccs_name_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 static bool ccs_print_name_union_quoted(struct ccs_io_buffer *head,
 					const struct ccs_name_union *ptr)
 {
@@ -800,6 +822,15 @@ static bool ccs_print_name_union_quoted(struct ccs_io_buffer *head,
 	return ccs_io_printf(head, "\"%s\"", ptr->filename->name);
 }
 
+/**
+ * ccs_print_number_union_common - Print a ccs_number_union.
+ *
+ * @head:       Pointer to "struct ccs_io_buffer".
+ * @ptr:        Pointer to "struct ccs_number_union".
+ * @need_space: True if a space character is needed.
+ *
+ * Returns true on success, false otherwise.
+ */
 static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
 					  const struct ccs_number_union *ptr,
 					  const bool need_space)
@@ -843,12 +874,28 @@ static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
 	}
 }
 
+/**
+ * ccs_print_number_union - Print a ccs_number_union.
+ *
+ * @head:       Pointer to "struct ccs_io_buffer".
+ * @ptr:        Pointer to "struct ccs_number_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 bool ccs_print_number_union(struct ccs_io_buffer *head,
 			    const struct ccs_number_union *ptr)
 {
 	return ccs_print_number_union_common(head, ptr, true);
 }
 
+/**
+ * ccs_print_number_union_nospace - Print a ccs_number_union without a space character.
+ *
+ * @head:       Pointer to "struct ccs_io_buffer".
+ * @ptr:        Pointer to "struct ccs_number_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 static bool ccs_print_number_union_nospace(struct ccs_io_buffer *head,
 					   const struct ccs_number_union *ptr)
 {
@@ -1042,7 +1089,7 @@ static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path2_acl - Print a double path ACL entry.
+ * ccs_print_path2_acl - Print a path2 ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path2_acl".
@@ -1076,7 +1123,7 @@ static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_number_acl - Print an ioctl/chmod/chown/chgrp ACL entry.
+ * ccs_print_path_number_acl - Print a path_number ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path_number_acl".
@@ -1566,7 +1613,7 @@ static void ccs_read_domain_policy(struct ccs_io_buffer *head)
  * This is equivalent to doing
  *
  *     ( echo "select " $domainname; echo "use_profile " $profile ) |
- *     /usr/lib/ccs/loadpolicy -d
+ *     /usr/sbin/ccs-loadpolicy -d
  *
  * Caller holds ccs_read_lock().
  */
@@ -1859,6 +1906,13 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 	return false;
 }
 
+/**
+ * ccs_get_execute_condition - Get condition part for execute requests.
+ *
+ * @ee: Pointer to "struct ccs_execve_entry".
+ *
+ * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
+ */
 static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 						       *ee)
 {
@@ -1878,7 +1932,7 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 		if (realpath)
 			len += strlen(realpath) + 17;
 	}
-	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_ARGV0)) {
 		if (ccs_get_argv0(ee)) {
 			argv0 = ee->tmp;
 			len += strlen(argv0) + 16;
@@ -2370,9 +2424,9 @@ int ccs_open_control(const u8 type, struct file *file)
  * @wait: Pointer to "poll_table".
  *
  * Waits for read readiness.
- * /proc/ccs/query is handled by /usr/lib/ccs/ccs-queryd and
+ * /proc/ccs/query is handled by /usr/sbin/ccs-queryd and
  * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
- * /usr/lib/ccs/ccs-auditd.
+ * /usr/sbin/ccs-auditd.
  */
 int ccs_poll_control(struct file *file, poll_table *wait)
 {

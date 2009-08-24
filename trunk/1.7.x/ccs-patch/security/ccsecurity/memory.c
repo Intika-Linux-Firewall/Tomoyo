@@ -281,6 +281,7 @@ void ccs_put_name(const struct ccs_path_info *name)
 	}
 }
 
+/* Lock for GC. */
 struct srcu_struct ccs_ss;
 
 /**
