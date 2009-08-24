@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -28,13 +28,11 @@
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_umount_log(struct ccs_request_info *r,
-				const char *dir, const bool is_granted)
+static int ccs_audit_umount_log(struct ccs_request_info *r, const char *dir,
+				const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: umount %s denied for %s\n",
-		       ccs_get_msg(r->mode == 3), dir,
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "umount %s", dir);
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_UNMOUNT
 				   "%s\n", dir);
 }
@@ -53,8 +51,6 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	struct ccs_request_info r;
 	int error;
 	const char *dir0;
-	bool is_enforce;
-	struct ccs_acl_info *ptr;
 	struct ccs_path_info dir;
 	struct path path = { mnt, mnt->mnt_root };
 	struct ccs_obj_info obj = {
@@ -62,40 +58,42 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		.path1.mnt = mnt
 	};
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_UMOUNT))
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_UMOUNT)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
-	is_enforce = (r.mode == 3);
 	r.obj = &obj;
- retry:
-	error = -EPERM;
+	error = -ENOMEM;
 	dir0 = ccs_realpath_from_path(&path);
 	if (!dir0)
 		goto out;
 	dir.name = dir0;
 	ccs_fill_path_info(&dir);
-	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_umount_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_UMOUNT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_umount_acl, head);
-		if (!ccs_compare_name_union(&dir, &acl->dir) ||
-		    !ccs_condition(&r, ptr))
-			continue;
-		r.cond = ptr->cond;
-		error = 0;
-		break;
-	}
-	ccs_audit_umount_log(&r, dir0, !error);
-	if (error)
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_UNMOUNT
-					     "%s", ccs_file_pattern(&dir));
+	do {
+		struct ccs_acl_info *ptr;
+		error = -EPERM;
+		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+			struct ccs_umount_acl *acl;
+			if (ptr->is_deleted ||
+			    ptr->type != CCS_TYPE_UMOUNT_ACL)
+				continue;
+			acl = container_of(ptr, struct ccs_umount_acl, head);
+			if (!ccs_compare_name_union(&dir, &acl->dir) ||
+			    !ccs_condition(&r, ptr))
+				continue;
+			r.cond = ptr->cond;
+			error = 0;
+			break;
+		}
+		ccs_audit_umount_log(&r, dir0, !error);
+		if (!error)
+			break;
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_UNMOUNT "%s",
+				       ccs_file_pattern(&dir));
+	} while (error == 1);
  out:
 	kfree(dir0);
-	if (!is_enforce)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
-	if (error == 1)
-		goto retry;
 	return error;
 }
 
@@ -131,7 +129,7 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 	struct ccs_umount_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_umount_acl e = { .head.type = CCS_TYPE_UMOUNT_ACL,
-					   .head.cond = condition };
+				    .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (data[0] != '@' && !ccs_is_correct_path(data, 1, 0, 1))
 		return -EINVAL;

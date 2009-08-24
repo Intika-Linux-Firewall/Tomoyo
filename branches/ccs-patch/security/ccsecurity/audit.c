@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -268,12 +268,12 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	if (is_granted) {
 		if (ccs_grant_log_count >=
 		    ccs_flags(r->domain, CCS_MAX_GRANT_LOG) ||
-		    ccs_profile_ptr[r->profile]->no_grant_log[r->type])
+		    !ccs_get_audit(r->profile, r->type, true))
 			goto out;
 	} else {
 		if (ccs_reject_log_count >=
 		    ccs_flags(r->domain, CCS_MAX_REJECT_LOG) ||
-		    ccs_profile_ptr[r->profile]->no_reject_log[r->type])
+		    !ccs_get_audit(r->profile, r->type, false))
 			goto out;
 	}
 	va_start(args, fmt);
@@ -331,14 +331,12 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
  * ccs_read_grant_log - Read a grant log.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0.
  */
-int ccs_read_grant_log(struct ccs_io_buffer *head)
+void ccs_read_grant_log(struct ccs_io_buffer *head)
 {
 	struct ccs_log_entry *ptr = NULL;
 	if (head->read_avail)
-		return 0;
+		return;
 	if (head->read_buf) {
 		kfree(head->read_buf);
 		head->read_buf = NULL;
@@ -359,7 +357,6 @@ int ccs_read_grant_log(struct ccs_io_buffer *head)
 		head->readbuf_size = head->read_avail;
 		kfree(ptr);
 	}
-	return 0;
 }
 
 /**
@@ -384,14 +381,12 @@ int ccs_poll_grant_log(struct file *file, poll_table *wait)
  * ccs_read_reject_log - Read a reject log.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0.
  */
-int ccs_read_reject_log(struct ccs_io_buffer *head)
+void ccs_read_reject_log(struct ccs_io_buffer *head)
 {
 	struct ccs_log_entry *ptr = NULL;
 	if (head->read_avail)
-		return 0;
+		return;
 	if (head->read_buf) {
 		kfree(head->read_buf);
 		head->read_buf = NULL;
@@ -412,7 +407,6 @@ int ccs_read_reject_log(struct ccs_io_buffer *head)
 		head->readbuf_size = head->read_avail;
 		kfree(ptr);
 	}
-	return 0;
 }
 
 /**

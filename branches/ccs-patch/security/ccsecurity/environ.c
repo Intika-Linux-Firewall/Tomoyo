@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,10 +24,8 @@
 static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 			     const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Environ %s denied for %s\n",
-		       ccs_get_msg(r->mode == 3), env,
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "environ %s", env);
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",
 				   env);
 }
@@ -117,7 +115,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 			     &ccs_globally_usable_env_list) {
 		struct ccs_globally_usable_env_entry *ptr;
 		ptr = list_entry(pos, struct ccs_globally_usable_env_entry,
-				  list);
+				 list);
 		if (ptr->is_deleted)
 			continue;
 		done = ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s\n",
@@ -177,23 +175,17 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
  */
 int ccs_env_perm(struct ccs_request_info *r, const char *env)
 {
-	int error = 0;
-	const bool is_enforce = (r->mode == 3);
+	int error;
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep())
-		return 0;
 	if (!env || !*env)
 		return 0;
- retry:
-	error = ccs_env_acl(r, env);
-	ccs_audit_env_log(r, env, !error);
-	if (error)
-		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n",
-					     env);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
-		error = 0;
+	do {
+		error = ccs_env_acl(r, env);
+		ccs_audit_env_log(r, env, !error);
+		if (!error)
+			break;
+		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
+	} while (error == 1);
 	return error;
 }
 

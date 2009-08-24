@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -25,8 +25,8 @@
  * Returns true on success, false otherwise.
  */
 static bool ccs_argv(const unsigned int index, const char *arg_ptr,
-			   const int argc, const struct ccs_argv_entry *argv,
-			   u8 *checked)
+		     const int argc, const struct ccs_argv_entry *argv,
+		     u8 *checked)
 {
 	int i;
 	struct ccs_path_info arg;
@@ -58,8 +58,8 @@ static bool ccs_argv(const unsigned int index, const char *arg_ptr,
  * Returns true on success, false otherwise.
  */
 static bool ccs_envp(const char *env_name, const char *env_value,
-			   const int envc, const struct ccs_envp_entry *envp,
-			   u8 *checked)
+		     const int envc, const struct ccs_envp_entry *envp,
+		     u8 *checked)
 {
 	int i;
 	struct ccs_path_info name;
@@ -175,8 +175,8 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 			/* Check. */
 			if (argv_count) {
 				if (!ccs_argv(bprm->argc - argv_count,
-						    arg_ptr, argc, argv,
-						    checked)) {
+					      arg_ptr, argc, argv,
+					      checked)) {
 					result = false;
 					break;
 				}
@@ -186,8 +186,8 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 				if (cp) {
 					*cp = '\0';
 					if (!ccs_envp(arg_ptr, cp + 1,
-							    envc, envp,
-							    checked + argc)) {
+						      envc, envp,
+						      checked + argc)) {
 						result = false;
 						break;
 					}
@@ -988,7 +988,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
  * Caller holds ccs_read_lock().
  */
 bool ccs_condition(struct ccs_request_info *r,
-			 const struct ccs_acl_info *acl)
+		   const struct ccs_acl_info *acl)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1037,7 +1037,7 @@ bool ccs_condition(struct ccs_request_info *r,
 			continue;
 		/* Check string expressions. */
 		if (right == CCS_NAME_UNION) {
-			const struct ccs_name_union *ptr = names_p++; 
+			const struct ccs_name_union *ptr = names_p++;
 			switch (left) {
 				struct ccs_path_info *symlink;
 				struct ccs_execve_entry *ee;

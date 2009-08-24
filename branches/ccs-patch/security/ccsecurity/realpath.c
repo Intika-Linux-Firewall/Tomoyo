@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -80,7 +80,7 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 
 	if (buflen < 256)
 		goto out;
-	
+
 	*pos = '\0';
 	for (;;) {
 		struct dentry *parent;
@@ -158,50 +158,51 @@ char *ccs_realpath_from_path(struct path *path)
 	struct dentry *dentry = path->dentry;
 	if (!dentry)
 		return NULL;
- retry:
-	buf_len <<= 1;
-	kfree(buf);
-	buf = kmalloc(buf_len, GFP_KERNEL);
-	if (!buf)
-		goto done;
-	/* Get better name for socket. */
-	if (dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
-		struct inode *inode = dentry->d_inode;
-		struct socket *sock = inode ? SOCKET_I(inode) : NULL;
-		struct sock *sk = sock ? sock->sk : NULL;
-		if (sk) {
-			snprintf(buf, buf_len - 1,
-				 "socket:[family=%u:type=%u:protocol=%u]",
-				 sk->sk_family, sk->sk_type, sk->sk_protocol);
-		} else {
-			snprintf(buf, buf_len - 1, "socket:[unknown]");
-		}
-		cp = ccs_encode(buf);
-		goto done;
-	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
-	/* For "socket:[\$]" and "pipe:[\$]". */
-	if (dentry->d_op && dentry->d_op->d_dname) {
-		cp = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
-		if (IS_ERR(cp))
-			goto retry;
-		cp = ccs_encode(cp);
-		goto done;
-	}
-#endif
-	if (!path->mnt) {
+	while (1) {
+		buf_len <<= 1;
 		kfree(buf);
-		return NULL;
+		buf = kmalloc(buf_len, GFP_KERNEL);
+		if (!buf)
+			break;
+		/* Get better name for socket. */
+		if (dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
+			struct inode *inode = dentry->d_inode;
+			struct socket *sock = inode ? SOCKET_I(inode) : NULL;
+			struct sock *sk = sock ? sock->sk : NULL;
+			if (sk) {
+				snprintf(buf, buf_len - 1, "socket:[family=%u:"
+					 "type=%u:protocol=%u]", sk->sk_family,
+					 sk->sk_type, sk->sk_protocol);
+			} else {
+				snprintf(buf, buf_len - 1, "socket:[unknown]");
+			}
+			cp = ccs_encode(buf);
+			break;
+		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
+		/* For "socket:[\$]" and "pipe:[\$]". */
+		if (dentry->d_op && dentry->d_op->d_dname) {
+			cp = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
+			if (IS_ERR(cp))
+				continue;
+			cp = ccs_encode(cp);
+			break;
+		}
+#endif
+		if (!path->mnt) {
+			cp = NULL;
+			break;
+		}
+		path_get(path);
+		ccs_realpath_lock();
+		cp = ccs_get_absolute_path(path, buf, buf_len - 1);
+		ccs_realpath_unlock();
+		path_put(path);
+		if (IS_ERR(cp))
+			continue;
+		cp = ccs_encode(cp);
+		break;
 	}
-	path_get(path);
-	ccs_realpath_lock();
-	cp = ccs_get_absolute_path(path, buf, buf_len - 1);
-	ccs_realpath_unlock();
-	path_put(path);
-	if (IS_ERR(cp))
-		goto retry;
-	cp = ccs_encode(cp);
- done:
 	kfree(buf);
 	if (!cp)
 		ccs_warn_oom(__func__);

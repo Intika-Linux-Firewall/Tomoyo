@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -59,13 +59,13 @@ static int do_parent(const char *self)
 	int j;
 	for (i = 0; i < 2; i++) {
 		if (i == 0) {
-			fprintf(profile_fp, "255-MAC_FOR_SIGNAL=enforcing\n");
+			set_profile(3, "ipc::signal");
 			is_enforce = 1;
 			printf("***** Testing signal hooks in enforce mode. "
 			       "*****\n");
 			fflush(stdout);
 		} else {
-			fprintf(profile_fp, "255-MAC_FOR_SIGNAL=permissive\n");
+			set_profile(2, "ipc::signal");
 			is_enforce = 0;
 			printf("***** Testing signal hooks in permissive mode. "
 			       "*****\n");
@@ -100,7 +100,7 @@ static int do_parent(const char *self)
 			close(pipe_fd[1]);
 			read(pipe_fd[0], &c, 1);
 			switch (j) {
-				union sigval sv = { };
+				union sigval sv;
 			case 0:
 				show_prompt("kill");
 				show_result(kill(pid, SIGTERM));
@@ -110,6 +110,7 @@ static int do_parent(const char *self)
 				show_result(tkill(pid, SIGTERM));
 				break;
 			case 2:
+				memset(&sv, 0, sizeof(sv));
 				show_prompt("sigqueue");
 				show_result(sigqueue(pid, SIGTERM, sv));
 				break;

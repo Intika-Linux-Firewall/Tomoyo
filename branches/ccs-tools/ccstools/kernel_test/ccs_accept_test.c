@@ -3,14 +3,36 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
 
 static void set_level(const int i)
 {
-	fprintf(profile_fp, "255-MAC_FOR_FILE=%d\n", i);
+	set_profile(i, "file::execute");
+	set_profile(i, "file::open");
+	set_profile(i, "file::create");
+	set_profile(i, "file::unlink");
+	set_profile(i, "file::mkdir");
+	set_profile(i, "file::rmdir");
+	set_profile(i, "file::mkfifo");
+	set_profile(i, "file::mksock");
+	set_profile(i, "file::truncate");
+	set_profile(i, "file::symlink");
+	set_profile(i, "file::rewrite");
+	set_profile(i, "file::mkblock");
+	set_profile(i, "file::mkchar");
+	set_profile(i, "file::link");
+	set_profile(i, "file::rename");
+	set_profile(i, "file::chmod");
+	set_profile(i, "file::chown");
+	set_profile(i, "file::chgrp");
+	set_profile(i, "file::ioctl");
+	set_profile(i, "file::chroot");
+	set_profile(i, "file::mount");
+	set_profile(i, "file::umount");
+	set_profile(i, "file::pivot_root");
 }
 
 static void test(int rw_loop, int truncate_loop, int append_loop,
@@ -39,23 +61,23 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		if (create_loop == 1)
 			unlink(buffer);
 		else
-			close(open(buffer, O_CREAT, 0666));
+			close(open(buffer, O_CREAT, 0644));
 		set_level(level);
-		fd = open(buffer, flags, 0666);
+		fd = open(buffer, flags, 0644);
 		if (fd != EOF)
 			close(fd);
 		else
 			fprintf(stderr, "%d: open(%04o) failed\n", level,
 				flags);
 		/*
-		  fd = open(buffer, flags, 0666)
+		  fd = open(buffer, flags, 0644)
 		  if (fd != EOF)
 		  close(fd);
 		  else
 		  fprintf(stderr, "%d: open(%04o) failed\n", level, flags);
 		*/
 		/*
-		  fd = open(buffer, flags, 0666);
+		  fd = open(buffer, flags, 0644);
 		  if (fd != EOF)
 		  close(fd);
 		  else
@@ -65,9 +87,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 	for (i = 1; i < 8; i++)
 		fprintf(domain_fp, "delete %d %s\n", i, buffer);
 	fprintf(domain_fp, "delete allow_truncate %s\n", buffer);
-	fprintf(domain_fp, "delete allow_create %s\n", buffer);
+	fprintf(domain_fp, "delete allow_create %s 0644\n", buffer);
 	fprintf(domain_fp, "delete allow_rewrite %s\n", buffer);
-	fd = open(buffer, flags, 0666);
+	fd = open(buffer, flags, 0644);
 	if (fd != EOF) {
 		close(fd);
 		fprintf(stderr, "%d: open(%04o) didn't fail\n", 3, flags);
@@ -77,8 +99,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(profile_fp, "255-COMMENT=Test\n255-TOMOYO_VERBOSE=disabled\n"
-		"255-MAC_FOR_FILE=disabled\n255-MAX_ACCEPT_ENTRY=2048\n");
+	fprintf(profile_fp, "255-REPORT_VIOLATION=disabled\n");
+	set_profile(0, "file");
+	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
 	{
 		int append_loop;
 		for (append_loop = 0; append_loop < 2; append_loop++) {
@@ -97,7 +120,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	fprintf(profile_fp, "255-MAC::file=disabled\n");
 	printf("Done\n");
 	clear_status();
 	return 0;

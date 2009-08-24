@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -80,10 +80,10 @@
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 14)
-#define kzalloc(size, flags) ({						\
-			void *ret = kmalloc((size), (flags));		\
-			if (ret)					\
-				memset(ret, 0, (size));			\
+#define kzalloc(size, flags) ({					\
+			void *ret = kmalloc((size), (flags));	\
+			if (ret)				\
+				memset(ret, 0, (size));		\
 			ret; })
 #endif
 
@@ -96,37 +96,37 @@
 #endif
 
 #ifndef rcu_dereference
-#define rcu_dereference(p)     ({ \
-				typeof(p) _________p1 = ACCESS_ONCE(p); \
-				smp_read_barrier_depends(); /* see RCU */ \
-				(_________p1); \
-				})
+#define rcu_dereference(p)     ({					\
+			typeof(p) _________p1 = ACCESS_ONCE(p);		\
+			smp_read_barrier_depends(); /* see RCU */	\
+			(_________p1);					\
+		})
 #endif
 
 #ifndef rcu_assign_pointer
-#define rcu_assign_pointer(p, v) \
-	({ \
-		if (!__builtin_constant_p(v) || \
-		    ((v) != NULL)) \
-			smp_wmb(); /* see RCU */ \
-		(p) = (v); \
+#define rcu_assign_pointer(p, v)			\
+	({						\
+		if (!__builtin_constant_p(v) ||		\
+		    ((v) != NULL))			\
+			smp_wmb(); /* see RCU */	\
+		(p) = (v);				\
 	})
 #endif
 
 #ifndef list_for_each_rcu
-#define list_for_each_rcu(pos, head) \
-	for (pos = rcu_dereference((head)->next); \
-		prefetch(pos->next), pos != (head); \
-		pos = rcu_dereference(pos->next))
+#define list_for_each_rcu(pos, head)			\
+	for (pos = rcu_dereference((head)->next);	\
+	     prefetch(pos->next), pos != (head);	\
+	     pos = rcu_dereference(pos->next))
 #endif
 
 #ifndef list_for_each_entry_rcu
-#define list_for_each_entry_rcu(pos, head, member) \
+#define list_for_each_entry_rcu(pos, head, member)			\
 	for (pos = list_entry(rcu_dereference((head)->next), typeof(*pos), \
-		member); \
-		prefetch(pos->member.next), &pos->member != (head); \
-		pos = list_entry(rcu_dereference(pos->member.next), \
-		typeof(*pos), member))
+			      member);					\
+	     prefetch(pos->member.next), &pos->member != (head);	\
+	     pos = list_entry(rcu_dereference(pos->member.next),	\
+			      typeof(*pos), member))
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -164,10 +164,10 @@ static inline void list_del_rcu(struct list_head *entry)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 30)
 #undef ssleep
-#define ssleep(secs) {                              \
-	set_current_state(TASK_UNINTERRUPTIBLE);    \
-	schedule_timeout((HZ * secs) + 1);          \
-}
+#define ssleep(secs) {						\
+		set_current_state(TASK_UNINTERRUPTIBLE);	\
+		schedule_timeout((HZ * secs) + 1);		\
+	}
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -207,11 +207,11 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 #if defined(__LITTLE_ENDIAN)
-#define HIPQUAD(addr) \
-	((unsigned char *)&addr)[3], \
-	((unsigned char *)&addr)[2], \
-	((unsigned char *)&addr)[1], \
-	((unsigned char *)&addr)[0]
+#define HIPQUAD(addr)				\
+	((unsigned char *)&addr)[3],		\
+		((unsigned char *)&addr)[2],	\
+		((unsigned char *)&addr)[1],	\
+		((unsigned char *)&addr)[0]
 #elif defined(__BIG_ENDIAN)
 #define HIPQUAD NIPQUAD
 #else
@@ -240,8 +240,8 @@ void synchronize_srcu(struct srcu_struct *sp);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 
 struct path {
-        struct vfsmount *mnt;
-        struct dentry *dentry;
+	struct vfsmount *mnt;
+	struct dentry *dentry;
 };
 
 #endif

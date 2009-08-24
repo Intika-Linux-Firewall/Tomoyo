@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -517,7 +517,6 @@ int main(int argc, char *argv[])
 				"/proc/sys/net/ipv4/ip_local_port_range .\n");
 			exit(1);
 		}
-		fprintf(profile_fp, "255-RESTRICT_AUTOBIND=enabled\n");
 		{
 			struct sockaddr_in addr;
 			socklen_t size = sizeof(addr);
@@ -607,7 +606,6 @@ int main(int argc, char *argv[])
 		kill(ipv6_pid, SIGHUP);
 		close(ipv4_listener_socket);
 		close(ipv6_listener_socket);
-		fprintf(profile_fp, "255-RESTRICT_AUTOBIND=disabled\n");
 		fprintf(fp, "%d %d\n", original_range[0], original_range[1]);
 		fclose(fp);
 	}

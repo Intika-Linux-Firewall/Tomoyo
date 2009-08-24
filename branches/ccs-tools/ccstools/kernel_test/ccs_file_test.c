@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -214,10 +214,55 @@ static void creanup_files(void)
 
 static void set_file_enforce(int enforce)
 {
-	if (enforce)
-		fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
-	else
-		fprintf(profile_fp, "255-MAC_FOR_FILE=permissive\n");
+	if (enforce) {
+		set_profile(3, "file::execute");
+		set_profile(3, "file::open");
+		set_profile(3, "file::create");
+		set_profile(3, "file::unlink");
+		set_profile(3, "file::mkdir");
+		set_profile(3, "file::rmdir");
+		set_profile(3, "file::mkfifo");
+		set_profile(3, "file::mksock");
+		set_profile(3, "file::truncate");
+		set_profile(3, "file::symlink");
+		set_profile(3, "file::rewrite");
+		set_profile(3, "file::mkblock");
+		set_profile(3, "file::mkchar");
+		set_profile(3, "file::link");
+		set_profile(3, "file::rename");
+		set_profile(3, "file::chmod");
+		set_profile(3, "file::chown");
+		set_profile(3, "file::chgrp");
+		set_profile(3, "file::ioctl");
+		set_profile(3, "file::chroot");
+		set_profile(3, "file::mount");
+		set_profile(3, "file::umount");
+		set_profile(3, "file::pivot_root");
+	} else {
+		set_profile(0, "file::execute");
+		set_profile(0, "file::open");
+		set_profile(0, "file::create");
+		set_profile(0, "file::unlink");
+		set_profile(0, "file::mkdir");
+		set_profile(0, "file::rmdir");
+		set_profile(0, "file::mkfifo");
+		set_profile(0, "file::mksock");
+		set_profile(0, "file::truncate");
+		set_profile(0, "file::symlink");
+		set_profile(0, "file::rewrite");
+		set_profile(0, "file::mkblock");
+		set_profile(0, "file::mkchar");
+		set_profile(0, "file::link");
+		set_profile(0, "file::rename");
+		set_profile(0, "file::chmod");
+		set_profile(0, "file::chown");
+		set_profile(0, "file::chgrp");
+		set_profile(0, "file::ioctl");
+		set_profile(0, "file::chroot");
+		set_profile(0, "file::mount");
+		set_profile(0, "file::umount");
+		set_profile(0, "file::pivot_root");
+	}
 }
 
 int main(int argc, char *argv[])

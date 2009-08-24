@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -19,6 +19,107 @@ bool ccs_policy_loaded;
 
 /* Profile table. Memory is allocated as needed. */
 struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
+
+static const u8 ccs_index2category[CCS_MAX_MAC_INDEX +
+				   CCS_MAX_CAPABILITY_INDEX] = {
+	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_UNLINK]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MKDIR]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_RMDIR]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MKFIFO]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MKSOCK]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_TRUNCATE]   = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_SYMLINK]    = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_REWRITE]    = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MKBLOCK]    = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MKCHAR]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_LINK]       = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_RENAME]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_CHMOD]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_CHOWN]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_CHGRP]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_IOCTL]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_CHROOT]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_MOUNT]      = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_UMOUNT]     = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_FILE_PIVOT_ROOT] = CCS_MAC_CATEGORY_FILE,
+	[CCS_MAC_ENVIRON]         = CCS_MAC_CATEGORY_MISC,
+	[CCS_MAC_NETWORK_UDP_BIND]    = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_UDP_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_TCP_BIND]    = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_TCP_LISTEN]  = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_TCP_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_TCP_ACCEPT]  = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_RAW_BIND]    = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_NETWORK_RAW_CONNECT] = CCS_MAC_CATEGORY_NETWORK,
+	[CCS_MAC_SIGNAL]          = CCS_MAC_CATEGORY_IPC,
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CREATE]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_LISTEN]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CONNECT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_DGRAM_SOCKET]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_RAW_SOCKET]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_MOUNT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UMOUNT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHROOT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KILL]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_FIFO]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_BLOCK_DEV]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_CHAR_DEV]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_LINK]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SYMLINK]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_RENAME]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UNLINK]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHMOD]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHOWN]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_IOCTL]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PIVOT_ROOT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+	[CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT]
+	= CCS_MAC_CATEGORY_CAPABILITY,
+};
 
 /* Utility functions. */
 
@@ -807,47 +908,6 @@ const char *ccs_get_exe(void)
 }
 
 /**
- * ccs_get_msg - Get warning message.
- *
- * @is_enforce: Is it enforcing mode?
- *
- * Returns "ERROR" or "WARNING".
- */
-const char *ccs_get_msg(const bool is_enforce)
-{
-	if (is_enforce)
-		return "ERROR";
-	else
-		return "WARNING";
-}
-
-/**
- * ccs_can_sleep - Check whether it is permitted to do operations that may sleep.
- *
- * Returns true if it is permitted to do operations that may sleep,
- * false otherwise.
- *
- * TOMOYO Linux supports interactive enforcement that lets processes
- * wait for the administrator's decision.
- * All hooks but the one for ccs_may_autobind() are inserted where
- * it is permitted to do operations that may sleep.
- * Thus, this warning should not happen.
- */
-bool ccs_can_sleep(void)
-{
-	static u8 count = 20;
-	if (likely(!in_interrupt()))
-		return true;
-	if (count) {
-		count--;
-		printk(KERN_ERR "BUG: sleeping function called "
-		       "from invalid context.\n");
-		dump_stack();
-	}
-	return false;
-}
-
-/**
  * ccs_flags - Check mode for specified functionality.
  *
  * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
@@ -856,7 +916,7 @@ bool ccs_can_sleep(void)
  * Returns the mode of specified functionality.
  */
 unsigned int ccs_flags(const struct ccs_domain_info *domain,
-			     const u8 index)
+		       const u8 index)
 {
 	u8 profile;
 	if (!domain)
@@ -871,6 +931,55 @@ unsigned int ccs_flags(const struct ccs_domain_info *domain,
 }
 
 /**
+ * ccs_get_audit - Get audit mode.
+ *
+ * @profile:    Profile number.
+ * @index:      Index number of functionality.
+ * @is_granted: True if granted log, false otehrwise.
+ *
+ * Returns mode.
+ */
+bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted)
+{
+	u8 mode;
+	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
+		+ CCS_MAX_CAPABILITY_INDEX;
+	if (!ccs_policy_loaded || !ccs_profile_ptr[profile])
+		return false;
+	mode = ccs_profile_ptr[profile]->config[index];
+	if (mode == CCS_MAC_MODE_USE_DEFAULT)
+		mode = ccs_profile_ptr[profile]->config[category];
+	if (mode == CCS_MAC_MODE_USE_DEFAULT)
+		mode = ccs_profile_ptr[profile]->default_config;
+	if (is_granted)
+		return !(mode & CCS_MAC_MODE_NO_GRANT_LOG);
+	return !(mode & CCS_MAC_MODE_NO_REJECT_LOG);
+}
+
+/**
+ * ccs_get_mode - Get MAC mode.
+ *
+ * @profile: Profile number.
+ * @index:   Index number of functionality.
+ *
+ * Returns mode.
+ */
+int ccs_get_mode(const u8 profile, const u8 index)
+{
+	u8 mode;
+	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
+		+ CCS_MAX_CAPABILITY_INDEX;
+	if (!ccs_policy_loaded || !ccs_profile_ptr[profile])
+		return CCS_MAC_MODE_DISABLED;
+	mode = ccs_profile_ptr[profile]->config[index];
+	if (mode == CCS_MAC_MODE_USE_DEFAULT)
+		mode = ccs_profile_ptr[profile]->config[category];
+	if (mode == CCS_MAC_MODE_USE_DEFAULT)
+		mode = ccs_profile_ptr[profile]->default_config;
+	return mode & 3;
+}
+
+/**
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
  * @r:      Pointer to "struct ccs_request_info" to initialize.
@@ -882,30 +991,59 @@ unsigned int ccs_flags(const struct ccs_domain_info *domain,
 int ccs_init_request_info(struct ccs_request_info *r,
 			  struct ccs_domain_info *domain, const u8 index)
 {
+	u8 profile;
 	memset(r, 0, sizeof(*r));
 	if (!domain)
 		domain = ccs_current_domain();
 	r->domain = domain;
-	r->profile = domain->profile;
+	profile = domain->profile;
+	r->profile = profile;
 	r->type = index;
-	if (!ccs_policy_loaded || !ccs_profile_ptr[r->profile])
-		r->mode = 0;
-	else
-		r->mode = ccs_profile_ptr[r->profile]->mac_mode[index];
+	r->mode = ccs_get_mode(profile, index);
 	return r->mode;
 }
 
 /**
- * ccs_verbose_mode - Check whether TOMOYO is verbose mode.
+ * ccs_last_word - Get last component of a line.
  *
- * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
+ * @line: A line.
  *
- * Returns true if domain policy violation warning should be printed to
- * console.
+ * Returns the last word of a line.
  */
-bool ccs_verbose_mode(const struct ccs_domain_info *domain)
+const char *ccs_last_word(const char *name)
 {
-	return ccs_flags(domain, CCS_VERBOSE) != 0;
+	const char *cp = strrchr(name, ' ');
+	if (cp)
+		return cp + 1;
+	return name;
+}
+
+void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
+{
+	int len = PAGE_SIZE;
+	va_list args;
+	char *buffer;
+	if (!ccs_flags(r->domain, CCS_VERBOSE))
+		return;
+	while (1) {
+		int len2;
+		buffer = kmalloc(len, GFP_KERNEL);
+		if (!buffer)
+			return;
+		va_start(args, fmt);
+		len2 = vsnprintf(buffer, len - 1, fmt, args);
+		va_end(args);
+		if (len2 < len - 1) {
+			buffer[len2] = '\0';
+			break;
+		}
+		len = len2 + 1;
+		kfree(buffer);
+	}
+	printk(KERN_WARNING "%s: Access %s denied for %s\n",
+	       r->mode == CCS_MAC_MODE_ENFORCING ? "ERROR" : "WARNING", buffer,
+	       ccs_last_word(r->domain->domainname->name));
+	kfree(buffer);
 }
 
 /**

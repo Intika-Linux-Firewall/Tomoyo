@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -97,10 +97,25 @@ static void show_result4(int result)
 static void set_enforce(int flag)
 {
 	is_enforce = flag;
-	if (flag)
-		fprintf(profile_fp, "255-MAC_FOR_NETWORK=enforcing\n");
-	else
-		fprintf(profile_fp, "255-MAC_FOR_NETWORK=permissive\n");
+	if (flag) {
+		set_profile(3, "network::inet_udp_bind");
+		set_profile(3, "network::inet_udp_connect");
+		set_profile(3, "network::inet_tcp_bind");
+		set_profile(3, "network::inet_tcp_listen");
+		set_profile(3, "network::inet_tcp_connect");
+		set_profile(3, "network::inet_tcp_accept");
+		set_profile(3, "network::inet_raw_bind");
+		set_profile(3, "network::inet_raw_connect");
+	} else {
+		set_profile(2, "network::inet_udp_bind");
+		set_profile(2, "network::inet_udp_connect");
+		set_profile(2, "network::inet_tcp_bind");
+		set_profile(2, "network::inet_tcp_listen");
+		set_profile(2, "network::inet_tcp_connect");
+		set_profile(2, "network::inet_tcp_accept");
+		set_profile(2, "network::inet_raw_bind");
+		set_profile(2, "network::inet_raw_connect");
+	}
 }
 
 static void stage_network_test(void)

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -335,42 +335,38 @@ unsigned int ccs_quota_for_query;
  * ccs_read_memory_counter - Check for memory usage.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns memory usage.
  */
-int ccs_read_memory_counter(struct ccs_io_buffer *head)
+void ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
-	if (!head->read_eof) {
-		const unsigned int usage[3] = {
-			atomic_read(&ccs_policy_memory_size),
-			ccs_audit_log_memory_size,
-			ccs_query_memory_size
-		};
-		const unsigned int quota[3] = {
-			ccs_quota_for_policy,
-			ccs_quota_for_audit_log,
-			ccs_quota_for_query
-		};
-		static const char *header[4] = {
-			"Policy:     ",
-			"Audit logs: ",
-			"Query lists:",
-			"Total:      "
-		};
-		unsigned int total = 0;
-		int i;
-		for (i = 0; i < 3; i++) {
-			total += usage[i];
-			ccs_io_printf(head, "%s %10u", header[i], usage[i]);
-			if (quota[i])
-				ccs_io_printf(head, "   (Quota: %10u)",
-					      quota[i]);
-			ccs_io_printf(head, "\n");
-		}
-		ccs_io_printf(head, "%s %10u\n", header[3], total);
-		head->read_eof = true;
+	const unsigned int usage[3] = {
+		atomic_read(&ccs_policy_memory_size),
+		ccs_audit_log_memory_size,
+		ccs_query_memory_size
+	};
+	const unsigned int quota[3] = {
+		ccs_quota_for_policy,
+		ccs_quota_for_audit_log,
+		ccs_quota_for_query
+	};
+	static const char *header[4] = {
+		"Policy:     ",
+		"Audit logs: ",
+		"Query lists:",
+		"Total:      "
+	};
+	unsigned int total = 0;
+	int i;
+	if (head->read_eof)
+		return;
+	for (i = 0; i < 3; i++) {
+		total += usage[i];
+		ccs_io_printf(head, "%s %10u", header[i], usage[i]);
+		if (quota[i])
+			ccs_io_printf(head, "   (Quota: %10u)", quota[i]);
+		ccs_io_printf(head, "\n");
 	}
-	return 0;
+	ccs_io_printf(head, "%s %10u\n", header[3], total);
+	head->read_eof = true;
 }
 
 /**

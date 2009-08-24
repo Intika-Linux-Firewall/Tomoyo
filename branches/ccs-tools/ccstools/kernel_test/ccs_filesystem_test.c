@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #define _GNU_SOURCE
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 
 	/* Test mount(). */
 	{
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 1);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == EPERM)
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=learning\n");
+		set_profile(1, "file::mount");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == ENOMEM)
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 0);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
 		    errno == ENOMEM)
@@ -82,13 +82,13 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=learning\n");
+		set_profile(1, "file::mount");
 		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
 		if (mount(NULL, "/", "tmpfs", 0, NULL))
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success\n");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
 		if (mount(NULL, "/", "tmpfs", 0, NULL))
 			printf("BUG: %s\n", strerror(errno));
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 		else
 			printf("OK: Success\n");
 		fprintf(domain_fp, "delete allow_mount anydev / tmpfs 0\n");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=permissive\n");
+		set_profile(2, "file::mount");
 		show_prompt("mount(NULL, NULL, 'tmpfs') ", 1);
 		if (mount(NULL, NULL, "tmpfs", 0, NULL))
 			printf("OK: %s\n", strerror(errno));
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 			printf("OK: %s\n", strerror(errno));
 		else
 			printf("BUG: Did not fail.\n");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::mount");
 	}
 
 	mkdir("/tmp/mount/", 0755);
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 			mknod(dev_ram_path, S_IFBLK, MKDEV(1, 0));
 		}
 		memset(buf, 0, sizeof(buf));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 
 		/* Test standard case */
 		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp, "delete allow_mount none "
 			"/tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::mount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
 	/* Test mount(). */
 	{
 		mount2("none", "/tmp/mount/", "tmpfs");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 
 		/* Test remount case */
 		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 1);
@@ -291,13 +291,13 @@ int main(int argc, char *argv[])
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::mount");
 		umount("/tmp/mount_bind/");
 		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
 			"/tmp/mount_bind/ --bind 0\n");
 		
 		/* Test move case */
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::mount");
 		fprintf(domain_fp, "allow_unmount /tmp/mount/\n");
 		fprintf(domain_fp, "allow_mount /tmp/mount/ /tmp/mount_move/ "
 			"--move 0\n");
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::mount");
 		umount("/tmp/mount_move/");
 		fprintf(domain_fp, "delete allow_unmount /tmp/mount/\n");
 		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
@@ -325,9 +325,7 @@ int main(int argc, char *argv[])
 			printf("OK: Permission denied.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=enforcing\n");
-		fprintf(profile_fp,
-			"255-SUPPORTED_CAPABILITIES=conceal_mount\n");
+		set_profile(3, "capability::conceal_mount");
 
 		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 1);
 		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == EOF &&
@@ -350,9 +348,7 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 
-		fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=permissive\n");
-		fprintf(profile_fp,
-			"255-SUPPORTED_CAPABILITIES=conceal_mount\n");
+		set_profile(2, "capability::conceal_mount");
 
 		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 0);
 		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
@@ -360,9 +356,7 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=disabled\n");
-		fprintf(profile_fp,
-			"255-SUPPORTED_CAPABILITIES=conceal_mount\n");
+		set_profile(0, "capability::conceal_mount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}
@@ -372,9 +366,9 @@ int main(int argc, char *argv[])
 		/* Test standard case */
 		fprintf(domain_fp, "allow_unmount /tmp/mount/\n");
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::umount");
 		mount2("none", "/tmp/mount/", "tmpfs");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::umount");
 		show_prompt("umount('/tmp/mount/') for '/tmp/mount/'", 0);
 		if (umount("/tmp/mount/") == 0)
 			printf("OK\n");
@@ -382,10 +376,10 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 		fprintf(domain_fp, "delete allow_unmount /tmp/mount/\n");
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::umount");
 		
 		mount2("none", "/tmp/mount/", "tmpfs");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::umount");
 		show_prompt("umount('/tmp/mount/') for '/tmp/mount/'", 1);
 		if (umount("/tmp/mount/") == EOF && errno == EPERM)
 			printf("OK: Permission denied.\n");
@@ -394,9 +388,9 @@ int main(int argc, char *argv[])
 
 		/* Test pattern */
 		fprintf(domain_fp, "allow_unmount /tmp/\\?\\?\\?\\?\\?/\n");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::umount");
 		mount2("none", "/tmp/mount/", "tmpfs");
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::umount");
 		show_prompt("umount('/tmp/mount/') for "
 			    "'/tmp/\\?\\?\\?\\?\\?/'", 1);
 		if (umount("/tmp/mount/") == 0)
@@ -406,14 +400,14 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp,
 			"delete allow_unmount /tmp/\\?\\?\\?\\?\\?/\n");
 		
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::umount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}
 
 	/* Test chroot(). */
 	{
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::chroot");
 
 		/* Test standard case */
 		fprintf(domain_fp, "allow_chroot /tmp/mount/\n");
@@ -459,14 +453,14 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp,
 			"delete allow_chroot /tmp/\\?\\?\\?\\?\\?/\n");
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::chroot");
 	}
 
 	/* Test pivot_root(). */
 	{
 		int error;
 		char *stack = malloc(8192);
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=enforcing\n");
+		set_profile(3, "file::pivot_root");
 		fprintf(domain_fp, "allow_pivot_root %s %s\n",
 			 pivot_root_dir, proc_policy_dir);
 		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
@@ -503,7 +497,7 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=permissive\n");
+		set_profile(2, "file::pivot_root");
 		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
 			 proc_policy_dir);
 		show_prompt(stack, 0);
@@ -520,7 +514,7 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		fprintf(profile_fp, "255-MAC_FOR_NAMESPACE=disabled\n");
+		set_profile(0, "file::pivot_root");
 
 		free(stack);
 	}

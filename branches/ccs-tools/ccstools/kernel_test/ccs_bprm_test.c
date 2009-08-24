@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -16,9 +16,9 @@ static void try_exec(const char *policy, char *argv[], char *envp[],
 	int policy_found = 0;
 	int err = 0;
 	int pipe_fd[2] = { EOF, EOF };
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	set_profile(3, "file::open");
 	fp = fopen(proc_policy_domain_policy, "r");
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	set_profile(3, "file::open");
 	pipe(pipe_fd);
 	printf("%s: ", policy);
 	fflush(stdout);
@@ -167,9 +167,9 @@ int main(int argc, char *argv[])
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "allow_read/write %s\n", proc_policy_domain_policy);
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	set_profile(3, "file::execute");
 	stage_exec_test();
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	set_profile(3, "file::execute");
 	clear_status();
 	return 0;
 }

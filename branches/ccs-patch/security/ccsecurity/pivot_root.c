@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -33,10 +33,8 @@ static int ccs_audit_pivot_root_log(struct ccs_request_info *r,
 				    const char *new_root, const char *old_root,
 				    const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: pivot_root %s %s "
-		       "denied for %s\n", ccs_get_msg(r->mode == 3), new_root,
-		       old_root, ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "pivot_root %s %s", new_root, old_root);
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
 				   "%s %s\n", new_root, old_root);
 }
@@ -63,15 +61,12 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
 	char *new_root;
 	struct ccs_path_info old_root_dir;
 	struct ccs_path_info new_root_dir;
-	bool is_enforce;
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_PIVOT_ROOT))
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_PIVOT_ROOT)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
-	is_enforce = (r.mode == 3);
 	r.obj = &obj;
- retry:
-	error = -EPERM;
+	error = -ENOENT;
 	old_root = ccs_realpath_from_path(old);
 	new_root = ccs_realpath_from_path(new);
 	if (!old_root || !new_root)
@@ -80,15 +75,17 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
 	ccs_fill_path_info(&old_root_dir);
 	new_root_dir.name = new_root;
 	ccs_fill_path_info(&new_root_dir);
-	if (old_root_dir.is_dir && new_root_dir.is_dir) {
+	if (!old_root_dir.is_dir || !new_root_dir.is_dir)
+		goto out;
+	do {
 		struct ccs_acl_info *ptr;
+		error = -EPERM;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_pivot_root_acl *acl;
 			if (ptr->is_deleted ||
 			    ptr->type != CCS_TYPE_PIVOT_ROOT_ACL)
 				continue;
-			acl = container_of(ptr,
-					   struct ccs_pivot_root_acl,
+			acl = container_of(ptr, struct ccs_pivot_root_acl,
 					   head);
 			if (!ccs_compare_name_union(&old_root_dir,
 						    &acl->old_root) ||
@@ -100,19 +97,18 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
 			error = 0;
 			break;
 		}
-	}
-	ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
-	if (error)
+		ccs_audit_pivot_root_log(&r, new_root, old_root, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_PIVOT_ROOT
-					     "%s %s\n",
-					     ccs_file_pattern(&new_root_dir),
-					     ccs_file_pattern(&old_root_dir));
+				       "%s %s\n",
+				       ccs_file_pattern(&new_root_dir),
+				       ccs_file_pattern(&old_root_dir));
+	} while (error == 1);
  out:
 	kfree(old_root);
 	kfree(new_root);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -134,7 +130,7 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
-				    struct PATH_or_NAMEIDATA *new_path)
+			      struct PATH_or_NAMEIDATA *new_path)
 {
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
 	struct path old = { old_path->path.mnt, old_path->path.dentry };

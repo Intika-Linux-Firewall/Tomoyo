@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -87,14 +87,18 @@ static void show_result(int result, char should_success)
 
 static void set_capability(void)
 {
-	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=enforcing\n");
-	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	char buffer[128];
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
+	set_profile(3, buffer);
 }
 
 static void unset_capability(void)
 {
-	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=disabled\n");
-	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	char buffer[128];
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
+	set_profile(0, buffer);
 }
 
 static void stage_capability_test(void)

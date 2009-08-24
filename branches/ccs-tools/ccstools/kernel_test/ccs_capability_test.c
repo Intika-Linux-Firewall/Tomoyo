@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -54,17 +54,20 @@ static void show_result(int result)
 
 static void set_capability(const char *capability)
 {
-	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=%s\n",
-		is_enforce ? "enforcing" : "permissive");
-	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	char buffer[128];
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
+	set_profile(is_enforce ? 3 : 2, buffer);
 	if (should_success)
 		fprintf(domain_fp, "allow_capability %s\n", capability);
 }
 
 static void unset_capability(const char *capability)
 {
-	fprintf(profile_fp, "255-MAC_FOR_CAPABILITY=disabled\n");
-	fprintf(profile_fp, "255-SUPPORTED_CAPABILITIES=%s\n", capability);
+	char buffer[128];
+	memset(buffer, 0, sizeof(buffer));
+	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
+	set_profile(0, buffer);
 	if (should_success)
 		fprintf(domain_fp, "delete allow_capability %s\n", capability);
 }

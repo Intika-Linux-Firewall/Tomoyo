@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include <errno.h>
@@ -40,6 +40,7 @@ struct module;
 #include <sys/ptrace.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <stdarg.h>
 
 #ifndef __NR_sys_kexec_load
 #ifdef __NR_kexec_load
@@ -111,32 +112,39 @@ static pid_t pid = 0;
 static void clear_status(void)
 {
 	static const char *keywords[] = {
-		"execute",
-		"open",
-		"create",
-		"unlink",
-		"mkdir",
-		"rmdir",
-		"mkfifo",
-		"mksock",
-		"truncate",
-		"symlink",
-		"rewrite",
-		"mkblock",
-		"mkchar",
-		"link",
-		"rename",
-		"chmod",
-		"chown",
-		"chgrp",
-		"ioctl",
-		"chroot",
-		"mount",
-		"umount",
-		"pivot_root",
-		"env",
-		"network",
-		"signal",
+		"file::execute",
+		"file::open",
+		"file::create",
+		"file::unlink",
+		"file::mkdir",
+		"file::rmdir",
+		"file::mkfifo",
+		"file::mksock",
+		"file::truncate",
+		"file::symlink",
+		"file::rewrite",
+		"file::mkblock",
+		"file::mkchar",
+		"file::link",
+		"file::rename",
+		"file::chmod",
+		"file::chown",
+		"file::chgrp",
+		"file::ioctl",
+		"file::chroot",
+		"file::mount",
+		"file::umount",
+		"file::pivot_root",
+		"misc::env",
+		"network::inet_udp_bind",
+		"network::inet_udp_connect",
+		"network::inet_tcp_bind",
+		"network::inet_tcp_listen",
+		"network::inet_tcp_connect",
+		"network::inet_tcp_accept",
+		"network::inet_raw_bind",
+		"network::inet_raw_connect",
+		"ipc::signal",
 		"capability::inet_tcp_create",
 		"capability::inet_tcp_listen",
 		"capability::inet_tcp_connect",
@@ -271,6 +279,131 @@ static void ccs_test_init(void)
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "allow_read/write /proc/ccs/domain_policy\n");
 	fprintf(domain_fp, "allow_truncate /proc/ccs/domain_policy\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/exception_policy\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/exception_policy\n");
 	fprintf(domain_fp, "allow_read/write /proc/ccs/profile\n");
 	fprintf(domain_fp, "allow_truncate /proc/ccs/profile\n");
+}
+
+static void BUG(const char *fmt, ...)
+	__attribute__ ((format(printf, 1, 2)));
+
+static void BUG(const char *fmt, ...)
+{
+	va_list args;
+	printf("BUG: ");
+	va_start(args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+	putchar('\n');
+	fflush(stdout);
+	while (1)
+		sleep(100);
+}
+
+static int write_domain_policy(const char *policy, int is_delete)
+{
+	FILE *fp = fopen(proc_policy_domain_policy, "r");
+	char buffer[8192];
+	int domain_found = 0;
+	int policy_found = 0;
+	memset(buffer, 0, sizeof(buffer));
+	if (!fp) {
+		BUG("Can't read %s", proc_policy_domain_policy);
+		return 0;
+	}
+	if (is_delete)
+		fprintf(domain_fp, "delete ");
+	fprintf(domain_fp, "%s\n", policy);
+	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
+		char *cp = strchr(buffer, '\n');
+		if (cp)
+			*cp = '\0';
+		if (!strncmp(buffer, "<kernel>", 8))
+			domain_found = !strcmp(self_domain, buffer);
+		if (!domain_found)
+			continue;
+		/* printf("<%s>\n", buffer); */
+		if (strcmp(buffer, policy))
+			continue;
+		policy_found = 1;
+		break;
+	}
+	fclose(fp);
+	if (policy_found == is_delete) {
+		BUG("Can't %s %s", is_delete ? "delete" : "append",
+		    policy);
+		return 0;
+	}
+	errno = 0;
+	return 1;
+
+}
+
+static int write_exception_policy(const char *policy, int is_delete)
+{
+	FILE *fp = fopen(proc_policy_exception_policy, "r");
+	char buffer[8192];
+	int policy_found = 0;
+	memset(buffer, 0, sizeof(buffer));
+	if (!fp) {
+		BUG("Can't read %s", proc_policy_exception_policy);
+		return 0;
+	}
+	if (is_delete)
+		fprintf(exception_fp, "delete ");
+	fprintf(exception_fp, "%s\n", policy);
+	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
+		char *cp = strchr(buffer, '\n');
+		if (cp)
+			*cp = '\0';
+		if (strcmp(buffer, policy))
+			continue;
+		policy_found = 1;
+		break;
+	}
+	fclose(fp);
+	if (policy_found == is_delete) {
+		BUG("Can't %s %s", is_delete ? "delete" : "append",
+		    policy);
+		return 0;
+	}
+	errno = 0;
+	return 1;
+
+}
+
+static int set_profile(const int mode, const char *name)
+{
+	static const char *modes[4] = { "disabled", "learning", "permissive", "enforcing" };
+	FILE *fp = fopen(proc_policy_profile, "r");
+	char buffer[8192];
+	int policy_found = 0;
+	const int len = strlen(name);
+	if (!fp) {
+		BUG("Can't read %s", proc_policy_profile);
+		return 0;
+	}
+	fprintf(profile_fp, "255-MAC::%s=%s\n", name, modes[mode]);
+	while (memset(buffer, 0, sizeof(buffer)),
+	       fgets(buffer, sizeof(buffer) - 1, fp)) {
+		char *cp = strchr(buffer, '\n');
+		if (cp)
+			*cp = '\0';
+		if (strncmp(buffer, "255-MAC::", 9) ||
+		    strncmp(buffer + 9, name, len) ||
+		    buffer[9 + len] != '=')
+			continue;
+		if (strstr(buffer + 10 + len, modes[mode]))
+			policy_found = 1;
+		break;
+	}
+	fclose(fp);
+	if (!policy_found) {
+		BUG("Can't change profile to 255-MAC::%s=%s",
+		    name, modes[mode]);
+		return 0;
+	}
+	errno = 0;
+	return 1;
 }

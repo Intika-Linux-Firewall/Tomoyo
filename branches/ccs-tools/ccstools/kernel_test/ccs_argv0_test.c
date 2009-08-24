@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -44,7 +44,8 @@ static void stage_argv0_test(void)
 	memset(buffer, 0, sizeof(buffer));
 	{
 		is_enforce = 0;
-		fprintf(profile_fp, "255-MAC_FOR_ARGV0=permissive\n");
+		set_profile(2, "file::execute");
+		fflush(stdout);
 		if (fork() == 0) {
 			execv("/bin/true", argv);
 			_exit(errno);
@@ -57,7 +58,8 @@ static void stage_argv0_test(void)
 		show_result(errno ? EOF : 0);
 
 		is_enforce = 1;
-		fprintf(profile_fp, "255-MAC_FOR_ARGV0=enforcing\n");
+		set_profile(3, "file::execute");
+		fflush(stdout);
 		if (fork() == 0) {
 			execv("/bin/true", argv);
 			_exit(errno);
@@ -69,7 +71,9 @@ static void stage_argv0_test(void)
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
 
+		write_domain_policy("allow_execute /bin/true", 0);
 		is_enforce = 0;
+		fflush(stdout);
 		if (fork() == 0) {
 			argv[0] = "";
 			execv("/bin/true", argv);
@@ -81,17 +85,13 @@ static void stage_argv0_test(void)
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
+		write_domain_policy("allow_execute /bin/true", 1);
 	}
 }
 
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
 	stage_argv0_test();
 	clear_status();
 	return 0;

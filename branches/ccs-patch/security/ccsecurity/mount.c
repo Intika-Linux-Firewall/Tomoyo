@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,29 +62,23 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 			       const char *type, const unsigned long flags,
 			       const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain)) {
-		const bool is_enforce = (r->mode == 3);
-		const char *msg = ccs_get_msg(is_enforce);
-		const char *domainname = ccs_get_last_name(r->domain);
+	if (!is_granted) {
 		if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
-			printk(KERN_WARNING "%s: mount -o remount %s 0x%lX "
-			       "denied for %s.\n", msg, dir_name, flags,
-			       domainname);
+			ccs_warn_log(r, "mount -o remount %s 0x%lX", dir_name,
+				     flags);
 		else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
 			 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
-			printk(KERN_WARNING "%s: mount %s %s %s 0x%lX "
-			       "denied for %s\n", msg, type, dev_name,
-			       dir_name, flags, domainname);
+			ccs_warn_log(r, "mount %s %s %s 0x%lX", type, dev_name,
+				     dir_name, flags);
 		else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
 			 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-			printk(KERN_WARNING "%s: mount %s %s 0x%lX denied for "
-			       "%s\n", msg, type, dir_name, flags, domainname);
+			ccs_warn_log(r, "mount %s %s 0x%lX", type, dir_name,
+				     flags);
 		else
-			printk(KERN_WARNING "%s: mount -t %s %s %s 0x%lX "
-			       "denied for %s\n", msg, type, dev_name,
-			       dir_name, flags, domainname);
+			ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type,
+				     dev_name, dir_name, flags);
 	}
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_MOUNT
 				   "%s %s %s 0x%lu\n", dev_name, dir_name,
@@ -122,8 +116,8 @@ static void put_filesystem(struct file_system_type *fs)
  * Caller holds ccs_read_lock().
  */
 static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
-				char *dir_name, char *type,
-				unsigned long flags)
+			  char *dir_name, char *type,
+			  unsigned long flags)
 {
 	struct ccs_obj_info obj = { };
 	struct path path;
@@ -226,10 +220,10 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 			    requested_type, flags, !error);
 	if (error)
 		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
-					     "%s %s %s 0x%lX\n",
-					     ccs_file_pattern(&rdev),
-					     ccs_file_pattern(&rdir),
-					     requested_type, flags);
+				       "%s %s %s 0x%lX\n",
+				       ccs_file_pattern(&rdev),
+				       ccs_file_pattern(&rdir),
+				       requested_type, flags);
  out:
 	kfree(requested_dev_name);
 	kfree(requested_dir_name);
@@ -258,12 +252,10 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
  * Caller holds ccs_read_lock().
  */
 static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
-			       char *dir_name, char *type, unsigned long flags)
+			 char *dir_name, char *type, unsigned long flags)
 {
-	const bool is_enforce = (r->mode == 3);
 	int error;
 	ccs_assert_read_lock();
- retry:
 	error = -EPERM;
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
@@ -299,38 +291,38 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 	}
 	if (flags & MS_REMOUNT)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_REMOUNT_KEYWORD,
-					    flags & ~MS_REMOUNT);
+				      CCS_MOUNT_REMOUNT_KEYWORD,
+				      flags & ~MS_REMOUNT);
 	else if (flags & MS_MOVE)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_MOVE_KEYWORD,
-					    flags & ~MS_MOVE);
+				      CCS_MOUNT_MOVE_KEYWORD,
+				      flags & ~MS_MOVE);
 	else if (flags & MS_BIND)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_BIND_KEYWORD,
-					    flags & ~MS_BIND);
+				      CCS_MOUNT_BIND_KEYWORD,
+				      flags & ~MS_BIND);
 	else if (flags & MS_UNBINDABLE)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
-					    flags & ~MS_UNBINDABLE);
+				      CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
+				      flags & ~MS_UNBINDABLE);
 	else if (flags & MS_PRIVATE)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
-					    flags & ~MS_PRIVATE);
+				      CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
+				      flags & ~MS_PRIVATE);
 	else if (flags & MS_SLAVE)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_MAKE_SLAVE_KEYWORD,
-					    flags & ~MS_SLAVE);
+				      CCS_MOUNT_MAKE_SLAVE_KEYWORD,
+				      flags & ~MS_SLAVE);
 	else if (flags & MS_SHARED)
 		error = ccs_mount_acl(r, dev_name, dir_name,
-					    CCS_MOUNT_MAKE_SHARED_KEYWORD,
-					    flags & ~MS_SHARED);
+				      CCS_MOUNT_MAKE_SHARED_KEYWORD,
+				      flags & ~MS_SHARED);
 	else
-		error = ccs_mount_acl2(r, dev_name, dir_name, type,
-					     flags);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+		do {
+			error = ccs_mount_acl2(r, dev_name, dir_name, type,
+					       flags);
+		} while (error == 1);
+	if (r->mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -346,15 +338,15 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
-			       const unsigned long *flags)
+			 const unsigned long *flags)
 {
 	struct ccs_request_info r;
 	int error;
 	int idx;
 	if (!ccs_capable(CCS_SYS_MOUNT))
 		return -EPERM;
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_MOUNT))
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_MOUNT)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
 	if (!type)
 		type = "<NULL>";
@@ -381,7 +373,7 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	struct ccs_mount_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
-					  .head.cond = condition };
+				   .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	char *w[4];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])

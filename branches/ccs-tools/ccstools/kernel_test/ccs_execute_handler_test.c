@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -92,7 +92,7 @@ int main(int raw_argc, char *raw_argv[])
 	fprintf(domain_fp, "delete allow_execute /bin/echo\n");
 	fprintf(domain_fp, "%s %s\n", self_domain, cp);
 	fprintf(domain_fp, "use_profile 0\n");
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	set_profile(3, "file::execute");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: denied execute handler succeeded",
 				 NULL };
@@ -106,7 +106,7 @@ int main(int raw_argc, char *raw_argv[])
 		printf("BUG: denied execute handler failed\n");
 		fflush(stdout);
 	}
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	set_profile(0, "file::execute");
 	fprintf(domain_fp, "delete denied_execute_handler %s\n", cp);
 	clear_status();
 	return 0;

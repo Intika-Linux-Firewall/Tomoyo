@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -25,17 +25,9 @@
 static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 				const char *dest_domain, const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain)) {
-		const char *dest = strrchr(dest_domain, ' ');
-		if (dest)
-			dest++;
-		else
-			dest = dest_domain;
-		printk(KERN_WARNING
-		       "%s: Signal %d to %s denied for %s\n",
-		       ccs_get_msg(r->mode == 3), signal, dest,
-		       ccs_get_last_name(r->domain));
-	}
+	if (!is_granted)
+		ccs_warn_log(r, "signal %d to %s", signal,
+			     ccs_last_word(dest_domain));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_SIGNAL
 				   "%d %s\n", signal, dest_domain);
 }
@@ -57,13 +49,11 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	const char *dest_pattern;
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
-	bool is_enforce;
 	int error;
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL))
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
-	is_enforce = (r.mode == 3);
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
 	if (sys_getpid() == pid) {
@@ -92,35 +82,37 @@ static int ccs_signal_acl2(const int sig, const int pid)
 		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;
- retry:
-	error = -EPERM;
-	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_signal_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_SIGNAL_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_signal_acl, head);
-		if (acl->sig == hash && ccs_condition(&r, ptr)) {
-			const int len = acl->domainname->total_len;
-			if (strncmp(acl->domainname->name, dest_pattern, len))
+	do {
+		error = -EPERM;
+		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+			struct ccs_signal_acl *acl;
+			if (ptr->is_deleted ||
+			    ptr->type != CCS_TYPE_SIGNAL_ACL)
 				continue;
-			switch (dest_pattern[len]) {
-			case ' ':
-			case '\0':
+			acl = container_of(ptr, struct ccs_signal_acl, head);
+			if (acl->sig == hash && ccs_condition(&r, ptr)) {
+				const int len = acl->domainname->total_len;
+				if (strncmp(acl->domainname->name,
+					    dest_pattern, len))
+					continue;
+				switch (dest_pattern[len]) {
+				case ' ':
+				case '\0':
+					break;
+				default:
+					continue;
+				}
+				r.cond = ptr->cond;
+				error = 0;
 				break;
-			default:
-				continue;
 			}
-			r.cond = ptr->cond;
-			error = 0;
-			break;
 		}
-	}
-	ccs_audit_signal_log(&r, sig, dest_pattern, !error);
-	if (error)
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL
-					     "%d %s\n", sig, dest_pattern);
-	if (error == 1)
-		goto retry;
+		ccs_audit_signal_log(&r, sig, dest_pattern, !error);
+		if (!error)
+			break;
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n",
+				       sig, dest_pattern);
+	} while (error == 1);
 	return error;
 }
 
@@ -157,7 +149,7 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 	struct ccs_signal_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
-					   .head.cond = condition };
+				    .head.cond = condition };
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	int sig;
 	char *domainname = strchr(data, ' ');

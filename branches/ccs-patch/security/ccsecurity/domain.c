@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -36,22 +36,6 @@ struct ccs_domain_info ccs_kernel_domain;
 LIST_HEAD(ccs_domain_list);
 
 /**
- * ccs_get_last_name - Get last component of a domainname.
- *
- * @domain: Pointer to "struct ccs_domain_info".
- *
- * Returns the last component of the domainname.
- */
-const char *ccs_get_last_name(const struct ccs_domain_info *domain)
-{
-	const char *cp0 = domain->domainname->name;
-	const char *cp1 = strrchr(cp0, ' ');
-	if (cp1)
-		return cp1 + 1;
-	return cp0;
-}
-
-/**
  * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
  * @ee:         Pointer to "struct ccs_execve_entry".
@@ -64,7 +48,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 {
 	struct ccs_request_info *r = &ee->r;
 	const char *handler = ee->handler->name;
-	r->mode = ccs_flags(r->domain, CCS_MAC_EXECUTE);
+	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
 	return ccs_write_audit_log(true, r, "%s %s\n",
 				   is_default ? CCS_KEYWORD_EXECUTE_HANDLER :
 				   CCS_KEYWORD_DENIED_EXECUTE_HANDLER, handler);
@@ -81,7 +65,7 @@ static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
 {
 	int error;
 	struct ccs_request_info r;
-	ccs_init_request_info(&r, domain, CCS_MAC_EXECUTE);
+	ccs_init_request_info(&r, domain, CCS_MAC_FILE_EXECUTE);
 	error = ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 	return error;
 }
@@ -168,7 +152,7 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 		const char *domain = "";
 		struct ccs_domain_initializer_entry *ptr;
 		ptr = list_entry(pos, struct ccs_domain_initializer_entry,
-				  list);
+				 list);
 		if (ptr->is_deleted)
 			continue;
 		no = ptr->is_not ? "no_" : "";
@@ -176,9 +160,9 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 			from = " from ";
 			domain = ptr->domainname->name;
 		}
-		done = ccs_io_printf(head,
-				     "%s" CCS_KEYWORD_INITIALIZE_DOMAIN "%s%s%s\n",
-				     no, ptr->program->name, from, domain);
+		done = ccs_io_printf(head, "%s" CCS_KEYWORD_INITIALIZE_DOMAIN
+				     "%s%s%s\n", no, ptr->program->name, from,
+				     domain);
 		if (!done)
 			break;
 	}
@@ -595,25 +579,27 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_domain_info *domain = NULL;
 	const char *old_domain_name = r->domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
-	const u8 mode = r->mode;
-	const bool is_enforce = (mode == 3);
 	const u32 ccs_flags = current->ccs_flags;
 	struct ccs_path_info rn = { }; /* real name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
 	bool need_kfree = false;
 	ccs_assert_read_lock();
+	ln.name = ccs_last_word(old_domain_name);
+	ccs_fill_path_info(&ln);
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
+	if (need_kfree) {
+		kfree(rn.name);
+		need_kfree = false;
+	}
+
 	/* Get symlink's pathname of program. */
 	retval = ccs_symlink_path(bprm->filename, &rn);
 	if (retval < 0)
 		goto out;
 	need_kfree = true;
-
-	ln.name = ccs_get_last_name(r->domain);
-	ccs_fill_path_info(&ln);
 
 	if (handler) {
 		if (ccs_pathcmp(&rn, handler)) {
@@ -626,33 +612,29 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 			}
 			goto out;
 		}
-		goto calculate_domain;
-	}
-
-	/* Check 'aggregator' directive. */
-	{
+	} else {
 		struct ccs_aggregator_entry *ptr;
-		/* Is this program allowed to be aggregated? */
+		/* Check 'aggregator' directive. */
 		list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
 			if (ptr->is_deleted ||
 			    !ccs_path_matches_pattern(&rn, ptr->original_name))
 				continue;
 			kfree(rn.name);
 			need_kfree = false;
+			/* This is OK because it is read only. */
 			rn = *ptr->aggregated_name;
 			break;
 		}
+
+		/* Check execute permission. */
+		retval = ccs_exec_perm(r, &rn);
+		if (retval == 1)
+			goto retry;
+		if (retval < 0)
+			goto out;
 	}
 
-	/* Check execute permission. */
-	r->mode = mode;
-	retval = ccs_exec_perm(r, &rn);
-	if (retval == 1)
-		goto retry;
-	if (retval < 0)
-		goto out;
-
- calculate_domain:
+	/* Calculate domain to transit to. */
 	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
 		/* Transit to the child of ccs_kernel_domain domain. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
@@ -677,7 +659,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	domain = ccs_find_domain(ee->tmp);
 	if (domain)
 		goto done;
-	if (is_enforce) {
+	if (r->mode == CCS_MAC_MODE_ENFORCING) {
 		int error = ccs_supervisor(r, "# wants to create domain\n"
 					   "%s\n", ee->tmp);
 		if (error == 1)
@@ -692,7 +674,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	if (!domain) {
 		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
 		       ee->tmp);
-		if (is_enforce)
+		if (r->mode == CCS_MAC_MODE_ENFORCING)
 			retval = -EPERM;
 		else {
 			retval = 0;
@@ -1267,7 +1249,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
 		ccs_load_policy(bprm->filename);
 	if (!ee)
 		return -ENOMEM;
-	ccs_init_request_info(&ee->r, NULL, CCS_MAC_EXECUTE);
+	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FILE_EXECUTE);
 	ee->r.ee = ee;
 	ee->bprm = bprm;
 	ee->r.obj = &ee->obj;
@@ -1292,7 +1274,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
-	ee->r.mode = ccs_flags(ee->r.domain, CCS_MAC_ENVIRON);
+	ee->r.mode = ccs_get_mode(ee->r.profile, CCS_MAC_ENVIRON);
 	retval = ccs_environ(ee);
 	if (retval < 0)
 		goto out;

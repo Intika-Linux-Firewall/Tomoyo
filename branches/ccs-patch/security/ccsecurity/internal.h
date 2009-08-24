@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -29,11 +29,6 @@
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/kmod.h>
-#include <asm/hardirq.h>
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 9)
-#include <asm/hardirq.h>
-#else
-#include <linux/hardirq.h>
 #endif
 #include <linux/in6.h>
 #include <linux/ccsecurity.h>
@@ -152,33 +147,49 @@ enum ccs_proc_interface_index {
 };
 
 enum ccs_mac_index {
-	CCS_MAC_EXECUTE,
-	CCS_MAC_OPEN,
-	CCS_MAC_CREATE,
-	CCS_MAC_UNLINK,
-	CCS_MAC_MKDIR,
-	CCS_MAC_RMDIR,
-	CCS_MAC_MKFIFO,
-	CCS_MAC_MKSOCK,
-	CCS_MAC_TRUNCATE,
-	CCS_MAC_SYMLINK,
-	CCS_MAC_REWRITE,
-	CCS_MAC_MKBLOCK,
-	CCS_MAC_MKCHAR,
-	CCS_MAC_LINK,
-	CCS_MAC_RENAME,
-	CCS_MAC_CHMOD,
-	CCS_MAC_CHOWN,
-	CCS_MAC_CHGRP,
-	CCS_MAC_IOCTL,
-	CCS_MAC_CHROOT,
-	CCS_MAC_MOUNT,
-	CCS_MAC_UMOUNT,
-	CCS_MAC_PIVOT_ROOT,
+	CCS_MAC_FILE_EXECUTE,
+	CCS_MAC_FILE_OPEN,
+	CCS_MAC_FILE_CREATE,
+	CCS_MAC_FILE_UNLINK,
+	CCS_MAC_FILE_MKDIR,
+	CCS_MAC_FILE_RMDIR,
+	CCS_MAC_FILE_MKFIFO,
+	CCS_MAC_FILE_MKSOCK,
+	CCS_MAC_FILE_TRUNCATE,
+	CCS_MAC_FILE_SYMLINK,
+	CCS_MAC_FILE_REWRITE,
+	CCS_MAC_FILE_MKBLOCK,
+	CCS_MAC_FILE_MKCHAR,
+	CCS_MAC_FILE_LINK,
+	CCS_MAC_FILE_RENAME,
+	CCS_MAC_FILE_CHMOD,
+	CCS_MAC_FILE_CHOWN,
+	CCS_MAC_FILE_CHGRP,
+	CCS_MAC_FILE_IOCTL,
+	CCS_MAC_FILE_CHROOT,
+	CCS_MAC_FILE_MOUNT,
+	CCS_MAC_FILE_UMOUNT,
+	CCS_MAC_FILE_PIVOT_ROOT,
+	CCS_MAC_NETWORK_UDP_BIND,
+	CCS_MAC_NETWORK_UDP_CONNECT,
+	CCS_MAC_NETWORK_TCP_BIND,
+	CCS_MAC_NETWORK_TCP_LISTEN,
+	CCS_MAC_NETWORK_TCP_CONNECT,
+	CCS_MAC_NETWORK_TCP_ACCEPT,
+	CCS_MAC_NETWORK_RAW_BIND,
+	CCS_MAC_NETWORK_RAW_CONNECT,
 	CCS_MAC_ENVIRON,
-	CCS_MAC_NETWORK,
 	CCS_MAC_SIGNAL,
 	CCS_MAX_MAC_INDEX
+};
+
+enum ccs_mac_category_index {
+	CCS_MAC_CATEGORY_FILE,
+	CCS_MAC_CATEGORY_NETWORK,
+	CCS_MAC_CATEGORY_MISC,
+	CCS_MAC_CATEGORY_IPC,
+	CCS_MAC_CATEGORY_CAPABILITY,
+	CCS_MAX_MAC_CATEGORY_INDEX
 };
 
 enum ccs_conditions_index {
@@ -325,11 +336,11 @@ extern asmlinkage long sys_getppid(void);
  * @cookie must be NULL when iteration starts, and @cookie will become
  * NULL when iteration finishes.
  */
-#define list_for_each_cookie(pos, cookie, head)                       \
-	for (({ if (!cookie)                                          \
-				     cookie = head; }),               \
-	     pos = rcu_dereference((cookie)->next);                   \
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL); \
+#define list_for_each_cookie(pos, cookie, head)				\
+	for (({ if (!cookie)						\
+				     cookie = head; }),			\
+		     pos = rcu_dereference((cookie)->next);		\
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
 	     (cookie) = pos, pos = rcu_dereference(pos->next))
 
 struct ccs_name_union {
@@ -571,8 +582,8 @@ struct ccs_globally_usable_env_entry {
 struct ccs_domain_initializer_entry {
 	struct list_head list;
 	bool is_deleted;
-	bool is_not;       /* True if this entry is "no_initialize_domain".  */
-	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+	bool is_not;       /* True if this entry is "no_initialize_domain". */
+	bool is_last_name; /* True if the domainname is ccs_last_word(). */
 	const struct ccs_path_info *domainname;    /* This may be NULL */
 	const struct ccs_path_info *program;
 };
@@ -581,8 +592,8 @@ struct ccs_domain_initializer_entry {
 struct ccs_domain_keeper_entry {
 	struct list_head list;
 	bool is_deleted;
-	bool is_not;       /* True if this entry is "no_keep_domain".        */
-	bool is_last_name; /* True if the domainname is ccs_get_last_name(). */
+	bool is_not;       /* True if this entry is "no_keep_domain". */
+	bool is_last_name; /* True if the domainname is ccs_last_word(). */
 	const struct ccs_path_info *domainname;
 	const struct ccs_path_info *program;       /* This may be NULL */
 };
@@ -779,7 +790,7 @@ struct ccs_ip_network_acl {
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
-	int (*read) (struct ccs_io_buffer *);
+	void (*read) (struct ccs_io_buffer *);
 	int (*write) (struct ccs_io_buffer *);
 	int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
@@ -820,7 +831,6 @@ struct ccs_io_buffer {
 
 /* Prototype definition. */
 
-bool ccs_can_sleep(void);
 bool ccs_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos, struct ccs_page_dump *dump);
@@ -844,15 +854,13 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head);
 bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
-bool ccs_verbose_mode(const struct ccs_domain_info *domain);
 char *ccs_encode(const char *str);
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_path22keyword(const u8 operation);
 const char *ccs_get_exe(void);
-const char *ccs_get_last_name(const struct ccs_domain_info *domain);
-const char *ccs_get_msg(const bool is_enforce);
+const char *ccs_last_word(const char *name);
 const char *ccs_path_number32keyword(const u8 operation);
 const char *ccs_net2keyword(const u8 operation);
 const char *ccs_path2keyword(const u8 operation);
@@ -868,9 +876,9 @@ int ccs_poll_control(struct file *file, poll_table *wait);
 int ccs_poll_grant_log(struct file *file, poll_table *wait);
 int ccs_poll_reject_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer, const int buffer_len);
-int ccs_read_grant_log(struct ccs_io_buffer *head);
-int ccs_read_memory_counter(struct ccs_io_buffer *head);
-int ccs_read_reject_log(struct ccs_io_buffer *head);
+void ccs_read_grant_log(struct ccs_io_buffer *head);
+void ccs_read_memory_counter(struct ccs_io_buffer *head);
+void ccs_read_reject_log(struct ccs_io_buffer *head);
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_write_address_group_policy(char *data, const bool is_delete);
 int ccs_write_aggregator_policy(char *data, const bool is_delete);
@@ -945,6 +953,10 @@ bool ccs_print_number_union(struct ccs_io_buffer *head, const struct ccs_number_
 bool ccs_commit_ok(void *ptr, void *data, const unsigned int size);
 int ccs_get_path(const char *pathname, struct path *path);
 void ccs_warn_oom(const char *function);
+void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
+bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted);
+int ccs_get_mode(const u8 profile, const u8 index);
+
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -986,12 +998,20 @@ extern struct srcu_struct ccs_ss;
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 
+#define CCS_MAC_MODE_DISABLED        0
+#define CCS_MAC_MODE_LEARNING        1
+#define CCS_MAC_MODE_PERMISSIVE      2
+#define CCS_MAC_MODE_ENFORCING       3
+#define CCS_MAC_MODE_NO_REJECT_LOG  64
+#define CCS_MAC_MODE_NO_GRANT_LOG  128
+#define CCS_MAC_MODE_USE_DEFAULT   255
+
 struct ccs_profile {
 	unsigned int value[CCS_MAX_CONTROL_INDEX];
 	const struct ccs_path_info *comment;
-	u8 mac_mode[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
-	bool no_grant_log[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
-	bool no_reject_log[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+	u8 default_config;
+	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+		  + CCS_MAX_MAC_CATEGORY_INDEX];
 };
 extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 

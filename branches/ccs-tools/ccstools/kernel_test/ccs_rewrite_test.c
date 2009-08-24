@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -38,18 +38,6 @@ static void show_result(int result)
 	}
 }
 
-static void add_domain_policy(const char *data)
-{
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
-	fprintf(domain_fp, "%s\n", data);
-}
-
-static void add_exception_policy(const char *data)
-{
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
-	fprintf(exception_fp, "%s\n", data);
-}
-
 #define REWRITE_PATH "/tmp/rewrite_test"
 
 static void stage_rewrite_test(void)
@@ -57,15 +45,19 @@ static void stage_rewrite_test(void)
 	int fd;
 
 	/* Start up */
-	add_domain_policy("6 " REWRITE_PATH);
-	add_domain_policy("allow_truncate " REWRITE_PATH);
-	add_domain_policy("allow_create " REWRITE_PATH);
-	add_domain_policy("allow_unlink " REWRITE_PATH);
-	add_exception_policy("deny_rewrite " REWRITE_PATH);
+	write_domain_policy("allow_read/write " REWRITE_PATH, 0);
+	write_domain_policy("allow_truncate " REWRITE_PATH, 0);
+	write_domain_policy("allow_create " REWRITE_PATH " 0600", 0);
+	write_domain_policy("allow_unlink " REWRITE_PATH, 0);
+	write_exception_policy("deny_rewrite " REWRITE_PATH, 0);
+	set_profile(3, "file::open");
+	set_profile(3, "file::create");
+	set_profile(3, "file::truncate");
+	set_profile(3, "file::rewrite");
+	set_profile(3, "file::unlink");
 	close(open(REWRITE_PATH, O_WRONLY | O_APPEND | O_CREAT, 0600));
 
 	/* Enforce mode */
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
 	should_fail = 0;
 
 	show_prompt("open(O_RDONLY)");
@@ -106,7 +98,11 @@ static void stage_rewrite_test(void)
 	close(fd);
 
 	/* Permissive mode */
-	fprintf(profile_fp, "255-MAC_FOR_FILE=permissive\n");
+	set_profile(2, "file::open");
+	set_profile(2, "file::create");
+	set_profile(2, "file::truncate");
+	set_profile(2, "file::rewrite");
+	set_profile(2, "file::unlink");
 	should_fail = 0;
 
 	show_prompt("open(O_RDONLY)");
@@ -147,18 +143,13 @@ static void stage_rewrite_test(void)
 
 	/* Clean up */
 	unlink(REWRITE_PATH);
-	add_exception_policy("delete " "deny_rewrite " REWRITE_PATH);
+	write_exception_policy("deny_rewrite " REWRITE_PATH, 0);
 	printf("\n\n");
 }
 
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	if (access(proc_policy_domain_policy, F_OK)) {
-		fprintf(stderr, "You can't use this program for this kernel."
-			"\n");
-		return 1;
-	}
 	stage_rewrite_test();
 	clear_status();
 	return 0;

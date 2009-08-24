@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -45,7 +45,7 @@ static void stage_env_test(void)
 	memset(buffer, 0, sizeof(buffer));
 	{
 		should_fail = 0;
-		fprintf(profile_fp, "255-MAC_FOR_ENV=permissive\n");
+		set_profile(2, "misc::env");
 		if (fork() == 0) {
 			execve("/bin/true", argv, envp);
 			_exit(errno);
@@ -58,7 +58,7 @@ static void stage_env_test(void)
 		show_result(errno ? EOF : 0);
 
 		should_fail = 1;
-		fprintf(profile_fp, "255-MAC_FOR_ENV=enforcing\n");
+		set_profile(3, "misc::env");
 		if (fork() == 0) {
 			execve("/bin/true", argv, envp);
 			_exit(errno);
@@ -69,7 +69,7 @@ static void stage_env_test(void)
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
-
+		
 		should_fail = 0;
 		if (fork() == 0) {
 			envp[0] = "";

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -187,7 +187,7 @@ static void stage_network_test(void)
 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in saddr;
-		fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n");
+		fprintf(profile_fp, "255-REPORT_VIOLATION=enabled\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
@@ -225,7 +225,7 @@ static void stage_network_test(void)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		fprintf(profile_fp, "255-TOMOYO_VERBOSE=disabled\n");
+		fprintf(profile_fp, "255-REPORT_VIOLATION=disabled\n");
 	}
 
 	i = socket(PF_INET6, SOCK_STREAM, 0);
@@ -329,7 +329,7 @@ static void stage_network_test(void)
 		int fd1 = socket(PF_INET6, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 		struct sockaddr_in6 saddr;
-		fprintf(profile_fp, "255-TOMOYO_VERBOSE=enabled\n");
+		fprintf(profile_fp, "255-REPORT_VIOLATION=enabled\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
@@ -368,7 +368,7 @@ static void stage_network_test(void)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		fprintf(profile_fp, "255-TOMOYO_VERBOSE=disabled\n");
+		fprintf(profile_fp, "255-REPORT_VIOLATION=disabled\n");
 	}
 
 }
@@ -376,7 +376,14 @@ static void stage_network_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(profile_fp, "255-MAC_FOR_NETWORK=enforcing\n");
+	set_profile(3, "network::inet_udp_bind");
+	set_profile(3, "network::inet_udp_connect");
+	set_profile(3, "network::inet_tcp_bind");
+	set_profile(3, "network::inet_tcp_listen");
+	set_profile(3, "network::inet_tcp_connect");
+	set_profile(3, "network::inet_tcp_accept");
+	set_profile(3, "network::inet_raw_bind");
+	set_profile(3, "network::inet_raw_connect");
 	fprintf(profile_fp, "255-MAX_REJECT_LOG=1024\n");
 	stage_network_test();
 	clear_status();

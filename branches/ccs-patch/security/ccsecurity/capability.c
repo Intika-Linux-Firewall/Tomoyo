@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -11,59 +11,6 @@
  */
 
 #include "internal.h"
-
-/**
- * ccs_cap2name - Convert capability operation to capability message.
- *
- * @operation: Type of operation.
- *
- * Returns the name of capability.
- */
-static const char *ccs_cap2name(const u8 operation)
-{
-	static const char *ccs_capability_name[CCS_MAX_CAPABILITY_INDEX] = {
-		[CCS_INET_STREAM_SOCKET_CREATE]  =
-		"socket(PF_INET, SOCK_STREAM)",
-		[CCS_INET_STREAM_SOCKET_LISTEN]  =
-		"listen(PF_INET, SOCK_STREAM)",
-		[CCS_INET_STREAM_SOCKET_CONNECT] =
-		"connect(PF_INET, SOCK_STREAM)",
-		[CCS_USE_INET_DGRAM_SOCKET]      =
-		"socket(PF_INET, SOCK_DGRAM)",
-		[CCS_USE_INET_RAW_SOCKET]        =
-		"socket(PF_INET, SOCK_RAW)",
-		[CCS_USE_ROUTE_SOCKET]           = "socket(PF_ROUTE)",
-		[CCS_USE_PACKET_SOCKET]          = "socket(PF_PACKET)",
-		[CCS_SYS_MOUNT]                  = "sys_mount()",
-		[CCS_SYS_UMOUNT]                 = "sys_umount()",
-		[CCS_SYS_REBOOT]                 = "sys_reboot()",
-		[CCS_SYS_CHROOT]                 = "sys_chroot()",
-		[CCS_SYS_KILL]                   = "sys_kill()",
-		[CCS_SYS_VHANGUP]                = "sys_vhangup()",
-		[CCS_SYS_SETTIME]                = "sys_settimeofday()",
-		[CCS_SYS_NICE]                   = "sys_nice()",
-		[CCS_SYS_SETHOSTNAME]            = "sys_sethostname()",
-		[CCS_USE_KERNEL_MODULE]          = "kernel_module",
-		[CCS_CREATE_FIFO]                = "mknod(FIFO)",
-		[CCS_CREATE_BLOCK_DEV]           = "mknod(BDEV)",
-		[CCS_CREATE_CHAR_DEV]            = "mknod(CDEV)",
-		[CCS_CREATE_UNIX_SOCKET]         = "mknod(SOCKET)",
-		[CCS_SYS_LINK]                   = "sys_link()",
-		[CCS_SYS_SYMLINK]                = "sys_symlink()",
-		[CCS_SYS_RENAME]                 = "sys_rename()",
-		[CCS_SYS_UNLINK]                 = "sys_unlink()",
-		[CCS_SYS_CHMOD]                  = "sys_chmod()",
-		[CCS_SYS_CHOWN]                  = "sys_chown()",
-		[CCS_SYS_IOCTL]                  = "sys_ioctl()",
-		[CCS_SYS_KEXEC_LOAD]             = "sys_kexec_load()",
-		[CCS_SYS_PIVOT_ROOT]             = "sys_pivot_root()",
-		[CCS_SYS_PTRACE]                 = "sys_ptrace()",
-		[CCS_CONCEAL_MOUNT]              = "conceal-mount",
-	};
-	if (operation < CCS_MAX_CAPABILITY_INDEX)
-		return ccs_capability_name[operation];
-	return NULL;
-}
 
 /**
  * ccs_audit_capability_log - Audit capability log.
@@ -77,10 +24,8 @@ static const char *ccs_cap2name(const u8 operation)
 static int ccs_audit_capability_log(struct ccs_request_info *r,
 				    const u8 operation, const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: %s denied for %s\n",
-		       ccs_get_msg(r->mode == 3), ccs_cap2name(operation),
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "capability %s", ccs_cap2keyword(operation));
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY
 				   "%s\n", ccs_cap2keyword(operation));
 }
@@ -98,36 +43,33 @@ static bool ccs_capable2(const u8 operation)
 {
 	struct ccs_request_info r;
 	struct ccs_acl_info *ptr;
-	bool is_enforce;
 	int error;
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation))
+	if (ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation)
+	    == CCS_MAC_MODE_DISABLED)
 		return true;
-	is_enforce = (r.mode == 3);
- retry:
-	error = -EPERM;
-	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
-		struct ccs_capability_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_CAPABILITY_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_capability_acl, head);
-		if (acl->operation != operation ||
-		    !ccs_condition(&r, ptr))
-			continue;
-		r.cond = ptr->cond;
-		error = 0;
-		break;
-	}
-	ccs_audit_capability_log(&r, operation, !error);
-	if (error)
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY
-					     "%s\n",
-					     ccs_cap2keyword(operation));
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
-		error = 0;
+	do {
+		error = -EPERM;
+		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+			struct ccs_capability_acl *acl;
+			if (ptr->is_deleted ||
+			    ptr->type != CCS_TYPE_CAPABILITY_ACL)
+				continue;
+			acl = container_of(ptr, struct ccs_capability_acl,
+					   head);
+			if (acl->operation != operation ||
+			    !ccs_condition(&r, ptr))
+				continue;
+			r.cond = ptr->cond;
+			error = 0;
+			break;
+		}
+		ccs_audit_capability_log(&r, operation, !error);
+		if (!error)
+			break;
+		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n",
+				       ccs_cap2keyword(operation));
+	} while (error == 1);
 	return !error;
 }
 

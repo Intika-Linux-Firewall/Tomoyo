@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -24,72 +24,149 @@ static const char *ccs_mode_4[4] = {
 	"disabled", "learning", "permissive", "enforcing"
 };
 
-static bool ccs_mac_keywords_used[CCS_MAX_MAC_INDEX +
-				  CCS_MAX_CAPABILITY_INDEX];
-
 static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
-				    CCS_MAX_CAPABILITY_INDEX] = {
-	[CCS_MAC_EXECUTE]    = "execute",
-	[CCS_MAC_OPEN]       = "open",
-	[CCS_MAC_CREATE]     = "create",
-	[CCS_MAC_UNLINK]     = "unlink",
-	[CCS_MAC_MKDIR]      = "mkdir",
-	[CCS_MAC_RMDIR]      = "rmdir",
-	[CCS_MAC_MKFIFO]     = "mkfifo",
-	[CCS_MAC_MKSOCK]     = "mksock",
-	[CCS_MAC_TRUNCATE]   = "truncate",
-	[CCS_MAC_SYMLINK]    = "symlink",
-	[CCS_MAC_REWRITE]    = "rewrite",
-	[CCS_MAC_MKBLOCK]    = "mkblock",
-	[CCS_MAC_MKCHAR]     = "mkchar",
-	[CCS_MAC_LINK]       = "link",
-	[CCS_MAC_RENAME]     = "rename",
-	[CCS_MAC_CHMOD]      = "chmod",
-	[CCS_MAC_CHOWN]      = "chown",
-	[CCS_MAC_CHGRP]      = "chgrp",
-	[CCS_MAC_IOCTL]      = "ioctl",
-	[CCS_MAC_CHROOT]     = "chroot",
-	[CCS_MAC_MOUNT]      = "mount",
-	[CCS_MAC_UMOUNT]     = "umount",
-	[CCS_MAC_PIVOT_ROOT] = "pivot_root",
-	[CCS_MAC_ENVIRON]    = "env",
-	[CCS_MAC_NETWORK]    = "network",
-	[CCS_MAC_SIGNAL]     = "signal",
+				    CCS_MAX_CAPABILITY_INDEX +
+				    CCS_MAX_MAC_CATEGORY_INDEX] = {
+	[CCS_MAC_FILE_EXECUTE]
+	= "file::execute",
+	[CCS_MAC_FILE_OPEN]
+	= "file::open",
+	[CCS_MAC_FILE_CREATE]
+	= "file::create",
+	[CCS_MAC_FILE_UNLINK]
+	= "file::unlink",
+	[CCS_MAC_FILE_MKDIR]
+	= "file::mkdir",
+	[CCS_MAC_FILE_RMDIR]
+	= "file::rmdir",
+	[CCS_MAC_FILE_MKFIFO]
+	= "file::mkfifo",
+	[CCS_MAC_FILE_MKSOCK]
+	= "file::mksock",
+	[CCS_MAC_FILE_TRUNCATE]
+	= "file::truncate",
+	[CCS_MAC_FILE_SYMLINK]
+	= "file::symlink",
+	[CCS_MAC_FILE_REWRITE]
+	= "file::rewrite",
+	[CCS_MAC_FILE_MKBLOCK]
+	= "file::mkblock",
+	[CCS_MAC_FILE_MKCHAR]
+	= "file::mkchar",
+	[CCS_MAC_FILE_LINK]
+	= "file::link",
+	[CCS_MAC_FILE_RENAME]
+	= "file::rename",
+	[CCS_MAC_FILE_CHMOD]
+	= "file::chmod",
+	[CCS_MAC_FILE_CHOWN]
+	= "file::chown",
+	[CCS_MAC_FILE_CHGRP]
+	= "file::chgrp",
+	[CCS_MAC_FILE_IOCTL]
+	= "file::ioctl",
+	[CCS_MAC_FILE_CHROOT]
+	= "file::chroot",
+	[CCS_MAC_FILE_MOUNT]
+	= "file::mount",
+	[CCS_MAC_FILE_UMOUNT]
+	= "file::umount",
+	[CCS_MAC_FILE_PIVOT_ROOT]
+	= "file::pivot_root",
+	[CCS_MAC_ENVIRON]
+	= "misc::env",
+	[CCS_MAC_NETWORK_UDP_BIND]
+	= "network::inet_udp_bind",
+	[CCS_MAC_NETWORK_UDP_CONNECT]
+	= "network::inet_udp_connect",
+	[CCS_MAC_NETWORK_TCP_BIND]
+	= "network::inet_tcp_bind",
+	[CCS_MAC_NETWORK_TCP_LISTEN]
+	= "network::inet_tcp_listen",
+	[CCS_MAC_NETWORK_TCP_CONNECT]
+	= "network::inet_tcp_connect",
+	[CCS_MAC_NETWORK_TCP_ACCEPT]
+	= "network::inet_tcp_accept",
+	[CCS_MAC_NETWORK_RAW_BIND]
+	= "network::inet_raw_bind",
+	[CCS_MAC_NETWORK_RAW_CONNECT]
+	= "network::inet_raw_connect",
+	[CCS_MAC_SIGNAL]
+	= "ipc::signal",
 	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CREATE]
-	= "inet_tcp_create",
+	= "capability::inet_tcp_create",
 	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_LISTEN]
-	= "inet_tcp_listen",
+	= "capability::inet_tcp_listen",
 	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CONNECT]
-	= "inet_tcp_connect",
-	[CCS_MAX_MAC_INDEX + CCS_USE_INET_DGRAM_SOCKET] = "use_inet_udp",
-	[CCS_MAX_MAC_INDEX + CCS_USE_INET_RAW_SOCKET]   = "use_inet_ip",
-	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]      = "use_route",
-	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]     = "use_packet",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_MOUNT]             = "SYS_MOUNT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_UMOUNT]            = "SYS_UMOUNT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]            = "SYS_REBOOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHROOT]            = "SYS_CHROOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_KILL]              = "SYS_KILL",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]           = "SYS_VHANGUP",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]           = "SYS_TIME",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]              = "SYS_NICE",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]       = "SYS_SETHOSTNAME",
-	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]     = "use_kernel_module",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_FIFO]           = "create_fifo",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_BLOCK_DEV]      = "create_block_dev",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_CHAR_DEV]       = "create_char_dev",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]    = "create_unix_socket",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_LINK]              = "SYS_LINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SYMLINK]           = "SYS_SYMLINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_RENAME]            = "SYS_RENAME",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_UNLINK]            = "SYS_UNLINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHMOD]             = "SYS_CHMOD",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHOWN]             = "SYS_CHOWN",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_IOCTL]             = "SYS_IOCTL",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]        = "SYS_KEXEC_LOAD",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_PIVOT_ROOT]        = "SYS_PIVOT_ROOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]            = "SYS_PTRACE",
-	[CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT]         = "conceal_mount"
+	= "capability::inet_tcp_connect",
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_DGRAM_SOCKET]
+	= "capability::use_inet_udp",
+	[CCS_MAX_MAC_INDEX + CCS_USE_INET_RAW_SOCKET]
+	= "capability::use_inet_ip",
+	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
+	= "capability::use_route",
+	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
+	= "capability::use_packet",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_MOUNT]
+	= "capability::SYS_MOUNT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UMOUNT]
+	= "capability::SYS_UMOUNT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]
+	= "capability::SYS_REBOOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHROOT]
+	= "capability::SYS_CHROOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KILL]
+	= "capability::SYS_KILL",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]
+	= "capability::SYS_VHANGUP",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]
+	= "capability::SYS_TIME",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_NICE]
+	= "capability::SYS_NICE",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SETHOSTNAME]
+	= "capability::SYS_SETHOSTNAME",
+	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]
+	= "capability::use_kernel_module",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_FIFO]
+	= "capability::create_fifo",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_BLOCK_DEV]
+	= "capability::create_block_dev",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_CHAR_DEV]
+	= "capability::create_char_dev",
+	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]
+	= "capability::create_unix_socket",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_LINK]
+	= "capability::SYS_LINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_SYMLINK]
+	= "capability::SYS_SYMLINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_RENAME]
+	= "capability::SYS_RENAME",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_UNLINK]
+	= "capability::SYS_UNLINK",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHMOD]
+	= "capability::SYS_CHMOD",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_CHOWN]
+	= "capability::SYS_CHOWN",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_IOCTL]
+	= "capability::SYS_IOCTL",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
+	= "capability::SYS_KEXEC_LOAD",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PIVOT_ROOT]
+	= "capability::SYS_PIVOT_ROOT",
+	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]
+	= "capability::SYS_PTRACE",
+	[CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT]
+	= "capability::conceal_mount",
+	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	 + CCS_MAC_CATEGORY_FILE] = "file",
+	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	 + CCS_MAC_CATEGORY_NETWORK] = "network",
+	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	 + CCS_MAC_CATEGORY_MISC] = "misc",
+	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	 + CCS_MAC_CATEGORY_IPC] = "ipc",
+	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	 + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
 };
 
 /* Table for profile. */
@@ -125,7 +202,7 @@ static bool ccs_manage_by_non_root;
 const char *ccs_cap2keyword(const u8 operation)
 {
 	return operation < CCS_MAX_CAPABILITY_INDEX
-		? ccs_mac_keywords[CCS_MAX_MAC_INDEX + operation] : NULL;
+		? ccs_mac_keywords[CCS_MAX_MAC_INDEX + operation] + 12 : NULL;
 }
 
 /**
@@ -195,6 +272,9 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 		ptr = entry;
 		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
 			ptr->value[i] = ccs_control_array[i].current_value;
+		ptr->default_config = CCS_MAC_MODE_DISABLED;
+		memset(ptr->config, CCS_MAC_MODE_USE_DEFAULT,
+		       sizeof(ptr->config));
 		mb(); /* Avoid out-of-order execution. */
 		ccs_profile_ptr[profile] = ptr;
 		entry = NULL;
@@ -216,8 +296,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	char *data = head->write_buf;
 	unsigned int i;
 	unsigned int value;
-	int index = -1;
 	int mode;
+	u8 config;
 	char *cp;
 	struct ccs_profile *ccs_profile;
 	i = simple_strtoul(data, &cp, 10);
@@ -244,33 +324,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_put_name(old_comment);
 		return 0;
 	}
-	if (!ccs_str_starts(&data, "MAC::"))
-		goto not_mac;
-	if (ccs_str_starts(&data, CCS_KEYWORD_CAPABILITY))
-		for (i = 0; i < CCS_MAX_CAPABILITY_INDEX; i++) {
-			if (strcmp(data,
-				   ccs_mac_keywords[CCS_MAX_MAC_INDEX + i]))
-				continue;
-			index = CCS_MAX_MAC_INDEX + i;
-			break;
-		}
-	else
-		for (i = 0; i < CCS_MAX_MAC_INDEX; i++) {
-			if (strcmp(data, ccs_mac_keywords[i]))
-				continue;
-			index = i;
-			break;
-		}
-	if (index < 0)
-		return -EINVAL;
-	ccs_mac_keywords_used[index] = 1;
-	ccs_profile->no_grant_log[index] = !!strstr(cp, "no_grant_log");
-	ccs_profile->no_reject_log[index] = !!strstr(cp, "no_reject_log");
-	for (mode = 0; mode < 4; mode++)
-		if (strstr(cp, ccs_mode_4[mode]))
-			ccs_profile->mac_mode[index] = mode;
-	return 0;
- not_mac:
 	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
 		if (strcmp(data, ccs_control_array[i].keyword))
 			continue;
@@ -290,7 +343,30 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_profile->value[i] = value;
 		return 0;
 	}
-	return -EINVAL;
+	config = 0;
+	if (strstr(cp, "no_grant_log"))
+		config |= CCS_MAC_MODE_NO_GRANT_LOG;
+	if (strstr(cp, "no_reject_log"))
+		config |= CCS_MAC_MODE_NO_REJECT_LOG;
+	for (mode = 3; mode >= 0; mode--)
+		if (strstr(cp, ccs_mode_4[mode]))
+			break;
+	if (mode < 0)
+		sscanf(cp, "%u", &mode);
+	if (mode < 0 || mode > 3)
+		return -EINVAL;
+	config |= mode;
+	if (!strcmp(data, "MAC"))
+		ccs_profile->default_config = config;
+	else if (ccs_str_starts(&data, "MAC::"))
+		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
+			if (strcmp(data, ccs_mac_keywords[i]))
+				continue;
+			ccs_profile->config[i] = config;
+			break;
+		}
+	return 0;
 }
 
 static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
@@ -298,17 +374,25 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
 	const int pos = head->read_avail;
 	int i;
 	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX; i++) {
-		if (!ccs_mac_keywords_used[i])
+	u8 config = ccs_profile->default_config;
+	if (!ccs_io_printf(head, "%u-MAC=%s %s %s\n", index,
+			   ccs_mode_4[config & 3],
+			   config & CCS_MAC_MODE_NO_GRANT_LOG ?
+			   "no_grant_log" : "",
+			   config & CCS_MAC_MODE_NO_REJECT_LOG ?
+			   "no_reject_log" : ""))
+		goto out;
+	for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+		     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
+		config = ccs_profile->config[i];
+		if (config == CCS_MAC_MODE_USE_DEFAULT)
 			continue;
-		if (!ccs_io_printf(head, "%u-MAC::%s%s=%s %s %s\n", index,
-				   i >= CCS_MAX_MAC_INDEX ?
-				   CCS_KEYWORD_CAPABILITY : "",
+		if (!ccs_io_printf(head, "%u-MAC::%s=%s %s %s\n", index,
 				   ccs_mac_keywords[i],
-				   ccs_mode_4[ccs_profile->mac_mode[i]],
-				   ccs_profile->no_grant_log[i] ? 
+				   ccs_mode_4[config & 3],
+				   config & CCS_MAC_MODE_NO_GRANT_LOG ?
 				   "no_grant_log" : "",
-				   ccs_profile->no_reject_log[i] ? 
+				   config & CCS_MAC_MODE_NO_REJECT_LOG ?
 				   "no_reject_log" : ""))
 			goto out;
 	}
@@ -322,15 +406,13 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
  * ccs_read_profile - Read profile table.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0.
  */
-static int ccs_read_profile(struct ccs_io_buffer *head)
+static void ccs_read_profile(struct ccs_io_buffer *head)
 {
 	static const int ccs_total = CCS_MAX_CONTROL_INDEX + 2;
 	int step;
 	if (head->read_eof)
-		return 0;
+		return;
 	for (step = head->read_step; step < CCS_MAX_PROFILES * ccs_total;
 	     step++) {
 		const u8 index = step / ccs_total;
@@ -371,7 +453,6 @@ static int ccs_read_profile(struct ccs_io_buffer *head)
 	}
 	if (step == CCS_MAX_PROFILES * ccs_total)
 		head->read_eof = true;
-	return 0;
 }
 
 /* The list for "struct ccs_policy_manager_entry". */
@@ -446,26 +527,23 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns 0.
- *
  * Caller holds ccs_read_lock().
  */
-static int ccs_read_manager_policy(struct ccs_io_buffer *head)
+static void ccs_read_manager_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	ccs_assert_read_lock();
 	if (head->read_eof)
-		return 0;
+		return;
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
 		struct ccs_policy_manager_entry *ptr;
 		ptr = list_entry(pos, struct ccs_policy_manager_entry, list);
 		if (ptr->is_deleted)
 			continue;
 		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
-			return 0;
+			return;
 	}
 	head->read_eof = true;
-	return 0;
 }
 
 /**
@@ -895,8 +973,8 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_acl(struct ccs_io_buffer *head,
-				      struct ccs_path_acl *ptr,
-				      const struct ccs_condition *cond)
+			       struct ccs_path_acl *ptr,
+			       const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
@@ -933,8 +1011,8 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
-				struct ccs_path_number3_acl *ptr,
-				const struct ccs_condition *cond)
+				       struct ccs_path_number3_acl *ptr,
+				       const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
@@ -970,8 +1048,8 @@ static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
-				      struct ccs_path2_acl *ptr,
-				      const struct ccs_condition *cond)
+				struct ccs_path2_acl *ptr,
+				const struct ccs_condition *cond)
 {
 	int pos;
 	u8 bit;
@@ -1412,17 +1490,15 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns 0.
- *
  * Caller holds ccs_read_lock().
  */
-static int ccs_read_domain_policy(struct ccs_io_buffer *head)
+static void ccs_read_domain_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *dpos;
 	struct list_head *apos;
 	ccs_assert_read_lock();
 	if (head->read_eof)
-		return 0;
+		return;
 	if (head->read_step == 0)
 		head->read_step = 1;
 	list_for_each_cookie(dpos, head->read_var1, &ccs_domain_list) {
@@ -1453,7 +1529,7 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 				   transition_failed,
 				   ignore_global_allow_read,
 				   ignore_global_allow_env))
-			return 0;
+			return;
 		head->read_step = 2;
  acl_loop:
 		if (head->read_step == 3)
@@ -1464,18 +1540,17 @@ static int ccs_read_domain_policy(struct ccs_io_buffer *head)
 			struct ccs_acl_info *ptr
 				= list_entry(apos, struct ccs_acl_info, list);
 			if (!ccs_print_entry(head, ptr))
-				return 0;
+				return;
 		}
 		head->read_step = 3;
  tail_mark:
 		if (!ccs_io_printf(head, "\n"))
-			return 0;
+			return;
 		head->read_step = 1;
 		if (head->read_single_domain)
 			break;
 	}
 	head->read_eof = true;
-	return 0;
 }
 
 /**
@@ -1516,8 +1591,6 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns list of profile number and domainname pairs.
- *
  * This is equivalent to doing
  *
  *     grep -A 1 '^<kernel>' /proc/ccs/domain_policy |
@@ -1527,12 +1600,12 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_read_domain_profile(struct ccs_io_buffer *head)
+static void ccs_read_domain_profile(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	ccs_assert_read_lock();
 	if (head->read_eof)
-		return 0;
+		return;
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
 		struct ccs_domain_info *domain;
 		domain = list_entry(pos, struct ccs_domain_info, list);
@@ -1540,10 +1613,9 @@ static int ccs_read_domain_profile(struct ccs_io_buffer *head)
 			continue;
 		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
 				   domain->domainname->name))
-			return 0;
+			return;
 	}
 	head->read_eof = true;
-	return 0;
 }
 
 /**
@@ -1570,7 +1642,7 @@ static int ccs_write_pid(struct ccs_io_buffer *head)
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_read_pid(struct ccs_io_buffer *head)
+static void ccs_read_pid(struct ccs_io_buffer *head)
 {
 	char *buf = head->write_buf;
 	bool task_info = false;
@@ -1581,9 +1653,9 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	ccs_assert_read_lock();
 	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
-		goto done; /* Do nothing if open(O_RDONLY). */
+		return; /* Do nothing if open(O_RDONLY). */
 	if (head->read_avail || head->read_eof)
-		goto done;
+		return;
 	head->read_eof = true;
 	if (ccs_str_starts(&buf, "info "))
 		task_info = true;
@@ -1596,7 +1668,7 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 	}
 	read_unlock(&tasklist_lock);
 	if (!domain)
-		goto done;
+		return;
 	if (!task_info)
 		ccs_io_printf(head, "%u %u %s", pid, domain->profile,
 			      domain->domainname->name);
@@ -1610,8 +1682,6 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 			      (u8) (ccs_flags >> 24),
 			      (u8) (ccs_flags >> 16),
 			      (u8) (ccs_flags >> 8));
- done:
-	return 0;
 }
 
 /**
@@ -1661,80 +1731,74 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
- * Returns 0 on success, -EINVAL otherwise.
- *
  * Caller holds ccs_read_lock().
  */
-static int ccs_read_exception_policy(struct ccs_io_buffer *head)
+static void ccs_read_exception_policy(struct ccs_io_buffer *head)
 {
 	ccs_assert_read_lock();
-	if (!head->read_eof) {
-		switch (head->read_step) {
-		case 0:
-			head->read_var2 = NULL;
-			head->read_step = 1;
-		case 1:
-			if (!ccs_read_domain_keeper_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 2;
-		case 2:
-			if (!ccs_read_globally_readable_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 3;
-		case 3:
-			if (!ccs_read_globally_usable_env_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 4;
-		case 4:
-			if (!ccs_read_domain_initializer_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 6;
-		case 6:
-			if (!ccs_read_aggregator_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 7;
-		case 7:
-			if (!ccs_read_file_pattern(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 8;
-		case 8:
-			if (!ccs_read_no_rewrite_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 9;
-		case 9:
-			if (!ccs_read_path_group_policy(head))
-				break;
-			head->read_var1 = NULL;
-			head->read_var2 = NULL;
-			head->read_step = 10;
-		case 10:
-			if (!ccs_read_number_group_policy(head))
-				break;
-			head->read_var1 = NULL;
-			head->read_var2 = NULL;
-			head->read_step = 11;
-		case 11:
-			if (!ccs_read_address_group_policy(head))
-				break;
-			head->read_var2 = NULL;
-			head->read_step = 12;
-		case 12:
-			if (!ccs_read_reserved_port_policy(head))
-				break;
-			head->read_eof = true;
+	if (head->read_eof)
+		return;
+	switch (head->read_step) {
+	case 0:
+		head->read_var2 = NULL;
+		head->read_step = 1;
+	case 1:
+		if (!ccs_read_domain_keeper_policy(head))
 			break;
-		default:
-			return -EINVAL;
-		}
+		head->read_var2 = NULL;
+		head->read_step = 2;
+	case 2:
+		if (!ccs_read_globally_readable_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 3;
+	case 3:
+		if (!ccs_read_globally_usable_env_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 4;
+	case 4:
+		if (!ccs_read_domain_initializer_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 6;
+	case 6:
+		if (!ccs_read_aggregator_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 7;
+	case 7:
+		if (!ccs_read_file_pattern(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 8;
+	case 8:
+		if (!ccs_read_no_rewrite_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 9;
+	case 9:
+		if (!ccs_read_path_group_policy(head))
+			break;
+		head->read_var1 = NULL;
+		head->read_var2 = NULL;
+		head->read_step = 10;
+	case 10:
+		if (!ccs_read_number_group_policy(head))
+			break;
+		head->read_var1 = NULL;
+		head->read_var2 = NULL;
+		head->read_step = 11;
+	case 11:
+		if (!ccs_read_address_group_policy(head))
+			break;
+		head->read_var2 = NULL;
+		head->read_step = 12;
+	case 12:
+		if (!ccs_read_reserved_port_policy(head))
+			break;
+		head->read_eof = true;
 	}
-	return 0;
 }
 
 /**
@@ -1890,7 +1954,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	switch (r->mode) {
 		char *buffer;
 		struct ccs_condition *cond;
-	case 1:
+	case CCS_MAC_MODE_LEARNING:
 		if (!ccs_domain_quota_ok(r))
 			return 0;
 		va_start(args, fmt);
@@ -1914,7 +1978,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		ccs_put_condition(cond);
 		kfree(buffer);
 		/* fall through */
-	case 2:
+	case CCS_MAC_MODE_PERMISSIVE:
 		return 0;
 	}
 	if (!atomic_read(&ccs_query_observers)) {
@@ -2041,17 +2105,15 @@ static int ccs_poll_query(struct file *file, poll_table *wait)
  * ccs_read_query - Read access requests which violated policy in enforcing mode.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0.
  */
-static int ccs_read_query(struct ccs_io_buffer *head)
+static void ccs_read_query(struct ccs_io_buffer *head)
 {
 	struct list_head *tmp;
 	int pos = 0;
 	int len = 0;
 	char *buf;
 	if (head->read_avail)
-		return 0;
+		return;
 	if (head->read_buf) {
 		kfree(head->read_buf);
 		head->read_buf = NULL;
@@ -2071,11 +2133,11 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	spin_unlock(&ccs_query_list_lock);
 	if (!len) {
 		head->read_step = 0;
-		return 0;
+		return;
 	}
 	buf = kzalloc(len, GFP_KERNEL);
 	if (!buf)
-		return 0;
+		return;
 	pos = 0;
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
@@ -2102,7 +2164,6 @@ static int ccs_read_query(struct ccs_io_buffer *head)
 	} else {
 		kfree(buf);
 	}
-	return 0;
 }
 
 /**
@@ -2145,38 +2206,30 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
  * ccs_read_version: Get version.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns version information.
  */
-static int ccs_read_version(struct ccs_io_buffer *head)
+static void ccs_read_version(struct ccs_io_buffer *head)
 {
-	if (!head->read_eof) {
-		ccs_io_printf(head, "1.7.0-pre");
-		head->read_eof = true;
-	}
-	return 0;
+	if (head->read_eof)
+		return;
+	ccs_io_printf(head, "1.7.0-pre");
+	head->read_eof = true;
 }
 
 /**
  * ccs_read_self_domain - Get the current process's domainname.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns the current process's domainname.
  */
-static int ccs_read_self_domain(struct ccs_io_buffer *head)
+static void ccs_read_self_domain(struct ccs_io_buffer *head)
 {
-	if (!head->read_eof) {
-		/*
-		 * ccs_current_domain()->domainname != NULL
-		 * because every process belongs to a domain and
-		 * the domain's name cannot be NULL.
-		 */
-		ccs_io_printf(head, "%s",
-			      ccs_current_domain()->domainname->name);
-		head->read_eof = true;
-	}
-	return 0;
+	if (head->read_eof)
+		return;
+	/*
+	 * ccs_current_domain()->domainname != NULL because every process
+	 * belongs to a domain and the domain's name cannot be NULL.
+	 */
+	ccs_io_printf(head, "%s", ccs_current_domain()->domainname->name);
+	head->read_eof = true;
 }
 
 /**
@@ -2347,22 +2400,22 @@ int ccs_read_control(struct file *file, char __user *buffer,
 		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
- retry:
-	/* Call the policy handler. */
-	len = head->read(head);
-	if (len < 0)
-		goto out;
-	/* Write to buffer. */
-	len = head->read_avail;
-	if (!len && !head->poll && !head->read_eof) {
-		const int len = head->readbuf_size * 2;
+	while (1) {
+		/* Call the policy handler. */
+		head->read(head);
+		/* Write to buffer. */
+		len = head->read_avail;
+		if (len || head->poll || head->read_eof)
+			break;
+		len = head->readbuf_size * 2;
 		cp = kzalloc(len, GFP_KERNEL);
-		if (cp) {
-			kfree(head->read_buf);
-			head->read_buf = cp;
-			head->readbuf_size = len;
-			goto retry;
+		if (!cp) {
+			len = -ENOMEM;
+			goto out;
 		}
+		kfree(head->read_buf);
+		head->read_buf = cp;
+		head->readbuf_size = len;
 	}
 	if (len > buffer_len)
 		len = buffer_len;

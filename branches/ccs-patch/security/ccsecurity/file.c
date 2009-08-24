@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -47,36 +47,36 @@ static const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
 };
 
 static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
-	[CCS_TYPE_READ_WRITE] = CCS_MAC_OPEN,
-	[CCS_TYPE_EXECUTE]    = CCS_MAC_EXECUTE,
-	[CCS_TYPE_READ]       = CCS_MAC_OPEN,
-	[CCS_TYPE_WRITE]      = CCS_MAC_OPEN,
-	[CCS_TYPE_UNLINK]     = CCS_MAC_UNLINK,
-	[CCS_TYPE_RMDIR]      = CCS_MAC_RMDIR,
-	[CCS_TYPE_TRUNCATE]   = CCS_MAC_TRUNCATE,
-	[CCS_TYPE_SYMLINK]    = CCS_MAC_SYMLINK,
-	[CCS_TYPE_REWRITE]    = CCS_MAC_REWRITE,
+	[CCS_TYPE_READ_WRITE] = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
+	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
+	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
+	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
+	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
+	[CCS_TYPE_REWRITE]    = CCS_MAC_FILE_REWRITE,
 };
 
 static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
-	[CCS_TYPE_MKBLOCK] = CCS_MAC_MKBLOCK,
-	[CCS_TYPE_MKCHAR]  = CCS_MAC_MKCHAR,
+	[CCS_TYPE_MKBLOCK] = CCS_MAC_FILE_MKBLOCK,
+	[CCS_TYPE_MKCHAR]  = CCS_MAC_FILE_MKCHAR,
 };
 
 static const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
-	[CCS_TYPE_LINK]   = CCS_MAC_LINK,
-	[CCS_TYPE_RENAME] = CCS_MAC_RENAME,
+	[CCS_TYPE_LINK]   = CCS_MAC_FILE_LINK,
+	[CCS_TYPE_RENAME] = CCS_MAC_FILE_RENAME,
 };
 
 static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
-	[CCS_TYPE_CREATE] = CCS_MAC_CREATE,
-	[CCS_TYPE_MKDIR]  = CCS_MAC_MKDIR,
-	[CCS_TYPE_MKFIFO] = CCS_MAC_MKFIFO,
-	[CCS_TYPE_MKSOCK] = CCS_MAC_MKSOCK,
-	[CCS_TYPE_IOCTL]  = CCS_MAC_IOCTL,
-	[CCS_TYPE_CHMOD]  = CCS_MAC_CHMOD,
-	[CCS_TYPE_CHOWN]  = CCS_MAC_CHOWN,
-	[CCS_TYPE_CHGRP]  = CCS_MAC_CHGRP,
+	[CCS_TYPE_CREATE] = CCS_MAC_FILE_CREATE,
+	[CCS_TYPE_MKDIR]  = CCS_MAC_FILE_MKDIR,
+	[CCS_TYPE_MKFIFO] = CCS_MAC_FILE_MKFIFO,
+	[CCS_TYPE_MKSOCK] = CCS_MAC_FILE_MKSOCK,
+	[CCS_TYPE_IOCTL]  = CCS_MAC_FILE_IOCTL,
+	[CCS_TYPE_CHMOD]  = CCS_MAC_FILE_CHMOD,
+	[CCS_TYPE_CHOWN]  = CCS_MAC_FILE_CHOWN,
+	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
 };
 
 
@@ -207,7 +207,7 @@ static bool ccs_strendswith(const char *name, const char *tail)
 static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
 			     struct vfsmount *mnt)
 {
-	struct path path = { mnt, dentry }; 
+	struct path path = { mnt, dentry };
 	buf->name = ccs_realpath_from_path(&path);
 	if (buf->name) {
 		ccs_fill_path_info(buf);
@@ -217,9 +217,9 @@ static bool ccs_get_realpath(struct ccs_path_info *buf, struct dentry *dentry,
 }
 
 static int ccs_update_path_acl(const u8 type, const char *filename,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete);
+			       struct ccs_domain_info * const domain,
+			       struct ccs_condition *condition,
+			       const bool is_delete);
 
 /**
  * ccs_audit_path_log - Audit single path request log.
@@ -232,14 +232,11 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_audit_path_log(struct ccs_request_info *r,
-				     const char *operation,
-				     const char *filename,
-				     const bool is_granted)
+			      const char *operation, const char *filename,
+			      const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Access '%s %s' denied "
-		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
-		       filename, ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "%s %s", operation, filename);
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s\n", operation,
 				   filename);
 }
@@ -256,16 +253,11 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_audit_path2_log(struct ccs_request_info *r,
-				     const char *operation,
-				     const char *filename1,
-				     const char *filename2,
-				     const bool is_granted)
+			       const char *operation, const char *filename1,
+			       const char *filename2, const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Access '%s %s %s' "
-		       "denied for %s\n", ccs_get_msg(r->mode == 3),
-		       operation, filename1, filename2,
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "%s %s %s", operation, filename1, filename2);
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
 				   operation, filename1, filename2);
 }
@@ -291,11 +283,9 @@ static int ccs_audit_path_number3_log(struct ccs_request_info *r,
 				      const unsigned int minor,
 				      const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Access '%s %s 0%o %u %u' denied "
-		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
-		       filename, mode, major, minor,
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "%s %s 0%o %u %u", operation, filename, mode,
+			     major, minor);
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s 0%o %u %u\n",
 				   operation, filename, mode, major, minor);
 }
@@ -316,10 +306,8 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 				     const char *filename, const char *value,
 				     const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: Access '%s %s %s' denied "
-		       "for %s\n", ccs_get_msg(r->mode == 3), operation,
-		       filename, value, ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "%s %s %s", operation, filename, value);
 	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
 				   operation, filename, value);
 }
@@ -604,7 +592,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 	bool done = true;
 	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
-			      &ccs_no_rewrite_list) {
+			     &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
 		ptr = list_entry(pos, struct ccs_no_rewrite_entry, list);
 		if (ptr->is_deleted)
@@ -651,13 +639,13 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
 		return 0;
 	if (perm & 4)
 		ccs_update_path_acl(CCS_TYPE_READ, filename, domain,
-					   condition, is_delete);
+				    condition, is_delete);
 	if (perm & 2)
 		ccs_update_path_acl(CCS_TYPE_WRITE, filename,
-					   domain, condition, is_delete);
+				    domain, condition, is_delete);
 	if (perm & 1)
 		ccs_update_path_acl(CCS_TYPE_EXECUTE, filename,
-					   domain, condition, is_delete);
+				    domain, condition, is_delete);
 	return 0;
 }
 
@@ -674,9 +662,9 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
  * Caller holds ccs_read_lock().
  */
 static int ccs_path_acl(struct ccs_request_info *r,
-				     const struct ccs_path_info *filename,
-				     const u16 perm,
-				     const bool may_use_pattern)
+			const struct ccs_path_info *filename,
+			const u16 perm,
+			const bool may_use_pattern)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
@@ -729,9 +717,9 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
 			continue;
 		acl = container_of(ptr, struct ccs_path_number3_acl, head);
 		if (!ccs_compare_number_union(mode, &acl->mode))
-				continue;
+			continue;
 		if (!ccs_compare_number_union(major, &acl->major))
-				continue;
+			continue;
 		if (!ccs_compare_number_union(minor, &acl->minor))
 			continue;
 		if (!(acl->perm & perm) || !ccs_condition(r, ptr))
@@ -757,10 +745,8 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
  * Caller holds ccs_read_lock().
  */
 static int ccs_file_perm(struct ccs_request_info *r,
-			       const struct ccs_path_info *filename,
-			       const u8 mode)
+			 const struct ccs_path_info *filename, const u8 mode)
 {
-	const bool is_enforce = (r->mode == 3);
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
@@ -781,19 +767,23 @@ static int ccs_file_perm(struct ccs_request_info *r,
 		perm = 1 << CCS_TYPE_EXECUTE;
 	} else
 		BUG();
- retry:
-	error = ccs_path_acl(r, filename, perm, mode != 1);
-	if (error && mode == 4 && !r->domain->ignore_global_allow_read
-	    && ccs_is_globally_readable_file(filename))
-		error = 0;
-	ccs_audit_path_log(r, msg, filename->name, !error);
-	if (error)
+	do {
+		error = ccs_path_acl(r, filename, perm, mode != 1);
+		if (error && mode == 4 && !r->domain->ignore_global_allow_read
+		    && ccs_is_globally_readable_file(filename))
+			error = 0;
+		ccs_audit_path_log(r, msg, filename->name, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(r, "allow_%s %s\n", msg,
-					     mode == 1 ? filename->name :
-					     ccs_file_pattern(filename));
-	if (error == 1 && !r->ee)
-		goto retry;
-	if (!is_enforce)
+				       mode == 1 ? filename->name :
+				       ccs_file_pattern(filename));
+		/*
+		 * Do not retry for execute request, for aggregator may have
+		 * changed.
+		 */
+	} while (error == 1 && !r->ee);
+	if (r->mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -877,9 +867,9 @@ static inline int ccs_update_execute_handler(const u8 type,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_update_path_acl(const u8 type, const char *filename,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete)
+			       struct ccs_domain_info * const domain,
+			       struct ccs_condition *condition,
+			       const bool is_delete)
 {
 	static const u16 ccs_rw_mask =
 		(1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE);
@@ -1026,12 +1016,12 @@ static inline int ccs_update_path_number3_acl(const u8 type,
  * Returns 0 on success, negative value otherwise.
  */
 static inline int ccs_update_path2_acl(const u8 type,
-					     const char *filename1,
-					     const char *filename2,
-					     struct ccs_domain_info * const
-					     domain,
-					     struct ccs_condition *condition,
-					     const bool is_delete)
+				       const char *filename1,
+				       const char *filename2,
+				       struct ccs_domain_info * const
+				       domain,
+				       struct ccs_condition *condition,
+				       const bool is_delete)
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
@@ -1095,8 +1085,8 @@ static inline int ccs_update_path2_acl(const u8 type,
  * Caller holds ccs_read_lock().
  */
 static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
-				     const struct ccs_path_info *filename1,
-				     const struct ccs_path_info *filename2)
+			 const struct ccs_path_info *filename1,
+			 const struct ccs_path_info *filename2)
 {
 	const struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
@@ -1132,29 +1122,27 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
  * Caller holds ccs_read_lock().
  */
 static int ccs_path_permission(struct ccs_request_info *r,
-					    u8 operation,
-					    const struct ccs_path_info *
-					    filename)
+			       u8 operation,
+			       const struct ccs_path_info *
+			       filename)
 {
 	const char *msg;
 	int error;
-	bool is_enforce;
- repeat:
-	r->mode = ccs_profile_ptr[r->profile]->mac_mode[ccs_p2mac[operation]];
 	ccs_assert_read_lock();
-	if (!r->mode)
+ repeat:
+	r->mode = ccs_get_mode(r->profile, ccs_p2mac[operation]);
+	if (r->mode == CCS_MAC_MODE_DISABLED)
 		return 0;
-	is_enforce = (r->mode == 3);
- retry:
-	error = ccs_path_acl(r, filename, 1 << operation, 1);
-	msg = ccs_path2keyword(operation);
-	ccs_audit_path_log(r, msg, filename->name, !error);
-	if (error)
+	do {
+		error = ccs_path_acl(r, filename, 1 << operation, 1);
+		msg = ccs_path2keyword(operation);
+		ccs_audit_path_log(r, msg, filename->name, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(r, "allow_%s %s\n", msg,
-					     ccs_file_pattern(filename));
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+				       ccs_file_pattern(filename));
+	} while (error == 1);
+	if (r->mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	/*
 	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
@@ -1190,24 +1178,23 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 {
 	int error;
 	const char *msg = ccs_path_number32keyword(operation);
-	const bool is_enforce = (r->mode == 3);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
 	ccs_assert_read_lock();
 	if (!r->mode)
 		return 0;
- retry:
-	error = ccs_path_number3_acl(r, filename, 1 << operation, mode, major,
-				     minor);
-	ccs_audit_path_number3_log(r, msg, filename->name, mode, major, minor,
-				   !error);
-	if (error)
+	do {
+		error = ccs_path_number3_acl(r, filename, 1 << operation, mode,
+					     major, minor);
+		ccs_audit_path_number3_log(r, msg, filename->name, mode, major,
+					   minor, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(r, "allow_%s %s 0%o %u %u\n", msg,
 				       ccs_file_pattern(filename), mode,
 				       major, minor);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+	} while (error == 1);
+	if (r->mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1223,12 +1210,10 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
  * Caller holds ccs_read_lock().
  */
 int ccs_exec_perm(struct ccs_request_info *r,
-			const struct ccs_path_info *filename)
+		  const struct ccs_path_info *filename)
 {
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep())
-		return 0;
-	if (!r->mode)
+	if (r->mode == CCS_MAC_MODE_DISABLED)
 		return 0;
 	return ccs_file_perm(r, filename, 1);
 }
@@ -1243,7 +1228,7 @@ int ccs_exec_perm(struct ccs_request_info *r,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-			      const int flag)
+			const int flag)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1260,8 +1245,6 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	    !(current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
 		return 0;
 #endif
-	if (!ccs_can_sleep())
-		return 0;
 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 		return 0;
 	buf.name = NULL;
@@ -1275,7 +1258,8 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 * opened for append mode or the filename is truncated at open time.
 	 */
 	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
-	    && ccs_init_request_info(&r, domain, CCS_MAC_REWRITE)) {
+	    && ccs_init_request_info(&r, domain, CCS_MAC_FILE_REWRITE)
+	    != CCS_MAC_MODE_DISABLED) {
 		if (!ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
@@ -1287,7 +1271,8 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		}
 	}
 	if (!error && acc_mode &&
-	    ccs_init_request_info(&r, domain, CCS_MAC_OPEN)) {
+	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_OPEN)
+	    != CCS_MAC_MODE_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
@@ -1296,9 +1281,10 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = ccs_file_perm(&r, &buf, acc_mode);
 	}
 	if (!error && (flag & O_TRUNC) &&
-	    ccs_init_request_info(&r, domain, CCS_MAC_TRUNCATE)) {
+	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_TRUNCATE)
+	    != CCS_MAC_MODE_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
-			error = -ENOMEM; 
+			error = -ENOMEM;
 			goto out;
 		}
 		r.obj = &obj;
@@ -1307,7 +1293,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != 3)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1323,7 +1309,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_path_perm(const u8 operation, struct dentry *dentry,
-				struct vfsmount *mnt, const char *target)
+			 struct vfsmount *mnt, const char *target)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1335,16 +1321,15 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
 	int idx;
-	if (!ccs_can_sleep())
-		return 0;
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || !ccs_init_request_info(&r, NULL, ccs_p2mac[operation])) {
+	if (!mnt || ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == 3);
+	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
@@ -1394,18 +1379,14 @@ static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
 	};
 	int error = -ENOMEM;
 	struct ccs_path_info buf;
-	bool is_enforce = false;
 	int idx;
-	if (!ccs_can_sleep())
-		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt ||
-	    !ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])) {
+	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == 3);
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
@@ -1413,7 +1394,7 @@ static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (!is_enforce)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1436,16 +1417,15 @@ int ccs_rewrite_permission(struct file *filp)
 	bool is_enforce = false;
 	struct ccs_path_info buf;
 	int idx;
-	if (!ccs_can_sleep())
-		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (!filp->f_vfsmnt ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_REWRITE)) {
+	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == 3);
+	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
 	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
 	if (!ccs_is_no_rewrite_file(&buf)) {
@@ -1473,7 +1453,7 @@ int ccs_rewrite_permission(struct file *filp)
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
-				struct dentry *dentry2, struct vfsmount *mnt)
+			  struct dentry *dentry2, struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
@@ -1488,16 +1468,15 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 		.path2.mnt = mnt
 	};
 	int idx;
-	if (!ccs_can_sleep())
-		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || !ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])) {
+	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == 3);
+	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
 	if (!ccs_get_realpath(&buf1, dentry1, mnt) ||
 	    !ccs_get_realpath(&buf2, dentry2, mnt))
 		goto out;
@@ -1509,15 +1488,15 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 		}
 	}
 	r.obj = &obj;
- retry:
-	error = ccs_path2_acl(&r, operation, &buf1, &buf2);
-	ccs_audit_path2_log(&r, msg, buf1.name, buf2.name, !error);
-	if (error)
+	do {
+		error = ccs_path2_acl(&r, operation, &buf1, &buf2);
+		ccs_audit_path2_log(&r, msg, buf1.name, buf2.name, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(&r, "allow_%s %s %s\n", msg,
-					     ccs_file_pattern(&buf1),
-					     ccs_file_pattern(&buf2));
-	if (error == 1)
-		goto retry;
+				       ccs_file_pattern(&buf1),
+				       ccs_file_pattern(&buf2));
+	} while (error == 1);
  out:
 	kfree(buf1.name);
 	kfree(buf2.name);
@@ -1612,8 +1591,8 @@ static inline int ccs_update_path_number_acl(const u8 type,
  * Caller holds ccs_read_lock().
  */
 static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
-				     const struct ccs_path_info *filename,
-				     const unsigned long number)
+			       const struct ccs_path_info *filename,
+			       const unsigned long number)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
@@ -1652,7 +1631,6 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 				 const struct ccs_path_info *filename,
 				 const unsigned long number)
 {
-	const bool is_enforce = (r->mode == 3);
 	char buffer[64];
 	int error;
 	u8 radix;
@@ -1676,16 +1654,16 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 		break;
 	}
 	ccs_print_ulong(buffer, sizeof(buffer), number, radix);
- retry:
-	error = ccs_path_number_acl(r, type, filename, number);
-	ccs_audit_path_number_log(r, msg, filename->name, buffer, !error);
-	if (!error)
-		return 0;
-	error = ccs_supervisor(r, "allow_%s %s %s\n", msg,
-			       ccs_file_pattern(filename), buffer);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+	do {
+		error = ccs_path_number_acl(r, type, filename, number);
+		ccs_audit_path_number_log(r, msg, filename->name, buffer,
+					  !error);
+		if (!error)
+			return 0;
+		error = ccs_supervisor(r, "allow_%s %s %s\n", msg,
+				       ccs_file_pattern(filename), buffer);
+	} while (error == 1);
+	if (r->mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1710,11 +1688,12 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 	int error = -ENOMEM;
 	struct ccs_path_info buf;
 	int idx;
-	if (!ccs_can_sleep() || !vfsmnt || !dentry)
+	if (!vfsmnt || !dentry)
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (!ccs_init_request_info(&r, NULL, ccs_pn2mac[type])) {
+	if (ccs_init_request_info(&r, NULL, ccs_pn2mac[type])
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
@@ -1727,7 +1706,7 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != 3)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1742,7 +1721,7 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
  * Returns 0 on success, negative value otherwise.
  */
 int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
-			       unsigned long arg)
+			 unsigned long arg)
 {
 	return ccs_path_number_perm(CCS_TYPE_IOCTL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
@@ -2364,18 +2343,18 @@ int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
 
 /* Permission checks for vfs_rmdir(). */
 int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
-			       struct vfsmount *mnt)
+			 struct vfsmount *mnt)
 {
 	int error = ccs_pre_vfs_rmdir(dir, dentry);
 	if (!error)
 		error = ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt,
-					     NULL);
+				      NULL);
 	return error;
 }
 
 /* Permission checks for vfs_unlink(). */
 int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
-				struct vfsmount *mnt)
+			  struct vfsmount *mnt)
 {
 	int error;
 	if (!ccs_capable(CCS_SYS_UNLINK))
@@ -2383,13 +2362,13 @@ int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 	error = ccs_pre_vfs_unlink(dir, dentry);
 	if (!error)
 		error = ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt,
-					     NULL);
+				      NULL);
 	return error;
 }
 
 /* Permission checks for vfs_symlink(). */
 int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
-				 struct vfsmount *mnt, char *from)
+			   struct vfsmount *mnt, char *from)
 {
 	int error;
 	if (!ccs_capable(CCS_SYS_SYMLINK))
@@ -2397,23 +2376,23 @@ int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 	error = ccs_pre_vfs_symlink(dir, dentry);
 	if (!error)
 		error = ccs_path_perm(CCS_TYPE_SYMLINK, dentry, mnt,
-					     from);
+				      from);
 	return error;
 }
 
 /* Permission checks for notify_change(). */
 int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-				  loff_t length, unsigned int time_attrs)
+			    loff_t length, unsigned int time_attrs)
 {
 	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */
 int ccs_rename_permission(struct inode *old_dir,
-				struct dentry *old_dentry,
-				struct inode *new_dir,
-				struct dentry *new_dentry,
-				struct vfsmount *mnt)
+			  struct dentry *old_dentry,
+			  struct inode *new_dir,
+			  struct dentry *new_dentry,
+			  struct vfsmount *mnt)
 {
 	int error;
 	if (!ccs_capable(CCS_SYS_RENAME))
@@ -2421,13 +2400,13 @@ int ccs_rename_permission(struct inode *old_dir,
 	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (!error)
 		error = ccs_path2_perm(CCS_TYPE_RENAME, old_dentry,
-					     new_dentry, mnt);
+				       new_dentry, mnt);
 	return error;
 }
 
 /* Permission checks for vfs_link(). */
 int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-			      struct dentry *new_dentry, struct vfsmount *mnt)
+			struct dentry *new_dentry, struct vfsmount *mnt)
 {
 	int error;
 	if (!ccs_capable(CCS_SYS_LINK))
@@ -2435,7 +2414,7 @@ int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
 	if (!error)
 		error = ccs_path2_perm(CCS_TYPE_LINK, old_dentry,
-						 new_dentry, mnt);
+				       new_dentry, mnt);
 	return error;
 }
 
@@ -2477,10 +2456,9 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		op |= 002;
 	if (!op) /* Neither read nor write */
 		return 0;
-	if (!ccs_can_sleep())
-		return 0;
 	idx = ccs_read_lock();
-	if (!ccs_init_request_info(&r, NULL, CCS_MAC_OPEN)) {
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_OPEN)
+	    == CCS_MAC_MODE_DISABLED) {
 		error = 0;
 		goto out;
 	}
@@ -2520,7 +2498,6 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 				goto out;
 			buffer[pos++] = '/';
 			memmove(buffer + pos, cp, len + 1);
-			
 		} else {
 			/* Assume nobody assigns "=\$=" for procname. */
 			snprintf(buffer + pos, PAGE_SIZE - pos - 1,

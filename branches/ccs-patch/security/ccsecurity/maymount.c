@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -44,8 +44,8 @@
  * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
  */
 static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
-				    struct vfsmount *vfsmnt,
-				    struct dentry *dentry)
+			      struct vfsmount *vfsmnt,
+			      struct dentry *dentry)
 {
 	while (1) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
@@ -88,9 +88,10 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 #else
 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 #endif
-	if (!namespace || !ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL,
-				   CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT))
+	if (!namespace ||
+	    ccs_init_request_info(&r, NULL,
+				  CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
 	found = false;
 	list_for_each(p, &namespace->list) {

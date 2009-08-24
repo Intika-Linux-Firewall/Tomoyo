@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -31,10 +31,8 @@
 static int ccs_audit_chroot_log(struct ccs_request_info *r,
 				const char *root, const bool is_granted)
 {
-	if (!is_granted && ccs_verbose_mode(r->domain))
-		printk(KERN_WARNING "%s: chroot %s denied for %s\n",
-		       ccs_get_msg(r->mode == 3), root,
-		       ccs_get_last_name(r->domain));
+	if (!is_granted)
+		ccs_warn_log(r, "chroot %s", root);
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CHROOT
 				   "%s\n", root);
 }
@@ -54,25 +52,25 @@ static int ccs_chroot_acl(struct path *path)
 	int error;
 	struct ccs_path_info dir;
 	char *root_name;
-	bool is_enforce;
 	struct ccs_obj_info obj = {
 		.path1 = *path
 	};
 	ccs_assert_read_lock();
-	if (!ccs_can_sleep() ||
-	    !ccs_init_request_info(&r, NULL, CCS_MAC_CHROOT))
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_CHROOT)
+	    == CCS_MAC_MODE_DISABLED)
 		return 0;
-	is_enforce = (r.mode == 3);
 	r.obj = &obj;
- retry:
-	error = -EPERM;
+	error = -ENOMEM;
 	root_name = ccs_realpath_from_path(path);
 	if (!root_name)
 		goto out;
 	dir.name = root_name;
 	ccs_fill_path_info(&dir);
-	if (dir.is_dir) {
+	if (!dir.is_dir)
+		goto out;
+	do {
 		struct ccs_acl_info *ptr;
+		error = -EPERM;
 		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
 			struct ccs_chroot_acl *acl;
 			if (ptr->is_deleted ||
@@ -87,16 +85,15 @@ static int ccs_chroot_acl(struct path *path)
 			error = 0;
 			break;
 		}
-	}
-	ccs_audit_chroot_log(&r, root_name, !error);
-	if (error)
+		ccs_audit_chroot_log(&r, root_name, !error);
+		if (!error)
+			break;
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CHROOT
-					     "%s\n", ccs_file_pattern(&dir));
+				       "%s\n", ccs_file_pattern(&dir));
+	} while (error == 1);
  out:
 	kfree(root_name);
-	if (error == 1)
-		goto retry;
-	if (!is_enforce)
+	if (r.mode != CCS_MAC_MODE_ENFORCING)
 		error = 0;
 	return error;
 }

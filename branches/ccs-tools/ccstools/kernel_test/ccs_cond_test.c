@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/08
+ * Version: 1.7.0-pre   2009/08/24
  *
  */
 #include "include.h"
@@ -16,9 +16,9 @@ static void try_open(const char *policy, const char *file, const int mode,
 	int policy_found = 0;
 	int err = 0;
 	memset(buffer, 0, sizeof(buffer));
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
+	set_profile(0, "file::open");
 	fp = fopen(proc_policy_domain_policy, "r+");
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	set_profile(3, "file::open");
 	printf("%s: ", policy);
 	fflush(stdout);
 	fprintf(domain_fp, "%s\n", policy);
@@ -303,12 +303,56 @@ int main(int argc, char *argv[])
 	ccs_test_init();
 	fprintf(domain_fp, "ignore_global_allow_read\n");
 	fprintf(domain_fp, "allow_read/write %s\n", proc_policy_domain_policy);
-	fprintf(profile_fp, "255-MAC_FOR_FILE=enforcing\n");
+	set_profile(3, "file::execute");
+	set_profile(3, "file::open");
+	set_profile(3, "file::create");
+	set_profile(3, "file::unlink");
+	set_profile(3, "file::mkdir");
+	set_profile(3, "file::rmdir");
+	set_profile(3, "file::mkfifo");
+	set_profile(3, "file::mksock");
+	set_profile(3, "file::truncate");
+	set_profile(3, "file::symlink");
+	set_profile(3, "file::rewrite");
+	set_profile(3, "file::mkblock");
+	set_profile(3, "file::mkchar");
+	set_profile(3, "file::link");
+	set_profile(3, "file::rename");
+	set_profile(3, "file::chmod");
+	set_profile(3, "file::chown");
+	set_profile(3, "file::chgrp");
+	set_profile(3, "file::ioctl");
+	set_profile(3, "file::chroot");
+	set_profile(3, "file::mount");
+	set_profile(3, "file::umount");
+	set_profile(3, "file::pivot_root");
 	stage_open_test();
-	fprintf(profile_fp, "255-MAC_FOR_FILE=disabled\n");
-	fprintf(profile_fp, "255-MAC_FOR_SIGNAL=enforcing\n");
+	set_profile(0, "file::execute");
+	set_profile(0, "file::open");
+	set_profile(0, "file::create");
+	set_profile(0, "file::unlink");
+	set_profile(0, "file::mkdir");
+	set_profile(0, "file::rmdir");
+	set_profile(0, "file::mkfifo");
+	set_profile(0, "file::mksock");
+	set_profile(0, "file::truncate");
+	set_profile(0, "file::symlink");
+	set_profile(0, "file::rewrite");
+	set_profile(0, "file::mkblock");
+	set_profile(0, "file::mkchar");
+	set_profile(0, "file::link");
+	set_profile(0, "file::rename");
+	set_profile(0, "file::chmod");
+	set_profile(0, "file::chown");
+	set_profile(0, "file::chgrp");
+	set_profile(0, "file::ioctl");
+	set_profile(0, "file::chroot");
+	set_profile(0, "file::mount");
+	set_profile(0, "file::umount");
+	set_profile(0, "file::pivot_root");
+	set_profile(3, "ipc::signal");
 	stage_signal_test();
-	fprintf(profile_fp, "255-MAC_FOR_SIGNAL=disabled\n");
+	set_profile(0, "ipc::signal");
 	clear_status();
 	return 0;
 }
