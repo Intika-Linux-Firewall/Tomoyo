@@ -971,11 +971,8 @@ static inline int ccs_memcmp(void *a, void *b, const u8 offset, const u8 size)
 		      size - offset);
 }
 
-/* Lock for protecting policy. */
 extern struct mutex ccs_policy_lock;
-/* A linked list of domains. */
 extern struct list_head ccs_domain_list;
-
 extern struct list_head ccs_address_group_list;
 extern struct list_head ccs_globally_readable_list;
 extern struct list_head ccs_path_group_list;
@@ -989,11 +986,8 @@ extern struct list_head ccs_aggregator_list;
 extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
 
-/* Has /sbin/init started? */
 extern bool ccs_policy_loaded;
-/* The kernel's domain. */
 extern struct ccs_domain_info ccs_kernel_domain;
-/* Lock for GC. */
 extern struct srcu_struct ccs_ss;
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];

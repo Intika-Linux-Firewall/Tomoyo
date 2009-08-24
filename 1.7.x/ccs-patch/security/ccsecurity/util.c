@@ -12,6 +12,7 @@
 
 #include "internal.h"
 
+/* Lock for protecting policy. */
 DEFINE_MUTEX(ccs_policy_lock);
 
 /* Has /sbin/init started? */
@@ -20,6 +21,7 @@ bool ccs_policy_loaded;
 /* Profile table. Memory is allocated as needed. */
 struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
+/* Index table for searching parent category. */
 static const u8 ccs_index2category[CCS_MAX_MAC_INDEX +
 				   CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
@@ -186,6 +188,14 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "type(%u)", type);
 }
 
+/**
+ * ccs_parse_name_union - Parse a ccs_name_union.
+ *
+ * @filename: Name or name group.
+ * @ptr:      Pointer to "struct ccs_name_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
 {
 	if (!ccs_is_correct_path(filename, 0, 0, 0))
@@ -200,6 +210,14 @@ bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
 	return ptr->filename != NULL;
 }
 
+/**
+ * ccs_parse_number_union - Parse a ccs_number_union.
+ *
+ * @data: Number or number range or number group.
+ * @ptr:  Pointer to "struct ccs_number_union".
+ *
+ * Returns true on success, false otherwise.
+ */
 bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 {
 	u8 type;
@@ -396,7 +414,6 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 	unsigned char c;
 	unsigned char d;
 	unsigned char e;
-	const char *original_filename = filename;
 	if (!filename)
 		goto out;
 	c = *filename;
@@ -478,7 +495,6 @@ bool ccs_is_correct_domain(const unsigned char *domainname)
 	unsigned char c;
 	unsigned char d;
 	unsigned char e;
-	const char *org_domainname = domainname;
 	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
 		goto out;
 	domainname += ROOT_NAME_LEN;
@@ -1016,6 +1032,12 @@ const char *ccs_last_word(const char *name)
 	return name;
 }
 
+/**
+ * ccs_warn_log - Print warning or error message on console.
+ *
+ * @r:   Pointer to "struct ccs_request_info".
+ * @fmt: The printf()'s format string, followed by parameters.
+ */
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 {
 	int len = PAGE_SIZE;
