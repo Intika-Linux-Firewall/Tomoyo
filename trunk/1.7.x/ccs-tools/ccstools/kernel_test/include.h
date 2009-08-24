@@ -218,6 +218,7 @@ static void clear_status(void)
 	}
 	/* fprintf(profile_fp, "255-SLEEP_PERIOD=1\n"); */
 	/* fprintf(profile_fp, "255-PRINT_VIOLATION=enabled\n"); */
+	fprintf(profile_fp, "255-PRINT_VIOLATION=disabled\n");
 	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
 	fflush(profile_fp);
 	fclose(fp);

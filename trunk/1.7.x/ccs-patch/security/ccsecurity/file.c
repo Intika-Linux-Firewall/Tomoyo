@@ -626,11 +626,8 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
 				      struct ccs_condition *condition,
 				      const bool is_delete)
 {
-	if (perm > 7 || !perm) {
-		printk(KERN_DEBUG "Invalid permission '%d %s'\n",
-		       perm, filename);
+	if (perm > 7 || !perm)
 		return -EINVAL;
-	}
 	if (filename[0] != '@' && ccs_strendswith(filename, "/"))
 		/*
 		 * Only 'allow_mkdir' and 'allow_rmdir' are valid for
