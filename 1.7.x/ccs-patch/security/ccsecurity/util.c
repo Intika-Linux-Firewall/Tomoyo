@@ -464,7 +464,6 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 	}
 	return true;
  out:
-	printk(KERN_DEBUG "Invalid pathname '%s'\n", original_filename);
 	return false;
 }
 
@@ -523,7 +522,6 @@ bool ccs_is_correct_domain(const unsigned char *domainname)
 	} while (*domainname);
 	return true;
  out:
-	printk(KERN_DEBUG "Invalid domainname '%s'\n", org_domainname);
 	return false;
 }
 

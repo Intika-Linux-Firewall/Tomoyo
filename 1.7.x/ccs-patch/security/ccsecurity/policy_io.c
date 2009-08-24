@@ -353,10 +353,13 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			break;
 	if (mode < 0)
 		sscanf(cp, "%u", &mode);
-	if (mode < 0 || mode > 3)
+	if (!strcmp(cp, "default"))
+		config = CCS_MAC_MODE_USE_DEFAULT;
+	else if (mode < 0 || mode > 3)
 		return -EINVAL;
-	config |= mode;
-	if (!strcmp(data, "MAC"))
+	else
+		config |= mode;
+	if (!strcmp(data, "MAC") && config != CCS_MAC_MODE_USE_DEFAULT)
 		ccs_profile->default_config = config;
 	else if (ccs_str_starts(&data, "MAC::"))
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
