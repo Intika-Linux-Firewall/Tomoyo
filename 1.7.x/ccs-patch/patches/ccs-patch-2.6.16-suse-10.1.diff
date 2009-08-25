@@ -19,7 +19,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 +++++++++++++++++++++++-
- fs/open.c                       |   29 ++++++++++++++++++++++++++++-
+ fs/open.c                       |   31 ++++++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -44,7 +44,7 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 291 insertions(+), 10 deletions(-)
+ 42 files changed, 293 insertions(+), 10 deletions(-)
 
 --- linux-2.6.16.54-0.2.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16.54-0.2.5/arch/alpha/kernel/ptrace.c
@@ -694,7 +694,17 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  		error = chown_common(dentry, user, group);
  		fput(file);
  	}
-@@ -1196,6 +1221,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -879,7 +904,9 @@ static struct file *do_filp_open(int dfd
+ 	if ((namei_flags+1) & O_ACCMODE)
+ 		namei_flags++;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(dfd, filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return nameidata_to_filp(&nd, flags);
+ 
+@@ -1196,6 +1223,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

@@ -19,7 +19,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   24 +++++++++++++++++++++++-
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -44,7 +44,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 292 insertions(+), 9 deletions(-)
+ 42 files changed, 294 insertions(+), 9 deletions(-)
 
 --- linux-2.6.18-24etch4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-24etch4/arch/alpha/kernel/ptrace.c
@@ -692,7 +692,17 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		error = chown_common(dentry, user, group);
  		fput(file);
  	}
-@@ -1199,6 +1224,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -879,7 +904,9 @@ static struct file *do_filp_open(int dfd
+ 	if ((namei_flags+1) & O_ACCMODE)
+ 		namei_flags++;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(dfd, filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return nameidata_to_filp(&nd, flags);
+ 
+@@ -1199,6 +1226,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

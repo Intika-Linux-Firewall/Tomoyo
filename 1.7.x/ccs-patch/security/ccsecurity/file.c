@@ -1215,6 +1215,27 @@ int ccs_exec_perm(struct ccs_request_info *r,
 	return ccs_file_perm(r, filename, 1);
 }
 
+/*
+ * Save original flags passed to sys_open().
+ *
+ * TOMOYO does not check "allow_write" if open(path, O_TRUNC | O_RDONLY) was
+ * requested because write() is not permitted. Instead, TOMOYO checks
+ * "allow_truncate" if O_TRUNC is passed.
+ *
+ * TOMOYO does not check "allow_read/write" if open(path, 3) was requested
+ * because read()/write() are not permitted. Instead, TOMOYO checks
+ * "allow_ioctl" when ioctl() is requested.
+ */
+void ccs_save_open_mode(int mode)
+{
+	current->ccs_flags |= (mode & O_ACCMODE) | CCS_USE_OPEN_MODE;
+}
+
+void ccs_clear_open_mode(void)
+{
+	current->ccs_flags &= ~(O_ACCMODE | CCS_USE_OPEN_MODE);
+}
+
 /**
  * ccs_open_permission - Check permission for "read" and "write".
  *
@@ -1232,21 +1253,23 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.dentry = dentry,
 		.path1.mnt = mnt
 	};
-	const u8 acc_mode = ACC_MODE(flag);
+	struct task_struct * const task = current;
+	const u8 acc_mode = task->ccs_flags & CCS_USE_OPEN_MODE ?
+		ACC_MODE((task->ccs_flags & O_ACCMODE) + 1) : ACC_MODE(flag);
 	int error = 0;
 	struct ccs_path_info buf;
 	struct ccs_domain_info *domain;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
-	if (current->in_execve &&
-	    !(current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
+	if (task->in_execve &&
+	    !(task->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
 		return 0;
 #endif
 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 		return 0;
 	buf.name = NULL;
 	r.mode = 0;
-	domain = current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC ?
+	domain = task->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC ?
 		ccs_fetch_next_domain() : ccs_current_domain();
 	idx = ccs_read_lock();
 	/*
@@ -1254,7 +1277,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 * we need to check "allow_rewrite" permission when the filename is not
 	 * opened for append mode or the filename is truncated at open time.
 	 */
-	if ((acc_mode & MAY_WRITE) && ((flag & O_TRUNC) || !(flag & O_APPEND))
+	if ((acc_mode & MAY_WRITE) && !(flag & O_APPEND)
 	    && ccs_init_request_info(&r, domain, CCS_MAC_FILE_REWRITE)
 	    != CCS_MAC_MODE_DISABLED) {
 		if (!ccs_get_realpath(&buf, dentry, mnt)) {

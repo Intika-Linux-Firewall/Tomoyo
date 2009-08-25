@@ -35,7 +35,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   25 ++++++++++++++++++++++++-
- fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -57,7 +57,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 55 files changed, 340 insertions(+), 12 deletions(-)
+ 55 files changed, 342 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.0.9.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.0.9.EL/arch/alpha/kernel/ptrace.c
@@ -1028,7 +1028,17 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1082,6 +1106,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -774,7 +798,9 @@ struct file *filp_open(const char * file
+ 	if (f == NULL)
+ 		return ERR_PTR(error);
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return __dentry_open(nd.dentry, nd.mnt, flags, f);
+ 
+@@ -1082,6 +1108,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

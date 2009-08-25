@@ -35,7 +35,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
- fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 336 insertions(+), 13 deletions(-)
+ 54 files changed, 338 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.14AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.14AXS2/arch/alpha/kernel/ptrace.c
@@ -1028,7 +1028,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1226,6 +1250,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -825,7 +849,9 @@ struct file *filp_open(const char * file
+ 	if (f == NULL)
+ 		return ERR_PTR(error);
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return __dentry_open(nd.dentry, nd.mnt, flags, f);
+ 
+@@ -1226,6 +1252,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

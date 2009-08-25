@@ -15,7 +15,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   31 ++++++++++++++++++++++++++++++-
  fs/namespace.c                  |   23 +++++++++++++++++++++++
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -41,7 +41,7 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 39 files changed, 264 insertions(+), 3 deletions(-)
+ 39 files changed, 266 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23.17-88.fc7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23.17-88.fc7/arch/alpha/kernel/ptrace.c
@@ -599,7 +599,17 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  	error = chown_common(dentry, user, group);
  	fput(file);
  out:
-@@ -1155,6 +1180,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -819,7 +844,9 @@ static struct file *do_filp_open(int dfd
+ 	if ((namei_flags+1) & O_ACCMODE)
+ 		namei_flags++;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(dfd, filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return nameidata_to_filp(&nd, flags);
+ 
+@@ -1155,6 +1182,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

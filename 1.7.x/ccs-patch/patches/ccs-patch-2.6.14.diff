@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/ioctl.c                         |    5 +++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
- fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -62,7 +62,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 60 files changed, 345 insertions(+), 9 deletions(-)
+ 60 files changed, 347 insertions(+), 9 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -1072,7 +1072,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1057,6 +1081,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -827,7 +851,9 @@ struct file *filp_open(const char * file
+ 	if (f == NULL)
+ 		return ERR_PTR(error);
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return __dentry_open(nd.dentry, nd.mnt, flags, f);
+ 
+@@ -1057,6 +1083,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

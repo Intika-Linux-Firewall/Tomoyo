@@ -14,7 +14,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 ++++++++++++++++++++++++++++++++++-
  fs/namespace.c                  |   23 +++++++++++++++++++++++
- fs/open.c                       |   28 ++++++++++++++++++++++++++++
+ fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -39,7 +39,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 261 insertions(+), 3 deletions(-)
+ 37 files changed, 263 insertions(+), 3 deletions(-)
 
 --- linux-2.6.25.20-0.5.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20-0.5/arch/ia64/ia32/sys_ia32.c
@@ -584,7 +584,17 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	fput(file);
  out:
-@@ -1172,6 +1198,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -823,7 +849,9 @@ static struct file *do_filp_open(int dfd
+ 	if ((namei_flags+1) & O_ACCMODE)
+ 		namei_flags++;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(dfd, filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return nameidata_to_filp(&nd, flags);
+ 
+@@ -1172,6 +1200,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

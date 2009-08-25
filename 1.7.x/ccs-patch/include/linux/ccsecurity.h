@@ -68,6 +68,8 @@ int ccs_may_umount(struct vfsmount *mnt);
 /* Check whether the given local port is reserved. */
 _Bool ccs_lport_reserved(const u16 port);
 
+void ccs_save_open_mode(int mode);
+void ccs_clear_open_mode(void);
 int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			const int flag);
 int ccs_rewrite_permission(struct file *filp);
@@ -171,6 +173,14 @@ static inline int ccs_may_umount(struct vfsmount *mnt)
 static inline _Bool ccs_lport_reserved(const u16 port)
 {
 	return 0;
+}
+
+static inline void ccs_save_open_mode(int mode)
+{
+}
+
+static inline void ccs_clear_open_mode(void)
+{
 }
 
 static inline int ccs_open_permission(struct dentry *dentry,

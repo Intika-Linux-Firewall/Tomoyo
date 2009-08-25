@@ -36,7 +36,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  fs/ioctl.c                         |    5 +++++
  fs/namei.c                         |   35 +++++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
- fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -58,7 +58,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 56 files changed, 340 insertions(+), 11 deletions(-)
+ 56 files changed, 342 insertions(+), 11 deletions(-)
 
 --- linux-2.6.12-2.3.legacy_FC3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.12-2.3.legacy_FC3/arch/alpha/kernel/ptrace.c
@@ -1033,7 +1033,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1044,6 +1068,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -765,7 +789,9 @@ struct file *filp_open(const char * file
+ 	if (namei_flags & O_TRUNC)
+ 		namei_flags |= 2;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return dentry_open(nd.dentry, nd.mnt, flags);
+ 
+@@ -1044,6 +1070,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
