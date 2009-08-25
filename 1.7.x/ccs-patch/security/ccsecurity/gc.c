@@ -327,6 +327,88 @@ static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 	return sizeof(*ptr);
 }
 
+/*
+ * 2.6.19 has SRCU support but it triggers general protection fault in my
+ * environment. Thus, I use SRCU for 2.6.20 and later.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+
+/* Lock for GC. */
+static struct srcu_struct ccs_ss;
+
+/**
+ * ccs_gc_init - Initialize garbage collector.
+ *
+ * Returns 0.
+ */
+static int __init ccs_gc_init(void)
+{
+	if (init_srcu_struct(&ccs_ss))
+		panic("Out of memory.");
+	return 0;
+}
+core_initcall(ccs_gc_init);
+
+int ccs_read_lock(void)
+{
+	return srcu_read_lock(&ccs_ss);
+}
+
+void ccs_read_unlock(const int idx)
+{
+	srcu_read_unlock(&ccs_ss, idx);
+}
+
+static inline void ccs_synchronize_srcu(void)
+{
+	synchronize_srcu(&ccs_ss);
+}
+
+#else
+
+/* Lock for GC. */
+static struct {
+	int counter_idx;
+	int counter[2];
+} ccs_gc;
+static DEFINE_SPINLOCK(ccs_counter_lock);
+
+int ccs_read_lock(void)
+{
+	int idx;
+	spin_lock(&ccs_counter_lock);
+	idx = ccs_gc.counter_idx;
+	ccs_gc.counter[idx]++;
+	spin_unlock(&ccs_counter_lock);
+	return idx;
+}
+
+void ccs_read_unlock(const int idx)
+{
+	spin_lock(&ccs_counter_lock);
+	ccs_gc.counter[idx]--;
+	spin_unlock(&ccs_counter_lock);
+}
+
+static void ccs_synchronize_srcu(void)
+{
+	int idx;
+	int v;
+	spin_lock(&ccs_counter_lock);
+	idx = ccs_gc.counter_idx;
+	ccs_gc.counter_idx ^= 1;
+	v = ccs_gc.counter[idx];
+	spin_unlock(&ccs_counter_lock);
+	while (v) {
+		ssleep(1);
+		spin_lock(&ccs_counter_lock);
+		v = ccs_gc.counter[idx];
+		spin_unlock(&ccs_counter_lock);
+	}
+}
+
+#endif
+
 static int ccs_gc_thread(void *unused)
 {
 	static DEFINE_MUTEX(ccs_gc_mutex);
@@ -542,7 +624,7 @@ static int ccs_gc_thread(void *unused)
 	mutex_unlock(&ccs_policy_lock);
 	if (list_empty(&ccs_gc_queue))
 		goto done;
-	synchronize_srcu(&ccs_ss);
+	ccs_synchronize_srcu();
 	{
 		struct ccs_gc_entry *p;
 		struct ccs_gc_entry *tmp;
@@ -629,43 +711,3 @@ void ccs_run_gc(void)
 	kernel_thread(ccs_gc_thread, NULL, 0);
 #endif
 }
-
-#ifndef _LINUX_SRCU_H
-
-static DEFINE_SPINLOCK(ccs_counter_lock);
-
-int srcu_read_lock(struct srcu_struct *sp)
-{
-	int idx;
-	spin_lock(&ccs_counter_lock);
-	idx = sp->counter_idx;
-	sp->counter[idx]++;
-	spin_unlock(&ccs_counter_lock);
-	return idx;
-}
-
-void srcu_read_unlock(struct srcu_struct *sp, const int idx)
-{
-	spin_lock(&ccs_counter_lock);
-	sp->counter[idx]--;
-	spin_unlock(&ccs_counter_lock);
-}
-
-void synchronize_srcu(struct srcu_struct *sp)
-{
-	int idx;
-	int v;
-	spin_lock(&ccs_counter_lock);
-	idx = sp->counter_idx;
-	sp->counter_idx ^= 1;
-	v = sp->counter[idx];
-	spin_unlock(&ccs_counter_lock);
-	while (v) {
-		ssleep(1);
-		spin_lock(&ccs_counter_lock);
-		v = sp->counter[idx];
-		spin_unlock(&ccs_counter_lock);
-	}
-}
-
-#endif

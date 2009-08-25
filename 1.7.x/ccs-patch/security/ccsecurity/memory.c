@@ -281,9 +281,6 @@ void ccs_put_name(const struct ccs_path_info *name)
 	}
 }
 
-/* Lock for GC. */
-struct srcu_struct ccs_ss;
-
 /**
  * ccs_realpath_init - Initialize realpath related code.
  *
@@ -292,8 +289,6 @@ struct srcu_struct ccs_ss;
 static int __init ccs_realpath_init(void)
 {
 	int i;
-	if (init_srcu_struct(&ccs_ss))
-		panic("Out of memory.");
 	for (i = 0; i < CCS_MAX_HASH; i++)
 		INIT_LIST_HEAD(&ccs_name_list[i]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);

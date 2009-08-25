@@ -219,24 +219,6 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 #endif /* __LITTLE_ENDIAN */
 #endif
 
-#ifndef _LINUX_SRCU_H
-
-struct srcu_struct {
-	int counter_idx;
-	int counter[2];
-};
-
-static inline int init_srcu_struct(struct srcu_struct *sp)
-{
-	return 0;
-}
-
-int srcu_read_lock(struct srcu_struct *sp);
-void srcu_read_unlock(struct srcu_struct *sp, const int idx);
-void synchronize_srcu(struct srcu_struct *sp);
-
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 
 struct path {
