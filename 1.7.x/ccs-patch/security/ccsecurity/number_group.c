@@ -161,7 +161,6 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_number_group_list) {
 		struct ccs_number_group *group;
 		const char *name;
@@ -206,7 +205,6 @@ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 {
 	struct ccs_number_group_member *member;
 	bool matched = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (member->is_deleted)
 			continue;

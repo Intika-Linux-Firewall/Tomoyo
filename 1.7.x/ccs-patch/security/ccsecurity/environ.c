@@ -47,7 +47,6 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
 {
 	struct ccs_globally_usable_env_entry *ptr;
 	bool found = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->is_deleted || !ccs_path_matches_pattern(env, ptr->env))
 			continue;
@@ -110,7 +109,6 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_globally_usable_env_list) {
 		struct ccs_globally_usable_env_entry *ptr;
@@ -142,7 +140,6 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 	int error = -EPERM;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;
-	ccs_assert_read_lock();
 	env.name = environ;
 	ccs_fill_path_info(&env);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -176,7 +173,6 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 int ccs_env_perm(struct ccs_request_info *r, const char *env)
 {
 	int error;
-	ccs_assert_read_lock();
 	if (!env || !*env)
 		return 0;
 	do {

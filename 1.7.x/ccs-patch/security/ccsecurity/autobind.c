@@ -124,7 +124,6 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	char buffer[16];
-	ccs_assert_read_lock();
 	memset(buffer, 0, sizeof(buffer));
 	list_for_each_cookie(pos, head->read_var2, &ccs_reservedport_list) {
 		u16 min_port;

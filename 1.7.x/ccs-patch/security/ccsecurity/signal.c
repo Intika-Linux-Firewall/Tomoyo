@@ -50,7 +50,6 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
 	int error;
-	ccs_assert_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL)
 	    == CCS_MAC_MODE_DISABLED)
 		return 0;

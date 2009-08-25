@@ -255,7 +255,6 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 			 char *dir_name, char *type, unsigned long flags)
 {
 	int error;
-	ccs_assert_read_lock();
 	error = -EPERM;
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;

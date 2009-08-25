@@ -169,7 +169,6 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 	const u32 ip = ntohl(*address);
 	int error;
 	char buf[64];
-	ccs_assert_read_lock();
 	if (ccs_init_request_info(&r, NULL,
 				  CCS_MAC_NETWORK_UDP_BIND + operation)
 	    == CCS_MAC_MODE_DISABLED)

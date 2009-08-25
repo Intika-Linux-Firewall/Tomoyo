@@ -55,7 +55,6 @@ static int ccs_chroot_acl(struct path *path)
 	struct ccs_obj_info obj = {
 		.path1 = *path
 	};
-	ccs_assert_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_CHROOT)
 	    == CCS_MAC_MODE_DISABLED)
 		return 0;

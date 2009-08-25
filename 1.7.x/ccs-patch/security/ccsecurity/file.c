@@ -328,7 +328,6 @@ static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 {
 	struct ccs_globally_readable_file_entry *ptr;
 	bool found = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->is_deleted ||
 		    !ccs_path_matches_pattern(filename, ptr->filename))
@@ -392,7 +391,6 @@ bool ccs_read_globally_readable_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_globally_readable_list) {
 		struct ccs_globally_readable_file_entry *ptr;
@@ -424,7 +422,6 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 {
 	struct ccs_pattern_entry *ptr;
 	const struct ccs_path_info *pattern = NULL;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -494,7 +491,6 @@ bool ccs_read_file_pattern(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_pattern_list) {
 		struct ccs_pattern_entry *ptr;
 		ptr = list_entry(pos, struct ccs_pattern_entry, list);
@@ -525,7 +521,6 @@ static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 {
 	struct ccs_no_rewrite_entry *ptr;
 	bool matched = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -590,7 +585,6 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
@@ -666,7 +660,6 @@ static int ccs_path_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
@@ -707,7 +700,6 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number3_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER3_ACL)
@@ -747,7 +739,6 @@ static int ccs_file_perm(struct ccs_request_info *r,
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
-	ccs_assert_read_lock();
 	if (!filename)
 		return 0;
 	if (mode == 6) {
@@ -1089,7 +1080,6 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path2_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH2_ACL)
@@ -1125,7 +1115,6 @@ static int ccs_path_permission(struct ccs_request_info *r,
 {
 	const char *msg;
 	int error;
-	ccs_assert_read_lock();
  repeat:
 	r->mode = ccs_get_mode(r->profile, ccs_p2mac[operation]);
 	if (r->mode == CCS_MAC_MODE_DISABLED)
@@ -1177,7 +1166,6 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 	const char *msg = ccs_path_number32keyword(operation);
 	const unsigned int major = MAJOR(dev);
 	const unsigned int minor = MINOR(dev);
-	ccs_assert_read_lock();
 	if (!r->mode)
 		return 0;
 	do {
@@ -1209,7 +1197,6 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 int ccs_exec_perm(struct ccs_request_info *r,
 		  const struct ccs_path_info *filename)
 {
-	ccs_assert_read_lock();
 	if (r->mode == CCS_MAC_MODE_DISABLED)
 		return 0;
 	return ccs_file_perm(r, filename, 1);
@@ -1618,7 +1605,6 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER_ACL)
@@ -1655,7 +1641,6 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 	int error;
 	u8 radix;
 	const char *msg = ccs_path_number2keyword(type);
-	ccs_assert_read_lock();
 	if (!filename)
 		return 0;
 	switch (type) {

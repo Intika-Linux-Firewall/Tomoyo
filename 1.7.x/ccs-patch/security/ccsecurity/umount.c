@@ -57,7 +57,6 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		.path1.dentry = mnt->mnt_root,
 		.path1.mnt = mnt
 	};
-	ccs_assert_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_UMOUNT)
 	    == CCS_MAC_MODE_DISABLED)
 		return 0;

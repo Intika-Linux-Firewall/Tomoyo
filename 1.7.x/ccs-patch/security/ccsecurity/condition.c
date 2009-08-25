@@ -1007,7 +1007,6 @@ bool ccs_condition(struct ccs_request_info *r,
 	u16 envc;
 	struct linux_binprm *bprm = NULL;
 	const struct ccs_condition *cond = acl->cond;
-	ccs_assert_read_lock();
 	if (!cond)
 		return true;
 	condc = cond->condc;
