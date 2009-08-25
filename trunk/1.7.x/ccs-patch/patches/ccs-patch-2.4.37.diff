@@ -31,7 +31,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   40 ++++++++++++++++++++++++++++++++++++++++
  fs/namespace.c               |   30 +++++++++++++++++++++++++++++-
- fs/open.c                    |   27 +++++++++++++++++++++++++++
+ fs/open.c                    |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
  kernel/kmod.c                |    5 +++++
@@ -49,7 +49,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 47 files changed, 323 insertions(+), 5 deletions(-)
+ 47 files changed, 325 insertions(+), 5 deletions(-)
 
 --- linux-2.4.37.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.37.5/arch/alpha/kernel/ptrace.c
@@ -929,7 +929,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -897,6 +922,8 @@ out_unlock:
+@@ -666,7 +691,9 @@ struct file *filp_open(const char * file
+ 	if (namei_flags & O_TRUNC)
+ 		namei_flags |= 2;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return dentry_open(nd.dentry, nd.mnt, flags);
+ 
+@@ -897,6 +924,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {

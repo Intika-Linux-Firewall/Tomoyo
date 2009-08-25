@@ -32,7 +32,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   26 ++++++++++++++++++++++++--
- fs/open.c                          |   26 ++++++++++++++++++++++++++
+ fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -53,7 +53,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 53 files changed, 325 insertions(+), 11 deletions(-)
+ 53 files changed, 327 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
@@ -979,7 +979,17 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -1049,6 +1073,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -761,7 +785,9 @@ struct file *filp_open(const char * file
+ 	if (namei_flags & O_TRUNC)
+ 		namei_flags |= 2;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return dentry_open(nd.dentry, nd.mnt, flags);
+ 
+@@ -1049,6 +1075,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

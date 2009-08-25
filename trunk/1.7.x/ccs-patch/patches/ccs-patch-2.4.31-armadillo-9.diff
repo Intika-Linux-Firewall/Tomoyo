@@ -39,7 +39,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/ioctl.c                      |   10 ++++++++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   30 +++++++++++++++++++++++++++++-
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/sched.h           |   14 ++++++++++++++
  kernel/kmod.c                   |    5 +++++
@@ -57,7 +57,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   13 ++++++++++++-
  net/socket.c                    |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 55 files changed, 354 insertions(+), 8 deletions(-)
+ 55 files changed, 356 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -1082,7 +1082,17 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -895,6 +920,8 @@ out_unlock:
+@@ -664,7 +689,9 @@ struct file *filp_open(const char * file
+ 	if (namei_flags & O_TRUNC)
+ 		namei_flags |= 2;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return dentry_open(nd.dentry, nd.mnt, flags);
+ 
+@@ -895,6 +922,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {

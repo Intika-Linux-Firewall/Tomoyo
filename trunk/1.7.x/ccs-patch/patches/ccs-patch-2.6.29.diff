@@ -8,7 +8,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/exec.c                       |    9 ++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   34 ++++++++++++++++++++++++++++++++++
+ fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   23 +++++++++++++++++++++++
  fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
@@ -35,7 +35,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 253 insertions(+), 3 deletions(-)
+ 33 files changed, 257 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29.6.orig/fs/attr.c
 +++ linux-2.6.29.6/fs/attr.c
@@ -233,7 +233,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1991,6 +2002,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -1717,7 +1728,9 @@ do_last:
+ 		error = mnt_want_write(nd.path.mnt);
+ 		if (error)
+ 			goto exit_mutex_unlock;
++		ccs_save_open_mode(open_flag);
+ 		error = __open_namei_create(&nd, &path, flag, mode);
++		ccs_clear_open_mode();
+ 		if (error) {
+ 			mnt_drop_write(nd.path.mnt);
+ 			goto exit;
+@@ -1770,7 +1783,9 @@ ok:
+ 		if (error)
+ 			goto exit;
+ 	}
++	ccs_save_open_mode(open_flag);
+ 	error = may_open(&nd.path, acc_mode, flag);
++	ccs_clear_open_mode();
+ 	if (error) {
+ 		if (will_write)
+ 			mnt_drop_write(nd.path.mnt);
+@@ -1991,6 +2006,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -243,7 +263,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2066,6 +2080,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2066,6 +2084,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -253,7 +273,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2180,6 +2197,9 @@ static long do_rmdir(int dfd, const char
+@@ -2180,6 +2201,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -263,7 +283,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2269,6 +2289,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2269,6 +2293,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -273,7 +293,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2354,6 +2377,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2354,6 +2381,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -283,7 +303,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2454,6 +2480,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2454,6 +2484,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -294,7 +314,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2695,6 +2725,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2695,6 +2729,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);

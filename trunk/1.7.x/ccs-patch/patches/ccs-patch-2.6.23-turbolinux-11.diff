@@ -18,7 +18,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   31 ++++++++++++++++++++++++++++++-
  fs/namespace.c                  |   23 +++++++++++++++++++++++
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -44,7 +44,7 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 44 files changed, 279 insertions(+), 3 deletions(-)
+ 44 files changed, 281 insertions(+), 3 deletions(-)
 
 --- linux-2.6.23-7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23-7/arch/alpha/kernel/ptrace.c
@@ -699,7 +699,17 @@ This is TOMOYO Linux patch for Turbolinux 11 Server.
  	error = chown_common(dentry, user, group);
  	fput(file);
  out:
-@@ -1156,6 +1181,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -819,7 +844,9 @@ static struct file *do_filp_open(int dfd
+ 	if ((namei_flags+1) & O_ACCMODE)
+ 		namei_flags++;
+ 
++	ccs_save_open_mode(flags);
+ 	error = open_namei(dfd, filename, namei_flags, mode, &nd);
++	ccs_clear_open_mode();
+ 	if (!error)
+ 		return nameidata_to_filp(&nd, flags);
+ 
+@@ -1156,6 +1183,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {

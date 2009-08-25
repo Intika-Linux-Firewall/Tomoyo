@@ -314,10 +314,13 @@ enum ccs_conditions_index {
 /* Profile number is an integer between 0 and 255. */
 #define CCS_MAX_PROFILES 256
 
+/* Lowest 2 bits are reserved for open() mode. */
+#define CCS_USE_OPEN_MODE                 4
 #define CCS_CHECK_READ_FOR_OPEN_EXEC     16
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
 #define CCS_TASK_IS_EXECUTE_HANDLER      64
 #define CCS_TASK_IS_POLICY_MANAGER      128
+/* Highest 24 bits are reserved for task.state[] conditions. */
 
 struct dentry;
 struct vfsmount;
