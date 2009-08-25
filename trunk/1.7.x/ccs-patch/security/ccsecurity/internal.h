@@ -1073,39 +1073,9 @@ static inline struct ccs_domain_info *ccs_current_domain(void)
 	return task->ccs_domain_info;
 }
 
-#if 1
-
-static inline int ccs_read_lock(void)
-{
-	struct task_struct *task = current;
-	BUG_ON((task->ccs_flags & 15) == 15);
-	task->ccs_flags++;
-	return srcu_read_lock(&ccs_ss);
-}
-
-static inline void ccs_assert_read_lock(void)
-{
-	if (ccs_policy_loaded)
-		WARN_ON(!(current->ccs_flags & 15));
-}
-
-static inline void ccs_read_unlock(const int idx)
-{
-	struct task_struct *task = current;
-	WARN_ON(!(task->ccs_flags & 15));
-	task->ccs_flags--;
-	srcu_read_unlock(&ccs_ss, idx);
-}
-
-#else
-
 static inline int ccs_read_lock(void)
 {
 	return srcu_read_lock(&ccs_ss);
-}
-
-static inline void ccs_assert_read_lock(void)
-{
 }
 
 static inline void ccs_read_unlock(const int idx)
@@ -1113,7 +1083,6 @@ static inline void ccs_read_unlock(const int idx)
 	srcu_read_unlock(&ccs_ss, idx);
 }
 
-#endif
 
 static inline void ccs_add_domain_acl(struct ccs_domain_info *domain,
 				      struct ccs_acl_info *acl)

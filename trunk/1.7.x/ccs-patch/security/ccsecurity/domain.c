@@ -144,7 +144,6 @@ bool ccs_read_domain_initializer_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_initializer_list) {
 		const char *no;
@@ -209,7 +208,6 @@ static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_initializer_entry *ptr;
 	bool flag = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -327,7 +325,6 @@ bool ccs_read_domain_keeper_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_domain_keeper_list) {
 		struct ccs_domain_keeper_entry *ptr;
@@ -369,7 +366,6 @@ static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 {
 	struct ccs_domain_keeper_entry *ptr;
 	bool flag = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 		if (ptr->is_deleted)
 			continue;
@@ -455,7 +451,6 @@ bool ccs_read_aggregator_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(pos, head->read_var2, &ccs_aggregator_list) {
 		struct ccs_aggregator_entry *ptr;
 		ptr = list_entry(pos, struct ccs_aggregator_entry, list);
@@ -584,7 +579,6 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_path_info ln; /* last name */
 	int retval;
 	bool need_kfree = false;
-	ccs_assert_read_lock();
 	ln.name = ccs_last_word(old_domain_name);
 	ccs_fill_path_info(&ln);
  retry:
@@ -1146,7 +1140,6 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	bool found = false;
-	ccs_assert_read_lock();
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
@@ -1297,7 +1290,6 @@ void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = ccs_find_execve_entry();
-	ccs_assert_read_lock();
 	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 	if (!ee)
 		return;

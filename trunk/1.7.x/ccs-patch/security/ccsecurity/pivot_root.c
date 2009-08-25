@@ -61,7 +61,6 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
 	char *new_root;
 	struct ccs_path_info old_root_dir;
 	struct ccs_path_info new_root_dir;
-	ccs_assert_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_PIVOT_ROOT)
 	    == CCS_MAC_MODE_DISABLED)
 		return 0;

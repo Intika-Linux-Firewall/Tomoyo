@@ -566,7 +566,6 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname)
 {
 	struct ccs_domain_info *domain;
 	struct ccs_path_info name;
-	ccs_assert_read_lock();
 	name.name = domainname;
 	ccs_fill_path_info(&name);
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
@@ -1080,7 +1079,6 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	unsigned int count = 0;
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
-	ccs_assert_read_lock();
 	if (r->mode != 1)
 		return false;
 	if (!domain)

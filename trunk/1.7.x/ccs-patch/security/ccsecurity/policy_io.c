@@ -541,7 +541,6 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
 static void ccs_read_manager_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	ccs_assert_read_lock();
 	if (head->read_eof)
 		return;
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_manager_list) {
@@ -571,7 +570,6 @@ static bool ccs_is_policy_manager(void)
 	const struct ccs_path_info *domainname
 		= ccs_current_domain()->domainname;
 	bool found = false;
-	ccs_assert_read_lock();
 	if (!ccs_policy_loaded)
 		return true;
 	if (task->ccs_flags & CCS_TASK_IS_POLICY_MANAGER)
@@ -652,7 +650,6 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
-	ccs_assert_read_lock();
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
@@ -1546,7 +1543,6 @@ static void ccs_read_domain_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *dpos;
 	struct list_head *apos;
-	ccs_assert_read_lock();
 	if (head->read_eof)
 		return;
 	if (head->read_step == 0)
@@ -1623,7 +1619,6 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	char *cp = strchr(data, ' ');
 	struct ccs_domain_info *domain;
 	unsigned int profile;
-	ccs_assert_read_lock();
 	if (!cp)
 		return -EINVAL;
 	*cp = '\0';
@@ -1653,7 +1648,6 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 static void ccs_read_domain_profile(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
-	ccs_assert_read_lock();
 	if (head->read_eof)
 		return;
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
@@ -1700,7 +1694,6 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	struct task_struct *p;
 	struct ccs_domain_info *domain = NULL;
 	u32 ccs_flags = 0;
-	ccs_assert_read_lock();
 	/* Accessing write_buf is safe because head->io_sem is held. */
 	if (!buf)
 		return; /* Do nothing if open(O_RDONLY). */
@@ -1785,7 +1778,6 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
  */
 static void ccs_read_exception_policy(struct ccs_io_buffer *head)
 {
-	ccs_assert_read_lock();
 	if (head->read_eof)
 		return;
 	switch (head->read_step) {

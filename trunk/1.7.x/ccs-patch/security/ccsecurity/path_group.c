@@ -158,7 +158,6 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 	struct list_head *gpos;
 	struct list_head *mpos;
 	bool done = true;
-	ccs_assert_read_lock();
 	list_for_each_cookie(gpos, head->read_var1, &ccs_path_group_list) {
 		struct ccs_path_group *group;
 		group = list_entry(gpos, struct ccs_path_group, list);
@@ -197,7 +196,6 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 {
 	struct ccs_path_group_member *member;
 	bool matched = false;
-	ccs_assert_read_lock();
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (member->is_deleted)
 			continue;
