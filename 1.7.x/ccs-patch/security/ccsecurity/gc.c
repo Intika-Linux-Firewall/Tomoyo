@@ -413,6 +413,12 @@ static int ccs_gc_thread(void *unused)
 {
 	static DEFINE_MUTEX(ccs_gc_mutex);
 	static LIST_HEAD(ccs_gc_queue);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	daemonize("GC for CCS");
+#else
+	daemonize();
+	reparent_to_init();
+#endif
 	if (!mutex_trylock(&ccs_gc_mutex))
 		goto out;
 	mutex_lock(&ccs_policy_lock);
