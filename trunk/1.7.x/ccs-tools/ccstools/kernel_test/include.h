@@ -47,6 +47,7 @@ struct module;
 #define __NR_sys_kexec_load  __NR_kexec_load
 #endif
 #endif
+/* #define __NR_sys_kexec_load 283 */
 
 static inline pid_t gettid(void)
 {
