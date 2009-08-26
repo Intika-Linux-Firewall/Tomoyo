@@ -12,13 +12,11 @@
 
 #include "internal.h"
 
-/* Lock for protecting ccs_profile->comment  */
-static DEFINE_SPINLOCK(ccs_profile_comment_lock);
+/* Profile table. Memory is allocated as needed. */
+static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
-/* String table for functionality that takes 2 modes. */
-static const char *ccs_mode_2[2] = {
-	"disabled", "enabled"
-};
+/* Lock for protecting "struct ccs_profile"->comment  */
+static DEFINE_SPINLOCK(ccs_profile_comment_lock);
 
 /* String table for functionality that takes 4 modes. */
 static const char *ccs_mode_4[4] = {
@@ -171,31 +169,8 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	 + CCS_MAC_CATEGORY_CAPABILITY] = "capability",
 };
 
-/* Table for profile. */
-static const struct {
-	const char *keyword;
-	unsigned int current_value;
-	const unsigned int max_value;
-} ccs_control_array[CCS_MAX_CONTROL_INDEX] = {
-	[CCS_AUTOLEARN_EXEC_REALPATH] = { "AUTOLEARN_EXEC_REALPATH", 0, 1 },
-	[CCS_AUTOLEARN_EXEC_ARGV0] = { "AUTOLEARN_EXEC_ARGV0", 0, 1 },
-	[CCS_MAX_ACCEPT_ENTRY]
-	= { "MAX_ACCEPT_ENTRY", CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY, INT_MAX },
-#ifdef CONFIG_CCSECURITY_AUDIT
-	[CCS_MAX_GRANT_LOG]
-	= { "MAX_GRANT_LOG", CONFIG_CCSECURITY_MAX_GRANT_LOG, INT_MAX },
-	[CCS_MAX_REJECT_LOG]
-	= { "MAX_REJECT_LOG", CONFIG_CCSECURITY_MAX_REJECT_LOG, INT_MAX },
-#endif
-	[CCS_VERBOSE] = { "PRINT_VIOLATION",      1, 1 },
-	[CCS_SLEEP_PERIOD] = { "SLEEP_PERIOD", 0, 3000 }, /* in 0.1 second */
-};
-
 /* Permit policy management by non-root user? */
 static bool ccs_manage_by_non_root;
-
-/* Disable VERBOSE mode by default? */
-static bool ccs_no_verbose;
 
 /**
  * ccs_cap2keyword - Convert capability operation to capability name.
@@ -211,19 +186,14 @@ const char *ccs_cap2keyword(const u8 operation)
 }
 
 /**
- * ccs_quiet_setup - Set CCS_VERBOSE=0 by default.
+ * ccs_yesno - Return "yes" or "no".
  *
- * @str: Unused.
- *
- * Returns 0.
+ * @value: Bool value.
  */
-static int __init ccs_quiet_setup(char *str)
+static const char *ccs_yesno(const unsigned int value)
 {
-	ccs_no_verbose = true;
-	return 0;
+	return value ? "yes" : "no";
 }
-
-__setup("CCS_QUIET", ccs_quiet_setup);
 
 /**
  * ccs_io_printf - Transactional printf() to "struct ccs_io_buffer" structure.
@@ -264,7 +234,6 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 {
 	struct ccs_profile *ptr;
 	struct ccs_profile *entry;
-	int i;
 	if (profile >= CCS_MAX_PROFILES)
 		return NULL;
 	ptr = ccs_profile_ptr[profile];
@@ -275,11 +244,18 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
-		for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++)
-			ptr->value[i] = ccs_control_array[i].current_value;
-		ptr->value[CCS_VERBOSE] = !ccs_no_verbose;
-		ptr->default_config = CCS_MAC_MODE_DISABLED;
-		memset(ptr->config, CCS_MAC_MODE_USE_DEFAULT,
+		ptr->audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG;
+		ptr->audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG;
+		ptr->enforcing_penalty = 0;
+		ptr->learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY;
+		ptr->enforcing_verbose = true;
+		ptr->permissive_verbose = true;
+		ptr->learning_verbose = false;
+		ptr->learning_exec_realpath = true;
+		ptr->learning_exec_argv0 = true;
+		ptr->default_config = CCS_CONFIG_DISABLED |
+			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
+		memset(ptr->config, CCS_CONFIG_USE_DEFAULT,
 		       sizeof(ptr->config));
 		mb(); /* Avoid out-of-order execution. */
 		ccs_profile_ptr[profile] = ptr;
@@ -288,6 +264,22 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
 	return ptr;
+}
+
+/**
+ * ccs_profile - Find a profile.
+ *
+ * @profile: Profile number to find.
+ *
+ * Returns pointer to "struct ccs_profile" on success, NULL otherwise.
+ */
+struct ccs_profile *ccs_profile(const u8 profile)
+{
+	if (!ccs_policy_loaded) {
+		static struct ccs_profile dummy;
+		return &dummy;
+	}
+	return ccs_profile_ptr[profile];
 }
 
 /**
@@ -301,19 +293,19 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int i;
-	unsigned int value;
+	int value;
 	int mode;
 	u8 config;
 	char *cp;
-	struct ccs_profile *ccs_profile;
+	struct ccs_profile *profile;
 	i = simple_strtoul(data, &cp, 10);
 	if (data != cp) {
 		if (*cp != '-')
 			return -EINVAL;
 		data = cp + 1;
 	}
-	ccs_profile = ccs_find_or_assign_new_profile(i);
-	if (!ccs_profile)
+	profile = ccs_find_or_assign_new_profile(i);
+	if (!profile)
 		return -EINVAL;
 	cp = strchr(data, '=');
 	if (!cp)
@@ -324,91 +316,104 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		const struct ccs_path_info *old_comment;
 		/* Protect reader from ccs_put_name(). */
 		spin_lock(&ccs_profile_comment_lock);
-		old_comment = ccs_profile->comment;
-		ccs_profile->comment = new_comment;
+		old_comment = profile->comment;
+		profile->comment = new_comment;
 		spin_unlock(&ccs_profile_comment_lock);
 		ccs_put_name(old_comment);
 		return 0;
 	}
-	for (i = 0; i < CCS_MAX_CONTROL_INDEX; i++) {
-		if (strcmp(data, ccs_control_array[i].keyword))
-			continue;
-		if (sscanf(cp, "%u", &value) != 1) {
-			int j;
-			for (j = 0; j < 2; j++) {
-				if (strcmp(cp, ccs_mode_2[j]))
-					continue;
-				value = j;
-				break;
-			}
-			if (j == 2)
-				return -EINVAL;
-		} else if (value > ccs_control_array[i].max_value) {
-			value = ccs_control_array[i].max_value;
-		}
-		ccs_profile->value[i] = value;
+	if (!strcmp(data, "PREFERENCE::audit")) {
+		char *cp2 = strstr(cp, "max_grant_log=");
+		if (cp2)
+			sscanf(cp2 + 14, "%u", &profile->audit_max_grant_log);
+		cp2 = strstr(cp, "max_reject_log=");
+		if (cp2)
+			sscanf(cp2 + 15, "%u", &profile->audit_max_reject_log);
 		return 0;
 	}
-	config = 0;
-	if (strstr(cp, "no_grant_log"))
-		config |= CCS_MAC_MODE_NO_GRANT_LOG;
-	if (strstr(cp, "no_reject_log"))
-		config |= CCS_MAC_MODE_NO_REJECT_LOG;
-	for (mode = 3; mode >= 0; mode--)
-		if (strstr(cp, ccs_mode_4[mode]))
-			break;
-	if (mode < 0)
-		sscanf(cp, "%u", &mode);
-	if (!strcmp(cp, "default"))
-		config = CCS_MAC_MODE_USE_DEFAULT;
-	else if (mode < 0 || mode > 3)
-		return -EINVAL;
+	if (strstr(cp, "verbose=yes"))
+		value = 1;
+	else if (strstr(cp, "verbose=no"))
+		value = 0;
 	else
-		config |= mode;
-	if (!strcmp(data, "MAC") && config != CCS_MAC_MODE_USE_DEFAULT)
-		ccs_profile->default_config = config;
-	else if (ccs_str_starts(&data, "MAC::"))
+		value = -1;
+	if (!strcmp(data, "PREFERENCE::enforcing")) {
+		char *cp2;
+		if (value >= 0)
+			profile->enforcing_verbose = value;
+		cp2 = strstr(cp, "penalty=");
+		if (cp2)
+			sscanf(cp2 + 8, "%u", &profile->enforcing_penalty);
+		return 0;
+	}
+	if (!strcmp(data, "PREFERENCE::permissive")) {
+		if (value >= 0)
+			profile->permissive_verbose = value;
+		return 0;
+	}
+	if (!strcmp(data, "PREFERENCE::learning")) {
+		char *cp2;
+		if (value >= 0)
+			profile->learning_verbose = value;
+		cp2 = strstr(cp, "max_entry=");
+		if (cp2)
+			sscanf(cp2 + 10, "%u", &profile->learning_max_entry);
+		if (strstr(cp, "exec.realpath=yes"))
+			profile->learning_exec_realpath = true;
+		else if (strstr(cp, "exec.realpath=no"))
+			profile->learning_exec_realpath = false;
+		if (strstr(cp, "exec.argv0=yes"))
+			profile->learning_exec_argv0 = true;
+		else if (strstr(cp, "exec.argv0=no"))
+			profile->learning_exec_argv0 = false;
+		return 0;
+	}
+	if (!strcmp(data, "CONFIG")) {
+		i = CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+			+ CCS_MAX_MAC_CATEGORY_INDEX;
+		config = profile->default_config;
+	} else if (ccs_str_starts(&data, "CONFIG::")) {
+		config = 0;
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
 			if (strcmp(data, ccs_mac_keywords[i]))
 				continue;
-			ccs_profile->config[i] = config;
+			config = profile->config[i];
 			break;
 		}
-	return 0;
-}
-
-static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
-{
-	const int pos = head->read_avail;
-	int i;
-	const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-	u8 config = ccs_profile->default_config;
-	if (!ccs_io_printf(head, "%u-MAC=%s %s %s\n", index,
-			   ccs_mode_4[config & 3],
-			   config & CCS_MAC_MODE_NO_GRANT_LOG ?
-			   "no_grant_log" : "",
-			   config & CCS_MAC_MODE_NO_REJECT_LOG ?
-			   "no_reject_log" : ""))
-		goto out;
-	for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-		     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
-		config = ccs_profile->config[i];
-		if (config == CCS_MAC_MODE_USE_DEFAULT)
-			continue;
-		if (!ccs_io_printf(head, "%u-MAC::%s=%s %s %s\n", index,
-				   ccs_mac_keywords[i],
-				   ccs_mode_4[config & 3],
-				   config & CCS_MAC_MODE_NO_GRANT_LOG ?
-				   "no_grant_log" : "",
-				   config & CCS_MAC_MODE_NO_REJECT_LOG ?
-				   "no_reject_log" : ""))
-			goto out;
+		if (i == CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+		    + CCS_MAX_MAC_CATEGORY_INDEX)
+			return -EINVAL;
+	} else {
+		return -EINVAL;
 	}
-	return true;
- out:
-	head->read_avail = pos;
-	return false;
+	if (strstr(cp, "use_default")) {
+		config = CCS_CONFIG_USE_DEFAULT;
+	} else {
+		for (mode = 3; mode >= 0; mode--)
+			if (strstr(cp, ccs_mode_4[mode]))
+				/*
+				 * Update lower 3 bits in order to distinguish
+				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
+				 */
+				config = (config & ~7) | mode;
+		if (config != CCS_CONFIG_USE_DEFAULT) {
+			if (strstr(cp, "grant_log=yes"))
+				config |= CCS_CONFIG_WANT_GRANT_LOG;
+			else if (strstr(cp, "grant_log=no"))
+				config &= ~CCS_CONFIG_WANT_GRANT_LOG;
+			if (strstr(cp, "reject_log=yes"))
+				config |= CCS_CONFIG_WANT_REJECT_LOG;
+			else if (strstr(cp, "reject_log=no"))
+				config &= ~CCS_CONFIG_WANT_REJECT_LOG;
+		}
+	}
+	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+	    + CCS_MAX_MAC_CATEGORY_INDEX)
+		profile->config[i] = config;
+	else if (config != CCS_CONFIG_USE_DEFAULT)
+		profile->default_config = config;
+	return 0;
 }
 
 /**
@@ -418,49 +423,74 @@ static bool ccs_print_mac_mode(struct ccs_io_buffer *head, u8 index)
  */
 static void ccs_read_profile(struct ccs_io_buffer *head)
 {
-	static const int ccs_total = CCS_MAX_CONTROL_INDEX + 2;
-	int step;
+	int index;
 	if (head->read_eof)
 		return;
-	for (step = head->read_step; step < CCS_MAX_PROFILES * ccs_total;
-	     step++) {
-		const u8 index = step / ccs_total;
-		u8 type = step % ccs_total;
-		const struct ccs_profile *ccs_profile = ccs_profile_ptr[index];
-		head->read_step = step;
-		if (!ccs_profile)
+	for (index = head->read_step; index < CCS_MAX_PROFILES; index++) {
+		bool done;
+		u8 config;
+		int i;
+		int pos = head->read_avail;
+		const struct ccs_profile *profile = ccs_profile_ptr[index];
+		head->read_step = index;
+		if (!profile)
 			continue;
-		if (!type) { /* Print profile' comment tag. */
-			bool done;
-			spin_lock(&ccs_profile_comment_lock);
-			done = ccs_io_printf(head, "%u-COMMENT=%s\n",
-					     index, ccs_profile->comment ?
-					     ccs_profile->comment->name : "");
-			spin_unlock(&ccs_profile_comment_lock);
-			if (!done)
-				break;
-			continue;
-		} else if (type == 1) {
-			if (!ccs_print_mac_mode(head, index))
-				break;
-			continue;
+		spin_lock(&ccs_profile_comment_lock);
+		done = ccs_io_printf(head, "%u-COMMENT=%s\n", index,
+				     profile->comment ? profile->comment->name
+				     : "");
+		spin_unlock(&ccs_profile_comment_lock);
+		if (!done)
+			goto out;
+		config = profile->default_config;
+		if (!ccs_io_printf(head, "%u-CONFIG={ mode=%s grant_log=%s "
+				   "reject_log=%s }\n", index,
+				   ccs_mode_4[config & 3],
+				   ccs_yesno(config &
+					     CCS_CONFIG_WANT_GRANT_LOG),
+				   ccs_yesno(config &
+					     CCS_CONFIG_WANT_REJECT_LOG)))
+			goto out;
+		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
+			const char *g;
+			const char *r;
+			config = profile->config[i];
+			if (config == CCS_CONFIG_USE_DEFAULT)
+				continue;
+			g = ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG);
+			r = ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG);
+			if (!ccs_io_printf(head, "%u-CONFIG::%s={ mode=%s "
+					   "grant_log=%s reject_log=%s }\n",
+					   index, ccs_mac_keywords[i],
+					   ccs_mode_4[config & 3], g, r))
+				goto out;
 		}
-		type -= 2;
-		{
-			const unsigned int value = ccs_profile->value[type];
-			const char *keyword = ccs_control_array[type].keyword;
-			if (ccs_control_array[type].max_value == 1) {
-				if (!ccs_io_printf(head, "%u-%s=%s\n", index,
-						   keyword, ccs_mode_2[value]))
-					break;
-			} else {
-				if (!ccs_io_printf(head, "%u-%s=%u\n", index,
-						   keyword, value))
-					break;
-			}
-		}
+		if (!ccs_io_printf(head, "%u-PREFERENCE::audit={ "
+				   "max_grant_log=%u max_reject_log=%u }\n",
+				   index, profile->audit_max_grant_log,
+				   profile->audit_max_reject_log) ||
+		    !ccs_io_printf(head, "%u-PREFERENCE::learning={ "
+				   "verbose=%s max_entry=%u exec.realpath=%s "
+				   "exec.argv0=%s }\n", index,
+				   ccs_yesno(profile->learning_verbose),
+				   profile->learning_max_entry,
+				   ccs_yesno(profile->learning_exec_realpath),
+				   ccs_yesno(profile->learning_exec_argv0)) ||
+		    !ccs_io_printf(head, "%u-PREFERENCE::permissive={ "
+				   "verbose=%s }\n", index,
+				   ccs_yesno(profile->permissive_verbose)) ||
+		    !ccs_io_printf(head, "%u-PREFERENCE::enforcing={ "
+				   "verbose=%s penalty=%u }\n", index,
+				   ccs_yesno(profile->enforcing_verbose),
+				   profile->enforcing_penalty))
+			goto out;
+		continue;
+ out:
+		head->read_avail = pos;
+		break;
 	}
-	if (step == CCS_MAX_PROFILES * ccs_total)
+	if (index == CCS_MAX_PROFILES)
 		head->read_eof = true;
 }
 
@@ -758,7 +788,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 
 	if (sscanf(data, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1
 	    && profile < CCS_MAX_PROFILES) {
-		if (ccs_profile_ptr[profile] || !ccs_policy_loaded)
+		if (ccs_profile(profile))
 			domain->profile = (u8) profile;
 		return 0;
 	}
@@ -1626,7 +1656,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	if (profile >= CCS_MAX_PROFILES)
 		return -EINVAL;
 	domain = ccs_find_domain(cp + 1);
-	if (domain && (ccs_profile_ptr[profile] || !ccs_policy_loaded))
+	if (domain && ccs_profile(profile))
 		domain->profile = (u8) profile;
 	return 0;
 }
@@ -1718,10 +1748,10 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	else
 		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
 			      "state[0]=%u state[1]=%u state[2]=%u", pid,
-			      ccs_flags & CCS_TASK_IS_POLICY_MANAGER ?
-			      "yes" : "no",
-			      ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER ?
-			      "yes" : "no",
+			      ccs_yesno(ccs_flags &
+					CCS_TASK_IS_POLICY_MANAGER),
+			      ccs_yesno(ccs_flags &
+					CCS_TASK_IS_EXECUTE_HANDLER),
 			      (u8) (ccs_flags >> 24),
 			      (u8) (ccs_flags >> 16),
 			      (u8) (ccs_flags >> 8));
@@ -1872,8 +1902,6 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 				if (c == '\\') {
 					arg_ptr[arg_len++] = '\\';
 					arg_ptr[arg_len++] = '\\';
-				} else if (c == '/') {
-					arg_len = 0;
 				} else if (c > ' ' && c < 127) {
 					arg_ptr[arg_len++] = c;
 				} else {
@@ -1913,7 +1941,8 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 	int len = 256;
 	char *realpath = NULL;
 	char *argv0 = NULL;
-	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_REALPATH)) {
+	const struct ccs_profile *profile = ccs_profile(ee->r.domain->profile);
+	if (profile->learning_exec_realpath) {
 		struct file *file = ee->bprm->file;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 		struct path path = { file->f_vfsmnt, file->f_dentry };
@@ -1924,15 +1953,17 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 		if (realpath)
 			len += strlen(realpath) + 17;
 	}
-	if (ccs_flags(NULL, CCS_AUTOLEARN_EXEC_ARGV0)) {
+	if (profile->learning_exec_argv0) {
 		if (ccs_get_argv0(ee)) {
 			argv0 = ee->tmp;
 			len += strlen(argv0) + 16;
 		}
 	}
 	buf = kmalloc(len, GFP_KERNEL);
-	if (!buf)
+	if (!buf) {
+		kfree(realpath);
 		return NULL;
+	}
 	snprintf(buf, len - 1, "if");
 	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER) {
 		const int pos = strlen(buf);
@@ -2003,7 +2034,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	switch (r->mode) {
 		char *buffer;
 		struct ccs_condition *cond;
-	case CCS_MAC_MODE_LEARNING:
+	case CCS_CONFIG_LEARNING:
 		if (!ccs_domain_quota_ok(r))
 			return 0;
 		va_start(args, fmt);
@@ -2027,15 +2058,15 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		ccs_put_condition(cond);
 		kfree(buffer);
 		/* fall through */
-	case CCS_MAC_MODE_PERMISSIVE:
+	case CCS_CONFIG_PERMISSIVE:
 		return 0;
 	}
 	if (!atomic_read(&ccs_query_observers)) {
 		int i;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
-		for (i = 0; i < ccs_flags(r->domain, CCS_SLEEP_PERIOD);
-		     i++) {
+		for (i = 0; i < ccs_profile(r->domain->profile)->
+			     enforcing_penalty; i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);
 		}

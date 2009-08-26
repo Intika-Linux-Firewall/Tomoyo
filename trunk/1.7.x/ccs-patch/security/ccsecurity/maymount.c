@@ -91,7 +91,7 @@ int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
 	if (!namespace ||
 	    ccs_init_request_info(&r, NULL,
 				  CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	found = false;
 	list_for_each(p, &namespace->list) {

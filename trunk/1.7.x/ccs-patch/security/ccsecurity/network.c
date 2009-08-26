@@ -171,7 +171,7 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 	char buf[64];
 	if (ccs_init_request_info(&r, NULL,
 				  CCS_MAC_NETWORK_UDP_BIND + operation)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	memset(buf, 0, sizeof(buf));
 	if (is_ipv6)
@@ -225,7 +225,7 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
 				       "%s %s %u\n", keyword, buf, port);
 	} while (error == 1);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }

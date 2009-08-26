@@ -321,7 +321,7 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 			error = ccs_mount_acl2(r, dev_name, dir_name, type,
 					       flags);
 		} while (error == 1);
-	if (r->mode != CCS_MAC_MODE_ENFORCING)
+	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -345,7 +345,7 @@ int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
 	if (!ccs_capable(CCS_SYS_MOUNT))
 		return -EPERM;
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_MOUNT)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	if (!type)
 		type = "<NULL>";

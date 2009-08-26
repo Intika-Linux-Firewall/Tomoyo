@@ -653,7 +653,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	domain = ccs_find_domain(ee->tmp);
 	if (domain)
 		goto done;
-	if (r->mode == CCS_MAC_MODE_ENFORCING) {
+	if (r->mode == CCS_CONFIG_ENFORCING) {
 		int error = ccs_supervisor(r, "# wants to create domain\n"
 					   "%s\n", ee->tmp);
 		if (error == 1)
@@ -668,7 +668,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	if (!domain) {
 		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
 		       ee->tmp);
-		if (r->mode == CCS_MAC_MODE_ENFORCING)
+		if (r->mode == CCS_CONFIG_ENFORCING)
 			retval = -EPERM;
 		else {
 			retval = 0;

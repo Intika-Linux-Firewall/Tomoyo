@@ -51,7 +51,7 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	const u16 hash = sig;
 	int error;
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
