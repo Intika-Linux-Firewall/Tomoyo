@@ -99,9 +99,12 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(profile_fp, "255-REPORT_VIOLATION=disabled\n");
+	fprintf(profile_fp, "255-PREFERENCE::learning={ verbose=no }\n");
+	fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=no }\n");
+	fprintf(profile_fp, "255-PREFERENCE::permissive={ verbose=no }\n");
+	fprintf(profile_fp, "255-PREFERENCE::disabled={ verbose=no }\n");
 	set_profile(0, "file");
-	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
+	fprintf(profile_fp, "255-PREFERENCE::learning={ max_entry=2048 }\n");
 	{
 		int append_loop;
 		for (append_loop = 0; append_loop < 2; append_loop++) {
@@ -120,7 +123,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	fprintf(profile_fp, "255-MAC::file=disabled\n");
+	fprintf(profile_fp, "255-CONFIG::file=disabled\n");
 	printf("Done\n");
 	clear_status();
 	return 0;

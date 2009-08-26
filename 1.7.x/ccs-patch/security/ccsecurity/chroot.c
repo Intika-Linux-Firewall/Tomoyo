@@ -56,7 +56,7 @@ static int ccs_chroot_acl(struct path *path)
 		.path1 = *path
 	};
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_CHROOT)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	r.obj = &obj;
 	error = -ENOMEM;
@@ -92,7 +92,7 @@ static int ccs_chroot_acl(struct path *path)
 	} while (error == 1);
  out:
 	kfree(root_name);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }

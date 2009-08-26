@@ -184,7 +184,7 @@ void ccs_load_policy(const char *filename)
 		struct ccs_domain_info *domain;
 		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
 			const u8 profile = domain->profile;
-			if (ccs_profile_ptr[profile])
+			if (ccs_profile(profile))
 				continue;
 			panic("Profile %u (used by '%s') not defined.\n",
 			      profile, domain->domainname->name);

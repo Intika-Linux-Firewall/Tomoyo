@@ -116,19 +116,6 @@ enum ccs_ip_address_type {
 	CCS_IP_ADDRESS_TYPE_IPv6
 };
 
-enum ccs_profile_index {
-	CCS_AUTOLEARN_EXEC_REALPATH,
-	CCS_AUTOLEARN_EXEC_ARGV0,
-	CCS_MAX_ACCEPT_ENTRY,
-#ifdef CONFIG_CCSECURITY_AUDIT
-	CCS_MAX_GRANT_LOG,
-	CCS_MAX_REJECT_LOG,
-#endif
-	CCS_VERBOSE,
-	CCS_SLEEP_PERIOD,
-	CCS_MAX_CONTROL_INDEX
-};
-
 /* Indexes for /proc/ccs/ interfaces. */
 enum ccs_proc_interface_index {
 	CCS_DOMAINPOLICY,
@@ -313,6 +300,14 @@ enum ccs_conditions_index {
 
 /* Profile number is an integer between 0 and 255. */
 #define CCS_MAX_PROFILES 256
+
+#define CCS_CONFIG_DISABLED          0
+#define CCS_CONFIG_LEARNING          1
+#define CCS_CONFIG_PERMISSIVE        2
+#define CCS_CONFIG_ENFORCING         3
+#define CCS_CONFIG_WANT_REJECT_LOG  64
+#define CCS_CONFIG_WANT_GRANT_LOG  128
+#define CCS_CONFIG_USE_DEFAULT     255
 
 /* Lowest 2 bits are reserved for open() mode. */
 #define CCS_USE_OPEN_MODE                 4
@@ -832,6 +827,22 @@ struct ccs_io_buffer {
 	u8 type;
 };
 
+struct ccs_profile {
+	const struct ccs_path_info *comment;
+	unsigned int audit_max_grant_log;
+	unsigned int audit_max_reject_log;
+	unsigned int enforcing_penalty;
+	unsigned int learning_max_entry;
+	bool enforcing_verbose;
+	bool permissive_verbose;
+	bool learning_verbose;
+	bool learning_exec_realpath;
+	bool learning_exec_argv0;
+	u8 default_config;
+	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
+		  + CCS_MAX_MAC_CATEGORY_INDEX];
+};
+
 /* Prototype definition. */
 
 bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
@@ -965,8 +976,8 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						      const u8 profile);
 struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
+struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
-unsigned int ccs_flags(const struct ccs_domain_info *domain, const u8 index);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
@@ -1024,23 +1035,6 @@ extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
-
-#define CCS_MAC_MODE_DISABLED        0
-#define CCS_MAC_MODE_LEARNING        1
-#define CCS_MAC_MODE_PERMISSIVE      2
-#define CCS_MAC_MODE_ENFORCING       3
-#define CCS_MAC_MODE_NO_REJECT_LOG  64
-#define CCS_MAC_MODE_NO_GRANT_LOG  128
-#define CCS_MAC_MODE_USE_DEFAULT   255
-
-struct ccs_profile {
-	unsigned int value[CCS_MAX_CONTROL_INDEX];
-	const struct ccs_path_info *comment;
-	u8 default_config;
-	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
-		  + CCS_MAX_MAC_CATEGORY_INDEX];
-};
-extern struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 extern unsigned int ccs_audit_log_memory_size;
 extern unsigned int ccs_quota_for_audit_log;

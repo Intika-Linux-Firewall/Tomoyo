@@ -45,7 +45,7 @@ static bool ccs_capable2(const u8 operation)
 	struct ccs_acl_info *ptr;
 	int error;
 	if (ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return true;
 	do {
 		error = -EPERM;

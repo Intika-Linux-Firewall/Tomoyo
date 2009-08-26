@@ -62,7 +62,7 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
 	struct ccs_path_info old_root_dir;
 	struct ccs_path_info new_root_dir;
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_PIVOT_ROOT)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	r.obj = &obj;
 	error = -ENOENT;
@@ -107,7 +107,7 @@ static int ccs_pivot_root_acl(struct path *old, struct path *new)
  out:
 	kfree(old_root);
 	kfree(new_root);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }

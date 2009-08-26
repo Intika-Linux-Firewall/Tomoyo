@@ -188,11 +188,10 @@ static void clear_status(void)
 		exit(1);
 	}
 	for (i = 0; keywords[i]; i++)
-		fprintf(profile_fp, "255-MAC::%s=disabled\n", keywords[i]);
+		fprintf(profile_fp, "255-CONFIG::%s=disabled grant_log=no reject_log=no\n", keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
 		const char *mode;
-		int v;
 		char *cp = strchr(buffer, '=');
 		if (!cp)
 			continue;
@@ -204,23 +203,25 @@ static void clear_status(void)
 		*cp++ = '\0';
 		if (strcmp(buffer, "0"))
 			continue;
-		/*
-		  if (strcmp(cp, "PRINT_VIOLATION") == 0)
-		  continue;
-		*/
 		fprintf(profile_fp, "255-%s", cp);
 		if (!strcmp(cp, "COMMENT"))
 			mode = "Profile for kernel test\n";
-		else if (sscanf(mode, "%u", &v) == 1)
-			mode = "0\n";
 		else
-			mode = "disabled\n";
+			mode = "disabled verbose=no grant_log=no reject_log=no\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
-	/* fprintf(profile_fp, "255-SLEEP_PERIOD=1\n"); */
-	/* fprintf(profile_fp, "255-PRINT_VIOLATION=enabled\n"); */
-	fprintf(profile_fp, "255-PRINT_VIOLATION=disabled\n");
-	fprintf(profile_fp, "255-MAX_ACCEPT_ENTRY=2048\n");
+	/* fprintf(profile_fp, "255-PREFERENCE::enforcing= penalty=1\n"); */
+	/*
+	  fprintf(profile_fp, "255-PREFERENCE::learning= verbose=yes\n");
+	  fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=yes\n");
+	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=yes\n");
+	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=yes\n");
+	*/
+	fprintf(profile_fp, "255-PREFERENCE::learning= verbose=no\n");
+	fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=no\n");
+	fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=no\n");
+	fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=no\n");
+	fprintf(profile_fp, "255-PREFERENCE::learning= max_entry=2048\n");
 	fflush(profile_fp);
 	fclose(fp);
 }
@@ -386,23 +387,23 @@ static int set_profile(const int mode, const char *name)
 		BUG("Can't read %s", proc_policy_profile);
 		return 0;
 	}
-	fprintf(profile_fp, "255-MAC::%s=%s\n", name, modes[mode]);
+	fprintf(profile_fp, "255-CONFIG::%s=%s\n", name, modes[mode]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		char *cp = strchr(buffer, '\n');
 		if (cp)
 			*cp = '\0';
-		if (strncmp(buffer, "255-MAC::", 9) ||
-		    strncmp(buffer + 9, name, len) ||
-		    buffer[9 + len] != '=')
+		if (strncmp(buffer, "255-CONFIG::", 12) ||
+		    strncmp(buffer + 12, name, len) ||
+		    buffer[12 + len] != '=')
 			continue;
-		if (strstr(buffer + 10 + len, modes[mode]))
+		if (strstr(buffer + 13 + len, modes[mode]))
 			policy_found = 1;
 		break;
 	}
 	fclose(fp);
 	if (!policy_found) {
-		BUG("Can't change profile to 255-MAC::%s=%s",
+		BUG("Can't change profile to 255-CONFIG::%s=%s",
 		    name, modes[mode]);
 		return 0;
 	}

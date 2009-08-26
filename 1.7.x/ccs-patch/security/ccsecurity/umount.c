@@ -58,7 +58,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 		.path1.mnt = mnt
 	};
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_UMOUNT)
-	    == CCS_MAC_MODE_DISABLED)
+	    == CCS_CONFIG_DISABLED)
 		return 0;
 	r.obj = &obj;
 	error = -ENOMEM;
@@ -91,7 +91,7 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 	} while (error == 1);
  out:
 	kfree(dir0);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }

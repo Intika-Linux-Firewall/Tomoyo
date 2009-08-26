@@ -771,7 +771,7 @@ static int ccs_file_perm(struct ccs_request_info *r,
 		 * changed.
 		 */
 	} while (error == 1 && !r->ee);
-	if (r->mode != CCS_MAC_MODE_ENFORCING)
+	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1117,7 +1117,7 @@ static int ccs_path_permission(struct ccs_request_info *r,
 	int error;
  repeat:
 	r->mode = ccs_get_mode(r->profile, ccs_p2mac[operation]);
-	if (r->mode == CCS_MAC_MODE_DISABLED)
+	if (r->mode == CCS_CONFIG_DISABLED)
 		return 0;
 	do {
 		error = ccs_path_acl(r, filename, 1 << operation, 1);
@@ -1128,7 +1128,7 @@ static int ccs_path_permission(struct ccs_request_info *r,
 		error = ccs_supervisor(r, "allow_%s %s\n", msg,
 				       ccs_file_pattern(filename));
 	} while (error == 1);
-	if (r->mode != CCS_MAC_MODE_ENFORCING)
+	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	/*
 	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
@@ -1179,7 +1179,7 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 				       ccs_file_pattern(filename), mode,
 				       major, minor);
 	} while (error == 1);
-	if (r->mode != CCS_MAC_MODE_ENFORCING)
+	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1197,7 +1197,7 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 int ccs_exec_perm(struct ccs_request_info *r,
 		  const struct ccs_path_info *filename)
 {
-	if (r->mode == CCS_MAC_MODE_DISABLED)
+	if (r->mode == CCS_CONFIG_DISABLED)
 		return 0;
 	return ccs_file_perm(r, filename, 1);
 }
@@ -1266,7 +1266,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 */
 	if ((acc_mode & MAY_WRITE) && !(flag & O_APPEND)
 	    && ccs_init_request_info(&r, domain, CCS_MAC_FILE_REWRITE)
-	    != CCS_MAC_MODE_DISABLED) {
+	    != CCS_CONFIG_DISABLED) {
 		if (!ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
@@ -1279,7 +1279,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	}
 	if (!error && acc_mode &&
 	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_OPEN)
-	    != CCS_MAC_MODE_DISABLED) {
+	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
@@ -1289,7 +1289,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	}
 	if (!error && (flag & O_TRUNC) &&
 	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_TRUNCATE)
-	    != CCS_MAC_MODE_DISABLED) {
+	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
@@ -1300,7 +1300,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1332,11 +1332,11 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
@@ -1390,7 +1390,7 @@ static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
@@ -1401,7 +1401,7 @@ static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1428,11 +1428,11 @@ int ccs_rewrite_permission(struct file *filp)
 	idx = ccs_read_lock();
 	if (!filp->f_vfsmnt ||
 	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
 	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
 	if (!ccs_is_no_rewrite_file(&buf)) {
@@ -1479,11 +1479,11 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 	buf2.name = NULL;
 	idx = ccs_read_lock();
 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
-	is_enforce = (r.mode == CCS_MAC_MODE_ENFORCING);
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
 	if (!ccs_get_realpath(&buf1, dentry1, mnt) ||
 	    !ccs_get_realpath(&buf2, dentry2, mnt))
 		goto out;
@@ -1668,7 +1668,7 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 		error = ccs_supervisor(r, "allow_%s %s %s\n", msg,
 				       ccs_file_pattern(filename), buffer);
 	} while (error == 1);
-	if (r->mode != CCS_MAC_MODE_ENFORCING)
+	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -1698,7 +1698,7 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, NULL, ccs_pn2mac[type])
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
@@ -1711,7 +1711,7 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != CCS_MAC_MODE_ENFORCING)
+	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
@@ -2463,7 +2463,7 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		return 0;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_OPEN)
-	    == CCS_MAC_MODE_DISABLED) {
+	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}

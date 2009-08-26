@@ -18,9 +18,6 @@ DEFINE_MUTEX(ccs_policy_lock);
 /* Has /sbin/init started? */
 bool ccs_policy_loaded;
 
-/* Profile table. Memory is allocated as needed. */
-struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
-
 /* Index table for searching parent category. */
 static const u8 ccs_index2category[CCS_MAX_MAC_INDEX +
 				   CCS_MAX_CAPABILITY_INDEX] = {
@@ -921,29 +918,6 @@ const char *ccs_get_exe(void)
 }
 
 /**
- * ccs_flags - Check mode for specified functionality.
- *
- * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
- * @index:  The functionality to check mode.
- *
- * Returns the mode of specified functionality.
- */
-unsigned int ccs_flags(const struct ccs_domain_info *domain,
-		       const u8 index)
-{
-	u8 profile;
-	if (!domain)
-		domain = ccs_current_domain();
-	profile = domain->profile;
-	return ccs_policy_loaded && index < CCS_MAX_CONTROL_INDEX
-#if CCS_MAX_PROFILES != 256
-		&& profile < CCS_MAX_PROFILES
-#endif
-		&& ccs_profile_ptr[profile] ?
-		ccs_profile_ptr[profile]->value[index] : 0;
-}
-
-/**
  * ccs_get_audit - Get audit mode.
  *
  * @profile:    Profile number.
@@ -957,16 +931,16 @@ bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted)
 	u8 mode;
 	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
 		+ CCS_MAX_CAPABILITY_INDEX;
-	if (!ccs_policy_loaded || !ccs_profile_ptr[profile])
+	if (!ccs_policy_loaded)
 		return false;
-	mode = ccs_profile_ptr[profile]->config[index];
-	if (mode == CCS_MAC_MODE_USE_DEFAULT)
-		mode = ccs_profile_ptr[profile]->config[category];
-	if (mode == CCS_MAC_MODE_USE_DEFAULT)
-		mode = ccs_profile_ptr[profile]->default_config;
+	mode = ccs_profile(profile)->config[index];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->config[category];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->default_config;
 	if (is_granted)
-		return !(mode & CCS_MAC_MODE_NO_GRANT_LOG);
-	return !(mode & CCS_MAC_MODE_NO_REJECT_LOG);
+		return (mode & CCS_CONFIG_WANT_GRANT_LOG);
+	return (mode & CCS_CONFIG_WANT_REJECT_LOG);
 }
 
 /**
@@ -982,13 +956,13 @@ int ccs_get_mode(const u8 profile, const u8 index)
 	u8 mode;
 	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
 		+ CCS_MAX_CAPABILITY_INDEX;
-	if (!ccs_policy_loaded || !ccs_profile_ptr[profile])
-		return CCS_MAC_MODE_DISABLED;
-	mode = ccs_profile_ptr[profile]->config[index];
-	if (mode == CCS_MAC_MODE_USE_DEFAULT)
-		mode = ccs_profile_ptr[profile]->config[category];
-	if (mode == CCS_MAC_MODE_USE_DEFAULT)
-		mode = ccs_profile_ptr[profile]->default_config;
+	if (!ccs_policy_loaded)
+		return CCS_CONFIG_DISABLED;
+	mode = ccs_profile(profile)->config[index];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->config[category];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->default_config;
 	return mode & 3;
 }
 
@@ -1042,8 +1016,22 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	int len = PAGE_SIZE;
 	va_list args;
 	char *buffer;
-	if (!ccs_flags(r->domain, CCS_VERBOSE))
-		return;
+	const struct ccs_profile *profile =
+		ccs_profile(r->domain->profile);
+	switch (r->mode) {
+	case CCS_CONFIG_ENFORCING:
+		if (!profile->enforcing_verbose)
+			return;
+		break;
+	case CCS_CONFIG_PERMISSIVE:
+		if (!profile->permissive_verbose)
+			return;
+		break;
+	case CCS_CONFIG_LEARNING:
+		if (!profile->learning_verbose)
+			return;
+		break;
+	}
 	while (1) {
 		int len2;
 		buffer = kmalloc(len, GFP_KERNEL);
@@ -1060,7 +1048,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 		kfree(buffer);
 	}
 	printk(KERN_WARNING "%s: Access %s denied for %s\n",
-	       r->mode == CCS_MAC_MODE_ENFORCING ? "ERROR" : "WARNING", buffer,
+	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
 	       ccs_last_word(r->domain->domainname->name));
 	kfree(buffer);
 }
@@ -1135,7 +1123,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			count++;
 		}
 	}
-	if (count < ccs_flags(domain, CCS_MAX_ACCEPT_ENTRY))
+	if (count < ccs_profile(domain->profile)->learning_max_entry)
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
