@@ -17,6 +17,7 @@ newns ccs_env_test
 newns ccs_new_file_test
 newns ccs_new_capability_test
 newns ccs_new_network_test
+newns ccs_new_test
 echo
 echo
 echo
@@ -31,6 +32,7 @@ newns ccs_signal_test | grep -vF OK | grep -F '('
 newns ccs_network_test | grep -vF OK | grep -F '('
 newns ccs_argv0_test | grep -vF OK | grep -F '('
 newns ccs_env_test | grep -vF OK | grep -F '('
+newns ccs_new_test | grep -vF OK
 echo
 echo
 echo
