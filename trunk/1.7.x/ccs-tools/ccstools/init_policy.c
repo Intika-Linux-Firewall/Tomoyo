@@ -1544,7 +1544,7 @@ static void make_profile(void)
 		"max_reject_log=1024 }\n"
 		"0-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
 		"0-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes }\n"
+		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
 		"0-PREFERENCE::permissive={ verbose=yes }\n"
 		"1-COMMENT=-----Learning Mode-----\n"
 		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
@@ -1552,7 +1552,7 @@ static void make_profile(void)
 		"max_reject_log=1024 }\n"
 		"1-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
 		"1-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes }\n"
+		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
 		"1-PREFERENCE::permissive={ verbose=yes }\n"
 		"2-COMMENT=-----Permissive Mode-----\n"
 		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
@@ -1560,7 +1560,7 @@ static void make_profile(void)
 		"max_reject_log=1024 }\n"
 		"2-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
 		"2-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes }\n"
+		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
 		"2-PREFERENCE::permissive={ verbose=yes }\n"
 		"3-COMMENT=-----Enforcing Mode-----\n"
 		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n"
@@ -1568,7 +1568,7 @@ static void make_profile(void)
 		"max_reject_log=1024 }\n"
 		"3-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
 		"3-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes }\n"
+		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
 		"3-PREFERENCE::permissive={ verbose=yes }\n",
 		file_only, file_only, file_only, file_only);
 	fclose(fp);
