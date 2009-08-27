@@ -827,20 +827,30 @@ struct ccs_io_buffer {
 	u8 type;
 };
 
-struct ccs_profile {
-	const struct ccs_path_info *comment;
+struct ccs_preference {
 #ifdef CONFIG_CCSECURITY_AUDIT
 	unsigned int audit_max_grant_log;
 	unsigned int audit_max_reject_log;
 #endif
-	unsigned int enforcing_penalty;
 	unsigned int learning_max_entry;
+	unsigned int enforcing_penalty;
 	bool enforcing_verbose;
-	bool permissive_verbose;
 	bool learning_verbose;
 	bool learning_exec_realpath;
 	bool learning_exec_argv0;
 	bool learning_symlink_target;
+	bool permissive_verbose;
+};
+
+struct ccs_profile {
+	const struct ccs_path_info *comment;
+#ifdef CONFIG_CCSECURITY_AUDIT
+	struct ccs_preference *audit;
+#endif
+	struct ccs_preference *learning;
+	struct ccs_preference *permissive;
+	struct ccs_preference *enforcing;
+	struct ccs_preference preference;
 	u8 default_config;
 	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 		  + CCS_MAX_MAC_CATEGORY_INDEX];

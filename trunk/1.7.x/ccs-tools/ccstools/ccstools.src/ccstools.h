@@ -283,7 +283,7 @@ struct domain_policy {
 };
 
 struct generic_acl {
-	u8 directive;
+	u16 directive;
 	u8 selected;
 	const char *operand;
 };
