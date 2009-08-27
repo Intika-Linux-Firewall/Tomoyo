@@ -1538,38 +1538,22 @@ static void make_profile(void)
 	fprintf(stderr, "Creating default profile... ");
 	if (file_only_profile)
 		file_only = "::file";
-	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
-		"0-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
-		"0-PREFERENCE::audit={ max_grant_log=1024 "
+	fprintf(fp,
+		"PROFILE_VERSION=20090827\n"
+		"PREFERENCE::audit={ max_grant_log=1024 "
 		"max_reject_log=1024 }\n"
-		"0-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"0-PREFERENCE::learning={ verbose=no max_entry=2048 "
+		"PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
+		"PREFERENCE::learning={ verbose=no max_entry=2048 "
 		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
-		"0-PREFERENCE::permissive={ verbose=yes }\n"
+		"PREFERENCE::permissive={ verbose=yes }\n"
+		"0-COMMENT=-----Disabled Mode-----\n"
+		"0-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
 		"1-COMMENT=-----Learning Mode-----\n"
 		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
-		"1-PREFERENCE::audit={ max_grant_log=1024 "
-		"max_reject_log=1024 }\n"
-		"1-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"1-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
-		"1-PREFERENCE::permissive={ verbose=yes }\n"
 		"2-COMMENT=-----Permissive Mode-----\n"
 		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
-		"2-PREFERENCE::audit={ max_grant_log=1024 "
-		"max_reject_log=1024 }\n"
-		"2-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"2-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
-		"2-PREFERENCE::permissive={ verbose=yes }\n"
 		"3-COMMENT=-----Enforcing Mode-----\n"
-		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n"
-		"3-PREFERENCE::audit={ max_grant_log=1024 "
-		"max_reject_log=1024 }\n"
-		"3-PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"3-PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
-		"3-PREFERENCE::permissive={ verbose=yes }\n",
+		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n",
 		file_only, file_only, file_only, file_only);
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))

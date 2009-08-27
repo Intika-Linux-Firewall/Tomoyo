@@ -266,13 +266,13 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	if (!r->domain)
 		r->domain = ccs_current_domain();
 	if (is_granted) {
-		if (ccs_grant_log_count >=
-		    ccs_profile(r->domain->profile)->audit_max_grant_log ||
-		    !ccs_get_audit(r->profile, r->type, true))
+		if (ccs_grant_log_count >= ccs_profile(r->domain->profile)->
+		    audit->audit_max_grant_log
+		    || !ccs_get_audit(r->profile, r->type, true))
 			goto out;
 	} else {
-		if (ccs_reject_log_count >=
-		    ccs_profile(r->domain->profile)->audit_max_reject_log
+		if (ccs_reject_log_count >= ccs_profile(r->domain->profile)->
+		    audit->audit_max_reject_log
 		    || !ccs_get_audit(r->profile, r->type, false))
 			goto out;
 	}

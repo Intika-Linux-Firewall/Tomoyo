@@ -1020,15 +1020,15 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 		ccs_profile(r->domain->profile);
 	switch (r->mode) {
 	case CCS_CONFIG_ENFORCING:
-		if (!profile->enforcing_verbose)
+		if (!profile->enforcing->enforcing_verbose)
 			return;
 		break;
 	case CCS_CONFIG_PERMISSIVE:
-		if (!profile->permissive_verbose)
+		if (!profile->permissive->permissive_verbose)
 			return;
 		break;
 	case CCS_CONFIG_LEARNING:
-		if (!profile->learning_verbose)
+		if (!profile->learning->learning_verbose)
 			return;
 		break;
 	}
@@ -1123,7 +1123,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			count++;
 		}
 	}
-	if (count < ccs_profile(domain->profile)->learning_max_entry)
+	if (count < ccs_profile(domain->profile)->learning->learning_max_entry)
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;

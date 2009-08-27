@@ -464,9 +464,10 @@ static int show_acl_line(const int index, const int list_indent)
 static int show_profile_line(const int index)
 {
 	const char *cp = generic_acl_list[index].operand;
-	const u8 profile = generic_acl_list[index].directive;
-	char number[8];
-	snprintf(number, sizeof(number) - 1, "%3u-", profile);
+	const u16 profile = generic_acl_list[index].directive;
+	char number[8] = "";
+	if (profile <= 256)
+		snprintf(number, sizeof(number) - 1, "%3u-", profile);
 	printw("%c%4d: %s", generic_acl_list[index].selected ? '&' : ' ',
 	       index, eat(number));
 	printw("%s ", eat(cp));
@@ -880,6 +881,22 @@ static int profile_entry_compare(const void *a, const void *b)
 	const char *b1 = b0->operand;
 	const int a2 = a0->directive;
 	const int b2 = b0->directive;
+	if (a2 >= 256 || b2 >= 256) {
+		int i;
+		static const char *global[5] = {
+			"PROFILE_VERSION=",
+			"PREFERENCE::audit=",
+			"PREFERENCE::learning=",
+			"PREFERENCE::permissive=",
+			"PREFERENCE::enforcing="
+		};
+		for (i = 0; i < 5; i++) {
+			if (!strncmp(a1, global[i], strlen(global[i])))
+				return -1;
+			if (!strncmp(b1, global[i], strlen(global[i])))
+				return 1;
+		}
+	}
 	if (profile_sort_type == 0) {
 		if (a2 == b2)
 			return strcmp(a1, b1);
@@ -931,7 +948,7 @@ static void read_generic_policy(void)
 	}
 	get();
 	while (freadline(fp)) {
-		u8 directive;
+		u16 directive;
 		char *cp;
 		if (current_screen == SCREEN_ACL_LIST) {
 			if (is_domain_def(shared_buffer)) {
@@ -955,11 +972,12 @@ static void read_generic_policy(void)
 			break;
 		case SCREEN_PROFILE_LIST:
 			cp = strchr(shared_buffer, '-');
-			if (!cp)
-				continue;
-			*cp++ = '\0';
-			directive = atoi(shared_buffer);
-			memmove(shared_buffer, cp, strlen(cp) + 1);
+			if (cp) {
+				*cp++ = '\0';
+				directive = atoi(shared_buffer);
+				memmove(shared_buffer, cp, strlen(cp) + 1);
+			} else
+				directive = (u16) -1;
 			break;
 		default:
 			directive = DIRECTIVE_NONE;
@@ -2177,6 +2195,7 @@ static void set_level(struct domain_policy *dp, const int current)
 		goto out;
 	for (index = 0; index < generic_acl_list_count; index++) {
 		char *cp;
+		u16 directive;
 		if (!generic_acl_list[index].selected)
 			continue;
 		get();
@@ -2184,8 +2203,10 @@ static void set_level(struct domain_policy *dp, const int current)
 		cp = strchr(shared_buffer, '=');
 		if (cp)
 			*cp = '\0';
-		fprintf(fp, "%u-%s=%s\n", generic_acl_list[index].directive,
-			shared_buffer, line);
+		directive = generic_acl_list[index].directive;
+		if (directive < 256)
+			fprintf(fp, "%u-", directive);
+		fprintf(fp, "%s=%s\n", shared_buffer, line);
 		put();
 	}
 	close_write(fp);
