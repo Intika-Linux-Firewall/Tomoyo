@@ -244,8 +244,10 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
+#ifdef CONFIG_CCSECURITY_AUDIT
 		ptr->audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG;
 		ptr->audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG;
+#endif
 		ptr->enforcing_penalty = 0;
 		ptr->learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY;
 		ptr->enforcing_verbose = true;
@@ -322,6 +324,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_put_name(old_comment);
 		return 0;
 	}
+#ifdef CONFIG_CCSECURITY_AUDIT
 	if (!strcmp(data, "PREFERENCE::audit")) {
 		char *cp2 = strstr(cp, "max_grant_log=");
 		if (cp2)
@@ -331,6 +334,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			sscanf(cp2 + 15, "%u", &profile->audit_max_reject_log);
 		return 0;
 	}
+#endif
 	if (strstr(cp, "verbose=yes"))
 		value = 1;
 	else if (strstr(cp, "verbose=no"))
@@ -397,6 +401,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
 				 */
 				config = (config & ~7) | mode;
+#ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
 			if (strstr(cp, "grant_log=yes"))
 				config |= CCS_CONFIG_WANT_GRANT_LOG;
@@ -407,6 +412,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			else if (strstr(cp, "reject_log=no"))
 				config &= ~CCS_CONFIG_WANT_REJECT_LOG;
 		}
+#endif
 	}
 	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 	    + CCS_MAX_MAC_CATEGORY_INDEX)
@@ -443,6 +449,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		if (!done)
 			goto out;
 		config = profile->default_config;
+#ifdef CONFIG_CCSECURITY_AUDIT
 		if (!ccs_io_printf(head, "%u-CONFIG={ mode=%s grant_log=%s "
 				   "reject_log=%s }\n", index,
 				   ccs_mode_4[config & 3],
@@ -451,13 +458,21 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 				   ccs_yesno(config &
 					     CCS_CONFIG_WANT_REJECT_LOG)))
 			goto out;
+#else
+		if (!ccs_io_printf(head, "%u-CONFIG={ mode=%s }\n", index,
+				   ccs_mode_4[config & 3]))
+			goto out;
+#endif
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
+#ifdef CONFIG_CCSECURITY_AUDIT
 			const char *g;
 			const char *r;
+#endif
 			config = profile->config[i];
 			if (config == CCS_CONFIG_USE_DEFAULT)
 				continue;
+#ifdef CONFIG_CCSECURITY_AUDIT
 			g = ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG);
 			r = ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG);
 			if (!ccs_io_printf(head, "%u-CONFIG::%s={ mode=%s "
@@ -465,12 +480,22 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 					   index, ccs_mac_keywords[i],
 					   ccs_mode_4[config & 3], g, r))
 				goto out;
+#else
+			if (!ccs_io_printf(head, "%u-CONFIG::%s={ mode=%s }\n",
+					   index, ccs_mac_keywords[i],
+					   ccs_mode_4[config & 3]))
+				goto out;
+#endif
+			
 		}
+#ifdef CONFIG_CCSECURITY_AUDIT
 		if (!ccs_io_printf(head, "%u-PREFERENCE::audit={ "
 				   "max_grant_log=%u max_reject_log=%u }\n",
 				   index, profile->audit_max_grant_log,
-				   profile->audit_max_reject_log) ||
-		    !ccs_io_printf(head, "%u-PREFERENCE::learning={ "
+				   profile->audit_max_reject_log))
+			goto out;
+#endif
+		if (!ccs_io_printf(head, "%u-PREFERENCE::learning={ "
 				   "verbose=%s max_entry=%u exec.realpath=%s "
 				   "exec.argv0=%s }\n", index,
 				   ccs_yesno(profile->learning_verbose),
