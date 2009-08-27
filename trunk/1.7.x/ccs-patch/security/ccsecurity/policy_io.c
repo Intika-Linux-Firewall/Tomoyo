@@ -480,6 +480,8 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	int index;
 	if (head->read_eof)
 		return;
+	if (head->read_bit)
+		goto body;
 	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090827");
 #ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
@@ -501,15 +503,18 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		      "}\n",
 		      ccs_yesno(ccs_default_profile.preference.enforcing_verbose),
 		      ccs_default_profile.preference.enforcing_penalty);
+	head->read_bit = 1;
+ body:
 	for (index = head->read_step; index < CCS_MAX_PROFILES; index++) {
 		bool done;
 		u8 config;
 		int i;
-		int pos = head->read_avail;
+		int pos;
 		const struct ccs_profile *profile = ccs_profile_ptr[index];
 		head->read_step = index;
 		if (!profile)
 			continue;
+		pos = head->read_avail;
 		spin_lock(&ccs_profile_comment_lock);
 		done = ccs_io_printf(head, "%u-COMMENT=%s\n", index,
 				     profile->comment ? profile->comment->name
