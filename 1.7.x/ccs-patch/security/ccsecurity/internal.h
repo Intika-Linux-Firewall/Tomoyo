@@ -840,6 +840,7 @@ struct ccs_profile {
 	bool learning_verbose;
 	bool learning_exec_realpath;
 	bool learning_exec_argv0;
+	bool learning_symlink_target;
 	u8 default_config;
 	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 		  + CCS_MAX_MAC_CATEGORY_INDEX];

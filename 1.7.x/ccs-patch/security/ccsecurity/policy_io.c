@@ -255,6 +255,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 		ptr->learning_verbose = false;
 		ptr->learning_exec_realpath = true;
 		ptr->learning_exec_argv0 = true;
+		ptr->learning_symlink_target = true;
 		ptr->default_config = CCS_CONFIG_DISABLED |
 			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
 		memset(ptr->config, CCS_CONFIG_USE_DEFAULT,
@@ -370,6 +371,10 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			profile->learning_exec_argv0 = true;
 		else if (strstr(cp, "exec.argv0=no"))
 			profile->learning_exec_argv0 = false;
+		if (strstr(cp, "symlink.target=yes"))
+			profile->learning_symlink_target = true;
+		else if (strstr(cp, "symlink.target=no"))
+			profile->learning_symlink_target = false;
 		return 0;
 	}
 	if (!strcmp(data, "CONFIG")) {
@@ -497,18 +502,19 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 #endif
 		if (!ccs_io_printf(head, "%u-PREFERENCE::learning={ "
 				   "verbose=%s max_entry=%u exec.realpath=%s "
-				   "exec.argv0=%s }\n", index,
-				   ccs_yesno(profile->learning_verbose),
+				   "exec.argv0=%s symlink.target=%s }\n",
+				   index, ccs_yesno(profile->learning_verbose),
 				   profile->learning_max_entry,
 				   ccs_yesno(profile->learning_exec_realpath),
-				   ccs_yesno(profile->learning_exec_argv0)) ||
-		    !ccs_io_printf(head, "%u-PREFERENCE::permissive={ "
-				   "verbose=%s }\n", index,
-				   ccs_yesno(profile->permissive_verbose)) ||
-		    !ccs_io_printf(head, "%u-PREFERENCE::enforcing={ "
-				   "verbose=%s penalty=%u }\n", index,
-				   ccs_yesno(profile->enforcing_verbose),
-				   profile->enforcing_penalty))
+				   ccs_yesno(profile->learning_exec_argv0),
+				   ccs_yesno(profile->learning_symlink_target))
+		    || !ccs_io_printf(head, "%u-PREFERENCE::permissive={ "
+				      "verbose=%s }\n", index,
+				      ccs_yesno(profile->permissive_verbose))
+		    || !ccs_io_printf(head, "%u-PREFERENCE::enforcing={ "
+				      "verbose=%s penalty=%u }\n", index,
+				      ccs_yesno(profile->enforcing_verbose),
+				      profile->enforcing_penalty))
 			goto out;
 		continue;
  out:
@@ -2011,6 +2017,44 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 	return cond;
 }
 
+/**
+ * ccs_get_symlink_condition - Get condition part for symlink requests.
+ *
+ * @r: Pointer to "struct ccs_request_info".
+ *
+ * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
+ */
+static struct ccs_condition *ccs_get_symlink_condition(struct ccs_request_info
+						       *r)
+{
+	struct ccs_condition *cond;
+	char *buf;
+	int len = 256;
+	const char *symlink = NULL;
+	const struct ccs_profile *profile = ccs_profile(r->profile);
+	if (profile->learning_symlink_target) {
+		symlink = r->obj->symlink_target->name;
+		len += strlen(symlink) + 18;
+	}
+	buf = kmalloc(len, GFP_KERNEL);
+	if (!buf)
+		return NULL;
+	snprintf(buf, len - 1, "if");
+	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1,
+			 " task.type=execute_handler");
+	}
+	if (symlink) {
+		const int pos = strlen(buf);
+		snprintf(buf + pos, len - pos - 1, " symlink.target=\"%s\"",
+			 symlink);
+	}
+	cond = ccs_get_condition(buf);
+	kfree(buf);
+	return cond;
+}
+
 /* Wait queue for ccs_query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
 
@@ -2074,6 +2118,8 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		ccs_normalize_line(buffer);
 		if (r->ee && !strncmp(buffer, "allow_execute ", 14))
 			cond = ccs_get_execute_condition(r->ee);
+		else if (r->obj && r->obj->symlink_target)
+			cond = ccs_get_symlink_condition(r);
 		else if ((current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
 			char str[] = "if task.type=execute_handler";
 			cond = ccs_get_condition(str);
