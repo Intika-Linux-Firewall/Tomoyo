@@ -829,8 +829,10 @@ struct ccs_io_buffer {
 
 struct ccs_profile {
 	const struct ccs_path_info *comment;
+#ifdef CONFIG_CCSECURITY_AUDIT
 	unsigned int audit_max_grant_log;
 	unsigned int audit_max_reject_log;
+#endif
 	unsigned int enforcing_penalty;
 	unsigned int learning_max_entry;
 	bool enforcing_verbose;
