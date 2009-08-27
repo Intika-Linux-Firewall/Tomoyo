@@ -13,11 +13,11 @@
 #include "internal.h"
 
 static struct ccs_profile ccs_default_profile = {
-	.audit = &ccs_default_profile.preference,
 	.learning = &ccs_default_profile.preference,
 	.permissive = &ccs_default_profile.preference,
 	.enforcing = &ccs_default_profile.preference,
 #ifdef CONFIG_CCSECURITY_AUDIT
+	.audit = &ccs_default_profile.preference,
 	.preference.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.preference.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
 #endif
@@ -263,7 +263,9 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
+#ifdef CONFIG_CCSECURITY_AUDIT
 		ptr->audit = &ccs_default_profile.preference;
+#endif
 		ptr->learning = &ccs_default_profile.preference;
 		ptr->permissive = &ccs_default_profile.preference;
 		ptr->enforcing = &ccs_default_profile.preference;
