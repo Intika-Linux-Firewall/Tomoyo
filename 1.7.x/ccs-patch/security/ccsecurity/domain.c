@@ -1267,7 +1267,7 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
-	ee->r.mode = ccs_get_mode(ee->r.profile, CCS_MAC_ENVIRON);
+	ee->r.mode = ccs_get_mode(ee->r.domain->profile, CCS_MAC_ENVIRON);
 	retval = ccs_environ(ee);
 	if (retval < 0)
 		goto out;
