@@ -863,14 +863,15 @@ static int ccs_get_root_depth(void)
 }
 
 static LIST_HEAD(ccs_execve_list);
-static DEFINE_SPINLOCK(ccs_execve_list_lock);
+DEFINE_SPINLOCK(ccs_execve_list_lock);
+unsigned int ccs_in_execve_counter;
 
 /**
  * ccs_allocate_execve_entry - Allocate memory for execve().
  *
  * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
  */
-static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
+static inline struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 {
 	struct ccs_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
@@ -885,29 +886,8 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	ee->task = current;
 	ee->previous_domain = ee->task->ccs_domain_info;
 	spin_lock(&ccs_execve_list_lock);
+	ccs_in_execve_counter++;
 	list_add(&ee->list, &ccs_execve_list);
-	spin_unlock(&ccs_execve_list_lock);
-	return ee;
-}
-
-/**
- * ccs_find_execve_entry - Find ccs_execve_entry of current process.
- *
- * @task: Task to find.
- *
- * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
- */
-static struct ccs_execve_entry *ccs_find_execve_entry(struct task_struct *task)
-{
-	struct ccs_execve_entry *ee = NULL;
-	struct ccs_execve_entry *p;
-	spin_lock(&ccs_execve_list_lock);
-	list_for_each_entry(p, &ccs_execve_list, list) {
-		if (p->task != task)
-			continue;
-		ee = p;
-		break;
-	}
 	spin_unlock(&ccs_execve_list_lock);
 	return ee;
 }
@@ -917,12 +897,13 @@ static struct ccs_execve_entry *ccs_find_execve_entry(struct task_struct *task)
  *
  * @ee: Pointer to "struct ccs_execve_entry".
  */
-static void ccs_free_execve_entry(struct ccs_execve_entry *ee)
+static inline void ccs_free_execve_entry(struct ccs_execve_entry *ee)
 {
 	if (!ee)
 		return;
 	spin_lock(&ccs_execve_list_lock);
 	list_del(&ee->list);
+	ccs_in_execve_counter--;
 	spin_unlock(&ccs_execve_list_lock);
 	kfree(ee->handler_path);
 	kfree(ee->tmp);
@@ -1281,8 +1262,17 @@ int ccs_start_execve(struct linux_binprm *bprm)
 void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
-	struct ccs_execve_entry *ee = ccs_find_execve_entry(task);
+	struct ccs_execve_entry *ee = NULL;
+	struct ccs_execve_entry *p;
 	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
+	spin_lock(&ccs_execve_list_lock);
+	list_for_each_entry(p, &ccs_execve_list, list) {
+		if (p->task != task)
+			continue;
+		ee = p;
+		break;
+	}
+	spin_unlock(&ccs_execve_list_lock);
 	if (!ee)
 		return;
 	if (retval < 0) {

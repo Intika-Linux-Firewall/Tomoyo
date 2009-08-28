@@ -120,8 +120,14 @@ static size_t ccs_del_manager(struct ccs_policy_manager_entry *ptr)
  */
 static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
-	bool in_use = false;
+	bool in_use;
 	struct task_struct *p;
+	/* Don't delete domains if somebody is doing execve(). */
+	spin_lock(&ccs_execve_list_lock);
+	in_use = ccs_in_execve_counter != 0;
+	spin_unlock(&ccs_execve_list_lock);
+	if (in_use)
+		return true;
 	read_lock(&tasklist_lock);
 	for_each_process(p) {
 		if (p->ccs_domain_info != domain)
