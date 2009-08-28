@@ -794,14 +794,23 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
+	bool global_pid = false;
 	if (!strcmp(data, "allow_execute")) {
 		head->read_execute_only = true;
 		return true;
 	}
-	if (sscanf(data, "pid=%u", &pid) == 1) {
+	if (sscanf(data, "pid=%u", &pid) == 1 ||
+	    (global_pid = true, sscanf(data, "global-pid=%u", &pid) == 1)) {
 		struct task_struct *p;
 		read_lock(&tasklist_lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+		if (global_pid)
+			p = find_task_by_pid_ns(pid, &init_pid_ns);
+		else
+			p = find_task_by_vpid(pid);
+#else
 		p = find_task_by_pid(pid);
+#endif
 		if (p)
 			domain = ccs_task_domain(p);
 		read_unlock(&tasklist_lock);
@@ -1834,6 +1843,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 {
 	char *buf = head->write_buf;
 	bool task_info = false;
+	bool global_pid = false;
 	unsigned int pid;
 	struct task_struct *p;
 	struct ccs_domain_info *domain = NULL;
@@ -1846,9 +1856,18 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	head->read_eof = true;
 	if (ccs_str_starts(&buf, "info "))
 		task_info = true;
+	if (ccs_str_starts(&buf, "global-pid "))
+		global_pid = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
 	read_lock(&tasklist_lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+	if (global_pid)
+		p = find_task_by_pid_ns(pid, &init_pid_ns);
+	else
+		p = find_task_by_vpid(pid);
+#else
 	p = find_task_by_pid(pid);
+#endif
 	if (p) {
 		domain = ccs_task_domain(p);
 		ccs_flags = p->ccs_flags;
