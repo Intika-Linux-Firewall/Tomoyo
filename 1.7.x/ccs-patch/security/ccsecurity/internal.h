@@ -1044,6 +1044,9 @@ extern struct list_head ccs_aggregator_list;
 extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
 
+extern spinlock_t ccs_execve_list_lock;
+extern unsigned int ccs_in_execve_counter;
+
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 
