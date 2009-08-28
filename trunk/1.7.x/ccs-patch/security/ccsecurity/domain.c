@@ -883,6 +883,7 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 	ee->reader_idx = ccs_read_lock();
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->task = current;
+	ee->previous_domain = ee->task->ccs_domain_info;
 	spin_lock(&ccs_execve_list_lock);
 	list_add(&ee->list, &ccs_execve_list);
 	spin_unlock(&ccs_execve_list_lock);
@@ -892,11 +893,12 @@ static struct ccs_execve_entry *ccs_allocate_execve_entry(void)
 /**
  * ccs_find_execve_entry - Find ccs_execve_entry of current process.
  *
+ * @task: Task to find.
+ *
  * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
  */
-static struct ccs_execve_entry *ccs_find_execve_entry(void)
+static struct ccs_execve_entry *ccs_find_execve_entry(struct task_struct *task)
 {
-	struct task_struct *task = current;
 	struct ccs_execve_entry *ee = NULL;
 	struct ccs_execve_entry *p;
 	spin_lock(&ccs_execve_list_lock);
@@ -1210,23 +1212,6 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 }
 
 /**
- * ccs_fetch_next_domain - Fetch next_domain from the list.
- *
- * Returns pointer to "struct ccs_domain_info" which will be used if execve()
- * succeeds. This function does not return NULL.
- */
-struct ccs_domain_info *ccs_fetch_next_domain(void)
-{
-	struct ccs_execve_entry *ee = ccs_find_execve_entry();
-	struct ccs_domain_info *next_domain = NULL;
-	if (ee)
-		next_domain = ee->r.domain;
-	if (!next_domain)
-		next_domain = ccs_current_domain();
-	return next_domain;
-}
-
-/**
  * ccs_start_execve - Prepare for execve() operation.
  *
  * @bprm: Pointer to "struct linux_binprm".
@@ -1267,6 +1252,13 @@ int ccs_start_execve(struct linux_binprm *bprm)
  ok:
 	if (retval < 0)
 		goto out;
+	/*
+	 * Proceed to the next domain in order to allow reaching via PID.
+	 * It will be reverted if execve() failed. Reverting is not good.
+	 * But it is better than being unable to reach via PID in interactive
+	 * enforcing mode.
+	 */
+	task->ccs_domain_info = ee->r.domain;
 	ee->r.mode = ccs_get_mode(ee->r.domain->profile, CCS_MAC_ENVIRON);
 	retval = ccs_environ(ee);
 	if (retval < 0)
@@ -1289,14 +1281,14 @@ int ccs_start_execve(struct linux_binprm *bprm)
 void ccs_finish_execve(int retval)
 {
 	struct task_struct *task = current;
-	struct ccs_execve_entry *ee = ccs_find_execve_entry();
+	struct ccs_execve_entry *ee = ccs_find_execve_entry(task);
 	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
 	if (!ee)
 		return;
-	if (retval < 0)
+	if (retval < 0) {
+		task->ccs_domain_info = ee->previous_domain;
 		goto out;
-	/* Proceed to next domain if execution suceeded. */
-	task->ccs_domain_info = ee->r.domain;
+	}
 	/* Mark the current process as execute handler. */
 	if (ee->handler)
 		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;

@@ -13,12 +13,11 @@
 
 int main(int argc, char *argv[])
 {
-	char buffer[3][16384];
+	char buffer[3][65536];
 	int line = 0;
 	memset(buffer, 0, sizeof(buffer));
 	while (1) {
 		int i;
-		int len;
 		char *cp1;
 		char *cp2;
 
@@ -87,16 +86,31 @@ int main(int argc, char *argv[])
 		if (strncmp(buffer[2], "allow_execute ", 14))
 			continue;
 		printf("select %s", buffer[1]);
-		len = printf("%s if exec.argc=%d", buffer[2], argc);
+		{
+			char *cond = strstr(buffer[2], " if ");
+			if (!cond)
+				printf("%s if exec.argc=%d", buffer[2], argc);
+			else {
+				unsigned char *argv0 =
+					strstr(buffer[2], " exec.argv[0]=\"");
+				const int len = cond + 4 - buffer[2];
+				fwrite(buffer[2], 1, len, stdout);
+				if (argv0) {
+					argv0++;
+					while (*argv0 > ' ')
+						*argv0++ = ' ';
+				}
+				printf("exec.argc=%d", argc);
+				fwrite(buffer[2] + len, 1,
+				       strlen(buffer[2] + len), stdout);
+			}
+		}
 		i = 0;
 		cp1 = strtok(buffer[0], " ");
 		while (cp1) {
-			len += printf(" exec.argv[%d]=%s", i++, cp1);
+			printf(" exec.argv[%d]=%s", i++, cp1);
 			cp1 = strtok(NULL, " ");
 		}
-		len += printf("\n");
-		if (len < 8192)
-			printf("delete %s\n", buffer[2]);
 		printf("\n");
 	}
 	if (!line) {
