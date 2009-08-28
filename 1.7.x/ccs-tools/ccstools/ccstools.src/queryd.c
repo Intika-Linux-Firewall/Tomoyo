@@ -25,8 +25,7 @@ static void handle_update(const int check_update, const int fd);
 static _Bool convert_path_info(FILE *fp, const struct path_info *pattern,
 			       const char *new);
 static _Bool check_path_info(const char *buffer);
-static _Bool handle_query_new_format(unsigned int serial);
-static _Bool handle_query_old_format(unsigned int serial);
+static _Bool handle_query(unsigned int serial);
 
 /* Utility functions */
 
@@ -308,7 +307,6 @@ static void handle_update(const int check_update, const int fd)
 
 /* Variables */
 
-static _Bool has_retry_counter = false;
 static unsigned short int retries = 0;
 
 static int check_update = GLOBALLY_READABLE_FILES_UPDATE_AUTO;
@@ -322,7 +320,7 @@ static char *buffer = NULL;
 
 /* Main functions */
 
-static _Bool handle_query_new_format(unsigned int serial)
+static _Bool handle_query(unsigned int serial)
 {
 	int c = 0;
 	int y;
@@ -331,6 +329,7 @@ static _Bool handle_query_new_format(unsigned int serial)
 	static unsigned int prev_pid = 0;
 	unsigned int pid;
 	time_t stamp;
+	char pidbuf[128];
 	char *cp = strstr(buffer, " pid=");
 	if (!cp || sscanf(cp + 5, "%u", &pid) != 1) {
 		_printw("ERROR: Unsupported query.\n");
@@ -365,21 +364,39 @@ static _Bool handle_query_new_format(unsigned int serial)
 	/* Is this domain query? */
 	if (strstr(buffer, "\n#"))
 		goto not_domain_query;
-	_printw("Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o%s):",
-	       has_retry_counter ? "/'R'etry" : "");
+	memset(pidbuf, 0, sizeof(pidbuf));
+	snprintf(pidbuf, sizeof(pidbuf) - 1, "select pid=%u\n", pid);
+	_printw("Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy "
+		"and retry):");
 	while (true) {
 		c = getch2();
-		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' ||
-		    c == 'A' || c == 'a' ||
-		    (has_retry_counter && (c == 'R' || c == 'r')))
+		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' || c == 'R' ||
+		    c == 'r' || c == 'A' || c == 'a' || c == 'S' || c == 's')
 			break;
 		write(query_fd, "\n", 1);
 	}
 	_printw("%c\n", c);
+	
+	if (c == 'S' || c == 's') {
+		write(domain_policy_fd, pidbuf, strlen(pidbuf));
+		while (1) {
+			int i;
+			int len = read(domain_policy_fd, buffer,
+				       buffer_len - 1);
+			if (len <= 0)
+				break;
+			for (i = 0; i < len; i++) {
+				addch(buffer[i]);
+				refresh();
+			}
+		}
+		c = 'r';
+	}
 
 	/* Append to domain policy. */
 	if (c != 'A' && c != 'a')
 		goto not_append;
+	c = 'r';
 	getyx(stdscr, y, x);
 	cp = strrchr(buffer, '\n');
 	if (!cp)
@@ -400,8 +417,7 @@ static _Bool handle_query_new_format(unsigned int serial)
 	readline_history_count = simple_add_history(line, readline_history,
 						    readline_history_count,
 						    max_readline_history);
-	write(domain_policy_fd, buffer, strlen(buffer));
-	write(domain_policy_fd, "\n", 1);
+	write(domain_policy_fd, pidbuf, strlen(pidbuf));
 	write(domain_policy_fd, line, strlen(line));
 	write(domain_policy_fd, "\n", 1);
 	_printw("Added '%s'.\n", line);
@@ -420,107 +436,11 @@ write_answer:
 	_printw("\n");
 	return true;
 not_domain_query:
-	_printw("Allow? ('Y'es/'N'o%s):", has_retry_counter ? "/'R'etry" : "");
+	_printw("Allow? ('Y'es/'N'o/'R'etry):");
 	while (true) {
 		c = getch2();
 		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' ||
-		    (has_retry_counter && (c == 'R' || c == 'r')))
-			break;
-		write(query_fd, "\n", 1);
-	}
-	_printw("%c\n", c);
-	goto write_answer;
-}
-
-static _Bool handle_query_old_format(unsigned int serial)
-{
-	int c = 0;
-	int y;
-	int x;
-	char *cp;
-	char *line = NULL;
-	static char *prev_buffer = NULL;
-	if (!prev_buffer) {
-		prev_buffer = malloc(buffer_len);
-		if (!prev_buffer)
-			return false;
-		memset(prev_buffer, 0, buffer_len);
-	}
-	/* Is this domain query? */
-	if (strncmp(buffer, "<kernel>", 8))
-		goto not_domain_query;
-	if (buffer[8] != '\0' && buffer[8] != ' ')
-		goto not_domain_query;
-	cp = strchr(buffer, '\n');
-	if (!cp)
-		goto not_domain_query;
-
-	/* Check for same domain. */
-	*cp++ = '\0';
-	if (strcmp(buffer, prev_buffer)) {
-		_printw("----------------------------------------\n");
-		memmove(prev_buffer, buffer, strlen(buffer) + 1);
-	}
-	_printw("%s\n", buffer);
-	_printw("%s", cp);
-	_printw("Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o):");
-	while (true) {
-		c = getch2();
-		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' ||
-		    c == 'A' || c == 'a')
-			break;
-		write(query_fd, "\n", 1);
-	}
-	_printw("%c\n", c);
-
-	/* Append to domain policy. */
-	if (c != 'A' && c != 'a')
-		goto not_append;
-
-	getyx(stdscr, y, x);
-	line = strchr(cp, '\n');
-	if (!line)
-		*line = '\0';
-	initial_readline_data = cp;
-	readline_history_count = simple_add_history(cp, readline_history,
-						    readline_history_count,
-						    max_readline_history);
-	line = simple_readline(y, 0, "Enter new entry> ", readline_history,
-			       readline_history_count, 4000, 8);
-	scrollok(stdscr, TRUE);
-	_printw("\n");
-	if (!line || !*line) {
-		_printw("None added.\n");
-		goto not_append;
-	}
-	readline_history_count = simple_add_history(line, readline_history,
-						    readline_history_count,
-						    max_readline_history);
-	write(domain_policy_fd, buffer, strlen(buffer));
-	write(domain_policy_fd, "\n", 1);
-	write(domain_policy_fd, line, strlen(line));
-	write(domain_policy_fd, "\n", 1);
-	_printw("Added '%s'.\n", line);
-not_append:
-	free(line);
-write_answer:
-	_printw("\n");
-	/* Write answer. */
-	if (c == 'Y' || c == 'y' || c == 'A' || c == 'a')
-		c = 1;
-	else
-		c = 2;
-	snprintf(buffer, buffer_len - 1, "A%u=%u\n", serial, c);
-	write(query_fd, buffer, strlen(buffer));
-	return true;
-not_domain_query:
-	_printw("----------------------------------------\n");
-	prev_buffer[0] = '\0';
-	_printw("%s", buffer);
-	_printw("Allow? ('Y'es/'N'o):");
-	while (true) {
-		c = getch2();
-		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n')
+		    c == 'R' || c == 'r')
 			break;
 		write(query_fd, "\n", 1);
 	}
@@ -530,7 +450,7 @@ not_domain_query:
 
 int queryd_main(int argc, char *argv[])
 {
-	domain_policy_fd = open(proc_policy_domain_policy, O_WRONLY);
+	domain_policy_fd = open(proc_policy_domain_policy, O_RDWR);
 	int pipe_fd[2] = { EOF, EOF };
 	if (argc == 1)
 		goto ok;
@@ -626,22 +546,10 @@ int queryd_main(int argc, char *argv[])
 		*cp = '\0';
 
 		/* Get query number. */
-		switch (sscanf(buffer, "Q%u-%hu", &serial, &retries)) {
-		case 2:
-			has_retry_counter = true;
-			break;
-		case 1:
-			break;
-		default:
+		if (sscanf(buffer, "Q%u-%hu", &serial, &retries) != 2)
 			continue;
-		}
 		memmove(buffer, cp + 1, strlen(cp + 1) + 1);
 
-		if (!first && prev_serial == serial && !has_retry_counter) {
-			sleep(1);
-			write(query_fd, "\n", 1);
-			continue;
-		}
 		first = false;
 		prev_serial = serial;
 		/* Clear pending input. */;
@@ -652,13 +560,8 @@ int queryd_main(int argc, char *argv[])
 				break;
 		}
 		timeout(1000);
-		if (!strncmp(buffer, "#timestamp=", 11)) {
-			if (handle_query_new_format(serial))
-				continue;
-		} else {
-			if (handle_query_old_format(serial))
-				continue;
-		}
+		if (handle_query(serial))
+			continue;
 		break;
 	}
 	endwin();

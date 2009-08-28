@@ -508,6 +508,7 @@ struct ccs_execve_entry {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
+	struct ccs_domain_info *previous_domain;
 	int reader_idx;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
@@ -983,7 +984,6 @@ int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 			    const bool is_delete);
 struct ccs_address_group *ccs_get_address_group(const char *group_name);
 struct ccs_condition *ccs_get_condition(char * const condition);
-struct ccs_domain_info *ccs_fetch_next_domain(void);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						      const u8 profile);

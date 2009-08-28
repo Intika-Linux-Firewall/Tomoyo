@@ -18,7 +18,8 @@ int auditd_main(int argc, char *argv[])
 	};
 	int i;
 	int fd_in[CCS_AUDITD_MAX_FILES];
-	int fd_out[CCS_AUDITD_MAX_FILES];
+	FILE *fp_out[CCS_AUDITD_MAX_FILES];
+	int need_flush = 0;
 	const char *logfile_path[2] = { "/dev/null", "/dev/null" };
 	if (access(procfile_path[0], R_OK) || access(procfile_path[1], R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel.\n");
@@ -37,11 +38,10 @@ int auditd_main(int argc, char *argv[])
 		if (flock(fd, LOCK_EX | LOCK_NB) == EOF)
 			return 0;
 	}
-	umask(0);
+	umask(077);
 	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
-		fd_out[i] = open(logfile_path[i], O_WRONLY | O_CREAT |
-				 O_APPEND, 0600);
-		if (fd_out[i] == EOF) {
+		fp_out[i] = fopen(logfile_path[i], "a");
+		if (!fp_out[i]) {
 			fprintf(stderr, "Can't open %s for writing.\n",
 				logfile_path[i]);
 			return 1;
@@ -87,58 +87,52 @@ int auditd_main(int argc, char *argv[])
 	}
 	syslog(LOG_WARNING, "Started.\n");
 	while (true) {
-		char buffer[16384];
-		char timestamp[128];
+		char buffer[32768];
 		fd_set rfds;
 		FD_ZERO(&rfds);
 		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++)
 			FD_SET(fd_in[i], &rfds);
 		/* Wait for data. */
-		if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
+		if (need_flush) {
+			struct timeval tv = { 1, 0 };
+			need_flush = 0;
+			if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == 0) {
+				fflush(fp_out[0]);
+				fflush(fp_out[1]);
+			}
+		} else if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
 			break;
 		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
 			time_t stamp;
 			char *cp;
-			int len;
-			struct tm *tm;
 			if (!FD_ISSET(fd_in[i], &rfds))
 				continue;
 			memset(buffer, 0, sizeof(buffer));
 			if (read(fd_in[i], buffer, sizeof(buffer) - 1) < 0)
 				continue;
-			memset(timestamp, 0, sizeof(timestamp));
-			if (sscanf(buffer, "#timestamp=%lu", &stamp) != 1)
-				goto no_timestamp;
-			cp = strchr(buffer, ' ');
-			if (!cp)
-				goto no_timestamp;
-			tm = localtime(&stamp);
-			snprintf(timestamp, sizeof(timestamp) - 1,
-				 "#%04d-%02d-%02d %02d:%02d:%02d#",
-				 tm->tm_year + 1900, tm->tm_mon + 1,
-				 tm->tm_mday, tm->tm_hour, tm->tm_min,
-				 tm->tm_sec);
-			memmove(buffer, cp, strlen(cp) + 1);
-no_timestamp:
 			/* Open destination file. */
 			if (access(logfile_path[i], F_OK)) {
-				close(fd_out[i]);
-				fd_out[i] = open(logfile_path[i],
-						 O_WRONLY | O_CREAT | O_APPEND,
-						 0600);
-				if (fd_out[i] == EOF) {
+				fclose(fp_out[i]);
+				fp_out[i] = fopen(logfile_path[i], "a");
+				if (!fp_out[i]) {
 					syslog(LOG_WARNING,
 					       "Can't open %s for writing.\n",
 					       logfile_path[i]);
 					goto out;
 				}
 			}
-			len = strlen(timestamp);
-			write(fd_out[i], timestamp, len);
-			len = strlen(buffer);
-			write(fd_out[i], buffer, len);
-			write(fd_out[i], "\n", 1);
-			fsync(fd_out[i]);
+			cp = strchr(buffer, ' ');
+			if (sscanf(buffer, "#timestamp=%lu", &stamp) == 1
+			    && cp) {
+				struct tm *tm = localtime(&stamp);
+				fprintf(fp_out[i],
+					"#%04d-%02d-%02d %02d:%02d:%02d#%s\n",
+					tm->tm_year + 1900, tm->tm_mon + 1,
+					tm->tm_mday, tm->tm_hour, tm->tm_min,
+					tm->tm_sec, cp);
+			} else
+				fprintf(fp_out[i], "%s\n", buffer);
+			need_flush = 1;
 		}
 	}
 out:

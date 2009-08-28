@@ -1245,7 +1245,6 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		ACC_MODE((task->ccs_flags & O_ACCMODE) + 1) : ACC_MODE(flag);
 	int error = 0;
 	struct ccs_path_info buf;
-	struct ccs_domain_info *domain;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (task->in_execve &&
@@ -1256,8 +1255,6 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		return 0;
 	buf.name = NULL;
 	r.mode = 0;
-	domain = task->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC ?
-		ccs_fetch_next_domain() : ccs_current_domain();
 	idx = ccs_read_lock();
 	/*
 	 * If the filename is specified by "deny_rewrite" keyword,
@@ -1265,7 +1262,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 * opened for append mode or the filename is truncated at open time.
 	 */
 	if ((acc_mode & MAY_WRITE) && !(flag & O_APPEND)
-	    && ccs_init_request_info(&r, domain, CCS_MAC_FILE_REWRITE)
+	    && ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
 	    != CCS_CONFIG_DISABLED) {
 		if (!ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
@@ -1278,7 +1275,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		}
 	}
 	if (!error && acc_mode &&
-	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_OPEN)
+	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_OPEN)
 	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
@@ -1288,7 +1285,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		error = ccs_file_perm(&r, &buf, acc_mode);
 	}
 	if (!error && (flag & O_TRUNC) &&
-	    ccs_init_request_info(&r, domain, CCS_MAC_FILE_TRUNCATE)
+	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRUNCATE)
 	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
