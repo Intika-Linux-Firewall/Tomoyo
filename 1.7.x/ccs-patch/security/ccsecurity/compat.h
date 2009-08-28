@@ -58,11 +58,6 @@
 #define KERN_CONT ""
 #endif
 
-/* To support PID namespace. */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-#define find_task_by_pid find_task_by_vpid
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 #define mutex semaphore
 #define mutex_init(mutex) init_MUTEX(mutex)

@@ -330,8 +330,8 @@ static _Bool handle_query(unsigned int serial)
 	unsigned int pid;
 	time_t stamp;
 	char pidbuf[128];
-	char *cp = strstr(buffer, " pid=");
-	if (!cp || sscanf(cp + 5, "%u", &pid) != 1) {
+	char *cp = strstr(buffer, " (global-pid=");
+	if (!cp || sscanf(cp + 13, "%u", &pid) != 1) {
 		_printw("ERROR: Unsupported query.\n");
 		return false;
 	}
@@ -365,7 +365,7 @@ static _Bool handle_query(unsigned int serial)
 	if (strstr(buffer, "\n#"))
 		goto not_domain_query;
 	memset(pidbuf, 0, sizeof(pidbuf));
-	snprintf(pidbuf, sizeof(pidbuf) - 1, "select pid=%u\n", pid);
+	snprintf(pidbuf, sizeof(pidbuf) - 1, "select global-pid=%u\n", pid);
 	_printw("Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy "
 		"and retry):");
 	while (true) {

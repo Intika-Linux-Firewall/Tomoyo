@@ -137,7 +137,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 		r->domain = ccs_current_domain();
 	domainname = r->domain->domainname->name;
 	do_gettimeofday(&tv);
-	*len += strlen(domainname) + 256;
+	*len += strlen(domainname) + 300;
 	if (r->ee) {
 		struct file *file = r->ee->bprm->file;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
@@ -173,7 +173,13 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	else if (symlink)
 		pos += snprintf(buf + pos, (*len) - 1 - pos,
 				" symlink.target=\"%s\"", symlink);
-	snprintf(buf + pos, (*len) - 1 - pos, "\n%s\n", domainname);
+	snprintf(buf + pos, (*len) - 1 - pos, " (global-pid=%d)\n%s\n",
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
+		 (pid_t) sys_getpid(),
+#else
+		 task_pid_nr(current),
+#endif
+		 domainname);
  out:
 	kfree(realpath);
 	kfree(bprm_info);
