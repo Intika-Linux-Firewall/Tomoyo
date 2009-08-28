@@ -116,7 +116,7 @@ static size_t ccs_del_manager(struct ccs_policy_manager_entry *ptr)
  *
  * @domain: Pointer to "struct ccs_domain_info".
  *
- * Returns true if @ptr is in use, false otherwise.
+ * Returns true if @domain is in use, false otherwise.
  */
 static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
