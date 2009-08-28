@@ -125,11 +125,11 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	static const char *ccs_mode_4[4] = {
 		"disabled", "learning", "permissive", "enforcing"
 	};
-	char *buf;
-	char *bprm_info = "";
-	const char *symlink_head = "";
-	const char *symlink_tail = "";
-	const char *symlink_info = "";
+	char *buf = NULL;
+	char *bprm_info = NULL;
+	char *realpath = NULL;
+	const char *symlink = NULL;
+	int pos;
 	struct timeval tv;
 	u32 ccs_flags = current->ccs_flags;
 	const char *domainname;
@@ -139,33 +139,44 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	do_gettimeofday(&tv);
 	*len += strlen(domainname) + 256;
 	if (r->ee) {
+		struct file *file = r->ee->bprm->file;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+		struct path path = { file->f_vfsmnt, file->f_dentry };
+		realpath = ccs_realpath_from_path(&path);
+#else
+		realpath = ccs_realpath_from_path(&file->f_path);
+#endif
 		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
-		if (!bprm_info)
-			return NULL;
-		*len += strlen(bprm_info);
-	}
-	if (r->obj && r->obj->symlink_target) {
-		symlink_head = "symlink.target=\"";
-		symlink_info = r->obj->symlink_target->name;
-		symlink_tail = "\" ";
-		*len += 18 + strlen(symlink_info);
+		if (!realpath || !bprm_info)
+			goto out;
+		*len += strlen(realpath) + 14 + strlen(bprm_info);
+	} else if (r->obj && r->obj->symlink_target) {
+		symlink = r->obj->symlink_target->name;
+		*len += 18 + strlen(symlink);
 	}
 	buf = kzalloc(*len, GFP_KERNEL);
-	if (buf)
-		snprintf(buf, (*len) - 1,
-			 "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
-			 "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
-			 "fsgid=%d state[0]=%u state[1]=%u state[2]=%u "
-			 "%s%s%s%s\n%s\n",
-			 tv.tv_sec, r->profile, ccs_mode_4[r->mode],
-			 (pid_t) sys_getpid(), current_uid(), current_gid(),
-			 current_euid(), current_egid(), current_suid(),
-			 current_sgid(), current_fsuid(), current_fsgid(),
-			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
-			 (u8) (ccs_flags >> 8), symlink_head, symlink_info,
-			 symlink_tail, bprm_info, domainname);
-	if (r->ee)
-		kfree(bprm_info);
+	if (!buf)
+		goto out;
+	pos = snprintf(buf, (*len) - 1,
+		       "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
+		       "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
+		       "fsgid=%d state[0]=%u state[1]=%u state[2]=%u",
+		       tv.tv_sec, r->profile, ccs_mode_4[r->mode],
+		       (pid_t) sys_getpid(), current_uid(), current_gid(),
+		       current_euid(), current_egid(), current_suid(),
+		       current_sgid(), current_fsuid(), current_fsgid(),
+		       (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
+		       (u8) (ccs_flags >> 8));
+	if (realpath)
+		pos += snprintf(buf + pos, (*len) - 1 - pos,
+				" realpath=\"%s\" %s", realpath, bprm_info);
+	else if (symlink)
+		pos += snprintf(buf + pos, (*len) - 1 - pos,
+				" symlink.target=\"%s\"", symlink);
+	snprintf(buf + pos, (*len) - 1 - pos, "\n%s\n", domainname);
+ out:
+	kfree(realpath);
+	kfree(bprm_info);
 	return buf;
 }
 
