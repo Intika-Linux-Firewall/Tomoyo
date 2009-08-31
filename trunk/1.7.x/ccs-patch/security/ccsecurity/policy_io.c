@@ -491,17 +491,22 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 #endif
 	ccs_io_printf(head, "PREFERENCE::learning={ verbose=%s max_entry=%u "
 		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-		      ccs_yesno(ccs_default_profile.preference.learning_verbose),
+		      ccs_yesno(ccs_default_profile.preference.
+				learning_verbose),
 		      ccs_default_profile.preference.learning_max_entry,
-		      ccs_yesno(ccs_default_profile.preference.learning_exec_realpath),
-		      ccs_yesno(ccs_default_profile.preference.learning_exec_argv0),
+		      ccs_yesno(ccs_default_profile.preference.
+				learning_exec_realpath),
+		      ccs_yesno(ccs_default_profile.preference.
+				learning_exec_argv0),
 		      ccs_yesno(ccs_default_profile.preference.
 				learning_symlink_target));
 	ccs_io_printf(head, "PREFERENCE::permissive={ verbose=%s }\n",
-		      ccs_yesno(ccs_default_profile.preference.permissive_verbose));
+		      ccs_yesno(ccs_default_profile.preference.
+				permissive_verbose));
 	ccs_io_printf(head, "PREFERENCE::enforcing={ verbose=%s penalty=%u "
 		      "}\n",
-		      ccs_yesno(ccs_default_profile.preference.enforcing_verbose),
+		      ccs_yesno(ccs_default_profile.preference.
+				enforcing_verbose),
 		      ccs_default_profile.preference.enforcing_penalty);
 	head->read_bit = 1;
  body:
@@ -560,7 +565,6 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 					   ccs_mode_4[config & 3]))
 				goto out;
 #endif
-			
 		}
 #ifdef CONFIG_CCSECURITY_AUDIT
 		if (profile->audit != &ccs_default_profile.preference &&
