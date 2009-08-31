@@ -77,72 +77,49 @@
 
 <p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
 
-<p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
-
-<p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
-
 <table border="1">
-<tr><td>Name</td><td>Control</td><td>Default value</td><td>Learning mode supported</td></tr>
+<tr><td>Name</td><td>Control</td></tr>
+<tr>
+<td>PREFERENCE::audit</td>
+<td>Configuration of auditing preference.</td>
+</tr>
+<tr>
+<td>PREFERENCE::learning</td>
+<td>Configuration of learning mode.</td>
+</tr>
+<tr>
+<td>PREFERENCE::permissive</td>
+<td>Configuration of permissive mode.</td>
+</tr>
+<tr>
+<td>PREFERENCE::enforcing</td>
+<td>Configuration of enforcing mode.</td>
+</tr>
 <tr>
 <td>COMMENT</td>
 <td>A line of text that describes the content of the profile.</td>
-<td></td>
-<td>-</td>
 </tr>
 <tr>
-<td>All which starts with "MAC::"</td>
-<td>Enable Mandatory Access Control(MAC) level.</td>
-<td>disabled</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>MAX_ACCEPT_ENTRY</td>
-<td>Limits the max number of ACL entries that are automatically appended during learning mode.</td>
-<td>2048</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MAX_GRANT_LOG</td>
-<td>Limits the max number of access requests that didn't violate policies.</td>
-<td>1024</td>
-<td>-</td>
-</tr>
-<tr>
-<td>MAX_REJECT_LOG</td>
-<td>Limits the max number of access requests that violated policies.</td>
-<td>1024</td>
-<td>-</td>
-</tr>
-<tr>
-<td>REPORT_VIOLATION</td>
-<td>Dump domain policy violation messages to syslog.</td>
-<td>enabled</td>
-<td>-</td>
-</tr>
-<tr>
-<td>SLEEP_PERIOD</td>
-<td>Specifies how long should the process that violated policy in enforcing mode sleep for, in 0.1 seconds.</td>
-<td>0</td>
-<td>-</td>
+<td>CONFIG</td>
+<td>Configuratiof of Mandatory Access Control(MAC) level.</td>
 </tr>
 </table>
-<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY, MAX_GRANT_LOG, MAX_REJECT_LOG and SLEEP_PERIOD.</p>
-<p>You can give the following values for REPORT_VIOLATION</p>
+<p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
 <table border="1">
 <tr>
 <td>Value</td>
 <td>Meaning</td>
 </tr>
 <tr>
-<td>disabled</td>
-<td>Don't dump domain policy violation messages.</td>
+<td>no</td>
+<td>Don't dump policy violation messages.</td>
 </tr>
 <tr>
-<td>enabled</td>
-<td>Dump domain policy violation messages.</td>
+<td>yes</td>
+<td>Dump policy violation messages.</td>
 </tr>
 </table>
-<p>You can give the following values for all but listed above.</p>
+<p>You can give the following values for mode= parameter of CONFIG line.</p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -169,6 +146,8 @@
 <p>Press "w" key, then press "e" key, and you will see the picture shown below.</p>
 
 <p><img src="editpolicy-exception-list1.png" width="720" height="400"></p>
+
+<p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
 
 <p>This screen contains the following types of exceptions.</p>
 
