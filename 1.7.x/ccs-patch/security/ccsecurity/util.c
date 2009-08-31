@@ -939,8 +939,8 @@ bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted)
 	if (mode == CCS_CONFIG_USE_DEFAULT)
 		mode = ccs_profile(profile)->default_config;
 	if (is_granted)
-		return (mode & CCS_CONFIG_WANT_GRANT_LOG);
-	return (mode & CCS_CONFIG_WANT_REJECT_LOG);
+		return mode & CCS_CONFIG_WANT_GRANT_LOG;
+	return mode & CCS_CONFIG_WANT_REJECT_LOG;
 }
 
 /**
