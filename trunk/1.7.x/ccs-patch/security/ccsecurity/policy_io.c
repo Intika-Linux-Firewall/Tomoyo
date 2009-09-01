@@ -291,9 +291,11 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
  */
 struct ccs_profile *ccs_profile(const u8 profile)
 {
+	struct ccs_profile *ptr = ccs_profile_ptr[profile];
 	if (!ccs_policy_loaded)
 		return &ccs_default_profile;
-	return ccs_profile_ptr[profile];
+	BUG_ON(!ptr);
+	return ptr;
 }
 
 /**
