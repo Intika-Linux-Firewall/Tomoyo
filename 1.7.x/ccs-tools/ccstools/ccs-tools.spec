@@ -42,10 +42,11 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Thu Sep 03 2009 1.7.0-1
-- Convert /sbin/ccs-init to binary program.
-- Convert init_policy.sh to binary program.
+- Removed programs for TOMOYO 2.2.0 from this package.
+  Please use tomoyo-tools-2.2.0 package for TOMOYO 2.2.0 .
+- Converted /sbin/ccs-init and /usr/lib/ccs/init_policy to binary programs.
 - Removed "realpath", "make_alias", "makesyaoranconf".
-- Add "--with-domainname" option to ccs-findtemp program.
+- Added "--with-domainname" option to ccs-findtemp program.
 - Changed installation directory from /usr/lib/ccs/ to /usr/sbin/ .
 - Changed installation directory from /usr/lib/ccs/misc/ to /usr/lib/ccs/ .
 
