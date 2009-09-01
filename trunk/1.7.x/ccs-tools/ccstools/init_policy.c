@@ -1539,7 +1539,7 @@ static void make_profile(void)
 	if (file_only_profile)
 		file_only = "::file";
 	fprintf(fp,
-		"PROFILE_VERSION=20090827\n"
+		"PROFILE_VERSION=20090903\n"
 		"PREFERENCE::audit={ max_grant_log=1024 "
 		"max_reject_log=1024 }\n"
 		"PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
