@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0-pre   2009/08/24
+ * Version: 1.7.0-rc   2009/09/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2470,7 +2470,7 @@ static void ccs_read_version(struct ccs_io_buffer *head)
 {
 	if (head->read_eof)
 		return;
-	ccs_io_printf(head, "1.7.0-pre");
+	ccs_io_printf(head, "1.7.0-rc");
 	head->read_eof = true;
 }
 

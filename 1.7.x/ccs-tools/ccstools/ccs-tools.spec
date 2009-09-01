@@ -10,7 +10,7 @@ Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Conflicts: ccs-tools < 1.7.0-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20090623.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.0-20090903.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,11 +41,13 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
-* ??? ??? ?? 2009 1.7.0-1
+* Thu Sep 03 2009 1.7.0-1
 - Convert /sbin/ccs-init to binary program.
 - Convert init_policy.sh to binary program.
-- Removed no longer used realpath and make_alias programs.
+- Removed "realpath", "make_alias", "makesyaoranconf".
 - Add "--with-domainname" option to ccs-findtemp program.
+- Changed installation directory from /usr/lib/ccs/ to /usr/sbin/ .
+- Changed installation directory from /usr/lib/ccs/misc/ to /usr/lib/ccs/ .
 
 * Tue Jun 23 2009 1.6.8-2
 - ccs-auditd: Print error message if auditing interface is not available.

@@ -16,10 +16,6 @@ and you enjoy the life with Linux.
 
 This project was very inspired by the comic "Card Captor SAKURA",
 one of the CLAMP's masterworks.
-The names SAKURA and TOMOYO and SYAORAN were borrowed from the comic
-with the heartfelt thanks to CLAMP.
-
-
 
 ChangeLog:
 
@@ -1987,3 +1983,113 @@ Fix 2009/07/03
       bytes while the comment says it is 4096 bytes. This may lead to buffer
       overrun when slob allocator is used, for slob allocator allocates exactly
       4000 bytes whereas slab and slub allocators allocate 4096 bytes.
+
+Fix 2008/09/01
+
+    @ Add garbage collector support.
+
+      Until now, it was impossible to release memory used by deleted policy.
+      I added SRCU based garbage collector so that memory used by deleted
+      policy will be automatically released.
+
+    @ Remove word length limitation and line length limitation.
+
+      Until now, the max length of a word is 4000 and the max length of a line
+      is 8192. To be able to handle longer pathnames, I removed these
+      limitations. Now, the max length (except the domainname and the strings
+      used in "if" clause) is 128K (which is the max amount of memory kmalloc()
+      can allocate in most environments).
+
+    @ Support more fine grained profile configuration.
+
+      Profile was reconstructed.
+
+    @ Support more fine grained parameters restrictions.
+
+      "allow_create", "allow_mkdir", "allow_mkfifo", "allow_mksock" check
+      create mode. "allow_mkblock" and "allow_mkchar" check create mode,
+      major device number, minor device number. "allow_chmod" check new mode.
+      "allow_chown" checks new owner. "allow_chgrp" checks new group.
+
+    @ Allow number grouping.
+
+      To help specifying numeric values, a new keyword "number_group" is
+      introduced.
+
+    @ Remove "alias" directive and "allow_argv0" directive.
+
+      Until now, "allow_execute" used dereferenced pathname if it is a symlink
+      unless explicitly specified by "alias" directive.
+
+      Now, "allow_execute" uses symlink's pathname if it is a symlink.
+      "exec.realpath" in "if" clause checks the dereferenced pathname.
+      "exec.argv[0]" in "if" clause checks the invocation name.
+
+    @ Remove /proc/ccs/system_policy and /etc/ccs/system_policy.conf .
+
+      "deny_autobind" was moved to /proc/ccs/exception_policy and
+      /etc/ccs/exception_policy.conf . Other directives were moved to
+      /proc/ccs/domain_policy and /etc/ccs/domain_policy.conf .
+
+    @ Remove syaoran filesystem.
+
+      Since "allow_create"/"allow_mkdir"/"allow_mkfifo"/"allow_mksock"/
+      "allow_mkblock"/"allow_mkchar"/"allow_chmod"/"allow_chown"/"allow_chgrp"
+      can restrict mode changes and owner/group changes, there is no need to
+      restrict these changes at filesystem level.
+
+      Thus, I removed syaoran filesystem.
+
+    @ Reduce spinlocks.
+
+      Until now, TOMOYO was using own list for detecting memory leak. But as
+      kernel 2.6.31 introduced memory leak detection mechanism
+      ( CONFIG_DEBUG_KMEMLEAK ), TOMOYO no longer needs to use own list.
+
+      I removed the list to ruduce use of spinlocks.
+
+    @ Rewrite ccs-patch-2.\*.diff .
+
+      ccs-patch-2.\*.diff was rewriteen like LSM hooks.
+
+    @ Don't check "allow_read/write" for open-for-ioctl-only.
+
+      open(pathname, 3) means open for ioctl() only.
+      Until now, TOMOYO was checking "allow_read/write" for open(pathname, 3).
+      But since TOMOYO checks "allow_ioctl" for ioctl(), I modified not to
+      require "allow_read/write" for open(pathname, 3).
+
+    @ Add missing sigqueue() and tgsigqueue() hooks.
+
+      Until now, kill(), tkill(), tgkill() had hooks but sigqueue() and
+      tgsigqueue() didn't.
+
+    @ Move files from fs/ to security/ccsecurity.
+
+      Config menu section changed from "File systems" to "Security options". 
+
+      Kernel config symbols changed from CONFIG_SAKURA CONFIG_TOMOYO
+      CONFIG_SYAORAN to CONFIG_CCSECURITY .
+
+    @ Add global PID to audit logs.
+
+      ccs-queryd was using domainname for reaching the domain which the process
+      belongs to, but the domain could be deleted while ccs-queryd is handling
+      policy violation. If the domain is deleted, ccs-queryd no longer can
+      reach the domain by domainname. Thus, ccs-queryd now uses PID for
+      reaching the domain which the process belongs to.
+
+      Kernel 2.6.24 introduced PID namespace. The PID in access logs generated
+      by a process inside a container is useless for ccs-queryd for reaching
+      the domain which the process belongs to.
+
+      Thus, I added global PID in audit logs.
+      
+    @ Transit to new domain before do_execve() suceeds.
+
+      Permission checks for interpreters and environment variables are
+      done using new domain. In order to be allow ccs-queryd to reach the new
+      domain via global PID, I reverted "Don't transit to new domain until
+      do_execve() succeeds." made on 2008/10/07.
+
+Version 1.7.0 2008/09/03   Feature enhancement release.
