@@ -484,7 +484,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		return;
 	if (head->read_bit)
 		goto body;
-	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090827");
+	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
 #ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
 		      "max_reject_log=%u }\n",

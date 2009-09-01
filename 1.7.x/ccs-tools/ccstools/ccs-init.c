@@ -33,20 +33,16 @@ static void panic(void)
 	exit(1);
 }
 
-static unsigned int ccs_version = 168;
-static const char *policy_dir = "/etc/ccs/";
-static const char *proc_manager = "/proc/ccs/manager";
-static const char *proc_system_policy = "/proc/ccs/system_policy";
-static const char *proc_exception_policy = "/proc/ccs/exception_policy";
-static const char *proc_domain_policy = "/proc/ccs/domain_policy";
-static const char *proc_profile = "/proc/ccs/profile";
-static const char *proc_meminfo = "/proc/ccs/meminfo";
+#define policy_dir            "/etc/ccs/"
+#define proc_manager          "/proc/ccs/manager"
+#define proc_exception_policy "/proc/ccs/exception_policy";
+#define proc_domain_policy    "/proc/ccs/domain_policy";
+#define proc_profile          "/proc/ccs/profile";
+#define proc_meminfo          "/proc/ccs/meminfo";
 static const char *profile_name = "default";
-static _Bool tomoyo_noload = 0;
-static _Bool tomoyo_quiet = 0;
+static _Bool ccs_noload = 0;
+static _Bool ccs_quiet = 0;
 static _Bool proc_unmount = 0;
-static _Bool sys_unmount = 0;
-static _Bool security_unmount = 0;
 static _Bool chdir_ok = 0;
 
 static _Bool profile_used[256];
@@ -68,10 +64,10 @@ static void check_arg(const char *arg)
 		profile_name = strdup(buffer);
 		if (!profile_name)
 			panic();
-	} else if (!strcmp(arg, "TOMOYO_NOLOAD"))
-		tomoyo_noload = 1;
-	else if (!strcmp(arg, "TOMOYO_QUIET"))
-		tomoyo_quiet = 1;
+	} else if (!strcmp(arg, "CCS_NOLOAD"))
+		ccs_noload = 1;
+	else if (!strcmp(arg, "CCS_QUIET"))
+		ccs_quiet = 1;
 }
 
 static void ask_profile(void)
@@ -140,10 +136,10 @@ static void ask_profile(void)
 			profile_name = "disable";
 			break;
 		}
-		if (!strcmp(input, "TOMOYO_NOLOAD"))
-			tomoyo_noload = 1;
-		if (!strcmp(input, "TOMOYO_QUIET"))
-			tomoyo_quiet = 1;
+		if (!strcmp(input, "CCS_NOLOAD"))
+			ccs_noload = 1;
+		if (!strcmp(input, "CCS_QUIET"))
+			ccs_quiet = 1;
 	}
 }
 
@@ -221,17 +217,11 @@ static void disable_profile(void)
 		panic();
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
-		unsigned int count;
 		char *cp = strchr(buffer, '=');
 		if (!cp)
 			continue;
-		*cp++ = '\0';
-		if (sscanf(cp, "%u", &count) == 1) {
-			if (count)
-				fprintf(fp_out, "%s=0\n", buffer);
-		} else if (strcmp(cp, "disabled")) {
-			fprintf(fp_out, "%s=disabled\n", buffer);
-		}
+		*cp = '\0';
+		fprintf(fp_out, "%s={ mode=disabled }\n", buffer);
 	}
 	fclose(fp_in);
 	fclose(fp_out);
@@ -244,9 +234,16 @@ static void disable_verbose(void)
 	if (!fp)
 		panic();
 	scan_used_profile_index();
-	for (i = 0; i < 256; i++)
-		if (profile_used[i])
-			fprintf(fp, "%u-TOMOYO_VERBOSE=disabled\n", i);
+	fprintf(fp, "PREFERENCE::learning={ verbose=disabled }\n");
+	fprintf(fp, "PREFERENCE::permissive={ verbose=disabled }\n");
+	fprintf(fp, "PREFERENCE::enforcing={ verbose=disabled }\n");
+	for (i = 0; i < 256; i++) {
+		if (!profile_used[i])
+			continue;
+		fprintf(fp, "%u-PREFERENCE::learning={ verbose=disabled }\n", i);
+		fprintf(fp, "%u-PREFERENCE::permissive={ verbose=disabled }\n", i);
+		fprintf(fp, "%u-PREFERENCE::enforcing={ verbose=disabled }\n", i);
+	}
 	fclose(fp);
 }
 
@@ -271,59 +268,21 @@ static void show_domain_usage(void)
 
 static void show_memory_usage(void)
 {
-	unsigned int shared_mem = 0;
-	unsigned int private_mem = 0;
 	FILE *fp = fopen(proc_meminfo, "r");
 	if (!fp)
 		return;
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		unsigned int size;
-		if (sscanf(buffer, "Shared: %u", &size) == 1 ||
-		    sscanf(buffer, "Policy (string): %u", &size) == 1)
-			shared_mem = size;
-		else if (sscanf(buffer, "Private: %u", &size) == 1 ||
-			 sscanf(buffer, "Policy (non-string): %u", &size) == 1)
-			private_mem = size;
+		if (sscanf(buffer, "Shared: %u", &size) == 1)
+			printf("%u KB shared. ", (size + 1023) / 1024);
+		else if (sscanf(buffer, "Private: %u", &size) == 1)
+			printf("%u KB private. ", (size + 1023) / 1024);
+		else if (sscanf(buffer, "Policy: %u", &size) == 1)
+			printf("%u KB used by policy.", (size + 1023) / 1024);
 	}
 	fclose(fp);
-	printf("%u KB shared. %u KB private.\n", (shared_mem + 1023) / 1024,
-	       (private_mem + 1023) / 1024);
-}
-
-static _Bool mount_securityfs(void)
-{
-	struct stat buf;
-	/* Mount /sys if not mounted. */
-	if (lstat("/sys/kernel/", &buf) || !S_ISDIR(buf.st_mode))
-		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
-	/* Mount /sys/kernel/security if not mounted. */
-	if (lstat("/sys/kernel/security/tomoyo/", &buf) ||
-	    !S_ISDIR(buf.st_mode))
-		security_unmount = !mount("none", "/sys/kernel/security",
-					  "securityfs", 0, NULL);
-	/* Unmount and exit if policy interface doesn't exist. */
-	if (lstat("/sys/kernel/security/tomoyo", &buf) ||
-	    !S_ISDIR(buf.st_mode)) {
-		if (security_unmount)
-			umount("/sys/kernel/security/");
-		if (sys_unmount)
-			umount("/sys/");
-		return 0;
-	}
-	/*
-	 * Use /etc/tomoyo/ instead of /etc/ccs/ and
-	 * /sys/kernel/security/tomoyo/ instead of /proc/ccs/ .
-	 */
-	policy_dir = "/etc/tomoyo/";
-	proc_manager = "/sys/kernel/security/tomoyo/manager";
-	proc_system_policy = NULL;
-	proc_exception_policy = "/sys/kernel/security/tomoyo/exception_policy";
-	proc_domain_policy = "/sys/kernel/security/tomoyo/domain_policy";
-	proc_profile = "/sys/kernel/security/tomoyo/profile";
-	proc_meminfo = "/sys/kernel/security/tomoyo/meminfo";
-	ccs_version = 220;
-	return 1;
+	putchar('\n');
 }
 
 int main(int argc, char *argv[])
@@ -333,10 +292,9 @@ int main(int argc, char *argv[])
 	/* Mount /proc if not mounted. */
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
-	
+
 	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if ((lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) &&
-	    !mount_securityfs()) {
+	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
@@ -415,12 +373,9 @@ int main(int argc, char *argv[])
 	/* Load policy. */
 	if (chdir_ok) {
 		copy_files("manager.base", "manager.conf", proc_manager);
-		if (ccs_version < 170)
-			copy_files("system_policy.base", "system_policy.conf",
-				   proc_system_policy);
 		copy_files("exception_policy.base", "exception_policy.conf",
 			   proc_exception_policy);
-		if (!tomoyo_noload)
+		if (!ccs_noload)
 			copy_files("domain_policy.base", "domain_policy.conf",
 				   proc_domain_policy);
 		if (!strcmp(profile_name, "default"))
@@ -437,34 +392,20 @@ int main(int argc, char *argv[])
 		disable_profile();
 
 	/* Disable verbose mode? */
-	if (tomoyo_quiet)
+	if (ccs_quiet)
 		disable_verbose();
 
 	/* Do additional initialization. */
-	if (ccs_version < 200) {
-		if (!access("/etc/ccs/ccs-post-init", X_OK)) {
-			switch (fork()) {
-			case 0:
-				execl("/etc/ccs/ccs-post-init",
-				      "/etc/ccs/ccs-post-init", NULL);
-				_exit(0);
-			case -1:
-				panic();
-			}
-			wait(NULL);
+	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
+		switch (fork()) {
+		case 0:
+			execl("/etc/ccs/ccs-post-init",
+			      "/etc/ccs/ccs-post-init", NULL);
+			_exit(0);
+		case -1:
+			panic();
 		}
-	} else {
-		if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
-			switch (fork()) {
-			case 0:
-				execl("/etc/tomoyo/tomoyo-post-init",
-				      "/etc/tomoyo/tomoyo-post-init", NULL);
-				_exit(0);
-			case -1:
-				panic();
-			}
-			wait(NULL);
-		}
+		wait(NULL);
 	}
 
 	show_domain_usage();
