@@ -30,15 +30,16 @@
 static void panic(void)
 {
 	printf("Fatal error while loading policy.\n");
-	exit(1);
+	while (1)
+		sleep(100);
 }
 
 #define policy_dir            "/etc/ccs/"
 #define proc_manager          "/proc/ccs/manager"
-#define proc_exception_policy "/proc/ccs/exception_policy";
-#define proc_domain_policy    "/proc/ccs/domain_policy";
-#define proc_profile          "/proc/ccs/profile";
-#define proc_meminfo          "/proc/ccs/meminfo";
+#define proc_exception_policy "/proc/ccs/exception_policy"
+#define proc_domain_policy    "/proc/ccs/domain_policy"
+#define proc_profile          "/proc/ccs/profile"
+#define proc_meminfo          "/proc/ccs/meminfo"
 static const char *profile_name = "default";
 static _Bool ccs_noload = 0;
 static _Bool ccs_quiet = 0;
@@ -285,6 +286,31 @@ static void show_memory_usage(void)
 	putchar('\n');
 }
 
+static void check_profile_version(const char *profile)
+{
+	const char *files[2] = { "profile.base", profile };
+	int i;
+	for (i = 0; i < 2; i++) {
+		FILE *fp = fopen(files[i], "r");
+		if (!fp)
+			continue;
+		while (memset(buffer, 0, sizeof(buffer)),
+		       fgets(buffer, sizeof(buffer) - 1, fp)) {
+			char *cp = strchr(buffer, '\n');
+			if (cp)
+				*cp = '\0';
+			if (!strcmp(buffer, "PROFILE_VERSION"))
+				break;
+			if (strstr(buffer, "MAC_FOR_")) {
+				printf("This profile format is not supported."
+				       "\n");
+				panic();
+			}
+		}
+		fclose(fp);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	struct stat buf;
@@ -378,12 +404,15 @@ int main(int argc, char *argv[])
 		if (!ccs_noload)
 			copy_files("domain_policy.base", "domain_policy.conf",
 				   proc_domain_policy);
-		if (!strcmp(profile_name, "default"))
+		if (!strcmp(profile_name, "default")) {
+			check_profile_version("profile.conf");
 			copy_files("profile.base", "profile.conf",
 				   proc_profile);
-		else if (strcmp(profile_name, "disable"))
+		} else if (strcmp(profile_name, "disable")) {
+			check_profile_version(profile_name);
 			copy_files("profile.base", profile_name,
 				   proc_profile);
+		}
 		copy_files("meminfo.base", "meminfo.conf", proc_meminfo);
 	}
 
