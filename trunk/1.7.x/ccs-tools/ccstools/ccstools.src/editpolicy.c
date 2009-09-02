@@ -2022,7 +2022,7 @@ static void add_entry(struct readline_data *rl)
 	char *line;
 	editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = simple_readline(window_height - 1, 0, "Enter new entry> ",
-			       rl->history, rl->count, 8192, 8);
+			       rl->history, rl->count, 128000, 8);
 	editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
@@ -2078,7 +2078,7 @@ static void find_entry(struct domain_policy *dp, _Bool input, _Bool forward,
 		goto start_search;
 	editpolicy_attr_change(A_BOLD, true);  /* add color */
 	line = simple_readline(window_height - 1, 0, "Search> ",
-			       rl->history, rl->count, 8192, 8);
+			       rl->history, rl->count, 128000, 8);
 	editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
@@ -2185,8 +2185,20 @@ static void set_level(struct domain_policy *dp, const int current)
 	if (!count2(generic_acl_list, generic_acl_list_count))
 		select_item(dp, current);
 	editpolicy_attr_change(A_BOLD, true);  /* add color */
+	initial_readline_data = NULL;
+	for (index = 0; index < generic_acl_list_count; index++) {
+		char *cp;
+		if (!generic_acl_list[index].selected)
+			continue;
+		cp = strchr(generic_acl_list[index].operand, '=');
+		if (!cp)
+			continue;
+		initial_readline_data = cp + 1;
+		break;
+	}
 	line = simple_readline(window_height - 1, 0, "Enter new value> ",
-			       NULL, 0, 8192, 1);
+			       NULL, 0, 128000, 1);
+	initial_readline_data = NULL;
 	editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
