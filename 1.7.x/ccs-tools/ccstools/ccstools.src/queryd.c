@@ -408,7 +408,7 @@ static _Bool handle_query(unsigned int serial)
 						    readline_history_count,
 						    max_readline_history);
 	line = simple_readline(y, 0, "Enter new entry> ", readline_history,
-			       readline_history_count, 4000, 8);
+			       readline_history_count, 128000, 8);
 	scrollok(stdscr, TRUE);
 	_printw("\n");
 	if (!line || !*line) {
