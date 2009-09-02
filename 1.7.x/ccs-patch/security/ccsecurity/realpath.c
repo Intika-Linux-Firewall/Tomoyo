@@ -153,12 +153,13 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 char *ccs_realpath_from_path(struct path *path)
 {
 	char *buf = NULL;
-	char *cp = NULL;
+	char *name = NULL;
 	unsigned int buf_len = PAGE_SIZE / 2;
 	struct dentry *dentry = path->dentry;
 	if (!dentry)
 		return NULL;
 	while (1) {
+		char *pos;
 		buf_len <<= 1;
 		kfree(buf);
 		buf = kmalloc(buf_len, GFP_KERNEL);
@@ -176,37 +177,35 @@ char *ccs_realpath_from_path(struct path *path)
 			} else {
 				snprintf(buf, buf_len - 1, "socket:[unknown]");
 			}
-			cp = ccs_encode(buf);
+			name = ccs_encode(buf);
 			break;
 		}
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 		/* For "socket:[\$]" and "pipe:[\$]". */
 		if (dentry->d_op && dentry->d_op->d_dname) {
-			cp = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
-			if (IS_ERR(cp))
+			pos = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
+			if (IS_ERR(pos))
 				continue;
-			cp = ccs_encode(cp);
+			name = ccs_encode(pos);
 			break;
 		}
 #endif
-		if (!path->mnt) {
-			cp = NULL;
+		if (!path->mnt)
 			break;
-		}
 		path_get(path);
 		ccs_realpath_lock();
-		cp = ccs_get_absolute_path(path, buf, buf_len - 1);
+		pos = ccs_get_absolute_path(path, buf, buf_len - 1);
 		ccs_realpath_unlock();
 		path_put(path);
-		if (IS_ERR(cp))
+		if (IS_ERR(pos))
 			continue;
-		cp = ccs_encode(cp);
+		name = ccs_encode(pos);
 		break;
 	}
 	kfree(buf);
-	if (!cp)
+	if (!name)
 		ccs_warn_oom(__func__);
-	return cp;
+	return name;
 }
 
 /**
