@@ -1996,8 +1996,8 @@ Fix 2008/09/01
 
       Until now, the max length of a word is 4000 and the max length of a line
       is 8192. To be able to handle longer pathnames, I removed these
-      limitations. Now, the max length (except the domainname and the strings
-      used in "if" clause) is 128K (which is the max amount of memory kmalloc()
+      limitations. Now, the max length (except the domainname and
+      argv[]/envp[]) is 128K (which is the max amount of memory kmalloc()
       can allocate in most environments).
 
     @ Support more fine grained profile configuration.
@@ -2007,13 +2007,13 @@ Fix 2008/09/01
     @ Support more fine grained parameters restrictions.
 
       "allow_create", "allow_mkdir", "allow_mkfifo", "allow_mksock" check
-      create mode. "allow_mkblock" and "allow_mkchar" check create mode,
-      major device number, minor device number. "allow_chmod" check new mode.
-      "allow_chown" checks new owner. "allow_chgrp" checks new group.
+      create mode. "allow_mkblock" and "allow_mkchar" check create mode and
+      major/minor device numbers. "allow_chmod" check new mode. "allow_chown"
+      checks new owner. "allow_chgrp" checks new group.
 
     @ Allow number grouping.
 
-      To help specifying numeric values, a new keyword "number_group" is
+      To help specifying numeric values, a new directive "number_group" is
       introduced.
 
     @ Remove "alias" directive and "allow_argv0" directive.
