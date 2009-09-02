@@ -1040,7 +1040,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 		va_start(args, fmt);
 		len2 = vsnprintf(buffer, len - 1, fmt, args);
 		va_end(args);
-		if (len2 < len - 1) {
+		if (len2 <= len - 1) {
 			buffer[len2] = '\0';
 			break;
 		}
