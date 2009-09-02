@@ -389,6 +389,7 @@ static _Bool handle_query(unsigned int serial)
 				addch(buffer[i]);
 				refresh();
 			}
+			write(query_fd, "\n", 1);
 		}
 		c = 'r';
 	}
