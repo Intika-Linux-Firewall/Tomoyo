@@ -416,6 +416,7 @@ extern int persistent_fd;
 extern int query_fd;
 extern int path_group_list_len;
 extern int address_group_list_len;
+extern int number_group_list_len;
 extern struct generic_acl *generic_acl_list;
 extern int generic_acl_list_count;
 extern char *initial_readline_data;
