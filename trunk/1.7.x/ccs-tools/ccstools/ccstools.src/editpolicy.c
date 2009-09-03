@@ -1382,6 +1382,7 @@ static void read_domain_and_exception_policy(struct domain_policy *dp)
 		free(address_group_list[--address_group_list_len].member_name);
 	*/
 	address_group_list_len = 0;
+	number_group_list_len = 0;
 	find_or_assign_new_domain(dp, ROOT_NAME, false, false);
 
 	/* Load domain_initializer list, domain_keeper list. */
@@ -1450,11 +1451,7 @@ no_exception:
 		} else if (str_starts(shared_buffer,
 				      KEYWORD_DENIED_EXECUTE_HANDLER)) {
 			add_string_entry(dp, shared_buffer, index);
-		} else if (str_starts(shared_buffer, KEYWORD_ALLOW_EXECUTE) ||
-			   str_starts(shared_buffer, "1 ") ||
-			   str_starts(shared_buffer, "3 ") ||
-			   str_starts(shared_buffer, "5 ") ||
-			   str_starts(shared_buffer, "7 ")) {
+		} else if (str_starts(shared_buffer, KEYWORD_ALLOW_EXECUTE)) {
 			cp = shared_buffer;
 			cp2 = strchr(cp, ' ');
 			if (cp2)
