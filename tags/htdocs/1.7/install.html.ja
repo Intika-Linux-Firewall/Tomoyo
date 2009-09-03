@@ -22,9 +22,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -<br>
-[user@tomoyo ~]$ (cd ccs-patch/; tar -cf - .) | tar -xf -<br>
-[user@tomoyo ~]$ rm -fR ccs-patch/<br>
+[user@tomoyo ~]$ wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.0-20090903.tar.gz<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.7.0-20090903.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 [user@tomoyo ~]$ make -s menuconfig
 </td></tr>
@@ -63,8 +62,8 @@ linux-2.4 については linux-2.4.30.tar.bz2 以降、 linux-2.6 について�
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
-[user@tomoyo ~]$ tar -zxf ccs-tools.tar.gz<br>
+[user@tomoyo ~]$ wget [user@tomoyo ~]$ wget http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.0-20090903.tar.gz<br>
+[user@tomoyo ~]$ tar -zxf ccs-tools-1.7.0-20090903.tar.gz<br>
 [user@tomoyo ~]$ cd ccstools/<br>
 [user@tomoyo ~]$ make -s<br>
 [user@tomoyo ~]$ su<br>
