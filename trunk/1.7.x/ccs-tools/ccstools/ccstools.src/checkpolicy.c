@@ -388,25 +388,6 @@ static void check_signal_policy(char *data)
 	}
 }
 
-static void check_argv0_policy(char *data)
-{
-	char *argv0 = strchr(data, ' ');
-	if (!argv0) {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
-		return;
-	}
-	*argv0++ = '\0';
-	if (!is_correct_path(data, 1, 0, -1)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", line, data);
-		errors++;
-	}
-	if (!is_correct_path(argv0, -1, 0, -1) || strchr(argv0, '/')) {
-		printf("%u: ERROR: '%s' is a bad argv[0] name.\n", line, data);
-		errors++;
-	}
-}
-
 static void check_env_policy(char *data)
 {
 	if (!is_correct_path(data, 0, 0, 0)) {
@@ -897,8 +878,6 @@ static void check_domain_policy(void)
 			check_network_policy(shared_buffer);
 		else if (str_starts(shared_buffer, KEYWORD_ALLOW_SIGNAL))
 			check_signal_policy(shared_buffer);
-		else if (str_starts(shared_buffer, KEYWORD_ALLOW_ARGV0))
-			check_argv0_policy(shared_buffer);
 		else if (str_starts(shared_buffer, KEYWORD_ALLOW_ENV))
 			check_env_policy(shared_buffer);
 		else if (str_starts(shared_buffer, KEYWORD_ALLOW_IOCTL))

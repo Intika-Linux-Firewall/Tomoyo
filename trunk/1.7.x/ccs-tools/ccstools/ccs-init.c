@@ -241,9 +241,12 @@ static void disable_verbose(void)
 	for (i = 0; i < 256; i++) {
 		if (!profile_used[i])
 			continue;
-		fprintf(fp, "%u-PREFERENCE::learning={ verbose=disabled }\n", i);
-		fprintf(fp, "%u-PREFERENCE::permissive={ verbose=disabled }\n", i);
-		fprintf(fp, "%u-PREFERENCE::enforcing={ verbose=disabled }\n", i);
+		fprintf(fp, "%u-PREFERENCE::learning={ verbose=disabled }\n",
+			i);
+		fprintf(fp, "%u-PREFERENCE::permissive={ verbose=disabled }\n",
+			i);
+		fprintf(fp, "%u-PREFERENCE::enforcing={ verbose=disabled }\n",
+			i);
 	}
 	fclose(fp);
 }
@@ -314,7 +317,7 @@ static void check_profile_version(const char *profile)
 int main(int argc, char *argv[])
 {
 	struct stat buf;
-	
+
 	/* Mount /proc if not mounted. */
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
@@ -342,7 +345,7 @@ int main(int argc, char *argv[])
 		open("/dev/console", O_WRONLY);
 		open("/dev/console", O_WRONLY);
 	}
-	
+
 	/* Check /proc/cmdline and /proc/self/cmdline */
 	{
 		char *cp;

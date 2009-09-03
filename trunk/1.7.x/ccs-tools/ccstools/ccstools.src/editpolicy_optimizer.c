@@ -16,11 +16,15 @@ static int add_address_group_entry(const char *group_name,
 				   const char *member_name,
 				   const _Bool is_delete);
 static struct address_group_entry *find_address_group(const char *group_name);
-static _Bool compare_path(struct path_info *sarg, struct path_info *darg,
-			  u8 directive);
-static _Bool compare_address(struct path_info *sarg, struct path_info *darg);
-static u8 split_acl(const u8 index, char *data, struct path_info *arg1,
-		    struct path_info *arg2, struct path_info *arg3);
+static int parse_number(const char *number, struct number_entry *entry);
+static int add_number_group_entry(const char *group_name,
+				  const char *member_name,
+				  const _Bool is_delete);
+static struct number_group_entry *find_number_group(const char *group_name);
+static _Bool compare_path(const char *sarg, const char *darg,
+			  const u8 directive);
+static _Bool compare_number(const char *sarg, const char *darg);
+static _Bool compare_address(const char *sarg, const char *darg);
 
 /* Utility functions */
 
@@ -84,51 +88,54 @@ int add_address_group_policy(char *data, const _Bool is_delete)
 	return add_address_group_entry(data, cp, is_delete);
 }
 
-static _Bool compare_path(struct path_info *sarg, struct path_info *darg,
-			 u8 directive)
+static _Bool compare_path(const char *sarg, const char *darg,
+			  const u8 directive)
 {
 	int i;
 	struct path_group_entry *group;
-	_Bool may_use_pattern = !darg->is_patterned
-		&& (directive != DIRECTIVE_1)
-		&& (directive != DIRECTIVE_3)
-		&& (directive != DIRECTIVE_5)
-		&& (directive != DIRECTIVE_7)
+	struct path_info s;
+	struct path_info d;
+	_Bool may_use_pattern;
+	s.name = sarg;
+	d.name = darg;
+	fill_path_info(&s);
+	fill_path_info(&d);
+	may_use_pattern = !d.is_patterned
 		&& (directive != DIRECTIVE_ALLOW_EXECUTE);
-	if (!pathcmp(sarg, darg))
+	if (!pathcmp(&s, &d))
 		return true;
-	if (darg->name[0] == '@')
+	if (d.name[0] == '@')
 		return false;
-	if (sarg->name[0] != '@') {
+	if (s.name[0] != '@') {
 		/* Pathname component. */
-		return may_use_pattern && path_matches_pattern(darg, sarg);
+		return may_use_pattern && path_matches_pattern(&d, &s);
 	}
 	/* path_group component. */
-	group = find_path_group(sarg->name + 1);
+	group = find_path_group(s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
 		const struct path_info *member_name;
 		member_name = group->member_name[i];
-		if (!pathcmp(member_name, darg))
+		if (!pathcmp(member_name, &d))
 			return true;
-		if (may_use_pattern && path_matches_pattern(darg, member_name))
+		if (may_use_pattern && path_matches_pattern(&d, member_name))
 			return true;
 	}
 	return false;
 }
 
-static _Bool compare_address(struct path_info *sarg, struct path_info *darg)
+static _Bool compare_address(const char *sarg, const char *darg)
 {
 	int i;
 	struct ip_address_entry sentry;
 	struct ip_address_entry dentry;
 	struct address_group_entry *group;
-	if (parse_ip(darg->name, &dentry))
+	if (parse_ip(darg, &dentry))
 		return false;
-	if (sarg->name[0] != '@') {
+	if (sarg[0] != '@') {
 		/* IP address component. */
-		if (parse_ip(sarg->name, &sentry))
+		if (parse_ip(sarg, &sentry))
 			return false;
 		if (sentry.is_ipv6 != dentry.is_ipv6 ||
 		    memcmp(dentry.min, sentry.min, 16) < 0 ||
@@ -137,7 +144,7 @@ static _Bool compare_address(struct path_info *sarg, struct path_info *darg)
 		return true;
 	}
 	/* IP address group component. */
-	group = find_address_group(sarg->name + 1);
+	group = find_address_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
@@ -150,69 +157,99 @@ static _Bool compare_address(struct path_info *sarg, struct path_info *darg)
 	return false;
 }
 
-static u8 split_acl(const u8 index, char *data, struct path_info *arg1,
-		    struct path_info *arg2, struct path_info *arg3)
+static char *ccs_tokenize(char *buffer, char *w[], size_t size)
 {
-	/* data = w[0] w[1] ... w[n-1] w[n] if c[0] c[1] ... c[m] ; set ... */
-	/*                                                                  */
-	/* arg1 = w[0]                                                      */
-	/* arg2 = w[1] ... w[n-1] w[n]                                      */
-	/* arg3 = if c[0] c[1] ... c[m] ; set ...                           */
-	u8 subtype = 0;
+	int count = size / sizeof(char *);
+	int i;
 	char *cp;
-	arg1->name = data;
-	cp = strstr(data, " if ");
-	if (cp) {
-		while (true) {
-			char *cp2 = strstr(cp + 3, " if ");
-			if (!cp2)
-				break;
-			cp = cp2;
-		}
-		*cp++ = '\0';
-		goto ok;
-	}
-	cp = strstr(data, " ; set ");
+	cp = strstr(buffer, " if ");
+	if (!cp)
+		cp = strstr(buffer, " ; set ");
 	if (cp)
 		*cp++ = '\0';
 	else
 		cp = "";
-ok:
-	arg3->name = cp;
-	if (index == DIRECTIVE_ALLOW_NETWORK) {
-		/*
-		 * Prune protocol component and operation component so that
-		 * arg1 will point to IP address component.
-		 */
-		if (str_starts(data, "UDP bind "))
-			subtype = 1;
-		else if (str_starts(data, "UDP connect "))
-			subtype = 2;
-		else if (str_starts(data, "TCP bind "))
-			subtype = 3;
-		else if (str_starts(data, "TCP listen "))
-			subtype = 4;
-		else if (str_starts(data, "TCP connect "))
-			subtype = 5;
-		else if (str_starts(data, "TCP accept "))
-			subtype = 6;
-		else if (str_starts(data, "RAW bind "))
-			subtype = 7;
-		else if (str_starts(data, "RAW connect "))
-			subtype = 8;
+	for (i = 0; i < count; i++)
+		w[i] = "";
+	for (i = 0; i < count; i++) {
+		char *cp = strchr(buffer, ' ');
+		if (cp)
+			*cp = '\0';
+		w[i] = buffer;
+		if (!cp)
+			break;
+		buffer = cp + 1;
 	}
-	cp = strchr(data, ' ');
-	if (cp)
-		*cp++ = '\0';
-	else
-		cp = "";
-	arg2->name = cp;
-	fill_path_info(arg1);
-	fill_path_info(arg2);
-	fill_path_info(arg3);
-	return subtype;
+	return i < count || !*buffer ? cp : NULL;
 }
 
+static int parse_number(const char *number, struct number_entry *entry)
+{
+	unsigned long min;
+	unsigned long max;
+	char *cp;
+	memset(entry, 0, sizeof(*entry));
+	if (number[0] != '0') {
+		if (sscanf(number, "%lu", &min) != 1)
+			return -EINVAL;
+	} else if (number[1] == 'x' || number[1] == 'X') {
+		if (sscanf(number + 2, "%lX", &min) != 1)
+			return -EINVAL;
+	} else if (sscanf(number, "%lo", &min) != 1)
+		return -EINVAL;
+	cp = strchr(number, '-');
+	if (cp)
+		number = cp + 1;
+	if (number[0] != '0') {
+		if (sscanf(number, "%lu", &max) != 1)
+			return -EINVAL;
+	} else if (number[1] == 'x' || number[1] == 'X') {
+		if (sscanf(number + 2, "%lX", &max) != 1)
+			return -EINVAL;
+	} else if (sscanf(number, "%lo", &max) != 1)
+		return -EINVAL;
+	entry->min = min;
+	entry->max = max;
+	return 0;
+}
+
+int add_number_group_policy(char *data, const _Bool is_delete)
+{
+	char *cp = strchr(data, ' ');
+	if (!cp)
+		return -EINVAL;
+	*cp++ = '\0';
+	return add_number_group_entry(data, cp, is_delete);
+}
+
+static _Bool compare_number(const char *sarg, const char *darg)
+{
+	int i;
+	struct number_entry sentry;
+	struct number_entry dentry;
+	struct number_group_entry *group;
+	if (parse_number(darg, &dentry))
+		return false;
+	if (sarg[0] != '@') {
+		/* Number component. */
+		if (parse_number(sarg, &sentry))
+			return false;
+		if (sentry.min > dentry.min || sentry.max < dentry.max)
+			return false;
+		return true;
+	}
+	/* IP address group component. */
+	group = find_number_group(sarg + 1);
+	if (!group)
+		return false;
+	for (i = 0; i < group->member_name_len; i++) {
+		struct number_entry *entry = &group->member_name[i];
+		if (entry->min > dentry.min || entry->max < dentry.max)
+			continue;
+		return true;
+	}
+	return false;
+}
 
 void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			     const int screen)
@@ -220,14 +257,10 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 	char *cp;
 	u8 s_index;
 	int index;
-	struct path_info sarg1;
-	struct path_info sarg2;
-	struct path_info sarg3;
-	struct path_info darg1;
-	struct path_info darg2;
-	struct path_info darg3;
-	u8 subtype1;
-	u8 subtype2;
+	char *s_cond;
+	char *d_cond;
+	char *s[5];
+	char *d[5];
 	if (current < 0)
 		return;
 	s_index = generic_acl_list[current].directive;
@@ -237,7 +270,11 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 	if (!cp)
 		return;
 
-	subtype1 = split_acl(s_index, cp, &sarg1, &sarg2, &sarg3);
+	s_cond = ccs_tokenize(cp, s, sizeof(s));
+	if (!s_cond) {
+		free(cp);
+		return;
+	}
 
 	get();
 	for (index = 0; index < list_item_count[screen]; index++) {
@@ -246,41 +283,21 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			continue;
 		if (generic_acl_list[index].selected)
 			continue;
-		if (s_index == DIRECTIVE_6 ||
-		    s_index == DIRECTIVE_ALLOW_READ_WRITE) {
-			/* Source starts with "6 " or "allow_read/write " */
-			if (d_index == DIRECTIVE_6) {
-				/* Dest starts with "6 " */
-			} else if (d_index == DIRECTIVE_ALLOW_READ_WRITE) {
+		if (s_index == DIRECTIVE_ALLOW_READ_WRITE) {
+			/* Source starts with "allow_read/write " */
+			if (d_index == DIRECTIVE_ALLOW_READ_WRITE) {
 				/* Dest starts with "allow_read/write " */
-			} else if (d_index == DIRECTIVE_2) {
-				/* Dest starts with "2 " */
-			} else if (d_index == DIRECTIVE_4) {
-				/* Dest starts with "4 " */
 			} else if (d_index == DIRECTIVE_ALLOW_READ) {
 				/* Dest starts with "allow_read " */
 			} else if (d_index == DIRECTIVE_ALLOW_WRITE) {
 				/* Dest starts with "allow_write " */
 			} else {
-				/* Source and dest start with same directive. */
+				/*
+				 * Source and dest start with different
+				 * directive.
+				 */
 				continue;
 			}
-		} else if (s_index == DIRECTIVE_2 &&
-			   d_index == DIRECTIVE_ALLOW_WRITE) {
-			/* Source starts with "2 " and dest starts with
-			   "allow_write " */
-		} else if (s_index == DIRECTIVE_4 &&
-			   d_index == DIRECTIVE_ALLOW_READ) {
-			/* Source starts with "4 " and dest starts with
-			   "allow_read " */
-		} else if (s_index == DIRECTIVE_ALLOW_WRITE &&
-			   d_index == DIRECTIVE_2) {
-			/* Source starts with "allow_write " and dest starts
-			   with "2 " */
-		} else if (s_index == DIRECTIVE_ALLOW_READ &&
-			   d_index == DIRECTIVE_4) {
-			/* Source starts with "allow_read " and dest starts
-			   with "4 " */
 		} else if (s_index == d_index) {
 			/* Source and dest start with same directive. */
 		} else {
@@ -291,133 +308,104 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 		if (!memchr(shared_buffer, '\0', sizeof(shared_buffer)))
 			continue; /* Line too long. */
 
-		subtype2 = split_acl(d_index, shared_buffer, &darg1, &darg2,
-				     &darg3);
-
-		if (subtype1 != subtype2)
-			continue;
+		d_cond = ccs_tokenize(shared_buffer, d, sizeof(d));
 
 		/* Compare condition part. */
-		if (pathcmp(&sarg3, &darg3))
+		if (!d_cond || strcmp(s_cond, d_cond))
 			continue;
 
-		/* Compare first word. */
+		/* Compare non condition word. */
+		if (0) {
+			FILE *fp = fopen("/tmp/log", "a+");
+			int i;
+			for (i = 0; i < 5; i++) {
+				fprintf(fp, "s[%d]='%s'\n", i, s[i]);
+				fprintf(fp, "d[%d]='%s'\n", i, d[i]);
+			}
+			fclose(fp);
+		}
 		switch (d_index) {
-		case DIRECTIVE_1:
-		case DIRECTIVE_2:
-		case DIRECTIVE_3:
-		case DIRECTIVE_4:
-		case DIRECTIVE_5:
-		case DIRECTIVE_6:
-		case DIRECTIVE_7:
+			struct path_info sarg;
+			struct path_info darg;
+			char c;
+			int len;
+		case DIRECTIVE_ALLOW_MKBLOCK:
+		case DIRECTIVE_ALLOW_MKCHAR:
+			if (!compare_number(s[3], d[3]) ||
+			    !compare_number(s[2], d[2]))
+				continue;
+			/* fall through */
+		case DIRECTIVE_ALLOW_CREATE:
+		case DIRECTIVE_ALLOW_MKDIR:
+		case DIRECTIVE_ALLOW_MKFIFO:
+		case DIRECTIVE_ALLOW_MKSOCK:
+		case DIRECTIVE_ALLOW_IOCTL:
+		case DIRECTIVE_ALLOW_CHMOD:
+		case DIRECTIVE_ALLOW_CHOWN:
+		case DIRECTIVE_ALLOW_CHGRP:
+			if (!compare_number(s[1], d[1]))
+				continue;
+			/* fall through */
 		case DIRECTIVE_ALLOW_EXECUTE:
 		case DIRECTIVE_ALLOW_READ:
 		case DIRECTIVE_ALLOW_WRITE:
 		case DIRECTIVE_ALLOW_READ_WRITE:
-		case DIRECTIVE_ALLOW_CREATE:
 		case DIRECTIVE_ALLOW_UNLINK:
-		case DIRECTIVE_ALLOW_MKDIR:
 		case DIRECTIVE_ALLOW_RMDIR:
-		case DIRECTIVE_ALLOW_MKFIFO:
-		case DIRECTIVE_ALLOW_MKSOCK:
-		case DIRECTIVE_ALLOW_MKBLOCK:
-		case DIRECTIVE_ALLOW_MKCHAR:
 		case DIRECTIVE_ALLOW_TRUNCATE:
-		case DIRECTIVE_ALLOW_SYMLINK:
-		case DIRECTIVE_ALLOW_LINK:
-		case DIRECTIVE_ALLOW_RENAME:
 		case DIRECTIVE_ALLOW_REWRITE:
-		case DIRECTIVE_ALLOW_IOCTL:
-			if (!compare_path(&sarg1, &darg1, d_index))
+		case DIRECTIVE_ALLOW_UNMOUNT:
+		case DIRECTIVE_ALLOW_CHROOT:
+		case DIRECTIVE_ALLOW_SYMLINK:
+			if (!compare_path(s[0], d[0], d_index))
 				continue;
 			break;
-		case DIRECTIVE_ALLOW_ARGV0:
-			/* Pathname component. */
-			if (!pathcmp(&sarg1, &darg1))
-				break;
-			/* allow_argv0 doesn't support path_group. */
-			if (darg1.name[0] == '@' || darg1.is_patterned ||
-			    !path_matches_pattern(&darg1, &sarg1))
+		case DIRECTIVE_ALLOW_MOUNT:
+			if (!compare_number(s[3], d[3]) ||
+			    !compare_path(s[2], d[2], d_index))
+				continue;
+			/* fall through */
+		case DIRECTIVE_ALLOW_LINK:
+		case DIRECTIVE_ALLOW_RENAME:
+		case DIRECTIVE_ALLOW_PIVOT_ROOT:
+			if (!compare_path(s[1], d[1], d_index) ||
+			    !compare_path(s[0], d[0], d_index))
 				continue;
 			break;
 		case DIRECTIVE_ALLOW_SIGNAL:
 			/* Signal number component. */
-			if (strcmp(sarg1.name, darg1.name))
+			if (strcmp(s[0], d[0]))
 				continue;
-			break;
-		case DIRECTIVE_ALLOW_NETWORK:
-			if (!compare_address(&sarg1, &darg1))
-				continue;
-			break;
-		case DIRECTIVE_ALLOW_ENV:
-			/* An environemnt variable name component. */
-			if (!pathcmp(&sarg1, &darg1))
-				break;
-			/* allow_env doesn't interpret leading @ as
-			   path_group. */
-			if (darg1.is_patterned ||
-			    !path_matches_pattern(&darg1, &sarg1))
-				continue;
-			break;
-		default:
-			continue;
-		}
-
-		/* Compare rest words. */
-		switch (d_index) {
-			char c;
-			unsigned int smin;
-			unsigned int smax;
-			unsigned int dmin;
-			unsigned int dmax;
-		case DIRECTIVE_ALLOW_LINK:
-		case DIRECTIVE_ALLOW_RENAME:
-			if (!compare_path(&sarg2, &darg2, d_index))
-				continue;
-			break;
-		case DIRECTIVE_ALLOW_ARGV0:
-			/* Basename component. */
-			if (!pathcmp(&sarg2, &darg2))
-				break;
-			if (darg2.is_patterned ||
-			    !path_matches_pattern(&darg2, &sarg2))
-				continue;
-			break;
-		case DIRECTIVE_ALLOW_SIGNAL:
 			/* Domainname component. */
-			if (strncmp(sarg2.name, darg2.name, sarg2.total_len))
+			len = strlen(s[1]);
+			if (strncmp(s[1], d[1], len))
 				continue;
-			c = darg2.name[sarg2.total_len];
+			c = d[1][len];
 			if (c && c != ' ')
 				continue;
 			break;
 		case DIRECTIVE_ALLOW_NETWORK:
-			/* Port number component. */
-		case DIRECTIVE_ALLOW_IOCTL:
-			/* Ioctl command number component. */
-			switch (sscanf(sarg2.name, "%u-%u", &smin, &smax)) {
-			case 1:
-				smax = smin;
-			case 2:
-				break;
-			default:
+			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
+			    !compare_address(s[2], d[2]) ||
+			    !compare_number(s[3], d[3]))
 				continue;
-			}
-			switch (sscanf(darg2.name, "%u-%u", &dmin, &dmax)) {
-			case 1:
-				dmax = dmin;
-			case 2:
+			break;
+		case DIRECTIVE_ALLOW_ENV:
+			/* An environemnt variable name component. */
+			sarg.name = s[0];
+			fill_path_info(&sarg);
+			darg.name = d[0];
+			fill_path_info(&darg);
+			if (!pathcmp(&sarg, &darg))
 				break;
-			default:
-				continue;
-			}
-			if (smin > dmin || smax < dmax)
+			/* allow_env doesn't interpret leading @ as
+			   path_group. */
+			if (darg.is_patterned ||
+			    !path_matches_pattern(&darg, &sarg))
 				continue;
 			break;
 		default:
-			/* This must be empty. */
-			if (sarg2.total_len || darg2.total_len)
-				continue;
+			continue;
 		}
 		generic_acl_list[index].selected = 1;
 	}
@@ -495,6 +483,76 @@ static struct address_group_entry *find_address_group(const char *group_name)
 	for (i = 0; i < address_group_list_len; i++) {
 		if (!strcmp(group_name, address_group_list[i].group_name->name))
 			return &address_group_list[i];
+	}
+	return NULL;
+}
+
+static struct number_group_entry *number_group_list = NULL;
+int number_group_list_len = 0;
+
+static int add_number_group_entry(const char *group_name,
+				  const char *member_name,
+				  const _Bool is_delete)
+{
+	const struct path_info *saved_group_name;
+	int i;
+	int j;
+	struct number_entry entry;
+	struct number_group_entry *group = NULL;
+	if (parse_number(member_name, &entry))
+		return -EINVAL;
+	if (!is_correct_path(group_name, 0, 0, 0))
+		return -EINVAL;
+	saved_group_name = savename(group_name);
+	if (!saved_group_name)
+		return -ENOMEM;
+	for (i = 0; i < number_group_list_len; i++) {
+		group = &number_group_list[i];
+		if (saved_group_name != group->group_name)
+			continue;
+		for (j = 0; j < group->member_name_len; j++) {
+			if (memcmp(&group->member_name[j], &entry,
+				   sizeof(entry)))
+				continue;
+			if (!is_delete)
+				return 0;
+			while (j < group->member_name_len - 1)
+				group->member_name[j]
+					= group->member_name[j + 1];
+			group->member_name_len--;
+			return 0;
+		}
+		break;
+	}
+	if (is_delete)
+		return -ENOENT;
+	if (i == number_group_list_len) {
+		void *vp;
+		vp = realloc(number_group_list,
+			     (number_group_list_len + 1) *
+			     sizeof(struct number_group_entry));
+		if (!vp)
+			out_of_memory();
+		number_group_list = vp;
+		group = &number_group_list[number_group_list_len++];
+		memset(group, 0, sizeof(struct number_group_entry));
+		group->group_name = saved_group_name;
+	}
+	group->member_name = realloc(group->member_name,
+				     (group->member_name_len + 1) *
+				     sizeof(const struct number_entry));
+	if (!group->member_name)
+		out_of_memory();
+	group->member_name[group->member_name_len++] = entry;
+	return 0;
+}
+
+static struct number_group_entry *find_number_group(const char *group_name)
+{
+	int i;
+	for (i = 0; i < number_group_list_len; i++) {
+		if (!strcmp(group_name, number_group_list[i].group_name->name))
+			return &number_group_list[i];
 	}
 	return NULL;
 }

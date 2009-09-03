@@ -151,35 +151,35 @@ static void stage_file_test(void)
 	set_profile(3, "file::mount");
 	set_profile(3, "file::umount");
 	set_profile(3, "file::pivot_root");
-	
+
 	policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range "
 		"if task.uid=0 task.gid=0";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 0);
-	
+
 	policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range "
 		"if task.euid=0 0=0 1-100=10-1000";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 0);
-	
+
 	policy = "allow_read/write /proc/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 0);
-	
+
 	policy = "allow_read /bin/true "
 		"if path1.uid=0 path1.parent.uid=0 10=10-100";
 	write_domain_policy(policy, 0);
 	show_result(uselib("/bin/true"), 1);
 	write_domain_policy(policy, 1);
 	show_result(uselib("/bin/true"), 0);
-	
+
 	policy = "allow_execute /bin/true if task.uid!=10 path1.parent.uid=0";
 	write_domain_policy(policy, 0);
 	fflush(stdout);
@@ -226,7 +226,7 @@ static void stage_file_test(void)
 	show_result(fd, 0);
 	if (fd != EOF)
 		close(fd);
-	
+
 	policy = "allow_read /dev/null if path1.perm=0666";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
@@ -348,7 +348,8 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_create /tmp/open_test 0644 if path1.parent.uid=task.uid";
+	policy = "allow_create /tmp/open_test 0644 "
+		"if path1.parent.uid=task.uid";
 	write_domain_policy(policy, 0);
 	policy = "allow_write /tmp/open_test if path1.parent.uid=0";
 	write_domain_policy(policy, 0);
@@ -605,39 +606,39 @@ static void stage_file_test(void)
 	show_result(fd, 1);
 	if (fd != EOF)
 		close(fd);
-	
+
 	fd = open(filename, O_WRONLY | O_APPEND);
 	show_result(fd, 1);
 	if (fd != EOF)
 		close(fd);
-	
+
 	fd = open(filename, O_WRONLY);
 	show_result(fd, 0);
 	if (fd != EOF)
 		close(fd);
-	
+
 	fd = open(filename, O_WRONLY | O_TRUNC);
 	show_result(fd, 0);
 	if (fd != EOF)
 		close(fd);
-	
+
 	fd = open(filename, O_WRONLY | O_TRUNC | O_APPEND);
 	show_result(fd, 0);
 	if (fd != EOF)
 		close(fd);
-	
+
 	show_result(truncate(filename, 0), 0);
-	
+
 	set_profile(0, "file::open");
 	fd = open(filename, O_WRONLY | O_APPEND);
 	set_profile(3, "file::open");
 	show_result(ftruncate(fd, 0), 0);
-	
+
 	show_result(fcntl(fd, F_SETFL,
 			  fcntl(fd, F_GETFL) & ~O_APPEND), 0);
 	if (fd != EOF)
 		close(fd);
-	
+
 	write_domain_policy(policy, 1);
 
 	policy = "allow_read/write /tmp/rewrite_test";

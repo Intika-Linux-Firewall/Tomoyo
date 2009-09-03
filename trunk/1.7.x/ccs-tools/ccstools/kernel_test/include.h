@@ -188,7 +188,9 @@ static void clear_status(void)
 		exit(1);
 	}
 	for (i = 0; keywords[i]; i++)
-		fprintf(profile_fp, "255-CONFIG::%s=disabled grant_log=no reject_log=no\n", keywords[i]);
+		fprintf(profile_fp,
+			"255-CONFIG::%s=disabled grant_log=no reject_log=no\n",
+			keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
 		const char *mode;
@@ -207,7 +209,8 @@ static void clear_status(void)
 		if (!strcmp(cp, "COMMENT"))
 			mode = "Profile for kernel test\n";
 		else
-			mode = "disabled verbose=no grant_log=no reject_log=no\n";
+			mode = "disabled verbose=no grant_log=no reject_log=no"
+				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
 	/* fprintf(profile_fp, "255-PREFERENCE::enforcing= penalty=1\n"); */
@@ -242,13 +245,15 @@ static void ccs_test_init(void)
 	setlinebuf(profile_fp);
 	domain_fp = fopen(proc_policy_domain_policy, "w");
 	if (!domain_fp) {
-		fprintf(stderr, "Can't open %s .\n", proc_policy_domain_policy);
+		fprintf(stderr, "Can't open %s .\n",
+			proc_policy_domain_policy);
 		exit(1);
 	}
 	setlinebuf(domain_fp);
 	exception_fp = fopen(proc_policy_exception_policy, "w");
 	if (!exception_fp) {
-		fprintf(stderr, "Can't open %s .\n", proc_policy_exception_policy);
+		fprintf(stderr, "Can't open %s .\n",
+			proc_policy_exception_policy);
 		exit(1);
 	}
 	setlinebuf(exception_fp);
@@ -274,7 +279,8 @@ static void ccs_test_init(void)
 		memset(self_domain, 0, sizeof(self_domain));
 		if (!fp || !fgets(self_domain, sizeof(self_domain) - 1, fp) ||
 		    fclose(fp)) {
-			fprintf(stderr, "Can't open %s .\n", proc_policy_self_domain);
+			fprintf(stderr, "Can't open %s .\n",
+				proc_policy_self_domain);
 			exit(1);
 		}
 	}
@@ -378,7 +384,8 @@ static int write_exception_policy(const char *policy, int is_delete)
 
 static int set_profile(const int mode, const char *name)
 {
-	static const char *modes[4] = { "disabled", "learning", "permissive", "enforcing" };
+	static const char *modes[4] = { "disabled", "learning", "permissive",
+					"enforcing" };
 	FILE *fp = fopen(proc_policy_profile, "r");
 	char buffer[8192];
 	int policy_found = 0;
