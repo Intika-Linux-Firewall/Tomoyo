@@ -259,7 +259,7 @@ int main(int argc, char *argv[])
 			printf("OK: Permission denied.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		
+
 		/* Test move case */
 		show_prompt("mount('/tmp/mount/', '/tmp/mount_move/', "
 			    "MS_MOVE)", 1);
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 		fprintf(domain_fp, "delete allow_mount any /tmp/mount/ "
 			"--remount 0\n");
-		
+
 		/* Test bind case */
 		fprintf(domain_fp,
 			"allow_mount /tmp/mount/ /tmp/mount_bind/ --bind 0\n");
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 		umount("/tmp/mount_bind/");
 		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
 			"/tmp/mount_bind/ --bind 0\n");
-		
+
 		/* Test move case */
 		set_profile(3, "file::mount");
 		fprintf(domain_fp, "allow_unmount /tmp/mount/\n");
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp, "delete allow_unmount /tmp/mount/\n");
 
 		set_profile(0, "file::umount");
-		
+
 		mount2("none", "/tmp/mount/", "tmpfs");
 		set_profile(3, "file::umount");
 		show_prompt("umount('/tmp/mount/') for '/tmp/mount/'", 1);
@@ -399,7 +399,7 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 		fprintf(domain_fp,
 			"delete allow_unmount /tmp/\\?\\?\\?\\?\\?/\n");
-		
+
 		set_profile(0, "file::umount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */

@@ -76,7 +76,6 @@ enum socket_operation_type {
 };
 
 #define KEYWORD_AGGREGATOR               "aggregator "
-#define KEYWORD_ALLOW_ARGV0              "allow_argv0 "
 #define KEYWORD_ALLOW_ENV                "allow_env "
 #define KEYWORD_ALLOW_IOCTL              "allow_ioctl "
 #define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
@@ -132,13 +131,6 @@ enum socket_operation_type {
 
 enum editpolicy_directives {
 	DIRECTIVE_NONE,
-	DIRECTIVE_1,
-	DIRECTIVE_2,
-	DIRECTIVE_3,
-	DIRECTIVE_4,
-	DIRECTIVE_5,
-	DIRECTIVE_6,
-	DIRECTIVE_7,
 	DIRECTIVE_ALLOW_EXECUTE,
 	DIRECTIVE_ALLOW_READ,
 	DIRECTIVE_ALLOW_WRITE,
@@ -156,7 +148,6 @@ enum editpolicy_directives {
 	DIRECTIVE_ALLOW_LINK,
 	DIRECTIVE_ALLOW_RENAME,
 	DIRECTIVE_ALLOW_REWRITE,
-	DIRECTIVE_ALLOW_ARGV0,
 	DIRECTIVE_ALLOW_SIGNAL,
 	DIRECTIVE_ALLOW_NETWORK,
 	DIRECTIVE_ALLOW_IOCTL,
@@ -228,6 +219,17 @@ struct ip_address_entry {
 struct address_group_entry {
 	const struct path_info *group_name;
 	struct ip_address_entry *member_name;
+	int member_name_len;
+};
+
+struct number_entry {
+	unsigned long min;
+	unsigned long max;
+};
+
+struct number_group_entry {
+	const struct path_info *group_name;
+	struct number_entry *member_name;
 	int member_name_len;
 };
 
@@ -379,6 +381,7 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			     const int screen);
 struct path_group_entry *find_path_group(const char *group_name);
 int add_address_group_policy(char *data, const _Bool is_delete);
+int add_number_group_policy(char *data, const _Bool is_delete);
 u8 find_directive(const _Bool forward, char *line);
 void editpolicy_color_init(void);
 void editpolicy_color_change(const attr_t attr, const _Bool flg);

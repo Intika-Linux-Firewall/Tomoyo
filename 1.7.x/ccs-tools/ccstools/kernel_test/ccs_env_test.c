@@ -69,7 +69,7 @@ static void stage_env_test(void)
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
-		
+
 		should_fail = 0;
 		if (fork() == 0) {
 			envp[0] = "";

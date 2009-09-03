@@ -376,7 +376,7 @@ static _Bool handle_query(unsigned int serial)
 		write(query_fd, "\n", 1);
 	}
 	_printw("%c\n", c);
-	
+
 	if (c == 'S' || c == 's') {
 		write(domain_policy_fd, pidbuf, strlen(pidbuf));
 		while (1) {

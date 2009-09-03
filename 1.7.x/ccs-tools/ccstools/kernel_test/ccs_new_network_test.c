@@ -160,7 +160,8 @@ static void stage_network_test(void)
 			 "%u-%u", ntohs(saddr.sin_port) - 1,
 			 ntohs(saddr.sin_port) + 1);
 		if (write_policy()) {
-			connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
+			connect(fd2, (struct sockaddr *) &saddr,
+				sizeof(saddr));
 			delete_policy();
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
@@ -205,7 +206,8 @@ static void stage_network_test(void)
 					 sizeof(saddr)), 1);
 			delete_policy();
 		}
-		fprintf(exception_fp, "delete address_group TESTADDRESS 127.0.0.1\n");
+		fprintf(exception_fp,
+			"delete address_group TESTADDRESS 127.0.0.1\n");
 		saddr.sin_port = htons(20002);
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"127.0.0.0-127.0.0.2\n");
@@ -260,7 +262,8 @@ static void stage_network_test(void)
 		}
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
-		snprintf(buffer, sizeof(buffer) - 1, "allow_network TCP listen "
+		snprintf(buffer, sizeof(buffer) - 1,
+			 "allow_network TCP listen "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
@@ -302,11 +305,13 @@ static void stage_network_test(void)
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		if (write_policy()) {
-			connect(fd2, (struct sockaddr *) &saddr, sizeof(saddr));
+			connect(fd2, (struct sockaddr *) &saddr,
+				sizeof(saddr));
 			delete_policy();
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
-		snprintf(buffer, sizeof(buffer) - 1, "allow_network TCP accept "
+		snprintf(buffer, sizeof(buffer) - 1,
+			 "allow_network TCP accept "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
@@ -336,7 +341,8 @@ static void stage_network_test(void)
 		saddr.sin6_family = AF_INET6;
 		saddr.sin6_addr = in6addr_loopback;
 		saddr.sin6_port = htons(30003);
-		fprintf(exception_fp, "address_group TESTADDRESS 0:0:0:0:0:0:0:1\n");
+		fprintf(exception_fp, "address_group TESTADDRESS "
+			"0:0:0:0:0:0:0:1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP bind @TESTADDRESS 30003");
 		errno = 0;

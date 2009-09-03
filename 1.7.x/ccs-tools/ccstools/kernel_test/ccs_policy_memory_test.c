@@ -79,14 +79,17 @@ static const char *domain_testcases[] = {
 	"allow_execute /bin/true7 if 1-2=@bar",
 	"allow_execute /bin/true7 if exec.realpath!=@foo",
 	"allow_execute /bin/true7 if exec.realpath=@foo",
-	"allow_execute /bin/true8 if exec.argv[0]=\"test8\" exec.realpath=\"/bin/true8\"",
+	"allow_execute /bin/true8 "
+	"if exec.argv[0]=\"test8\" exec.realpath=\"/bin/true8\"",
 	"allow_ioctl socket:[family=2:type=2:protocol=17] 0-35122",
-	"allow_ioctl socket:[family=2:type=2:protocol=17] 35122-35124 if task.uid=0",
+	"allow_ioctl socket:[family=2:type=2:protocol=17] 35122-35124 "
+	"if task.uid=0",
 	"allow_link /tmp/link_source_test /tmp/link_dest_test",
 	"allow_mkblock /tmp/mknod_blk_test 0600 1 0",
 	"allow_mkchar /tmp/mknod_chr_test 0600 1 3",
 	"allow_mkdir /tmp/mkdir_test/ 0755",
-	"allow_mkfifo /tmp/mknod_fifo_test 0600 if path1.parent.perm=01777 path1.parent.perm=sticky path1.parent.uid=0 path1.parent.gid=0",
+	"allow_mkfifo /tmp/mknod_fifo_test 0600 if path1.parent.perm=01777 "
+	"path1.parent.perm=sticky path1.parent.uid=0 path1.parent.gid=0",
 	"allow_mkfifo /tmp/mknod_fifo_test 0600",
 	"allow_mksock /tmp/mknod_sock_test 0600",
 	"allow_mksock /tmp/socket_test 0600",
@@ -95,11 +98,18 @@ static const char *domain_testcases[] = {
 	"allow_read /dev/null if path1.parent.ino=path1.parent.ino",
 	"allow_read /dev/null if path1.perm!=0777",
 	"allow_read /dev/null if path1.perm=0666",
-	"allow_read /dev/null if path1.perm=owner_read path1.perm=owner_write path1.perm!=owner_execute path1.perm=group_read path1.perm=group_write path1.perm!=group_execute path1.perm=others_read path1.perm=others_write path1.perm!=others_execute path1.perm!=setuid path1.perm!=setgid path1.perm!=sticky",
-	"allow_read /dev/null if path1.type=char path1.dev_major=1 path1.dev_minor=3",
+	"allow_read /dev/null if path1.perm=owner_read path1.perm=owner_write "
+	"path1.perm!=owner_execute path1.perm=group_read "
+	"path1.perm=group_write path1.perm!=group_execute "
+	"path1.perm=others_read path1.perm=others_write "
+	"path1.perm!=others_execute path1.perm!=setuid path1.perm!=setgid "
+	"path1.perm!=sticky",
+	"allow_read /dev/null "
+	"if path1.type=char path1.dev_major=1 path1.dev_minor=3",
 	"allow_read /dev/null",
 	"allow_read /foo",
-	"allow_read /proc/sys/net/ipv4/ip_local_port_range if task.uid=0 task.gid=0",
+	"allow_read /proc/sys/net/ipv4/ip_local_port_range "
+	"if task.uid=0 task.gid=0",
 	"allow_read /proc/sys/net/ipv4/ip_local_port_range",
 	"allow_read/write /bar",
 	"allow_read/write /dev/null if task.uid=path1.parent.uid",
@@ -115,10 +125,13 @@ static const char *domain_testcases[] = {
 	"allow_symlink /symlink if symlink.target!=\"target\"",
 	"allow_symlink /symlink if symlink.target=@symlink_target",
 	"allow_symlink /symlink if symlink.target=\"target\"",
-	"allow_symlink /tmp/symlink_source_test if symlink.target!=\"/tmp/symlink_\\*_test\"",
+	"allow_symlink /tmp/symlink_source_test "
+	"if symlink.target!=\"/tmp/symlink_\\*_test\"",
 	"allow_symlink /tmp/symlink_source_test if symlink.target!=\"\\*\"",
-	"allow_symlink /tmp/symlink_source_test if symlink.target=\"/tmp/symlink_\\*_test\"",
-	"allow_symlink /tmp/symlink_source_test if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"",
+	"allow_symlink /tmp/symlink_source_test "
+	"if symlink.target=\"/tmp/symlink_\\*_test\"",
+	"allow_symlink /tmp/symlink_source_test "
+	"if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"",
 	"allow_symlink /tmp/symlink_source_test",
 	"allow_truncate /tmp/rewrite_test",
 	"allow_truncate /tmp/truncate_test if task.uid=path1.uid",
@@ -129,7 +142,8 @@ static const char *domain_testcases[] = {
 	"allow_write /dev/null",
 	"allow_write /devfile if path1.major=1024 path1.minor=1048576",
 	"allow_write /devfile",
-	"allow_write /proc/sys/net/ipv4/ip_local_port_range if task.euid=0 0=0 1-100=10-1000",
+	"allow_write /proc/sys/net/ipv4/ip_local_port_range "
+	"if task.euid=0 0=0 1-100=10-1000",
 	"allow_write /proc/sys/net/ipv4/ip_local_port_range",
 	"allow_write /tmp/open_test if path1.parent.uid=0",
 	"allow_write /tmp/open_test if task.uid=0 path1.ino!=0",
@@ -197,7 +211,7 @@ static void domain_policy_test(const unsigned int before)
 		if (!fp)
 			BUG("BUG: Policy write error\n");
 		fprintf(fp, "<kernel> /sbin/init\n");
-		for (i = 0; domain_testcases[i]; i++) 
+		for (i = 0; domain_testcases[i]; i++)
 			fprintf(fp, "%s\n", domain_testcases[i]);
 		fprintf(fp, "delete <kernel> /sbin/init\n");
 		fclose(fp);
@@ -233,8 +247,10 @@ static const char *exception_testcases[] = {
 	"no_initialize_domain /usr/sbin/sshd",
 	"initialize_domain /usr/sbin/sshd from /bin/bash",
 	"no_initialize_domain /usr/sbin/sshd from /bin/bash",
-	"initialize_domain /usr/sbin/sshd from <kernel> /bin/mingetty/bin/bash",
-	"no_initialize_domain /usr/sbin/sshd from <kernel> /bin/mingetty/bin/bash",
+	"initialize_domain /usr/sbin/sshd from "
+	"<kernel> /bin/mingetty/bin/bash",
+	"no_initialize_domain /usr/sbin/sshd from "
+	"<kernel> /bin/mingetty/bin/bash",
 	"keep_domain <kernel> /usr/sbin/sshd /bin/bash",
 	"no_keep_domain <kernel> /usr/sbin/sshd /bin/bash",
 	"keep_domain /bin/pwd from <kernel> /usr/sbin/sshd /bin/bash",
@@ -321,7 +337,8 @@ static void exception_policy_test(const unsigned int before)
 	}
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	unsigned int before;
 	mount("/proc", "/proc/", "proc", 0, NULL);
 	get_meminfo(&before);
