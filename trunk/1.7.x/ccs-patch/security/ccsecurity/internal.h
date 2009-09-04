@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -991,6 +991,7 @@ struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
+void ccs_check_profile(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
