@@ -74,6 +74,8 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
 
+<p><img src="operation-learning.png" width="688" height="933"></p>
+
 <p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
 
 <p>To save the policy currently in the kernel onto the disk, use "ccs-savepolicy" command.</p>
@@ -114,6 +116,8 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "WARNING:" messages will be printed to the console when policy violation occurs.</p>
 
+<p><img src="operation-permissive.png" width="688" height="622"></p>
+
 <p><img src="permissive-warning.png" width="720" height="400"></p>
 
 <p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up necessary permissions from audit logs using "grep".</p>
@@ -121,29 +125,81 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf<br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-09-04 16:31:37# profile=2 mode=permissive pid=4025 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4025)<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/share/horde/admin/sqlshell.php<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-09-04 16:32:08# profile=2 mode=permissive pid=4027 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4027)<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/share/pear/DB.php<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/lib/gconv/EUC-JP.so<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /usr/bin/id<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/lib/gconv/libJIS.so<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+use_profile 2<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/share/horde/lib/Horde/CLI.php<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env TERM<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env PATH<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env PWD<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env LANG<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env SHLVL<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env LANGUAGE<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_env _<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /etc/selinux/config<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /proc/filesystems<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /usr/lib/locale/locale-archive<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /etc/nsswitch.conf<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /etc/passwd<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /etc/group<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+allow_read /etc/group<br>
+<br>
+#2009-09-04 16:33:19# profile=2 mode=permissive pid=4024 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4024)<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-allow_read /usr/share/horde/js/stripe.js
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3854
 </td></tr>
 </table>
 
@@ -154,14 +210,39 @@ allow_read /usr/share/horde/js/stripe.js
 [root@tomoyo ~]# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/sbin/ccs-sortpolicy<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7131 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-#2009-07-13 16:40:22# profile=2 mode=permissive pid=7132 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-allow_read /usr/lib/gconv/EUC-JP.so<br>
-allow_read /usr/lib/gconv/libJIS.so<br>
-allow_read /usr/share/horde/admin/sqlshell.php<br>
-allow_read /usr/share/horde/js/stripe.js<br>
-allow_read /usr/share/horde/lib/Horde/CLI.php<br>
-allow_read /usr/share/pear/DB.php
+#2009-09-04 16:32:08# profile=2 mode=permissive pid=4027 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4027)<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+#2009-09-04 16:38:19# profile=2 mode=permissive pid=4029 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4029)<br>
+--<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3854<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3892<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)<br>
+allow_execute /usr/bin/id<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4609)<br>
+#2009-09-04 16:32:09# profile=2 mode=permissive pid=4609 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/usr/bin/id" argc=1 envc=7 argv[]={ "id" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" "_=/usr/bin/id" } (global-pid=4609)
+#2009-09-04 16:33:19# profile=2 mode=permissive pid=4024 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=4024)<br>
+allow_env LANG<br>
+allow_env LANGUAGE<br>
+allow_env PATH<br>
+allow_env PWD<br>
+allow_env SHLVL<br>
+allow_env TERM<br>
+allow_env _<br>
+allow_read /etc/group<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
+allow_read /etc/selinux/config<br>
+allow_read /proc/filesystems<br>
+allow_read /usr/lib/locale/locale-archive
 </td></tr>
 </table>
 
@@ -175,7 +256,7 @@ allow_read /usr/share/pear/DB.php
 </td></tr>
 </table>
 
-<p>If the "WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step.</p>
+<p>If the "WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step. (You can ignore "Access TCP accept" warnings against /usr/sbin/httpd , for you will make the address and port number patterns at next phase.)</p>
 
 <p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
 
