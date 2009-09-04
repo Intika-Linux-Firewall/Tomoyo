@@ -94,11 +94,18 @@
 <li><a href="#profile_CONFIG::capability::SYS_PIVOT_ROOT">CONFIG::capability::SYS_PIVOT_ROOT</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></li>
 <li><a href="#profile_CONFIG::capability::conceal_mount">CONFIG::capability::conceal_mount</a></li>
-<li><a href="#profile_CONFIG::network">CONFIG::network</a></li>
+<li><a href="#profile_CONFIG::network::inet_udp_bind">CONFIG::network::inet_udp_bind</a></li>
+<li><a href="#profile_CONFIG::network::inet_udp_connect">CONFIG::network::inet_udp_connect</a></li>
+<li><a href="#profile_CONFIG::network::inet_tcp_bind">CONFIG::network::inet_tcp_bind</a></li>
+<li><a href="#profile_CONFIG::network::inet_tcp_listen">CONFIG::network::inet_tcp_listen</a></li>
+<li><a href="#profile_CONFIG::network::inet_tcp_connect">CONFIG::network::inet_tcp_connect</a></li>
+<li><a href="#profile_CONFIG::network::inet_tcp_accept">CONFIG::network::inet_tcp_accept</a></li>
+<li><a href="#profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></li>
+<li><a href="#profile_CONFIG::network::inet_raw_connect">CONFIG::network::inet_raw_connect</a></li>
 <li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
-<li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
 <li><a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a></li>
-<li><a href="#profile_REPORT_VIOLATION">REPORT_VIOLATION</a></li>
+<li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
+<li><a href="#profile_PREFERENCE::permissive">PREFERENCE::permissive</a></li>
 <li><a href="#profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></li>
 </ul>
 
@@ -112,6 +119,7 @@
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
 <li><a href="#exception_policy_path_group">path_group</a></li>
+<li><a href="#exception_policy_number_group">number_group</a></li>
 <li><a href="#exception_policy_address_group">address_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
 <li><a href="#exception_policy_allow_env">allow_env</a></li>
@@ -247,7 +255,7 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 </td></tr>
 </table>
 
-<h2>2.3 <a name="memory_usage_infomation">Memory Allocation Rules</a></h2>
+<h2>2.3 <a name="memory_usage_infomation">Memory Usage Information</a></h2>
 
 <p>The memory used by TOMOYO Linux can be obtained via /proc/ccs/meminfo . The unit is byte.</p>
 
@@ -616,14 +624,18 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
-<p>You can specify one of modes shown below for functionalities that start with "CONFIG::".</p>
+<p>You can specify one of modes shown below for functionalities that start with "CONFIG".</p>
 
 <table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
-<tr><td>learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
-<tr><td>permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
-<tr><td>enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+<tr><td>Configuration</td><td>Meaning</td></tr>
+<tr><td>mode=disabled</td><td>Disabled. Works as if regular kernel.</td></tr>
+<tr><td>mode=learning</td><td>Learning mode. An access request is not rejected even if the request violates policy. Also, the permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>mode=permissive</td><td>Permissive mode. An access request is not rejected even if the request violates policy. But, the permission to allow the request is not added to policy.</td></tr>
+<tr><td>mode=enforcing</td><td>Enforcing mode. An access request is rejected if the request violates policy.</td></tr>
+<tr><td>grant_log=yes</td><td>Generate grant logs. The max entries are controlled via "max_grant_log=" parameter of "<a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a>" line.</td></tr>
+<tr><td>grant_log=no</td><td>Don't generate grant logs.</td></tr>
+<tr><td>reject_log=yes</td><td>Generate reject logs. The max entries are controlled via "max_reject_log=" parameter of "<a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a>" line.</td></tr>
+<tr><td>reject_log=no</td><td>Don't generate reject logs.</td></tr>
 </table>
 
 <h3><a name="profile_CONFIG::file::execute">CONFIG::file::execute</a></h3>
@@ -850,40 +862,77 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding mount requests that shadow existent mounts.</p>
 
-<h3><a name="profile_CONFIG::network">CONFIG::network</a></h3>
+<h3><a name="profile_CONFIG::network::inet_udp_bind">CONFIG::network::inet_udp_bind</a></h3>
 
-<p>Specifies access control level regarding network access requests.</p>
+<p>Specifies access control level regarding UDP socket's local address restriction.</p>
+
+<h3><a name="profile_CONFIG::network::inet_udp_connect">CONFIG::network::inet_udp_connect</a></h3>
+
+<p>Specifies access control level regarding UDP socket's remote address restriction.</p>
+
+<h3><a name="profile_CONFIG::network::inet_tcp_bind">CONFIG::network::inet_tcp_bind</a></h3>
+
+<p>Specifies access control level regarding TCP socket's bind() operation.</p>
+
+<h3><a name="profile_CONFIG::network::inet_tcp_listen">CONFIG::network::inet_tcp_listen</a></h3>
+
+<p>Specifies access control level regarding TCP socket's listen() operation.</p>
+
+<h3><a name="profile_CONFIG::network::inet_tcp_connect">CONFIG::network::inet_tcp_connect</a></h3>
+
+<p>Specifies access control level regarding TCP socket's connect() operation.</p>
+
+<h3><a name="profile_CONFIG::network::inet_tcp_accept">CONFIG::network::inet_tcp_accept</a></h3>
+
+<p>Specifies access control level regarding TCP socket's accept() operation.</p>
+
+<h3><a name="profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></h3>
+
+<p>Specifies access control level regarding RAW socket's local address restriction.</p>
+
+<h3><a name="profile_CONFIG::network::inet_raw_connect">CONFIG::network::inet_raw_connect</a></h3>
+
+<p>Specifies access control level regarding RAW socket's remote address restriction.</p>
 
 <h3><a name="profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></h3>
 
 <p>Specifies access control level regarding signal transmission requests.</p>
 
-<h3><a name="profile_PREFERENCE::learning">PREFERENCE::learning</a></h3>
-
-<p>Limits the max number of ACL entries that are automatically appended during learning mode. Default is 2048.</p>
-
 <h3><a name="profile_PREFERENCE::audit">PREFERENCE::audit</a></h3>
 
-<p>Limits the max number of grant logs and reject logs that the kernel can hold. Default is 1024.</p>
+<p>Specifies preference on auditing.</p>
 
-<h3><a name="profile_REPORT_VIOLATION">REPORT_VIOLATION</a></h3>
+<p>"max_grant_log=" limits the max number of grant logs that the kernel can hold. </p>
 
-<p>Specifies whether to print domain policy violation messages or not.</p>
+<p>"max_reject_log=" limits the max number of reject logs that the kernel can hold. </p>
 
-<table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>disabled</td><td>Disabled. Don't print domain policy violation messages.</td></tr>
-<tr><td>enabled</td><td>Enabled. Print domain policy violation messages.</td></tr>
-</table>
+<h3><a name="profile_PREFERENCE::learning">PREFERENCE::learning</a></h3>
+
+<p>Specifies preference on learning mode.</p>
+
+<p>"verbose=" controls whether to print policy violation messages or not.</p>
+
+<p>"max_entry=" controls the max number of ACL entries that are automatically appended.</p>
+
+<p>"exec.realpath=" controls whether the dereferenced pathname of the requested program should be learned when adding an "allow_execute" entry.</p>
+
+<p>"exec.argv0=" controls whether the invocation name should be learned when adding an "allow_execute" entry.</p>
+
+<p>"symlink.target=" controls whether the content of the symbolic link should be learned when adding an "allow_symlink" entry.</p>
+
+<h3><a name="profile_PREFERENCE::permissive">PREFERENCE::permissive</a></h3>
+
+<p>Specifies preference on permissive mode.</p>
+
+<p>"verbose=" controls whether to print policy violation messages or not.</p>
 
 <h3><a name="profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></h3>
 
-<p>Specifies how long should the process that violated policy in enforcing mode sleep for.</p>
+<p>Specifies preference on enforcing mode.</p>
 
-<table border="1">
-<tr><td>Value</td><td>Meaning</td></tr>
-<tr><td>Between 0 to 3000</td><td>Sleep duration in 0.1 seconds. Default is 0.</td></tr>
-</table>
+<p>"verbose=" controls whether to print policy violation messages or not.</p>
+
+<p>"penalty=" controls how long (in units of 0.1 second) should the process that violated policy sleep for.</p>
 
 <h2><a name="domain_policy">/proc/ccs/domain_policy</a></h2>
 
@@ -1227,6 +1276,28 @@ allow_read @HOME-DIR-FILE
 </table>
 
 <p>to grant file access permission.</p>
+
+<h3><a name="exception_policy_number_group">number_group</a></h3>
+
+<p>To declare number group, use number_group keyword followed by name of the group and number ranges.<br>
+For example, if you want to group 0644 and 0664, you can define</p>
+
+<table border="1">
+<tr><td>
+number_group CREATE_MODES 0644<br>
+number_group CREATE_MODES 0664
+</td></tr>
+</table>
+
+<p>in the exception policy and use like</p>
+
+<table border="1">
+<tr><td>
+allow_create /tmp/file @CREATE_MODES
+</td></tr>
+</table>
+
+<p>to grant access permission.</p>
 
 <h3><a name="exception_policy_address_group">address_group</a></h3>
 
