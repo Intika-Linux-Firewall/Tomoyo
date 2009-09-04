@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -283,11 +283,27 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 }
 
 /**
+ * ccs_check_profile - Check all profiles currently assigned to domains are defined.
+ */
+void ccs_check_profile(void)
+{
+	struct ccs_domain_info *domain;
+	ccs_policy_loaded = true;
+	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
+		const u8 profile = domain->profile;
+		if (ccs_profile_ptr[profile])
+			continue;
+		panic("Profile %u (used by '%s') not defined.\n",
+		      profile, domain->domainname->name);
+	}
+}
+
+/**
  * ccs_profile - Find a profile.
  *
  * @profile: Profile number to find.
  *
- * Returns pointer to "struct ccs_profile" on success, NULL otherwise.
+ * Returns pointer to "struct ccs_profile".
  */
 struct ccs_profile *ccs_profile(const u8 profile)
 {
@@ -917,7 +933,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 
 	if (sscanf(data, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1
 	    && profile < CCS_MAX_PROFILES) {
-		if (ccs_profile(profile))
+		if (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile])
 			domain->profile = (u8) profile;
 		return 0;
 	}
@@ -1785,7 +1801,7 @@ static int ccs_write_domain_profile(struct ccs_io_buffer *head)
 	if (profile >= CCS_MAX_PROFILES)
 		return -EINVAL;
 	domain = ccs_find_domain(cp + 1);
-	if (domain && ccs_profile(profile))
+	if (domain && (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile]))
 		domain->profile = (u8) profile;
 	return 0;
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -177,17 +177,7 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "CCSecurity: 1.7.0   2009/09/03\n");
+	printk(KERN_INFO "CCSecurity: 1.7.0+   2009/09/04\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
-	ccs_policy_loaded = true;
-	{ /* Check all profiles currently assigned to domains are defined. */
-		struct ccs_domain_info *domain;
-		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
-			const u8 profile = domain->profile;
-			if (ccs_profile(profile))
-				continue;
-			panic("Profile %u (used by '%s') not defined.\n",
-			      profile, domain->domainname->name);
-		}
-	}
+	ccs_check_profile();
 }
