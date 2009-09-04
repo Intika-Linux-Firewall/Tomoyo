@@ -3,20 +3,20 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux ポリシ解説書</title>
+<title>TOMOYO Linux ポリシー解説書</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p style="text-align:right;"><a href="policy-reference.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1 style="text-align:center;">TOMOYO Linux ポリシ解説書</h1>
+<h1 style="text-align:center;">TOMOYO Linux ポリシー解説書</h1>
 <h1><a name="index">目次</a></h1>
 <h2>1. <a href="#Keyword_Index">キーワード一覧</a></h2>
 <h2>2. <a href="#Common_Rules">はじめに</a></h2>
 <p>2.1 <a href="#word_expression_rules">単語の表記規則</a></p>
 <p>2.2 <a href="#wildcard_expression_rules">パターンの表記規則</a></p>
 <p>2.3 <a href="#memory_usage_infomation">メモリ使用量に関する情報</a></p>
-<h2>3. <a href="#Policy_Files">ポリシファイルに関して</a></h2>
+<h2>3. <a href="#Policy_Files">ポリシーファイルに関して</a></h2>
 <p>3.1 <a href="#policy_file_locations">所在について</a></p>
 <p>3.2 <a href="#policy_file_modifiers">変更について</a></p>
 <h2>4. <a href="#Domain_Rules">ドメインに関して</a></h2>
@@ -25,10 +25,10 @@
 <p>4.3 <a href="#access_logs">アクセスログについて</a></p>
 <h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
 <h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
-<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
+<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a></p>
 <p>6.2 <a href="#conditional_acl">条件付きアクセス許可の指定</a></p>
 <p>6.3 <a href="#stateful_acl">ステートフルなアクセス許可の指定</a></p>
-<p>6.4 <a href="#sleep_penalty">ポリシ違反時のペナルティ指定</a></p>
+<p>6.4 <a href="#sleep_penalty">ポリシー違反時のペナルティ指定</a></p>
 <p>6.5 <a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a></p>
 <p>6.6 <a href="#denied_execute_handler">許可されていないプログラムの実行が要求された場合の代替処理指定</a></p>
 <hr>
@@ -288,33 +288,33 @@ Query lists: 1048576
 </td></tr>
 </table>
 
-<h1>3. <a name="Policy_Files">ポリシファイルに関して</a></h1>
+<h1>3. <a name="Policy_Files">ポリシーファイルに関して</a></h1>
 
 <h2>3.1 <a name="policy_file_locations">所在について</a></h2>
 
-<p>ポリシファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
+<p>ポリシーファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
 
 <p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/ccs-init というプログラムが存在していた場合、 /sbin/ccs-init が実行され、 /sbin/ccs-init の処理が終了してから /sbin/init の実行が開始されます。</p>
 
-<p> /sbin/ccs-init は /etc/ccs/ ディレクトリにあるポリシファイルを /proc/ccs/ ディレクトリを通じてカーネルへと読み込みます。</p>
+<p> /sbin/ccs-init は /etc/ccs/ ディレクトリにあるポリシーファイルを /proc/ccs/ ディレクトリを通じてカーネルへと読み込みます。</p>
 
 <table border="1">
-<tr><td>カーネルとのインタフェース</td><td>ポリシファイル</td><td>定義されている内容</td></tr>
+<tr><td>カーネルとのインタフェース</td><td>ポリシーファイル</td><td>定義されている内容</td></tr>
 <tr><td><a href="#profile">/proc/ccs/profile</a></td><td>/etc/ccs/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
-<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
-<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
-<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
+<tr><td><a href="#manager">/proc/ccs/manager</a></td><td>/etc/ccs/manager.conf</td><td>マネージャ（ポリシーの変更ができるプログラムを定義したもの）</td></tr>
+<tr><td><a href="#exception_policy">/proc/ccs/exception_policy</a></td><td>/etc/ccs/exception_policy.conf</td><td>例外ポリシー（ドメインポリシーの例外を定義したもの）</td></tr>
+<tr><td><a href="#domain_policy">/proc/ccs/domain_policy</a></td><td>/etc/ccs/domain_policy.conf</td><td>ドメインポリシー（ドメイン単位で適用される設定）</td></tr>
 <tr><td><a href="#meminfo">/proc/ccs/meminfo</a></td><td>/etc/ccs/meminfo.conf</td><td>メモリ使用状況およびクォータ</td></tr>
 </table>
 
-<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシファイルはありません。</p>
+<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシーファイルはありません。</p>
 
 <table border="1">
 <tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
 <tr><td><a href="#query">/proc/ccs/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
 <tr><td><a href="#.domain_status">/proc/ccs/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>ポリシに違反しなかったアクセス要求のログ</td></tr>
-<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>ポリシに違反したアクセス要求のログ</td></tr>
+<tr><td><a href="#grant_log">/proc/ccs/grant_log</a></td><td>ポリシーに違反しなかったアクセス要求のログ</td></tr>
+<tr><td><a href="#reject_log">/proc/ccs/reject_log</a></td><td>ポリシーに違反したアクセス要求のログ</td></tr>
 <tr><td><a href="#self_domain">/proc/ccs/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
 <tr><td><a href="#.process_status">/proc/ccs/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
 <tr><td><a href="#version">/proc/ccs/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
@@ -322,14 +322,14 @@ Query lists: 1048576
 
 <h2>3.2 <a name="policy_file_modifiers">変更について</a></h2>
 
-<p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
+<p>カーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシーを変更することができるプログラム名を /proc/ccs/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
 
 <ul>
 <li>/proc/ccs/manager に登録されているプログラム名を持つプロセス</li>
 <li>/proc/ccs/manager に登録されているドメイン名を持つプロセス</li>
 </ul>
 
-<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
+<p>だけがカーネルとのインタフェースである /proc/ccs/ ディレクトリを経由してポリシーを変更できます。以下に例を示します。</p>
 
 <table border="1">
 <tr><td>
@@ -344,7 +344,7 @@ Query lists: 1048576
 </td></tr>
 </table>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a>の設定を行えば、非 root ユーザによるポリシの変更も可能です。</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a>の設定を行えば、非 root ユーザによるポリシーの変更も可能です。</p>
 
 <p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#domain_policy">/proc/ccs/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
 
@@ -368,7 +368,7 @@ Query lists: 1048576
 <p>実行しようとするプログラムの絶対パス名を取得して「パス名候補」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
 </td></tr>
 <tr><td>類似するプログラムの集約</td><td>
-<p>例外ポリシから</p>
+<p>例外ポリシーから</p>
 
 <ul>
 <li>aggregator 「パス名候補」 「集約されたパス名」
@@ -377,7 +377,7 @@ Query lists: 1048576
 <p>というエントリを探します。見つかった場合は、「集約されたパス名」を「パス名候補」とします。</p>
 </td></tr>
 <tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
-<p>ドメインポリシから</p>
+<p>ドメインポリシーから</p>
 
 <ul>
 <li>allow_execute 「パス名候補」
@@ -388,7 +388,7 @@ Query lists: 1048576
 </td></tr>
 <tr><td><a name="exec_stage_check_destination">遷移先の決定</a></td><td>
 
-<p>(1) 例外ポリシから</p>
+<p>(1) 例外ポリシーから</p>
 
 <ul>
 <li>no_initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -398,7 +398,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
 
-<p>(2) 例外ポリシから</p>
+<p>(2) 例外ポリシーから</p>
 
 <ul>
 <li>initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -408,7 +408,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
-<p>(3) 例外ポリシから</p>
+<p>(3) 例外ポリシーから</p>
 
 <ul>
 <li>no_keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -419,7 +419,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
 
-<p>(4) 例外ポリシから</p>
+<p>(4) 例外ポリシーから</p>
 
 <ul>
 <li>keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -432,7 +432,7 @@ Query lists: 1048576
 
 <p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
 
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<p>(6) ドメインポリシーから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
 </td></tr>
 <tr><td>環境変数のチェック</td><td>
@@ -469,7 +469,7 @@ Query lists: 1048576
 </td></tr>
 <tr><td>遷移先の決定</td><td>
 
-<p>(1) 例外ポリシから</p>
+<p>(1) 例外ポリシーから</p>
 
 <ul>
 <li>no_initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -479,7 +479,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
 
-<p>(2) 例外ポリシから</p>
+<p>(2) 例外ポリシーから</p>
 
 <ul>
 <li>initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -489,7 +489,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
-<p>(3) 例外ポリシから</p>
+<p>(3) 例外ポリシーから</p>
 
 <ul>
 <li>no_keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -500,7 +500,7 @@ Query lists: 1048576
 
 <p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
 
-<p>(4) 例外ポリシから</p>
+<p>(4) 例外ポリシーから</p>
 
 <ul>
 <li>keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -513,7 +513,7 @@ Query lists: 1048576
 
 <p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
 
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<p>(6) ドメインポリシーから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
 </td></tr>
 <tr><td>プログラムの実行</td><td>
@@ -525,7 +525,7 @@ Query lists: 1048576
 
 <h2>4.3 <a name="access_logs">アクセスログについて</a></h2>
 
-<p>ドメインポリシによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/sbin/ccs-auditd というプログラムが付属しています。</p>
+<p>ドメインポリシーによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/sbin/ccs-auditd というプログラムが付属しています。</p>
 
 <p>以下に例を示します。最初の例はプログラムを実行しようとしたときのログです。</p>
 
@@ -574,7 +574,7 @@ execute_handler /bin/audit-exec-param
 
 <p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
 
-<p>このように、アクセスログは 3 行で 1 件（ /usr/sbin/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
+<p>このように、アクセスログは 3 行で 1 件（ /usr/sbin/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシーとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
 
 <table border="1">
 <tr><td>
@@ -582,7 +582,7 @@ execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>という操作を行うことで、ドメインポリシに追加することができます。そのため、「学習モード」を使わなくても、最初から「許容モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシを定義していくことができます。「学習モード」でドメインポリシを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシを生成すると、最初から<a href="#conditional_acl">条件付きアクセス許可の指定</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
+<p>という操作を行うことで、ドメインポリシーに追加することができます。そのため、「学習モード」を使わなくても、最初から「確認モード」を使って拒否ログを出力させ、拒否ログの内容を編集するというアプローチでもドメインポリシーを定義していくことができます。「学習モード」でドメインポリシーを作成する場合にはプロセスの状態（アクセスログの先頭行の内容）は加味されませんが、アクセス拒否ログからドメインポリシーを生成すると、最初から<a href="#conditional_acl">条件付きアクセス許可の指定</a>を行うことができます。例えば、「学習モード」を使わずにログを生成し、</p>
 
 <table border="1">
 <tr><td>
@@ -591,7 +591,7 @@ allow_execute /bin/cat if exec.argc=2 exec.argv[0]="cat" exec.argv[1]="/etc/fsta
 </td></tr>
 </table>
 
-<p>としてドメインポリシを追加した場合、「学習モード」で追加される以下の内容よりも細かい指定を行うことができるようになります。</p>
+<p>としてドメインポリシーを追加した場合、「学習モード」で追加される以下の内容よりも細かい指定を行うことができるようになります。</p>
 
 <table border="1">
 <tr><td>
@@ -604,7 +604,7 @@ allow_execute /bin/cat
 
 <h2><a name="profile">/proc/ccs/profile</a></h2>
 
-<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシ管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
+<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
 
 <p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには ccs-setlevel コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
 
@@ -612,7 +612,7 @@ allow_execute /bin/cat
 
 <p>現在ドメインに割り当てられているプロファイル番号は ccs-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は ccs-pstree コマンドで確認できます。<br>
-現在のポリシを ccs-savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
+現在のポリシーを ccs-savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
 
 <p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
 
@@ -629,9 +629,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 <table border="1">
 <tr><td>設定</td><td>内容</td></tr>
 <tr><td>mode=disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>mode=learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>mode=permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>mode=enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>mode=learning</td><td>学習モード。ポリシーに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシー違反とならないようにするために、ポリシーへの自動追加を行います。</td></tr>
+<tr><td>mode=permissive</td><td>確認モード。ポリシーに違反してもアクセス要求を拒否することはしませんが、ポリシーへの自動追加も行いません。</td></tr>
+<tr><td>mode=enforcing</td><td>強制モード。ポリシーに違反するアクセス要求を拒否します。</td></tr>
 <tr><td>grant_log=yes</td><td>アクセス許可ログを取得する。上限は <a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a> の max_grant_log= で指定する。</td></tr>
 <tr><td>grant_log=no</td><td>アクセス許可ログを取得しない。</td></tr>
 <tr><td>reject_log=yes</td><td>アクセス拒否ログを取得する。上限は <a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a> の max_reject_log= で指定する。</td></tr>
@@ -902,15 +902,15 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>アクセスログの取得方法に関する設定を指定します。</p>
 
-<p>max_grant_log= にはカーネル内に保持する、ポリシによって許可されたアクセス要求のログの件数を指定します。</p>
+<p>max_grant_log= にはカーネル内に保持する、ポリシーによって許可されたアクセス要求のログの件数を指定します。</p>
 
-<p>max_reject_log= にはカーネル内に保持する、ポリシによって許可されなかったアクセス要求のログの件数を指定します。</p>
+<p>max_reject_log= にはカーネル内に保持する、ポリシーによって許可されなかったアクセス要求のログの件数を指定します。</p>
 
 <h3><a name="profile_PREFERENCE::learning">PREFERENCE::learning</a></h3>
 
 <p>学習モードに関する設定を指定します。</p>
 
-<p>verbose= にはポリシ違反を表示するかどうかを指定します。</p>
+<p>verbose= にはポリシー違反を表示するかどうかを指定します。</p>
 
 <p>max_entry= には自動的に追加されるアクセス許可の上限を指定します。</p>
 
@@ -924,15 +924,15 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>確認モードに関する設定を指定します。</p>
 
-<p>verbose= にはポリシに対する違反を表示するかどうかを指定します。</p>
+<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
 
 <h3><a name="profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></h3>
 
 <p>強制モードに関する設定を指定します。</p>
 
-<p>verbose= にはポリシに対する違反を表示するかどうかを指定します。</p>
+<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
 
-<p>penalty= にはポリシ違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。</p>
+<p>penalty= にはポリシー違反が発生した場合にスリープさせる時間を 0.1 秒単位で指定します。</p>
 
 <h2><a name="domain_policy">/proc/ccs/domain_policy</a></h2>
 
@@ -942,7 +942,7 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>それぞれのアクセス許可について、必要に応じて追加の条件を指定することができます。そのための構文は<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明します。さらに、必要に応じてプロセスの状態を切り替え、プロセスの状態も条件として使うための方法を<a href="#stateful_acl">ステートフルなアクセス許可の指定</a>で説明します。</p>
 
-<p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
+<p>現在のドメインポリシーを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
 printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
@@ -951,7 +951,7 @@ printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpo
 printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>（例）特定のドメインを削除<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
-<p>（例）ドメインポリシの読み出し<br>
+<p>（例）ドメインポリシーの読み出し<br>
 cat /proc/ccs/domain_policy</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
@@ -1146,7 +1146,7 @@ allow_chroot /</p>
 <tr><td>allow_capability SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
 </table>
 
-<p>allow_capability キーワードの目的は、プログラムが呼び出すことができるシステムコールを制限することです。幾つかのシステムコールに対しては他のキーワードやポリシファイルを使用してより詳細な制限が可能になっています。</p>
+<p>allow_capability キーワードの目的は、プログラムが呼び出すことができるシステムコールを制限することです。幾つかのシステムコールに対しては他のキーワードやポリシーファイルを使用してより詳細な制限が可能になっています。</p>
 
 <ul>
 <li>作成を許可するキャラクタ型デバイスファイルのパス名を <a href="#domain_policy_allow_mkblock">allow_mkblock</a> キーワードを使用して制限することができます。
@@ -1200,13 +1200,13 @@ allow_chroot /</p>
 
 <h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
+<p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
 <p>関連項目： <a href="#exception_policy_allow_read">allow_read</a></p>
 
 <h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
+<p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_env">allow_env</a> を無視することを示しています。特定のドメインに対して特に環境変数の受け渡しを制限したい場合に使います。</p>
 
 <p>関連項目： <a href="#exception_policy_allow_env">allow_env</a></p>
 
@@ -1238,7 +1238,7 @@ allow_chroot /</p>
 
 <h2><a name="exception_policy">/proc/ccs/exception_policy</a></h2>
 
-<p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
+<p>現在の例外ポリシーを読み出しまたは追加または削除するには以下のように操作します。</p>
 <p>（例）<br>
 echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
 echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
@@ -1267,7 +1267,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 </td></tr>
 </table>
 
-<p>のように定義しておくことで、ドメインポリシのファイルに対するアクセス許可を指定する際に</p>
+<p>のように定義しておくことで、ドメインポリシーのファイルに対するアクセス許可を指定する際に</p>
 
 <table border="1">
 <tr><td>
@@ -1289,7 +1289,7 @@ number_group CREATE_MODES 0664
 </td></tr>
 </table>
 
-<p>のように定義しておくことで、ドメインポリシのアクセス許可を指定する際に</p>
+<p>のように定義しておくことで、ドメインポリシーのアクセス許可を指定する際に</p>
 
 <table border="1">
 <tr><td>
@@ -1312,7 +1312,7 @@ address_group local-address 192.168.0.0-192.168.255.255
 </td></tr>
 </table>
 
-<p>のように定義しておくことで、ドメインポリシのネットワークに対するアクセス許可を指定する際に</p>
+<p>のように定義しておくことで、ドメインポリシーのネットワークに対するアクセス許可を指定する際に</p>
 
 <table border="1">
 <tr><td>
@@ -1336,7 +1336,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
-<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
+<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシーの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
 
 <p>関連項目： <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
@@ -1421,15 +1421,15 @@ deny_autobind 8080</p>
 
 <h2><a name="query">/proc/ccs/query</a></h2>
 
-<p>強制モードで動作中にポリシ違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。強制モードでポリシ違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
+<p>強制モードで動作中にポリシー違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。強制モードでポリシー違反が発生した場合、 ccs-queryd を用いて対話的に諾否を指定できます。</p>
 
 <h2><a name="manager">/proc/ccs/manager</a></h2>
 
-<p>ポリシの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
+<p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
 
 <h3><a name="manager_manage_by_non_root">manage_by_non_root</a></h3>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
@@ -1437,19 +1437,19 @@ deny_autobind 8080</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 
-<p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
+<p>TOMOYO Linux がポリシーを保持するために使用しているカーネルのメモリ情報を取得します。</p>
 <p>（例）<br>
 cat /proc/ccs/meminfo<br></p>
 
 <h2><a name="grant_log">/proc/ccs/grant_log</a></h2>
 
-<p>ドメインポリシに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は PREFERENCE::audit の max_grant_log パラメータで指定されている件数までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>ドメインポリシーに対するアクセス許可ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は PREFERENCE::audit の max_grant_log パラメータで指定されている件数までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
 <p>（例）<br>
 cat /proc/ccs/grant_log</p>
 
 <h2><a name="reject_log">/proc/ccs/reject_log</a></h2>
 
-<p>ドメインポリシに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は PREFERENCE::audit の max_reject_log パラメータで指定されている件数までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
+<p>ドメインポリシーに対するアクセス拒否ログを取得します。取得すべきログが無い場合はすぐに戻ってくるので、ログが発生するまで待機させるには select(2) を使ってください。記憶できる件数は PREFERENCE::audit の max_reject_log パラメータで指定されている件数までです。それ以上は記録されないので、随時読み出すようにする必要があります。</p>
 <p>（例）<br>
 cat /proc/ccs/reject_log</p>
 
@@ -1461,7 +1461,7 @@ cat /proc/ccs/self_domain</p>
 
 <h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
 
-<p>ccs-pstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシマネージャとして登録されていないプログラムでも書き込みを行える。</p>
+<p>ccs-pstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
 
 <h2><a name="version">/proc/ccs/version</a></h2>
 
@@ -1471,9 +1471,9 @@ cat /proc/ccs/version</p>
 
 <h1>6. <a name="Advanced_Features">便利な機能</a></h1>
 
-<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></h2>
+<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a></h2>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
 
 <table border="1">
 <tr><td>
@@ -1509,7 +1509,7 @@ chown -R demo /proc/ccs/
 </td></tr>
 </table>
 
-<p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
+<p>を実行することで demo ユーザがポリシーのあるディレクトリへのアクセスとポリシーを編集するためのプログラムを実行できるようになります。</p>
 
 <h2>6.2 <a name="conditional_acl">条件付きアクセス許可の指定</a></h2>
 
@@ -1719,33 +1719,33 @@ chown -R demo /proc/ccs/
 
 <ul>
 <li>プロセスのドメインはプログラムの実行によって自動的に変更されるのに対して、プロセスの状態変数は明示的に " ; set " という句で指定されない限り変更されません。そのため、状態変数の戻し忘れに注意してください。</li>
-<li>状態変数の設定はポリシのチェックにより許可された時点で行われます。そのため、メモリ不足などポリシのチェック以降のエラーによって、状態変数が変更されたけれどもアクセス要求は処理されなかったという状況が発生しえます。</li>
+<li>状態変数の設定はポリシーのチェックにより許可された時点で行われます。そのため、メモリ不足などポリシーのチェック以降のエラーによって、状態変数が変更されたけれどもアクセス要求は処理されなかったという状況が発生しえます。</li>
 <li>上記の @TRUSTED_HOSTS と @UNTRUSTED_HOSTS の両方に含まれていた場合、先に一致したほうの状態変数が使われてしまいます。そのため、順番に依存するアクセス許可を定義しないように注意してください。</li>
 </ul>
 
-<h2>6.4 <a name="sleep_penalty">ポリシ違反時のペナルティ指定</a></h2>
+<h2>6.4 <a name="sleep_penalty">ポリシー違反時のペナルティ指定</a></h2>
 
-<p>強制モードでポリシ違反が発生した場合に、ポリシ違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
+<p>強制モードでポリシー違反が発生した場合に、ポリシー違反の原因となったプロセスを一定時間スリープ状態にさせることができます。</p>
 
 <table border="1">
 <tr><td>/proc/ccs/profile での指定例</td><td>意味</td></tr>
-<tr><td>3-PREFERENCE::enforcing={ penalty=1 }</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
-<tr><td>4-PREFERENCE::enforcing={ penalty=10 }</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシ違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
+<tr><td>3-PREFERENCE::enforcing={ penalty=1 }</td><td>プロファイル 3 が割り当てられているプロセスが強制モードに於いてポリシー違反を発生させた場合、 0.1 秒間スリープさせます。</td></tr>
+<tr><td>4-PREFERENCE::enforcing={ penalty=10 }</td><td>プロファイル 4 が割り当てられているプロセスが強制モードに於いてポリシー違反を発生させた場合、 1 秒間スリープさせます。</td></tr>
 </table>
 
-<p>この機能は、無限ループの中でポリシ違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するための安全装置です。通常は 0.1 秒間スリープさせるだけで充分です。</p>
+<p>この機能は、無限ループの中でポリシー違反が発生した場合に、ＣＰＵ使用率が 100% になってしまうのを回避するための安全装置です。通常は 0.1 秒間スリープさせるだけで充分です。</p>
 
-<p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシ違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
+<p>この機能は、許可されていないホストからの TCP 接続要求や UDP パケットを攻撃者が故意に送りつけることでポリシー違反を発生させることでサービスを長時間スリープ状態にさせることにより、許可されているホストからの TCP 接続要求や UDP パケットの処理を大幅に遅延させるという攻撃が成立してしまうのを回避するために、ネットワークの受信系の操作に対しては機能しないようになっています。</p>
 
 <h2>6.5 <a name="execute_handler">プログラムの実行可否をカーネルの外部で判断</a></h2>
 
-<p>TOMOYO Linux では、原則としてポリシに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
+<p>TOMOYO Linux では、原則としてポリシーに従ってプログラムの実行可否を制御します。プログラム実行時のパラメータをチェックしたい場合には、<a href="#conditional_acl">条件付きアクセス許可の指定</a>で説明したように exec.argv や exec.envp を使ってチェックを行うことができます。しかし、<a href="#conditional_acl">条件付きアクセス許可の指定</a>では、単純なパターンマッチしかサポートされておらず、また、どのようなプログラムの実行を許可するかを予め指定しておく必要があります。</p>
 
 <p>そこで、 TOMOYO Linux では <a href="#domain_policy_execute_handler">execute_handler</a> という仕組みがサポートされています。この仕組みは、プログラムの実行可否をカーネルが判断するのではなく、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムが判断し、プログラムの実行を許可すべきと判断した場合には実際にプログラムを実行するという動作をします。</p>
 
 <p>Linux に於いては、プログラムを実行するという動作は、プログラムの実行を要求したプロセスを上書きするという動作であり、プログラムの実行に成功した場合にはプログラムの実行を要求したプロセスに制御が戻ることはありません。つまり、要求されたプログラムの実行に失敗した場合にしか、プログラムの実行を要求したプロセスに対して、要求されたプログラムが実行されなかったことが通知されません。<br>
 例えば、プログラムＡとして動作しているプロセスがプログラムＢの実行を要求する場合を考えてみます。<br>
-プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
+プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、カーネルが「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」をポリシーを照合することで判断し、適切であると判断された場合には「プログラムＡとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＡとして動作しているプロセスにプログラムＢの実行が認められていないことを通知」します。</p>
 
 <p><a href="#domain_policy_execute_handler">execute_handler</a> を指定した場合、 execute_handler として指定されたプログラムＣがこの動作に介在します。<br>
 プログラムＡとして動作しているプロセスがプログラムＢの実行を要求すると、プログラムＣに「プログラムＡとして動作しているプロセスからプログラムＢを実行することは適切であるかどうか」を判断してもらうために「プログラムＡとして動作しているプロセスをプログラムＣで上書き」します。プログラムＣとして動作するようになったプロセスが「プログラムＡとして動作していたプロセスからプログラムＢを実行することは適切であるかどうか」を判断し、適切であると判断した場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書き」し、適切では無いと判断された場合には「プログラムＣとして動作しているプロセスをプログラムＢで上書きせずに終了」します。</p>
@@ -1754,7 +1754,7 @@ chown -R demo /proc/ccs/
 しかし、たとえ <a href="#domain_policy_execute_handler">execute_handler</a> を指定していない場合であっても、「共有ライブラリの読み込みができなかった」「 KILL シグナルを受信した」「メモリ不足になり OOM killer によって強制終了させられた」など、様々な要因によって「実行には成功したが期待された動作を始める前に終了してしまった」という状況が起こりえます。つまり、「プログラムの実行が失敗しなかった」ということと「要求されたプログラムが期待した動作を始めた」ということの間には、不確定要素が存在します。<br>
 そう考えると、「プログラムの実行に失敗したという通知が無い限りプログラムは期待された動作を始める」という保証は最初から存在しないわけなので、 <a href="#domain_policy_execute_handler">execute_handler</a> により指定されたプログラムＣが、プログラムＢの実行に失敗したことをプログラムＢの実行を要求したプログラムＡとして動作していたプロセスに通知できなかったという結果になったとしても、容認できる範囲であると言えると思います。</p>
 
-<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
+<p>TOMOYO Linux は、どのプログラムからどのプログラムを実行する必要があるかを事前に把握して、必要最小限のプログラムの実行のみを認めるというアプローチを採用しています。そのため、正常な動作をしている限り、ポリシーで許可されていないプログラムの実行要求は起こらないはずだと仮定すると、全てのプログラムの実行要求をとりあえず受理して構わないと考えることができます。もしも受理すべきではないプログラムの実行要求が発生した場合、 <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> の機能を使うことで要求を拒否する代わりにそのプロセスを強制終了させるなどの行動を起こすことができます。つまり、カーネルの内部でプログラムの実行可否の判断を行わなくても構わないということです。</p>
 
 <p>そこで、ドメインに対して <a href="#domain_policy_execute_handler">execute_handler</a> キーワードを指定しておくことで、そのドメインから発生する全てのプログラムの実行可否の判断をカーネル外部のプログラムに委ねることができるようになります。</p>
 <p>カーネルの内部では利用可能なライブラリが少ない上に連続したメモリ領域の割り当てが失敗する可能性が高くなりますが、
