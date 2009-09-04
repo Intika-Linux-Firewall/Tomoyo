@@ -31,7 +31,7 @@
 
 <p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
 
-<p>プロファイル 3 はファイルアクセスに関して強制モードを行うよう指定されているため、これにより /usr/sbin/httpd プロセスおよびその子孫は強制アクセス制御により保護された状態になりました。</p>
+<p>プロファイル 3 は強制モードを行うよう指定されているため、これにより /usr/sbin/httpd プロセスおよびその子孫は強制アクセス制御により保護された状態になりました。</p>
 
 <p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
 
@@ -39,17 +39,17 @@
 
 <p>ポリシーで許可されている操作をしてみましょう。</p>
 
-<p><img src="operation-permitted.png" width="636" height="613"></p>
+<p><img src="operation-permitted.png" width="688" height="933"></p>
 
 <p>メールの送信はポリシーで許可されているので、操作は正常に終了しました。</p>
 
 <p>ポリシーで許可されていない操作をしてみましょう。</p>
 
-<p><img src="unix-penguin.png" width="636" height="613"></p>
+<p><img src="unix-penguin.png" width="688" height="933"></p>
 
 <p>操作は拒否されました。（一見すると正常に終了したように見えますが、実際には /bin/mail が「入力が空っぽです」と警告しているとおり、 /bin/cat の実行が拒否されています。）</p>
 
-<p><img src="unix-penguin-rejected.png" width="636" height="613"></p>
+<p><img src="unix-penguin-rejected.png" width="688" height="623"></p>
 
 <p>もしプロファイルで PREFERENCE::enforcing={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと ERROR: というメッセージがコンソールに表示されます。</p>
 
@@ -60,17 +60,14 @@
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
-#2009-07-14 15:59:08# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=ja_JP.UTF-8" "SHLVL=3" "LANGUAGE=ja_JP.UTF-8" }<br>
+#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } (global-pid=5739)<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 allow_execute /bin/cat<br>
 <br>
-#2009-07-14 15:59:09# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
+--<br>
+#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=5739)<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
-allow_read /bin/cat<br>
-<br>
-#2009-07-14 15:59:09# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
-allow_read /usr/lib/gconv/EUC-JP.so
+allow_read /bin/cat
 </td></tr>
 </table>
 
@@ -83,19 +80,18 @@ allow_read /usr/lib/gconv/EUC-JP.so
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# mail<br>
-Mail version 8.1 6/6/93.&nbsp;&nbsp;Type ? for help.<br>
-"/var/spool/mail/root": 2 messages 2 new<br>
-&gt;N&nbsp;&nbsp;1 root@localhost.local&nbsp;&nbsp;Tue Jul 14 15:59&nbsp;&nbsp;18/1027<br>
- N&nbsp;&nbsp;2 apache@localhost.loc&nbsp;&nbsp;Tue Jul 14 15:59&nbsp;&nbsp;13/622<br>
+Mail version 8.1 6/6/93.  Type ? for help.<br>
+"/var/spool/mail/root": 1 message 1 unread<br>
+&gt;U  1 root@localhost.local  Fri Sep  4 17:02  19/1072<br>
 &amp;<br>
 Message 1:<br>
-From root@localhost.localdomain&nbsp;&nbsp;Tue Jul 14 15:59:09 2009<br>
-Date: Tue, 14 Jul 2009 15:59:08 +0900<br>
+From root@localhost.localdomain  Fri Sep  4 17:02:40 2009<br>
+Date: Fri, 4 Sep 2009 17:02:40 +0900<br>
 From: root &lt;root@localhost.localdomain&gt;<br>
 To: root@localhost.localdomain<br>
 <br>
 Q0-0<br>
-#2009-07-14 15:59:08# profile=3 mode=enforcing pid=3539 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=vt100" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=ja_JP.UTF-8" "SHLVL=3" "LANGUAGE=ja_JP.UTF-8" }<br>
+#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } (global-pid=5739)<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 allow_execute /bin/cat
 </td></tr>
