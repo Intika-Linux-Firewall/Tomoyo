@@ -18,6 +18,7 @@
 <h3><a name="ccs-editpolicy">&lt;Policy Editor "ccs-editpolicy"&gt;</a></h3>
 <p>Edits the current policy in /proc/ccs/ directory.</p>
 <p>You may give one of 'e' 'd' 'p' 'm' 'u' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
+<p>You can use keys listed below.</p>
 
 <p>&lt;Scroll&gt;</p>
 <table border="1">
@@ -45,7 +46,9 @@
 <tr><td>Space</td><td>Invert selection state of an entry at the cursor position.</td></tr>
 <tr><td>c/C</td><td>Copy selection state of an entry at the cursor position to all entries below the cursor position.</td></tr>
 <tr><td>d/D</td><td>Delete selected entries.</td></tr>
-<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)</td></tr>
+<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)<br>
+Set profile value for selected entries. (Valid only for screen for profile editing)<br>
+Set new quota value for selected entries. (Valid only for screen for memory usage)</td></tr>
 <tr><td>Insert</td><td>Copy an entry at the cursor position to history buffer.</td></tr>
 </table>
 
@@ -147,9 +150,7 @@
 
 <h3><a name="audit-exec-param">&lt;A program for auditing execute parameter "audit-exec-param"&gt;</a></h3>
 <p>This program writes parameters passed to execve() to syslog before actually executes the execve() request.</p>
-<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program,
-tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy,
-and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
+<p>You can copy this program to somewhere before use (e.g. cp -p /usr/lib/ccs/audit-exec-param /bin/audit-exec-param). For example, to audit execve() parameters passed to Apache's CGI program, tell the kernel not to transit domains when executing /bin/audit-exec-param by adding "keep_domain /usr/lib/ccs/audit-exec-param from &lt;kernel&gt; /usr/sbin/httpd" in the exception policy, and add "execute_handler /bin/audit-exec-param" to the Apache's domain (e.g. "&lt;kernel&gt; /usr/sbin/httpd" domain).</p>
 
 <hr>
 
