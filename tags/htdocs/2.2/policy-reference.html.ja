@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux ポリシ解説書</title>
+<title>TOMOYO Linux ポリシー解説書</title>
 <link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p style="text-align:right;"><a href="policy-reference.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1 style="text-align:center;">TOMOYO Linux ポリシ解説書</h1>
+<h1 style="text-align:center;">TOMOYO Linux ポリシー解説書</h1>
 <h1><a name="index">目次</a></h1>
 <h2>1. <a href="#Keyword_Index">キーワード一覧</a></h2>
 <h2>2. <a href="#Common_Rules">はじめに</a></h2>
@@ -18,7 +18,7 @@
 <p>2.3 <a href="#word_length_rules">単語の長さに関する制約</a></p>
 <p>2.4 <a href="#line_length_rules">1 行の長さに関する制約</a></p>
 <p>2.5 <a href="#memory_allocation_rules">メモリ使用量に関する制約</a></p>
-<h2>3. <a href="#Policy_Files">ポリシファイルに関して</a></h2>
+<h2>3. <a href="#Policy_Files">ポリシーファイルに関して</a></h2>
 <p>3.1 <a href="#policy_file_locations">所在について</a></p>
 <p>3.2 <a href="#policy_file_modifiers">変更について</a></p>
 <h2>4. <a href="#Domain_Rules">ドメインに関して</a></h2>
@@ -26,8 +26,8 @@
 <p>4.2 <a href="#domain_transition">ドメイン遷移とは</a></p>
 <h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
 <h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
-<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></p>
-<p>6.2 <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
+<p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a></p>
+<p>6.2 <a href="#memory_quota">ポリシーに割り当てられるメモリ量を制限</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
@@ -196,25 +196,25 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </pre></td></tr>
 </table>
 
-<h1>3. <a name="Policy_Files">ポリシファイルに関して</a></h1>
+<h1>3. <a name="Policy_Files">ポリシーファイルに関して</a></h1>
 
 <h2>3.1 <a name="policy_file_locations">所在について</a></h2>
 
-<p>ポリシファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
+<p>ポリシーファイルとは、アクセスの可否を定義したファイルです。システムの起動時に自動的にカーネルへと読み込まれます。</p>
 
 <p>システムの起動時には、 /sbin/init というプログラムが実行されます。 /sbin/init の実行が要求されたときに、 /sbin/tomoyo-init というプログラムが存在していた場合、 /sbin/tomoyo-init が実行され、 /sbin/tomoyo-init の処理が終了してから /sbin/init の実行が開始されます。</p>
 
-<p> /sbin/tomoyo-init は /etc/tomoyo/ ディレクトリにあるポリシファイルを /sys/kernel/security/tomoyo/ ディレクトリを通じてカーネルへと読み込みます。</p>
+<p> /sbin/tomoyo-init は /etc/tomoyo/ ディレクトリにあるポリシーファイルを /sys/kernel/security/tomoyo/ ディレクトリを通じてカーネルへと読み込みます。</p>
 
 <table border="1">
-<tr><td>カーネルとのインタフェース</td><td>ポリシファイル</td><td>定義されている内容</td></tr>
+<tr><td>カーネルとのインタフェース</td><td>ポリシーファイル</td><td>定義されている内容</td></tr>
 <tr><td><a href="#profile">/sys/kernel/security/tomoyo/profile</a></td><td>/etc/tomoyo/profile.conf</td><td>プロファイル（制御レベルを定義したもの）</td></tr>
-<tr><td><a href="#manager">/sys/kernel/security/tomoyo/manager</a></td><td>/etc/tomoyo/manager.conf</td><td>マネージャ（ポリシの変更ができるプログラムを定義したもの）</td></tr>
-<tr><td><a href="#exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></td><td>/etc/tomoyo/exception_policy.conf</td><td>例外ポリシ（ドメインポリシの例外を定義したもの）</td></tr>
-<tr><td><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></td><td>/etc/tomoyo/domain_policy.conf</td><td>ドメインポリシ（ドメイン単位で適用される設定）</td></tr>
+<tr><td><a href="#manager">/sys/kernel/security/tomoyo/manager</a></td><td>/etc/tomoyo/manager.conf</td><td>マネージャ（ポリシーの変更ができるプログラムを定義したもの）</td></tr>
+<tr><td><a href="#exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></td><td>/etc/tomoyo/exception_policy.conf</td><td>例外ポリシー（ドメインポリシーの例外を定義したもの）</td></tr>
+<tr><td><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></td><td>/etc/tomoyo/domain_policy.conf</td><td>ドメインポリシー（ドメイン単位で適用される設定）</td></tr>
 </table>
 
-<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシファイルはありません。</p>
+<p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシーファイルはありません。</p>
 
 <table border="1">
 <tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
@@ -227,14 +227,14 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>3.2 <a name="policy_file_modifiers">変更について</a></h2>
 
-<p>カーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシを変更することができるプログラム名を /sys/kernel/security/tomoyo/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
+<p>カーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシーを変更することができるプログラム名を /sys/kernel/security/tomoyo/manager に登録します。プログラム名ではなくドメイン名で登録することもできます。</p>
 
 <ul>
 <li>/sys/kernel/security/tomoyo/manager に登録されているプログラム名を持つプロセス</li>
 <li>/sys/kernel/security/tomoyo/manager に登録されているドメイン名を持つプロセス</li>
 </ul>
 
-<p>だけがカーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシを変更できます。以下に例を示します。</p>
+<p>だけがカーネルとのインタフェースである /sys/kernel/security/tomoyo/ ディレクトリを経由してポリシーを変更できます。以下に例を示します。</p>
 
 <table border="1">
 <tr><td>
@@ -248,7 +248,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </td></tr>
 </table>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a>の設定を行えば、非 root ユーザによるポリシの変更も可能です。</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、 <a href="#non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a>の設定を行えば、非 root ユーザによるポリシーの変更も可能です。</p>
 
 <p>なお、学習モード用のプロファイルが割り当てられているプロセスは、アクセスを要求するだけで <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> へと自動的にアクセス許可が追加されていきます。</p>
 
@@ -256,7 +256,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.1 <a name="domain_definition">ドメインとは</a></h2>
 
-<p>TOMOYO Linux は、ドメイン単位でアクセス許可を定義します。アクセス許可はドメインポリシと呼ばれ、 <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> を通じてアクセス許可を定義します。</p>
+<p>TOMOYO Linux は、ドメイン単位でアクセス許可を定義します。アクセス許可はドメインポリシーと呼ばれ、 <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> を通じてアクセス許可を定義します。</p>
 
 <p>TOMOYO Linux においては、全てのプロセスがそれぞれ 1 つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属します。現在実行されている 2 つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属します。</p>
 
@@ -275,7 +275,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 2 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
 </td></tr>
 <tr><td>シンボリックリンクの識別</td><td>
-<p>「パス名候補 1 」と「パス名候補 2 」が一致しない場合、例外ポリシから</p>
+<p>「パス名候補 1 」と「パス名候補 2 」が一致しない場合、例外ポリシーから</p>
 
 <ul>
 <li>alias 「パス名候補 1 」 「パス名候補 2 」
@@ -284,7 +284,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
 </td></tr>
 <tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
-<p>ドメインポリシから</p>
+<p>ドメインポリシーから</p>
 
 <ul>
 <li>allow_execute 「パス名候補 1 」
@@ -294,7 +294,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </td></tr>
 <tr><td><a name="exec_stage_check_destination">遷移先の決定</a></td><td>
 
-<p>(1) 例外ポリシから</p>
+<p>(1) 例外ポリシーから</p>
 
 <ul>
 <li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -304,7 +304,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
 
-<p>(2) 例外ポリシから</p>
+<p>(2) 例外ポリシーから</p>
 
 <ul>
 <li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -314,7 +314,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
-<p>(3) 例外ポリシから</p>
+<p>(3) 例外ポリシーから</p>
 
 <ul>
 <li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -325,7 +325,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>というエントリを探します。見つかった場合は (5) へ進みます。</p>
 
-<p>(4) 例外ポリシから</p>
+<p>(4) 例外ポリシーから</p>
 
 <ul>
 <li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
@@ -338,7 +338,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
 
-<p>(6) ドメインポリシから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
+<p>(6) ドメインポリシーから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
 <p>(7) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 
@@ -355,7 +355,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <p>現在ドメインに割り当てられているプロファイル番号は tomoyo-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は tomoyo-pstree コマンドで確認できます。<br>
-現在のポリシを tomoyo-savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
+現在のポリシーを tomoyo-savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
 
 <p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
 
@@ -374,9 +374,9 @@ echo 1-MAC_FOR_FILE=learning | tomoyo-loadpolicy -p</p>
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
 <tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシ違反とならないようにするために、ポリシへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>許容モード。ポリシに違反してもアクセス要求を拒否することはしませんが、ポリシへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>learning</td><td>学習モード。ポリシーに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシー違反とならないようにするために、ポリシーへの自動追加を行います。</td></tr>
+<tr><td>permissive</td><td>確認モード。ポリシーに違反してもアクセス要求を拒否することはしませんが、ポリシーへの自動追加も行いません。</td></tr>
+<tr><td>enforcing</td><td>強制モード。ポリシーに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
 <h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
@@ -385,12 +385,12 @@ echo 1-MAC_FOR_FILE=learning | tomoyo-loadpolicy -p</p>
 
 <h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
 
-<p>ドメインポリシに対する違反を表示するかどうかを指定します。</p>
+<p>ドメインポリシーに対する違反を表示するかどうかを指定します。</p>
 
 <table border="1">
 <tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>ドメインポリシに対する違反を表示しません。</td></tr>
-<tr><td>enabled</td><td>ドメインポリシに対する違反を表示します。</td></tr>
+<tr><td>disabled</td><td>ドメインポリシーに対する違反を表示しません。</td></tr>
+<tr><td>enabled</td><td>ドメインポリシーに対する違反を表示します。</td></tr>
 </table>
 
 <h2><a name="domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></h2>
@@ -399,7 +399,7 @@ echo 1-MAC_FOR_FILE=learning | tomoyo-loadpolicy -p</p>
 
 <p>ドメインを定義している行（ &lt;kernel&gt; で始まる行）の次行から次のドメインを定義している行の前行までが、そのドメインに対するアクセス許可です。</p>
 
-<p>現在のドメインポリシを読み出しまたは追加または削除するには、以下のように操作します。</p>
+<p>現在のドメインポリシーを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
 printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | tomoyo-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
@@ -408,7 +408,7 @@ printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | tomoyo-loa
 printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | tomoyo-loadpolicy -d</p>
 <p>（例）特定のドメインを削除<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" | tomoyo-loadpolicy -d</p>
-<p>（例）ドメインポリシの読み出し<br>
+<p>（例）ドメインポリシーの読み出し<br>
 cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
@@ -489,7 +489,7 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
 
-<p>これは、このドメインに対しては例外ポリシで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
+<p>これは、このドメインに対しては例外ポリシーで指定されている <a href="#exception_policy_allow_read">allow_read</a> を無視することを示しています。特定のドメインに対して特に読み込みモードでオープンできるファイルを制限したい場合に使います。</p>
 
 <p>関連項目： <a href="#exception_policy_allow_read">allow_read</a></p>
 
@@ -503,11 +503,11 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
 
-<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシに割り当てられるメモリ量を制限</a></p>
+<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシーに割り当てられるメモリ量を制限</a></p>
 
 <h2><a name="exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></h2>
 
-<p>現在の例外ポリシを読み出しまたは追加または削除するには以下のように操作します。</p>
+<p>現在の例外ポリシーを読み出しまたは追加または削除するには以下のように操作します。</p>
 <p>（例）<br>
 echo 'file_pattern /proc/\$/status' | tomoyo-loadpolicy -e<br>
 echo 'delete file_pattern /proc/\$/status' | tomoyo-loadpolicy -e<br>
@@ -530,7 +530,7 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
 
-<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
+<p>deny_rewrite というキーワードを使用して、既に記録されている部分の書き換えを禁止したいファイル（ログファイル等）のパス名を登録します。パターンが使用できます。 deny_rewrite というキーワードを使用して登録されたファイルは、ドメイン用ポリシーの中で明示的に <a href="#domain_policy_allow_rewrite">allow_rewrite</a> というキーワードを用いて許可が与えられない限り、追記ではない書き込みモードでのオープンとファイルの切り詰めが禁止されます。</p>
 
 <p>関連項目： <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
@@ -604,11 +604,11 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <h2><a name="manager">/sys/kernel/security/tomoyo/manager</a></h2>
 
-<p>ポリシの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
+<p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
 
 <h3><a name="manager_manage_by_non_root">manage_by_non_root</a></h3>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、非 root ユーザによる変更を認めたい場合に使用します。</p>
 
 <h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
@@ -616,7 +616,7 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 
-<p>TOMOYO Linux がポリシを保持するために使用しているカーネルのメモリ情報を取得します。</p>
+<p>TOMOYO Linux がポリシーを保持するために使用しているカーネルのメモリ情報を取得します。</p>
 <p>（例）<br>
 cat /sys/kernel/security/tomoyo/meminfo<br></p>
 
@@ -628,7 +628,7 @@ cat /sys/kernel/security/tomoyo/self_domain</p>
 
 <h2><a name=".process_status">/sys/kernel/security/tomoyo/.process_status</a></h2>
 
-<p>tomoyo-pstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシマネージャとして登録されていないプログラムでも書き込みを行える。</p>
+<p>tomoyo-pstree コマンド（「現在動作中のプロセス」と「そのプロセスが属しているドメイン」と「そのドメインに割り当てられているプロファイル番号」を pstree のように一覧表示する）のためのインタフェース。例外的にポリシーマネージャとして登録されていないプログラムでも書き込みを行える。</p>
 
 <h2><a name="version">/sys/kernel/security/tomoyo/version</a></h2>
 
@@ -638,9 +638,9 @@ cat /sys/kernel/security/tomoyo/version</p>
 
 <h1>6. <a name="Advanced_Features">便利な機能</a></h1>
 
-<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシの変更を許可</a></h2>
+<h2>6.1 <a name="non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a></h2>
 
-<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
+<p>デフォルトではユーザＩＤと実効ユーザＩＤの両方が 0 であるプロセスだけがポリシーを変更できますが、非 root ユーザによる変更を認めたい場合には</p>
 
 <table border="1">
 <tr><td>
@@ -676,9 +676,9 @@ chown -R demo /sys/kernel/security/tomoyo/
 </td></tr>
 </table>
 
-<p>を実行することで demo ユーザがポリシのあるディレクトリへのアクセスとポリシを編集するためのプログラムを実行できるようになります。</p>
+<p>を実行することで demo ユーザがポリシーのあるディレクトリへのアクセスとポリシーを編集するためのプログラムを実行できるようになります。</p>
 
-<h2>6.2 <a name="memory_quota">ポリシに割り当てられるメモリ量を制限</a></h2>
+<h2>6.2 <a name="memory_quota">ポリシーに割り当てられるメモリ量を制限</a></h2>
 
 <p>/etc/tomoyo/tomoyo-post-init から以下のように /sys/kernel/security/tomoyo/meminfo に書き込みを行うことで設定できます。</p>
 
