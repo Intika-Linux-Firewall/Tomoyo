@@ -51,7 +51,7 @@
 
 <p><img src="unix-penguin-rejected.png" width="636" height="613"></p>
 
-<p>もしプロファイルで REPORT_VIOLATION=enabled と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと ERROR: というメッセージがコンソールに表示されます。</p>
+<p>もしプロファイルで PREFERENCE::enforcing={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと ERROR: というメッセージがコンソールに表示されます。</p>
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
@@ -155,16 +155,15 @@ The pathname /lib/libnss_hesiod-2.4.so was deleted. Deleted from globally readab
 
 <table border="1">
 <tr><td>
-#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 (global-pid=2546)<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat<br>
 allow_read /etc/fstab<br>
-Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o):
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
 <p>上記の例は、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab を読み込みモードでオープンしようとしたが、ポリシーによって拒否されたので、あなたの判断を仰いでいることを示しています。
-アクセス要求の妥当性を判断して、アクセスを許可するか否か、ドメイン用ポリシーに追加するか否かを指定してください。
-Y を押すと許可、 N を押すと拒否されます。また、 A を押すと編集した上でドメイン用ポリシーに追加することができます。</p>
+アクセス要求の妥当性を判断して、答えを指定してください。 Y を押すと許可、 N を押すと拒否、 R を押すと再試行されます。また、 S を押すとそのプロセスのドメイン用ポリシが表示されます。 A を押すと編集した上でドメイン用ポリシーに追加後、再試行できます。</p>
 
 <p>無条件にアクセス要求を許可しないようにしてください。ポリシー違反の原因がパッケージのアップデートによるものとは限らず、侵入者の攻撃によるものである可能性があるからです。もし、侵入者の攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合、侵入されてしまいます。</p>
 

@@ -51,7 +51,7 @@
 
 <p><img src="unix-penguin-rejected.png" width="636" height="613"></p>
 
-<p>If the profile is configured as "REPORT_VIOLATION=enabled" (this is default), the "ERROR:" messages will be printed to the console when policy violation occurs.</p>
+<p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violation occurs.</p>
 
 <p><img src="enforcing-error.png" width="720" height="400"></p>
 
@@ -155,16 +155,15 @@ The pathname /lib/libnss_hesiod-2.4.so was deleted. Deleted from globally readab
 
 <table border="1">
 <tr><td>
-#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 (global-pid=2546)<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat<br>
 allow_read /etc/fstab<br>
-Allow? ('Y'es/Yes and 'A'ppend to policy/'N'o):
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
 <p>The example shown above indicates that a process which belongs to the domain "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat" attempted to open /etc/fstab for reading but the attempt was denied by policy, and the kernel is asking for your decision.
-Validate whether or not to permit the request and tell the kernel your decision (and also the attempt should be granted from the next time by adding to domain policy). 
-You can press "Y" to grant the request. You can press "N" to reject the request. You can press "A" to grant the request and also append to domain policy after editing the request.</p>
+Validate whether or not to permit the request and tell the kernel your decision. You can press "Y" to grant the request. You can press "N" to reject the request. You can press "R" to retry the request. You can press "S" to show domain policy for the process. You can press "A" to edit and append to domain policy and then retry the request.</p>
 
 <p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 

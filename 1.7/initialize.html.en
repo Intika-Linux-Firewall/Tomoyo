@@ -176,11 +176,15 @@ The following is the guideline.</p>
 </td><td>
 <p>Register pathname groups using the "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.</p>
 </td></tr><tr><td>
-(3) Address group
+(3) Number group
+</td><td>
+<p>Register number groups using the "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names. An example usage is shown later.</p>
+</td></tr><tr><td>
+(4) Address group
 </td><td>
 <p>Register IPv4 or IPv6 address groups using the "address_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple addresses using group names. An example usage is shown later.<br>
 </td></tr><tr><td>
-(4) Unconditionally readable files
+(5) Unconditionally readable files
 </td><td>
 <p>Register files that are allowed to be read by all programs using the "allow_read" directive. Patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
 The following is the guideline.</p>
@@ -194,7 +198,7 @@ The following is the guideline.</p>
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
 
 </td></tr><tr><td>
-(5) Unconditionally usable environment variable names
+(6) Unconditionally usable environment variable names
 </td><td>
 <p>Register environment variable names that are allowed to be passed to all programs using the "allow_env" directive. Patterns are allowed. When execve() request is issued and the passed environment variable name matches matches environment variable names registered with "allow_env" directive, the environment variable name is granted without checking domain policy.<br>
 The following is the guideline.</p>
@@ -206,7 +210,7 @@ The following is the guideline.</p>
 <p>You may find more environment variable names depending on applications in your system or configurations. Add missing environment variable names after observing which environment variable names are used.</p>
 
 </td></tr><tr><td>
-(6) Non-rewritable files
+(7) Non-rewritable files
 </td><td>
 <p>Register files that you don't want to allow overwriting existing contents (like log files) using "deny_rewrite" directive. Patterns are allowed. Files registered with "deny_rewrite" directive are (as long as it is not explicitly given by "allow_rewrite" directive in domain policy) forbidden to "open for writing but not append mode" and "truncate".<br>
 The following is the guideline.</p>
@@ -218,12 +222,12 @@ The following is the guideline.</p>
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for append-only access.</p>
 
 </td></tr><tr><td>
-(7) Program aggregations
+(8) Program aggregations
 </td><td>
 <p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
 For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
 </td></tr><tr><td>
-(8) Programs that cause domain transition initialization
+(9) Programs that cause domain transition initialization
 </td><td>
 <p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
 The following is the guideline.</p>
@@ -269,20 +273,20 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 </td></tr><tr><td>
-(9) Programs that prevent domain transition initialization
+(10) Programs that prevent domain transition initialization
 </td><td>
 <p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
 </td></tr><tr><td>
-(10) Domains that prevent domain transition
+(11) Domains that prevent domain transition
 </td><td>
 <p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
 For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
 </td></tr><tr><td>
-(11) Domains that cause domain transition
+(12) Domains that cause domain transition
 </td><td>
 <p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
 </td></tr><tr><td>
-(12) Reserved local ports
+(13) Reserved local ports
 </td><td>
 <p>To reserve local ports, use "deny_autobind" directive followed by port number.<br>
 Some programs require specific port numbers which might be assigned by automatic port number assignment functionality. If such port numbers are assigned by automatic port number assignment functionality, such programs can't work. This directive reserves such port numbers.</p>
