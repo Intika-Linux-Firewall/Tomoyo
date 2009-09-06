@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/06
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1056,7 +1056,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 		int len = ee->handler->total_len + 1;
 		char *cp = kmalloc(len, GFP_KERNEL);
 		if (!cp) {
-			retval = ENOMEM;
+			retval = -ENOMEM;
 			goto out;
 		}
 		ee->handler_path = cp;
