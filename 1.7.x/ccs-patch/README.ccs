@@ -2100,3 +2100,10 @@ Fix 2008/09/04
 
       I can't call ccs_profile() for profile existence test because
       ccs_profile() never returns NULL.
+
+Fix 2008/09/06
+
+    @ Fix wrong error code in ccs_try_alt_exec().
+
+      ccs_try_alt_exec() was returning ENOMEM when kmalloc() failed.
+      It needs to return -ENOMEM to fail.
