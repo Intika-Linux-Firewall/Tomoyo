@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/07
  *
  */
 #include <stdio.h>
@@ -18,8 +18,9 @@ int main(int argc, char *argv[])
 	memset(buffer, 0, sizeof(buffer));
 	while (1) {
 		int i;
-		char *cp1;
-		char *cp2;
+		char *cp;
+		char *exe;
+		char *args;
 
 		/* Find header line. */
 		i = getc(stdin);
@@ -34,33 +35,36 @@ int main(int argc, char *argv[])
 			continue;
 
 		/* Check for " argc=" part. */
-		cp1 = strstr(buffer[0], " argc=");
-		if (!cp1)
+		cp = strstr(buffer[0], " argc=");
+		if (!cp)
 			continue;
 
 		/* Get argc value. */
-		if (sscanf(cp1 + 1, "argc=%d", &argc) != 1)
+		if (sscanf(cp + 1, "argc=%d", &argc) != 1)
 			goto out;
-
-		if (!argc)
+		
+		/* Get realpath part. */
+		exe = strstr(buffer[0], " realpath=\"");
+		if (!exe)
 			continue;
-
-		cp1 = strstr(buffer[0], " argv[]={ ");
-		if (!cp1)
+		
+		/* Get argv[]= part. */
+		cp = strstr(buffer[0], " argv[]={ ");
+		if (!cp)
 			goto out;
-		cp2 = strstr(cp1 + 10, " } ");
-		if (!cp2)
+		args = cp + 10;
+		cp = strstr(args, " } ");
+		if (!cp)
 			goto out;
 
 		/* Check for " ... " part. */
-		if (!strncmp(cp2 - 4, " ... ", 5)) {
+		if (!strncmp(cp - 4, " ... ", 5)) {
 			fprintf(stderr, "%d: Too long header. Ignored.\n",
 				line);
 			continue;
 		}
-		*cp2 = '\0';
-		memmove(buffer[0], cp1 + 10,  strlen(cp1 + 10) + 1);
-
+		*cp = '\0';
+		
 		/* Get domainname. */
 		line++;
 		i = getc(stdin);
@@ -77,41 +81,33 @@ int main(int argc, char *argv[])
 			ungetc(i, stdin);
 		if (!fgets(buffer[2], sizeof(buffer[2]) - 1, stdin))
 			goto out;
-		cp1 = strchr(buffer[2], '\n');
-		if (!cp1)
+		cp = strchr(buffer[2], '\n');
+		if (!cp)
 			goto out;
-		*cp1-- = '\0';
-		while (*cp1 == ' ')
-			*cp1-- = '\0';
+		*cp-- = '\0';
+		while (*cp == ' ')
+			*cp-- = '\0';
 		if (strncmp(buffer[2], "allow_execute ", 14))
 			continue;
-		printf("select %s", buffer[1]);
-		{
-			char *cond = strstr(buffer[2], " if ");
-			if (!cond)
-				printf("%s if exec.argc=%d", buffer[2], argc);
-			else {
-				unsigned char *argv0 =
-					strstr(buffer[2], " exec.argv[0]=\"");
-				const int len = cond + 4 - buffer[2];
-				fwrite(buffer[2], 1, len, stdout);
-				if (argv0) {
-					argv0++;
-					while (*argv0 > ' ')
-						*argv0++ = ' ';
-				}
-				printf("exec.argc=%d", argc);
-				fwrite(buffer[2] + len, 1,
-				       strlen(buffer[2] + len), stdout);
+		printf("%s", buffer[1]);
+		printf("%s if exec.", buffer[2]);
+		exe++;
+		while (1) {
+			const unsigned char c = *exe++;
+			if (c <= ' ')
+				break;
+			putchar(c);
+		}
+		printf(" exec.argc=%d", argc);
+		if (argc) {
+			i = 0;
+			cp = strtok(args, " ");
+			while (cp) {
+				printf(" exec.argv[%d]=%s", i++, cp);
+				cp = strtok(NULL, " ");
 			}
 		}
-		i = 0;
-		cp1 = strtok(buffer[0], " ");
-		while (cp1) {
-			printf(" exec.argv[%d]=%s", i++, cp1);
-			cp1 = strtok(NULL, " ");
-		}
-		printf("\n");
+		printf("\n\n");
 	}
 	if (!line) {
 		fprintf(stderr, "Usage: %s < /proc/ccs/grant_log or "
