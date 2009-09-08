@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/07
+ * Version: 1.7.0+   2009/09/08
  *
  */
 #include <stdio.h>
@@ -16,11 +16,18 @@ int main(int argc, char *argv[])
 	char buffer[3][65536];
 	int line = 0;
 	memset(buffer, 0, sizeof(buffer));
+	if (argc > 1) {
+		fprintf(stderr, "Usage: %s < /proc/ccs/grant_log or "
+			"/proc/ccs/reject_log\n", argv[0]);
+		return 0;
+	}
 	while (1) {
 		int i;
 		char *cp;
 		char *exe;
 		char *args;
+		int envc;
+		char *envs;
 
 		/* Find header line. */
 		i = getc(stdin);
@@ -38,33 +45,54 @@ int main(int argc, char *argv[])
 		cp = strstr(buffer[0], " argc=");
 		if (!cp)
 			continue;
-
 		/* Get argc value. */
 		if (sscanf(cp + 1, "argc=%d", &argc) != 1)
 			goto out;
-		
+
+		/* Check for " envc=" part. */
+		cp = strstr(buffer[0], " envc=");
+		if (!cp)
+			continue;
+		/* Get envc value. */
+		if (sscanf(cp + 1, "envc=%d", &envc) != 1)
+			goto out;
+
 		/* Get realpath part. */
 		exe = strstr(buffer[0], " realpath=\"");
 		if (!exe)
 			continue;
-		
+		exe++;
+
 		/* Get argv[]= part. */
 		cp = strstr(buffer[0], " argv[]={ ");
 		if (!cp)
 			goto out;
 		args = cp + 10;
-		cp = strstr(args, " } ");
+
+		/* Get envp[]= part. */
+		cp = strstr(buffer[0], " envp[]={ ");
 		if (!cp)
 			goto out;
+		envs = cp + 10;
 
-		/* Check for " ... " part. */
-		if (!strncmp(cp - 4, " ... ", 5)) {
-			fprintf(stderr, "%d: Too long header. Ignored.\n",
-				line);
-			continue;
-		}
+		/* Terminate realpath part. */
+		cp = strchr(exe, ' ');
+		if (!cp)
+			goto out;
 		*cp = '\0';
-		
+
+		/* Terminate argv[] part. */
+		cp = strstr(args - 1, " } ");
+		if (!cp)
+			goto out;
+		*cp = '\0';
+
+		/* Terminate envp[] part. */
+		cp = strstr(envs - 1, " } ");
+		if (!cp)
+			goto out;
+		*cp = '\0';
+
 		/* Get domainname. */
 		line++;
 		i = getc(stdin);
@@ -89,29 +117,54 @@ int main(int argc, char *argv[])
 			*cp-- = '\0';
 		if (strncmp(buffer[2], "allow_execute ", 14))
 			continue;
+
+		/* Print domainname. */
 		printf("%s", buffer[1]);
-		printf("%s if exec.", buffer[2]);
-		exe++;
-		while (1) {
-			const unsigned char c = *exe++;
-			if (c <= ' ')
-				break;
-			putchar(c);
-		}
+		/* Print permission and exec.realpath part. */
+		printf("%s if exec.%s", buffer[2], exe);
+		/* Print exec.argc part. */
 		printf(" exec.argc=%d", argc);
+		/* Print exec.argv[] part. */
 		if (argc) {
 			i = 0;
 			cp = strtok(args, " ");
-			while (cp) {
+			while (cp && *cp == '"') {
 				printf(" exec.argv[%d]=%s", i++, cp);
 				cp = strtok(NULL, " ");
 			}
 		}
+		/* Print exec.envc part. */
+		printf(" exec.envc=%d", envc);
+		/* Print exec.envp[] part. */
+		if (envc) {
+			cp = strtok(envs, " ");
+			while (cp && *cp == '"') {
+				char c = *(cp + 1);
+				char *cp2 = cp + 1;
+				if (!c || c == '"' || c == '=')
+					goto bad_env;
+				while (1) {
+					c = *cp2++;
+					if (c == '=')
+						break;
+					if (!c || c == '"')
+						goto bad_env;
+				}
+				if (!*cp2 || *cp2 == '"')
+					goto bad_env;
+				printf(" exec.envp[");
+				while (1) {
+					c = *cp++;
+					if (c == '=')
+						break;
+					putchar(c);
+				}
+				printf("\"]=\"%s", cp);
+bad_env:
+				cp = strtok(NULL, " ");
+			}
+		}
 		printf("\n\n");
-	}
-	if (!line) {
-		fprintf(stderr, "Usage: %s < /proc/ccs/grant_log or "
-			"/proc/ccs/reject_log\n", argv[0]);
 	}
 	return 0;
  out:

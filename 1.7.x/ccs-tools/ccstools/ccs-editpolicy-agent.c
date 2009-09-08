@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in addr;
 	socklen_t size = sizeof(addr);
 	char *port;
-	if (chdir("/proc/ccs/") && chdir("/sys/kernel/security/tomoyo/"))
+	if (chdir("/proc/ccs/"))
 		return 1;
 	{
 		int i;
