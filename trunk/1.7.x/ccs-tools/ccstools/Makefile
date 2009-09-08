@@ -19,6 +19,7 @@ install: all
 	cp -af --remove-destination ccstools $(INSTALLDIR)/usr/sbin/
 	cp -af --remove-destination ccstools.conf $(INSTALLDIR)/usr/lib/ccs/
 	for i in $(ALIAS_LIST); do ln -f $(INSTALLDIR)/usr/sbin/ccstools $(INSTALLDIR)/usr/sbin/$$i; done
+	rm -f $(INSTALLDIR)/usr/sbin/ccstools
 	cp -af --remove-destination ccs-domainmatch $(INSTALLDIR)/usr/sbin/
 	cp -af --remove-destination $(MISC_FILES) init_policy init_policy.sh README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 	chown -R root:root ccs-init $(INSTALLDIR)/usr/lib/ccs/

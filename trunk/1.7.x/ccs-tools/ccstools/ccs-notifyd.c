@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  */
 #include <stdio.h>
@@ -85,10 +85,6 @@ int main(int argc, char *argv[])
 			return 0;
 	}
 	query_fd = open(proc_policy_query, O_RDWR);
-	if (query_fd == EOF) {
-		proc_policy_query = "/sys/kernel/security/tomoyo/query";
-		query_fd = open(proc_policy_query, O_RDWR);
-	}
 	if (query_fd == EOF) {
 		fprintf(stderr, "You can't run this utility for this kernel."
 			"\n");
