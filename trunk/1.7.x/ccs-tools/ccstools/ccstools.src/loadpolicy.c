@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  */
 #include "ccstools.h"
@@ -58,20 +58,105 @@ int sortpolicy_main(int argc, char *argv[])
 
 int diffpolicy_main(int argc, char *argv[])
 {
-	struct domain_policy dp = { NULL, 0, NULL };
-	struct domain_policy bp = { NULL, 0, NULL };
-	const char *original = argc > 1 ? argv[1] : proc_policy_domain_policy;
-	const char *base = argc > 2 ? argv[2] : BASE_POLICY_DOMAIN_POLICY;
-	const char *diff = argc > 3 ? argv[3] : NULL;
-	if (access(original, R_OK)) {
-		fprintf(stderr, "%s not found.\n", original);
-		return 1;
+	struct domain_policy old_policy = { NULL, 0, NULL };
+	struct domain_policy new_policy = { NULL, 0, NULL };
+	const struct path_info **old_string_ptr;
+	const struct path_info **new_string_ptr;
+	int old_string_count;
+	int new_string_count;
+	int old_index;
+	int new_index;
+	const struct path_info *domainname;
+	int i;
+	int j;
+	const char *old = NULL;
+	const char *new = NULL;
+	if (argc != 3)
+		goto usage;
+	new = argv[1];
+	old = argv[2];
+	if (!strcmp(new, "-"))
+		new = NULL;
+	if (!strcmp(old, "-"))
+		old = NULL;
+	if (!new && !old) {
+usage:
+		printf("%s old_domain_policy new_domain_policy\n"
+		       "- : Read policy from stdin.\n", argv[0]);
+		return 0;
 	}
-	if (base == argv[2] && access(base, R_OK)) {
-		fprintf(stderr, "%s not found.\n", base);
-		return 1;
+	read_domain_policy(&old_policy, old);
+	read_domain_policy(&new_policy, new);
+	for (old_index = 0; old_index < old_policy.list_len; old_index++) {
+		domainname = old_policy.list[old_index].domainname;
+		new_index = find_domain_by_ptr(&new_policy, domainname);
+		if (new_index >= 0)
+			continue;
+		/* This domain was deleted. */
+		printf("delete %s\n\n", domainname->name);
 	}
-	return !save_domain_policy_with_diff(&dp, &bp, original, base, diff);
+	for (new_index = 0; new_index < new_policy.list_len; new_index++) {
+		domainname = new_policy.list[new_index].domainname;
+		old_index = find_domain_by_ptr(&old_policy, domainname);
+		if (old_index >= 0)
+			continue;
+		/* This domain was added. */
+		printf("%s\n\n", domainname->name);
+		printf(KEYWORD_USE_PROFILE "%u\n",
+		       new_policy.list[new_index].profile);
+		new_string_ptr = new_policy.list[new_index].string_ptr;
+		new_string_count = new_policy.list[new_index].string_count;
+		for (i = 0; i < new_string_count; i++)
+			printf("%s\n", new_string_ptr[i]->name);
+		printf("\n");
+	}
+	for (old_index = 0; old_index < old_policy.list_len; old_index++) {
+		_Bool first = true;
+		domainname = old_policy.list[old_index].domainname;
+		new_index = find_domain_by_ptr(&new_policy, domainname);
+		if (new_index == EOF)
+			continue;
+		/* This domain exists in both old policy and new policy. */
+		old_string_ptr = old_policy.list[old_index].string_ptr;
+		old_string_count = old_policy.list[old_index].string_count;
+		new_string_ptr = new_policy.list[new_index].string_ptr;
+		new_string_count = new_policy.list[new_index].string_count;
+		for (i = 0; i < old_string_count; i++) {
+			for (j = 0; j < new_string_count; j++) {
+				if (old_string_ptr[i] != new_string_ptr[j])
+					continue;
+				old_string_ptr[i] = NULL;
+				new_string_ptr[j] = NULL;
+			}
+		}
+		for (i = 0; i < new_string_count; i++) {
+			if (!new_string_ptr[i])
+				continue;
+			if (first)
+				printf("%s\n\n", domainname->name);
+			first = false;
+			printf("delete %s\n", new_string_ptr[i]->name);
+		}
+		for (i = 0; i < old_string_count; i++) {
+			if (!old_string_ptr[i])
+				continue;
+			if (first)
+				printf("%s\n\n", domainname->name);
+			first = false;
+			printf("%s\n", old_string_ptr[i]->name);
+		}
+		if (old_policy.list[old_index].profile !=
+		    new_policy.list[new_index].profile) {
+			if (first)
+				printf("%s\n\n", domainname->name);
+			first = false;
+			printf(KEYWORD_USE_PROFILE "%u\n",
+			       old_policy.list[old_index].profile);
+		}
+		if (!first)
+			printf("\n");
+	}
+	return 0;
 }
 
 /***** diffpolicy end *****/
@@ -99,8 +184,6 @@ static _Bool cat_file(const char *path)
 
 int savepolicy_main(int argc, char *argv[])
 {
-	struct domain_policy dp = { NULL, 0, NULL };
-	struct domain_policy bp = { NULL, 0, NULL };
 	char *filename;
 	_Bool write_to_stdout = false;
 	int save_profile = 0;
@@ -214,16 +297,13 @@ int savepolicy_main(int argc, char *argv[])
 		goto done;
 	}
 	if (save_profile)
-		move_proc_to_file(proc_policy_profile, BASE_POLICY_PROFILE,
-				  DISK_POLICY_PROFILE);
+		move_proc_to_file(proc_policy_profile, DISK_POLICY_PROFILE);
 	if (save_manager)
-		move_proc_to_file(proc_policy_manager, BASE_POLICY_MANAGER,
-				  DISK_POLICY_MANAGER);
+		move_proc_to_file(proc_policy_manager, DISK_POLICY_MANAGER);
 
 	if (save_exception_policy) {
 		filename = make_filename("exception_policy", now);
-		if (move_proc_to_file(proc_policy_exception_policy,
-				      BASE_POLICY_EXCEPTION_POLICY, filename)
+		if (move_proc_to_file(proc_policy_exception_policy, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
 			    is_identical_file("exception_policy.conf",
@@ -238,10 +318,7 @@ int savepolicy_main(int argc, char *argv[])
 
 	if (save_domain_policy) {
 		filename = make_filename("domain_policy", now);
-		if (save_domain_policy_with_diff(&dp, &bp,
-						 proc_policy_domain_policy,
-						 BASE_POLICY_DOMAIN_POLICY,
-						 filename)
+		if (move_proc_to_file(proc_policy_domain_policy, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
 			    is_identical_file("domain_policy.conf", filename)) {
@@ -276,11 +353,9 @@ usage:
 
 /***** loadpolicy start *****/
 
-static void move_file_to_proc(const char *base, const char *src,
-			      const char *dest)
+static void move_file_to_proc(const char *src, const char *dest)
 {
 	FILE *file_fp = stdin;
-	FILE *base_fp;
 	FILE *proc_fp = open_write(dest);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
@@ -295,14 +370,6 @@ static void move_file_to_proc(const char *base, const char *src,
 		}
 	}
 	get();
-	base_fp = base ? fopen(base, "r") : NULL;
-	if (base_fp) {
-		while (freadline(base_fp)) {
-			if (shared_buffer[0])
-				fprintf(proc_fp, "%s\n", shared_buffer);
-		}
-		fclose(base_fp);
-	}
 	while (freadline(file_fp)) {
 		if (shared_buffer[0])
 			fprintf(proc_fp, "%s\n", shared_buffer);
@@ -342,17 +409,14 @@ static void delete_proc_policy(const char *name)
 
 static void update_domain_policy(struct domain_policy *proc_policy,
 				 struct domain_policy *file_policy,
-				 const char *base, const char *src,
-				 const char *dest)
+				 const char *src, const char *dest)
 {
-	int base_index;
+	int file_index;
 	int proc_index;
 	FILE *proc_fp;
 	_Bool nm = network_mode;
-	/* Load base and diff policy to file_policy->list. */
+	/* Load disk policy to file_policy->list. */
 	network_mode = false;
-	if (base && !access(base, R_OK))
-		read_domain_policy(file_policy, base);
 	read_domain_policy(file_policy, src);
 	network_mode = nm;
 	/* Load proc policy to proc_policy->list. */
@@ -362,16 +426,16 @@ static void update_domain_policy(struct domain_policy *proc_policy,
 		fprintf(stderr, "Can't open %s\n", dest);
 		return;
 	}
-	for (base_index = 0; base_index < file_policy->list_len; base_index++) {
+	for (file_index = 0; file_index < file_policy->list_len; file_index++) {
 		int i;
 		int j;
 		const struct path_info *domainname
-			= file_policy->list[base_index].domainname;
-		const u8 profile = file_policy->list[base_index].profile;
-		const struct path_info **base_string_ptr
-			= file_policy->list[base_index].string_ptr;
-		const int base_string_count
-			= file_policy->list[base_index].string_count;
+			= file_policy->list[file_index].domainname;
+		const u8 profile = file_policy->list[file_index].profile;
+		const struct path_info **file_string_ptr
+			= file_policy->list[file_index].string_ptr;
+		const int file_string_count
+			= file_policy->list[file_index].string_count;
 		const struct path_info **proc_string_ptr;
 		int proc_string_count;
 		proc_index = find_domain_by_ptr(proc_policy, domainname);
@@ -383,24 +447,24 @@ static void update_domain_policy(struct domain_policy *proc_policy,
 		proc_string_ptr = proc_policy->list[proc_index].string_ptr;
 		proc_string_count = proc_policy->list[proc_index].string_count;
 		for (j = 0; j < proc_string_count; j++) {
-			for (i = 0; i < base_string_count; i++) {
-				if (base_string_ptr[i] == proc_string_ptr[j])
+			for (i = 0; i < file_string_count; i++) {
+				if (file_string_ptr[i] == proc_string_ptr[j])
 					break;
 			}
 			/* Delete this entry from proc policy if not found
-			   in base policy. */
-			if (i == base_string_count)
+			   in disk policy. */
+			if (i == file_string_count)
 				fprintf(proc_fp, "delete %s\n",
 					proc_string_ptr[j]->name);
 		}
 		delete_domain(proc_policy, proc_index);
 not_found:
-		/* Append entries defined in base policy. */
-		for (i = 0; i < base_string_count; i++)
-			fprintf(proc_fp, "%s\n", base_string_ptr[i]->name);
+		/* Append entries defined in disk policy. */
+		for (i = 0; i < file_string_count; i++)
+			fprintf(proc_fp, "%s\n", file_string_ptr[i]->name);
 		fprintf(proc_fp, "use_profile %u\n", profile);
 	}
-	/* Delete all domains that are not defined in base policy. */
+	/* Delete all domains that are not defined in disk policy. */
 	for (proc_index = 0; proc_index < proc_policy->list_len; proc_index++) {
 		fprintf(proc_fp, "delete %s\n",
 			proc_policy->list[proc_index].domainname->name);
@@ -487,28 +551,25 @@ int loadpolicy_main(int argc, char *argv[])
 
 	if (load_profile) {
 		if (read_from_stdin)
-			move_file_to_proc(NULL, NULL, proc_policy_profile);
+			move_file_to_proc(NULL, proc_policy_profile);
 		else
-			move_file_to_proc(BASE_POLICY_PROFILE,
-					  DISK_POLICY_PROFILE,
+			move_file_to_proc(DISK_POLICY_PROFILE,
 					  proc_policy_profile);
 	}
 
 	if (load_manager) {
 		if (read_from_stdin)
-			move_file_to_proc(NULL, NULL, proc_policy_manager);
+			move_file_to_proc(NULL, proc_policy_manager);
 		else
-			move_file_to_proc(BASE_POLICY_MANAGER,
-					  DISK_POLICY_MANAGER,
+			move_file_to_proc(DISK_POLICY_MANAGER,
 					  proc_policy_manager);
 	}
 
 	if (load_meminfo) {
 		if (read_from_stdin)
-			move_file_to_proc(NULL, NULL, proc_policy_meminfo);
+			move_file_to_proc(NULL, proc_policy_meminfo);
 		else
-			move_file_to_proc(BASE_POLICY_MEMINFO,
-					  DISK_POLICY_MEMINFO,
+			move_file_to_proc(DISK_POLICY_MEMINFO,
 					  proc_policy_meminfo);
 	}
 
@@ -516,11 +577,9 @@ int loadpolicy_main(int argc, char *argv[])
 		if (refresh_policy)
 			delete_proc_policy(proc_policy_exception_policy);
 		if (read_from_stdin)
-			move_file_to_proc(NULL, NULL,
-					  proc_policy_exception_policy);
+			move_file_to_proc(NULL, proc_policy_exception_policy);
 		else
-			move_file_to_proc(BASE_POLICY_EXCEPTION_POLICY,
-					  DISK_POLICY_EXCEPTION_POLICY,
+			move_file_to_proc(DISK_POLICY_EXCEPTION_POLICY,
 					  proc_policy_exception_policy);
 	}
 
@@ -528,22 +587,20 @@ int loadpolicy_main(int argc, char *argv[])
 		if (refresh_policy) {
 			if (read_from_stdin)
 				update_domain_policy(&proc_policy, &file_policy,
-						     NULL, NULL,
+						     NULL,
 						     proc_policy_domain_policy);
 			else
 				update_domain_policy(&proc_policy, &file_policy,
-						     BASE_POLICY_DOMAIN_POLICY,
 						     DISK_POLICY_DOMAIN_POLICY,
 						     proc_policy_domain_policy);
 			clear_domain_policy(&proc_policy);
 			clear_domain_policy(&file_policy);
 		} else {
 			if (read_from_stdin)
-				move_file_to_proc(NULL, NULL,
+				move_file_to_proc(NULL,
 						  proc_policy_domain_policy);
 			else
-				move_file_to_proc(BASE_POLICY_DOMAIN_POLICY,
-						  DISK_POLICY_DOMAIN_POLICY,
+				move_file_to_proc(DISK_POLICY_DOMAIN_POLICY,
 						  proc_policy_domain_policy);
 		}
 	}

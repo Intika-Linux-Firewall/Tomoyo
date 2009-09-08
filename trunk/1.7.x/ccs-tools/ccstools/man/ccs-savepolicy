@@ -17,21 +17,21 @@ Usage: ccs-savepolicy [e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_po
 
 This program saves TOMOYO Linux's policy from kernel into files.
 
- e     Save exception policy. ( /proc/ccs/exception_policy - policy_dir/exception_policy.base => policy_dir/exception_policy.conf )
+ e     Save exception policy. ( /proc/ccs/exception_policy => policy_dir/exception_policy.conf )
 
- d     Save domain policy. ( /proc/ccs/domain_policy - policy_dir/domain_policy.base => policy_dir/domain_policy.conf )
+ d     Save domain policy. ( /proc/ccs/domain_policy => policy_dir/domain_policy.conf )
 
  a     Save exception policy and domain policy. This is default.
 
- p     Save profile. ( /proc/ccs/profile - policy_dir/profile.base => policy_dir/profile.conf )
+ p     Save profile. ( /proc/ccs/profile => policy_dir/profile.conf )
 
- m     Save manager. ( /proc/ccs/manager - policy_dir/manager.base => policy_dir/manager.conf )
+ m     Save manager. ( /proc/ccs/manager => policy_dir/manager.conf )
 
  u     Print meminfo. Implies '-' option. ( /proc/ccs/meminfo )
 
  f     Forcefully save even if the on-memory policy and the on-disk policy are identical.
 
- -     Write policy to stdout. Specify only one of "sedpmu" option when you use this option.
+ -     Write policy to stdout. Specify only one of "edpmu" option when you use this option.
 
  policy_dir     Save policy files into policy_dir directory. Must starts with / .
                 Default is none if remote_ip:remote_port is specified, /etc/ccs/ otherwise.
@@ -41,7 +41,7 @@ This program saves TOMOYO Linux's policy from kernel into files.
 Examples:
 
 # ccs-savepolicy
- Save system policy, exception policy and domain policy.
+ Save exception policy and domain policy.
 
 # ccs-savepolicy e
  Save exception policy.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  */
 
@@ -119,15 +119,10 @@ enum socket_operation_type {
 #define CCSTOOLS_CONFIG_FILE "/usr/lib/ccs/ccstools.conf"
 
 #define DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
-#define BASE_POLICY_DOMAIN_POLICY    "domain_policy.base"
 #define DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
-#define BASE_POLICY_EXCEPTION_POLICY "exception_policy.base"
 #define DISK_POLICY_PROFILE          "profile.conf"
-#define BASE_POLICY_PROFILE          "profile.base"
 #define DISK_POLICY_MANAGER          "manager.conf"
-#define BASE_POLICY_MANAGER          "manager.base"
 #define DISK_POLICY_MEMINFO          "meminfo.conf"
-#define BASE_POLICY_MEMINFO          "meminfo.base"
 
 enum editpolicy_directives {
 	DIRECTIVE_NONE,
@@ -349,15 +344,11 @@ int auditd_main(int argc, char *argv[]);
 int patternize_main(int argc, char *argv[]);
 void shprintf(const char *fmt, ...)
 	__attribute__ ((format(printf, 1, 2)));
-_Bool move_proc_to_file(const char *src, const char *base, const char *dest);
+_Bool move_proc_to_file(const char *src, const char *dest);
 _Bool is_identical_file(const char *file1, const char *file2);
 FILE *open_read(const char *filename);
 FILE *open_write(const char *filename);
 void clear_domain_policy(struct domain_policy *dp);
-_Bool save_domain_policy_with_diff(struct domain_policy *dp,
-				   struct domain_policy *bp,
-				   const char *proc, const char *base,
-				   const char *diff);
 int find_domain_by_ptr(struct domain_policy *dp,
 		       const struct path_info *domainname);
 void read_domain_policy(struct domain_policy *dp, const char *filename);
@@ -391,6 +382,8 @@ void editpolicy_sttr_restore(void);
 int editpolicy_color_head(const int screen);
 int editpolicy_color_cursor(const int screen);
 int editpolicy_get_current(void);
+int parse_number(const char *number, struct number_entry *entry);
+int parse_ip(const char *address, struct ip_address_entry *entry);
 
 extern char shared_buffer[8192];
 void get(void);

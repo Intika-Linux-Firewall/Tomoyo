@@ -5,18 +5,16 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  */
 #include "ccstools.h"
 
 /* Prototypes */
-static int parse_ip(const char *address, struct ip_address_entry *entry);
 static int add_address_group_entry(const char *group_name,
 				   const char *member_name,
 				   const _Bool is_delete);
 static struct address_group_entry *find_address_group(const char *group_name);
-static int parse_number(const char *number, struct number_entry *entry);
 static int add_number_group_entry(const char *group_name,
 				  const char *member_name,
 				  const _Bool is_delete);
@@ -38,7 +36,7 @@ struct path_group_entry *find_path_group(const char *group_name)
 	return NULL;
 }
 
-static int parse_ip(const char *address, struct ip_address_entry *entry)
+int parse_ip(const char *address, struct ip_address_entry *entry)
 {
 	unsigned int min[8];
 	unsigned int max[8];
@@ -183,7 +181,7 @@ static char *ccs_tokenize(char *buffer, char *w[], size_t size)
 	return i < count || !*buffer ? cp : NULL;
 }
 
-static int parse_number(const char *number, struct number_entry *entry)
+int parse_number(const char *number, struct number_entry *entry)
 {
 	unsigned long min;
 	unsigned long max;
@@ -238,7 +236,7 @@ static _Bool compare_number(const char *sarg, const char *darg)
 			return false;
 		return true;
 	}
-	/* IP address group component. */
+	/* Number group component. */
 	group = find_number_group(sarg + 1);
 	if (!group)
 		return false;

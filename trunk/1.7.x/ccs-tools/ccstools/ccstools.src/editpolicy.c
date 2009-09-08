@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  */
 #include "ccstools.h"
@@ -2719,15 +2719,10 @@ usage:
 		}
 		close(fd[1]);
 		persistent_fd = fd[0];
-		copy_file(BASE_POLICY_EXCEPTION_POLICY,
-			  proc_policy_exception_policy);
 		copy_file(DISK_POLICY_EXCEPTION_POLICY,
 			  proc_policy_exception_policy);
-		copy_file(BASE_POLICY_DOMAIN_POLICY, proc_policy_domain_policy);
 		copy_file(DISK_POLICY_DOMAIN_POLICY, proc_policy_domain_policy);
-		copy_file(BASE_POLICY_PROFILE, proc_policy_profile);
 		copy_file(DISK_POLICY_PROFILE, proc_policy_profile);
-		copy_file(BASE_POLICY_MANAGER, proc_policy_manager);
 		copy_file(DISK_POLICY_MANAGER, proc_policy_manager);
 	} else if (!network_mode) {
 		if (chdir(proc_policy_dir)) {
@@ -2777,8 +2772,7 @@ usage:
 	if (offline_mode && !readonly_mode) {
 		time_t now = time(NULL);
 		const char *filename = make_filename("exception_policy", now);
-		if (move_proc_to_file(proc_policy_exception_policy,
-				      BASE_POLICY_EXCEPTION_POLICY, filename)) {
+		if (move_proc_to_file(proc_policy_exception_policy, filename)) {
 			if (is_identical_file("exception_policy.conf",
 					      filename)) {
 				unlink(filename);
@@ -2789,10 +2783,7 @@ usage:
 		}
 		clear_domain_policy(&dp);
 		filename = make_filename("domain_policy", now);
-		if (save_domain_policy_with_diff(&dp, &bp,
-						 proc_policy_domain_policy,
-						 BASE_POLICY_DOMAIN_POLICY,
-						 filename)) {
+		if (move_proc_to_file(proc_policy_domain_policy, filename)) {
 			if (is_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2801,8 +2792,7 @@ usage:
 			}
 		}
 		filename = make_filename("profile", now);
-		if (move_proc_to_file(proc_policy_profile, BASE_POLICY_PROFILE,
-				      filename)) {
+		if (move_proc_to_file(proc_policy_profile, filename)) {
 			if (is_identical_file("profile.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2811,8 +2801,7 @@ usage:
 			}
 		}
 		filename = make_filename("manager", now);
-		if (move_proc_to_file(proc_policy_manager, BASE_POLICY_MANAGER,
-				      filename)) {
+		if (move_proc_to_file(proc_policy_manager, filename)) {
 			if (is_identical_file("manager.conf", filename)) {
 				unlink(filename);
 			} else {
