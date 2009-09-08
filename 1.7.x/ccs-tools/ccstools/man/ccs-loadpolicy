@@ -17,22 +17,22 @@ Usage: ccs-loadpolicy [e][d][a][f][p][m][u] [{-|policy_dir} [remote_ip:remote_po
 
 This program loads TOMOYO Linux's policy from files or standard input into kernel.
 
- e     Load exception policy. ( policy_dirpolicy_dir/exception_policy.base + policy_dir/exception_policy.conf => /proc/ccs/exception_policy )
+ e     Load exception policy. ( policy_dir/exception_policy.conf => /proc/ccs/exception_policy )
 
- d     Load domain policy. ( policy_dir/domain_policy.base + policy_dir/domain_policy.conf => /proc/ccs/domain_policy )
+ d     Load domain policy. ( policy_dir/domain_policy.conf => /proc/ccs/domain_policy )
 
  a     Load exception policy and domain policy.
 
- p     Load profile. ( policy_dir/profile.base + policy_dir/profile.conf => /proc/ccs/profile )
+ p     Load profile. ( policy_dir/profile.conf => /proc/ccs/profile )
 
- m     Load manager. ( policy_dir/manager.base + policy_dir/manager.conf => /proc/ccs/manager )
+ m     Load manager. ( policy_dir/manager.conf => /proc/ccs/manager )
 
- u     Load meminfo. ( policy_dir/meminfo.base + policy_dir/meminfo.conf => /proc/ccs/meminfo )
+ u     Load meminfo. ( policy_dir/meminfo.conf => /proc/ccs/meminfo )
 
  f     Erase on-memory policy before loading on-disk policy. If not specified, on-disk policy is appended to on-memory policy.
-       This option is valid for "seda" options.
+       This option is valid for "eda" options.
 
- -     Read policy from stdin. Specify only one of "sedpmu" option when you use this option.
+ -     Read policy from stdin. Specify only one of "edpmu" option when you use this option.
 
  policy_dir     Load policy files from policy_dir directory. Must starts with / .
                 Default is none if remote_ip:remote_port is specified, /etc/ccs/ otherwise.
@@ -51,13 +51,13 @@ Examples:
  Add "allow_execute /sbin/init" to "<kernel>" domain.
 
 # ccs-loadpolicy df
- Replace currently loaded domain policy with policy_dir/domain_policy.base + policy_dir/domain_policy.conf .
+ Replace currently loaded domain policy with policy_dir/domain_policy.conf .
 
 # ccs-loadpolicy d
- Append policy_dir/domain_policy.base + policy_dir/domain_policy.conf into currently loaded domain policy.
+ Append policy_dir/domain_policy.conf into currently loaded domain policy.
 
 # ccs-loadpolicy d /etc/ccs/192.168.1.1/ 192.168.1.1:10000
- Append /etc/ccs/192.168.1.1/domain_policy.base + /etc/ccs/192.168.1.1/domain_policy.conf to 192.168.11.1:10000 .
+ Append /etc/ccs/192.168.1.1/domain_policy.conf to 192.168.11.1:10000 .
 
 EOF
 else

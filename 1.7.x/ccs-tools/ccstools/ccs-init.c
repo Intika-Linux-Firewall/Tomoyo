@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0+   2009/09/08
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -144,7 +144,7 @@ static void ask_profile(void)
 	}
 }
 
-static void copy_files(const char *src1, const char *src2, const char *dest)
+static void copy_files(const char *src, const char *dest)
 {
 	int sfd;
 	int dfd = open(dest, O_WRONLY);
@@ -153,18 +153,7 @@ static void copy_files(const char *src1, const char *src2, const char *dest)
 			panic();
 		return;
 	}
-	sfd = open(src1, O_RDONLY);
-	if (sfd != EOF) {
-		while (1) {
-			int len = read(sfd, buffer, sizeof(buffer));
-			if (len <= 0)
-				break;
-			write(dfd, buffer, len);
-		}
-		close(sfd);
-		write(dfd, "\n", 1);
-	}
-	sfd = open(src2, O_RDONLY);
+	sfd = open(src, O_RDONLY);
 	if (sfd != EOF) {
 		while (1) {
 			int len = read(sfd, buffer, sizeof(buffer));
@@ -291,27 +280,23 @@ static void show_memory_usage(void)
 
 static void check_profile_version(const char *profile)
 {
-	const char *files[2] = { "profile.base", profile };
-	int i;
-	for (i = 0; i < 2; i++) {
-		FILE *fp = fopen(files[i], "r");
-		if (!fp)
-			continue;
-		while (memset(buffer, 0, sizeof(buffer)),
-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
-			char *cp = strchr(buffer, '\n');
-			if (cp)
-				*cp = '\0';
-			if (!strcmp(buffer, "PROFILE_VERSION"))
-				break;
-			if (strstr(buffer, "MAC_FOR_")) {
-				printf("This profile format is not supported."
-				       "\n");
-				panic();
-			}
+	FILE *fp = fopen(profile, "r");
+	if (!fp)
+		return;
+	while (memset(buffer, 0, sizeof(buffer)),
+	       fgets(buffer, sizeof(buffer) - 1, fp)) {
+		char *cp = strchr(buffer, '\n');
+		if (cp)
+			*cp = '\0';
+		if (!strcmp(buffer, "PROFILE_VERSION"))
+			break;
+		if (strstr(buffer, "MAC_FOR_")) {
+			printf("This profile format is not supported."
+			       "\n");
+			panic();
 		}
-		fclose(fp);
 	}
+	fclose(fp);
 }
 
 int main(int argc, char *argv[])
@@ -401,22 +386,18 @@ int main(int argc, char *argv[])
 
 	/* Load policy. */
 	if (chdir_ok) {
-		copy_files("manager.base", "manager.conf", proc_manager);
-		copy_files("exception_policy.base", "exception_policy.conf",
-			   proc_exception_policy);
+		copy_files("manager.conf", proc_manager);
+		copy_files("exception_policy.conf", proc_exception_policy);
 		if (!ccs_noload)
-			copy_files("domain_policy.base", "domain_policy.conf",
-				   proc_domain_policy);
+			copy_files("domain_policy.conf", proc_domain_policy);
 		if (!strcmp(profile_name, "default")) {
 			check_profile_version("profile.conf");
-			copy_files("profile.base", "profile.conf",
-				   proc_profile);
+			copy_files("profile.conf", proc_profile);
 		} else if (strcmp(profile_name, "disable")) {
 			check_profile_version(profile_name);
-			copy_files("profile.base", profile_name,
-				   proc_profile);
+			copy_files(profile_name, proc_profile);
 		}
-		copy_files("meminfo.base", "meminfo.conf", proc_meminfo);
+		copy_files("meminfo.conf", proc_meminfo);
 	}
 
 	/* Use disabled mode? */

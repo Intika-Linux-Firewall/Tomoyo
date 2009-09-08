@@ -13,16 +13,28 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-patternize pattern [pattern ...] < list_of_pathnames > new_list_of_pathnames
+Usage: ccs-patternize pattern [pattern ...] < old_domain_policy > new_domain_policy
 
 This program reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output.
 
-Pathnames that contains execute permission and domainnames won't be patterned.
+Pathnames for execute permission and domainnames won't be replaced.
 
 Examples:
 
 # ccs-patternize '/tmp/php\?\?\?\?\?\?' < /etc/ccs/domain_policy.conf > /etc/ccs/domain_policy2.conf
- Replace pathnames that matches to /tmp/php\?\?\?\?\?\? pattern.
+ Replace pathnames that match /tmp/php\?\?\?\?\?\? pattern with /tmp/php\?\?\?\?\?\? .
+
+# ccs-patternize 'file_pattern /tmp/php\?\?\?\?\?\?' < /etc/ccs/domain_policy.conf > /etc/ccs/domain_policy2.conf
+ Replace pathnames that match /tmp/php\?\?\?\?\?\? pattern with /tmp/php\?\?\?\?\?\? .
+
+# ccs-patternize 'path_group GROUP1 /tmp/php\?\?\?\?\?\?' < /etc/ccs/domain_policy.conf > /etc/ccs/domain_policy2.conf
+ Replace pathnames that match /tmp/php\?\?\?\?\?\? pattern with @GROUP1.
+
+# ccs-patternize 'number_group GROUP2 0-100' 'number_group GROUP2 100-200'< /etc/ccs/domain_policy.conf > /etc/ccs/domain_policy2.conf
+ Replace integers between 0-100 or 100-200 with @GROUP2 .
+
+# ccs-patternize 'address_group LOCALHOST 127.0.0.1' 'address_group LOCALHOST 0:0:0:0:0:0:0:1' < /etc/ccs/domain_policy.conf > /etc/ccs/domain_policy2.conf
+ Replace ip addresses 127.0.0.1 or 0:0:0:0:0:0:0:1 with @LOCALHOST.
 
 EOF
 else
@@ -30,6 +42,7 @@ cat << EOF | help2man -i - -N -s 8 -n "Convert TOMOYO Linux's pathnames into pat
 [SEE ALSO]
 
  ccs-findtemp (8)
+ ccs-diffpolicy(8)
 
 [AUTHORS]
 
