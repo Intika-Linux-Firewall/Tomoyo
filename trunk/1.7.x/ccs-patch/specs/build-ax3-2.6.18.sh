@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-53.25AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-53.26AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-53.25AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-53.26AXS3.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.18-53.25AXS3.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.18-53.26AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.0-20090903.tar.gz ]
@@ -25,14 +25,14 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2009-07-09 15:15:46.000000000 +0900
-+++ kernel-2.6.spec	2009-07-24 17:16:27.000000000 +0900
+--- kernel-2.6.spec	2009-08-25 14:44:18.000000000 +0900
++++ kernel-2.6.spec	2009-09-09 11:10:07.000000000 +0900
 @@ -64,7 +64,7 @@
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 53.25%{?dist}
-+%define release 53.25%{?dist}_tomoyo_1.7.0
+-%define release 53.26%{?dist}
++%define release 53.26%{?dist}_tomoyo_1.7.0
  %define signmodules 0
  %define xen_hv_cset 15042
  %define xen_abi_ver 3.1
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -3915,6 +3918,10 @@
+@@ -3925,6 +3928,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -3945,6 +3952,9 @@
+@@ -3955,6 +3962,9 @@
  for i in *.config
  do
    mv $i .config
