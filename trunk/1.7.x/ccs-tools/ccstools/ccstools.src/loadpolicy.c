@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.0+   2009/09/09
  *
  */
 #include "ccstools.h"
@@ -160,6 +160,53 @@ usage:
 }
 
 /***** diffpolicy end *****/
+
+/***** selectpolicy start *****/
+
+int selectpolicy_main(int argc, char *argv[])
+{
+	_Bool recursive = false;
+	_Bool matched = false;
+	int start = 1;
+	int i;
+	if (argc > 1 && !strcmp(argv[1], "-r")) {
+		recursive = true;
+		start++;
+	}
+	if (argc <= start) {
+		fprintf(stderr, "%s [-r] domainname [domainname ...]"
+			" < domain_policy\n", argv[0]);
+		return 0;
+	}
+	for (i = start; i < argc; i++)
+		normalize_line(argv[i]);
+	get();
+	while (freadline(stdin)) {
+		if (is_domain_def(shared_buffer)) {
+			matched = false;
+			for (i = start; i < argc; i++) {
+				const int len = strlen(argv[i]);
+				if (strncmp(shared_buffer, argv[i], len))
+					continue;
+				if (!recursive) {
+					if (shared_buffer[len])
+						continue;
+				} else {
+					if (shared_buffer[len] &&
+					    shared_buffer[len] != ' ')
+						continue;
+				}
+				matched = true;
+			}
+		}
+		if (matched)
+			puts(shared_buffer);
+	}
+	put();
+	return 0;
+}
+
+/***** selectpolicy end *****/
 
 /***** savepolicy start *****/
 
