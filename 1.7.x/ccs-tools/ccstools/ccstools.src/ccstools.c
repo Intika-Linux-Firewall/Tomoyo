@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.0+   2009/09/09
  *
  */
 #include "ccstools.h"
@@ -873,23 +873,6 @@ read_policy:
 
 /* Variables */
 
-int ccs_major = 0;
-int ccs_minor = 0;
-int ccs_rev = 0;
-
-const char *proc_policy_dir           = "/proc/ccs/",
-	*disk_policy_dir              = "/etc/ccs/",
-	*proc_policy_domain_policy    = "/proc/ccs/domain_policy",
-	*proc_policy_exception_policy = "/proc/ccs/exception_policy",
-	*proc_policy_profile          = "/proc/ccs/profile",
-	*proc_policy_manager          = "/proc/ccs/manager",
-	*proc_policy_meminfo          = "/proc/ccs/meminfo",
-	*proc_policy_query            = "/proc/ccs/query",
-	*proc_policy_grant_log        = "/proc/ccs/grant_log",
-	*proc_policy_reject_log       = "/proc/ccs/reject_log",
-	*proc_policy_domain_status    = "/proc/ccs/.domain_status",
-	*proc_policy_process_status   = "/proc/ccs/.process_status";
-
 char shared_buffer[sizeof(shared_buffer)];
 static _Bool buffer_locked = false;
 
@@ -949,6 +932,9 @@ _Bool freadline(FILE *fp)
 
 _Bool check_remote_host(void)
 {
+	int ccs_major = 0;
+	int ccs_minor = 0;
+	int ccs_rev = 0;
 	FILE *fp = open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &ccs_major, &ccs_minor, &ccs_rev) < 2 ||
@@ -981,6 +967,8 @@ int main(int argc, char *argv[])
 		ret = setprofile_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-setlevel"))
 		ret = setlevel_main(argc, argv);
+	else if (!strcmp(argv0, "ccs-selectpolicy"))
+		ret = selectpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-diffpolicy"))
 		ret = diffpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-savepolicy"))
@@ -1016,7 +1004,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.7.0+ build 2009/09/08\n");
+	printf("ccstools version 1.7.0+ build 2009/09/09\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

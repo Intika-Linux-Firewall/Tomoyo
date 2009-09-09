@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.0+   2009/09/09
  *
  */
 
@@ -330,6 +330,7 @@ char *make_filename(const char *prefix, const time_t time);
 int sortpolicy_main(int argc, char *argv[]);
 int setprofile_main(int argc, char *argv[]);
 int setlevel_main(int argc, char *argv[]);
+int selectpolicy_main(int argc, char *argv[]);
 int diffpolicy_main(int argc, char *argv[]);
 int savepolicy_main(int argc, char *argv[]);
 int pathmatch_main(int argc, char *argv[]);
@@ -397,9 +398,6 @@ int simple_add_history(const char *buffer, const char **history,
 		       const int history_count, const int max_history);
 int getch2(void);
 
-extern int ccs_major;
-extern int ccs_minor;
-extern int ccs_rev;
 extern _Bool offline_mode;
 extern const char *policy_dir;
 extern _Bool network_mode;
@@ -421,17 +419,17 @@ extern struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX];
 extern struct task_entry *task_list;
 extern int task_list_len;
 
-extern const char *proc_policy_dir,
-	*disk_policy_dir,
-	*proc_policy_domain_policy,
-	*proc_policy_exception_policy,
-	*proc_policy_profile,
-	*proc_policy_manager,
-	*proc_policy_meminfo,
-	*proc_policy_query,
-	*proc_policy_grant_log,
-	*proc_policy_reject_log,
-	*proc_policy_domain_status,
-	*proc_policy_process_status;
+#define proc_policy_dir              "/proc/ccs/"
+#define disk_policy_dir              "/etc/ccs/"
+#define proc_policy_domain_policy    "/proc/ccs/domain_policy"
+#define proc_policy_exception_policy "/proc/ccs/exception_policy"
+#define proc_policy_profile          "/proc/ccs/profile"
+#define proc_policy_manager          "/proc/ccs/manager"
+#define proc_policy_meminfo          "/proc/ccs/meminfo"
+#define proc_policy_query            "/proc/ccs/query"
+#define proc_policy_grant_log        "/proc/ccs/grant_log"
+#define proc_policy_reject_log       "/proc/ccs/reject_log"
+#define proc_policy_domain_status    "/proc/ccs/.domain_status"
+#define proc_policy_process_status   "/proc/ccs/.process_status"
 
 /***** PROTOTYPES DEFINITION END *****/
