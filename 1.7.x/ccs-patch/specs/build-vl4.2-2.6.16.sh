@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.16-76.51vl4.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.0-20090903.tar.gz ]
+if [ ! -r ccs-patch-1.7.0-20090911.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.0-20090903.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.0-20090911.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.0-20090903.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.0-20090911.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
 +
  cp %{SOURCE10} Documentation/
