@@ -18,12 +18,12 @@
 <h2>Step 1: Compiling the kernel.</h2>
 
 <p>Download source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
-Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.30.6 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.30 in the below operations.</p>
+Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.31 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.31 in the below operations.</p>
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.0-20090903.tar.gz<br>
-[user@tomoyo ~]$ tar -zxf ccs-patch-1.7.0-20090903.tar.gz<br>
+[user@tomoyo ~]$ wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.0-20090911.tar.gz<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.7.0-20090911.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 [user@tomoyo ~]$ wget -O hotfix.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/hotfix.diff?revision=2999&amp;root=tomoyo'<br>
 [user@tomoyo ~]$ patch -sp3 &lt; hotfix.diff<br>
