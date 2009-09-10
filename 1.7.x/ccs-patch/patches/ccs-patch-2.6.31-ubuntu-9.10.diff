@@ -183,19 +183,19 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1556,6 +1558,11 @@ int may_open(struct path *path, int acc_
- 		if (!is_owner_or_cap(inode))
- 			return -EPERM;
+@@ -1559,6 +1561,11 @@ int may_open(struct path *path, int acc_
+ 			goto err_out;
+ 		}
  
 +	/* includes O_APPEND and O_TRUNC checks */
 +	error = ccs_open_permission(dentry, path->mnt, flag);
 +	if (error)
-+		return error;
++		goto err_out;
 +
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1606,6 +1613,9 @@ static int __open_namei_create(struct na
+@@ -1614,6 +1621,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -205,7 +205,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1619,6 +1629,7 @@ out_unlock:
+@@ -1627,6 +1637,7 @@ out_unlock:
  	return may_open(&nd->path, 0, flag & ~O_TRUNC);
  }
  
@@ -213,7 +213,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1758,7 +1769,9 @@ do_last:
+@@ -1766,7 +1777,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -223,7 +223,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1817,7 +1830,9 @@ ok:
+@@ -1825,7 +1838,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -233,7 +233,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2047,6 +2062,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2055,6 +2070,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -243,7 +243,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2122,6 +2140,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2130,6 +2148,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -253,7 +253,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2236,6 +2257,9 @@ static long do_rmdir(int dfd, const char
+@@ -2244,6 +2265,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -263,7 +263,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2325,6 +2349,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2333,6 +2357,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -273,7 +273,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2410,6 +2437,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2418,6 +2445,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -283,7 +283,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2510,6 +2540,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2518,6 +2548,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -294,7 +294,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2751,6 +2785,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2759,6 +2793,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -349,7 +349,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_path.mnt) || ccs_may_mount(path))
++	if (ccs_may_mount(path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
@@ -524,7 +524,7 @@ Source code for this patch is "apt-get install linux-source-2.6.31"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31-10.30 2009/09/09\n");
++	printk(KERN_INFO "Hook version: 2.6.31-10.30 2009/09/10\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

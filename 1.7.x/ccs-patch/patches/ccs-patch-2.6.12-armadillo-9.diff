@@ -897,7 +897,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++	if (ccs_may_mount(nd))
 +		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
@@ -1055,7 +1055,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/08/20\n");
++	printk(KERN_INFO "Hook version: 2.6.12.3-a9-17 2009/09/10\n");
  }
 --- linux-2.6.12.3-a9-17.orig/include/linux/init_task.h
 +++ linux-2.6.12.3-a9-17/include/linux/init_task.h

@@ -790,7 +790,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++	if (ccs_may_mount(nd))
 +		goto out;
 +
  	err = -ENOENT;
@@ -954,7 +954,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.37.5 2009/08/20\n");
++	printk(KERN_INFO "Hook version: 2.4.37.5 2009/09/10\n");
  }
 --- linux-2.4.37.5.orig/include/linux/sched.h
 +++ linux-2.4.37.5/include/linux/sched.h

@@ -369,7 +369,7 @@ Source code for this patch is "emerge hardened-sources"
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_path.mnt) || ccs_may_mount(path))
++	if (ccs_may_mount(path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
@@ -528,7 +528,7 @@ Source code for this patch is "emerge hardened-sources"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/09/02\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/09/10\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

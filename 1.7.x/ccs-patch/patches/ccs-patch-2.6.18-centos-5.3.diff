@@ -449,7 +449,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++	if (ccs_may_mount(nd))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -615,7 +615,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-128.7.1.el5 2009/08/25\n");
++	printk(KERN_INFO "Hook version: 2.6.18-128.7.1.el5 2009/09/10\n");
  }
 --- linux-2.6.18-128.7.1.el5.orig/include/linux/init_task.h
 +++ linux-2.6.18-128.7.1.el5/include/linux/init_task.h
