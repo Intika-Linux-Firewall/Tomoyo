@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/09
+ * Version: 1.7.0+   2009/09/11
  *
  */
 
@@ -196,7 +196,6 @@ struct path_info {
 	u16 const_len;      /* = const_part_length(name)            */
 	_Bool is_dir;       /* = strendswith(name, "/")             */
 	_Bool is_patterned; /* = path_contains_pattern(name)        */
-	u16 depth;          /* = path_depth(name)                   */
 };
 
 struct path_group_entry {

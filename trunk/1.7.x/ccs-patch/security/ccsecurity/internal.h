@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/04
+ * Version: 1.7.0   2009/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -498,7 +498,6 @@ struct ccs_path_info {
 	u16 const_len;     /* = ccs_const_part_length(name)        */
 	bool is_dir;       /* = ccs_strendswith(name, "/")         */
 	bool is_patterned; /* = const_len < total_len              */
-	u16 depth;         /* = ccs_path_depth(name)               */
 };
 
 /* Structure for execve() operation. */

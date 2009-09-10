@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -407,6 +407,8 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
 bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			 const s8 pattern_type, const s8 end_type)
 {
+	const char *const start = filename;
+	bool in_repetition = false;
 	bool contains_pattern = false;
 	unsigned char c;
 	unsigned char d;
@@ -453,6 +455,22 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 					break; /* Must not contain pattern */
 				contains_pattern = true;
 				continue;
+			case '{':   /* "/\{" */
+				if (filename - 3 < start ||
+				    *(filename - 3) != '/')
+					break;
+				if (pattern_type == -1)
+					break; /* Must not contain pattern */
+				contains_pattern = true;
+				in_repetition = true;
+				continue;
+			case '}':   /* "\}/" */
+				if (*filename != '/')
+					break;
+				if (!in_repetition)
+					break;
+				in_repetition = false;
+				continue;
 			case '0':   /* "\ooo" */
 			case '1':
 			case '2':
@@ -468,6 +486,8 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 					continue; /* pattern is not \000 */
 			}
 			goto out;
+		} else if (in_repetition && c == '/') {
+			goto out;
 		} else if (c <= ' ' || c >= 127) {
 			goto out;
 		}
@@ -476,6 +496,8 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 		if (!contains_pattern)
 			goto out;
 	}
+	if (in_repetition)
+		goto out;
 	return true;
  out:
 	return false;
@@ -574,32 +596,6 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname)
 }
 
 /**
- * ccs_path_depth - Evaluate the number of '/' in a string.
- *
- * @pathname: The string to evaluate.
- *
- * Returns path depth of the string.
- *
- * I score 2 for each of the '/' in the @pathname
- * and score 1 if the @pathname ends with '/'.
- */
-static int ccs_path_depth(const char *pathname)
-{
-	int i = 0;
-	if (pathname) {
-		const char *ep = pathname + strlen(pathname);
-		if (pathname < ep--) {
-			if (*ep != '/')
-				i++;
-			while (pathname <= ep)
-				if (*ep-- == '/')
-					i += 2;
-		}
-	}
-	return i;
-}
-
-/**
  * ccs_const_part_length - Evaluate the initial length without a pattern in a token.
  *
  * @filename: The string to evaluate.
@@ -659,7 +655,6 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
 	ptr->hash = full_name_hash(name, len);
-	ptr->depth = ccs_path_depth(name);
 }
 
 /**
@@ -820,6 +815,68 @@ static bool ccs_file_matches_pattern(const char *filename,
 }
 
 /**
+ * ccs_path_matches_pattern2 - Do pathname pattern matching.
+ *
+ * @f: The start of string to check.
+ * @p: The start of pattern to compare.
+ *
+ * Returns true if @f matches @p, false otherwise.
+ */
+static bool ccs_path_matches_pattern2(const char *f, const char *p)
+{
+	const char *f_delimiter;
+	const char *p_delimiter;
+	while (*f && *p) {
+		f_delimiter = strchr(f, '/');
+		if (!f_delimiter)
+			f_delimiter = strchr(f, '\0');
+		p_delimiter = strchr(p, '/');
+		if (!p_delimiter)
+			p_delimiter = strchr(p, '\0');
+		if (*p == '\\' && *(p + 1) == '{')
+			goto recursive;
+		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
+			return false;
+		f = f_delimiter;
+		if (*f)
+			f++;
+		p = p_delimiter;
+		if (*p)
+			p++;
+	}
+	/* Ignore trailing "\*" and "\@" in @pattern. */
+	while (*p == '\\' &&
+	       (*(p + 1) == '*' || *(p + 1) == '@'))
+		p += 2;
+	return !*f && !*p;
+ recursive:
+	/*
+	 * The "\{" pattern is permitted only after '/' character.
+	 * This guarantees that below "*(p - 1)" is safe.
+	 * Also, the "\}" pattern is permitted only before '/' character
+	 * so that "\{" + "\}" pair will not break the "\-" operator.
+	 */
+	if (*(p - 1) != '/' || p_delimiter <= p + 3 || *p_delimiter != '/' ||
+	    *(p_delimiter - 1) != '}' || *(p_delimiter - 2) != '\\')
+		return false; /* Bad pattern. */
+	do {
+		/* Compare current component with pattern. */
+		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
+					      p_delimiter - 2))
+			break;
+		/* Proceed to next component. */
+		f = f_delimiter;
+		if (*f)
+			f++;
+		/* Continue comparison. */
+		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
+			return true;
+		f_delimiter = strchr(f, '/');
+	} while (f_delimiter);
+	return false; /* Not matched. */
+}
+
+/**
  * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
  * @filename: The filename to check.
  * @pattern:  The pattern to compare.
@@ -839,6 +896,9 @@ static bool ccs_file_matches_pattern(const char *filename,
  *   \A     More than or equals to 1 alphabet character.
  *   \a     1 alphabet character.
  *   \-     Subtraction operator.
+ *
+ *   /\{dir\}/   More than or equals to 1 repetition of dir (e.g. /dir/
+ *               /dir/dir/ /dir/dir/dir/ ).
  */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern)
@@ -853,36 +913,15 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (!pattern->is_patterned)
 		return !ccs_pathcmp(filename, pattern);
-	/* Don't compare if the number of '/' differs. */
-	if (filename->depth != pattern->depth)
+	/* Don't compare directory and non-directory. */
+	if (filename->is_dir != pattern->is_dir)
 		return false;
 	/* Compare the initial length without patterns. */
 	if (strncmp(f, p, len))
 		return false;
 	f += len;
 	p += len;
-	/* Main loop. Compare each directory component. */
-	while (*f && *p) {
-		const char *f_delimiter = strchr(f, '/');
-		const char *p_delimiter = strchr(p, '/');
-		if (!f_delimiter)
-			f_delimiter = f + strlen(f);
-		if (!p_delimiter)
-			p_delimiter = p + strlen(p);
-		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
-			return false;
-		f = f_delimiter;
-		if (*f)
-			f++;
-		p = p_delimiter;
-		if (*p)
-			p++;
-	}
-	/* Ignore trailing "\*" and "\@" in @pattern. */
-	while (*p == '\\' &&
-	       (*(p + 1) == '*' || *(p + 1) == '@'))
-		p += 2;
-	return !*f && !*p;
+	return ccs_path_matches_pattern2(f, p);
 }
 
 /**

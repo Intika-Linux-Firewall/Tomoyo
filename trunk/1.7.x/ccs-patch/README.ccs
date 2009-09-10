@@ -1984,7 +1984,7 @@ Fix 2009/07/03
       overrun when slob allocator is used, for slob allocator allocates exactly
       4000 bytes whereas slab and slub allocators allocate 4096 bytes.
 
-Fix 2008/09/01
+Fix 2009/09/01
 
     @ Add garbage collector support.
 
@@ -2094,21 +2094,21 @@ Fix 2008/09/01
 
 Version 1.7.0 2008/09/03   Feature enhancement release.
 
-Fix 2008/09/04
+Fix 2009/09/04
 
     @ Fix wrong ccs_profile() calls.
 
       I can't call ccs_profile() for profile existence test because
       ccs_profile() never returns NULL.
 
-Fix 2008/09/06
+Fix 2009/09/06
 
     @ Fix wrong error code in ccs_try_alt_exec().
 
       ccs_try_alt_exec() was returning ENOMEM when kmalloc() failed.
       It needs to return -ENOMEM to fail.
 
-Fix 2008/09/10
+Fix 2009/09/10
 
     @ Do not check umount() permission for mount(MS_MOVE) requests.
 
@@ -2119,3 +2119,16 @@ Fix 2008/09/10
       But we don't want to allow umount(old) requests when we want to allow
       only mount(old, new, MS_MOVE) requests. Thus, I modified not to check
       "allow_unmount old" permission for mount(old, new, MS_MOVE) requests.
+
+Fix 2009/09/11
+
+    @ Support recursive match operators.
+
+      Until now, ccs_path_matches_pattern() did not support recursive
+      comparison. Thus, users had to repeat "/\*" when they want to specify
+      recursively.
+
+      I introduced "\{" and "\}" as repetition operator.
+      To ensure consistency with TOMOYO's '/'-tokenized pattern matching rules
+      and "\-" operator, only "/\{dir\}/" sequences (where dir does not contain
+      '/') is permitted.
