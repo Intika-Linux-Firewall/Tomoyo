@@ -2107,3 +2107,15 @@ Fix 2008/09/06
 
       ccs_try_alt_exec() was returning ENOMEM when kmalloc() failed.
       It needs to return -ENOMEM to fail.
+
+Fix 2008/09/10
+
+    @ Do not check umount() permission for mount(MS_MOVE) requests.
+
+      Until 1.6.x , umount() restriction was black listing. In 1.7.0 , it is
+      white listing. This change caused "mount --move old new" requests to
+      require "allow_unmount old" permission in addition to
+      "allow_mount old new --move 0" permission.
+      But we don't want to allow umount(old) requests when we want to allow
+      only mount(old, new, MS_MOVE) requests. Thus, I modified not to check
+      "allow_unmount old" permission for mount(old, new, MS_MOVE) requests.

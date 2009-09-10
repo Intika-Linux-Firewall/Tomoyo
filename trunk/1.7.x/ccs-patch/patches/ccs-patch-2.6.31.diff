@@ -349,7 +349,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_path.mnt) || ccs_may_mount(path))
++	if (ccs_may_mount(path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);

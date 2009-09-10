@@ -759,7 +759,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.mnt) || ccs_may_mount(nd))
++	if (ccs_may_mount(nd))
 +		goto out;
 +
  	err = -ENOENT;
@@ -923,7 +923,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/08/20\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/09/10\n");
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h

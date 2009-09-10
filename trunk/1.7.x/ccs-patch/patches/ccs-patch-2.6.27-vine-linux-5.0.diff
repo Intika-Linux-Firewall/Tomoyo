@@ -436,7 +436,7 @@ Index: linux-2.6.27-43vl5/fs/namespace.c
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_umount(old_nd.path.mnt) || ccs_may_mount(&nd->path))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
@@ -612,7 +612,7 @@ Index: linux-2.6.27-43vl5/fs/proc/proc_misc.c
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-43vl5 2009/09/06\n");
++	printk(KERN_INFO "Hook version: 2.6.27-43vl5 2009/09/10\n");
  }
 Index: linux-2.6.27-43vl5/include/linux/init_task.h
 ===================================================================
