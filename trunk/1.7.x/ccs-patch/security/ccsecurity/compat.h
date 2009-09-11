@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -167,18 +167,6 @@ static inline void list_del_rcu(struct list_head *entry)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define s_fs_info u.generic_sbp
-#else
-#include <linux/audit.h>
-#ifdef AUDIT_APPARMOR_AUDIT
-/* AppArmor patch adds "struct vfsmount" to VFS helper functions. */
-#define HAVE_VFSMOUNT_IN_VFS_HELPER
-#endif
-#endif
-
-#if defined(RHEL_MAJOR) && RHEL_MAJOR == 5
-#define HAVE_NO_I_BLKSIZE_IN_INODE
-#elif defined(AX_MAJOR) && AX_MAJOR == 3
-#define HAVE_NO_I_BLKSIZE_IN_INODE
 #endif
 
 #ifndef list_for_each_entry_safe

@@ -886,19 +886,20 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
  * The following patterns are available.
  *   \\     \ itself.
  *   \ooo   Octal representation of a byte.
- *   \*     More than or equals to 0 character other than '/'.
- *   \@     More than or equals to 0 character other than '/' or '.'.
+ *   \*     Zero or more repetitions of characters other than '/'.
+ *   \@     Zero or more repetitions of characters other than '/' or '.'.
  *   \?     1 byte character other than '/'.
- *   \$     More than or equals to 1 decimal digit.
+ *   \$     One or more repetitions of decimal digits.
  *   \+     1 decimal digit.
- *   \X     More than or equals to 1 hexadecimal digit.
+ *   \X     One or more repetitions of hexadecimal digits.
  *   \x     1 hexadecimal digit.
- *   \A     More than or equals to 1 alphabet character.
+ *   \A     One or more repetitions of alphabet characters.
  *   \a     1 alphabet character.
+ *
  *   \-     Subtraction operator.
  *
- *   /\{dir\}/   More than or equals to 1 repetition of dir (e.g. /dir/
- *               /dir/dir/ /dir/dir/dir/ ).
+ *   /\{dir\}/   One or more repetitions of dir (e.g. /dir/ /dir/dir/
+ *               /dir/dir/dir/ ).
  */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern)

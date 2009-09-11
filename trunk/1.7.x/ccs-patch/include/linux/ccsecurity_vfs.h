@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -34,10 +34,9 @@ int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir)
 /* SUSE 11.0 adds is_dir for may_create(). */
 #ifdef MS_WITHAPPEND
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd, int is_dir)
+int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
 {
-	return may_create(dir, dentry, nd, is_dir);
+	return may_create(dir, dentry, NULL, is_dir);
 }
 #else
 int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
@@ -49,10 +48,9 @@ int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
 #else
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd)
+int ccs_may_create(struct inode *dir, struct dentry *dentry)
 {
-	return may_create(dir, dentry, nd);
+	return may_create(dir, dentry, NULL);
 }
 #else
 int ccs_may_create(struct inode *dir, struct dentry *dentry)

@@ -104,7 +104,7 @@ Set new quota value for selected entries. (Valid only for screen for memory usag
 <h3><a name="ccs-auditd">&lt;Access Log Reading Daemon "ccs-auditd"&gt;</a></h3>
 <p>Reads from /proc/ccs/grant_log and /proc/ccs/reject_log and writes to the location given in the commandline parameters.</p>
 <p>The first commandline parameter is the location of access granted log. The second one is the location of access rejected log. You may give /dev/null as the location. If you needn't to save access logs, you needn't to run this program.</p>
-<p>This program runs as a daemon. You can start from /etc/rc.d/rc.local if you are using RedHat Linux. The number of logs that the kernel will keep is given using "MAX_GRANT_LOG=integer" and "MAX_REJECT_LOG=integer" lines in the profile.</p>
+<p>This program runs as a daemon. You can start from /etc/rc.d/rc.local if you are using RedHat Linux. The number of logs that the kernel will keep is given using profile's PREFERENCE::audit={ max_grant_log=integer max_reject_log=integer } lines.</p>
 
 <h3><a name="ccs-sortpolicy">&lt;Access Log Compressor "ccs-sortpolicy"&gt;</a></h3>
 <p>Remove duplicated entry from logs written by "ccs-auditd".</p>

@@ -236,14 +236,14 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 
 <table border="1">
 <tr><td>Wildcard</td><td>Meaning</td><td>Example</td></tr>
-<tr><td>\*</td><td>More than or equals to 0 character other than '/'.</td><td>/var/log/samba/\*</td></tr>
-<tr><td>\@</td><td>More than or equals to 0 character other than '/' or '.'.</td><td>/var/www/html/\@.html</td></tr>
+<tr><td>\*</td><td>Zero or more repetitions of characters other than '/'.</td><td>/var/log/samba/\*</td></tr>
+<tr><td>\@</td><td>Zero or more repetitions of characters other than '/' or '.'.</td><td>/var/www/html/\@.html</td></tr>
 <tr><td>\?</td><td>1 byte character other than '/'.</td><td>/tmp/mail.\?\?\?\?\?\?</td></tr>
-<tr><td>\$</td><td>More than or equals to 1 decimal digit.</td><td>/proc/\$/cmdline</td></tr>
+<tr><td>\$</td><td>One or more repetitions of decimal digits.</td><td>/proc/\$/cmdline</td></tr>
 <tr><td>\+</td><td>1 decimal digit.</td><td>/var/tmp/my_work.\+</td></tr>
-<tr><td>\X</td><td>More than or equals to 1 hexadecimal digit.</td><td>/var/tmp/my-work.\X</td></tr>
+<tr><td>\X</td><td>One or more repetitions of hexadecimal digits.</td><td>/var/tmp/my-work.\X</td></tr>
 <tr><td>\x</td><td>1 hexadecimal digit.</td><td>/tmp/my-work.\x</td></tr>
-<tr><td>\A</td><td>More than or equals to 1 alphabet character.</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
+<tr><td>\A</td><td>One or more repetitions of alphabet characters.</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
 <tr><td>\a</td><td>1 alphabet character.</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
 <tr><td>\-</td><td>Pathname subtraction operator.</td><td>
  <table border="1">
