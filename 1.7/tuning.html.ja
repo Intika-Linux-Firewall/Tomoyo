@@ -124,13 +124,13 @@ allow_write /var/log/samba/\*.log
 <tr><td>
 [root@tomoyo ~]# /usr/sbin/ccs-domainmatch /etc/mtab~2302<br>
 &lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
-allow_create /etc/mtab~2302<br>
+allow_create /etc/mtab~2302 00<br>
 allow_write /etc/mtab~2302<br>
 allow_link /etc/mtab~2302 /etc/mtab~<br>
 allow_unlink /etc/mtab~2302<br>
 [root@tomoyo ~]# /usr/sbin/ccs-domainmatch /tmp/sh-thd-1163113704<br>
 &lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
-allow_create /tmp/sh-thd-1163113704<br>
+allow_create /tmp/sh-thd-1163113704 0600<br>
 allow_read/write /tmp/sh-thd-1163113704<br>
 allow_unlink /tmp/sh-thd-1163113704<br>
 </td></tr>
@@ -183,15 +183,15 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 2326,2331c2326,2331<br>
 &lt; allow_read/write /tmp/sh-thd-1163110572<br>
 &lt; allow_read/write /tmp/sh-thd-1163113704<br>
-&lt; allow_create /tmp/sh-thd-1163110572<br>
-&lt; allow_create /tmp/sh-thd-1163113704<br>
+&lt; allow_create /tmp/sh-thd-1163110572 0600<br>
+&lt; allow_create /tmp/sh-thd-1163113704 0600<br>
 &lt; allow_unlink /tmp/sh-thd-1163110572<br>
 &lt; allow_unlink /tmp/sh-thd-1163113704<br>
 ---<br>
 &gt; allow_read/write /tmp/sh-thd-\$<br>
 &gt; allow_read/write /tmp/sh-thd-\$<br>
-&gt; allow_create /tmp/sh-thd-\$<br>
-&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$ 0600<br>
+&gt; allow_create /tmp/sh-thd-\$ 0600<br>
 &gt; allow_unlink /tmp/sh-thd-\$<br>
 &gt; allow_unlink /tmp/sh-thd-\$<br>
 3331,3336c3331,3336<br>
@@ -209,12 +209,12 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 &gt; allow_write /etc/mtab~\$<br>
 &gt; allow_write /etc/mtab~\$<br>
 3338,3349c3338,3349<br>
-&lt; allow_create /etc/mtab~2328<br>
-&lt; allow_create /etc/mtab~2329<br>
-&lt; allow_create /etc/mtab~2330<br>
-&lt; allow_create /etc/mtab~2331<br>
-&lt; allow_create /etc/mtab~2332<br>
-&lt; allow_create /etc/mtab~2383<br>
+&lt; allow_create /etc/mtab~2328 00<br>
+&lt; allow_create /etc/mtab~2329 00<br>
+&lt; allow_create /etc/mtab~2330 00<br>
+&lt; allow_create /etc/mtab~2331 00<br>
+&lt; allow_create /etc/mtab~2332 00<br>
+&lt; allow_create /etc/mtab~2383 00<br>
 &lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
 &lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
 &lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
@@ -222,12 +222,12 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 &lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
 &lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
 ---<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
 &gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
 &gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
 &gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
@@ -255,13 +255,13 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 &gt; allow_write /etc/mtab~\$<br>
 &gt; allow_write /etc/mtab~\$<br>
 3443,3446c3443,3446<br>
-&lt; allow_create /etc/mtab~2302<br>
-&lt; allow_create /etc/mtab~2339<br>
+&lt; allow_create /etc/mtab~2302 00<br>
+&lt; allow_create /etc/mtab~2339 00<br>
 &lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
 &lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
 ---<br>
-&gt; allow_create /etc/mtab~\$<br>
-&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
+&gt; allow_create /etc/mtab~\$ 00<br>
 &gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
 &gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
 3449,3450c3449,3450<br>
@@ -385,9 +385,9 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE<br>
-allow_mkdir @HOME-FTP-DIR<br>
+allow_mkdir @HOME-FTP-DIR 0755<br>
 allow_rmdir @HOME-FTP-DIR<br>
-allow_create @HOME-FTP-FILE<br>
+allow_create @HOME-FTP-FILE 0644<br>
 allow_truncate @HOME-FTP-FILE<br>
 allow_unlink @HOME-FTP-FILE<br>
 allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
@@ -397,9 +397,9 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
 use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
-allow_mkdir @HOME-FTP-DIR if task.uid=path1.parent.uid<br>
+allow_mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
 allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
-allow_create @HOME-FTP-FILE if task.uid=path1.parent.uid<br>
+allow_create @HOME-FTP-FILE 0644 if task.uid=path1.parent.uid<br>
 allow_truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
 allow_unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
 allow_rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
@@ -416,9 +416,9 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE<br>
-allow_mkdir @HOME-SMB-DIR<br>
+allow_mkdir @HOME-SMB-DIR 0755<br>
 allow_rmdir @HOME-SMB-DIR<br>
-allow_create @HOME-SMB-FILE<br>
+allow_create @HOME-SMB-FILE 0644<br>
 allow_truncate @HOME-SMB-FILE<br>
 allow_unlink @HOME-SMB-FILE<br>
 allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
@@ -428,9 +428,9 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
 use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
-allow_mkdir @HOME-SMB-DIR if task.euid=path1.parent.uid<br>
+allow_mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
 allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
-allow_create @HOME-SMB-FILE if task.euid=path1.parent.uid<br>
+allow_create @HOME-SMB-FILE 0644 if task.euid=path1.parent.uid<br>
 allow_truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
 allow_unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
 allow_rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
@@ -446,12 +446,12 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 3<br>
 <br>
-allow_execute /bin/bash
+allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
 </td><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 use_profile 3<br>
 <br>
-allow_execute /bin/bash if task.uid!=0 task.euid!=0
+allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
 </td></tr>
 </table>
 
