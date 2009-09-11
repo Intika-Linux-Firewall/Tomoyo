@@ -510,8 +510,9 @@ static _Bool file_matches_pattern2(const char *filename,
 	return filename == filename_end && pattern == pattern_end;
 }
 
-_Bool file_matches_pattern(const char *filename, const char *filename_end,
-			  const char *pattern, const char *pattern_end)
+static _Bool file_matches_pattern(const char *filename,
+				  const char *filename_end,
+				  const char *pattern, const char *pattern_end)
 {
 	const char *pattern_start = pattern;
 	_Bool first = true;
@@ -589,7 +590,7 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 }
 
 _Bool path_matches_pattern(const struct path_info *filename,
-			  const struct path_info *pattern)
+			   const struct path_info *pattern)
 {
 	/*
 	if (!filename || !pattern)
