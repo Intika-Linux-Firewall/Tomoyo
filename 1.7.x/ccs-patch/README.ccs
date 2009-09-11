@@ -193,7 +193,7 @@ Fix 2006/02/27
     @ Fix handling of trailing '\*' in PathMatchesToPattern().
 
       PathMatchesToPattern("/tmp/", "/tmp/\*") returned true
-      because "\*" matches to "more than or equals to 0 character
+      because "\*" matches "zero or more repetitions of characters
       until '/' or end". But since this is a comparison between
       directory and non-directory, this should not match.
 
@@ -404,14 +404,14 @@ Fix 2006/07/14
 
     @ Change behavior of pathname pattern matching.
 
-      Until now, it was impossible to use patterns like "\*.txt"
-      because "\*" matched to more than 0 characters until next '/'.
-      Now, "\*" matches to more than 0 characters.
+      Until now, it was impossible to use patterns like "\*.txt" because
+      "\*" matched zero or more repetitions of characters until next '/'.
+      Now, "\*" matches zero or more repetitions of characters.
 
       Until now, it was impossible to use patterns like "\$00"
-      because "\$" matched to more than 1 digits until next
+      because "\$" matched one or more repetitions of digits until next
       non digit character.
-      Now, "\$" matches to more than 1 digits.
+      Now, "\$" matches one or more repetitions of digits.
 
       Also, new patterns "\x" "\X" "\a" "\A" "\@" are added.
 
@@ -428,7 +428,7 @@ Fix 2006/07/25
 
     @ Change matching rule for CheckFileACL().
 
-      Until now, only first entry that matched to the requested pathname
+      Until now, only first entry that matched the requested pathname
       was used for permission checking. For example, two entries
 
       "2 /tmp/file-\$.txt"
@@ -444,7 +444,7 @@ Fix 2006/07/25
       This may potentially cause trouble because the result of
       permission checks depends on the order of entries.
 
-      Now, all entries that matched to the requested pathname
+      Now, all entries that matched the requested pathname
       are used for permission checking so that the result of
       permission checks doesn't depend on the order of entries.
 
@@ -492,7 +492,7 @@ Fix 2006/08/10
         "6 /home/\*/\* if task.uid=path1.uid"
 
       allows the domain to read-write user's home directory
-      only when the file's owner matches to the process's uid.
+      only when the file's owner matches the process's uid.
 
 Fix 2006/08/22
 
@@ -758,7 +758,7 @@ Fix 2006/12/22
       if /some/program is called from "some_domain" domain.
 
       "some_domain" can be just the last component of domainname.
-      For example, giving "/bin/mail" as "some_domain" matches to
+      For example, giving "/bin/mail" as "some_domain" matches
       all domains whose domainname ends with "/bin/mail".
 
 Fix 2007/01/19

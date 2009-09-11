@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/11
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -2074,18 +2074,10 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 /* Permission checks from vfs_create(). */
 static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	int error = ccs_may_create(dir, dentry, NULL, 0);
-#else
-	int error = ccs_may_create(dir, dentry, NULL);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
 #else
 	int error = ccs_may_create(dir, dentry);
-#endif
 #endif
 	if (error)
 		return error;
@@ -2098,18 +2090,10 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 			     int mode)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	int error = ccs_may_create(dir, dentry, NULL, 0);
-#else
-	int error = ccs_may_create(dir, dentry, NULL);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
 #else
 	int error = ccs_may_create(dir, dentry);
-#endif
 #endif
 	if (error)
 		return error;
@@ -2123,18 +2107,10 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 /* Permission checks from vfs_mkdir(). */
 static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	int error = ccs_may_create(dir, dentry, NULL, 1);
-#else
-	int error = ccs_may_create(dir, dentry, NULL);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 1);
 #else
 	int error = ccs_may_create(dir, dentry);
-#endif
 #endif
 	if (error)
 		return error;
@@ -2173,18 +2149,10 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	int error;
 	if (!inode)
 		return -ENOENT;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	error = ccs_may_create(dir, new_dentry, NULL, 0);
-#else
-	error = ccs_may_create(dir, new_dentry, NULL);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	error = ccs_may_create(dir, new_dentry, 0);
 #else
 	error = ccs_may_create(dir, new_dentry);
-#endif
 #endif
 	if (error)
 		return error;
@@ -2202,18 +2170,10 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 /* Permission checks from vfs_symlink(). */
 static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	int error = ccs_may_create(dir, dentry, NULL, 0);
-#else
-	int error = ccs_may_create(dir, dentry, NULL);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
 #else
 	int error = ccs_may_create(dir, dentry);
-#endif
 #endif
 	if (error)
 		return error;
@@ -2233,19 +2193,6 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	error = ccs_may_delete(old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry, NULL, is_dir);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-#else
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry, NULL);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-#endif
-#else
 #ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	if (!new_dentry->d_inode)
 		error = ccs_may_create(new_dir, new_dentry, is_dir);
@@ -2256,7 +2203,6 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 		error = ccs_may_create(new_dir, new_dentry);
 	else
 		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-#endif
 #endif
 	if (error)
 		return error;
