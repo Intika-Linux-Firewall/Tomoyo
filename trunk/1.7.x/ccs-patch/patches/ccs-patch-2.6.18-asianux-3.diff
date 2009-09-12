@@ -1250,3 +1250,42 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
 +
 +subdir-$(CONFIG_CCSECURITY)+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)+= ccsecurity/built-in.o
+--- old/security/ccsecurity/domain.c	2009-09-11 09:00:00.000000000 +0900
++++ new/security/ccsecurity/domain.c	2009-09-12 10:05:57.000000000 +0900
+@@ -1168,6 +1168,9 @@
+ #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
+ 	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
+ 		return false;
++#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
++	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
++		return false;
+ #else
+ 	page = bprm->page[pos / PAGE_SIZE];
+ #endif
+@@ -1188,6 +1191,8 @@
+ 	put_page(page);
+ #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
+ 	put_page(page);
++#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
++	put_page(page);
+ #endif
+ 	return true;
+ }
+--- old/security/ccsecurity/network.c	2009-09-11 09:00:00.000000000 +0900
++++ new/security/ccsecurity/network.c	2009-09-12 10:14:40.000000000 +0900
+@@ -797,6 +797,7 @@
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
+ #if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
++#if !defined(AX_MAJOR) || AX_MAJOR != 3 || !defined(AX_MINOR) || AX_MINOR < 2
+ 
+ static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
+ {
+@@ -815,6 +816,7 @@
+ 
+ #endif
+ #endif
++#endif
+ 
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
+ static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
