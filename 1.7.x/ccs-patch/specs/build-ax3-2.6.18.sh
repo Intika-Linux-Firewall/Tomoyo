@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.0-20090911.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
++wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=3019&root=tomoyo' | patch -sp1
 +
  cp %{SOURCE10} Documentation/
  
