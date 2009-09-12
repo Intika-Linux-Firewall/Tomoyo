@@ -379,22 +379,7 @@ static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 int ccs_may_create(struct inode *dir, struct dentry *dentry);
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 #else
-/* SUSE 11.0 adds is_dir for may_create(). */
-#ifdef MS_WITHAPPEND
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd, int is_dir);
-#else
 int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir);
-#endif
-#else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry,
-		   struct nameidata *nd);
-#else
-int ccs_may_create(struct inode *dir, struct dentry *dentry);
-#endif
-#endif
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 #endif
 

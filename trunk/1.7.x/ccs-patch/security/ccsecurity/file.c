@@ -2066,19 +2066,10 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 
 #else
 
-/* SUSE 11.0 adds is_dir for may_create(). */
-#ifdef MS_WITHAPPEND
-#define HAVE_IS_DIR_FOR_MAY_CREATE
-#endif
-
 /* Permission checks from vfs_create(). */
 static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
-#else
-	int error = ccs_may_create(dir, dentry);
-#endif
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->create)
@@ -2090,11 +2081,7 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 			     int mode)
 {
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
-#else
-	int error = ccs_may_create(dir, dentry);
-#endif
 	if (error)
 		return error;
 	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
@@ -2107,11 +2094,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
 /* Permission checks from vfs_mkdir(). */
 static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 1);
-#else
-	int error = ccs_may_create(dir, dentry);
-#endif
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->mkdir)
@@ -2149,11 +2132,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 	int error;
 	if (!inode)
 		return -ENOENT;
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	error = ccs_may_create(dir, new_dentry, 0);
-#else
-	error = ccs_may_create(dir, new_dentry);
-#endif
 	if (error)
 		return error;
 	if (dir->i_sb != inode->i_sb)
@@ -2170,11 +2149,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 /* Permission checks from vfs_symlink(). */
 static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	int error = ccs_may_create(dir, dentry, 0);
-#else
-	int error = ccs_may_create(dir, dentry);
-#endif
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->symlink)
@@ -2193,17 +2168,10 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	error = ccs_may_delete(old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
-#ifdef HAVE_IS_DIR_FOR_MAY_CREATE
 	if (!new_dentry->d_inode)
 		error = ccs_may_create(new_dir, new_dentry, is_dir);
 	else
 		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-#else
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-#endif
 	if (error)
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)

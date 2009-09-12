@@ -1168,6 +1168,9 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
 	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
 		return false;
+#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
+	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
+		return false;
 #else
 	page = bprm->page[pos / PAGE_SIZE];
 #endif
@@ -1187,6 +1190,8 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
 	put_page(page);
 #elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
+	put_page(page);
+#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
 	put_page(page);
 #endif
 	return true;
