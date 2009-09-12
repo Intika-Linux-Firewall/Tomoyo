@@ -17,30 +17,40 @@
 
 <h2>ステップ１：ファイルのパス名をパターン化する</h2>
 
-<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を /etc/ccs/domain_policy.conf に追加します。<br>
-以下の例では、 /usr/sbin/httpd に対して /var/www/html/ 以下の読み込みを許可しています。</p>
+<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を追加します。</p>
 
 <table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-use_profile 3<br>
-allow_read /var/www/html/\*<br>
-allow_read /var/www/html/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*/\*
+<br>
+allow_read /var/www/html/index.html<br>
+allow_read /var/www/html/blog/index.html<br>
+allow_read /var/www/html/blog/page1.html<br>
+allow_read /var/www/html/blog/page2.html<br>
+allow_read /var/www/html/blog/page3.html<br>
+allow_read /var/www/html/blog/image1.jpg<br>
+allow_read /var/www/html/blog/image2.jpg
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/\*.html<br>
+allow_read /var/www/html/\*/\*.html<br>
+allow_read /var/www/html/\*/\*.jpg<br>
+<br>
+<br>
+<br>
+<br>
 </td></tr>
 </table>
 
-<p>パス名のグループを使用することができます。</p>
+<p>上記の指定は</p>
 
 <table border="1">
 <tr><td>
-path_group WEB-CONTENTS /var/www/html/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
+path_group WEB-CONTENTS /var/www/html/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
 </td></tr>
 </table>
 
@@ -49,32 +59,12 @@ path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-use_profile 3<br>
+<br>
 allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
-<p>のように指定することができます。</p>
-
-<p>同様に、パターンを使用して手作業でのグループ化を行います。<br>
-以下の例では、 /usr/sbin/smbd に対して全てのログファイルを同様に扱うように指示しています。</p>
-
-<table border="1">
-<tr><td>修正前</td><td>修正後</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/host1.log<br>
-allow_write /var/log/samba/host2.log<br>
-allow_write /var/log/samba/host3.log<br>
-allow_write /var/log/samba/host4.log<br>
-allow_write /var/log/samba/host5.log
-</td><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/\*.log
-</td></tr>
-</table>
+<p>のように指定することもできます。</p>
 
 <p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
 
@@ -85,7 +75,104 @@ allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
-<h3>操作例</h3>
+<hr>
+
+<h2>ステップ２：数値パラメータをパターン化する</h2>
+
+<p>ファイル作成時のパーミッションやネットワークに関するアクセス許可のポート番号のような数値で指定するパラメータのパターン化を行います。<br>
+以下の例では、 /usr/sbin/httpd に対してポート 1024 ～ 65535 からの接続要求を許可しています。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+number_group WEB-CLIENT-PORTS 1024-65535
+</td></tr>
+</table>
+
+<p>という number_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
+</td></tr>
+</table>
+
+<p>のように指定することもできます。</p>
+
+<hr>
+
+<h2>ステップ３：ネットワークのアドレスをパターン化する</h2>
+
+<p>同様にＩＰアドレスについてもパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.200 @WEB-CLIENT-PORTS
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
+</td></tr>
+</table>
+
+<p>という address_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
+</td></tr>
+</table>
+
+<p>のように指定することができます。</p>
+
+<hr>
+
+<h2>操作例</h2>
+
+<p>上記の操作は <a href="tool-editpolicy.html.ja#acl_editor">ポリシーエディタのパターン化支援機能</a>を用いて対話的に行うことができますが、以下のように非対話的に行うこともできます。</p>
 
 <p>カーネルに存在するドメインポリシーをディスクに保存します。</p>
 <table border="1">
@@ -303,54 +390,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 
 <hr>
 
-<h2>ステップ２：ネットワークのアドレスとポート番号をパターン化する</h2>
-
-<p>ネットワークに関する強制アクセス制御機能を有効にしている場合、 allow_network キーワードに対して同様にパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
-
-<table border="1">
-<tr><td>修正前</td><td>修正後</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
-allow_network TCP accept 10.0.0.10 56709<br>
-allow_network TCP accept 10.0.0.200 16384
-</td><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
-allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
-</td></tr>
-</table>
-
-<p>上記の指定は</p>
-
-<table border="1">
-<tr><td>
-address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
-address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
-address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
-</td></tr>
-</table>
-
-<p>という address_group を例外ポリシーで定義しておくことにより、</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
-</td></tr>
-</table>
-
-<p>のように指定することができます。</p>
-
-<hr>
-
-<h2>ステップ３：アクセス許可に条件を付与（省略可）</h2>
+<h2>ステップ４：アクセス許可に条件を付与（省略可）</h2>
 
 <p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
 
@@ -377,12 +417,10 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 
 <p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
 
-
 <table border="1">
 <tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE<br>
 allow_mkdir @HOME-FTP-DIR 0755<br>
@@ -394,7 +432,6 @@ allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
 allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
 allow_mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
@@ -413,7 +450,6 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 <tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE<br>
 allow_mkdir @HOME-SMB-DIR 0755<br>
@@ -425,7 +461,6 @@ allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
 allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
 allow_mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
@@ -444,16 +479,16 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 <tr><td>修正前</td><td>修正後</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
 <br>
 allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
 </td><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
 <br>
 allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
 </td></tr>
 </table>
+
+<p>その他にも様々な条件を指定することができます。詳しくは<a href="policy-reference.html.ja#conditional_acl">条件付きアクセス許可の指定</a>を参照ください。</p>
 
 <hr>
 

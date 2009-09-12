@@ -17,64 +17,54 @@
 
 <h2>Step 1: Patterning File Access Permissions</h2>
 
-<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service to /etc/ccs/domain_policy.conf .<br>
-The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
+<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/index.html<br>
+allow_read /var/www/html/blog/index.html<br>
+allow_read /var/www/html/blog/page1.html<br>
+allow_read /var/www/html/blog/page2.html<br>
+allow_read /var/www/html/blog/page3.html<br>
+allow_read /var/www/html/blog/image1.jpg<br>
+allow_read /var/www/html/blog/image2.jpg
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/\*.html<br>
+allow_read /var/www/html/\*/\*.html<br>
+allow_read /var/www/html/\*/\*.jpg<br>
+<br>
+<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>If you define</p>
+
+<table border="1">
+<tr><td>
+path_group WEB-CONTENTS /var/www/html/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify like</p>
 
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
-use_profile 3<br>
-allow_read /var/www/html/\*<br>
-allow_read /var/www/html/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*<br>
-allow_read /var/www/html/\*/\*/\*/\*/\*
-</td></tr>
-</table>
-
-<p>You can use pathname grouping. By defining a pathname group</p>
-
-<table border="1">
-<tr><td>
-path_group WEB-CONTENTS /var/www/html/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*<br>
-path_group WEB-CONTENTS /var/www/html/\*/\*/\*/\*/\*
-</td></tr>
-</table>
-
-<p>in the exception policy, you can simplify</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/httpd<br>
-use_profile 3<br>
+<br>
 allow_read @WEB-CONTENTS
 </td></tr>
 </table>
 
 <p>in the domain policy.</p>
-
-<p>In the same way, modify access permissions for files using patterns that should be grouped.<br>
-The following example shows /usr/sbin/smbd should handle all log files equally.</p>
-
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/host1.log<br>
-allow_write /var/log/samba/host2.log<br>
-allow_write /var/log/samba/host3.log<br>
-allow_write /var/log/samba/host4.log<br>
-allow_write /var/log/samba/host5.log
-</td><td>
-&lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
-allow_write /var/log/samba/\*.log
-</td></tr>
-</table>
 
 <p>You can confirm the range of accessible files by using "ccs-pathmatch" command that lists pathnames matching to the given pathname patterns.</p>
 
@@ -85,7 +75,104 @@ allow_write /var/log/samba/\*.log
 </td></tr>
 </table>
 
-<h3>Operation example</h3>
+<hr>
+
+<h2>Step 2: Patterning Numeric Permissions</h2>
+
+<p>Make patterns for numeric parameters such as file's create mode and network's port numbers.<br>
+The following example permits /usr/sbin/httpd to accept connections from client's port 1024-65535.</a>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>If you define</p>
+
+<table border="1">
+<tr><td>
+number_group WEB-CLIENT-PORTS 1024-65535
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify like</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
+</td></tr>
+</table>
+
+<p>in the domain policy.</p>
+
+<hr>
+
+<h2>Step 3: Patterning Network Access Permissions</h2>
+
+<p>Similarly, make patterns for IP addresses. Don't copy the following permissions.</a>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.200 @WEB-CLIENT-PORTS
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>If you define</p>
+
+<table border="1">
+<tr><td>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
+</td></tr>
+</table>
+
+<p>in the exception policy, you can simplify like</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
+</td></tr>
+</table>
+
+<p>in the domain policy.</p>
+
+<hr>
+
+<h2>Operation example</h2>
+
+<p>You can do operations shown above interactively using <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>, but you can also do operations non-interactively as shown below.</p>
 
 <p>Save the domain policy currently in the kernel onto the disk.</p>
 <table border="1">
@@ -303,54 +390,7 @@ allow_unlink /tmp/sh-thd-1163113704<br>
 
 <hr>
 
-<h2>Step 2: Patterning Network Access Permissions</h2>
-
-<p>Similarly, if you enabled MAC for networking, make patterns for "allow_network" directives. Don't copy the following permissions.</a>
-
-<table border="1">
-<tr><td>Before</td><td>After</td></tr>
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 43768<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1 35086<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 47590<br>
-allow_network TCP accept 10.0.0.10 56709<br>
-allow_network TCP accept 10.0.0.200 16384
-</td><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 1024-65535<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff 1024-65535<br>
-allow_network TCP accept 10.0.0.1-10.0.0.255 1024-65535
-</td></tr>
-</table>
-
-<p>By defining a address group</p>
-
-<table border="1">
-<tr><td>
-address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
-address_group SSH-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
-address_group SSH-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
-</td></tr>
-</table>
-
-<p>in the exception policy, you can simplify</p>
-
-<table border="1">
-<tr><td>
-&lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 7<br>
-allow_network TCP accept @SSH-CLIENT-ADDRESS 1024-65535
-</td></tr>
-</table>
-
-<p>in the domain policy.</p>
-
-<hr>
-
-<h2>Step 3: Adding conditions to ACLs (Optional)</h2>
+<h2>Step 4: Adding conditions to ACLs (Optional)</h2>
 
 <p>You can add conditions to individual ACLs if necessary. By using this feature, you can enforce system's user ID based access control.</p>
 
@@ -377,12 +417,10 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 
 <p>If you want to protect non-anonymous FTP service, by adding conditions in the following manner, you can forbid access to directories outside the user's home directory. To reduce damages when it is cracked, it is recommended that you should expose directories only under specific (such as "ftp") directory rather than exposing whole of home directories. If you use vsftpd, you can give like the following way.</p>
 
-
 <table border="1">
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE<br>
 allow_mkdir @HOME-FTP-DIR 0755<br>
@@ -394,7 +432,6 @@ allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
 allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
 allow_mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
@@ -413,7 +450,6 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE<br>
 allow_mkdir @HOME-SMB-DIR 0755<br>
@@ -425,7 +461,6 @@ allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
 allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
-use_profile 3<br>
 <br>
 allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
 allow_mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
@@ -444,16 +479,16 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 <tr><td>Before</td><td>After</td></tr>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
 <br>
 allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
 </td><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
-use_profile 3<br>
 <br>
 allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
 </td></tr>
 </table>
+
+<p>Various conditions are supported. Please see <a href="policy-reference.html.en#conditional_acl">Using conditional ACL.</a> for details.</p>
 
 <hr>
 

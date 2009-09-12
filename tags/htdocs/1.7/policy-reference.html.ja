@@ -1568,12 +1568,15 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>変数</td><td>意味</td></tr>
+<tr><td>exec.realpath</td><td>シンボリックリンクを解決後のプログラムの絶対パス名</td></tr>
 <tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
 <tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
 </table>
 
 <table border="1">
 <tr><td>条件</td><td>意味</td></tr>
+<tr><td>exec.realpath="value"</td><td>シンボリックリンクを解決後のプログラムの絶対パス名が value である</td></tr>
+<tr><td>exec.realpath!="value"</td><td>シンボリックリンクを解決後のプログラムの絶対パス名が value ではない</td></tr>
 <tr><td>exec.argv[index]="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value である</td></tr>
 <tr><td>exec.argv[index]!="value"</td><td>index （ 0 &lt;= index &lt; exec.argc ）番目の引数の値が value ではない</td></tr>
 <tr><td>exec.envp["name"]="value"</td><td>環境変数 name が定義されており、値が value である</td></tr>

@@ -1567,11 +1567,14 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>Variable</td><td>Meaning</td></tr>
+<tr><td>exec.realpath</td><td>Dereferenced pathname of the requested program.</td></tr>
 <tr><td>exec.argc</td><td>Number of argv[] passed for execute request.</td></tr>
 <tr><td>exec.envc</td><td>Number of envp[] passed for execute request.</td></tr></table>
 
 <table border="1">
 <tr><td>Condition</td><td>Meaning</td></tr>
+<tr><td>exec.realpath="value"</td><td>Dereferenced pathname of the requested program matches "value".</td></tr>
+<tr><td>exec.realpath!="value"</td><td>Dereferenced pathname of the requested program does not match "value".</td></tr>
 <tr><td>exec.argv[index]="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) matches "value".</td></tr>
 <tr><td>exec.argv[index]!="value"</td><td>argv[index] (where 0 &lt;= index &lt; exec.argc) does not match "value".</td></tr>
 <tr><td>exec.envp["name"]="value"</td><td>Environment variable "name" is defined and matches "value".</td></tr>
