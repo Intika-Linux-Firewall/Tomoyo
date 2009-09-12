@@ -1188,6 +1188,7 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 22)
 #if !defined(RHEL_MAJOR) || RHEL_MAJOR != 5
+#if !defined(AX_MAJOR) || AX_MAJOR != 3 || !defined(AX_MINOR) || AX_MINOR < 2
 
 static inline struct iphdr *ip_hdr(const struct sk_buff *skb)
 {
@@ -1204,6 +1205,7 @@ static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
 	return skb->nh.ipv6h;
 }
 
+#endif
 #endif
 #endif
 

@@ -31,35 +31,23 @@ int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir)
 
 #else
 
-/* SUSE 11.0 adds is_dir for may_create(). */
+int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
+{
+	/* SUSE 11.0 adds is_dir for may_create(). */
 #ifdef MS_WITHAPPEND
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
-{
 	return may_create(dir, dentry, NULL, is_dir);
-}
 #else
-int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir)
-{
 	return may_create(dir, dentry, is_dir);
-}
 #endif
-
 #else
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-int ccs_may_create(struct inode *dir, struct dentry *dentry)
-{
 	return may_create(dir, dentry, NULL);
-}
 #else
-int ccs_may_create(struct inode *dir, struct dentry *dentry)
-{
 	return may_create(dir, dentry);
+#endif
+#endif
 }
-#endif
-
-#endif
 
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir)
 {
