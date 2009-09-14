@@ -47,7 +47,7 @@ static _Bool print_path(const char *path, const int type)
 		const unsigned char c = *(const unsigned char *) path++;
 		if (!c) {
 			if (type == DT_DIR)
-				*cp++ = '/'; 
+				*cp++ = '/';
 			*cp++ = '\0';
 			break;
 		} else if (c == '\\') {
@@ -69,12 +69,13 @@ static _Bool print_path(const char *path, const int type)
 		print_path_needs_separator = true;
 		printf("%s", name.name);
 	}
-	len = name.total_len >= target.const_len ? target.const_len : name.total_len;
+	len = name.total_len >= target.const_len ? target.const_len :
+		name.total_len;
 	len = strncmp(name.name, target.name, len);
 	free((void *) name.name);
 	return !len;
 }
-		
+
 static char path[8192];
 
 static void scan_dir(void)

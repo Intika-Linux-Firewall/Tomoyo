@@ -720,7 +720,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 		case '2':
 		case '3':
 			if (c == '\\' && ccs_is_byte_range(filename + 1)
-			    && strncmp(filename + 1, pattern, 3) == 0) {
+			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
 				break;
@@ -904,10 +904,6 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern)
 {
-	/*
-	  if (!filename || !pattern)
-	  return false;
-	*/
 	const char *f = filename->name;
 	const char *p = pattern->name;
 	const int len = pattern->const_len;

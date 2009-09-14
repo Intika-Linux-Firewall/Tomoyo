@@ -59,7 +59,7 @@ struct path_pattern_entry {
 
 static struct path_pattern_entry *pattern_list = NULL;
 static int pattern_list_len = 0;
-	
+
 static const char *path_patternize(const char *cp)
 {
 	int i;
