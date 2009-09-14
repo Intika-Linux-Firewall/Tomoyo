@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/11
+ * Version: 1.7.0+   2009/09/14
  *
  */
 #include "ccstools.h"
@@ -579,8 +579,9 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 			break;
 		/* Proceed to next component. */
 		f = f_delimiter;
-		if (*f)
-			f++;
+		if (!*f)
+			break;
+		f++;
 		/* Continue comparison. */
 		if (path_matches_pattern2(f, p_delimiter + 1))
 			return true;
@@ -1042,7 +1043,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("ccstools version 1.7.0+ build 2009/09/11\n");
+	printf("ccstools version 1.7.0+ build 2009/09/14\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

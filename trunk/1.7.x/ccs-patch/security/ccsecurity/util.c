@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/11
+ * Version: 1.7.0   2009/09/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -866,8 +866,9 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 			break;
 		/* Proceed to next component. */
 		f = f_delimiter;
-		if (*f)
-			f++;
+		if (!*f)
+			break;
+		f++;
 		/* Continue comparison. */
 		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
 			return true;
