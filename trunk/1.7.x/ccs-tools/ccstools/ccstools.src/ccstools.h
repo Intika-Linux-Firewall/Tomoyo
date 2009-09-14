@@ -195,7 +195,7 @@ struct path_info {
 	u16 total_len;      /* = strlen(name)                       */
 	u16 const_len;      /* = const_part_length(name)            */
 	_Bool is_dir;       /* = strendswith(name, "/")             */
-	_Bool is_patterned; /* = path_contains_pattern(name)        */
+	_Bool is_patterned; /* = const_len < total_len              */
 };
 
 struct path_group_entry {
