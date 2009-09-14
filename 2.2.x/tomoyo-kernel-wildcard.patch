@@ -1,7 +1,7 @@
 ---
- security/tomoyo/common.c |  159 ++++++++++++++++++++++++++++-------------------
+ security/tomoyo/common.c |  160 ++++++++++++++++++++++++++++-------------------
  security/tomoyo/common.h |    1 
- 2 files changed, 97 insertions(+), 63 deletions(-)
+ 2 files changed, 98 insertions(+), 63 deletions(-)
 
 --- linux-2.6.30.6.orig/security/tomoyo/common.c
 +++ linux-2.6.30.6/security/tomoyo/common.c
@@ -97,7 +97,7 @@
  }
  
  /**
-@@ -595,6 +589,69 @@ static bool tomoyo_file_matches_to_patte
+@@ -595,6 +589,70 @@ static bool tomoyo_file_matches_to_patte
  }
  
  /**
@@ -153,8 +153,9 @@
 +			break;
 +		/* Proceed to next component. */
 +		f = f_delimiter;
-+		if (*f)
-+			f++;
++		if (!*f)
++			break;
++		f++;
 +		/* Continue comparison. */
 +		if (tomoyo_path_matches_pattern2(f, p_delimiter + 1))
 +			return true;
@@ -167,7 +168,7 @@
   * tomoyo_path_matches_pattern - Check whether the given filename matches the given pattern.
   * @filename: The filename to check.
   * @pattern:  The pattern to compare.
-@@ -604,24 +661,24 @@ static bool tomoyo_file_matches_to_patte
+@@ -604,24 +662,24 @@ static bool tomoyo_file_matches_to_patte
   * The following patterns are available.
   *   \\     \ itself.
   *   \ooo   Octal representation of a byte.
@@ -201,7 +202,7 @@
  	const char *f = filename->name;
  	const char *p = pattern->name;
  	const int len = pattern->const_len;
-@@ -629,37 +686,15 @@ bool tomoyo_path_matches_pattern(const s
+@@ -629,37 +687,15 @@ bool tomoyo_path_matches_pattern(const s
  	/* If @pattern doesn't contain pattern, I can use strcmp(). */
  	if (!pattern->is_patterned)
  		return !tomoyo_pathcmp(filename, pattern);

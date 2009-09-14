@@ -385,8 +385,9 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 			break;
 		/* Proceed to next component. */
 		f = f_delimiter;
-		if (*f)
-			f++;
+		if (!*f)
+			break;
+		f++;
 		/* Continue comparison. */
 		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
 			return true;
@@ -463,6 +464,8 @@ static const struct {
 	  "/ccs-patch///security//ccsecurity///?root=tomoyo",
 	  "\\*://\\@sourceforge.jp/\\{\\*\\-.\\-..\\-\\*%\\*\\}/"
 	  "?root=tomoyo\\*\\*", 1 },
+	{ "/etc/skel/", "/etc/\\{\\*\\}/\\*/", 0 },
+	{ "/etc/passwd", "/etc/\\{\\*\\}/\\*", 0 },
 	{ "/bin/true", "/bin/\\*/", 0 },
 	{ "/bin/", "/bin/\\*", 0 },
 	{ "/bin/", "/bin/\\@", 0 },

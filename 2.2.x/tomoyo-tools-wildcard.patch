@@ -1,8 +1,8 @@
 ---
  tomoyotools.src/pathmatch.c   |  178 +++++++++++++++++-------------------------
- tomoyotools.src/tomoyotools.c |  124 +++++++++++++++++++----------
+ tomoyotools.src/tomoyotools.c |  125 +++++++++++++++++++----------
  tomoyotools.src/tomoyotools.h |    3 
- 3 files changed, 157 insertions(+), 148 deletions(-)
+ 3 files changed, 158 insertions(+), 148 deletions(-)
 
 --- tomoyo-tools.orig/tomoyotools.src/pathmatch.c
 +++ tomoyo-tools/tomoyotools.src/pathmatch.c
@@ -364,7 +364,7 @@
  		if (!file_matches_pattern(f, f_delimiter, p, p_delimiter))
  			return false;
  		f = f_delimiter;
-@@ -572,6 +562,55 @@ _Bool path_matches_pattern(const struct 
+@@ -572,6 +562,56 @@ _Bool path_matches_pattern(const struct 
  	       (*(p + 1) == '*' || *(p + 1) == '@'))
  		p += 2;
  	return !*f && !*p;
@@ -385,8 +385,9 @@
 +			break;
 +		/* Proceed to next component. */
 +		f = f_delimiter;
-+		if (*f)
-+			f++;
++		if (!*f)
++			break;
++		f++;
 +		/* Continue comparison. */
 +		if (path_matches_pattern2(f, p_delimiter + 1))
 +			return true;
@@ -420,7 +421,7 @@
  }
  
  int string_compare(const void *a, const void *b)
-@@ -593,7 +632,6 @@ void fill_path_info(struct path_info *pt
+@@ -593,7 +633,6 @@ void fill_path_info(struct path_info *pt
  	ptr->is_dir = len && (name[len - 1] == '/');
  	ptr->is_patterned = (ptr->const_len < len);
  	ptr->hash = full_name_hash(name, len);
