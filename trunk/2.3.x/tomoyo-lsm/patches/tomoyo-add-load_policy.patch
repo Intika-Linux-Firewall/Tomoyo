@@ -1,0 +1,109 @@
+[TOMOYO] Add policy loader.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/load_policy.c |   99 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 99 insertions(+)
+
+--- /dev/null
++++ linux-2.6.31/security/tomoyo/load_policy.c
+@@ -0,0 +1,99 @@
++/*
++ * security/tomoyo/load_policy.c
++ *
++ * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ */
++
++#include "internal.h"
++#include <linux/namei.h>
++#include <linux/mount.h>
++static const int tomoyo_lookup_flags = LOOKUP_FOLLOW;
++
++/* Path to the policy loader. The default is /sbin/tomoyo-init. */
++static const char *tomoyo_loader;
++
++/**
++ * tomoyo_loader_setup - Specify the policy loader to use.
++ *
++ * @str: Path to the policy loader.
++ *
++ * Returns 0.
++ */
++static int __init tomoyo_loader_setup(char *str)
++{
++	tomoyo_loader = str;
++	return 0;
++}
++
++__setup("TOMOYO_loader=", tomoyo_loader_setup);
++
++/**
++ * tomoyo_policy_loader_exists - Check whether /sbin/tomoyo-init exists.
++ *
++ * Returns true if /sbin/tomoyo-init exists, false otherwise.
++ */
++static bool tomoyo_policy_loader_exists(void)
++{
++	/*
++	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option doesn't
++	 * exist. If the initrd includes /sbin/init but real-root-dev has not
++	 * mounted on / yet, activating MAC will block the system since
++	 * policies are not loaded yet.
++	 * Thus, let do_execve() call this function everytime.
++	 */
++	struct nameidata nd;
++	if (!tomoyo_loader)
++		tomoyo_loader = "/sbin/tomoyo-init";
++	if (path_lookup(tomoyo_loader, tomoyo_lookup_flags, &nd)) {
++		printk(KERN_INFO "Not activating Mandatory Access Control now "
++		       "since %s doesn't exist.\n", tomoyo_loader);
++		return false;
++	}
++	path_put(&nd.path);
++	return true;
++}
++
++/**
++ * tomoyo_load_policy - Run external policy loader to load policy.
++ *
++ * @filename: The program about to start.
++ *
++ * This function checks whether @filename is /sbin/init , and if so
++ * invoke /sbin/tomoyo-init and wait for the termination of /sbin/tomoyo-init
++ * and then continues invocation of /sbin/init.
++ * /sbin/tomoyo-init reads policy files in /etc/tomoyo/ directory and
++ * writes to /proc/tomoyo/ interfaces.
++ *
++ * Returns nothing.
++ */
++void tomoyo_load_policy(const char *filename)
++{
++	if (tomoyo_policy_loaded)
++		return;
++	/*
++	 * Check filename is /sbin/init or /sbin/tomoyo-start.
++	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
++	 * be passed.
++	 * You can create /sbin/tomoyo-start by "ln -s /bin/true /sbin/tomoyo-start".
++	 */
++	if (strcmp(filename, "/sbin/init") &&
++	    strcmp(filename, "/sbin/tomoyo-start"))
++		return;
++	if (!tomoyo_policy_loader_exists())
++		return;
++	{
++		char *argv[2];
++		char *envp[3];
++		printk(KERN_INFO "Calling %s to load policy. Please wait.\n",
++		       tomoyo_loader);
++		argv[0] = (char *) tomoyo_loader;
++		argv[1] = NULL;
++		envp[0] = "HOME=/";
++		envp[1] = "PATH=/sbin:/bin:/usr/sbin:/usr/bin";
++		envp[2] = NULL;
++		call_usermodehelper(argv[0], argv, envp, 1);
++	}
++	printk(KERN_INFO "TOMOYOecurity: 1.7.0+   2009/09/14\n");
++	printk(KERN_INFO "Mandatory Access Control activated.\n");
++	tomoyo_check_profile();
++}

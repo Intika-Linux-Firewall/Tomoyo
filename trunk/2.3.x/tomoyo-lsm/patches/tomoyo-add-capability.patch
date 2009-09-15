@@ -1,0 +1,167 @@
+[TOMOYO] Add capability support.
+
+Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/capability.c |  157 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 157 insertions(+)
+
+--- /dev/null
++++ linux-2.6.31/security/tomoyo/capability.c
+@@ -0,0 +1,157 @@
++/*
++ * security/tomoyo/capability.c
++ *
++ * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ */
++#include "internal.h"
++
++/**
++ * tomoyo_audit_capability_log - Audit capability log.
++ *
++ * @r:          Pointer to "struct tomoyo_request_info".
++ * @operation:  Type of operation.
++ * @is_granted: True if this is a granted log.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int tomoyo_audit_capability_log(struct tomoyo_request_info *r,
++				    const u8 operation, const bool is_granted)
++{
++	if (!is_granted)
++		tomoyo_warn_log(r, "capability %s", tomoyo_cap2keyword(operation));
++	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_CAPABILITY
++				   "%s\n", tomoyo_cap2keyword(operation));
++}
++
++/**
++ * tomoyo_capable - Check permission for capability.
++ *
++ * @operation: Type of operation.
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static bool tomoyo_capable2(const u8 operation)
++{
++	struct tomoyo_request_info r;
++	struct tomoyo_acl_info *ptr;
++	int error;
++	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAX_MAC_INDEX + operation)
++	    == TOMOYO_CONFIG_DISABLED)
++		return true;
++	do {
++		error = -EPERM;
++		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
++			struct tomoyo_capability_acl *acl;
++			if (ptr->is_deleted ||
++			    ptr->type != TOMOYO_TYPE_CAPABILITY_ACL)
++				continue;
++			acl = container_of(ptr, struct tomoyo_capability_acl,
++					   head);
++			if (acl->operation != operation ||
++			    !tomoyo_condition(&r, ptr))
++				continue;
++			r.cond = ptr->cond;
++			error = 0;
++			break;
++		}
++		tomoyo_audit_capability_log(&r, operation, !error);
++		if (!error)
++			break;
++		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_CAPABILITY "%s\n",
++				       tomoyo_cap2keyword(operation));
++	} while (error == 1);
++	return !error;
++}
++
++/**
++ * tomoyo_capable - Check permission for capability.
++ *
++ * @operation: Type of operation.
++ *
++ * Returns true on success, false otherwise.
++ */
++bool tomoyo_capable(const u8 operation)
++{
++	const int idx = tomoyo_read_lock();
++	const int error = tomoyo_capable2(operation);
++	tomoyo_read_unlock(idx);
++	return error;
++}
++EXPORT_SYMBOL(tomoyo_capable); /* for net/unix/af_unix.c */
++
++/**
++ * tomoyo_write_capability_policy - Write "struct tomoyo_capability_acl" list.
++ *
++ * @data:      String to parse.
++ * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @condition: Pointer to "struct tomoyo_condition". May be NULL.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_write_capability_policy(char *data, struct tomoyo_domain_info *domain,
++				struct tomoyo_condition *condition,
++				const bool is_delete)
++{
++	struct tomoyo_capability_acl e = {
++		.head.type = TOMOYO_TYPE_CAPABILITY_ACL,
++		.head.cond = condition,
++	};
++	struct tomoyo_capability_acl *entry = NULL;
++	struct tomoyo_acl_info *ptr;
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	u8 capability;
++	for (capability = 0; capability < TOMOYO_MAX_CAPABILITY_INDEX;
++	     capability++) {
++		if (strcmp(data, tomoyo_cap2keyword(capability)))
++			continue;
++		break;
++	}
++	if (capability == TOMOYO_MAX_CAPABILITY_INDEX)
++		return -EINVAL;
++	e.operation = capability;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_capability_acl *acl =
++			container_of(ptr, struct tomoyo_capability_acl,
++				     head);
++		if (ptr->type != TOMOYO_TYPE_CAPABILITY_ACL ||
++		    ptr->cond != condition || acl->operation != capability)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
++		tomoyo_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	kfree(entry);
++	return error;
++}
++
++/**
++ * tomoyo_setattr_permission - Check permission for chmod/chown.
++ *
++ * @dentry: Pointer to "struct dentry".
++ * @attr:   Pointer to "struct iattr".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_setattr_permission(struct dentry *dentry, struct iattr *attr)
++{
++	if (attr->ia_valid & ATTR_FORCE)
++		return 0;
++	if ((attr->ia_valid & ATTR_MODE) && !tomoyo_capable(TOMOYO_SYS_CHMOD))
++		return -EPERM;
++	if ((attr->ia_valid & (ATTR_UID | ATTR_GID)) &&
++	    !tomoyo_capable(TOMOYO_SYS_CHOWN))
++		return -EPERM;
++	return 0;
++}

@@ -1,0 +1,85 @@
+[TOMOYO] Update Kconfig and Makefile
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/Kconfig  |   66 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/Makefile |    2 -
+ 2 files changed, 67 insertions(+), 1 deletion(-)
+
+--- linux-2.6.31.orig/security/tomoyo/Kconfig
++++ linux-2.6.31/security/tomoyo/Kconfig
+@@ -9,3 +9,69 @@ config SECURITY_TOMOYO
+ 	  Required userspace tools and further information may be
+ 	  found at <http://tomoyo.sourceforge.jp/>.
+ 	  If you are unsure how to answer this question, answer N.
++
++config SECURITY_TOMOYO_MAX_ACCEPT_ENTRY
++	int "Default maximal count for learning mode"
++	default 2048
++	range 0 2147483647
++	depends on SECURITY_TOMOYO
++	help
++	  This is the default value for maximal ACL entries
++	  that are automatically appended into policy at "learning mode".
++	  Some programs access thousands of objects, so running
++	  such programs in "learning mode" dulls the system response
++	  and consumes much memory.
++	  This is the safeguard for such programs.
++
++config SECURITY_TOMOYO_BUILTIN_INITIALIZERS
++	string "Built-in domain initializer programs"
++	default "/sbin/modprobe /sbin/hotplug"
++	depends on SECURITY_TOMOYO
++	---help---
++	  Some programs are executed from initrd/initramfs before /sbin/init
++	  starts.
++
++	  Since policy is loaded when /sbin/init starts, it is impossible to
++	  run such programs outside the <kernel> domain. Usually it is fine.
++
++	  But if such programs continue running when /sbin/init starts, such
++	  programs will reside in the <kernel> domain.
++	  If such programs executes /bin/sh , you will give the <kernel> domain
++	  permission to execute /bin/sh ; I think you don't want to do so.
++
++	  This option allows you to chase such programs away from the <kernel>
++	  domain so that you won't give the <kernel> domain permission to
++	  execute /bin/sh .
++
++config SECURITY_TOMOYO_AUDIT
++	bool "Auditing interface support"
++	default y
++	depends on SECURITY_TOMOYO
++	help
++	  This option enables /sys/kernel/security/tomoyo/grant_log and /sys/kernel/security/tomoyo/reject_log
++	  interfaces. You may disable these interfaces if you want to apply for
++	  HDD-less systems (e.g. embedded systems).
++
++config SECURITY_TOMOYO_MAX_GRANT_LOG
++	int "Default maximal count for grant log"
++	default 1024
++	range 0 2147483647
++	depends on SECURITY_TOMOYO_AUDIT
++	help
++	  This is the default value for maximal entries for
++	  access grant logs that the kernel can hold on memory.
++	  You can read the log via /sys/kernel/security/tomoyo/grant_log.
++	  If you don't need access grant logs,
++	  you may set this value to 0.
++
++config SECURITY_TOMOYO_MAX_REJECT_LOG
++	int "Default maximal count for reject log"
++	default 1024
++	range 0 2147483647
++	depends on SECURITY_TOMOYO_AUDIT
++	help
++	  This is the default value for maximal entries for
++	  access reject logs that the kernel can hold on memory.
++	  You can read the log via /sys/kernel/security/tomoyo/reject_log.
++	  If you don't need access reject logs,
++	  you may set this value to 0.
+--- linux-2.6.31.orig/security/tomoyo/Makefile
++++ linux-2.6.31/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o realpath.o tomoyo.o domain.o file.o
++obj-y = address_group.o chroot.o gc.o mount.o new-file.o path_group.o umount.o audit.o environ.o load_policy.o network.o new-realpath.o pivot_root.o securityfs_if.o util.o capability.o condition.o memory.o new-domain.o number_group.o policy_io.o lsm.o
