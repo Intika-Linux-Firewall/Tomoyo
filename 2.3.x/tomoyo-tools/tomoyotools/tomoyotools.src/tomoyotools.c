@@ -9,6 +9,7 @@
  *
  */
 #include "tomoyotools.h"
+#include <sched.h>
 
 /* Prototypes */
 
@@ -997,6 +998,14 @@ int main(int argc, char *argv[])
 	if (!argv0) {
 		fprintf(stderr, "Function not specified.\n");
 		return 1;
+	}
+	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
+		if (unshare(CLONE_NEWNS) ||
+		    mount("none", "/sys/kernel/security/", "securityfs", 0,
+			  NULL)) {
+			fprintf(stderr, "Please mount securityfs on "
+				"/sys/kernel/security/ .\n");
+		}
 	}
 	if (strrchr(argv0, '/'))
 		argv0 = strrchr(argv0, '/') + 1;

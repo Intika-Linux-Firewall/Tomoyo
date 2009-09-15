@@ -53,7 +53,7 @@ void editpolicy_color_init(void)
 		{ NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
-	FILE *fp = fopen(CCSTOOLS_CONFIG_FILE, "r");
+	FILE *fp = fopen(TOMOYOTOOLS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;

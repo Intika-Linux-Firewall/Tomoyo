@@ -12,13 +12,13 @@
 
 int auditd_main(int argc, char *argv[])
 {
-	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
+	const char *procfile_path[TOMOYO_AUDITD_MAX_FILES] = {
 		proc_policy_grant_log,
 		proc_policy_reject_log
 	};
 	int i;
-	int fd_in[CCS_AUDITD_MAX_FILES];
-	FILE *fp_out[CCS_AUDITD_MAX_FILES];
+	int fd_in[TOMOYO_AUDITD_MAX_FILES];
+	FILE *fp_out[TOMOYO_AUDITD_MAX_FILES];
 	int need_flush = 0;
 	const char *logfile_path[2] = { "/dev/null", "/dev/null" };
 	if (access(procfile_path[0], R_OK) || access(procfile_path[1], R_OK)) {
@@ -39,7 +39,7 @@ int auditd_main(int argc, char *argv[])
 			return 0;
 	}
 	umask(077);
-	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
+	for (i = 0; i < TOMOYO_AUDITD_MAX_FILES; i++) {
 		fp_out[i] = fopen(logfile_path[i], "a");
 		if (!fp_out[i]) {
 			fprintf(stderr, "Can't open %s for writing.\n",
@@ -77,7 +77,7 @@ int auditd_main(int argc, char *argv[])
 	close(1);
 	close(2);
 	openlog("tomoyo-auditd", 0,  LOG_USER);
-	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
+	for (i = 0; i < TOMOYO_AUDITD_MAX_FILES; i++) {
 		fd_in[i] = open(procfile_path[i], O_RDONLY);
 		if (fd_in[i] == EOF) {
 			syslog(LOG_WARNING, "Can't open %s for reading.\n",
@@ -90,7 +90,7 @@ int auditd_main(int argc, char *argv[])
 		char buffer[32768];
 		fd_set rfds;
 		FD_ZERO(&rfds);
-		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++)
+		for (i = 0; i < TOMOYO_AUDITD_MAX_FILES; i++)
 			FD_SET(fd_in[i], &rfds);
 		/* Wait for data. */
 		if (need_flush) {
@@ -102,7 +102,7 @@ int auditd_main(int argc, char *argv[])
 			}
 		} else if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
 			break;
-		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
+		for (i = 0; i < TOMOYO_AUDITD_MAX_FILES; i++) {
 			time_t stamp;
 			char *cp;
 			if (!FD_ISSET(fd_in[i], &rfds))

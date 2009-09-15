@@ -109,14 +109,14 @@ enum socket_operation_type {
 #define KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
 #define KEYWORD_ALLOW_EXECUTE            "allow_execute "
 
-#define CCS_AUDITD_MAX_FILES             2
+#define TOMOYO_AUDITD_MAX_FILES             2
 #define SAVENAME_MAX_HASH                256
 #define PAGE_SIZE                        4096
-#define CCS_MAX_PATHNAME_LEN             4000
+#define TOMOYO_MAX_PATHNAME_LEN             4000
 #define ROOT_NAME                        "<kernel>"
 #define ROOT_NAME_LEN                    (sizeof(ROOT_NAME) - 1)
 
-#define CCSTOOLS_CONFIG_FILE "/usr/lib/tomoyo/tomoyotools.conf"
+#define TOMOYOTOOLS_CONFIG_FILE "/usr/lib/tomoyo/tomoyotools.conf"
 
 #define DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
 #define DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
