@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  299 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 299 insertions(+)
+ security/tomoyo/lsm.c |  304 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 304 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,299 @@
+@@ -0,0 +1,304 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -246,15 +246,20 @@
 +
 +static int tomoyo_dentry_open(struct file *f, const struct cred *cred)
 +{
-+	int flags = f->f_flags;
-+
 +	/* Don't check read permission here if called from do_execve(). */
 +	if (current->in_execve)
 +		return 0;
-+	if ((flags + 1) & O_ACCMODE)
-+		flags++;
-+	flags |= f->f_flags & (O_APPEND | O_TRUNC);
-+	return tomoyo_open_permission(f->f_path.dentry, f->f_path.mnt, flags);
++	/*
++	 * TOMOYO does not check "allow_write" if open(path, O_TRUNC | O_RDONLY) was
++	 * requested because write() is not permitted. Instead, TOMOYO checks
++	 * "allow_truncate" if O_TRUNC is passed.
++	 *
++	 * TOMOYO does not check "allow_read/write" if open(path, 3) was requested
++	 * because read()/write() are not permitted. Instead, TOMOYO checks
++	 * "allow_ioctl" when ioctl() is requested.
++	 */
++	return tomoyo_open_permission(f->f_path.dentry, f->f_path.mnt,
++				      f->f_flags + 1);
 +}
 +
 +/*
