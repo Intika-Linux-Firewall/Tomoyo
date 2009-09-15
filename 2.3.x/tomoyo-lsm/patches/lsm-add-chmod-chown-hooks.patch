@@ -1,0 +1,210 @@
+[LSM] Add security_path_chmod() and security_path_chown().
+
+This patch allows pathname based LSM modules to check chmod()/chown()
+operations. Since notify_change() does not receive "struct vfsmount *",
+we add security_path_chmod() and security_path_chown() to the caller of
+notify_change().
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ fs/open.c                |   24 ++++++++++++++++++++----
+ include/linux/security.h |   30 ++++++++++++++++++++++++++++++
+ security/capability.c    |   13 +++++++++++++
+ security/security.c      |   15 +++++++++++++++
+ 4 files changed, 78 insertions(+), 4 deletions(-)
+
+--- linux-2.6.31.orig/fs/open.c
++++ linux-2.6.31/fs/open.c
+@@ -615,6 +615,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	err = mnt_want_write_file(file);
+ 	if (err)
+ 		goto out_putf;
++	err = security_path_chmod(dentry, file->f_vfsmnt, mode);
++	if (err)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -622,6 +625,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	err = notify_change(dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(file->f_path.mnt);
+ out_putf:
+ 	fput(file);
+@@ -644,6 +648,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto dput_and_out;
++	error = security_path_chmod(path.dentry, path.mnt, mode);
++	if (error)
++		goto out_drop_write;
+ 	mutex_lock(&inode->i_mutex);
+ 	if (mode == (mode_t) -1)
+ 		mode = inode->i_mode;
+@@ -651,6 +658,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+ 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
+ 	error = notify_change(path.dentry, &newattrs);
+ 	mutex_unlock(&inode->i_mutex);
++out_drop_write:
+ 	mnt_drop_write(path.mnt);
+ dput_and_out:
+ 	path_put(&path);
+@@ -699,7 +707,9 @@ SYSCALL_DEFINE3(chown, const char __user
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
+-	error = chown_common(path.dentry, user, group);
++	error = security_path_chown(&path, user, group);
++	if (!error)
++		error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+ 	path_put(&path);
+@@ -724,7 +734,9 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
+-	error = chown_common(path.dentry, user, group);
++	error = security_path_chown(&path, user, group);
++	if (!error)
++		error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+ 	path_put(&path);
+@@ -743,7 +755,9 @@ SYSCALL_DEFINE3(lchown, const char __use
+ 	error = mnt_want_write(path.mnt);
+ 	if (error)
+ 		goto out_release;
+-	error = chown_common(path.dentry, user, group);
++	error = security_path_chown(&path, user, group);
++	if (!error)
++		error = chown_common(path.dentry, user, group);
+ 	mnt_drop_write(path.mnt);
+ out_release:
+ 	path_put(&path);
+@@ -766,7 +780,9 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+ 		goto out_fput;
+ 	dentry = file->f_path.dentry;
+ 	audit_inode(NULL, dentry);
+-	error = chown_common(dentry, user, group);
++	error = security_path_chown(&file->f_path, user, group);
++	if (!error)
++		error = chown_common(dentry, user, group);
+ 	mnt_drop_write(file->f_path.mnt);
+ out_fput:
+ 	fput(file);
+--- linux-2.6.31.orig/include/linux/security.h
++++ linux-2.6.31/include/linux/security.h
+@@ -447,6 +447,18 @@ static inline void security_free_mnt_opt
+  *	@new_dir contains the path structure for parent of the new link.
+  *	@new_dentry contains the dentry structure of the new link.
+  *	Return 0 if permission is granted.
++ * @path_chmod:
++ *	Check for permission to change DAC's permission of a file or directory.
++ *	@dentry contains the dentry structure.
++ *	@mnt contains the vfsmnt structure.
++ *	@mode contains DAC's mode.
++ *	Return 0 if permission is granted.
++ * @path_chown:
++ *	Check for permission to change owner/group of a file or directory.
++ *	@path contains the path structure.
++ *	@uid contains new owner's ID.
++ *	@gid contains new group's ID.
++ *	Return 0 if permission is granted.
+  * @inode_readlink:
+  *	Check the permission to read the symbolic link.
+  *	@dentry contains the dentry structure for the file link.
+@@ -1422,6 +1434,9 @@ struct security_operations {
+ 			  struct dentry *new_dentry);
+ 	int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+ 			    struct path *new_dir, struct dentry *new_dentry);
++	int (*path_chmod) (struct dentry *dentry, struct vfsmount *mnt,
++			   mode_t mode);
++	int (*path_chown) (struct path *path, uid_t uid, gid_t gid);
+ #endif
+ 
+ 	int (*inode_alloc_security) (struct inode *inode);
+@@ -2822,6 +2837,9 @@ int security_path_link(struct dentry *ol
+ 		       struct dentry *new_dentry);
+ int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
+ 			 struct path *new_dir, struct dentry *new_dentry);
++int security_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			mode_t mode);
++int security_path_chown(struct path *path, uid_t uid, gid_t gid);
+ #else	/* CONFIG_SECURITY_PATH */
+ static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
+ {
+@@ -2871,6 +2889,18 @@ static inline int security_path_rename(s
+ {
+ 	return 0;
+ }
++
++static inline int security_path_chmod(struct dentry *dentry,
++				      struct vfsmount *mnt,
++				      mode_t mode)
++{
++	return 0;
++}
++
++static inline int security_path_chown(struct path *path, uid_t uid, gid_t gid)
++{
++	return 0;
++}
+ #endif	/* CONFIG_SECURITY_PATH */
+ 
+ #ifdef CONFIG_KEYS
+--- linux-2.6.31.orig/security/capability.c
++++ linux-2.6.31/security/capability.c
+@@ -308,6 +308,17 @@ static int cap_path_truncate(struct path
+ {
+ 	return 0;
+ }
++
++static int cap_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			  mode_t mode)
++{
++	return 0;
++}
++
++static int cap_path_chown(struct path *path, uid_t uid, gid_t gid)
++{
++	return 0;
++}
+ #endif
+ 
+ static int cap_file_permission(struct file *file, int mask)
+@@ -926,6 +937,8 @@ void security_fixup_ops(struct security_
+ 	set_to_cap_if_null(ops, path_link);
+ 	set_to_cap_if_null(ops, path_rename);
+ 	set_to_cap_if_null(ops, path_truncate);
++	set_to_cap_if_null(ops, path_chmod);
++	set_to_cap_if_null(ops, path_chown);
+ #endif
+ 	set_to_cap_if_null(ops, file_permission);
+ 	set_to_cap_if_null(ops, file_alloc_security);
+--- linux-2.6.31.orig/security/security.c
++++ linux-2.6.31/security/security.c
+@@ -434,6 +434,21 @@ int security_path_truncate(struct path *
+ 		return 0;
+ 	return security_ops->path_truncate(path, length, time_attrs);
+ }
++
++int security_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			mode_t mode)
++{
++	if (unlikely(IS_PRIVATE(dentry->d_inode)))
++		return 0;
++	return security_ops->path_chmod(dentry, mnt, mode);
++}
++
++int security_path_chown(struct path *path, uid_t uid, gid_t gid)
++{
++	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
++		return 0;
++	return security_ops->path_chown(path, uid, gid);
++}
+ #endif
+ 
+ int security_inode_create(struct inode *dir, struct dentry *dentry, int mode)

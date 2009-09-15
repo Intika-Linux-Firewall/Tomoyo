@@ -1,0 +1,70 @@
+[TOMOYO] Add per task_struct variables.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ include/linux/init_task.h |    9 +++++++++
+ include/linux/sched.h     |    6 ++++++
+ kernel/kmod.c             |    5 +++++
+ 3 files changed, 20 insertions(+)
+
+--- linux-2.6.31.orig/include/linux/init_task.h
++++ linux-2.6.31/include/linux/init_task.h
+@@ -105,6 +105,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_COUNTERS(tsk)
+ #endif
+ 
++#ifdef CONFIG_SECURITY_TOMOYO
++#define INIT_SECURITY_TOMOYO        \
++	.tomoyo_domain_info = NULL, \
++	.tomoyo_flags = 0,
++#else
++#define INIT_SECURITY_TOMOYO
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -173,6 +181,7 @@ extern struct cred init_cred;
+ 	INIT_LOCKDEP							\
+ 	INIT_FTRACE_GRAPH						\
+ 	INIT_TRACE_RECURSION						\
++	INIT_SECURITY_TOMOYO						\
+ }
+ 
+ 
+--- linux-2.6.31.orig/include/linux/sched.h
++++ linux-2.6.31/include/linux/sched.h
+@@ -29,6 +29,8 @@
+ #define CLONE_NEWNET		0x40000000	/* New network namespace */
+ #define CLONE_IO		0x80000000	/* Clone io context */
+ 
++struct tomoyo_domain_info;
++
+ /*
+  * Scheduling policies
+  */
+@@ -1480,6 +1482,10 @@ struct task_struct {
+ 	/* bitmask of trace recursion */
+ 	unsigned long trace_recursion;
+ #endif /* CONFIG_TRACING */
++#ifdef CONFIG_SECURITY_TOMOYO
++	struct tomoyo_domain_info *tomoyo_domain_info;
++	u32 tomoyo_flags;
++#endif
+ };
+ 
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+--- linux-2.6.31.orig/kernel/kmod.c
++++ linux-2.6.31/kernel/kmod.c
+@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void 
+ 	 */
+ 	set_user_nice(current, 0);
+ 
++#ifdef CONFIG_SECURITY_TOMOYO
++	current->tomoyo_domain_info = NULL;
++	current->tomoyo_flags = 0;
++#endif
++
+ 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
+ 
+ 	/* Exec failed? */
