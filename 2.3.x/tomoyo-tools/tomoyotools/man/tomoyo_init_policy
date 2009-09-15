@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-init_policy 1.7.0
+tomoyo_init_policy 1.7.0
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: init_policy [--file-only-profile|--full-profile]
+Usage: tomoyo_init_policy [--file-only-profile|--full-profile]
 
 This program generates templates for all policy files.
 You need to review the output because automatically generated exception policy may contain redundant or dangerous entries.
@@ -27,7 +27,7 @@ None.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Initialize TOMOYO Linux's policy" $0 | gzip -9 > man8/init_policy.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Initialize TOMOYO Linux's policy" $0 | gzip -9 > man8/tomoyo_init_policy.8.gz
 [SEE ALSO]
 
  tomoyo-init (8)
