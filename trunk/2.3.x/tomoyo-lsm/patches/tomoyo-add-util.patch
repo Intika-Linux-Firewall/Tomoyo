@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/util.c | 1159 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1159 insertions(+)
+ security/tomoyo/util.c | 1158 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1158 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/util.c
-@@ -0,0 +1,1159 @@
+@@ -0,0 +1,1158 @@
 +/*
 + * security/tomoyo/util.c
 + *
@@ -56,7 +56,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAC_NETWORK_TCP_ACCEPT]  = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_RAW_BIND]    = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_RAW_CONNECT] = TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_SIGNAL]          = TOMOYO_MAC_CATEGORY_IPC,
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_INET_STREAM_SOCKET_CREATE]
 +	= TOMOYO_MAC_CATEGORY_CAPABILITY,
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_INET_STREAM_SOCKET_LISTEN]

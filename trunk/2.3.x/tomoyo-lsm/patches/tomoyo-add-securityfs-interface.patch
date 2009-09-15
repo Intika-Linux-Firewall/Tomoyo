@@ -141,7 +141,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_create_entry("domain_policy",    0600, tomoyo_dir, TOMOYO_DOMAINPOLICY);
 +	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
 +			 TOMOYO_EXCEPTIONPOLICY);
-+#ifdef CONFIG_TOMOYOECURITY_AUDIT
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	tomoyo_create_entry("grant_log",        0400, tomoyo_dir, TOMOYO_GRANTLOG);
 +	tomoyo_create_entry("reject_log",       0400, tomoyo_dir, TOMOYO_REJECTLOG);
 +#endif
