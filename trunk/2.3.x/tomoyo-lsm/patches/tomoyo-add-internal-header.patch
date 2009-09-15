@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1280 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1280 insertions(+)
+ security/tomoyo/internal.h | 1282 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1282 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1280 @@
+@@ -0,0 +1,1282 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -301,7 +301,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MODE_OTHERS_WRITE,    /* S_IWOTH */
 +	TOMOYO_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
 +	TOMOYO_TASK_TYPE,            /* ((u8) task->tomoyo_flags) &
-+				     TOMOYO_TASK_IS_EXECUTE_HANDLER */
++					TOMOYO_TASK_IS_EXECUTE_HANDLER */
 +	TOMOYO_TASK_EXECUTE_HANDLER, /* TOMOYO_TASK_IS_EXECUTE_HANDLER */
 +	TOMOYO_EXEC_REALPATH,
 +	TOMOYO_SYMLINK_TARGET,
@@ -582,8 +582,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Structure for execve() operation. */
 +struct tomoyo_execve_entry {
-+	struct list_head list;
-+	struct task_struct *task; /* = current */
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj;
 +	struct linux_binprm *bprm;
@@ -596,6 +594,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_page_dump dump;
 +	/* For temporary use. */
 +	char *tmp; /* Size is TOMOYO_EXEC_TMPSIZE bytes */
++	atomic_t cred_users;
 +};
 +
 +/* Common header for holding ACL entries. */
@@ -939,35 +938,35 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Prototype definition. */
 +
 +bool tomoyo_address_matches_group(const bool is_ipv6, const u32 *address,
-+			       const struct tomoyo_address_group *group);
++				  const struct tomoyo_address_group *group);
 +bool tomoyo_commit_ok(void *ptr, void *data, const unsigned int size);
 +bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
-+			    const struct tomoyo_name_union *ptr);
++			       const struct tomoyo_name_union *ptr);
 +bool tomoyo_compare_number_union(const unsigned long value,
-+			      const struct tomoyo_number_union *ptr);
++				 const struct tomoyo_number_union *ptr);
 +bool tomoyo_condition(struct tomoyo_request_info *r, const struct tomoyo_acl_info *acl);
 +bool tomoyo_domain_quota_ok(struct tomoyo_request_info *r);
 +bool tomoyo_dump_page(struct linux_binprm *bprm, unsigned long pos,
-+		   struct tomoyo_page_dump *dump);
++		      struct tomoyo_page_dump *dump);
 +bool tomoyo_get_audit(const u8 profile, const u8 index, const bool is_granted);
 +bool tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
 +     __attribute__ ((format(printf, 2, 3)));
 +bool tomoyo_is_correct_domain(const unsigned char *domainname);
 +bool tomoyo_is_correct_path(const char *filename, const s8 start_type,
-+			 const s8 pattern_type, const s8 end_type);
++			    const s8 pattern_type, const s8 end_type);
 +bool tomoyo_is_domain_def(const unsigned char *buffer);
 +bool tomoyo_memory_ok(const void *ptr, const unsigned int size);
 +bool tomoyo_number_matches_group(const unsigned long min, const unsigned long max,
-+			      const struct tomoyo_number_group *group);
++				 const struct tomoyo_number_group *group);
 +bool tomoyo_parse_name_union(const char *filename, struct tomoyo_name_union *ptr);
 +bool tomoyo_parse_number_union(char *data, struct tomoyo_number_union *num);
 +bool tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
-+			    const struct tomoyo_path_group *group,
-+			    const bool may_use_pattern);
++			       const struct tomoyo_path_group *group,
++			       const bool may_use_pattern);
 +bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
-+			      const struct tomoyo_path_info *pattern);
++				 const struct tomoyo_path_info *pattern);
 +bool tomoyo_print_number_union(struct tomoyo_io_buffer *head,
-+			    const struct tomoyo_number_union *ptr);
++			       const struct tomoyo_number_union *ptr);
 +bool tomoyo_read_address_group_policy(struct tomoyo_io_buffer *head);
 +bool tomoyo_read_aggregator_policy(struct tomoyo_io_buffer *head);
 +bool tomoyo_read_domain_initializer_policy(struct tomoyo_io_buffer *head);
@@ -999,18 +998,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_delete_domain(char *data);
 +int tomoyo_env_perm(struct tomoyo_request_info *r, const char *env);
 +int tomoyo_exec_perm(struct tomoyo_request_info *r,
-+		  const struct tomoyo_path_info *filename);
++		     const struct tomoyo_path_info *filename);
 +int tomoyo_get_mode(const u8 profile, const u8 index);
 +int tomoyo_get_path(const char *pathname, struct path *path);
 +int tomoyo_init_request_info(struct tomoyo_request_info *r,
-+			  struct tomoyo_domain_info *domain, const u8 index);
++			     struct tomoyo_domain_info *domain, const u8 index);
 +int tomoyo_open_control(const u8 type, struct file *file);
 +int tomoyo_parse_ip_address(char *address, u16 *min, u16 *max);
 +int tomoyo_poll_control(struct file *file, poll_table *wait);
 +int tomoyo_poll_grant_log(struct file *file, poll_table *wait);
 +int tomoyo_poll_reject_log(struct file *file, poll_table *wait);
 +int tomoyo_read_control(struct file *file, char __user *buffer,
-+		     const int buffer_len);
++			const int buffer_len);
 +int tomoyo_read_lock(void);
 +int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
 +     __attribute__ ((format(printf, 2, 3)));
@@ -1018,54 +1017,54 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_write_address_group_policy(char *data, const bool is_delete);
 +int tomoyo_write_aggregator_policy(char *data, const bool is_delete);
 +int tomoyo_write_audit_log(const bool is_granted, struct tomoyo_request_info *r,
-+			const char *fmt, ...)
++			   const char *fmt, ...)
 +     __attribute__ ((format(printf, 3, 4)));
 +int tomoyo_write_capability_policy(char *data, struct tomoyo_domain_info *domain,
-+				struct tomoyo_condition *condition,
-+				const bool is_delete);
++				   struct tomoyo_condition *condition,
++				   const bool is_delete);
 +int tomoyo_write_chroot_policy(char *data, struct tomoyo_domain_info *domain,
++			       struct tomoyo_condition *condition,
++			       const bool is_delete);
++int tomoyo_write_control(struct file *file, const char __user *buffer,
++			 const int buffer_len);
++int tomoyo_write_domain_initializer_policy(char *data, const bool is_not,
++					   const bool is_delete);
++int tomoyo_write_domain_keeper_policy(char *data, const bool is_not,
++				      const bool is_delete);
++int tomoyo_write_env_policy(char *data, struct tomoyo_domain_info *domain,
 +			    struct tomoyo_condition *condition,
 +			    const bool is_delete);
-+int tomoyo_write_control(struct file *file, const char __user *buffer,
-+		      const int buffer_len);
-+int tomoyo_write_domain_initializer_policy(char *data, const bool is_not,
-+					const bool is_delete);
-+int tomoyo_write_domain_keeper_policy(char *data, const bool is_not,
-+				   const bool is_delete);
-+int tomoyo_write_env_policy(char *data, struct tomoyo_domain_info *domain,
-+			 struct tomoyo_condition *condition,
-+			 const bool is_delete);
 +int tomoyo_write_file_policy(char *data, struct tomoyo_domain_info *domain,
-+			  struct tomoyo_condition *condition,
-+			  const bool is_delete);
++			     struct tomoyo_condition *condition,
++			     const bool is_delete);
 +int tomoyo_write_globally_readable_policy(char *data, const bool is_delete);
 +int tomoyo_write_globally_usable_env_policy(char *data, const bool is_delete);
 +int tomoyo_write_memory_quota(struct tomoyo_io_buffer *head);
 +int tomoyo_write_mount_policy(char *data, struct tomoyo_domain_info *domain,
-+			   struct tomoyo_condition *condition,
-+			   const bool is_delete);
++			      struct tomoyo_condition *condition,
++			      const bool is_delete);
 +int tomoyo_write_network_policy(char *data, struct tomoyo_domain_info *domain,
-+			     struct tomoyo_condition *condition,
-+			     const bool is_delete);
++				struct tomoyo_condition *condition,
++				const bool is_delete);
 +int tomoyo_write_no_rewrite_policy(char *data, const bool is_delete);
 +int tomoyo_write_number_group_policy(char *data, const bool is_delete);
 +int tomoyo_write_path_group_policy(char *data, const bool is_delete);
 +int tomoyo_write_pattern_policy(char *data, const bool is_delete);
 +int tomoyo_write_pivot_root_policy(char *data, struct tomoyo_domain_info *domain,
-+				struct tomoyo_condition *condition,
-+				const bool is_delete);
++				   struct tomoyo_condition *condition,
++				   const bool is_delete);
 +int tomoyo_write_reserved_port_policy(char *data, const bool is_delete);
 +int tomoyo_write_signal_policy(char *data, struct tomoyo_domain_info *domain,
-+			    struct tomoyo_condition *condition,
-+			    const bool is_delete);
++			       struct tomoyo_condition *condition,
++			       const bool is_delete);
 +int tomoyo_write_umount_policy(char *data, struct tomoyo_domain_info *domain,
-+			    struct tomoyo_condition *condition,
-+			    const bool is_delete);
++			       struct tomoyo_condition *condition,
++			       const bool is_delete);
 +struct tomoyo_address_group *tomoyo_get_address_group(const char *group_name);
 +struct tomoyo_condition *tomoyo_get_condition(char * const condition);
 +struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
 +struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *domainname,
-+						      const u8 profile);
++							    const u8 profile);
 +struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
 +struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
 +struct tomoyo_profile *tomoyo_profile(const u8 profile);
@@ -1076,9 +1075,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tomoyo_memory_free(const void *ptr, size_t size);
 +void tomoyo_normalize_line(unsigned char *buffer);
 +void tomoyo_print_ipv6(char *buffer, const int buffer_len,
-+		    const struct in6_addr *ip);
++		       const struct in6_addr *ip);
 +void tomoyo_print_ulong(char *buffer, const int buffer_len,
-+		     const unsigned long value, const u8 type);
++			const unsigned long value, const u8 type);
 +void tomoyo_put_address_group(struct tomoyo_address_group *group);
 +void tomoyo_put_condition(struct tomoyo_condition *cond);
 +void tomoyo_put_ipv6_address(const struct in6_addr *addr);
@@ -1095,14 +1094,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
 +     __attribute__ ((format(printf, 2, 3)));
 +void tomoyo_warn_oom(const char *function);
-+void tomoyo_finish_execve(int retval);
++int tomoyo_start_execve(struct linux_binprm *bprm);
++void tomoyo_finish_execve(struct tomoyo_execve_entry *ee, const bool rollback);
++int tomoyo_file_perm(struct tomoyo_request_info *r,
++		     const struct tomoyo_path_info *filename, const u8 mode);
++
 +
 +/* Check whether the given pathname is allowed to chroot to. */
 +int tomoyo_chroot_permission(struct path *path);
 +
 +/* Check whether the mount operation with the given parameters is allowed. */
 +int tomoyo_mount_permission(char *dev_name, char *dir_name, char *type,
-+			 const unsigned long *flags);
++			    const unsigned long *flags);
 +
 +/* Check whether the current process is allowed to pivot_root. */
 +int tomoyo_pivot_root_permission(struct path *old_path, struct path *new_path);
@@ -1116,34 +1119,34 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tomoyo_save_open_mode(int mode);
 +void tomoyo_clear_open_mode(void);
 +int tomoyo_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			const int flag);
++			   const int flag);
 +int tomoyo_rewrite_permission(struct file *filp);
 +int tomoyo_ioctl_permission(struct file *filp, unsigned int cmd,
-+			 unsigned long arg);
++			    unsigned long arg);
 +int tomoyo_parse_table(int __user *name, int nlen, void __user *oldval,
-+		    void __user *newval, struct ctl_table *table);
++		       void __user *newval, struct ctl_table *table);
 +
 +/* Check whether the given capability is allowed to use. */
 +_Bool tomoyo_capable(const u8 operation);
 +
 +int tomoyo_mknod_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt, unsigned int mode,
-+			 unsigned int dev);
++			    struct vfsmount *mnt, unsigned int mode,
++			    unsigned int dev);
 +int tomoyo_mkdir_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt, unsigned int mode);
++			    struct vfsmount *mnt, unsigned int mode);
 +int tomoyo_rmdir_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt);
++			    struct vfsmount *mnt);
 +int tomoyo_unlink_permission(struct inode *dir, struct dentry *dentry,
-+			  struct vfsmount *mnt);
++			     struct vfsmount *mnt);
 +int tomoyo_symlink_permission(struct inode *dir, struct dentry *dentry,
-+			   struct vfsmount *mnt, char *from);
++			      struct vfsmount *mnt, const char *from);
 +int tomoyo_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			    loff_t length, unsigned int time_attrs);
++			       loff_t length, unsigned int time_attrs);
 +int tomoyo_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
-+			  struct inode *new_dir, struct dentry *new_dentry,
-+			  struct vfsmount *mnt);
++			     struct inode *new_dir, struct dentry *new_dentry,
++			     struct vfsmount *mnt);
 +int tomoyo_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-+			struct dentry *new_dentry, struct vfsmount *mnt);
++			   struct dentry *new_dentry, struct vfsmount *mnt);
 +int tomoyo_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
 +int tomoyo_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
 +int tomoyo_setattr_permission(struct dentry *dentry, struct iattr *attr);
@@ -1154,25 +1157,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_socket_create_permission(int family, int type, int protocol);
 +int tomoyo_socket_listen_permission(struct socket *sock);
 +int tomoyo_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
-+				  int addr_len);
++				     int addr_len);
 +int tomoyo_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
-+			       int addr_len);
++				  int addr_len);
 +int tomoyo_socket_accept_permission(struct socket *sock, struct sockaddr *addr);
 +int tomoyo_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
-+				  int addr_len);
++				     int addr_len);
 +int tomoyo_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
-+				  const unsigned int flags);
++				     const unsigned int flags);
 +int tomoyo_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			 uid_t user, gid_t group);
++			    uid_t user, gid_t group);
 +int tomoyo_chmod_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			 mode_t mode);
++			    mode_t mode);
 +int tomoyo_sigqueue_permission(pid_t pid, int sig);
 +int tomoyo_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig);
 +
 +
 +/* strcmp() for "struct tomoyo_path_info" structure. */
 +static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
-+			       const struct tomoyo_path_info *b)
++				  const struct tomoyo_path_info *b)
 +{
 +	return a->hash != b->hash || strcmp(a->name, b->name);
 +}
@@ -1198,8 +1201,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +extern struct list_head tomoyo_reservedport_list;
 +extern struct list_head tomoyo_policy_manager_list;
 +
-+extern spinlock_t tomoyo_execve_list_lock;
-+extern unsigned int tomoyo_in_execve_counter;
++extern atomic_t tomoyo_in_execve_counter;
 +
 +extern bool tomoyo_policy_loaded;
 +extern struct tomoyo_domain_info tomoyo_kernel_domain;
@@ -1230,8 +1232,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	return NULL;
 +	/*
-+	return task->tomoyo_domain_info ?
-+		task->tomoyo_domain_info : &tomoyo_kernel_domain;
++	  return task->tomoyo_domain_info ?
++	  task->tomoyo_domain_info : &tomoyo_kernel_domain;
 +	*/
 +}
 +
@@ -1239,15 +1241,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	return NULL;
 +	/*
-+	struct task_struct *task = current;
-+	if (!task->tomoyo_domain_info)
-+		task->tomoyo_domain_info = &tomoyo_kernel_domain;
-+	return task->tomoyo_domain_info;
++	  struct task_struct *task = current;
++	  if (!task->tomoyo_domain_info)
++	  task->tomoyo_domain_info = &tomoyo_kernel_domain;
++	  return task->tomoyo_domain_info;
 +	*/
 +}
 +
 +static inline void tomoyo_add_domain_acl(struct tomoyo_domain_info *domain,
-+				      struct tomoyo_acl_info *acl)
++					 struct tomoyo_acl_info *acl)
 +{
 +	if (acl->cond)
 +		atomic_inc(&acl->cond->users);

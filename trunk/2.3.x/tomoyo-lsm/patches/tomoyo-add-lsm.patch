@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  304 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 304 insertions(+)
+ security/tomoyo/lsm.c |  299 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 299 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,299 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -17,70 +17,61 @@
 + */
 +
 +#include <linux/security.h>
-+#include "common.h"
-+#include "tomoyo.h"
-+#include "realpath.h"
++#include "internal.h"
 +
 +static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
 +			       gfp_t gfp)
 +{
-+	/*
-+	 * Since "struct tomoyo_domain_info *" is a sharable pointer,
-+	 * we don't need to duplicate.
-+	 */
-+	new->security = old->security;
++	/* Get ref if "struct linux_binprm *bprm"->cred */
++	struct tomoyo_execve_entry *ee = old->security;
++	if (ee)
++		atomic_inc(&ee->cred_users);
++	new->security = ee;
 +	return 0;
 +}
 +
-+static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
++static void tomoyo_cred_free(struct cred *cred)
 +{
-+	int rc;
-+
-+	rc = cap_bprm_set_creds(bprm);
-+	if (rc)
-+		return rc;
-+
-+	/*
-+	 * Do only if this function is called for the first time of an execve
-+	 * operation.
-+	 */
-+	if (bprm->cred_prepared)
-+		return 0;
-+	/*
-+	 * Load policy if /sbin/tomoyo-init exists and /sbin/init is requested
-+	 * for the first time.
-+	 */
-+	if (!tomoyo_policy_loaded)
-+		tomoyo_load_policy(bprm->filename);
-+	/*
-+	 * Tell tomoyo_bprm_check_security() is called for the first time of an
-+	 * execve operation.
-+	 */
-+	bprm->cred->security = NULL;
-+	return 0;
++	struct tomoyo_execve_entry *ee = cred->security;
++	/* Put ref if "struct linux_binprm *bprm"->cred */
++	if (ee && atomic_dec_and_test(&ee->cred_users)) {
++		/*
++		 * Reaching here means execve() failed, for
++		 * "struct linux_binprm *bprm"->cred is not shared between
++		 * processes.
++		 * Release memory allocated by tomoyo_start_execve().
++		 */
++		tomoyo_finish_execve(cred->security, true);
++		cred->security = NULL;
++	}
 +}
 +
 +static int tomoyo_bprm_check_security(struct linux_binprm *bprm)
 +{
-+	struct tomoyo_domain_info *domain = bprm->cred->security;
-+
 +	/*
 +	 * Execute permission is checked against pathname passed to do_execve()
 +	 * using current domain.
 +	 */
-+	if (!domain) {
-+		struct tomoyo_domain_info *next_domain = NULL;
-+		int retval = tomoyo_find_next_domain(bprm, &next_domain);
-+
-+		if (!retval)
-+			bprm->cred->security = next_domain;
-+		return retval;
++	if (!bprm->cred->security) {
++		int ret = tomoyo_start_execve(bprm);
++		struct tomoyo_execve_entry *ee = bprm->cred->security;
++		if (ee)
++			atomic_set(&ee->cred_users, 1);
++		return ret;
 +	}
 +	/*
 +	 * Read permission is checked against interpreters using next domain.
 +	 * '1' is the result of open_to_namei_flags(O_RDONLY).
 +	 */
-+	return tomoyo_check_open_permission(domain, &bprm->file->f_path, 1);
++	return tomoyo_open_permission(bprm->file->f_path.dentry,
++				      bprm->file->f_path.mnt, 1);
++}
++
++static void tomoyo_bprm_committing_creds(struct linux_binprm *bprm)
++{
++	/* Release memory allocated by tomoyo_start_execve(). */
++	tomoyo_finish_execve(bprm->cred->security, false);
++	bprm->cred->security = NULL;
 +}
 +
 +#ifdef CONFIG_SYSCTL
@@ -104,15 +95,15 @@
 + * Returns realpath(3) of the @table on success.
 + * Returns NULL on failure.
 + *
-+ * This function uses tomoyo_alloc(), so the caller must call tomoyo_free()
++ * This function uses kzalloc(), so the caller must call kfree()
 + * if this function didn't return NULL.
 + */
 +static char *tomoyo_sysctl_path(struct ctl_table *table)
 +{
-+	int buflen = TOMOYO_MAX_PATHNAME_LEN;
-+	char *buf = tomoyo_alloc(buflen);
++	int buflen = 4096;
++	char *cp = NULL;
++	char *buf = kmalloc(buflen, GFP_KERNEL);
 +	char *end = buf + buflen;
-+	int error = -ENOMEM;
 +
 +	if (!buf)
 +		return NULL;
@@ -135,105 +126,87 @@
 +	}
 +	if (tomoyo_prepend(&end, &buflen, "/proc/sys"))
 +		goto out;
-+	error = tomoyo_encode(buf, end - buf, end);
++	cp = tomoyo_encode(end);
 + out:
-+	if (!error)
-+		return buf;
-+	tomoyo_free(buf);
-+	return NULL;
++	kfree(buf);
++	return cp;
 +}
 +
 +static int tomoyo_sysctl(struct ctl_table *table, int op)
 +{
-+	int error;
-+	char *name;
++	int error = 0;
++	struct tomoyo_request_info r;
++	struct tomoyo_path_info buf;
++	int idx;
 +
 +	op &= MAY_READ | MAY_WRITE;
 +	if (!op)
 +		return 0;
-+	name = tomoyo_sysctl_path(table);
-+	if (!name)
-+		return -ENOMEM;
-+	error = tomoyo_check_file_perm(tomoyo_domain(), name, op);
-+	tomoyo_free(name);
++
++	idx = tomoyo_read_lock();
++	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_OPEN)
++	    == TOMOYO_CONFIG_DISABLED)
++		goto out;
++
++	buf.name = tomoyo_sysctl_path(table);
++	if (buf.name) {
++		tomoyo_fill_path_info(&buf);
++		error = tomoyo_file_perm(&r, &buf, op);
++		kfree(buf.name);
++	} else
++		error = -ENOMEM;
++ out:
++	tomoyo_read_unlock(idx);
 +	return error;
 +}
++
 +#endif
 +
 +static int tomoyo_path_truncate(struct path *path, loff_t length,
 +				unsigned int time_attrs)
 +{
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_TRUNCATE_ACL,
-+				       path);
++	return tomoyo_truncate_permission(path->dentry, path->mnt,
++					  length, time_attrs);
 +}
 +
 +static int tomoyo_path_unlink(struct path *parent, struct dentry *dentry)
 +{
-+	struct path path = { parent->mnt, dentry };
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_UNLINK_ACL,
-+				       &path);
++	return tomoyo_unlink_permission(parent->dentry->d_inode, dentry,
++					parent->mnt);
 +}
 +
 +static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
 +			     int mode)
 +{
-+	struct path path = { parent->mnt, dentry };
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_MKDIR_ACL,
-+				       &path);
++	return tomoyo_mkdir_permission(parent->dentry->d_inode, dentry,
++				       parent->mnt, mode);
 +}
 +
 +static int tomoyo_path_rmdir(struct path *parent, struct dentry *dentry)
 +{
-+	struct path path = { parent->mnt, dentry };
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_RMDIR_ACL,
-+				       &path);
++	return tomoyo_rmdir_permission(parent->dentry->d_inode, dentry,
++				       parent->mnt);
 +}
 +
 +static int tomoyo_path_symlink(struct path *parent, struct dentry *dentry,
 +			       const char *old_name)
 +{
-+	struct path path = { parent->mnt, dentry };
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_SYMLINK_ACL,
-+				       &path);
++	return tomoyo_symlink_permission(parent->dentry->d_inode, dentry,
++					 parent->mnt, old_name);
 +}
 +
 +static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
 +			     int mode, unsigned int dev)
 +{
-+	struct path path = { parent->mnt, dentry };
-+	int type = TOMOYO_TYPE_CREATE_ACL;
-+
-+	switch (mode & S_IFMT) {
-+	case S_IFCHR:
-+		type = TOMOYO_TYPE_MKCHAR_ACL;
-+		break;
-+	case S_IFBLK:
-+		type = TOMOYO_TYPE_MKBLOCK_ACL;
-+		break;
-+	case S_IFIFO:
-+		type = TOMOYO_TYPE_MKFIFO_ACL;
-+		break;
-+	case S_IFSOCK:
-+		type = TOMOYO_TYPE_MKSOCK_ACL;
-+		break;
-+	}
-+	return tomoyo_check_1path_perm(tomoyo_domain(),
-+				       type, &path);
++	return tomoyo_mknod_permission(parent->dentry->d_inode, dentry,
++				       parent->mnt, mode, dev);
 +}
 +
 +static int tomoyo_path_link(struct dentry *old_dentry, struct path *new_dir,
 +			    struct dentry *new_dentry)
 +{
-+	struct path path1 = { new_dir->mnt, old_dentry };
-+	struct path path2 = { new_dir->mnt, new_dentry };
-+	return tomoyo_check_2path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_LINK_ACL,
-+				       &path1, &path2);
++	return tomoyo_link_permission(old_dentry, new_dir->dentry->d_inode,
++				      new_dentry, new_dir->mnt);
 +}
 +
 +static int tomoyo_path_rename(struct path *old_parent,
@@ -241,18 +214,33 @@
 +			      struct path *new_parent,
 +			      struct dentry *new_dentry)
 +{
-+	struct path path1 = { old_parent->mnt, old_dentry };
-+	struct path path2 = { new_parent->mnt, new_dentry };
-+	return tomoyo_check_2path_perm(tomoyo_domain(),
-+				       TOMOYO_TYPE_RENAME_ACL,
-+				       &path1, &path2);
++	return tomoyo_rename_permission(old_parent->dentry->d_inode,
++					old_dentry,
++					new_parent->dentry->d_inode,
++					new_dentry, old_parent->mnt);
++}
++
++static int tomoyo_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
++			     mode_t mode)
++{
++	return tomoyo_chmod_permission(dentry, mnt, mode);
++}
++
++static int tomoyo_path_chown(struct path *path, uid_t uid, gid_t gid)
++{
++	return tomoyo_chown_permission(path->dentry, path->mnt, uid, gid);
++}
++
++static int tomoyo_path_chroot(struct path *path)
++{
++	return tomoyo_chroot_permission(path);
 +}
 +
 +static int tomoyo_file_fcntl(struct file *file, unsigned int cmd,
 +			     unsigned long arg)
 +{
 +	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
-+		return tomoyo_check_rewrite_permission(tomoyo_domain(), file);
++		return tomoyo_rewrite_permission(file);
 +	return 0;
 +}
 +
@@ -260,13 +248,13 @@
 +{
 +	int flags = f->f_flags;
 +
-+	if ((flags + 1) & O_ACCMODE)
-+		flags++;
-+	flags |= f->f_flags & (O_APPEND | O_TRUNC);
 +	/* Don't check read permission here if called from do_execve(). */
 +	if (current->in_execve)
 +		return 0;
-+	return tomoyo_check_open_permission(tomoyo_domain(), &f->f_path, flags);
++	if ((flags + 1) & O_ACCMODE)
++		flags++;
++	flags |= f->f_flags & (O_APPEND | O_TRUNC);
++	return tomoyo_open_permission(f->f_path.dentry, f->f_path.mnt, flags);
 +}
 +
 +/*
@@ -274,37 +262,44 @@
 + * registering TOMOYO.
 + */
 +static struct security_operations tomoyo_security_ops = {
-+	.name                = "tomoyo",
-+	.cred_prepare        = tomoyo_cred_prepare,
-+	.bprm_set_creds      = tomoyo_bprm_set_creds,
-+	.bprm_check_security = tomoyo_bprm_check_security,
++	.name                  = "tomoyo",
++	.cred_prepare          = tomoyo_cred_prepare,
++	.bprm_check_security   = tomoyo_bprm_check_security,
++	.bprm_committing_creds = tomoyo_bprm_committing_creds,
++	.cred_free             = tomoyo_cred_free,
 +#ifdef CONFIG_SYSCTL
-+	.sysctl              = tomoyo_sysctl,
++	.sysctl                = tomoyo_sysctl,
 +#endif
-+	.file_fcntl          = tomoyo_file_fcntl,
-+	.dentry_open         = tomoyo_dentry_open,
-+	.path_truncate       = tomoyo_path_truncate,
-+	.path_unlink         = tomoyo_path_unlink,
-+	.path_mkdir          = tomoyo_path_mkdir,
-+	.path_rmdir          = tomoyo_path_rmdir,
-+	.path_symlink        = tomoyo_path_symlink,
-+	.path_mknod          = tomoyo_path_mknod,
-+	.path_link           = tomoyo_path_link,
-+	.path_rename         = tomoyo_path_rename,
++	.file_fcntl            = tomoyo_file_fcntl,
++	.dentry_open           = tomoyo_dentry_open,
++	.path_truncate         = tomoyo_path_truncate,
++	.path_unlink           = tomoyo_path_unlink,
++	.path_mkdir            = tomoyo_path_mkdir,
++	.path_rmdir            = tomoyo_path_rmdir,
++	.path_symlink          = tomoyo_path_symlink,
++	.path_mknod            = tomoyo_path_mknod,
++	.path_link             = tomoyo_path_link,
++	.path_rename           = tomoyo_path_rename,
++	.path_chmod            = tomoyo_path_chmod,
++	.path_chown            = tomoyo_path_chown,
++	.path_chroot           = tomoyo_path_chroot,
++	/*
++	.socket_create         = tomoyo_socket_create,
++	.socket_bind           = tomoyo_socket_bind,
++	.socket_connect        = tomoyo_socket_connect,
++	.socket_listen         = tomoyo_socket_listen,
++	.socket_sendmsg        = tomoyo_socket_sendmsg,
++	*/
 +};
 +
 +static int __init tomoyo_init(void)
 +{
-+	struct cred *cred = (struct cred *) current_cred();
-+
 +	if (!security_module_enable(&tomoyo_security_ops))
 +		return 0;
 +	/* register ourselves with the security framework */
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	cred->security = &tomoyo_kernel_domain;
-+	tomoyo_realpath_init();
 +	return 0;
 +}
 +

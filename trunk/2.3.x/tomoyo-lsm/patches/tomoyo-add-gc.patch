@@ -123,9 +123,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool in_use;
 +	struct task_struct *p;
 +	/* Don't delete domains if somebody is doing execve(). */
-+	spin_lock(&tomoyo_execve_list_lock);
-+	in_use = tomoyo_in_execve_counter != 0;
-+	spin_unlock(&tomoyo_execve_list_lock);
++	smp_mb();
++	in_use = atomic_read(&tomoyo_in_execve_counter) != 0;
++	smp_mb();
 +	if (in_use)
 +		return true;
 +	read_lock(&tasklist_lock);

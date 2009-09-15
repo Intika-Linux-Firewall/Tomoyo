@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-file.c | 2193 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2193 insertions(+)
+ security/tomoyo/new-file.c | 2109 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2109 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-file.c
-@@ -0,0 +1,2193 @@
+@@ -0,0 +1,2109 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -101,7 +101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +bool tomoyo_compare_number_union(const unsigned long value,
-+			      const struct tomoyo_number_union *ptr)
++				 const struct tomoyo_number_union *ptr)
 +{
 +	if (ptr->is_group)
 +		return tomoyo_number_matches_group(value, value, ptr->group);
@@ -109,7 +109,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
-+			    const struct tomoyo_name_union *ptr)
++			       const struct tomoyo_name_union *ptr)
 +{
 +	if (ptr->is_group)
 +		return tomoyo_path_matches_group(name, ptr->group, 1);
@@ -117,12 +117,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static bool tomoyo_compare_name_union_pattern(const struct tomoyo_path_info *name,
-+					   const struct tomoyo_name_union *ptr,
-+					   const bool may_use_pattern)
++					      const struct tomoyo_name_union *ptr,
++					      const bool may_use_pattern)
 +{
 +	if (ptr->is_group)
 +		return tomoyo_path_matches_group(name, ptr->group,
-+					      may_use_pattern);
++						 may_use_pattern);
 +	if (may_use_pattern || !ptr->filename->is_patterned)
 +		return tomoyo_path_matches_pattern(name, ptr->filename);
 +	return false;
@@ -209,7 +209,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true success, false otherwise.
 + */
 +static bool tomoyo_get_realpath(struct tomoyo_path_info *buf, struct dentry *dentry,
-+			     struct vfsmount *mnt)
++				struct vfsmount *mnt)
 +{
 +	struct path path = { mnt, dentry };
 +	buf->name = tomoyo_realpath_from_path(&path);
@@ -221,9 +221,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static int tomoyo_update_path_acl(const u8 type, const char *filename,
-+			       struct tomoyo_domain_info * const domain,
-+			       struct tomoyo_condition *condition,
-+			       const bool is_delete);
++				  struct tomoyo_domain_info * const domain,
++				  struct tomoyo_condition *condition,
++				  const bool is_delete);
 +
 +/**
 + * tomoyo_audit_path_log - Audit single path request log.
@@ -236,13 +236,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_path_log(struct tomoyo_request_info *r,
-+			      const char *operation, const char *filename,
-+			      const bool is_granted)
++				 const char *operation, const char *filename,
++				 const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "%s %s", operation, filename);
 +	return tomoyo_write_audit_log(is_granted, r, "allow_%s %s\n", operation,
-+				   filename);
++				      filename);
 +}
 +
 +/**
@@ -257,13 +257,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_path2_log(struct tomoyo_request_info *r,
-+			       const char *operation, const char *filename1,
-+			       const char *filename2, const bool is_granted)
++				  const char *operation, const char *filename1,
++				  const char *filename2, const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "%s %s %s", operation, filename1, filename2);
 +	return tomoyo_write_audit_log(is_granted, r, "allow_%s %s %s\n",
-+				   operation, filename1, filename2);
++				      operation, filename1, filename2);
 +}
 +
 +/**
@@ -280,18 +280,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_path_number3_log(struct tomoyo_request_info *r,
-+				      const char *operation,
-+				      const char *filename,
-+				      const unsigned int mode,
-+				      const unsigned int major,
-+				      const unsigned int minor,
-+				      const bool is_granted)
++					 const char *operation,
++					 const char *filename,
++					 const unsigned int mode,
++					 const unsigned int major,
++					 const unsigned int minor,
++					 const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "%s %s 0%o %u %u", operation, filename, mode,
-+			     major, minor);
++				major, minor);
 +	return tomoyo_write_audit_log(is_granted, r, "allow_%s %s 0%o %u %u\n",
-+				   operation, filename, mode, major, minor);
++				      operation, filename, mode, major, minor);
 +}
 +
 +/**
@@ -306,14 +306,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_path_number_log(struct tomoyo_request_info *r,
-+				     const char *operation,
-+				     const char *filename, const char *value,
-+				     const bool is_granted)
++					const char *operation,
++					const char *filename, const char *value,
++					const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "%s %s %s", operation, filename, value);
 +	return tomoyo_write_audit_log(is_granted, r, "allow_%s %s %s\n",
-+				   operation, filename, value);
++				      operation, filename, value);
 +}
 +
 +/* The list for "struct tomoyo_globally_readable_file_entry". */
@@ -403,7 +403,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->is_deleted)
 +			continue;
 +		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_READ "%s\n",
-+				     ptr->filename->name);
++					ptr->filename->name);
 +		if (!done)
 +			break;
 +	}
@@ -501,7 +501,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->is_deleted)
 +			continue;
 +		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_FILE_PATTERN "%s\n",
-+				     ptr->pattern->name);
++					ptr->pattern->name);
 +		if (!done)
 +			break;
 +	}
@@ -596,7 +596,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->is_deleted)
 +			continue;
 +		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_DENY_REWRITE "%s\n",
-+				     ptr->pattern->name);
++					ptr->pattern->name);
 +		if (!done)
 +			break;
 +	}
@@ -620,9 +620,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * "allow_execute" instead of "1".
 + */
 +static inline int tomoyo_update_file_acl(u8 perm, const char *filename,
-+				      struct tomoyo_domain_info * const domain,
-+				      struct tomoyo_condition *condition,
-+				      const bool is_delete)
++					 struct tomoyo_domain_info * const domain,
++					 struct tomoyo_condition *condition,
++					 const bool is_delete)
 +{
 +	if (perm > 7 || !perm)
 +		return -EINVAL;
@@ -634,13 +634,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +	if (perm & 4)
 +		tomoyo_update_path_acl(TOMOYO_TYPE_READ, filename, domain,
-+				    condition, is_delete);
++				       condition, is_delete);
 +	if (perm & 2)
 +		tomoyo_update_path_acl(TOMOYO_TYPE_WRITE, filename,
-+				    domain, condition, is_delete);
++				       domain, condition, is_delete);
 +	if (perm & 1)
 +		tomoyo_update_path_acl(TOMOYO_TYPE_EXECUTE, filename,
-+				    domain, condition, is_delete);
++				       domain, condition, is_delete);
 +	return 0;
 +}
 +
@@ -657,9 +657,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_acl(struct tomoyo_request_info *r,
-+			const struct tomoyo_path_info *filename,
-+			const u16 perm,
-+			const bool may_use_pattern)
++			   const struct tomoyo_path_info *filename,
++			   const u16 perm,
++			   const bool may_use_pattern)
 +{
 +	struct tomoyo_domain_info *domain = r->domain;
 +	struct tomoyo_acl_info *ptr;
@@ -672,7 +672,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				   head);
 +		if (!(acl->perm & perm) || !tomoyo_condition(r, ptr) ||
 +		    !tomoyo_compare_name_union_pattern(filename, &acl->name,
-+						    may_use_pattern))
++						       may_use_pattern))
 +			continue;
 +		r->cond = ptr->cond;
 +		error = 0;
@@ -696,10 +696,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_number3_acl(struct tomoyo_request_info *r,
-+				const struct tomoyo_path_info *filename,
-+				const u16 perm, const unsigned int mode,
-+				const unsigned int major,
-+				const unsigned int minor)
++				   const struct tomoyo_path_info *filename,
++				   const u16 perm, const unsigned int mode,
++				   const unsigned int major,
++				   const unsigned int minor)
 +{
 +	struct tomoyo_domain_info *domain = r->domain;
 +	struct tomoyo_acl_info *ptr;
@@ -737,8 +737,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Caller holds tomoyo_read_lock().
 + */
-+static int tomoyo_file_perm(struct tomoyo_request_info *r,
-+			 const struct tomoyo_path_info *filename, const u8 mode)
++int tomoyo_file_perm(struct tomoyo_request_info *r,
++		     const struct tomoyo_path_info *filename, const u8 mode)
 +{
 +	const char *msg = "<unknown>";
 +	int error = 0;
@@ -768,8 +768,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
-+				       mode == 1 ? filename->name :
-+				       tomoyo_file_pattern(filename));
++					  mode == 1 ? filename->name :
++					  tomoyo_file_pattern(filename));
 +		/*
 +		 * Do not retry for execute request, for aggregator may have
 +		 * changed.
@@ -791,9 +791,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_update_execute_handler(const u8 type,
-+					     const char *filename,
-+					     struct tomoyo_domain_info * const
-+					     domain, const bool is_delete)
++						const char *filename,
++						struct tomoyo_domain_info * const
++						domain, const bool is_delete)
 +{
 +	struct tomoyo_acl_info *ptr;
 +	struct tomoyo_execute_handler_record e = { .head.type = type };
@@ -859,9 +859,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_update_path_acl(const u8 type, const char *filename,
-+			       struct tomoyo_domain_info * const domain,
-+			       struct tomoyo_condition *condition,
-+			       const bool is_delete)
++				  struct tomoyo_domain_info * const domain,
++				  struct tomoyo_condition *condition,
++				  const bool is_delete)
 +{
 +	static const u16 tomoyo_rw_mask =
 +		(1 << TOMOYO_TYPE_READ) | (1 << TOMOYO_TYPE_WRITE);
@@ -936,12 +936,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_update_path_number3_acl(const u8 type,
-+					      const char *filename, char *mode,
-+					      char *major, char *minor,
-+					      struct tomoyo_domain_info * const
-+					      domain,
-+					      struct tomoyo_condition *condition,
-+					      const bool is_delete)
++						 const char *filename, char *mode,
++						 char *major, char *minor,
++						 struct tomoyo_domain_info * const
++						 domain,
++						 struct tomoyo_condition *condition,
++						 const bool is_delete)
 +{
 +	const u8 perm = 1 << type;
 +	struct tomoyo_acl_info *ptr;
@@ -1008,12 +1008,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_update_path2_acl(const u8 type,
-+				       const char *filename1,
-+				       const char *filename2,
-+				       struct tomoyo_domain_info * const
-+				       domain,
-+				       struct tomoyo_condition *condition,
-+				       const bool is_delete)
++					  const char *filename1,
++					  const char *filename2,
++					  struct tomoyo_domain_info * const
++					  domain,
++					  struct tomoyo_condition *condition,
++					  const bool is_delete)
 +{
 +	const u8 perm = 1 << type;
 +	struct tomoyo_acl_info *ptr;
@@ -1077,8 +1077,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path2_acl(struct tomoyo_request_info *r, const u8 type,
-+			 const struct tomoyo_path_info *filename1,
-+			 const struct tomoyo_path_info *filename2)
++			    const struct tomoyo_path_info *filename1,
++			    const struct tomoyo_path_info *filename2)
 +{
 +	const struct tomoyo_domain_info *domain = r->domain;
 +	struct tomoyo_acl_info *ptr;
@@ -1113,9 +1113,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_permission(struct tomoyo_request_info *r,
-+			       u8 operation,
-+			       const struct tomoyo_path_info *
-+			       filename)
++				  u8 operation,
++				  const struct tomoyo_path_info *
++				  filename)
 +{
 +	const char *msg;
 +	int error;
@@ -1130,7 +1130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
-+				       tomoyo_file_pattern(filename));
++					  tomoyo_file_pattern(filename));
 +	} while (error == 1);
 +	if (r->mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
@@ -1161,10 +1161,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_number3_perm2(struct tomoyo_request_info *r,
-+				  const u8 operation,
-+				  const struct tomoyo_path_info *filename,
-+				  const unsigned int mode,
-+				  const unsigned int dev)
++				     const u8 operation,
++				     const struct tomoyo_path_info *filename,
++				     const unsigned int mode,
++				     const unsigned int dev)
 +{
 +	int error;
 +	const char *msg = tomoyo_path_number32keyword(operation);
@@ -1174,14 +1174,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return 0;
 +	do {
 +		error = tomoyo_path_number3_acl(r, filename, 1 << operation, mode,
-+					     major, minor);
++						major, minor);
 +		tomoyo_audit_path_number3_log(r, msg, filename->name, mode, major,
-+					   minor, !error);
++					      minor, !error);
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(r, "allow_%s %s 0%o %u %u\n", msg,
-+				       tomoyo_file_pattern(filename), mode,
-+				       major, minor);
++					  tomoyo_file_pattern(filename), mode,
++					  major, minor);
 +	} while (error == 1);
 +	if (r->mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
@@ -1199,7 +1199,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +int tomoyo_exec_perm(struct tomoyo_request_info *r,
-+		  const struct tomoyo_path_info *filename)
++		     const struct tomoyo_path_info *filename)
 +{
 +	if (r->mode == TOMOYO_CONFIG_DISABLED)
 +		return 0;
@@ -1237,7 +1237,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			const int flag)
++			   const int flag)
 +{
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj = {
@@ -1272,7 +1272,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (tomoyo_is_no_rewrite_file(&buf)) {
 +			r.obj = &obj;
 +			error = tomoyo_path_permission(&r, TOMOYO_TYPE_REWRITE,
-+						    &buf);
++						       &buf);
 +		}
 +	}
 +	if (!error && acc_mode &&
@@ -1314,7 +1314,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_path_perm(const u8 operation, struct dentry *dentry,
-+			 struct vfsmount *mnt, const char *target)
++			    struct vfsmount *mnt, const char *target)
 +{
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj = {
@@ -1373,8 +1373,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_path_number3_perm(const u8 operation, struct dentry *dentry,
-+				 struct vfsmount *mnt, const unsigned int mode,
-+				 const unsigned int dev)
++				    struct vfsmount *mnt, const unsigned int mode,
++				    const unsigned int dev)
 +{
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj = {
@@ -1458,7 +1458,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_path2_perm(const u8 operation, struct dentry *dentry1,
-+			  struct dentry *dentry2, struct vfsmount *mnt)
++			     struct dentry *dentry2, struct vfsmount *mnt)
 +{
 +	struct tomoyo_request_info r;
 +	int error = -ENOMEM;
@@ -1499,8 +1499,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(&r, "allow_%s %s %s\n", msg,
-+				       tomoyo_file_pattern(&buf1),
-+				       tomoyo_file_pattern(&buf2));
++					  tomoyo_file_pattern(&buf1),
++					  tomoyo_file_pattern(&buf2));
 +	} while (error == 1);
 + out:
 +	kfree(buf1.name);
@@ -1524,12 +1524,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_update_path_number_acl(const u8 type,
-+					     const char *filename,
-+					     char *number,
-+					     struct tomoyo_domain_info * const
-+					     domain,
-+					     struct tomoyo_condition *condition,
-+					     const bool is_delete)
++						const char *filename,
++						char *number,
++						struct tomoyo_domain_info * const
++						domain,
++						struct tomoyo_condition *condition,
++						const bool is_delete)
 +{
 +	const u8 perm = 1 << type;
 +	struct tomoyo_acl_info *ptr;
@@ -1596,8 +1596,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_number_acl(struct tomoyo_request_info *r, const u8 type,
-+			       const struct tomoyo_path_info *filename,
-+			       const unsigned long number)
++				  const struct tomoyo_path_info *filename,
++				  const unsigned long number)
 +{
 +	struct tomoyo_domain_info *domain = r->domain;
 +	struct tomoyo_acl_info *ptr;
@@ -1632,8 +1632,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_path_number_perm2(struct tomoyo_request_info *r, const u8 type,
-+				 const struct tomoyo_path_info *filename,
-+				 const unsigned long number)
++				    const struct tomoyo_path_info *filename,
++				    const unsigned long number)
 +{
 +	char buffer[64];
 +	int error;
@@ -1660,11 +1660,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	do {
 +		error = tomoyo_path_number_acl(r, type, filename, number);
 +		tomoyo_audit_path_number_log(r, msg, filename->name, buffer,
-+					  !error);
++					     !error);
 +		if (!error)
 +			return 0;
 +		error = tomoyo_supervisor(r, "allow_%s %s %s\n", msg,
-+				       tomoyo_file_pattern(filename), buffer);
++					  tomoyo_file_pattern(filename), buffer);
 +	} while (error == 1);
 +	if (r->mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
@@ -1681,7 +1681,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_path_number_perm(const u8 type, struct dentry *dentry,
-+				struct vfsmount *vfsmnt, unsigned long number)
++				   struct vfsmount *vfsmnt, unsigned long number)
 +{
 +	struct tomoyo_request_info r;
 +	struct tomoyo_obj_info obj = {
@@ -1724,10 +1724,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_ioctl_permission(struct file *filp, unsigned int cmd,
-+			 unsigned long arg)
++			    unsigned long arg)
 +{
 +	return tomoyo_path_number_perm(TOMOYO_TYPE_IOCTL, filp->f_dentry,
-+				    filp->f_vfsmnt, cmd);
++				       filp->f_vfsmnt, cmd);
 +}
 +
 +/**
@@ -1740,12 +1740,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
-+			 mode_t mode)
++			    mode_t mode)
 +{
 +	if (mode == (mode_t) -1)
 +		return 0;
 +	return tomoyo_path_number_perm(TOMOYO_TYPE_CHMOD, dentry, vfsmnt,
-+				    mode & S_IALLUGO);
++				       mode & S_IALLUGO);
 +}
 +
 +/**
@@ -1759,15 +1759,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
-+			 uid_t user, gid_t group)
++			    uid_t user, gid_t group)
 +{
 +	int error = 0;
 +	if (user != (uid_t) -1)
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHOWN, dentry, vfsmnt,
-+					     user);
++						user);
 +	if (!error && group != (gid_t) -1)
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHGRP, dentry, vfsmnt,
-+					     group);
++						group);
 +	return error;
 +}
 +
@@ -1782,8 +1782,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_write_file_policy(char *data, struct tomoyo_domain_info *domain,
-+			  struct tomoyo_condition *condition,
-+			  const bool is_delete)
++			     struct tomoyo_condition *condition,
++			     const bool is_delete)
 +{
 +	char *w[5];
 +	unsigned int perm;
@@ -1793,7 +1793,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (strncmp(w[0], "allow_", 6)) {
 +		if (sscanf(w[0], "%u", &perm) == 1)
 +			return tomoyo_update_file_acl((u8) perm, w[1], domain,
-+						   condition, is_delete);
++						      condition, is_delete);
 +		if (!strcmp(w[0], TOMOYO_KEYWORD_EXECUTE_HANDLER))
 +			type = TOMOYO_TYPE_EXECUTE_HANDLER;
 +		else if (!strcmp(w[0], TOMOYO_KEYWORD_DENIED_EXECUTE_HANDLER))
@@ -1801,14 +1801,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			goto out;
 +		return tomoyo_update_execute_handler(type, w[1], domain,
-+						  is_delete);
++						     is_delete);
 +	}
 +	w[0] += 6;
 +	for (type = 0; type < TOMOYO_MAX_PATH_OPERATION; type++) {
 +		if (strcmp(w[0], tomoyo_path_keyword[type]))
 +			continue;
 +		return tomoyo_update_path_acl(type, w[1], domain, condition,
-+					   is_delete);
++					      is_delete);
 +	}
 +	if (!w[2][0])
 +		goto out;
@@ -1816,13 +1816,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (strcmp(w[0], tomoyo_path2_keyword[type]))
 +			continue;
 +		return tomoyo_update_path2_acl(type, w[1], w[2], domain,
-+					    condition, is_delete);
++					       condition, is_delete);
 +	}
 +	for (type = 0; type < TOMOYO_MAX_PATH_NUMBER_OPERATION; type++) {
 +		if (strcmp(w[0], tomoyo_path_number_keyword[type]))
 +			continue;
 +		return tomoyo_update_path_number_acl(type, w[1], w[2], domain,
-+						  condition, is_delete);
++						     condition, is_delete);
 +	}
 +	if (!w[3][0] || !w[4][0])
 +		goto out;
@@ -1830,8 +1830,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (strcmp(w[0], tomoyo_path_number3_keyword[type]))
 +			continue;
 +		return tomoyo_update_path_number3_acl(type, w[1], w[2], w[3],
-+						   w[4], domain, condition,
-+						   is_delete);
++						      w[4], domain, condition,
++						      is_delete);
 +	}
 + out:
 +	return -EINVAL;
@@ -1875,7 +1875,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Permission checks from vfs_mknod(). */
 +static int tomoyo_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
-+			     int mode)
++				int mode)
 +{
 +	int error = tomoyo_may_create(dir, dentry);
 +	if (error)
@@ -1922,7 +1922,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Permission checks from vfs_link(). */
 +static int tomoyo_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-+			    struct dentry *new_dentry)
++			       struct dentry *new_dentry)
 +{
 +	struct inode *inode = old_dentry->d_inode;
 +	int error;
@@ -1955,7 +1955,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Permission checks from vfs_rename(). */
 +static int tomoyo_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-+			      struct inode *new_dir, struct dentry *new_dentry)
++				 struct inode *new_dir, struct dentry *new_dentry)
 +{
 +	int error;
 +	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
@@ -1984,8 +1984,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * vfs_mknod() is called from net/unix/af_unix.c.
 + */
 +int tomoyo_mknod_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt, const unsigned int mode,
-+			 unsigned int dev)
++			    struct vfsmount *mnt, const unsigned int mode,
++			    unsigned int dev)
 +{
 +	int error;
 +	if (S_ISCHR(mode) && !tomoyo_capable(TOMOYO_CREATE_CHAR_DEV))
@@ -2002,7 +2002,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = tomoyo_pre_vfs_create(dir, dentry);
 +		if (!error)
 +			error = tomoyo_path_number_perm(TOMOYO_TYPE_CREATE, dentry,
-+						     mnt, mode & S_IALLUGO);
++							mnt, mode & S_IALLUGO);
 +		return error;
 +	}
 +	error = tomoyo_pre_vfs_mknod(dir, dentry, mode);
@@ -2012,19 +2012,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	switch (mode & S_IFMT) {
 +	case S_IFCHR:
 +		error = tomoyo_path_number3_perm(TOMOYO_TYPE_MKCHAR, dentry, mnt,
-+					      mode & S_IALLUGO, dev);
++						 mode & S_IALLUGO, dev);
 +		break;
 +	case S_IFBLK:
 +		error = tomoyo_path_number3_perm(TOMOYO_TYPE_MKBLOCK, dentry, mnt,
-+					      mode & S_IALLUGO, dev);
++						 mode & S_IALLUGO, dev);
 +		break;
 +	case S_IFIFO:
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_MKFIFO, dentry, mnt,
-+					     mode & S_IALLUGO);
++						mode & S_IALLUGO);
 +		break;
 +	case S_IFSOCK:
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_MKSOCK, dentry, mnt,
-+					     mode & S_IALLUGO);
++						mode & S_IALLUGO);
 +		break;
 +	}
 +	return error;
@@ -2032,29 +2032,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Permission checks for vfs_mkdir(). */
 +int tomoyo_mkdir_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt, unsigned int mode)
++			    struct vfsmount *mnt, unsigned int mode)
 +{
 +	int error = tomoyo_pre_vfs_mkdir(dir, dentry);
 +	if (!error)
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_MKDIR, dentry, mnt,
-+					     mode);
++						mode);
 +	return error;
 +}
 +
 +/* Permission checks for vfs_rmdir(). */
 +int tomoyo_rmdir_permission(struct inode *dir, struct dentry *dentry,
-+			 struct vfsmount *mnt)
++			    struct vfsmount *mnt)
 +{
 +	int error = tomoyo_pre_vfs_rmdir(dir, dentry);
 +	if (!error)
 +		error = tomoyo_path_perm(TOMOYO_TYPE_RMDIR, dentry, mnt,
-+				      NULL);
++					 NULL);
 +	return error;
 +}
 +
 +/* Permission checks for vfs_unlink(). */
 +int tomoyo_unlink_permission(struct inode *dir, struct dentry *dentry,
-+			  struct vfsmount *mnt)
++			     struct vfsmount *mnt)
 +{
 +	int error;
 +	if (!tomoyo_capable(TOMOYO_SYS_UNLINK))
@@ -2062,13 +2062,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tomoyo_pre_vfs_unlink(dir, dentry);
 +	if (!error)
 +		error = tomoyo_path_perm(TOMOYO_TYPE_UNLINK, dentry, mnt,
-+				      NULL);
++					 NULL);
 +	return error;
 +}
 +
 +/* Permission checks for vfs_symlink(). */
 +int tomoyo_symlink_permission(struct inode *dir, struct dentry *dentry,
-+			   struct vfsmount *mnt, char *from)
++			      struct vfsmount *mnt, const char *from)
 +{
 +	int error;
 +	if (!tomoyo_capable(TOMOYO_SYS_SYMLINK))
@@ -2076,23 +2076,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tomoyo_pre_vfs_symlink(dir, dentry);
 +	if (!error)
 +		error = tomoyo_path_perm(TOMOYO_TYPE_SYMLINK, dentry, mnt,
-+				      from);
++					 from);
 +	return error;
 +}
 +
 +/* Permission checks for notify_change(). */
 +int tomoyo_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-+			    loff_t length, unsigned int time_attrs)
++			       loff_t length, unsigned int time_attrs)
 +{
 +	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, dentry, mnt, NULL);
 +}
 +
 +/* Permission checks for vfs_rename(). */
 +int tomoyo_rename_permission(struct inode *old_dir,
-+			  struct dentry *old_dentry,
-+			  struct inode *new_dir,
-+			  struct dentry *new_dentry,
-+			  struct vfsmount *mnt)
++			     struct dentry *old_dentry,
++			     struct inode *new_dir,
++			     struct dentry *new_dentry,
++			     struct vfsmount *mnt)
 +{
 +	int error;
 +	if (!tomoyo_capable(TOMOYO_SYS_RENAME))
@@ -2100,13 +2100,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tomoyo_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 +	if (!error)
 +		error = tomoyo_path2_perm(TOMOYO_TYPE_RENAME, old_dentry,
-+				       new_dentry, mnt);
++					  new_dentry, mnt);
 +	return error;
 +}
 +
 +/* Permission checks for vfs_link(). */
 +int tomoyo_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-+			struct dentry *new_dentry, struct vfsmount *mnt)
++			   struct dentry *new_dentry, struct vfsmount *mnt)
 +{
 +	int error;
 +	if (!tomoyo_capable(TOMOYO_SYS_LINK))
@@ -2114,90 +2114,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tomoyo_pre_vfs_link(old_dentry, new_dir, new_dentry);
 +	if (!error)
 +		error = tomoyo_path2_perm(TOMOYO_TYPE_LINK, old_dentry,
-+				       new_dentry, mnt);
++					  new_dentry, mnt);
 +	return error;
 +}
-+
-+#if defined(CONFIG_SYSCTL_SYSCALL)
-+
-+#include <linux/sysctl.h>
-+
-+/* Permission checks for parse_table(). */
-+int tomoyo_parse_table(int __user *name, int nlen, void __user *oldval,
-+		    void __user *newval, struct ctl_table *table)
-+{
-+	int n;
-+	int error = -ENOMEM;
-+	int op = 0;
-+	struct tomoyo_path_info buf;
-+	char *buffer = NULL;
-+	struct tomoyo_request_info r;
-+	int idx;
-+	if (oldval)
-+		op |= 004;
-+	if (newval)
-+		op |= 002;
-+	if (!op) /* Neither read nor write */
-+		return 0;
-+	idx = tomoyo_read_lock();
-+	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_OPEN)
-+	    == TOMOYO_CONFIG_DISABLED) {
-+		error = 0;
-+		goto out;
-+	}
-+	buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-+	if (!buffer)
-+		goto out;
-+	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
-+ repeat:
-+	if (!nlen) {
-+		error = -ENOTDIR;
-+		goto out;
-+	}
-+	if (get_user(n, name)) {
-+		error = -EFAULT;
-+		goto out;
-+	}
-+	for ( ; table->ctl_name || table->procname; table++) {
-+		int pos;
-+		const char *cp;
-+		if (!n || n != table->ctl_name)
-+			continue;
-+		pos = strlen(buffer);
-+		cp = table->procname;
-+		error = -ENOMEM;
-+		if (cp) {
-+			int len = strlen(cp);
-+			if (len + 2 > PAGE_SIZE - 1)
-+				goto out;
-+			buffer[pos++] = '/';
-+			memmove(buffer + pos, cp, len + 1);
-+		} else {
-+			/* Assume nobody assigns "=\$=" for procname. */
-+			snprintf(buffer + pos, PAGE_SIZE - pos - 1,
-+				 "/=%d=", table->ctl_name);
-+			if (!memchr(buffer, '\0', PAGE_SIZE - 2))
-+				goto out;
-+		}
-+		if (table->child) {
-+			name++;
-+			nlen--;
-+			table = table->child;
-+			goto repeat;
-+		}
-+		/* printk("sysctl='%s'\n", buffer); */
-+		buf.name = tomoyo_encode(buffer);
-+		if (buf.name) {
-+			tomoyo_fill_path_info(&buf);
-+			error = tomoyo_file_perm(&r, &buf, op);
-+			kfree(buf.name);
-+		}
-+		goto out;
-+	}
-+	error = -ENOTDIR;
-+ out:
-+	tomoyo_read_unlock(idx);
-+	kfree(buffer);
-+	return error;
-+}
-+#endif

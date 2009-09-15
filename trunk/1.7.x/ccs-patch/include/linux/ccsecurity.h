@@ -91,7 +91,7 @@ int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
 int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 			  struct vfsmount *mnt);
 int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
-			   struct vfsmount *mnt, char *from);
+			   struct vfsmount *mnt, const char *from);
 int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 			    loff_t length, unsigned int time_attrs);
 int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
