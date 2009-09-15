@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/securityfs_if.c |  150 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 150 insertions(+)
+ security/tomoyo/securityfs_if.c |  149 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 149 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/securityfs_if.c
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,149 @@
 +/*
 + * security/tomoyo/securityfs_if.c
 + *
@@ -23,7 +23,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <linux/types.h>
 +#include <linux/kernel.h>
 +#include <asm/io.h>
-+#include <linux/proc_fs.h>
 +#include <linux/module.h>
 +#include <linux/version.h>
 +#include "internal.h"
@@ -38,8 +37,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static int tomoyo_open(struct inode *inode, struct file *file)
 +{
-+	return tomoyo_open_control(((u8 *) PDE(inode)->data) - ((u8 *) NULL),
-+				file);
++	const int key = ((u8 *) file->f_path.dentry->d_inode->i_private)
++		- ((u8 *) NULL);
++	return tomoyo_open_control(key, file);
 +}
 +
 +/**
@@ -120,23 +120,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns nothing.
 + */
 +static void __init tomoyo_create_entry(const char *name, const mode_t mode,
-+				    struct proc_dir_entry *parent, const u8 key)
++				       struct dentry *parent, const u8 key)
 +{
-+	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
-+	if (entry) {
-+		entry->proc_fops = &tomoyo_operations;
-+		entry->data = ((u8 *) NULL) + key;
-+	}
++	securityfs_create_file(name, mode, parent, ((u8 *) NULL) + key,
++			       &tomoyo_operations);
 +}
 +
 +/**
-+ * tomoyo_proc_init - Initialize /sys/kernel/security/tomoyo/ interface.
++ * tomoyo_securityfs_init - Initialize /sys/kernel/security/tomoyo/ interface.
 + *
 + * Returns 0.
 + */
-+static int __init tomoyo_proc_init(void)
++static int __init tomoyo_securityfs_init(void)
 +{
-+	struct proc_dir_entry *tomoyo_dir = proc_mkdir("tomoyo", NULL);
++	struct dentry *tomoyo_dir;
++	if (!tomoyo_registered)
++		return 0;
++	tomoyo_dir = securityfs_create_dir("tomoyo", NULL);
 +	tomoyo_create_entry("query",            0600, tomoyo_dir, TOMOYO_QUERY);
 +	tomoyo_create_entry("domain_policy",    0600, tomoyo_dir, TOMOYO_DOMAINPOLICY);
 +	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
@@ -153,8 +153,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_create_entry("manager",          0600, tomoyo_dir, TOMOYO_MANAGER);
 +	tomoyo_create_entry("version",          0400, tomoyo_dir, TOMOYO_VERSION);
 +	tomoyo_create_entry(".execute_handler", 0666, tomoyo_dir,
-+			 TOMOYO_EXECUTE_HANDLER);
++			    TOMOYO_EXECUTE_HANDLER);
 +	return 0;
 +}
-+
-+fs_initcall(tomoyo_proc_init);
++fs_initcall(tomoyo_securityfs_init);

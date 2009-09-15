@@ -2,12 +2,12 @@
 
 Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/capability.c |  157 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 157 insertions(+)
+ security/tomoyo/capability.c |  137 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 137 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/capability.c
-@@ -0,0 +1,157 @@
+@@ -0,0 +1,137 @@
 +/*
 + * security/tomoyo/capability.c
 + *
@@ -144,24 +144,4 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_unlock(&tomoyo_policy_lock);
 +	kfree(entry);
 +	return error;
-+}
-+
-+/**
-+ * tomoyo_setattr_permission - Check permission for chmod/chown.
-+ *
-+ * @dentry: Pointer to "struct dentry".
-+ * @attr:   Pointer to "struct iattr".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+int tomoyo_setattr_permission(struct dentry *dentry, struct iattr *attr)
-+{
-+	if (attr->ia_valid & ATTR_FORCE)
-+		return 0;
-+	if ((attr->ia_valid & ATTR_MODE) && !tomoyo_capable(TOMOYO_SYS_CHMOD))
-+		return -EPERM;
-+	if ((attr->ia_valid & (ATTR_UID | ATTR_GID)) &&
-+	    !tomoyo_capable(TOMOYO_SYS_CHOWN))
-+		return -EPERM;
-+	return 0;
 +}

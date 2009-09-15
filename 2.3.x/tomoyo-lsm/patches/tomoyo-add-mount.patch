@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/mount.c |  375 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 375 insertions(+)
+ security/tomoyo/mount.c |  370 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 370 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/mount.c
-@@ -0,0 +1,375 @@
+@@ -0,0 +1,370 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -80,7 +80,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * @r:        Pointer to "struct tomoyo_request_info".
 + * @dev_name: Name of device file.
-+ * @dir_name: Name of mount point.
++ * @dir:      Pointer to "struct path".
 + * @type:     Name of filesystem type.
 + * @flags:    Mount options.
 + *
@@ -89,8 +89,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_mount_acl2(struct tomoyo_request_info *r, char *dev_name,
-+			  char *dir_name, char *type,
-+			  unsigned long flags)
++			     struct path *dir, char *type, unsigned long flags)
 +{
 +	struct tomoyo_obj_info obj = { };
 +	struct path path;
@@ -114,12 +113,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_fill_path_info(&rtype);
 +
 +	/* Get mount point. */
-+	if (tomoyo_get_path(dir_name, &path)) {
-+		error = -ENOENT;
-+		goto out;
-+	}
-+	obj.path2 = path;
-+	requested_dir_name = tomoyo_realpath_from_path(&path);
++	obj.path2 = *dir;
++	requested_dir_name = tomoyo_realpath_from_path(dir);
 +	if (!requested_dir_name) {
 +		error = -ENOMEM;
 +		goto out;
@@ -216,7 +211,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * @r:        Pointer to "struct tomoyo_request_info".
 + * @dev_name: Name of device file.
-+ * @dir_name: Name of mount point.
++ * @dir:      Pointer to "struct path".
 + * @type:     Name of filesystem type.
 + * @flags:    Mount options.
 + *
@@ -225,7 +220,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_mount_acl(struct tomoyo_request_info *r, char *dev_name,
-+			 char *dir_name, char *type, unsigned long flags)
++			    struct path *dir, char *type, unsigned long flags)
 +{
 +	int error;
 +	error = -EPERM;
@@ -262,37 +257,37 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EINVAL;
 +	}
 +	if (flags & MS_REMOUNT)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_REMOUNT_KEYWORD,
 +				      flags & ~MS_REMOUNT);
 +	else if (flags & MS_MOVE)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_MOVE_KEYWORD,
 +				      flags & ~MS_MOVE);
 +	else if (flags & MS_BIND)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_BIND_KEYWORD,
 +				      flags & ~MS_BIND);
 +	else if (flags & MS_UNBINDABLE)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD,
 +				      flags & ~MS_UNBINDABLE);
 +	else if (flags & MS_PRIVATE)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD,
 +				      flags & ~MS_PRIVATE);
 +	else if (flags & MS_SLAVE)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD,
 +				      flags & ~MS_SLAVE);
 +	else if (flags & MS_SHARED)
-+		error = tomoyo_mount_acl(r, dev_name, dir_name,
++		error = tomoyo_mount_acl(r, dev_name, dir,
 +				      TOMOYO_MOUNT_MAKE_SHARED_KEYWORD,
 +				      flags & ~MS_SHARED);
 +	else
 +		do {
-+			error = tomoyo_mount_acl2(r, dev_name, dir_name, type,
-+					       flags);
++			error = tomoyo_mount_acl2(r, dev_name, dir, type,
++						  flags);
 +		} while (error == 1);
 +	if (r->mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
@@ -303,14 +298,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * tomoyo_mount_permission - Check permission for mount() operation.
 + *
 + * @dev_name: Name of device file.
-+ * @dir_name: Name of mount point.
++ * @dir:      Pointer to "struct path".
 + * @type:     Name of filesystem type. May be NULL.
 + * @flags:    Mount options.
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int tomoyo_mount_permission(char *dev_name, char *dir_name, char *type,
-+			 const unsigned long *flags)
++int tomoyo_mount_permission(char *dev_name, struct path *dir, char *type,
++			    const unsigned long flags)
 +{
 +	struct tomoyo_request_info r;
 +	int error;
@@ -323,7 +318,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!type)
 +		type = "<NULL>";
 +	idx = tomoyo_read_lock();
-+	error = tomoyo_mount_acl(&r, dev_name, dir_name, type, *flags);
++	error = tomoyo_mount_acl(&r, dev_name, dir, type, flags);
 +	tomoyo_read_unlock(idx);
 +	return error;
 +}

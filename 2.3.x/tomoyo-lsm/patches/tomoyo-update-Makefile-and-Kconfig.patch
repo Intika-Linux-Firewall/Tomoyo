@@ -2,13 +2,20 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/Kconfig  |   66 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/Kconfig  |   67 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/Makefile |    2 -
- 2 files changed, 67 insertions(+), 1 deletion(-)
+ 2 files changed, 68 insertions(+), 1 deletion(-)
 
 --- linux-2.6.31.orig/security/tomoyo/Kconfig
 +++ linux-2.6.31/security/tomoyo/Kconfig
-@@ -9,3 +9,69 @@ config SECURITY_TOMOYO
+@@ -3,9 +3,76 @@ config SECURITY_TOMOYO
+ 	depends on SECURITY
+ 	select SECURITYFS
+ 	select SECURITY_PATH
++	select SECURITY_NETWORK
+ 	default n
+ 	help
+ 	  This selects TOMOYO Linux, pathname-based access control.
  	  Required userspace tools and further information may be
  	  found at <http://tomoyo.sourceforge.jp/>.
  	  If you are unsure how to answer this question, answer N.
