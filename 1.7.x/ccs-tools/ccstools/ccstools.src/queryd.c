@@ -335,7 +335,7 @@ static _Bool handle_query(unsigned int serial)
 		_printw("ERROR: Unsupported query.\n");
 		return false;
 	}
-	cp = strchr(buffer, '\0');
+	cp = buffer + strlen(buffer);
 	if (*(cp - 1) != '\n') {
 		_printw("ERROR: Unsupported query.\n");
 		return false;

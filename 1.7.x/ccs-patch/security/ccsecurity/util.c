@@ -829,10 +829,10 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 	while (*f && *p) {
 		f_delimiter = strchr(f, '/');
 		if (!f_delimiter)
-			f_delimiter = strchr(f, '\0');
+			f_delimiter = f + strlen(f);
 		p_delimiter = strchr(p, '/');
 		if (!p_delimiter)
-			p_delimiter = strchr(p, '\0');
+			p_delimiter = p + strlen(p);
 		if (*p == '\\' && *(p + 1) == '{')
 			goto recursive;
 		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
