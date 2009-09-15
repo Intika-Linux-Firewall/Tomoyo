@@ -2284,7 +2284,7 @@ int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 
 /* Permission checks for vfs_symlink(). */
 int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
-			   struct vfsmount *mnt, char *from)
+			   struct vfsmount *mnt, const char *from)
 {
 	int error;
 	if (!ccs_capable(CCS_SYS_SYMLINK))

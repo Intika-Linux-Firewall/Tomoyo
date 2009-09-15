@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-realpath.c |  269 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 269 insertions(+)
+ security/tomoyo/new-realpath.c |  263 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 263 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-realpath.c
-@@ -0,0 +1,269 @@
+@@ -0,0 +1,263 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
@@ -26,18 +26,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
 +#include <net/sock.h>
-+#include <linux/kthread.h>
 +#include <linux/proc_fs.h>
 +#include "internal.h"
 +#include <linux/dcache.h>
 +extern spinlock_t vfsmount_lock;
-+
-+static int tomoyo_kern_path(const char *pathname, int flags, struct path *path)
-+{
-+	if (!pathname || kern_path(pathname, flags, path))
-+		return -ENOENT;
-+	return 0;
-+}
 +
 +/**
 + * tomoyo_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.
@@ -55,7 +47,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * /proc/pid is represented as /proc/self if pid is current.
 + */
 +static char *tomoyo_get_absolute_path(struct path *path, char * const buffer,
-+				   const int buflen)
++				      const int buflen)
 +{
 +	char *pos = buffer + buflen - 1;
 +	struct dentry *dentry = path->dentry;
@@ -202,7 +194,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	char *buf;
 +	struct path path;
-+	if (tomoyo_kern_path(pathname, 0, &path))
++	if (!pathname || kern_path(pathname, 0, &path))
 +		return -ENOENT;
 +	buf = tomoyo_realpath_from_path(&path);
 +	path_put(&path);
@@ -275,5 +267,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +int tomoyo_get_path(const char *pathname, struct path *path)
 +{
-+	return tomoyo_kern_path(pathname, LOOKUP_FOLLOW, path);
++	if (!pathname || kern_path(pathname, LOOKUP_FOLLOW, path))
++		return -ENOENT;
++	return 0;
 +}
