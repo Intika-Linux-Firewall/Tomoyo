@@ -320,7 +320,7 @@ _Bool is_correct_path(const char *filename, const s8 start_type,
 			goto out;
 	}
 	if (c)
-		c = *(strchr(filename, '\0') - 1);
+		c = *(filename + strlen(filename) - 1);
 	if (end_type == 1) { /* Must end with '/' */
 		if (c != '/')
 			goto out;
@@ -542,10 +542,10 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 	while (*f && *p) {
 		f_delimiter = strchr(f, '/');
 		if (!f_delimiter)
-			f_delimiter = strchr(f, '\0');
+			f_delimiter = f + strlen(f);
 		p_delimiter = strchr(p, '/');
 		if (!p_delimiter)
-			p_delimiter = strchr(p, '\0');
+			p_delimiter = p + strlen(p);
 		if (*p == '\\' && *(p + 1) == '{')
 			goto recursive;
 		if (!file_matches_pattern(f, f_delimiter, p, p_delimiter))

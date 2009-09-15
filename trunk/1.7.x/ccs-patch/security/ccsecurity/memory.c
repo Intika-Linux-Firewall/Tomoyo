@@ -1,5 +1,5 @@
 /*
- * security/ccsecurity/gc.c
+ * security/ccsecurity/memory.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
