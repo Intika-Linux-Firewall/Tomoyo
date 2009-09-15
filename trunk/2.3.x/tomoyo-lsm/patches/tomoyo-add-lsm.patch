@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  304 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 304 insertions(+)
+ security/tomoyo/lsm.c |  362 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 362 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,362 @@
 +/*
 + * security/tomoyo/tomoyo.c
 + *
@@ -17,6 +17,7 @@
 + */
 +
 +#include <linux/security.h>
++#include <linux/socket.h>
 +#include "internal.h"
 +
 +static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
@@ -262,6 +263,58 @@
 +				      f->f_flags + 1);
 +}
 +
++static int tomoyo_socket_create(int family, int type, int protocol, int kern)
++{
++	if (kern)
++		return 0;
++	return tomoyo_socket_create_permission(family, type, protocol);
++}
++
++static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
++			      int addrlen)
++{
++	return tomoyo_socket_bind_permission(sock, address, addrlen);
++}
++
++static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
++				 int addrlen)
++{
++	return tomoyo_socket_connect_permission(sock, address, addrlen);
++}
++
++static int tomoyo_socket_listen(struct socket *sock, int backlog)
++{
++	return tomoyo_socket_listen_permission(sock);
++}
++
++static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
++				 int size)
++{
++	return tomoyo_socket_sendmsg_permission(sock, msg->msg_name,
++						msg->msg_namelen);
++}
++
++static int tomoyo_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
++{
++	return tomoyo_ioctl_permission(file, cmd, arg);
++}
++
++static int tomoyo_sb_mount(char *dev_name, struct path *path,
++			   char *type, unsigned long flags, void *data)
++{
++	return tomoyo_mount_permission(dev_name, path, type, flags);
++}
++
++static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
++{
++	return tomoyo_may_umount(mnt);
++}
++
++static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
++{
++	return tomoyo_pivot_root_permission(old_path, new_path);
++}
++
 +/*
 + * tomoyo_security_ops is a "struct security_operations" which is used for
 + * registering TOMOYO.
@@ -288,15 +341,18 @@
 +	.path_chmod            = tomoyo_path_chmod,
 +	.path_chown            = tomoyo_path_chown,
 +	.path_chroot           = tomoyo_path_chroot,
-+	/*
++	.file_ioctl            = tomoyo_file_ioctl,
++	.sb_pivotroot          = tomoyo_sb_pivotroot,
++	.sb_mount              = tomoyo_sb_mount,
++	.sb_umount             = tomoyo_sb_umount,
 +	.socket_create         = tomoyo_socket_create,
 +	.socket_bind           = tomoyo_socket_bind,
 +	.socket_connect        = tomoyo_socket_connect,
 +	.socket_listen         = tomoyo_socket_listen,
 +	.socket_sendmsg        = tomoyo_socket_sendmsg,
-+	*/
 +};
 +
++__initdata bool tomoyo_registered;
 +static int __init tomoyo_init(void)
 +{
 +	if (!security_module_enable(&tomoyo_security_ops))
@@ -305,6 +361,8 @@
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
++	/* call tomoyo_securityfs_init() later. */
++	tomoyo_registered = true;
 +	return 0;
 +}
 +

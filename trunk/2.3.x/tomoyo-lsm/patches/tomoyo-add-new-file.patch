@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-file.c | 2090 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2090 insertions(+)
+ security/tomoyo/new-file.c | 2094 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2094 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-file.c
-@@ -0,0 +1,2090 @@
+@@ -0,0 +1,2094 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -1743,12 +1743,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			    uid_t user, gid_t group)
 +{
 +	int error = 0;
++	if (user == (uid_t) -1 && group == (gid_t) -1)
++		return 0;
++	if (!tomoyo_capable(TOMOYO_SYS_CHOWN))
++		return -EPERM;
 +	if (user != (uid_t) -1)
-+		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHOWN, dentry, vfsmnt,
-+						user);
++		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHOWN, dentry,
++						vfsmnt, user);
 +	if (!error && group != (gid_t) -1)
-+		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHGRP, dentry, vfsmnt,
-+						group);
++		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHGRP, dentry,
++						vfsmnt, group);
 +	return error;
 +}
 +

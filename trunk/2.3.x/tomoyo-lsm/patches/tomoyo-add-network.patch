@@ -717,7 +717,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Check permission for sending a datagram via a UDP or RAW socket. */
 +int tomoyo_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
-+				  int addr_len)
++				     int addr_len)
 +{
 +	int error = 0;
 +	const int type = sock->type;

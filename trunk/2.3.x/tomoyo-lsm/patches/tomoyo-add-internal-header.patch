@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1245 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1245 insertions(+)
+ security/tomoyo/internal.h | 1246 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1246 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1245 @@
+@@ -0,0 +1,1246 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -1076,8 +1076,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_chroot_permission(struct path *path);
 +
 +/* Check whether the mount operation with the given parameters is allowed. */
-+int tomoyo_mount_permission(char *dev_name, char *dir_name, char *type,
-+			    const unsigned long *flags);
++int tomoyo_mount_permission(char *dev_name, struct path *dir, char *type,
++			    const unsigned long flags);
 +
 +/* Check whether the current process is allowed to pivot_root. */
 +int tomoyo_pivot_root_permission(struct path *old_path, struct path *new_path);
@@ -1172,6 +1172,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +extern atomic_t tomoyo_in_execve_counter;
 +
++extern __initdata bool tomoyo_registered;
 +extern bool tomoyo_policy_loaded;
 +extern struct tomoyo_domain_info tomoyo_kernel_domain;
 +
