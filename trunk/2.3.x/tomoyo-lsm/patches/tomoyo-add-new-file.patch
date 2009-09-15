@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-file.c | 2109 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2109 insertions(+)
+ security/tomoyo/new-file.c | 2090 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2090 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-file.c
-@@ -0,0 +1,2109 @@
+@@ -0,0 +1,2090 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -1206,27 +1206,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return tomoyo_file_perm(r, filename, 1);
 +}
 +
-+/*
-+ * Save original flags passed to sys_open().
-+ *
-+ * TOMOYO does not check "allow_write" if open(path, O_TRUNC | O_RDONLY) was
-+ * requested because write() is not permitted. Instead, TOMOYO checks
-+ * "allow_truncate" if O_TRUNC is passed.
-+ *
-+ * TOMOYO does not check "allow_read/write" if open(path, 3) was requested
-+ * because read()/write() are not permitted. Instead, TOMOYO checks
-+ * "allow_ioctl" when ioctl() is requested.
-+ */
-+void tomoyo_save_open_mode(int mode)
-+{
-+	current->tomoyo_flags |= (mode & O_ACCMODE) | TOMOYO_USE_OPEN_MODE;
-+}
-+
-+void tomoyo_clear_open_mode(void)
-+{
-+	current->tomoyo_flags &= ~(O_ACCMODE | TOMOYO_USE_OPEN_MODE);
-+}
-+
 +/**
 + * tomoyo_open_permission - Check permission for "read" and "write".
 + *
@@ -1245,12 +1224,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		.path1.mnt = mnt
 +	};
 +	struct task_struct * const task = current;
-+	const u8 acc_mode = task->tomoyo_flags & TOMOYO_USE_OPEN_MODE ?
-+		ACC_MODE((task->tomoyo_flags & O_ACCMODE) + 1) : ACC_MODE(flag);
++	const u8 acc_mode = ACC_MODE(flag);
 +	int error = 0;
 +	struct tomoyo_path_info buf;
 +	int idx;
-+	if (task->in_execve && !(task->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
++	if (task->in_execve &&
++	    !(task->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
 +		return 0;
 +	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 +		return 0;
@@ -1285,6 +1264,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		r.obj = &obj;
 +		error = tomoyo_file_perm(&r, &buf, acc_mode);
 +	}
++	/*
 +	if (!error && (flag & O_TRUNC) &&
 +	    tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_TRUNCATE)
 +	    != TOMOYO_CONFIG_DISABLED) {
@@ -1295,6 +1275,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		r.obj = &obj;
 +		error = tomoyo_path_permission(&r, TOMOYO_TYPE_TRUNCATE, &buf);
 +	}
++	*/
 + out:
 +	kfree(buf.name);
 +	tomoyo_read_unlock(idx);

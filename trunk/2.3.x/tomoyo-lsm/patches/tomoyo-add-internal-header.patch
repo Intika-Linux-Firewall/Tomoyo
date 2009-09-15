@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1255 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1255 insertions(+)
+ security/tomoyo/internal.h | 1245 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1245 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1255 @@
+@@ -0,0 +1,1245 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -390,8 +390,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TOMOYO_CONFIG_WANT_GRANT_LOG  128
 +#define TOMOYO_CONFIG_USE_DEFAULT     255
 +
-+/* Lowest 2 bits are reserved for open() mode. */
-+#define TOMOYO_USE_OPEN_MODE                 4
 +#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC     16
 +#define TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR  32
 +#define TOMOYO_TASK_IS_EXECUTE_HANDLER      64
@@ -1090,8 +1088,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Check whether the given mountpoint is allowed to umount. */
 +int tomoyo_may_umount(struct vfsmount *mnt);
 +
-+void tomoyo_save_open_mode(int mode);
-+void tomoyo_clear_open_mode(void);
 +int tomoyo_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 +			   const int flag);
 +int tomoyo_rewrite_permission(struct file *filp);
@@ -1203,22 +1199,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static inline struct tomoyo_domain_info *tomoyo_task_domain(struct task_struct *task)
 +{
-+	return NULL;
-+	/*
-+	  return task->tomoyo_domain_info ?
-+	  task->tomoyo_domain_info : &tomoyo_kernel_domain;
-+	*/
++	return task->tomoyo_domain_info ?
++		task->tomoyo_domain_info : &tomoyo_kernel_domain;
 +}
 +
 +static inline struct tomoyo_domain_info *tomoyo_current_domain(void)
 +{
-+	return NULL;
-+	/*
-+	  struct task_struct *task = current;
-+	  if (!task->tomoyo_domain_info)
-+	  task->tomoyo_domain_info = &tomoyo_kernel_domain;
-+	  return task->tomoyo_domain_info;
-+	*/
++	struct task_struct *task = current;
++	if (!task->tomoyo_domain_info)
++		task->tomoyo_domain_info = &tomoyo_kernel_domain;
++	return task->tomoyo_domain_info;
 +}
 +
 +static inline void tomoyo_add_domain_acl(struct tomoyo_domain_info *domain,
