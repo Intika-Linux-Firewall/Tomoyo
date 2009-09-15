@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1282 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1282 insertions(+)
+ security/tomoyo/internal.h | 1255 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1255 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1282 @@
+@@ -0,0 +1,1255 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -60,7 +60,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_TYPE_ENV_ACL,
 +	TOMOYO_TYPE_CAPABILITY_ACL,
 +	TOMOYO_TYPE_IP_NETWORK_ACL,
-+	TOMOYO_TYPE_SIGNAL_ACL,
 +	TOMOYO_TYPE_MOUNT_ACL,
 +	TOMOYO_TYPE_UMOUNT_ACL,
 +	TOMOYO_TYPE_CHROOT_ACL,
@@ -252,7 +251,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAC_NETWORK_RAW_BIND,
 +	TOMOYO_MAC_NETWORK_RAW_CONNECT,
 +	TOMOYO_MAC_ENVIRON,
-+	TOMOYO_MAC_SIGNAL,
 +	TOMOYO_MAX_MAC_INDEX
 +};
 +
@@ -260,7 +258,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAC_CATEGORY_FILE,
 +	TOMOYO_MAC_CATEGORY_NETWORK,
 +	TOMOYO_MAC_CATEGORY_MISC,
-+	TOMOYO_MAC_CATEGORY_IPC,
 +	TOMOYO_MAC_CATEGORY_CAPABILITY,
 +	TOMOYO_MAX_MAC_CATEGORY_INDEX
 +};
@@ -352,9 +349,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TOMOYO_KEYWORD_ALLOW_NETWORK             "allow_network "
 +#define TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
 +#define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
-+#define TOMOYO_KEYWORD_ALLOW_SIGNAL              "allow_signal "
 +#define TOMOYO_KEYWORD_DELETE                    "delete "
-+#define TOMOYO_KEYWORD_DENY_AUTOBIND             "deny_autobind "
 +#define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
 +#define TOMOYO_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
 +#define TOMOYO_KEYWORD_FILE_PATTERN              "file_pattern "
@@ -711,14 +706,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_name_union dir;
 +};
 +
-+/* Structure for "deny_autobind" keyword. */
-+struct tomoyo_reserved_entry {
-+	struct list_head list;
-+	bool is_deleted;             /* Delete flag.                         */
-+	u16 min_port;                /* Start of port number range.          */
-+	u16 max_port;                /* End of port number range.            */
-+};
-+
 +/* Structure for policy manager. */
 +struct tomoyo_policy_manager_entry {
 +	struct list_head list;
@@ -815,14 +802,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct tomoyo_capability_acl {
 +	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_CAPABILITY_ACL */
 +	u8 operation;
-+};
-+
-+/* Structure for "allow_signal" directive. */
-+struct tomoyo_signal_acl {
-+	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_SIGNAL_ACL */
-+	u16 sig;
-+	/* Pointer to destination pattern. */
-+	const struct tomoyo_path_info *domainname;
 +};
 +
 +struct tomoyo_ipv6addr_entry {
@@ -977,7 +956,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +bool tomoyo_read_no_rewrite_policy(struct tomoyo_io_buffer *head);
 +bool tomoyo_read_number_group_policy(struct tomoyo_io_buffer *head);
 +bool tomoyo_read_path_group_policy(struct tomoyo_io_buffer *head);
-+bool tomoyo_read_reserved_port_policy(struct tomoyo_io_buffer *head);
 +bool tomoyo_str_starts(char **src, const char *find);
 +bool tomoyo_tokenize(char *buffer, char *w[], size_t size);
 +char *tomoyo_encode(const char *str);
@@ -1053,10 +1031,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_write_pivot_root_policy(char *data, struct tomoyo_domain_info *domain,
 +				   struct tomoyo_condition *condition,
 +				   const bool is_delete);
-+int tomoyo_write_reserved_port_policy(char *data, const bool is_delete);
-+int tomoyo_write_signal_policy(char *data, struct tomoyo_domain_info *domain,
-+			       struct tomoyo_condition *condition,
-+			       const bool is_delete);
 +int tomoyo_write_umount_policy(char *data, struct tomoyo_domain_info *domain,
 +			       struct tomoyo_condition *condition,
 +			       const bool is_delete);
@@ -1198,7 +1172,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +extern struct list_head tomoyo_domain_initializer_list;
 +extern struct list_head tomoyo_domain_keeper_list;
 +extern struct list_head tomoyo_aggregator_list;
-+extern struct list_head tomoyo_reservedport_list;
 +extern struct list_head tomoyo_policy_manager_list;
 +
 +extern atomic_t tomoyo_in_execve_counter;

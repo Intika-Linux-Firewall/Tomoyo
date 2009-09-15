@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2785 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2785 insertions(+)
+ security/tomoyo/policy_io.c | 2745 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2745 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/policy_io.c
-@@ -0,0 +1,2785 @@
+@@ -0,0 +1,2745 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -114,8 +114,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	= "network::inet_raw_bind",
 +	[TOMOYO_MAC_NETWORK_RAW_CONNECT]
 +	= "network::inet_raw_connect",
-+	[TOMOYO_MAC_SIGNAL]
-+	= "ipc::signal",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_INET_STREAM_SOCKET_CREATE]
 +	= "capability::inet_tcp_create",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_INET_STREAM_SOCKET_LISTEN]
@@ -186,8 +184,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 + TOMOYO_MAC_CATEGORY_NETWORK] = "network",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
 +	 + TOMOYO_MAC_CATEGORY_MISC] = "misc",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
-+	 + TOMOYO_MAC_CATEGORY_IPC] = "ipc",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
 +	 + TOMOYO_MAC_CATEGORY_CAPABILITY] = "capability",
 +};
@@ -875,8 +871,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +						   is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK))
 +		return tomoyo_write_network_policy(data, domain, cond, is_delete);
-+	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_SIGNAL))
-+		return tomoyo_write_signal_policy(data, domain, cond, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_ENV))
 +		return tomoyo_write_env_policy(data, domain, cond, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
@@ -1471,29 +1465,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_print_signal_acl - Print a signal ACL entry.
-+ *
-+ * @head: Pointer to "struct tomoyo_io_buffer".
-+ * @ptr:  Pointer to "struct signale_acl".
-+ * @cond: Pointer to "struct tomoyo_condition". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool tomoyo_print_signal_acl(struct tomoyo_io_buffer *head,
-+				 struct tomoyo_signal_acl *ptr,
-+				 const struct tomoyo_condition *cond)
-+{
-+	const int pos = head->read_avail;
-+	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_SIGNAL "%u %s",
-+			   ptr->sig, ptr->domainname->name) ||
-+	    !tomoyo_print_condition(head, cond)) {
-+		head->read_avail = pos;
-+		return false;
-+	}
-+	return true;
-+}
-+
-+/**
 + * tomoyo_print_execute_handler_record - Print an execute handler ACL entry.
 + *
 + * @head:    Pointer to "struct tomoyo_io_buffer".
@@ -1676,11 +1647,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			= container_of(ptr, struct tomoyo_ip_network_acl,
 +				       head);
 +		return tomoyo_print_network_acl(head, acl, cond);
-+	}
-+	if (acl_type == TOMOYO_TYPE_SIGNAL_ACL) {
-+		struct tomoyo_signal_acl *acl
-+			= container_of(ptr, struct tomoyo_signal_acl, head);
-+		return tomoyo_print_signal_acl(head, acl, cond);
 +	}
 +	if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
 +		struct tomoyo_mount_acl *acl
@@ -1945,8 +1911,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return tomoyo_write_no_rewrite_policy(data, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ADDRESS_GROUP))
 +		return tomoyo_write_address_group_policy(data, is_delete);
-+	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DENY_AUTOBIND))
-+		return tomoyo_write_reserved_port_policy(data, is_delete);
 +	return -EINVAL;
 +}
 +
@@ -2016,10 +1980,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!tomoyo_read_address_group_policy(head))
 +			break;
 +		head->read_var2 = NULL;
-+		head->read_step = 12;
-+	case 12:
-+		if (!tomoyo_read_reserved_port_policy(head))
-+			break;
 +		head->read_eof = true;
 +	}
 +}
