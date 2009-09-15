@@ -703,7 +703,7 @@ static void check_domain_policy(void)
 		is_select = true;
 	if (!strncmp(shared_buffer, "<kernel>", 8)) {
 		if (!is_correct_domain(shared_buffer) ||
-		    strlen(shared_buffer) >= CCS_MAX_PATHNAME_LEN) {
+		    strlen(shared_buffer) >= TOMOYO_MAX_PATHNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
 			       line, shared_buffer);
 			errors++;

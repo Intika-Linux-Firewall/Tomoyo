@@ -102,7 +102,7 @@ u8 find_directive(const _Bool forward, char *line)
 
 void editpolicy_init_keyword_map(void)
 {
-	FILE *fp = fopen(CCSTOOLS_CONFIG_FILE, "r");
+	FILE *fp = fopen(TOMOYOTOOLS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;

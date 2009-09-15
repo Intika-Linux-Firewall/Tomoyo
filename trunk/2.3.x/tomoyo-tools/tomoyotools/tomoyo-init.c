@@ -44,6 +44,8 @@ static const char *profile_name = "default";
 static _Bool tomoyo_noload = 0;
 static _Bool tomoyo_quiet = 0;
 static _Bool proc_unmount = 0;
+static _Bool sys_unmount = 0;
+static _Bool security_unmount = 0;
 static _Bool chdir_ok = 0;
 
 static _Bool profile_used[256];
@@ -51,13 +53,13 @@ static char buffer[8192];
 
 static void check_arg(const char *arg)
 {
-	if (!strcmp(arg, "CCS=ask"))
+	if (!strcmp(arg, "TOMOYO=ask"))
 		profile_name = "ask";
-	else if (!strcmp(arg, "CCS=default"))
+	else if (!strcmp(arg, "TOMOYO=default"))
 		profile_name = "default";
-	else if (!strcmp(arg, "CCS=disabled"))
+	else if (!strcmp(arg, "TOMOYO=disabled"))
 		profile_name = "disable";
-	else if (!strncmp(arg, "CCS=", 4)) {
+	else if (!strncmp(arg, "TOMOYO=", 4)) {
 		char buffer[1024];
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "profile-%s.conf",
@@ -65,9 +67,9 @@ static void check_arg(const char *arg)
 		profile_name = strdup(buffer);
 		if (!profile_name)
 			panic();
-	} else if (!strcmp(arg, "CCS_NOLOAD"))
+	} else if (!strcmp(arg, "TOMOYO_NOLOAD"))
 		tomoyo_noload = 1;
-	else if (!strcmp(arg, "CCS_QUIET"))
+	else if (!strcmp(arg, "TOMOYO_QUIET"))
 		tomoyo_quiet = 1;
 }
 
@@ -137,9 +139,9 @@ static void ask_profile(void)
 			profile_name = "disable";
 			break;
 		}
-		if (!strcmp(input, "CCS_NOLOAD"))
+		if (!strcmp(input, "TOMOYO_NOLOAD"))
 			tomoyo_noload = 1;
-		if (!strcmp(input, "CCS_QUIET"))
+		if (!strcmp(input, "TOMOYO_QUIET"))
 			tomoyo_quiet = 1;
 	}
 }
@@ -306,9 +308,22 @@ int main(int argc, char *argv[])
 	/* Mount /proc if not mounted. */
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
-
-	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
+	
+	/* Mount /sys if not mounted. */
+	if (lstat("/sys/kernel/", &buf) || !S_ISDIR(buf.st_mode))
+		sys_unmount = !mount("/sys", "/sys", "sysfs", 0, NULL);
+	/* Mount /sys/kernel/security if not mounted. */
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) ||
+	    !S_ISDIR(buf.st_mode))
+		security_unmount = !mount("none", "/sys/kernel/security",
+					  "securityfs", 0, NULL);
+	/* Unmount and exit if policy interface doesn't exist. */
+	if (lstat("/sys/kernel/security/tomoyo", &buf) ||
+	    !S_ISDIR(buf.st_mode)) {
+		if (security_unmount)
+			umount("/sys/kernel/security/");
+		if (sys_unmount)
+			umount("/sys/");
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
