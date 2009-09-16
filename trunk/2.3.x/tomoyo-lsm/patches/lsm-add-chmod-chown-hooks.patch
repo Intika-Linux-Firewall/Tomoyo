@@ -5,6 +5,8 @@ operations. Since notify_change() does not receive "struct vfsmount *",
 we add security_path_chmod() and security_path_chown() to the caller of
 notify_change().
 
+These hooks are used by TOMOYO.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  fs/open.c                |   24 ++++++++++++++++++++----
