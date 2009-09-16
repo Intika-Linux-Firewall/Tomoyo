@@ -2,30 +2,22 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1244 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1244 insertions(+)
+ security/tomoyo/new-domain.c | 1257 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1257 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-domain.c
-@@ -0,0 +1,1244 @@
+@@ -0,0 +1,1257 @@
 +/*
 + * security/tomoyo/domain.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
-+#include <linux/slab.h>
-+#include <linux/highmem.h>
-+#include <linux/version.h>
-+#include <linux/namei.h>
-+#include <linux/mount.h>
-+#include <linux/fs_struct.h>
 +#include "internal.h"
-+
-+/* For compatibility with older kernels. */
-+#ifndef for_each_process
-+#define for_each_process for_each_task
-+#endif
++#include <linux/mount.h>
++#include <linux/highmem.h>
++#include <linux/fs_struct.h>
++#include <linux/file.h>
 +
 +/* Variables definitions.*/
 +
@@ -44,14 +36,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_execute_handler_log(struct tomoyo_execve_entry *ee,
-+					 const bool is_default)
++					    const bool is_default)
 +{
 +	struct tomoyo_request_info *r = &ee->r;
 +	const char *handler = ee->handler->name;
 +	r->mode = tomoyo_get_mode(r->profile, TOMOYO_MAC_FILE_EXECUTE);
 +	return tomoyo_write_audit_log(true, r, "%s %s\n",
-+				   is_default ? TOMOYO_KEYWORD_EXECUTE_HANDLER :
-+				   TOMOYO_KEYWORD_DENIED_EXECUTE_HANDLER, handler);
++				      is_default ?
++				      TOMOYO_KEYWORD_EXECUTE_HANDLER :
++				      TOMOYO_KEYWORD_DENIED_EXECUTE_HANDLER,
++				      handler);
 +}
 +
 +/**
@@ -66,7 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int error;
 +	struct tomoyo_request_info r;
 +	tomoyo_init_request_info(&r, domain, TOMOYO_MAC_FILE_EXECUTE);
-+	error = tomoyo_write_audit_log(false, &r, "use_profile %u\n", r.profile);
++	error = tomoyo_write_audit_log(false, &r, "use_profile %u\n",
++				       r.profile);
 +	return error;
 +}
 +
@@ -84,9 +79,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_update_domain_initializer_entry(const char *domainname,
-+					       const char *program,
-+					       const bool is_not,
-+					       const bool is_delete)
++						  const char *program,
++						  const bool is_not,
++						  const bool is_delete)
 +{
 +	struct tomoyo_domain_initializer_entry *entry = NULL;
 +	struct tomoyo_domain_initializer_entry *ptr;
@@ -112,14 +107,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
 +		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), is_not),
-+			       sizeof(e)))
++				  sizeof(e)))
 +			continue;
 +		ptr->is_deleted = is_delete;
 +		error = 0;
 +		break;
 +	}
 +	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->list, &tomoyo_domain_initializer_list);
++		list_add_tail_rcu(&entry->list,
++				  &tomoyo_domain_initializer_list);
 +		entry = NULL;
 +		error = 0;
 +	}
@@ -159,9 +155,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			from = " from ";
 +			domain = ptr->domainname->name;
 +		}
-+		done = tomoyo_io_printf(head, "%s" TOMOYO_KEYWORD_INITIALIZE_DOMAIN
-+				     "%s%s%s\n", no, ptr->program->name, from,
-+				     domain);
++		done = tomoyo_io_printf(head, "%s"
++					TOMOYO_KEYWORD_INITIALIZE_DOMAIN
++					"%s%s%s\n", no, ptr->program->name,
++					from, domain);
 +		if (!done)
 +			break;
 +	}
@@ -178,16 +175,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_write_domain_initializer_policy(char *data, const bool is_not,
-+					const bool is_delete)
++					   const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
 +	if (cp) {
 +		*cp = '\0';
 +		return tomoyo_update_domain_initializer_entry(cp + 6, data,
-+							   is_not, is_delete);
++							      is_not,
++							      is_delete);
 +	}
 +	return tomoyo_update_domain_initializer_entry(NULL, data, is_not,
-+						   is_delete);
++						      is_delete);
 +}
 +
 +/**
@@ -202,9 +200,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Caller holds tomoyo_read_lock().
 + */
-+static bool tomoyo_is_domain_initializer(const struct tomoyo_path_info *domainname,
-+				      const struct tomoyo_path_info *program,
-+				      const struct tomoyo_path_info *last_name)
++static bool tomoyo_is_domain_initializer
++(const struct tomoyo_path_info *domainname,
++ const struct tomoyo_path_info *program,
++ const struct tomoyo_path_info *last_name)
 +{
 +	struct tomoyo_domain_initializer_entry *ptr;
 +	bool flag = false;
@@ -245,9 +244,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_update_domain_keeper_entry(const char *domainname,
-+					  const char *program,
-+					  const bool is_not,
-+					  const bool is_delete)
++					     const char *program,
++					     const bool is_not,
++					     const bool is_delete)
 +{
 +	struct tomoyo_domain_keeper_entry *entry = NULL;
 +	struct tomoyo_domain_keeper_entry *ptr;
@@ -273,7 +272,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
 +		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), is_not),
-+			       sizeof(e)))
++				  sizeof(e)))
 +			continue;
 +		ptr->is_deleted = is_delete;
 +		error = 0;
@@ -301,15 +300,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + */
 +int tomoyo_write_domain_keeper_policy(char *data, const bool is_not,
-+				   const bool is_delete)
++				      const bool is_delete)
 +{
 +	char *cp = strstr(data, " from ");
 +	if (cp) {
 +		*cp = '\0';
 +		return tomoyo_update_domain_keeper_entry(cp + 6, data,
-+						      is_not, is_delete);
++							 is_not, is_delete);
 +	}
-+	return tomoyo_update_domain_keeper_entry(data, NULL, is_not, is_delete);
++	return tomoyo_update_domain_keeper_entry(data, NULL, is_not,
++						 is_delete);
 +}
 +
 +/**
@@ -340,8 +340,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			program = ptr->program->name;
 +		}
 +		done = tomoyo_io_printf(head, "%s" TOMOYO_KEYWORD_KEEP_DOMAIN
-+				     "%s%s%s\n", no, program, from,
-+				     ptr->domainname->name);
++					"%s%s%s\n", no, program, from,
++					ptr->domainname->name);
 +		if (!done)
 +			break;
 +	}
@@ -361,8 +361,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static bool tomoyo_is_domain_keeper(const struct tomoyo_path_info *domainname,
-+				 const struct tomoyo_path_info *program,
-+				 const struct tomoyo_path_info *last_name)
++				    const struct tomoyo_path_info *program,
++				    const struct tomoyo_path_info *last_name)
 +{
 +	struct tomoyo_domain_keeper_entry *ptr;
 +	bool flag = false;
@@ -400,8 +400,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_update_aggregator_entry(const char *original_name,
-+				       const char *aggregated_name,
-+				       const bool is_delete)
++					  const char *aggregated_name,
++					  const bool is_delete)
 +{
 +	struct tomoyo_aggregator_entry *entry = NULL;
 +	struct tomoyo_aggregator_entry *ptr;
@@ -419,7 +419,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_aggregator_list, list) {
 +		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), original_name),
-+			       sizeof(e)))
++				  sizeof(e)))
 +			continue;
 +		ptr->is_deleted = is_delete;
 +		error = 0;
@@ -456,9 +456,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		ptr = list_entry(pos, struct tomoyo_aggregator_entry, list);
 +		if (ptr->is_deleted)
 +			continue;
-+		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_AGGREGATOR "%s %s\n",
-+				     ptr->original_name->name,
-+				     ptr->aggregated_name->name);
++		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_AGGREGATOR
++					"%s %s\n", ptr->original_name->name,
++					ptr->aggregated_name->name);
 +		if (!done)
 +			break;
 +	}
@@ -520,8 +520,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns pointer to "struct tomoyo_domain_info" on success, NULL otherwise.
 + */
-+struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *domainname,
-+						      const u8 profile)
++struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain
++(const char *domainname, const u8 profile)
 +{
 +	struct tomoyo_domain_info *entry;
 +	struct tomoyo_domain_info *domain;
@@ -611,7 +611,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		/* Check 'aggregator' directive. */
 +		list_for_each_entry_rcu(ptr, &tomoyo_aggregator_list, list) {
 +			if (ptr->is_deleted ||
-+			    !tomoyo_path_matches_pattern(&rn, ptr->original_name))
++			    !tomoyo_path_matches_pattern(&rn,
++							 ptr->original_name))
 +				continue;
 +			kfree(rn.name);
 +			need_kfree = false;
@@ -633,7 +634,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		/* Transit to the child of tomoyo_kernel_domain domain. */
 +		snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
 +			 rn.name);
-+	} else if (r->domain == &tomoyo_kernel_domain && !tomoyo_policy_loaded) {
++	} else if (r->domain == &tomoyo_kernel_domain &&
++		   !tomoyo_policy_loaded) {
 +		/*
 +		 * Needn't to transit from kernel domain before starting
 +		 * /sbin/init. But transit from kernel domain if executing
@@ -655,7 +657,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		goto done;
 +	if (r->mode == TOMOYO_CONFIG_ENFORCING) {
 +		int error = tomoyo_supervisor(r, "# wants to create domain\n"
-+					   "%s\n", ee->tmp);
++					      "%s\n", ee->tmp);
 +		if (error == 1)
 +			goto retry;
 +		if (error < 0)
@@ -808,10 +810,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns number of directories to strip.
 + */
-+static inline int tomoyo_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
++static inline int tomoyo_root_depth(struct dentry *dentry,
++				    struct vfsmount *vfsmnt)
 +{
 +	int depth = 0;
-+	tomoyo_realpath_lock();
++	spin_lock(&dcache_lock);
++	spin_lock(&vfsmount_lock);
 +	for (;;) {
 +		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 +			/* Global root? */
@@ -824,7 +828,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		dentry = dentry->d_parent;
 +		depth++;
 +	}
-+	tomoyo_realpath_unlock();
++	spin_unlock(&vfsmount_lock);
++	spin_unlock(&dcache_lock);
 +	return depth;
 +}
 +
@@ -962,7 +967,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* Set argv[6] */
 +	{
 +		char *cp = ee->tmp;
-+		snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, "%d", original_envc);
++		snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, "%d",
++			 original_envc);
 +		retval = copy_strings_kernel(1, &cp, bprm);
 +		if (retval < 0)
 +			goto out;
@@ -972,7 +978,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* Set argv[5] */
 +	{
 +		char *cp = ee->tmp;
-+		snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, "%d", original_argc);
++		snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, "%d",
++			 original_argc);
 +		retval = copy_strings_kernel(1, &cp, bprm);
 +		if (retval < 0)
 +			goto out;
@@ -1014,7 +1021,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			kfree(exe);
 +		} else {
 +			exe = ee->tmp;
-+			snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1, "<unknown>");
++			snprintf(ee->tmp, TOMOYO_EXEC_TMPSIZE - 1,
++				 "<unknown>");
 +			retval = copy_strings_kernel(1, &exe, bprm);
 +		}
 +		if (retval < 0)
@@ -1063,7 +1071,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		bprm->argc++;
 +	}
 +
-+	/* OK, now restart the process with execute handler program's dentry. */
++	/*
++	 * OK, now restart the process with execute handler program's dentry.
++	 */
 +	filp = open_exec(ee->handler_path);
 +	if (IS_ERR(filp)) {
 +		retval = PTR_ERR(filp);
@@ -1093,7 +1103,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static bool tomoyo_find_execute_handler(struct tomoyo_execve_entry *ee,
-+				     const u8 type)
++					const u8 type)
 +{
 +	struct task_struct *task = current;
 +	const struct tomoyo_domain_info *domain = tomoyo_current_domain();
@@ -1128,7 +1138,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +bool tomoyo_dump_page(struct linux_binprm *bprm, unsigned long pos,
-+		   struct tomoyo_page_dump *dump)
++		      struct tomoyo_page_dump *dump)
 +{
 +	struct page *page;
 +	/* dump->data is released by tomoyo_free_execve_entry(). */
@@ -1153,7 +1163,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		 */
 +		char *kaddr = kmap_atomic(page, KM_USER0);
 +		dump->page = page;
-+		memcpy(dump->data + offset, kaddr + offset, PAGE_SIZE - offset);
++		memcpy(dump->data + offset, kaddr + offset,
++		       PAGE_SIZE - offset);
 +		kunmap_atomic(kaddr, KM_USER0);
 +	}
 +	/* Same with put_arg_page(page) in fs/exec.c */
@@ -1196,7 +1207,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	retval = tomoyo_find_next_domain(ee);
 +	if (retval != -EPERM)
 +		goto ok;
-+	if (tomoyo_find_execute_handler(ee, TOMOYO_TYPE_DENIED_EXECUTE_HANDLER)) {
++	if (tomoyo_find_execute_handler(ee,
++					TOMOYO_TYPE_DENIED_EXECUTE_HANDLER)) {
 +		retval = tomoyo_try_alt_exec(ee);
 +		if (!retval)
 +			tomoyo_audit_execute_handler_log(ee, false);
@@ -1211,7 +1223,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * enforcing mode.
 +	 */
 +	task->tomoyo_domain_info = ee->r.domain;
-+	ee->r.mode = tomoyo_get_mode(ee->r.domain->profile, TOMOYO_MAC_ENVIRON);
++	ee->r.mode = tomoyo_get_mode(ee->r.domain->profile,
++				     TOMOYO_MAC_ENVIRON);
 +	retval = tomoyo_environ(ee);
 +	if (retval < 0)
 +		goto out;

@@ -1623,8 +1623,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		return true;
 	if (acl_type == CCS_TYPE_PATH_ACL) {
 		struct ccs_path_acl *acl
-			= container_of(ptr, struct ccs_path_acl,
-				       head);
+			= container_of(ptr, struct ccs_path_acl, head);
 		return ccs_print_path_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_EXECUTE_HANDLER) {
@@ -2644,7 +2643,7 @@ int ccs_open_control(const u8 type, struct file *file)
  * Waits for read readiness.
  * /proc/ccs/query is handled by /usr/sbin/ccs-queryd and
  * /proc/ccs/grant_log and /proc/ccs/reject_log are handled by
- * /usr/sbin/ccs-auditd.
+ * /usr/sbin/ccs-auditd .
  */
 int ccs_poll_control(struct file *file, poll_table *wait)
 {

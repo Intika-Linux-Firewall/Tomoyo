@@ -244,8 +244,8 @@ static int ccs_network_entry(const bool is_ipv6, const u8 operation,
 			     const u32 *address, const u16 port)
 {
 	const int idx = ccs_read_lock();
-	const int error = ccs_network_entry2(is_ipv6, operation,
-					     address, port);
+	const int error = ccs_network_entry2(is_ipv6, operation, address,
+					     port);
 	ccs_read_unlock(idx);
 	return error;
 }
@@ -394,8 +394,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_listen_acl(const bool is_ipv6,
-					 const u8 *address,
+static inline int ccs_network_listen_acl(const bool is_ipv6, const u8 *address,
 					 const u16 port)
 {
 	return ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN,
@@ -414,8 +413,7 @@ static inline int ccs_network_listen_acl(const bool is_ipv6,
  */
 static inline int ccs_network_connect_acl(const bool is_ipv6,
 					  const int sock_type,
-					  const u8 *address,
-					  const u16 port)
+					  const u8 *address, const u16 port)
 {
 	u8 operation;
 	switch (sock_type) {
@@ -469,8 +467,7 @@ static int ccs_network_bind_acl(const bool is_ipv6, const int sock_type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_accept_acl(const bool is_ipv6,
-					 const u8 *address,
+static inline int ccs_network_accept_acl(const bool is_ipv6, const u8 *address,
 					 const u16 port)
 {
 	int retval;
@@ -493,8 +490,7 @@ static inline int ccs_network_accept_acl(const bool is_ipv6,
  */
 static inline int ccs_network_sendmsg_acl(const bool is_ipv6,
 					  const int sock_type,
-					  const u8 *address,
-					  const u16 port)
+					  const u8 *address, const u16 port)
 {
 	u8 operation;
 	if (sock_type == SOCK_DGRAM)
@@ -517,8 +513,7 @@ static inline int ccs_network_sendmsg_acl(const bool is_ipv6,
  */
 static inline int ccs_network_recvmsg_acl(const bool is_ipv6,
 					  const int sock_type,
-					  const u8 *address,
-					  const u16 port)
+					  const u8 *address, const u16 port)
 {
 	int retval;
 	const u8 operation
@@ -788,8 +783,7 @@ int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
 		else
 			port = htons(sock->sk->sk_protocol);
 		error = ccs_network_sendmsg_acl(false, type,
-						(u8 *) &addr4->sin_addr,
-						port);
+						(u8 *) &addr4->sin_addr, port);
 		break;
 	}
 	return error;

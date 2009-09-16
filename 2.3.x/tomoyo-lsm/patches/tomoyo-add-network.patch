@@ -2,26 +2,19 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/network.c |  749 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 749 insertions(+)
+ security/tomoyo/network.c |  690 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 690 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/network.c
-@@ -0,0 +1,749 @@
+@@ -0,0 +1,690 @@
 +/*
 + * security/tomoyo/network.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
-+#include <linux/net.h>
-+#include <linux/inet.h>
-+#include <linux/in.h>
-+#include <linux/in6.h>
-+#include <net/ip.h>
-+#include <net/ipv6.h>
-+#include <net/udp.h>
 +#include "internal.h"
++#include <net/ipv6.h>
 +
 +/**
 + * tomoyo_audit_network_log - Audit network log.
@@ -35,13 +28,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_network_log(struct tomoyo_request_info *r,
-+				 const char *operation, const char *address,
-+				 const u16 port, const bool is_granted)
++				    const char *operation, const char *address,
++				    const u16 port, const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "%s %s %u", operation, address, port);
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_NETWORK
-+				   "%s %s %u\n", operation, address, port);
++	return tomoyo_write_audit_log(is_granted, r,
++				      TOMOYO_KEYWORD_ALLOW_NETWORK
++				      "%s %s %u\n", operation, address, port);
 +}
 +
 +/**
@@ -79,8 +73,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			       + (((u8) min[2]) << 8) + (u8) min[3]);
 +		memmove(min, &ip, sizeof(ip));
 +		if (count == 8)
-+			ip = htonl((((u8) max[0]) << 24) + (((u8) max[1]) << 16)
-+				   + (((u8) max[2]) << 8) + (u8) max[3]);
++			ip = htonl((((u8) max[0]) << 24) +
++				   (((u8) max[1]) << 16) + (((u8) max[2]) << 8)
++				   + (u8) max[3]);
 +		memmove(max, &ip, sizeof(ip));
 +		return 1;
 +	}
@@ -105,7 +100,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns nothing.
 + */
 +void tomoyo_print_ipv6(char *buffer, const int buffer_len,
-+		    const struct in6_addr *ip)
++		       const struct in6_addr *ip)
 +{
 +	memset(buffer, 0, buffer_len);
 +	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*ip));
@@ -137,9 +132,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case TOMOYO_NETWORK_TCP_CONNECT:
 +		keyword = "TCP connect";
 +		break;
-+	case TOMOYO_NETWORK_TCP_ACCEPT:
-+		keyword = "TCP accept";
-+		break;
 +	case TOMOYO_NETWORK_RAW_BIND:
 +		keyword = "RAW bind";
 +		break;
@@ -163,7 +155,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +static int tomoyo_network_entry2(const bool is_ipv6, const u8 operation,
-+			      const u32 *address, const u16 port)
++				 const u32 *address, const u16 port)
 +{
 +	struct tomoyo_request_info r;
 +	struct tomoyo_acl_info *ptr;
@@ -174,13 +166,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int error;
 +	char buf[64];
 +	if (tomoyo_init_request_info(&r, NULL,
-+				  TOMOYO_MAC_NETWORK_UDP_BIND + operation)
++				     TOMOYO_MAC_NETWORK_UDP_BIND + operation)
 +	    == TOMOYO_CONFIG_DISABLED)
 +		return 0;
 +	memset(buf, 0, sizeof(buf));
 +	if (is_ipv6)
 +		tomoyo_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
-+			       address);
++				  address);
 +	else
 +		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
 +	do {
@@ -200,9 +192,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			switch (acl->address_type) {
 +			case TOMOYO_IP_ADDRESS_TYPE_ADDRESS_GROUP:
 +				if (!tomoyo_address_matches_group(is_ipv6,
-+							       address,
-+							       acl->address.
-+							       group))
++								  address,
++								  acl->address.
++								  group))
 +					continue;
 +				break;
 +			case TOMOYO_IP_ADDRESS_TYPE_IPv4:
@@ -227,7 +219,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_NETWORK
-+				       "%s %s %u\n", keyword, buf, port);
++					  "%s %s %u\n", keyword, buf, port);
 +	} while (error == 1);
 +	if (r.mode != TOMOYO_CONFIG_ENFORCING)
 +		error = 0;
@@ -245,11 +237,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_network_entry(const bool is_ipv6, const u8 operation,
-+			     const u32 *address, const u16 port)
++				const u32 *address, const u16 port)
 +{
 +	const int idx = tomoyo_read_lock();
-+	const int error = tomoyo_network_entry2(is_ipv6, operation,
-+					     address, port);
++	const int error = tomoyo_network_entry2(is_ipv6, operation, address,
++						port);
 +	tomoyo_read_unlock(idx);
 +	return error;
 +}
@@ -265,8 +257,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_write_network_policy(char *data, struct tomoyo_domain_info *domain,
-+			     struct tomoyo_condition *condition,
-+			     const bool is_delete)
++				struct tomoyo_condition *condition,
++				const bool is_delete)
 +{
 +	struct tomoyo_ip_network_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
@@ -315,17 +307,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
 +		e.perm = 1 << TOMOYO_NETWORK_TCP_LISTEN;
-+	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
-+		e.perm = 1 << TOMOYO_NETWORK_TCP_ACCEPT;
 +	else
 +		return -EINVAL;
 +	switch (tomoyo_parse_ip_address(w[2], min_address, max_address)) {
 +	case 2:
 +		e.address_type = TOMOYO_IP_ADDRESS_TYPE_IPv6;
-+		e.address.ipv6.min = tomoyo_get_ipv6_address((struct in6_addr *)
-+							  min_address);
-+		e.address.ipv6.max = tomoyo_get_ipv6_address((struct in6_addr *)
-+							  max_address);
++		e.address.ipv6.min =
++			tomoyo_get_ipv6_address((struct in6_addr *)
++						min_address);
++		e.address.ipv6.max =
++			tomoyo_get_ipv6_address((struct in6_addr *)
++						max_address);
 +		if (!e.address.ipv6.min || !e.address.ipv6.max)
 +			goto out;
 +		break;
@@ -356,7 +348,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->type != TOMOYO_TYPE_IP_NETWORK_ACL ||
 +		    ptr->cond != condition ||
 +		    tomoyo_memcmp(acl, &e, offsetof(typeof(e), address_type),
-+			       sizeof(e)))
++				  sizeof(e)))
 +			continue;
 +		if (is_delete) {
 +			acl->perm &= ~e.perm;
@@ -399,11 +391,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_network_listen_acl(const bool is_ipv6,
-+					 const u8 *address,
-+					 const u16 port)
++					    const u8 *address, const u16 port)
 +{
 +	return tomoyo_network_entry(is_ipv6, TOMOYO_NETWORK_TCP_LISTEN,
-+				 (const u32 *) address, ntohs(port));
++				    (const u32 *) address, ntohs(port));
 +}
 +
 +/**
@@ -417,9 +408,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_network_connect_acl(const bool is_ipv6,
-+					  const int sock_type,
-+					  const u8 *address,
-+					  const u16 port)
++					     const int sock_type,
++					     const u8 *address, const u16 port)
 +{
 +	u8 operation;
 +	switch (sock_type) {
@@ -433,7 +423,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		operation = TOMOYO_NETWORK_RAW_CONNECT;
 +	}
 +	return tomoyo_network_entry(is_ipv6, operation,
-+				 (const u32 *) address, ntohs(port));
++				    (const u32 *) address, ntohs(port));
 +}
 +
 +/**
@@ -447,7 +437,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_network_bind_acl(const bool is_ipv6, const int sock_type,
-+				const u8 *address, const u16 port)
++				   const u8 *address, const u16 port)
 +{
 +	u8 operation;
 +	switch (sock_type) {
@@ -461,28 +451,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		operation = TOMOYO_NETWORK_RAW_BIND;
 +	}
 +	return tomoyo_network_entry(is_ipv6, operation,
-+				 (const u32 *) address, ntohs(port));
-+}
-+
-+/**
-+ * tomoyo_network_accept_acl - Check permission for accept() operation.
-+ *
-+ * @is_ipv6: True if @address is an IPv6 address.
-+ * @address: An IPv4 or IPv6 address.
-+ * @port:    Port number.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static inline int tomoyo_network_accept_acl(const bool is_ipv6,
-+					 const u8 *address,
-+					 const u16 port)
-+{
-+	int retval;
-+	current->tomoyo_flags |= TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
-+	retval = tomoyo_network_entry(is_ipv6, TOMOYO_NETWORK_TCP_ACCEPT,
-+				   (const u32 *) address, ntohs(port));
-+	current->tomoyo_flags &= ~TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
-+	return retval;
++				    (const u32 *) address, ntohs(port));
 +}
 +
 +/**
@@ -496,9 +465,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static inline int tomoyo_network_sendmsg_acl(const bool is_ipv6,
-+					  const int sock_type,
-+					  const u8 *address,
-+					  const u16 port)
++					     const int sock_type,
++					     const u8 *address, const u16 port)
 +{
 +	u8 operation;
 +	if (sock_type == SOCK_DGRAM)
@@ -506,33 +474,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	else
 +		operation = TOMOYO_NETWORK_RAW_CONNECT;
 +	return tomoyo_network_entry(is_ipv6, operation,
-+				 (const u32 *) address, ntohs(port));
-+}
-+
-+/**
-+ * tomoyo_network_recvmsg_acl - Check permission for recvmsg() operation.
-+ *
-+ * @is_ipv6:   True if @address is an IPv6 address.
-+ * @sock_type: Type of socket. (UDP or RAW)
-+ * @address:   An IPv4 or IPv6 address.
-+ * @port:      Port number.
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ */
-+static inline int tomoyo_network_recvmsg_acl(const bool is_ipv6,
-+					  const int sock_type,
-+					  const u8 *address,
-+					  const u16 port)
-+{
-+	int retval;
-+	const u8 operation
-+		= (sock_type == SOCK_DGRAM) ?
-+		TOMOYO_NETWORK_UDP_CONNECT : TOMOYO_NETWORK_RAW_CONNECT;
-+	current->tomoyo_flags |= TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
-+	retval = tomoyo_network_entry(is_ipv6, operation,
-+				   (const u32 *) address, ntohs(port));
-+	current->tomoyo_flags &= ~TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
-+	return retval;
++				    (const u32 *) address, ntohs(port));
 +}
 +
 +#define MAX_SOCK_ADDR 128 /* net/socket.c */
@@ -595,22 +537,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case AF_INET6:
 +		addr6 = (struct sockaddr_in6 *) addr;
 +		error = tomoyo_network_listen_acl(true,
-+					       addr6->sin6_addr.s6_addr,
-+					       addr6->sin6_port);
++						  addr6->sin6_addr.s6_addr,
++						  addr6->sin6_port);
 +		break;
 +	case AF_INET:
 +		addr4 = (struct sockaddr_in *) addr;
 +		error = tomoyo_network_listen_acl(false,
-+					       (u8 *) &addr4->sin_addr,
-+					       addr4->sin_port);
++						  (u8 *) &addr4->sin_addr,
++						  addr4->sin_port);
 +		break;
 +	}
 +	return error;
 +}
 +
 +/* Check permission for setting the remote IP address/port pair of a socket. */
-+int tomoyo_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
-+				  int addr_len)
++int tomoyo_socket_connect_permission(struct socket *sock,
++				     struct sockaddr *addr, int addr_len)
 +{
 +	int error = 0;
 +	const unsigned int type = sock->type;
@@ -638,8 +580,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_connect_acl(true, type,
-+						addr6->sin6_addr.s6_addr,
-+						port);
++						   addr6->sin6_addr.s6_addr,
++						   port);
 +		break;
 +	case AF_INET:
 +		if (addr_len < sizeof(struct sockaddr_in))
@@ -650,8 +592,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_connect_acl(false, type,
-+						(u8 *) &addr4->sin_addr,
-+						port);
++						   (u8 *) &addr4->sin_addr,
++						   port);
 +		break;
 +	}
 +	if (type != SOCK_STREAM)
@@ -668,7 +610,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Check permission for setting the local IP address/port pair of a socket. */
 +int tomoyo_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
-+			       int addr_len)
++				  int addr_len)
 +{
 +	int error = 0;
 +	const unsigned int type = sock->type;
@@ -696,8 +638,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_bind_acl(true, type,
-+					     addr6->sin6_addr.s6_addr,
-+					     port);
++						addr6->sin6_addr.s6_addr,
++						port);
 +		break;
 +	case AF_INET:
 +		if (addr_len < sizeof(struct sockaddr_in))
@@ -708,16 +650,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_bind_acl(false, type,
-+					     (u8 *) &addr4->sin_addr,
-+					     port);
++						(u8 *) &addr4->sin_addr, port);
 +		break;
 +	}
 +	return error;
 +}
 +
 +/* Check permission for sending a datagram via a UDP or RAW socket. */
-+int tomoyo_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
-+				     int addr_len)
++int tomoyo_socket_sendmsg_permission(struct socket *sock,
++				     struct sockaddr *addr, int addr_len)
 +{
 +	int error = 0;
 +	const int type = sock->type;
@@ -739,8 +680,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_sendmsg_acl(true, type,
-+						addr6->sin6_addr.s6_addr,
-+						port);
++						   addr6->sin6_addr.s6_addr,
++						   port);
 +		break;
 +	case AF_INET:
 +		if (addr_len < sizeof(struct sockaddr_in))
@@ -751,8 +692,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		else
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_sendmsg_acl(false, type,
-+						(u8 *) &addr4->sin_addr,
-+						port);
++						   (u8 *) &addr4->sin_addr,
++						   port);
 +		break;
 +	}
 +	return error;

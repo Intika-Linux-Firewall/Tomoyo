@@ -2,19 +2,17 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/chroot.c |  150 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 150 insertions(+)
+ security/tomoyo/chroot.c |  152 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 152 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/chroot.c
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,152 @@
 +/*
 + * security/tomoyo/chroot.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+#include <linux/dcache.h>
-+#include <linux/namei.h>
 +#include "internal.h"
 +
 +/**
@@ -27,12 +25,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_chroot_log(struct tomoyo_request_info *r,
-+				const char *root, const bool is_granted)
++				   const char *root, const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "chroot %s", root);
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_CHROOT
-+				   "%s\n", root);
++	return tomoyo_write_audit_log(is_granted, r,
++				      TOMOYO_KEYWORD_ALLOW_CHROOT "%s\n",
++				      root);
 +}
 +
 +/**
@@ -53,6 +52,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_obj_info obj = {
 +		.path1 = *path
 +	};
++	if (!tomoyo_capable(TOMOYO_SYS_CHROOT))
++		return -EPERM;
 +	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_CHROOT)
 +	    == TOMOYO_CONFIG_DISABLED)
 +		return 0;
@@ -86,7 +87,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_CHROOT
-+				       "%s\n", tomoyo_file_pattern(&dir));
++					  "%s\n", tomoyo_file_pattern(&dir));
 +	} while (error == 1);
 + out:
 +	kfree(root_name);
@@ -121,8 +122,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_write_chroot_policy(char *data, struct tomoyo_domain_info *domain,
-+			    struct tomoyo_condition *condition,
-+			    const bool is_delete)
++			       struct tomoyo_condition *condition,
++			       const bool is_delete)
 +{
 +	struct tomoyo_chroot_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
@@ -141,7 +142,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_chroot_acl *acl =
 +			container_of(ptr, struct tomoyo_chroot_acl, head);
-+		if (ptr->type != TOMOYO_TYPE_CHROOT_ACL || ptr->cond != condition
++		if (ptr->type != TOMOYO_TYPE_CHROOT_ACL ||
++		    ptr->cond != condition
 +		    || memcmp(&acl->dir, &e.dir, sizeof(e.dir)))
 +			continue;
 +		ptr->is_deleted = is_delete;

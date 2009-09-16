@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/gc.c |  626 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 626 insertions(+)
+ security/tomoyo/gc.c |  625 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 625 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/gc.c
-@@ -0,0 +1,626 @@
+@@ -0,0 +1,625 @@
 +/*
 + * security/tomoyo/gc.c
 + *
@@ -40,26 +40,30 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	int type;
 +	void *element;
 +};
++static LIST_HEAD(tomoyo_gc_queue);
++static DEFINE_MUTEX(tomoyo_gc_mutex);
 +
 +/* Caller holds tomoyo_policy_lock mutex. */
-+static bool tomoyo_add_to_gc(const int type, void *element, struct list_head *head)
++static bool tomoyo_add_to_gc(const int type, void *element)
 +{
 +	struct tomoyo_gc_entry *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
 +	if (!entry)
 +		return false;
 +	entry->type = type;
 +	entry->element = element;
-+	list_add(&entry->list, head);
++	list_add(&entry->list, &tomoyo_gc_queue);
 +	return true;
 +}
 +
-+static size_t tomoyo_del_allow_read(struct tomoyo_globally_readable_file_entry *ptr)
++static size_t tomoyo_del_allow_read
++(struct tomoyo_globally_readable_file_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->filename);
 +	return sizeof(*ptr);
 +}
 +
-+static size_t tomoyo_del_allow_env(struct tomoyo_globally_usable_env_entry *ptr)
++static size_t tomoyo_del_allow_env
++(struct tomoyo_globally_usable_env_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->env);
 +	return sizeof(*ptr);
@@ -77,8 +81,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return sizeof(*ptr);
 +}
 +
-+static size_t tomoyo_del_domain_initializer(struct tomoyo_domain_initializer_entry *
-+					 ptr)
++static size_t tomoyo_del_domain_initializer
++(struct tomoyo_domain_initializer_entry *ptr)
 +{
 +	tomoyo_put_name(ptr->domainname);
 +	tomoyo_put_name(ptr->program);
@@ -104,11 +108,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_put_name(ptr->manager);
 +	return sizeof(*ptr);
 +}
-+
-+/* For compatibility with older kernels. */
-+#ifndef for_each_process
-+#define for_each_process for_each_task
-+#endif
 +
 +/**
 + * tomoyo_used_by_task - Check whether the given pointer is referenced by a task.
@@ -181,8 +180,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				tomoyo_put_address_group(entry->address.group);
 +				break;
 +			case TOMOYO_IP_ADDRESS_TYPE_IPv6:
-+				tomoyo_put_ipv6_address(entry->address.ipv6.min);
-+				tomoyo_put_ipv6_address(entry->address.ipv6.max);
++				tomoyo_put_ipv6_address(entry->
++							address.ipv6.min);
++				tomoyo_put_ipv6_address(entry->
++							address.ipv6.max);
 +				break;
 +			}
 +			tomoyo_put_number_union(&entry->port);
@@ -279,7 +280,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return sizeof(*domain);
 +}
 +
-+static size_t tomoyo_del_path_group_member(struct tomoyo_path_group_member *member)
++static size_t tomoyo_del_path_group_member
++(struct tomoyo_path_group_member *member)
 +{
 +	tomoyo_put_name(member->member_name);
 +	return sizeof(*member);
@@ -352,8 +354,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +static int tomoyo_gc_thread(void *unused)
 +{
-+	static DEFINE_MUTEX(tomoyo_gc_mutex);
-+	static LIST_HEAD(tomoyo_gc_queue);
 +	daemonize("GC for TOMOYO");
 +	if (!mutex_trylock(&tomoyo_gc_mutex))
 +		goto out;
@@ -364,8 +364,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_GLOBALLY_READABLE, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_GLOBALLY_READABLE, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -377,8 +376,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_GLOBAL_ENV, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_GLOBAL_ENV, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -389,8 +387,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_PATTERN, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_PATTERN, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -401,8 +398,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_NO_REWRITE, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_NO_REWRITE, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -415,7 +411,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!ptr->is_deleted)
 +				continue;
 +			if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN_INITIALIZER,
-+					  ptr, &tomoyo_gc_queue))
++					     ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -423,11 +419,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	{
 +		struct tomoyo_domain_keeper_entry *ptr;
-+		list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
++		list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list,
++					list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN_KEEPER, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN_KEEPER, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -435,10 +431,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	{
 +		struct tomoyo_policy_manager_entry *ptr;
-+		list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
++		list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list,
++					list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_MANAGER, ptr, &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_MANAGER, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -449,8 +446,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_entry_rcu(ptr, &tomoyo_aggregator_list, list) {
 +			if (!ptr->is_deleted)
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_AGGREGATOR, ptr,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_AGGREGATOR, ptr))
 +				list_del_rcu(&ptr->list);
 +			else
 +				break;
@@ -464,8 +460,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +						list) {
 +				if (!acl->is_deleted)
 +					continue;
-+				if (tomoyo_add_to_gc(TOMOYO_ID_ACL, acl,
-+						  &tomoyo_gc_queue))
++				if (tomoyo_add_to_gc(TOMOYO_ID_ACL, acl))
 +					list_del_rcu(&acl->list);
 +				else
 +					break;
@@ -473,7 +468,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!domain->is_deleted ||
 +			    tomoyo_used_by_task(domain))
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN, domain, &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_DOMAIN, domain))
 +				list_del_rcu(&domain->list);
 +			else
 +				break;
@@ -487,8 +482,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +						list) {
 +				if (!member->is_deleted)
 +					continue;
-+				if (tomoyo_add_to_gc(TOMOYO_ID_PATH_GROUP_MEMBER,
-+						  member, &tomoyo_gc_queue))
++				if (tomoyo_add_to_gc
++				    (TOMOYO_ID_PATH_GROUP_MEMBER, member))
 +					list_del_rcu(&member->list);
 +				else
 +					break;
@@ -496,8 +491,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!list_empty(&group->member_list) ||
 +			    atomic_read(&group->users))
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_PATH_GROUP, group,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_PATH_GROUP, group))
 +				list_del_rcu(&group->list);
 +			else
 +				break;
@@ -505,14 +499,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	{
 +		struct tomoyo_address_group *group;
-+		list_for_each_entry_rcu(group, &tomoyo_address_group_list, list) {
++		list_for_each_entry_rcu(group, &tomoyo_address_group_list,
++					list) {
 +			struct tomoyo_address_group_member *member;
 +			list_for_each_entry_rcu(member, &group->member_list,
 +						list) {
 +				if (!member->is_deleted)
 +					break;
-+				if (tomoyo_add_to_gc(TOMOYO_ID_ADDRESS_GROUP_MEMBER,
-+						  member, &tomoyo_gc_queue))
++				if (tomoyo_add_to_gc
++				    (TOMOYO_ID_ADDRESS_GROUP_MEMBER, member))
 +					list_del_rcu(&member->list);
 +				else
 +					break;
@@ -520,8 +515,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!list_empty(&group->member_list) ||
 +			    atomic_read(&group->users))
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_ADDRESS_GROUP, group,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_ADDRESS_GROUP, group))
 +				list_del_rcu(&group->list);
 +			else
 +				break;
@@ -529,14 +523,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	{
 +		struct tomoyo_number_group *group;
-+		list_for_each_entry_rcu(group, &tomoyo_number_group_list, list) {
++		list_for_each_entry_rcu(group, &tomoyo_number_group_list,
++					list) {
 +			struct tomoyo_number_group_member *member;
 +			list_for_each_entry_rcu(member, &group->member_list,
 +						list) {
 +				if (!member->is_deleted)
 +					continue;
-+				if (tomoyo_add_to_gc(TOMOYO_ID_NUMBER_GROUP_MEMBER,
-+						  member, &tomoyo_gc_queue))
++				if (tomoyo_add_to_gc
++				    (TOMOYO_ID_NUMBER_GROUP_MEMBER, member))
 +					list_del_rcu(&member->list);
 +				else
 +					break;
@@ -544,8 +539,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (!list_empty(&group->member_list) ||
 +			    atomic_read(&group->users))
 +				continue;
-+			if (tomoyo_add_to_gc(TOMOYO_ID_NUMBER_GROUP, group,
-+					  &tomoyo_gc_queue))
++			if (tomoyo_add_to_gc(TOMOYO_ID_NUMBER_GROUP, group))
 +				list_del_rcu(&group->list);
 +			else
 +				break;
@@ -562,7 +556,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_entry_safe(p, tmp, &tomoyo_gc_queue, list) {
 +			switch (p->type) {
 +			case TOMOYO_ID_DOMAIN_INITIALIZER:
-+				size = tomoyo_del_domain_initializer(p->element);
++				size = tomoyo_del_domain_initializer(p->
++								     element);
 +				break;
 +			case TOMOYO_ID_DOMAIN_KEEPER:
 +				size = tomoyo_del_domain_keeper(p->element);
@@ -586,19 +581,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				size = tomoyo_del_aggregator(p->element);
 +				break;
 +			case TOMOYO_ID_PATH_GROUP_MEMBER:
-+				size = tomoyo_del_path_group_member(p->element);
++				size = tomoyo_del_path_group_member(p->
++								    element);
 +				break;
 +			case TOMOYO_ID_PATH_GROUP:
 +				size = tomoyo_del_path_group(p->element);
 +				break;
 +			case TOMOYO_ID_ADDRESS_GROUP_MEMBER:
-+				size = tomoyo_del_address_group_member(p->element);
++				size = tomoyo_del_address_group_member(p->
++								       element
++								       );
 +				break;
 +			case TOMOYO_ID_ADDRESS_GROUP:
 +				size = tomoyo_del_address_group(p->element);
 +				break;
 +			case TOMOYO_ID_NUMBER_GROUP_MEMBER:
-+				size = tomoyo_del_number_group_member(p->element);
++				size = tomoyo_del_number_group_member(p->
++								      element);
 +				break;
 +			case TOMOYO_ID_NUMBER_GROUP:
 +				size = tomoyo_del_number_group(p->element);

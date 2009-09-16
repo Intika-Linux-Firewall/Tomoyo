@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/util.c | 1158 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1158 insertions(+)
+ security/tomoyo/util.c | 1165 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1165 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/util.c
-@@ -0,0 +1,1158 @@
+@@ -0,0 +1,1165 @@
 +/*
 + * security/tomoyo/util.c
 + *
@@ -23,7 +23,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* Index table for searching parent category. */
 +static const u8 tomoyo_index2category[TOMOYO_MAX_MAC_INDEX +
-+				   TOMOYO_MAX_CAPABILITY_INDEX] = {
++				      TOMOYO_MAX_CAPABILITY_INDEX] = {
 +	[TOMOYO_MAC_FILE_EXECUTE]    = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_OPEN]       = TOMOYO_MAC_CATEGORY_FILE,
 +	[TOMOYO_MAC_FILE_CREATE]     = TOMOYO_MAC_CATEGORY_FILE,
@@ -53,7 +53,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAC_NETWORK_TCP_BIND]    = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_TCP_LISTEN]  = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_TCP_CONNECT] = TOMOYO_MAC_CATEGORY_NETWORK,
-+	[TOMOYO_MAC_NETWORK_TCP_ACCEPT]  = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_RAW_BIND]    = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAC_NETWORK_RAW_CONNECT] = TOMOYO_MAC_CATEGORY_NETWORK,
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_INET_STREAM_SOCKET_CREATE]
@@ -175,7 +174,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns nothing.
 + */
 +void tomoyo_print_ulong(char *buffer, const int buffer_len,
-+		     const unsigned long value, const u8 type)
++			const unsigned long value, const u8 type)
 +{
 +	if (type == TOMOYO_VALUE_TYPE_DECIMAL)
 +		snprintf(buffer, buffer_len, "%lu", value);
@@ -195,7 +194,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+bool tomoyo_parse_name_union(const char *filename, struct tomoyo_name_union *ptr)
++bool tomoyo_parse_name_union(const char *filename,
++			     struct tomoyo_name_union *ptr)
 +{
 +	if (!tomoyo_is_correct_path(filename, 0, 0, 0))
 +		return false;
@@ -395,6 +395,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/**
 + * tomoyo_is_correct_path - Validate a pathname.
++ *
 + * @filename:     The pathname to check.
 + * @start_type:   Should the pathname start with '/'?
 + *                1 = must / -1 = must not / 0 = don't care
@@ -407,7 +408,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true if @filename follows the naming rules, false otherwise.
 + */
 +bool tomoyo_is_correct_path(const char *filename, const s8 start_type,
-+			 const s8 pattern_type, const s8 end_type)
++			    const s8 pattern_type, const s8 end_type)
 +{
 +	const char *const start = filename;
 +	bool in_repetition = false;
@@ -507,6 +508,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/**
 + * tomoyo_is_correct_domain - Check whether the given domainname follows the naming rules.
++ *
 + * @domainname:   The domainname to check.
 + *
 + * Returns true if @domainname follows the naming rules, false otherwise.
@@ -660,8 +662,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_file_matches_pattern2 - Pattern matching without '/' character
-+ * and "\-" pattern.
++ * tomoyo_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
 + *
 + * @filename:     The start of string to check.
 + * @filename_end: The end of string to check.
@@ -671,9 +672,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true if @filename matches @pattern, false otherwise.
 + */
 +static bool tomoyo_file_matches_pattern2(const char *filename,
-+				      const char *filename_end,
-+				      const char *pattern,
-+				      const char *pattern_end)
++					 const char *filename_end,
++					 const char *pattern,
++					 const char *pattern_end)
 +{
 +	while (filename < filename_end && pattern < pattern_end) {
 +		char c;
@@ -732,9 +733,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		case '@':
 +			for (i = 0; i <= filename_end - filename; i++) {
 +				if (tomoyo_file_matches_pattern2(filename + i,
-+							      filename_end,
-+							      pattern + 1,
-+							      pattern_end))
++								 filename_end,
++								 pattern + 1,
++								 pattern_end))
 +					return true;
 +				c = filename[i];
 +				if (c == '.' && *pattern == '@')
@@ -743,7 +744,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +					continue;
 +				if (filename[i + 1] == '\\')
 +					i++;
-+				else if (tomoyo_is_byte_range(filename + i + 1))
++				else if (tomoyo_is_byte_range(filename + i
++							      + 1))
 +					i += 3;
 +				else
 +					break; /* Bad pattern. */
@@ -764,9 +766,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			}
 +			for (i = 1; i <= j; i++) {
 +				if (tomoyo_file_matches_pattern2(filename + i,
-+							      filename_end,
-+							      pattern + 1,
-+							      pattern_end))
++								 filename_end,
++								 pattern + 1,
++								 pattern_end))
 +					return true;
 +			}
 +			return false; /* Not matched or bad pattern. */
@@ -791,9 +793,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true if @filename matches @pattern, false otherwise.
 + */
 +static bool tomoyo_file_matches_pattern(const char *filename,
-+				     const char *filename_end,
-+				     const char *pattern,
-+				     const char *pattern_end)
++					const char *filename_end,
++					const char *pattern,
++					const char *pattern_end)
 +{
 +	const char *pattern_start = pattern;
 +	bool first = true;
@@ -803,7 +805,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (*pattern++ != '\\' || *pattern++ != '-')
 +			continue;
 +		result = tomoyo_file_matches_pattern2(filename, filename_end,
-+						   pattern_start, pattern - 2);
++						      pattern_start,
++						      pattern - 2);
 +		if (first)
 +			result = !result;
 +		if (result)
@@ -812,7 +815,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		pattern_start = pattern;
 +	}
 +	result = tomoyo_file_matches_pattern2(filename, filename_end,
-+					   pattern_start, pattern_end);
++					      pattern_start, pattern_end);
 +	return first ? result : !result;
 +}
 +
@@ -837,7 +840,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			p_delimiter = p + strlen(p);
 +		if (*p == '\\' && *(p + 1) == '{')
 +			goto recursive;
-+		if (!tomoyo_file_matches_pattern(f, f_delimiter, p, p_delimiter))
++		if (!tomoyo_file_matches_pattern(f, f_delimiter, p,
++						 p_delimiter))
 +			return false;
 +		f = f_delimiter;
 +		if (*f)
@@ -864,7 +868,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	do {
 +		/* Compare current component with pattern. */
 +		if (!tomoyo_file_matches_pattern(f, f_delimiter, p + 2,
-+					      p_delimiter - 2))
++						 p_delimiter - 2))
 +			break;
 +		/* Proceed to next component. */
 +		f = f_delimiter;
@@ -881,6 +885,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/**
 + * tomoyo_path_matches_pattern - Check whether the given filename matches the given pattern.
++ *
 + * @filename: The filename to check.
 + * @pattern:  The pattern to compare.
 + *
@@ -901,11 +906,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + *   \-     Subtraction operator.
 + *
-+ *   /\{dir\}/   One or more repetitions of dir (e.g. /dir/ /dir/dir/
++ *   /\{dir\}/   '?' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
 + *               /dir/dir/dir/ ).
 + */
 +bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
-+			      const struct tomoyo_path_info *pattern)
++				 const struct tomoyo_path_info *pattern)
 +{
 +	const char *f = filename->name;
 +	const char *p = pattern->name;
@@ -1003,13 +1008,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * tomoyo_init_request_info - Initialize "struct tomoyo_request_info" members.
 + *
 + * @r:      Pointer to "struct tomoyo_request_info" to initialize.
-+ * @domain: Pointer to "struct tomoyo_domain_info". NULL for tomoyo_current_domain().
++ * @domain: Pointer to "struct tomoyo_domain_info".
++ *          NULL for tomoyo_current_domain().
 + * @index:  Index number of functionality.
 + *
 + * Returns mode.
 + */
 +int tomoyo_init_request_info(struct tomoyo_request_info *r,
-+			  struct tomoyo_domain_info *domain, const u8 index)
++			     struct tomoyo_domain_info *domain, const u8 index)
 +{
 +	u8 profile;
 +	memset(r, 0, sizeof(*r));
@@ -1081,8 +1087,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		kfree(buffer);
 +	}
 +	printk(KERN_WARNING "%s: Access %s denied for %s\n",
-+	       r->mode == TOMOYO_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
-+	       tomoyo_last_word(r->domain->domainname->name));
++	       r->mode == TOMOYO_CONFIG_ENFORCING ? "ERROR" : "WARNING",
++	       buffer, tomoyo_last_word(r->domain->domainname->name));
 +	kfree(buffer);
 +}
 +
@@ -1111,8 +1117,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			u16 perm;
 +			u8 i;
 +		case TOMOYO_TYPE_PATH_ACL:
-+			perm = container_of(ptr, struct tomoyo_path_acl, head)->
-+				perm;
++			perm = container_of(ptr, struct tomoyo_path_acl,
++					    head)->perm;
 +			for (i = 0; i < TOMOYO_MAX_PATH_OPERATION; i++)
 +				if (perm & (1 << i))
 +					count++;
@@ -1156,7 +1162,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			count++;
 +		}
 +	}
-+	if (count < tomoyo_profile(domain->profile)->learning->learning_max_entry)
++	if (count
++	    < tomoyo_profile(domain->profile)->learning->learning_max_entry)
 +		return true;
 +	if (!domain->quota_warned) {
 +		domain->quota_warned = true;

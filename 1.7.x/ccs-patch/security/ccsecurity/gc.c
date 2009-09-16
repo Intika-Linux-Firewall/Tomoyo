@@ -41,16 +41,18 @@ struct ccs_gc_entry {
 	int type;
 	void *element;
 };
+static LIST_HEAD(ccs_gc_queue);
+static DEFINE_MUTEX(ccs_gc_mutex);
 
 /* Caller holds ccs_policy_lock mutex. */
-static bool ccs_add_to_gc(const int type, void *element, struct list_head *head)
+static bool ccs_add_to_gc(const int type, void *element)
 {
 	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
 	if (!entry)
 		return false;
 	entry->type = type;
 	entry->element = element;
-	list_add(&entry->list, head);
+	list_add(&entry->list, &ccs_gc_queue);
 	return true;
 }
 
@@ -417,8 +419,6 @@ static void ccs_synchronize_srcu(void)
 
 static int ccs_gc_thread(void *unused)
 {
-	static DEFINE_MUTEX(ccs_gc_mutex);
-	static LIST_HEAD(ccs_gc_queue);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	daemonize("GC for CCS");
 #else
@@ -434,8 +434,7 @@ static int ccs_gc_thread(void *unused)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -447,8 +446,7 @@ static int ccs_gc_thread(void *unused)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_GLOBAL_ENV, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_GLOBAL_ENV, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -459,8 +457,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_PATTERN, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_PATTERN, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -471,8 +468,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_NO_REWRITE, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_NO_REWRITE, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -484,8 +480,7 @@ static int ccs_gc_thread(void *unused)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER,
-					  ptr, &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -496,8 +491,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -508,7 +502,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_MANAGER, ptr, &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_MANAGER, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -519,8 +513,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_AGGREGATOR, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_AGGREGATOR, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;
@@ -534,8 +527,7 @@ static int ccs_gc_thread(void *unused)
 						list) {
 				if (!acl->is_deleted)
 					continue;
-				if (ccs_add_to_gc(CCS_ID_ACL, acl,
-						  &ccs_gc_queue))
+				if (ccs_add_to_gc(CCS_ID_ACL, acl))
 					list_del_rcu(&acl->list);
 				else
 					break;
@@ -543,7 +535,7 @@ static int ccs_gc_thread(void *unused)
 			if (!domain->is_deleted ||
 			    ccs_used_by_task(domain))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN, domain, &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_DOMAIN, domain))
 				list_del_rcu(&domain->list);
 			else
 				break;
@@ -558,7 +550,7 @@ static int ccs_gc_thread(void *unused)
 				if (!member->is_deleted)
 					continue;
 				if (ccs_add_to_gc(CCS_ID_PATH_GROUP_MEMBER,
-						  member, &ccs_gc_queue))
+						  member))
 					list_del_rcu(&member->list);
 				else
 					break;
@@ -566,8 +558,7 @@ static int ccs_gc_thread(void *unused)
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_PATH_GROUP, group,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_PATH_GROUP, group))
 				list_del_rcu(&group->list);
 			else
 				break;
@@ -582,7 +573,7 @@ static int ccs_gc_thread(void *unused)
 				if (!member->is_deleted)
 					break;
 				if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP_MEMBER,
-						  member, &ccs_gc_queue))
+						  member))
 					list_del_rcu(&member->list);
 				else
 					break;
@@ -590,8 +581,7 @@ static int ccs_gc_thread(void *unused)
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, group,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, group))
 				list_del_rcu(&group->list);
 			else
 				break;
@@ -606,7 +596,7 @@ static int ccs_gc_thread(void *unused)
 				if (!member->is_deleted)
 					continue;
 				if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP_MEMBER,
-						  member, &ccs_gc_queue))
+						  member))
 					list_del_rcu(&member->list);
 				else
 					break;
@@ -614,8 +604,7 @@ static int ccs_gc_thread(void *unused)
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP, group,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP, group))
 				list_del_rcu(&group->list);
 			else
 				break;
@@ -626,8 +615,7 @@ static int ccs_gc_thread(void *unused)
 		list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_RESERVEDPORT, ptr,
-					  &ccs_gc_queue))
+			if (ccs_add_to_gc(CCS_ID_RESERVEDPORT, ptr))
 				list_del_rcu(&ptr->list);
 			else
 				break;

@@ -2,18 +2,43 @@
 
 Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/capability.c |  137 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 137 insertions(+)
+ security/tomoyo/capability.c |  166 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 166 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/capability.c
-@@ -0,0 +1,137 @@
+@@ -0,0 +1,166 @@
 +/*
 + * security/tomoyo/capability.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
 +#include "internal.h"
++
++/*
++ * Notes on capabilities.
++ *
++ * TOMOYO is ready to support 65536 types of non-posix capabilities.
++ * But I can't utilize TOMOYO's ability because
++ *
++ * (1) Hooks are missing.
++ *   or
++ * (2) Posix's capability and functionality are not one to one mapping.
++ *     Therefore I can't derive functionality the caller wants to use from
++ *     posix's capability number (e.g. CAP_SYS_ADMIN).
++ *   or
++ * (3) Hooks are provided but it is not permitted to sleep (e.g CAP_SYS_NICE)
++ *     while TOMOYO needs hooks where it is permitted to sleep.
++ *   or
++ * (4) System calls and device drivers use the same posix's capability number.
++ *     Thus whether MAC's policy suits or not depends on hardware the system
++ *     is running. TOMOYO wants to distinguish requests from userland
++ *     applications and requests from kernel drivers, but I can't distinguish
++ *     it from posix's capability number.
++ *
++ * Therefore, LSM version of TOMOYO has very poor support compared to non-LSM
++ * version of TOMOYO. I hope this problem is solved in future.
++ */
 +
 +/**
 + * tomoyo_audit_capability_log - Audit capability log.
@@ -25,12 +50,15 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_capability_log(struct tomoyo_request_info *r,
-+				    const u8 operation, const bool is_granted)
++				       const u8 operation,
++				       const bool is_granted)
 +{
 +	if (!is_granted)
-+		tomoyo_warn_log(r, "capability %s", tomoyo_cap2keyword(operation));
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_CAPABILITY
-+				   "%s\n", tomoyo_cap2keyword(operation));
++		tomoyo_warn_log(r, "capability %s",
++				tomoyo_cap2keyword(operation));
++	return tomoyo_write_audit_log(is_granted, r,
++				      TOMOYO_KEYWORD_ALLOW_CAPABILITY "%s\n",
++				      tomoyo_cap2keyword(operation));
 +}
 +
 +/**
@@ -47,8 +75,8 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_request_info r;
 +	struct tomoyo_acl_info *ptr;
 +	int error;
-+	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAX_MAC_INDEX + operation)
-+	    == TOMOYO_CONFIG_DISABLED)
++	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAX_MAC_INDEX +
++				     operation) == TOMOYO_CONFIG_DISABLED)
 +		return true;
 +	do {
 +		error = -EPERM;
@@ -69,8 +97,9 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tomoyo_audit_capability_log(&r, operation, !error);
 +		if (!error)
 +			break;
-+		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_CAPABILITY "%s\n",
-+				       tomoyo_cap2keyword(operation));
++		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_CAPABILITY
++					  "%s\n",
++					  tomoyo_cap2keyword(operation));
 +	} while (error == 1);
 +	return !error;
 +}
@@ -89,7 +118,6 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_read_unlock(idx);
 +	return error;
 +}
-+EXPORT_SYMBOL(tomoyo_capable); /* for net/unix/af_unix.c */
 +
 +/**
 + * tomoyo_write_capability_policy - Write "struct tomoyo_capability_acl" list.
@@ -101,9 +129,10 @@ Signed-of-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int tomoyo_write_capability_policy(char *data, struct tomoyo_domain_info *domain,
-+				struct tomoyo_condition *condition,
-+				const bool is_delete)
++int tomoyo_write_capability_policy(char *data,
++				   struct tomoyo_domain_info *domain,
++				   struct tomoyo_condition *condition,
++				   const bool is_delete)
 +{
 +	struct tomoyo_capability_acl e = {
 +		.head.type = TOMOYO_TYPE_CAPABILITY_ACL,

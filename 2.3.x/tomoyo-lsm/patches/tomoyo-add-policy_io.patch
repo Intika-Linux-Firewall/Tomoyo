@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2745 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2745 insertions(+)
+ security/tomoyo/policy_io.c | 2794 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2794 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/policy_io.c
-@@ -0,0 +1,2745 @@
+@@ -0,0 +1,2794 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -23,11 +23,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	.audit = &tomoyo_default_profile.preference,
 +	.preference.audit_max_grant_log = CONFIG_SECURITY_TOMOYO_MAX_GRANT_LOG,
-+	.preference.audit_max_reject_log = CONFIG_SECURITY_TOMOYO_MAX_REJECT_LOG,
++	.preference.audit_max_reject_log
++	= CONFIG_SECURITY_TOMOYO_MAX_REJECT_LOG,
 +#endif
 +	.preference.enforcing_penalty = 0,
 +	.preference.enforcing_verbose = true,
-+	.preference.learning_max_entry = CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY,
++	.preference.learning_max_entry
++	= CONFIG_SECURITY_TOMOYO_MAX_ACCEPT_ENTRY,
 +	.preference.learning_verbose = false,
 +	.preference.learning_exec_realpath = true,
 +	.preference.learning_exec_argv0 = true,
@@ -48,8 +50,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +/* String table for /sys/kernel/security/tomoyo/profile */
 +static const char *tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX +
-+				    TOMOYO_MAX_CAPABILITY_INDEX +
-+				    TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
++				       TOMOYO_MAX_CAPABILITY_INDEX +
++				       TOMOYO_MAX_MAC_CATEGORY_INDEX] = {
 +	[TOMOYO_MAC_FILE_EXECUTE]
 +	= "file::execute",
 +	[TOMOYO_MAC_FILE_OPEN]
@@ -108,8 +110,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	= "network::inet_tcp_listen",
 +	[TOMOYO_MAC_NETWORK_TCP_CONNECT]
 +	= "network::inet_tcp_connect",
-+	[TOMOYO_MAC_NETWORK_TCP_ACCEPT]
-+	= "network::inet_tcp_accept",
 +	[TOMOYO_MAC_NETWORK_RAW_BIND]
 +	= "network::inet_raw_bind",
 +	[TOMOYO_MAC_NETWORK_RAW_CONNECT]
@@ -139,7 +139,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_KILL]
 +	= "capability::SYS_KILL",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_VHANGUP]
-+	= "capability::SYS_VHANGUP",
++					       = "capability::SYS_VHANGUP",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_SETTIME]
 +	= "capability::SYS_TIME",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_NICE]
@@ -201,7 +201,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +const char *tomoyo_cap2keyword(const u8 operation)
 +{
 +	return operation < TOMOYO_MAX_CAPABILITY_INDEX
-+		? tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX + operation] + 12 : NULL;
++		? tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX + operation] + 12 :
++		NULL;
 +}
 +
 +/**
@@ -248,8 +249,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns pointer to "struct tomoyo_profile" on success, NULL otherwise.
 + */
-+static struct tomoyo_profile *tomoyo_find_or_assign_new_profile(const unsigned int
-+							  profile)
++static struct tomoyo_profile *tomoyo_find_or_assign_new_profile(const unsigned
++								int profile)
 +{
 +	struct tomoyo_profile *ptr;
 +	struct tomoyo_profile *entry;
@@ -270,7 +271,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		ptr->permissive = &tomoyo_default_profile.preference;
 +		ptr->enforcing = &tomoyo_default_profile.preference;
 +		ptr->default_config = TOMOYO_CONFIG_DISABLED |
-+			TOMOYO_CONFIG_WANT_GRANT_LOG | TOMOYO_CONFIG_WANT_REJECT_LOG;
++			TOMOYO_CONFIG_WANT_GRANT_LOG |
++			TOMOYO_CONFIG_WANT_REJECT_LOG;
 +		memset(ptr->config, TOMOYO_CONFIG_USE_DEFAULT,
 +		       sizeof(ptr->config));
 +		mb(); /* Avoid out-of-order execution. */
@@ -376,7 +378,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!strcmp(data, "PREFERENCE::enforcing")) {
 +		char *cp2;
 +		if (use_default) {
-+			profile->enforcing = &tomoyo_default_profile.preference;
++			profile->enforcing
++				= &tomoyo_default_profile.preference;
 +			return 0;
 +		}
 +		profile->enforcing = &profile->preference;
@@ -390,7 +393,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	if (!strcmp(data, "PREFERENCE::permissive")) {
 +		if (use_default) {
-+			profile->permissive = &tomoyo_default_profile.preference;
++			profile->permissive
++				= &tomoyo_default_profile.preference;
 +			return 0;
 +		}
 +		profile->permissive = &profile->preference;
@@ -428,7 +432,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (profile == &tomoyo_default_profile)
 +		return -EINVAL;
 +	if (!strcmp(data, "COMMENT")) {
-+		const struct tomoyo_path_info *new_comment = tomoyo_get_name(cp);
++		const struct tomoyo_path_info *new_comment
++			= tomoyo_get_name(cp);
 +		const struct tomoyo_path_info *old_comment;
 +		/* Protect reader from tomoyo_put_name(). */
 +		spin_lock(&tomoyo_profile_comment_lock);
@@ -444,7 +449,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		config = profile->default_config;
 +	} else if (tomoyo_str_starts(&data, "CONFIG::")) {
 +		config = 0;
-+		for (i = 0; i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
++		for (i = 0; i < TOMOYO_MAX_MAC_INDEX
++			     + TOMOYO_MAX_CAPABILITY_INDEX
 +			     + TOMOYO_MAX_MAC_CATEGORY_INDEX; i++) {
 +			if (strcmp(data, tomoyo_mac_keywords[i]))
 +				continue;
@@ -503,29 +509,31 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	tomoyo_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
-+		      "max_reject_log=%u }\n",
-+		      tomoyo_default_profile.preference.audit_max_grant_log,
-+		      tomoyo_default_profile.preference.audit_max_reject_log);
++			 "max_reject_log=%u }\n",
++			 tomoyo_default_profile.preference.audit_max_grant_log,
++			 tomoyo_default_profile.preference.audit_max_reject_log
++			 );
 +#endif
-+	tomoyo_io_printf(head, "PREFERENCE::learning={ verbose=%s max_entry=%u "
-+		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				learning_verbose),
-+		      tomoyo_default_profile.preference.learning_max_entry,
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				learning_exec_realpath),
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				learning_exec_argv0),
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				learning_symlink_target));
++	tomoyo_io_printf(head, "PREFERENCE::learning={ verbose=%s "
++			 "max_entry=%u exec.realpath=%s exec.argv0=%s "
++			 "symlink.target=%s }\n",
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      learning_verbose),
++			 tomoyo_default_profile.preference.learning_max_entry,
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      learning_exec_realpath),
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      learning_exec_argv0),
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      learning_symlink_target));
 +	tomoyo_io_printf(head, "PREFERENCE::permissive={ verbose=%s }\n",
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				permissive_verbose));
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      permissive_verbose));
 +	tomoyo_io_printf(head, "PREFERENCE::enforcing={ verbose=%s penalty=%u "
-+		      "}\n",
-+		      tomoyo_yesno(tomoyo_default_profile.preference.
-+				enforcing_verbose),
-+		      tomoyo_default_profile.preference.enforcing_penalty);
++			 "}\n",
++			 tomoyo_yesno(tomoyo_default_profile.preference.
++				      enforcing_verbose),
++			 tomoyo_default_profile.preference.enforcing_penalty);
 +	head->read_bit = 1;
 + body:
 +	for (index = head->read_step; index < TOMOYO_MAX_PROFILES; index++) {
@@ -533,34 +541,36 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		u8 config;
 +		int i;
 +		int pos;
-+		const struct tomoyo_profile *profile = tomoyo_profile_ptr[index];
++		const struct tomoyo_profile *profile
++			= tomoyo_profile_ptr[index];
 +		head->read_step = index;
 +		if (!profile)
 +			continue;
 +		pos = head->read_avail;
 +		spin_lock(&tomoyo_profile_comment_lock);
 +		done = tomoyo_io_printf(head, "%u-COMMENT=%s\n", index,
-+				     profile->comment ? profile->comment->name
-+				     : "");
++					profile->comment ?
++					profile->comment->name : "");
 +		spin_unlock(&tomoyo_profile_comment_lock);
 +		if (!done)
 +			goto out;
 +		config = profile->default_config;
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		if (!tomoyo_io_printf(head, "%u-CONFIG={ mode=%s grant_log=%s "
-+				   "reject_log=%s }\n", index,
-+				   tomoyo_mode_4[config & 3],
-+				   tomoyo_yesno(config &
-+					     TOMOYO_CONFIG_WANT_GRANT_LOG),
-+				   tomoyo_yesno(config &
-+					     TOMOYO_CONFIG_WANT_REJECT_LOG)))
++				      "reject_log=%s }\n", index,
++				      tomoyo_mode_4[config & 3],
++				      tomoyo_yesno(config &
++					   TOMOYO_CONFIG_WANT_GRANT_LOG),
++				      tomoyo_yesno(config &
++					   TOMOYO_CONFIG_WANT_REJECT_LOG)))
 +			goto out;
 +#else
 +		if (!tomoyo_io_printf(head, "%u-CONFIG={ mode=%s }\n", index,
-+				   tomoyo_mode_4[config & 3]))
++				      tomoyo_mode_4[config & 3]))
 +			goto out;
 +#endif
-+		for (i = 0; i < TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
++		for (i = 0; i < TOMOYO_MAX_MAC_INDEX
++			     + TOMOYO_MAX_CAPABILITY_INDEX
 +			     + TOMOYO_MAX_MAC_CATEGORY_INDEX; i++) {
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +			const char *g;
@@ -570,56 +580,60 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (config == TOMOYO_CONFIG_USE_DEFAULT)
 +				continue;
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
-+			g = tomoyo_yesno(config & TOMOYO_CONFIG_WANT_GRANT_LOG);
-+			r = tomoyo_yesno(config & TOMOYO_CONFIG_WANT_REJECT_LOG);
++			g = tomoyo_yesno(config &
++					 TOMOYO_CONFIG_WANT_GRANT_LOG);
++			r = tomoyo_yesno(config &
++					 TOMOYO_CONFIG_WANT_REJECT_LOG);
 +			if (!tomoyo_io_printf(head, "%u-CONFIG::%s={ mode=%s "
-+					   "grant_log=%s reject_log=%s }\n",
-+					   index, tomoyo_mac_keywords[i],
-+					   tomoyo_mode_4[config & 3], g, r))
++					      "grant_log=%s reject_log=%s }\n",
++					      index, tomoyo_mac_keywords[i],
++					      tomoyo_mode_4[config & 3], g, r))
 +				goto out;
 +#else
-+			if (!tomoyo_io_printf(head, "%u-CONFIG::%s={ mode=%s }\n",
-+					   index, tomoyo_mac_keywords[i],
-+					   tomoyo_mode_4[config & 3]))
++			if (!tomoyo_io_printf(head,
++					      "%u-CONFIG::%s={ mode=%s }\n",
++					      index, tomoyo_mac_keywords[i],
++					      tomoyo_mode_4[config & 3]))
 +				goto out;
 +#endif
 +		}
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		if (profile->audit != &tomoyo_default_profile.preference &&
 +		    !tomoyo_io_printf(head, "%u-PREFERENCE::audit={ "
-+				   "max_grant_log=%u max_reject_log=%u }\n",
-+				   index,
-+				   profile->preference.audit_max_grant_log,
-+				   profile->preference.audit_max_reject_log))
++				      "max_grant_log=%u max_reject_log=%u }\n",
++				      index,
++				      profile->preference.audit_max_grant_log,
++				      profile->preference.audit_max_reject_log)
++		    )
 +			goto out;
 +#endif
 +		if (profile->learning != &tomoyo_default_profile.preference &&
 +		    !tomoyo_io_printf(head, "%u-PREFERENCE::learning={ "
-+				   "verbose=%s max_entry=%u exec.realpath=%s "
-+				   "exec.argv0=%s symlink.target=%s }\n",
-+				   index,
-+				   tomoyo_yesno(profile->preference.
-+					     learning_verbose),
-+				   profile->preference.learning_max_entry,
-+				   tomoyo_yesno(profile->preference.
-+					     learning_exec_realpath),
-+				   tomoyo_yesno(profile->preference.
-+					     learning_exec_argv0),
-+				   tomoyo_yesno(profile->preference.
-+					     learning_symlink_target)))
++				      "verbose=%s max_entry=%u "
++				      "exec.realpath=%s exec.argv0=%s "
++				      "symlink.target=%s }\n", index,
++				      tomoyo_yesno(profile->preference.
++						   learning_verbose),
++				      profile->preference.learning_max_entry,
++				      tomoyo_yesno(profile->preference.
++						   learning_exec_realpath),
++				      tomoyo_yesno(profile->preference.
++						   learning_exec_argv0),
++				      tomoyo_yesno(profile->preference.
++						   learning_symlink_target)))
 +			goto out;
-+		if (profile->permissive != &tomoyo_default_profile.preference &&
-+		    !tomoyo_io_printf(head, "%u-PREFERENCE::permissive={ "
-+				   "verbose=%s }\n", index,
-+				   tomoyo_yesno(profile->preference.
-+					     permissive_verbose)))
++		if (profile->permissive != &tomoyo_default_profile.preference
++		    && !tomoyo_io_printf(head, "%u-PREFERENCE::permissive={ "
++					 "verbose=%s }\n", index,
++					 tomoyo_yesno(profile->preference.
++						      permissive_verbose)))
 +			goto out;
 +		if (profile->enforcing != &tomoyo_default_profile.preference &&
 +		    !tomoyo_io_printf(head, "%u-PREFERENCE::enforcing={ "
-+				   "verbose=%s penalty=%u }\n", index,
-+				   tomoyo_yesno(profile->preference.
-+					     enforcing_verbose),
-+				   profile->preference.enforcing_penalty))
++				      "verbose=%s penalty=%u }\n", index,
++				      tomoyo_yesno(profile->preference.
++						   enforcing_verbose),
++				      profile->preference.enforcing_penalty))
 +			goto out;
 +		continue;
 + out:
@@ -641,7 +655,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int tomoyo_update_manager_entry(const char *manager, const bool is_delete)
++static int tomoyo_update_manager_entry(const char *manager,
++				       const bool is_delete)
 +{
 +	struct tomoyo_policy_manager_entry *entry = NULL;
 +	struct tomoyo_policy_manager_entry *ptr;
@@ -709,9 +724,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct list_head *pos;
 +	if (head->read_eof)
 +		return;
-+	list_for_each_cookie(pos, head->read_var2, &tomoyo_policy_manager_list) {
++	list_for_each_cookie(pos, head->read_var2,
++			     &tomoyo_policy_manager_list) {
 +		struct tomoyo_policy_manager_entry *ptr;
-+		ptr = list_entry(pos, struct tomoyo_policy_manager_entry, list);
++		ptr = list_entry(pos, struct tomoyo_policy_manager_entry,
++				 list);
 +		if (ptr->is_deleted)
 +			continue;
 +		if (!tomoyo_io_printf(head, "%s\n", ptr->manager->name))
@@ -724,7 +741,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * tomoyo_is_policy_manager - Check whether the current process is a policy manager.
 + *
 + * Returns true if the current process is permitted to modify policy
-+ * via /sys/kernel/security/ interface.
++ * via /sys/kernel/security/tomoyo/ interface.
 + *
 + * Caller holds tomoyo_read_lock().
 + */
@@ -812,7 +829,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Caller holds tomoyo_read_lock().
 + */
-+static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head, const char *data)
++static bool tomoyo_is_select_one(struct tomoyo_io_buffer *head,
++				 const char *data)
 +{
 +	unsigned int pid;
 +	struct tomoyo_domain_info *domain = NULL;
@@ -857,31 +875,37 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		head->read_bit = 0;
 +		head->read_step = 0;
 +		if (domain->is_deleted)
-+			tomoyo_io_printf(head, "# This is a deleted domain.\n");
++			tomoyo_io_printf(head,
++					 "# This is a deleted domain.\n");
 +	}
 +	return true;
 +}
 +
-+static int tomoyo_write_domain_policy2(char *data, struct tomoyo_domain_info *domain,
-+				    struct tomoyo_condition *cond,
-+				    const bool is_delete)
++static int tomoyo_write_domain_policy2(char *data,
++				       struct tomoyo_domain_info *domain,
++				       struct tomoyo_condition *cond,
++				       const bool is_delete)
 +{
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_CAPABILITY))
 +		return tomoyo_write_capability_policy(data, domain, cond,
-+						   is_delete);
++						      is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_NETWORK))
-+		return tomoyo_write_network_policy(data, domain, cond, is_delete);
++		return tomoyo_write_network_policy(data, domain, cond,
++						   is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_ENV))
 +		return tomoyo_write_env_policy(data, domain, cond, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
-+		return tomoyo_write_mount_policy(data, domain, cond, is_delete);
++		return tomoyo_write_mount_policy(data, domain, cond,
++						 is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_UNMOUNT))
-+		return tomoyo_write_umount_policy(data, domain, cond, is_delete);
++		return tomoyo_write_umount_policy(data, domain, cond,
++						  is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_CHROOT))
-+		return tomoyo_write_chroot_policy(data, domain, cond, is_delete);
++		return tomoyo_write_chroot_policy(data, domain, cond,
++						  is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT))
 +		return tomoyo_write_pivot_root_policy(data, domain, cond,
-+						   is_delete);
++						      is_delete);
 +	return tomoyo_write_file_policy(data, domain, cond, is_delete);
 +}
 +
@@ -960,14 +984,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_name_union(struct tomoyo_io_buffer *head,
-+				 const struct tomoyo_name_union *ptr)
++				    const struct tomoyo_name_union *ptr)
 +{
 +	int pos = head->read_avail;
 +	if (pos && head->read_buf[pos - 1] == ' ')
 +		head->read_avail--;
 +	if (ptr->is_group)
 +		return tomoyo_io_printf(head, " @%s",
-+				     ptr->group->group_name->name);
++					ptr->group->group_name->name);
 +	return tomoyo_io_printf(head, " %s", ptr->filename->name);
 +}
 +
@@ -980,11 +1004,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_name_union_quoted(struct tomoyo_io_buffer *head,
-+					const struct tomoyo_name_union *ptr)
++					   const struct tomoyo_name_union *ptr)
 +{
 +	if (ptr->is_group)
 +		return tomoyo_io_printf(head, "@%s",
-+				     ptr->group->group_name->name);
++					ptr->group->group_name->name);
 +	return tomoyo_io_printf(head, "\"%s\"", ptr->filename->name);
 +}
 +
@@ -997,9 +1021,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool tomoyo_print_number_union_common(struct tomoyo_io_buffer *head,
-+					  const struct tomoyo_number_union *ptr,
-+					  const bool need_space)
++static bool tomoyo_print_number_union_common
++(struct tomoyo_io_buffer *head, const struct tomoyo_number_union *ptr,
++ const bool need_space)
 +{
 +	unsigned long min;
 +	unsigned long max;
@@ -1009,7 +1033,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return false;
 +	if (ptr->is_group)
 +		return tomoyo_io_printf(head, "@%s",
-+				     ptr->group->group_name->name);
++					ptr->group->group_name->name);
 +	min_type = ptr->min_type;
 +	max_type = ptr->max_type;
 +	min = ptr->values[0];
@@ -1049,7 +1073,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +bool tomoyo_print_number_union(struct tomoyo_io_buffer *head,
-+			    const struct tomoyo_number_union *ptr)
++			       const struct tomoyo_number_union *ptr)
 +{
 +	return tomoyo_print_number_union_common(head, ptr, true);
 +}
@@ -1062,8 +1086,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool tomoyo_print_number_union_nospace(struct tomoyo_io_buffer *head,
-+					   const struct tomoyo_number_union *ptr)
++static bool tomoyo_print_number_union_nospace
++(struct tomoyo_io_buffer *head, const struct tomoyo_number_union *ptr)
 +{
 +	return tomoyo_print_number_union_common(head, ptr, false);
 +}
@@ -1077,7 +1101,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_condition(struct tomoyo_io_buffer *head,
-+				const struct tomoyo_condition *cond)
++				   const struct tomoyo_condition *cond)
 +{
 +	const struct tomoyo_condition_element *condp;
 +	const struct tomoyo_number_union *numbers_p;
@@ -1108,19 +1132,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		switch (left) {
 +		case TOMOYO_ARGV_ENTRY:
 +			if (!tomoyo_io_printf(head, " exec.argv[%u]%s\"%s\"",
-+					   argv->index, argv->is_not ?
-+					   "!=" : "=", argv->value->name))
++					      argv->index, argv->is_not ?
++					      "!=" : "=", argv->value->name))
 +				goto out;
 +			argv++;
 +			continue;
 +		case TOMOYO_ENVP_ENTRY:
 +			if (!tomoyo_io_printf(head, " exec.envp[\"%s\"]%s",
-+					   envp->name->name, envp->is_not ?
-+					   "!=" : "="))
++					      envp->name->name, envp->is_not ?
++					      "!=" : "="))
 +				goto out;
 +			if (envp->value) {
 +				if (!tomoyo_io_printf(head, "\"%s\"",
-+						   envp->value->name))
++						      envp->value->name))
 +					goto out;
 +			} else {
 +				if (!tomoyo_io_printf(head, "NULL"))
@@ -1136,7 +1160,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (left >= TOMOYO_MAX_CONDITION_KEYWORD)
 +				goto out;
 +			if (!tomoyo_io_printf(head, " %s",
-+					   tomoyo_condition_keyword[left]))
++					      tomoyo_condition_keyword[left]))
 +				goto out;
 +			break;
 +		}
@@ -1148,14 +1172,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				goto out;
 +			break;
 +		case TOMOYO_NUMBER_UNION:
-+			if (!tomoyo_print_number_union_nospace(head, numbers_p++))
++			if (!tomoyo_print_number_union_nospace(head,
++							       numbers_p++))
 +				goto out;
 +			break;
 +		default:
 +			if (right >= TOMOYO_MAX_CONDITION_KEYWORD)
 +				goto out;
 +			if (!tomoyo_io_printf(head, "%s",
-+					   tomoyo_condition_keyword[right]))
++					      tomoyo_condition_keyword[right]))
 +				goto out;
 +			break;
 +		}
@@ -1169,7 +1194,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!(i & (1 << j)))
 +			continue;
 +		if (!tomoyo_io_printf(head, " task.state[%u]=%u", j,
-+				   cond->post_state[j]))
++				      cond->post_state[j]))
 +			goto out;
 +	}
 + no_condition:
@@ -1189,8 +1214,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_path_acl(struct tomoyo_io_buffer *head,
-+			       struct tomoyo_path_acl *ptr,
-+			       const struct tomoyo_condition *cond)
++				  struct tomoyo_path_acl *ptr,
++				  const struct tomoyo_condition *cond)
 +{
 +	int pos;
 +	u8 bit;
@@ -1205,7 +1230,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		    && (perm & (1 << TOMOYO_TYPE_READ_WRITE)))
 +			continue;
 +		pos = head->read_avail;
-+		if (!tomoyo_io_printf(head, "allow_%s", tomoyo_path2keyword(bit)) ||
++		if (!tomoyo_io_printf(head, "allow_%s",
++				      tomoyo_path2keyword(bit)) ||
 +		    !tomoyo_print_name_union(head, &ptr->name) ||
 +		    !tomoyo_print_condition(head, cond)) {
 +			head->read_bit = bit;
@@ -1227,8 +1253,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_path_number3_acl(struct tomoyo_io_buffer *head,
-+				       struct tomoyo_path_number3_acl *ptr,
-+				       const struct tomoyo_condition *cond)
++					  struct tomoyo_path_number3_acl *ptr,
++					  const struct tomoyo_condition *cond)
 +{
 +	int pos;
 +	u8 bit;
@@ -1239,7 +1265,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		pos = head->read_avail;
 +		if (!tomoyo_io_printf(head, "allow_%s",
-+				   tomoyo_path_number32keyword(bit)) ||
++				      tomoyo_path_number32keyword(bit)) ||
 +		    !tomoyo_print_name_union(head, &ptr->name) ||
 +		    !tomoyo_print_number_union(head, &ptr->mode) ||
 +		    !tomoyo_print_number_union(head, &ptr->major) ||
@@ -1264,8 +1290,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_path2_acl(struct tomoyo_io_buffer *head,
-+				struct tomoyo_path2_acl *ptr,
-+				const struct tomoyo_condition *cond)
++				   struct tomoyo_path2_acl *ptr,
++				   const struct tomoyo_condition *cond)
 +{
 +	int pos;
 +	u8 bit;
@@ -1275,7 +1301,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		pos = head->read_avail;
 +		if (!tomoyo_io_printf(head, "allow_%s",
-+				   tomoyo_path22keyword(bit)) ||
++				      tomoyo_path22keyword(bit)) ||
 +		    !tomoyo_print_name_union(head, &ptr->name1) ||
 +		    !tomoyo_print_name_union(head, &ptr->name2) ||
 +		    !tomoyo_print_condition(head, cond)) {
@@ -1298,8 +1324,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_path_number_acl(struct tomoyo_io_buffer *head,
-+				      struct tomoyo_path_number_acl *ptr,
-+				      const struct tomoyo_condition *cond)
++					 struct tomoyo_path_number_acl *ptr,
++					 const struct tomoyo_condition *cond)
 +{
 +	int pos;
 +	u8 bit;
@@ -1310,7 +1336,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		pos = head->read_avail;
 +		if (!tomoyo_io_printf(head, "allow_%s",
-+				   tomoyo_path_number2keyword(bit)) ||
++				      tomoyo_path_number2keyword(bit)) ||
 +		    !tomoyo_print_name_union(head, &ptr->name) ||
 +		    !tomoyo_print_number_union(head, &ptr->number) ||
 +		    !tomoyo_print_condition(head, cond)) {
@@ -1333,11 +1359,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_env_acl(struct tomoyo_io_buffer *head,
-+			      struct tomoyo_env_acl *ptr,
-+			      const struct tomoyo_condition *cond)
++				 struct tomoyo_env_acl *ptr,
++				 const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
-+	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_ENV "%s", ptr->env->name) ||
++	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_ENV "%s",
++			      ptr->env->name) ||
 +	    !tomoyo_print_condition(head, cond)) {
 +		head->read_avail = pos;
 +		return false;
@@ -1355,12 +1382,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_capability_acl(struct tomoyo_io_buffer *head,
-+				     struct tomoyo_capability_acl *ptr,
-+				     const struct tomoyo_condition *cond)
++					struct tomoyo_capability_acl *ptr,
++					const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
 +	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_CAPABILITY "%s",
-+			   tomoyo_cap2keyword(ptr->operation)) ||
++			      tomoyo_cap2keyword(ptr->operation)) ||
 +	    !tomoyo_print_condition(head, cond)) {
 +		head->read_avail = pos;
 +		return false;
@@ -1377,7 +1404,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_ipv4_entry(struct tomoyo_io_buffer *head,
-+				 struct tomoyo_ip_network_acl *ptr)
++				    struct tomoyo_ip_network_acl *ptr)
 +{
 +	const u32 min_address = ptr->address.ipv4.min;
 +	const u32 max_address = ptr->address.ipv4.max;
@@ -1398,7 +1425,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_ipv6_entry(struct tomoyo_io_buffer *head,
-+				 struct tomoyo_ip_network_acl *ptr)
++				    struct tomoyo_ip_network_acl *ptr)
 +{
 +	char buf[64];
 +	const struct in6_addr *min_address = ptr->address.ipv6.min;
@@ -1424,8 +1451,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_network_acl(struct tomoyo_io_buffer *head,
-+				  struct tomoyo_ip_network_acl *ptr,
-+				  const struct tomoyo_condition *cond)
++				     struct tomoyo_ip_network_acl *ptr,
++				     const struct tomoyo_condition *cond)
 +{
 +	int pos;
 +	u8 bit;
@@ -1435,12 +1462,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		pos = head->read_avail;
 +		if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_NETWORK "%s ",
-+				   tomoyo_net2keyword(bit)))
++				      tomoyo_net2keyword(bit)))
 +			goto out;
 +		switch (ptr->address_type) {
 +		case TOMOYO_IP_ADDRESS_TYPE_ADDRESS_GROUP:
 +			if (!tomoyo_io_printf(head, "@%s", ptr->address.group->
-+					   group_name->name))
++					      group_name->name))
 +				goto out;
 +			break;
 +		case TOMOYO_IP_ADDRESS_TYPE_IPv4:
@@ -1473,10 +1500,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool tomoyo_print_execute_handler_record(struct tomoyo_io_buffer *head,
-+					     const char *keyword,
-+					     struct tomoyo_execute_handler_record *
-+					     ptr)
++static bool tomoyo_print_execute_handler_record
++(struct tomoyo_io_buffer *head, const char *keyword,
++ struct tomoyo_execute_handler_record *ptr)
 +{
 +	return tomoyo_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
 +}
@@ -1491,8 +1517,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_mount_acl(struct tomoyo_io_buffer *head,
-+				struct tomoyo_mount_acl *ptr,
-+				const struct tomoyo_condition *cond)
++				   struct tomoyo_mount_acl *ptr,
++				   const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
 +	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_MOUNT) ||
@@ -1517,8 +1543,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_umount_acl(struct tomoyo_io_buffer *head,
-+				 struct tomoyo_umount_acl *ptr,
-+				 const struct tomoyo_condition *cond)
++				    struct tomoyo_umount_acl *ptr,
++				    const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
 +	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_UNMOUNT) ||
@@ -1540,8 +1566,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_chroot_acl(struct tomoyo_io_buffer *head,
-+				 struct tomoyo_chroot_acl *ptr,
-+				 const struct tomoyo_condition *cond)
++				    struct tomoyo_chroot_acl *ptr,
++				    const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
 +	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_CHROOT) ||
@@ -1563,8 +1589,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_pivot_root_acl(struct tomoyo_io_buffer *head,
-+				     struct tomoyo_pivot_root_acl *ptr,
-+				     const struct tomoyo_condition *cond)
++					struct tomoyo_pivot_root_acl *ptr,
++					const struct tomoyo_condition *cond)
 +{
 +	const int pos = head->read_avail;
 +	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT) ||
@@ -1586,7 +1612,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_print_entry(struct tomoyo_io_buffer *head,
-+			    struct tomoyo_acl_info *ptr)
++			       struct tomoyo_acl_info *ptr)
 +{
 +	const struct tomoyo_condition *cond = ptr->cond;
 +	const u8 acl_type = ptr->type;
@@ -1594,20 +1620,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return true;
 +	if (acl_type == TOMOYO_TYPE_PATH_ACL) {
 +		struct tomoyo_path_acl *acl
-+			= container_of(ptr, struct tomoyo_path_acl,
-+				       head);
++			= container_of(ptr, struct tomoyo_path_acl, head);
 +		return tomoyo_print_path_acl(head, acl, cond);
 +	}
 +	if (acl_type == TOMOYO_TYPE_EXECUTE_HANDLER) {
 +		struct tomoyo_execute_handler_record *acl
-+			= container_of(ptr, struct tomoyo_execute_handler_record,
++			= container_of(ptr,
++				       struct tomoyo_execute_handler_record,
 +				       head);
 +		const char *keyword = TOMOYO_KEYWORD_EXECUTE_HANDLER;
 +		return tomoyo_print_execute_handler_record(head, keyword, acl);
 +	}
 +	if (acl_type == TOMOYO_TYPE_DENIED_EXECUTE_HANDLER) {
 +		struct tomoyo_execute_handler_record *acl
-+			= container_of(ptr, struct tomoyo_execute_handler_record,
++			= container_of(ptr,
++				       struct tomoyo_execute_handler_record,
 +				       head);
 +		const char *keyword = TOMOYO_KEYWORD_DENIED_EXECUTE_HANDLER;
 +		return tomoyo_print_execute_handler_record(head, keyword, acl);
@@ -1616,7 +1643,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return true;
 +	if (acl_type == TOMOYO_TYPE_PATH_NUMBER3_ACL) {
 +		struct tomoyo_path_number3_acl *acl
-+			= container_of(ptr, struct tomoyo_path_number3_acl, head);
++			= container_of(ptr, struct tomoyo_path_number3_acl,
++				       head);
 +		return tomoyo_print_path_number3_acl(head, acl, cond);
 +	}
 +	if (acl_type == TOMOYO_TYPE_PATH2_ACL) {
@@ -1710,12 +1738,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (domain->ignore_global_allow_env)
 +			ignore_global_allow_env
 +				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-+		if (!tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE "%u\n"
-+				   "%s%s%s%s\n", domain->domainname->name,
-+				   domain->profile, quota_exceeded,
-+				   transition_failed,
-+				   ignore_global_allow_read,
-+				   ignore_global_allow_env))
++		if (!tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
++				      "%u\n%s%s%s%s\n",
++				      domain->domainname->name,
++				      domain->profile, quota_exceeded,
++				      transition_failed,
++				      ignore_global_allow_read,
++				      ignore_global_allow_env))
 +			return;
 +		head->read_step = 2;
 + acl_loop:
@@ -1725,7 +1754,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_cookie(apos, head->read_var2,
 +				     &domain->acl_info_list) {
 +			struct tomoyo_acl_info *ptr
-+				= list_entry(apos, struct tomoyo_acl_info, list);
++				= list_entry(apos, struct tomoyo_acl_info,
++					     list);
 +			if (!tomoyo_print_entry(head, ptr))
 +				return;
 +		}
@@ -1767,7 +1797,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (profile >= TOMOYO_MAX_PROFILES)
 +		return -EINVAL;
 +	domain = tomoyo_find_domain(cp + 1);
-+	if (domain && (!tomoyo_policy_loaded || tomoyo_profile_ptr[(u8) profile]))
++	if (domain && (!tomoyo_policy_loaded ||
++		       tomoyo_profile_ptr[(u8) profile]))
 +		domain->profile = (u8) profile;
 +	return 0;
 +}
@@ -1797,7 +1828,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (domain->is_deleted)
 +			continue;
 +		if (!tomoyo_io_printf(head, "%u %s\n", domain->profile,
-+				   domain->domainname->name))
++				      domain->domainname->name))
 +			return;
 +	}
 +	head->read_eof = true;
@@ -1861,17 +1892,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return;
 +	if (!task_info)
 +		tomoyo_io_printf(head, "%u %u %s", pid, domain->profile,
-+			      domain->domainname->name);
++				 domain->domainname->name);
 +	else
 +		tomoyo_io_printf(head, "%u manager=%s execute_handler=%s "
-+			      "state[0]=%u state[1]=%u state[2]=%u", pid,
-+			      tomoyo_yesno(tomoyo_flags &
-+					TOMOYO_TASK_IS_POLICY_MANAGER),
-+			      tomoyo_yesno(tomoyo_flags &
-+					TOMOYO_TASK_IS_EXECUTE_HANDLER),
-+			      (u8) (tomoyo_flags >> 24),
-+			      (u8) (tomoyo_flags >> 16),
-+			      (u8) (tomoyo_flags >> 8));
++				 "state[0]=%u state[1]=%u state[2]=%u", pid,
++				 tomoyo_yesno(tomoyo_flags &
++					      TOMOYO_TASK_IS_POLICY_MANAGER),
++				 tomoyo_yesno(tomoyo_flags &
++					      TOMOYO_TASK_IS_EXECUTE_HANDLER),
++				 (u8) (tomoyo_flags >> 24),
++				 (u8) (tomoyo_flags >> 16),
++				 (u8) (tomoyo_flags >> 8));
 +}
 +
 +/**
@@ -1886,21 +1917,24 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	char *data = head->write_buf;
 +	bool is_delete = tomoyo_str_starts(&data, TOMOYO_KEYWORD_DELETE);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_KEEP_DOMAIN))
-+		return tomoyo_write_domain_keeper_policy(data, false, is_delete);
++		return tomoyo_write_domain_keeper_policy(data, false,
++							 is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_NO_KEEP_DOMAIN))
-+		return tomoyo_write_domain_keeper_policy(data, true, is_delete);
++		return tomoyo_write_domain_keeper_policy(data, true,
++							 is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_INITIALIZE_DOMAIN))
 +		return tomoyo_write_domain_initializer_policy(data, false,
-+							   is_delete);
++							      is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN))
 +		return tomoyo_write_domain_initializer_policy(data, true,
-+							   is_delete);
++							      is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_AGGREGATOR))
 +		return tomoyo_write_aggregator_policy(data, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_READ))
 +		return tomoyo_write_globally_readable_policy(data, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_ENV))
-+		return tomoyo_write_globally_usable_env_policy(data, is_delete);
++		return tomoyo_write_globally_usable_env_policy(data,
++							       is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_FILE_PATTERN))
 +		return tomoyo_write_pattern_policy(data, is_delete);
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_PATH_GROUP))
@@ -2044,15 +2078,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns pointer to "struct tomoyo_condition" on success, NULL otherwise.
 + */
-+static struct tomoyo_condition *tomoyo_get_execute_condition(struct tomoyo_execve_entry
-+						       *ee)
++static struct tomoyo_condition *tomoyo_get_execute_condition
++(struct tomoyo_execve_entry *ee)
 +{
 +	struct tomoyo_condition *cond;
 +	char *buf;
 +	int len = 256;
 +	char *realpath = NULL;
 +	char *argv0 = NULL;
-+	const struct tomoyo_profile *profile = tomoyo_profile(ee->r.domain->profile);
++	const struct tomoyo_profile *profile
++		= tomoyo_profile(ee->r.domain->profile);
 +	if (profile->learning->learning_exec_realpath) {
 +		struct file *file = ee->bprm->file;
 +		realpath = tomoyo_realpath_from_path(&file->f_path);
@@ -2099,8 +2134,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns pointer to "struct tomoyo_condition" on success, NULL otherwise.
 + */
-+static struct tomoyo_condition *tomoyo_get_symlink_condition(struct tomoyo_request_info
-+						       *r)
++static struct tomoyo_condition *tomoyo_get_symlink_condition
++(struct tomoyo_request_info *r)
 +{
 +	struct tomoyo_condition *cond;
 +	char *buf;
@@ -2195,7 +2230,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			cond = tomoyo_get_execute_condition(r->ee);
 +		else if (r->obj && r->obj->symlink_target)
 +			cond = tomoyo_get_symlink_condition(r);
-+		else if ((current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
++		else if ((current->tomoyo_flags &
++			  TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
 +			char str[] = "if task.type=execute_handler";
 +			cond = tomoyo_get_condition(str);
 +		} else
@@ -2256,7 +2292,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	spin_unlock(&tomoyo_query_list_lock);
 +	/* Give 10 seconds for supervisor's opinion. */
 +	for (tomoyo_query_entry->timer = 0;
-+	     atomic_read(&tomoyo_query_observers) && tomoyo_query_entry->timer < 100;
++	     atomic_read(&tomoyo_query_observers) &&
++		     tomoyo_query_entry->timer < 100;
 +	     tomoyo_query_entry->timer++) {
 +		wake_up(&tomoyo_query_wait);
 +		set_current_state(TASK_INTERRUPTIBLE);
@@ -2311,7 +2348,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		spin_lock(&tomoyo_query_list_lock);
 +		list_for_each(tmp, &tomoyo_query_list) {
 +			struct tomoyo_query_entry *ptr
-+				= list_entry(tmp, struct tomoyo_query_entry, list);
++				= list_entry(tmp, struct tomoyo_query_entry,
++					     list);
 +			if (ptr->answer)
 +				continue;
 +			found = true;
@@ -2437,7 +2475,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	if (head->read_eof)
 +		return;
-+	tomoyo_io_printf(head, "1.7.0");
++	tomoyo_io_printf(head, "2.3.0-pre");
 +	head->read_eof = true;
 +}
 +
@@ -2454,7 +2492,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * tomoyo_current_domain()->domainname != NULL because every process
 +	 * belongs to a domain and the domain's name cannot be NULL.
 +	 */
-+	tomoyo_io_printf(head, "%s", tomoyo_current_domain()->domainname->name);
++	tomoyo_io_printf(head, "%s",
++			 tomoyo_current_domain()->domainname->name);
 +	head->read_eof = true;
 +}
 +
@@ -2474,11 +2513,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_init(&head->io_sem);
 +	head->type = type;
 +	switch (type) {
-+	case TOMOYO_DOMAINPOLICY: /* /sys/kernel/security/tomoyo/domain_policy */
++	case TOMOYO_DOMAINPOLICY:
++		/* /sys/kernel/security/tomoyo/domain_policy */
 +		head->write = tomoyo_write_domain_policy;
 +		head->read = tomoyo_read_domain_policy;
 +		break;
-+	case TOMOYO_EXCEPTIONPOLICY: /* /sys/kernel/security/tomoyo/exception_policy */
++	case TOMOYO_EXCEPTIONPOLICY:
++		/* /sys/kernel/security/tomoyo/exception_policy */
 +		head->write = tomoyo_write_exception_policy;
 +		head->read = tomoyo_read_exception_policy;
 +		break;
@@ -2495,18 +2536,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	case TOMOYO_SELFDOMAIN: /* /sys/kernel/security/tomoyo/self_domain */
 +		head->read = tomoyo_read_self_domain;
 +		break;
-+	case TOMOYO_DOMAIN_STATUS: /* /sys/kernel/security/tomoyo/.domain_status */
++	case TOMOYO_DOMAIN_STATUS:
++		/* /sys/kernel/security/tomoyo/.domain_status */
 +		head->write = tomoyo_write_domain_profile;
 +		head->read = tomoyo_read_domain_profile;
 +		break;
-+	case TOMOYO_EXECUTE_HANDLER: /* /sys/kernel/security/tomoyo/.execute_handler */
++	case TOMOYO_EXECUTE_HANDLER:
++		/* /sys/kernel/security/tomoyo/.execute_handler */
 +		/* Allow execute_handler to read process's status. */
-+		if (!(current->tomoyo_flags & TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
++		if (!(current->tomoyo_flags &
++		      TOMOYO_TASK_IS_EXECUTE_HANDLER)) {
 +			kfree(head);
 +			return -EPERM;
 +		}
 +		/* fall through */
-+	case TOMOYO_PROCESS_STATUS: /* /sys/kernel/security/tomoyo/.process_status */
++	case TOMOYO_PROCESS_STATUS:
++		/* /sys/kernel/security/tomoyo/.process_status */
 +		head->write = tomoyo_write_pid;
 +		head->read = tomoyo_read_pid;
 +		break;
@@ -2570,14 +2615,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		head->reader_idx = tomoyo_read_lock();
 +	file->private_data = head;
 +	/*
-+	 * Call the handler now if the file is /sys/kernel/security/tomoyo/self_domain
-+	 * so that the user can use "cat < /sys/kernel/security/tomoyo/self_domain" to
++	 * Call the handler now if the file is
++	 * /sys/kernel/security/tomoyo/self_domain so that the user can use
++	 * "cat < /sys/kernel/security/tomoyo/self_domain" to
 +	 * know the current process's domainname.
 +	 */
 +	if (type == TOMOYO_SELFDOMAIN)
 +		tomoyo_read_control(file, NULL, 0);
 +	/*
-+	 * If the file is /sys/kernel/security/tomoyo/query , increment the observer counter.
++	 * If the file is /sys/kernel/security/tomoyo/query ,
++	 * increment the observer counter.
 +	 * The obserber counter is used by tomoyo_supervisor() to see if
 +	 * there is some process monitoring /sys/kernel/security/tomoyo/query.
 +	 */
@@ -2594,8 +2641,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Waits for read readiness.
 + * /sys/kernel/security/tomoyo/query is handled by /usr/sbin/tomoyo-queryd and
-+ * /sys/kernel/security/tomoyo/grant_log and /sys/kernel/security/tomoyo/reject_log are handled by
-+ * /usr/sbin/tomoyo-auditd.
++ * /sys/kernel/security/tomoyo/grant_log and
++ * /sys/kernel/security/tomoyo/reject_log are handled by
++ * /usr/sbin/tomoyo-auditd .
 + */
 +int tomoyo_poll_control(struct file *file, poll_table *wait)
 +{
@@ -2615,7 +2663,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns bytes read on success, negative value otherwise.
 + */
 +int tomoyo_read_control(struct file *file, char __user *buffer,
-+		     const int buffer_len)
++			const int buffer_len)
 +{
 +	int len = 0;
 +	struct tomoyo_io_buffer *head = file->private_data;
@@ -2670,7 +2718,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns @buffer_len on success, negative value otherwise.
 + */
 +int tomoyo_write_control(struct file *file, const char __user *buffer,
-+		      const int buffer_len)
++			 const int buffer_len)
 +{
 +	struct tomoyo_io_buffer *head = file->private_data;
 +	int error = buffer_len;
@@ -2734,7 +2782,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const bool is_write = head->write_buf != NULL;
 +	const u8 type = head->type;
 +	/*
-+	 * If the file is /sys/kernel/security/tomoyo/query , decrement the observer counter.
++	 * If the file is /sys/kernel/security/tomoyo/query ,
++	 * decrement the observer counter.
 +	 */
 +	if (type == TOMOYO_QUERY)
 +		atomic_dec(&tomoyo_query_observers);

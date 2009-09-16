@@ -22,11 +22,6 @@
 #endif
 #include "internal.h"
 
-/* For compatibility with older kernels. */
-#ifndef for_each_process
-#define for_each_process for_each_task
-#endif
-
 /* Variables definitions.*/
 
 /* The initial domain. */

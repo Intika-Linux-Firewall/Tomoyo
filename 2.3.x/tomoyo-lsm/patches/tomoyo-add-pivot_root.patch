@@ -13,9 +13,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
-+#include <linux/dcache.h>
-+#include <linux/namei.h>
 +#include "internal.h"
 +
 +/**
@@ -29,13 +26,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_pivot_root_log(struct tomoyo_request_info *r,
-+				    const char *new_root, const char *old_root,
-+				    const bool is_granted)
++				       const char *new_root,
++				       const char *old_root,
++				       const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "pivot_root %s %s", new_root, old_root);
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT
-+				   "%s %s\n", new_root, old_root);
++	return tomoyo_write_audit_log(is_granted, r,
++				      TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT
++				      "%s %s\n", new_root, old_root);
 +}
 +
 +/**
@@ -86,9 +85,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			acl = container_of(ptr, struct tomoyo_pivot_root_acl,
 +					   head);
 +			if (!tomoyo_compare_name_union(&old_root_dir,
-+						    &acl->old_root) ||
++						       &acl->old_root) ||
 +			    !tomoyo_compare_name_union(&new_root_dir,
-+						    &acl->new_root) ||
++						       &acl->new_root) ||
 +			    !tomoyo_condition(&r, ptr))
 +				continue;
 +			r.cond = ptr->cond;
@@ -99,9 +98,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (!error)
 +			break;
 +		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT
-+				       "%s %s\n",
-+				       tomoyo_file_pattern(&new_root_dir),
-+				       tomoyo_file_pattern(&old_root_dir));
++					  "%s %s\n",
++					  tomoyo_file_pattern(&new_root_dir),
++					  tomoyo_file_pattern(&old_root_dir));
 +	} while (error == 1);
 + out:
 +	kfree(old_root);
@@ -137,9 +136,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int tomoyo_write_pivot_root_policy(char *data, struct tomoyo_domain_info *domain,
-+				struct tomoyo_condition *condition,
-+				const bool is_delete)
++int tomoyo_write_pivot_root_policy(char *data,
++				   struct tomoyo_domain_info *domain,
++				   struct tomoyo_condition *condition,
++				   const bool is_delete)
 +{
 +	struct tomoyo_pivot_root_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
@@ -165,7 +165,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->type != TOMOYO_TYPE_PIVOT_ROOT_ACL ||
 +		    ptr->cond != condition ||
 +		    tomoyo_memcmp(acl, &e, offsetof(typeof(e), old_root),
-+			       sizeof(e)))
++				  sizeof(e)))
 +			continue;
 +		ptr->is_deleted = is_delete;
 +		error = 0;

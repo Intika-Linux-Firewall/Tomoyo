@@ -429,4 +429,12 @@ extern int task_list_len;
 #define proc_policy_domain_status    "/sys/kernel/security/tomoyo/.domain_status"
 #define proc_policy_process_status   "/sys/kernel/security/tomoyo/.process_status"
 
+#ifndef __NR_UNSHARE
+#include <syscall.h>
+static int unshare(unsigned int flags)
+{
+	return syscall(310, flags);
+}
+#endif
+
 /***** PROTOTYPES DEFINITION END *****/
