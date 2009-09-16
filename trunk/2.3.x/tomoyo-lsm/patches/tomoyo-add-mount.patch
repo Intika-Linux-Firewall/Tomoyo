@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/mount.c |  370 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 370 insertions(+)
+ security/tomoyo/mount.c |  368 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 368 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/mount.c
-@@ -0,0 +1,370 @@
+@@ -0,0 +1,368 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -199,8 +199,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		put_filesystem(fstype);
 +	kfree(requested_type);
 +	/* Drop refcount obtained by tomoyo_get_path(). */
-+	if (obj.path2.dentry)
-+		path_put(&obj.path2);
 +	if (obj.path1.dentry)
 +		path_put(&obj.path1);
 +	return error;
