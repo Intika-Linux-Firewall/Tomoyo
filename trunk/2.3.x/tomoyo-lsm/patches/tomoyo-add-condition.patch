@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/condition.c | 1319 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1319 insertions(+)
+ security/tomoyo/condition.c | 1328 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1328 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/condition.c
-@@ -0,0 +1,1319 @@
+@@ -0,0 +1,1328 @@
 +/*
 + * security/tomoyo/condition.c
 + *
@@ -27,8 +27,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_argv(const unsigned int index, const char *arg_ptr,
-+		     const int argc, const struct tomoyo_argv_entry *argv,
-+		     u8 *checked)
++			const int argc, const struct tomoyo_argv_entry *argv,
++			u8 *checked)
 +{
 +	int i;
 +	struct tomoyo_path_info arg;
@@ -60,8 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns true on success, false otherwise.
 + */
 +static bool tomoyo_envp(const char *env_name, const char *env_value,
-+		     const int envc, const struct tomoyo_envp_entry *envp,
-+		     u8 *checked)
++			const int envc, const struct tomoyo_envp_entry *envp,
++			u8 *checked)
 +{
 +	int i;
 +	struct tomoyo_path_info name;
@@ -76,7 +76,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			continue;
 +		*checked = 1;
 +		if (envp->value) {
-+			result = tomoyo_path_matches_pattern(&value, envp->value);
++			result = tomoyo_path_matches_pattern(&value,
++							     envp->value);
 +			if (envp->is_not)
 +				result = !result;
 +		} else {
@@ -101,9 +102,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool tomoyo_scan_bprm(struct tomoyo_execve_entry *ee,
-+			  const u16 argc, const struct tomoyo_argv_entry *argv,
-+			  const u16 envc, const struct tomoyo_envp_entry *envp)
++static bool tomoyo_scan_bprm(struct tomoyo_execve_entry *ee, const u16 argc,
++			     const struct tomoyo_argv_entry *argv,
++			     const u16 envc,
++			     const struct tomoyo_envp_entry *envp)
 +{
 +	/*
 +	  if exec.argc=3
@@ -177,8 +179,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			/* Check. */
 +			if (argv_count) {
 +				if (!tomoyo_argv(bprm->argc - argv_count,
-+					      arg_ptr, argc, argv,
-+					      checked)) {
++						 arg_ptr, argc, argv,
++						 checked)) {
 +					result = false;
 +					break;
 +				}
@@ -188,8 +190,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				if (cp) {
 +					*cp = '\0';
 +					if (!tomoyo_envp(arg_ptr, cp + 1,
-+						      envc, envp,
-+						      checked + argc)) {
++							 envc, envp,
++							 checked + argc)) {
 +						result = false;
 +						break;
 +					}
@@ -240,8 +242,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static bool tomoyo_scan_exec_realpath(struct file *file,
-+				   const struct tomoyo_name_union *ptr,
-+				   const bool match)
++				      const struct tomoyo_name_union *ptr,
++				      const bool match)
 +{
 +	bool result;
 +	struct tomoyo_path_info exe;
@@ -257,7 +259,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +static bool tomoyo_parse_name_union_quoted(char *filename,
-+					struct tomoyo_name_union *ptr)
++					   struct tomoyo_name_union *ptr)
 +{
 +	bool result;
 +	char *cp = NULL;
@@ -469,7 +471,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns true on success, false otherwise.
 + */
-+static bool tomoyo_parse_post_condition(char * const condition, u8 post_state[4])
++static bool tomoyo_parse_post_condition(char * const condition,
++					u8 post_state[4])
 +{
 +	char *start = strstr(condition, "; set ");
 +	if (!start)
@@ -593,11 +596,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (debug)
 +			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
 +			       word, left);
-+		if (left == TOMOYO_EXEC_REALPATH || left == TOMOYO_SYMLINK_TARGET) {
++		if (left == TOMOYO_EXEC_REALPATH ||
++		    left == TOMOYO_SYMLINK_TARGET) {
 +			names_count++;
 +			continue;
 +		}
-+		for (right = 0; right < TOMOYO_MAX_CONDITION_KEYWORD; right++) {
++		for (right = 0; right < TOMOYO_MAX_CONDITION_KEYWORD;
++		     right++) {
 +			if (strcmp(word, tomoyo_condition_keyword[right]))
 +				continue;
 +			break;
@@ -717,14 +722,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (debug)
 +			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
 +			       word, left);
-+		if (left == TOMOYO_EXEC_REALPATH || left == TOMOYO_SYMLINK_TARGET) {
++		if (left == TOMOYO_EXEC_REALPATH ||
++		    left == TOMOYO_SYMLINK_TARGET) {
 +			right = TOMOYO_NAME_UNION;
 +			if (!tomoyo_parse_name_union_quoted(word, names_p++))
 +				goto out;
 +			names_count--;
 +			goto store_value;
 +		}
-+		for (right = 0; right < TOMOYO_MAX_CONDITION_KEYWORD; right++) {
++		for (right = 0; right < TOMOYO_MAX_CONDITION_KEYWORD;
++		     right++) {
 +			if (strcmp(word, tomoyo_condition_keyword[right]))
 +				continue;
 +			break;
@@ -762,7 +769,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	mutex_lock(&tomoyo_policy_lock);
 +	list_for_each_entry_rcu(ptr, &tomoyo_condition_list, list) {
 +		if (tomoyo_memcmp(ptr, entry, offsetof(typeof(*entry), size),
-+			       size))
++				  size))
 +			continue;
 +		/* Same entry found. Share this entry. */
 +		atomic_inc(&ptr->users);
@@ -892,7 +899,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +bool tomoyo_condition(struct tomoyo_request_info *r,
-+		   const struct tomoyo_acl_info *acl)
++		      const struct tomoyo_acl_info *acl)
 +{
 +	const struct task_struct *task = current;
 +	u32 i;
@@ -925,7 +932,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	numbers_p = (const struct tomoyo_number_union *) (condp + condc);
 +	names_p = (const struct tomoyo_name_union *)
 +		(numbers_p + cond->numbers_count);
-+	argv = (const struct tomoyo_argv_entry *) (names_p + cond->names_count);
++	argv = (const struct tomoyo_argv_entry *) (names_p +
++						   cond->names_count);
 +	envp = (const struct tomoyo_envp_entry *) (argv + argc);
 +	for (i = 0; i < condc; i++) {
 +		const bool match = condp->equals;
@@ -955,7 +963,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			case TOMOYO_EXEC_REALPATH:
 +				ee = r->ee;
 +				file = ee ? ee->bprm->file : NULL;
-+				if (!tomoyo_scan_exec_realpath(file, ptr, match))
++				if (!tomoyo_scan_exec_realpath(file, ptr,
++							       match))
 +					goto out;
 +				break;
 +			}
@@ -1087,7 +1096,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				break;
 +			case TOMOYO_TASK_TYPE:
 +				value = ((u8) task->tomoyo_flags)
-+				   & TOMOYO_TASK_IS_EXECUTE_HANDLER;
++					& TOMOYO_TASK_IS_EXECUTE_HANDLER;
 +				break;
 +			case TOMOYO_TASK_EXECUTE_HANDLER:
 +				value = TOMOYO_TASK_IS_EXECUTE_HANDLER;
@@ -1262,8 +1271,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			const struct tomoyo_number_union *ptr = numbers_p++;
 +			if (ptr->is_group) {
 +				if (tomoyo_number_matches_group(left_min,
-+							     left_max,
-+							     ptr->group)
++								left_max,
++								ptr->group)
 +				    == match)
 +					continue;
 +			} else {

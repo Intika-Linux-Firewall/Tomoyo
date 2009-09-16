@@ -393,6 +393,7 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
 
 /**
  * ccs_is_correct_path - Validate a pathname.
+ *
  * @filename:     The pathname to check.
  * @start_type:   Should the pathname start with '/'?
  *                1 = must / -1 = must not / 0 = don't care
@@ -505,6 +506,7 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 
 /**
  * ccs_is_correct_domain - Check whether the given domainname follows the naming rules.
+ *
  * @domainname:   The domainname to check.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
@@ -658,8 +660,7 @@ void ccs_fill_path_info(struct ccs_path_info *ptr)
 }
 
 /**
- * ccs_file_matches_pattern2 - Pattern matching without '/' character
- * and "\-" pattern.
+ * ccs_file_matches_pattern2 - Pattern matching without '/' character and "\-" pattern.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.
@@ -879,6 +880,7 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
 
 /**
  * ccs_path_matches_pattern - Check whether the given filename matches the given pattern.
+ *
  * @filename: The filename to check.
  * @pattern:  The pattern to compare.
  *
@@ -899,7 +901,7 @@ static bool ccs_path_matches_pattern2(const char *f, const char *p)
  *
  *   \-     Subtraction operator.
  *
- *   /\{dir\}/   One or more repetitions of dir (e.g. /dir/ /dir/dir/
+ *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
  *               /dir/dir/dir/ ).
  */
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,

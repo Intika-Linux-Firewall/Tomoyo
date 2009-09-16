@@ -10,7 +10,7 @@ newns tomoyo_bind_test
 newns tomoyo_file_test
 newns tomoyo_rewrite_test
 newns tomoyo_capability_test
-newns tomoyo_signal_test
+# newns tomoyo_signal_test
 newns tomoyo_network_test
 newns tomoyo_argv0_test
 newns tomoyo_env_test
@@ -28,7 +28,7 @@ newns tomoyo_bind_test | grep -vF exhausted | grep -vF Done
 newns tomoyo_file_test | grep -vF OK | grep -F '('
 newns tomoyo_rewrite_test | grep -vF OK | grep -F '('
 newns tomoyo_capability_test | grep -vF OK | grep -F '('
-newns tomoyo_signal_test | grep -vF OK | grep -F '('
+# newns tomoyo_signal_test | grep -vF OK | grep -F '('
 newns tomoyo_network_test | grep -vF OK | grep -F '('
 newns tomoyo_argv0_test | grep -vF OK | grep -F '('
 newns tomoyo_env_test | grep -vF OK | grep -F '('

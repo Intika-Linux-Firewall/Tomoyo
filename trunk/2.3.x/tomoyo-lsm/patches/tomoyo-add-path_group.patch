@@ -4,12 +4,12 @@ This patch adds "path_group" handler.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/path_group.c |  209 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 209 insertions(+)
+ security/tomoyo/path_group.c |  210 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 210 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/path_group.c
-@@ -0,0 +1,209 @@
+@@ -0,0 +1,210 @@
 +/*
 + * security/tomoyo/path_group.c
 + *
@@ -170,14 +170,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		list_for_each_cookie(mpos, head->read_var2,
 +				     &group->member_list) {
 +			struct tomoyo_path_group_member *member;
-+			member = list_entry(mpos, struct tomoyo_path_group_member,
++			member = list_entry(mpos,
++					    struct tomoyo_path_group_member,
 +					    list);
 +			if (member->is_deleted)
 +				continue;
 +			done = tomoyo_io_printf(head, TOMOYO_KEYWORD_PATH_GROUP
-+					     "%s %s\n",
-+					     group->group_name->name,
-+					     member->member_name->name);
++						"%s %s\n",
++						group->group_name->name,
++						member->member_name->name);
 +			if (!done)
 +				break;
 +		}
@@ -197,8 +198,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Caller holds tomoyo_read_lock().
 + */
 +bool tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
-+			    const struct tomoyo_path_group *group,
-+			    const bool may_use_pattern)
++			       const struct tomoyo_path_group *group,
++			       const bool may_use_pattern)
 +{
 +	struct tomoyo_path_group_member *member;
 +	bool matched = false;
@@ -210,7 +211,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				continue;
 +		} else if (may_use_pattern) {
 +			if (!tomoyo_path_matches_pattern(pathname,
-+						      member->member_name))
++							 member->member_name))
 +				continue;
 +		} else
 +			continue;

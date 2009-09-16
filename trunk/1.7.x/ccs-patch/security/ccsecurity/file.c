@@ -2304,10 +2304,8 @@ int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /* Permission checks for vfs_rename(). */
-int ccs_rename_permission(struct inode *old_dir,
-			  struct dentry *old_dentry,
-			  struct inode *new_dir,
-			  struct dentry *new_dentry,
+int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
+			  struct inode *new_dir, struct dentry *new_dentry,
 			  struct vfsmount *mnt)
 {
 	int error;

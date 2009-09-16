@@ -4,12 +4,12 @@ This patch adds "number_group" handler.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/number_group.c |  210 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 210 insertions(+)
+ security/tomoyo/number_group.c |  212 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 212 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/number_group.c
-@@ -0,0 +1,210 @@
+@@ -0,0 +1,212 @@
 +/*
 + * security/tomoyo/number_group.c
 + *
@@ -165,7 +165,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct list_head *gpos;
 +	struct list_head *mpos;
 +	bool done = true;
-+	list_for_each_cookie(gpos, head->read_var1, &tomoyo_number_group_list) {
++	list_for_each_cookie(gpos, head->read_var1,
++			     &tomoyo_number_group_list) {
 +		struct tomoyo_number_group *group;
 +		const char *name;
 +		group = list_entry(gpos, struct tomoyo_number_group, list);
@@ -180,10 +181,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (member->is_deleted)
 +				continue;
 +			pos = head->read_avail;
-+			if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_NUMBER_GROUP "%s",
-+					   name) ||
-+			    !tomoyo_print_number_union(head, &member->number) ||
-+			    !tomoyo_io_printf(head, "\n")) {
++			if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_NUMBER_GROUP
++					      "%s", name) ||
++			    !tomoyo_print_number_union(head, &member->number)
++			    || !tomoyo_io_printf(head, "\n")) {
 +				head->read_avail = pos;
 +				done = false;
 +				break;
@@ -204,8 +205,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Caller holds tomoyo_read_lock().
 + */
-+bool tomoyo_number_matches_group(const unsigned long min, const unsigned long max,
-+			      const struct tomoyo_number_group *group)
++bool tomoyo_number_matches_group(const unsigned long min,
++				 const unsigned long max,
++				 const struct tomoyo_number_group *group)
 +{
 +	struct tomoyo_number_group_member *member;
 +	bool matched = false;

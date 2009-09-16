@@ -2,21 +2,19 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/umount.c |  149 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 149 insertions(+)
+ security/tomoyo/umount.c |  151 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 151 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/umount.c
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,151 @@
 +/*
 + * security/tomoyo/umount.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
-+#include <linux/slab.h>
-+#include <linux/mount.h>
 +#include "internal.h"
++#include <linux/mount.h>
 +
 +/**
 + * tomoyo_audit_umount_log - Audit unmount log.
@@ -27,13 +25,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+static int tomoyo_audit_umount_log(struct tomoyo_request_info *r, const char *dir,
-+				const bool is_granted)
++static int tomoyo_audit_umount_log(struct tomoyo_request_info *r,
++				   const char *dir, const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "umount %s", dir);
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_UNMOUNT
-+				   "%s\n", dir);
++	return tomoyo_write_audit_log(is_granted, r,
++				      TOMOYO_KEYWORD_ALLOW_UNMOUNT "%s\n",
++				      dir);
 +}
 +
 +/**
@@ -56,6 +55,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		.path1.dentry = mnt->mnt_root,
 +		.path1.mnt = mnt
 +	};
++	if (!tomoyo_capable(TOMOYO_SYS_UMOUNT))
++		return -EPERM;
 +	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_UMOUNT)
 +	    == TOMOYO_CONFIG_DISABLED)
 +		return 0;
@@ -74,7 +75,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			if (ptr->is_deleted ||
 +			    ptr->type != TOMOYO_TYPE_UMOUNT_ACL)
 +				continue;
-+			acl = container_of(ptr, struct tomoyo_umount_acl, head);
++			acl = container_of(ptr, struct tomoyo_umount_acl,
++					   head);
 +			if (!tomoyo_compare_name_union(&dir, &acl->dir) ||
 +			    !tomoyo_condition(&r, ptr))
 +				continue;
@@ -85,8 +87,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tomoyo_audit_umount_log(&r, dir0, !error);
 +		if (!error)
 +			break;
-+		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_UNMOUNT "%s",
-+				       tomoyo_file_pattern(&dir));
++		error = tomoyo_supervisor(&r, TOMOYO_KEYWORD_ALLOW_UNMOUNT
++					  "%s", tomoyo_file_pattern(&dir));
 +	} while (error == 1);
 + out:
 +	kfree(dir0);
@@ -96,13 +98,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_may_umount - Check permission for unmount.
++ * tomoyo_umount_permission - Check permission for unmount.
 + *
 + * @mnt: Pointer to "struct vfsmount".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
-+int tomoyo_may_umount(struct vfsmount *mnt)
++int tomoyo_umount_permission(struct vfsmount *mnt)
 +{
 +	const int idx = tomoyo_read_lock();
 +	const int error = tomoyo_may_umount2(mnt);
@@ -121,13 +123,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on sucess, negative value otherwise.
 + */
 +int tomoyo_write_umount_policy(char *data, struct tomoyo_domain_info *domain,
-+			    struct tomoyo_condition *condition,
-+			    const bool is_delete)
++			       struct tomoyo_condition *condition,
++			       const bool is_delete)
 +{
 +	struct tomoyo_umount_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
 +	struct tomoyo_umount_acl e = { .head.type = TOMOYO_TYPE_UMOUNT_ACL,
-+				    .head.cond = condition };
++				       .head.cond = condition };
 +	int error = is_delete ? -ENOENT : -ENOMEM;
 +	if (data[0] != '@' && !tomoyo_is_correct_path(data, 1, 0, 1))
 +		return -EINVAL;

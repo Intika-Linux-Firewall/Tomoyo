@@ -2,34 +2,22 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-realpath.c |  263 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 263 insertions(+)
+ security/tomoyo/new-realpath.c |  251 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 251 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-realpath.c
-@@ -0,0 +1,263 @@
+@@ -0,0 +1,251 @@
 +/*
 + * security/tomoyo/realpath.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/utime.h>
-+#include <linux/file.h>
-+#include <linux/smp_lock.h>
-+#include <linux/module.h>
-+#include <linux/slab.h>
-+#include <asm/uaccess.h>
-+#include <asm/atomic.h>
++#include "internal.h"
++#include <net/sock.h>
++#include <linux/magic.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
-+#include <net/sock.h>
-+#include <linux/proc_fs.h>
-+#include "internal.h"
-+#include <linux/dcache.h>
-+extern spinlock_t vfsmount_lock;
 +
 +/**
 + * tomoyo_get_absolute_path - Get the path of a dentry but ignores chroot'ed root.

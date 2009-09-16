@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/environ.c |  229 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 229 insertions(+)
+ security/tomoyo/environ.c |  232 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 232 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/environ.c
-@@ -0,0 +1,229 @@
+@@ -0,0 +1,232 @@
 +/*
 + * security/tomoyo/environ.c
 + *
@@ -25,12 +25,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_audit_env_log(struct tomoyo_request_info *r, const char *env,
-+			     const bool is_granted)
++				const bool is_granted)
 +{
 +	if (!is_granted)
 +		tomoyo_warn_log(r, "environ %s", env);
-+	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_ENV "%s\n",
-+				   env);
++	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_ENV
++				      "%s\n", env);
 +}
 +
 +/* The list for "struct tomoyo_globally_usable_env_entry". */
@@ -51,7 +51,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_globally_usable_env_entry *ptr;
 +	bool found = false;
 +	list_for_each_entry_rcu(ptr, &tomoyo_globally_usable_env_list, list) {
-+		if (ptr->is_deleted || !tomoyo_path_matches_pattern(env, ptr->env))
++		if (ptr->is_deleted || !tomoyo_path_matches_pattern(env,
++								    ptr->env))
 +			continue;
 +		found = true;
 +		break;
@@ -89,7 +90,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		break;
 +	}
 +	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->list, &tomoyo_globally_usable_env_list);
++		list_add_tail_rcu(&entry->list,
++				  &tomoyo_globally_usable_env_list);
 +		entry = NULL;
 +		error = 0;
 +	}
@@ -120,7 +122,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (ptr->is_deleted)
 +			continue;
 +		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_ENV "%s\n",
-+				     ptr->env->name);
++					ptr->env->name);
 +		if (!done)
 +			break;
 +	}
@@ -183,7 +185,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tomoyo_audit_env_log(r, env, !error);
 +		if (!error)
 +			break;
-+		error = tomoyo_supervisor(r, TOMOYO_KEYWORD_ALLOW_ENV "%s\n", env);
++		error = tomoyo_supervisor(r, TOMOYO_KEYWORD_ALLOW_ENV "%s\n",
++					  env);
 +	} while (error == 1);
 +	return error;
 +}
@@ -199,8 +202,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns 0 on success, negative value otherwise.
 + */
 +int tomoyo_write_env_policy(char *data, struct tomoyo_domain_info *domain,
-+			 struct tomoyo_condition *condition,
-+			 const bool is_delete)
++			    struct tomoyo_condition *condition,
++			    const bool is_delete)
 +{
 +	struct tomoyo_env_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
@@ -220,8 +223,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_env_acl *acl =
 +			container_of(ptr, struct tomoyo_env_acl, head);
-+		if (ptr->type != TOMOYO_TYPE_ENV_ACL || ptr->cond != condition ||
-+		    acl->env != e.env)
++		if (ptr->type != TOMOYO_TYPE_ENV_ACL || ptr->cond != condition
++		    || acl->env != e.env)
 +			continue;
 +		ptr->is_deleted = is_delete;
 +		error = 0;

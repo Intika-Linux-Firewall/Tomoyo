@@ -2,29 +2,17 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/securityfs_if.c |  149 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 149 insertions(+)
+ security/tomoyo/securityfs_if.c |  148 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 148 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/securityfs_if.c
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,148 @@
 +/*
 + * security/tomoyo/securityfs_if.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
-+ *
-+ * Version: 1.7.0   2009/09/03
-+ *
-+ * This file is applicable to both 2.4.30 and 2.6.11 and later.
-+ * See README.tomoyo for ChangeLog.
-+ *
 + */
-+
-+#include <linux/types.h>
-+#include <linux/kernel.h>
-+#include <asm/io.h>
-+#include <linux/module.h>
-+#include <linux/version.h>
 +#include "internal.h"
 +
 +/**
@@ -79,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns bytes read on success, negative value otherwise.
 + */
 +static ssize_t tomoyo_read(struct file *file, char __user *buf, size_t count,
-+			loff_t *ppos)
++			   loff_t *ppos)
 +{
 +	return tomoyo_read_control(file, buf, count);
 +}
@@ -95,7 +83,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns @count on success, negative value otherwise.
 + */
 +static ssize_t tomoyo_write(struct file *file, const char __user *buf,
-+			 size_t count, loff_t *ppos)
++			    size_t count, loff_t *ppos)
 +{
 +	return tomoyo_write_control(file, buf, count);
 +}
@@ -137,21 +125,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!tomoyo_registered)
 +		return 0;
 +	tomoyo_dir = securityfs_create_dir("tomoyo", NULL);
-+	tomoyo_create_entry("query",            0600, tomoyo_dir, TOMOYO_QUERY);
-+	tomoyo_create_entry("domain_policy",    0600, tomoyo_dir, TOMOYO_DOMAINPOLICY);
++	tomoyo_create_entry("query",            0600, tomoyo_dir,
++			    TOMOYO_QUERY);
++	tomoyo_create_entry("domain_policy",    0600, tomoyo_dir,
++			    TOMOYO_DOMAINPOLICY);
 +	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
-+			 TOMOYO_EXCEPTIONPOLICY);
++			    TOMOYO_EXCEPTIONPOLICY);
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
-+	tomoyo_create_entry("grant_log",        0400, tomoyo_dir, TOMOYO_GRANTLOG);
-+	tomoyo_create_entry("reject_log",       0400, tomoyo_dir, TOMOYO_REJECTLOG);
++	tomoyo_create_entry("grant_log",        0400, tomoyo_dir,
++			    TOMOYO_GRANTLOG);
++	tomoyo_create_entry("reject_log",       0400, tomoyo_dir,
++			    TOMOYO_REJECTLOG);
 +#endif
-+	tomoyo_create_entry("self_domain",      0400, tomoyo_dir, TOMOYO_SELFDOMAIN);
-+	tomoyo_create_entry(".domain_status",   0600, tomoyo_dir, TOMOYO_DOMAIN_STATUS);
-+	tomoyo_create_entry(".process_status",  0600, tomoyo_dir, TOMOYO_PROCESS_STATUS);
-+	tomoyo_create_entry("meminfo",          0600, tomoyo_dir, TOMOYO_MEMINFO);
-+	tomoyo_create_entry("profile",          0600, tomoyo_dir, TOMOYO_PROFILE);
-+	tomoyo_create_entry("manager",          0600, tomoyo_dir, TOMOYO_MANAGER);
-+	tomoyo_create_entry("version",          0400, tomoyo_dir, TOMOYO_VERSION);
++	tomoyo_create_entry("self_domain",      0400, tomoyo_dir,
++			    TOMOYO_SELFDOMAIN);
++	tomoyo_create_entry(".domain_status",   0600, tomoyo_dir,
++			    TOMOYO_DOMAIN_STATUS);
++	tomoyo_create_entry(".process_status",  0600, tomoyo_dir,
++			    TOMOYO_PROCESS_STATUS);
++	tomoyo_create_entry("meminfo",          0600, tomoyo_dir,
++			    TOMOYO_MEMINFO);
++	tomoyo_create_entry("profile",          0600, tomoyo_dir,
++			    TOMOYO_PROFILE);
++	tomoyo_create_entry("manager",          0600, tomoyo_dir,
++			    TOMOYO_MANAGER);
++	tomoyo_create_entry("version",          0400, tomoyo_dir,
++			    TOMOYO_VERSION);
 +	tomoyo_create_entry(".execute_handler", 0666, tomoyo_dir,
 +			    TOMOYO_EXECUTE_HANDLER);
 +	return 0;

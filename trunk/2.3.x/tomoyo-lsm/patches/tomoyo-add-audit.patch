@@ -5,12 +5,12 @@ TOMOYO generates audit logs in the form of domain policy.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c |  430 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 430 insertions(+)
+ security/tomoyo/audit.c |  432 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 432 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/audit.c
-@@ -0,0 +1,430 @@
+@@ -0,0 +1,432 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -27,7 +27,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * Returns the contents of @bprm on success, NULL otherwise.
 + */
 +static char *tomoyo_print_bprm(struct linux_binprm *bprm,
-+			    struct tomoyo_page_dump *dump)
++			       struct tomoyo_page_dump *dump)
 +{
 +	static const int tomoyo_buffer_len = 4096 * 2;
 +	char *buffer = kzalloc(tomoyo_buffer_len, GFP_KERNEL);
@@ -184,16 +184,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
 + * tomoyo_update_task_state - Update task's state.
 + *
-+ * @r:          Pointer to "struct tomoyo_request_info".
++ * @r: Pointer to "struct tomoyo_request_info".
 + */
 +static void tomoyo_update_task_state(struct tomoyo_request_info *r)
 +{
 +	/*
 +	 * Don't change the lowest byte because it is reserved for
-+	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC / TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR /
-+	 * TOMOYO_TASK_IS_EXECUTE_HANDLER / TOMOYO_TASK_IS_POLICY_MANAGER.
++	 * TOMOYO_CHECK_READ_FOR_OPEN_EXEC /
++	 * TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR /
++	 * TOMOYO_TASK_IS_EXECUTE_HANDLER / TOMOYO_TASK_IS_POLICY_MANAGER .
 +	 */
-+	/*
 +	const struct tomoyo_condition *ptr = r->cond;
 +	if (ptr) {
 +		struct task_struct *task = current;
@@ -214,7 +214,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		task->tomoyo_flags = tomoyo_flags;
 +		r->cond = NULL;
 +	}
-+	*/
 +}
 +
 +#ifndef CONFIG_SECURITY_TOMOYO_AUDIT
@@ -228,8 +227,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, -ENOMEM otherwise.
 + */
-+int tomoyo_write_audit_log(const bool is_granted, struct tomoyo_request_info *r,
-+			const char *fmt, ...)
++int tomoyo_write_audit_log(const bool is_granted,
++			   struct tomoyo_request_info *r, const char *fmt, ...)
 +{
 +	tomoyo_update_task_state(r);
 +	return 0;
@@ -267,8 +266,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns 0 on success, -ENOMEM otherwise.
 + */
-+int tomoyo_write_audit_log(const bool is_granted, struct tomoyo_request_info *r,
-+			const char *fmt, ...)
++int tomoyo_write_audit_log(const bool is_granted,
++			   struct tomoyo_request_info *r, const char *fmt, ...)
 +{
 +	va_list args;
 +	int error = -ENOMEM;
@@ -280,12 +279,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (!r->domain)
 +		r->domain = tomoyo_current_domain();
 +	if (is_granted) {
-+		if (tomoyo_grant_log_count >= tomoyo_profile(r->domain->profile)->
++		if (tomoyo_grant_log_count >=
++		    tomoyo_profile(r->domain->profile)->
 +		    audit->audit_max_grant_log
 +		    || !tomoyo_get_audit(r->profile, r->type, true))
 +			goto out;
 +	} else {
-+		if (tomoyo_reject_log_count >= tomoyo_profile(r->domain->profile)->
++		if (tomoyo_reject_log_count >=
++		    tomoyo_profile(r->domain->profile)->
 +		    audit->audit_max_reject_log
 +		    || !tomoyo_get_audit(r->profile, r->type, false))
 +			goto out;
@@ -310,7 +311,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 * The new_entry->size is used for memory quota checks.
 +	 * Don't go beyond strlen(new_entry->log).
 +	 */
-+	new_entry->size = tomoyo_round2(len) + tomoyo_round2(sizeof(*new_entry));
++	new_entry->size = tomoyo_round2(len) +
++		tomoyo_round2(sizeof(*new_entry));
 +	spin_lock(&tomoyo_audit_log_lock);
 +	if (tomoyo_quota_for_audit_log && tomoyo_audit_log_memory_size
 +	    + new_entry->size >= tomoyo_quota_for_audit_log) {
@@ -358,8 +360,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	spin_lock(&tomoyo_audit_log_lock);
 +	if (!list_empty(&tomoyo_grant_log)) {
-+		ptr = list_entry(tomoyo_grant_log.next, struct tomoyo_log_entry,
-+				 list);
++		ptr = list_entry(tomoyo_grant_log.next,
++				 struct tomoyo_log_entry, list);
 +		list_del(&ptr->list);
 +		tomoyo_grant_log_count--;
 +		tomoyo_audit_log_memory_size -= ptr->size;
@@ -408,8 +410,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	spin_lock(&tomoyo_audit_log_lock);
 +	if (!list_empty(&tomoyo_reject_log)) {
-+		ptr = list_entry(tomoyo_reject_log.next, struct tomoyo_log_entry,
-+				 list);
++		ptr = list_entry(tomoyo_reject_log.next,
++				 struct tomoyo_log_entry, list);
 +		list_del(&ptr->list);
 +		tomoyo_reject_log_count--;
 +		tomoyo_audit_log_memory_size -= ptr->size;

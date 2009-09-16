@@ -1,24 +1,19 @@
 ---
- security/tomoyo/lsm.c |  362 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 362 insertions(+)
+ security/tomoyo/lsm.c |  359 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 359 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,362 @@
+@@ -0,0 +1,359 @@
 +/*
-+ * security/tomoyo/tomoyo.c
++ * security/tomoyo/lsm.c
 + *
 + * LSM hooks for TOMOYO Linux.
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
-+ *
-+ * Version: 2.2.0   2009/04/01
-+ *
 + */
-+
-+#include <linux/security.h>
-+#include <linux/socket.h>
 +#include "internal.h"
++#include <linux/socket.h>
 +
 +static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
 +			       gfp_t gfp)
@@ -117,7 +112,8 @@
 +
 +		if (!sp) {
 +			memset(num, 0, sizeof(num));
-+			snprintf(num, sizeof(num) - 1, "=%d=", table->ctl_name);
++			snprintf(num, sizeof(num) - 1, "=%d=",
++				 table->ctl_name);
 +			sp = num;
 +		}
 +		if (tomoyo_prepend(&end, &buflen, sp) ||
@@ -251,13 +247,14 @@
 +	if (current->in_execve)
 +		return 0;
 +	/*
-+	 * TOMOYO does not check "allow_write" if open(path, O_TRUNC | O_RDONLY) was
-+	 * requested because write() is not permitted. Instead, TOMOYO checks
-+	 * "allow_truncate" if O_TRUNC is passed.
++	 * TOMOYO does not check "allow_write" if
++	 * open(path, O_TRUNC | O_RDONLY) was requested because write() is not
++	 * permitted. Instead, TOMOYO checks "allow_truncate" if O_TRUNC is
++	 * passed.
 +	 *
-+	 * TOMOYO does not check "allow_read/write" if open(path, 3) was requested
-+	 * because read()/write() are not permitted. Instead, TOMOYO checks
-+	 * "allow_ioctl" when ioctl() is requested.
++	 * TOMOYO does not check "allow_read/write" if open(path, 3) was
++	 * requested because read()/write() are not permitted. Instead, TOMOYO
++	 * checks "allow_ioctl" when ioctl() is requested.
 +	 */
 +	return tomoyo_open_permission(f->f_path.dentry, f->f_path.mnt,
 +				      f->f_flags + 1);
@@ -294,7 +291,8 @@
 +						msg->msg_namelen);
 +}
 +
-+static int tomoyo_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
++static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
++			     unsigned long arg)
 +{
 +	return tomoyo_ioctl_permission(file, cmd, arg);
 +}
@@ -307,7 +305,7 @@
 +
 +static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
 +{
-+	return tomoyo_may_umount(mnt);
++	return tomoyo_umount_permission(mnt);
 +}
 +
 +static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
@@ -365,5 +363,4 @@
 +	tomoyo_registered = true;
 +	return 0;
 +}
-+
 +security_initcall(tomoyo_init);

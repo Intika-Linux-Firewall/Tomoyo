@@ -2,22 +2,21 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/load_policy.c |   99 ++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 99 insertions(+)
+ security/tomoyo/load_policy.c |   97 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 97 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/load_policy.c
-@@ -0,0 +1,99 @@
+@@ -0,0 +1,97 @@
 +/*
 + * security/tomoyo/load_policy.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
-+
 +#include "internal.h"
++#include <linux/module.h>
 +#include <linux/namei.h>
 +#include <linux/mount.h>
-+static const int tomoyo_lookup_flags = LOOKUP_FOLLOW;
 +
 +/* Path to the policy loader. The default is /sbin/tomoyo-init. */
 +static const char *tomoyo_loader;
@@ -34,7 +33,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_loader = str;
 +	return 0;
 +}
-+
 +__setup("TOMOYO_loader=", tomoyo_loader_setup);
 +
 +/**
@@ -45,16 +43,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static bool tomoyo_policy_loader_exists(void)
 +{
 +	/*
-+	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option doesn't
-+	 * exist. If the initrd includes /sbin/init but real-root-dev has not
-+	 * mounted on / yet, activating MAC will block the system since
++	 * Don't activate MAC if the path given by 'TOMOYO_loader=' option
++	 * doesn't exist. If the initrd includes /sbin/init but real-root-dev
++	 * has not mounted on / yet, activating MAC will block the system since
 +	 * policies are not loaded yet.
 +	 * Thus, let do_execve() call this function everytime.
 +	 */
 +	struct nameidata nd;
 +	if (!tomoyo_loader)
 +		tomoyo_loader = "/sbin/tomoyo-init";
-+	if (path_lookup(tomoyo_loader, tomoyo_lookup_flags, &nd)) {
++	if (path_lookup(tomoyo_loader, LOOKUP_FOLLOW, &nd)) {
 +		printk(KERN_INFO "Not activating Mandatory Access Control now "
 +		       "since %s doesn't exist.\n", tomoyo_loader);
 +		return false;
@@ -82,9 +80,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return;
 +	/*
 +	 * Check filename is /sbin/init or /sbin/tomoyo-start.
-+	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init can't
-+	 * be passed.
-+	 * You can create /sbin/tomoyo-start by "ln -s /bin/true /sbin/tomoyo-start".
++	 * /sbin/tomoyo-start is a dummy filename in case where /sbin/init
++	 * can't be passed. You can create /sbin/tomoyo-start by
++	 * "ln -s /bin/true /sbin/tomoyo-start".
 +	 */
 +	if (strcmp(filename, "/sbin/init") &&
 +	    strcmp(filename, "/sbin/tomoyo-start"))

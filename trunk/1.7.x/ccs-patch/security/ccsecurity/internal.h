@@ -284,7 +284,6 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
-#define CCS_KEYWORD_CAPABILITY                "capability::"
 
 /* A domain definition starts with <kernel>. */
 #define ROOT_NAME                         "<kernel>"

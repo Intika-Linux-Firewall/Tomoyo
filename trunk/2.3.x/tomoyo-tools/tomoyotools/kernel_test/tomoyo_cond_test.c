@@ -350,9 +350,11 @@ int main(int argc, char *argv[])
 	set_profile(0, "file::mount");
 	set_profile(0, "file::umount");
 	set_profile(0, "file::pivot_root");
+	/*
 	set_profile(3, "ipc::signal");
 	stage_signal_test();
 	set_profile(0, "ipc::signal");
+	*/
 	clear_status();
 	return 0;
 }
