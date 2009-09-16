@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1257 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1257 insertions(+)
+ security/tomoyo/new-domain.c | 1259 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1259 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-domain.c
-@@ -0,0 +1,1257 @@
+@@ -0,0 +1,1259 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -1190,6 +1190,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tomoyo_load_policy(bprm->filename);
 +	if (!ee)
 +		return -ENOMEM;
++	bprm->cred->security = ee;
++	atomic_set(&ee->cred_users, 1);
 +	tomoyo_init_request_info(&ee->r, NULL, TOMOYO_MAC_FILE_EXECUTE);
 +	ee->r.ee = ee;
 +	ee->bprm = bprm;

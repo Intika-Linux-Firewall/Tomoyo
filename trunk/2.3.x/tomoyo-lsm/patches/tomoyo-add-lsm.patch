@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  359 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 359 insertions(+)
+ security/tomoyo/lsm.c |  370 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 370 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,359 @@
+@@ -0,0 +1,370 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -15,15 +15,28 @@
 +#include "internal.h"
 +#include <linux/socket.h>
 +
++static int tomoyo_cred_alloc_blank(struct cred *new, gfp_t gfp)
++{
++	new->security = NULL;
++	return 0;
++}
++
 +static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
 +			       gfp_t gfp)
 +{
 +	/* Get ref if "struct linux_binprm *bprm"->cred */
 +	struct tomoyo_execve_entry *ee = old->security;
-+	if (ee)
++	if (ee) {
++		printk("Copying cred for execve()\n");
 +		atomic_inc(&ee->cred_users);
++	}
 +	new->security = ee;
 +	return 0;
++}
++
++static void tomoyo_cred_transfer(struct cred *new, const struct cred *old)
++{
++	new->security = old->security;
 +}
 +
 +static void tomoyo_cred_free(struct cred *cred)
@@ -31,6 +44,7 @@
 +	struct tomoyo_execve_entry *ee = cred->security;
 +	/* Put ref if "struct linux_binprm *bprm"->cred */
 +	if (ee && atomic_dec_and_test(&ee->cred_users)) {
++		printk("Freeing cred for failed execve()\n");
 +		/*
 +		 * Reaching here means execve() failed, for
 +		 * "struct linux_binprm *bprm"->cred is not shared between
@@ -48,13 +62,8 @@
 +	 * Execute permission is checked against pathname passed to do_execve()
 +	 * using current domain.
 +	 */
-+	if (!bprm->cred->security) {
-+		int ret = tomoyo_start_execve(bprm);
-+		struct tomoyo_execve_entry *ee = bprm->cred->security;
-+		if (ee)
-+			atomic_set(&ee->cred_users, 1);
-+		return ret;
-+	}
++	if (!bprm->cred->security)
++		return tomoyo_start_execve(bprm);
 +	/*
 +	 * Read permission is checked against interpreters using next domain.
 +	 * '1' is the result of open_to_namei_flags(O_RDONLY).
@@ -319,7 +328,9 @@
 + */
 +static struct security_operations tomoyo_security_ops = {
 +	.name                  = "tomoyo",
++	/* .cred_alloc_blank      = tomoyo_cred_alloc_blank, */
 +	.cred_prepare          = tomoyo_cred_prepare,
++	/* .cred_transfer         = tomoyo_cred_transfer, */
 +	.bprm_check_security   = tomoyo_bprm_check_security,
 +	.bprm_committing_creds = tomoyo_bprm_committing_creds,
 +	.cred_free             = tomoyo_cred_free,
