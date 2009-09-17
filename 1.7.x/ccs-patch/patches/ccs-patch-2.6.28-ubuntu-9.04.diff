@@ -9,7 +9,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   23 +++++++++++++++++++++++
+ fs/namespace.c                  |   22 ++++++++++++++++++++++
  fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    9 +++++++++
@@ -35,7 +35,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 257 insertions(+), 3 deletions(-)
+ 33 files changed, 256 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-15.49.orig/fs/attr.c
 +++ linux-2.6.28-15.49/fs/attr.c
@@ -335,17 +335,16 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -1041,6 +1042,9 @@ static int do_umount(struct vfsmount *mn
+@@ -1038,6 +1039,8 @@ static int do_umount(struct vfsmount *mn
+ 	LIST_HEAD(umount_list);
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -1132,6 +1136,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
+@@ -1132,6 +1135,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct path path;
  	int retval;
@@ -354,7 +353,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	retval = user_path(name, &path);
  	if (retval)
-@@ -1480,6 +1486,9 @@ static int do_loopback(struct path *path
+@@ -1480,6 +1485,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
@@ -364,7 +363,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1591,6 +1600,9 @@ static int do_move_mount(struct path *pa
+@@ -1591,6 +1599,9 @@ static int do_move_mount(struct path *pa
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
  
@@ -374,7 +373,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1694,6 +1706,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1694,6 +1705,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -384,18 +383,25 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1917,6 +1932,10 @@ long do_mount(char *dev_name, char *dir_
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1899,6 +1913,7 @@ int copy_mount_options(const void __user
+ long do_mount(char *dev_name, char *dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct path path;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1943,6 +1958,9 @@ long do_mount(char *dev_name, char *dir_
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -2180,6 +2199,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+ 	retval = security_sb_mount(dev_name, &path,
+ 				   type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &path, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -2180,6 +2198,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -404,7 +410,7 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2193,6 +2214,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2193,6 +2213,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);

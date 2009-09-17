@@ -30,7 +30,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   30 +++++++++++++++++++++++++++++-
+ fs/namespace.c               |   34 +++++++++++++++++++++++++++++++++-
  fs/open.c                    |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
@@ -49,7 +49,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 47 files changed, 322 insertions(+), 5 deletions(-)
+ 47 files changed, 326 insertions(+), 5 deletions(-)
 
 --- linux-2.4.34.6.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.34.6/arch/alpha/kernel/ptrace.c
@@ -738,16 +738,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  struct vfsmount *do_kern_mount(const char *type, int flags, char *name, void *data);
  int do_remount_sb(struct super_block *sb, int flags, void * data);
  void kill_super(struct super_block *sb);
-@@ -290,6 +292,8 @@ static int do_umount(struct vfsmount *mn
+@@ -290,6 +292,9 @@ static int do_umount(struct vfsmount *mn
  {
  	struct super_block * sb = mnt->mnt_sb;
  	int retval = 0;
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
++	retval = ccs_umount_permission(mnt, flags);
++	if (retval)
++		return retval;
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -365,6 +369,8 @@ asmlinkage long sys_umount(char * name, 
+@@ -365,6 +370,8 @@ asmlinkage long sys_umount(char * name, 
  {
  	struct nameidata nd;
  	int retval;
@@ -756,7 +757,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	retval = __user_walk(name, LOOKUP_POSITIVE|LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -500,6 +506,9 @@ static int do_loopback(struct nameidata 
+@@ -500,6 +507,9 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -766,7 +767,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -516,7 +525,7 @@ static int do_loopback(struct nameidata 
+@@ -516,7 +526,7 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -775,7 +776,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -570,6 +579,10 @@ static int do_move_mount(struct nameidat
+@@ -570,6 +580,10 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -786,7 +787,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -641,6 +654,10 @@ static int do_add_mount(struct nameidata
+@@ -641,6 +655,10 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
@@ -797,18 +798,35 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -718,6 +735,10 @@ long do_mount(char * dev_name, char * di
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -700,6 +718,7 @@ static int copy_mount_options (const voi
+ long do_mount(char * dev_name, char * dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -732,6 +751,11 @@ long do_mount(char * dev_name, char * di
+ 	if (retval)
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
++	retval = ccs_mount_permission(dev_name, &nd, type_page,
++				      original_flags, data_page);
 +	if (retval)
-+		return retval;
++		goto out;
 +
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -911,6 +932,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	if (flags & MS_REMOUNT)
+ 		retval = do_remount(&nd, flags & ~MS_REMOUNT, mnt_flags,
+ 				    data_page);
+@@ -742,6 +766,7 @@ long do_mount(char * dev_name, char * di
+ 	else
+ 		retval = do_add_mount(&nd, type_page, flags, mnt_flags,
+ 				      dev_name, data_page);
++ out:
+ 	path_release(&nd);
+ 	return retval;
+ }
+@@ -911,6 +936,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -817,7 +835,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	lock_kernel();
  
-@@ -925,6 +948,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +952,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  

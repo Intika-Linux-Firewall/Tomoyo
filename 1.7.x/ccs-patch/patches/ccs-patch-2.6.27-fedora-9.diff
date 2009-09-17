@@ -11,7 +11,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   23 +++++++++++++++++++++++
+ fs/namespace.c                  |   22 ++++++++++++++++++++++
  fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -37,7 +37,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 35 files changed, 256 insertions(+), 2 deletions(-)
+ 35 files changed, 255 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.25-78.2.56.fc9.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.25-78.2.56.fc9/arch/ia64/ia32/sys_ia32.c
@@ -382,17 +382,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -1041,6 +1042,9 @@ static int do_umount(struct vfsmount *mn
+@@ -1038,6 +1039,8 @@ static int do_umount(struct vfsmount *mn
+ 	LIST_HEAD(umount_list);
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -1132,6 +1136,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
+@@ -1132,6 +1135,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
  {
  	struct path path;
  	int retval;
@@ -401,7 +400,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  	retval = user_path(name, &path);
  	if (retval)
-@@ -1479,6 +1485,9 @@ static noinline int do_loopback(struct n
+@@ -1479,6 +1484,9 @@ static noinline int do_loopback(struct n
  	err = -EINVAL;
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
@@ -411,7 +410,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1598,6 +1607,9 @@ static noinline int do_move_mount(struct
+@@ -1598,6 +1606,9 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -421,7 +420,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1702,6 +1714,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1702,6 +1713,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -431,18 +430,25 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
-@@ -1943,6 +1958,10 @@ long do_mount(char *dev_name, char *dir_
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1925,6 +1939,7 @@ __setup("default_relatime=", set_default
+ long do_mount(char *dev_name, char *dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1974,6 +1989,9 @@ long do_mount(char *dev_name, char *dir_
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -2211,6 +2230,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+ 	retval = security_sb_mount(dev_name, &nd.path,
+ 				   type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &nd.path, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -2211,6 +2229,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -451,7 +457,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.n
  
  	error = user_path_dir(new_root, &new);
  	if (error)
-@@ -2224,6 +2245,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2224,6 +2244,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
