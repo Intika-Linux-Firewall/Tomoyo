@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.0-20090911.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-centos-5.3.diff
++patch -sp1 < patches/ccs-patch-2.6.18-centos-5.4.diff
 +
  cp %{SOURCE10} Documentation/
  
