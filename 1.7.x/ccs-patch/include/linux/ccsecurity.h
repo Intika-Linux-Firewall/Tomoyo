@@ -39,20 +39,24 @@ struct sk_buff;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 /* Check whether the given pathname is allowed to chroot to. */
 int ccs_chroot_permission(struct path *path);
-/* Check whether the mount operation with the given parameters is allowed. */
-int ccs_mount_permission(char *dev_name, struct path *dir, char *type,
-			 unsigned long flags, void *data_page);
 /* Check whether the current process is allowed to pivot_root. */
 int ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
 /* Check whether the given mount operation hides an mounted partition. */
 int ccs_may_mount(struct path *path);
 #else
 int ccs_chroot_permission(struct nameidata *nd);
-int ccs_mount_permission(char *dev_name, struct nameidata *nd, char *type,
-			 unsigned long flags, void *data_page);
 int ccs_pivot_root_permission(struct nameidata *old_nd,
 			      struct nameidata *new_nd);
 int ccs_may_mount(struct nameidata *nd);
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+/* Check whether the mount operation with the given parameters is allowed. */
+int ccs_mount_permission(char *dev_name, struct path *dir, char *type,
+			 unsigned long flags, void *data_page);
+#else
+int ccs_mount_permission(char *dev_name, struct nameidata *nd, char *type,
+			 unsigned long flags, void *data_page);
 #endif
 
 /* Check whether the given mountpoint is allowed to umount. */
@@ -124,17 +128,13 @@ static inline int ccs_chroot_permission(struct path *path)
 {
 	return 0;
 }
-static inline int ccs_mount_permission(char *dev_name, struct path *dir,
-				       char *type, unsigned long flags,
-				       void *data_page)
-{
-	return 0;
-}
+
 static inline int ccs_pivot_root_permission(struct path *old_path,
 					    struct path *new_path)
 {
 	return 0;
 }
+
 static inline int ccs_may_mount(struct path *path)
 {
 	return 0;
@@ -144,26 +144,40 @@ static inline int ccs_chroot_permission(struct nameidata *nd)
 {
 	return 0;
 }
+
+static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
+					    struct nameidata *new_nd)
+{
+	return 0;
+}
+
+static inline int ccs_may_mount(struct nameidata *nd)
+{
+	return 0;
+}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+static inline int ccs_mount_permission(char *dev_name, struct path *dir,
+				       char *type, unsigned long flags,
+				       void *data_page)
+{
+	return 0;
+}
+#else
 static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
 				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	return 0;
 }
-static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
-					    struct nameidata *new_nd)
-{
-	return 0;
-}
-static inline int ccs_may_mount(struct nameidata *nd)
-{
-	return 0;
-}
 #endif
+
 static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
 	return 0;
 }
+
 static inline _Bool ccs_lport_reserved(const u16 port)
 {
 	return 0;
