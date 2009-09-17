@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux 導入手順書 （CentOS 5.4版）</title>
+<title>TOMOYO Linux 導入手順書 （CentOS 4.8版）</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
-<p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/centos5.4/index.html">English Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （CentOS 5.4版）</h1>
+<p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/en/1.6.x/1st-step/centos4/index.html">English Page</a></p>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （CentOS 4.8版）</h1>
 
 <ul>
 <li><a href="#l1">概要</a></li>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">概要</a></h2>
 
-<p>以下では、CentOS 5.4にTOMOYO Linux 1.6.8を導入する手順を解説します。
+<p>以下では、CentOS 4.8にTOMOYO Linux 1.6.8を導入する手順を解説します。
 この手順書に従って操作すれば、TOMOYO Linuxの基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
 
 <p>導入の流れは以下の通りです。</p>
@@ -42,29 +42,29 @@
 <h2><a name="l2">カーネルのインストール</a></h2>
 
 <p>TOMOYO LinuxはLinuxカーネルへのパッチとして提供されており、本来はLinuxカーネルのソースコードにパッチを適用する作業が必要になります。
-しかしCentOS 5.4の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
+しかしCentOS 4.8の場合は、TOMOYO Linuxのパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
 <p>まずはレポジトリを指定します。</p>
 
 <pre>
 # <span class="user">wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
 # <span class="user">rpm --import /tmp/key</span>
-# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo</span>
+# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo</span>
 </pre>
 
 <p>次に、パッケージをダウンロードしてインストールします。</p>
 
 <pre>
-# <span class="user">yum install ccs-kernel</span>
+# <span class="user">yum install ccs-kernel-smp</span>
 </pre>
 
 <p>インストールに成功すれば/boot/grub/grub.confに以下の記述が追加されているはずです。</p>
 
 <pre>
-title CentOS (2.6.18-128.7.1.el5_tomoyo_1.6.8p1)
+title CentOS (2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp)
     root (hd0,0)
-    kernel /vmlinuz-2.6.18-128.7.1.el5_tomoyo_1.6.8p1 ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.18-128.7.1.el5_tomoyo_1.6.8p1.img
+    kernel /vmlinuz-2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp.img
 </pre>
 
 <p>今後カーネルの選択を行いやすくするために、/boot/grub/grub.confの"timeout="と"hiddenmenu"の行をコメントアウトしておきます。</p>
@@ -311,7 +311,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 <blockquote>
 <p>&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/headというドメイン（赤下線）は、</p>
 <ul>
-<li>/etc/passwdを読み込みモードでオープンできる（青下線）</li>
+<li>/etc/passwdへの読み込みアクセスを許可する（青下線）</li>
 </ul>
 </blockquote>
 
@@ -366,19 +366,19 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
 <blockquote><p>
-#2008-05-06 10:06:31# profile=3 mode=enforcing pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=17 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/root/bin" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" }<br>
+#2008-05-11 15:22:14# profile=3 mode=enforcing pid=3867 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=17 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/lib/ccs:/root/bin" "INPUTRC=/etc/inputrc" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
-allow_execute /usr/bin/tail <br>
+allow_execute /usr/bin/tail<br>
 <br>
-#2008-05-06 10:06:31# profile=3 mode=enforcing pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-05-11 15:22:14# profile=3 mode=enforcing pid=3867 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
 allow_read /usr/bin/tail<br>
 <br>
-#2008-05-06 10:06:37# profile=3 mode=enforcing pid=2285 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-05-11 15:22:18# profile=3 mode=enforcing pid=3868 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head<br>
 allow_read /etc/shadow<br>
 <br>
-#2008-05-06 10:06:43# profile=3 mode=enforcing pid=2307 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=24 argv[]={ "date" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/root/bin" "PWD=/root" "LANG=C" "SHLVL=2" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" "SUPPORTED=ja_JP.UTF-8:ja_JP:ja" }<br>
+#2008-05-11 15:22:24# profile=3 mode=enforcing pid=3888 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=24 argv[]={ "date" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/lib/ccs:/root/bin" "INPUTRC=/etc/inputrc" "PWD=/root" "LANG=C" "SHLVL=2" "HOME=/root" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" "SUPPORTED=ja_JP.UTF-8:ja_JP:ja" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
 allow_execute /bin/date
 </p></blockquote>
