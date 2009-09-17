@@ -13,7 +13,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 ++++++++++++++++++++++++++++++++++-
- fs/namespace.c                  |   23 +++++++++++++++++++++++
+ fs/namespace.c                  |   22 ++++++++++++++++++++++
  fs/open.c                       |   30 ++++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -39,7 +39,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 263 insertions(+), 3 deletions(-)
+ 37 files changed, 262 insertions(+), 3 deletions(-)
 
 --- linux-2.6.25.20-0.5.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20-0.5/arch/ia64/ia32/sys_ia32.c
@@ -408,17 +408,16 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  #define HASH_SHIFT ilog2(PAGE_SIZE / sizeof(struct list_head))
  #define HASH_SIZE (1UL << HASH_SHIFT)
-@@ -591,6 +592,9 @@ static int do_umount(struct vfsmount *mn
+@@ -588,6 +589,8 @@ static int do_umount(struct vfsmount *mn
+ 	LIST_HEAD(umount_list);
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -682,6 +686,8 @@ asmlinkage long sys_umount(char __user *
+@@ -682,6 +685,8 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -427,7 +426,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -991,6 +997,9 @@ static noinline int do_loopback(struct n
+@@ -991,6 +996,9 @@ static noinline int do_loopback(struct n
  	err = -EINVAL;
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
@@ -437,7 +436,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
-@@ -1085,6 +1094,9 @@ static noinline int do_move_mount(struct
+@@ -1085,6 +1093,9 @@ static noinline int do_move_mount(struct
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
  		goto out;
  
@@ -447,7 +446,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1189,6 +1201,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1189,6 +1200,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -457,18 +456,25 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1412,6 +1427,10 @@ long do_mount(char *dev_name, char *dir_
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1394,6 +1408,7 @@ int copy_mount_options(const void __user
+ long do_mount(char *dev_name, char *dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1435,6 +1450,9 @@ long do_mount(char *dev_name, char *dir_
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -1680,6 +1699,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -1680,6 +1698,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -477,7 +483,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	lock_kernel();
  
-@@ -1696,6 +1717,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1696,6 +1716,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

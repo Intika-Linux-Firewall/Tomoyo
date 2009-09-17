@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -38,7 +38,7 @@ static int ccs_audit_umount_log(struct ccs_request_info *r, const char *dir,
 }
 
 /**
- * ccs_may_umount2 - Check permission for unmount.
+ * ccs_umount_acl - Check permission for unmount.
  *
  * @mnt: Pointer to "struct vfsmount".
  *
@@ -46,7 +46,7 @@ static int ccs_audit_umount_log(struct ccs_request_info *r, const char *dir,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_may_umount2(struct vfsmount *mnt)
+static int ccs_umount_acl(struct vfsmount *mnt)
 {
 	struct ccs_request_info r;
 	int error;
@@ -97,16 +97,17 @@ static int ccs_may_umount2(struct vfsmount *mnt)
 }
 
 /**
- * ccs_may_umount - Check permission for unmount.
+ * ccs_umount_permission - Check permission for unmount.
  *
- * @mnt: Pointer to "struct vfsmount".
+ * @mnt:   Pointer to "struct vfsmount".
+ * @flags: Umount flags.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_may_umount(struct vfsmount *mnt)
+int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
 	const int idx = ccs_read_lock();
-	const int error = ccs_may_umount2(mnt);
+	const int error = ccs_umount_acl(mnt);
 	ccs_read_unlock(idx);
 	return error;
 }

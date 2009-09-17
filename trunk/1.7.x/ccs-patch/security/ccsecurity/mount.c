@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/09/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -107,7 +107,7 @@ static void put_filesystem(struct file_system_type *fs)
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
- * @dir_name: Name of mount point.
+ * @dir:      Pointer to "struct path".
  * @type:     Name of filesystem type.
  * @flags:    Mount options.
  *
@@ -116,8 +116,7 @@ static void put_filesystem(struct file_system_type *fs)
  * Caller holds ccs_read_lock().
  */
 static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
-			  char *dir_name, char *type,
-			  unsigned long flags)
+			  struct path *dir, char *type, unsigned long flags)
 {
 	struct ccs_obj_info obj = { };
 	struct path path;
@@ -141,12 +140,8 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	ccs_fill_path_info(&rtype);
 
 	/* Get mount point. */
-	if (ccs_get_path(dir_name, &path)) {
-		error = -ENOENT;
-		goto out;
-	}
-	obj.path2 = path;
-	requested_dir_name = ccs_realpath_from_path(&path);
+	obj.path2 = *dir;
+	requested_dir_name = ccs_realpath_from_path(dir);
 	if (!requested_dir_name) {
 		error = -ENOMEM;
 		goto out;
@@ -231,8 +226,6 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		put_filesystem(fstype);
 	kfree(requested_type);
 	/* Drop refcount obtained by ccs_get_path(). */
-	if (obj.path2.dentry)
-		path_put(&obj.path2);
 	if (obj.path1.dentry)
 		path_put(&obj.path1);
 	return error;
@@ -243,7 +236,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
- * @dir_name: Name of mount point.
+ * @dir:      Pointer to "struct path".
  * @type:     Name of filesystem type.
  * @flags:    Mount options.
  *
@@ -252,7 +245,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
  * Caller holds ccs_read_lock().
  */
 static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
-			 char *dir_name, char *type, unsigned long flags)
+			 struct path *dir, char *type, unsigned long flags)
 {
 	int error;
 	error = -EPERM;
@@ -289,56 +282,68 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 		return -EINVAL;
 	}
 	if (flags & MS_REMOUNT)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_REMOUNT_KEYWORD,
 				      flags & ~MS_REMOUNT);
 	else if (flags & MS_MOVE)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_MOVE_KEYWORD,
 				      flags & ~MS_MOVE);
 	else if (flags & MS_BIND)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_BIND_KEYWORD,
 				      flags & ~MS_BIND);
 	else if (flags & MS_UNBINDABLE)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
 				      flags & ~MS_UNBINDABLE);
 	else if (flags & MS_PRIVATE)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
 				      flags & ~MS_PRIVATE);
 	else if (flags & MS_SLAVE)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_MAKE_SLAVE_KEYWORD,
 				      flags & ~MS_SLAVE);
 	else if (flags & MS_SHARED)
-		error = ccs_mount_acl(r, dev_name, dir_name,
+		error = ccs_mount_acl(r, dev_name, dir,
 				      CCS_MOUNT_MAKE_SHARED_KEYWORD,
 				      flags & ~MS_SHARED);
 	else
 		do {
-			error = ccs_mount_acl2(r, dev_name, dir_name, type,
-					       flags);
+			error = ccs_mount_acl2(r, dev_name, dir, type, flags);
 		} while (error == 1);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
 /**
  * ccs_mount_permission - Check permission for mount() operation.
  *
- * @dev_name: Name of device file.
- * @dir_name: Name of mount point.
- * @type:     Name of filesystem type. May be NULL.
- * @flags:    Mount options.
+ * @dev_name:  Name of device file.
+ * @path:      Pointer to "struct path" (for 2.6.27 and later).
+ *             Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @type:      Name of filesystem type. May be NULL.
+ * @flags:     Mount options.
+ * @data_page: Optional data. May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
-			 const unsigned long *flags)
+int ccs_mount_permission(char *dev_name, struct PATH_or_NAMEIDATA *path,
+			 char *type, unsigned long flags, void *data_page)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+	struct path dir = { path->mnt, path->dentry };
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+	struct path dir = { path->path.mnt, path->path.dentry };
+#endif
 	struct ccs_request_info r;
 	int error;
 	int idx;
@@ -350,7 +355,11 @@ int ccs_mount_permission(char *dev_name, char *dir_name, char *type,
 	if (!type)
 		type = "<NULL>";
 	idx = ccs_read_lock();
-	error = ccs_mount_acl(&r, dev_name, dir_name, type, *flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	error = ccs_mount_acl(&r, dev_name, path, type, flags);
+#else
+	error = ccs_mount_acl(&r, dev_name, &dir, type, flags);
+#endif
 	ccs_read_unlock(idx);
 	return error;
 }

@@ -18,7 +18,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   24 +++++++++++++++++++++++-
+ fs/namespace.c                  |   23 ++++++++++++++++++++++-
  fs/open.c                       |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -44,7 +44,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 294 insertions(+), 8 deletions(-)
+ 42 files changed, 293 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18.8p9.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8p9/arch/alpha/kernel/ptrace.c
@@ -516,17 +516,16 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  extern int __init init_rootfs(void);
  
-@@ -554,6 +555,9 @@ static int do_umount(struct vfsmount *mn
+@@ -551,6 +552,8 @@ static int do_umount(struct vfsmount *mn
+ 	LIST_HEAD(umount_list);
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -642,6 +646,8 @@ asmlinkage long sys_umount(char __user *
+@@ -642,6 +645,8 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -535,7 +534,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -929,6 +935,9 @@ static int do_loopback(struct nameidata 
+@@ -929,6 +934,9 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -545,7 +544,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1013,7 +1022,9 @@ static int do_move_mount(struct nameidat
+@@ -1013,7 +1021,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -556,7 +555,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1115,6 +1126,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1115,6 +1125,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -566,18 +565,25 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1406,6 +1420,10 @@ long do_mount(char *dev_name, char *dir_
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1388,6 +1401,7 @@ int copy_mount_options(const void __user
+ long do_mount(char *dev_name, char *dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1427,6 +1441,9 @@ long do_mount(char *dev_name, char *dir_
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -1701,6 +1719,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -1701,6 +1718,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -586,7 +592,7 @@ Source code for this patch is http://packages.n-linux.com/release/deb/kernel-sou
  
  	lock_kernel();
  
-@@ -1717,6 +1737,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1717,6 +1736,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

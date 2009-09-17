@@ -18,7 +18,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   31 ++++++++++++++++++++++++++++++-
- fs/namespace.c                  |   24 +++++++++++++++++++++++-
+ fs/namespace.c                  |   23 ++++++++++++++++++++++-
  fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -45,7 +45,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 288 insertions(+), 8 deletions(-)
+ 43 files changed, 287 insertions(+), 8 deletions(-)
 
 --- linux-2.6.20-17.39.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20-17.39/arch/alpha/kernel/ptrace.c
@@ -516,17 +516,16 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  /* spinlock for vfsmount related operations, inplace of dcache_lock */
  __cacheline_aligned_in_smp DEFINE_SPINLOCK(vfsmount_lock);
-@@ -547,6 +548,9 @@ static int do_umount(struct vfsmount *mn
+@@ -544,6 +545,8 @@ static int do_umount(struct vfsmount *mn
+ 	LIST_HEAD(umount_list);
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -635,6 +639,8 @@ asmlinkage long sys_umount(char __user *
+@@ -635,6 +638,8 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -535,7 +534,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -922,6 +928,9 @@ static int do_loopback(struct nameidata 
+@@ -922,6 +927,9 @@ static int do_loopback(struct nameidata 
  
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -545,7 +544,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1006,7 +1015,9 @@ static int do_move_mount(struct nameidat
+@@ -1006,7 +1014,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -556,7 +555,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1108,6 +1119,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1108,6 +1118,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -566,18 +565,25 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, nd)))
-@@ -1399,6 +1413,10 @@ long do_mount(char *dev_name, char *dir_
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1381,6 +1394,7 @@ int copy_mount_options(const void __user
+ long do_mount(char *dev_name, char *dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1422,6 +1436,9 @@ long do_mount(char *dev_name, char *dir_
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -1691,6 +1709,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -1691,6 +1708,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -586,7 +592,7 @@ Source code for this patch is "apt-get install linux-source-2.6.20"
  
  	lock_kernel();
  
-@@ -1707,6 +1727,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1707,6 +1726,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

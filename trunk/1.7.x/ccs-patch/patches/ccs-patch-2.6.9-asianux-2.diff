@@ -34,7 +34,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   26 ++++++++++++++++++++++++--
+ fs/namespace.c                     |   25 +++++++++++++++++++++++--
  fs/open.c                          |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 338 insertions(+), 13 deletions(-)
+ 54 files changed, 337 insertions(+), 13 deletions(-)
 
 --- linux-2.6.9-78.14AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-78.14AXS2/arch/alpha/kernel/ptrace.c
@@ -851,17 +851,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  extern int __init init_rootfs(void);
  
-@@ -427,6 +428,9 @@ static int do_umount(struct vfsmount *mn
+@@ -424,6 +425,8 @@ static int do_umount(struct vfsmount *mn
+ 	int retval;
+ 
+ 	retval = security_sb_umount(mnt, flags);
++	if (!retval)
++		retval = ccs_umount_permission(mnt, flags);
  	if (retval)
  		return retval;
  
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
-+
- 	/*
- 	 * Allow userspace to request a mountpoint be expired rather than
- 	 * unmounting unconditionally. Unmount only happens if:
-@@ -672,6 +676,8 @@ asmlinkage long sys_umount(char __user *
+@@ -672,6 +675,8 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
@@ -870,7 +869,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  #ifdef CONFIG_FUMOUNT
          if (flags & MNT_FFORCE) {
-@@ -844,6 +850,9 @@ static int do_loopback(struct nameidata 
+@@ -844,6 +849,9 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -880,7 +879,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -865,7 +874,7 @@ static int do_loopback(struct nameidata 
+@@ -865,7 +873,7 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -889,7 +888,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -926,7 +935,9 @@ static int do_move_mount(struct nameidat
+@@ -926,7 +934,9 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -900,7 +899,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1025,6 +1036,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1025,6 +1035,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -910,18 +909,25 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1248,6 +1262,10 @@ long do_mount(char * dev_name, char * di
- 	if (data_page)
- 		((char *)data_page)[PAGE_SIZE - 1] = 0;
+@@ -1230,6 +1243,7 @@ int copy_mount_options(const void __user
+ long do_mount(char * dev_name, char * dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -1263,6 +1277,9 @@ long do_mount(char * dev_name, char * di
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
-+	if (retval)
-+		return retval;
-+
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -1505,6 +1523,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
++	if (!retval)
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
+ 	if (retval)
+ 		goto dput_out;
+ 
+@@ -1505,6 +1522,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -930,7 +936,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
-@@ -1520,6 +1540,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1539,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

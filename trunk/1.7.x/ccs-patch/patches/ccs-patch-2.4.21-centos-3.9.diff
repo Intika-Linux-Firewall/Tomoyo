@@ -29,7 +29,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/fcntl.c                   |    3 +++
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c               |   33 +++++++++++++++++++++++++++++++++
  fs/open.c                    |   29 +++++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 319 insertions(+), 3 deletions(-)
+ 46 files changed, 323 insertions(+), 3 deletions(-)
 
 --- linux-2.4.21-60.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.21-60.EL/arch/alpha/kernel/ptrace.c
@@ -715,16 +715,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  struct vfsmount *do_kern_mount(const char *type, int flags, char *name, void *data);
  int do_remount_sb(struct super_block *sb, int flags, void * data);
  void kill_super(struct super_block *sb);
-@@ -290,6 +292,8 @@ static int do_umount(struct vfsmount *mn
+@@ -290,6 +292,9 @@ static int do_umount(struct vfsmount *mn
  {
  	struct super_block * sb = mnt->mnt_sb;
  	int retval = 0;
-+	if (ccs_may_umount(mnt))
-+		return -EPERM;
++	retval = ccs_umount_permission(mnt, flags);
++	if (retval)
++		return retval;
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -365,6 +369,8 @@ asmlinkage long sys_umount(char * name, 
+@@ -365,6 +370,8 @@ asmlinkage long sys_umount(char * name, 
  {
  	struct nameidata nd;
  	int retval;
@@ -733,7 +734,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	retval = __user_walk(name, LOOKUP_POSITIVE|LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -500,6 +506,9 @@ static int do_loopback(struct nameidata 
+@@ -500,6 +507,9 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
@@ -743,7 +744,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -517,6 +526,7 @@ static int do_loopback(struct nameidata 
+@@ -517,6 +527,7 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
  
@@ -751,7 +752,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -570,6 +580,10 @@ static int do_move_mount(struct nameidat
+@@ -570,6 +581,10 @@ static int do_move_mount(struct nameidat
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
  
@@ -762,7 +763,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_zombie);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -641,6 +655,10 @@ static int do_add_mount(struct nameidata
+@@ -641,6 +656,10 @@ static int do_add_mount(struct nameidata
  	if (nd->mnt->mnt_sb == mnt->mnt_sb && nd->mnt->mnt_root == nd->dentry)
  		goto unlock;
  
@@ -773,18 +774,35 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	mnt->mnt_flags = mnt_flags;
  	err = graft_tree(mnt, nd);
  unlock:
-@@ -715,6 +733,10 @@ long do_mount(char * dev_name, char * di
- 	if (dev_name && !memchr(dev_name, 0, PAGE_SIZE))
- 		return -EINVAL;
+@@ -700,6 +719,7 @@ static int copy_mount_options (const voi
+ long do_mount(char * dev_name, char * dir_name, char *type_page,
+ 		  unsigned long flags, void *data_page)
+ {
++	const unsigned long original_flags = flags;
+ 	struct nameidata nd;
+ 	int retval = 0;
+ 	int mnt_flags = 0;
+@@ -729,6 +749,11 @@ long do_mount(char * dev_name, char * di
+ 	if (retval)
+ 		return retval;
  
-+	retval = ccs_mount_permission(dev_name, dir_name, type_page, &flags);
++	retval = ccs_mount_permission(dev_name, &nd, type_page,
++				      original_flags, data_page);
 +	if (retval)
-+		return retval;
++		goto out;
 +
- 	/* Separate the per-mountpoint flags */
- 	if (flags & MS_NOSUID)
- 		mnt_flags |= MNT_NOSUID;
-@@ -908,6 +930,8 @@ asmlinkage long sys_pivot_root(const cha
+ 	if (flags & MS_REMOUNT)
+ 		retval = do_remount(&nd, flags & ~MS_REMOUNT, mnt_flags,
+ 				    data_page);
+@@ -739,6 +764,7 @@ long do_mount(char * dev_name, char * di
+ 	else
+ 		retval = do_add_mount(&nd, type_page, flags, mnt_flags,
+ 				      dev_name, data_page);
++ out:
+ 	path_release(&nd);
+ 	return retval;
+ }
+@@ -908,6 +934,8 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -793,7 +811,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	lock_kernel();
  
-@@ -922,6 +946,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -922,6 +950,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
