@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux Kickstarting Manual for CentOS 4.8</title>
+<title>TOMOYO Linux Kickstarting Manual for CentOS 5.4</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
 <body>
-<p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/ja/1.6.x/1st-step/centos4.8/index.html">Japanese Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for CentOS 4.8</h1>
+<p style="text-align:right;"><a href="http://tomoyo.sourceforge.jp/ja/1.6.x/1st-step/centos5/index.html">Japanese Page</a></p>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for CentOS 5.4</h1>
 
 <ul>
 <li><a href="#l1">About this page</a></li>
@@ -28,7 +28,7 @@
 
 <h2><a name="l1">About this page</a></h2>
 
-<p>This page explains you how to introduce TOMOYO Linux 1.6.8 on CentOS 4.8 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
+<p>This page explains you how to introduce TOMOYO Linux 1.6.8 on CentOS 5.4 systems. By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
 <p>The following is the flow of introduction.</p>
 
 <ol>
@@ -40,29 +40,29 @@
 <h2><a name="l2">Installing TOMOYO Linux kernel</a></h2>
 
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
-But regarding CentOS 4.8, a binary kernel package is available and this page uses it.</p>
+But regarding CentOS 5.4, a binary kernel package is available and this page uses it.</p>
 
 <p>First, specify the repository to use.</p>
 
 <pre>
 # <span class="user">wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'</span>
 # <span class="user">rpm --import /tmp/key</span>
-# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS4/ccs.repo</span>
+# <span class="user">wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos/CentOS5/ccs.repo</span>
 </pre>
 
 <p>Next, download the package and install it.</p>
 
 <pre>
-# <span class="user">yum install ccs-kernel-smp</span>
+# <span class="user">yum install ccs-kernel</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/grub.conf if installation finishes successfully.</p>
 
 <pre>
-title CentOS (2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp)
+title CentOS (2.6.18-128.7.1.el5_tomoyo_1.6.8p1)
     root (hd0,0)
-    kernel /vmlinuz-2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp ro root=/dev/VolGroup00/LogVol00
-    initrd /initrd-2.6.9-89.0.11.EL_tomoyo_1.6.8p1smp.img
+    kernel /vmlinuz-2.6.18-128.7.1.el5_tomoyo_1.6.8p1 ro root=/dev/VolGroup00/LogVol00
+    initrd /initrd-2.6.18-128.7.1.el5_tomoyo_1.6.8p1.img
 </pre>
 
 <p>Comment out the "timeout=" and "hiddenmenu" lines of /boot/grub/grub.conf so that you will not fail to select TOMOYO Linux's kernel.</p>
@@ -86,11 +86,11 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 # <span class="user">yum install ccs-tools</span>
 </pre>
 
-<p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.
+<p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
 If you are using bash, run the following commands.</p>
 
 <pre>
-# <span class="user">echo 'export PATH=$PATH:/usr/sbin' &gt;&gt; ~/.bashrc</span>
+# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
 </pre>
 
@@ -100,7 +100,7 @@ If you are using bash, run the following commands.</p>
 
 <p>A script is included in the tools package that performs configurations in this chapter. Run the script as follows.</p>
 
-<pre># <span class="user">/usr/lib/ccs/init_policy.sh --file-only-profile</span></pre>
+<pre># <span class="user">init_policy.sh --file-only-profile</span></pre>
 
 <p>The execution of init_policy.sh may take long time (more than 10 minutes in some environment).</p>
 
@@ -342,19 +342,19 @@ Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
 <blockquote><p>
-#2008-05-11 15:22:14# profile=3 mode=enforcing pid=3867 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=17 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/lib/ccs:/root/bin" "INPUTRC=/etc/inputrc" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" }<br>
+#2008-05-06 10:06:31# profile=3 mode=enforcing pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=17 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/root/bin" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
 allow_execute /usr/bin/tail<br>
 <br>
-#2008-05-11 15:22:14# profile=3 mode=enforcing pid=3867 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-05-06 10:06:31# profile=3 mode=enforcing pid=2284 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
 allow_read /usr/bin/tail<br>
 <br>
-#2008-05-11 15:22:18# profile=3 mode=enforcing pid=3868 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
+#2008-05-06 10:06:37# profile=3 mode=enforcing pid=2285 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head<br>
 allow_read /etc/shadow<br>
 <br>
-#2008-05-11 15:22:24# profile=3 mode=enforcing pid=3888 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=24 argv[]={ "date" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/X11R6/bin:/usr/lib/ccs:/root/bin" "INPUTRC=/etc/inputrc" "PWD=/root" "LANG=C" "SHLVL=2" "HOME=/root" "LOGNAME=root" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" "SUPPORTED=ja_JP.UTF-8:ja_JP:ja" }<br>
+#2008-05-06 10:06:43# profile=3 mode=enforcing pid=2307 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=24 argv[]={ "date" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/lib/ccs:/root/bin" "PWD=/root" "LANG=C" "SHLVL=2" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" "SUPPORTED=ja_JP.UTF-8:ja_JP:ja" }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
 allow_execute /bin/date
 </p></blockquote>
