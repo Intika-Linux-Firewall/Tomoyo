@@ -195,7 +195,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 {
 	/*
 	 * Don't change the lowest byte because it is reserved for
-	 * CCS_CHECK_READ_FOR_OPEN_EXEC / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
+	 * CCS_TASK_IS_IN_EXECVE / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
 	 * CCS_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_POLICY_MANAGER.
 	 */
 	const struct ccs_condition *ptr = r->cond;

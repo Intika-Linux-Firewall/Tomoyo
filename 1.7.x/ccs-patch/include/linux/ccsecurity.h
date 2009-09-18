@@ -391,8 +391,9 @@ int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir);
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 #endif
 
-int ccs_start_execve(struct linux_binprm *bprm);
-void ccs_finish_execve(int retval);
+struct ccs_execve_entry;
+int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **ee);
+void ccs_finish_execve(int retval, struct ccs_execve_entry *ee);
 
 int search_binary_handler(struct linux_binprm *, struct pt_regs *);
 
@@ -400,11 +401,11 @@ int search_binary_handler(struct linux_binprm *, struct pt_regs *);
 static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 					    struct pt_regs *regs)
 {
-	int retval = ccs_start_execve(bprm);
-	if (!retval) {
+	struct ccs_execve_entry *ee;
+	int retval = ccs_start_execve(bprm, &ee);
+	if (!retval)
 		retval = search_binary_handler(bprm, regs);
-		ccs_finish_execve(retval);
-	}
+	ccs_finish_execve(retval, ee);
 	return retval;
 }
 #else

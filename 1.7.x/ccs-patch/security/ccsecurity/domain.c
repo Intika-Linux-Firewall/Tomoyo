@@ -857,56 +857,6 @@ static int ccs_get_root_depth(void)
 	return depth;
 }
 
-static LIST_HEAD(ccs_execve_list);
-DEFINE_SPINLOCK(ccs_execve_list_lock);
-unsigned int ccs_in_execve_counter;
-
-/**
- * ccs_allocate_execve_entry - Allocate memory for execve().
- *
- * Returns pointer to "struct ccs_execve_entry" on success, NULL otherwise.
- */
-static inline struct ccs_execve_entry *ccs_allocate_execve_entry(void)
-{
-	struct ccs_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
-	if (!ee)
-		return NULL;
-	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
-	if (!ee->tmp) {
-		kfree(ee);
-		return NULL;
-	}
-	ee->reader_idx = ccs_read_lock();
-	/* ee->dump->data is allocated by ccs_dump_page(). */
-	ee->task = current;
-	ee->previous_domain = ee->task->ccs_domain_info;
-	spin_lock(&ccs_execve_list_lock);
-	ccs_in_execve_counter++;
-	list_add(&ee->list, &ccs_execve_list);
-	spin_unlock(&ccs_execve_list_lock);
-	return ee;
-}
-
-/**
- * ccs_free_execve_entry - Free memory for execve().
- *
- * @ee: Pointer to "struct ccs_execve_entry".
- */
-static inline void ccs_free_execve_entry(struct ccs_execve_entry *ee)
-{
-	if (!ee)
-		return;
-	spin_lock(&ccs_execve_list_lock);
-	list_del(&ee->list);
-	ccs_in_execve_counter--;
-	spin_unlock(&ccs_execve_list_lock);
-	kfree(ee->handler_path);
-	kfree(ee->tmp);
-	kfree(ee->dump.data);
-	ccs_read_unlock(ee->reader_idx);
-	kfree(ee);
-}
-
 /**
  * ccs_try_alt_exec - Try to start execute handler.
  *
@@ -1150,7 +1100,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump)
 {
 	struct page *page;
-	/* dump->data is released by ccs_free_execve_entry(). */
+	/* dump->data is released by ccs_finish_execve(). */
 	if (!dump->data) {
 		dump->data = kzalloc(PAGE_SIZE, GFP_KERNEL);
 		if (!dump->data)
@@ -1196,26 +1146,45 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  * ccs_start_execve - Prepare for execve() operation.
  *
  * @bprm: Pointer to "struct linux_binprm".
+ * @eep:  Pointer to "struct ccs_execve_entry *".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_start_execve(struct linux_binprm *bprm)
+int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **eep)
 {
 	int retval;
 	struct task_struct *task = current;
-	struct ccs_execve_entry *ee = ccs_allocate_execve_entry();
+	struct ccs_execve_entry *ee;
+	*eep = NULL;
 	if (!ccs_policy_loaded)
 		ccs_load_policy(bprm->filename);
+	ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return -ENOMEM;
+	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
+	if (!ee->tmp) {
+		kfree(ee);
+		return -ENOMEM;
+	}
+	ee->reader_idx = ccs_read_lock();
+	/* ee->dump->data is allocated by ccs_dump_page(). */
+	ee->previous_domain = task->ccs_domain_info;
+	/* Clear manager flag. */
+	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+	/* Tell GC that I started execve(). */
+	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
+	/*
+	 * Make task->ccs_flags visible to GC before changing
+	 * task->ccs_domain_info .
+	 */
+	smp_mb();
+	*eep = ee;
 	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FILE_EXECUTE);
 	ee->r.ee = ee;
 	ee->bprm = bprm;
 	ee->r.obj = &ee->obj;
 	ee->obj.path1.dentry = bprm->file->f_dentry;
 	ee->obj.path1.mnt = bprm->file->f_vfsmnt;
-	/* Clear manager flag. */
-	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER)) {
 		retval = ccs_try_alt_exec(ee);
 		if (!retval)
@@ -1244,11 +1213,8 @@ int ccs_start_execve(struct linux_binprm *bprm)
 	retval = ccs_environ(ee);
 	if (retval < 0)
 		goto out;
-	task->ccs_flags |= CCS_CHECK_READ_FOR_OPEN_EXEC;
 	retval = 0;
  out:
-	if (retval)
-		ccs_finish_execve(retval);
 	return retval;
 }
 
@@ -1256,35 +1222,35 @@ int ccs_start_execve(struct linux_binprm *bprm)
  * ccs_finish_execve - Clean up execve() operation.
  *
  * @retval: Return code of an execve() operation.
+ * @ee:     Pointer to "struct ccs_execve_entry".
  *
  * Caller holds ccs_read_lock().
  */
-void ccs_finish_execve(int retval)
+void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
 {
 	struct task_struct *task = current;
-	struct ccs_execve_entry *ee = NULL;
-	struct ccs_execve_entry *p;
-	task->ccs_flags &= ~CCS_CHECK_READ_FOR_OPEN_EXEC;
-	spin_lock(&ccs_execve_list_lock);
-	list_for_each_entry(p, &ccs_execve_list, list) {
-		if (p->task != task)
-			continue;
-		ee = p;
-		break;
-	}
-	spin_unlock(&ccs_execve_list_lock);
 	if (!ee)
 		return;
 	if (retval < 0) {
 		task->ccs_domain_info = ee->previous_domain;
-		goto out;
+		/*
+		 * Make task->ccs_domain_info visible to GC before changing
+		 * task->ccs_flags .
+		 */
+		smp_mb();
+	} else {
+		/* Mark the current process as execute handler. */
+		if (ee->handler)
+			task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
+		/* Mark the current process as normal process. */
+		else
+			task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
 	}
-	/* Mark the current process as execute handler. */
-	if (ee->handler)
-		task->ccs_flags |= CCS_TASK_IS_EXECUTE_HANDLER;
-	/* Mark the current process as normal process. */
-	else
-		task->ccs_flags &= ~CCS_TASK_IS_EXECUTE_HANDLER;
- out:
-	ccs_free_execve_entry(ee);
+	/* Tell GC that I finished execve(). */
+	task->ccs_flags &= ~CCS_TASK_IS_IN_EXECVE;
+	ccs_read_unlock(ee->reader_idx);
+	kfree(ee->handler_path);
+	kfree(ee->tmp);
+	kfree(ee->dump.data);
+	kfree(ee);
 }

@@ -1248,7 +1248,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
 	if (task->in_execve &&
-	    !(task->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC))
+	    !(task->ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
@@ -2336,7 +2336,7 @@ int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 /* Permission checks for open_exec(). */
 int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
-	return (current->ccs_flags & CCS_CHECK_READ_FOR_OPEN_EXEC) ?
+	return (current->ccs_flags & CCS_TASK_IS_IN_EXECVE) ?
 		/* 01 means "read". */
 		ccs_open_permission(dentry, mnt, 01) : 0;
 }
