@@ -310,7 +310,7 @@ enum ccs_conditions_index {
 
 /* Lowest 2 bits are reserved for open() mode. */
 #define CCS_USE_OPEN_MODE                 4
-#define CCS_CHECK_READ_FOR_OPEN_EXEC     16
+#define CCS_TASK_IS_IN_EXECVE            16
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
 #define CCS_TASK_IS_EXECUTE_HANDLER      64
 #define CCS_TASK_IS_POLICY_MANAGER      128
@@ -501,8 +501,6 @@ struct ccs_path_info {
 
 /* Structure for execve() operation. */
 struct ccs_execve_entry {
-	struct list_head list;
-	struct task_struct *task; /* = current */
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
@@ -1042,9 +1040,6 @@ extern struct list_head ccs_domain_keeper_list;
 extern struct list_head ccs_aggregator_list;
 extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
-
-extern spinlock_t ccs_execve_list_lock;
-extern unsigned int ccs_in_execve_counter;
 
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;

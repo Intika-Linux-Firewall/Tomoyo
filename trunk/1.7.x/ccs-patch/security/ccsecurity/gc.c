@@ -122,22 +122,43 @@ static size_t ccs_del_manager(struct ccs_policy_manager_entry *ptr)
  */
 static bool ccs_used_by_task(struct ccs_domain_info *domain)
 {
-	bool in_use;
+	bool in_use = false;
+	/*
+	 * Don't delete this domain if somebody is doing execve().
+	 *
+	 * Since ccs_finish_execve() first reverts ccs_domain_info and then
+	 * updates ccs_flags , we need smp_mb() to make sure that GC first
+	 * checks ccs_flags and then checks ccs_domain_info .
+	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+	struct task_struct *g;
+	struct task_struct *t;
+	read_lock(&tasklist_lock);
+	do_each_thread(g, t) {
+		if (!(t->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
+			smp_mb(); /* Avoid out of order execution. */
+			if (t->ccs_domain_info != domain)
+				continue;
+		}
+		in_use = true;
+		goto out;
+	} while_each_thread(g, t);
+ out:
+	read_unlock(&tasklist_lock);
+#else
 	struct task_struct *p;
-	/* Don't delete domains if somebody is doing execve(). */
-	spin_lock(&ccs_execve_list_lock);
-	in_use = ccs_in_execve_counter != 0;
-	spin_unlock(&ccs_execve_list_lock);
-	if (in_use)
-		return true;
 	read_lock(&tasklist_lock);
 	for_each_process(p) {
-		if (p->ccs_domain_info != domain)
-			continue;
+		if (!(p->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
+			smp_mb(); /* Avoid out of order execution. */
+			if (p->ccs_domain_info != domain)
+				continue;
+		}
 		in_use = true;
 		break;
 	}
 	read_unlock(&tasklist_lock);
+#endif
 	return in_use;
 }
 
