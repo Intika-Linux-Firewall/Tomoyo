@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/gc.c |  625 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 625 insertions(+)
+ security/tomoyo/gc.c |  631 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 631 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/gc.c
-@@ -0,0 +1,625 @@
+@@ -0,0 +1,631 @@
 +/*
 + * security/tomoyo/gc.c
 + *
@@ -118,21 +118,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +static bool tomoyo_used_by_task(struct tomoyo_domain_info *domain)
 +{
-+	bool in_use;
-+	struct task_struct *p;
-+	/* Don't delete domains if somebody is doing execve(). */
-+	smp_mb();
-+	in_use = atomic_read(&tomoyo_in_execve_counter) != 0;
-+	smp_mb();
-+	if (in_use)
-+		return true;
++	bool in_use = false;
++	/*
++	 * Don't delete this domain if somebody is doing execve().
++	 *
++	 * Since tomoyo_finish_execve() first reverts tomoyo_domain_info and
++	 * then updates tomoyo_flags , we need smp_mb() to make sure that GC
++	 * first checks tomoyo_flags and then checks tomoyo_domain_info .
++	 */
++	struct task_struct *g;
++	struct task_struct *t;
 +	read_lock(&tasklist_lock);
-+	for_each_process(p) {
-+		if (p->tomoyo_domain_info != domain)
-+			continue;
++	do_each_thread(g, t) {
++		if (!(t->tomoyo_flags & TOMOYO_TASK_IS_IN_EXECVE)) {
++			smp_mb(); /* Avoid out of order execution. */
++			if (t->tomoyo_domain_info != domain)
++				continue;
++		}
 +		in_use = true;
-+		break;
-+	}
++		goto out;
++	} while_each_thread(g, t);
++ out:
 +	read_unlock(&tasklist_lock);
 +	return in_use;
 +}

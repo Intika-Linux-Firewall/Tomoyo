@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1186 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1186 insertions(+)
+ security/tomoyo/internal.h | 1185 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1185 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1186 @@
+@@ -0,0 +1,1185 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -367,7 +367,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TOMOYO_CONFIG_WANT_GRANT_LOG  128
 +#define TOMOYO_CONFIG_USE_DEFAULT     255
 +
-+#define TOMOYO_CHECK_READ_FOR_OPEN_EXEC     16
++#define TOMOYO_TASK_IS_IN_EXECVE            16
 +#define TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR  32
 +#define TOMOYO_TASK_IS_EXECUTE_HANDLER      64
 +#define TOMOYO_TASK_IS_POLICY_MANAGER      128
@@ -1127,7 +1127,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +extern struct list_head tomoyo_domain_keeper_list;
 +extern struct list_head tomoyo_aggregator_list;
 +extern struct list_head tomoyo_policy_manager_list;
-+extern atomic_t tomoyo_in_execve_counter;
 +extern __initdata bool tomoyo_registered;
 +extern bool tomoyo_policy_loaded;
 +extern struct tomoyo_domain_info tomoyo_kernel_domain;

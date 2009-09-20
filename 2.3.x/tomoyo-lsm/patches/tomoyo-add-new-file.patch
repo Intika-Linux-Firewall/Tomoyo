@@ -1237,7 +1237,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_path_info buf;
 +	int idx;
 +	if (task->in_execve &&
-+	    !(task->tomoyo_flags & TOMOYO_CHECK_READ_FOR_OPEN_EXEC))
++	    !(task->tomoyo_flags & TOMOYO_TASK_IS_IN_EXECVE))
 +		return 0;
 +	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 +		return 0;
