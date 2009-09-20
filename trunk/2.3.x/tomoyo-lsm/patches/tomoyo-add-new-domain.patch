@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1259 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1259 insertions(+)
+ security/tomoyo/new-domain.c | 1238 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1238 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-domain.c
-@@ -0,0 +1,1259 @@
+@@ -0,0 +1,1238 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -855,51 +855,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return depth;
 +}
 +
-+atomic_t tomoyo_in_execve_counter;
-+
-+/**
-+ * tomoyo_allocate_execve_entry - Allocate memory for execve().
-+ *
-+ * Returns pointer to "struct tomoyo_execve_entry" on success, NULL otherwise.
-+ */
-+static inline struct tomoyo_execve_entry *tomoyo_allocate_execve_entry(void)
-+{
-+	struct tomoyo_execve_entry *ee = kzalloc(sizeof(*ee), GFP_KERNEL);
-+	if (!ee)
-+		return NULL;
-+	ee->tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_KERNEL);
-+	if (!ee->tmp) {
-+		kfree(ee);
-+		return NULL;
-+	}
-+	ee->reader_idx = tomoyo_read_lock();
-+	/* ee->dump->data is allocated by tomoyo_dump_page(). */
-+	ee->previous_domain = current->tomoyo_domain_info;
-+	smp_mb();
-+	atomic_inc(&tomoyo_in_execve_counter);
-+	smp_mb();
-+	return ee;
-+}
-+
-+/**
-+ * tomoyo_free_execve_entry - Free memory for execve().
-+ *
-+ * @ee: Pointer to "struct tomoyo_execve_entry".
-+ */
-+static inline void tomoyo_free_execve_entry(struct tomoyo_execve_entry *ee)
-+{
-+	if (!ee)
-+		return;
-+	smp_mb();
-+	atomic_dec(&tomoyo_in_execve_counter);
-+	smp_mb();
-+	kfree(ee->handler_path);
-+	kfree(ee->tmp);
-+	kfree(ee->dump.data);
-+	tomoyo_read_unlock(ee->reader_idx);
-+	kfree(ee);
-+}
-+
 +/**
 + * tomoyo_try_alt_exec - Try to start execute handler.
 + *
@@ -1141,7 +1096,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		      struct tomoyo_page_dump *dump)
 +{
 +	struct page *page;
-+	/* dump->data is released by tomoyo_free_execve_entry(). */
++	/* dump->data is released by tomoyo_finish_execve(). */
 +	if (!dump->data) {
 +		dump->data = kzalloc(PAGE_SIZE, GFP_KERNEL);
 +		if (!dump->data)
@@ -1185,11 +1140,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	int retval;
 +	struct task_struct *task = current;
-+	struct tomoyo_execve_entry *ee = tomoyo_allocate_execve_entry();
++	struct tomoyo_execve_entry *ee;
 +	if (!tomoyo_policy_loaded)
 +		tomoyo_load_policy(bprm->filename);
++	ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 +	if (!ee)
 +		return -ENOMEM;
++	ee->tmp = kzalloc(TOMOYO_EXEC_TMPSIZE, GFP_KERNEL);
++	if (!ee->tmp) {
++		kfree(ee);
++		return -ENOMEM;
++	}
++	ee->reader_idx = tomoyo_read_lock();
++	/* ee->dump->data is allocated by tomoyo_dump_page(). */
++	ee->previous_domain = task->tomoyo_domain_info;
++	/* Clear manager flag. */
++	task->tomoyo_flags &= ~TOMOYO_TASK_IS_POLICY_MANAGER;
++	/* Tell GC that I started execve(). */
++	task->tomoyo_flags |= TOMOYO_TASK_IS_IN_EXECVE;
++	/*
++	 * Make task->tomoyo_flags visible to GC before changing
++	 * task->tomoyo_domain_info .
++	 */
++	smp_mb();
 +	bprm->cred->security = ee;
 +	atomic_set(&ee->cred_users, 1);
 +	tomoyo_init_request_info(&ee->r, NULL, TOMOYO_MAC_FILE_EXECUTE);
@@ -1198,8 +1171,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	ee->r.obj = &ee->obj;
 +	ee->obj.path1.dentry = bprm->file->f_dentry;
 +	ee->obj.path1.mnt = bprm->file->f_vfsmnt;
-+	/* Clear manager flag. */
-+	task->tomoyo_flags &= ~TOMOYO_TASK_IS_POLICY_MANAGER;
 +	if (tomoyo_find_execute_handler(ee, TOMOYO_TYPE_EXECUTE_HANDLER)) {
 +		retval = tomoyo_try_alt_exec(ee);
 +		if (!retval)
@@ -1230,11 +1201,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	retval = tomoyo_environ(ee);
 +	if (retval < 0)
 +		goto out;
-+	task->tomoyo_flags |= TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 +	retval = 0;
 + out:
 +	if (retval) {
-+		tomoyo_finish_execve(bprm->cred->security, true);
++		tomoyo_finish_execve(ee, true);
 +		bprm->cred->security = NULL;
 +	}
 +	return retval;
@@ -1251,19 +1221,28 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tomoyo_finish_execve(struct tomoyo_execve_entry *ee, const bool rollback)
 +{
 +	struct task_struct *task = current;
-+	task->tomoyo_flags &= ~TOMOYO_CHECK_READ_FOR_OPEN_EXEC;
 +	if (!ee)
 +		return;
 +	if (rollback) {
 +		task->tomoyo_domain_info = ee->previous_domain;
-+		goto out;
++		/*
++		 * Make task->tomoyo_domain_info visible to GC before changing
++		 * task->tomoyo_flags .
++		 */
++		smp_mb();
++	} else {
++		/* Mark the current process as execute handler. */
++		if (ee->handler)
++			task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
++		/* Mark the current process as normal process. */
++		else
++			task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
 +	}
-+	/* Mark the current process as execute handler. */
-+	if (ee->handler)
-+		task->tomoyo_flags |= TOMOYO_TASK_IS_EXECUTE_HANDLER;
-+	/* Mark the current process as normal process. */
-+	else
-+		task->tomoyo_flags &= ~TOMOYO_TASK_IS_EXECUTE_HANDLER;
-+ out:
-+	tomoyo_free_execve_entry(ee);
++	/* Tell GC that I finished execve(). */
++	task->tomoyo_flags &= ~TOMOYO_TASK_IS_IN_EXECVE;
++	tomoyo_read_unlock(ee->reader_idx);
++	kfree(ee->handler_path);
++	kfree(ee->tmp);
++	kfree(ee->dump.data);
++	kfree(ee);
 +}
