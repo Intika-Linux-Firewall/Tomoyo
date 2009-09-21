@@ -203,18 +203,6 @@ static void stage_policy_io_test(void)
 		try_io("no_initialize_domain /foo from <kernel> /bar", 1);
 		try_io("no_initialize_domain /\\* from <kernel>", 0);
 		try_io("no_initialize_domain /foo from <kernel> \\*", 0);
-		try_io("deny_autobind 0-65535", 1);
-		try_io("deny_autobind 0-65536", 0);
-		try_io("deny_autobind 65-100", 1);
-		try_io("deny_autobind 100-65", 0);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 65535", 1);
-		try_io("deny_autobind 65536", 0);
-		try_io("deny_autobind *", 0);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 0-65535", 1);
-		try_io("deny_autobind 500", 1);
-		try_io("deny_autobind 0-65535", 1);
 	}
 }
 

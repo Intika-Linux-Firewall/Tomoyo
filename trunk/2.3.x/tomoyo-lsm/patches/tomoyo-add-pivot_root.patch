@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/pivot_root.c |  175 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 175 insertions(+)
+ security/tomoyo/pivot_root.c |  177 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 177 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/pivot_root.c
-@@ -0,0 +1,175 @@
+@@ -0,0 +1,177 @@
 +/*
 + * security/tomoyo/pivot_root.c
 + *
@@ -59,6 +59,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	char *new_root;
 +	struct tomoyo_path_info old_root_dir;
 +	struct tomoyo_path_info new_root_dir;
++	if (!tomoyo_capable(TOMOYO_SYS_PIVOT_ROOT))
++		return -EPERM;
 +	if (tomoyo_init_request_info(&r, NULL, TOMOYO_MAC_FILE_PIVOT_ROOT)
 +	    == TOMOYO_CONFIG_DISABLED)
 +		return 0;
