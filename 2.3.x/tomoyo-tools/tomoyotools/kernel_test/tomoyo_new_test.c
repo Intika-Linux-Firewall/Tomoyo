@@ -452,95 +452,9 @@ static void test_SYS_UMOUNT(void)
 	result = umount("/tmp");
 }
 
-static void test_SYS_REBOOT(void)
-{
-	FILE *fp = fopen("/proc/sys/kernel/ctrl-alt-del", "a+");
-	unsigned int c;
-	if (fp && fscanf(fp, "%u", &c) == 1) {
-		errno = 0;
-		result = reboot(LINUX_REBOOT_CMD_CAD_ON);
-		err = errno;
-		fprintf(fp, "%u\n", c);
-	} else {
-		errno = 0;
-		result = reboot(0x0000C0DE); /* Use invalid value */
-		err = errno;
-	}
-	if (fp)
-		fclose(fp);
-	errno = err;
-}
-
 static void test_SYS_CHROOT(void)
 {
 	result = chroot("/");
-}
-
-static void test_SYS_KILL(void)
-{
-	int err;
-	signal(SIGINT, SIG_IGN);
-	errno = 0;
-	result = kill(pid, SIGINT);
-	err = errno;
-	signal(SIGINT, SIG_DFL);
-	errno = err;
-}
-
-static void test_SYS_VHANGUP(void)
-{
-	int pty_fd = EOF;
-	int status = 0;
-	int pipe_fd[2] = { EOF, EOF };
-	pipe(pipe_fd);
-	switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
-	case 0:
-		errno = 0;
-		vhangup();
-		/* Unreachable if vhangup() succeeded. */
-		status = errno;
-		write(pipe_fd[1], &status, sizeof(status));
-		_exit(0);
-	case -1:
-		status = ENOMEM;
-		break;
-	default:
-		close(pipe_fd[1]);
-		read(pipe_fd[0], &status, sizeof(status));
-		wait(NULL);
-		close(pipe_fd[0]);
-		close(pty_fd);
-	}
-	errno = status;
-	result = status ? EOF : 0;
-}
-
-static void test_SYS_TIME(void)
-{
-	time_t now = time(NULL);
-	errno = 0;
-	result = stime(&now);
-}
-
-static void test_SYS_NICE(void)
-{
-	result = nice(0);
-}
-
-static void test_SYS_SETHOSTNAME(void)
-{
-	char buffer[4096];
-	int len;
-	memset(buffer, 0, sizeof(buffer));
-	gethostname(buffer, sizeof(buffer) - 1);
-	len = strlen(buffer);
-	errno = 0;
-	result = sethostname(buffer, len);
-}
-
-static void test_use_kernel_module(void)
-{
-	result = init_module("", NULL);
 }
 
 static void test_create_fifo(void)
@@ -688,22 +602,10 @@ static void test_SYS_IOCTL(void)
 	errno = err;
 }
 
-static void test_SYS_KEXEC_LOAD(void)
-{
-#ifdef __NR_sys_kexec_load
-	if (is_kernel26) {
-		result = sys_kexec_load(0, 0, NULL, 0);
-		return;
-	}
-#endif
-	errno = ENOSYS;
-	result = EOF;
-}
-
 static int child(void *arg)
 {
 	errno = 0;
-	pivot_root("/proc", "/sys/kernel/security/tomoyo");
+	pivot_root("/sys/kernel/security", "/sys/kernel/security/tomoyo");
 	return errno;
 }
 
@@ -716,45 +618,6 @@ static void test_SYS_PIVOT_ROOT(void)
 		error += 0; /* Dummy. */
 	errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
 	result = errno ? EOF : 0;
-}
-
-static void test_SYS_PTRACE(void)
-{
-	int status = 0;
-	int pipe_fd[2] = { EOF, EOF };
-	pipe(pipe_fd);
-	switch (fork()) {
-	case 0:
-		errno = 0;
-		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-		status = errno;
-		write(pipe_fd[1], &status, sizeof(status));
-		_exit(0);
-	case -1:
-		status = ENOMEM;
-		break;
-	default:
-		close(pipe_fd[1]);
-		read(pipe_fd[0], &status, sizeof(status));
-		wait(NULL);
-		close(pipe_fd[0]);
-	}
-	errno = status;
-	result = status ? EOF : 0;
-}
-
-static void test_conceal_mount(void)
-{
-	int err = 0;
-	while (umount("/tmp") == 0)
-		err += 0;
-	mount("none", "/tmp", "tmpfs", 0, NULL);
-	errno = 0;
-	result = mount("none", "/tmp", "tmpfs", 0, NULL);
-	err = errno;
-	while (umount("/tmp") == 0)
-		err += 0;
-	errno = err;
 }
 
 static struct test_struct {
@@ -1045,22 +908,8 @@ static struct test_struct {
 	  "allow_capability SYS_MOUNT" },
 	{ NULL, test_SYS_UMOUNT, NULL,         "capability::SYS_UMOUNT",
 	  "allow_capability SYS_UMOUNT" },
-	{ NULL, test_SYS_REBOOT, NULL,         "capability::SYS_REBOOT",
-	  "allow_capability SYS_REBOOT" },
 	{ NULL, test_SYS_CHROOT, NULL,         "capability::SYS_CHROOT",
 	  "allow_capability SYS_CHROOT" },
-	{ NULL, test_SYS_KILL, NULL,           "capability::SYS_KILL",
-	  "allow_capability SYS_KILL" },
-	{ NULL, test_SYS_VHANGUP, NULL,        "capability::SYS_VHANGUP",
-	  "allow_capability SYS_VHANGUP" },
-	{ NULL, test_SYS_TIME, NULL,           "capability::SYS_TIME",
-	  "allow_capability SYS_TIME" },
-	{ NULL, test_SYS_NICE, NULL,           "capability::SYS_NICE",
-	  "allow_capability SYS_NICE" },
-	{ NULL, test_SYS_SETHOSTNAME, NULL,    "capability::SYS_SETHOSTNAME",
-	  "allow_capability SYS_SETHOSTNAME" },
-	{ NULL, test_use_kernel_module, NULL,  "capability::use_kernel_module",
-	  "allow_capability use_kernel_module" },
 	{ NULL, test_create_fifo, NULL,        "capability::create_fifo",
 	  "allow_capability create_fifo" },
 	{ NULL, test_create_block_dev, NULL,   "capability::create_block_dev",
@@ -1084,14 +933,8 @@ static struct test_struct {
 	  "allow_capability SYS_CHOWN" },
 	{ NULL, test_SYS_IOCTL, NULL,          "capability::SYS_IOCTL",
 	  "allow_capability SYS_IOCTL" },
-	{ NULL, test_SYS_KEXEC_LOAD, NULL,     "capability::SYS_KEXEC_LOAD",
-	  "allow_capability SYS_KEXEC_LOAD" },
 	{ NULL, test_SYS_PIVOT_ROOT, NULL,     "capability::SYS_PIVOT_ROOT",
 	  "allow_capability SYS_PIVOT_ROOT" },
-	{ NULL, test_SYS_PTRACE, NULL,         "capability::SYS_PTRACE",
-	  "allow_capability SYS_PTRACE" },
-	{ NULL, test_conceal_mount, NULL,      "capability::conceal_mount",
-	  "allow_capability conceal_mount" },
 	{ NULL }
 };
 

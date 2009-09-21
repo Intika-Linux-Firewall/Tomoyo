@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2794 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2794 insertions(+)
+ security/tomoyo/policy_io.c | 2774 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2774 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/policy_io.c
-@@ -0,0 +1,2794 @@
+@@ -0,0 +1,2774 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -132,22 +132,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	= "capability::SYS_MOUNT",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_UMOUNT]
 +	= "capability::SYS_UMOUNT",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_REBOOT]
-+	= "capability::SYS_REBOOT",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_CHROOT]
 +	= "capability::SYS_CHROOT",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_KILL]
-+	= "capability::SYS_KILL",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_VHANGUP]
-+					       = "capability::SYS_VHANGUP",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_SETTIME]
-+	= "capability::SYS_TIME",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_NICE]
-+	= "capability::SYS_NICE",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_SETHOSTNAME]
-+	= "capability::SYS_SETHOSTNAME",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_USE_KERNEL_MODULE]
-+	= "capability::use_kernel_module",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_CREATE_FIFO]
 +	= "capability::create_fifo",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_CREATE_BLOCK_DEV]
@@ -170,14 +156,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	= "capability::SYS_CHOWN",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_IOCTL]
 +	= "capability::SYS_IOCTL",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_KEXEC_LOAD]
-+	= "capability::SYS_KEXEC_LOAD",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_PIVOT_ROOT]
 +	= "capability::SYS_PIVOT_ROOT",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_SYS_PTRACE]
-+	= "capability::SYS_PTRACE",
-+	[TOMOYO_MAX_MAC_INDEX + TOMOYO_CONCEAL_MOUNT]
-+	= "capability::conceal_mount",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX
 +	 + TOMOYO_MAC_CATEGORY_FILE] = "file",
 +	[TOMOYO_MAX_MAC_INDEX + TOMOYO_MAX_CAPABILITY_INDEX

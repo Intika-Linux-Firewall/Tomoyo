@@ -11,7 +11,7 @@
 static int child(void *arg)
 {
 	errno = 0;
-	pivot_root("/proc", proc_policy_dir);
+	pivot_root("/sys/kernel/security", proc_policy_dir);
 	return errno;
 }
 
@@ -150,17 +150,6 @@ static void stage_capability_test(void)
 		close(fd);
 	unset_capability("use_packet");
 
-	set_capability("use_kernel_module");
-	if (!is_kernel26) {
-		show_prompt("use_kernel_module(create_module())");
-		show_result((int) create_module("", 0));
-	}
-	show_prompt("use_kernel_module(init_module())");
-	show_result(init_module("", NULL));
-	show_prompt("use_kernel_module(delete_module())");
-	show_result(delete_module(""));
-	unset_capability("use_kernel_module");
-
 	set_capability("create_fifo");
 	show_prompt("create_fifo");
 	strcpy(tmp1, "/tmp/XXXXXX");
@@ -222,23 +211,6 @@ static void stage_capability_test(void)
 	show_result(umount("/tmp"));
 	unset_capability("SYS_UMOUNT");
 
-	set_capability("SYS_REBOOT");
-	show_prompt("SYS_REBOOT");
-	{
-		FILE *fp = fopen("/proc/sys/kernel/ctrl-alt-del", "a+");
-		unsigned int c;
-		if (fp && fscanf(fp, "%u", &c) == 1) {
-			show_result(reboot(LINUX_REBOOT_CMD_CAD_ON));
-			fprintf(fp, "%u\n", c);
-		} else {
-			/* Use invalid value */
-			show_result(reboot(0x0000C0DE));
-		}
-		if (fp)
-			fclose(fp);
-	}
-	unset_capability("SYS_REBOOT");
-
 	set_capability("SYS_CHROOT");
 	show_prompt("SYS_CHROOT");
 	show_result(chroot("/"));
@@ -258,100 +230,6 @@ static void stage_capability_test(void)
 		errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
 		show_result(errno ? EOF : 0);
 		unset_capability("SYS_PIVOT_ROOT");
-	}
-
-	signal(SIGINT, SIG_IGN);
-	set_capability("SYS_KILL");
-	show_prompt("SYS_KILL(sys_kill())");
-	show_result(kill(pid, SIGINT));
-	show_prompt("SYS_KILL(sys_tkill())");
-	show_result(tkill(gettid(), SIGINT));
-	if (is_kernel26) {
-#ifdef __NR_tgkill
-		show_prompt("SYS_KILL(sys_tgkill())");
-		show_result(tgkill(pid, gettid(), SIGINT));
-#endif
-	}
-	unset_capability("SYS_KILL");
-	signal(SIGINT, SIG_DFL);
-
-	set_capability("SYS_KEXEC_LOAD");
-	if (is_kernel26) {
-#ifdef __NR_sys_kexec_load
-		show_prompt("SYS_KEXEC_LOAD");
-		show_result(sys_kexec_load(0, 0, NULL, 0));
-#endif
-	}
-	unset_capability("SYS_KEXEC_LOAD");
-
-	{
-		int pty_fd = EOF;
-		int status = 0;
-		int pipe_fd[2] = { EOF, EOF };
-		pipe(pipe_fd);
-		set_capability("SYS_VHANGUP");
-		switch (forkpty(&pty_fd, NULL, NULL, NULL)) {
-		case 0:
-			errno = 0;
-			vhangup();
-			/* Unreachable if vhangup() succeeded. */
-			status = errno;
-			write(pipe_fd[1], &status, sizeof(status));
-			_exit(0);
-		case -1:
-			fprintf(stderr, "forkpty() failed.\n");
-			break;
-		default:
-			close(pipe_fd[1]);
-			read(pipe_fd[0], &status, sizeof(status));
-			wait(NULL);
-			close(pipe_fd[0]);
-			close(pty_fd);
-			show_prompt("SYS_VHANGUP");
-			errno = status;
-			show_result(status ? EOF : 0);
-		}
-		unset_capability("SYS_VHANGUP");
-	}
-
-	{
-		struct timeval tv;
-		struct timezone tz;
-		struct timex buf;
-		time_t now = time(NULL);
-		set_capability("SYS_TIME");
-		show_prompt("SYS_TIME(stime())");
-		show_result(stime(&now));
-		gettimeofday(&tv, &tz);
-		show_prompt("SYS_TIME(settimeofday())");
-		show_result(settimeofday(&tv, &tz));
-		memset(&buf, 0, sizeof(buf));
-		buf.modes = 0x100; /* Use invalid value so that the clock won't
-				      change. */
-		show_prompt("SYS_TIME(adjtimex())");
-		show_result(adjtimex(&buf));
-		unset_capability("SYS_TIME");
-	}
-
-	set_capability("SYS_NICE");
-	show_prompt("SYS_NICE(nice())");
-	show_result(nice(0));
-	show_prompt("SYS_NICE(setpriority())");
-	show_result(setpriority(PRIO_PROCESS, pid,
-			       getpriority(PRIO_PROCESS, pid)));
-	unset_capability("SYS_NICE");
-
-	{
-		char buffer[4096];
-		memset(buffer, 0, sizeof(buffer));
-		set_capability("SYS_SETHOSTNAME");
-		gethostname(buffer, sizeof(buffer) - 1);
-		show_prompt("SYS_SETHOSTNAME(sethostname())");
-		show_result(sethostname(buffer, strlen(buffer)));
-		getdomainname(buffer, sizeof(buffer) - 1);
-		show_prompt("SYS_SETHOSTNAME(setdomainname())");
-		show_result(setdomainname(buffer, strlen(buffer)));
-		unset_capability("SYS_SETHOSTNAME");
 	}
 
 	set_capability("SYS_LINK");
@@ -422,33 +300,6 @@ static void stage_capability_test(void)
 		close(fd);
 	}
 	unset_capability("SYS_IOCTL");
-
-	{
-		int status = 0;
-		int pipe_fd[2] = { EOF, EOF };
-		pipe(pipe_fd);
-		set_capability("SYS_PTRACE");
-		switch (fork()) {
-		case 0:
-			errno = 0;
-			ptrace(PTRACE_TRACEME, 0, NULL, NULL);
-			status = errno;
-			write(pipe_fd[1], &status, sizeof(status));
-			_exit(0);
-		case -1:
-			fprintf(stderr, "fork() failed.\n");
-			break;
-		default:
-			close(pipe_fd[1]);
-			read(pipe_fd[0], &status, sizeof(status));
-			wait(NULL);
-			close(pipe_fd[0]);
-			show_prompt("SYS_PTRACE");
-			errno = status;
-			show_result(status ? EOF : 0);
-		}
-		unset_capability("SYS_PTRACE");
-	}
 }
 
 int main(int argc, char *argv[])

@@ -37,17 +37,9 @@ struct module;
 #include <asm/byteorder.h>
 #include <linux/ip.h>
 #include <sched.h>
-#include <sys/ptrace.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <stdarg.h>
-
-#ifndef __NR_sys_kexec_load
-#ifdef __NR_kexec_load
-#define __NR_sys_kexec_load  __NR_kexec_load
-#endif
-#endif
-/* #define __NR_sys_kexec_load 283 */
 
 static inline pid_t gettid(void)
 {
@@ -57,39 +49,10 @@ static inline int uselib(const char *library)
 {
 	return syscall(__NR_uselib, library);
 }
-static inline caddr_t create_module(const char *name, size_t size)
-{
-	return (caddr_t) syscall(__NR_create_module, name, size);
-}
 static inline int pivot_root(const char *new_root, const char *put_old)
 {
 	return syscall(__NR_pivot_root, new_root, put_old);
 }
-static inline int tkill(int tid, int sig)
-{
-	return syscall(__NR_tkill, tid, sig);
-}
-#ifdef __NR_tgkill
-static inline int tgkill(int tgid, int tid, int sig)
-{
-	return syscall(__NR_tgkill, tgid, tid, sig);
-}
-#endif
-#ifdef __NR_sys_kexec_load
-struct kexec_segment;
-static inline long sys_kexec_load(unsigned long entry,
-				  unsigned long nr_segments,
-				  struct kexec_segment *segments,
-				  unsigned long flags)
-{
-	return (long) syscall(__NR_sys_kexec_load, entry, nr_segments,
-			      segments, flags);
-}
-#endif
-/* reboot() in glibc takes just one argument. */
-int reboot(int cmd);
-int init_module(const char *name, struct module *image);
-int delete_module(const char *name);
 
 #define proc_policy_dir              "/sys/kernel/security/tomoyo/"
 #define proc_policy_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
@@ -155,14 +118,7 @@ static void clear_status(void)
 		"capability::use_packet",
 		"capability::SYS_MOUNT",
 		"capability::SYS_UMOUNT",
-		"capability::SYS_REBOOT",
 		"capability::SYS_CHROOT",
-		"capability::SYS_KILL",
-		"capability::SYS_VHANGUP",
-		"capability::SYS_TIME",
-		"capability::SYS_NICE",
-		"capability::SYS_SETHOSTNAME",
-		"capability::use_kernel_module",
 		"capability::create_fifo",
 		"capability::create_block_dev",
 		"capability::create_char_dev",
@@ -174,10 +130,7 @@ static void clear_status(void)
 		"capability::SYS_CHMOD",
 		"capability::SYS_CHOWN",
 		"capability::SYS_IOCTL",
-		"capability::SYS_KEXEC_LOAD",
 		"capability::SYS_PIVOT_ROOT",
-		"capability::SYS_PTRACE",
-		"capability::conceal_mount",
 		NULL
 	};
 	int i;

@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1185 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1185 insertions(+)
+ security/tomoyo/internal.h | 1165 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1165 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1185 @@
+@@ -0,0 +1,1165 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -60,22 +60,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_SYS_MOUNT,
 +	/* sys_umount()                                                */
 +	TOMOYO_SYS_UMOUNT,
-+	/* sys_reboot()                                                */
-+	TOMOYO_SYS_REBOOT,
 +	/* sys_chroot()                                                */
 +	TOMOYO_SYS_CHROOT,
-+	/* sys_kill(), sys_tkill(), sys_tgkill()                       */
-+	TOMOYO_SYS_KILL,
-+	/* sys_vhangup()                                               */
-+	TOMOYO_SYS_VHANGUP,
-+	/* do_settimeofday(), sys_adjtimex()                           */
-+	TOMOYO_SYS_SETTIME,
-+	/* sys_nice(), sys_setpriority()                               */
-+	TOMOYO_SYS_NICE,
-+	/* sys_sethostname(), sys_setdomainname()                      */
-+	TOMOYO_SYS_SETHOSTNAME,
-+	/* sys_create_module(), sys_init_module(), sys_delete_module() */
-+	TOMOYO_USE_KERNEL_MODULE,
 +	/* sys_mknod(S_IFIFO)                                          */
 +	TOMOYO_CREATE_FIFO,
 +	/* sys_mknod(S_IFBLK)                                          */
@@ -98,14 +84,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_SYS_CHOWN,
 +	/* sys_ioctl(), compat_sys_ioctl()                             */
 +	TOMOYO_SYS_IOCTL,
-+	/* sys_kexec_load()                                            */
-+	TOMOYO_SYS_KEXEC_LOAD,
 +	/* sys_pivot_root()                                            */
 +	TOMOYO_SYS_PIVOT_ROOT,
-+	/* sys_ptrace()                                                */
-+	TOMOYO_SYS_PTRACE,
-+	/* conceal mount                                               */
-+	TOMOYO_CONCEAL_MOUNT,
 +	TOMOYO_MAX_CAPABILITY_INDEX
 +};
 +
