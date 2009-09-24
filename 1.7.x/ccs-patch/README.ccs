@@ -2085,7 +2085,7 @@ Fix 2009/09/01
 
       Thus, I added global PID in audit logs.
       
-    @ Transit to new domain before do_execve() suceeds.
+    @ Transit to new domain before do_execve() succeeds.
 
       Permission checks for interpreters and environment variables are
       done using new domain. In order to be allow ccs-queryd to reach the new
@@ -2132,3 +2132,15 @@ Fix 2009/09/11
       To ensure consistency with TOMOYO's '/'-tokenized pattern matching rules
       and "\-" operator, only "/\{dir\}/" sequences (where dir does not contain
       '/') is permitted.
+
+Fix 2009/09/24
+
+    @ Don't check chmod/chown capability for requests from kernel.
+
+      Until now, ccs_setattr_permission() was inserted in notify_change().
+      But notify_change() is also called by requests from kernel (e.g. UnionFS)
+      and it made difficult to use TOMOYO on UnionFS.
+
+      Thus, I moved ccs_capable() checks from ccs_setattr_permission() to
+      ccs_chmod_permission() and ccs_chown_permission(), and removed
+      ccs_setattr_permission().

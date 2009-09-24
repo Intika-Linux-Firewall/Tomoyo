@@ -28,7 +28,6 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  arch/v850/kernel/ptrace.c          |    3 +++
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    3 +++
- fs/attr.c                          |    5 +++++
  fs/compat.c                        |   12 ++++++++++--
  fs/exec.c                          |   17 +++++++++++++++--
  fs/fcntl.c                         |    4 ++++
@@ -57,7 +56,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 55 files changed, 341 insertions(+), 12 deletions(-)
+ 54 files changed, 336 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.0.11.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.0.11.EL/arch/alpha/kernel/ptrace.c
@@ -557,32 +556,6 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.9-89.0.11.EL.orig/fs/attr.c
-+++ linux-2.6.9-89.0.11.EL/fs/attr.c
-@@ -16,6 +16,7 @@
- #include <linux/security.h>
- #include <linux/time.h>
- #include <linux/audit.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -196,11 +197,15 @@ int notify_change(struct dentry * dentry
- 		audit_notify_watch(inode, MAY_WRITE);
- 		error = security_inode_setattr(dentry, attr);
- 		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
-+		if (!error)
- 			error = inode->i_op->setattr(dentry, attr);
- 	} else {
- 		error = inode_change_ok(inode, attr);
- 		if (!error)
- 			error = security_inode_setattr(dentry, attr);
-+		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
- 		if (!error) {
- 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
- 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 --- linux-2.6.9-89.0.11.EL.orig/fs/compat.c
 +++ linux-2.6.9-89.0.11.EL/fs/compat.c
 @@ -48,6 +48,7 @@
@@ -1059,7 +1032,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.0.11.EL 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.0.11.EL 2009/09/24\n");
  }
 --- linux-2.6.9-89.0.11.EL.orig/include/linux/init_task.h
 +++ linux-2.6.9-89.0.11.EL/include/linux/init_task.h

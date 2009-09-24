@@ -2,6 +2,6 @@ obj-y += address_group.o audit.o autobind.o capability.o chroot.o condition.o do
 
 ifeq ($(PATCHLEVEL),4)
 O_TARGET := ccsecurity.o
-export-objs += autobind.o capability.o file.o network.o
+export-objs += autobind.o file.o network.o
 include $(TOPDIR)/Rules.make
 endif

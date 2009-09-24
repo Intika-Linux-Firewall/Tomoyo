@@ -1743,6 +1743,8 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 {
 	if (mode == (mode_t) -1)
 		return 0;
+	if (!ccs_capable(CCS_SYS_CHMOD))
+		return -EPERM;
 	return ccs_path_number_perm(CCS_TYPE_CHMOD, dentry, vfsmnt,
 				    mode & S_IALLUGO);
 }
@@ -1761,6 +1763,10 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 			 uid_t user, gid_t group)
 {
 	int error = 0;
+	if (user == (uid_t) -1 && group == (gid_t) -1)
+		return 0;
+	if (!ccs_capable(CCS_SYS_CHOWN))
+		return -EPERM;
 	if (user != (uid_t) -1)
 		error = ccs_path_number_perm(CCS_TYPE_CHOWN, dentry, vfsmnt,
 					     user);
@@ -2244,7 +2250,7 @@ int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
 	}
 	return error;
 }
-EXPORT_SYMBOL(ccs_mknod_permission);
+EXPORT_SYMBOL(ccs_mknod_permission); /* for net/unix/af_unix.c */
 
 /* Permission checks for vfs_mkdir(). */
 int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,

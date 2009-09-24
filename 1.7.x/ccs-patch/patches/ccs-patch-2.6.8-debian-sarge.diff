@@ -27,7 +27,6 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  arch/v850/kernel/ptrace.c          |    3 +++
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    3 +++
- fs/attr.c                          |    5 +++++
  fs/compat.c                        |    7 ++++++-
  fs/exec.c                          |   12 +++++++++++-
  fs/fcntl.c                         |    4 ++++
@@ -55,7 +54,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 53 files changed, 327 insertions(+), 11 deletions(-)
+ 52 files changed, 322 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-17sarge1.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-17sarge1/arch/alpha/kernel/ptrace.c
@@ -536,32 +535,6 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.8-17sarge1.orig/fs/attr.c
-+++ linux-2.6.8-17sarge1/fs/attr.c
-@@ -14,6 +14,7 @@
- #include <linux/fcntl.h>
- #include <linux/quotaops.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -170,11 +171,15 @@ int notify_change(struct dentry * dentry
- 	if (inode->i_op && inode->i_op->setattr) {
- 		error = security_inode_setattr(dentry, attr);
- 		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
-+		if (!error)
- 			error = inode->i_op->setattr(dentry, attr);
- 	} else {
- 		error = inode_change_ok(inode, attr);
- 		if (!error)
- 			error = security_inode_setattr(dentry, attr);
-+		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
- 		if (!error) {
- 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
- 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 --- linux-2.6.8-17sarge1.orig/fs/compat.c
 +++ linux-2.6.8-17sarge1/fs/compat.c
 @@ -46,6 +46,7 @@
@@ -1013,7 +986,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2009/09/24\n");
  }
 --- linux-2.6.8-17sarge1.orig/include/linux/init_task.h
 +++ linux-2.6.8-17sarge1/include/linux/init_task.h
