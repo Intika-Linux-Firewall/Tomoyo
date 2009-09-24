@@ -1215,12 +1215,13 @@ int ccs_exec_perm(struct ccs_request_info *r,
  */
 void ccs_save_open_mode(int mode)
 {
-	current->ccs_flags |= (mode & O_ACCMODE) | CCS_USE_OPEN_MODE;
+	if ((mode & 3) == 3)
+		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
 }
 
 void ccs_clear_open_mode(void)
 {
-	current->ccs_flags &= ~(O_ACCMODE | CCS_USE_OPEN_MODE);
+	current->ccs_flags &= ~CCS_OPEN_FOR_IOCTL_ONLY;
 }
 
 /**
@@ -1241,8 +1242,8 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.mnt = mnt
 	};
 	struct task_struct * const task = current;
-	const u8 acc_mode = task->ccs_flags & CCS_USE_OPEN_MODE ?
-		ACC_MODE((task->ccs_flags & O_ACCMODE) + 1) : ACC_MODE(flag);
+	const u8 acc_mode = task->ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY ?
+		0 : ACC_MODE(flag);
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
