@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for Hardened Gentoo.
 
 Source code for this patch is "emerge hardened-sources"
 ---
- fs/attr.c                       |    3 +++
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
  fs/exec.c                       |   10 +++++++++-
@@ -35,27 +34,8 @@ Source code for this patch is "emerge hardened-sources"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 254 insertions(+), 3 deletions(-)
+ 32 files changed, 251 insertions(+), 3 deletions(-)
 
---- linux-2.6.28-hardened-r9.orig/fs/attr.c
-+++ linux-2.6.28-hardened-r9/fs/attr.c
-@@ -14,6 +14,7 @@
- #include <linux/fcntl.h>
- #include <linux/quotaops.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -160,6 +161,8 @@ int notify_change(struct dentry * dentry
- 		return 0;
- 
- 	error = security_inode_setattr(dentry, attr);
-+	if (!error)
-+		error = ccs_setattr_permission(dentry, attr);
- 	if (error)
- 		return error;
- 
 --- linux-2.6.28-hardened-r9.orig/fs/compat.c
 +++ linux-2.6.28-hardened-r9/fs/compat.c
 @@ -56,6 +56,7 @@
@@ -534,7 +514,7 @@ Source code for this patch is "emerge hardened-sources"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/09/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

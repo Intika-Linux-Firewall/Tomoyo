@@ -31,7 +31,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/x86_64/ia32/ptrace32.c        |    3 +++
  arch/x86_64/kernel/ptrace.c        |    3 +++
  arch/xtensa/kernel/ptrace.c        |    3 +++
- fs/attr.c                          |    5 +++++
  fs/compat.c                        |    9 ++++++++-
  fs/exec.c                          |   12 +++++++++++-
  fs/fcntl.c                         |    4 ++++
@@ -62,7 +61,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 60 files changed, 346 insertions(+), 9 deletions(-)
+ 59 files changed, 341 insertions(+), 9 deletions(-)
 
 --- linux-2.6.14.7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.14.7/arch/alpha/kernel/ptrace.c
@@ -619,32 +618,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	lock_kernel();
  
---- linux-2.6.14.7.orig/fs/attr.c
-+++ linux-2.6.14.7/fs/attr.c
-@@ -15,6 +15,7 @@
- #include <linux/quotaops.h>
- #include <linux/security.h>
- #include <linux/time.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -157,11 +158,15 @@ int notify_change(struct dentry * dentry
- 	if (inode->i_op && inode->i_op->setattr) {
- 		error = security_inode_setattr(dentry, attr);
- 		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
-+		if (!error)
- 			error = inode->i_op->setattr(dentry, attr);
- 	} else {
- 		error = inode_change_ok(inode, attr);
- 		if (!error)
- 			error = security_inode_setattr(dentry, attr);
-+		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
- 		if (!error) {
- 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
- 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 --- linux-2.6.14.7.orig/fs/compat.c
 +++ linux-2.6.14.7/fs/compat.c
 @@ -52,6 +52,7 @@
@@ -1103,7 +1076,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.14.7 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.14.7 2009/09/24\n");
  }
 --- linux-2.6.14.7.orig/include/linux/init_task.h
 +++ linux-2.6.14.7/include/linux/init_task.h

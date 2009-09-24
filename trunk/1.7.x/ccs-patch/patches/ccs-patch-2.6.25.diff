@@ -6,7 +6,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/mips/kernel/ptrace32.c     |    3 +++
  arch/s390/kernel/ptrace.c       |    3 +++
  arch/x86/kernel/ptrace.c        |    3 +++
- fs/attr.c                       |    5 +++++
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
  fs/exec.c                       |   12 +++++++++++-
@@ -39,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 37 files changed, 262 insertions(+), 3 deletions(-)
+ 36 files changed, 257 insertions(+), 3 deletions(-)
 
 --- linux-2.6.25.20.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20/arch/ia64/ia32/sys_ia32.c
@@ -117,32 +116,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	switch (request) {
  	case PTRACE_TRACEME:
---- linux-2.6.25.20.orig/fs/attr.c
-+++ linux-2.6.25.20/fs/attr.c
-@@ -14,6 +14,7 @@
- #include <linux/fcntl.h>
- #include <linux/quotaops.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -160,11 +161,15 @@ int notify_change(struct dentry * dentry
- 	if (inode->i_op && inode->i_op->setattr) {
- 		error = security_inode_setattr(dentry, attr);
- 		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
-+		if (!error)
- 			error = inode->i_op->setattr(dentry, attr);
- 	} else {
- 		error = inode_change_ok(inode, attr);
- 		if (!error)
- 			error = security_inode_setattr(dentry, attr);
-+		if (!error)
-+			error = ccs_setattr_permission(dentry, attr);
- 		if (!error) {
- 			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
- 			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
 --- linux-2.6.25.20.orig/fs/compat.c
 +++ linux-2.6.25.20/fs/compat.c
 @@ -55,6 +55,7 @@
@@ -613,7 +586,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.25.20 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.25.20 2009/09/24\n");
  }
 --- linux-2.6.25.20.orig/include/linux/init_task.h
 +++ linux-2.6.25.20/include/linux/init_task.h

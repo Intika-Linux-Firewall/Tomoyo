@@ -33,7 +33,6 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  arch/x86_64/kernel/ptrace.c     |    3 +++
  fs/Config.in                    |    3 +++
  fs/Makefile                     |    2 ++
- fs/attr.c                       |    4 ++++
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |   10 ++++++++++
@@ -57,7 +56,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   13 ++++++++++++-
  net/socket.c                    |   25 +++++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 55 files changed, 360 insertions(+), 8 deletions(-)
+ 54 files changed, 356 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -645,26 +644,6 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
 +obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
  
  include $(TOPDIR)/Rules.make
---- linux-2.4.31-a9-3.orig/fs/attr.c
-+++ linux-2.4.31-a9-3/fs/attr.c
-@@ -12,6 +12,7 @@
- #include <linux/dnotify.h>
- #include <linux/fcntl.h>
- #include <linux/quotaops.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -127,6 +128,9 @@ int notify_change(struct dentry * dentry
- 		attr->ia_atime = now;
- 	if (!(ia_valid & ATTR_MTIME_SET))
- 		attr->ia_mtime = now;
-+	error = ccs_setattr_permission(dentry, attr);
-+	if (error)
-+		return error;
- 
- 	lock_kernel();
- 	if (inode->i_op && inode->i_op->setattr) 
 --- linux-2.4.31-a9-3.orig/fs/exec.c
 +++ linux-2.4.31-a9-3/fs/exec.c
 @@ -59,6 +59,8 @@
@@ -1125,7 +1104,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/09/24\n");
  }
 --- linux-2.4.31-a9-3.orig/include/linux/sched.h
 +++ linux-2.4.31-a9-3/include/linux/sched.h

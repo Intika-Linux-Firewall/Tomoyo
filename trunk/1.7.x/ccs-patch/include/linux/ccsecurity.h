@@ -98,7 +98,6 @@ int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			struct dentry *new_dentry, struct vfsmount *mnt);
 int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
 int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
-int ccs_setattr_permission(struct dentry *dentry, struct iattr *attr);
 int ccs_kill_permission(pid_t pid, int sig);
 int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig);
 int ccs_tkill_permission(pid_t pid, int sig);
@@ -288,12 +287,6 @@ static inline int ccs_open_exec_permission(struct dentry *dentry,
 
 static inline int ccs_uselib_permission(struct dentry *dentry,
 					struct vfsmount *mnt)
-{
-	return 0;
-}
-
-static inline int ccs_setattr_permission(struct dentry *dentry,
-					 struct iattr *attr)
 {
 	return 0;
 }

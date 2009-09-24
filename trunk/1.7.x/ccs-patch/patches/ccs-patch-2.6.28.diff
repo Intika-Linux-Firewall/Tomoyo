@@ -2,7 +2,6 @@ This is TOMOYO Linux patch for kernel 2.6.28.10.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.28.10.tar.bz2
 ---
- fs/attr.c                       |    3 +++
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
  fs/exec.c                       |   10 +++++++++-
@@ -35,27 +34,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 33 files changed, 256 insertions(+), 3 deletions(-)
+ 32 files changed, 253 insertions(+), 3 deletions(-)
 
---- linux-2.6.28.10.orig/fs/attr.c
-+++ linux-2.6.28.10/fs/attr.c
-@@ -14,6 +14,7 @@
- #include <linux/fcntl.h>
- #include <linux/quotaops.h>
- #include <linux/security.h>
-+#include <linux/ccsecurity.h>
- 
- /* Taken over from the old code... */
- 
-@@ -160,6 +161,8 @@ int notify_change(struct dentry * dentry
- 		return 0;
- 
- 	error = security_inode_setattr(dentry, attr);
-+	if (!error)
-+		error = ccs_setattr_permission(dentry, attr);
- 	if (error)
- 		return error;
- 
 --- linux-2.6.28.10.orig/fs/compat.c
 +++ linux-2.6.28.10/fs/compat.c
 @@ -56,6 +56,7 @@
@@ -550,7 +530,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28.10 2009/09/17\n");
++	printk(KERN_INFO "Hook version: 2.6.28.10 2009/09/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
