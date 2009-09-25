@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.6.8+   2009/07/03
+ * Version: 1.6.8+   2009/09/25
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1340,6 +1340,9 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	struct task_struct *task = current;
 
 	/* Close the requested program's dentry. */
+	ee->obj.path1_dentry = NULL;
+	ee->obj.path1_vfsmnt = NULL;
+	ee->obj.validate_done = false;
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
@@ -1460,6 +1463,8 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 		retval = PTR_ERR(filp);
 		goto out;
 	}
+	ee->obj.path1_dentry = filp->f_dentry;
+	ee->obj.path1_vfsmnt = filp->f_vfsmnt;
 	bprm->file = filp;
 	bprm->filename = ee->program_path;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)

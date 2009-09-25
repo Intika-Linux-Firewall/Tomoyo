@@ -1987,3 +1987,11 @@ Fix 2009/07/03
       bytes while the comment says it is 4096 bytes. This may lead to buffer
       overrun when slob allocator is used, for slob allocator allocates exactly
       4000 bytes whereas slab and slub allocators allocate 4096 bytes.
+
+Fix 2009/09/25
+
+    @ Fix incorrect reference after ccs_try_alt_exec().
+
+      Since 1.6.0 , I forgot to update dentry/vfsmount reference inside
+      ccs_try_alt_exec(). But this bug did not come out because nobody used
+      old dentry/vfsmount after ccs_try_alt_exec().
