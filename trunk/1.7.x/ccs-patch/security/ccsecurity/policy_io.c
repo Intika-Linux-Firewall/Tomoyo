@@ -21,6 +21,8 @@ static struct ccs_profile ccs_default_profile = {
 	.preference.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.preference.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
 #endif
+	.preference.audit_task_info = true,
+	.preference.audit_path_info = true,
 	.preference.enforcing_penalty = 0,
 	.preference.enforcing_verbose = true,
 	.preference.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
@@ -370,6 +372,14 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		if (cp2)
 			sscanf(cp2 + 15, "%u",
 			       &profile->preference.audit_max_reject_log);
+		if (strstr(cp, "task_info=yes"))
+			profile->preference.audit_task_info = true;
+		else if (strstr(cp, "task_info=no"))
+			profile->preference.audit_task_info = false;
+		if (strstr(cp, "path_info=yes"))
+			profile->preference.audit_path_info = true;
+		else if (strstr(cp, "path_info=no"))
+			profile->preference.audit_path_info = false;
 		return 0;
 	}
 #endif
@@ -503,9 +513,13 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
 #ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
-		      "max_reject_log=%u }\n",
+		      "max_reject_log=%u task_info=%s path_info=%s }\n",
 		      ccs_default_profile.preference.audit_max_grant_log,
-		      ccs_default_profile.preference.audit_max_reject_log);
+		      ccs_default_profile.preference.audit_max_reject_log,
+		      ccs_yesno(ccs_default_profile.preference.
+				audit_task_info),
+		      ccs_yesno(ccs_default_profile.preference.
+				audit_path_info));
 #endif
 	ccs_io_printf(head, "PREFERENCE::learning={ verbose=%s max_entry=%u "
 		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
@@ -587,10 +601,14 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 #ifdef CONFIG_CCSECURITY_AUDIT
 		if (profile->audit != &ccs_default_profile.preference &&
 		    !ccs_io_printf(head, "%u-PREFERENCE::audit={ "
-				   "max_grant_log=%u max_reject_log=%u }\n",
-				   index,
+				   "max_grant_log=%u max_reject_log=%u "
+				   "task_info=%s path_info=%s }\n", index,
 				   profile->preference.audit_max_grant_log,
-				   profile->preference.audit_max_reject_log))
+				   profile->preference.audit_max_reject_log,
+				   ccs_yesno(profile->preference.
+					     audit_task_info),
+				   ccs_yesno(profile->preference.
+					     audit_path_info)))
 			goto out;
 #endif
 		if (profile->learning != &ccs_default_profile.preference &&

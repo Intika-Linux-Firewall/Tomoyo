@@ -910,6 +910,9 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	struct task_struct *task = current;
 
 	/* Close the requested program's dentry. */
+	ee->obj.path1.dentry = NULL;
+	ee->obj.path1.mnt = NULL;
+	ee->obj.validate_done = false;
 	allow_write_access(bprm->file);
 	fput(bprm->file);
 	bprm->file = NULL;
@@ -1036,6 +1039,8 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 		retval = PTR_ERR(filp);
 		goto out;
 	}
+	ee->obj.path1.dentry = filp->f_dentry;
+	ee->obj.path1.mnt = filp->f_vfsmnt;
 	bprm->file = filp;
 	bprm->filename = ee->handler_path;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)

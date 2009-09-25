@@ -2144,3 +2144,26 @@ Fix 2009/09/24
       Thus, I moved ccs_capable() checks from ccs_setattr_permission() to
       ccs_chmod_permission() and ccs_chown_permission(), and removed
       ccs_setattr_permission().
+
+Fix 2009/09/25
+
+    @ Embed more information into audit logs.
+
+      Until now, /proc/ccs/grant_log /proc/ccs/reject_log /proc/ccs/query were
+      not printing file's information (e.g. file's uid/gid/mode).
+
+      Recently, users who started using "if" clause expect that the learning
+      mode automatically adds various conditions like "if task.uid=path1.uid".
+
+      But the profile will become too complicated if I support all possible
+      conditions. Thus, I added all information which is enough to generate
+      "if" clause with all possible conditions from audit logs.
+
+      Now, the learning mode got different usage. Users can specify
+      "CONFIG::learning={ max_entry=0 }" in the profile. All requests which
+      are not permitted by policy will be sent to /proc/ccs/reject_log with
+      "mode=learning" header lines. Users can selectively append conditions
+      and append to the policy using "/usr/sbin/ccs-loadpolicy -d".
+      The learning mode with "CONFIG::learning={ max_entry=0 }" is almost
+      the same with the permissive mode, only difference is "mode=learning"
+      and "mode=permissive".

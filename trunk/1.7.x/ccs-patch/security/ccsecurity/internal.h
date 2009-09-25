@@ -830,6 +830,8 @@ struct ccs_preference {
 #endif
 	unsigned int learning_max_entry;
 	unsigned int enforcing_penalty;
+	bool audit_task_info;
+	bool audit_path_info;
 	bool enforcing_verbose;
 	bool learning_verbose;
 	bool learning_exec_realpath;
@@ -988,6 +990,7 @@ struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
 void ccs_check_profile(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
+void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
 void ccs_normalize_line(unsigned char *buffer);
