@@ -806,10 +806,13 @@ struct ccs_condition *ccs_get_condition(char * const condition)
  * Returns nothing.
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static void ccs_get_attributes(struct ccs_obj_info *obj)
+void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	struct dentry *dentry;
 	struct inode *inode;
+
+	if (!obj->path1.mnt)
+		goto no_path1;
 
 	/* Get information on "path1". */
 	dentry = obj->path1.dentry;
@@ -850,6 +853,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 	dput(dentry);
 
+ no_path1:
 	if (!obj->path2.mnt)
 		return;
 
@@ -893,12 +897,15 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	dput(dentry);
 }
 #else
-static void ccs_get_attributes(struct ccs_obj_info *obj)
+void ccs_get_attributes(struct ccs_obj_info *obj)
 {
 	struct vfsmount *mnt;
 	struct dentry *dentry;
 	struct inode *inode;
 	struct kstat stat;
+
+	if (!obj->path1.mnt)
+		goto no_path1;
 
 	/* Get information on "path1". */
 	mnt = obj->path1.mnt;
@@ -936,6 +943,7 @@ static void ccs_get_attributes(struct ccs_obj_info *obj)
 	}
 	dput(dentry);
 
+ no_path1:
 	mnt = obj->path2.mnt;
 	if (!mnt)
 		return;
