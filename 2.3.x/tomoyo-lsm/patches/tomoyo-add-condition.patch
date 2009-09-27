@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/condition.c | 1328 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1328 insertions(+)
+ security/tomoyo/condition.c | 1332 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1332 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/condition.c
-@@ -0,0 +1,1328 @@
+@@ -0,0 +1,1332 @@
 +/*
 + * security/tomoyo/condition.c
 + *
@@ -805,12 +805,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + * Returns nothing.
 + */
-+static void tomoyo_get_attributes(struct tomoyo_obj_info *obj)
++void tomoyo_get_attributes(struct tomoyo_obj_info *obj)
 +{
 +	struct vfsmount *mnt;
 +	struct dentry *dentry;
 +	struct inode *inode;
 +	struct kstat stat;
++
++	if (!obj->path1.mnt)
++		goto no_path1;
 +
 +	/* Get information on "path1". */
 +	mnt = obj->path1.mnt;
@@ -848,6 +851,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	dput(dentry);
 +
++ no_path1:
 +	mnt = obj->path2.mnt;
 +	if (!mnt)
 +		return;

@@ -5,12 +5,12 @@ TOMOYO generates audit logs in the form of domain policy.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/audit.c |  432 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 432 insertions(+)
+ security/tomoyo/audit.c |  561 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 561 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/audit.c
-@@ -0,0 +1,432 @@
+@@ -0,0 +1,561 @@
 +/*
 + * security/tomoyo/audit.c
 + *
@@ -41,8 +41,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool truncated = false;
 +	if (!buffer)
 +		return NULL;
-+	len = snprintf(buffer, tomoyo_buffer_len - 1,
-+		       "argc=%d envc=%d argv[]={ ", argv_count, envp_count);
++	len = snprintf(buffer, tomoyo_buffer_len - 1, "argv[]={ ");
 +	cp = buffer + len;
 +	if (!argv_count) {
 +		memmove(cp, "} envp[]={ ", 11);
@@ -110,9 +109,148 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return buffer;
 + out:
 +	snprintf(buffer, tomoyo_buffer_len - 1,
-+		 "argc=%d envc=%d argv[]={ ... } envp[]= { ... }",
-+		 argv_count, envp_count);
++		 "argv[]={ ... } envp[]= { ... }");
 +	return buffer;
++}
++
++/**
++ * tomoyo_filetype - Get string representation of file type.
++ *
++ * @mode: Mode value for stat().
++ *
++ * Returns header line on success, NULL otherwise.
++ */
++static const char *tomoyo_filetype(const mode_t mode)
++{
++	switch (mode & S_IFMT) {
++	case S_IFREG:
++	case 0:
++		return "file";
++	case S_IFDIR:
++		return "directory";
++	case S_IFLNK:
++		return "symlink";
++	case S_IFIFO:
++		return "fifo";
++	case S_IFSOCK:
++		return "socket";
++	case S_IFBLK:
++		return "block";
++	case S_IFCHR:
++		return "char";
++	}
++	return "unknown"; /* This should not happen. */
++}
++
++/**
++ * tomoyo_print_header - Get header line of audit log.
++ *
++ * @r: Pointer to "struct tomoyo_request_info".
++ *
++ * Returns string representation.
++ */
++static char *tomoyo_print_header(struct tomoyo_request_info *r)
++{
++	static const char *tomoyo_mode_4[4] = {
++		"disabled", "learning", "permissive", "enforcing"
++	};
++	struct timeval tv;
++	unsigned int dev;
++	mode_t mode;
++	struct tomoyo_obj_info *obj = r->obj;
++	const u32 tomoyo_flags = current->tomoyo_flags;
++	static const int tomoyo_buffer_len = 4096;
++	char *buffer = kmalloc(tomoyo_buffer_len, GFP_KERNEL);
++	int pos;
++	if (!buffer)
++		return NULL;
++	do_gettimeofday(&tv);
++	pos = snprintf(buffer, tomoyo_buffer_len - 1,
++		       "#timestamp=%lu profile=%u mode=%s "
++		       "(global-pid=%u)", tv.tv_sec, r->profile,
++		       tomoyo_mode_4[r->mode], task_pid_nr(current));
++	if (tomoyo_profile(r->profile)->audit->audit_task_info) {
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
++				" egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
++				" state[0]=%u state[1]=%u state[2]=%u"
++				" type%s=execute_handler }",
++				(pid_t) sys_getpid(), (pid_t) sys_getppid(),
++				current_uid(), current_gid(), current_euid(),
++				current_egid(), current_suid(), current_sgid(),
++				current_fsuid(), current_fsgid(),
++				(u8) (tomoyo_flags >> 24),
++				(u8) (tomoyo_flags >> 16),
++				(u8) (tomoyo_flags >> 8), tomoyo_flags &
++				TOMOYO_TASK_IS_EXECUTE_HANDLER ? "" : "!");
++	}
++	if (!obj || !tomoyo_profile(r->profile)->audit->audit_path_info)
++		goto no_obj_info;
++	if (!obj->validate_done) {
++		tomoyo_get_attributes(obj);
++		obj->validate_done = true;
++	}
++	if (obj->path1_valid) {
++		dev = obj->path1_stat.dev;
++		mode = obj->path1_stat.mode;
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" path1={ uid=%u gid=%u ino=%lu major=%u"
++				" minor=%u perm=0%o type=%s",
++				obj->path1_stat.uid, obj->path1_stat.gid,
++				(unsigned long) obj->path1_stat.ino,
++				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
++				tomoyo_filetype(mode & S_IFMT));
++		if (S_ISCHR(mode) || S_ISBLK(mode)) {
++			dev = obj->path1_stat.rdev;
++			pos += snprintf(buffer + pos,
++					tomoyo_buffer_len - 1 - pos,
++					" dev_major=%u dev_minor=%u",
++					MAJOR(dev), MINOR(dev));
++		}
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" }");
++	}
++	if (obj->path1_parent_valid) {
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" path1.parent={ uid=%u gid=%u ino=%lu"
++				" perm=0%o }", obj->path1_parent_stat.uid,
++				obj->path1_parent_stat.gid,
++				obj->path1_parent_stat.ino,
++				obj->path1_parent_stat.mode & S_IALLUGO);
++	}
++	if (obj->path2_valid) {
++		dev = obj->path2_stat.dev;
++		mode = obj->path2_stat.mode;
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" path2={ uid=%u gid=%u ino=%lu major=%u"
++				" minor=%u perm=0%o type=%s",
++				obj->path2_stat.uid, obj->path2_stat.gid,
++				(unsigned long) obj->path2_stat.ino,
++				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
++				tomoyo_filetype(mode & S_IFMT));
++		if (S_ISCHR(mode) || S_ISBLK(mode)) {
++			dev = obj->path2_stat.rdev;
++			pos += snprintf(buffer + pos,
++					tomoyo_buffer_len - 1 - pos,
++					" dev_major=%u dev_minor=%u",
++					MAJOR(dev), MINOR(dev));
++		}
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" }");
++	}
++	if (obj->path2_parent_valid) {
++		pos += snprintf(buffer + pos, tomoyo_buffer_len - 1 - pos,
++				" path2.parent={ uid=%u gid=%u ino=%lu"
++				" perm=0%o }", obj->path2_parent_stat.uid,
++				obj->path2_parent_stat.gid,
++				obj->path2_parent_stat.ino,
++				obj->path2_parent_stat.mode & S_IALLUGO);
++	}
++ no_obj_info:
++	if (pos < tomoyo_buffer_len - 1)
++		return buffer;
++	kfree(buffer);
++	return NULL;
 +}
 +
 +/**
@@ -127,29 +265,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + */
 +char *tomoyo_init_audit_log(int *len, struct tomoyo_request_info *r)
 +{
-+	static const char *tomoyo_mode_4[4] = {
-+		"disabled", "learning", "permissive", "enforcing"
-+	};
 +	char *buf = NULL;
 +	char *bprm_info = NULL;
 +	char *realpath = NULL;
 +	const char *symlink = NULL;
++	const char *header = NULL;
 +	int pos;
-+	struct timeval tv;
-+	u32 tomoyo_flags = current->tomoyo_flags;
 +	const char *domainname;
 +	if (!r->domain)
 +		r->domain = tomoyo_current_domain();
 +	domainname = r->domain->domainname->name;
-+	do_gettimeofday(&tv);
-+	*len += strlen(domainname) + 300;
++	header = tomoyo_print_header(r);
++	if (!header)
++		return NULL;
++	*len += strlen(domainname) + strlen(header) + 10;
 +	if (r->ee) {
 +		struct file *file = r->ee->bprm->file;
 +		realpath = tomoyo_realpath_from_path(&file->f_path);
 +		bprm_info = tomoyo_print_bprm(r->ee->bprm, &r->ee->dump);
 +		if (!realpath || !bprm_info)
 +			goto out;
-+		*len += strlen(realpath) + 14 + strlen(bprm_info);
++		*len += strlen(realpath) + 64 + strlen(bprm_info);
 +	} else if (r->obj && r->obj->symlink_target) {
 +		symlink = r->obj->symlink_target->name;
 +		*len += 18 + strlen(symlink);
@@ -157,27 +293,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	buf = kzalloc(*len, GFP_KERNEL);
 +	if (!buf)
 +		goto out;
-+	pos = snprintf(buf, (*len) - 1,
-+		       "#timestamp=%lu profile=%u mode=%s pid=%d uid=%d "
-+		       "gid=%d euid=%d egid=%d suid=%d sgid=%d fsuid=%d "
-+		       "fsgid=%d state[0]=%u state[1]=%u state[2]=%u",
-+		       tv.tv_sec, r->profile, tomoyo_mode_4[r->mode],
-+		       (pid_t) sys_getpid(), current_uid(), current_gid(),
-+		       current_euid(), current_egid(), current_suid(),
-+		       current_sgid(), current_fsuid(), current_fsgid(),
-+		       (u8) (tomoyo_flags >> 24), (u8) (tomoyo_flags >> 16),
-+		       (u8) (tomoyo_flags >> 8));
-+	if (realpath)
++	pos = snprintf(buf, (*len) - 1, "%s", header);
++	if (realpath) {
++		struct linux_binprm *bprm = r->ee->bprm;
 +		pos += snprintf(buf + pos, (*len) - 1 - pos,
-+				" realpath=\"%s\" %s", realpath, bprm_info);
-+	else if (symlink)
++				" exec={ realpath=\"%s\" argc=%d envc=%d %s }",
++				realpath, bprm->argc, bprm->envc, bprm_info);
++	} else if (symlink)
 +		pos += snprintf(buf + pos, (*len) - 1 - pos,
 +				" symlink.target=\"%s\"", symlink);
-+	snprintf(buf + pos, (*len) - 1 - pos, " (global-pid=%d)\n%s\n",
-+		 task_pid_nr(current), domainname);
++	snprintf(buf + pos, (*len) - 1 - pos, "\n%s\n", domainname);
 + out:
 +	kfree(realpath);
 +	kfree(bprm_info);
++	kfree(header);
 +	return buf;
 +}
 +

@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1238 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1238 insertions(+)
+ security/tomoyo/new-domain.c | 1243 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1243 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/new-domain.c
-@@ -0,0 +1,1238 @@
+@@ -0,0 +1,1243 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -908,6 +908,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct task_struct *task = current;
 +
 +	/* Close the requested program's dentry. */
++	ee->obj.path1.dentry = NULL;
++	ee->obj.path1.mnt = NULL;
++	ee->obj.validate_done = false;
 +	allow_write_access(bprm->file);
 +	fput(bprm->file);
 +	bprm->file = NULL;
@@ -1034,6 +1037,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		retval = PTR_ERR(filp);
 +		goto out;
 +	}
++	ee->obj.path1.dentry = filp->f_dentry;
++	ee->obj.path1.mnt = filp->f_vfsmnt;
 +	bprm->file = filp;
 +	bprm->filename = ee->handler_path;
 +	bprm->interp = bprm->filename;
