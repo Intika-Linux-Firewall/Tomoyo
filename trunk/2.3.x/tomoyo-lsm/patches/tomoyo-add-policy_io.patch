@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2791 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2791 insertions(+)
+ security/tomoyo/policy_io.c | 2793 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2793 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/policy_io.c
-@@ -0,0 +1,2791 @@
+@@ -0,0 +1,2793 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -112,6 +112,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	= "network::inet_tcp_listen",
 +	[TOMOYO_MAC_NETWORK_TCP_CONNECT]
 +	= "network::inet_tcp_connect",
++	[TOMOYO_MAC_NETWORK_TCP_ACCEPT]
++	= "network::inet_tcp_accept",
 +	[TOMOYO_MAC_NETWORK_RAW_BIND]
 +	= "network::inet_raw_bind",
 +	[TOMOYO_MAC_NETWORK_RAW_CONNECT]
