@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/network.c |  690 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 690 insertions(+)
+ security/tomoyo/network.c |  758 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 758 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/network.c
-@@ -0,0 +1,690 @@
+@@ -0,0 +1,758 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -131,6 +131,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		break;
 +	case TOMOYO_NETWORK_TCP_CONNECT:
 +		keyword = "TCP connect";
++		break;
++	case TOMOYO_NETWORK_TCP_ACCEPT:
++		keyword = "TCP accept";
 +		break;
 +	case TOMOYO_NETWORK_RAW_BIND:
 +		keyword = "RAW bind";
@@ -307,6 +310,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
 +		e.perm = 1 << TOMOYO_NETWORK_TCP_LISTEN;
++	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
++		e.perm = 1 << TOMOYO_NETWORK_TCP_ACCEPT;
 +	else
 +		return -EINVAL;
 +	switch (tomoyo_parse_ip_address(w[2], min_address, max_address)) {
@@ -452,6 +457,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	return tomoyo_network_entry(is_ipv6, operation,
 +				    (const u32 *) address, ntohs(port));
++}
++
++/**
++ * tomoyo_network_accept_acl - Check permission for accept() operation.
++ *
++ * @is_ipv6: True if @address is an IPv6 address.
++ * @address: An IPv4 or IPv6 address.
++ * @port:    Port number.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static inline int tomoyo_network_accept_acl(const bool is_ipv6,
++					    const u8 *address, const u16 port)
++{
++	int retval;
++	current->tomoyo_flags |= TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
++	retval = tomoyo_network_entry(is_ipv6, TOMOYO_NETWORK_TCP_ACCEPT,
++				      (const u32 *) address, ntohs(port));
++	current->tomoyo_flags &= ~TOMOYO_DONT_SLEEP_ON_ENFORCE_ERROR;
++	return retval;
 +}
 +
 +/**
@@ -651,6 +676,49 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			port = htons(sock->sk->sk_protocol);
 +		error = tomoyo_network_bind_acl(false, type,
 +						(u8 *) &addr4->sin_addr, port);
++		break;
++	}
++	return error;
++}
++
++/*
++ * Check permission for accepting a TCP socket.
++ *
++ * This hook is called by socket calls after accept().
++ */
++int tomoyo_socket_accept_permission(struct socket *sock)
++{
++	int error = 0;
++	int addr_len;
++	struct sockaddr_storage addr;
++	/* Nothing to do if I am a kernel service. */
++	if (segment_eq(get_fs(), KERNEL_DS))
++		return 0;
++	switch (sock->sk->sk_family) {
++	case PF_INET:
++	case PF_INET6:
++		break;
++	default:
++		return 0;
++	}
++	error = sock->ops->getname(sock, (struct sockaddr *) &addr, &addr_len,
++				   2);
++	if (error)
++		return error;
++	switch (((struct sockaddr *) &addr)->sa_family) {
++		struct sockaddr_in6 *addr6;
++		struct sockaddr_in *addr4;
++	case AF_INET6:
++		addr6 = (struct sockaddr_in6 *) &addr;
++		error = tomoyo_network_accept_acl(true,
++						  addr6->sin6_addr.s6_addr,
++						  addr6->sin6_port);
++		break;
++	case AF_INET:
++		addr4 = (struct sockaddr_in *) &addr;
++		error = tomoyo_network_accept_acl(false,
++						  (u8 *) &addr4->sin_addr,
++						  addr4->sin_port);
 +		break;
 +	}
 +	return error;

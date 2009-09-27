@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1168 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1168 insertions(+)
+ security/tomoyo/internal.h | 1172 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1172 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1168 @@
+@@ -0,0 +1,1172 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -147,6 +147,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_NETWORK_TCP_LISTEN,
 +	/* TCP's connect() operation. */
 +	TOMOYO_NETWORK_TCP_CONNECT,
++	/* TCP's accept() operation. */
++	TOMOYO_NETWORK_TCP_ACCEPT,
 +	/* IP's bind() operation. */
 +	TOMOYO_NETWORK_RAW_BIND,
 +	/* IP's connect()/send()/recv() operation. */
@@ -206,6 +208,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_MAC_NETWORK_TCP_BIND,
 +	TOMOYO_MAC_NETWORK_TCP_LISTEN,
 +	TOMOYO_MAC_NETWORK_TCP_CONNECT,
++	TOMOYO_MAC_NETWORK_TCP_ACCEPT,
 +	TOMOYO_MAC_NETWORK_RAW_BIND,
 +	TOMOYO_MAC_NETWORK_RAW_CONNECT,
 +	TOMOYO_MAC_ENVIRON,
@@ -1076,6 +1079,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				     struct sockaddr *addr, int addr_len);
 +int tomoyo_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 +				  int addr_len);
++int tomoyo_socket_accept_permission(struct socket *sock);
 +int tomoyo_socket_sendmsg_permission(struct socket *sock,
 +				     struct sockaddr *addr, int addr_len);
 +int tomoyo_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
