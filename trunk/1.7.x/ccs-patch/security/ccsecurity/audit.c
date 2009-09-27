@@ -204,7 +204,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 					" dev_major=%u dev_minor=%u",
 					MAJOR(dev), MINOR(dev));
 		}
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,	" }");
+		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos, " }");
 	}
 	if (obj->path1_parent_valid) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
@@ -230,7 +230,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 					" dev_major=%u dev_minor=%u",
 					MAJOR(dev), MINOR(dev));
 		}
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,	" }");
+		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos, " }");
 	}
 	if (obj->path2_parent_valid) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
@@ -263,7 +263,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	char *bprm_info = NULL;
 	char *realpath = NULL;
 	const char *symlink = NULL;
-	const char *header = NULL; 
+	const char *header = NULL;
 	int pos;
 	const char *domainname;
 	if (!r->domain)

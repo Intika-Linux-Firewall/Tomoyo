@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1165 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1165 insertions(+)
+ security/tomoyo/internal.h | 1168 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1168 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1165 @@
+@@ -0,0 +1,1168 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -851,6 +851,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#endif
 +	unsigned int learning_max_entry;
 +	unsigned int enforcing_penalty;
++	bool audit_task_info;
++	bool audit_path_info;
 +	bool enforcing_verbose;
 +	bool learning_verbose;
 +	bool learning_exec_realpath;
@@ -1011,6 +1013,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +u8 tomoyo_parse_ulong(unsigned long *result, char **str);
 +void tomoyo_check_profile(void);
 +void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
++void tomoyo_get_attributes(struct tomoyo_obj_info *obj);
 +void tomoyo_load_policy(const char *filename);
 +void tomoyo_memory_free(const void *ptr, size_t size);
 +void tomoyo_normalize_line(unsigned char *buffer);
