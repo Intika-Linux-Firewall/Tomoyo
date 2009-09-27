@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  517 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 517 insertions(+)
+ security/tomoyo/lsm.c |  512 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 512 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,517 @@
+@@ -0,0 +1,512 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -275,22 +275,23 @@
 +#define TOMOYO_SOCKET_NOT_YET_AUTHENTICATED (void *) 0xFee1Dead
 +#define TOMOYO_SOCKET_NOT_YET_ABORTED       (void *) 0xDeadBeef
 +
-+static inline bool tomoyo_kern_sock(struct sock *sock)
++static inline bool tomoyo_kern_sock(struct socket *sock)
 +{
-+	return sock->sk_security == TOMOYO_SOCKET_KERNEL_SOCKET;
++	return SOCK_INODE(sock)->i_security == TOMOYO_SOCKET_KERNEL_SOCKET;
 +}
 +
 +static int tomoyo_dead_sock(struct socket *sock)
 +{
-+	if (!sock || !sock->sk || !sock->sk->sk_security)
++	if (!sock || !SOCK_INODE(sock) || !SOCK_INODE(sock)->i_security)
 +		return 0;
-+	if (sock->sk->sk_security == TOMOYO_SOCKET_NOT_YET_AUTHENTICATED) {
++	if (SOCK_INODE(sock)->i_security ==
++	    TOMOYO_SOCKET_NOT_YET_AUTHENTICATED) {
 +		/*
 +		 * This socket is an accept()ed socket, but not yet
 +		 * authenticated. Check permission for accept() now.
 +		 */
 +		if (tomoyo_socket_accept_permission(sock) == 0) {
-+			sock->sk->sk_security = NULL;
++			SOCK_INODE(sock)->i_security = NULL;
 +			return 0;
 +		}
 +		/*
@@ -299,7 +300,7 @@
 +		 * socket immediately, I mark special tag so that I can give
 +		 * sleep() penalty for subsequent socket calls.
 +		 */
-+		sock->sk->sk_security = TOMOYO_SOCKET_NOT_YET_ABORTED;
++		SOCK_INODE(sock)->i_security = TOMOYO_SOCKET_NOT_YET_ABORTED;
 +	} else {
 +		/*
 +		 * Give sleep() penalty.
@@ -318,31 +319,31 @@
 +				     int protocol, int kern)
 +{
 +	if (kern)
-+		sock->sk->sk_security = TOMOYO_SOCKET_KERNEL_SOCKET;
++		SOCK_INODE(sock)->i_security = TOMOYO_SOCKET_KERNEL_SOCKET;
 +	return 0;
 +}
 +
 +static int tomoyo_socket_accept(struct socket *sock, struct socket *newsock)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
 +	/* Check permission for accept() later. */
-+	newsock->sk->sk_security = TOMOYO_SOCKET_NOT_YET_AUTHENTICATED;
++	SOCK_INODE(newsock)->i_security = TOMOYO_SOCKET_NOT_YET_AUTHENTICATED;
 +	return 0;
 +}
 +
 +static int tomoyo_socket_getsockname(struct socket *sock)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	return tomoyo_dead_sock(sock);
 +}
 +
 +static int tomoyo_socket_getpeername(struct socket *sock)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	return tomoyo_dead_sock(sock);
 +}
@@ -350,27 +351,22 @@
 +static int tomoyo_socket_getsockopt(struct socket *sock, int level,
 +				    int optname)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	return tomoyo_dead_sock(sock);
 +}
 +
 +static int tomoyo_socket_setsockopt(struct socket *sock, int level, int optname)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	return tomoyo_dead_sock(sock);
-+}
-+
-+static void tomoyo_sk_clone_security(const struct sock *sk, struct sock *newsk)
-+{
-+	newsk->sk_security = sk->sk_security;
 +}
 +
 +static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
 +			      int addrlen)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
@@ -380,7 +376,7 @@
 +static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
 +				 int addrlen)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
@@ -389,7 +385,7 @@
 +
 +static int tomoyo_socket_listen(struct socket *sock, int backlog)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
@@ -399,7 +395,7 @@
 +static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
 +				 int size)
 +{
-+	if (tomoyo_kern_sock(sock->sk))
++	if (tomoyo_kern_sock(sock))
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
@@ -505,7 +501,6 @@
 +	.socket_getpeername    = tomoyo_socket_getpeername,
 +	.socket_getsockopt     = tomoyo_socket_getsockopt,
 +	.socket_setsockopt     = tomoyo_socket_setsockopt,
-+	.sk_clone_security     = tomoyo_sk_clone_security,
 +};
 +
 +__initdata bool tomoyo_registered;
