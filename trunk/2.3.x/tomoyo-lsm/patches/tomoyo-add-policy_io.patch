@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2793 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2793 insertions(+)
+ security/tomoyo/policy_io.c | 2798 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2798 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.31/security/tomoyo/policy_io.c
-@@ -0,0 +1,2793 @@
++++ linux-2.6.32-rc1/security/tomoyo/policy_io.c
+@@ -0,0 +1,2798 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -20,8 +20,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.learning = &tomoyo_default_profile.preference,
 +	.permissive = &tomoyo_default_profile.preference,
 +	.enforcing = &tomoyo_default_profile.preference,
-+#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	.audit = &tomoyo_default_profile.preference,
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	.preference.audit_max_grant_log = CONFIG_SECURITY_TOMOYO_MAX_GRANT_LOG,
 +	.preference.audit_max_reject_log
 +	= CONFIG_SECURITY_TOMOYO_MAX_REJECT_LOG,
@@ -248,9 +248,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	ptr = tomoyo_profile_ptr[profile];
 +	if (!ptr && tomoyo_memory_ok(entry, sizeof(*entry))) {
 +		ptr = entry;
-+#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		ptr->audit = &tomoyo_default_profile.preference;
-+#endif
 +		ptr->learning = &tomoyo_default_profile.preference;
 +		ptr->permissive = &tomoyo_default_profile.preference;
 +		ptr->enforcing = &tomoyo_default_profile.preference;
@@ -340,14 +338,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		value = 0;
 +	else
 +		value = -1;
-+#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	if (!strcmp(data, "PREFERENCE::audit")) {
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		char *cp2;
++#endif
 +		if (use_default) {
 +			profile->audit = &tomoyo_default_profile.preference;
 +			return 0;
 +		}
 +		profile->audit = &profile->preference;
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		cp2 = strstr(cp, "max_grant_log=");
 +		if (cp2)
 +			sscanf(cp2 + 14, "%u",
@@ -356,6 +356,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		if (cp2)
 +			sscanf(cp2 + 15, "%u",
 +			       &profile->preference.audit_max_reject_log);
++#endif
 +		if (strstr(cp, "task_info=yes"))
 +			profile->preference.audit_task_info = true;
 +		else if (strstr(cp, "task_info=no"))
@@ -366,7 +367,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			profile->preference.audit_path_info = false;
 +		return 0;
 +	}
-+#endif
 +	if (!strcmp(data, "PREFERENCE::enforcing")) {
 +		char *cp2;
 +		if (use_default) {
@@ -499,17 +499,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (head->read_bit)
 +		goto body;
 +	tomoyo_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
++	tomoyo_io_printf(head, "PREFERENCE::audit={ "
 +#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
-+	tomoyo_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
-+			 "max_reject_log=%u task_info=%s path_info=%s }\n",
++			 "max_grant_log=%u max_reject_log=%u "
++#endif
++			 "task_info=%s path_info=%s }\n",
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +			 tomoyo_default_profile.preference.audit_max_grant_log,
 +			 tomoyo_default_profile.preference.
 +			 audit_max_reject_log,
++#endif
 +			 tomoyo_yesno(tomoyo_default_profile.preference.
 +				      audit_task_info),
 +			 tomoyo_yesno(tomoyo_default_profile.preference.
 +				      audit_path_info));
-+#endif
 +	tomoyo_io_printf(head, "PREFERENCE::learning={ verbose=%s "
 +			 "max_entry=%u exec.realpath=%s exec.argv0=%s "
 +			 "symlink.target=%s }\n",
@@ -593,19 +596,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				goto out;
 +#endif
 +		}
-+#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +		if (profile->audit != &tomoyo_default_profile.preference &&
 +		    !tomoyo_io_printf(head, "%u-PREFERENCE::audit={ "
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +				      "max_grant_log=%u max_reject_log=%u "
++#endif
 +				      "task_info=%s path_info=%s }\n", index,
++#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +				      profile->preference.audit_max_grant_log,
 +				      profile->preference.audit_max_reject_log,
++#endif
 +				      tomoyo_yesno(profile->preference.
 +						   audit_task_info),
 +				      tomoyo_yesno(profile->preference.
 +						   audit_path_info)))
 +			goto out;
-+#endif
 +		if (profile->learning != &tomoyo_default_profile.preference &&
 +		    !tomoyo_io_printf(head, "%u-PREFERENCE::learning={ "
 +				      "verbose=%s max_entry=%u "

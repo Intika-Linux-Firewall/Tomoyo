@@ -16,8 +16,8 @@ static struct ccs_profile ccs_default_profile = {
 	.learning = &ccs_default_profile.preference,
 	.permissive = &ccs_default_profile.preference,
 	.enforcing = &ccs_default_profile.preference,
-#ifdef CONFIG_CCSECURITY_AUDIT
 	.audit = &ccs_default_profile.preference,
+#ifdef CONFIG_CCSECURITY_AUDIT
 	.preference.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.preference.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
 #endif
@@ -265,9 +265,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
-#ifdef CONFIG_CCSECURITY_AUDIT
 		ptr->audit = &ccs_default_profile.preference;
-#endif
 		ptr->learning = &ccs_default_profile.preference;
 		ptr->permissive = &ccs_default_profile.preference;
 		ptr->enforcing = &ccs_default_profile.preference;
@@ -356,14 +354,16 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		value = 0;
 	else
 		value = -1;
-#ifdef CONFIG_CCSECURITY_AUDIT
 	if (!strcmp(data, "PREFERENCE::audit")) {
+#ifdef CONFIG_CCSECURITY_AUDIT
 		char *cp2;
+#endif
 		if (use_default) {
 			profile->audit = &ccs_default_profile.preference;
 			return 0;
 		}
 		profile->audit = &profile->preference;
+#ifdef CONFIG_CCSECURITY_AUDIT
 		cp2 = strstr(cp, "max_grant_log=");
 		if (cp2)
 			sscanf(cp2 + 14, "%u",
@@ -372,6 +372,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		if (cp2)
 			sscanf(cp2 + 15, "%u",
 			       &profile->preference.audit_max_reject_log);
+#endif
 		if (strstr(cp, "task_info=yes"))
 			profile->preference.audit_task_info = true;
 		else if (strstr(cp, "task_info=no"))
@@ -382,7 +383,6 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			profile->preference.audit_path_info = false;
 		return 0;
 	}
-#endif
 	if (!strcmp(data, "PREFERENCE::enforcing")) {
 		char *cp2;
 		if (use_default) {
@@ -511,16 +511,19 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	if (head->read_bit)
 		goto body;
 	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
+	ccs_io_printf(head, "PREFERENCE::audit={ "
 #ifdef CONFIG_CCSECURITY_AUDIT
-	ccs_io_printf(head, "PREFERENCE::audit={ max_grant_log=%u "
-		      "max_reject_log=%u task_info=%s path_info=%s }\n",
+		      "max_grant_log=%u max_reject_log=%u "
+#endif
+		      "task_info=%s path_info=%s }\n",
+#ifdef CONFIG_CCSECURITY_AUDIT
 		      ccs_default_profile.preference.audit_max_grant_log,
 		      ccs_default_profile.preference.audit_max_reject_log,
+#endif
 		      ccs_yesno(ccs_default_profile.preference.
 				audit_task_info),
 		      ccs_yesno(ccs_default_profile.preference.
 				audit_path_info));
-#endif
 	ccs_io_printf(head, "PREFERENCE::learning={ verbose=%s max_entry=%u "
 		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
 		      ccs_yesno(ccs_default_profile.preference.
@@ -598,19 +601,21 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 				goto out;
 #endif
 		}
-#ifdef CONFIG_CCSECURITY_AUDIT
 		if (profile->audit != &ccs_default_profile.preference &&
 		    !ccs_io_printf(head, "%u-PREFERENCE::audit={ "
+#ifdef CONFIG_CCSECURITY_AUDIT
 				   "max_grant_log=%u max_reject_log=%u "
+#endif
 				   "task_info=%s path_info=%s }\n", index,
+#ifdef CONFIG_CCSECURITY_AUDIT
 				   profile->preference.audit_max_grant_log,
 				   profile->preference.audit_max_reject_log,
+#endif
 				   ccs_yesno(profile->preference.
 					     audit_task_info),
 				   ccs_yesno(profile->preference.
 					     audit_path_info)))
 			goto out;
-#endif
 		if (profile->learning != &ccs_default_profile.preference &&
 		    !ccs_io_printf(head, "%u-PREFERENCE::learning={ "
 				   "verbose=%s max_entry=%u exec.realpath=%s "

@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  512 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 512 insertions(+)
+ security/tomoyo/lsm.c |  484 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 484 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.31/security/tomoyo/lsm.c
-@@ -0,0 +1,512 @@
++++ linux-2.6.32-rc1/security/tomoyo/lsm.c
+@@ -0,0 +1,484 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -14,6 +14,7 @@
 + */
 +#include "internal.h"
 +#include <linux/socket.h>
++#include <net/sock.h>
 +
 +static int tomoyo_cred_alloc_blank(struct cred *new, gfp_t gfp)
 +{
@@ -269,10 +270,30 @@
 +				      f->f_flags + 1);
 +}
 +
-+#include <net/sock.h>
++static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
++			     unsigned long arg)
++{
++	return tomoyo_ioctl_permission(file, cmd, arg);
++}
++
++static int tomoyo_sb_mount(char *dev_name, struct path *path,
++			   char *type, unsigned long flags, void *data)
++{
++	return tomoyo_mount_permission(dev_name, path, type, flags);
++}
++
++static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
++{
++	return tomoyo_umount_permission(mnt);
++}
++
++static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
++{
++	return tomoyo_pivot_root_permission(old_path, new_path);
++}
 +
 +#define TOMOYO_SOCKET_KERNEL_SOCKET         (void *) 0xFFFFFFFF
-+#define TOMOYO_SOCKET_NOT_YET_AUTHENTICATED (void *) 0xFee1Dead
++#define TOMOYO_SOCKET_NOT_YET_AUTHORIZED    (void *) 0xFee1Dead
 +#define TOMOYO_SOCKET_NOT_YET_ABORTED       (void *) 0xDeadBeef
 +
 +static inline bool tomoyo_kern_sock(struct socket *sock)
@@ -284,11 +305,10 @@
 +{
 +	if (!sock || !SOCK_INODE(sock) || !SOCK_INODE(sock)->i_security)
 +		return 0;
-+	if (SOCK_INODE(sock)->i_security ==
-+	    TOMOYO_SOCKET_NOT_YET_AUTHENTICATED) {
++	if (SOCK_INODE(sock)->i_security == TOMOYO_SOCKET_NOT_YET_AUTHORIZED) {
 +		/*
 +		 * This socket is an accept()ed socket, but not yet
-+		 * authenticated. Check permission for accept() now.
++		 * authorized. Check permission for accept() now.
 +		 */
 +		if (tomoyo_socket_accept_permission(sock) == 0) {
 +			SOCK_INODE(sock)->i_security = NULL;
@@ -315,6 +335,13 @@
 +	return -EPERM;
 +}
 +
++static int tomoyo_socket_create(int family, int type, int protocol, int kern)
++{
++	if (kern)
++		return 0;
++	return tomoyo_socket_create_permission(family, type, protocol);
++}
++
 +static int tomoyo_socket_post_create(struct socket *sock, int family, int type,
 +				     int protocol, int kern)
 +{
@@ -330,8 +357,37 @@
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
 +	/* Check permission for accept() later. */
-+	SOCK_INODE(newsock)->i_security = TOMOYO_SOCKET_NOT_YET_AUTHENTICATED;
++	SOCK_INODE(newsock)->i_security = TOMOYO_SOCKET_NOT_YET_AUTHORIZED;
 +	return 0;
++}
++
++static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
++			      int addrlen)
++{
++	if (tomoyo_kern_sock(sock))
++		return 0;
++	if (tomoyo_dead_sock(sock))
++		return -EPERM;
++	return tomoyo_socket_bind_permission(sock, address, addrlen);
++}
++
++static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
++				 int addrlen)
++{
++	if (tomoyo_kern_sock(sock))
++		return 0;
++	if (tomoyo_dead_sock(sock))
++		return -EPERM;
++	return tomoyo_socket_connect_permission(sock, address, addrlen);
++}
++
++static int tomoyo_socket_listen(struct socket *sock, int backlog)
++{
++	if (tomoyo_kern_sock(sock))
++		return 0;
++	if (tomoyo_dead_sock(sock))
++		return -EPERM;
++	return tomoyo_socket_listen_permission(sock);
 +}
 +
 +static int tomoyo_socket_getsockname(struct socket *sock)
@@ -363,35 +419,6 @@
 +	return tomoyo_dead_sock(sock);
 +}
 +
-+static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
-+			      int addrlen)
-+{
-+	if (tomoyo_kern_sock(sock))
-+		return 0;
-+	if (tomoyo_dead_sock(sock))
-+		return -EPERM;
-+	return tomoyo_socket_bind_permission(sock, address, addrlen);
-+}
-+
-+static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
-+				 int addrlen)
-+{
-+	if (tomoyo_kern_sock(sock))
-+		return 0;
-+	if (tomoyo_dead_sock(sock))
-+		return -EPERM;
-+	return tomoyo_socket_connect_permission(sock, address, addrlen);
-+}
-+
-+static int tomoyo_socket_listen(struct socket *sock, int backlog)
-+{
-+	if (tomoyo_kern_sock(sock))
-+		return 0;
-+	if (tomoyo_dead_sock(sock))
-+		return -EPERM;
-+	return tomoyo_socket_listen_permission(sock);
-+}
-+
 +static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
 +				 int size)
 +{
@@ -401,61 +428,6 @@
 +		return -EPERM;
 +	return tomoyo_socket_sendmsg_permission(sock, msg->msg_name,
 +						msg->msg_namelen);
-+}
-+
-+static int tomoyo_socket_create(int family, int type, int protocol, int kern)
-+{
-+	if (kern)
-+		return 0;
-+	return tomoyo_socket_create_permission(family, type, protocol);
-+}
-+
-+/*
-+static int tomoyo_socket_bind(struct socket *sock, struct sockaddr *address,
-+			      int addrlen)
-+{
-+	return tomoyo_socket_bind_permission(sock, address, addrlen);
-+}
-+
-+static int tomoyo_socket_connect(struct socket *sock, struct sockaddr *address,
-+				 int addrlen)
-+{
-+	return tomoyo_socket_connect_permission(sock, address, addrlen);
-+}
-+
-+static int tomoyo_socket_listen(struct socket *sock, int backlog)
-+{
-+	return tomoyo_socket_listen_permission(sock);
-+}
-+
-+static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
-+				 int size)
-+{
-+	return tomoyo_socket_sendmsg_permission(sock, msg->msg_name,
-+						msg->msg_namelen);
-+}
-+*/
-+
-+static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
-+			     unsigned long arg)
-+{
-+	return tomoyo_ioctl_permission(file, cmd, arg);
-+}
-+
-+static int tomoyo_sb_mount(char *dev_name, struct path *path,
-+			   char *type, unsigned long flags, void *data)
-+{
-+	return tomoyo_mount_permission(dev_name, path, type, flags);
-+}
-+
-+static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
-+{
-+	return tomoyo_umount_permission(mnt);
-+}
-+
-+static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
-+{
-+	return tomoyo_pivot_root_permission(old_path, new_path);
 +}
 +
 +/*
@@ -464,9 +436,9 @@
 + */
 +static struct security_operations tomoyo_security_ops = {
 +	.name                  = "tomoyo",
-+	/* .cred_alloc_blank      = tomoyo_cred_alloc_blank, */
++	.cred_alloc_blank      = tomoyo_cred_alloc_blank,
 +	.cred_prepare          = tomoyo_cred_prepare,
-+	/* .cred_transfer         = tomoyo_cred_transfer, */
++	.cred_transfer         = tomoyo_cred_transfer,
 +	.bprm_check_security   = tomoyo_bprm_check_security,
 +	.bprm_committing_creds = tomoyo_bprm_committing_creds,
 +	.cred_free             = tomoyo_cred_free,

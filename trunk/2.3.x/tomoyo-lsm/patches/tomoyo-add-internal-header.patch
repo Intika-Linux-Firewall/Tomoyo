@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1172 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1172 insertions(+)
+ security/tomoyo/internal.h | 1170 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1170 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.31/security/tomoyo/internal.h
-@@ -0,0 +1,1172 @@
++++ linux-2.6.32-rc1/security/tomoyo/internal.h
+@@ -0,0 +1,1170 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -866,9 +866,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
 +struct tomoyo_profile {
 +	const struct tomoyo_path_info *comment;
-+#ifdef CONFIG_SECURITY_TOMOYO_AUDIT
 +	struct tomoyo_preference *audit;
-+#endif
 +	struct tomoyo_preference *learning;
 +	struct tomoyo_preference *permissive;
 +	struct tomoyo_preference *enforcing;

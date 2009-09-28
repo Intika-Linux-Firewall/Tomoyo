@@ -12,9 +12,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  fs/namespace.c |   20 ++++++++++----------
  1 file changed, 10 insertions(+), 10 deletions(-)
 
---- linux-2.6.31.orig/fs/namespace.c
-+++ linux-2.6.31/fs/namespace.c
-@@ -1906,6 +1906,16 @@ long do_mount(char *dev_name, char *dir_
+--- linux-2.6.32-rc1.orig/fs/namespace.c
++++ linux-2.6.32-rc1/fs/namespace.c
+@@ -1921,6 +1921,16 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -31,7 +31,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Default to relatime unless overriden */
  	if (!(flags & MS_NOATIME))
  		mnt_flags |= MNT_RELATIME;
-@@ -1930,16 +1940,6 @@ long do_mount(char *dev_name, char *dir_
+@@ -1945,16 +1955,6 @@ long do_mount(char *dev_name, char *dir_
  		   MS_NOATIME | MS_NODIRATIME | MS_RELATIME| MS_KERNMOUNT |
  		   MS_STRICTATIME);
  

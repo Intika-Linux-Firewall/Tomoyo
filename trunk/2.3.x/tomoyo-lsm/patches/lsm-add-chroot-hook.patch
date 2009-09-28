@@ -12,9 +12,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |    5 +++++
  4 files changed, 25 insertions(+)
 
---- linux-2.6.31.orig/fs/open.c
-+++ linux-2.6.31/fs/open.c
-@@ -586,6 +586,9 @@ SYSCALL_DEFINE1(chroot, const char __use
+--- linux-2.6.32-rc1.orig/fs/open.c
++++ linux-2.6.32-rc1/fs/open.c
+@@ -587,6 +587,9 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -24,8 +24,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	set_fs_root(current->fs, &path);
  	error = 0;
---- linux-2.6.31.orig/include/linux/security.h
-+++ linux-2.6.31/include/linux/security.h
+--- linux-2.6.32-rc1.orig/include/linux/security.h
++++ linux-2.6.32-rc1/include/linux/security.h
 @@ -459,6 +459,10 @@ static inline void security_free_mnt_opt
   *	@uid contains new owner's ID.
   *	@gid contains new group's ID.
@@ -37,7 +37,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @inode_readlink:
   *	Check the permission to read the symbolic link.
   *	@dentry contains the dentry structure for the file link.
-@@ -1437,6 +1441,7 @@ struct security_operations {
+@@ -1503,6 +1507,7 @@ struct security_operations {
  	int (*path_chmod) (struct dentry *dentry, struct vfsmount *mnt,
  			   mode_t mode);
  	int (*path_chown) (struct path *path, uid_t uid, gid_t gid);
@@ -45,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif
  
  	int (*inode_alloc_security) (struct inode *inode);
-@@ -2840,6 +2845,7 @@ int security_path_rename(struct path *ol
+@@ -2970,6 +2975,7 @@ int security_path_rename(struct path *ol
  int security_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
  			mode_t mode);
  int security_path_chown(struct path *path, uid_t uid, gid_t gid);
@@ -53,7 +53,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
-@@ -2901,6 +2907,11 @@ static inline int security_path_chown(st
+@@ -3031,6 +3037,11 @@ static inline int security_path_chown(st
  {
  	return 0;
  }
@@ -65,8 +65,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif	/* CONFIG_SECURITY_PATH */
  
  #ifdef CONFIG_KEYS
---- linux-2.6.31.orig/security/capability.c
-+++ linux-2.6.31/security/capability.c
+--- linux-2.6.32-rc1.orig/security/capability.c
++++ linux-2.6.32-rc1/security/capability.c
 @@ -319,6 +319,11 @@ static int cap_path_chown(struct path *p
  {
  	return 0;
@@ -79,7 +79,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif
  
  static int cap_file_permission(struct file *file, int mask)
-@@ -939,6 +944,7 @@ void security_fixup_ops(struct security_
+@@ -990,6 +995,7 @@ void security_fixup_ops(struct security_
  	set_to_cap_if_null(ops, path_truncate);
  	set_to_cap_if_null(ops, path_chmod);
  	set_to_cap_if_null(ops, path_chown);
@@ -87,8 +87,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
---- linux-2.6.31.orig/security/security.c
-+++ linux-2.6.31/security/security.c
+--- linux-2.6.32-rc1.orig/security/security.c
++++ linux-2.6.32-rc1/security/security.c
 @@ -449,6 +449,11 @@ int security_path_chown(struct path *pat
  		return 0;
  	return security_ops->path_chown(path, uid, gid);
