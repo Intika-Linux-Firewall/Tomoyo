@@ -842,9 +842,7 @@ struct ccs_preference {
 
 struct ccs_profile {
 	const struct ccs_path_info *comment;
-#ifdef CONFIG_CCSECURITY_AUDIT
 	struct ccs_preference *audit;
-#endif
 	struct ccs_preference *learning;
 	struct ccs_preference *permissive;
 	struct ccs_preference *enforcing;

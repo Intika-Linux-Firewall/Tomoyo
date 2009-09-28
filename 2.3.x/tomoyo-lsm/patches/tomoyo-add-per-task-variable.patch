@@ -7,10 +7,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  kernel/kmod.c             |    5 +++++
  3 files changed, 20 insertions(+)
 
---- linux-2.6.31.orig/include/linux/init_task.h
-+++ linux-2.6.31/include/linux/init_task.h
-@@ -105,6 +105,14 @@ extern struct cred init_cred;
- # define INIT_PERF_COUNTERS(tsk)
+--- linux-2.6.32-rc1.orig/include/linux/init_task.h
++++ linux-2.6.32-rc1/include/linux/init_task.h
+@@ -115,6 +115,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_EVENTS(tsk)
  #endif
  
 +#ifdef CONFIG_SECURITY_TOMOYO
@@ -24,16 +24,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -173,6 +181,7 @@ extern struct cred init_cred;
- 	INIT_LOCKDEP							\
+@@ -184,6 +192,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
+ 	INIT_TASK_RCU_PREEMPT(tsk)					\
 +	INIT_SECURITY_TOMOYO						\
  }
  
  
---- linux-2.6.31.orig/include/linux/sched.h
-+++ linux-2.6.31/include/linux/sched.h
+--- linux-2.6.32-rc1.orig/include/linux/sched.h
++++ linux-2.6.32-rc1/include/linux/sched.h
 @@ -29,6 +29,8 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -43,10 +43,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * Scheduling policies
   */
-@@ -1480,6 +1482,10 @@ struct task_struct {
- 	/* bitmask of trace recursion */
+@@ -1539,6 +1541,10 @@ struct task_struct {
  	unsigned long trace_recursion;
  #endif /* CONFIG_TRACING */
+ 	unsigned long stack_start;
 +#ifdef CONFIG_SECURITY_TOMOYO
 +	struct tomoyo_domain_info *tomoyo_domain_info;
 +	u32 tomoyo_flags;
@@ -54,9 +54,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.31.orig/kernel/kmod.c
-+++ linux-2.6.31/kernel/kmod.c
-@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void 
+--- linux-2.6.32-rc1.orig/kernel/kmod.c
++++ linux-2.6.32-rc1/kernel/kmod.c
+@@ -184,6 +184,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
