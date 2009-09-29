@@ -8,42 +8,23 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-static int is_enforce = 0;
-
 static void show_prompt(const char *str)
 {
-	printf("Testing %s: (%s) ", str,
-	       is_enforce ? "must fail" : "should success");
+	printf("Testing %s: (must fail) ", str);
 	fflush(stdout);
 	errno = 0;
 }
 
 static void show_result(int result)
 {
-	if (is_enforce) {
-		if (result == EOF) {
-			if (errno == EPERM)
-				printf("OK: Permission denied.\n");
-			else
-				printf("FAILED: %s\n", strerror(errno));
-		} else {
-			printf("BUG!(%d)\n", result);
-		}
-	} else {
-		if (result != EOF)
-			printf("OK\n");
+	if (result == EOF) {
+		if (errno == EPERM)
+			printf("OK: Permission denied.\n");
 		else
-			printf("%s\n", strerror(errno));
+			printf("FAILED: %s\n", strerror(errno));
+	} else {
+		printf("BUG!(%d)\n", result);
 	}
-}
-
-static void set_enforce(int flag)
-{
-	is_enforce = flag;
-	if (flag)
-		set_profile(3, "network::inet_tcp_accept");
-	else
-		set_profile(2, "network::inet_tcp_accept");
 }
 
 static void stage_network_test(void)
@@ -56,6 +37,7 @@ static void stage_network_test(void)
 		char c = 0;
 		struct iovec iov = { &c, 1 };
 		unsigned int value = 0;
+		int retry = 0;
 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd3 = EOF;
@@ -80,7 +62,8 @@ static void stage_network_test(void)
 			printf("BUG!(%d)\n", errno);
 			break;
 		}
-		set_enforce(1);
+		set_profile(3, "network::inet_tcp_accept");
+retry:
 		switch (i) {
 		case 0:
 			show_prompt("getsockname() after accept()");
@@ -160,7 +143,11 @@ static void stage_network_test(void)
 			show_result(sendmsg(fd3, &msg, 0));
 			break;
 		}
-		set_enforce(0);
+		if (retry < 5) {
+			retry++;
+			goto retry;
+		}
+		set_profile(2, "network::inet_tcp_accept");
 		close(fd4);
 		close(fd3);
 		close(fd2);
@@ -176,6 +163,7 @@ int main(int argc, char *argv[])
 			"\n");
 		return 1;
 	}
+	fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=yes }\n");
 	stage_network_test();
 	clear_status();
 	return 0;

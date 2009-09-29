@@ -1,10 +1,10 @@
 ---
- security/tomoyo/lsm.c |  484 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 484 insertions(+)
+ security/tomoyo/lsm.c |  508 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 508 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/lsm.c
-@@ -0,0 +1,484 @@
+@@ -0,0 +1,508 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -270,12 +270,6 @@
 +				      f->f_flags + 1);
 +}
 +
-+static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
-+			     unsigned long arg)
-+{
-+	return tomoyo_ioctl_permission(file, cmd, arg);
-+}
-+
 +static int tomoyo_sb_mount(char *dev_name, struct path *path,
 +			   char *type, unsigned long flags, void *data)
 +{
@@ -430,6 +424,35 @@
 +						msg->msg_namelen);
 +}
 +
++static int tomoyo_socket_recvmsg(struct socket *sock, struct msghdr *msg,
++				 int size, int flags)
++{
++	if (tomoyo_kern_sock(sock))
++		return 0;
++	if (tomoyo_dead_sock(sock))
++		return -EPERM;
++	return 0;
++}
++
++#define SOCKFS_MAGIC 0x534F434B
++
++static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
++			     unsigned long arg)
++{
++	struct dentry *dentry = file->f_path.dentry;
++	if (dentry && dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
++		struct inode *inode = dentry->d_inode;
++		struct socket *sock = inode ? SOCKET_I(inode) : NULL;
++		if (inode) {
++			if (tomoyo_kern_sock(sock))
++				return 0;
++			if (tomoyo_dead_sock(sock))
++				return -EPERM;
++		}
++	}
++	return tomoyo_ioctl_permission(file, cmd, arg);
++}
++
 +/*
 + * tomoyo_security_ops is a "struct security_operations" which is used for
 + * registering TOMOYO.
@@ -468,6 +491,7 @@
 +	.socket_connect        = tomoyo_socket_connect,
 +	.socket_accept         = tomoyo_socket_accept,
 +	.socket_sendmsg        = tomoyo_socket_sendmsg,
++	.socket_recvmsg        = tomoyo_socket_recvmsg,
 +	.socket_post_create    = tomoyo_socket_post_create,
 +	.socket_getsockname    = tomoyo_socket_getsockname,
 +	.socket_getpeername    = tomoyo_socket_getpeername,
