@@ -1,7 +1,5 @@
 /*
- * tomoyo_file_test.c
- *
- * Testing program for fs/tomoyo_file.c
+ * ccs_new_file_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

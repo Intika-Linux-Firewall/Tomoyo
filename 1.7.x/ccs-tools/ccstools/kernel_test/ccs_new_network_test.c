@@ -1,7 +1,5 @@
 /*
- * tomoyo_new_network_test.c
- *
- * Testing program for fs/tomoyo_network.c
+ * ccs_new_network_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

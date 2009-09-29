@@ -1,8 +1,6 @@
 /*
  * tomoyo_policy_io_test.c
  *
- * Testing program for policy parser.
- *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
  * Version: 1.7.0   2009/09/03
