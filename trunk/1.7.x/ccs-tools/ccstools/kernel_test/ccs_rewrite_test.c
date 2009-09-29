@@ -1,7 +1,5 @@
 /*
- * tomoyo_rewrite_test.c
- *
- * Testing program for fs/tomoyo_file.c
+ * ccs_rewrite_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *

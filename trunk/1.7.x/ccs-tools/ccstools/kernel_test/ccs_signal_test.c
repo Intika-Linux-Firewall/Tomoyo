@@ -1,7 +1,5 @@
 /*
- * tomoyo_signal_test.c
- *
- * Testing program for fs/tomoyo_signal.c
+ * ccs_signal_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
