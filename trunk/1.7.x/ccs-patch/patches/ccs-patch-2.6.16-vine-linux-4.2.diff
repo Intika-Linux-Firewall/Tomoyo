@@ -39,11 +39,11 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/inet6_hashtables.c     |    5 ++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    8 ++++++++
- net/socket.c                    |   25 ++++++++++++++++++++++---
+ net/socket.c                    |   23 ++++++++++++++++++++---
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 290 insertions(+), 11 deletions(-)
+ 41 files changed, 288 insertions(+), 11 deletions(-)
 
 --- linux-2.6.16-76.51vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.51vl4/arch/alpha/kernel/ptrace.c
@@ -700,7 +700,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.16-76.51vl4 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.51vl4 2009/10/01\n");
  }
 --- linux-2.6.16-76.51vl4.orig/include/linux/init_task.h
 +++ linux-2.6.16-76.51vl4/include/linux/init_task.h
@@ -1229,21 +1229,19 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -544,9 +546,12 @@ static inline int __sock_sendmsg(struct 
+@@ -544,9 +546,10 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
 -
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1103,6 +1108,8 @@ static int __sock_create(int family, int
+@@ -1103,6 +1106,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1252,7 +1250,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (err)
  		return err;
  		
-@@ -1299,6 +1306,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1299,6 +1304,10 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1263,7 +1261,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1329,7 +1340,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1329,7 +1338,8 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1273,7 +1271,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1380,6 +1392,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1380,6 +1390,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1285,7 +1283,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1433,9 +1450,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1433,9 +1448,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

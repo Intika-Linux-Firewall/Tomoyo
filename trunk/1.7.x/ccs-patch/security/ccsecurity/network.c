@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.0   2009/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -748,9 +748,11 @@ int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr)
 }
 
 /* Check permission for sending a datagram via a UDP or RAW socket. */
-int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
-				  int addr_len)
+int ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg,
+				  int size)
 {
+	struct sockaddr *addr = (struct sockaddr *) msg->msg_name;
+	const int addr_len = msg->msg_namelen;
 	int error = 0;
 	const int type = sock->type;
 	/* Nothing to do if I am a kernel service. */
