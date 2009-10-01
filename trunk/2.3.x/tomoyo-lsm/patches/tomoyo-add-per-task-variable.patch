@@ -1,5 +1,70 @@
 [TOMOYO] Add per task_struct variables.
 
+I want to introduce per task_struct variables
+
+	struct tomoyo_domain_info *tomoyo_domain_info;
+	u32 tomoyo_flags;
+
+for holding task state variables used by TOMOYO.
+
+(1) These variables are not shared between processes. Only the current process
+    modifies current->tomoyo_domain_info and current->tomoyo_flags.
+    The current->tomoyo_domain_info and current->tomoyo_flags can be simply
+    copied upon fork() and discarded upon exit().
+
+    So far, below status is stored into the current->tomoyo_flags.
+
+      Whether the current process is allowed to modify policy via
+      /sys/kernel/security/tomoyo/ interface or not. TOMOYO 2.2.0 checks
+      whenever write() is requested. This is "slow", and the check may "fail"
+      if the program's pathname changed by updating TOMOYO's userland tools.
+      By caching the result of "whether the current process is allowed to
+      modify policy via /sys/kernel/security/tomoyo/ interface or not" into
+      this variable, I can solve the "slow"/"fail" problems.
+
+      Whether the current process is running as an execute handler program or
+      not. TOMOYO needs to remember this information in order to avoid infinite
+      execute handler loop.
+
+      Whether the current process should be given the sleep() penalty or not if
+      the current process violated policy in enforcing mode.
+
+      Whether the current process might rollback to previous domain or not.
+      This is used for
+        telling the garbage collector that "do not delete domains because I
+        will rollback to the previous domain if search_binary_handler() failed"
+      and
+        telling the file access checker that "check read permission because
+        open_exec() is called by "struct linux_binfmt *"->load_binary()"
+      .
+      This is different from current->in_execve. current->in_execve is used for
+      telling the file access checker that "check execute permission rather
+      than read permission because open_exec() is called by do_execve()".
+
+      3 variables for splitting permissions within the domain. These variables
+      are updated when a request is permitted by TOMOYO's policy.
+
+(2) The task state variables must not be reverted outside the LSM hooks.
+
+    TOMOYO updates the task state variables inside LSM hooks. But there is the
+    possibility of credentials being reverted outside the LSM hooks. If I store
+    the updated task state variables into "struct cred *"->security and
+    revert_creds() is called, the updated task state variables get lost.
+
+    So far, it seems that TOMOYO is not using LSM hooks which are called
+    between override_creds() and revert_creds() (e.g. inode_permission() in
+    sys_faccessat()). But in the future, LSM hooks which TOMOYO is using could
+    be called between override_creds() and revert_creds().
+
+(3) Use of COW credentials may save memory usage, but introduces the
+    possibility of -ENOMEM failure. I can omit error paths if I can use the per
+    task_struct variables.
+
+(4) I want TOMOYO to be able to coexist with other LSM modules.
+    Since TOMOYO is not a label based access control, TOMOYO can yield
+    current->cred->security and current->real_cred->security to access controls
+    who can utilize better, if I can use the per task_struct variables.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  include/linux/init_task.h |    9 +++++++++
