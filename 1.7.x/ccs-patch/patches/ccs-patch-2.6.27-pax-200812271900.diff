@@ -32,11 +32,11 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  net/ipv4/udp.c                  |    7 +++++++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   23 +++++++++++++++++++++++
+ net/socket.c                    |   21 +++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 251 insertions(+), 2 deletions(-)
+ 34 files changed, 249 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/arch/ia64/ia32/sys_ia32.c
@@ -568,7 +568,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	printk(KERN_INFO
-+	       "Hook version: 2.6.27.10+pax-200812271900 2009/09/24\n");
++	       "Hook version: 2.6.27.10+pax-200812271900 2009/10/01\n");
  }
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/include/linux/init_task.h
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/include/linux/init_task.h
@@ -1051,18 +1051,16 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -558,6 +560,10 @@ static inline int __sock_sendmsg(struct 
+@@ -558,6 +560,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
  
-@@ -1124,6 +1130,8 @@ static int __sock_create(struct net *net
+@@ -1124,6 +1128,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1071,7 +1069,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	if (err)
  		return err;
  
-@@ -1379,6 +1387,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1379,6 +1385,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -1083,7 +1081,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1408,6 +1421,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1408,6 +1419,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1092,7 +1090,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1477,6 +1492,11 @@ long do_accept(int fd, struct sockaddr _
+@@ -1477,6 +1490,11 @@ long do_accept(int fd, struct sockaddr _
  	if (err < 0)
  		goto out_fd;
  
@@ -1104,7 +1102,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1601,6 +1621,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1601,6 +1619,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);

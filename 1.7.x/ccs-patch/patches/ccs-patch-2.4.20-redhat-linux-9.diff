@@ -45,9 +45,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  net/ipv6/raw.c               |    4 ++++
  net/ipv6/tcp_ipv6.c          |    3 +++
  net/ipv6/udp.c               |    8 ++++++++
- net/socket.c                 |   23 +++++++++++++++++++++++
+ net/socket.c                 |   21 +++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 45 files changed, 322 insertions(+), 3 deletions(-)
+ 45 files changed, 320 insertions(+), 3 deletions(-)
 
 --- linux-2.4.20-46.9.legacy.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.20-46.9.legacy/arch/alpha/kernel/ptrace.c
@@ -920,7 +920,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.4.20-46.9.legacy 2009/10/01\n");
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
@@ -1369,18 +1369,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_read(struct file *file, char *buf,
-@@ -514,6 +515,10 @@ int sock_sendmsg(struct socket *sock, st
+@@ -514,6 +515,8 @@ int sock_sendmsg(struct socket *sock, st
  	int err;
  	struct scm_cookie scm;
  
-+	err = ccs_socket_sendmsg_permission(sock,
-+					    (struct sockaddr *) msg->msg_name,
-+					    msg->msg_namelen);
++	err = ccs_socket_sendmsg_permission(sock, msg, size);
 +	if (!err)
  	err = scm_send(sock, msg, &scm);
  	if (err >= 0) {
  		err = sock->ops->sendmsg(sock, msg, size, &scm);
-@@ -862,6 +867,9 @@ int sock_create(int family, int type, in
+@@ -862,6 +865,9 @@ int sock_create(int family, int type, in
  		family = PF_PACKET;
  	}
  		
@@ -1390,7 +1388,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  #if defined(CONFIG_KMOD) && defined(CONFIG_NET)
  	/* Attempt to load a protocol module if the find failed. 
  	 * 
-@@ -1017,6 +1025,10 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1017,6 +1023,10 @@ asmlinkage long sys_bind(int fd, struct 
  	if((sock = sockfd_lookup(fd,&err))!=NULL)
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0)
@@ -1401,7 +1399,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		sockfd_put(sock);
  	}			
-@@ -1038,6 +1050,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1038,6 +1048,8 @@ asmlinkage long sys_listen(int fd, int b
  	if ((sock = sockfd_lookup(fd, &err)) != NULL) {
  		if ((unsigned) backlog > SOMAXCONN)
  			backlog = SOMAXCONN;
@@ -1410,7 +1408,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1078,6 +1092,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1078,6 +1090,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1422,7 +1420,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1128,6 +1147,10 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1128,6 +1145,10 @@ asmlinkage long sys_connect(int fd, stru
  	err = move_addr_to_kernel(uservaddr, addrlen, address);
  	if (err < 0)
  		goto out_put;

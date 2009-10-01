@@ -34,11 +34,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    8 ++++++++
- net/socket.c                    |   24 +++++++++++++++++++++++-
+ net/socket.c                    |   22 +++++++++++++++++++++-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 271 insertions(+), 6 deletions(-)
+ 36 files changed, 269 insertions(+), 6 deletions(-)
 
 --- linux-2.6.18-164.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-164.el5/arch/alpha/kernel/ptrace.c
@@ -594,7 +594,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-164.el5 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.6.18-164.el5 2009/10/01\n");
  }
 --- linux-2.6.18-164.el5.orig/include/linux/init_task.h
 +++ linux-2.6.18-164.el5/include/linux/init_task.h
@@ -1135,18 +1135,16 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -594,6 +596,10 @@ static inline int __sock_sendmsg(struct 
+@@ -594,6 +596,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
  
-@@ -1168,6 +1174,8 @@ static int __sock_create(int family, int
+@@ -1168,6 +1172,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1155,7 +1153,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	if (err)
  		return err;
  		
-@@ -1399,6 +1407,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1399,6 +1405,11 @@ asmlinkage long sys_bind(int fd, struct 
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
  			if (!err)
@@ -1167,7 +1165,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  				err = sock->ops->bind(sock,
  					(struct sockaddr *)address, addrlen);
  		}
-@@ -1427,6 +1440,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1427,6 +1438,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1176,7 +1174,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1490,6 +1505,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1490,6 +1503,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1188,7 +1186,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.3/updates/SRPMS
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1544,9 +1564,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1544,9 +1562,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/17
+ * Version: 1.7.0   2009/10/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -33,6 +33,7 @@ struct socket;
 struct sockaddr;
 struct sock;
 struct sk_buff;
+struct msghdr;
 
 #if defined(CONFIG_CCSECURITY)
 
@@ -109,8 +110,8 @@ int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 			       int addr_len);
 int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr);
-int ccs_socket_sendmsg_permission(struct socket *sock, struct sockaddr *addr,
-				  int addr_len);
+int ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg,
+				  int size);
 int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 				  const unsigned int flags);
 int ccs_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
@@ -338,8 +339,7 @@ static inline int ccs_socket_accept_permission(struct socket *sock,
 }
 
 static inline int ccs_socket_sendmsg_permission(struct socket *sock,
-						struct sockaddr *addr,
-						int addr_len)
+						struct msghdr *msg, int size)
 {
 	return 0;
 }

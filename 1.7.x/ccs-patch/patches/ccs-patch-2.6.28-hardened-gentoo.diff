@@ -30,11 +30,11 @@ Source code for this patch is "emerge hardened-sources"
  net/ipv4/udp.c                  |    8 +++++++-
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   23 +++++++++++++++++++++++
+ net/socket.c                    |   21 +++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 251 insertions(+), 3 deletions(-)
+ 32 files changed, 249 insertions(+), 3 deletions(-)
 
 --- linux-2.6.28-hardened-r9.orig/fs/compat.c
 +++ linux-2.6.28-hardened-r9/fs/compat.c
@@ -514,7 +514,7 @@ Source code for this patch is "emerge hardened-sources"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/10/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -1000,18 +1000,16 @@ Source code for this patch is "emerge hardened-sources"
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -574,6 +576,10 @@ static inline int __sock_sendmsg(struct 
+@@ -574,6 +576,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
  
-@@ -1139,6 +1145,8 @@ static int __sock_create(struct net *net
+@@ -1139,6 +1143,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1020,7 +1018,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (err)
  		return err;
  
-@@ -1412,6 +1420,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1412,6 +1418,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -1032,7 +1030,7 @@ Source code for this patch is "emerge hardened-sources"
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1451,6 +1464,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1451,6 +1462,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1041,7 +1039,7 @@ Source code for this patch is "emerge hardened-sources"
  			err = sock->ops->listen(sock, backlog);
  
  error:
-@@ -1533,6 +1548,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1533,6 +1546,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -1053,7 +1051,7 @@ Source code for this patch is "emerge hardened-sources"
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1614,6 +1634,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1614,6 +1632,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);

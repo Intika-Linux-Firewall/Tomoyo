@@ -32,11 +32,11 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  net/ipv4/udp.c                  |    7 +++++++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   22 ++++++++++++++++++++++
+ net/socket.c                    |   20 ++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 249 insertions(+), 2 deletions(-)
+ 34 files changed, 247 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.29-0.1.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.29-0.1.1/arch/ia64/ia32/sys_ia32.c
@@ -567,7 +567,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27.29-0.1.1 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.6.27.29-0.1.1 2009/10/01\n");
  }
 --- linux-2.6.27.29-0.1.1.orig/include/linux/init_task.h
 +++ linux-2.6.27.29-0.1.1/include/linux/init_task.h
@@ -1049,18 +1049,16 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
-@@ -559,6 +560,10 @@ static inline int __sock_sendmsg(struct 
+@@ -559,6 +560,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
  
-@@ -1128,6 +1133,8 @@ static int __sock_create(struct net *net
+@@ -1128,6 +1131,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1069,7 +1067,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	if (err)
  		return err;
  
-@@ -1384,6 +1391,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1384,6 +1389,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -1081,7 +1079,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1413,6 +1425,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1413,6 +1423,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1090,7 +1088,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1482,6 +1496,11 @@ long do_accept(int fd, struct sockaddr _
+@@ -1482,6 +1494,11 @@ long do_accept(int fd, struct sockaddr _
  	if (err < 0)
  		goto out_fd;
  
@@ -1102,7 +1100,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1606,6 +1625,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1606,6 +1623,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);

@@ -41,11 +41,11 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    4 ++++
- net/socket.c                    |   23 +++++++++++++++++++++++
+ net/socket.c                    |   21 +++++++++++++++++++++
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 274 insertions(+), 3 deletions(-)
+ 43 files changed, 272 insertions(+), 3 deletions(-)
 
 --- linux-2.6.22.19-0.4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.22.19-0.4/arch/alpha/kernel/ptrace.c
@@ -704,7 +704,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.22.19-0.4 2009/09/24\n");
++	printk(KERN_INFO "Hook version: 2.6.22.19-0.4 2009/10/01\n");
  }
 --- linux-2.6.22.19-0.4.orig/include/linux/init_task.h
 +++ linux-2.6.22.19-0.4/include/linux/init_task.h
@@ -1206,18 +1206,16 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -551,6 +553,10 @@ static inline int __sock_sendmsg(struct 
+@@ -551,6 +553,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
 +	if (!err)
-+		err = ccs_socket_sendmsg_permission(sock, (struct sockaddr *)
-+						    msg->msg_name,
-+						    msg->msg_namelen);
++		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
  
-@@ -1103,6 +1109,8 @@ static int __sock_create(int family, int
+@@ -1103,6 +1107,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1226,7 +1224,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (err)
  		return err;
  
-@@ -1334,6 +1342,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1334,6 +1340,11 @@ asmlinkage long sys_bind(int fd, struct 
  						   (struct sockaddr *)address,
  						   addrlen);
  			if (!err)
@@ -1238,7 +1236,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      address, addrlen);
-@@ -1363,6 +1376,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1363,6 +1374,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1247,7 +1245,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1426,6 +1441,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1426,6 +1439,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1259,7 +1257,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)address,
  					  &len, 2) < 0) {
-@@ -1488,6 +1508,9 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1488,6 +1506,9 @@ asmlinkage long sys_connect(int fd, stru
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
