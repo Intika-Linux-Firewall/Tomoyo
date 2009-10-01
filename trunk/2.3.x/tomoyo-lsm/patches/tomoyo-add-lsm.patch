@@ -1,10 +1,13 @@
+[TOMOYO] Add LSM adaptor.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/lsm.c |  508 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 508 insertions(+)
+ security/tomoyo/lsm.c |  520 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 520 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/lsm.c
-@@ -0,0 +1,508 @@
+@@ -0,0 +1,520 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -13,7 +16,6 @@
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
 +#include "internal.h"
-+#include <linux/socket.h>
 +#include <net/sock.h>
 +
 +static int tomoyo_cred_alloc_blank(struct cred *new, gfp_t gfp)
@@ -27,10 +29,8 @@
 +{
 +	/* Get ref if "struct linux_binprm *bprm"->cred */
 +	struct tomoyo_execve_entry *ee = old->security;
-+	if (ee) {
-+		printk("Copying cred for execve()\n");
++	if (ee)
 +		atomic_inc(&ee->cred_users);
-+	}
 +	new->security = ee;
 +	return 0;
 +}
@@ -45,7 +45,6 @@
 +	struct tomoyo_execve_entry *ee = cred->security;
 +	/* Put ref if "struct linux_binprm *bprm"->cred */
 +	if (ee && atomic_dec_and_test(&ee->cred_users)) {
-+		printk("Freeing cred for failed execve()\n");
 +		/*
 +		 * Reaching here means execve() failed, for
 +		 * "struct linux_binprm *bprm"->cred is not shared between
@@ -286,20 +285,31 @@
 +	return tomoyo_pivot_root_permission(old_path, new_path);
 +}
 +
-+#define TOMOYO_SOCKET_KERNEL_SOCKET         (void *) 0xFFFFFFFF
-+#define TOMOYO_SOCKET_NOT_YET_AUTHORIZED    (void *) 0xFee1Dead
-+#define TOMOYO_SOCKET_NOT_YET_ABORTED       (void *) 0xDeadBeef
++/* Magic constants for socket. Only address is used. */
++/* This socket is created by kernel. Thus, no permission check. */
++static const bool tomoyo_socket_kernel_socket;
++/*
++ * This socket is an accept()ed socket. Thus, I need to check acccept()
++ * permission after returning from accept().
++ */
++static const bool tomoyo_socket_not_yet_authorized;
++/*
++ * This socket is an accept()ed socket but permission denied. Thus, this socket
++ * should be close()d.
++ */
++static const bool tomoyo_socket_not_yet_aborted;
 +
 +static inline bool tomoyo_kern_sock(struct socket *sock)
 +{
-+	return SOCK_INODE(sock)->i_security == TOMOYO_SOCKET_KERNEL_SOCKET;
++	return SOCK_INODE(sock)->i_security == &tomoyo_socket_kernel_socket;
 +}
 +
 +static int tomoyo_dead_sock(struct socket *sock)
 +{
 +	if (!sock || !SOCK_INODE(sock) || !SOCK_INODE(sock)->i_security)
 +		return 0;
-+	if (SOCK_INODE(sock)->i_security == TOMOYO_SOCKET_NOT_YET_AUTHORIZED) {
++	if (SOCK_INODE(sock)->i_security
++	    == &tomoyo_socket_not_yet_authorized) {
 +		/*
 +		 * This socket is an accept()ed socket, but not yet
 +		 * authorized. Check permission for accept() now.
@@ -314,7 +324,8 @@
 +		 * socket immediately, I mark special tag so that I can give
 +		 * sleep() penalty for subsequent socket calls.
 +		 */
-+		SOCK_INODE(sock)->i_security = TOMOYO_SOCKET_NOT_YET_ABORTED;
++		SOCK_INODE(sock)->i_security =
++			(void *) &tomoyo_socket_not_yet_aborted;
 +	} else {
 +		/*
 +		 * Give sleep() penalty.
@@ -340,7 +351,8 @@
 +				     int protocol, int kern)
 +{
 +	if (kern)
-+		SOCK_INODE(sock)->i_security = TOMOYO_SOCKET_KERNEL_SOCKET;
++		SOCK_INODE(sock)->i_security =
++			(void *) &tomoyo_socket_kernel_socket;
 +	return 0;
 +}
 +
@@ -351,7 +363,8 @@
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
 +	/* Check permission for accept() later. */
-+	SOCK_INODE(newsock)->i_security = TOMOYO_SOCKET_NOT_YET_AUTHORIZED;
++	SOCK_INODE(newsock)->i_security =
++		(void *) &tomoyo_socket_not_yet_authorized;
 +	return 0;
 +}
 +
@@ -406,7 +419,8 @@
 +	return tomoyo_dead_sock(sock);
 +}
 +
-+static int tomoyo_socket_setsockopt(struct socket *sock, int level, int optname)
++static int tomoyo_socket_setsockopt(struct socket *sock, int level,
++				    int optname)
 +{
 +	if (tomoyo_kern_sock(sock))
 +		return 0;
@@ -420,8 +434,7 @@
 +		return 0;
 +	if (tomoyo_dead_sock(sock))
 +		return -EPERM;
-+	return tomoyo_socket_sendmsg_permission(sock, msg->msg_name,
-+						msg->msg_namelen);
++	return tomoyo_socket_sendmsg_permission(sock, msg);
 +}
 +
 +static int tomoyo_socket_recvmsg(struct socket *sock, struct msghdr *msg,
@@ -439,6 +452,7 @@
 +static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
 +			     unsigned long arg)
 +{
++	/* Check permission if this is a socket. */
 +	struct dentry *dentry = file->f_path.dentry;
 +	if (dentry && dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
 +		struct inode *inode = dentry->d_inode;
@@ -499,6 +513,7 @@
 +	.socket_setsockopt     = tomoyo_socket_setsockopt,
 +};
 +
++/* To tell tomoyo_securityfs_init() that TOMOYO was registered. */
 +__initdata bool tomoyo_registered;
 +static int __init tomoyo_init(void)
 +{
