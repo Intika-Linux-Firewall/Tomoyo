@@ -1,5 +1,55 @@
 [TOMOYO] Add pathname calculation.
 
+This patch is for getting canonicalized pathnames used by TOMOYO.
+TOMOYO 2.2.0 uses __d_path() for getting canonicalized pathnames, but there are
+several issues.
+
+(1) The " (deleted)" is appended to the returned pathname if the pathname was
+    deleted. This causes TOMOYO to check
+
+      allow_truncate /tmp/file
+
+    for
+
+      int fd = open("/tmp/file", O_WRONLY | O_CREAT, 0600);
+      ftruncate(fd, 0);
+      unlink("/tmp/file");
+      close(fd);
+
+    sequence and
+
+      allow_truncate /tmp/file\040(deleted)
+
+    for
+
+      int fd = open("/tmp/file", O_WRONLY | O_CREAT, 0600);
+      unlink("/tmp/file");
+      ftruncate(fd, 0);
+      close(fd);
+
+    sequence, although these sequences are doing the same operations in
+    different order. Since this is annoying for policy developers, I want
+    to avoid trailing " (deleted)".
+
+(2) __d_path() does not replace /proc/PID/ with /proc/self/ if PID is equals to
+    the current process's PID. Pathname based access control can prevent
+    current process from accessing other process's information if we can map
+    /proc/PID/ to /proc/self/ . The caller of __d_path() can't replace "PID"
+    with "self" after returning from __d_path() because the caller cannot tell
+    whether the numeric part of the returned pathname is a PID or not.
+    To tell whether the numeric part of the returned pathname is a PID or not,
+    the caller has to do dentry/vfsmount traversal by its own, and that makes
+    use of __d_path() meaningless.
+
+(3) The pathname for socket is in "socket:[%u]" format. But such pathname is
+    too useless for pathname based access control.
+    I want to use pathnames in "socket:[family=%u:type=%u:protocol=%u]" format.
+    The best pathname might include socket's address information, but it would
+    be difficult to fetch and represent address information.
+
+To solve these issues, I'd like to introduce custom __d_path() functions
+(or add some flags to __d_path()).
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/new-realpath.c |  251 +++++++++++++++++++++++++++++++++++++++++

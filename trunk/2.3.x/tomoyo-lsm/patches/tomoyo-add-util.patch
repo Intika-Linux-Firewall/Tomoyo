@@ -9,7 +9,11 @@ tomoyo_read_lock()/tomoyo_read_unlock() protects the data against
 the garbage collector.
 
 The other is that the wildcard for recursive directory matching support is
-added.
+added. For example, /var/www/html/\{\*\-.svn\-CVS\}/\*\-.\* matches
+ /var/www/html/\*\-.svn\-CVS/\*\-.\*
+ /var/www/html/\*\-.svn\-CVS/\*\-.svn\-CVS/\*\-.\*
+ /var/www/html/\*\-.svn\-CVS/\*\-.svn\-CVS/\*\-.svn\-CVS/\*\-.\*
+etc.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
