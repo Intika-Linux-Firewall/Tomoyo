@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/network.c |  758 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 758 insertions(+)
+ security/tomoyo/network.c |  757 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 757 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/network.c
-@@ -0,0 +1,758 @@
+@@ -0,0 +1,757 @@
 +/*
 + * security/tomoyo/network.c
 + *
@@ -82,14 +82,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return 0;
 +}
 +
-+#if !defined(NIP6)
-+#define NIP6(addr)							\
-+	ntohs((addr).s6_addr16[0]), ntohs((addr).s6_addr16[1]),		\
-+		ntohs((addr).s6_addr16[2]), ntohs((addr).s6_addr16[3]), \
-+		ntohs((addr).s6_addr16[4]), ntohs((addr).s6_addr16[5]), \
-+		ntohs((addr).s6_addr16[6]), ntohs((addr).s6_addr16[7])
-+#endif
-+
 +/**
 + * tomoyo_print_ipv6 - Print an IPv6 address.
 + *
@@ -97,13 +89,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + * @buffer_len: Size of @buffer.
 + * @ip:         Pointer to "struct in6_addr".
 + *
++ * This is different from "%pI6" and "%pI6c".
++ *
 + * Returns nothing.
 + */
 +void tomoyo_print_ipv6(char *buffer, const int buffer_len,
 +		       const struct in6_addr *ip)
 +{
 +	memset(buffer, 0, buffer_len);
-+	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*ip));
++	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x",
++		 ntohs(ip->s6_addr16[0]), ntohs(ip->s6_addr16[1]),
++		 ntohs(ip->s6_addr16[2]), ntohs(ip->s6_addr16[3]),
++		 ntohs(ip->s6_addr16[4]), ntohs(ip->s6_addr16[5]),
++		 ntohs(ip->s6_addr16[6]), ntohs(ip->s6_addr16[7]));
 +}
 +
 +/**
@@ -725,9 +723,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/* Check permission for sending a datagram via a UDP or RAW socket. */
-+int tomoyo_socket_sendmsg_permission(struct socket *sock,
-+				     struct sockaddr *addr, int addr_len)
++int tomoyo_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg)
 +{
++	struct sockaddr *addr = msg->msg_name;
++	const int addr_len = msg->msg_namelen;
 +	int error = 0;
 +	const int type = sock->type;
 +	/* Nothing to do if I am a kernel service. */

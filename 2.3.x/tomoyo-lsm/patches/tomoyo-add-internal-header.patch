@@ -2,12 +2,12 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1170 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1170 insertions(+)
+ security/tomoyo/internal.h | 1169 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1169 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/internal.h
-@@ -0,0 +1,1170 @@
+@@ -0,0 +1,1169 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -1078,8 +1078,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
 +				  int addr_len);
 +int tomoyo_socket_accept_permission(struct socket *sock);
-+int tomoyo_socket_sendmsg_permission(struct socket *sock,
-+				     struct sockaddr *addr, int addr_len);
++int tomoyo_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg);
 +int tomoyo_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
 +			    uid_t user, gid_t group);
 +int tomoyo_chmod_permission(struct dentry *dentry, struct vfsmount *mnt,
