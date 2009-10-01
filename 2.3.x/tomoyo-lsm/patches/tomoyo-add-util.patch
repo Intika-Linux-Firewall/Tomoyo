@@ -1,5 +1,16 @@
 [TOMOYO] Utility functions.
 
+This file contains utility functions.
+
+There are two major changes compared to TOMOYO 2.2.0.
+
+One is that garbage collector support is added.
+tomoyo_read_lock()/tomoyo_read_unlock() protects the data against
+the garbage collector.
+
+The other is that the wildcard for recursive directory matching support is
+added.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/util.c | 1145 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -886,7 +897,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 + *
 + *   \-     Subtraction operator.
 + *
-+ *   /\{dir\}/   '?' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
++ *   /\{dir\}/   '/' + 'One or more repetitions of dir/' (e.g. /dir/ /dir/dir/
 + *               /dir/dir/dir/ ).
 + */
 +bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,

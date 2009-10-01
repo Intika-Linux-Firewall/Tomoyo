@@ -1,5 +1,56 @@
 [TOMOYO] Add LSM adaptor.
 
+Since TOMOYO uses per task_struct variables, I have nothing to store into
+"struct cred *"->security except "struct linux_binprm *"->cred->security.
+
+To support execute handler functionality, TOMOYO needs to keep memory for
+holding execute handler's pathname valid until search_binary_handler()
+finishes. Therefore, to release memory, TOMOYO needs a hook which is called
+after an execve() finished. But there is no such hook. As a workaround,
+TOMOYO releases memory when "struct linux_binprm *"->cred is discarded (either
+security_bprm_committing_creds() (which means execve() suceeded) or
+security_cred_free() (which means execve() failed)).
+
+If I'm permitted to add a hook which is called after an execve() finished,
+I can avoid such tricky usage of "struct cred *"->security.
+
+
+
+Since TOMOYO is not a label based access control, I have nothing to store into
+various object's "void *security" field except the one for socket.
+
+To support incoming TCP connection filtering functionality, TOMOYO needs a hook
+which is called after accept(). But such hook is not acceptable.
+As a workaround, TOMOYO performs TCP connection filtering after retuning from
+accept(). To do so, I assign special tag to SOCK_INODE(socket)->i_security if
+the socket is an accept()ed socket at security_socket_accept(), and I check
+permission inside subsequent system calls if SOCK_INODE(socket)->i_security
+has the special value.
+
+
+
+As of now, hooks for supporting incoming UDP/RAW packet filtering remain
+missing. Unlike TCP connection filtering, it is too late to perform filtering
+after returning from recvmsg().
+
+As of now, hooks for supporting signal transmission restriction remain missing.
+I can't use security_task_kill() because it is called in a context that is not
+permitted to sleep. I want hooks which are called in a context that is
+permitted to sleep in order to support interactive enforcement mode.
+The interactive enforcement is a mode which allows administrators to
+interactively judge whether the request should be permitted or not. This mode
+is designed for handling unexpected requests caused by software updates.
+
+As of now, many of hooks for supporting TOMOYO's original (i.e. non-POSIX)
+capability remain missing. TOMOYO is ready to support 65536 types of
+non-POSIX capability but the caller passes only 32 (or so) types of POSIX
+capability. I need to introduce mapping table for converting from non-POSIX
+capability to POSIX capability. Also, I can't use security_capable() because it
+is called in a context that is not permitted to sleep.
+
+Except the missing hooks listed above, this LSM adaptor can provide almost the
+same functionality which non-LSM version of TOMOYO provides.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/lsm.c |  520 ++++++++++++++++++++++++++++++++++++++++++++++++++

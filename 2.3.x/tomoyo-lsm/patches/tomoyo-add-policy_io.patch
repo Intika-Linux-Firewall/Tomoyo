@@ -1,5 +1,21 @@
 [TOMOYO] Add policy I/O handler.
 
+This patch handles policy I/O.
+
+tomoyo_read_lock()/tomoyo_read_unlock() protects the data against the garbage
+collector. I call tomoyo_read_lock() when /sys/kernel/security/tomoyo/
+interface is open()ed and call tomoyo_read_unlock() when
+/sys/kernel/security/tomoyo/ interface is close()d rather than calling
+tomoyo_read_lock()/tomoyo_read_unlock() upon individual read()/write()
+requests. In this way, the pointer saved in "struct tomoyo_io_buffer" are
+guaranteed to be valid.
+
+I don't call tomoyo_read_lock()/tomoyo_read_unlock() for
+/sys/kernel/security/tomoyo/query (for interactive enforcement) and
+/sys/kernel/security/tomoyo/grant_log (for access granted logs) and
+/sys/kernel/security/tomoyo/reject_log (for access rejected logs) because the
+data which these interfaces access is not subjected to the garbage collection.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/policy_io.c | 2798 ++++++++++++++++++++++++++++++++++++++++++++
