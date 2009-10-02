@@ -5,16 +5,20 @@ This patch contains code for checking file access.
 Functions are separated by type of parameters.
 
 (1) Hooks which take one pathname.
-    They are read/write/execute/unlink/rmdir/truncate/symlink/rewrite.
+    They are read/write/execute/unlink/rmdir/truncate/symlink/rewrite/chroot/
+    umount.
 
 (2) Hooks which take one pathname and three numeric parameters.
     They are mkblock/mkchar.
 
 (3) Hooks which take two pathnames.
-    They are link/rename.
+    They are link/rename/pivot_root.
 
 (4) Hooks which take one pathname and one numeric parameter.
     They are create/mkdir/mkfifo/mksock/ioctl/chmod/chown/chgrp.
+
+(5) Hooks which take three pathname and one numeric parameter.
+    That is mount, and handled by separate patch.
 
 I want to call may_create() and may_delete() for directory modification
 operations in order to perform DAC checks before MAC. (For now, I'm not calling
@@ -22,18 +26,19 @@ may_create() and may_delete().)
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-file.c | 2122 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2122 insertions(+)
+ security/tomoyo/new-file.c | 2182 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2182 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/new-file.c
-@@ -0,0 +1,2122 @@
+@@ -0,0 +1,2182 @@
 +/*
 + * security/tomoyo/file.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
 +#include "internal.h"
++#include <linux/mount.h>
 +#include <asm/ioctls.h>
 +#include <linux/falloc.h>
 +
@@ -49,6 +54,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_TYPE_TRUNCATE]   = "truncate",
 +	[TOMOYO_TYPE_SYMLINK]    = "symlink",
 +	[TOMOYO_TYPE_REWRITE]    = "rewrite",
++	[TOMOYO_TYPE_CHROOT]     = "chroot",
++	[TOMOYO_TYPE_UMOUNT]     = "unmount",
 +};
 +
 +static const char *
@@ -58,8 +65,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +static const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION] = {
-+	[TOMOYO_TYPE_LINK]    = "link",
-+	[TOMOYO_TYPE_RENAME]  = "rename",
++	[TOMOYO_TYPE_LINK]       = "link",
++	[TOMOYO_TYPE_RENAME]     = "rename",
++	[TOMOYO_TYPE_PIVOT_ROOT] = "pivot_root",
 +};
 +
 +static const char *
@@ -84,6 +92,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	[TOMOYO_TYPE_TRUNCATE]   = TOMOYO_MAC_FILE_TRUNCATE,
 +	[TOMOYO_TYPE_SYMLINK]    = TOMOYO_MAC_FILE_SYMLINK,
 +	[TOMOYO_TYPE_REWRITE]    = TOMOYO_MAC_FILE_REWRITE,
++	[TOMOYO_TYPE_CHROOT]     = TOMOYO_MAC_FILE_CHROOT,
++	[TOMOYO_TYPE_UMOUNT]     = TOMOYO_MAC_FILE_UMOUNT,
 +};
 +
 +static const u8 tomoyo_pnnn2mac[TOMOYO_MAX_PATH_NUMBER3_OPERATION] = {
@@ -92,8 +102,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +static const u8 tomoyo_pp2mac[TOMOYO_MAX_PATH2_OPERATION] = {
-+	[TOMOYO_TYPE_LINK]   = TOMOYO_MAC_FILE_LINK,
-+	[TOMOYO_TYPE_RENAME] = TOMOYO_MAC_FILE_RENAME,
++	[TOMOYO_TYPE_LINK]       = TOMOYO_MAC_FILE_LINK,
++	[TOMOYO_TYPE_RENAME]     = TOMOYO_MAC_FILE_RENAME,
++	[TOMOYO_TYPE_PIVOT_ROOT] = TOMOYO_MAC_FILE_PIVOT_ROOT,
 +};
 +
 +static const u8 tomoyo_pn2mac[TOMOYO_MAX_PATH_NUMBER_OPERATION] = {
@@ -1301,7 +1312,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_path_perm - Check permission for "unlink", "rmdir", "truncate" and "symlink".
++ * tomoyo_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "chroot" and "unmount".
 + *
 + * @operation: Type of operation.
 + * @dentry:    Pointer to "struct dentry".
@@ -1337,6 +1348,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	r.obj = &obj;
 +	switch (operation) {
 +	case TOMOYO_TYPE_RMDIR:
++	case TOMOYO_TYPE_CHROOT:
++	case TOMOYO_TYPE_UMOUNT:
 +		tomoyo_add_slash(&buf);
 +		break;
 +	case TOMOYO_TYPE_SYMLINK:
@@ -1447,17 +1460,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_path2_perm - Check permission for "rename" and "link".
++ * tomoyo_path2_perm - Check permission for "rename", "link" and "pivot_root".
 + *
 + * @operation: Type of operation.
 + * @dentry1:   Pointer to "struct dentry".
++ * @mnt1:      Pointer to "struct vfsmount".
 + * @dentry2:   Pointer to "struct dentry".
-+ * @mnt:       Pointer to "struct vfsmount".
++ * @mnt2:      Pointer to "struct vfsmount".
 + *
 + * Returns 0 on success, negative value otherwise.
 + */
 +static int tomoyo_path2_perm(const u8 operation, struct dentry *dentry1,
-+			     struct dentry *dentry2, struct vfsmount *mnt)
++			     struct vfsmount *mnt1, struct dentry *dentry2,
++			     struct vfsmount *mnt2)
 +{
 +	struct tomoyo_request_info r;
 +	int error = -ENOMEM;
@@ -1467,30 +1482,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool is_enforce = false;
 +	struct tomoyo_obj_info obj = {
 +		.path1.dentry = dentry1,
-+		.path1.mnt = mnt,
++		.path1.mnt = mnt1,
 +		.path2.dentry = dentry2,
-+		.path2.mnt = mnt
++		.path2.mnt = mnt2
 +	};
 +	int idx;
 +	buf1.name = NULL;
 +	buf2.name = NULL;
 +	idx = tomoyo_read_lock();
-+	if (!mnt || tomoyo_init_request_info(&r, NULL,
-+					     tomoyo_pp2mac[operation])
++	if (!mnt1 || !mnt2 ||
++	    tomoyo_init_request_info(&r, NULL, tomoyo_pp2mac[operation])
 +	    == TOMOYO_CONFIG_DISABLED) {
 +		error = 0;
 +		goto out;
 +	}
 +	is_enforce = (r.mode == TOMOYO_CONFIG_ENFORCING);
-+	if (!tomoyo_get_realpath(&buf1, dentry1, mnt) ||
-+	    !tomoyo_get_realpath(&buf2, dentry2, mnt))
++	if (!tomoyo_get_realpath(&buf1, dentry1, mnt1) ||
++	    !tomoyo_get_realpath(&buf2, dentry2, mnt2))
 +		goto out;
-+	if (operation == TOMOYO_TYPE_RENAME) {
-+		/* TOMOYO_TYPE_LINK can't reach here for directory. */
-+		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-+			tomoyo_add_slash(&buf1);
-+			tomoyo_add_slash(&buf2);
-+		}
++	switch (operation) {
++	case TOMOYO_TYPE_RENAME:
++	case TOMOYO_TYPE_LINK:
++		if (!dentry1->d_inode || !S_ISDIR(dentry1->d_inode->i_mode))
++			break;
++		/* fall through */
++	case TOMOYO_TYPE_PIVOT_ROOT:
++		tomoyo_add_slash(&buf1);
++		tomoyo_add_slash(&buf2);
 +	}
 +	r.obj = &obj;
 +	do {
@@ -1805,6 +1823,52 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = tomoyo_path_number_perm(TOMOYO_TYPE_CHGRP, dentry,
 +						vfsmnt, group);
 +	return error;
++}
++
++/**
++ * tomoyo_pivot_root_permission - Check permission for pivot_root().
++ *
++ * @old_path: Pointer to "struct path".
++ * @new_path: Pointer to "struct path".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_pivot_root_permission(struct path *old_path, struct path*new_path)
++{
++	if (!tomoyo_capable(TOMOYO_SYS_PIVOT_ROOT))
++		return -EPERM;
++	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path->dentry,
++				 new_path->mnt, old_path->dentry,
++				 old_path->mnt);
++}
++
++/**
++ * tomoyo_chroot_permission - Check permission for chroot().
++ *
++ * @path: Pointer to "struct path".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_chroot_permission(struct path *path)
++{
++	if (!tomoyo_capable(TOMOYO_SYS_CHROOT))
++		return -EPERM;
++	return tomoyo_path_perm(TOMOYO_TYPE_CHROOT, path->dentry, path->mnt,
++				NULL);
++}
++
++/**
++ * tomoyo_umount_permission - Check permission for unmount.
++ *
++ * @mnt:   Pointer to "struct vfsmount".
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_umount_permission(struct vfsmount *mnt)
++{
++	if (!tomoyo_capable(TOMOYO_SYS_UMOUNT))
++		return -EPERM;
++	return tomoyo_path_perm(TOMOYO_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
 +}
 +
 +/**
@@ -2132,7 +2196,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	error = tomoyo_pre_vfs_rename(old_dir, old_dentry, new_dir,
 +				      new_dentry);
 +	if (!error)
-+		error = tomoyo_path2_perm(TOMOYO_TYPE_RENAME, old_dentry,
++		error = tomoyo_path2_perm(TOMOYO_TYPE_RENAME, old_dentry, mnt,
 +					  new_dentry, mnt);
 +	return error;
 +}
@@ -2146,7 +2210,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EPERM;
 +	error = tomoyo_pre_vfs_link(old_dentry, new_dir, new_dentry);
 +	if (!error)
-+		error = tomoyo_path2_perm(TOMOYO_TYPE_LINK, old_dentry,
++		error = tomoyo_path2_perm(TOMOYO_TYPE_LINK, old_dentry, mnt,
 +					  new_dentry, mnt);
 +	return error;
 +}

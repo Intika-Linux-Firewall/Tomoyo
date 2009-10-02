@@ -904,13 +904,6 @@ static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
 		return ccs_write_env_policy(data, domain, cond, is_delete);
 	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
 		return ccs_write_mount_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_UNMOUNT))
-		return ccs_write_umount_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CHROOT))
-		return ccs_write_chroot_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_PIVOT_ROOT))
-		return ccs_write_pivot_root_policy(data, domain, cond,
-						   is_delete);
 	return ccs_write_file_policy(data, domain, cond, is_delete);
 }
 
@@ -1560,76 +1553,6 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_umount_acl - Print a mount ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_umount_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_umount_acl(struct ccs_io_buffer *head,
-				 struct ccs_umount_acl *ptr,
-				 const struct ccs_condition *cond)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_UNMOUNT) ||
-	    !ccs_print_name_union(head, &ptr->dir) ||
-	    !ccs_print_condition(head, cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_chroot_acl - Print a chroot ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_chroot_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_chroot_acl(struct ccs_io_buffer *head,
-				 struct ccs_chroot_acl *ptr,
-				 const struct ccs_condition *cond)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CHROOT) ||
-	    !ccs_print_name_union(head, &ptr->dir) ||
-	    !ccs_print_condition(head, cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_pivot_root_acl - Print a pivot_root ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_pivot_root_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_pivot_root_acl(struct ccs_io_buffer *head,
-				     struct ccs_pivot_root_acl *ptr,
-				     const struct ccs_condition *cond)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_PIVOT_ROOT) ||
-	    !ccs_print_name_union(head, &ptr->new_root) ||
-	    !ccs_print_name_union(head, &ptr->old_root) ||
-	    !ccs_print_condition(head, cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
  * ccs_print_entry - Print an ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -1708,22 +1631,6 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		struct ccs_mount_acl *acl
 			= container_of(ptr, struct ccs_mount_acl, head);
 		return ccs_print_mount_acl(head, acl, cond);
-	}
-	if (acl_type == CCS_TYPE_UMOUNT_ACL) {
-		struct ccs_umount_acl *acl
-			= container_of(ptr, struct ccs_umount_acl, head);
-		return ccs_print_umount_acl(head, acl, cond);
-	}
-	if (acl_type == CCS_TYPE_CHROOT_ACL) {
-		struct ccs_chroot_acl *acl
-			= container_of(ptr, struct ccs_chroot_acl, head);
-		return ccs_print_chroot_acl(head, acl, cond);
-	}
-	if (acl_type == CCS_TYPE_PIVOT_ROOT_ACL) {
-		struct ccs_pivot_root_acl *acl
-			= container_of(ptr, struct ccs_pivot_root_acl,
-				       head);
-		return ccs_print_pivot_root_acl(head, acl, cond);
 	}
 	BUG(); /* This must not happen. */
 	return false;
