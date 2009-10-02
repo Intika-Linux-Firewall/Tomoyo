@@ -1,6 +1,6 @@
 [TOMOYO] Add pathname calculation.
 
-This patch is for getting canonicalized pathnames used by TOMOYO.
+This patch contains code for getting canonicalized pathnames used by TOMOYO.
 TOMOYO 2.2.0 uses __d_path() for getting canonicalized pathnames, but there are
 several issues.
 
@@ -44,8 +44,8 @@ several issues.
 (3) The pathname for socket is in "socket:[%u]" format. But such pathname is
     too useless for pathname based access control.
     I want to use pathnames in "socket:[family=%u:type=%u:protocol=%u]" format.
-    The best pathname might include socket's address information, but it would
-    be difficult to fetch and represent address information.
+    The best pathname might include socket's peer address information, but it
+    would be difficult to fetch and represent address information.
 
 To solve these issues, I'd like to introduce custom __d_path() functions
 (or add some flags to __d_path()).

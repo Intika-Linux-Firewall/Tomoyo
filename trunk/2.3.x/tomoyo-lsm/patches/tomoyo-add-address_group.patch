@@ -1,6 +1,16 @@
 [TOMOYO] Add address_group keyword support.
 
-This patch adds "address_group" handler.
+This patch contains code for handling IPv4/IPv6 address grouping.
+To be able to specify IP addresses more flexibly,
+I want to add IP address grouping support into TOMOYO 2.3.0.
+
+  address_group TRUSTED_CLIENTS 192.168.1.1
+  address_group TRUSTED_CLIENTS 127.0.0.1
+  address_group TRUSTED_CLIENTS 0:0:0:0:0:0:0:1
+  address_group UNTRUSTED_CLIENTS 192.168.2.1-192.168.2.255
+              +
+  allow_network TCP accept @TRUSTED_CLIENTS 1024-65535 ; set task.state[0]=1
+  allow_network TCP accept @UNTRUSTED_CLIENTS 1024-65535 ; set task.state[0]=0
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---

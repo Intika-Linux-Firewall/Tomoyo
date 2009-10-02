@@ -1,13 +1,33 @@
 [TOMOYO] Add file access restriction.
 
+This patch contains code for checking file access.
+
+Functions are separated by type of parameters.
+
+(1) Hooks which take one pathname.
+    They are read/write/execute/unlink/rmdir/truncate/symlink/rewrite.
+
+(2) Hooks which take one pathname and three numeric parameters.
+    They are mkblock/mkchar.
+
+(3) Hooks which take two pathnames.
+    They are link/rename.
+
+(4) Hooks which take one pathname and one numeric parameter.
+    They are create/mkdir/mkfifo/mksock/ioctl/chmod/chown/chgrp.
+
+I want to call may_create() and may_delete() for directory modification
+operations in order to perform DAC checks before MAC. (For now, I'm not calling
+may_create() and may_delete().)
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-file.c | 2127 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2127 insertions(+)
+ security/tomoyo/new-file.c | 2122 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2122 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/new-file.c
-@@ -0,0 +1,2127 @@
+@@ -0,0 +1,2122 @@
 +/*
 + * security/tomoyo/file.c
 + *
@@ -1995,12 +2015,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/*
-+ * Permission checks from vfs_mknod().
-+ *
-+ * This function is exported because
-+ * vfs_mknod() is called from net/unix/af_unix.c.
-+ */
++/* Permission checks from vfs_mknod(). */
 +int tomoyo_mknod_permission(struct inode *dir, struct dentry *dentry,
 +			    struct vfsmount *mnt, const unsigned int mode,
 +			    unsigned int dev)

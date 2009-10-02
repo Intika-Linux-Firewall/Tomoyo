@@ -1,6 +1,17 @@
 [TOMOYO] Add path_group keyword support.
 
-This patch adds "path_group" handler.
+This patch contains code for handling pathname grouping.
+To be able to specify pathnames more flexibly, I want to add pathname grouping
+support into TOMOYO 2.3.0.
+
+  path_group APACHE_READABLE_FILES /var/www/html/\*.html
+  path_group APACHE_READABLE_FILES /var/www/html/\*.jpg
+  path_group APACHE_READABLE_FILES /var/www/html/\*.png
+  path_group APACHE_READABLE_FILES /var/www/html/\{\*\}/\*.html
+  path_group APACHE_READABLE_FILES /var/www/html/\{\*\}/\*.jpg
+  path_group APACHE_READABLE_FILES /var/www/html/\{\*\}/\*.png
+            +
+  allow_read @APACHE_READABLE_FILES
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
