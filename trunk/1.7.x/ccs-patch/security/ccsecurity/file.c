@@ -11,6 +11,17 @@
  */
 
 #include "internal.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+#include <linux/mount.h>
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/namespace.h>
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/dcache.h>
+#include <linux/namei.h>
+#else
+#include <linux/fs.h>
+#endif
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
 static const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
@@ -23,6 +34,8 @@ static const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_TRUNCATE]   = "truncate",
 	[CCS_TYPE_SYMLINK]    = "symlink",
 	[CCS_TYPE_REWRITE]    = "rewrite",
+	[CCS_TYPE_CHROOT]     = "chroot",
+	[CCS_TYPE_UMOUNT]     = "unmount",
 };
 
 static const char *ccs_path_number3_keyword[CCS_MAX_PATH_NUMBER3_OPERATION] = {
@@ -31,8 +44,9 @@ static const char *ccs_path_number3_keyword[CCS_MAX_PATH_NUMBER3_OPERATION] = {
 };
 
 static const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION] = {
-	[CCS_TYPE_LINK]    = "link",
-	[CCS_TYPE_RENAME]  = "rename",
+	[CCS_TYPE_LINK]       = "link",
+	[CCS_TYPE_RENAME]     = "rename",
+	[CCS_TYPE_PIVOT_ROOT] = "pivot_root",
 };
 
 static const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION] = {
@@ -56,6 +70,8 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
 	[CCS_TYPE_REWRITE]    = CCS_MAC_FILE_REWRITE,
+	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
+	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
 };
 
 static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
@@ -64,8 +80,9 @@ static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
 };
 
 static const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
-	[CCS_TYPE_LINK]   = CCS_MAC_FILE_LINK,
-	[CCS_TYPE_RENAME] = CCS_MAC_FILE_RENAME,
+	[CCS_TYPE_LINK]       = CCS_MAC_FILE_LINK,
+	[CCS_TYPE_RENAME]     = CCS_MAC_FILE_RENAME,
+	[CCS_TYPE_PIVOT_ROOT] = CCS_MAC_FILE_PIVOT_ROOT,
 };
 
 static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
@@ -1304,7 +1321,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /**
- * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate" and "symlink".
+ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate" and "symlink", "chroot" and "unmount".
  *
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
@@ -1340,6 +1357,8 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 	r.obj = &obj;
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
+	case CCS_TYPE_CHROOT:
+	case CCS_TYPE_UMOUNT:
 		ccs_add_slash(&buf);
 		break;
 	case CCS_TYPE_SYMLINK:
@@ -1448,17 +1467,19 @@ int ccs_rewrite_permission(struct file *filp)
 }
 
 /**
- * ccs_path2_perm - Check permission for "rename" and "link".
+ * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
  *
  * @operation: Type of operation.
  * @dentry1:   Pointer to "struct dentry".
+ * @mnt1:      Pointer to "struct vfsmount".
  * @dentry2:   Pointer to "struct dentry".
- * @mnt:       Pointer to "struct vfsmount".
+ * @mnt2:      Pointer to "struct vfsmount".
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
-			  struct dentry *dentry2, struct vfsmount *mnt)
+			  struct vfsmount *mnt1, struct dentry *dentry2,
+			  struct vfsmount *mnt2)
 {
 	struct ccs_request_info r;
 	int error = -ENOMEM;
@@ -1468,29 +1489,33 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 	bool is_enforce = false;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry1,
-		.path1.mnt = mnt,
+		.path1.mnt = mnt1,
 		.path2.dentry = dentry2,
-		.path2.mnt = mnt
+		.path2.mnt = mnt2
 	};
 	int idx;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
+	if (!mnt1 || !mnt2 ||
+	    ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
 	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
 	}
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
-	if (!ccs_get_realpath(&buf1, dentry1, mnt) ||
-	    !ccs_get_realpath(&buf2, dentry2, mnt))
+	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
+	    !ccs_get_realpath(&buf2, dentry2, mnt2))
 		goto out;
-	if (operation == CCS_TYPE_RENAME) {
-		/* CCS_TYPE_LINK can't reach here for directory. */
-		if (dentry1->d_inode && S_ISDIR(dentry1->d_inode->i_mode)) {
-			ccs_add_slash(&buf1);
-			ccs_add_slash(&buf2);
-		}
+	switch (operation) {
+	case CCS_TYPE_RENAME:
+	case CCS_TYPE_LINK:
+		if (!dentry1->d_inode || !S_ISDIR(dentry1->d_inode->i_mode))
+			break;
+		/* fall through */
+	case CCS_TYPE_PIVOT_ROOT:
+		ccs_add_slash(&buf1);
+		ccs_add_slash(&buf2);
 	}
 	r.obj = &obj;
 	do {
@@ -1775,6 +1800,66 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 		error = ccs_path_number_perm(CCS_TYPE_CHGRP, dentry, vfsmnt,
 					     group);
 	return error;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+#define PATH_or_NAMEIDATA path
+#else
+#define PATH_or_NAMEIDATA nameidata
+#endif
+
+/**
+ * ccs_pivot_root_permission - Check permission for pivot_root().
+ *
+ * @old_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @new_path: Pointer to "struct path" (for 2.6.27 and later).
+ *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
+			      struct PATH_or_NAMEIDATA *new_path)
+{
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->path.dentry,
+			      new_path->path.mnt, old_path->path.dentry,
+			      old_path->path.mnt);
+#else
+	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->dentry,
+			      new_path->mnt, old_path->dentry, old_path->mnt);
+#endif
+}
+
+/**
+ * ccs_chroot_permission - Check permission for chroot().
+ *
+ * @path: Pointer to "struct path" (for 2.6.27 and later).
+ *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
+{
+#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
+	return ccs_path_perm(CCS_TYPE_CHROOT, path->path.dentry,
+			     path->path.mnt, NULL);
+#else
+	return ccs_path_perm(CCS_TYPE_CHROOT, path->dentry, path->mnt, NULL);
+#endif
+}
+
+/**
+ * ccs_umount_permission - Check permission for unmount.
+ *
+ * @mnt:   Pointer to "struct vfsmount".
+ * @flags: Umount flags.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+int ccs_umount_permission(struct vfsmount *mnt, int flags)
+{
+	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
 }
 
 /**
@@ -2320,7 +2405,7 @@ int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
 		return -EPERM;
 	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_path2_perm(CCS_TYPE_RENAME, old_dentry,
+		error = ccs_path2_perm(CCS_TYPE_RENAME, old_dentry, mnt,
 				       new_dentry, mnt);
 	return error;
 }
@@ -2334,7 +2419,7 @@ int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 		return -EPERM;
 	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
 	if (!error)
-		error = ccs_path2_perm(CCS_TYPE_LINK, old_dentry,
+		error = ccs_path2_perm(CCS_TYPE_LINK, old_dentry, mnt,
 				       new_dentry, mnt);
 	return error;
 }

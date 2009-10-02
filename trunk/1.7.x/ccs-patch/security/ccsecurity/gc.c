@@ -264,31 +264,6 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 			ccs_put_number_union(&entry->flags);
 		}
 		break;
-	case CCS_TYPE_UMOUNT_ACL:
-		{
-			struct ccs_umount_acl *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->dir);
-		}
-		break;
-	case CCS_TYPE_CHROOT_ACL:
-		{
-			struct ccs_chroot_acl *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->dir);
-		}
-		break;
-	case CCS_TYPE_PIVOT_ROOT_ACL:
-		{
-			struct ccs_pivot_root_acl *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->old_root);
-			ccs_put_name_union(&entry->new_root);
-		}
-		break;
 	default:
 		size = 0;
 		printk(KERN_WARNING "Unknown type\n");

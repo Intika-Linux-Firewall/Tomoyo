@@ -45,9 +45,6 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_IP_NETWORK_ACL,
 	CCS_TYPE_SIGNAL_ACL,
 	CCS_TYPE_MOUNT_ACL,
-	CCS_TYPE_UMOUNT_ACL,
-	CCS_TYPE_CHROOT_ACL,
-	CCS_TYPE_PIVOT_ROOT_ACL,
 	CCS_TYPE_EXECUTE_HANDLER,
 	CCS_TYPE_DENIED_EXECUTE_HANDLER
 };
@@ -71,6 +68,8 @@ enum ccs_path_acl_index {
 	CCS_TYPE_TRUNCATE,
 	CCS_TYPE_SYMLINK,
 	CCS_TYPE_REWRITE,
+	CCS_TYPE_CHROOT,
+	CCS_TYPE_UMOUNT,
 	CCS_MAX_PATH_OPERATION
 };
 
@@ -83,6 +82,7 @@ enum ccs_path_number3_acl_index {
 enum ccs_path2_acl_index {
 	CCS_TYPE_LINK,
 	CCS_TYPE_RENAME,
+	CCS_TYPE_PIVOT_ROOT,
 	CCS_MAX_PATH2_OPERATION
 };
 
@@ -256,7 +256,6 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
 #define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
-#define CCS_KEYWORD_ALLOW_CHROOT              "allow_chroot "
 #define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
 #define CCS_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
 #define CCS_KEYWORD_ALLOW_CHMOD               "allow_chmod "
@@ -264,13 +263,11 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
 #define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
 #define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
-#define CCS_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
 #define CCS_KEYWORD_ALLOW_READ                "allow_read "
 #define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
 #define CCS_KEYWORD_DELETE                    "delete "
 #define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
 #define CCS_KEYWORD_DENY_REWRITE              "deny_rewrite "
-#define CCS_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
 #define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
 #define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
 #define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
@@ -600,19 +597,6 @@ struct ccs_aggregator_entry {
 	const struct ccs_path_info *aggregated_name;
 };
 
-/* Structure for "allow_unmount" keyword. */
-struct ccs_umount_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_UMOUNT_ACL */
-	struct ccs_name_union dir;
-};
-
-/* Structure for "allow_pivot_root" keyword. */
-struct ccs_pivot_root_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_PIVOT_ROOT_ACL */
-	struct ccs_name_union old_root;
-	struct ccs_name_union new_root;
-};
-
 /* Structure for "allow_mount" keyword. */
 struct ccs_mount_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
@@ -620,12 +604,6 @@ struct ccs_mount_acl {
 	struct ccs_name_union dir_name;
 	struct ccs_name_union fs_type;
 	struct ccs_number_union flags;
-};
-
-/* Structure for "allow_chroot" keyword. */
-struct ccs_chroot_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_CHROOT_ACL */
-	struct ccs_name_union dir;
 };
 
 /* Structure for "deny_autobind" keyword. */
@@ -939,9 +917,6 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				struct ccs_condition *condition,
 				const bool is_delete);
-int ccs_write_chroot_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete);
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
 int ccs_write_domain_initializer_policy(char *data, const bool is_not,
@@ -967,14 +942,8 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
 int ccs_write_number_group_policy(char *data, const bool is_delete);
 int ccs_write_path_group_policy(char *data, const bool is_delete);
 int ccs_write_pattern_policy(char *data, const bool is_delete);
-int ccs_write_pivot_root_policy(char *data, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete);
-int ccs_write_umount_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete);
 struct ccs_address_group *ccs_get_address_group(const char *group_name);

@@ -4,12 +4,12 @@ This patch contains structure/prototype/variable declarations for TOMOYO.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1169 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1169 insertions(+)
+ security/tomoyo/internal.h | 1137 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1137 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/internal.h
-@@ -0,0 +1,1169 @@
+@@ -0,0 +1,1137 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -35,9 +35,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_TYPE_CAPABILITY_ACL,
 +	TOMOYO_TYPE_IP_NETWORK_ACL,
 +	TOMOYO_TYPE_MOUNT_ACL,
-+	TOMOYO_TYPE_UMOUNT_ACL,
-+	TOMOYO_TYPE_CHROOT_ACL,
-+	TOMOYO_TYPE_PIVOT_ROOT_ACL,
 +	TOMOYO_TYPE_EXECUTE_HANDLER,
 +	TOMOYO_TYPE_DENIED_EXECUTE_HANDLER
 +};
@@ -111,6 +108,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_TYPE_TRUNCATE,
 +	TOMOYO_TYPE_SYMLINK,
 +	TOMOYO_TYPE_REWRITE,
++	TOMOYO_TYPE_CHROOT,
++	TOMOYO_TYPE_UMOUNT,
 +	TOMOYO_MAX_PATH_OPERATION
 +};
 +
@@ -123,6 +122,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +enum tomoyo_path2_acl_index {
 +	TOMOYO_TYPE_LINK,
 +	TOMOYO_TYPE_RENAME,
++	TOMOYO_TYPE_PIVOT_ROOT,
 +	TOMOYO_MAX_PATH2_OPERATION
 +};
 +
@@ -302,7 +302,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TOMOYO_KEYWORD_ADDRESS_GROUP             "address_group "
 +#define TOMOYO_KEYWORD_AGGREGATOR                "aggregator "
 +#define TOMOYO_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
-+#define TOMOYO_KEYWORD_ALLOW_CHROOT              "allow_chroot "
 +#define TOMOYO_KEYWORD_ALLOW_ENV                 "allow_env "
 +#define TOMOYO_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
 +#define TOMOYO_KEYWORD_ALLOW_CHMOD               "allow_chmod "
@@ -310,11 +309,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +#define TOMOYO_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
 +#define TOMOYO_KEYWORD_ALLOW_MOUNT               "allow_mount "
 +#define TOMOYO_KEYWORD_ALLOW_NETWORK             "allow_network "
-+#define TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT          "allow_pivot_root "
 +#define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
 +#define TOMOYO_KEYWORD_DELETE                    "delete "
 +#define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
-+#define TOMOYO_KEYWORD_ALLOW_UNMOUNT             "allow_unmount "
 +#define TOMOYO_KEYWORD_FILE_PATTERN              "file_pattern "
 +#define TOMOYO_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
 +#define TOMOYO_KEYWORD_KEEP_DOMAIN               "keep_domain "
@@ -640,19 +637,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct tomoyo_path_info *aggregated_name;
 +};
 +
-+/* Structure for "allow_unmount" keyword. */
-+struct tomoyo_umount_acl {
-+	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_UMOUNT_ACL */
-+	struct tomoyo_name_union dir;
-+};
-+
-+/* Structure for "allow_pivot_root" keyword. */
-+struct tomoyo_pivot_root_acl {
-+	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PIVOT_ROOT_ACL */
-+	struct tomoyo_name_union old_root;
-+	struct tomoyo_name_union new_root;
-+};
-+
 +/* Structure for "allow_mount" keyword. */
 +struct tomoyo_mount_acl {
 +	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MOUNT_ACL */
@@ -660,12 +644,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_name_union dir_name;
 +	struct tomoyo_name_union fs_type;
 +	struct tomoyo_number_union flags;
-+};
-+
-+/* Structure for "allow_chroot" keyword. */
-+struct tomoyo_chroot_acl {
-+	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_CHROOT_ACL */
-+	struct tomoyo_name_union dir;
 +};
 +
 +/* Structure for policy manager. */
@@ -970,9 +948,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +				   struct tomoyo_domain_info *domain,
 +				   struct tomoyo_condition *condition,
 +				   const bool is_delete);
-+int tomoyo_write_chroot_policy(char *data, struct tomoyo_domain_info *domain,
-+			       struct tomoyo_condition *condition,
-+			       const bool is_delete);
 +int tomoyo_write_control(struct file *file, const char __user *buffer,
 +			 const int buffer_len);
 +int tomoyo_write_domain_initializer_policy(char *data, const bool is_not,
@@ -998,13 +973,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_write_number_group_policy(char *data, const bool is_delete);
 +int tomoyo_write_path_group_policy(char *data, const bool is_delete);
 +int tomoyo_write_pattern_policy(char *data, const bool is_delete);
-+int tomoyo_write_pivot_root_policy(char *data,
-+				   struct tomoyo_domain_info *domain,
-+				   struct tomoyo_condition *condition,
-+				   const bool is_delete);
-+int tomoyo_write_umount_policy(char *data, struct tomoyo_domain_info *domain,
-+			       struct tomoyo_condition *condition,
-+			       const bool is_delete);
 +struct tomoyo_address_group *tomoyo_get_address_group(const char *group_name);
 +struct tomoyo_condition *tomoyo_get_condition(char * const condition);
 +struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);

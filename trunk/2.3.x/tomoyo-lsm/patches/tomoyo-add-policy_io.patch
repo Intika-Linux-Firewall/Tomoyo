@@ -23,12 +23,12 @@ data which these interfaces access is not subjected to the garbage collection.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2798 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2798 insertions(+)
+ security/tomoyo/policy_io.c | 2703 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2703 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/policy_io.c
-@@ -0,0 +1,2798 @@
+@@ -0,0 +1,2703 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -922,15 +922,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
 +		return tomoyo_write_mount_policy(data, domain, cond,
 +						 is_delete);
-+	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_UNMOUNT))
-+		return tomoyo_write_umount_policy(data, domain, cond,
-+						  is_delete);
-+	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_CHROOT))
-+		return tomoyo_write_chroot_policy(data, domain, cond,
-+						  is_delete);
-+	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT))
-+		return tomoyo_write_pivot_root_policy(data, domain, cond,
-+						      is_delete);
 +	return tomoyo_write_file_policy(data, domain, cond, is_delete);
 +}
 +
@@ -1559,76 +1550,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-+ * tomoyo_print_umount_acl - Print a mount ACL entry.
-+ *
-+ * @head: Pointer to "struct tomoyo_io_buffer".
-+ * @ptr:  Pointer to "struct tomoyo_umount_acl".
-+ * @cond: Pointer to "struct tomoyo_condition". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool tomoyo_print_umount_acl(struct tomoyo_io_buffer *head,
-+				    struct tomoyo_umount_acl *ptr,
-+				    const struct tomoyo_condition *cond)
-+{
-+	const int pos = head->read_avail;
-+	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_UNMOUNT) ||
-+	    !tomoyo_print_name_union(head, &ptr->dir) ||
-+	    !tomoyo_print_condition(head, cond)) {
-+		head->read_avail = pos;
-+		return false;
-+	}
-+	return true;
-+}
-+
-+/**
-+ * tomoyo_print_chroot_acl - Print a chroot ACL entry.
-+ *
-+ * @head: Pointer to "struct tomoyo_io_buffer".
-+ * @ptr:  Pointer to "struct tomoyo_chroot_acl".
-+ * @cond: Pointer to "struct tomoyo_condition". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool tomoyo_print_chroot_acl(struct tomoyo_io_buffer *head,
-+				    struct tomoyo_chroot_acl *ptr,
-+				    const struct tomoyo_condition *cond)
-+{
-+	const int pos = head->read_avail;
-+	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_CHROOT) ||
-+	    !tomoyo_print_name_union(head, &ptr->dir) ||
-+	    !tomoyo_print_condition(head, cond)) {
-+		head->read_avail = pos;
-+		return false;
-+	}
-+	return true;
-+}
-+
-+/**
-+ * tomoyo_print_pivot_root_acl - Print a pivot_root ACL entry.
-+ *
-+ * @head: Pointer to "struct tomoyo_io_buffer".
-+ * @ptr:  Pointer to "struct tomoyo_pivot_root_acl".
-+ * @cond: Pointer to "struct tomoyo_condition". May be NULL.
-+ *
-+ * Returns true on success, false otherwise.
-+ */
-+static bool tomoyo_print_pivot_root_acl(struct tomoyo_io_buffer *head,
-+					struct tomoyo_pivot_root_acl *ptr,
-+					const struct tomoyo_condition *cond)
-+{
-+	const int pos = head->read_avail;
-+	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_PIVOT_ROOT) ||
-+	    !tomoyo_print_name_union(head, &ptr->new_root) ||
-+	    !tomoyo_print_name_union(head, &ptr->old_root) ||
-+	    !tomoyo_print_condition(head, cond)) {
-+		head->read_avail = pos;
-+		return false;
-+	}
-+	return true;
-+}
-+
-+/**
 + * tomoyo_print_entry - Print an ACL entry.
 + *
 + * @head: Pointer to "struct tomoyo_io_buffer".
@@ -1705,22 +1626,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct tomoyo_mount_acl *acl
 +			= container_of(ptr, struct tomoyo_mount_acl, head);
 +		return tomoyo_print_mount_acl(head, acl, cond);
-+	}
-+	if (acl_type == TOMOYO_TYPE_UMOUNT_ACL) {
-+		struct tomoyo_umount_acl *acl
-+			= container_of(ptr, struct tomoyo_umount_acl, head);
-+		return tomoyo_print_umount_acl(head, acl, cond);
-+	}
-+	if (acl_type == TOMOYO_TYPE_CHROOT_ACL) {
-+		struct tomoyo_chroot_acl *acl
-+			= container_of(ptr, struct tomoyo_chroot_acl, head);
-+		return tomoyo_print_chroot_acl(head, acl, cond);
-+	}
-+	if (acl_type == TOMOYO_TYPE_PIVOT_ROOT_ACL) {
-+		struct tomoyo_pivot_root_acl *acl
-+			= container_of(ptr, struct tomoyo_pivot_root_acl,
-+				       head);
-+		return tomoyo_print_pivot_root_acl(head, acl, cond);
 +	}
 +	BUG(); /* This must not happen. */
 +	return false;
