@@ -53,12 +53,12 @@ same functionality which non-LSM version of TOMOYO provides.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/lsm.c |  520 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 520 insertions(+)
+ security/tomoyo/lsm.c |  523 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 523 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/lsm.c
-@@ -0,0 +1,520 @@
+@@ -0,0 +1,523 @@
 +/*
 + * security/tomoyo/lsm.c
 + *
@@ -564,7 +564,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	.socket_setsockopt     = tomoyo_socket_setsockopt,
 +};
 +
-+/* To tell tomoyo_securityfs_init() that TOMOYO was registered. */
++/*
++ * To tell tomoyo_mm_init()/tomoyo_securityfs_init() that TOMOYO was
++ * registered.
++ */
 +__initdata bool tomoyo_registered;
 +static int __init tomoyo_init(void)
 +{
@@ -574,7 +577,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	if (register_security(&tomoyo_security_ops))
 +		panic("Failure registering TOMOYO Linux");
 +	printk(KERN_INFO "TOMOYO Linux initialized\n");
-+	/* call tomoyo_securityfs_init() later. */
++	/* call tomoyo_mm_init() and tomoyo_securityfs_init() later. */
 +	tomoyo_registered = true;
 +	return 0;
 +}

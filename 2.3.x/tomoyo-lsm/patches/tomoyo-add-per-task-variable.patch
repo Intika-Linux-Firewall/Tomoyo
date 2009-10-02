@@ -16,8 +16,8 @@ for holding task state variables used by TOMOYO.
 
       Whether the current process is allowed to modify policy via
       /sys/kernel/security/tomoyo/ interface or not. TOMOYO 2.2.0 checks
-      whenever write() is requested. This is "slow", and the check may "fail"
-      if the program's pathname changed by updating TOMOYO's userland tools.
+      whenever write() is requested. This is "slow", and the check will "fail"
+      if the program's pathname is changed by updating TOMOYO's userland tools.
       By caching the result of "whether the current process is allowed to
       modify policy via /sys/kernel/security/tomoyo/ interface or not" into
       this variable, I can solve the "slow"/"fail" problems.
@@ -26,8 +26,12 @@ for holding task state variables used by TOMOYO.
       not. TOMOYO needs to remember this information in order to avoid infinite
       execute handler loop.
 
-      Whether the current process should be given the sleep() penalty or not if
-      the current process violated policy in enforcing mode.
+      Whether the current process should be carried the sleep() penalty or not
+      if the current process violated policy in enforcing mode. TOMOYO can
+      carry sleep() penalty in order to avoid CPU consumption by repeating
+      requests which violate policy, but the sleep() penalty should not be
+      carried in some cases (e.g. connections/packets from unwanted hosts)
+      in order to avoid falling into almost denial-of-service state.
 
       Whether the current process might rollback to previous domain or not.
       This is used for
@@ -56,14 +60,25 @@ for holding task state variables used by TOMOYO.
     sys_faccessat()). But in the future, LSM hooks which TOMOYO is using could
     be called between override_creds() and revert_creds().
 
-(3) Use of COW credentials may save memory usage, but introduces the
-    possibility of -ENOMEM failure. I can omit error paths if I can use the per
-    task_struct variables.
+(3) Use of COW credentials introduces the possibility of -ENOMEM failure.
+    I can omit error paths if I can use the per task_struct variables.
 
-(4) I want TOMOYO to be able to coexist with other LSM modules.
+    This problem will be solved if current->security and security_task_alloc()
+    and security_task_free() (which existed in 2.6.24 - 2.6.28 kernels) are
+    revived.
+
+(4) As noted in Documentation/tomoyo.txt , I want TOMOYO to be able to coexist
+    with other LSM modules.
+
     Since TOMOYO is not a label based access control, TOMOYO can yield
     current->cred->security and current->real_cred->security to access controls
     who can utilize better, if I can use the per task_struct variables.
+
+    Also, TOMOYO can yield various object's "void *security" field except the
+    one for socket.
+
+    TOMOYO is close to be able to coexist with other LSM modules in a way IMA
+    proposed at http://marc.info/?l=linux-security-module&m=125259049313359&w=2
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---

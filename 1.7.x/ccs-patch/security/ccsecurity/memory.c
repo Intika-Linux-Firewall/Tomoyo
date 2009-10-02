@@ -282,11 +282,11 @@ void ccs_put_name(const struct ccs_path_info *name)
 }
 
 /**
- * ccs_realpath_init - Initialize realpath related code.
+ * ccs_mm_init - Initialize mm related code.
  *
  * Returns 0.
  */
-static int __init ccs_realpath_init(void)
+static int __init ccs_mm_init(void)
 {
 	int i;
 	for (i = 0; i < CCS_MAX_HASH; i++)
@@ -316,9 +316,9 @@ static int __init ccs_realpath_init(void)
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-__initcall(ccs_realpath_init);
+__initcall(ccs_mm_init);
 #else
-core_initcall(ccs_realpath_init);
+core_initcall(ccs_mm_init);
 #endif
 
 unsigned int ccs_audit_log_memory_size;
