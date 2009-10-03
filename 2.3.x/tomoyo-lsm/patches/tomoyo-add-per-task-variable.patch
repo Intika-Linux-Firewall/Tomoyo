@@ -7,33 +7,33 @@ I want to introduce per task_struct variables
 
 for holding task state variables used by TOMOYO.
 
-(1) These variables are not shared between processes. Only the current process
+(1) These variables are not shared between threads. Only the current thread
     modifies current->tomoyo_domain_info and current->tomoyo_flags.
     The current->tomoyo_domain_info and current->tomoyo_flags can be simply
     copied upon fork() and discarded upon exit().
 
     So far, below status is stored into the current->tomoyo_flags.
 
-      Whether the current process is allowed to modify policy via
+      Whether the current thread is allowed to modify policy via
       /sys/kernel/security/tomoyo/ interface or not. TOMOYO 2.2.0 checks
       whenever write() is requested. This is "slow", and the check will "fail"
       if the program's pathname is changed by updating TOMOYO's userland tools.
-      By caching the result of "whether the current process is allowed to
-      modify policy via /sys/kernel/security/tomoyo/ interface or not" into
-      this variable, I can solve the "slow"/"fail" problems.
+      By caching the result of "whether the current thread is allowed to modify
+      policy via /sys/kernel/security/tomoyo/ interface or not" into this
+      variable, I can solve the "slow"/"fail" problems.
 
-      Whether the current process is running as an execute handler program or
+      Whether the current thread is running as an execute handler program or
       not. TOMOYO needs to remember this information in order to avoid infinite
       execute handler loop.
 
-      Whether the current process should be carried the sleep() penalty or not
-      if the current process violated policy in enforcing mode. TOMOYO can
+      Whether the current thread should be carried the sleep() penalty or not
+      if the current thread violated policy in enforcing mode. TOMOYO can
       carry sleep() penalty in order to avoid CPU consumption by repeating
       requests which violate policy, but the sleep() penalty should not be
       carried in some cases (e.g. connections/packets from unwanted hosts)
       in order to avoid falling into almost denial-of-service state.
 
-      Whether the current process might rollback to previous domain or not.
+      Whether the current thread might rollback to previous domain or not.
       This is used for
         telling the garbage collector that "do not delete domains because I
         will rollback to the previous domain if search_binary_handler() failed"
@@ -79,6 +79,55 @@ for holding task state variables used by TOMOYO.
 
     TOMOYO is close to be able to coexist with other LSM modules in a way IMA
     proposed at http://marc.info/?l=linux-security-module&m=125259049313359&w=2
+
+    TOMOYO 2.3 (this submission) and 1.7 (its non-LSM version) became more
+    suitable for use with other access controls. For example people can use
+    SELinux or SMACK as a base access control and use TOMOYO for restricting
+    only directory modification operations (e.g. create()/mkdir()/rename()/
+    link()) or auditing complete execve() parameters or SSH login sessions,
+    if LSM allows TOMOYO to coexist with other modules which use
+    "struct security_operations". Use of per task variables is one of steps
+    towards such usage.
+
+
+
+Hints for supporting TOMOYO's c/r support:
+
+Basically, only current thread is allowed to modify tomoyo_domain_info and
+tomoyo_flags. But in case of restarting, it is safe to allow the process who is
+processing the checkpointed image to modify task_to_restart->tomoyo_domain_info
+and task_to_restart->tomoyo_flags because task_to_restart is controlled by the
+process who is processing the checkpointed image.
+
+Checkpointing a process would look like
+
+  write_string_to_image(task_to_checkpoint->tomoyo_domain_info->
+  			domainname->name);
+  write_u32_to_image(task_to_checkpoint->tomoyo_flags);
+
+Restarting a process would look like
+
+  const char *domainname = read_string_from_image();
+  u32 flags = read_u32_from_image();
+  struct tomoyo_domain_info *domain;
+  mutex_lock(&tomoyo_policy_lock);
+  domain = tomoyo_find_domain(domainname);
+  if (domain) {
+  	task_to_restart->tomoyo_domain_info = domain;
+  	task_to_restart->tomoyo_flags = flags;
+  }
+  mutex_unlock(&tomoyo_policy_lock);
+  return domain ? 0 : -EINVAL;
+
+The difference between fork() and restarting is that the domain to be assigned
+is taken from it's parent or checkpointed image.
+
+In case of fork(), the domain to be assigned never be garbage collected because
+parent process is using that domain. No lock is needed.
+
+In case of restarting, the domain to be assigned could be garbage collected.
+To prrotect the domain from being garbage collected, the process who is
+processing the checkpointed image needs to take tomoyo_policy_lock mutex.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---

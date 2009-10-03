@@ -78,7 +78,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
 +			       gfp_t gfp)
 +{
-+	/* Get ref if "struct linux_binprm *bprm"->cred */
++	/* Get ref if "struct linux_binprm *"->cred */
 +	struct tomoyo_execve_entry *ee = old->security;
 +	if (ee)
 +		atomic_inc(&ee->cred_users);
@@ -94,11 +94,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +static void tomoyo_cred_free(struct cred *cred)
 +{
 +	struct tomoyo_execve_entry *ee = cred->security;
-+	/* Put ref if "struct linux_binprm *bprm"->cred */
++	/* Put ref if "struct linux_binprm *"->cred */
 +	if (ee && atomic_dec_and_test(&ee->cred_users)) {
 +		/*
 +		 * Reaching here means execve() failed, for
-+		 * "struct linux_binprm *bprm"->cred is not shared between
++		 * "struct linux_binprm *"->cred is not shared between
 +		 * processes.
 +		 * Release memory allocated by tomoyo_start_execve().
 +		 */

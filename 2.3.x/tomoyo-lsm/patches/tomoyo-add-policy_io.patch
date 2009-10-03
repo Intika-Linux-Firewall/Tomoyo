@@ -7,7 +7,7 @@ collector. I call tomoyo_read_lock() when /sys/kernel/security/tomoyo/
 interface is open()ed and call tomoyo_read_unlock() when
 /sys/kernel/security/tomoyo/ interface is close()d rather than calling
 tomoyo_read_lock()/tomoyo_read_unlock() upon individual read()/write()
-requests. In this way, the pointer saved in "struct tomoyo_io_buffer" are
+requests. In this way, the pointers saved in "struct tomoyo_io_buffer" are
 guaranteed to be valid. Please ignore
 
   warning: context imbalance in 'tomoyo_open_control' - wrong count at exit
@@ -21,14 +21,18 @@ I don't call tomoyo_read_lock()/tomoyo_read_unlock() for
 /sys/kernel/security/tomoyo/reject_log (for access rejected logs) because the
 data which these interfaces access is not subjected to the garbage collection.
 
+The "struct tomoyo_profile *"->name is not subjected to GC. It is manually
+garbage collected. Thus, to protect it against tomoyo_read_profile(),
+tomoyo_write_profile() uses tomoyo_profile_comment_lock spinlock.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2703 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2703 insertions(+)
+ security/tomoyo/policy_io.c | 2705 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2705 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/policy_io.c
-@@ -0,0 +1,2703 @@
+@@ -0,0 +1,2705 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -63,7 +67,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* Profile table. Memory is allocated as needed. */
 +static struct tomoyo_profile *tomoyo_profile_ptr[TOMOYO_MAX_PROFILES];
 +
-+/* Lock for protecting "struct tomoyo_profile"->comment  */
++/* Lock for protecting "struct tomoyo_profile *"->comment  */
 +static DEFINE_SPINLOCK(tomoyo_profile_comment_lock);
 +
 +/* String table for functionality that takes 4 modes. */
@@ -2540,6 +2544,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			return -ENOMEM;
 +		}
 +	}
++	/* This lock is released at tomoyo_close_control(). */
 +	if (type != TOMOYO_QUERY &&
 +	    type != TOMOYO_GRANTLOG && type != TOMOYO_REJECTLOG)
 +		head->reader_idx = tomoyo_read_lock();
@@ -2717,6 +2722,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	 */
 +	if (type == TOMOYO_QUERY)
 +		atomic_dec(&tomoyo_query_observers);
++	/* This lock is acquired at tomoyo_open_control(). */
 +	if (type != TOMOYO_QUERY &&
 +	    type != TOMOYO_GRANTLOG && type != TOMOYO_REJECTLOG)
 +		tomoyo_read_unlock(head->reader_idx);
