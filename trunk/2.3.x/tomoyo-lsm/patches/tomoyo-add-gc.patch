@@ -1,5 +1,45 @@
 [TOMOYO] Add garbage collector support.
 
+This patch contains code for SRCU based garbage collector.
+
+Both writers and GC process take tomoyo_policy_lock mutex when updating list
+elements. All readers use srcu_read_lock()/srcu_read_unlock() to protect list
+elements against the GC process. The removed list elements are kfree()d by GC
+process after synchronize_srcu().
+
+Special care is taken when garbage collecting "struct tomoyo_domain_info".
+When GC process finds that FOO->is_deleted == true, GC process traverses the
+tasklist to veryfy that "struct tomoyo_task_struct *"->tomoyo_domain_info !=
+FOO before removing FOO from the tomoyo_domain_list list.
+But there is a race window shown below.
+
+ (1) Reader process who is doing an execve() operation calls srcu_read_lock().
+
+ (2) Reader process reaches FOO because FOO->is_deleted == false.
+
+ (3) Writer process changes FOO->is_deleted to true.
+
+ (4) GC process finds that FOO->is_deleted == true and also finds that all
+     thread's "struct tomoyo_task_struct *"->tomoyo_domain_info != FOO , and
+     removes FOO from the tomoyo_domain_list list.
+
+ (5) GC process calls synchronize_srcu().
+
+ (6) Reader process sets current->tomoyo_domain_info to FOO .
+
+ (7) Reader process calls srcu_read_unlock().
+
+ (8) GC process calls kfree(FOO).
+
+Therefore, before doing (8), GC process rechecks that all thread's
+"struct tomoyo_task_struct *"->tomoyo_domain_info != FOO by traversing the
+tasklist.
+
+Traversing the tasklist might be heavy, but this event seldom happens because
+users unlikely delete FOO.
+Thus, this approach can avoid use of atomic variables for counting FOO users
+and simplify the reader's code.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/gc.c |  606 +++++++++++++++++++++++++++++++++++++++++++++++++++

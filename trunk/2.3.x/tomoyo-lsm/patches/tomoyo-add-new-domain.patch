@@ -1,13 +1,27 @@
 [TOMOYO] Add domain transition handler.
 
+This patch contains code for handling policy I/O.
+
+tomoyo_read_lock()/tomoyo_read_unlock() protects the data against the garbage
+collector. I call tomoyo_read_lock() when an execve() operation starts and
+call tomoyo_read_unlock() when an execve() operation finishes rather than
+calling tomoyo_read_lock()/tomoyo_read_unlock() upon individual list traversal.
+In this way, the pointer saved in "struct tomoyo_execve_entry" is guaranteed
+to be valid. Please ignore
+
+  warning: context imbalance in 'tomoyo_start_execve' - wrong count at exit
+  warning: context imbalance in 'tomoyo_finish_execve' - unexpected unlock
+
+messages when built with "C=1" option.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1243 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1243 insertions(+)
+ security/tomoyo/new-domain.c | 1245 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1245 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/new-domain.c
-@@ -0,0 +1,1243 @@
+@@ -0,0 +1,1245 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -1156,6 +1170,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		kfree(ee);
 +		return -ENOMEM;
 +	}
++	/* This lock is released at tomoyo_finish_execve(). */
 +	ee->reader_idx = tomoyo_read_lock();
 +	/* ee->dump->data is allocated by tomoyo_dump_page(). */
 +	ee->previous_domain = task->tomoyo_domain_info;
@@ -1245,6 +1260,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	/* Tell GC that I finished execve(). */
 +	task->tomoyo_flags &= ~TOMOYO_TASK_IS_IN_EXECVE;
++	/* This lock is acquired at tomoyo_start_execve(). */
 +	tomoyo_read_unlock(ee->reader_idx);
 +	kfree(ee->handler_path);
 +	kfree(ee->tmp);

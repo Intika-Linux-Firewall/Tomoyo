@@ -1,7 +1,19 @@
 [TOMOYO] Add auditing support.
 
 This patch adds auditing code used by TOMOYO.
-TOMOYO generates audit logs in the form of domain policy.
+
+TOMOYO generates audit logs ( /sys/kernel/security/tomoyo/grant_log and
+/sys/kernel/security/tomoyo/reject_log ) in the form of domain policy
+( /sys/kernel/security/domain_policy ).
+
+Users can configure whether to generate audit logs or not via profile
+( /sys/kernel/security/tomoyo/profile ). By default all information usable for
+"if" clause is audited by default. Users can suppress unneeded information.
+Memory quota for audit logs is configurable via profile and meminfo interface
+ ( /sys/kernel/security/tomoyo/meminfo ).
+
+tomoyo_profile()->audit is guaranteed to point to either default configuration
+( tomoyo_default_profile ) or per profile configuration.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---

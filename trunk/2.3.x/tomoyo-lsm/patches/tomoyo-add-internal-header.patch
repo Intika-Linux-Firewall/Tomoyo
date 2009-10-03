@@ -164,7 +164,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	TOMOYO_IP_ADDRESS_TYPE_IPv6
 +};
 +
-+/* Indexes for /proc/tomoyo/ interfaces. */
++/* Indexes for /sys/kernel/security/tomoyo/ interfaces. */
 +enum tomoyo_proc_interface_index {
 +	TOMOYO_DOMAINPOLICY,
 +	TOMOYO_EXCEPTIONPOLICY,
@@ -934,7 +934,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_poll_reject_log(struct file *file, poll_table *wait);
 +int tomoyo_read_control(struct file *file, char __user *buffer,
 +			const int buffer_len);
-+int tomoyo_read_lock(void);
++int tomoyo_read_lock(void) __acquires(tomoyo_ss);
 +int tomoyo_supervisor(struct tomoyo_request_info *r, const char *fmt, ...)
 +     __attribute__ ((format(printf, 2, 3)));
 +int tomoyo_symlink_path(const char *pathname, struct tomoyo_path_info *name);
@@ -1003,7 +1003,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +void tomoyo_read_grant_log(struct tomoyo_io_buffer *head);
 +void tomoyo_read_memory_counter(struct tomoyo_io_buffer *head);
 +void tomoyo_read_reject_log(struct tomoyo_io_buffer *head);
-+void tomoyo_read_unlock(const int idx);
++void tomoyo_read_unlock(const int idx) __releases(tomoyo_ss);
 +void tomoyo_run_gc(void);
 +void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
 +     __attribute__ ((format(printf, 2, 3)));

@@ -1,5 +1,17 @@
 [TOMOYO] Add conditional ACL support.
 
+This patch contains code for handling "if" clause of a permission.
+TOMOYO is a pathname based access control system, but also deals some of non
+pathname attributes.
+
+TOMOYO supports conditional permissions based on process's UID,GID etc. and/or
+requested pathname's UID/GID.
+
+Regarding symlink(), you can check symlink's contents.
+
+Regarding execve(), you can check argv[]/envp[] conditions.
+If you need to examine argv[]/envp[] more deeply, you can use execute handler.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/condition.c | 1332 ++++++++++++++++++++++++++++++++++++++++++++
