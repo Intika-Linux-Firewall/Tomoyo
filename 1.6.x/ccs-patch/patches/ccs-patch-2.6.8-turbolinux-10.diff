@@ -56,8 +56,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |    8 ++++
  54 files changed, 630 insertions(+), 11 deletions(-)
 
---- linux-2.6.8-16.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/alpha/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
 @@ -19,6 +19,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -79,8 +79,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.8-16.orig/arch/arm/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/arm/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/arm/kernel/ptrace.c
++++ linux-2.6.8-20/arch/arm/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -102,8 +102,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/arm26/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/arm26/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/arm26/kernel/ptrace.c
++++ linux-2.6.8-20/arch/arm26/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -125,8 +125,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/cris/arch-v10/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/cris/arch-v10/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/cris/arch-v10/kernel/ptrace.c
++++ linux-2.6.8-20/arch/cris/arch-v10/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -148,8 +148,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/h8300/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/h8300/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/h8300/kernel/ptrace.c
++++ linux-2.6.8-20/arch/h8300/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -171,8 +171,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/i386/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/i386/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/i386/kernel/ptrace.c
++++ linux-2.6.8-20/arch/i386/kernel/ptrace.c
 @@ -24,6 +24,9 @@
  #include <asm/debugreg.h>
  #include <asm/ldt.h>
@@ -194,8 +194,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.8-16/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.8-20.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.8-20/arch/ia64/ia32/sys_ia32.c
 @@ -56,6 +56,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -217,8 +217,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.8-16.orig/arch/ia64/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/ia64/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/ia64/kernel/ptrace.c
++++ linux-2.6.8-20/arch/ia64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #ifdef CONFIG_PERFMON
  #include <asm/perfmon.h>
@@ -240,8 +240,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/m68k/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/m68k/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/m68k/kernel/ptrace.c
++++ linux-2.6.8-20/arch/m68k/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -263,8 +263,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/m68knommu/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/m68knommu/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/m68knommu/kernel/ptrace.c
++++ linux-2.6.8-20/arch/m68knommu/kernel/ptrace.c
 @@ -25,6 +25,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -286,8 +286,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/mips/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/mips/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/mips/kernel/ptrace.c
++++ linux-2.6.8-20/arch/mips/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -309,8 +309,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.8-16.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.8-16/arch/mips/kernel/ptrace32.c
+--- linux-2.6.8-20.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.8-20/arch/mips/kernel/ptrace32.c
 @@ -33,6 +33,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -332,8 +332,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.8-16.orig/arch/parisc/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/parisc/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/parisc/kernel/ptrace.c
++++ linux-2.6.8-20/arch/parisc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -355,8 +355,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/ppc/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/ppc/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/ppc/kernel/ptrace.c
++++ linux-2.6.8-20/arch/ppc/kernel/ptrace.c
 @@ -31,6 +31,9 @@
  #include <asm/page.h>
  #include <asm/pgtable.h>
@@ -378,8 +378,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.8-16.orig/arch/ppc64/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/ppc64/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/ppc64/kernel/ptrace.c
++++ linux-2.6.8-20/arch/ppc64/kernel/ptrace.c
 @@ -33,6 +33,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -401,8 +401,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.8-16.orig/arch/ppc64/kernel/ptrace32.c
-+++ linux-2.6.8-16/arch/ppc64/kernel/ptrace32.c
+--- linux-2.6.8-20.orig/arch/ppc64/kernel/ptrace32.c
++++ linux-2.6.8-20/arch/ppc64/kernel/ptrace32.c
 @@ -32,6 +32,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -424,8 +424,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.8-16.orig/arch/s390/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/s390/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/s390/kernel/ptrace.c
++++ linux-2.6.8-20/arch/s390/kernel/ptrace.c
 @@ -38,6 +38,9 @@
  #include <asm/pgalloc.h>
  #include <asm/system.h>
@@ -447,8 +447,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  
---- linux-2.6.8-16.orig/arch/sh/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/sh/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/sh/kernel/ptrace.c
++++ linux-2.6.8-20/arch/sh/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -470,8 +470,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/sh64/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/sh64/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/sh64/kernel/ptrace.c
++++ linux-2.6.8-20/arch/sh64/kernel/ptrace.c
 @@ -34,6 +34,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -493,8 +493,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/sparc/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.8-20/arch/sparc/kernel/ptrace.c
 @@ -22,6 +22,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -518,8 +518,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.8-16.orig/arch/sparc64/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/sparc64/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/sparc64/kernel/ptrace.c
++++ linux-2.6.8-20/arch/sparc64/kernel/ptrace.c
 @@ -27,6 +27,9 @@
  #include <asm/psrcompat.h>
  #include <asm/visasm.h>
@@ -543,8 +543,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	if (test_thread_flag(TIF_32BIT)) {
  		addr &= 0xffffffffUL;
---- linux-2.6.8-16.orig/arch/um/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/um/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/um/kernel/ptrace.c
++++ linux-2.6.8-20/arch/um/kernel/ptrace.c
 @@ -16,6 +16,9 @@
  #include "asm/uaccess.h"
  #include "kern_util.h"
@@ -566,8 +566,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  	ret = -EPERM;
---- linux-2.6.8-16.orig/arch/v850/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/v850/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/v850/kernel/ptrace.c
++++ linux-2.6.8-20/arch/v850/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/ptrace.h>
  #include <asm/processor.h>
@@ -589,8 +589,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	lock_kernel();
  
---- linux-2.6.8-16.orig/arch/x86_64/ia32/ptrace32.c
-+++ linux-2.6.8-16/arch/x86_64/ia32/ptrace32.c
+--- linux-2.6.8-20.orig/arch/x86_64/ia32/ptrace32.c
++++ linux-2.6.8-20/arch/x86_64/ia32/ptrace32.c
 @@ -27,6 +27,9 @@
  #include <asm/debugreg.h>
  #include <asm/i387.h>
@@ -612,8 +612,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	switch (request) { 
  	default:
---- linux-2.6.8-16.orig/arch/x86_64/kernel/ptrace.c
-+++ linux-2.6.8-16/arch/x86_64/kernel/ptrace.c
+--- linux-2.6.8-20.orig/arch/x86_64/kernel/ptrace.c
++++ linux-2.6.8-20/arch/x86_64/kernel/ptrace.c
 @@ -28,6 +28,9 @@
  #include <asm/desc.h>
  #include <asm/proto.h>
@@ -635,8 +635,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	/* This lock_kernel fixes a subtle race with suid exec */
  	lock_kernel();
---- linux-2.6.8-16.orig/fs/Kconfig
-+++ linux-2.6.8-16/fs/Kconfig
+--- linux-2.6.8-20.orig/fs/Kconfig
++++ linux-2.6.8-20/fs/Kconfig
 @@ -1817,5 +1817,7 @@ endmenu
  
  source "fs/nls/Kconfig"
@@ -645,16 +645,16 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +
  endmenu
  
---- linux-2.6.8-16.orig/fs/Makefile
-+++ linux-2.6.8-16/fs/Makefile
+--- linux-2.6.8-20.orig/fs/Makefile
++++ linux-2.6.8-20/fs/Makefile
 @@ -96,3 +96,5 @@ obj-$(CONFIG_GFS_FS)		+= gfs/
  obj-$(CONFIG_SUPERMOUNT)	+= supermount/
  obj-$(CONFIG_HOSTFS)		+= hostfs/
  obj-$(CONFIG_HPPFS)		+= hppfs/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.8-16.orig/fs/attr.c
-+++ linux-2.6.8-16/fs/attr.c
+--- linux-2.6.8-20.orig/fs/attr.c
++++ linux-2.6.8-20/fs/attr.c
 @@ -14,6 +14,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -694,8 +694,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.8-16.orig/fs/compat.c
-+++ linux-2.6.8-16/fs/compat.c
+--- linux-2.6.8-20.orig/fs/compat.c
++++ linux-2.6.8-20/fs/compat.c
 @@ -46,6 +46,9 @@
  
  #include <asm/uaccess.h>
@@ -728,8 +728,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
---- linux-2.6.8-16.orig/fs/exec.c
-+++ linux-2.6.8-16/fs/exec.c
+--- linux-2.6.8-20.orig/fs/exec.c
++++ linux-2.6.8-20/fs/exec.c
 @@ -54,6 +54,10 @@
  #include <linux/kmod.h>
  #endif
@@ -775,8 +775,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (retval >= 0) {
  		free_arg_pages(&bprm);
  
---- linux-2.6.8-16.orig/fs/fcntl.c
-+++ linux-2.6.8-16/fs/fcntl.c
+--- linux-2.6.8-20.orig/fs/fcntl.c
++++ linux-2.6.8-20/fs/fcntl.c
 @@ -18,6 +18,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -799,8 +799,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.8-16.orig/fs/ioctl.c
-+++ linux-2.6.8-16/fs/ioctl.c
+--- linux-2.6.8-20.orig/fs/ioctl.c
++++ linux-2.6.8-20/fs/ioctl.c
 @@ -14,6 +14,9 @@
  
  #include <asm/uaccess.h>
@@ -835,8 +835,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			error = -ENOTTY;
  			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
  				error = file_ioctl(filp, cmd, arg);
---- linux-2.6.8-16.orig/fs/namei.c
-+++ linux-2.6.8-16/fs/namei.c
+--- linux-2.6.8-20.orig/fs/namei.c
++++ linux-2.6.8-20/fs/namei.c
 @@ -32,6 +32,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -974,8 +974,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.8-16.orig/fs/namespace.c
-+++ linux-2.6.8-16/fs/namespace.c
+--- linux-2.6.8-20.orig/fs/namespace.c
++++ linux-2.6.8-20/fs/namespace.c
 @@ -23,6 +23,12 @@
  #include <linux/mount.h>
  #include <asm/uaccess.h>
@@ -1100,8 +1100,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.8-16.orig/fs/open.c
-+++ linux-2.6.8-16/fs/open.c
+--- linux-2.6.8-20.orig/fs/open.c
++++ linux-2.6.8-20/fs/open.c
 @@ -25,6 +25,13 @@
  
  #include <asm/unistd.h>
@@ -1166,8 +1166,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.8-16.orig/fs/proc/Makefile
-+++ linux-2.6.8-16/fs/proc/Makefile
+--- linux-2.6.8-20.orig/fs/proc/Makefile
++++ linux-2.6.8-20/fs/proc/Makefile
 @@ -12,3 +12,6 @@ proc-y       += inode.o root.o base.o ge
  
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
@@ -1175,20 +1175,20 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.8-16.orig/fs/proc/proc_misc.c
-+++ linux-2.6.8-16/fs/proc/proc_misc.c
+--- linux-2.6.8-20.orig/fs/proc/proc_misc.c
++++ linux-2.6.8-20/fs/proc/proc_misc.c
 @@ -641,4 +641,9 @@ void __init proc_misc_init(void)
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.8-16 2009/04/20\n");
++	printk(KERN_INFO "Hook version: 2.6.8-20 2009/10/03\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.8-16.orig/include/linux/init_task.h
-+++ linux-2.6.8-16/include/linux/init_task.h
+--- linux-2.6.8-20.orig/include/linux/init_task.h
++++ linux-2.6.8-20/include/linux/init_task.h
 @@ -112,6 +112,10 @@ extern struct group_info init_groups;
  	.proc_lock	= SPIN_LOCK_UNLOCKED,				\
  	.switch_lock	= SPIN_LOCK_UNLOCKED,				\
@@ -1200,8 +1200,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  }
  
  
---- linux-2.6.8-16.orig/include/linux/sched.h
-+++ linux-2.6.8-16/include/linux/sched.h
+--- linux-2.6.8-20.orig/include/linux/sched.h
++++ linux-2.6.8-20/include/linux/sched.h
 @@ -32,6 +32,10 @@
  
  struct exec_domain;
@@ -1224,8 +1224,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.8-16.orig/kernel/kmod.c
-+++ linux-2.6.8-16/kernel/kmod.c
+--- linux-2.6.8-20.orig/kernel/kmod.c
++++ linux-2.6.8-20/kernel/kmod.c
 @@ -166,6 +166,11 @@ static int ____call_usermodehelper(void 
  	/* We can run anywhere, unlike our parent keventd(). */
  	set_cpus_allowed(current, CPU_MASK_ALL);
@@ -1238,8 +1238,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(sub_info->path, sub_info->argv,sub_info->envp);
---- linux-2.6.8-16.orig/kernel/module.c
-+++ linux-2.6.8-16/kernel/module.c
+--- linux-2.6.8-20.orig/kernel/module.c
++++ linux-2.6.8-20/kernel/module.c
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/semaphore.h>
@@ -1274,8 +1274,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	/* Only one module load at a time, please */
  	if (down_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.8-16.orig/kernel/sched.c
-+++ linux-2.6.8-16/kernel/sched.c
+--- linux-2.6.8-20.orig/kernel/sched.c
++++ linux-2.6.8-20/kernel/sched.c
 @@ -46,6 +46,9 @@
  #include <asm/tlb.h>
  
@@ -1286,7 +1286,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  #ifdef CONFIG_NUMA
  #define cpu_to_node_mask(cpu) node_to_cpumask(cpu_to_node(cpu))
-@@ -3026,6 +3029,10 @@ asmlinkage long sys_nice(int increment)
+@@ -3123,6 +3126,10 @@ asmlinkage long sys_nice(int increment)
  {
  	int retval;
  	long nice;
@@ -1297,8 +1297,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.8-16.orig/kernel/signal.c
-+++ linux-2.6.8-16/kernel/signal.c
+--- linux-2.6.8-20.orig/kernel/signal.c
++++ linux-2.6.8-20/kernel/signal.c
 @@ -25,6 +25,9 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -1349,8 +1349,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	info.si_signo = sig;
  	info.si_errno = 0;
  	info.si_code = SI_TKILL;
---- linux-2.6.8-16.orig/kernel/sys.c
-+++ linux-2.6.8-16/kernel/sys.c
+--- linux-2.6.8-20.orig/kernel/sys.c
++++ linux-2.6.8-20/kernel/sys.c
 @@ -28,6 +28,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1407,8 +1407,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.8-16.orig/kernel/sysctl.c
-+++ linux-2.6.8-16/kernel/sysctl.c
+--- linux-2.6.8-20.orig/kernel/sysctl.c
++++ linux-2.6.8-20/kernel/sysctl.c
 @@ -43,6 +43,9 @@
  
  #include <asm/uaccess.h>
@@ -1456,8 +1456,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  }
  
  /*
---- linux-2.6.8-16.orig/kernel/time.c
-+++ linux-2.6.8-16/kernel/time.c
+--- linux-2.6.8-20.orig/kernel/time.c
++++ linux-2.6.8-20/kernel/time.c
 @@ -33,6 +33,9 @@
  #include <linux/smp_lock.h>
  #include <asm/uaccess.h>
@@ -1501,8 +1501,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.8-16.orig/net/ipv4/raw.c
-+++ linux-2.6.8-16/net/ipv4/raw.c
+--- linux-2.6.8-20.orig/net/ipv4/raw.c
++++ linux-2.6.8-20/net/ipv4/raw.c
 @@ -79,6 +79,9 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -1525,8 +1525,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.8-16.orig/net/ipv4/tcp_ipv4.c
-+++ linux-2.6.8-16/net/ipv4/tcp_ipv4.c
+--- linux-2.6.8-20.orig/net/ipv4/tcp_ipv4.c
++++ linux-2.6.8-20/net/ipv4/tcp_ipv4.c
 @@ -74,6 +74,9 @@
  #include <linux/stddef.h>
  #include <linux/proc_fs.h>
@@ -1559,8 +1559,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
   			/* Does not bother with rcv_saddr checks,
   			 * because the established check is already
---- linux-2.6.8-16.orig/net/ipv4/udp.c
-+++ linux-2.6.8-16/net/ipv4/udp.c
+--- linux-2.6.8-20.orig/net/ipv4/udp.c
++++ linux-2.6.8-20/net/ipv4/udp.c
 @@ -107,6 +107,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1596,7 +1596,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -801,7 +815,12 @@ try_again:
+@@ -803,7 +817,12 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1610,8 +1610,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
  		copied = len;
---- linux-2.6.8-16.orig/net/ipv6/raw.c
-+++ linux-2.6.8-16/net/ipv6/raw.c
+--- linux-2.6.8-20.orig/net/ipv6/raw.c
++++ linux-2.6.8-20/net/ipv6/raw.c
 @@ -54,6 +54,9 @@
  
  #include <linux/proc_fs.h>
@@ -1634,8 +1634,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.8-16.orig/net/ipv6/tcp_ipv6.c
-+++ linux-2.6.8-16/net/ipv6/tcp_ipv6.c
+--- linux-2.6.8-20.orig/net/ipv6/tcp_ipv6.c
++++ linux-2.6.8-20/net/ipv6/tcp_ipv6.c
 @@ -62,6 +62,9 @@
  
  #include <linux/proc_fs.h>
@@ -1657,8 +1657,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			tb_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.8-16.orig/net/ipv6/udp.c
-+++ linux-2.6.8-16/net/ipv6/udp.c
+--- linux-2.6.8-20.orig/net/ipv6/udp.c
++++ linux-2.6.8-20/net/ipv6/udp.c
 @@ -57,6 +57,12 @@
  
  #include <linux/proc_fs.h>
@@ -1706,8 +1706,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.8-16.orig/net/socket.c
-+++ linux-2.6.8-16/net/socket.c
+--- linux-2.6.8-20.orig/net/socket.c
++++ linux-2.6.8-20/net/socket.c
 @@ -95,6 +95,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1734,7 +1734,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
  
-@@ -1113,6 +1123,12 @@ static int __sock_create(int family, int
+@@ -1116,6 +1126,12 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1747,7 +1747,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1310,6 +1326,12 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1313,6 +1329,12 @@ asmlinkage long sys_bind(int fd, struct 
  				sockfd_put(sock);
  				return err;
  			}
@@ -1760,7 +1760,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			err = sock->ops->bind(sock, (struct sockaddr *)address, addrlen);
  		}
  		sockfd_put(sock);
-@@ -1340,7 +1362,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1343,7 +1365,10 @@ asmlinkage long sys_listen(int fd, int b
  			sockfd_put(sock);
  			return err;
  		}
@@ -1772,7 +1772,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1391,6 +1416,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1394,6 +1419,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
@@ -1786,7 +1786,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1446,7 +1478,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1449,7 +1481,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;
@@ -1800,8 +1800,8 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.8-16.orig/net/unix/af_unix.c
-+++ linux-2.6.8-16/net/unix/af_unix.c
+--- linux-2.6.8-20.orig/net/unix/af_unix.c
++++ linux-2.6.8-20/net/unix/af_unix.c
 @@ -118,6 +118,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
