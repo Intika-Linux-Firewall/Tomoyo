@@ -1,4 +1,4 @@
-[LSM] Add security_path_chroot().
+Subject: LSM: Add security_path_chroot().
 
 This patch allows pathname based LSM modules to check chroot() operations.
 
@@ -12,8 +12,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |    5 +++++
  4 files changed, 25 insertions(+)
 
---- linux-2.6.32-rc1.orig/fs/open.c
-+++ linux-2.6.32-rc1/fs/open.c
+--- security-testing-2.6.orig/fs/open.c
++++ security-testing-2.6/fs/open.c
 @@ -587,6 +587,9 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
@@ -24,8 +24,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	set_fs_root(current->fs, &path);
  	error = 0;
---- linux-2.6.32-rc1.orig/include/linux/security.h
-+++ linux-2.6.32-rc1/include/linux/security.h
+--- security-testing-2.6.orig/include/linux/security.h
++++ security-testing-2.6/include/linux/security.h
 @@ -459,6 +459,10 @@ static inline void security_free_mnt_opt
   *	@uid contains new owner's ID.
   *	@gid contains new group's ID.
@@ -65,8 +65,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif	/* CONFIG_SECURITY_PATH */
  
  #ifdef CONFIG_KEYS
---- linux-2.6.32-rc1.orig/security/capability.c
-+++ linux-2.6.32-rc1/security/capability.c
+--- security-testing-2.6.orig/security/capability.c
++++ security-testing-2.6/security/capability.c
 @@ -319,6 +319,11 @@ static int cap_path_chown(struct path *p
  {
  	return 0;
@@ -87,8 +87,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
---- linux-2.6.32-rc1.orig/security/security.c
-+++ linux-2.6.32-rc1/security/security.c
+--- security-testing-2.6.orig/security/security.c
++++ security-testing-2.6/security/security.c
 @@ -449,6 +449,11 @@ int security_path_chown(struct path *pat
  		return 0;
  	return security_ops->path_chown(path, uid, gid);

@@ -1,4 +1,4 @@
-[TOMOYO] Add LSM adaptor.
+Subject: TOMOYO: Add LSM adaptor.
 
 Since TOMOYO uses per task_struct variables, I have nothing to store into
 "struct cred *"->security except "struct linux_binprm *"->cred->security.
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 523 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/lsm.c
++++ security-testing-2.6/security/tomoyo/lsm.c
 @@ -0,0 +1,523 @@
 +/*
 + * security/tomoyo/lsm.c

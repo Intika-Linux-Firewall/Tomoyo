@@ -1,13 +1,13 @@
-[TOMOYO] Add number_group keyword support.
+Subject: TOMOYO: Add number_group keyword support.
 
 This patch contains code for handling numeric values grouping.
 To be able to specify value ranges more flexibly, I want to add numeric values
 grouping support into TOMOYO 2.3.0.
 
-  number_group UIDS_ALLOWED_TO_EXEECUTE_SHELL 100-2000
-  number_group UIDS_ALLOWED_TO_EXEECUTE_SHELL 10000-20000
+  number_group UIDS_ALLOWED_TO_EXECUTE_SHELL 100-2000
+  number_group UIDS_ALLOWED_TO_EXECUTE_SHELL 10000-20000
               +
-  allow_execute /bin/sh if task.uid=@UIDS_ALLOWED_TO_EXEECUTE_SHELL
+  allow_execute /bin/sh if task.uid=@UIDS_ALLOWED_TO_EXECUTE_SHELL
 
   number_group PERMISSIONS_FOR_CREATE 0644
   number_group PERMISSIONS_FOR_CREATE 0600
@@ -20,7 +20,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 212 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/number_group.c
++++ security-testing-2.6/security/tomoyo/number_group.c
 @@ -0,0 +1,212 @@
 +/*
 + * security/tomoyo/number_group.c

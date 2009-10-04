@@ -1,4 +1,4 @@
-[LSM] Pass original mount flags to security_sb_mount().
+Subject: LSM: Pass original mount flags to security_sb_mount().
 
 This patch allows LSM modules to determine based on original mount flags
 passed to mount(). A LSM module can get masked mount flags (if needed) by
@@ -12,8 +12,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  fs/namespace.c |   20 ++++++++++----------
  1 file changed, 10 insertions(+), 10 deletions(-)
 
---- linux-2.6.32-rc1.orig/fs/namespace.c
-+++ linux-2.6.32-rc1/fs/namespace.c
+--- security-testing-2.6.orig/fs/namespace.c
++++ security-testing-2.6/fs/namespace.c
 @@ -1921,6 +1921,16 @@ long do_mount(char *dev_name, char *dir_
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;

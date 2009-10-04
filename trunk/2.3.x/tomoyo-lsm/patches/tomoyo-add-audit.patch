@@ -1,4 +1,4 @@
-[TOMOYO] Add auditing support.
+Subject: TOMOYO: Add auditing support.
 
 This patch adds auditing code used by TOMOYO.
 
@@ -8,7 +8,7 @@ TOMOYO generates audit logs ( /sys/kernel/security/tomoyo/grant_log and
 
 Users can configure whether to generate audit logs or not via profile
 ( /sys/kernel/security/tomoyo/profile ). By default all information usable for
-"if" clause is audited by default. Users can suppress unneeded information.
+"if" clause is audited. Users can suppress unneeded information.
 Memory quota for audit logs is configurable via profile and meminfo interface
  ( /sys/kernel/security/tomoyo/meminfo ).
 
@@ -21,7 +21,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 561 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/audit.c
++++ security-testing-2.6/security/tomoyo/audit.c
 @@ -0,0 +1,561 @@
 +/*
 + * security/tomoyo/audit.c

@@ -1,4 +1,4 @@
-[TOMOYO] Add pathname calculation.
+Subject: TOMOYO: Add pathname calculation functions.
 
 This patch contains code for getting canonicalized pathnames used by TOMOYO.
 TOMOYO 2.2.0 uses __d_path() for getting canonicalized pathnames, but there are
@@ -56,7 +56,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 251 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/new-realpath.c
++++ security-testing-2.6/security/tomoyo/new-realpath.c
 @@ -0,0 +1,251 @@
 +/*
 + * security/tomoyo/realpath.c

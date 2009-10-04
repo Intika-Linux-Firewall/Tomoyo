@@ -1,4 +1,4 @@
-[TOMOYO] Add per task_struct variables.
+Subject: TOMOYO: Add per task_struct variables.
 
 I want to introduce per task_struct variables
 
@@ -136,8 +136,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  kernel/kmod.c             |    5 +++++
  3 files changed, 20 insertions(+)
 
---- linux-2.6.32-rc1.orig/include/linux/init_task.h
-+++ linux-2.6.32-rc1/include/linux/init_task.h
+--- security-testing-2.6.orig/include/linux/init_task.h
++++ security-testing-2.6/include/linux/init_task.h
 @@ -115,6 +115,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -161,8 +161,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  
---- linux-2.6.32-rc1.orig/include/linux/sched.h
-+++ linux-2.6.32-rc1/include/linux/sched.h
+--- security-testing-2.6.orig/include/linux/sched.h
++++ security-testing-2.6/include/linux/sched.h
 @@ -29,6 +29,8 @@
  #define CLONE_NEWNET		0x40000000	/* New network namespace */
  #define CLONE_IO		0x80000000	/* Clone io context */
@@ -183,8 +183,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.32-rc1.orig/kernel/kmod.c
-+++ linux-2.6.32-rc1/kernel/kmod.c
+--- security-testing-2.6.orig/kernel/kmod.c
++++ security-testing-2.6/kernel/kmod.c
 @@ -184,6 +184,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
