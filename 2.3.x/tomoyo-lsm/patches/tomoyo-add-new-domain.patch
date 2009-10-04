@@ -1,6 +1,6 @@
-[TOMOYO] Add domain transition handler.
+Subject: TOMOYO: Add domain transition handler.
 
-This patch contains code for handling policy I/O.
+This patch contains code for handling domain transition.
 
 tomoyo_read_lock()/tomoyo_read_unlock() protects the data against the garbage
 collector. I call tomoyo_read_lock() when an execve() operation starts and
@@ -20,7 +20,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 1354 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/new-domain.c
++++ security-testing-2.6/security/tomoyo/new-domain.c
 @@ -0,0 +1,1354 @@
 +/*
 + * security/tomoyo/domain.c

@@ -1,4 +1,4 @@
-[TOMOYO] Add environment variables restriction.
+Subject: TOMOYO: Add environment variables restriction.
 
 This patch contains code for checking environment variable's names passed to
 an execve() operation.
@@ -11,7 +11,7 @@ You can use "if" clause if you want to check not only names but also values.
   allow_execute /bin/sh if exec.envp["HOME"]="/"
 
 You can use execute handler if you want to check not only names but also values
-and/or add/remove/modify entries. The execute handler is executed with envp[]
+and/or add/remove/modify envp[]. The execute handler is executed with envp[]
 moved to argv[] so that the execute handler will not be affected by dangerous
 environment variables.
 
@@ -23,7 +23,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  1 file changed, 232 insertions(+)
 
 --- /dev/null
-+++ linux-2.6.32-rc1/security/tomoyo/environ.c
++++ security-testing-2.6/security/tomoyo/environ.c
 @@ -0,0 +1,232 @@
 +/*
 + * security/tomoyo/environ.c

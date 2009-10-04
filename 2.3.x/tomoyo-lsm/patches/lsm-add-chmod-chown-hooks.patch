@@ -1,4 +1,4 @@
-[LSM] Add security_path_chmod() and security_path_chown().
+Subject: LSM: Add security_path_chmod() and security_path_chown().
 
 This patch allows pathname based LSM modules to check chmod()/chown()
 operations. Since notify_change() does not receive "struct vfsmount *",
@@ -15,8 +15,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/security.c      |   15 +++++++++++++++
  4 files changed, 78 insertions(+), 4 deletions(-)
 
---- linux-2.6.32-rc1.orig/fs/open.c
-+++ linux-2.6.32-rc1/fs/open.c
+--- security-testing-2.6.orig/fs/open.c
++++ security-testing-2.6/fs/open.c
 @@ -616,6 +616,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
@@ -97,8 +97,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
  	fput(file);
---- linux-2.6.32-rc1.orig/include/linux/security.h
-+++ linux-2.6.32-rc1/include/linux/security.h
+--- security-testing-2.6.orig/include/linux/security.h
++++ security-testing-2.6/include/linux/security.h
 @@ -447,6 +447,18 @@ static inline void security_free_mnt_opt
   *	@new_dir contains the path structure for parent of the new link.
   *	@new_dentry contains the dentry structure of the new link.
@@ -157,8 +157,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif	/* CONFIG_SECURITY_PATH */
  
  #ifdef CONFIG_KEYS
---- linux-2.6.32-rc1.orig/security/capability.c
-+++ linux-2.6.32-rc1/security/capability.c
+--- security-testing-2.6.orig/security/capability.c
++++ security-testing-2.6/security/capability.c
 @@ -308,6 +308,17 @@ static int cap_path_truncate(struct path
  {
  	return 0;
@@ -186,8 +186,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #endif
  	set_to_cap_if_null(ops, file_permission);
  	set_to_cap_if_null(ops, file_alloc_security);
---- linux-2.6.32-rc1.orig/security/security.c
-+++ linux-2.6.32-rc1/security/security.c
+--- security-testing-2.6.orig/security/security.c
++++ security-testing-2.6/security/security.c
 @@ -434,6 +434,21 @@ int security_path_truncate(struct path *
  		return 0;
  	return security_ops->path_truncate(path, length, time_attrs);
