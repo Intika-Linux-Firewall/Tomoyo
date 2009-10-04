@@ -9,7 +9,7 @@ process after synchronize_srcu().
 
 Special care is taken when garbage collecting "struct tomoyo_domain_info".
 When GC process finds that FOO->is_deleted == true, GC process traverses the
-tasklist to veryfy that "struct tomoyo_task_struct *"->tomoyo_domain_info !=
+tasklist to verify that "struct tomoyo_task_struct *"->tomoyo_domain_info !=
 FOO before removing FOO from the tomoyo_domain_list list.
 But there is a race window shown below.
 

@@ -663,7 +663,8 @@ struct ccs_execute_handler_record {
 /*
  * Structure for "allow_read/write", "allow_execute", "allow_read",
  * "allow_write", "allow_unlink", "allow_rmdir", "allow_truncate",
- * "allow_symlink" and "allow_rewrite" directive.
+ * "allow_symlink", "allow_rewrite", "allow_chroot" and "allow_unmount"
+ * directive.
  */
 struct ccs_path_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
@@ -681,7 +682,9 @@ struct ccs_path_number3_acl {
 	struct ccs_number_union minor;
 };
 
-/* Structure for "allow_rename" and "allow_link" directive. */
+/*
+ * Structure for "allow_rename", "allow_link" and "allow_pivot_root" directive.
+ */
 struct ccs_path2_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
 	u8 perm;

@@ -4,12 +4,12 @@ This patch contains structure/prototype/variable declarations for TOMOYO.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/internal.h | 1137 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1137 insertions(+)
+ security/tomoyo/internal.h | 1317 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1317 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/internal.h
-@@ -0,0 +1,1137 @@
+@@ -0,0 +1,1317 @@
 +/*
 + * security/tomoyo/internal.h
 + *
@@ -524,14 +524,32 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 type;
 +};
 +
-+/* Structure for holding a token. */
++/*
++ * tomoyo_path_info is a structure which is used for holding a string data
++ * used by TOMOYO.
++ * This structure has several fields for supporting pattern matching.
++ *
++ * (1) "name" is the '\0' terminated string data.
++ * (2) "hash" is full_name_hash(name, strlen(name)).
++ *     This allows tomoyo_pathcmp() to compare by hash before actually compare
++ *     using strcmp().
++ * (3) "const_len" is the length of the initial segment of "name" which
++ *     consists entirely of non wildcard characters. In other words, the length
++ *     which we can compare two strings using strncmp().
++ * (4) "is_dir" is a bool which is true if "name" ends with "/",
++ *     false otherwise.
++ *     TOMOYO distinguishes directory and non-directory. A directory ends with
++ *     "/" and non-directory does not end with "/".
++ * (5) "is_patterned" is a bool which is true if "name" contains wildcard
++ *     characters, false otherwise. This allows TOMOYO to use "hash" and
++ *     strcmp() for string comparison if "is_patterned" is false.
++ */
 +struct tomoyo_path_info {
 +	const char *name;
 +	u32 hash;          /* = full_name_hash(name, strlen(name)) */
-+	u16 total_len;     /* = strlen(name)                       */
 +	u16 const_len;     /* = tomoyo_const_part_length(name)     */
 +	bool is_dir;       /* = tomoyo_strendswith(name, "/")      */
-+	bool is_patterned; /* = const_len < total_len              */
++	bool is_patterned; /* = const_len < strlen(name)           */
 +};
 +
 +/* Structure for execve() operation. */
@@ -551,7 +569,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	atomic_t cred_users;
 +};
 +
-+/* Common header for holding ACL entries. */
++/*
++ * tomoyo_acl_info is a structure which is used for holding
++ *
++ *  (1) "list" which is linked to the ->acl_info_list of
++ *      "struct tomoyo_domain_info"
++ *  (2) "type" which tells type of the enrty.
++ *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ *  (4) "cond" is condition part ("if" clause and "; set" clause).
++ *
++ * Packing "struct tomoyo_acl_info" allows users of this struct
++ * to embed "u16" or "u8" without enlarging their structure size.
++ */
 +struct tomoyo_acl_info {
 +	struct list_head list;
 +	struct tomoyo_condition *cond;
@@ -559,7 +589,33 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	u8 type; /* = one of values in "enum tomoyo_acl_entry_type_index" */
 +} __attribute__((__packed__));
 +
-+/* Structure for domain information. */
++/*
++ * tomoyo_domain_info is a structure which is used for holding permissions
++ * (e.g. "allow_read /lib/libc-2.5.so") given to each domain.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_domain_list .
++ *  (2) "acl_info_list" which is linked to "struct tomoyo_acl_info".
++ *  (3) "domainname" which holds the name of the domain.
++ *  (4) "profile" which remembers profile number assigned to this domain.
++ *  (5) "is_deleted" is a bool which is true if this domain is marked as
++ *      "deleted", false otherwise.
++ *  (6) "quota_warned" is a bool which is used for suppressing warning message
++ *      when learning mode learned too much entries.
++ *  (7) "ignore_global_allow_read" is a bool which is true if this domain
++ *      ignores tomoyo_globally_readable_list, false otherwise.
++ *  (8) "ignore_global_allow_env" is a bool which is true if this domain
++ *      ignores tomoyo_globally_usable_env_list, false otherwise.
++ *  (9) "domain_transition_failed" is a bool which is true if this domain
++ *      has failed to transit domain.
++ *
++ * A domain's lifecycle is an analogy of files on / directory.
++ * Multiple domains with the same domainname cannot be created (as with
++ * creating files with the same filename fails with -EEXIST).
++ * If a process reached a domain, that process can reside in that domain after
++ * that domain is marked as "deleted" (as with a process can access an already
++ * open()ed file after that file was unlink()ed).
++ */
 +struct tomoyo_domain_info {
 +	struct list_head list;
 +	struct list_head acl_info_list;
@@ -581,21 +637,50 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool domain_transition_failed;
 +};
 +
-+/* Structure for "allow_read" keyword. */
++/*
++ * tomoyo_globally_readable_file_entry is a structure which is used for holding
++ * "allow_read" entries.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_globally_readable_list .
++ *  (2) "filename" is a pathname which is allowed to open(O_RDONLY).
++ *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ */
 +struct tomoyo_globally_readable_file_entry {
 +	struct list_head list;
 +	bool is_deleted;
 +	const struct tomoyo_path_info *filename;
 +};
 +
-+/* Structure for "file_pattern" keyword. */
++/*
++ * tomoyo_pattern_entry is a structure which is used for holding
++ * "tomoyo_pattern_list" entries.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_pattern_list .
++ *  (2) "pattern" is a pathname pattern which is used for converting pathnames
++ *      to pathname patterns during learning mode.
++ *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ */
 +struct tomoyo_pattern_entry {
 +	struct list_head list;
 +	bool is_deleted;
 +	const struct tomoyo_path_info *pattern;
 +};
 +
-+/* Structure for "deny_rewrite" keyword. */
++/*
++ * tomoyo_no_rewrite_entry is a structure which is used for holding
++ * "deny_rewrite" entries.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_no_rewrite_list .
++ *  (2) "pattern" is a pathname which is by default not permitted to modify
++ *      already existing content.
++ *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ */
 +struct tomoyo_no_rewrite_entry {
 +	struct list_head list;
 +	bool is_deleted;
@@ -609,7 +694,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct tomoyo_path_info *env;
 +};
 +
-+/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
++/*
++ * tomoyo_domain_initializer_entry is a structure which is used for holding
++ * "initialize_domain" and "no_initialize_domain" entries.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_domain_initializer_list .
++ *  (2) "domainname" which is "a domainname" or "the last component of a
++ *      domainname". This field is NULL if "from" clause is not specified.
++ *  (3) "program" which is a program's pathname.
++ *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ *  (5) "is_not" is a bool which is true if "no_initialize_domain", false
++ *      otherwise.
++ *  (6) "is_last_name" is a bool which is true if "domainname" is "the last
++ *      component of a domainname", false otherwise.
++ */
 +struct tomoyo_domain_initializer_entry {
 +	struct list_head list;
 +	bool is_deleted;
@@ -619,7 +719,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const struct tomoyo_path_info *program;
 +};
 +
-+/* Structure for "keep_domain" and "no_keep_domain" keyword. */
++/*
++ * tomoyo_domain_keeper_entry is a structure which is used for holding
++ * "keep_domain" and "no_keep_domain" entries.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_domain_keeper_list .
++ *  (2) "domainname" which is "a domainname" or "the last component of a
++ *      domainname".
++ *  (3) "program" which is a program's pathname.
++ *      This field is NULL if "from" clause is not specified.
++ *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ *  (5) "is_not" is a bool which is true if "no_initialize_domain", false
++ *      otherwise.
++ *  (6) "is_last_name" is a bool which is true if "domainname" is "the last
++ *      component of a domainname", false otherwise.
++ */
 +struct tomoyo_domain_keeper_entry {
 +	struct list_head list;
 +	bool is_deleted;
@@ -646,7 +762,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_number_union flags;
 +};
 +
-+/* Structure for policy manager. */
++/*
++ * tomoyo_policy_manager_entry is a structure which is used for holding list of
++ * domainnames or programs which are permitted to modify configuration via
++ * /sys/kernel/security/tomoyo/ interface.
++ * It has following fields.
++ *
++ *  (1) "list" which is linked to tomoyo_policy_manager_list .
++ *  (2) "manager" is a domainname or a program's pathname.
++ *  (3) "is_domain" is a bool which is true if "manager" is a domainname, false
++ *      otherwise.
++ *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *      otherwise.
++ */
 +struct tomoyo_policy_manager_entry {
 +	struct list_head list;
 +	bool is_deleted; /* True if this entry is deleted. */
@@ -694,9 +822,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +/*
-+ * Structure for "allow_read/write", "allow_execute", "allow_read",
-+ * "allow_write", "allow_unlink", "allow_rmdir", "allow_truncate",
-+ * "allow_symlink" and "allow_rewrite" directive.
++ * tomoyo_path_acl is a structure which is used for holding an entry with
++ * one pathname operation (e.g. open(), unlink()).
++ * It has following fields.
++ *
++ *  (1) "head" which is a "struct tomoyo_acl_info".
++ *  (2) "perm" which is a bitmask of permitted operations.
++ *  (3) "name" is the pathname or pathname group.
++ *
++ * Directives held by this structure are "allow_read/write", "allow_execute",
++ * "allow_read", "allow_write", "allow_unlink", "allow_rmdir",
++ * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_chroot" and
++ * "allow_unmount".
 + */
 +struct tomoyo_path_acl {
 +	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_ACL */
@@ -714,7 +851,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_number_union minor;
 +};
 +
-+/* Structure for "allow_rename" and "allow_link" directive. */
++/*
++ * tomoyo_path2_acl is a structure which is used for holding an entry with
++ * two pathnames operation (i.e. link(), rename(), pivot_root()).
++ * It has following fields.
++ *
++ *  (1) "head" which is a "struct tomoyo_acl_info".
++ *  (2) "perm" which is a bitmask of permitted operations.
++ *  (3) "filename1" is the source/old pathname.
++ *  (4) "filename2" is the destination/new pathname.
++ *
++ * Directives held by this structure are "allow_rename", "allow_link" and
++ * "allow_pivot_root".
++ */
 +struct tomoyo_path2_acl {
 +	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH2_ACL */
 +	u8 perm;
@@ -785,8 +934,29 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +};
 +
 +
-+/* Structure for reading/writing policy via /sys/kernel/security/tomoyo
-+   interfaces. */
++/*
++ * tomoyo_io_buffer is a structure which is used for reading and modifying
++ * configuration via /sys/kernel/security/tomoyo/ interface.
++ * It has many fields. ->read_var1 , ->read_var2 , ->write_var1 are used as
++ * cursors.
++ *
++ * Since the content of /sys/kernel/security/tomoyo/domain_policy is a list of
++ * "struct tomoyo_domain_info" entries and each "struct tomoyo_domain_info"
++ * entry has a list of "struct tomoyo_acl_info", we need two cursors when
++ * reading (one is for traversing tomoyo_domain_list and the other is for
++ * traversing "struct tomoyo_acl_info"->acl_info_list ).
++ *
++ * If a line written to /sys/kernel/security/tomoyo/domain_policy starts with
++ * "select ", TOMOYO seeks the cursor ->read_var1 and ->write_var1 to the
++ * domain with the domainname specified by the rest of that line (NULL is set
++ * if seek failed).
++ * If a line written to /sys/kernel/security/tomoyo/domain_policy starts with
++ * "delete ", TOMOYO deletes an entry or a domain specified by the rest of that
++ * line (->write_var1 is set to NULL if a domain was deleted).
++ * If a line written to /sys/kernel/security/tomoyo/domain_policy starts with
++ * neither "select " nor "delete ", an entry or a domain specified by that line
++ * is appended.
++ */
 +struct tomoyo_io_buffer {
 +	void (*read) (struct tomoyo_io_buffer *);
 +	int (*write) (struct tomoyo_io_buffer *);
@@ -844,6 +1014,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	bool permissive_verbose;
 +};
 +
++/*
++ * tomoyo_profile is a structure which is used for holding the mode of access
++ * controls. TOMOYO has 4 modes: disabled, learning, permissive, enforcing.
++ * An administrator can define up to 256 profiles.
++ * The ->profile of "struct tomoyo_domain_info" is used for remembering
++ * the profile's number (0 - 255) assigned to that domain.
++ *
++ * audit/learning/permissive/enforcing point to either self->preference or
++ * tomoyo_default_profile->preference.
++ */
 +struct tomoyo_profile {
 +	const struct tomoyo_path_info *comment;
 +	struct tomoyo_preference *audit;

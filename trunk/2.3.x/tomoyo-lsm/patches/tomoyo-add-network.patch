@@ -1,5 +1,15 @@
 [TOMOYO] Add network restriction.
 
+This patch contains code for restricting IPV4/IPv6 network communications.
+
+The way how LSM version performs incoming TCP connections filtering (a.k.a.
+post accept() hook) is different from non-LSM version.
+LSM version does not add post accept() hook. Instead, do connection filtering
+upon first use of an accept()ed socket.
+
+As of now, LSM version does not perform incoming UDP/WAR packets filtering
+(a.k.a. post recvmsg() hook). I want to implement it in the future.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/network.c |  757 ++++++++++++++++++++++++++++++++++++++++++++++

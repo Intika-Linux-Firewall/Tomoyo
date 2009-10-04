@@ -16,12 +16,12 @@ messages when built with "C=1" option.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/new-domain.c | 1245 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1245 insertions(+)
+ security/tomoyo/new-domain.c | 1354 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1354 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/new-domain.c
-@@ -0,0 +1,1245 @@
+@@ -0,0 +1,1354 @@
 +/*
 + * security/tomoyo/domain.c
 + *
@@ -38,7 +38,44 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* The initial domain. */
 +struct tomoyo_domain_info tomoyo_kernel_domain;
 +
-+/* The list for "struct tomoyo_domain_info". */
++/*
++ * tomoyo_domain_list is used for holding list of domains.
++ * The ->acl_info_list of "struct tomoyo_domain_info" is used for holding
++ * permissions (e.g. "allow_read /lib/libc-2.5.so") given to each domain.
++ *
++ * An entry is added by
++ *
++ * # ( echo "<kernel>"; echo "allow_execute /sbin/init" ) > \
++ *                                  /sys/kernel/security/tomoyo/domain_policy
++ *
++ * and is deleted by
++ *
++ * # ( echo "<kernel>"; echo "delete allow_execute /sbin/init" ) > \
++ *                                  /sys/kernel/security/tomoyo/domain_policy
++ *
++ * and all entries are retrieved by
++ *
++ * # cat /sys/kernel/security/tomoyo/domain_policy
++ *
++ * A domain is added by
++ *
++ * # echo "<kernel>" > /sys/kernel/security/tomoyo/domain_policy
++ *
++ * and is deleted by
++ *
++ * # echo "delete <kernel>" > /sys/kernel/security/tomoyo/domain_policy
++ *
++ * and all domains are retrieved by
++ *
++ * # grep '^<kernel>' /sys/kernel/security/tomoyo/domain_policy
++ *
++ * Normally, a domainname is monotonically getting longer because a domainname
++ * which the process will belong to if an execve() operation succeeds is
++ * defined as a concatenation of "current domainname" + "pathname passed to
++ * execve()".
++ * See tomoyo_domain_initializer_list and tomoyo_domain_keeper_list for
++ * exceptions.
++ */
 +LIST_HEAD(tomoyo_domain_list);
 +
 +/**
@@ -79,7 +116,42 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return error;
 +}
 +
-+/* The list for "struct tomoyo_domain_initializer_entry". */
++/*
++ * tomoyo_domain_initializer_list is used for holding list of programs which
++ * triggers reinitialization of domainname. Normally, a domainname is
++ * monotonically getting longer. But sometimes, we restart daemon programs.
++ * It would be convenient for us that "a daemon started upon system boot" and
++ * "the daemon restarted from console" belong to the same domain. Thus, TOMOYO
++ * provides a way to shorten domainnames.
++ *
++ * An entry is added by
++ *
++ * # echo 'initialize_domain /usr/sbin/httpd' > \
++ *                               /sys/kernel/security/tomoyo/exception_policy
++ *
++ * and is deleted by
++ *
++ * # echo 'delete initialize_domain /usr/sbin/httpd' > \
++ *                               /sys/kernel/security/tomoyo/exception_policy
++ *
++ * and all entries are retrieved by
++ *
++ * # grep ^initialize_domain /sys/kernel/security/tomoyo/exception_policy
++ *
++ * In the example above, /usr/sbin/httpd will belong to
++ * "<kernel> /usr/sbin/httpd" domain.
++ *
++ * You may specify a domainname using "from" keyword.
++ * "initialize_domain /usr/sbin/httpd from <kernel> /etc/rc.d/init.d/httpd"
++ * will cause "/usr/sbin/httpd" executed from "<kernel> /etc/rc.d/init.d/httpd"
++ * domain to belong to "<kernel> /usr/sbin/httpd" domain.
++ *
++ * You may add "no_" prefix to "initialize_domain".
++ * "initialize_domain /usr/sbin/httpd" and
++ * "no_initialize_domain /usr/sbin/httpd from <kernel> /etc/rc.d/init.d/httpd"
++ * will cause "/usr/sbin/httpd" to belong to "<kernel> /usr/sbin/httpd" domain
++ * unless executed from "<kernel> /etc/rc.d/init.d/httpd" domain.
++ */
 +LIST_HEAD(tomoyo_domain_initializer_list);
 +
 +/**
@@ -244,7 +316,44 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	return flag;
 +}
 +
-+/* The list for "struct tomoyo_domain_keeper_entry". */
++/*
++ * tomoyo_domain_keeper_list is used for holding list of domainnames which
++ * suppresses domain transition. Normally, a domainname is monotonically
++ * getting longer. But sometimes, we want to suppress domain transition.
++ * It would be convenient for us that programs executed from a login session
++ * belong to the same domain. Thus, TOMOYO provides a way to suppress domain
++ * transition.
++ *
++ * An entry is added by
++ *
++ * # echo 'keep_domain <kernel> /usr/sbin/sshd /bin/bash' > \
++ *                              /sys/kernel/security/tomoyo/exception_policy
++ *
++ * and is deleted by
++ *
++ * # echo 'delete keep_domain <kernel> /usr/sbin/sshd /bin/bash' > \
++ *                              /sys/kernel/security/tomoyo/exception_policy
++ *
++ * and all entries are retrieved by
++ *
++ * # grep ^keep_domain /sys/kernel/security/tomoyo/exception_policy
++ *
++ * In the example above, any process which belongs to
++ * "<kernel> /usr/sbin/sshd /bin/bash" domain will remain in that domain,
++ * unless explicitly specified by "initialize_domain" or "no_keep_domain".
++ *
++ * You may specify a program using "from" keyword.
++ * "keep_domain /bin/pwd from <kernel> /usr/sbin/sshd /bin/bash"
++ * will cause "/bin/pwd" executed from "<kernel> /usr/sbin/sshd /bin/bash"
++ * domain to remain in "<kernel> /usr/sbin/sshd /bin/bash" domain.
++ *
++ * You may add "no_" prefix to "keep_domain".
++ * "keep_domain <kernel> /usr/sbin/sshd /bin/bash" and
++ * "no_keep_domain /usr/bin/passwd from <kernel> /usr/sbin/sshd /bin/bash" will
++ * cause "/usr/bin/passwd" to belong to
++ * "<kernel> /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain, unless
++ * explicitly specified by "initialize_domain".
++ */
 +LIST_HEAD(tomoyo_domain_keeper_list);
 +
 +/**
@@ -1016,7 +1125,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	/* Set argv[0] */
 +	{
 +		int depth = tomoyo_get_root_depth();
-+		int len = ee->handler->total_len + 1;
++		int len = strlen(ee->handler->name) + 1;
 +		char *cp = kmalloc(len, GFP_KERNEL);
 +		if (!cp) {
 +			retval = -ENOMEM;

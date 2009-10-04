@@ -17,12 +17,12 @@ etc.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/util.c | 1145 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 1145 insertions(+)
+ security/tomoyo/util.c | 1144 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1144 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/util.c
-@@ -0,0 +1,1145 @@
+@@ -0,0 +1,1144 @@
 +/*
 + * security/tomoyo/util.c
 + *
@@ -649,7 +649,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +{
 +	const char *name = ptr->name;
 +	const int len = strlen(name);
-+	ptr->total_len = len;
 +	ptr->const_len = tomoyo_const_part_length(name);
 +	ptr->is_dir = len && (name[len - 1] == '/');
 +	ptr->is_patterned = (ptr->const_len < len);

@@ -1,44 +1,42 @@
 [TOMOYO] Add capability support.
 
+This patch contains code for checking non-posix capability.
+
+TOMOYO is ready to support 65536 types of non-posix capabilities.
+But I can't utilize TOMOYO's ability because
+
+ (1) Hooks are missing.
+   or
+ (2) Posix's capability and functionality are not one to one mapping.
+     Therefore I can't derive functionality the caller wants to use from
+     posix's capability number (e.g. CAP_SYS_ADMIN).
+   or
+ (3) Hooks are provided but it is not permitted to sleep (e.g. CAP_SYS_NICE)
+     while TOMOYO needs hooks where it is permitted to sleep.
+   or
+ (4) System calls and device drivers use the same posix's capability number.
+     Thus whether MAC's policy suits or not depends on hardware the system
+     is running. TOMOYO wants to distinguish requests from userland
+     applications and requests from kernel drivers, but I can't distinguish
+     it from posix's capability number.
+
+Therefore, LSM version of TOMOYO has very poor support compared to non-LSM
+version of TOMOYO. I hope this problem is solved in the future.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/capability.c |  166 +++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 166 insertions(+)
+ security/tomoyo/capability.c |  141 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 141 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/capability.c
-@@ -0,0 +1,166 @@
+@@ -0,0 +1,141 @@
 +/*
 + * security/tomoyo/capability.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
 +#include "internal.h"
-+
-+/*
-+ * Notes on capabilities.
-+ *
-+ * TOMOYO is ready to support 65536 types of non-posix capabilities.
-+ * But I can't utilize TOMOYO's ability because
-+ *
-+ * (1) Hooks are missing.
-+ *   or
-+ * (2) Posix's capability and functionality are not one to one mapping.
-+ *     Therefore I can't derive functionality the caller wants to use from
-+ *     posix's capability number (e.g. CAP_SYS_ADMIN).
-+ *   or
-+ * (3) Hooks are provided but it is not permitted to sleep (e.g CAP_SYS_NICE)
-+ *     while TOMOYO needs hooks where it is permitted to sleep.
-+ *   or
-+ * (4) System calls and device drivers use the same posix's capability number.
-+ *     Thus whether MAC's policy suits or not depends on hardware the system
-+ *     is running. TOMOYO wants to distinguish requests from userland
-+ *     applications and requests from kernel drivers, but I can't distinguish
-+ *     it from posix's capability number.
-+ *
-+ * Therefore, LSM version of TOMOYO has very poor support compared to non-LSM
-+ * version of TOMOYO. I hope this problem is solved in future.
-+ */
 +
 +/**
 + * tomoyo_audit_capability_log - Audit capability log.
