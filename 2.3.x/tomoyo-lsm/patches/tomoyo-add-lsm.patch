@@ -8,7 +8,7 @@ holding execute handler's pathname valid until search_binary_handler()
 finishes. Therefore, to release memory, TOMOYO needs a hook which is called
 after an execve() finished. But there is no such hook. As a workaround,
 TOMOYO releases memory when "struct linux_binprm *"->cred is discarded (either
-security_bprm_committing_creds() (which means execve() suceeded) or
+security_bprm_committing_creds() (which means execve() succeeded) or
 security_cred_free() (which means execve() failed)).
 
 If I'm permitted to add a hook which is called after an execve() finished,
@@ -21,7 +21,7 @@ various object's "void *security" field except the one for socket.
 
 To support incoming TCP connection filtering functionality, TOMOYO needs a hook
 which is called after accept(). But such hook is not acceptable.
-As a workaround, TOMOYO performs TCP connection filtering after retuning from
+As a workaround, TOMOYO performs TCP connection filtering after returning from
 accept(). To do so, I assign special tag to SOCK_INODE(socket)->i_security if
 the socket is an accept()ed socket at security_socket_accept(), and I check
 permission inside subsequent system calls if SOCK_INODE(socket)->i_security

@@ -33,10 +33,10 @@ for holding task state variables used by TOMOYO.
       carried in some cases (e.g. connections/packets from unwanted hosts)
       in order to avoid falling into almost denial-of-service state.
 
-      Whether the current thread might rollback to previous domain or not.
+      Whether the current thread might roll back to previous domain or not.
       This is used for
-        telling the garbage collector that "do not delete domains because I
-        will rollback to the previous domain if search_binary_handler() failed"
+        telling the garbage collector that "do not delete domains because I'll
+        roll back to the previous domain if search_binary_handler() failed"
       and
         telling the file access checker that "check read permission because
         open_exec() is called by "struct linux_binfmt *"->load_binary()"
@@ -120,13 +120,13 @@ Restarting a process would look like
   return domain ? 0 : -EINVAL;
 
 The difference between fork() and restarting is that the domain to be assigned
-is taken from it's parent or checkpointed image.
+is taken from its parent or checkpointed image.
 
 In case of fork(), the domain to be assigned never be garbage collected because
 parent process is using that domain. No lock is needed.
 
 In case of restarting, the domain to be assigned could be garbage collected.
-To prrotect the domain from being garbage collected, the process who is
+To protect the domain from being garbage collected, the process who is
 processing the checkpointed image needs to take tomoyo_policy_lock mutex.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>

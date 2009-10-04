@@ -27,12 +27,12 @@ tomoyo_write_profile() uses tomoyo_profile_comment_lock spinlock.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/policy_io.c | 2705 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 2705 insertions(+)
+ security/tomoyo/policy_io.c | 2734 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 2734 insertions(+)
 
 --- /dev/null
 +++ linux-2.6.32-rc1/security/tomoyo/policy_io.c
-@@ -0,0 +1,2705 @@
+@@ -0,0 +1,2734 @@
 +/*
 + * security/tomoyo/policy_io.c
 + *
@@ -673,7 +673,36 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		head->read_eof = true;
 +}
 +
-+/* The list for "struct tomoyo_policy_manager_entry". */
++/*
++ * tomoyo_policy_manager_list is used for holding list of domainnames or
++ * programs which are permitted to modify configuration via
++ * /sys/kernel/security/tomoyo/ interface.
++ *
++ * An entry is added by
++ *
++ * # echo '<kernel> /sbin/mingetty /bin/login /bin/bash' > \
++ *                                        /sys/kernel/security/tomoyo/manager
++ *  (if you want to specify by a domainname)
++ *
++ *  or
++ *
++ * # echo '/usr/lib/ccs/editpolicy' > /sys/kernel/security/tomoyo/manager
++ *  (if you want to specify by a program's location)
++ *
++ * and is deleted by
++ *
++ * # echo 'delete <kernel> /sbin/mingetty /bin/login /bin/bash' > \
++ *                                        /sys/kernel/security/tomoyo/manager
++ *
++ *  or
++ *
++ * # echo 'delete /usr/lib/ccs/editpolicy' > \
++ *                                        /sys/kernel/security/tomoyo/manager
++ *
++ * and all entries are retrieved by
++ *
++ * # cat /sys/kernel/security/tomoyo/manager
++ */
 +LIST_HEAD(tomoyo_policy_manager_list);
 +
 +/**
