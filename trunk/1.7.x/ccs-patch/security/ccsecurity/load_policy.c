@@ -21,9 +21,6 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/namei.h>
 #include <linux/mount.h>
-static const int ccs_lookup_flags = LOOKUP_FOLLOW;
-#else
-static const int ccs_lookup_flags = LOOKUP_FOLLOW | LOOKUP_POSITIVE;
 #endif
 
 /* Path to the policy loader. The default is /sbin/ccs-init. */
@@ -58,19 +55,15 @@ static bool ccs_policy_loader_exists(void)
 	 * policies are not loaded yet.
 	 * Thus, let do_execve() call this function everytime.
 	 */
-	struct nameidata nd;
+	struct path path;
 	if (!ccs_loader)
 		ccs_loader = "/sbin/ccs-init";
-	if (path_lookup(ccs_loader, ccs_lookup_flags, &nd)) {
+	if (ccs_get_path(ccs_loader, &path)) {
 		printk(KERN_INFO "Not activating Mandatory Access Control now "
 		       "since %s doesn't exist.\n", ccs_loader);
 		return false;
 	}
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	path_put(&nd.path);
-#else
-	path_release(&nd);
-#endif
+	path_put(&path);
 	return true;
 }
 
