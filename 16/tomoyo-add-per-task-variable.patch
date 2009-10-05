@@ -1,0 +1,199 @@
+Subject: TOMOYO: Add per task_struct variables.
+
+I want to introduce per task_struct variables
+
+	struct tomoyo_domain_info *tomoyo_domain_info;
+	u32 tomoyo_flags;
+
+for holding task state variables used by TOMOYO.
+
+(1) These variables are not shared between threads. Only the current thread
+    modifies current->tomoyo_domain_info and current->tomoyo_flags.
+    The current->tomoyo_domain_info and current->tomoyo_flags can be simply
+    copied upon fork() and discarded upon exit().
+
+    So far, below status is stored into the current->tomoyo_flags.
+
+      Whether the current thread is allowed to modify policy via
+      /sys/kernel/security/tomoyo/ interface or not. TOMOYO 2.2.0 checks
+      whenever write() is requested. This is "slow", and the check will "fail"
+      if the program's pathname is changed by updating TOMOYO's userland tools.
+      By caching the result of "whether the current thread is allowed to modify
+      policy via /sys/kernel/security/tomoyo/ interface or not" into this
+      variable, I can solve the "slow"/"fail" problems.
+
+      Whether the current thread is running as an execute handler program or
+      not. TOMOYO needs to remember this information in order to avoid infinite
+      execute handler loop.
+
+      Whether the current thread should be carried the sleep() penalty or not
+      if the current thread violated policy in enforcing mode. TOMOYO can
+      carry sleep() penalty in order to avoid CPU consumption by repeating
+      requests which violate policy, but the sleep() penalty should not be
+      carried in some cases (e.g. connections/packets from unwanted hosts)
+      in order to avoid falling into almost denial-of-service state.
+
+      Whether the current thread might roll back to previous domain or not.
+      This is used for
+        telling the garbage collector that "do not delete domains because I'll
+        roll back to the previous domain if search_binary_handler() failed"
+      and
+        telling the file access checker that "check read permission because
+        open_exec() is called by "struct linux_binfmt *"->load_binary()"
+      .
+      This is different from current->in_execve. current->in_execve is used for
+      telling the file access checker that "check execute permission rather
+      than read permission because open_exec() is called by do_execve()".
+
+      3 variables for splitting permissions within the domain. These variables
+      are updated when a request is permitted by TOMOYO's policy.
+
+(2) The task state variables must not be reverted outside the LSM hooks.
+
+    TOMOYO updates the task state variables inside LSM hooks. But there is the
+    possibility of credentials being reverted outside the LSM hooks. If I store
+    the updated task state variables into "struct cred *"->security and
+    revert_creds() is called, the updated task state variables get lost.
+
+    So far, it seems that TOMOYO is not using LSM hooks which are called
+    between override_creds() and revert_creds() (e.g. inode_permission() in
+    sys_faccessat()). But in the future, LSM hooks which TOMOYO is using could
+    be called between override_creds() and revert_creds().
+
+(3) Use of COW credentials introduces the possibility of -ENOMEM failure.
+    I can omit error paths if I can use the per task_struct variables.
+
+    This problem will be solved if current->security and security_task_alloc()
+    and security_task_free() (which existed in 2.6.24 - 2.6.28 kernels) are
+    revived.
+
+(4) As noted in Documentation/tomoyo.txt , I want TOMOYO to be able to coexist
+    with other LSM modules.
+
+    Since TOMOYO is not a label based access control, TOMOYO can yield
+    current->cred->security and current->real_cred->security to access controls
+    who can utilize better, if I can use the per task_struct variables.
+
+    Also, TOMOYO can yield various object's "void *security" field except the
+    one for socket.
+
+    TOMOYO is close to be able to coexist with other LSM modules in a way IMA
+    proposed at http://marc.info/?l=linux-security-module&m=125259049313359&w=2
+
+    TOMOYO 2.3 (this submission) and 1.7 (its non-LSM version) became more
+    suitable for use with other access controls. For example people can use
+    SELinux or SMACK as a base access control and use TOMOYO for restricting
+    only directory modification operations (e.g. create()/mkdir()/rename()/
+    link()) or auditing complete execve() parameters or SSH login sessions,
+    if LSM allows TOMOYO to coexist with other modules which use
+    "struct security_operations". Use of per task variables is one of steps
+    towards such usage.
+
+
+
+Hints for supporting TOMOYO's c/r support:
+
+Basically, only current thread is allowed to modify tomoyo_domain_info and
+tomoyo_flags. But in case of restarting, it is safe to allow the process who is
+processing the checkpointed image to modify task_to_restart->tomoyo_domain_info
+and task_to_restart->tomoyo_flags because task_to_restart is controlled by the
+process who is processing the checkpointed image.
+
+Checkpointing a process would look like
+
+  write_string_to_image(task_to_checkpoint->tomoyo_domain_info->
+  			domainname->name);
+  write_u32_to_image(task_to_checkpoint->tomoyo_flags);
+
+Restarting a process would look like
+
+  const char *domainname = read_string_from_image();
+  u32 flags = read_u32_from_image();
+  struct tomoyo_domain_info *domain;
+  mutex_lock(&tomoyo_policy_lock);
+  domain = tomoyo_find_domain(domainname);
+  if (domain) {
+  	task_to_restart->tomoyo_domain_info = domain;
+  	task_to_restart->tomoyo_flags = flags;
+  }
+  mutex_unlock(&tomoyo_policy_lock);
+  return domain ? 0 : -EINVAL;
+
+The difference between fork() and restarting is that the domain to be assigned
+is taken from its parent or checkpointed image.
+
+In case of fork(), the domain to be assigned never be garbage collected because
+parent process is using that domain. No lock is needed.
+
+In case of restarting, the domain to be assigned could be garbage collected.
+To protect the domain from being garbage collected, the process who is
+processing the checkpointed image needs to take tomoyo_policy_lock mutex.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ include/linux/init_task.h |    9 +++++++++
+ include/linux/sched.h     |    6 ++++++
+ kernel/kmod.c             |    5 +++++
+ 3 files changed, 20 insertions(+)
+
+--- security-testing-2.6.orig/include/linux/init_task.h
++++ security-testing-2.6/include/linux/init_task.h
+@@ -115,6 +115,14 @@ extern struct cred init_cred;
+ # define INIT_PERF_EVENTS(tsk)
+ #endif
+ 
++#ifdef CONFIG_SECURITY_TOMOYO
++#define INIT_SECURITY_TOMOYO        \
++	.tomoyo_domain_info = NULL, \
++	.tomoyo_flags = 0,
++#else
++#define INIT_SECURITY_TOMOYO
++#endif
++
+ /*
+  *  INIT_TASK is used to set up the first task table, touch at
+  * your own risk!. Base=0, limit=0x1fffff (=2MB)
+@@ -184,6 +192,7 @@ extern struct cred init_cred;
+ 	INIT_FTRACE_GRAPH						\
+ 	INIT_TRACE_RECURSION						\
+ 	INIT_TASK_RCU_PREEMPT(tsk)					\
++	INIT_SECURITY_TOMOYO						\
+ }
+ 
+ 
+--- security-testing-2.6.orig/include/linux/sched.h
++++ security-testing-2.6/include/linux/sched.h
+@@ -29,6 +29,8 @@
+ #define CLONE_NEWNET		0x40000000	/* New network namespace */
+ #define CLONE_IO		0x80000000	/* Clone io context */
+ 
++struct tomoyo_domain_info;
++
+ /*
+  * Scheduling policies
+  */
+@@ -1539,6 +1541,10 @@ struct task_struct {
+ 	unsigned long trace_recursion;
+ #endif /* CONFIG_TRACING */
+ 	unsigned long stack_start;
++#ifdef CONFIG_SECURITY_TOMOYO
++	struct tomoyo_domain_info *tomoyo_domain_info;
++	u32 tomoyo_flags;
++#endif
+ };
+ 
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+--- security-testing-2.6.orig/kernel/kmod.c
++++ security-testing-2.6/kernel/kmod.c
+@@ -184,6 +184,11 @@ static int ____call_usermodehelper(void 
+ 	 */
+ 	set_user_nice(current, 0);
+ 
++#ifdef CONFIG_SECURITY_TOMOYO
++	current->tomoyo_domain_info = NULL;
++	current->tomoyo_flags = 0;
++#endif
++
+ 	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
+ 
+ 	/* Exec failed? */

@@ -1,0 +1,259 @@
+Subject: TOMOYO: Add environment variables restriction.
+
+This patch contains code for checking environment variable's names passed to
+an execve() operation.
+
+This functionality is for protecting programs to be executed from dangerous
+environment variables such as LD_PRELOAD.
+
+You can use "if" clause if you want to check not only names but also values.
+
+  allow_execute /bin/sh if exec.envp["HOME"]="/"
+
+You can use execute handler if you want to check not only names but also values
+and/or add/remove/modify envp[]. The execute handler is executed with envp[]
+moved to argv[] so that the execute handler will not be affected by dangerous
+environment variables.
+
+  execute_handler /bin/check_param_and_exec
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/environ.c |  232 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 232 insertions(+)
+
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/environ.c
+@@ -0,0 +1,232 @@
++/*
++ * security/tomoyo/environ.c
++ *
++ * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ */
++#include "internal.h"
++
++/**
++ * tomoyo_audit_env_log - Audit environment variable name log.
++ *
++ * @r:          Pointer to "struct tomoyo_request_info".
++ * @env:        The name of environment variable.
++ * @is_granted: True if this is a granted log.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++static int tomoyo_audit_env_log(struct tomoyo_request_info *r, const char *env,
++				const bool is_granted)
++{
++	if (!is_granted)
++		tomoyo_warn_log(r, "environ %s", env);
++	return tomoyo_write_audit_log(is_granted, r, TOMOYO_KEYWORD_ALLOW_ENV
++				      "%s\n", env);
++}
++
++/* The list for "struct tomoyo_globally_usable_env_entry". */
++LIST_HEAD(tomoyo_globally_usable_env_list);
++
++/**
++ * tomoyo_is_globally_usable_env - Check whether the given environment variable is acceptable for all domains.
++ *
++ * @env: The name of environment variable.
++ *
++ * Returns true if @env is globally permitted environment variable's name,
++ * false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static bool tomoyo_is_globally_usable_env(const struct tomoyo_path_info *env)
++{
++	struct tomoyo_globally_usable_env_entry *ptr;
++	bool found = false;
++	list_for_each_entry_rcu(ptr, &tomoyo_globally_usable_env_list, list) {
++		if (ptr->is_deleted || !tomoyo_path_matches_pattern(env,
++								    ptr->env))
++			continue;
++		found = true;
++		break;
++	}
++	return found;
++}
++
++/**
++ * tomoyo_write_globally_usable_env_policy - Write "struct tomoyo_globally_usable_env_entry" list.
++ *
++ * @data:      String to parse.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_write_globally_usable_env_policy(char *data, const bool is_delete)
++{
++	struct tomoyo_globally_usable_env_entry *entry = NULL;
++	struct tomoyo_globally_usable_env_entry e = { };
++	struct tomoyo_globally_usable_env_entry *ptr;
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	if (!tomoyo_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
++		return -EINVAL;
++	e.env = tomoyo_get_name(data);
++	if (!e.env)
++		return error;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(ptr, &tomoyo_globally_usable_env_list, list) {
++		if (ptr->env != e.env)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
++		list_add_tail_rcu(&entry->list,
++				  &tomoyo_globally_usable_env_list);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_name(e.env);
++	kfree(entry);
++	return error;
++}
++
++/**
++ * tomoyo_read_globally_usable_env_policy - Read "struct tomoyo_globally_usable_env_entry" list.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns 0 on success, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_read_globally_usable_env_policy(struct tomoyo_io_buffer *head)
++{
++	struct list_head *pos;
++	bool done = true;
++	list_for_each_cookie(pos, head->read_var2,
++			     &tomoyo_globally_usable_env_list) {
++		struct tomoyo_globally_usable_env_entry *ptr;
++		ptr = list_entry(pos, struct tomoyo_globally_usable_env_entry,
++				 list);
++		if (ptr->is_deleted)
++			continue;
++		done = tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_ENV "%s\n",
++					ptr->env->name);
++		if (!done)
++			break;
++	}
++	return done;
++}
++
++/**
++ * tomoyo_env_acl - Check permission for environment variable's name.
++ *
++ * @r:       Pointer to "struct tomoyo_request_info".
++ * @environ: The name of environment variable.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_env_acl(struct tomoyo_request_info *r, const char *environ)
++{
++	const struct tomoyo_domain_info *domain = r->domain;
++	int error = -EPERM;
++	struct tomoyo_acl_info *ptr;
++	struct tomoyo_path_info env;
++	env.name = environ;
++	tomoyo_fill_path_info(&env);
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_env_acl *acl;
++		if (ptr->is_deleted || ptr->type != TOMOYO_TYPE_ENV_ACL)
++			continue;
++		acl = container_of(ptr, struct tomoyo_env_acl, head);
++		if (!tomoyo_condition(r, ptr) ||
++		    !tomoyo_path_matches_pattern(&env, acl->env))
++			continue;
++		r->cond = ptr->cond;
++		error = 0;
++		break;
++	}
++	if (error && !domain->ignore_global_allow_env &&
++	    tomoyo_is_globally_usable_env(&env))
++		error = 0;
++	return error;
++}
++
++/**
++ * tomoyo_env_perm - Check permission for environment variable's name.
++ *
++ * @r:       Pointer to "struct tomoyo_request_info".
++ * @env:     The name of environment variable.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++int tomoyo_env_perm(struct tomoyo_request_info *r, const char *env)
++{
++	int error;
++	if (!env || !*env)
++		return 0;
++	do {
++		error = tomoyo_env_acl(r, env);
++		tomoyo_audit_env_log(r, env, !error);
++		if (!error)
++			break;
++		error = tomoyo_supervisor(r, TOMOYO_KEYWORD_ALLOW_ENV "%s\n",
++					  env);
++	} while (error == 1);
++	return error;
++}
++
++/**
++ * tomoyo_write_env_policy - Write "struct tomoyo_env_acl" list.
++ *
++ * @data:      String to parse.
++ * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @condition: Pointer to "struct tomoyo_condition". May be NULL.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_write_env_policy(char *data, struct tomoyo_domain_info *domain,
++			    struct tomoyo_condition *condition,
++			    const bool is_delete)
++{
++	struct tomoyo_env_acl *entry = NULL;
++	struct tomoyo_acl_info *ptr;
++	struct tomoyo_env_acl e = {
++		.head.type = TOMOYO_TYPE_ENV_ACL,
++		.head.cond = condition
++	};
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	if (!tomoyo_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
++		return -EINVAL;
++	e.env = tomoyo_get_name(data);
++	if (!e.env)
++		return error;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_env_acl *acl =
++			container_of(ptr, struct tomoyo_env_acl, head);
++		if (ptr->type != TOMOYO_TYPE_ENV_ACL || ptr->cond != condition
++		    || acl->env != e.env)
++			continue;
++		ptr->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
++		tomoyo_add_domain_acl(domain, &entry->head);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_name(e.env);
++	kfree(entry);
++	return error;
++}
