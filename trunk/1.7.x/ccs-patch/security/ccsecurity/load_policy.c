@@ -10,17 +10,11 @@
  *
  */
 
+#include "internal.h"
 #include <linux/version.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define __KERNEL_SYSCALLS__
-#endif
-#include "internal.h"
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/unistd.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-#include <linux/namei.h>
-#include <linux/mount.h>
 #endif
 
 /* Path to the policy loader. The default is /sbin/ccs-init. */
