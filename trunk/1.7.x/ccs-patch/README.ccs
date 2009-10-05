@@ -2167,3 +2167,15 @@ Fix 2009/09/25
       The learning mode with "CONFIG::learning={ max_entry=0 }" is almost
       the same with the permissive mode, only difference is "mode=learning"
       and "mode=permissive".
+
+Fix 2009/10/05
+
+    @ Fix size truncation bug at ccs_memcmp().
+
+      ccs_memcmp() was using "u8" for size parameter by error. Therefore, when
+      size >= 256 was passed to ccs_memcmp(), it was doing partial comarison
+      (incorrect result) or read overrun (CPU stall).
+
+      ccs_memcmp() should use "size_t" for size parameter because size of
+      "struct ccs_condition" may exceed 256 bytes if complicated condition was
+      given.

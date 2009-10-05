@@ -992,7 +992,8 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-static inline int ccs_memcmp(void *a, void *b, const u8 offset, const u8 size)
+static inline int ccs_memcmp(void *a, void *b, const size_t offset,
+			     const size_t size)
 {
 	return memcmp(((char *) a) + offset, ((char *) b) + offset,
 		      size - offset);
