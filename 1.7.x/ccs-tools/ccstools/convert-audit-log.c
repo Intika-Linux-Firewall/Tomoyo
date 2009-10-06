@@ -26,7 +26,7 @@ static void handle_path_condition(const char *path)
 {
 	const int len0 = strlen(path) + 2;
 	while (fscanf(stdin, "%65534s", buffer) == 1 && strcmp(buffer, "}")) {
-		realloc_buffer(len0 + strlen(path));
+		realloc_buffer(len0 + strlen(buffer));
 		cond_len += sprintf(cond + cond_len, " %s%s", path, buffer);
 	}
 }
@@ -73,6 +73,7 @@ static void handle_exec_condition(void)
 
 int main(int argc, char *argv[])
 {
+	char *domainname = NULL;
 	memset(buffer, 0, sizeof(buffer));
 	if (argc > 1) {
 		fprintf(stderr, "Usage: %s < grant_log or reject_log\n",
@@ -99,17 +100,13 @@ int main(int argc, char *argv[])
 			cond_len += sprintf(cond + cond_len, " %s", buffer);
 		} else if (!strcmp(buffer, "<kernel>")) {
 			char *cp;
-			int c;
-			printf("<kernel>");
-			while (1) {
-				c = getchar();
-				if (c == '\n' || c == EOF)
-					break;
-				putchar(c);
-			}
-			if (c == EOF)
+			if (!fgets(buffer, sizeof(buffer) - 1, stdin) ||
+			    !strchr(buffer, '\n'))
 				break;
-			putchar('\n');
+			free(domainname);
+			domainname = strdup(buffer);
+			if (!domainname)
+				break;
 			if (!fgets(buffer, sizeof(buffer) - 1, stdin))
 				break;
 			cp = strstr(buffer, " if ");
@@ -118,6 +115,13 @@ int main(int argc, char *argv[])
 			if (!cp)
 				break;
 			*cp = '\0';
+			if (!strncmp(buffer, "use_profile ", 12) ||
+			    !strncmp(buffer, "execute_handler ", 16) ||
+			    !strncmp(buffer, "denied_execute_handler ", 23)) {
+				cond_len = 0;
+				continue;
+			}
+			printf("<kernel>%s", domainname);
 			printf("%s", buffer);
 			if (cond_len) {
 				printf(" if%s", cond);
@@ -126,6 +130,7 @@ int main(int argc, char *argv[])
 			putchar('\n');
 		}
 	}
+	free(domainname);
 	free(cond);
 	return 0;
 }
