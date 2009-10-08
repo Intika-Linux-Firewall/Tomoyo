@@ -18,6 +18,24 @@ config CCSECURITY_MAX_ACCEPT_ENTRY
 	  and consumes much memory.
 	  This is the safeguard for such programs.
 
+config CCSECURITY_DEFAULT_LOADER
+	string "Default policy loader"
+	default "/sbin/ccs-init"
+	depends on CCSECURITY
+	---help---
+	  This is the default pathname of policy loader which is called before
+	  activation. You can override using CCS_loader= kernel command line
+	  option.
+
+config CCSECURITY_ALTERNATIVE_TRIGGER
+	string "Alternative activation trigger"
+	default "/sbin/ccs-start"
+	depends on CCSECURITY
+	---help---
+	  Some environments do not have /sbin/init . In such environments,
+	  we need to use different program's pathname (e.g. /init or /linuxrc )
+	  as activation trigger.
+
 config CCSECURITY_BUILTIN_INITIALIZERS
 	string "Built-in domain initializer programs"
 	default "/sbin/modprobe /sbin/hotplug"
