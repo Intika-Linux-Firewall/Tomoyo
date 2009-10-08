@@ -13,6 +13,10 @@ if [ "$CONFIG_CCSECURITY" = "y" ]; then
   [ $CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY 0
   int  '  Default maximal count for learning mode' CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY
 
+  string '  Default policy loader' CONFIG_CCSECURITY_DEFAULT_LOADER "/sbin/ccs-init"
+
+  string '  Alternative activation trigger' CCSECURITY_ALTERNATIVE_TRIGGER "/sbin/ccs-start"
+
   string '  Built-in domain initializer programs' CONFIG_CCSECURITY_BUILTIN_INITIALIZERS "/sbin/modprobe /sbin/hotplug"
 
   [ -z "$CONFIG_CCSECURITY_AUDIT" ] && define_bool CONFIG_CCSECURITY_AUDIT y

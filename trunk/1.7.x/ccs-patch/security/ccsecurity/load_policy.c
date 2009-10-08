@@ -51,7 +51,7 @@ static bool ccs_policy_loader_exists(void)
 	 */
 	struct path path;
 	if (!ccs_loader)
-		ccs_loader = "/sbin/ccs-init";
+		ccs_loader = CONFIG_CCSECURITY_DEFAULT_LOADER;
 	if (ccs_get_path(ccs_loader, &path)) {
 		printk(KERN_INFO "Not activating Mandatory Access Control now "
 		       "since %s doesn't exist.\n", ccs_loader);
@@ -101,14 +101,8 @@ void ccs_load_policy(const char *filename)
 {
 	if (ccs_policy_loaded)
 		return;
-	/*
-	 * Check filename is /sbin/init or /sbin/ccs-start.
-	 * /sbin/ccs-start is a dummy filename in case where /sbin/init can't
-	 * be passed.
-	 * You can create /sbin/ccs-start by "ln -s /bin/true /sbin/ccs-start".
-	 */
 	if (strcmp(filename, "/sbin/init") &&
-	    strcmp(filename, "/sbin/ccs-start"))
+	    strcmp(filename, CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER))
 		return;
 	if (!ccs_policy_loader_exists())
 		return;
