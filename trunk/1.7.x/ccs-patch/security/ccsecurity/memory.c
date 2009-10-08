@@ -296,7 +296,6 @@ static int __init ccs_mm_init(void)
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
-#ifdef CONFIG_CCSECURITY_BUILTIN_INITIALIZERS
 	{
 		/* Load built-in policy. */
 		static char ccs_builtin_initializers[] __initdata
@@ -311,7 +310,6 @@ static int __init ccs_mm_init(void)
 			cp = cp2;
 		}
 	}
-#endif
 	return 0;
 }
 
