@@ -105,6 +105,61 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 	fflush(fp);
 }
 
+static void handle_stream(const int client_fd, const char *filename)
+{
+	char buffer[4096];
+	const int stream_fd = open(filename, O_RDONLY);
+	if (stream_fd == EOF)
+		return;
+	write(client_fd, "", 1);
+	while (1) {
+		int len;
+		fd_set rfds;
+		FD_ZERO(&rfds);
+		FD_SET(stream_fd, &rfds);
+		select(stream_fd + 1, &rfds, NULL, NULL, NULL);
+		len = read(stream_fd, buffer, sizeof(buffer));
+		if (!len)
+			continue;
+		if (len == EOF || write(client_fd, buffer, len) != len)
+			break;
+	}
+	close(stream_fd);
+}
+
+static void handle_query(const int client_fd)
+{
+	char buffer[4096];
+	const int query_fd = open("query", O_RDWR);
+	if (query_fd == EOF)
+		return;
+	write(client_fd, "", 1);
+	while (read(client_fd, buffer, 1) == 1) {
+		if (buffer[0]) {
+			write(query_fd, buffer, 1);
+			continue;
+		}
+		if (fork() == 0) {
+			while (1) {
+				int len;
+				fd_set rfds;
+				FD_ZERO(&rfds);
+				FD_SET(query_fd, &rfds);
+				select(query_fd + 1, &rfds, NULL, NULL, NULL);
+				len = read(query_fd, buffer, sizeof(buffer));
+				if (!len)
+					continue;
+				if (len == EOF ||
+				    write(client_fd, buffer, len) != len ||
+				    !buffer[len - 1])
+					break;
+			}
+			_exit(0);
+		}
+	}
+ 	close(query_fd);
+}
+
 static _Bool verbose = 0;
 
 static void do_child(const int client)
@@ -117,20 +172,28 @@ static void do_child(const int client)
 		if (read(client, buffer + i, 1) != 1)
 			goto out;
 		if (!buffer[i]) {
-			char *cp = strrchr(buffer, '/');
-			const _Bool ps = !strcmp(buffer,
-						 "proc:process_status");
-			const _Bool ps_all = !strcmp(buffer,
-						     "proc:all_process_status");
-			if (ps || ps_all) {
-				FILE *fp = fdopen(client, "w");
-				/* Open /proc/\$/ for reading. */
-				if (fp) {
-					show_tasklist(fp, ps_all);
-					fclose(fp);
-				}
+			char *cp;
+			if (!strcmp(buffer, "proc:query")) {
+				handle_query(client);
+				break;
+			}			
+			if (!strcmp(buffer, "proc:grant_log") ||
+			    !strcmp(buffer, "proc:reject_log")) {
+				handle_stream(client, buffer + 5);
 				break;
 			}
+			if (!strncmp(buffer, "proc:", 5)) {
+				FILE *fp = fdopen(client, "w");
+				/* Open /proc/\$/ for reading. */
+				if (!fp)
+					break;
+				show_tasklist(fp,
+					      !strcmp(buffer + 5,
+						      "all_process_status"));
+				fclose(fp);
+				break;
+			}
+			cp = strrchr(buffer, '/');
 			if (!cp)
 				cp = buffer;
 			else
