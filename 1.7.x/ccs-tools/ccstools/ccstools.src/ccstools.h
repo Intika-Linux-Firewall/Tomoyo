@@ -346,6 +346,7 @@ _Bool move_proc_to_file(const char *src, const char *dest);
 _Bool is_identical_file(const char *file1, const char *file2);
 FILE *open_read(const char *filename);
 FILE *open_write(const char *filename);
+int open_stream(const char *filename);
 void clear_domain_policy(struct domain_policy *dp);
 int find_domain_by_ptr(struct domain_policy *dp,
 		       const struct path_info *domainname);

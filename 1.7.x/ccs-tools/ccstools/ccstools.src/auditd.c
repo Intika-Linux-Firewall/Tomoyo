@@ -10,6 +10,24 @@
  */
 #include "ccstools.h"
 
+int open_stream(const char *filename)
+{
+	const int fd = socket(AF_INET, SOCK_STREAM, 0);
+	struct sockaddr_in addr;
+	char c;
+	int len = strlen(filename) + 1;
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = network_ip;
+	addr.sin_port = network_port;
+	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
+	    write(fd, filename, len) != len || read(fd, &c, 1) != 1 || c) {
+		close(fd);
+		return EOF;
+	}
+	return fd;
+}
+
 int auditd_main(int argc, char *argv[])
 {
 	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
@@ -20,24 +38,46 @@ int auditd_main(int argc, char *argv[])
 	int fd_in[CCS_AUDITD_MAX_FILES];
 	FILE *fp_out[CCS_AUDITD_MAX_FILES];
 	int need_flush = 0;
-	const char *logfile_path[2] = { "/dev/null", "/dev/null" };
+	const char *logfile_path[2] = { NULL, NULL };
+
+	for (i = 1; i < argc; i++) {
+		char *ptr = argv[i];
+		char *cp = strchr(ptr, ':');
+		if (*ptr == '/') {
+			if (!logfile_path[0])
+				logfile_path[0] = ptr;
+			else if (!logfile_path[1])
+				logfile_path[1] = ptr;
+			else
+				goto usage;
+		} else if (cp) {
+			*cp++ = '\0';
+			if (network_mode)
+				goto usage;
+			network_ip = inet_addr(ptr);
+			network_port = htons(atoi(cp));
+			network_mode = true;
+			if (!check_remote_host())
+				return 1;
+			procfile_path[0] = "proc:grant_log";
+			procfile_path[1] = "proc:reject_log";
+		} else
+			goto usage;
+	}
+	if (!logfile_path[1])
+		goto usage;
+	if (network_mode)
+		goto start;
 	if (access(procfile_path[0], R_OK) || access(procfile_path[1], R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel.\n");
 		return 0;
 	}
-	if (argc < 3) {
-		fprintf(stderr, "%s grant_log_file reject_log_file\n"
-			"  These files may /dev/null, if needn't to be saved."
-			"\n", argv[0]);
-		return 0;
-	}
-	logfile_path[0] = argv[1];
-	logfile_path[1] = argv[2];
 	{ /* Get exclusive lock. */
 		int fd = open("/proc/self/exe", O_RDONLY);
 		if (flock(fd, LOCK_EX | LOCK_NB) == EOF)
 			return 0;
 	}
+ start:
 	umask(077);
 	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
 		fp_out[i] = fopen(logfile_path[i], "a");
@@ -78,7 +118,10 @@ int auditd_main(int argc, char *argv[])
 	close(2);
 	openlog("ccs-auditd", 0,  LOG_USER);
 	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
-		fd_in[i] = open(procfile_path[i], O_RDONLY);
+		if (network_mode)
+			fd_in[i] = open_stream(procfile_path[i]);
+		else
+			fd_in[i] = open(procfile_path[i], O_RDONLY);
 		if (fd_in[i] == EOF) {
 			syslog(LOG_WARNING, "Can't open %s for reading.\n",
 			       procfile_path[i]);
@@ -138,5 +181,11 @@ int auditd_main(int argc, char *argv[])
 out:
 	syslog(LOG_WARNING, "Terminated.\n");
 	closelog();
+	return 0;
+usage:
+	fprintf(stderr, "%s grant_log_file reject_log_file "
+		"[remote_ip:remote_port]\n"
+		"  These files may /dev/null, if needn't to be saved."
+		"\n", argv[0]);
 	return 0;
 }

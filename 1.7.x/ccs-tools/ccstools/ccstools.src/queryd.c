@@ -266,6 +266,16 @@ out:
 	return modified;
 }
 
+static void send_keepalive(void)
+{
+	static time_t previous = 0;
+	time_t now = time(NULL);
+	if (previous != now || !previous) {
+		previous = now;
+		write(query_fd, "\n", 1);
+	}
+}
+
 static void handle_update(const int check_update, const int fd)
 {
 	static FILE *fp = NULL;
@@ -293,7 +303,7 @@ static void handle_update(const int check_update, const int fd)
 		c = getch2();
 		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n')
 			break;
-		write(query_fd, "\n", 1);
+		send_keepalive();
 	}
 	_printw("%c\n", c);
 	if (c == 'Y' || c == 'y') {
@@ -311,6 +321,7 @@ static unsigned short int retries = 0;
 
 static int check_update = GLOBALLY_READABLE_FILES_UPDATE_AUTO;
 
+static FILE *domain_fp = NULL;
 static int domain_policy_fd = EOF;
 static const int max_readline_history = 20;
 static const char **readline_history = NULL;
@@ -341,10 +352,12 @@ static _Bool handle_query(unsigned int serial)
 		return false;
 	}
 	*(cp - 1) = '\0';
+	/*
 	if (0 && !retries && check_path_info(buffer)) {
 		c = 'r';
 		goto write_answer;
 	}
+	*/
 	if (pid != prev_pid) {
 		if (prev_pid)
 			_printw("----------------------------------------\n");
@@ -373,23 +386,38 @@ static _Bool handle_query(unsigned int serial)
 		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' || c == 'R' ||
 		    c == 'r' || c == 'A' || c == 'a' || c == 'S' || c == 's')
 			break;
-		write(query_fd, "\n", 1);
+		send_keepalive();
 	}
 	_printw("%c\n", c);
 
 	if (c == 'S' || c == 's') {
-		write(domain_policy_fd, pidbuf, strlen(pidbuf));
-		while (1) {
-			int i;
-			int len = read(domain_policy_fd, buffer,
-				       buffer_len - 1);
-			if (len <= 0)
-				break;
-			for (i = 0; i < len; i++) {
-				addch(buffer[i]);
+		if (network_mode) {
+			fprintf(domain_fp, "%s", pidbuf);
+			fputc(0, domain_fp);
+			fflush(domain_fp);
+			rewind(domain_fp);
+			while (1) {
+				char c;
+				if (fread(&c, 1, 1, domain_fp) != 1 || !c)
+					break;
+				addch(c);
 				refresh();
+				send_keepalive();
 			}
-			write(query_fd, "\n", 1);
+		} else {
+			write(domain_policy_fd, pidbuf, strlen(pidbuf));
+			while (1) {
+				int i;
+				int len = read(domain_policy_fd, buffer,
+					       buffer_len - 1);
+				if (len <= 0)
+					break;
+				for (i = 0; i < len; i++) {
+					addch(buffer[i]);
+					refresh();
+				}
+				send_keepalive();
+			}
 		}
 		c = 'r';
 	}
@@ -418,9 +446,14 @@ static _Bool handle_query(unsigned int serial)
 	readline_history_count = simple_add_history(line, readline_history,
 						    readline_history_count,
 						    max_readline_history);
-	write(domain_policy_fd, pidbuf, strlen(pidbuf));
-	write(domain_policy_fd, line, strlen(line));
-	write(domain_policy_fd, "\n", 1);
+	if (network_mode) {
+		fprintf(domain_fp, "%s%s\n", pidbuf, line);
+		fflush(domain_fp);
+	} else {
+		write(domain_policy_fd, pidbuf, strlen(pidbuf));
+		write(domain_policy_fd, line, strlen(line));
+		write(domain_policy_fd, "\n", 1);
+	}
 	_printw("Added '%s'.\n", line);
 not_append:
 	free(line);
@@ -443,7 +476,7 @@ not_domain_query:
 		if (c == 'Y' || c == 'y' || c == 'N' || c == 'n' ||
 		    c == 'R' || c == 'r')
 			break;
-		write(query_fd, "\n", 1);
+		send_keepalive();
 	}
 	_printw("%c\n", c);
 	goto write_answer;
@@ -451,10 +484,22 @@ not_domain_query:
 
 int queryd_main(int argc, char *argv[])
 {
-	domain_policy_fd = open(proc_policy_domain_policy, O_RDWR);
 	int pipe_fd[2] = { EOF, EOF };
 	if (argc == 1)
 		goto ok;
+	{
+		char *cp = strchr(argv[1], ':');
+		if (cp) {
+			*cp++ = '\0';
+			network_ip = inet_addr(argv[1]);
+			network_port = htons(atoi(cp));
+			network_mode = true;
+			if (!check_remote_host())
+				return 1;
+			check_update = GLOBALLY_READABLE_FILES_UPDATE_NONE;
+			goto ok;
+		}
+	}
 	if (!strcmp(argv[1], "--no-update")) {
 		check_update = GLOBALLY_READABLE_FILES_UPDATE_NONE;
 		goto ok;
@@ -463,7 +508,8 @@ int queryd_main(int argc, char *argv[])
 		check_update = GLOBALLY_READABLE_FILES_UPDATE_ASK;
 		goto ok;
 	}
-	printf("Usage: %s [--no-update|--ask-update]\n\n", argv[0]);
+	printf("Usage: %s [--no-update|--ask-update|remote_ip:remote_port]\n\n",
+	       argv[0]);
 	printf("This program is used for granting access requests manually.\n");
 	printf("This program shows access requests that are about to rejected "
 	       "by the kernel's decision.\n");
@@ -475,12 +521,18 @@ int queryd_main(int argc, char *argv[])
 	printf("To terminate this program, use 'Ctrl-C'.\n");
 	return 0;
  ok:
-	query_fd = open(proc_policy_query, O_RDWR);
+	if (network_mode) {
+		query_fd = open_stream("proc:query");
+		domain_fp = open_write(proc_policy_domain_policy);
+	} else {
+		query_fd = open(proc_policy_query, O_RDWR);
+		domain_policy_fd = open(proc_policy_domain_policy, O_RDWR);
+	}
 	if (query_fd == EOF) {
 		fprintf(stderr,
 			"You can't run this utility for this kernel.\n");
 		return 1;
-	} else if (write(query_fd, "", 0) != 0) {
+	} else if (!network_mode && write(query_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
 			"run this program.\n", proc_policy_manager);
 		return 1;
@@ -489,7 +541,7 @@ int queryd_main(int argc, char *argv[])
 		socketpair(AF_UNIX, SOCK_DGRAM, 0, pipe_fd);
 		switch (fork()) {
 		case 0:
-			close(domain_policy_fd);
+			fclose(domain_fp);
 			close(query_fd);
 			close(pipe_fd[0]);
 			do_check_update(pipe_fd[1]);
@@ -504,7 +556,7 @@ int queryd_main(int argc, char *argv[])
 	readline_history = malloc(max_readline_history * sizeof(const char *));
 	if (!readline_history)
 		out_of_memory();
-	write(query_fd, "\n", 1);
+	send_keepalive();
 	initscr();
 	cbreak();
 	noecho();
@@ -526,6 +578,18 @@ int queryd_main(int argc, char *argv[])
 				break;
 		}
 		/* Wait for query. */
+		if (network_mode) {
+			int i;
+			write(query_fd, "", 1);
+			memset(buffer, 0, buffer_len);
+			for (i = 0; i < buffer_len - 1; i++) {
+				if (read(query_fd, buffer + i, 1) != 1)
+					break;
+				if (!buffer[i])
+					goto read_ok;
+			}
+			break;
+		}
 		FD_ZERO(&rfds);
 		FD_SET(query_fd, &rfds);
 		if (pipe_fd[0] != EOF)
@@ -541,6 +605,7 @@ int queryd_main(int argc, char *argv[])
 		memset(buffer, 0, buffer_len);
 		if (read(query_fd, buffer, buffer_len - 1) <= 0)
 			continue;
+read_ok:
 		cp = strchr(buffer, '\n');
 		if (!cp)
 			continue;
