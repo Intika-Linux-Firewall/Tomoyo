@@ -151,8 +151,19 @@ int auditd_main(int argc, char *argv[])
 			if (!FD_ISSET(fd_in[i], &rfds))
 				continue;
 			memset(buffer, 0, sizeof(buffer));
-			if (read(fd_in[i], buffer, sizeof(buffer) - 1) < 0)
-				continue;
+			if (network_mode) {
+				int j;
+				for (j = 0; j < sizeof(buffer) - 1; j++) {
+					if (read(fd_in[i], buffer + j, 1) != 1)
+						goto out;
+					if (!buffer[j])
+						break;
+				}
+				if (j == sizeof(buffer) - 1)
+					goto out;
+			} else
+				if (read(fd_in[i], buffer, sizeof(buffer) - 1) < 0)
+					continue;
 			/* Open destination file. */
 			if (access(logfile_path[i], F_OK)) {
 				fclose(fp_out[i]);
