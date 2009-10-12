@@ -1,0 +1,318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="android-arm.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>TOMOYO on Android</h1>
+
+<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 8.04.3 for x86 architecture as the host environment.</p>
+
+<hr>
+
+<h2>Step 1: Install required packages.</h2>
+
+<p>Install packages as suggested at <a href="http://source.android.com/download">http://source.android.com/download</a> .</p>
+
+<table border="1">
+<tr><td>
+sudo apt-get install git-core gnupg sun-java5-jdk flex bison gperf libsdl-dev libesd0-dev libwxgtk2.6-dev build-essential zip curl libncurses5-dev zlib1g-dev
+</td></tr>
+</table>
+
+<h2>Step 2: Set environment variables.</h2>
+
+<p>Set environment variables shown below. Adding to user's initrc script (e.g. ~/.bashrc ) is recommended. You may try arm-eabi-4.3.1 or arm-eabi-4.4.0 instead of arm-eabi-4.2.1 .</p>
+
+<table border="1">
+<tr><td>
+export ANDROID_HOME=$HOME/mydroid/<br>
+export ANDROID_IMG=$ANDROID_HOME/image/<br>
+export ANDROID_TOOLCHAIN=$ANDROID_HOME/prebuilt/linux-x86/toolchain/arm-eabi-4.2.1/bin/<br>
+export PATH=$PATH:$ANDROID_HOME/out/host/linux-x86/bin/:$ANDROID_TOOLCHAIN
+</td></tr>
+</table>
+
+<h2>Step 3: Build the Android environment.</h2>
+
+<p>Download the source code and compile the emulator.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p $ANDROID_HOME<br>
+cd $ANDROID_HOME<br>
+wget http://android.git.kernel.org/repo<br>
+chmod 755 repo<br>
+./repo init -u git://android.git.kernel.org/platform/manifest.git<br>
+./repo sync<br>
+make
+</td></tr>
+</table>
+
+<h2>Step 4: Build the Android kernel.</h2>
+
+<p>Compile the kernel. The proceedure is same as usual except applying TOMOYO Linux patches.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p $ANDROID_HOME/tmp<br>
+cd $ANDROID_HOME/tmp/<br>
+wget -O kernel-source.tar.gz 'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=9d8732354c9efc9f5eb6f70a92ab436ccbfdf119;sf=tgz'<br>
+tar -zxf kernel-source.tar.gz<br>
+cd common/<br>
+wget -O ccs-patch.tar.gz -- 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar --strip-components=1 -zxf ccs-patch.tar.gz<br>
+patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
+sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
+ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig<br>
+ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make -s<br>
+mkdir -p $ANDROID_IMG/tmp<br>
+cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
+</td></tr>
+</table>
+
+<h2>Step 5: Copy Android's image files.</h2>
+
+<p>Copy image file used by Android emulator.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_HOME/out/target/product/generic/<br>
+cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
+</td></tr>
+</table>
+
+<h2>Step 6: Compile tools for host environment.</h2>
+
+<p>Install TOMOYO Linux's userland tools into host environment in order to manage Android emulator remotely.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_HOME/tmp/<br>
+wget -O ccs-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar'<br>
+tar -zxf ccs-tools.tar.gz<br>
+cd ccstools<br>
+sudo apt-get install libreadline5-dev<br>
+make<br>
+sudo make install
+</td></tr>
+</table>
+
+<h2>Step 7: Compile tools for emulator environment.</h2>
+
+<p>Install TOMOYO Linux's userland tools into Android emulator environment.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_HOME/tmp/<br>
+wget -O agcc http://plausible.org/andy/agcc<br>
+chmod 755 agcc<br>
+./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/init_policy.c<br>
+./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/ccs-editpolicy-agent.c<br>
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init.c<br>
+chmod 700 init_policy ccs-editpolicy-agent ccs-init
+</td></tr>
+</table>
+
+<h2>Step 8: Edit Android's ramdisk image.</h2>
+
+<p>Copy the agent program into Android emulator's ramdisk and configure the agent to be automatically executed upon boot.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_IMG/tmp/<br>
+zcat ../ramdisk.img | cpio -id<br>
+echo 'service ccs_agent /sbin/ccs-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc<br>
+echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc<br>
+echo &gt;&gt; init.rc<br>
+cp -p $ANDROID_HOME/tmp/init_policy $ANDROID_HOME/tmp/ccs-editpolicy-agent sbin/<br>
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+</td></tr>
+</table>
+
+<h2>Step 9: Start the Android emulator.</h2>
+
+<p>Start the Android emulator. Specify the kernel made at step 4 and the ramdisk made at step 8.</p>
+
+<table border="1">
+<tr><td>
+emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysdir $ANDROID_IMG -data $ANDROID_IMG/userdata.img -show-kernel
+</td></tr>
+</table>
+
+<h2>Step 10: Pull files needed for policy loader.</h2>
+
+<p>Copy files needed by ccs-init (TOMOYO Linux's policy loader). If you compiled ccs-init as statically linked program at step 7, step 10 is not needed.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_IMG/tmp/<br>
+mkdir -p system/bin lib<br>
+adb pull /system/bin/linker system/bin/<br>
+adb pull /system/lib/libc.so lib/<br>
+adb pull /system/lib/libm.so lib/<br>
+chmod 755 system/bin/linker lib/libc.so lib/libm.so<br>
+</td></tr>
+</table>
+
+<h2>Step 11: Initialize policy and pull.</h2>
+
+<p>Create initial policy used by TOMOYO Linux. Then, copy the initial policy to ramdisk's /etc/ccs/ directory.</p>
+
+<table border="1">
+<tr><td>
+mkdir -p $ANDROID_IMG/tmp/etc/ccs/<br>
+adb shell /sbin/init_policy policy_dir=/data/ccs/<br>
+adb pull /data/ccs/ $ANDROID_IMG/tmp/etc/ccs/<br>
+adb shell rm /data/ccs/\*<br>
+adb shell rmdir /data/ccs/<br>
+adb emu kill
+</td></tr>
+</table>
+
+<h2>Step 12: Edit initialized policy.</h2>
+
+<p>Add missing entries (e.g. file_pattern / allow_read ) to exception policy. Below is just an example. Domain policy is configured to use profile 1 (which is a profile for "learning mode"). Manager is configured to allow only agent program.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_IMG/tmp/<br>
+(<br>
+echo 'initialize_domain /init'<br>
+echo 'initialize_domain /system/bin/app_process'<br>
+<br>
+echo 'file_pattern /dev/tty\$'<br>
+<br>
+echo 'file_pattern /system/lib/\@.so'<br>
+echo 'allow_read /system/lib/\@.so'<br>
+echo 'file_pattern /system/framework/\*.jar'<br>
+echo 'allow_read /system/framework/\*.jar'<br>
+echo 'file_pattern /system/media/audio/\*/\*'<br>
+echo 'allow_read /system/media/audio/\*/\*'<br>
+echo 'file_pattern /system/fonts/\*.ttf'<br>
+echo 'allow_read /system/fonts/\*.ttf'<br>
+echo 'file_pattern /data/tombstones/tombstone_\$'<br>
+<br>
+echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
+echo 'file_pattern /data/dalvik-cache/system@app@\*.jar@classes.dex'<br>
+echo 'file_pattern /data/dalvik-cache/data@app@\*@classes.dex'<br>
+<br>
+echo 'file_pattern /data/local/tmp/\*.apk'<br>
+echo 'file_pattern /data/local/tmp/\*.apk'<br>
+<br>
+echo 'file_pattern /data/app/\*.tmp'<br>
+echo 'file_pattern /data/data/\*/databases/\*'<br>
+echo 'file_pattern /data/data/\*/databases/'<br>
+<br>
+echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
+echo 'file_pattern /data/dalvik-cache/system@app@\*.apk@classes.dex'<br>
+echo 'file_pattern /data/dalvik-cache/system@app-private@\*.apk@classes.dex'<br>
+<br>
+echo 'file_pattern /sdcard/dcim/.thumbnails/\$.jpg'<br>
+echo 'file_pattern /sdcard/dcim/.thumbnails/.thumbdata\*'<br>
+echo 'file_pattern /sdcard/dcim/.thumbnails/.thumbdata3--\$'<br>
+<br>
+echo 'path_group SYSTEM_APK /system/app/\@.apk'<br>
+<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_min'<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_def'<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_wmem_max'<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_min'<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_def'<br>
+echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_max'<br>
+<br>
+echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/ac/online'<br>
+echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
+<br>
+#App. specific data files<br>
+echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>
+echo 'file_pattern /data/data/com.android.browser/app_thumbnails/\*'<br>
+) &gt;&gt; etc/ccs/exception_policy.conf<br>
+(<br>
+echo '&lt;kernel&gt;'<br>
+echo 'use_profile 1'<br>
+) &gt; etc/ccs/domain_policy.conf<br>
+echo /sbin/ccs-editpolicy-agent &gt; etc/ccs/manager.conf
+</td></tr>
+</table>
+
+<h2>Step 13: Add policy loader to Android's ramdisk image.</h2>
+
+<p>Add ccs-init into ramdisk in order to enable TOMOYO Linux.</p>
+
+<table border="1">
+<tr><td>
+cd $ANDROID_IMG/tmp/<br>
+rm sbin/init_policy<br>
+cp -p $ANDROID_HOME/tmp/ccs-init sbin/<br>
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+</td></tr>
+</table>
+
+<h2>Step 14: Start the Android emulator.</h2>
+
+<p>Start the Android emulator. Specify the kernel made at step 4 and the ramdisk made at step 13.</p>
+
+<table border="1">
+<tr><td>
+emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysdir $ANDROID_IMG -data $ANDROID_IMG/userdata.img -show-kernel
+</td></tr>
+</table>
+
+<h2>Step 15: Enable TCP port forwarding.</h2>
+
+<p>Configure port forwarding in order to communicate with the agent program running in the emulator. Below line makes TCP connection requests sent to host enviroment's port 10000 are forwarded to emulator environment's port 7000. As you have configures ccs-editpolicy-agent to listen at port 7000 at step 8, you can communicate with the agent program by connecting to host environment's port 10000.</p>
+
+<table border="1">
+<tr><td>
+adb forward tcp:10000 tcp:7000
+</td></tr>
+</table>
+
+<h2>Step 16: Operate via agent.</h2>
+
+<p>You can browse/edit policy via agent program by starting ccs-editpolicy as shown below.</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-editpolicy 127.0.0.1:10000
+</td></tr>
+</table>
+
+<p>You can save current policy into ramdisk's /etc/ccs/ directory by executing ccs-savepolicy as shown below.</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-savepolicy edpm $ANDROID_IMG/tmp/etc/ccs/ 127.0.0.1:10000<br>
+cd $ANDROID_IMG/tmp/<br>
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+</td></tr>
+</table>
+
+<p>You can save audit logs by starting ccs-auditd as shown below. Please be careful with disk's free space because a lot of logs are generated.</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-auditd /tmp/grant_log /tmp/reject_log 127.0.0.1:10000
+</td></tr>
+</table>
+
+<p>You can interactively handle policy violation in enforcing mode by starting ccs-queryd as shown below. Press Ctrl-C to terminate ccs-queryd.</p>
+
+<table border="1">
+<tr><td>
+/usr/sbin/ccs-queryd 127.0.0.1:10000
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
