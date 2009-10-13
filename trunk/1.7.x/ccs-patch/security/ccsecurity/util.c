@@ -961,7 +961,7 @@ const char *ccs_get_exe(void)
  *
  * @profile:    Profile number.
  * @index:      Index number of functionality.
- * @is_granted: True if granted log, false otehrwise.
+ * @is_granted: True if granted log, false otherwise.
  *
  * Returns mode.
  */
