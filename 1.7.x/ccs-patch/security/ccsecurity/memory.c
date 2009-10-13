@@ -35,7 +35,7 @@ static unsigned int ccs_quota_for_policy;
  * @ptr:  Pointer to allocated memory.
  * @size: Size in byte.
  *
- * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
+ * Returns true if @ptr is not NULL and quota not exceeded, false otherwise.
  */
 bool ccs_memory_ok(const void *ptr, const unsigned int size)
 {
@@ -57,7 +57,7 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
  * @data:   Data to copy from.
  * @size:   Size in byte.
  *
- * Returns true if @ptr is not NULL and quota not exceeded, false otehrwise.
+ * Returns true if @ptr is not NULL and quota not exceeded, false otherwise.
  */
 bool ccs_commit_ok(void *ptr, void *data, const unsigned int size)
 {
