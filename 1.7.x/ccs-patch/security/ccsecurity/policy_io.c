@@ -1202,7 +1202,7 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_acl - Print a single path ACL entry.
+ * ccs_print_path_acl - Print a path ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path_acl".
@@ -1595,14 +1595,12 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (acl_type == CCS_TYPE_PATH2_ACL) {
 		struct ccs_path2_acl *acl
-			= container_of(ptr, struct ccs_path2_acl,
-				       head);
+			= container_of(ptr, struct ccs_path2_acl, head);
 		return ccs_print_path2_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
 		struct ccs_path_number_acl *acl
-			= container_of(ptr, struct ccs_path_number_acl,
-				       head);
+			= container_of(ptr, struct ccs_path_number_acl, head);
 		return ccs_print_path_number_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_ENV_ACL) {
@@ -1612,14 +1610,12 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl *acl
-			= container_of(ptr, struct ccs_capability_acl,
-				       head);
+			= container_of(ptr, struct ccs_capability_acl, head);
 		return ccs_print_capability_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
 		struct ccs_ip_network_acl *acl
-			= container_of(ptr, struct ccs_ip_network_acl,
-				       head);
+			= container_of(ptr, struct ccs_ip_network_acl, head);
 		return ccs_print_network_acl(head, acl, cond);
 	}
 	if (acl_type == CCS_TYPE_SIGNAL_ACL) {

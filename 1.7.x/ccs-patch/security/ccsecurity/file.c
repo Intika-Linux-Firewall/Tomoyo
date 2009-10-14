@@ -142,11 +142,11 @@ static bool ccs_compare_name_union_pattern(const struct ccs_path_info *name,
 }
 
 /**
- * ccs_path2keyword - Get the name of single path operation.
+ * ccs_path2keyword - Get the name of path operations.
  *
  * @operation: Type of operation.
  *
- * Returns the name of single path operation.
+ * Returns the name of path operation.
  */
 const char *ccs_path2keyword(const u8 operation)
 {
@@ -155,11 +155,11 @@ const char *ccs_path2keyword(const u8 operation)
 }
 
 /**
- * ccs_path_number32keyword - Get the name of mkdev operation.
+ * ccs_path_number32keyword - Get the name of path/number/number/number operations.
  *
  * @operation: Type of operation.
  *
- * Returns the name of mkdev operation.
+ * Returns the name of path/number/number/number operation.
  */
 const char *ccs_path_number32keyword(const u8 operation)
 {
@@ -168,11 +168,11 @@ const char *ccs_path_number32keyword(const u8 operation)
 }
 
 /**
- * ccs_path22keyword - Get the name of double path operation.
+ * ccs_path22keyword - Get the name of path/path operations.
  *
  * @operation: Type of operation.
  *
- * Returns the name of double path operation.
+ * Returns the name of path/path operation.
  */
 const char *ccs_path22keyword(const u8 operation)
 {
@@ -180,6 +180,13 @@ const char *ccs_path22keyword(const u8 operation)
 		? ccs_path2_keyword[operation] : NULL;
 }
 
+/**
+ * ccs_path_number2keyword - Get the name of path/number operations.
+ *
+ * @operation: Type of operation.
+ *
+ * Returns the name of path/number operation.
+ */
 const char *ccs_path_number2keyword(const u8 operation)
 {
 	return (operation < CCS_MAX_PATH_NUMBER_OPERATION)
@@ -239,7 +246,7 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 			       const bool is_delete);
 
 /**
- * ccs_audit_path_log - Audit single path request log.
+ * ccs_audit_path_log - Audit path request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
@@ -259,7 +266,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_path2_log - Audit double path request log.
+ * ccs_audit_path2_log - Audit path/path request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
@@ -280,7 +287,7 @@ static int ccs_audit_path2_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_path_number3_log - Audit mkdev request log.
+ * ccs_audit_path_number3_log - Audit path/number/number/number request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @operation:  The name of operation.
@@ -308,7 +315,7 @@ static int ccs_audit_path_number3_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_audit_path_number_log - Audit ioctl/chmod/chown/chgrp related request log.
+ * ccs_audit_path_number_log - Audit path/number request log.
  *
  * @r:          Pointer to "struct ccs_request_info".
  * @type:       Type of operation.
@@ -658,7 +665,7 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
 }
 
 /**
- * ccs_path_acl - Check permission for single path operation.
+ * ccs_path_acl - Check permission for path operation.
  *
  * @r:               Pointer to "struct ccs_request_info".
  * @filename:        Filename to check.
@@ -695,7 +702,7 @@ static int ccs_path_acl(struct ccs_request_info *r,
 }
 
 /**
- * ccs_path_number3_acl - Check permission for mkdev operation.
+ * ccs_path_number3_acl - Check permission for path/number/number/number operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @filename: Filename to check.
@@ -1078,7 +1085,7 @@ static inline int ccs_update_path2_acl(const u8 type,
 }
 
 /**
- * ccs_path2_acl - Check permission for double path operation.
+ * ccs_path2_acl - Check permission for path/path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @type:      Type of operation.
@@ -1115,7 +1122,7 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 }
 
 /**
- * ccs_path_permission - Check permission for single path operation.
+ * ccs_path_permission - Check permission for path operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
@@ -1161,7 +1168,7 @@ static int ccs_path_permission(struct ccs_request_info *r,
 }
 
 /**
- * ccs_path_number3_perm2 - Check permission for mkdev operation.
+ * ccs_path_number3_perm2 - Check permission for path/number/number/number operation.
  *
  * @r:         Pointer to "struct ccs_request_info".
  * @operation: Type of operation.
@@ -1877,11 +1884,11 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  const bool is_delete)
 {
 	char *w[5];
-	unsigned int perm;
 	u8 type;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
 	if (strncmp(w[0], "allow_", 6)) {
+		unsigned int perm;
 		if (sscanf(w[0], "%u", &perm) == 1)
 			return ccs_update_file_acl((u8) perm, w[1], domain,
 						   condition, is_delete);
