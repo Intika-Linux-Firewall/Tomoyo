@@ -8,8 +8,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include <signal.h>
 #include <dirent.h>
+
+static _Bool wait_data(const int fd)
+{
+	struct pollfd pfd = { .fd = fd, .events = POLLIN};
+	poll(&pfd, 1, -1);
+	return 1;
+}
 
 static void show_tasklist(FILE *fp, const _Bool show_all)
 {
@@ -105,104 +113,75 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 	fflush(fp);
 }
 
-static void handle_stream(const int client_fd, const char *filename)
+static void handle_stream(const int client, const char *filename)
 {
-	char buffer[4096];
-	const int stream_fd = open(filename, O_RDONLY);
-	if (stream_fd == EOF)
+	const int fd = open(filename, O_RDONLY);
+	if (fd == EOF)
 		return;
-	write(client_fd, "", 1);
-	while (1) {
-		int len;
-		fd_set rfds;
-		FD_ZERO(&rfds);
-		FD_SET(stream_fd, &rfds);
-		select(stream_fd + 1, &rfds, NULL, NULL, NULL);
-		len = read(stream_fd, buffer, sizeof(buffer));
+	/* Return \0 to indicate success. */
+	write(client, "", 1);
+	while (wait_data(fd)) {
+		char buffer[4096];
+		const int len = read(fd, buffer, sizeof(buffer));
 		if (!len)
 			continue;
-		if (len == EOF || write(client_fd, buffer, len) != len)
+		if (len == EOF || write(client, buffer, len) != len)
 			break;
 	}
-	close(stream_fd);
+	close(fd);
 }
 
-static void handle_query(const int client_fd)
+static void handle_query(const int client)
 {
-	char buffer[4096];
-	const int query_fd = open("query", O_RDWR);
-	if (query_fd == EOF)
+	const int fd = open("query", O_RDWR);
+	if (fd == EOF)
 		return;
-	write(client_fd, "", 1);
-	while (read(client_fd, buffer, 1) == 1) {
-		if (buffer[0]) {
-			write(query_fd, buffer, 1);
-			continue;
-		}
-		if (fork() == 0) {
-			while (1) {
-				int len;
-				fd_set rfds;
-				FD_ZERO(&rfds);
-				FD_SET(query_fd, &rfds);
-				select(query_fd + 1, &rfds, NULL, NULL, NULL);
-				len = read(query_fd, buffer, sizeof(buffer));
+	/* Return \0 to indicate success. */
+	write(client, "", 1);
+	while (wait_data(client)) {
+		char buffer[4096];
+		int len = recv(client, buffer, sizeof(buffer), MSG_DONTWAIT);
+		int nonzero_len;
+		if (len <= 0)
+			break;
+restart:
+		for (nonzero_len = 0 ; nonzero_len < len; nonzero_len++)
+			if (!buffer[nonzero_len])
+				break;
+		if (nonzero_len) {
+			if (write(fd, buffer, nonzero_len) != nonzero_len)
+				break;
+		} else {
+			while (wait_data(fd)) {
+				char buffer2[4096];
+				const int len = read(fd, buffer2,
+						     sizeof(buffer2));
 				if (!len)
 					continue;
 				if (len == EOF ||
-				    write(client_fd, buffer, len) != len ||
-				    !buffer[len - 1])
+				    write(client, buffer2, len) != len) {
+					shutdown(client, SHUT_RDWR);
+					break;
+				}
+				if (!buffer2[len - 1])
 					break;
 			}
-			_exit(0);
+			nonzero_len = 1;
 		}
+		len -= nonzero_len;
+		memmove(buffer, buffer + nonzero_len, len);
+		if (len)
+			goto restart;
 	}
- 	close(query_fd);
+	close(fd);
 }
 
 static _Bool verbose = 0;
 
-static void do_child(const int client)
+static void handle_policy(const int client, const char *filename)
 {
-	int i;
-	int fd = EOF;
-	char buffer[1024];
-	/* Read filename. */
-	for (i = 0; i < sizeof(buffer) - 1; i++) {
-		if (read(client, buffer + i, 1) != 1)
-			goto out;
-		if (!buffer[i]) {
-			char *cp;
-			if (!strcmp(buffer, "proc:query")) {
-				handle_query(client);
-				break;
-			}			
-			if (!strcmp(buffer, "proc:grant_log") ||
-			    !strcmp(buffer, "proc:reject_log")) {
-				handle_stream(client, buffer + 5);
-				break;
-			}
-			if (!strncmp(buffer, "proc:", 5)) {
-				FILE *fp = fdopen(client, "w");
-				/* Open /proc/\$/ for reading. */
-				if (!fp)
-					break;
-				show_tasklist(fp,
-					      !strcmp(buffer + 5,
-						      "all_process_status"));
-				fclose(fp);
-				break;
-			}
-			cp = strrchr(buffer, '/');
-			if (!cp)
-				cp = buffer;
-			else
-				cp++;
-			/* Open for read/write. */
-			fd = open(cp, O_RDWR);
-			break;
-		}
-	}
+	char *cp = strrchr(filename, '/');
+	int fd = open(cp ? cp + 1 : filename, O_RDWR);
 	if (fd == EOF)
 		goto out;
 	/* Return \0 to indicate success. */
@@ -210,40 +189,80 @@ static void do_child(const int client)
 		goto out;
 	if (verbose) {
 		write(2, "opened ", 7);
-		write(2, buffer, strlen(buffer));
+		write(2, filename, strlen(filename));
 		write(2, "\n", 1);
 	}
-	while (1) {
-		char c;
-		/* Read a byte. */
-		if (read(client, &c, 1) != 1)
-			goto out;
-		if (c) {
-			/* Write that byte. */
-			if (write(fd, &c, 1) != 1)
-				goto out;
-			if (verbose)
-				write(1, &c, 1);
-			continue;
-		}
-		/* Read until EOF. */
-		while (1) {
-			int len = read(fd, buffer, sizeof(buffer));
-			if (len == 0)
+	while (wait_data(client)) {
+		char buffer[4096];
+		int len = recv(client, buffer, sizeof(buffer), MSG_DONTWAIT);
+		int nonzero_len;
+		if (len <= 0)
+			break;
+restart:
+		for (nonzero_len = 0 ; nonzero_len < len; nonzero_len++)
+			if (!buffer[nonzero_len])
 				break;
-			/* Don't send \0 because it is EOF marker. */
-			if (len < 0 || memchr(buffer, '\0', len) ||
-			    write(client, buffer, len) != len)
+		if (nonzero_len) {
+			if (write(fd, buffer, nonzero_len) != nonzero_len)
+				break;
+			if (verbose)
+				write(1, buffer, nonzero_len);
+		} else {
+			while (1) {
+				char buffer2[4096];
+				const int len = read(fd, buffer2,
+						     sizeof(buffer2));
+				if (len == 0)
+					break;
+				/* Don't send \0 because it is EOF marker. */
+				if (len < 0 || memchr(buffer2, '\0', len) ||
+				    write(client, buffer2, len) != len)
+					goto out;
+			}
+			/* Return \0 to indicate EOF. */
+			if (write(client, "", 1) != 1)
 				goto out;
+			nonzero_len = 1;
 		}
-		/* Return \0 to indicate EOF. */
-		if (write(client, "", 1) != 1)
-			goto out;
+		len -= nonzero_len;
+		memmove(buffer, buffer + nonzero_len, len);
+		if (len)
+			goto restart;
 	}
  out:
 	if (verbose)
 		write(2, "disconnected\n", 13);
-	close(fd);
+}
+
+static void do_child(const int client)
+{
+	int i;
+	char buffer[1024];
+	/* Read filename. */
+	for (i = 0; i < sizeof(buffer); i++) {
+		if (read(client, buffer + i, 1) != 1)
+			goto out;
+		if (!buffer[i])
+			break;
+	}
+	if (!memchr(buffer, '\0', sizeof(buffer)))
+		goto out;
+	if (!strcmp(buffer, "proc:query"))
+		handle_query(client);
+	else if (!strcmp(buffer, "proc:grant_log") ||
+		 !strcmp(buffer, "proc:reject_log"))
+		handle_stream(client, buffer + 5);
+	else if (!strncmp(buffer, "proc:", 5)) {
+		/* Open /proc/\$/ for reading. */
+		FILE *fp = fdopen(client, "w");
+		if (fp) {
+			show_tasklist(fp, !strcmp(buffer + 5,
+						  "all_process_status"));
+			fclose(fp);
+		}
+	} else
+		handle_policy(client, buffer);
+ out:
 	close(client);
 }
 
