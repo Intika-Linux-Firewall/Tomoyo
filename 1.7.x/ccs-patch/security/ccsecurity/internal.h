@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/10/16
+ * Version: 1.7.1-pre   2009/10/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1068,8 +1068,8 @@ static inline void ccs_realpath_unlock(void)
 
 static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
 {
-	return task->ccs_domain_info ?
-		task->ccs_domain_info : &ccs_kernel_domain;
+	struct ccs_domain_info *domain = task->ccs_domain_info;
+	return domain ? domain : &ccs_kernel_domain;
 }
 
 static inline struct ccs_domain_info *ccs_current_domain(void)
