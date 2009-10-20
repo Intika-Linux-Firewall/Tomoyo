@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -75,7 +75,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -94,7 +94,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -113,7 +113,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -132,7 +132,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -602,7 +602,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.22.14-72.fc6 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.22.14-72.fc6 2009/10/20\n");
  }
 --- linux-2.6.22.14-72.fc6.orig/include/linux/init_task.h
 +++ linux-2.6.22.14-72.fc6/include/linux/init_task.h
@@ -745,7 +745,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	struct utrace_attached_engine *engine = NULL;
  	struct ptrace_state *state = NULL;
  	long ret, val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
@@ -754,7 +754,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/core/updates/6/SR
  	struct utrace_attached_engine *engine;
  	struct ptrace_state *state;
  	compat_long_t ret, val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",

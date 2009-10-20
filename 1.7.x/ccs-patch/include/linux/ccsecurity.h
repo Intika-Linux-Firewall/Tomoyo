@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/10/16
+ * Version: 1.7.1-pre   2009/10/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -473,5 +473,10 @@ enum ccs_capability_acl_index {
 	CCS_CONCEAL_MOUNT,
 	CCS_MAX_CAPABILITY_INDEX
 };
+
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	return !ccs_capable(CCS_SYS_PTRACE);
+}
 
 #endif

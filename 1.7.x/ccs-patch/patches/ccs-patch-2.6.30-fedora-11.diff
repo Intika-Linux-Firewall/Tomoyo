@@ -510,7 +510,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.8-64.fc11 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.30.8-64.fc11 2009/10/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -655,7 +655,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*
@@ -664,7 +664,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*
