@@ -54,7 +54,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -73,7 +73,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -92,7 +92,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -111,7 +111,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -130,7 +130,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -594,7 +594,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-128.10AXS3 2009/10/08\n");
++	printk(KERN_INFO "Hook version: 2.6.18-128.10AXS3 2009/10/20\n");
  }
 --- linux-2.6.18-128.10AXS3.orig/include/linux/init_task.h
 +++ linux-2.6.18-128.10AXS3/include/linux/init_task.h
@@ -739,7 +739,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	struct utrace_attached_engine *engine = NULL;
  	struct ptrace_state *state = NULL;
  	long ret, val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	pr_debug("%d sys_ptrace(%ld, %ld, %lx, %lx)\n",
@@ -748,7 +748,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	struct utrace_attached_engine *engine;
  	struct ptrace_state *state;
  	compat_long_t ret, val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",

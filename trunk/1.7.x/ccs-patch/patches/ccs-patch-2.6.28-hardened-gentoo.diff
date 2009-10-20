@@ -514,7 +514,7 @@ Source code for this patch is "emerge hardened-sources"
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.28-hardened-r9 2009/10/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -659,7 +659,7 @@ Source code for this patch is "emerge hardened-sources"
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*
@@ -668,7 +668,7 @@ Source code for this patch is "emerge hardened-sources"
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*

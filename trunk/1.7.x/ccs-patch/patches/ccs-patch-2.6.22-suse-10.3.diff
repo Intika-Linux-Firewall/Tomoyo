@@ -61,7 +61,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -80,7 +80,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -99,7 +99,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -118,7 +118,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -137,7 +137,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -156,7 +156,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -175,7 +175,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -194,7 +194,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -215,7 +215,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -236,7 +236,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	switch (request) { 
@@ -704,7 +704,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.22.19-0.4 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.22.19-0.4 2009/10/20\n");
  }
 --- linux-2.6.22.19-0.4.orig/include/linux/init_task.h
 +++ linux-2.6.22.19-0.4/include/linux/init_task.h
@@ -847,7 +847,7 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*

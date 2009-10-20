@@ -77,7 +77,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -96,7 +96,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -115,7 +115,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -134,7 +134,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	int ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -153,7 +153,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	int ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -172,7 +172,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	unsigned long tmp;
  	int ret;
  
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  	lock_kernel();
  	ret = -EPERM;
@@ -191,7 +191,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -210,7 +210,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct user * dummy = NULL;
  	int i, ret;
  	unsigned long __user *datap = (unsigned long __user *)data;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -229,7 +229,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -248,7 +248,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -267,7 +267,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -286,7 +286,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	unsigned long tmp;
  	int i, ret = 0;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -305,7 +305,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -324,7 +324,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -343,7 +343,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -362,7 +362,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef DEBUG_PTRACE
  	long oaddr=addr, odata=data;
  #endif
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -381,7 +381,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -400,7 +400,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -419,7 +419,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -438,7 +438,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -457,7 +457,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	struct user * dummy = NULL;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -476,7 +476,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #define WPC_DBRMODE 0x0d104008
  	static int first_call = 1;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -495,7 +495,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -516,7 +516,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -537,7 +537,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -556,7 +556,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int rval;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -575,7 +575,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	switch (request) { 
@@ -594,7 +594,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct task_struct *child;
  	long i, ret;
  	unsigned ui;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/* This lock_kernel fixes a subtle race with suid exec */
@@ -613,7 +613,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -1076,7 +1076,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.14.7 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.14.7 2009/10/20\n");
  }
 --- linux-2.6.14.7.orig/include/linux/init_task.h
 +++ linux-2.6.14.7/include/linux/init_task.h

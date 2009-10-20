@@ -510,7 +510,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.9 2009/10/06\n");
++	printk(KERN_INFO "Hook version: 2.6.30.9 2009/10/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -655,7 +655,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*
@@ -664,7 +664,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  {
  	struct task_struct *child;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	/*

@@ -59,7 +59,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	unsigned long tmp;
  	size_t copied;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -78,7 +78,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -97,7 +97,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	struct task_struct *child;
  	struct switch_stack *sw;
  	long ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -116,7 +116,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -135,7 +135,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -154,7 +154,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  {
  	struct task_struct *child;
  	int ret = -EPERM;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -173,7 +173,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	struct task_struct *child;
  	int ret;
  
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  	lock_kernel();
  
@@ -192,7 +192,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -213,7 +213,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	unsigned long addr2 = regs->u_regs[UREG_I4];
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE)) {
++	if (ccs_ptrace_permission(request, pid)) {
 +		pt_error_return(regs, EPERM);
 +		return;
 +	}
@@ -234,7 +234,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	void __user *datap = compat_ptr(data);
  	int ret;
  	__u32 val;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	switch (request) { 
@@ -689,7 +689,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15-54.79 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.15-54.79 2009/10/20\n");
  }
 --- linux-2.6.15-54.79.orig/include/linux/init_task.h
 +++ linux-2.6.15-54.79/include/linux/init_task.h
@@ -834,7 +834,7 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  	lock_kernel();
  	ret = ptrace_get_task_struct(request, pid, &child);

@@ -52,7 +52,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.0/SRPMS/SRPMS.
  	struct task_struct *child;
  	unsigned int value, tmp;
  	long i, ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  	lock_kernel();
@@ -71,7 +71,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.0/SRPMS/SRPMS.
  {
  	struct task_struct *child;
  	int ret;
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  
  #if 0
@@ -567,7 +567,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.0/SRPMS/SRPMS.
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-43vl5 2009/10/01\n");
++	printk(KERN_INFO "Hook version: 2.6.27-43vl5 2009/10/20\n");
  }
 --- linux-2.6.27-43vl5.orig/include/linux/init_task.h
 +++ linux-2.6.27-43vl5/include/linux/init_task.h
@@ -710,7 +710,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.0/SRPMS/SRPMS.
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
@@ -719,7 +719,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-5.0/SRPMS/SRPMS.
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
  	 */
-+	if (!ccs_capable(CCS_SYS_PTRACE))
++	if (ccs_ptrace_permission(request, pid))
 +		return -EPERM;
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
