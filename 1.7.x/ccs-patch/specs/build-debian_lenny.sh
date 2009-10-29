@@ -35,7 +35,7 @@ cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.0-20090911.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
-yes | make -s oldconfig > /dev/null
+make -s oldconfig
 
 # Start compilation.
 REVISION=`head -n 1 debian/changelog | awk ' { print $2 } ' | awk -F'(' ' { print $2 } ' |  awk -F')' ' { print $1 } '`
