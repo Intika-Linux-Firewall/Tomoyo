@@ -2194,3 +2194,14 @@ Fix 2009/10/08
       activation trigger.
 
       Thus, I made the alternative trigger ( /sbin/ccs-start ) configurable.
+
+Fix 2009/11/02
+
+    @ Fix buffer contention.
+
+      A permission like
+
+        allow_env PATH if exec.envp["PATH"]="/"
+
+      was not working since I was using the same buffer for both environment
+      variable's name and value.
