@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/10/16
+ * Version: 1.7.1-pre   2009/11/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -691,7 +691,9 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	struct linux_binprm *bprm = ee->bprm;
-	char *arg_ptr = ee->tmp;
+	/* env_page->data is allocated by ccs_dump_page(). */
+	struct ccs_page_dump env_page = { };
+	char *arg_ptr; /* Size is CCS_EXEC_TMPSIZE bytes */
 	int arg_len = 0;
 	unsigned long pos = bprm->p;
 	int offset = pos % PAGE_SIZE;
@@ -701,14 +703,16 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 	int error = -ENOMEM;
 	if (!r->mode || !envp_count)
 		return 0;
+	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
+	if (!arg_ptr)
+		goto out;
 	while (error == -ENOMEM) {
-		if (!ccs_dump_page(bprm, pos, &ee->dump))
+		if (!ccs_dump_page(bprm, pos, &env_page))
 			goto out;
 		pos += PAGE_SIZE - offset;
 		/* Read. */
 		while (argv_count && offset < PAGE_SIZE) {
-			const char *kaddr = ee->dump.data;
-			if (!kaddr[offset++])
+			if (!env_page.data[offset++])
 				argv_count--;
 		}
 		if (argv_count) {
@@ -716,8 +720,7 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 			continue;
 		}
 		while (offset < PAGE_SIZE) {
-			const char *kaddr = ee->dump.data;
-			const unsigned char c = kaddr[offset++];
+			const unsigned char c = env_page.data[offset++];
 			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
 				if (c == '=') {
 					arg_ptr[arg_len++] = '\0';
@@ -753,6 +756,7 @@ static int ccs_environ(struct ccs_execve_entry *ee)
  out:
 	if (r->mode != 3)
 		error = 0;
+	kfree(env_page.data);
 	return error;
 }
 
