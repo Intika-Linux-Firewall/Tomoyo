@@ -2205,3 +2205,9 @@ Fix 2009/11/02
 
       was not working since I was using the same buffer for both environment
       variable's name and value.
+
+Fix 2009/11/03
+
+    @ Fix memory leak in ccs_write_address_group_policy().
+
+      I forgot to call kfree() if same entry was added.
