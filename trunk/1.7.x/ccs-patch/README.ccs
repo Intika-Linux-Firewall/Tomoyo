@@ -1003,7 +1003,7 @@ Fix 2007/08/17
 
     @ Remove initializer directive.
 
-      Use "initialize_domain" instrad of "initializer".
+      Use "initialize_domain" instead of "initializer".
 
 Fix 2007/08/21
 
@@ -2046,11 +2046,11 @@ Fix 2009/09/01
       kernel 2.6.31 introduced memory leak detection mechanism
       ( CONFIG_DEBUG_KMEMLEAK ), TOMOYO no longer needs to use own list.
 
-      I removed the list to ruduce use of spinlocks.
+      I removed the list to reduce use of spinlocks.
 
     @ Rewrite ccs-patch-2.\*.diff .
 
-      ccs-patch-2.\*.diff was rewriteen like LSM hooks.
+      ccs-patch-2.\*.diff was rewritten like LSM hooks.
 
     @ Don't check "allow_read/write" for open-for-ioctl-only.
 
@@ -2173,7 +2173,7 @@ Fix 2009/10/05
     @ Fix size truncation bug at ccs_memcmp().
 
       ccs_memcmp() was using "u8" for size parameter by error. Therefore, when
-      size >= 256 was passed to ccs_memcmp(), it was doing partial comarison
+      size >= 256 was passed to ccs_memcmp(), it was doing partial comparison
       (incorrect result) or read overrun (CPU stall).
 
       ccs_memcmp() should use "size_t" for size parameter because size of
