@@ -31,8 +31,6 @@ apt-get install fakeroot build-essential || die "Can't install packages."
 apt-get build-dep linux-image-${VERSION}-generic || die "Can't install packages."
 apt-get source linux-image-${VERSION}-generic || die "Can't install kernel source."
 apt-get install linux-headers-${VERSION} || die "Can't install packages."
-# apt-get build-dep linux-restricted-modules-${VERSION}-generic || die "Can't install packages."
-# apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-2.6.31/ || die "Can't chdir to linux-2.6.31/ ."
@@ -40,6 +38,8 @@ tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.0-20090911.tar.gz || die "Can't extr
 patch -p1 < patches/ccs-patch-2.6.31-ubuntu-9.10.diff || die "Can't apply patch."
 for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
+rm debian.master/control.stub || die "Can't delete control.stub."
+make -f debian.master/rules debian.master/control.stub || die "Can't update control.stub."
 rm debian/control || die "Can't delete control."
 debian/rules debian/control || die "Can't update control."
 for i in debian.master/abi/2.6.31-*/*/ ; do touch $i/ccs.ignore; done
@@ -47,13 +47,5 @@ for i in debian.master/abi/2.6.31-*/*/ ; do touch $i/ccs.ignore; done
 # Start compilation.
 debian/rules binary-headers || die "Failed to build kernel package."
 debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
-
-# Install header package for compiling additional modules.
-# dpkg -i /usr/src/linux-headers-${VERSION}*.deb || die "Can't install packages."
-# cd /usr/src/linux-restricted-modules-2.6.31/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.31/ ."
-# for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
-# touch debian/control.stub.in || die "Can't touch control."
-# debian/rules debian/control || die "Can't run control."
-# debian/rules binary-arch arch=i386 flavours=ccs || die "Failed to build kernel package."
 
 exit 0
