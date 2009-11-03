@@ -141,7 +141,6 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
-	bool done = true;
 	list_for_each_cookie(gpos, head->read_var1, &ccs_address_group_list) {
 		struct ccs_address_group *group;
 		group = list_entry(gpos, struct ccs_address_group, list);
@@ -182,16 +181,13 @@ bool ccs_read_address_group_policy(struct ccs_io_buffer *head)
 						 HIPQUAD(max_address));
 				}
 			}
-			done = ccs_io_printf(head, CCS_KEYWORD_ADDRESS_GROUP
-					     "%s %s\n", group->group_name->name,
-					     buf);
-			if (!done)
-				break;
+			if (!ccs_io_printf(head, CCS_KEYWORD_ADDRESS_GROUP
+					   "%s %s\n", group->group_name->name,
+					   buf))
+				return false;
 		}
-		if (!done)
-			break;
 	}
-	return done;
+	return true;
 }
 
 /**

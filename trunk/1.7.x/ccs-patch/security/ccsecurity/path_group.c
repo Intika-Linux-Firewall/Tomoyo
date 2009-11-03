@@ -118,7 +118,6 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
-	bool done = true;
 	list_for_each_cookie(gpos, head->read_var1, &ccs_path_group_list) {
 		struct ccs_path_group *group;
 		group = list_entry(gpos, struct ccs_path_group, list);
@@ -129,15 +128,14 @@ bool ccs_read_path_group_policy(struct ccs_io_buffer *head)
 					    list);
 			if (member->is_deleted)
 				continue;
-			done = ccs_io_printf(head, CCS_KEYWORD_PATH_GROUP
-					     "%s %s\n",
-					     group->group_name->name,
-					     member->member_name->name);
-			if (!done)
-				break;
+			if (!ccs_io_printf(head, CCS_KEYWORD_PATH_GROUP
+					   "%s %s\n",
+					   group->group_name->name,
+					   member->member_name->name))
+				return false;
 		}
 	}
-	return done;
+	return true;
 }
 
 /**

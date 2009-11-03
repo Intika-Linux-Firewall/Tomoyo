@@ -2218,3 +2218,12 @@ Fix 2009/11/03
       atomic_dec_and_test() for removing an element from a list.
       I moved that operation to garbage collector in order to reduce frequency
       of mutex_lock()/mutex_unlock() calls.
+
+    @ Escape from nested loops correctly.
+
+      In ccs_read_address_group_policy(), I was escaping from nested loops
+      correctly. But in ccs_read_path_group_policy() and
+      ccs_read_number_group_policy(), I wasn't.
+
+      As a result, reading path_group and number_group caused kernel oops
+      when they were not read atomically.

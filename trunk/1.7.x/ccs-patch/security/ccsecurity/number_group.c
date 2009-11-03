@@ -122,7 +122,6 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
-	bool done = true;
 	list_for_each_cookie(gpos, head->read_var1, &ccs_number_group_list) {
 		struct ccs_number_group *group;
 		const char *name;
@@ -143,12 +142,11 @@ bool ccs_read_number_group_policy(struct ccs_io_buffer *head)
 			    !ccs_print_number_union(head, &member->number) ||
 			    !ccs_io_printf(head, "\n")) {
 				head->read_avail = pos;
-				done = false;
-				break;
+				return false;
 			}
 		}
 	}
-	return done;
+	return true;
 }
 
 /**
