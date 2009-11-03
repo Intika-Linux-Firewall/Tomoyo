@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -32,6 +32,9 @@ enum ccs_gc_id {
 	CCS_ID_PATTERN,
 	CCS_ID_NO_REWRITE,
 	CCS_ID_MANAGER,
+	CCS_ID_IPV6_ADDRESS,
+	CCS_ID_CONDITION,
+	CCS_ID_NAME,
 	CCS_ID_ACL,
 	CCS_ID_DOMAIN
 };
@@ -331,6 +334,54 @@ static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
 	return sizeof(*ptr);
 }
 
+static size_t ccs_del_ipv6_address(struct ccs_ipv6addr_entry *ptr)
+{
+	return sizeof(*ptr);
+}
+
+/**
+ * ccs_del_conditiopn - Delete condition part.
+ *
+ * @cond: Pointer to "struct ccs_condition".
+ *
+ * Returns size of condition in bytes.
+ */
+size_t ccs_del_condition(struct ccs_condition *cond)
+{
+	const u16 condc = cond->condc;
+	const u16 numbers_count = cond->numbers_count;
+	const u16 names_count = cond->names_count;
+	const u16 argc = cond->argc;
+	const u16 envc = cond->envc;
+	unsigned int i;
+	const struct ccs_condition_element *condp
+		= (const struct ccs_condition_element *) (cond + 1);
+	struct ccs_number_union *numbers_p
+		= (struct ccs_number_union *) (condp + condc);
+	struct ccs_name_union *names_p
+		= (struct ccs_name_union *) (numbers_p + numbers_count);
+	const struct ccs_argv_entry *argv
+		= (const struct ccs_argv_entry *) (names_p + names_count);
+	const struct ccs_envp_entry *envp
+		= (const struct ccs_envp_entry *) (argv + argc);
+	for (i = 0; i < numbers_count; i++)
+		ccs_put_number_union(numbers_p++);
+	for (i = 0; i < names_count; i++)
+		ccs_put_name_union(names_p++);
+	for (i = 0; i < argc; argv++, i++)
+		ccs_put_name(argv->value);
+	for (i = 0; i < envc; envp++, i++) {
+		ccs_put_name(envp->name);
+		ccs_put_name(envp->value);
+	}
+	return cond->size;
+}
+
+static size_t ccs_del_name(const struct ccs_name_entry *ptr)
+{
+	return ptr->size;
+}
+
 /*
  * 2.6.19 has SRCU support but it triggers general protection fault in my
  * environment. Thus, I use SRCU for 2.6.20 and later.
@@ -413,16 +464,8 @@ static void ccs_synchronize_srcu(void)
 
 #endif
 
-static int ccs_gc_thread(void *unused)
+static void ccs_collect_entry(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-	daemonize("GC for CCS");
-#else
-	daemonize();
-	reparent_to_init();
-#endif
-	if (!mutex_trylock(&ccs_gc_mutex))
-		goto out;
 	mutex_lock(&ccs_policy_lock);
 	{
 		struct ccs_globally_readable_file_entry *ptr;
@@ -617,83 +660,149 @@ static int ccs_gc_thread(void *unused)
 				break;
 		}
 	}
-	mutex_unlock(&ccs_policy_lock);
-	if (list_empty(&ccs_gc_queue))
-		goto done;
-	ccs_synchronize_srcu();
 	{
-		struct ccs_gc_entry *p;
-		struct ccs_gc_entry *tmp;
-		size_t size = 0;
-		list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
-			switch (p->type) {
-			case CCS_ID_DOMAIN_INITIALIZER:
-				size = ccs_del_domain_initializer(p->element);
+		struct ccs_ipv6addr_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_address_list, list) {
+			if (atomic_read(&ptr->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_IPV6_ADDRESS, ptr))
+				list_del_rcu(&ptr->list);
+			else
 				break;
-			case CCS_ID_DOMAIN_KEEPER:
-				size = ccs_del_domain_keeper(p->element);
-				break;
-			case CCS_ID_GLOBALLY_READABLE:
-				size = ccs_del_allow_read(p->element);
-				break;
-			case CCS_ID_PATTERN:
-				size = ccs_del_file_pattern(p->element);
-				break;
-			case CCS_ID_NO_REWRITE:
-				size = ccs_del_no_rewrite(p->element);
-				break;
-			case CCS_ID_MANAGER:
-				size = ccs_del_manager(p->element);
-				break;
-			case CCS_ID_GLOBAL_ENV:
-				size = ccs_del_allow_env(p->element);
-				break;
-			case CCS_ID_AGGREGATOR:
-				size = ccs_del_aggregator(p->element);
-				break;
-			case CCS_ID_PATH_GROUP_MEMBER:
-				size = ccs_del_path_group_member(p->element);
-				break;
-			case CCS_ID_PATH_GROUP:
-				size = ccs_del_path_group(p->element);
-				break;
-			case CCS_ID_ADDRESS_GROUP_MEMBER:
-				size = ccs_del_address_group_member(p->element);
-				break;
-			case CCS_ID_ADDRESS_GROUP:
-				size = ccs_del_address_group(p->element);
-				break;
-			case CCS_ID_NUMBER_GROUP_MEMBER:
-				size = ccs_del_number_group_member(p->element);
-				break;
-			case CCS_ID_NUMBER_GROUP:
-				size = ccs_del_number_group(p->element);
-				break;
-			case CCS_ID_RESERVEDPORT:
-				size = ccs_del_reservedport(p->element);
-				break;
-			case CCS_ID_ACL:
-				size = ccs_del_acl(p->element);
-				break;
-			case CCS_ID_DOMAIN:
-				size = ccs_del_domain(p->element);
-				if (!size)
-					continue;
-				break;
-			default:
-				size = 0;
-				printk(KERN_WARNING "Unknown type\n");
-				break;
-			}
-			ccs_memory_free(p->element, size);
-			list_del(&p->list);
-			kfree(p);
 		}
 	}
- done:
-	mutex_unlock(&ccs_gc_mutex);
- out:
-	do_exit(0);
+	{
+		struct ccs_condition *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
+			if (atomic_read(&ptr->users))
+				continue;
+			if (ccs_add_to_gc(CCS_ID_CONDITION, ptr))
+				list_del_rcu(&ptr->list);
+			else
+				break;
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
+	mutex_lock(&ccs_name_list_lock);
+	{
+		int i;
+		for (i = 0; i < CCS_MAX_HASH; i++) {
+			struct ccs_name_entry *ptr;
+			list_for_each_entry_rcu(ptr, &ccs_name_list[i], list) {
+				if (atomic_read(&ptr->users))
+					continue;
+				if (ccs_add_to_gc(CCS_ID_NAME, ptr))
+					list_del_rcu(&ptr->list);
+				else {
+					i = CCS_MAX_HASH;
+					break;
+				}
+			}
+		}
+	}
+	mutex_unlock(&ccs_name_list_lock);
+}
+
+static void ccs_kfree_entry(void)
+{
+	struct ccs_gc_entry *p;
+	struct ccs_gc_entry *tmp;
+	size_t size = 0;
+	list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
+		switch (p->type) {
+		case CCS_ID_DOMAIN_INITIALIZER:
+			size = ccs_del_domain_initializer(p->element);
+			break;
+		case CCS_ID_DOMAIN_KEEPER:
+			size = ccs_del_domain_keeper(p->element);
+			break;
+		case CCS_ID_GLOBALLY_READABLE:
+			size = ccs_del_allow_read(p->element);
+			break;
+		case CCS_ID_PATTERN:
+			size = ccs_del_file_pattern(p->element);
+			break;
+		case CCS_ID_NO_REWRITE:
+			size = ccs_del_no_rewrite(p->element);
+			break;
+		case CCS_ID_MANAGER:
+			size = ccs_del_manager(p->element);
+			break;
+		case CCS_ID_GLOBAL_ENV:
+			size = ccs_del_allow_env(p->element);
+			break;
+		case CCS_ID_AGGREGATOR:
+			size = ccs_del_aggregator(p->element);
+			break;
+		case CCS_ID_PATH_GROUP_MEMBER:
+			size = ccs_del_path_group_member(p->element);
+			break;
+		case CCS_ID_PATH_GROUP:
+			size = ccs_del_path_group(p->element);
+			break;
+		case CCS_ID_ADDRESS_GROUP_MEMBER:
+			size = ccs_del_address_group_member(p->element);
+			break;
+		case CCS_ID_ADDRESS_GROUP:
+			size = ccs_del_address_group(p->element);
+			break;
+		case CCS_ID_NUMBER_GROUP_MEMBER:
+			size = ccs_del_number_group_member(p->element);
+			break;
+		case CCS_ID_NUMBER_GROUP:
+			size = ccs_del_number_group(p->element);
+			break;
+		case CCS_ID_RESERVEDPORT:
+			size = ccs_del_reservedport(p->element);
+			break;
+		case CCS_ID_IPV6_ADDRESS:
+			size = ccs_del_ipv6_address(p->element);
+			break;
+		case CCS_ID_CONDITION:
+			size = ccs_del_condition(p->element);
+			break;
+		case CCS_ID_NAME:
+			size = ccs_del_name(p->element);
+			break;
+		case CCS_ID_ACL:
+			size = ccs_del_acl(p->element);
+			break;
+		case CCS_ID_DOMAIN:
+			size = ccs_del_domain(p->element);
+			if (!size)
+				continue;
+			break;
+		default:
+			size = 0;
+			printk(KERN_WARNING "Unknown type\n");
+			break;
+		}
+		ccs_memory_free(p->element, size);
+		list_del(&p->list);
+		kfree(p);
+	}
+}
+
+static int ccs_gc_thread(void *unused)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	daemonize("GC for CCS");
+#else
+	daemonize();
+	reparent_to_init();
+#endif
+	if (mutex_trylock(&ccs_gc_mutex)) {
+		int i;
+		for (i = 0; i < 10; i++) {
+			ccs_collect_entry();
+			if (list_empty(&ccs_gc_queue))
+				break;
+			ccs_synchronize_srcu();
+			ccs_kfree_entry();
+		}
+		mutex_unlock(&ccs_gc_mutex);
+	}
+ 	do_exit(0);
 }
 
 void ccs_run_gc(void)

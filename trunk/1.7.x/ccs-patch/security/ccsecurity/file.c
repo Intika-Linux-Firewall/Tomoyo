@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -95,7 +95,6 @@ static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CHOWN]  = CCS_MAC_FILE_CHOWN,
 	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
 };
-
 
 void ccs_put_name_union(struct ccs_name_union *ptr)
 {

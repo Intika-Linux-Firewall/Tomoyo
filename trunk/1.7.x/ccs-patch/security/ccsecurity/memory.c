@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -82,7 +82,7 @@ void ccs_memory_free(const void *ptr, size_t size)
 	kfree(ptr);
 }
 
-static LIST_HEAD(ccs_address_list);
+LIST_HEAD(ccs_address_list);
 
 /**
  * ccs_get_ipv6_address - Keep the given IPv6 address on the RAM.
@@ -121,94 +121,9 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 	return ptr ? &ptr->addr : NULL;
 }
 
-/**
- * ccs_put_ipv6_address - Delete the given IPv6 address on the RAM.
- *
- * @addr: Pointer to "struct in6_addr".
- */
-void ccs_put_ipv6_address(const struct in6_addr *addr)
-{
-	struct ccs_ipv6addr_entry *ptr;
-	bool can_delete = false;
-	if (!addr)
-		return;
-	ptr = container_of(addr, struct ccs_ipv6addr_entry, addr);
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&ptr->users)) {
-		list_del(&ptr->list);
-		can_delete = true;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	if (can_delete)
-		ccs_memory_free(ptr, sizeof(*ptr));
-}
-
-/**
- * ccs_put_condition - Delete memory for "struct ccs_condition".
- *
- * @cond: Pointer to "struct ccs_condition".
- */
-void ccs_put_condition(struct ccs_condition *cond)
-{
-	const struct ccs_condition_element *condp;
-	struct ccs_number_union *numbers_p;
-	struct ccs_name_union *names_p;
-	const struct ccs_argv_entry *argv;
-	const struct ccs_envp_entry *envp;
-	u16 condc;
-	u16 numbers_count;
-	u16 names_count;
-	u16 argc;
-	u16 envc;
-	u16 i;
-	bool can_delete = false;
-	if (!cond)
-		return;
-	BUG_ON(atomic_read(&cond->users) <= 0);
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&cond->users)) {
-		list_del(&cond->list);
-		can_delete = true;
-	}
-	mutex_unlock(&ccs_policy_lock);
-	if (!can_delete)
-		return;
-	condc = cond->condc;
-	numbers_count = cond->numbers_count;
-	names_count = cond->names_count;
-	argc = cond->argc;
-	envc = cond->envc;
-	condp = (const struct ccs_condition_element *) (cond + 1);
-	numbers_p = (struct ccs_number_union *) (condp + condc);
-	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
-	argv = (const struct ccs_argv_entry *) (names_p + names_count);
-	envp = (const struct ccs_envp_entry *) (argv + argc);
-	for (i = 0; i < numbers_count; i++)
-		ccs_put_number_union(numbers_p++);
-	for (i = 0; i < names_count; i++)
-		ccs_put_name_union(names_p++);
-	for (i = 0; i < argc; argv++, i++)
-		ccs_put_name(argv->value);
-	for (i = 0; i < envc; envp++, i++) {
-		ccs_put_name(envp->name);
-		ccs_put_name(envp->value);
-	}
-	ccs_memory_free(cond, cond->size);
-}
-
-#define CCS_MAX_HASH 256
-
-/* Structure for string data. */
-struct ccs_name_entry {
-	struct list_head list;
-	atomic_t users;
-	int size;
-	struct ccs_path_info entry;
-};
-
 /* The list for "struct ccs_name_entry". */
-static struct list_head ccs_name_list[CCS_MAX_HASH];
-static DEFINE_MUTEX(ccs_name_list_lock);
+struct list_head ccs_name_list[CCS_MAX_HASH];
+DEFINE_MUTEX(ccs_name_list_lock);
 
 /**
  * ccs_get_name - Allocate memory for string data.
@@ -255,30 +170,6 @@ const struct ccs_path_info *ccs_get_name(const char *name)
  out:
 	mutex_unlock(&ccs_name_list_lock);
 	return ptr ? &ptr->entry : NULL;
-}
-
-/**
- * ccs_put_name - Delete shared memory for string data.
- *
- * @name: Pointer to "struct ccs_path_info".
- */
-void ccs_put_name(const struct ccs_path_info *name)
-{
-	struct ccs_name_entry *ptr;
-	bool can_delete = false;
-	if (!name)
-		return;
-	ptr = container_of(name, struct ccs_name_entry, entry);
-	mutex_lock(&ccs_name_list_lock);
-	if (atomic_dec_and_test(&ptr->users)) {
-		list_del(&ptr->list);
-		can_delete = true;
-	}
-	mutex_unlock(&ccs_name_list_lock);
-	if (can_delete) {
-		atomic_sub(ptr->size, &ccs_policy_memory_size);
-		kfree(ptr);
-	}
 }
 
 /**

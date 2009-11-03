@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -158,7 +158,7 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "CCSecurity: 1.7.1-pre   2009/11/02\n");
+	printk(KERN_INFO "CCSecurity: 1.7.1-pre   2009/11/03\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_check_profile();
 }

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -399,7 +399,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 }
 
 /* The list for "struct ccs_condition". */
-static LIST_HEAD(ccs_condition_list);
+LIST_HEAD(ccs_condition_list);
 
 const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_TASK_UID]             = "task.uid",
@@ -628,7 +628,6 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	entry = kzalloc(size, GFP_KERNEL);
 	if (!entry)
 		return NULL;
-	atomic_set(&entry->users, 1);
 	INIT_LIST_HEAD(&entry->list);
 	for (i = 0; i < 4; i++)
 		entry->post_state[i] = post_state[i];
@@ -778,6 +777,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	if (!found) {
 		if (ccs_memory_ok(entry, size)) {
+			atomic_set(&entry->users, 1);
 			list_add_rcu(&entry->list, &ccs_condition_list);
 		} else {
 			found = true;
@@ -786,15 +786,18 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	mutex_unlock(&ccs_policy_lock);
 	if (found) {
-		entry->size = 0;
-		ccs_put_condition(entry);
+		ccs_del_condition(entry);
+		kfree(entry);
 		entry = ptr;
 	}
 	return entry;
  out:
 	if (debug)
 		printk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
-	ccs_put_condition(entry);
+	if (entry) {
+		ccs_del_condition(entry);
+		kfree(entry);
+	}
 	return NULL;
 }
 
