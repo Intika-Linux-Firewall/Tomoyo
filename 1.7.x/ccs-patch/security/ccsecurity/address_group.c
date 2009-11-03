@@ -62,48 +62,6 @@ struct ccs_address_group *ccs_get_address_group(const char *group_name)
 }
 
 /**
- * ccs_put_address_group - Delete memory for "struct ccs_address_group".
- *
- * @group: Pointer to "struct ccs_address_group".
- */
-void ccs_put_address_group(struct ccs_address_group *group)
-{
-	struct ccs_address_group_member *member;
-	struct ccs_address_group_member *next_member;
-	LIST_HEAD(q);
-	bool can_delete_group = false;
-	if (!group)
-		return;
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&group->users)) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->member_list, list) {
-			if (!member->is_deleted)
-				break;
-			list_del(&member->list);
-			list_add(&member->list, &q);
-		}
-		if (list_empty(&group->member_list)) {
-			list_del(&group->list);
-			can_delete_group = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q, list) {
-		list_del(&member->list);
-		if (member->is_ipv6) {
-			ccs_put_ipv6_address(member->min.ipv6);
-			ccs_put_ipv6_address(member->max.ipv6);
-		}
-		ccs_memory_free(member, sizeof(*member));
-	}
-	if (can_delete_group) {
-		ccs_put_name(group->group_name);
-		ccs_memory_free(group, sizeof(*group));
-	}
-}
-
-/**
  * ccs_write_address_group_policy - Write "struct ccs_address_group" list.
  *
  * @data:      String to parse.

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -762,6 +762,13 @@ struct ccs_ip_network_acl {
 	struct ccs_number_union port;
 };
 
+/* Structure for string data. */
+struct ccs_name_entry {
+	struct list_head list;
+	atomic_t users;
+	int size;
+	struct ccs_path_info entry;
+};
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
@@ -949,6 +956,7 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete);
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete);
+size_t ccs_del_condition(struct ccs_condition *cond);
 struct ccs_address_group *ccs_get_address_group(const char *group_name);
 struct ccs_condition *ccs_get_condition(char * const condition);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
@@ -968,14 +976,8 @@ void ccs_print_ipv6(char *buffer, const int buffer_len,
 		    const struct in6_addr *ip);
 void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type);
-void ccs_put_address_group(struct ccs_address_group *group);
-void ccs_put_condition(struct ccs_condition *cond);
-void ccs_put_ipv6_address(const struct in6_addr *addr);
-void ccs_put_name(const struct ccs_path_info *name);
 void ccs_put_name_union(struct ccs_name_union *ptr);
-void ccs_put_number_group(struct ccs_number_group *group);
 void ccs_put_number_union(struct ccs_number_union *ptr);
-void ccs_put_path_group(struct ccs_path_group *group);
 void ccs_read_grant_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_read_reject_log(struct ccs_io_buffer *head);
@@ -999,6 +1001,8 @@ static inline int ccs_memcmp(void *a, void *b, const size_t offset,
 		      size - offset);
 }
 
+#define CCS_MAX_HASH 256
+
 extern struct mutex ccs_policy_lock;
 extern struct list_head ccs_domain_list;
 extern struct list_head ccs_address_group_list;
@@ -1013,6 +1017,10 @@ extern struct list_head ccs_domain_keeper_list;
 extern struct list_head ccs_aggregator_list;
 extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
+extern struct list_head ccs_address_list;
+extern struct list_head ccs_condition_list;
+extern struct mutex ccs_name_list_lock;
+extern struct list_head ccs_name_list[CCS_MAX_HASH];
 
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
@@ -1108,5 +1116,47 @@ static inline int ccs_round2(size_t size)
 	return bsize;
 }
 #endif
+
+static inline void ccs_put_path_group(struct ccs_path_group *group)
+{
+	if (group)
+		atomic_dec(&group->users);
+}
+
+static inline void ccs_put_number_group(struct ccs_number_group *group)
+{
+	if (group)
+		atomic_dec(&group->users);
+}
+
+static inline void ccs_put_address_group(struct ccs_address_group *group)
+{
+	if (group)
+		atomic_dec(&group->users);
+}
+
+static inline void ccs_put_ipv6_address(const struct in6_addr *addr)
+{
+	if (addr) {
+		struct ccs_ipv6addr_entry *ptr =
+			container_of(addr, struct ccs_ipv6addr_entry, addr);
+		atomic_dec(&ptr->users);
+	}
+}
+
+static inline void ccs_put_condition(struct ccs_condition *cond)
+{
+	if (cond)
+		atomic_dec(&cond->users);
+}
+
+static inline void ccs_put_name(const struct ccs_path_info *name)
+{
+	if (name) {
+		struct ccs_name_entry *ptr =
+			container_of(name, struct ccs_name_entry, entry);
+		atomic_dec(&ptr->users);
+	}
+}
 
 #endif

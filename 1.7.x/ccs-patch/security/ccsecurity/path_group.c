@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -56,45 +56,6 @@ struct ccs_path_group *ccs_get_path_group(const char *group_name)
 	ccs_put_name(saved_group_name);
 	kfree(entry);
 	return !error ? group : NULL;
-}
-
-/**
- * ccs_put_path_group - Delete memory for "struct ccs_path_group".
- *
- * @group: Pointer to "struct ccs_path_group".
- */
-void ccs_put_path_group(struct ccs_path_group *group)
-{
-	struct ccs_path_group_member *member;
-	struct ccs_path_group_member *next_member;
-	LIST_HEAD(q);
-	bool can_delete_group = false;
-	if (!group)
-		return;
-	mutex_lock(&ccs_policy_lock);
-	if (atomic_dec_and_test(&group->users)) {
-		list_for_each_entry_safe(member, next_member,
-					 &group->member_list, list) {
-			if (!member->is_deleted)
-				break;
-			list_del(&member->list);
-			list_add(&member->list, &q);
-		}
-		if (list_empty(&group->member_list)) {
-			list_del(&group->list);
-			can_delete_group = true;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	list_for_each_entry_safe(member, next_member, &q, list) {
-		list_del(&member->list);
-		ccs_put_name(member->member_name);
-		ccs_memory_free(member, sizeof(*member));
-	}
-	if (can_delete_group) {
-		ccs_put_name(group->group_name);
-		ccs_memory_free(group, sizeof(*group));
-	}
 }
 
 /**

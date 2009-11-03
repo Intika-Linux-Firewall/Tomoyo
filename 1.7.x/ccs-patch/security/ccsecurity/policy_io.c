@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/02
+ * Version: 1.7.1-pre   2009/11/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -35,9 +35,6 @@ static struct ccs_profile ccs_default_profile = {
 
 /* Profile table. Memory is allocated as needed. */
 static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
-
-/* Lock for protecting "struct ccs_profile"->comment  */
-static DEFINE_SPINLOCK(ccs_profile_comment_lock);
 
 /* String table for functionality that takes 4 modes. */
 static const char *ccs_mode_4[4] = {
@@ -438,13 +435,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	if (profile == &ccs_default_profile)
 		return -EINVAL;
 	if (!strcmp(data, "COMMENT")) {
-		const struct ccs_path_info *new_comment = ccs_get_name(cp);
-		const struct ccs_path_info *old_comment;
-		/* Protect reader from ccs_put_name(). */
-		spin_lock(&ccs_profile_comment_lock);
-		old_comment = profile->comment;
-		profile->comment = new_comment;
-		spin_unlock(&ccs_profile_comment_lock);
+		const struct ccs_path_info *old_comment = profile->comment;
+		profile->comment = ccs_get_name(cp);
 		ccs_put_name(old_comment);
 		return 0;
 	}
@@ -551,15 +543,14 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		int i;
 		int pos;
 		const struct ccs_profile *profile = ccs_profile_ptr[index];
+		const struct ccs_path_info *comment;
 		head->read_step = index;
 		if (!profile)
 			continue;
 		pos = head->read_avail;
-		spin_lock(&ccs_profile_comment_lock);
+		comment = profile->comment;
 		done = ccs_io_printf(head, "%u-COMMENT=%s\n", index,
-				     profile->comment ? profile->comment->name
-				     : "");
-		spin_unlock(&ccs_profile_comment_lock);
+				     comment ? comment->name : "");
 		if (!done)
 			goto out;
 		config = profile->default_config;
