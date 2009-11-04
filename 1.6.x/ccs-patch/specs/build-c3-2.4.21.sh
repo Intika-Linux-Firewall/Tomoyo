@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.4.21-60.EL.src.rpm ]
+if [ ! -r kernel-2.4.21-63.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-60.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-63.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.4.21-60.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20090911.tar.gz ]
@@ -25,14 +25,14 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.4.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.4.spec	2008-05-07 18:06:28.000000000 +0900
-+++ kernel-2.4.spec	2008-12-10 10:45:59.000000000 +0900
+--- kernel-2.4.spec	2009-11-04 07:31:03.000000000 +0900
++++ kernel-2.4.spec	2009-11-04 16:48:08.000000000 +0900
 @@ -20,7 +20,7 @@
  # that the kernel isn't the stock RHL kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 60.EL
-+%define release 60.EL_tomoyo_1.6.8p1
+-%define release 63.EL
++%define release 63.EL_tomoyo_1.6.8p1
  %define sublevel 21
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -45,7 +45,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{kversion}
-@@ -1890,6 +1890,10 @@
+@@ -1921,6 +1921,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -1945,6 +1949,8 @@
+@@ -1976,6 +1980,8 @@
  # since make mrproper wants to wipe out .config files, we move our mrproper
  # up before we copy the config files around.
      cp configs/kernel-%{kversion}-$Config.config .config
