@@ -1787,8 +1787,10 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	struct ccs_domain_info *domain = NULL;
 	u32 ccs_flags = 0;
 	/* Accessing write_buf is safe because head->io_sem is held. */
-	if (!buf)
+	if (!buf) {
+		head->read_eof = true;
 		return; /* Do nothing if open(O_RDONLY). */
+	}
 	if (head->read_avail || head->read_eof)
 		return;
 	head->read_eof = true;
