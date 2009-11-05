@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.0.15.EL.src.rpm ]
+if [ ! -r kernel-2.6.9-89.0.16.EL.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.0.15.EL.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/centos/4.8/updates/SRPMS/kernel-2.6.9-89.0.16.EL.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-89.0.15.EL.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-89.0.16.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.0-20090911.tar.gz ]
@@ -25,14 +25,14 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2009-10-24 05:58:45.000000000 +0900
-+++ kernel-2.6.spec	2009-10-25 16:27:52.000000000 +0900
+--- kernel-2.6.spec	2009-11-04 06:57:13.000000000 +0900
++++ kernel-2.6.spec	2009-11-05 11:16:01.000000000 +0900
 @@ -27,7 +27,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.0.15.EL
-+%define release 89.0.15.EL_tomoyo_1.7.0
+-%define release 89.0.16.EL
++%define release 89.0.16.EL_tomoyo_1.7.0
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5509,6 +5512,10 @@
+@@ -5511,6 +5514,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5520,6 +5527,9 @@
+@@ -5522,6 +5529,9 @@
  for i in *.config 
  do 
  	mv $i .config 
