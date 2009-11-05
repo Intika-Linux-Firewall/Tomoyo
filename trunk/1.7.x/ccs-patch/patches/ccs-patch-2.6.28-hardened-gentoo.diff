@@ -545,15 +545,15 @@ Source code for this patch is "emerge hardened-sources"
  
 --- linux-2.6.28-hardened-r9.orig/include/linux/sched.h
 +++ linux-2.6.28-hardened-r9/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -41,6 +41,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1377,6 +1379,10 @@ struct task_struct {
  	u8 brute;
  #endif

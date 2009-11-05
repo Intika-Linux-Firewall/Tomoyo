@@ -615,15 +615,15 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
 --- linux-2.6.25.20-0.5.orig/include/linux/sched.h
 +++ linux-2.6.25.20-0.5/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -41,6 +41,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1274,6 +1276,10 @@ struct task_struct {
  #ifndef __GENKSYMS__
  	struct list_head	*scm_work_list;

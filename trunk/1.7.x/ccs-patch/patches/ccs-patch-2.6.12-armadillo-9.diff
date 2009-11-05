@@ -1063,15 +1063,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
 --- linux-2.6.12.3-a9-17.orig/include/linux/sched.h
 +++ linux-2.6.12.3-a9-17/include/linux/sched.h
-@@ -37,6 +37,8 @@
+@@ -139,6 +139,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -740,6 +742,10 @@ struct task_struct {
  	nodemask_t mems_allowed;
  	int cpuset_mems_generation;

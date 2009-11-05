@@ -694,15 +694,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.24.7.orig/include/linux/sched.h
 +++ linux-2.6.24.7/include/linux/sched.h
-@@ -28,6 +28,8 @@
- #define CLONE_NEWPID		0x20000000	/* New pid namespace */
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
+@@ -40,6 +40,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1178,6 +1180,10 @@ struct task_struct {
  	int make_it_fail;
  #endif

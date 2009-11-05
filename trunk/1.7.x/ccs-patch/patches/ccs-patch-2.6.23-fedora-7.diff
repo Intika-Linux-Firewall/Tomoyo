@@ -632,15 +632,15 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
 --- linux-2.6.23.17-88.fc7.orig/include/linux/sched.h
 +++ linux-2.6.23.17-88.fc7/include/linux/sched.h
-@@ -28,6 +28,8 @@
- #define CLONE_NEWIPC		0x08000000	/* New ipcs */
- #define CLONE_NEWUSER		0x10000000	/* New user namespace */
+@@ -40,6 +40,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1204,6 +1206,10 @@ struct task_struct {
  #ifdef CONFIG_FAULT_INJECTION
  	int make_it_fail;

@@ -1066,15 +1066,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  
 --- linux-2.6.12-2.3.legacy_FC3.orig/include/linux/sched.h
 +++ linux-2.6.12-2.3.legacy_FC3/include/linux/sched.h
-@@ -39,6 +39,8 @@ struct exec_domain;
- extern int exec_shield;
- extern int print_fatal_signals;
+@@ -141,6 +141,8 @@ struct sched_param {
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -754,6 +756,10 @@ struct task_struct {
  	nodemask_t mems_allowed;
  	int cpuset_mems_generation;

@@ -718,15 +718,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.15.7.orig/include/linux/sched.h
 +++ linux-2.6.15.7/include/linux/sched.h
-@@ -39,6 +39,8 @@
+@@ -165,6 +165,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -857,6 +859,10 @@ struct task_struct {
  	int cpuset_mems_generation;
  #endif

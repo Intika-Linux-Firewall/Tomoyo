@@ -695,15 +695,15 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
 --- linux-2.6.24-25.63.orig/include/linux/sched.h
 +++ linux-2.6.24-25.63/include/linux/sched.h
-@@ -28,6 +28,8 @@
- #define CLONE_NEWPID		0x20000000	/* New pid namespace */
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
+@@ -40,6 +40,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1188,6 +1190,10 @@ struct task_struct {
  	struct latency_record latency_record[LT_SAVECOUNT];
  #endif

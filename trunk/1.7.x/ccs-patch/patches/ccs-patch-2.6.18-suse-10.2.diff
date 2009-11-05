@@ -725,15 +725,15 @@ Source code for this patch is http://suse.inode.at/pub/update/10.2/rpm/i586/kern
  
 --- linux-2.6.18.8-0.13.orig/include/linux/sched.h
 +++ linux-2.6.18.8-0.13/include/linux/sched.h
-@@ -25,6 +25,8 @@
- #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
- #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
+@@ -35,6 +35,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -996,6 +998,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;

@@ -945,9 +945,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  }
 --- linux-2.4.32.orig/include/linux/sched.h
 +++ linux-2.4.32/include/linux/sched.h
-@@ -29,6 +29,15 @@ extern unsigned long event;
+@@ -123,6 +123,15 @@ struct completion;
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
@@ -958,9 +958,9 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
 +#define INIT_CCSECURITY
 +#endif
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -415,6 +424,10 @@ struct task_struct {
  
  /* journalling filesystem info */

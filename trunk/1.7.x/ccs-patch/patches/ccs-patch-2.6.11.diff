@@ -1063,15 +1063,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.11.12.orig/include/linux/sched.h
 +++ linux-2.6.11.12/include/linux/sched.h
-@@ -35,6 +35,8 @@
+@@ -137,6 +137,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -685,6 +687,10 @@ struct task_struct {
    	struct mempolicy *mempolicy;
  	short il_next;

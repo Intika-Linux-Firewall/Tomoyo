@@ -924,9 +924,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
  }
 --- linux-2.4.20-46.9.legacy.orig/include/linux/sched.h
 +++ linux-2.4.20-46.9.legacy/include/linux/sched.h
-@@ -33,6 +33,15 @@ extern unsigned long event;
- struct exec_domain;
- extern int panic_timeout;
+@@ -145,6 +145,15 @@ struct completion;
+ 
+ #ifdef __KERNEL__
  
 +#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
@@ -937,9 +937,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/redhat/9/up
 +#define INIT_CCSECURITY
 +#endif
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -522,6 +531,10 @@ struct task_struct {
  
  	unsigned long ptrace_message;
