@@ -727,15 +727,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.16.62.orig/include/linux/sched.h
 +++ linux-2.6.16.62/include/linux/sched.h
-@@ -40,6 +40,8 @@
+@@ -168,6 +168,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -871,6 +873,10 @@ struct task_struct {
  #endif
  	atomic_t fs_excl;	/* holding fs exclusive resources */

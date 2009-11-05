@@ -615,15 +615,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.25.20.orig/include/linux/sched.h
 +++ linux-2.6.25.20/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -41,6 +41,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1273,6 +1275,10 @@ struct task_struct {
  	int latency_record_count;
  	struct latency_record latency_record[LT_SAVECOUNT];

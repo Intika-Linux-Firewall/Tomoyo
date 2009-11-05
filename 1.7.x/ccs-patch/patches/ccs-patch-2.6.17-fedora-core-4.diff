@@ -727,15 +727,15 @@ Source code for this patch is http://archives.fedoraproject.org/pub/archive/fedo
  
 --- linux-2.6.17-1.2142_FC4.orig/include/linux/sched.h
 +++ linux-2.6.17-1.2142_FC4/include/linux/sched.h
-@@ -43,6 +43,8 @@ struct exec_domain;
- extern int exec_shield;
- extern int print_fatal_signals;
+@@ -172,6 +172,8 @@ struct sched_param {
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -902,6 +904,10 @@ struct task_struct {
  	 * cache last used pipe for splice
  	 */

@@ -945,9 +945,9 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  }
 --- linux-2.4.27-10sarge7.orig/include/linux/sched.h
 +++ linux-2.4.27-10sarge7/include/linux/sched.h
-@@ -29,6 +29,15 @@ extern unsigned long event;
+@@ -123,6 +123,15 @@ struct completion;
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
@@ -958,9 +958,9 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
 +#define INIT_CCSECURITY
 +#endif
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -415,6 +424,10 @@ struct task_struct {
  
  /* journalling filesystem info */

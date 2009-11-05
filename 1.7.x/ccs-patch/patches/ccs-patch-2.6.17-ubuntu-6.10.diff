@@ -726,15 +726,15 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
 --- linux-2.6.17.1-12.44.orig/include/linux/sched.h
 +++ linux-2.6.17.1-12.44/include/linux/sched.h
-@@ -25,6 +25,8 @@
- #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
- #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
+@@ -35,6 +35,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -888,6 +890,10 @@ struct task_struct {
  	 * cache last used pipe for splice
  	 */

@@ -623,15 +623,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  
 --- linux-2.6.18-128.12AXS3.orig/include/linux/sched.h
 +++ linux-2.6.18-128.12AXS3/include/linux/sched.h
-@@ -25,6 +25,8 @@
- #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
- #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
+@@ -35,6 +35,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1069,6 +1071,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;

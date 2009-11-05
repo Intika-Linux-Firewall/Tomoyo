@@ -921,9 +921,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  }
 --- linux-2.4.21-63.EL.orig/include/linux/sched.h
 +++ linux-2.4.21-63.EL/include/linux/sched.h
-@@ -36,6 +36,15 @@ extern int exec_shield_randomize;
- extern int panic_timeout;
- extern int print_fatal_signals;
+@@ -140,6 +140,15 @@ struct completion;
+ 
+ #ifdef __KERNEL__
  
 +#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
@@ -934,9 +934,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
 +#define INIT_CCSECURITY
 +#endif
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -587,6 +596,10 @@ struct task_struct {
  #endif
  	struct list_head *scm_work_list;

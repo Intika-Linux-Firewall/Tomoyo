@@ -718,15 +718,15 @@ Source code for this patch is "apt-get install linux-source-2.6.15"
  
 --- linux-2.6.15-55.80.orig/include/linux/sched.h
 +++ linux-2.6.15-55.80/include/linux/sched.h
-@@ -39,6 +39,8 @@
+@@ -165,6 +165,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -858,6 +860,10 @@ struct task_struct {
  #endif
  	atomic_t fs_excl;	/* holding fs exclusive resources */

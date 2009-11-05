@@ -727,15 +727,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.17.14.orig/include/linux/sched.h
 +++ linux-2.6.17.14/include/linux/sched.h
-@@ -41,6 +41,8 @@
+@@ -170,6 +170,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -888,6 +890,10 @@ struct task_struct {
  	 * cache last used pipe for splice
  	 */

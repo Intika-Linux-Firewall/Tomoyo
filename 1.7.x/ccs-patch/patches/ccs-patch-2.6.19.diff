@@ -724,15 +724,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
 --- linux-2.6.19.7.orig/include/linux/sched.h
 +++ linux-2.6.19.7/include/linux/sched.h
-@@ -27,6 +27,8 @@
- #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
- #define CLONE_NEWIPC		0x08000000	/* New ipcs */
+@@ -37,6 +37,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1023,6 +1025,10 @@ struct task_struct {
  #ifdef	CONFIG_TASK_DELAY_ACCT
  	struct task_delay_info *delays;

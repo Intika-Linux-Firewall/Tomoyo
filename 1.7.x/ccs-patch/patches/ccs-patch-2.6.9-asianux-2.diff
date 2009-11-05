@@ -1061,15 +1061,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
 --- linux-2.6.9-78.16AXS2.orig/include/linux/sched.h
 +++ linux-2.6.9-78.16AXS2/include/linux/sched.h
-@@ -35,6 +35,8 @@ extern int exec_shield;
- extern int exec_shield_randomize;
- extern int print_fatal_signals;
+@@ -137,6 +137,8 @@ struct sched_param {
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -655,6 +657,10 @@ struct task_struct {
    	struct mempolicy *mempolicy;
    	short il_next;		/* could be shared with used_math */

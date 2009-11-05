@@ -120,7 +120,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  #endif
  
 -	retval = search_binary_handler(bprm,regs);
-+	retval = ccs_search_binary_handler(bprm,regs);
++	retval = ccs_search_binary_handler(bprm, regs);
  	if (retval < 0)
  		goto out;
  
@@ -561,15 +561,15 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  
 --- android-goldfish-2.6.29.orig/include/linux/sched.h
 +++ android-goldfish-2.6.29/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -41,6 +41,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1417,6 +1419,10 @@ struct task_struct {
  	/* state flags for use by tracers */
  	unsigned long trace;

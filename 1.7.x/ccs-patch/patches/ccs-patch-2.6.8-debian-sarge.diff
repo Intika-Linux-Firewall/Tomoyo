@@ -1015,15 +1015,15 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
 --- linux-2.6.8-17sarge1.orig/include/linux/sched.h
 +++ linux-2.6.8-17sarge1/include/linux/sched.h
-@@ -32,6 +32,8 @@
+@@ -133,6 +133,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -527,6 +529,10 @@ struct task_struct {
    	struct mempolicy *mempolicy;
    	short il_next;		/* could be shared with used_math */

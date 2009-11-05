@@ -541,15 +541,15 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/
  
 --- linux-2.6.30.9-90.fc11.orig/include/linux/sched.h
 +++ linux-2.6.30.9-90.fc11/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -41,6 +41,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1446,6 +1448,10 @@ struct task_struct {
  	/* state flags for use by tracers */
  	unsigned long trace;

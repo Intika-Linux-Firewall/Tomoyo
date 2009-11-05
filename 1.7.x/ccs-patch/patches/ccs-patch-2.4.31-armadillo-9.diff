@@ -1108,9 +1108,9 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  }
 --- linux-2.4.31-a9-3.orig/include/linux/sched.h
 +++ linux-2.4.31-a9-3/include/linux/sched.h
-@@ -32,6 +32,15 @@ extern unsigned long event;
+@@ -126,6 +126,15 @@ struct completion;
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +#ifdef CONFIG_CCSECURITY
 +struct ccs_domain_info;
@@ -1121,9 +1121,9 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
 +#define INIT_CCSECURITY
 +#endif
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -477,6 +486,10 @@ struct task_struct {
  #ifdef CONFIG_SYSCALLTIMER
  	int curr_syscall;

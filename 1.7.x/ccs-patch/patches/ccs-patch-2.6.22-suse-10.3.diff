@@ -733,15 +733,15 @@ Source code for this patch is http://download.opensuse.org/update/10.3/rpm/i586/
  
 --- linux-2.6.22.19-0.4.orig/include/linux/sched.h
 +++ linux-2.6.22.19-0.4/include/linux/sched.h
-@@ -26,6 +26,8 @@
- #define CLONE_NEWUTS		0x04000000	/* New utsname group? */
- #define CLONE_NEWIPC		0x08000000	/* New ipcs */
+@@ -36,6 +36,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1083,6 +1085,10 @@ struct task_struct {
  #ifndef __GENKSYMS__
  	struct list_head	*scm_work_list;

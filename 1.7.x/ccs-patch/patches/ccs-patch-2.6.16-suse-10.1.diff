@@ -727,15 +727,15 @@ Source code for this patch is http://suse.inode.at/pub/update/10.1/rpm/i586/kern
  
 --- linux-2.6.16.54-0.2.5.orig/include/linux/sched.h
 +++ linux-2.6.16.54-0.2.5/include/linux/sched.h
-@@ -40,6 +40,8 @@
+@@ -170,6 +170,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -941,6 +943,10 @@ struct task_struct {
  
  /* TASK_UNMAPPED_BASE */

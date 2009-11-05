@@ -541,15 +541,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
 --- linux-2.6.32-rc6.orig/include/linux/sched.h
 +++ linux-2.6.32-rc6/include/linux/sched.h
-@@ -29,6 +29,8 @@
- #define CLONE_NEWNET		0x40000000	/* New network namespace */
- #define CLONE_IO		0x80000000	/* Clone io context */
+@@ -43,6 +43,8 @@
+ 
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
- /*
-  * Scheduling policies
-  */
+ struct sched_param {
+ 	int sched_priority;
+ };
 @@ -1539,6 +1541,10 @@ struct task_struct {
  	unsigned long trace_recursion;
  #endif /* CONFIG_TRACING */

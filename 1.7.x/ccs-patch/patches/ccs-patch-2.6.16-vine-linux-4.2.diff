@@ -729,15 +729,15 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
 --- linux-2.6.16-76.51vl4.orig/include/linux/sched.h
 +++ linux-2.6.16-76.51vl4/include/linux/sched.h
-@@ -40,6 +40,8 @@
+@@ -168,6 +168,8 @@ struct sched_param {
  
- struct exec_domain;
+ #ifdef __KERNEL__
  
 +struct ccs_domain_info;
 +
+ #include <linux/spinlock.h>
+ 
  /*
-  * cloning flags:
-  */
 @@ -873,6 +875,10 @@ struct task_struct {
  	struct rcu_head rcu;
  
