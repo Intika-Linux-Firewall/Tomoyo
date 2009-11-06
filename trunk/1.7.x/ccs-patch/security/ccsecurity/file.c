@@ -1327,7 +1327,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 }
 
 /**
- * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate" and "symlink", "chroot" and "unmount".
+ * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "chroot" and "unmount".
  *
  * @operation: Type of operation.
  * @dentry:    Pointer to "struct dentry".
