@@ -44,6 +44,24 @@ touch debian/control.stub.in || die "Can't touch control."
 debian/rules debian/control || die "Can't update control."
 for i in debian/abi/2.6.27-*/*/ ; do touch $i/ccs.ignore; done
 
+--- debian/scripts/link-headers	2009-11-05 21:43:39.000000000 +0900
++++ debian/scripts/link-headers	2009-11-05 21:43:51.000000000 +0900
+@@ -37,4 +37,14 @@
+ done
+ )
+ 
++if [ $flavour == "ccs" ]
++then
++    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
++    for i in sched.h init_task.h ccsecurity.h ccsecurity_vfs.h
++    do
++	rm -f $hdrdir/include/linux/$i
++	cp -p $i $hdrdir/include/linux/
++    done
++fi
++
+ exit
+
 # Start compilation.
 debian/rules binary-headers || die "Failed to build kernel package."
 debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
