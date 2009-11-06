@@ -2227,3 +2227,10 @@ Fix 2009/11/03
 
       As a result, reading path_group and number_group caused kernel oops
       when they were not read atomically.
+
+Fix 2009/11/06
+
+    @ Fix incorrect allow_mount audit log.
+
+      Audit log for allow_mount was using octal format.
+      It needs to use hexadecimal format.
