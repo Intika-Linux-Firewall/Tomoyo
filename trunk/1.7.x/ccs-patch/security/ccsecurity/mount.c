@@ -81,7 +81,7 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 				     dev_name, dir_name, flags);
 	}
 	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_MOUNT
-				   "%s %s %s 0x%lu\n", dev_name, dir_name,
+				   "%s %s %s 0x%lX\n", dev_name, dir_name,
 				   type, flags);
 }
 
