@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1-pre   2009/11/06
  *
  */
 #define _FILE_OFFSET_BITS 64
@@ -791,7 +791,9 @@ static void make_self_readable_files(void)
 static void make_ldconfig_readable_files(void)
 {
 	/* Allow reading DLL files registered with ldconfig(8). */
-	FILE *fp = popen("ldconfig -NXp", "r");
+	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
+		!access("/bin/ldconfig", X_OK)
+		? popen("ldconfig -NXp", "r") : NULL;
 	if (!fp)
 		return;
 	keyword = "allow_read";
@@ -1541,7 +1543,7 @@ static void make_profile(void)
 	fprintf(fp,
 		"PROFILE_VERSION=20090903\n"
 		"PREFERENCE::audit={ max_grant_log=1024 "
-		"max_reject_log=1024 }\n"
+		"max_reject_log=1024 task_info=yes path_info=yes }\n"
 		"PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
 		"PREFERENCE::learning={ verbose=no max_entry=2048 "
 		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
