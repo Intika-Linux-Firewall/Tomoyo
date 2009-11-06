@@ -44,6 +44,27 @@ touch debian.master/control.stub.in || die "Can't touch control."
 debian/rules debian/control || die "Can't update control."
 for i in debian.master/abi/2.6.28-*/*/ ; do touch $i/ccs.ignore; done
 
+# Make modified header files go into local header package.
+patch -p0 << "EOF" || die "Can't patch link-headers."
+--- debian.master/scripts/link-headers	2009-11-05 21:43:39.000000000 +0900
++++ debian.master/scripts/link-headers	2009-11-05 21:43:51.000000000 +0900
+@@ -39,4 +39,14 @@
+ done
+ )
+ 
++if [ $flavour == "ccs" ]
++then
++    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
++    for i in sched.h init_task.h ccsecurity.h ccsecurity_vfs.h
++    do
++	rm -f $hdrdir/include/linux/$i
++	cp -p $i $hdrdir/include/linux/
++    done
++fi
++
+ exit
+EOF
+
 # Start compilation.
 debian.master/rules binary-headers || die "Failed to build kernel package."
 debian.master/rules binary-debs flavours=ccs || die "Failed to build kernel package."

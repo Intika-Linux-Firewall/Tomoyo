@@ -11,6 +11,9 @@
  */
 
 #include "internal.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) || defined(RHEL_MAJOR)
+#include <linux/hash.h>
+#endif
 
 void ccs_warn_oom(const char *function)
 {
@@ -138,13 +141,19 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	unsigned int hash;
 	int len;
 	int allocated_len;
+	struct list_head *head;
 
 	if (!name)
 		return NULL;
 	len = strlen(name) + 1;
 	hash = full_name_hash((const unsigned char *) name, len - 1);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0) || defined(RHEL_MAJOR)
+	head = &ccs_name_list[hash_long(hash, CCS_HASH_BITS)];
+#else
+	head = &ccs_name_list[hash % CCS_MAX_HASH];
+#endif
 	mutex_lock(&ccs_name_list_lock);
-	list_for_each_entry(ptr, &ccs_name_list[hash % CCS_MAX_HASH], list) {
+	list_for_each_entry(ptr, head, list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 			continue;
 		atomic_inc(&ptr->users);
@@ -166,7 +175,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	atomic_set(&ptr->users, 1);
 	ccs_fill_path_info(&ptr->entry);
 	ptr->size = allocated_len;
-	list_add_tail(&ptr->list, &ccs_name_list[hash % CCS_MAX_HASH]);
+	list_add_tail(&ptr->list, head);
  out:
 	mutex_unlock(&ccs_name_list_lock);
 	return ptr ? &ptr->entry : NULL;

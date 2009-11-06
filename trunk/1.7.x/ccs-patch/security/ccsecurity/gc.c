@@ -802,7 +802,7 @@ static int ccs_gc_thread(void *unused)
 		}
 		mutex_unlock(&ccs_gc_mutex);
 	}
- 	do_exit(0);
+	do_exit(0);
 }
 
 void ccs_run_gc(void)

@@ -485,7 +485,7 @@ Fix 2006/08/10
       domain ACL. For example,
 
         "1 /bin/sh if task.euid!=0"
- 
+
       allows the domain to execute /bin/sh only when the process's euid
       is not 0, and
 
@@ -871,7 +871,7 @@ Fix 2007/04/18
       based on realpath while argv[0] check is done based on the symlink's
       pathname and argv[0], this specification will allow attackers behave
       as /bin/cat in the domain of /bin/ls if "/bin/ls and /bin/cat are
-      links to /sbin/busybox" and "the attacker is permitted to create 
+      links to /sbin/busybox" and "the attacker is permitted to create
       a symlink named ~/cat that points to /bin/ls" and "the attacker is
       permitted to run /bin/ls".
       So, I changed to compare the basename of realpath and argv[0].
@@ -959,7 +959,7 @@ Fix 2007/08/06
 
       Until now, users had to add init=/.init parameter to load policy
       before /sbin/init starts.
-      I inserted call_usermodehelper() to call external policy loader when 
+      I inserted call_usermodehelper() to call external policy loader when
       execve("/sbin/init") is requested and external policy loader exists.
 
       This change will remove init=/.init parameter from most environment,
@@ -2066,7 +2066,7 @@ Fix 2009/09/01
 
     @ Move files from fs/ to security/ccsecurity.
 
-      Config menu section changed from "File systems" to "Security options". 
+      Config menu section changed from "File systems" to "Security options".
 
       Kernel config symbols changed from CONFIG_SAKURA CONFIG_TOMOYO
       CONFIG_SYAORAN to CONFIG_CCSECURITY .
@@ -2084,7 +2084,7 @@ Fix 2009/09/01
       the domain which the process belongs to.
 
       Thus, I added global PID in audit logs.
-      
+
     @ Transit to new domain before do_execve() succeeds.
 
       Permission checks for interpreters and environment variables are

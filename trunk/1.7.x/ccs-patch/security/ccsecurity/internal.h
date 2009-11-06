@@ -1001,7 +1001,8 @@ static inline int ccs_memcmp(void *a, void *b, const size_t offset,
 		      size - offset);
 }
 
-#define CCS_MAX_HASH 256
+#define CCS_HASH_BITS 8
+#define CCS_MAX_HASH (1 << CCS_HASH_BITS)
 
 extern struct mutex ccs_policy_lock;
 extern struct list_head ccs_domain_list;
