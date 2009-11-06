@@ -20,6 +20,9 @@
  * @dump: Pointer to "struct ccs_page_dump".
  *
  * Returns the contents of @bprm on success, NULL otherwise.
+ *
+ * This function uses kzalloc(), so caller must kfree() if this function
+ * didn't return NULL.
  */
 static char *ccs_print_bprm(struct linux_binprm *bprm,
 			    struct ccs_page_dump *dump)
@@ -112,7 +115,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
  *
  * @mode: Mode value for stat().
  *
- * Returns header line on success, NULL otherwise.
+ * Returns file type string.
  */
 static const char *ccs_filetype(const mode_t mode)
 {
@@ -142,6 +145,9 @@ static const char *ccs_filetype(const mode_t mode)
  * @r: Pointer to "struct ccs_request_info".
  *
  * Returns string representation.
+ *
+ * This function uses kmalloc(), so caller must kfree() if this function
+ * didn't return NULL.
  */
 static char *ccs_print_header(struct ccs_request_info *r)
 {
@@ -197,7 +203,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				obj->path1_stat.uid, obj->path1_stat.gid,
 				(unsigned long) obj->path1_stat.ino,
 				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
-				ccs_filetype(mode & S_IFMT));
+				ccs_filetype(mode));
 		if (S_ISCHR(mode) || S_ISBLK(mode)) {
 			dev = obj->path1_stat.rdev;
 			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
@@ -223,7 +229,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				obj->path2_stat.uid, obj->path2_stat.gid,
 				(unsigned long) obj->path2_stat.ino,
 				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
-				ccs_filetype(mode & S_IFMT));
+				ccs_filetype(mode));
 		if (S_ISCHR(mode) || S_ISBLK(mode)) {
 			dev = obj->path2_stat.rdev;
 			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
@@ -256,6 +262,9 @@ static char *ccs_print_header(struct ccs_request_info *r)
  * Returns pointer to allocated memory.
  *
  * The @len is updated to add the header lines' size on success.
+ *
+ * This function uses kzalloc(), so caller must kfree() if this function
+ * didn't return NULL.
  */
 char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 {
@@ -284,7 +293,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 		bprm_info = ccs_print_bprm(r->ee->bprm, &r->ee->dump);
 		if (!realpath || !bprm_info)
 			goto out;
-		*len += strlen(realpath) + 64 + strlen(bprm_info);
+		*len += strlen(realpath) + 80 + strlen(bprm_info);
 	} else if (r->obj && r->obj->symlink_target) {
 		symlink = r->obj->symlink_target->name;
 		*len += 18 + strlen(symlink);
@@ -312,7 +321,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 /**
  * ccs_update_task_state - Update task's state.
  *
- * @r:          Pointer to "struct ccs_request_info".
+ * @r: Pointer to "struct ccs_request_info".
  */
 static void ccs_update_task_state(struct ccs_request_info *r)
 {
