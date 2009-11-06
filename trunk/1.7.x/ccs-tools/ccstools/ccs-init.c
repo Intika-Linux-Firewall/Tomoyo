@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.1-pre   2009/11/06
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -386,6 +386,7 @@ int main(int argc, char *argv[])
 
 	/* Load policy. */
 	if (chdir_ok) {
+		copy_files("meminfo.conf", proc_meminfo);
 		copy_files("manager.conf", proc_manager);
 		copy_files("exception_policy.conf", proc_exception_policy);
 		if (!ccs_noload)
@@ -397,7 +398,6 @@ int main(int argc, char *argv[])
 			check_profile_version(profile_name);
 			copy_files(profile_name, proc_profile);
 		}
-		copy_files("meminfo.conf", proc_meminfo);
 	}
 
 	/* Use disabled mode? */
