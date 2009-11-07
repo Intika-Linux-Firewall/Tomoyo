@@ -13,7 +13,7 @@ main: $(MAIN_FILES)
 misc: $(MISC_FILES)
 
 install: all
-	mkdir -p $(INSTALLDIR)/usr/lib/ccs/misc $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
+	mkdir -p $(INSTALLDIR)/usr/lib/ccs $(INSTALLDIR)/sbin $(INSTALLDIR)/usr/sbin
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
 	chmod 755 ccs-domainmatch init_policy.sh
 	cp -af --remove-destination ccstools $(INSTALLDIR)/usr/sbin/
