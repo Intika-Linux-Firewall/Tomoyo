@@ -38,6 +38,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 cd linux-2.6.28/ || die "Can't chdir to linux-2.6.28/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.0-20090911.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.28-ubuntu-9.04.diff || die "Can't apply patch."
+rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 for i in debian.master/config/*/config; do cat config.ccs >> $i; done
 touch debian.master/control.stub.in || die "Can't touch control."
@@ -46,9 +47,9 @@ for i in debian.master/abi/2.6.28-*/*/ ; do touch $i/ccs.ignore; done
 
 # Make modified header files go into local header package.
 patch -p0 << "EOF" || die "Can't patch link-headers."
---- debian.master/scripts/link-headers	2009-11-05 21:43:39.000000000 +0900
-+++ debian.master/scripts/link-headers	2009-11-05 21:43:51.000000000 +0900
-@@ -39,4 +39,14 @@
+--- debian.master/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
++++ debian.master/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
+@@ -39,4 +39,17 @@
  done
  )
  
@@ -60,6 +61,9 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/
 +    done
++    rm -f $hdrdir/security
++    cd ../../
++    tar -cf - security | ( cd $hdrdir ; tar -xf - )
 +fi
 +
  exit
