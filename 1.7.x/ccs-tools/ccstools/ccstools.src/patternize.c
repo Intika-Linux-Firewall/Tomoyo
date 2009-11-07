@@ -119,6 +119,32 @@ static const char *address_patternize(const char *cp)
 int patternize_main(int argc, char *argv[])
 {
 	int i;
+	_Bool need_free = 0;
+	if (argc == 3 && !strcmp(argv[1], "--file")) {
+		FILE *fp = fopen(argv[2], "r");
+		argv = NULL;
+		argc = 0;
+		get();
+		while (fp && freadline(fp)) {
+			char *line = shared_buffer;
+			normalize_line(line);
+			if (str_starts(line, "file_pattern ") ||
+			    str_starts(line, "path_group") ||
+			    str_starts(line, "number_group") ||
+			    is_correct_path(line, 0, 1, 0)) {
+				char *cp = strdup(line);
+				argv = realloc(argv,
+					       (argc + 1) * sizeof(char *));
+				if (!argv || !cp)
+					out_of_memory();
+				argv[argc++] = cp;
+			}
+		}
+		put();
+		if (fp)
+			fclose(fp);
+		need_free = 1;
+	}
 	pattern_list_len = argc;
 	pattern_list = calloc(argc, sizeof(struct path_pattern_entry));
 	if (!pattern_list)
@@ -247,5 +273,10 @@ int patternize_main(int argc, char *argv[])
 	}
 	put();
 	free(pattern_list);
+	if (need_free) {
+		while (argc)
+			free(argv[--argc]);
+		free(argv);
+	}
 	return 0;
 }

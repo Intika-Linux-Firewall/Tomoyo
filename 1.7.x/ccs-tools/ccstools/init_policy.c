@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/06
+ * Version: 1.7.1-pre   2009/11/07
  *
  */
 #define _FILE_OFFSET_BITS 64
@@ -1392,6 +1392,7 @@ static void make_patterns_for_misc(void)
 	echo("file_pattern /var/mail/mail.lock.\\*");
 	echo("file_pattern /var/run/tmp.\\*");
 	echo("file_pattern /var/tmp/etilqs_\\*");
+	echo("file_pattern /var/lock/.lk\\$\\*");
 }
 
 static void make_deny_rewrite_for_log_directory(void)
