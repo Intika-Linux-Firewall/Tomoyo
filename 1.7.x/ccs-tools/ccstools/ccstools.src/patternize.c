@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.1-pre   2009/11/07
  *
  */
 #include "ccstools.h"
@@ -167,7 +167,7 @@ int patternize_main(int argc, char *argv[])
 			argv[i][0] = '@';
 			pattern_list[i].group_name = argv[i];
 			pattern_list[i].type = 4;
-		} else if (!is_correct_path(argv[i], 0, 1, 0)) {
+		} else if (is_correct_path(argv[i], 0, 1, 0)) {
 			pattern_list[i].path.name = argv[i];
 			pattern_list[i].type = 1;
 		}
