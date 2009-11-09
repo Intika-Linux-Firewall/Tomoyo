@@ -159,6 +159,6 @@ void ccs_load_policy(const char *filename)
 	}
 #endif
 	printk(KERN_INFO "CCSecurity: 1.7.1-pre   2009/11/03\n");
-	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_check_profile();
+	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
