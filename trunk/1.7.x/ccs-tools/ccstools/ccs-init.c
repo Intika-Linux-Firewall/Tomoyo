@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/06
+ * Version: 1.7.1-pre   2009/11/09
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -211,7 +211,12 @@ static void disable_profile(void)
 		if (!cp)
 			continue;
 		*cp = '\0';
-		fprintf(fp_out, "%s={ mode=disabled }\n", buffer);
+		if (!strcmp(buffer, "PROFILE_VERSION"))
+			fprintf(fp_out, "%s=%s\n", buffer, cp + 1);
+		else if (strstr(buffer, "COMMENT"))
+			fprintf(fp_out, "%s=disabled\n", buffer);
+		else
+			fprintf(fp_out, "%s={ mode=disabled }\n", buffer);
 	}
 	fclose(fp_in);
 	fclose(fp_out);
@@ -276,27 +281,6 @@ static void show_memory_usage(void)
 	}
 	fclose(fp);
 	putchar('\n');
-}
-
-static void check_profile_version(const char *profile)
-{
-	FILE *fp = fopen(profile, "r");
-	if (!fp)
-		return;
-	while (memset(buffer, 0, sizeof(buffer)),
-	       fgets(buffer, sizeof(buffer) - 1, fp)) {
-		char *cp = strchr(buffer, '\n');
-		if (cp)
-			*cp = '\0';
-		if (!strcmp(buffer, "PROFILE_VERSION"))
-			break;
-		if (strstr(buffer, "MAC_FOR_")) {
-			printf("This profile format is not supported."
-			       "\n");
-			panic();
-		}
-	}
-	fclose(fp);
 }
 
 int main(int argc, char *argv[])
@@ -392,10 +376,8 @@ int main(int argc, char *argv[])
 		if (!ccs_noload)
 			copy_files("domain_policy.conf", proc_domain_policy);
 		if (!strcmp(profile_name, "default")) {
-			check_profile_version("profile.conf");
 			copy_files("profile.conf", proc_profile);
 		} else if (strcmp(profile_name, "disable")) {
-			check_profile_version(profile_name);
 			copy_files(profile_name, proc_profile);
 		}
 	}
