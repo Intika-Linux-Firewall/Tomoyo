@@ -2234,3 +2234,13 @@ Fix 2009/11/06
 
       Audit log for allow_mount was using decimal format.
       It needs to use hexadecimal format.
+
+Fix 2009/11/09
+
+    @ Add profile version check.
+
+      To avoid upgrading from TOMOYO 1.6.x to TOMOYO 1.7.x without upgrading
+      /proc/ccs/profile (which results in not protecting the system at all),
+      I added a check for PROFILE_VERSION= .
+
+Version 1.7.1   2009/11/11   Fourth anniversary release.
