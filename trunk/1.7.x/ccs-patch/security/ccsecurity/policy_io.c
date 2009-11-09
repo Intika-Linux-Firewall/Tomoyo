@@ -33,6 +33,9 @@ static struct ccs_profile ccs_default_profile = {
 	.preference.permissive_verbose = true
 };
 
+/* Profile version. Currently only 20090903 is defined. */
+static unsigned int ccs_profile_version;
+
 /* Profile table. Memory is allocated as needed. */
 static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
@@ -293,6 +296,9 @@ void ccs_check_profile(void)
 		panic("Profile %u (used by '%s') not defined.\n",
 		      profile, domain->domainname->name);
 	}
+	if (ccs_profile_version != 20090903)
+		panic("Profile version %u is not supported.\n",
+		      ccs_profile_version);
 }
 
 /**
@@ -328,6 +334,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	bool use_default = false;
 	char *cp;
 	struct ccs_profile *profile;
+	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
+		return 0;
 	i = simple_strtoul(data, &cp, 10);
 	if (data == cp) {
 		profile = &ccs_default_profile;
