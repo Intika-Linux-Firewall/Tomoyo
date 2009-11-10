@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.31.5-122.fc12.src.rpm ]
+if [ ! -r kernel-2.6.31.5-127.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.31.5-122.fc12.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.31.5-127.fc12.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.31.5-122.fc12.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.31.5-127.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.0-20090911.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- ccs-kernel.spec	2009-11-05 15:12:40.000000000 +0900
-+++ ccs-kernel.spec	2009-11-09 15:02:56.922985297 +0900
+--- ccs-kernel.spec	2009-11-08 10:46:36.000000000 +0900
++++ ccs-kernel.spec	2009-11-10 09:27:37.114308507 +0900
 @@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -36,7 +36,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  # fedora_build defines which build revision of this kernel version we're
  # building. Rather than incrementing forever, as with the prior versioning
-@@ -395,6 +395,11 @@
+@@ -409,6 +409,11 @@
  # to versions below the minimum
  #
  
@@ -48,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -430,7 +435,7 @@
+@@ -444,7 +449,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut >= 001-7
  %else
-@@ -466,7 +471,7 @@
+@@ -480,7 +485,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -898,7 +903,7 @@
+@@ -914,7 +919,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1496,6 +1501,10 @@
+@@ -1516,6 +1521,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1522,6 +1531,9 @@
+@@ -1542,6 +1551,9 @@
  for i in *.config
  do
    mv $i .config
