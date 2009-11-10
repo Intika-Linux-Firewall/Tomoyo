@@ -428,24 +428,6 @@ static void scan_executable_files(const char *dir)
 	free((void *) namelist);
 }
 
-static _Bool is_init_script(const char *path)
-{
-	char *cp = strchr(path, '/');
-	while (cp) {
-		char c = *(cp + 1);
-		if (c == 'S' || c == 'K') {
-			c = *(cp + 2);
-			if (c >= '0' && c <= '9') {
-				c = *(cp + 2);
-				if (c >= '0' && c <= '9')
-					return 1;
-			}
-		}
-		cp = strchr(cp + 1, '/');
-	}
-	return 0;
-}
-
 static void scan_modprobe_and_hotplug(void)
 {
 	/* Make /sbin/modprobe and /sbin/hotplug as initializers. */
