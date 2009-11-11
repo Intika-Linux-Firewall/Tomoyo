@@ -22,8 +22,10 @@ static int send_encoded(const int fd, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 static void do_check_update(const int fd);
 static void handle_update(const int check_update, const int fd);
+/*
 static _Bool convert_path_info(FILE *fp, const struct path_info *pattern,
 			       const char *new);
+*/
 static _Bool handle_query(unsigned int serial);
 
 /* Utility functions */
@@ -223,6 +225,7 @@ static void do_check_update(const int fd)
 	}
 }
 
+#if 0
 static _Bool convert_path_info(FILE *fp, const struct path_info *pattern,
 			       const char *new)
 {
@@ -266,6 +269,7 @@ out:
 	}
 	return modified;
 }
+#endif
 
 static void send_keepalive(void)
 {

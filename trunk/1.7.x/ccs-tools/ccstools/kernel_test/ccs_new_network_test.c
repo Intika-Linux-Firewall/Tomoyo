@@ -186,7 +186,8 @@ static void stage_network_test(void)
 		int fd1 = socket(PF_INET, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in saddr;
-		fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=yes }\n");
+		fprintf(profile_fp,
+			"255-PREFERENCE::enforcing={ verbose=yes }\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
@@ -225,7 +226,8 @@ static void stage_network_test(void)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=no }\n");
+		fprintf(profile_fp,
+			"255-PREFERENCE::enforcing={ verbose=no }\n");
 	}
 
 	i = socket(PF_INET6, SOCK_STREAM, 0);
@@ -332,7 +334,8 @@ static void stage_network_test(void)
 		int fd1 = socket(PF_INET6, SOCK_STREAM, 0);
 		int fd2 = socket(PF_INET6, SOCK_STREAM, 0);
 		struct sockaddr_in6 saddr;
-		fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=yes }\n");
+		fprintf(profile_fp,
+			"255-PREFERENCE::enforcing={ verbose=yes }\n");
 		memset(buffer, 0, sizeof(buffer));
 		policy = buffer;
 		memset(&saddr, 0, sizeof(saddr));
@@ -372,7 +375,8 @@ static void stage_network_test(void)
 			close(fd1);
 		if (fd2 != EOF)
 			close(fd2);
-		fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=no }\n");
+		fprintf(profile_fp,
+			"255-PREFERENCE::enforcing={ verbose=no }\n");
 	}
 
 }

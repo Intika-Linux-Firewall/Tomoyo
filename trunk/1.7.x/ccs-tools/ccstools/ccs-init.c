@@ -374,11 +374,10 @@ int main(int argc, char *argv[])
 		copy_files("exception_policy.conf", proc_exception_policy);
 		if (!ccs_noload)
 			copy_files("domain_policy.conf", proc_domain_policy);
-		if (!strcmp(profile_name, "default")) {
+		if (!strcmp(profile_name, "default"))
 			copy_files("profile.conf", proc_profile);
-		} else if (strcmp(profile_name, "disable")) {
+		else if (strcmp(profile_name, "disable"))
 			copy_files(profile_name, proc_profile);
-		}
 		copy_files("meminfo.conf", proc_meminfo);
 	}
 
