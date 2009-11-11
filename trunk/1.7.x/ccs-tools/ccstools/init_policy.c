@@ -1406,6 +1406,29 @@ static void make_domain_policy(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static void make_meminfo(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || !access("meminfo.conf", R_OK))
+		return;
+	fp = fopen("meminfo.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create manager policy.\n");
+		return;
+	}
+	fprintf(stderr, "Creating memory quota policy... ");
+	fprintf(fp, "# Memory quota (byte). 0 means no quota.\n");
+	fprintf(fp, "Policy:            0\n");
+	fprintf(fp, "Audit logs: 16777216\n");
+	fprintf(fp, "Query lists: 1048576\n");
+	fclose(fp);
+	if (!chdir(policy_dir) &&
+	    !rename("meminfo.tmp", "meminfo.conf"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -1438,5 +1461,6 @@ int main(int argc, char *argv[])
 	make_domain_policy();
 	make_manager();
 	make_profile();
+	make_meminfo();
 	return 0;
 }
