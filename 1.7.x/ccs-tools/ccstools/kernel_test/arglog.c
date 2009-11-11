@@ -17,8 +17,8 @@ int main(int argc0, char *argv0[])
 {
 	int fd1 = open("/proc/ccs/grant_log", O_RDONLY);
 	int fd2 = open("/proc/ccs/reject_log", O_RDONLY);
-        char *argv[12];
-        char *envp[12];
+	char *argv[12];
+	char *envp[12];
 	int j;
 	memset(argv, 0, sizeof(argv));
 	memset(envp, 0, sizeof(envp));
@@ -27,7 +27,7 @@ int main(int argc0, char *argv0[])
 		char buffer2[8192];
 		int i;
 		/* printf("%d\n", j); */
-	        memset(buffer1, 0, sizeof(buffer1));
+		memset(buffer1, 0, sizeof(buffer1));
 		memset(buffer2, 0, sizeof(buffer2));
 		for (i = 0; i < 11; i++) {
 			argv[i] = "arg";
@@ -39,11 +39,11 @@ int main(int argc0, char *argv0[])
 			int len;
 			char buffer[8192];
 			buffer1[i] = '\n';
-		        buffer2[i] = '\t';
-		        if (fork() == 0) {
-		                execve("/bin/true", argv, envp);
-		                _exit(0);
-		        }
+			buffer2[i] = '\t';
+			if (fork() == 0) {
+				execve("/bin/true", argv, envp);
+				_exit(0);
+			}
 			while ((len = read(fd1, buffer, sizeof(buffer))) > 0)
 				write(1, buffer, len);
 			while ((len = read(fd2, buffer, sizeof(buffer))) > 0)

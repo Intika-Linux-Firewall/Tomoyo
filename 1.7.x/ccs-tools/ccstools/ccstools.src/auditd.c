@@ -162,7 +162,8 @@ int auditd_main(int argc, char *argv[])
 				if (j == sizeof(buffer) - 1)
 					goto out;
 			} else
-				if (read(fd_in[i], buffer, sizeof(buffer) - 1) < 0)
+				if (read(fd_in[i], buffer, sizeof(buffer) - 1)
+				    < 0)
 					continue;
 			/* Open destination file. */
 			if (access(logfile_path[i], F_OK)) {
