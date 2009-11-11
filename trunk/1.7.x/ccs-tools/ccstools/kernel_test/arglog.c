@@ -1,3 +1,11 @@
+/*
+ * arglog.c
+ *
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ *
+ * Version: 1.7.1   2009/11/11
+ *
+ */
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -18,7 +26,7 @@ int main(int argc0, char *argv0[])
 		char buffer1[8192];
 		char buffer2[8192];
 		int i;
-		//printf("%d\n", j);
+		/* printf("%d\n", j); */
 	        memset(buffer1, 0, sizeof(buffer1));
 		memset(buffer2, 0, sizeof(buffer2));
 		for (i = 0; i < 11; i++) {
