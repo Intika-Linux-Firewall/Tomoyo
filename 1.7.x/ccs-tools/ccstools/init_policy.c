@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1-pre   2009/11/07
+ * Version: 1.7.1   2009/11/11
  *
  */
 #define _FILE_OFFSET_BITS 64

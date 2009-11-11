@@ -1,16 +1,16 @@
 Summary: TOMOYO Linux tools
 
 Name: ccs-tools
-Version: 1.7.0
+Version: 1.7.1
 Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.0-1
+Conflicts: ccs-tools < 1.7.1-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.0-20090903.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.1-20091111.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,16 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Wede Nov 11 2009 1.7.1-1
+- Fourth anniversary release.
+- Added network mode support to ccs-queryd and ccs-auditd.
+- Removed policy diff support from ccs-savepolicy, ccs-loadpolicy, ccs-init .
+- Added ccs-diffpolicy for generating policy diff file.
+- Updated to handle TOMOYO 1.7.x's syntax.
+- Added ccs-selectpolicy for picking up specific domain's policy.
+- Added convert-audit-log for generating policy from audit logs.
+- Added "--file" option to ccs-patternize.
+
 * Thu Sep 03 2009 1.7.0-1
 - Removed programs for TOMOYO 2.2.0 from this package.
   Please use tomoyo-tools-2.2.0 package for TOMOYO 2.2.0 .

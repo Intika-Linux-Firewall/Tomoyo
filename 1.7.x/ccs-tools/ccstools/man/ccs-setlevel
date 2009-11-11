@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-setlevel 1.7.0
+ccs-setlevel 1.7.1
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-setlevel profile_index-profile_name=profile_value ...
+Usage: ccs-setlevel name=value ...
 
 This program updates TOMOYO Linux's profile.
 
@@ -21,8 +21,8 @@ You can see list of profiles currently defined via /proc/ccs/profile .
 
 Examples:
 
-# ccs-setlevel 2-TOMOYO_VERBOSE=enabled
- Turn on verbose mode for profile 2.
+# ccs-setlevel "PREFERENCE::enforcing={ verbose=yes }"
+ Turn on verbose mode for enforcing mode.
 
 EOF
 else

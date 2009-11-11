@@ -1,4 +1,13 @@
-/* convert-audit-log.c */
+/*
+ * convert-audit-log.c
+ *
+ * TOMOYO Linux's utilities.
+ *
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ *
+ * Version: 1.7.1   2009/11/11
+ *
+ */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

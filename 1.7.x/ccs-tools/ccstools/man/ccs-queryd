@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-queryd 1.7.0
+ccs-queryd 1.7.1
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-queryd [--no-update|--ask-update]
+Usage: ccs-queryd [--no-update|--ask-update|remote_ip:remote_port]
 
 This program detects policy violation in enforcing mode and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.
 
@@ -27,9 +27,15 @@ If you omit options, this program automatically appends created pathnames which 
 
 By running this program without --no-update option, you can avoid errors like "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.
 
+ remote_ip:remote_port     Receive policy from agent listening at specified IP address and port number. 
+
 Examples:
 
 # ccs-queryd
+ Handle local query.
+
+# ccs-queryd 192.168.1.1:10000
+ Handle remote query via agent listening at 192.168.1.1:10000 .
 
 Usage is available at http://tomoyo.sourceforge.jp/1.7/enforcing.html
 
@@ -39,6 +45,10 @@ cat << EOF | help2man -i - -N -s 8 -n "Handle TOMOYO Linux's delayed enforcing m
 [NOTES]
 
  You need to register either path to this program ( /usr/sbin/ccs-queryd ) or a domain for this program in /proc/ccs/manager before invoking this program.
+
+[SEE ALSO]
+
+ ccs-editpolicy-agent (8)
 
 [AUTHORS]
 

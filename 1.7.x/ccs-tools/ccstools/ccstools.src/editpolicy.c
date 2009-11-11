@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0+   2009/09/08
+ * Version: 1.7.1   2009/11/11
  *
  */
 #include "ccstools.h"
@@ -2261,7 +2261,7 @@ out:
 static _Bool select_acl_window(struct domain_policy *dp, const int current,
 			       const _Bool may_refresh)
 {
-	if (current_screen != SCREEN_DOMAIN_LIST)
+	if (current_screen != SCREEN_DOMAIN_LIST || current == EOF)
 		return false;
 	current_pid = 0;
 	if (domain_sort_type) {
@@ -2304,7 +2304,7 @@ static int select_window(struct domain_policy *dp, const int current)
 	printw("Press one of below keys to switch window.\n\n");
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
-	if (current_screen == SCREEN_DOMAIN_LIST &&
+	if (current_screen == SCREEN_DOMAIN_LIST && current != EOF &&
 	    !is_initializer_source(dp, current) &&
 	    !is_deleted_domain(dp, current))
 		printw("a     <<< Domain Policy Editor >>>\n");

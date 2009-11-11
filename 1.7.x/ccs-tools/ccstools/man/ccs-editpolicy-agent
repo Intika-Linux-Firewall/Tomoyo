@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-editpolicy-agent 1.7.0
+ccs-editpolicy-agent 1.7.1
 
 Copyright (C) 2005-2009 NTT DATA CORPORATION.
 
@@ -15,7 +15,7 @@ then
 cat << EOF
 Usage: ccs-editpolicy-agent listen_ip:listen_port
 
-This is an agent program for ccs-editpolicy ccs-loadpolicy ccs-savepolicy ccs-ccstree .
+This is an agent program for ccs-editpolicy ccs-loadpolicy ccs-savepolicy ccs-ccstree ccs-queryd ccs-auditd .
 
  listen_ip:listen_port     Listen at specified IP address and port number. 
 
@@ -33,6 +33,8 @@ cat << EOF | help2man -i - -N -s 8 -n "Agent for editing TOMOYO Linux's policy" 
  ccs-loadpolicy (8)
  ccs-savepolicy (8)
  ccs-pstree (8)
+ ccs-queryd (8)
+ ccs-auditd (8)
 
 [NOTES]
 
