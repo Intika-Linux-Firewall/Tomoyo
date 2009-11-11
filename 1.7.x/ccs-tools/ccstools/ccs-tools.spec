@@ -41,7 +41,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
-* Wede Nov 11 2009 1.7.1-1
+* Wed Nov 11 2009 1.7.1-1
 - Fourth anniversary release.
 - Added network mode support to ccs-queryd and ccs-auditd.
 - Removed policy diff support from ccs-savepolicy, ccs-loadpolicy, ccs-init .

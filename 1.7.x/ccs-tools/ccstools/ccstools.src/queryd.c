@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1   2009/11/11
  *
  */
 #include "ccstools.h"
@@ -24,7 +24,6 @@ static void do_check_update(const int fd);
 static void handle_update(const int check_update, const int fd);
 static _Bool convert_path_info(FILE *fp, const struct path_info *pattern,
 			       const char *new);
-static _Bool check_path_info(const char *buffer);
 static _Bool handle_query(unsigned int serial);
 
 /* Utility functions */
@@ -92,6 +91,7 @@ static int send_encoded(const int fd, const char *fmt, ...)
 	return len;
 }
 
+#if 0
 static _Bool check_path_info(const char *buffer)
 {
 	_Bool modified = false;
@@ -131,6 +131,7 @@ static _Bool check_path_info(const char *buffer)
 	free(str);
 	return modified;
 }
+#endif
 
 static void do_check_update(const int fd)
 {
