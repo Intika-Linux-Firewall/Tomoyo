@@ -615,21 +615,21 @@ allow_execute /bin/cat
 
 <p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
 
-<p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには setlevel コマンドまたは loadpolicy コマンドを使用します。</p>
+<p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには ccs-setlevel コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
 
-<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは editpolicy コマンドまたは loadpolicy コマンドを使用します。</p>
+<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには ccs-setprofile コマンドまたは ccs-editpolicy コマンドまたは ccs-loadpolicy コマンドを使用します。</p>
 
-<p>現在ドメインに割り当てられているプロファイル番号は editpolicy コマンドで確認できます。<br>
+<p>現在ドメインに割り当てられているプロファイル番号は ccs-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は ccstree コマンドで確認できます。<br>
-現在のポリシーを savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
+現在のポリシーを ccs-savepolicy コマンドで保存した場合、 <a href="#domain_policy_use_profile">use_profile</a> というキーワードに保持されます。</p>
 
 <p>現在のプロファイルを読み出しまたは追加するには以下のように操作します。</p>
 
 <p>（例）<br>
 cat /proc/ccs/profile<br>
-savepolicy -p<br>
-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
+ccs-savepolicy -p<br>
+ccs-setlevel 1-MAC_FOR_FILE=learning<br>
+echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
@@ -1192,9 +1192,9 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>現在のシステムポリシーを読み出しまたは追加または削除するには以下のように操作します。</p>
 <p>（例）<br>
 cat /proc/ccs/system_policy<br>
-savepolicy -s<br>
-echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
-echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
+ccs-savepolicy -s<br>
+echo 'allow_mount /proc /proc/ proc' | ccs-loadpolicy -s<br>
+echo 'delete allow_mount /proc /proc/ proc' | ccs-loadpolicy -s</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
@@ -1264,13 +1264,13 @@ deny_autobind 8080</p>
 
 <p>現在のドメインポリシーを読み出しまたは追加または削除するには、以下のように操作します。</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されます）<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を追加（ドメインが存在しない場合は作成されません）<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインを選択してアクセス許可を削除<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>（例）特定のドメインを削除<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
 <p>（例）ドメインポリシーの読み出し<br>
 cat /proc/ccs/domain_policy</p>
 
@@ -1523,8 +1523,8 @@ cat /proc/ccs/domain_policy</p>
 
 <p>現在の例外ポリシーを読み出しまたは追加または削除するには以下のように操作します。</p>
 <p>（例）<br>
-echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
-echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
+echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
 cat /proc/ccs/exception_policy</p>
 
 <p>関連項目： <a href="#policy_file_modifiers">変更について</a></p>
@@ -1695,7 +1695,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
-<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
+<p>ccs-setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 

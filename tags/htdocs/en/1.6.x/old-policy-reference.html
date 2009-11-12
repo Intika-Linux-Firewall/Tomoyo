@@ -384,7 +384,7 @@ The default is given at the kernel compilation time.</td>
 </tr>
 </table>
 
-<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To switch profiles currently assigned to domains, use "setprofile" command. The currently assigned profile number are kept in the <a href="#domain_policy.conf">Domain policy (domain_policy.conf)</a> using "use_profile" directive.</p>
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To switch profiles currently assigned to domains, use "ccs-setprofile" command. The currently assigned profile number are kept in the <a href="#domain_policy.conf">Domain policy (domain_policy.conf)</a> using "use_profile" directive.</p>
 
 <h2><a name="system_policy.conf">2.3 System policy (system_policy.conf)</a></h2>
 <p>This file contains permissions that apply to the entire system. The following 4 types of permissions are declared.</p>
@@ -1009,7 +1009,7 @@ in a process whose domain is assigned a profile for enforcing mode and "ALLOW_EN
 <p>This file is used to read or append the list of PROGRAMS or DOMAINS that can write to /proc/ccs/ interface.</p>
 
 <h2><a name=".domain_status">3.7 .domain_status</a></h2>
-<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "ccs-setprofile" command can do line-oriented processing easily.</p>
 <h2><a name="meminfo">3.8 meminfo</a></h2>
 <p>This file is to show the total RAM used to keep policy in the kernel by TOMOYO Linux.</p>
 <p>(Example)<br>
