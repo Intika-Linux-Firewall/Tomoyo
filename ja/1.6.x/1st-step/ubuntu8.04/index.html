@@ -277,7 +277,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p>という意味です。/sbin/gettyはログインシェルを起動するプログラムで、
 /sbin/getty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
-設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+設定は即時に有効になるので、上記ccs-setprofileコマンドを実行したあとは既に学習モードになっています。</p>
 
 <p>&lt;kernel&gt; /sbin/gettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
 /sbin/gettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
@@ -292,13 +292,13 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <h3><a name="l9">ポリシーの参照</a></h3>
 
-<p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
+<p>生成されたポリシーの参照・編集には、ccs-toolsのccs-editpolicyを用います。</p>
 
 <pre>
-# <span class="user">/usr/lib/ccs/editpolicy</span>
+# <span class="user">ccs-editpolicy</span>
 </pre>
 
-<p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
+<p>ccs-editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
 この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
 
 <p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
@@ -308,7 +308,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。</p>
+<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど ccs-setprofile コマンドを用いて 1 を割り当てたためです。</p>
 
 <p>/sbin/getty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
 その中からさらに、/usr/bin/headコマンドを探してみてください。
@@ -342,14 +342,14 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 保存するには以下のようにします。</p>
 
 <pre>
-# <span class="user">/usr/lib/ccs/savepolicy</span>
+# <span class="user">ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">強制アクセス制御</a></h3>
 
 <p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
 
-<p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
+<p>'q'キーでccs-editpolicyを終了してから、以下のコマンドを実行します。</p>
 
 <pre>
 # <span class="user">/usr/lib/ccs/setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>

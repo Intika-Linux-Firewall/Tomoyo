@@ -614,21 +614,21 @@ allow_execute /bin/cat
 
 <p>TOMOYO Linux can perform several MACs besides MAC for files, but to reduce the load of policy managements, you can disable MACs you think unnecessary.</p>
 
-<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "setlevel" or "loadpolicy" commands.</p>
+<p>List up functions and their modes in "$number-$variable=$value" format. The $number is profile number between 0 and 255. To modify profile, use "ccs-setlevel" or "ccs-loadpolicy" commands.</p>
 
-<p>Each domain is assigned one profile. To assign profile to domains, use "setprofile" or "editpolicy" or "loadpolicy" commands.</p>
+<p>Each domain is assigned one profile. To assign profile to domains, use "ccs-setprofile" or "ccs-editpolicy" or "ccs-loadpolicy" commands.</p>
 
-<p>You can see profiles currently assigned to domains using "editpolicy" command.<br>
+<p>You can see profiles currently assigned to domains using "ccs-editpolicy" command.<br>
 You can see profiles currently assigned to processes using "ccstree" command.<br>
-If you saved current policy using "savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
+If you saved current policy using "ccs-savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
 
 <p>To read or modify current profiles, operate like below.</p>
 
 <p>(Example)<br>
 cat /proc/ccs/profile<br>
-savepolicy -p<br>
-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
+ccs-savepolicy -p<br>
+ccs-setlevel 1-MAC_FOR_FILE=learning<br>
+echo 1-MAC_FOR_FILE=learning | ccs-loadpolicy -p</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
@@ -1181,9 +1181,9 @@ echo 1-MAC_FOR_FILE=learning | loadpolicy -p</p>
 <p>To read or modify current system policy, operate like below.</p>
 <p>(Example)<br>
 cat /proc/ccs/system_policy<br>
-savepolicy -s<br>
-echo 'allow_mount /proc /proc/ proc' | loadpolicy -s<br>
-echo 'delete allow_mount /proc /proc/ proc' | loadpolicy -s</p>
+ccs-savepolicy -s<br>
+echo 'allow_mount /proc /proc/ proc' | ccs-loadpolicy -s<br>
+echo 'delete allow_mount /proc /proc/ proc' | ccs-loadpolicy -s</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
@@ -1253,13 +1253,13 @@ deny_autobind 8080</p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>(Example) Deleting specific domain.<br>
-printf "delete &lt;kernel&gt; /sbin/init\n" | loadpolicy -d</p>
+printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
 <p>(Example) Reading current domain policy.<br>
 cat /proc/ccs/domain_policy</p>
 
@@ -1513,8 +1513,8 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>To read or modify current exception policy, operate like below.</p>
 <p>(Example)<br>
-echo 'file_pattern /proc/\$/status' | loadpolicy -e<br>
-echo 'delete file_pattern /proc/\$/status' | loadpolicy -e<br>
+echo 'file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
+echo 'delete file_pattern /proc/\$/status' | ccs-loadpolicy -e<br>
 cat /proc/ccs/exception_policy</p>
 
 <p>See also:  <a href="#policy_file_modifiers">Policy File's Modification</a></p>
@@ -1684,7 +1684,7 @@ allow_network TCP accept @local-address 1024-65535
 
 <h2><a name=".domain_status">/proc/ccs/.domain_status</a></h2>
 
-<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "setprofile" command can do line-oriented processing easily.</p>
+<p>This is a view (of a DBMS) that contains only profile number and domainnames of domain so that "ccs-setprofile" command can do line-oriented processing easily.</p>
 
 <h2><a name="meminfo">/proc/ccs/meminfo</a></h2>
 

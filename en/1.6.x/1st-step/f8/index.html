@@ -249,7 +249,7 @@ You need to create the directory to save before you run this script.</p>
 So, assign this profile to /sbin/mingetty and programs invoked by /sbin/mingetty .</p>
 
 <pre>
-# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
+# <span class="user">ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
 
 <p>This command means</p>
@@ -268,13 +268,13 @@ So, assign this profile to /sbin/mingetty and programs invoked by /sbin/mingetty
 
 <h3><a name="l9">Editing generated policies</a></h3>
 
-<p>To refer and/or edit generated policy, you can use "editpolicy" in the TOMOYO Linux tools package.</p>
+<p>To refer and/or edit generated policy, you can use "ccs-editpolicy" in the TOMOYO Linux tools package.</p>
 
 <pre>
-# <span class="user">editpolicy</span>
+# <span class="user">ccs-editpolicy</span>
 </pre>
 
-<p>When you run "editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
+<p>When you run "ccs-editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
 TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
 <p><img alt="Domain Transition" title="Domain Transition" width="720" height="400" src="editpolicy1.png"></p>
@@ -283,7 +283,7 @@ TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
 <p><img alt="Domains under mingetty" title="Domains under mingetty" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/mingetty and its descendant domains is 1 because you ran earlier "setprofile -r 1 '&lt;kernel&gt; /bin/mingetty'".</p>
+<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/mingetty and its descendant domains is 1 because you ran earlier "ccs-setprofile -r 1 '&lt;kernel&gt; /bin/mingetty'".</p>
 
 <p>You can find the tree for login operation at /bin/login under /sbin/mingetty .
 Search for /usr/bin/head in that tree.
@@ -308,17 +308,17 @@ Each process belongs to single domain, and access permissions are granted to dom
 <p>Policies are kept on the memory and they will be lost if you shutdown the system. To save policies currently on the memory onto disk, run the following command.</p>
 
 <pre>
-# <span class="user">savepolicy</span>
+# <span class="user">ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">Enforcing MAC</a></h3>
 
 <p>Now, let's experience MAC using previously generated policy.</p>
 
-<p>Quit the "editpolicy" with 'q' key and run the following command.</p>
+<p>Quit the "ccs-editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
-# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>
+# <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>
 </pre>
 
 <p>From now on, the domains under /sbin/mingetty are protected by MAC.</p>

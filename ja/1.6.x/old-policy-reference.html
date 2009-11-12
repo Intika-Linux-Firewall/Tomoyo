@@ -378,7 +378,7 @@
 </tr>
 </table>
 <p>有効にしたい機能とそのモードを「プロファイル番号-項目=値」という形式で定義する。
-プロファイル番号は 0 ～ 255 が指定可能である。プロファイルを切り替えるには setprofile コマンドを使用する。また、現在割り当てられているプロファイル番号は <a href="#domain_policy.conf">ドメイン別ポリシー（domain_policy.conf）</a> の中に use_profile というキーワードで保持される。</p>
+プロファイル番号は 0 ～ 255 が指定可能である。プロファイルを切り替えるには ccs-setprofile コマンドを使用する。また、現在割り当てられているプロファイル番号は <a href="#domain_policy.conf">ドメイン別ポリシー（domain_policy.conf）</a> の中に use_profile というキーワードで保持される。</p>
 
 <h2><a name="system_policy.conf">2.3 システムポリシー（system_policy.conf）</a></h2>
 <p>このファイルでは、システム全体に対して適用されるアクセス許可を定義する。以下の 4 種類のアクセス許可を指定できる。</p>
@@ -991,7 +991,7 @@ cat /proc/ccs/exception_policy</p>
 <h2><a name="manager">3.6 manager</a></h2>
 <p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加する。</p>
 <h2><a name=".domain_status">3.7 .domain_status</a></h2>
-<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供する。</p>
+<p>ccs-setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供する。</p>
 <h2><a name="meminfo">3.8 meminfo</a></h2>
 <p>TOMOYO Linuxがポリシーを保持するために使用しているカーネルのメモリ情報を取得する。</p>
 <p>（例）<br>

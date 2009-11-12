@@ -283,7 +283,7 @@ TOMOYO Linux calls this invocation chains as "DOMAIN transition tree".</p>
 
 <p><img alt="Domains under mingetty" title="Domains under mingetty" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/mingetty and its descendant domains is 1 because you ran earlier "setprofile -r 1 '&lt;kernel&gt; /bin/mingetty'".</p>
+<p>The integer that is on the right side of line number shows profile number currently assigned to the domain. The profile number for /sbin/mingetty and its descendant domains is 1 because you ran earlier "ccs-setprofile -r 1 '&lt;kernel&gt; /bin/mingetty'".</p>
 
 <p>You can find the tree for login operation at /bin/login under /sbin/mingetty .
 Search for /usr/bin/head in that tree.
@@ -315,7 +315,7 @@ Each process belongs to single domain, and access permissions are granted to dom
 
 <p>Now, let's experience MAC using previously generated policy.</p>
 
-<p>Quit the "editpolicy" with 'q' key and run the following command.</p>
+<p>Quit the "ccs-editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
 # <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty'</span>

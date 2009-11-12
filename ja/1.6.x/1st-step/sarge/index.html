@@ -279,7 +279,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p>という意味です。/sbin/gettyはログインシェルを起動するプログラムで、
 /sbin/getty以下にプロファイル1を割り当てることで、ログイン後の操作を学習する設定になります。
-設定は即時に有効になるので、上記setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+設定は即時に有効になるので、上記ccs-setprofileコマンドを実行したあとは既に学習モードになっています。</p>
 
 <p>&lt;kernel&gt; /sbin/gettyを引用符で囲まないと、シェルのリダイレクト機能が働いて
 /sbin/gettyの内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
@@ -310,7 +310,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p><img alt="getty以下のドメイン" title="getty以下のドメイン" width="720" height="400" src="editpolicy2.png"></p>
 
-<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど setprofile コマンドを用いて 1 を割り当てたためです。</p>
+<p>行番号の右側に表示されている数字は、そのドメインに割り当てられているプロファイル番号です。 /sbin/getty 以下のドメインが 1 になっているのは、先ほど ccs-setprofile コマンドを用いて 1 を割り当てたためです。</p>
 
 <p>/sbin/getty下の/bin/login以下では、ログインしてからのプロセス実行履歴が分かります。
 その中からさらに、/usr/bin/headコマンドを探してみてください。
