@@ -58,7 +58,7 @@ But regarding Debian Etch, a binary kernel package is available and this page us
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
 
 <pre>
-title           Debian GNU/Linux, kernel 2.6.18-18-6-686-ccs
+title           Debian GNU/Linux, kernel 2.6.18-6-686-ccs
 root            (hd0,0)
 kernel          /boot/vmlinuz-2.6.18-6-686-ccs root=/dev/sda1 ro
 initrd          /boot/initrd.img-2.6.18-6-686-ccs
@@ -354,7 +354,7 @@ Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
 <blockquote><p>
-#2008-05-06 09:18:28# profile=3 mode=enforcing pid=2311 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" }<br>
+#2008-05-06 09:18:28# profile=3 mode=enforcing pid=2311 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
 allow_execute /usr/bin/tail<br>
 <br>
@@ -366,7 +366,7 @@ allow_read /usr/bin/tail<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
 allow_read /etc/shadow<br>
 <br>
-#2008-05-06 09:18:48# profile=3 mode=enforcing pid=2314 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" }<br>
+#2008-05-06 09:18:48# profile=3 mode=enforcing pid=2314 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
 allow_execute /bin/date
 </p></blockquote>

@@ -85,11 +85,11 @@ boot
 # <span class="user">dpkg -i ccs-tools_1.6.8-2_i386.deb</span>
 </pre>
 
-<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
+<p>ツールがインストールされる /usr/sbin ディレクトリにパスを通しておきます。
 bashを使っている場合には以下のようにします。</p>
 
 <pre>
-# <span class="user">echo 'export PATH=$PATH:/usr/lib/ccs' &gt;&gt; ~/.bashrc</span>
+# <span class="user">echo 'export PATH=$PATH:/usr/sbin' &gt;&gt; ~/.bashrc</span>
 # <span class="user">source ~/.bashrc</span>
 </pre>
 
@@ -270,7 +270,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 </p>
 
 <pre>
-# <span class="user">setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>このコマンドは、</p>
@@ -294,13 +294,13 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <h3><a name="l9">ポリシーの参照</a></h3>
 
-<p>生成されたポリシーの参照・編集には、ccs-toolsのeditpolicyを用います。</p>
+<p>生成されたポリシーの参照・編集には、ccs-toolsのccs-editpolicyを用います。</p>
 
 <pre>
-# <span class="user">editpolicy</span>
+# <span class="user">ccs-editpolicy</span>
 </pre>
 
-<p>editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
+<p>ccs-editpolicyを起動すると、TOMOYO Linux起動後に、プロセスがどのように呼び出されたかが表示されます。
 この「プロセスの呼び出し」を、TOMOYO Linuxでは「ドメイン遷移」とよびます。</p>
 
 <p><img alt="ドメイン遷移" title="ドメイン遷移" width="720" height="400" src="editpolicy1.png"></p>
@@ -344,17 +344,17 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 保存するには以下のようにします。</p>
 
 <pre>
-# <span class="user">savepolicy</span>
+# <span class="user">ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">強制アクセス制御</a></h3>
 
 <p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
 
-<p>'q'キーでeditpolicyを終了してから、以下のコマンドを実行します。</p>
+<p>'q'キーでccs-editpolicyを終了してから、以下のコマンドを実行します。</p>
 
 <pre>
-# <span class="user">setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>この操作により、/sbin/getty以下のドメインに強制アクセス制御が適用されるようになります。</p>
@@ -378,7 +378,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 <p>エラーになった操作のログは、ccs-auditdによって/var/log/tomoyo/reject_log.txtに保存されています。</p>
 
 <blockquote><p>
-#2008-05-12 15:46:16# profile=3 mode=enforcing pid=1855 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tail" }<br>
+#2008-05-12 15:46:16# profile=3 mode=enforcing pid=1855 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tail" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
 allow_execute /usr/bin/tail<br>
 <br>
@@ -390,7 +390,7 @@ allow_read /usr/bin/tail<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
 allow_read /etc/shadow<br>
 <br>
-#2008-05-12 15:46:32# profile=3 mode=enforcing pid=1860 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=21 argv[]={ "date" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs:/root/bin:/root/ccstools/" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" }<br>
+#2008-05-12 15:46:32# profile=3 mode=enforcing pid=1860 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=1 envc=21 argv[]={ "date" } envp[]={ "HZ=100" "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/sbin:/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin:/root/bin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /bin/tcsh<br>
 allow_execute /bin/date
 </p></blockquote>
