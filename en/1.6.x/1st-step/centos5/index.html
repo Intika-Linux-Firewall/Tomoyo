@@ -86,7 +86,7 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 # <span class="user">yum install ccs-tools</span>
 </pre>
 
-<p>Add /usr/lib/ccs (the location of TOMOYO Linux tools) to the environment variable PATH.
+<p>Add /usr/sbin (the location of TOMOYO Linux tools) to the environment variable PATH.
 If you are using bash, run the following commands.</p>
 
 <pre>
@@ -199,7 +199,7 @@ This page configures to save only "access rejected logs".</p>
 To start ccs-auditd on bootup to save only "access rejected logs", add the following line to /etc/rc.d/rc.local .</p>
 
 <pre>
-# <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
+# <span class="user">echo "/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
 </pre>
 
 <p>This script will save "access rejected logs" as /var/log/tomoyo/reject_log.txt .

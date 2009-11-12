@@ -88,7 +88,7 @@ title CentOS (2.6.18-164.6.1.el5_tomoyo_1.6.8p1)
 # <span class="user">yum install ccs-tools</span>
 </pre>
 
-<p>ツールがインストールされる /usr/lib/ccs ディレクトリにパスを通しておきます。
+<p>ツールがインストールされる /usr/sbin ディレクトリにパスを通しておきます。
 bashを使っている場合には以下のようにします。</p>
 
 <pre>
@@ -207,7 +207,7 @@ bashを使っている場合には以下のようにします。</p>
 以下のコマンドで/etc/rc.d/rc.localの末尾にccs-auditdの起動コマンドを追加します。</p>
 
 <pre>
-# <span class="user">echo "/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
+# <span class="user">echo "/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt" &gt;&gt; /etc/rc.d/rc.local</span>
 </pre>
 
 <p>この設定では、/var/log/tomoyo/reject_log.txtにアクセス拒否ログが保存されます。

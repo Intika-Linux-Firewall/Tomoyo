@@ -533,19 +533,19 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.3 <a name="access_logs">アクセスログについて</a></h2>
 
-<p>ドメインポリシーによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/lib/ccs/ccs-auditd というプログラムが付属しています。</p>
+<p>ドメインポリシーによって許可されたアクセス要求のログと拒否されたアクセス要求のログを生成します。前者は許可ログと呼ばれ、 /proc/ccs/grant_log から取得することができます。後者は拒否ログと呼ばれ、 /proc/ccs/reject_log から取得することができます。これらのログを取得してファイルとして保存するためのツールとして /usr/sbin/ccs-auditd というプログラムが付属しています。</p>
 
 <p>以下に例を示します。最初の例はプログラムを実行しようとしたときのログです。</p>
 
 <table border="1">
 <tr><td>
-#2008-04-09 12:50:15# profile=1 mode=learning pid=5054 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=16 argv[]={ "cat" "/etc/fstab" } envp[]={ "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" }<br>
+#2008-04-09 12:50:15# profile=1 mode=learning pid=5054 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=2 envc=16 argv[]={ "cat" "/etc/fstab" } envp[]={ "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" }<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
 allow_execute /bin/cat
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash というドメインに属しているプロセスが /bin/cat というプログラムを実行しようとし、そのときの引数の内容は "cat" "/etc/fstab" 、環境変数の内容は "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" であったということを示しています。また、プロセスＩＤやユーザＩＤなど、プロセスに関する情報も一緒に出力されます。</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash というドメインに属しているプロセスが /bin/cat というプログラムを実行しようとし、そのときの引数の内容は "cat" "/etc/fstab" 、環境変数の内容は "TERM=vt100" "SHELL=/bin/bash" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" "_=/bin/cat" であったということを示しています。また、プロセスＩＤやユーザＩＤなど、プロセスに関する情報も一緒に出力されます。</p>
 
 <p>次の例は、ファイルを読み込みモードでオープンしようとしたときのログです。</p>
 
@@ -574,15 +574,15 @@ use_profile 1
 <p>次の例は、<a href="#execute_handler">プログラムの実行可否をカーネルの外部で判断</a>するために要求されたのとは異なるプログラムが実行されたときのログです。</p>
 <table border="1">
 <tr><td>
-#2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
+#2008-04-09 12:52:01# profile=1 mode=learning pid=5110 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 argc=24 envc=0 argv[]={ "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" } envp[]={ }<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash<br>
 execute_handler /bin/audit-exec-param
 </td></tr>
 </table>
 
-<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/lib/ccs" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
+<p>このログは、 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/bash というドメインに属しているプロセスがプログラムを実行しようとしたが、 execute_handler が指定されていたので代わりに /bin/audit-exec-param というプログラムが実行されたこと、 /bin/audit-exec-param に渡された引数の内容は "/bin/audit-exec-param" "&lt;kernel&gt;\040/usr/sbin/sshd\040/bin/bash\040/bin/bash" "/bin/bash" "pid=5110\040uid=0\040gid=0\040euid=0\040egid=0\040suid=0\040sgid=0\040fsuid=0\040fsgid=0\040state[0]=0\040state[1]=0\040state[2]=0" "/bin/cat" "2" "18" "cat" "/etc/fstab" "SHELL=/bin/bash" "TERM=vt100" "SSH_CLIENT=::ffff:192.168.99.1\04048601\04022" "SSH_TTY=/dev/pts/0" "USER=root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11:/usr/sbin" "MAIL=/var/mail/root" "_=/bin/cat" "PWD=/root" "LANG=C" "HOME=/root" "SHLVL=2" "LANGUAGE=en_JP:en_US:en_GB:en" "LOGNAME=root" "SSH_CONNECTION=::ffff:192.168.99.1\04048601\040::ffff:192.168.99.152\04022" であったということを示しています。 LD_PRELOAD などの環境変数によって  /bin/audit-exec-param の動作が左右されるのを防ぐため、環境変数を引数に移動しています。</p>
 
-<p>このように、アクセスログは 3 行で 1 件（ /usr/lib/ccs/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシーとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
+<p>このように、アクセスログは 3 行で 1 件（ /usr/sbin/ccs-auditd によってファイルに保存されるときに空行が入るので 4 行で 1 件）となっており、これらのログはそのままドメインポリシーとして追加可能な形式になっています。アクセス拒否ログから許可したい部分を抽出して、例えば /var/log/tomoyo/diff.txt という名前で保存した後、</p>
 
 <table border="1">
 <tr><td>

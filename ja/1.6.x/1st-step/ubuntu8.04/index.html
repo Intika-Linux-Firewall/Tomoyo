@@ -87,7 +87,7 @@ initrd          /boot/initrd.img-2.6.24-24-ccs
 # <span class="user">dpkg -i ccs-tools_1.6.8-2_i386.deb</span>
 </pre>
 
-<p>ツールは /usr/lib/ccs ディレクトリにされます。</p>
+<p>ツールは /usr/sbin ディレクトリにインストールされます。</p>
 
 <p>以上でTOMOYO Linuxのインストールは終了です。続いて設定に移ります。</p>
 
@@ -202,7 +202,7 @@ initrd          /boot/initrd.img-2.6.24-24-ccs
 <pre>
 # <span class="user">cat &gt; /etc/init.d/ccs-auditd &lt;&lt; EOF</span>
 <span class="user">#!/bin/sh</span>
-<span class="user">/usr/lib/ccs/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
+<span class="user">/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt</span>
 <span class="user">EOF</span>
 # <span class="user">chmod +x /etc/init.d/ccs-auditd</span>
 </pre>
@@ -268,7 +268,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 </p>
 
 <pre>
-# <span class="user">/usr/lib/ccs/setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>このコマンドは、</p>
@@ -352,7 +352,7 @@ headコマンドの行でEnterキーを押すと、以下の画面が表示さ�
 <p>'q'キーでccs-editpolicyを終了してから、以下のコマンドを実行します。</p>
 
 <pre>
-# <span class="user">/usr/lib/ccs/setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>この操作により、/sbin/getty以下のドメインに強制アクセス制御が適用されるようになります。</p>
