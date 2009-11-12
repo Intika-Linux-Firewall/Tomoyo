@@ -619,7 +619,7 @@ allow_execute /bin/cat
 <p>Each domain is assigned one profile. To assign profile to domains, use "ccs-setprofile" or "ccs-editpolicy" or "ccs-loadpolicy" commands.</p>
 
 <p>You can see profiles currently assigned to domains using "ccs-editpolicy" command.<br>
-You can see profiles currently assigned to processes using "ccstree" command.<br>
+You can see profiles currently assigned to processes using "ccs-ccstree" command.<br>
 If you saved current policy using "ccs-savepolicy" command, the currently assigned profile number is saved as <a href="#domain_policy_use_profile">use_profile</a> line of domain policy.</p>
 
 <p>To read or modify current profiles, operate like below.</p>
@@ -1712,7 +1712,7 @@ cat /proc/ccs/self_domain</p>
 
 <h2><a name=".process_status">/proc/ccs/.process_status</a></h2>
 
-<p>This file is used by "ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
+<p>This file is used by "ccs-ccstree" command to show "list of processes currently running" and "domains which each process belongs to" and "profile number which the domain is currently assigned" like "pstree" command. This file is writable by programs that aren't registered as policy manager.</p>
 
 <h2><a name=".updates_counter">/proc/ccs/.updates_counter</a></h2>
 
