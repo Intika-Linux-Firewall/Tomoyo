@@ -382,30 +382,23 @@ static size_t ccs_del_name(const struct ccs_name_entry *ptr)
 	return ptr->size;
 }
 
-/*
- * 2.6.19 has SRCU support but it triggers general protection fault in my
- * environment. Thus, I use SRCU for 2.6.20 and later.
- */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 
 /* Lock for GC. */
 static struct srcu_struct ccs_ss;
 
-/**
- * ccs_gc_init - Initialize garbage collector.
- *
- * Returns 0.
- */
-static int __init ccs_gc_init(void)
-{
-	if (init_srcu_struct(&ccs_ss))
-		panic("Out of memory.");
-	return 0;
-}
-core_initcall(ccs_gc_init);
-
 int ccs_read_lock(void)
 {
+	/*
+	 * Kernel might try to populate root fs before processing initcalls.
+	 * Thus, I can't use core_initcall() for initializing ccs_ss.
+	 */
+	if (!ccs_ss.per_cpu_ref) {
+		mutex_lock(&ccs_policy_lock);
+		if (!ccs_ss.per_cpu_ref && init_srcu_struct(&ccs_ss))
+			panic("Out of memory.");
+		mutex_unlock(&ccs_policy_lock);
+	}
 	return srcu_read_lock(&ccs_ss);
 }
 

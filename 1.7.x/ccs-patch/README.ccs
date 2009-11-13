@@ -2244,3 +2244,10 @@ Fix 2009/11/09
       I added a check for PROFILE_VERSION= .
 
 Version 1.7.1   2009/11/11   Fourth anniversary release.
+
+Fix 2009/11/13
+
+    @ Don't use core_initcall() for initializing lock for GC.
+
+     Some kernels call TOMOYO's hooks before processing core_initcall().
+     Thus, I can't use core_initcall() for initializing lock for GC.
