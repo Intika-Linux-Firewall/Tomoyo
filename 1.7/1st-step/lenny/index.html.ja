@@ -84,14 +84,6 @@ initrd          /boot/initrd.img-2.6.26-2-686-ccs
 # <span class="user">dpkg -i ccs-tools_1.7.1-1_i386.deb</span>
 </pre>
 
-<p>ツールがインストールされる /usr/sbin/ ディレクトリにパスを通しておきます。
-bashを使っている場合には以下のようにします。</p>
-
-<pre>
-# <span class="user">echo 'export PATH=$PATH:/usr/sbin' &gt;&gt; ~/.bashrc</span>
-# <span class="user">source ~/.bashrc</span>
-</pre>
-
 <p>以上で TOMOYO Linux のインストールは終了です。
 続いて設定に移ります。</p>
 
@@ -273,7 +265,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 このプロファイルを以下のコマンドで /sbin/getty から起動されるプログラムに割り当てます。</p>
 
 <pre>
-# <span class="user">ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>このコマンドは、</p>
@@ -282,7 +274,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p>という意味です。
 /sbin/getty はログインシェルを起動するプログラムで、 /sbin/getty 以下にプロファイル 1 を割り当てることで、ログイン後の操作を学習する設定になります。
-設定は即時に有効になるので、上記ccs-setprofileコマンドを実行したあとは既に学習モードになっています。</p>
+設定は即時に有効になるので、上記 ccs-setprofile コマンドを実行したあとは既に学習モードになっています。</p>
 
 <p>&lt;kernel&gt; /sbin/getty を引用符で囲まないと、シェルのリダイレクト機能が働いて /sbin/getty の内容が書き換えられてしまいますのでくれぐれもご注意ください。</p>
 
@@ -298,7 +290,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 <p>生成されたポリシーの参照・編集には、 ccs-editpolicy を用います。</p>
 
 <pre>
-# <span class="user">ccs-editpolicy</span>
+# <span class="user">/usr/sbin/ccs-editpolicy</span>
 </pre>
 
 <p>ccs-editpolicy を起動すると、 TOMOYO Linux 起動後に、プロセスがどのように呼び出されたかが表示されます。
@@ -340,7 +332,7 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 ポリシーをハードディスクの /etc/ccs/ 以下に保存するには以下のようにします。</p>
 
 <pre>
-# <span class="user">ccs-savepolicy</span>
+# <span class="user">/usr/sbin/ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">強制アクセス制御</a></h3>
@@ -350,7 +342,7 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 <p>'q' キーで ccs-editpolicy を終了してから、以下のコマンドを実行します。</p>
 
 <pre>
-# <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>この操作により、 /sbin/getty 以下のドメインに強制アクセス制御が適用されるようになります。</p>

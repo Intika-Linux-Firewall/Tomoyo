@@ -84,14 +84,6 @@ The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
 # <span class="user">dpkg -i ccs-tools_1.7.1-1_i386.deb</span>
 </pre>
 
-<p>Add /usr/sbin/ (the location of TOMOYO Linux tools) to the environment variable PATH.
-If you are using bash, run the following commands.</p>
-
-<pre>
-# <span class="user">echo 'export PATH=$PATH:/usr/sbin' &gt;&gt; ~/.bashrc</span>
-# <span class="user">source ~/.bashrc</span>
-</pre>
-
 <p>You have installed TOMOYO Linux.
 Now proceed to configuration.</p>
 
@@ -107,45 +99,7 @@ Now proceed to configuration.</p>
 
 <h3>About profiles</h3>
 
-<!--
-<p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles".
-All profiles are stored in a single file /etc/ccs/profile.conf and you can switch profiles assigned to domains.</p>
-
-<p>Since this page explains only MAC for files, /etc/ccs/profile.conf will contain the following entries.</p>
-
-<pre>
-</pre>
-
-<p>The syntax of an entry of /etc/ccs/profile.conf is shown below.</p>
-
-<pre>
-$profile_number-$topic_name=$control_mode
-</pre>
-
-<p>The leading integer ($profile_number) is the number of profile, the followed word before = ($topic_name) is the name of functionalities and the trailing word after = ($control_mode) is the control mode.</p>
-
-<p>The $topic_name = COMMENT is just for administrators.</p>
-
-<p>The $topic_name = MAC_FOR_FILE means "MAC for file accesses".</p>
-
-<p>The $topic_name = TOMOYO_VERBOSE means whether policy violation messages are printed to console or not, and prints if $control_mode = enabled and doesn't print if $control_mode = disabled.</p>
-
-<p>The above example has 4 profiles (from 0 to 3), and the purpose of them are shown below.</p>
-
-<table><tbody>
-<tr><th>profile 0</th><td>Don't apply MAC for file accesses. Don't print policy violation messages on console.</td></tr>
-<tr><th>profile 1</th><td>Apply MAC for file accesses using learning mode. Don't print policy violation messages on console.</td></tr>
-<tr><th>profile 2</th><td>Apply MAC for file accesses using permissive mode. Print policy violation messages on console.</td></tr>
-<tr><th>profile 3</th><td>Apply MAC for file accesses using enforcing mode. Print policy violation messages on console.</td></tr>
-</tbody></table>
-
-<p>The basic procedure is, generate policy using learning mode (which is defined in profile 1),
-confirm policy using permissive mode (which is defined in profile 2),
-and enforce policy using enforcing mode (which is defined in profile 3).</p>
--->
-<!--
-<p>TOMOYO Linux には多くの機能があり、どの機能をどのように適用するかの設定をプロファイルで行います。
-今回はファイルに対するアクセス制御の機能のみを利用するため、 /etc/ccs/profile.conf の内容は以下のようなっているはずです。</p>
+<p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles". Since this page explains only file access restrictions, /etc/ccs/profile.conf will contain the following entries.</p>
 
 <pre>
 PROFILE_VERSION=20090903
@@ -163,45 +117,41 @@ PREFERENCE::permissive={ verbose=yes }
 3-CONFIG::file={ mode=enforcing grant_log=yes reject_log=yes }
 </pre>
 
-<p>プロファイルは最大で 256 種類まで作成することができます。
-上記設定では、 4 種類のプロファイルを作成しており、それぞれの意味は以下のようになります。</p>
+<p>You can use up to 256 profiles. Above example uses 4 profiles. Their meanings are shown below.</p>
 
 <table><tbody>
-<tr><th>プロファイル 0</th><td>ファイルに対するアクセス制御を無効にする</td></tr>
-<tr><th>プロファイル 1</th><td>ファイルに対するアクセス制御を学習モードにする</td></tr>
-<tr><th>プロファイル 2</th><td>ファイルに対するアクセス制御を確認モードにする</td></tr>
-<tr><th>プロファイル 3</th><td>ファイルに対するアクセス制御を強制モードにする</td></tr>
+<tr><th>Profile 0</th><td>Don't perform file access restrictions.</td></tr>
+<tr><th>Profile 1</th><td>Perform file access restrictions in learning mode.</td></tr>
+<tr><th>Profile 2</th><td>Perform file access restrictions in permissive mode.</td></tr>
+<tr><th>Profile 3</th><td>Perform file access restrictions in enforcing mode.</td></tr>
 </tbody></table>
 
-<p>設定項目 CONFIG::file は「ファイルに対するアクセス制御」を表しており、 mode が disabled なら無効（何もしない）、 learning なら学習（自動的にポリシーに追加する）、 permissive なら確認（ポリシーに違反しても拒否しない）、 enforcing なら強制（ポリシーに違反したら拒否する）となります。
-基本的に</p>
+<p>The "CONFIG::file" line means "file access restriction". It does nothing if mode=disabled, it appends to domain policy automatically if mode=learning, it accepts the request even if the request was not permitted by policy if mode=permissive, it denies the request if the request was not permitted by policy if mode=enforcing.
+The basic procedure is</p>
 
 <ol>
-<li>プロファイル 0 を割り当てた状態でシステムを動作させることにより、アクセス制御の対象とする範囲を決定する。</li>
-<li>プロファイル 1 を割り当てた状態で許可したいアクセスを行うことによりポリシーを作成する。</li>
-<li>プロファイル 2 を割り当てた状態で許可したいアクセスが行えるようになっていることを確認する。</li>
-<li>プロファイル 3 を割り当てることで許可したいアクセスのみが行えるようにする。</li>
+<li>Determine the coverage of access restriction by operating the system after assigning profile 0.</li>
+<li>Generate the policy by operating the system after assigning profile 1.</li>
+<li>Confirm the policy by operating the system after assigning profile 2.</li>
+<li>Enforce the policy by assigning profile 3.</li>
 </ol>
 
-<p>の順番で使います。</p>
+<p>The "COMMENT" line is for making the profiles easier to distinguish.
+It does not affect TOMOYO Linux's functionality.</p>
 
-<p>設定項目 COMMENT は、プロファイルを区別しやすくするためのコメントです。
-TOMOYO Linux の機能には影響を与えません。</p>
+<p>The "PREFERENCE::audit" line is configuration of access logs.
+max_grant_log and max_reject_log are max number of grant logs (requests permitted by policy) and the max number of reject logs (requests not permitted by policy) respectively.</p>
 
-<p>設定項目 PREFERENCE::audit はアクセスログの設定です。
-max_grant_log および max_reject_log にはそれぞれカーネル内に保持しておくアクセス許可ログ（ポリシーで許可されたアクセス要求）およびアクセス拒否ログ（ポリシーで許可されなかったアクセス要求）の件数を設定できます。</p>
+<p>The "PREFERENCE::learning" line is configuration of learning mode.
+verbose controls whether the policy violation warning messages should be printed on console or not.
+max_entry is max number of entries that should be automatically appended by learning mode. grant_log and reject_log respectively controls whether grant logs and reject logs should be generated or not.</p>
 
-<p>設定項目 PREFERENCE::learning は学習モードの設定です。
-verbose にはポリシー違反メッセージをコンソールに表示するかどうかを指定します。
-また、 max_entry には自動的に追加する件数の上限を、 grant_log および reject_log にはそれぞれアクセス許可ログおよびアクセス拒否ログを生成するかどうかを設定できます。</p>
+<p>The "PREFERENCE::permissive" line is configuration of permissive mode.
+verbose controls whether the policy violation warning messages should be printed on console or not.</p>
 
-<p>設定項目 PREFERENCE::permissive は確認モードの設定です。
-verbose にはポリシー違反メッセージをコンソールに表示するかどうかを指定します。</p>
-
-<p>設定項目 PREFERENCE::enforcing は強制モードの設定です。
-verbose にはポリシー違反メッセージをコンソールに表示するかどうかを指定します。
-また、 penalty にはポリシー違反を起こしたプロセスに対するペナルティとしてスリープさせる時間を 0.1 秒単位で設定できます。</p>
--->
+<p>The "PREFERENCE::enforcing" line is configuration of enforcing mode.
+verbose controls whether the policy violation warning messages should be printed on console or not.
+penalty is the period how long (in units of 0.1 second) should the process that violated policy sleep for.</p>
 
 <h3>About programs that can update policies</h3>
 
@@ -242,7 +192,7 @@ The following programs are listed.</p>
 <p>TOMOYO Linux has two types of logs, "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).
 This page configures to save only "access rejected logs".</p>
 
-<p>To save logs, you can use "ccs-auditd" daemon program included in ccs-tools package.
+<p>To save logs, you can use "ccs-auditd" daemon program.
 To start "ccs-auditd" on bootup to save only "access rejected logs", create the following script in the /etc/init.d/ directory and give execute permission to the script.</p>
 
 <pre>
@@ -310,7 +260,7 @@ p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
 <p>The profile 1 is defined for learning mode.
 So, assign this profile to /sbin/getty and programs invoked by /sbin/getty .</p>
 <pre>
-# <span class="user">ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>This command means</p>
@@ -334,7 +284,7 @@ All you need to do is do these operations as usual.</p>
 <p>To refer and/or edit generated policy, you can use "ccs-editpolicy" in the TOMOYO Linux tools package.</p>
 
 <pre>
-# <span class="user">ccs-editpolicy</span>
+# <span class="user">/usr/sbin/ccs-editpolicy</span>
 </pre>
 
 <p>When you run "ccs-editpolicy", the list of process invocation history since the bootup is shown, explaining how programs are invoked until now.
@@ -374,7 +324,7 @@ Each process belongs to single domain, and access permissions are granted to dom
 To save policies currently on the memory onto disk, run the following command.</p>
 
 <pre>
-# <span class="user">ccs-savepolicy</span>
+# <span class="user">/usr/sbin/ccs-savepolicy</span>
 </pre>
 
 <h3><a name="l10">Enforcing MAC</a></h3>
@@ -384,7 +334,7 @@ To save policies currently on the memory onto disk, run the following command.</
 <p>Quit the "ccs-editpolicy" with 'q' key and run the following command.</p>
 
 <pre>
-# <span class="user">ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
+# <span class="user">/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/getty'</span>
 </pre>
 
 <p>From now on, the domains under /sbin/getty are protected by MAC.</p>

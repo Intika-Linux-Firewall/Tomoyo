@@ -246,12 +246,17 @@
 <tr><td>\A</td><td>1 文字以上のアルファベット</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
 <tr><td>\a</td><td>アルファベット 1 文字</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
 <tr><td>\-</td><td>パス名を除外する演算子</td><td>
- <table border="1">
- <tr><td>使用例</td><td>意味</td></tr>
- <tr><td>/etc/\*</td><td>/etc/ 直下の全ファイル</td></tr>
- <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* 以外の /etc/\*</td></tr>
- <tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
- </table>
+ <ul>
+ <li>/etc/\* ・・・ /etc/ 直下の全ファイル</li>
+ <li>/etc/\*\-\*shadow\* ・・・ /etc/\*shadow\* 以外の /etc/\*</li>
+ <li>/\*\-proc\-sys/ ・・・ /proc/ と /sys/ 以外の /\*/</li>
+ </ul>
+</td></tr>
+<tr><td>/\{dir\}/</td><td>/ ＋１回以上の dir/ の繰り返しに一致する演算子（ 1.7.1 以降のみ有効）</td><td>
+ <ul>
+ <li>/var/www/html/\{\*\}/\*.html ・・・ /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html など</li>
+ <li>/home/\*/\{\*\-.\*\}/\* ・・・ /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* など</li>
+ </ul>
 </td></tr>
 </table>
 
