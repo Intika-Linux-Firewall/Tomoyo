@@ -246,12 +246,17 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 <tr><td>\A</td><td>One or more repetitions of alphabet characters.</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
 <tr><td>\a</td><td>1 alphabet character.</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
 <tr><td>\-</td><td>Pathname subtraction operator.</td><td>
- <table border="1">
- <tr><td>Example</td><td>Meaning</td></tr>
- <tr><td>/etc/\*</td><td>All files in /etc/ directory.</td></tr>
- <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\* other than /etc/\*shadow\*</td></tr>
- <tr><td>/\*\-proc\-sys/</td><td>/\*/ other than /proc/ /sys/</td></tr>
- </table>
+ <ul>
+ <li>/etc/\* for all files in /etc/ directory.</li>
+ <li>/etc/\*\-\*shadow\* for /etc/\* other than /etc/\*shadow\*</li>
+ <li>/\*\-proc\-sys/ for /\*/ other than /proc/ /sys/</li>
+ </ul>
+</td></tr>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'. (Valid only in 1.7.1 and later)</td><td>
+ <ul>
+  <li>/var/www/html/\{\*\}/\*.html for /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html etc.</li>
+  <li>/home/\*/\{\*\-.\*\}/\* for /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* etc.</li>
+ </ul>
 </td></tr>
 </table>
 
@@ -456,7 +461,7 @@ Query lists: 1048576
 <li>The process that issued execute request is not a process executed by <a href="#domain_policy_execute_handler">execute_handler</a> or <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> keyword.</li>
 </ul>
 
-<p>the steps shown below is performed instead for the steps shown above. The usage of this exception is explained in "<a href="#execute_handler">Judging execute request outside the kernel.</a>" and "<a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a>"</p>
+<p>the steps shown below are performed instead for the steps shown above. The usage of this exception is explained in "<a href="#execute_handler">Judging execute request outside the kernel.</a>" and "<a href="#denied_execute_handler">Invoking alternative program for execute requests that are not permitted by policy.</a>"</p>
 
 <table border="1">
 <tr><td>Step</td><td>Procedure</td></tr>
