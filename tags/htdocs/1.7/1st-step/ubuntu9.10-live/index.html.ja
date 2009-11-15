@@ -9,7 +9,7 @@
 </head>
 <body>
 <p style="text-align:right;"><a href="index.html.en">English Page</a></p>
-<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD チュートリアル</h1>
+<h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> LiveCD チュートリアル for Ubuntu 9.10</h1>
 
 <ul>
 <li><a href="#l1">概要</a></li>
@@ -57,14 +57,7 @@ CD-R に焼きたくない場合、 <a href="http://www.vmware.com/jp/products/p
 
 <h2><a name="l4">LiveCD を使ってみる</a></h2>
 
-<!--
-<p>
-<img src="icon_editpolicy.png" width="138" height="88" alt="TOMOYO Linux ポリシーエディタ" title="TOMOYO Linux ポリシーエディタ">
-<img src="icon_rejectlog.png" width="138" height="88" alt="TOMOYO Linux Policy Violation Log" title="TOMOYO Linux Policy Violation Log">
-</p>
--->
-
-<p>まずは「 TOMOYO Linux Policy Violation Log 」アイコンをダブルクリックしてみてください。
+<p>まずは「 TOMOYO Linux ポリシー違反ログ」アイコンをダブルクリックしてみてください。
 以下のようなウィンドウが表示されます。</p>
 
 <p><img src="reject_log.png" width="800" height="600" alt="ポリシー違反ログウィンドウ" title="ポリシー違反ログウィンドウ"></p>
@@ -74,12 +67,12 @@ LiveCD では何の許可も与えていないポリシーで起動されるの�
 ウィンドウを開いたままで、さまざまな操作をしてみてください。
 どんなプロセスがどんなファイルにアクセスしたかが逐次表示されます。</p>
 
-<p>続けて、「 TOMOYO Linux Policy Editor 」アイコンをダブルクリックしてみてください。
+<p>続けて、「 TOMOYO Linux ポリシーエディタ」アイコンをダブルクリックしてみてください。
 以下のようなウィンドウが表示されます。</p>
 
 <p><img src="editpolicy.png" width="800" height="600" alt="ポリシーエディタウィンドウ" title="ポリシーエディタウィンドウ"></p>
 
-<p>この画面には今までにどのようなプロセスが起動されたかを木構造で表示しており、それぞれの行はドメインとよばれます。
+<p>この画面には今までにどのようなプロセスが起動されたかを木構造で表示しており、それぞれの行はドメインと呼ばれます。
 システム起動時から、実行されたすべてのプロセスがTOMOYO Linuxカーネルで監視されており、どんなプロセスがどんなファイルにアクセスしたかなどの情報が、すべてポリシーとして記録されています。
 ポリシーエディタを使ってポリシーをブラウズするだけで、システムの挙動を手に取るように把握することができるのが TOMOYO Linux の最大の特徴です。</p>
 
@@ -204,17 +197,47 @@ $ exit
 <p>の 2 種類の bash が存在し、 head コマンドは 1 つ目の、 tail コマンドは 2 つ目の bash のみにしか許可されていないことが分かります。
 TOMOYO Linux はシステム起動時から起動されたすべてのプロセスを監視しており、プロセスは実行履歴によって細かく区別されます。</p>
 
+<p>ポリシー違反ログから、以下のように mode=enforcing という行を含んだログを見つけることができます。実行履歴と要求されたファイルのパス名だけでなく、プロセスの情報／コマンドライン引数／環境変数など詳細な情報を含んだログが記録されています。より厳密なアクセス制御を行いたい場合には、必要に応じてこれらの情報を条件として指定することもできます。</p>
+
+<table border="1">
+<tr><td>
+#2009-11-15 02:10:43# profile=3 mode=enforcing (global-pid=3147) task={ pid=3147 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=8155 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 } exec={ realpath="/bin/ls" argc=2 envc=35 argv[]={ "ls" "--color=auto" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/bin/ls" } }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /bin/ls<br>
+<br>
+#2009-11-15 02:10:43# profile=3 mode=enforcing (global-pid=3147) task={ pid=3147 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=8155 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /bin/ls<br>
+<br>
+#2009-11-15 02:10:44# profile=3 mode=enforcing (global-pid=3148) task={ pid=3148 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=18477 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 } exec={ realpath="/bin/ps" argc=1 envc=35 argv[]={ "ps" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/bin/ps" } }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /bin/ps<br>
+<br>
+#2009-11-15 02:10:44# profile=3 mode=enforcing (global-pid=3148) task={ pid=3148 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=18477 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /bin/ps<br>
+<br>
+#2009-11-15 02:10:54# profile=3 mode=enforcing (global-pid=3167) task={ pid=3167 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=825 major=0 minor=17 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=20 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash /usr/bin/head<br>
+allow_read /etc/fstab<br>
+<br>
+#2009-11-15 02:12:08# profile=3 mode=enforcing (global-pid=3186) task={ pid=3186 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=9073 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=14 perm=0755 } exec={ realpath="/usr/bin/tail" argc=2 envc=35 argv[]={ "tail" "/etc/passwd" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/usr/bin/tail" } }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2009-11-15 02:12:08# profile=3 mode=enforcing (global-pid=3186) task={ pid=3186 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=9073 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=14 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /usr/bin/tail
+</td></tr>
+</table>
+
 <h2><a name="l6">（参考）ハードディスクにインストールする</a></h2>
 
-<p>設定や学習させたポリシーは LiveCD で起動している間のみで有効で、システムを終了させると失なわれてしまいます。
+<p>設定や学習させたポリシーは LiveCD で起動している間のみで有効で、システムを終了させると失われてしまいます。
 継続的に使用したい場合はハードディスクにインストールしてください。
 デスクトップの「インストール」アイコンをダブルクリックしてあとの指示に従えば、 TOMOYO Linux が導入された状態の Ubuntu をハードディスクにインストールできます。
 LiveCD として起動する分には既存の環境に影響を与えませんが、ハードディスクにインストールすると既存の OS 領域を上書きしてしまう可能性があります。
 くれぐれも注意ください。</p>
-
-<!--
-<p><img src="icon_install-ja.png" width="75" height="72" alt="インストールアイコン" title="インストールアイコン"></p>
--->
 
 <p>ハードディスクから起動し、 root ユーザ権限で ccs-savepolicy コマンドを実行すれば、 /etc/ccs/ ディレクトリにポリシーを保存でき、次回起動時からは保存したポリシーを参照するようになります。</p>
 

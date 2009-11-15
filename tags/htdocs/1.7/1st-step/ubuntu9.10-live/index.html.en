@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux LiveCD Tutorial</title>
+<title>TOMOYO Linux LiveCD Tutorial for Ubuntu 9.10</title>
 <link rel="stylesheet" href="../startup.css" media="all" type="text/css">
 <link rev="made" href="mailto:k.takeda26@gmail.com"> 
 </head>
@@ -38,11 +38,11 @@ You can use <a href="http://www.vmware.com/products/player/">VMware Player</a> i
 
 <p>When you boot your PC from LiveCD, you will see the following screen.</p>
 
-<p>By pressing "F2" keym you can choose language you want to use.</p>
+<p>By pressing "F2" key, you can choose language you want to use.</p>
 
 <p><img src="boot-langselect-en.png" width="640" height="480" alt="boot screen (language select)" title="boot screen (language select)"></p>
 
-<p>By pressing "F3" key, you can choose keybord type you want to use.</p>
+<p>By pressing "F3" key, you can choose keyboard type you want to use.</p>
 
 <p><img src="boot-kbdselect-en.png" width="640" height="480" alt="boot screen (keymap select)" title="boot screen (keymap select)"></p>
 
@@ -56,13 +56,6 @@ You can use <a href="http://www.vmware.com/products/player/">VMware Player</a> i
 
 <h2><a name="l4">Using LiveCD</a></h2>
 
-<!--
-<p>
-<img src="icon_editpolicy.png" width="138" height="88" alt="TOMOYO Linux Policy Editor" title="TOMOYO Linux Policy Editor">
-<img src="icon_rejectlog.png" width="138" height="88" alt="TOMOYO Linux Policy Violation Log" title="TOMOYO Linux Policy Violation Log">
-</p>
--->
-
 <p>Please double-click the icon named "TOMOYO Linux Policy Violation Log".
 Then you can see the following window.</p>
 
@@ -70,7 +63,7 @@ Then you can see the following window.</p>
 
 <p>This window is showing accesses which violate the policy of TOMOYO Linux.
 New violation accesses are showed instantly.
-Since liveCD is configured to boot in empty policy, all accesses are outputed as policy violation logs.
+Since this LiveCD is configured to boot without predefined policy, all accesses are recorded to policy violation logs.
 Please keep the window shown and operate some functions.
 The logs that what process accesses which resources are shown in real time.</p>
 
@@ -206,6 +199,40 @@ In current policy, the following two bashes exist.</p>
 <p>head command is only permitted in the first bash, and tail command is only permitted in the second bash.
 TOMOYO Linux monitors all processes from system boot sequence, and processes are distinguished by fine-grained method.</p>
 
+<p>You can find below entries which contains "mode=enforcing" line from TOMOYO Linux Policy Violation Log. Not only requested pathnames but also process credential information / command line arguments / environment variables etc. are recorded. If you want to restrict access more strictly, you can utilize these variables as needed.</p>
+
+<table border="1">
+<tr><td>
+#2009-11-15 02:10:43# profile=3 mode=enforcing (global-pid=3147) task={ pid=3147 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=8155 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 } exec={ realpath="/bin/ls" argc=2 envc=35 argv[]={ "ls" "--color=auto" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/bin/ls" } }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /bin/ls<br>
+<br>
+#2009-11-15 02:10:43# profile=3 mode=enforcing (global-pid=3147) task={ pid=3147 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=8155 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /bin/ls<br>
+<br>
+#2009-11-15 02:10:44# profile=3 mode=enforcing (global-pid=3148) task={ pid=3148 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=18477 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 } exec={ realpath="/bin/ps" argc=1 envc=35 argv[]={ "ps" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/bin/ps" } }
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /bin/ps<br>
+<br>
+#2009-11-15 02:10:44# profile=3 mode=enforcing (global-pid=3148) task={ pid=3148 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=18477 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=200 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /bin/ps<br>
+<br>
+#2009-11-15 02:10:54# profile=3 mode=enforcing (global-pid=3167) task={ pid=3167 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=825 major=0 minor=17 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=20 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash /usr/bin/head<br>
+allow_read /etc/fstab<br>
+<br>
+#2009-11-15 02:12:08# profile=3 mode=enforcing (global-pid=3186) task={ pid=3186 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=9073 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=14 perm=0755 } exec={ realpath="/usr/bin/tail" argc=2 envc=35 argv[]={ "tail" "/etc/passwd" } envp[]={ "ORBIT_SOCKETDIR=/tmp/orbit-ubuntu" "SSH_AGENT_PID=2735" "TERM=xterm" "SHELL=/bin/bash" "XDG_SESSION_COOKIE=1550603364389ac2fe3a1ab44aff5db5-1258249660.344094-1265803451" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/ubuntu/.gtkrc-1.2-gnome2" "WINDOWID=44047851" "GTK_MODULES=canberra-gtk-module" "USER=ubuntu" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "GNOME_KEYRING_SOCKET=/tmp/keyring-9SUkkh/socket" "SSH_AUTH_SOCK=/tmp/keyring-9SUkkh/socket.ssh" "SESSION_MANAGER=local/ubuntu:@/tmp/.ICE-unix/2698,unix/ubuntu:/tmp/.ICE-unix/2698" "USERNAME=ubuntu" "DESKTOP_SESSION=gnome" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/home/ubuntu" "GDM_KEYBOARD_LAYOUT=jp" "LANG=en_US.UTF-8" "GDM_LANG=en_US.UTF-8" "GDMSESSION=gnome" "SPEECHD_PORT=7559" "SHLVL=1" "HOME=/home/ubuntu" "GNOME_DESKTOP_SESSION_ID=this-is-deprecated" "LOGNAME=ubuntu" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-Zhnp97JuIw,guid=1b6b1fabee4d6dccbb6fc8fe4aff5dbd" "XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share/:/usr/share/" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "DISPLAY=:0.0" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "RUNNING_UNDER_GDM=yes" "COLORTERM=gnome-terminal" "XAUTHORITY=/var/run/gdm/auth-for-ubuntu-hIUQqz/database" "_=/usr/bin/tail" } }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2009-11-15 02:12:08# profile=3 mode=enforcing (global-pid=3186) task={ pid=3186 ppid=3024 uid=999 gid=999 euid=999 egid=999 suid=999 sgid=999 fsuid=999 fsgid=999 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=9073 major=0 minor=17 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=14 perm=0755 }<br>
+&lt;kernel&gt; /sbin/init /bin/sh /usr/sbin/gdm-binary /usr/lib/gdm/gdm-simple-slave /usr/lib/gdm/gdm-session-worker /etc/gdm/Xsession /usr/bin/ssh-agent /usr/bin/dbus-launch /usr/bin/pulse-session /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
+allow_read /usr/bin/tail
+</td></tr>
+</table>
+
 <h2><a name="l6">(appendix) Installing Ubuntu + TOMOYO on your hard drive</a></h2>
 
 <p>Configuration and learned policy are only available in the LiveCD, and they are lost if you shutdown your system.
@@ -213,10 +240,6 @@ Please install the system on your hard drive if you want to use continuously.
 Please double-click an icon named "Install" on the desktop and follow the instructions.
 Using LiveCD, you can try TOMOYO Linux without any effects to existing system.
 But when you install the system on your hard drive, existing OS may be overwritten. Please be careful.</p>
-
-<!--
-<p><img src="icon_install-en.png" width="75" height="72" alt="install icon" title="install icon"></p>
--->
 
 <p>You can save TOMOYO Linux policy using ccs-savepolicy command in root user.
 The newly saved policy is used from next boot sequence.</p>
