@@ -41,7 +41,9 @@ patch -p1 < patches/ccs-patch-2.6.28-ubuntu-9.04.diff || die "Can't apply patch.
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 for i in debian.master/config/*/config; do cat config.ccs >> $i; done
-touch debian.master/control.stub.in || die "Can't touch control."
+rm debian.master/control.stub || die "Can't delete control.stub."
+make -f debian.master/rules debian.master/control.stub || die "Can't update control.stub."
+rm debian/control || die "Can't delete control."
 debian/rules debian/control || die "Can't update control."
 for i in debian.master/abi/2.6.28-*/*/ ; do touch $i/ccs.ignore; done
 
@@ -70,8 +72,8 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 EOF
 
 # Start compilation.
-debian.master/rules binary-headers || die "Failed to build kernel package."
-debian.master/rules binary-debs flavours=ccs || die "Failed to build kernel package."
+debian/rules binary-headers || die "Failed to build kernel package."
+debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.
 dpkg -i /usr/src/linux-headers-${VERSION}*.deb || die "Can't install packages."
