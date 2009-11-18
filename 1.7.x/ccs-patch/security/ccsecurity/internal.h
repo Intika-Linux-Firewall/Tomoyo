@@ -305,6 +305,7 @@ enum ccs_conditions_index {
 #define CCS_CONFIG_WANT_GRANT_LOG  128
 #define CCS_CONFIG_USE_DEFAULT     255
 
+#define CCS_OPEN_FOR_READ_TRUNCATE        4
 #define CCS_OPEN_FOR_IOCTL_ONLY           8
 #define CCS_TASK_IS_IN_EXECVE            16
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
