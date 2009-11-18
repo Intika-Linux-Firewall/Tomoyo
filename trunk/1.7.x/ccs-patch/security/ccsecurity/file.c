@@ -1240,11 +1240,17 @@ void ccs_save_open_mode(int mode)
 {
 	if ((mode & 3) == 3)
 		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
+	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
+	else if (!(mode & 3) && (mode & O_TRUNC))
+		current->ccs_flags |= CCS_OPEN_FOR_READ_TRUNCATE;
+#endif
 }
 
 void ccs_clear_open_mode(void)
 {
-	current->ccs_flags &= ~CCS_OPEN_FOR_IOCTL_ONLY;
+	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
+				CCS_OPEN_FOR_READ_TRUNCATE);
 }
 
 /**
@@ -1265,14 +1271,17 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		.path1.mnt = mnt
 	};
 	struct task_struct * const task = current;
-	const u8 acc_mode = task->ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY ?
-		0 : ACC_MODE(flag);
+	const u32 ccs_flags = task->ccs_flags;
+	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
+		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
+#endif
+		ACC_MODE(flag);
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
-	if (task->in_execve &&
-	    !(task->ccs_flags & CCS_TASK_IS_IN_EXECVE))
+	if (task->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
 		return 0;
 #endif
 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
