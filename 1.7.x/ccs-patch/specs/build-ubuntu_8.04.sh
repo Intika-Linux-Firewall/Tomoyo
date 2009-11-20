@@ -25,6 +25,19 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-1.7.1-20091120.tar.gz ]
+then
+    mkdir -p ccs-patch.tmp || die "Can't create directory."
+    cd ccs-patch.tmp/ || die "Can't change directory."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3206&root=tomoyo' || die "Can't download hotfix."
+    tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
+    patch -p1 < hotfix.patch || die "Can't apply hotfix."
+    rm -f hotfix.patch || die "Can't delete hotfix."
+    tar -zcf ../ccs-patch-1.7.1-20091120.tar.gz -- * || die "Can't create tar ball."
+    cd ../ || die "Can't change directory."
+    rm -fR ccs-patch.tmp  || die "Can't delete directory."
+fi
+
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install linux-kernel-devel fakeroot build-essential || die "Can't install packages."
@@ -41,67 +54,8 @@ cd linux-2.6.24/ || die "Can't chdir to linux-2.6.24/ ."
 mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
 mkdir -p ccs-patch/ || die "Can't create directory."
 cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091120.tar.gz || die "Can't extract patch."
 cp -p patches/ccs-patch-2.6.24-ubuntu-8.04.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch || die "Can't copy patch."
-cat >> ../debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch << EOF || die "Can't modify patch."
---- old/README.ccs
-+++ new/README.ccs
-@@ -2244,3 +2244,10 @@
-       I added a check for PROFILE_VERSION= .
- 
- Version 1.7.1   2009/11/11   Fourth anniversary release.
-+
-+Fix 2009/11/13
-+
-+    @ Don't use core_initcall() for initializing lock for GC.
-+
-+     Some kernels call TOMOYO's hooks before processing core_initcall().
-+     Thus, I can't use core_initcall() for initializing lock for GC.
---- old/security/ccsecurity/gc.c
-+++ new/security/ccsecurity/gc.c
-@@ -382,30 +382,23 @@
- 	return ptr->size;
- }
- 
--/*
-- * 2.6.19 has SRCU support but it triggers general protection fault in my
-- * environment. Thus, I use SRCU for 2.6.20 and later.
-- */
--#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
- 
- /* Lock for GC. */
- static struct srcu_struct ccs_ss;
- 
--/**
-- * ccs_gc_init - Initialize garbage collector.
-- *
-- * Returns 0.
-- */
--static int __init ccs_gc_init(void)
--{
--	if (init_srcu_struct(&ccs_ss))
--		panic("Out of memory.");
--	return 0;
--}
--core_initcall(ccs_gc_init);
--
- int ccs_read_lock(void)
- {
-+	/*
-+	 * Kernel might try to populate root fs before processing initcalls.
-+	 * Thus, I can't use core_initcall() for initializing ccs_ss.
-+	 */
-+	if (!ccs_ss.per_cpu_ref) {
-+		mutex_lock(&ccs_policy_lock);
-+		if (!ccs_ss.per_cpu_ref && init_srcu_struct(&ccs_ss))
-+			panic("Out of memory.");
-+		mutex_unlock(&ccs_policy_lock);
-+	}
- 	return srcu_read_lock(&ccs_ss);
- }
- 
-EOF
 rm -fR specs/ patches/ || die "Can't delete directory."
 for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
 cd ../ || die "Can't chdir to ../ ."
