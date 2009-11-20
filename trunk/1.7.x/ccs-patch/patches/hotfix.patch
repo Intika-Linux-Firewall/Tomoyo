@@ -1,6 +1,6 @@
 --- old/README.ccs
 +++ new/README.ccs
-@@ -2244,3 +2244,10 @@
+@@ -2244,3 +2244,20 @@
        I added a check for PROFILE_VERSION= .
  
  Version 1.7.1   2009/11/11   Fourth anniversary release.
@@ -11,6 +11,59 @@
 +
 +     Some kernels call TOMOYO's hooks before processing core_initcall().
 +     Thus, I can't use core_initcall() for initializing lock for GC.
++
++Fix 2009/11/18
++
++    @ Don't check "allow_write" permission for open(O_RDONLY | O_TRUNC).
++
++      Since TOMOYO checks "allow_truncate" permission rather than "allow_write"
++      permission for O_TRUNC, I need to distinguish open(O_RDONLY | O_TRUNC)
++      and open(O_RDWR | O_TRUNC). But I made a mistake between TOMOYO 1.7.0 and
++      1.7.1 which made it impossible for TOMOYO for kernels 2.6.14 and earlier
++      to distinguish them.
+--- old/security/ccsecurity/file.c
++++ new/security/ccsecurity/file.c
+@@ -1240,11 +1240,17 @@
+ {
+ 	if ((mode & 3) == 3)
+ 		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
++#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
++	/* O_TRUNC passes MAY_WRITE to ccs_open_permission(). */
++	else if (!(mode & 3) && (mode & O_TRUNC))
++		current->ccs_flags |= CCS_OPEN_FOR_READ_TRUNCATE;
++#endif
+ }
+ 
+ void ccs_clear_open_mode(void)
+ {
+-	current->ccs_flags &= ~CCS_OPEN_FOR_IOCTL_ONLY;
++	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
++				CCS_OPEN_FOR_READ_TRUNCATE);
+ }
+ 
+ /**
+@@ -1265,14 +1271,17 @@
+ 		.path1.mnt = mnt
+ 	};
+ 	struct task_struct * const task = current;
+-	const u8 acc_mode = task->ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY ?
+-		0 : ACC_MODE(flag);
++	const u32 ccs_flags = task->ccs_flags;
++	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
++#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
++		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
++#endif
++		ACC_MODE(flag);
+ 	int error = 0;
+ 	struct ccs_path_info buf;
+ 	int idx;
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30)
+-	if (task->in_execve &&
+-	    !(task->ccs_flags & CCS_TASK_IS_IN_EXECVE))
++	if (task->in_execve && !(ccs_flags & CCS_TASK_IS_IN_EXECVE))
+ 		return 0;
+ #endif
+ 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 --- old/security/ccsecurity/gc.c
 +++ new/security/ccsecurity/gc.c
 @@ -382,30 +382,23 @@
@@ -55,3 +108,13 @@
  	return srcu_read_lock(&ccs_ss);
  }
  
+--- old/security/ccsecurity/internal.h
++++ new/security/ccsecurity/internal.h
+@@ -305,6 +305,7 @@
+ #define CCS_CONFIG_WANT_GRANT_LOG  128
+ #define CCS_CONFIG_USE_DEFAULT     255
+ 
++#define CCS_OPEN_FOR_READ_TRUNCATE        4
+ #define CCS_OPEN_FOR_IOCTL_ONLY           8
+ #define CCS_TASK_IS_IN_EXECVE            16
+ #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
