@@ -25,6 +25,19 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-1.7.1-20091120.tar.gz ]
+then
+    mkdir -p ccs-patch.tmp || die "Can't create directory."
+    cd ccs-patch.tmp/ || die "Can't change directory."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3206&root=tomoyo' || die "Can't download hotfix."
+    tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
+    patch -p1 < hotfix.patch || die "Can't apply hotfix."
+    rm -f hotfix.patch || die "Can't delete hotfix."
+    tar -zcf ../ccs-patch-1.7.1-20091120.tar.gz -- * || die "Can't create tar ball."
+    cd ../ || die "Can't change directory."
+    rm -fR ccs-patch.tmp  || die "Can't delete directory."
+fi
+
 # Install kernel source packages.
 cd /usr/src/ || die "Can't chdir to /usr/src/ ."
 apt-get install fakeroot build-essential || die "Can't install packages."
@@ -34,7 +47,7 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 
 # Apply patches and create kernel config.
 cd linux-2.6.31/ || die "Can't chdir to linux-2.6.31/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091120.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.31-ubuntu-9.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
