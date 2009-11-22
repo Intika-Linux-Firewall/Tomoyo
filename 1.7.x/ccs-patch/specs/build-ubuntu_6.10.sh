@@ -8,6 +8,24 @@ die () {
     exit 1
 }
 
+update_linux_26_header_package() {
+    [ -r $1 ] || die "Can't find $1 ."
+    [ -r $2 ] || die "Can't find $2 ."
+    dpkg-deb -x $1 old
+    dpkg-deb -x $2 new
+    dpkg-deb -e $2 new/DEBIAN
+    for i in sched.h init_task.h ccsecurity.h ccsecurity_vfs.h
+      do
+      rm -f new/usr/src/*/include/linux/$i
+      cp -p old/usr/src/*/include/linux/$i new/usr/src/*/include/linux/
+    done
+    rm -f new/usr/src/*/security
+    (cd old/usr/src/*/ ; tar -cf - security/ ) | ( cd new/usr/src/*/ ; tar -xf - )
+    dpkg-deb -b new
+    rm -fR new old
+    mv new.deb $2
+}
+
 VERSION=`uname -r | cut -d - -f 1,2`
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
@@ -57,14 +75,17 @@ chmod -R +x debian/bin/ || die "Can't chmod debian/bin/ ."
 
 # Start compilation.
 debian/rules binary-debs flavours=generic-ccs || die "Failed to build kernel package."
+cd debian/build/
+update_linux_26_header_package linux-headers-${VERSION}_*.deb linux-headers-*-ccs*.deb  || die "Can't update package."
+cd ../../
 
 # Install header package for compiling additional modules.
-dpkg -i debian/build/linux-headers-${VERSION}*.deb || die "Can't install packages."
+dpkg -i debian/build/linux-headers-*-ccs*.deb || die "Can't install packages."
 cd /usr/src/linux-restricted-modules-2.6.17-2.6.17.9/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.17-2.6.17.9/ ."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub.in | sed -e 's:-generic:-generic-ccs:g' > debian/control.stub.in.tmp || die "Can't create file."
 cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file."
 sed -i -e 's/,generic/,generic-ccs generic/' debian/rules || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
-debian/rules binary || die "Failed to build kernel package."
+debian/rules binary flavours="${VERSION}-386 ${VERSION}-generic-ccs" || die "Failed to build kernel package."
 
 exit 0
