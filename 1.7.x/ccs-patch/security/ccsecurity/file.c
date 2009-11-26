@@ -1317,6 +1317,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		r.obj = &obj;
 		error = ccs_file_perm(&r, &buf, acc_mode);
 	}
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 	if (!error && (flag & O_TRUNC) &&
 	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRUNCATE)
 	    != CCS_CONFIG_DISABLED) {
@@ -1327,6 +1328,7 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		r.obj = &obj;
 		error = ccs_path_permission(&r, CCS_TYPE_TRUNCATE, &buf);
 	}
+#endif
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
@@ -1836,6 +1838,10 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 			      struct PATH_or_NAMEIDATA *new_path)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
+		return -EPERM;
+#endif
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
 	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->path.dentry,
 			      new_path->path.mnt, old_path->path.dentry,
@@ -1856,6 +1862,10 @@ int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
  */
 int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	if (!ccs_capable(CCS_SYS_CHROOT))
+		return -EPERM;
+#endif
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
 	return ccs_path_perm(CCS_TYPE_CHROOT, path->path.dentry,
 			     path->path.mnt, NULL);
@@ -1874,6 +1884,10 @@ int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
  */
 int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	if (!ccs_capable(CCS_SYS_UMOUNT))
+		return -EPERM;
+#endif
 	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
 }
 
@@ -2456,6 +2470,7 @@ int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 }
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)
 
 #include <linux/sysctl.h>
@@ -2560,4 +2575,5 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	kfree(buffer);
 	return error;
 }
+#endif
 #endif

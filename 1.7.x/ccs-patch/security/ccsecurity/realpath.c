@@ -199,6 +199,17 @@ char *ccs_realpath_from_path(struct path *path)
 		path_put(path);
 		if (IS_ERR(pos))
 			continue;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+		/* Prepend "/proc" prefix if using internal proc vfs mount. */
+		if (path->mnt->mnt_parent == path->mnt &&
+		    path->mnt->mnt_sb->s_magic == PROC_SUPER_MAGIC) {
+			pos -= 5;
+			if (pos >= buf)
+				memmove(pos, "/proc", 5);
+			else
+				continue;
+		}
+#endif
 		name = ccs_encode(pos);
 		break;
 	}
