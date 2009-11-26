@@ -479,4 +479,37 @@ static inline int ccs_ptrace_permission(long request, long pid)
 	return !ccs_capable(CCS_SYS_PTRACE);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+
+static inline int ccs_posix_capable(const int cap)
+{
+	int error = 0;
+	switch (cap) {
+	case CAP_SYS_MODULE:
+		if (!ccs_capable(CCS_USE_KERNEL_MODULE))
+			error = -EPERM;
+		break;
+	case CAP_SYS_TIME:
+		if (!ccs_capable(CCS_SYS_SETTIME))
+			error = -EPERM;
+		break;
+	case CAP_SYS_TTY_CONFIG:
+		if (!ccs_capable(CCS_SYS_VHANGUP))
+			error = -EPERM;
+		break;
+	}
+	return error;
+}
+
+static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				       unsigned long arg)
+{
+	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND) &&
+	    ccs_rewrite_permission(file))
+		return -EPERM;
+	return 0;
+}
+
+#endif
+
 #endif
