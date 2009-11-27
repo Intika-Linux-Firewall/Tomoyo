@@ -658,7 +658,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 	domain = ccs_find_or_assign_new_domain(ee->tmp, r->profile);
 	if (domain)
-		ccs_audit_domain_creation_log(r->domain);
+		ccs_audit_domain_creation_log(domain);
  done:
 	if (!domain) {
 		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",

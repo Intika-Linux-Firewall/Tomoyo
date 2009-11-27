@@ -2261,3 +2261,10 @@ Fix 2009/11/18
       and open(O_RDWR | O_TRUNC). But I made a mistake between TOMOYO 1.7.0 and
       1.7.1 which made it impossible for TOMOYO for kernels 2.6.14 and earlier
       to distinguish them.
+
+Fix 2009/11/27
+
+    @ Use newly created domain's name for domain creation audit log.
+
+      Since 1.7.0 , /proc/ccs/reject_log was by error using existing domain's
+      name when auditing newly created domain's "use_profile" line.
