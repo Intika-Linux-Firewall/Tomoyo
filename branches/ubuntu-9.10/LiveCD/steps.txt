@@ -1,0 +1,17 @@
+cd
+wget http://ftp.jaist.ac.jp/pub/Linux/ubuntu-releases/9.10/ubuntu-9.10-desktop-i386.iso
+tar -zxf LiveCDmaker-ubuntu9.10.tar.gz
+cd LiveCD/
+mkdir mnt cdrom squash initrd
+mount -o loop ~/ubuntu-9.10-desktop-i386.iso mnt/
+cp -a mnt/* mnt/.disk/ cdrom/
+umount -d mnt/
+mount -t squashfs -o loop cdrom/casper/filesystem.squashfs mnt/
+cp -a mnt/* squash/
+umount -d mnt/
+cd squash/
+wget http://osdn.dl.sourceforge.jp/tomoyo/44402/ccs-tools_1.7.1-1_i386.deb http://osdn.dl.sourceforge.jp/tomoyo/44402/linux-headers-2.6.31-15-ccs1.7.1_2.6.31-15.50_i386.deb http://osdn.dl.sourceforge.jp/tomoyo/44402/linux-image-2.6.31-15-ccs1.7.1_2.6.31-15.50_i386.deb
+cp -p ../package-install.sh ../sources.list.riken .
+chroot . /package-install.sh
+cd ../
+./generate-livecd.sh
