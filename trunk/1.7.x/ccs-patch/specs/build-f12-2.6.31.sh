@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.31.5-127.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/development/source/SRPMS/kernel-2.6.31.5-127.fc12.src.rpm || die "Can't download source package."
+    wget http://download.fedora.redhat.com/pub/fedora/linux/releases/12/Everything/source/SRPMS/kernel-2.6.31.5-127.fc12.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.31.5-127.fc12.src.rpm || die "Can't install source package."
 

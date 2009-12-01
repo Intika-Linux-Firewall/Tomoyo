@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.37-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.39-0.2.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.37-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.39-0.2.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.37-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.39-0.2.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20091111.tar.gz ]
@@ -88,8 +88,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2009-08-16 19:10:29.000000000 +0900
-+++ kernel-default.spec	2009-08-23 15:15:49.000000000 +0900
+--- kernel-default.spec	2009-11-24 01:26:41.000000000 +0900
++++ kernel-default.spec	2009-12-01 14:11:52.000000000 +0900
 @@ -57,13 +57,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
@@ -101,13 +101,13 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.37
--Release:        0.1.1
-+Release:        0.1.1_tomoyo_1.7.1
+ Version:        2.6.27.39
+-Release:        0.2.1
++Release:        0.2.1_tomoyo_1.7.1
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -224,7 +224,7 @@
+@@ -225,7 +225,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
  # 31 is the maximum; see scripts/kabi-checks)
@@ -116,7 +116,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -309,6 +309,10 @@
+@@ -310,6 +310,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.27
