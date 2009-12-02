@@ -25,6 +25,8 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <sys/mount.h>
+#include <sched.h>
 #include <time.h>
 #include <unistd.h>
 #include <utime.h>
@@ -118,7 +120,7 @@ static void ccs_test_init(void)
 		if (errno != ENOENT)
 			fprintf(stderr, "Please run \n"
 				"# echo 255-MAC_FOR_FILE=disabled | "
-				"/usr/sbin/ccs-loadpolicy -p\n");
+				"/usr/sbin/tomoyo-loadpolicy -p\n");
 		else
 			fprintf(stderr, "You can't use this program "
 				"for this kernel.\n");
@@ -141,7 +143,7 @@ static void ccs_test_init(void)
 			"(b) run\n"
 			"    # echo ");
 		fprintf_encoded(stderr, self_domain);
-		fprintf(stderr, " | /usr/sbin/ccs-loadpolicy -m\n"
+		fprintf(stderr, " | /usr/sbin/tomoyo-loadpolicy -m\n"
 			"before running this program.\n");
 		exit(1);
 	}

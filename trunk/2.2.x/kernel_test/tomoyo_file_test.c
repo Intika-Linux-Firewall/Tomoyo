@@ -1039,6 +1039,204 @@ static void stage_old_rewrite_test(void)
 	write_profile("255-MAC_FOR_FILE=disabled\n");
 }
 
+//////////////////////////////////////////////////////////
+//#define _GNU_SOURCE
+//#include "include.h"
+
+static void show_prompt2(const char *str, const int is_enforce)
+{
+	printf("Testing %60s: (%s) ", str,
+	       is_enforce ? "must fail" : "should success");
+	errno = 0;
+}
+
+#define TEST_DIR         "/tmp/mount/"
+
+static const char *pivot_root_dir = "/sys/kernel/security/";
+
+static int child(void *arg)
+{
+	errno = 0;
+	pivot_root(pivot_root_dir, proc_policy_dir);
+	return errno;
+}
+
+static int namespace_test(void)
+{
+	char c = 0;
+	ccs_test_init();
+
+	mkdir(TEST_DIR, 0755);
+
+	/* Test mount(). */
+	{
+		write_profile("255-MAX_ACCEPT_ENTRY=2048\n");
+		write_profile("255-MAC_FOR_FILE=learning\n");
+		show_prompt2("mount(NULL, '" TEST_DIR "', 'tmpfs') ", 0);
+		if (mount(NULL, TEST_DIR, "tmpfs", 0, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success\n");
+		write_profile("255-MAC_FOR_FILE=enforcing\n");
+		show_prompt2("mount(NULL, '" TEST_DIR "', 'tmpfs') ", 0);
+		if (mount(NULL, TEST_DIR, "tmpfs", 0, NULL))
+			printf("BUG: %s\n", strerror(errno));
+		else
+			printf("OK: Success\n");
+	}
+
+	/* Test umount(). */
+	{
+		write_profile("255-MAC_FOR_FILE=disabled\n");
+		mount(NULL, TEST_DIR, "tmpfs", 0, NULL);
+		write_profile("255-MAC_FOR_FILE=enforcing\n");
+		/* Test standard case */
+		policy = "allow_unmount " TEST_DIR;
+		if (write_policy()) {
+			show_prompt2("umount('" TEST_DIR "') for '" TEST_DIR "'", 1);
+			if (umount(TEST_DIR) == 0)
+				printf("OK\n");
+			else
+				printf("FAILED: %s\n", strerror(errno));
+			delete_policy();
+		}
+		write_profile("255-MAC_FOR_FILE=disabled\n");
+		mount(NULL, TEST_DIR, "tmpfs", 0, NULL);
+		write_profile("255-MAC_FOR_FILE=enforcing\n");
+		/* Test standard case */
+		policy = "allow_unmount " TEST_DIR;
+		if (write_policy()) {
+			show_prompt2("umount('" TEST_DIR "') for '" TEST_DIR "'", 1);
+			if (umount(TEST_DIR) == 0)
+				printf("OK\n");
+			else
+				printf("FAILED: %s\n", strerror(errno));
+			delete_policy();
+		}
+		while (umount(TEST_DIR) == 0)
+			c++; /* Dummy. */
+	}
+
+	/* Test chroot(). */
+	{
+		int error;
+		write_profile("255-MAC_FOR_FILE=enforcing\n");
+
+		/* Test standard case */
+		policy = "allow_chroot " TEST_DIR;
+		if (write_policy()) {
+			pid_t pid;
+			show_prompt2("chroot('" TEST_DIR "') for '" TEST_DIR "'", 0);
+			fflush(stdout);
+			pid = fork();
+			if (!pid) {
+				if (chroot(TEST_DIR) == 0)
+					printf("OK\n");
+				else
+					printf("FAILED: %s\n", strerror(errno));
+				fflush(stdout);
+				_exit(0);
+			}
+			while (waitpid(pid, &error, __WALL) == EOF &&
+			       errno == EINTR)
+				c++; /* Dummy. */
+			delete_policy();
+		}
+		{
+			pid_t pid;
+			show_prompt2("chroot('" TEST_DIR "') for '" TEST_DIR "'", 1);
+			fflush(stdout);
+			pid = fork();
+			if (!pid) {
+				if (chroot(TEST_DIR) == EOF && errno == EPERM)
+					printf("OK: Permission denied.\n");
+				else
+					printf("BUG: %s\n", strerror(errno));
+				fflush(stdout);
+				_exit(0);
+			}
+			while (waitpid(pid, &error, __WALL) == EOF &&
+			       errno == EINTR)
+				c++; /* Dummy. */
+		}
+		write_profile("255-MAC_FOR_FILE=disabled\n");
+
+	}
+
+	/* Test pivot_root(). */
+	{
+		int error;
+		char *stack = malloc(8192);
+		write_profile("255-MAC_FOR_FILE=enforcing\n");
+
+		snprintf(stack, 8191, "allow_pivot_root %s %s",
+			 pivot_root_dir, proc_policy_dir);
+		policy = stack;
+		write_policy();
+		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
+			 proc_policy_dir);
+		show_prompt2(stack, 0);
+		{
+			const pid_t pid = clone(child, stack + (8192 / 2),
+						CLONE_NEWNS, NULL);
+			while (waitpid(pid, &error, __WALL) == EOF &&
+			       errno == EINTR)
+				c++; /* Dummy. */
+		}
+		errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
+		if (errno == 0)
+			printf("OK\n");
+		else
+			printf("FAILED: %s\n", strerror(errno));
+
+		snprintf(stack, 8191, "allow_pivot_root %s %s",
+			 pivot_root_dir, proc_policy_dir);
+		policy = stack;
+		delete_policy();
+		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
+			 proc_policy_dir);
+		show_prompt2(stack, 1);
+		{
+			const pid_t pid = clone(child, stack + (8192 / 2),
+						CLONE_NEWNS, NULL);
+			while (waitpid(pid, &error, __WALL) == EOF &&
+			       errno == EINTR)
+				c++; /* Dummy. */
+		}
+		errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
+		if (errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		write_profile("255-MAC_FOR_FILE=permissive\n");
+		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
+			 proc_policy_dir);
+		show_prompt2(stack, 0);
+		{
+			const pid_t pid = clone(child, stack + (8192 / 2),
+						CLONE_NEWNS, NULL);
+			while (waitpid(pid, &error, __WALL) == EOF &&
+			       errno == EINTR)
+				c++; /* Dummy. */
+		}
+		errno = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
+		if (errno == 0)
+			printf("OK\n");
+		else
+			printf("FAILED: %s\n", strerror(errno));
+
+		write_profile("255-MAC_FOR_FILE=disabled\n");
+
+		free(stack);
+	}
+
+	rmdir(TEST_DIR);
+
+	clear_status();
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
@@ -1067,6 +1265,9 @@ int main(int argc, char *argv[])
 
 	printf("***** Testing file access with policy. *****\n");
 	stage_file_test2();
+
+	printf("***** Testing namespace operations. *****\n");
+	namespace_test();
 
 	fprintf(fp_domain, "%s\nuse_profile 0\n", self_domain);
 	fflush(fp_domain);

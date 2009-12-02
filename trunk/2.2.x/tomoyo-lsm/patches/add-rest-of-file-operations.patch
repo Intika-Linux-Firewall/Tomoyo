@@ -129,7 +129,7 @@ index 92169d2..bd10f9f 100644
  struct tomoyo_double_path_acl_record {
  	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_DOUBLE_PATH_ACL */
 diff --git a/security/tomoyo/file.c b/security/tomoyo/file.c
-index 5ae3a57..32a78f3 100644
+index 5ae3a57..2d10f98 100644
 --- a/security/tomoyo/file.c
 +++ b/security/tomoyo/file.c
 @@ -81,12 +81,20 @@ static const char *tomoyo_sp_keyword[TOMOYO_MAX_SINGLE_PATH_OPERATION] = {
@@ -149,7 +149,7 @@ index 5ae3a57..32a78f3 100644
  static const char *tomoyo_dp_keyword[TOMOYO_MAX_DOUBLE_PATH_OPERATION] = {
  	[TOMOYO_TYPE_LINK_ACL]    = "link",
  	[TOMOYO_TYPE_RENAME_ACL]  = "rename",
-+	[TOMOYO_TYPE_PIVOT_ROOT_ACL] = "pivot_root", 
++	[TOMOYO_TYPE_PIVOT_ROOT_ACL] = "pivot_root",
  };
  
  /**
@@ -245,6 +245,32 @@ index 5ae3a57..32a78f3 100644
  			ptr->type |= TOMOYO_ACL_DELETED;
  		error = 0;
  		break;
+@@ -1193,7 +1215,7 @@ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+ }
+ 
+ /**
+- * tomoyo_check_1path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate" and "symlink".
++ * tomoyo_check_1path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate", "symlink", "ioctl", "chmod", "chown", "chgrp", "chroot", "mount" and "unmount".
+  *
+  * @domain:    Pointer to "struct tomoyo_domain_info".
+  * @operation: Type of operation.
+@@ -1217,6 +1239,7 @@ int tomoyo_check_1path_perm(struct tomoyo_domain_info *domain,
+ 	switch (operation) {
+ 	case TOMOYO_TYPE_MKDIR_ACL:
+ 	case TOMOYO_TYPE_RMDIR_ACL:
++	case TOMOYO_TYPE_CHROOT_ACL:
+ 		if (!buf->is_dir) {
+ 			/*
+ 			 * tomoyo_get_path() reserves space for appending "/."
+@@ -1270,7 +1293,7 @@ int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
+ }
+ 
+ /**
+- * tomoyo_check_2path_perm - Check permission for "rename" and "link".
++ * tomoyo_check_2path_perm - Check permission for "rename", "link" and "pivot_root".
+  *
+  * @domain:    Pointer to "struct tomoyo_domain_info".
+  * @operation: Type of operation.
 diff --git a/security/tomoyo/tomoyo.c b/security/tomoyo/tomoyo.c
 index 9548a09..3fb5f6e 100644
 --- a/security/tomoyo/tomoyo.c
