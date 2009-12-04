@@ -1,6 +1,6 @@
 Index: file.c
 ===================================================================
---- file.c	(revision 3223)
+--- file.c	(revision 3224)
 +++ file.c	(working copy)
 @@ -96,6 +96,355 @@
  	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
@@ -416,7 +416,62 @@ Index: file.c
  	case CCS_TYPE_CHROOT:
  	case CCS_TYPE_UMOUNT:
  		ccs_add_slash(&buf);
-@@ -1487,15 +1849,18 @@
+@@ -1401,6 +1763,7 @@
+  * ccs_path_number3_perm - Check permission for "mkblock" and "mkchar".
+  *
+  * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
++ * @dir:       Pointer to "struct inode".
+  * @dentry:    Pointer to "struct dentry".
+  * @mnt:       Pointer to "struct vfsmount".
+  ` @mode:      Create mode.
+@@ -1408,9 +1771,9 @@
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
+-				 struct vfsmount *mnt, const unsigned int mode,
+-				 const unsigned int dev)
++static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
++				 struct dentry *dentry, struct vfsmount *mnt,
++				 const unsigned int mode, unsigned int dev)
+ {
+ 	struct ccs_request_info r;
+ 	struct ccs_obj_info obj = {
+@@ -1418,19 +1781,29 @@
+ 		.path1.mnt = mnt,
+ 		.dev = dev
+ 	};
+-	int error = -ENOMEM;
++	int error = 0;
+ 	struct ccs_path_info buf;
+ 	int idx;
+ 	buf.name = NULL;
+ 	idx = ccs_read_lock();
+ 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
+-	    == CCS_CONFIG_DISABLED) {
+-		error = 0;
++	    == CCS_CONFIG_DISABLED)
+ 		goto out;
++	error = ccs_pre_vfs_mknod(dir, dentry);
++	if (error)
++		goto out;
++	if (!capable(CAP_MKNOD)) {
++		error = -EPERM;
++		goto out;
+ 	}
+-	if (!ccs_get_realpath(&buf, dentry, mnt))
++	if (!ccs_get_realpath(&buf, dentry, mnt)) {
++		error = -ENOMEM;
+ 		goto out;
++	}
+ 	r.obj = &obj;
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
++	dev = new_decode_dev(dev);
++#endif
+ 	error = ccs_path_number3_perm2(&r, operation, &buf, mode, dev);
+  out:
+ 	kfree(buf.name);
+@@ -1487,15 +1860,18 @@
   * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
   *
   * @operation: Type of operation.
@@ -437,15 +492,14 @@ Index: file.c
  			  struct vfsmount *mnt2)
  {
  	struct ccs_request_info r;
-@@ -1526,7 +1891,16 @@
+@@ -1526,7 +1902,15 @@
  		goto out;
  	switch (operation) {
  	case CCS_TYPE_RENAME:
-+		error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir,
-+					   new_dentry);
++		error = ccs_pre_vfs_rename(dir1, dentry1, dir2, dentry2);
 +		break;
  	case CCS_TYPE_LINK:
-+		error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
++		error = ccs_pre_vfs_link(dentry1, dir2, dentry2);
 +		break;
 +	}
 +	switch (operation) {
@@ -454,7 +508,7 @@ Index: file.c
  		if (!dentry1->d_inode || !S_ISDIR(dentry1->d_inode->i_mode))
  			break;
  		/* fall through */
-@@ -1716,21 +2090,24 @@
+@@ -1716,21 +2100,24 @@
  /**
   * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
   *
@@ -482,7 +536,7 @@ Index: file.c
  	struct ccs_path_info buf;
  	int idx;
  	if (!vfsmnt || !dentry)
-@@ -1738,12 +2115,33 @@
+@@ -1738,12 +2125,26 @@
  	buf.name = NULL;
  	idx = ccs_read_lock();
  	if (ccs_init_request_info(&r, NULL, ccs_pn2mac[type])
@@ -497,13 +551,6 @@ Index: file.c
 +	case CCS_TYPE_MKDIR:
 +		error = ccs_pre_vfs_mkdir(dir, dentry);
 +		break;
-+	case_CCS_TYPE_MKBLOCK:
-+	case_CCS_TYPE_MKCHAR:
-+		if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD)) {
-+			error = -EPERM;
-+			break;
-+		}
-+		/* Fall through */
 +	case CCS_TYPE_MKFIFO:
 +	case CCS_TYPE_MKSOCK:
 +		error = ccs_pre_vfs_mknod(dir, dentry);
@@ -519,7 +566,7 @@ Index: file.c
  	r.obj = &obj;
  	if (type == CCS_TYPE_MKDIR)
  		ccs_add_slash(&buf);
-@@ -1768,7 +2166,7 @@
+@@ -1768,7 +2169,7 @@
  int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
  			 unsigned long arg)
  {
@@ -528,7 +575,7 @@ Index: file.c
  				    filp->f_vfsmnt, cmd);
  }
  
-@@ -1788,7 +2186,7 @@
+@@ -1788,7 +2189,7 @@
  		return 0;
  	if (!ccs_capable(CCS_SYS_CHMOD))
  		return -EPERM;
@@ -537,7 +584,7 @@ Index: file.c
  				    mode & S_IALLUGO);
  }
  
-@@ -1811,11 +2209,11 @@
+@@ -1811,11 +2212,11 @@
  	if (!ccs_capable(CCS_SYS_CHOWN))
  		return -EPERM;
  	if (user != (uid_t) -1)
@@ -553,7 +600,7 @@ Index: file.c
  	return error;
  }
  
-@@ -1843,12 +2241,13 @@
+@@ -1843,12 +2244,13 @@
  		return -EPERM;
  #endif
  #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
@@ -571,7 +618,7 @@ Index: file.c
  #endif
  }
  
-@@ -1867,10 +2266,11 @@
+@@ -1867,10 +2269,11 @@
  		return -EPERM;
  #endif
  #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
@@ -585,7 +632,7 @@ Index: file.c
  #endif
  }
  
-@@ -1888,7 +2288,7 @@
+@@ -1888,7 +2291,7 @@
  	if (!ccs_capable(CCS_SYS_UMOUNT))
  		return -EPERM;
  #endif
@@ -594,7 +641,7 @@ Index: file.c
  }
  
  /**
-@@ -1958,358 +2358,6 @@
+@@ -1958,358 +2361,6 @@
  }
  
  /*
@@ -953,11 +1000,22 @@ Index: file.c
   * Permission checks from vfs_mknod().
   *
   * This function is exported because
-@@ -2328,23 +2376,9 @@
- 		return -EPERM;
- 	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
- 		return -EPERM;
--	switch (mode & S_IFMT) {
+@@ -2319,109 +2370,86 @@
+ 			 struct vfsmount *mnt, const unsigned int mode,
+ 			 unsigned int dev)
+ {
+-	int error;
+-	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
+-		return -EPERM;
+-	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
+-		return -EPERM;
+-	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
+-		return -EPERM;
+-	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
+-		return -EPERM;
++	int error = 0;
++	const unsigned int perm = mode & S_IALLUGO;
+ 	switch (mode & S_IFMT) {
 -	case 0:
 -	case S_IFREG:
 -		error = ccs_pre_vfs_create(dir, dentry);
@@ -970,36 +1028,60 @@ Index: file.c
 -	error = ccs_pre_vfs_mknod(dir, dentry);
 -#else
 -	error = ccs_pre_vfs_mknod(dir, dentry, mode);
-+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
- 	dev = new_decode_dev(dev);
- #endif
+-	dev = new_decode_dev(dev);
+-#endif
 -	if (error)
 -		return error;
- 	switch (mode & S_IFMT) {
+-	switch (mode & S_IFMT) {
  	case S_IFCHR:
- 		error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dentry, mnt,
-@@ -2355,13 +2389,18 @@
- 					      mode & S_IALLUGO, dev);
+-		error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dentry, mnt,
+-					      mode & S_IALLUGO, dev);
++		if (!ccs_capable(CCS_CREATE_CHAR_DEV))
++			error = -EPERM;
++		else
++			error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dir,
++						      dentry, mnt, perm, dev);
+ 		break;
+ 	case S_IFBLK:
+-		error = ccs_path_number3_perm(CCS_TYPE_MKBLOCK, dentry, mnt,
+-					      mode & S_IALLUGO, dev);
++		if (!ccs_capable(CCS_CREATE_BLOCK_DEV))
++			error = -EPERM;
++		else
++			error = ccs_path_number3_perm(CCS_TYPE_MKBLOCK, dir,
++						      dentry, mnt, perm, dev);
  		break;
  	case S_IFIFO:
 -		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dentry, mnt,
-+		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dir, dentry, mnt,
- 					     mode & S_IALLUGO);
+-					     mode & S_IALLUGO);
++		if (!ccs_capable(CCS_CREATE_FIFO))
++			error = -EPERM;
++		else
++			error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dir,
++						     dentry, mnt, perm);
  		break;
  	case S_IFSOCK:
 -		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dentry, mnt,
-+		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dir, dentry, mnt,
- 					     mode & S_IALLUGO);
+-					     mode & S_IALLUGO);
++		if (!ccs_capable(CCS_CREATE_UNIX_SOCKET))
++			error = -EPERM;
++		else
++			error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dir,
++						     dentry, mnt, perm);
  		break;
 +	case 0:
 +	case S_IFREG:
 +		error = ccs_path_number_perm(CCS_TYPE_CREATE, dir, dentry, mnt,
-+					     mode & S_IALLUGO);
++					     perm);
 +		break;
  	}
  	return error;
  }
-@@ -2371,57 +2410,39 @@
++#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
+ EXPORT_SYMBOL(ccs_mknod_permission); /* for net/unix/af_unix.c */
++#endif
+ 
+ /* Permission checks for vfs_mkdir(). */
  int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
  			 struct vfsmount *mnt, unsigned int mode)
  {
@@ -1062,7 +1144,7 @@ Index: file.c
  }
  
  /* Permission checks for vfs_rename(). */
-@@ -2429,28 +2450,20 @@
+@@ -2429,28 +2457,20 @@
  			  struct inode *new_dir, struct dentry *new_dentry,
  			  struct vfsmount *mnt)
  {
