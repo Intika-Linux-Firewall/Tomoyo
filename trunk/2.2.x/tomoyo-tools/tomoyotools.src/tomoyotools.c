@@ -22,7 +22,6 @@ static inline unsigned long partial_name_hash(unsigned long c,
 static inline unsigned int full_name_hash(const unsigned char *name,
 					  unsigned int len);
 static void *alloc_element(const unsigned int size);
-static int path_depth(const char *pathname);
 static int const_part_length(const char *filename);
 static int domainname_compare(const void *a, const void *b);
 static int path_info_compare(const void *a, const void *b);
@@ -146,22 +145,6 @@ static void *alloc_element(const unsigned int size)
 				out_of_memory();
 	}
 	return ptr;
-}
-
-static int path_depth(const char *pathname)
-{
-	int i = 0;
-	if (pathname) {
-		char *ep = strchr(pathname, '\0');
-		if (pathname < ep--) {
-			if (*ep != '/')
-				i++;
-			while (pathname <= ep)
-				if (*ep-- == '/')
-					i += 2;
-		}
-	}
-	return i;
 }
 
 static int const_part_length(const char *filename)
@@ -322,6 +305,8 @@ _Bool decode(const char *ascii, char *bin)
 _Bool is_correct_path(const char *filename, const s8 start_type,
 		     const s8 pattern_type, const s8 end_type)
 {
+	const char *const start = filename;
+	_Bool in_repetition = false;
 	_Bool contains_pattern = false;
 	unsigned char c;
 	if (!filename)
@@ -368,6 +353,22 @@ _Bool is_correct_path(const char *filename, const s8 start_type,
 					break; /* Must not contain pattern */
 				contains_pattern = true;
 				continue;
+			case '{':   /* "/\{" */
+				if (filename - 3 < start ||
+				    *(filename - 3) != '/')
+					break;
+				if (pattern_type == -1)
+					break; /* Must not contain pattern */
+				contains_pattern = true;
+				in_repetition = true;
+				continue;
+			case '}':   /* "\}/" */
+				if (*filename != '/')
+					break;
+				if (!in_repetition)
+					break;
+				in_repetition = false;
+				continue;
 			case '0':   /* "\ooo" */
 			case '1':
 			case '2':
@@ -383,6 +384,8 @@ _Bool is_correct_path(const char *filename, const s8 start_type,
 					continue; /* pattern is not \000 */
 			}
 			goto out;
+		} else if (in_repetition && c == '/') {
+			goto out;
 		} else if (c <= ' ' || c >= 127) {
 			goto out;
 		}
@@ -391,6 +394,8 @@ _Bool is_correct_path(const char *filename, const s8 start_type,
 		if (!contains_pattern)
 			goto out;
 	}
+	if (in_repetition)
+		goto out;
 	return true;
 out:
 	return false;
@@ -505,8 +510,9 @@ static _Bool file_matches_pattern2(const char *filename,
 	return filename == filename_end && pattern == pattern_end;
 }
 
-_Bool file_matches_pattern(const char *filename, const char *filename_end,
-			  const char *pattern, const char *pattern_end)
+static _Bool file_matches_pattern(const char *filename,
+				  const char *filename_end,
+				  const char *pattern, const char *pattern_end)
 {
 	const char *pattern_start = pattern;
 	_Bool first = true;
@@ -529,35 +535,19 @@ _Bool file_matches_pattern(const char *filename, const char *filename_end,
 	return first ? result : !result;
 }
 
-_Bool path_matches_pattern(const struct path_info *filename,
-			  const struct path_info *pattern)
+static _Bool path_matches_pattern2(const char *f, const char *p)
 {
-	/*
-	if (!filename || !pattern)
-		return false;
-	*/
-	const char *f = filename->name;
-	const char *p = pattern->name;
-	const int len = pattern->const_len;
-	/* If @pattern doesn't contain pattern, I can use strcmp(). */
-	if (!pattern->is_patterned)
-		return !pathcmp(filename, pattern);
-	/* Don't compare if the number of '/' differs. */
-	if (filename->depth != pattern->depth)
-		return false;
-	/* Compare the initial length without patterns. */
-	if (strncmp(f, p, len))
-		return false;
-	f += len;
-	p += len;
-	/* Main loop. Compare each directory component. */
+	const char *f_delimiter;
+	const char *p_delimiter;
 	while (*f && *p) {
-		const char *f_delimiter = strchr(f, '/');
-		const char *p_delimiter = strchr(p, '/');
+		f_delimiter = strchr(f, '/');
 		if (!f_delimiter)
 			f_delimiter = strchr(f, '\0');
+		p_delimiter = strchr(p, '/');
 		if (!p_delimiter)
 			p_delimiter = strchr(p, '\0');
+		if (*p == '\\' && *(p + 1) == '{')
+			goto recursive;
 		if (!file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
@@ -572,6 +562,56 @@ _Bool path_matches_pattern(const struct path_info *filename,
 	       (*(p + 1) == '*' || *(p + 1) == '@'))
 		p += 2;
 	return !*f && !*p;
+ recursive:
+	/*
+	 * The "\{" pattern is permitted only after '/' character.
+	 * This guarantees that below "*(p - 1)" is safe.
+	 * Also, the "\}" pattern is permitted only before '/' character
+	 * so that "\{" + "\}" pair will not break the "\-" operator.
+	 */
+	if (*(p - 1) != '/' || p_delimiter <= p + 3 || *p_delimiter != '/' ||
+	    *(p_delimiter - 1) != '}' || *(p_delimiter - 2) != '\\')
+		return false; /* Bad pattern. */
+	do {
+		/* Compare current component with pattern. */
+		if (!file_matches_pattern(f, f_delimiter, p + 2,
+					  p_delimiter - 2))
+			break;
+		/* Proceed to next component. */
+		f = f_delimiter;
+		if (!*f)
+			break;
+		f++;
+		/* Continue comparison. */
+		if (path_matches_pattern2(f, p_delimiter + 1))
+			return true;
+		f_delimiter = strchr(f, '/');
+	} while (f_delimiter);
+	return false; /* Not matched. */
+}
+
+_Bool path_matches_pattern(const struct path_info *filename,
+			   const struct path_info *pattern)
+{
+	/*
+	if (!filename || !pattern)
+		return false;
+	*/
+	const char *f = filename->name;
+	const char *p = pattern->name;
+	const int len = pattern->const_len;
+	/* If @pattern doesn't contain pattern, I can use strcmp(). */
+	if (!pattern->is_patterned)
+		return !pathcmp(filename, pattern);
+	/* Don't compare directory and non-directory. */
+	if (filename->is_dir != pattern->is_dir)
+		return false;
+	/* Compare the initial length without patterns. */
+	if (strncmp(f, p, len))
+		return false;
+	f += len;
+	p += len;
+	return path_matches_pattern2(f, p);
 }
 
 int string_compare(const void *a, const void *b)
@@ -593,7 +633,6 @@ void fill_path_info(struct path_info *ptr)
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
 	ptr->hash = full_name_hash(name, len);
-	ptr->depth = path_depth(name);
 }
 
 static unsigned int memsize(const unsigned int size)
