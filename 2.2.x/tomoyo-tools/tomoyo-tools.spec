@@ -1,14 +1,14 @@
 Summary: TOMOYO Linux tools
 
 Name: tomoyo-tools
-Version: 2.2.0
+Version: 2.2.1
 Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: tomoyo-tools < 2.2.0-1
+Conflicts: tomoyo-tools < 2.2.1-1
 
 Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20090727.tar.gz
 

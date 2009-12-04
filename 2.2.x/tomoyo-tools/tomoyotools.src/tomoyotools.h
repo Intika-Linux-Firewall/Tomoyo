@@ -155,7 +155,6 @@ struct path_info {
 	u16 const_len;      /* = const_part_length(name)            */
 	_Bool is_dir;       /* = strendswith(name, "/")             */
 	_Bool is_patterned; /* = path_contains_pattern(name)        */
-	u16 depth;          /* = path_depth(name)                   */
 };
 
 struct savename_entry {
@@ -244,8 +243,6 @@ void fprintf_encoded(FILE *fp, const char *pathname);
 _Bool decode(const char *ascii, char *bin);
 _Bool is_correct_path(const char *filename, const s8 start_type,
 		      const s8 pattern_type, const s8 end_type);
-_Bool file_matches_pattern(const char *filename, const char *filename_end,
-			   const char *pattern, const char *pattern_end);
 int string_compare(const void *a, const void *b);
 _Bool pathcmp(const struct path_info *a, const struct path_info *b);
 void fill_path_info(struct path_info *ptr);
