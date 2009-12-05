@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 9.10 i386 TOMOYO 1.7.1"
 ISOIMAGE_NAME=../ubuntu-9.10-desktop-i386-tomoyo-1.7.1.iso
-KERNEL_VERSION=2.6.31-15-ccs
+KERNEL_VERSION=2.6.31-16-ccs
 
 # set -v
 
@@ -22,6 +22,8 @@ mkdir -p -m 700 squash/var/log/tomoyo
 if  ! grep -q ccs-auditd squash/etc/init.d/rc.local
 then
     (
+	echo 'if [ `stat -f --printf=%t /` -eq 61756673 ]'
+	echo 'then'
 	echo 'ccs-loadpolicy -e << EOF
 file_pattern /target/\{\*\}/\*
 file_pattern /target/\{\*\}/
@@ -30,6 +32,7 @@ initialize_domain /usr/share/ubiquity/install.py
 keep_domain <kernel> /usr/share/ubiquity/install.py
 EOF'
 	echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/'
+	echo 'fi'
 	echo '/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject.log'
 	) >> squash/etc/init.d/rc.local
 fi
@@ -47,7 +50,8 @@ rm -f squash/var/cache/apt/*.bin
 rm -f squash/boot/*.bak
 rm -f squash/*.deb
 rm -f squash/root/.bash_history
-rm -f squash/sources.list.riken
+rm -f squash/etc/resolv.conf
+rm -f squash/sources.list
 rm -f squash/package-install.sh
 rm -f squash/var/lib/apt/lists/*_*
 rm -f squash/var/cache/debconf/*-old
