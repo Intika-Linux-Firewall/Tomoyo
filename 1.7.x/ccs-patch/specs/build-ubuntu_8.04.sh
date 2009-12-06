@@ -74,7 +74,7 @@ debian/rules custom-binary-ccs || die "Failed to build kernel package."
 cd ../ || die "Can't chdir to ../ ."
 
 # Install header package for compiling additional modules.
-dpkg -i linux-headers-${VERSION}-ccs_${VERSION}.*_i386.deb || die "Can't install packages."
+dpkg -i linux-headers-*-ccs*.deb || die "Can't install packages."
 cd linux-ubuntu-modules-2.6.24-2.6.24 || die "Can't chdir to linux-ubuntu-modules-2.6.24-2.6.24 ."
 awk ' BEGIN { flag = 0; print ""; } { if ($1 == "Package:" ) { if (index($0, "-generic") > 0) flag = 1; else flag = 0; }; if (flag) print $0; } ' debian/control.stub | sed -e 's:-generic:-ccs:' > debian/control.stub.ccs || die "Can't create file."
 cat debian/control.stub.ccs >> debian/control.stub || die "Can't edit file."

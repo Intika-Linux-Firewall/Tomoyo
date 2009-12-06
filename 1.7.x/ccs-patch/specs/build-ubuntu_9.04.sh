@@ -89,7 +89,7 @@ debian/rules binary-headers || die "Failed to build kernel package."
 debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
 
 # Install header package for compiling additional modules.
-dpkg -i /usr/src/linux-headers-${VERSION}*.deb || die "Can't install packages."
+dpkg -i /usr/src/linux-headers-*-ccs*.deb || die "Can't install packages."
 cd /usr/src/linux-restricted-modules-2.6.28/ || die "Can't chdir to /usr/src/linux-restricted-modules-2.6.28/ ."
 for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 touch debian/control.stub.in || die "Can't touch control."
