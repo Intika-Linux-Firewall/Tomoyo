@@ -43,15 +43,15 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.1-20091120.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091208.tar.gz ]
 then
     mkdir -p ccs-patch.tmp || die "Can't create directory."
     cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3206&root=tomoyo' || die "Can't download hotfix."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3240&root=tomoyo' || die "Can't download hotfix."
     tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
     patch -p1 < hotfix.patch || die "Can't apply hotfix."
     rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091120.tar.gz -- * || die "Can't create tar ball."
+    tar -zcf ../ccs-patch-1.7.1-20091208.tar.gz -- * || die "Can't create tar ball."
     cd ../ || die "Can't change directory."
     rm -fR ccs-patch.tmp  || die "Can't delete directory."
 fi
@@ -66,7 +66,7 @@ apt-get source linux-restricted-modules-${VERSION}-686 || die "Can't install ker
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091120.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091208.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
 cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
 awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
