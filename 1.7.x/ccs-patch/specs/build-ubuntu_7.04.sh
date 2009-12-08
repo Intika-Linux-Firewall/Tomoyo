@@ -43,15 +43,15 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.1-20091120.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091208.tar.gz ]
 then
     mkdir -p ccs-patch.tmp || die "Can't create directory."
     cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3206&root=tomoyo' || die "Can't download hotfix."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3240&root=tomoyo' || die "Can't download hotfix."
     tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
     patch -p1 < hotfix.patch || die "Can't apply hotfix."
     rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091120.tar.gz -- * || die "Can't create tar ball."
+    tar -zcf ../ccs-patch-1.7.1-20091208.tar.gz -- * || die "Can't create tar ball."
     cd ../ || die "Can't change directory."
     rm -fR ccs-patch.tmp  || die "Can't delete directory."
 fi
@@ -66,7 +66,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.20-2.6.20/ || die "Can't chdir to linux-2.6.20-2.6.20/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091120.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091208.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.20-ubuntu-7.04.diff || die "Can't apply patch."
 for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
 for i in debian/config/*/config; do cat config.ccs >> $i; done
