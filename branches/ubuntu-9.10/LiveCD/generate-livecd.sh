@@ -102,6 +102,7 @@ mv md5sum.txt md5sum.txt.old
 cat md5sum.txt.old | awk '{ print $2 }' | xargs md5sum > md5sum.txt
 rm -f md5sum.txt.old
 [ -r .disk/casper-uuid-ccs ] || mv .disk/casper-uuid-generic .disk/casper-uuid-ccs
+sed -i -e 's/casper-uuid-generic/casper-uuid-ccs/' -- md5sum.txt
 
 cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
