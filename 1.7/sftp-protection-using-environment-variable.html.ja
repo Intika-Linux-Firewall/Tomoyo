@@ -29,7 +29,8 @@
 
 <table border="1">
 <tr><td>
-useradd -s /bin/sftp-shell -d /var/sftp sftp
+useradd -s /bin/sftp-shell -d /var/sftp sftp<br>
+passwd sftp
 </td></tr>
 </table>
 
@@ -111,7 +112,7 @@ allow_read /var/sftp/\{\*\}/\*<br>
 allow_read @SFTP_FILES<br>
 allow_create @SFTP_FILES 0644<br>
 allow_unlink @SFTP_FILES<br>
-allow_mkdir @SFTP_DIRS<br>
+allow_mkdir @SFTP_DIRS 0755<br>
 allow_rmdir @SFTP_DIRS<br>
 allow_rename @SFTP_FILES @SFTP_FILES<br>
 allow_rename @SFTP_DIRS @SFTP_DIRS<br>
