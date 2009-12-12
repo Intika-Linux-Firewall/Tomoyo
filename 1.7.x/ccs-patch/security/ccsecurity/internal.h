@@ -1076,6 +1076,30 @@ static inline void ccs_realpath_unlock(void)
 
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
+
+static inline void ccs_tasklist_lock(void)
+{
+	rcu_read_lock();
+}
+static inline void ccs_tasklist_unlock(void)
+{
+	rcu_read_unlock();
+}
+
+#else
+
+static inline void ccs_tasklist_lock(void)
+{
+	spin_lock(&tasklist_lock);
+}
+static inline void ccs_tasklist_unlock(void)
+{
+	spin_unlock(&tasklist_lock);
+}
+
+#endif
+	
 static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
 {
 	struct ccs_domain_info *domain = task->ccs_domain_info;
