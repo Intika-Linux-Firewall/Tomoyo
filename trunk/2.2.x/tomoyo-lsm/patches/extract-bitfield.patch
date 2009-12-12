@@ -1,0 +1,324 @@
+[PATCH] TOMOYO: Extract bitfield.
+
+Since list elements are rounded up to kmalloc() size rather than sizeof(int),
+saving one byte by using bitfields is no longer helpful.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |   16 +++++--------
+ security/tomoyo/common.h |   55 +++++++++++------------------------------------
+ security/tomoyo/domain.c |   25 ---------------------
+ security/tomoyo/file.c   |   27 +++++++++++------------
+ 4 files changed, 34 insertions(+), 89 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -842,9 +842,9 @@ bool tomoyo_domain_quota_is_ok(struct to
+ 	if (!domain)
+ 		return true;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+-		if (ptr->type & TOMOYO_ACL_DELETED)
++		if (ptr->is_deleted)
+ 			continue;
+-		switch (tomoyo_acl_type2(ptr)) {
++		switch (ptr->type) {
+ 			struct tomoyo_single_path_acl_record *acl;
+ 			u32 perm;
+ 			u8 i;
+@@ -1384,8 +1384,7 @@ static int tomoyo_write_domain_policy(st
+ 		return 0;
+ 	}
+ 	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
+-		tomoyo_set_domain_flag(domain, is_delete,
+-			       TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ);
++		domain->ignore_global_allow_read = !is_delete;
+ 		return 0;
+ 	}
+ 	return tomoyo_write_file_policy(data, domain, is_delete);
+@@ -1486,9 +1485,9 @@ static bool tomoyo_print_double_path_acl
+ static bool tomoyo_print_entry(struct tomoyo_io_buffer *head,
+ 			       struct tomoyo_acl_info *ptr)
+ {
+-	const u8 acl_type = tomoyo_acl_type2(ptr);
++	const u8 acl_type = ptr->type;
+ 
+-	if (acl_type & TOMOYO_ACL_DELETED)
++	if (ptr->is_deleted)
+ 		return true;
+ 	if (acl_type == TOMOYO_TYPE_SINGLE_PATH_ACL) {
+ 		struct tomoyo_single_path_acl_record *acl
+@@ -1540,10 +1539,9 @@ static int tomoyo_read_domain_policy(str
+ 		/* Print domainname and flags. */
+ 		if (domain->quota_warned)
+ 			quota_exceeded = "quota_exceeded\n";
+-		if (domain->flags & TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED)
++		if (domain->transition_failed)
+ 			transition_failed = "transition_failed\n";
+-		if (domain->flags &
+-		    TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ)
++		if (domain->ignore_global_allow_read)
+ 			ignore_global_allow_read
+ 				= TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
+ 		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -101,30 +101,20 @@ struct tomoyo_path_info_with_data {
+  *
+  *  (1) "list" which is linked to the ->acl_info_list of
+  *      "struct tomoyo_domain_info"
+- *  (2) "type" which tells
+- *      (a) type & 0x7F : type of the entry (either
+- *          "struct tomoyo_single_path_acl_record" or
+- *          "struct tomoyo_double_path_acl_record")
+- *      (b) type & 0x80 : whether the entry is marked as "deleted".
++ *  (2) "type" which is one of values in "enum tomoyo_acl_entry_type_index".
++ *  (3) "is_deleted" is a bool which is true if this entry is marked as
++ *      "deleted", false otherwise.
+  *
+  * Packing "struct tomoyo_acl_info" allows
+- * "struct tomoyo_single_path_acl_record" to embed "u8" + "u16" and
+  * "struct tomoyo_double_path_acl_record" to embed "u8"
+  * without enlarging their structure size.
+  */
+ struct tomoyo_acl_info {
+ 	struct list_head list;
+-	/*
+-	 * Type of this ACL entry.
+-	 *
+-	 * MSB is is_deleted flag.
+-	 */
++	bool is_deleted;
+ 	u8 type;
+ } __packed;
+ 
+-/* This ACL entry is deleted.           */
+-#define TOMOYO_ACL_DELETED        0x80
+-
+ /*
+  * tomoyo_domain_info is a structure which is used for holding permissions
+  * (e.g. "allow_read /lib/libc-2.5.so") given to each domain.
+@@ -138,7 +128,13 @@ struct tomoyo_acl_info {
+  *      "deleted", false otherwise.
+  *  (6) "quota_warned" is a bool which is used for suppressing warning message
+  *      when learning mode learned too much entries.
+- *  (7) "flags" which remembers this domain's attributes.
++ *  (7) "ignore_global_allow_read" is a bool which is true if this domain
++ *      should ignore "allow_read" directive in exception policy.
++ *  (8) "transition_failed" is a bool which is set to true when this domain was
++ *      unable to create a new domain at tomoyo_find_next_domain() because the
++ *      name of the domain to be created was too long or it could not allocate
++ *      memory. If set to true, more than one process continued execve()
++ *      without domain transition.
+  *
+  * A domain's lifecycle is an analogy of files on / directory.
+  * Multiple domains with the same domainname cannot be created (as with
+@@ -155,23 +151,13 @@ struct tomoyo_domain_info {
+ 	u8 profile;        /* Profile number to use. */
+ 	bool is_deleted;   /* Delete flag.           */
+ 	bool quota_warned; /* Quota warnning flag.   */
+-	/* DOMAIN_FLAGS_*. Use tomoyo_set_domain_flag() to modify. */
+-	u8 flags;
++	bool ignore_global_allow_read; /* Ignore "allow_read" flag. */
++	bool transition_failed; /* Domain transition failed flag. */
+ };
+ 
+ /* Profile number is an integer between 0 and 255. */
+ #define TOMOYO_MAX_PROFILES 256
+ 
+-/* Ignore "allow_read" directive in exception policy. */
+-#define TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ 1
+-/*
+- * This domain was unable to create a new domain at tomoyo_find_next_domain()
+- * because the name of the domain to be created was too long or
+- * it could not allocate memory.
+- * More than one process continued execve() without domain transition.
+- */
+-#define TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED        2
+-
+ /*
+  * tomoyo_single_path_acl_record is a structure which is used for holding an
+  * entry with one pathname operation (e.g. open(), mkdir()).
+@@ -380,9 +366,6 @@ unsigned int tomoyo_check_flags(const st
+ void tomoyo_fill_path_info(struct tomoyo_path_info *ptr);
+ /* Run policy loader when /sbin/init starts. */
+ void tomoyo_load_policy(const char *filename);
+-/* Change "struct tomoyo_domain_info"->flags. */
+-void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
+-			    const bool is_delete, const u8 flags);
+ 
+ /* strcmp() for "struct tomoyo_path_info" structure. */
+ static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
+@@ -391,18 +374,6 @@ static inline bool tomoyo_pathcmp(const 
+ 	return a->hash != b->hash || strcmp(a->name, b->name);
+ }
+ 
+-/* Get type of an ACL entry. */
+-static inline u8 tomoyo_acl_type1(struct tomoyo_acl_info *ptr)
+-{
+-	return ptr->type & ~TOMOYO_ACL_DELETED;
+-}
+-
+-/* Get type of an ACL entry. */
+-static inline u8 tomoyo_acl_type2(struct tomoyo_acl_info *ptr)
+-{
+-	return ptr->type;
+-}
+-
+ /**
+  * tomoyo_is_valid - Check whether the character is a valid char.
+  *
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -130,28 +130,6 @@ struct tomoyo_alias_entry {
+ };
+ 
+ /**
+- * tomoyo_set_domain_flag - Set or clear domain's attribute flags.
+- *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @is_delete: True if it is a delete request.
+- * @flags:     Flags to set or clear.
+- *
+- * Returns nothing.
+- */
+-void tomoyo_set_domain_flag(struct tomoyo_domain_info *domain,
+-			    const bool is_delete, const u8 flags)
+-{
+-	/* We need to serialize because this is bitfield operation. */
+-	static DEFINE_SPINLOCK(lock);
+-	spin_lock(&lock);
+-	if (!is_delete)
+-		domain->flags |= flags;
+-	else
+-		domain->flags &= ~flags;
+-	spin_unlock(&lock);
+-}
+-
+-/**
+  * tomoyo_get_last_name - Get last component of a domainname.
+  *
+  * @domain: Pointer to "struct tomoyo_domain_info".
+@@ -896,8 +874,7 @@ int tomoyo_find_next_domain(struct linux
+ 	if (is_enforce)
+ 		retval = -EPERM;
+ 	else
+-		tomoyo_set_domain_flag(old_domain, false,
+-				       TOMOYO_DOMAIN_FLAGS_TRANSITION_FAILED);
++		old_domain->transition_failed = true;
+  out:
+ 	if (!domain)
+ 		domain = old_domain;
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -689,7 +689,7 @@ static int tomoyo_check_single_path_acl2
+ 
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_single_path_acl_record *acl;
+-		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
++		if (ptr->is_deleted || ptr->type != TOMOYO_TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
+ 				   head);
+@@ -771,8 +771,7 @@ static int tomoyo_check_file_perm2(struc
+ 	if (!filename)
+ 		return 0;
+ 	error = tomoyo_check_file_acl(domain, filename, perm);
+-	if (error && perm == 4 &&
+-	    (domain->flags & TOMOYO_DOMAIN_FLAGS_IGNORE_GLOBAL_ALLOW_READ) == 0
++	if (error && perm == 4 && !domain->ignore_global_allow_read
+ 	    && tomoyo_is_globally_readable_file(filename))
+ 		error = 0;
+ 	if (perm == 6)
+@@ -886,14 +885,14 @@ static int tomoyo_update_single_path_acl
+ 	if (is_delete)
+ 		goto delete;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+-		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
+ 				   head);
+ 		if (acl->filename != saved_filename)
+ 			continue;
+ 		/* Special case. Clear all bits if marked as deleted. */
+-		if (ptr->type & TOMOYO_ACL_DELETED)
++		if (ptr->is_deleted)
+ 			acl->perm = 0;
+ 		if (perm <= 0xFFFF)
+ 			acl->perm |= perm;
+@@ -903,7 +902,7 @@ static int tomoyo_update_single_path_acl
+ 			acl->perm |= 1 << TOMOYO_TYPE_READ_WRITE_ACL;
+ 		else if (acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL))
+ 			acl->perm |= rw_mask;
+-		ptr->type &= ~TOMOYO_ACL_DELETED;
++		ptr->is_deleted = false;
+ 		error = 0;
+ 		goto out;
+ 	}
+@@ -928,7 +927,7 @@ static int tomoyo_update_single_path_acl
+  delete:
+ 	error = -ENOENT;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+-		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_SINGLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
+ 				   head);
+@@ -943,7 +942,7 @@ static int tomoyo_update_single_path_acl
+ 		else if (!(acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL)))
+ 			acl->perm &= ~rw_mask;
+ 		if (!acl->perm && !acl->perm_high)
+-			ptr->type |= TOMOYO_ACL_DELETED;
++			ptr->is_deleted = true;
+ 		error = 0;
+ 		break;
+ 	}
+@@ -990,7 +989,7 @@ static int tomoyo_update_double_path_acl
+ 	if (is_delete)
+ 		goto delete;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+-		if (tomoyo_acl_type1(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
+ 				   head);
+@@ -998,10 +997,10 @@ static int tomoyo_update_double_path_acl
+ 		    acl->filename2 != saved_filename2)
+ 			continue;
+ 		/* Special case. Clear all bits if marked as deleted. */
+-		if (ptr->type & TOMOYO_ACL_DELETED)
++		if (ptr->is_deleted)
+ 			acl->perm = 0;
+ 		acl->perm |= perm;
+-		ptr->type &= ~TOMOYO_ACL_DELETED;
++		ptr->is_deleted = false;
+ 		error = 0;
+ 		goto out;
+ 	}
+@@ -1022,7 +1021,7 @@ static int tomoyo_update_double_path_acl
+  delete:
+ 	error = -ENOENT;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+-		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
+ 				   head);
+@@ -1031,7 +1030,7 @@ static int tomoyo_update_double_path_acl
+ 			continue;
+ 		acl->perm &= ~perm;
+ 		if (!acl->perm)
+-			ptr->type |= TOMOYO_ACL_DELETED;
++			ptr->is_deleted = true;
+ 		error = 0;
+ 		break;
+ 	}
+@@ -1087,7 +1086,7 @@ static int tomoyo_check_double_path_acl(
+ 		return 0;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_double_path_acl_record *acl;
+-		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
++		if (ptr->is_deleted || ptr->type != TOMOYO_TYPE_DOUBLE_PATH_ACL)
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
+ 				   head);
