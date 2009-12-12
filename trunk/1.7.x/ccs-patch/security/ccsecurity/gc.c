@@ -136,7 +136,7 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 	struct task_struct *g;
 	struct task_struct *t;
-	read_lock(&tasklist_lock);
+	ccs_tasklist_lock();
 	do_each_thread(g, t) {
 		if (!(t->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
 			smp_mb(); /* Avoid out of order execution. */
@@ -147,10 +147,10 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 		goto out;
 	} while_each_thread(g, t);
  out:
-	read_unlock(&tasklist_lock);
+	ccs_tasklist_unlock();
 #else
 	struct task_struct *p;
-	read_lock(&tasklist_lock);
+	ccs_tasklist_lock();
 	for_each_process(p) {
 		if (!(p->ccs_flags & CCS_TASK_IS_IN_EXECVE)) {
 			smp_mb(); /* Avoid out of order execution. */
@@ -160,7 +160,7 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 		in_use = true;
 		break;
 	}
-	read_unlock(&tasklist_lock);
+	ccs_tasklist_unlock();
 #endif
 	return in_use;
 }

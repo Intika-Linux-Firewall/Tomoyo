@@ -2268,3 +2268,13 @@ Fix 2009/11/27
 
       Since 1.7.0 , /proc/ccs/reject_log was by error using existing domain's
       name when auditing newly created domain's "use_profile" line.
+
+Fix 2009/12/12
+
+    @ Use rcu_read_lock() for find_task_by_pid().
+
+      Since kernel 2.6.16 , caller of find_task_by_pid() needs to call
+      rcu_read_lock() rather than read_lock(&tasklist_lock) because find_pid()
+      uses RCU primitives but spinlock does not prevent RCU callback if
+      preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
+      enabled.

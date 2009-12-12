@@ -846,7 +846,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	if (sscanf(data, "pid=%u", &pid) == 1 ||
 	    (global_pid = true, sscanf(data, "global-pid=%u", &pid) == 1)) {
 		struct task_struct *p;
-		read_lock(&tasklist_lock);
+		ccs_tasklist_lock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		if (global_pid)
 			p = find_task_by_pid_ns(pid, &init_pid_ns);
@@ -857,7 +857,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 #endif
 		if (p)
 			domain = ccs_task_domain(p);
-		read_unlock(&tasklist_lock);
+		ccs_tasklist_unlock();
 	} else if (!strncmp(data, "domain=", 7)) {
 		if (ccs_is_domain_def(data + 7))
 			domain = ccs_find_domain(data + 7);
@@ -1807,7 +1807,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	if (ccs_str_starts(&buf, "global-pid "))
 		global_pid = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
-	read_lock(&tasklist_lock);
+	ccs_tasklist_lock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	if (global_pid)
 		p = find_task_by_pid_ns(pid, &init_pid_ns);
@@ -1820,7 +1820,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 		domain = ccs_task_domain(p);
 		ccs_flags = p->ccs_flags;
 	}
-	read_unlock(&tasklist_lock);
+	ccs_tasklist_unlock();
 	if (!domain)
 		return;
 	if (!task_info)
