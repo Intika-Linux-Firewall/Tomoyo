@@ -203,7 +203,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return NULL;
  }
  
-@@ -347,39 +347,6 @@ void __init tomoyo_realpath_init(void)
+@@ -348,39 +348,6 @@ void __init tomoyo_realpath_init(void)
  		panic("Can't register tomoyo_kernel_domain");
  }
  
@@ -243,7 +243,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_read_memory_counter - Check for memory usage in bytes.
   *
-@@ -394,8 +361,6 @@ int tomoyo_read_memory_counter(struct to
+@@ -395,8 +362,6 @@ int tomoyo_read_memory_counter(struct to
  			= tomoyo_allocated_memory_for_savename;
  		const unsigned int private
  			= tomoyo_allocated_memory_for_elements;
@@ -252,7 +252,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		char buffer[64];
  
  		memset(buffer, 0, sizeof(buffer));
-@@ -413,9 +378,7 @@ int tomoyo_read_memory_counter(struct to
+@@ -414,9 +379,7 @@ int tomoyo_read_memory_counter(struct to
  		else
  			buffer[0] = '\0';
  		tomoyo_io_printf(head, "Private: %10u%s\n", private, buffer);

@@ -5,27 +5,26 @@ saving one byte by using bitfields is no longer helpful.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |   16 +++++--------
- security/tomoyo/common.h |   55 +++++++++++------------------------------------
- security/tomoyo/domain.c |   25 ---------------------
- security/tomoyo/file.c   |   27 +++++++++++------------
- 4 files changed, 34 insertions(+), 89 deletions(-)
+ security/tomoyo/common.c |   16 ++++----------
+ security/tomoyo/common.h |   53 ++++++++++-------------------------------------
+ security/tomoyo/domain.c |   25 ----------------------
+ security/tomoyo/file.c   |   27 ++++++-----------------
+ 4 files changed, 25 insertions(+), 96 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -842,9 +842,9 @@ bool tomoyo_domain_quota_is_ok(struct to
+@@ -842,9 +842,7 @@ bool tomoyo_domain_quota_is_ok(struct to
  	if (!domain)
  		return true;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 -		if (ptr->type & TOMOYO_ACL_DELETED)
-+		if (ptr->is_deleted)
- 			continue;
+-			continue;
 -		switch (tomoyo_acl_type2(ptr)) {
 +		switch (ptr->type) {
  			struct tomoyo_single_path_acl_record *acl;
  			u32 perm;
  			u8 i;
-@@ -1384,8 +1384,7 @@ static int tomoyo_write_domain_policy(st
+@@ -1384,8 +1382,7 @@ static int tomoyo_write_domain_policy(st
  		return 0;
  	}
  	if (!strcmp(data, TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
@@ -35,7 +34,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	}
  	return tomoyo_write_file_policy(data, domain, is_delete);
-@@ -1486,9 +1485,9 @@ static bool tomoyo_print_double_path_acl
+@@ -1486,10 +1483,8 @@ static bool tomoyo_print_double_path_acl
  static bool tomoyo_print_entry(struct tomoyo_io_buffer *head,
  			       struct tomoyo_acl_info *ptr)
  {
@@ -43,11 +42,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	const u8 acl_type = ptr->type;
  
 -	if (acl_type & TOMOYO_ACL_DELETED)
-+	if (ptr->is_deleted)
- 		return true;
+-		return true;
  	if (acl_type == TOMOYO_TYPE_SINGLE_PATH_ACL) {
  		struct tomoyo_single_path_acl_record *acl
-@@ -1540,10 +1539,9 @@ static int tomoyo_read_domain_policy(str
+ 			= container_of(ptr,
+@@ -1540,10 +1535,9 @@ static int tomoyo_read_domain_policy(str
  		/* Print domainname and flags. */
  		if (domain->quota_warned)
  			quota_exceeded = "quota_exceeded\n";
@@ -62,7 +61,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		done = tomoyo_io_printf(head, "%s\n" TOMOYO_KEYWORD_USE_PROFILE
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -101,30 +101,20 @@ struct tomoyo_path_info_with_data {
+@@ -101,11 +101,9 @@ struct tomoyo_path_info_with_data {
   *
   *  (1) "list" which is linked to the ->acl_info_list of
   *      "struct tomoyo_domain_info"
@@ -71,14 +70,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 - *          "struct tomoyo_single_path_acl_record" or
 - *          "struct tomoyo_double_path_acl_record")
 - *      (b) type & 0x80 : whether the entry is marked as "deleted".
-+ *  (2) "type" which is one of values in "enum tomoyo_acl_entry_type_index".
-+ *  (3) "is_deleted" is a bool which is true if this entry is marked as
-+ *      "deleted", false otherwise.
++ *  (2) "type" which tells type of the entry (either
++ *      "struct tomoyo_single_path_acl_record" or
++ *      "struct tomoyo_double_path_acl_record").
   *
   * Packing "struct tomoyo_acl_info" allows
-- * "struct tomoyo_single_path_acl_record" to embed "u8" + "u16" and
-  * "struct tomoyo_double_path_acl_record" to embed "u8"
-  * without enlarging their structure size.
+  * "struct tomoyo_single_path_acl_record" to embed "u8" + "u16" and
+@@ -114,17 +112,9 @@ struct tomoyo_path_info_with_data {
   */
  struct tomoyo_acl_info {
  	struct list_head list;
@@ -87,7 +85,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	 *
 -	 * MSB is is_deleted flag.
 -	 */
-+	bool is_deleted;
  	u8 type;
  } __packed;
  
@@ -215,7 +212,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_single_path_acl_record *acl;
 -		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_SINGLE_PATH_ACL)
-+		if (ptr->is_deleted || ptr->type != TOMOYO_TYPE_SINGLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_SINGLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
  				   head);
@@ -229,7 +226,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    && tomoyo_is_globally_readable_file(filename))
  		error = 0;
  	if (perm == 6)
-@@ -886,14 +885,14 @@ static int tomoyo_update_single_path_acl
+@@ -886,15 +885,12 @@ static int tomoyo_update_single_path_acl
  	if (is_delete)
  		goto delete;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -240,22 +237,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				   head);
  		if (acl->filename != saved_filename)
  			continue;
- 		/* Special case. Clear all bits if marked as deleted. */
+-		/* Special case. Clear all bits if marked as deleted. */
 -		if (ptr->type & TOMOYO_ACL_DELETED)
-+		if (ptr->is_deleted)
- 			acl->perm = 0;
+-			acl->perm = 0;
  		if (perm <= 0xFFFF)
  			acl->perm |= perm;
-@@ -903,7 +902,7 @@ static int tomoyo_update_single_path_acl
+ 		else
+@@ -903,7 +899,6 @@ static int tomoyo_update_single_path_acl
  			acl->perm |= 1 << TOMOYO_TYPE_READ_WRITE_ACL;
  		else if (acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL))
  			acl->perm |= rw_mask;
 -		ptr->type &= ~TOMOYO_ACL_DELETED;
-+		ptr->is_deleted = false;
  		error = 0;
  		goto out;
  	}
-@@ -928,7 +927,7 @@ static int tomoyo_update_single_path_acl
+@@ -928,7 +923,7 @@ static int tomoyo_update_single_path_acl
   delete:
  	error = -ENOENT;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -264,16 +260,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
  				   head);
-@@ -943,7 +942,7 @@ static int tomoyo_update_single_path_acl
+@@ -942,8 +937,6 @@ static int tomoyo_update_single_path_acl
+ 			acl->perm &= ~(1 << TOMOYO_TYPE_READ_WRITE_ACL);
  		else if (!(acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL)))
  			acl->perm &= ~rw_mask;
- 		if (!acl->perm && !acl->perm_high)
+-		if (!acl->perm && !acl->perm_high)
 -			ptr->type |= TOMOYO_ACL_DELETED;
-+			ptr->is_deleted = true;
  		error = 0;
  		break;
  	}
-@@ -990,7 +989,7 @@ static int tomoyo_update_double_path_acl
+@@ -990,18 +983,14 @@ static int tomoyo_update_double_path_acl
  	if (is_delete)
  		goto delete;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -282,20 +278,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
  				   head);
-@@ -998,10 +997,10 @@ static int tomoyo_update_double_path_acl
+ 		if (acl->filename1 != saved_filename1 ||
  		    acl->filename2 != saved_filename2)
  			continue;
- 		/* Special case. Clear all bits if marked as deleted. */
+-		/* Special case. Clear all bits if marked as deleted. */
 -		if (ptr->type & TOMOYO_ACL_DELETED)
-+		if (ptr->is_deleted)
- 			acl->perm = 0;
+-			acl->perm = 0;
  		acl->perm |= perm;
 -		ptr->type &= ~TOMOYO_ACL_DELETED;
-+		ptr->is_deleted = false;
  		error = 0;
  		goto out;
  	}
-@@ -1022,7 +1021,7 @@ static int tomoyo_update_double_path_acl
+@@ -1022,7 +1011,7 @@ static int tomoyo_update_double_path_acl
   delete:
  	error = -ENOENT;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -304,21 +298,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
  				   head);
-@@ -1031,7 +1030,7 @@ static int tomoyo_update_double_path_acl
+@@ -1030,8 +1019,6 @@ static int tomoyo_update_double_path_acl
+ 		    acl->filename2 != saved_filename2)
  			continue;
  		acl->perm &= ~perm;
- 		if (!acl->perm)
+-		if (!acl->perm)
 -			ptr->type |= TOMOYO_ACL_DELETED;
-+			ptr->is_deleted = true;
  		error = 0;
  		break;
  	}
-@@ -1087,7 +1086,7 @@ static int tomoyo_check_double_path_acl(
+@@ -1087,7 +1074,7 @@ static int tomoyo_check_double_path_acl(
  		return 0;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_double_path_acl_record *acl;
 -		if (tomoyo_acl_type2(ptr) != TOMOYO_TYPE_DOUBLE_PATH_ACL)
-+		if (ptr->is_deleted || ptr->type != TOMOYO_TYPE_DOUBLE_PATH_ACL)
++		if (ptr->type != TOMOYO_TYPE_DOUBLE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
  				   head);

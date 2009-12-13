@@ -6,13 +6,13 @@ collector is added. Thus, remove memory pool and use kmalloc(sizeof()).
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
- security/tomoyo/common.c   |   41 ++++++------------------------
+ security/tomoyo/common.c   |   41 +++++-------------------------
  security/tomoyo/common.h   |    2 -
- security/tomoyo/domain.c   |   58 ++++++++++++++-----------------------------
- security/tomoyo/file.c     |   34 ++++++++++++++++++-------
- security/tomoyo/realpath.c |   60 +++++++++++++--------------------------------
+ security/tomoyo/domain.c   |   58 ++++++++++++++----------------------------
+ security/tomoyo/file.c     |   34 +++++++++++++++++--------
+ security/tomoyo/realpath.c |   61 ++++++++++++++-------------------------------
  security/tomoyo/realpath.h |    7 +----
- 6 files changed, 71 insertions(+), 131 deletions(-)
+ 6 files changed, 72 insertions(+), 131 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -364,7 +364,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	acl->filename2 = saved_filename2;
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
-@@ -212,57 +212,33 @@ static unsigned int tomoyo_allocated_mem
+@@ -212,57 +212,34 @@ static unsigned int tomoyo_allocated_mem
  static unsigned int tomoyo_quota_for_elements;
  
  /**
@@ -379,7 +379,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
 - * Memory has to be zeroed.
 - * The RAM is chunked, so NEVER try to kfree() the returned pointer.
-+ * Memory pointed by @ptr will be zeroed.
++ * Memory pointed by @ptr will be zeroed on success.
   */
 -void *tomoyo_alloc_element(const unsigned int size)
 +bool tomoyo_memory_ok(void *ptr)
@@ -433,6 +433,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	} else {
 +		result = true;
 +		tomoyo_allocated_memory_for_elements += allocated_len;
++		memset(ptr, 0, allocated_len);
  	}
  	mutex_unlock(&lock);
 -	return ptr;
