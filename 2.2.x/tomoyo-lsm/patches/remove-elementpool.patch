@@ -6,13 +6,13 @@ collector is added. Thus, remove memory pool and use kmalloc(sizeof()).
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
- security/tomoyo/common.c   |   41 +++++-------------------------
+ security/tomoyo/common.c   |   41 +++++-----------------------
  security/tomoyo/common.h   |    2 -
- security/tomoyo/domain.c   |   58 ++++++++++++++----------------------------
- security/tomoyo/file.c     |   34 +++++++++++++++++--------
- security/tomoyo/realpath.c |   61 ++++++++++++++-------------------------------
- security/tomoyo/realpath.h |    7 +----
- 6 files changed, 72 insertions(+), 131 deletions(-)
+ security/tomoyo/domain.c   |   58 +++++++++++++---------------------------
+ security/tomoyo/file.c     |   34 ++++++++++++++++-------
+ security/tomoyo/realpath.c |   65 +++++++++++++--------------------------------
+ security/tomoyo/realpath.h |    7 +---
+ 6 files changed, 73 insertions(+), 134 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -364,7 +364,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	acl->filename2 = saved_filename2;
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
-@@ -212,57 +212,34 @@ static unsigned int tomoyo_allocated_mem
+@@ -212,57 +212,32 @@ static unsigned int tomoyo_allocated_mem
  static unsigned int tomoyo_quota_for_elements;
  
  /**
@@ -379,13 +379,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
 - * Memory has to be zeroed.
 - * The RAM is chunked, so NEVER try to kfree() the returned pointer.
++ * Caller holds tomoyo_policy_lock.
 + * Memory pointed by @ptr will be zeroed on success.
   */
 -void *tomoyo_alloc_element(const unsigned int size)
 +bool tomoyo_memory_ok(void *ptr)
  {
 -	static char *buf;
- 	static DEFINE_MUTEX(lock);
+-	static DEFINE_MUTEX(lock);
 -	static unsigned int buf_used_len = PATH_MAX;
 -	char *ptr = NULL;
 -	/*Assumes sizeof(void *) >= sizeof(long) is true. */
@@ -393,9 +394,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		= roundup(size, max(sizeof(void *), sizeof(long)));
 -	if (word_aligned_size > PATH_MAX)
 -		return NULL;
-+	int allocated_len = ptr ? ksize(ptr) : 0;
-+	bool result = false;
- 	mutex_lock(&lock);
+-	mutex_lock(&lock);
 -	if (buf_used_len + word_aligned_size > PATH_MAX) {
 -		if (!tomoyo_quota_for_elements ||
 -		    tomoyo_allocated_memory_for_elements
@@ -423,6 +422,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -			       "The system might go wrong.\n");
 -			ptr[i] = '\0';
 -		}
++	int allocated_len = ptr ? ksize(ptr) : 0;
++	bool result = false;
 +	if (!ptr || (tomoyo_quota_for_elements &&
 +		     tomoyo_allocated_memory_for_elements
 +		     + allocated_len > tomoyo_quota_for_elements)) {
@@ -435,7 +436,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		tomoyo_allocated_memory_for_elements += allocated_len;
 +		memset(ptr, 0, allocated_len);
  	}
- 	mutex_unlock(&lock);
+-	mutex_unlock(&lock);
 -	return ptr;
 +	return result;
  }
