@@ -1091,11 +1091,11 @@ static inline void ccs_tasklist_unlock(void)
 
 static inline void ccs_tasklist_lock(void)
 {
-	spin_lock(&tasklist_lock);
+	read_lock(&tasklist_lock);
 }
 static inline void ccs_tasklist_unlock(void)
 {
-	spin_unlock(&tasklist_lock);
+	read_unlock(&tasklist_lock);
 }
 
 #endif
