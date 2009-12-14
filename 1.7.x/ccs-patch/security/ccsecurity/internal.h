@@ -1076,7 +1076,7 @@ static inline void ccs_realpath_unlock(void)
 
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
 
 static inline void ccs_tasklist_lock(void)
 {
