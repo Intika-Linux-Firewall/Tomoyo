@@ -96,6 +96,360 @@ static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 	[CCS_TYPE_CHGRP]  = CCS_MAC_FILE_CHGRP,
 };
 
+/*
+ * Below part contains copy of some of VFS helper functions.
+ *
+ * Since TOMOYO Linux requires "struct vfsmount" parameter to calculate
+ * an absolute pathname of the requested "struct dentry" parameter
+ * but the VFS helper functions don't receive "struct vfsmount" parameter,
+ * TOMOYO Linux checks permission outside VFS helper functions.
+ * To keep the DAC's permission checks are performed before the
+ * TOMOYO Linux's permission checks are performed, I'm manually copying
+ * these functions that performs the DAC's permission checks from fs/namei.c .
+ */
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+/* Permission checks from vfs_create(). */
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+{
+	int error;
+	down(&dir->i_zombie);
+	error = ccs_may_create(dir, dentry);
+	if (!error && (!dir->i_op || !dir->i_op->create))
+		error = -EACCES;
+	up(&dir->i_zombie);
+	return error;
+}
+
+/* Permission checks from vfs_mknod(). */
+static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+{
+	int error;
+	down(&dir->i_zombie);
+	error = ccs_may_create(dir, dentry);
+	if (!error && (!dir->i_op || !dir->i_op->mknod))
+		error = -EPERM;
+	up(&dir->i_zombie);
+	return error;
+}
+
+/* Permission checks from vfs_mkdir(). */
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+{
+	int error;
+	down(&dir->i_zombie);
+	error = ccs_may_create(dir, dentry);
+	if (!error && (!dir->i_op || !dir->i_op->mkdir))
+		error = -EPERM;
+	up(&dir->i_zombie);
+	return error;
+}
+
+/* Permission checks from vfs_rmdir(). */
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_delete(dir, dentry, 1);
+	if (!error && (!dir->i_op || !dir->i_op->rmdir))
+		error = -EPERM;
+	return error;
+}
+
+/* Permission checks from vfs_unlink(). */
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
+	int error;
+	down(&dir->i_zombie);
+	error = ccs_may_delete(dir, dentry, 0);
+	if (!error && (!dir->i_op || !dir->i_op->unlink))
+		error = -EPERM;
+	up(&dir->i_zombie);
+	return error;
+#else
+	int error;
+	struct inode *inode;
+	error = ccs_may_delete(dir, dentry, 0);
+	if (error)
+		return error;
+	inode = dentry->d_inode;
+	atomic_inc(&inode->i_count);
+	double_down(&dir->i_zombie, &inode->i_zombie);
+	error = -EPERM;
+	if (dir->i_op && dir->i_op->unlink)
+		error = 0;
+	double_up(&dir->i_zombie, &inode->i_zombie);
+	iput(inode);
+	return error;
+#endif
+}
+
+/* Permission checks from vfs_symlink(). */
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+{
+	int error;
+	down(&dir->i_zombie);
+	error = ccs_may_create(dir, dentry);
+	if (error)
+		goto exit_lock;
+	if (!dir->i_op || !dir->i_op->symlink)
+		error = -EPERM;
+ exit_lock:
+	up(&dir->i_zombie);
+	return error;
+}
+
+/* Permission checks from vfs_link(). */
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
+{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
+	struct inode *inode;
+	int error;
+	down(&dir->i_zombie);
+	error = -ENOENT;
+	inode = old_dentry->d_inode;
+	if (!inode)
+		goto exit_lock;
+	error = ccs_may_create(dir, new_dentry);
+	if (error)
+		goto exit_lock;
+	error = -EXDEV;
+	if (dir->i_dev != inode->i_dev)
+		goto exit_lock;
+	error = -EPERM;
+	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
+		goto exit_lock;
+	if (!dir->i_op || !dir->i_op->link)
+		goto exit_lock;
+	error = 0;
+ exit_lock:
+	up(&dir->i_zombie);
+	return error;
+#else
+	struct inode *inode;
+	int error;
+	error = -ENOENT;
+	inode = old_dentry->d_inode;
+	if (!inode)
+		goto exit;
+	error = -EXDEV;
+	if (dir->i_dev != inode->i_dev)
+		goto exit;
+	double_down(&dir->i_zombie, &old_dentry->d_inode->i_zombie);
+	error = ccs_may_create(dir, new_dentry);
+	if (error)
+		goto exit_lock;
+	error = -EPERM;
+	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
+		goto exit_lock;
+	if (!dir->i_op || !dir->i_op->link)
+		goto exit_lock;
+	error = 0;
+ exit_lock:
+	double_up(&dir->i_zombie, &old_dentry->d_inode->i_zombie);
+ exit:
+	return error;
+#endif
+}
+
+/* Permission checks from vfs_rename_dir(). */
+static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
+					 struct dentry *old_dentry,
+					 struct inode *new_dir,
+					 struct dentry *new_dentry)
+{
+	int error;
+	if (old_dentry->d_inode == new_dentry->d_inode)
+		return 0;
+	error = ccs_may_delete(old_dir, old_dentry, 1);
+	if (error)
+		return error;
+	if (new_dir->i_dev != old_dir->i_dev)
+		return -EXDEV;
+	if (!new_dentry->d_inode)
+		error = ccs_may_create(new_dir, new_dentry);
+	else
+		error = ccs_may_delete(new_dir, new_dentry, 1);
+	if (error)
+		return error;
+	if (!old_dir->i_op || !old_dir->i_op->rename)
+		return -EPERM;
+	if (new_dir != old_dir)
+		error = permission(old_dentry->d_inode, MAY_WRITE);
+	return error;
+}
+
+/* Permission checks from vfs_rename_other(). */
+static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
+					   struct dentry *old_dentry,
+					   struct inode *new_dir,
+					   struct dentry *new_dentry)
+{
+	int error;
+	if (old_dentry->d_inode == new_dentry->d_inode)
+		return 0;
+	error = ccs_may_delete(old_dir, old_dentry, 0);
+	if (error)
+		return error;
+	if (new_dir->i_dev != old_dir->i_dev)
+		return -EXDEV;
+	if (!new_dentry->d_inode)
+		error = ccs_may_create(new_dir, new_dentry);
+	else
+		error = ccs_may_delete(new_dir, new_dentry, 0);
+	if (error)
+		return error;
+	if (!old_dir->i_op || !old_dir->i_op->rename)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_rename(). */
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
+{
+	int error;
+	lock_kernel(); /* From do_rename(). */
+	if (S_ISDIR(old_dentry->d_inode->i_mode))
+		error = ccs_pre_vfs_rename_dir(old_dir, old_dentry,
+					       new_dir, new_dentry);
+	else
+		error = ccs_pre_vfs_rename_other(old_dir, old_dentry,
+						 new_dir, new_dentry);
+	unlock_kernel(); /* From do_rename(). */
+	return error;
+}
+
+#else
+
+/* Permission checks from vfs_create(). */
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_create(dir, dentry, 0);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->create)
+		return -EACCES; /* shouldn't it be ENOSYS? */
+	return 0;
+}
+
+/* Permission checks from vfs_mknod(). */
+static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_create(dir, dentry, 0);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->mknod)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_mkdir(). */
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_create(dir, dentry, 1);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->mkdir)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_rmdir(). */
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_delete(dir, dentry, 1);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->rmdir)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_unlink(). */
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_delete(dir, dentry, 0);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->unlink)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_link(). */
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
+{
+	struct inode *inode = old_dentry->d_inode;
+	int error;
+	if (!inode)
+		return -ENOENT;
+	error = ccs_may_create(dir, new_dentry, 0);
+	if (error)
+		return error;
+	if (dir->i_sb != inode->i_sb)
+		return -EXDEV;
+	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
+		return -EPERM;
+	if (!dir->i_op || !dir->i_op->link)
+		return -EPERM;
+	if (S_ISDIR(old_dentry->d_inode->i_mode))
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_symlink(). */
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+{
+	int error = ccs_may_create(dir, dentry, 0);
+	if (error)
+		return error;
+	if (!dir->i_op || !dir->i_op->symlink)
+		return -EPERM;
+	return 0;
+}
+
+/* Permission checks from vfs_rename(). */
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
+{
+	int error;
+	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
+	if (old_dentry->d_inode == new_dentry->d_inode)
+		return 0;
+	error = ccs_may_delete(old_dir, old_dentry, is_dir);
+	if (error)
+		return error;
+	if (!new_dentry->d_inode)
+		error = ccs_may_create(new_dir, new_dentry, is_dir);
+	else
+		error = ccs_may_delete(new_dir, new_dentry, is_dir);
+	if (error)
+		return error;
+	if (!old_dir->i_op || !old_dir->i_op->rename)
+		return -EPERM;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
+	if (is_dir && new_dir != old_dir)
+		error = permission(old_dentry->d_inode, MAY_WRITE, NULL);
+#else
+	if (is_dir && new_dir != old_dir)
+		error = inode_permission(old_dentry->d_inode, MAY_WRITE);
+#endif
+	return error;
+}
+
+#endif
+
+/* Main functions. */
+
 void ccs_put_name_union(struct ccs_name_union *ptr)
 {
 	if (!ptr)
@@ -1341,21 +1695,23 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "chroot" and "unmount".
  *
  * @operation: Type of operation.
+ * @dir:       Pointer to "struct inode". May be NULL.
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
  * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_path_perm(const u8 operation, struct dentry *dentry,
-			 struct vfsmount *mnt, const char *target)
+static int ccs_path_perm(const u8 operation, struct inode *dir,
+			 struct dentry *dentry, struct vfsmount *mnt,
+			 const char *target)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
 		.path1.mnt = mnt
 	};
-	int error = -ENOMEM;
+	int error = 0;
 	struct ccs_path_info buf;
 	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
@@ -1364,14 +1720,25 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
+	    == CCS_CONFIG_DISABLED)
 		goto out;
-	}
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
 	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
 	r.obj = &obj;
+	switch (operation) {
+	case CCS_TYPE_RMDIR:
+		error = ccs_pre_vfs_rmdir(dir, dentry);
+		break;
+	case CCS_TYPE_UNLINK:
+		error = ccs_pre_vfs_unlink(dir, dentry);
+		break;
+	case CCS_TYPE_SYMLINK:
+		error = ccs_pre_vfs_symlink(dir, dentry);
+		break;
+	}
+	if (error)
+		goto out;
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
 	case CCS_TYPE_CHROOT:
@@ -1401,6 +1768,7 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
  * ccs_path_number3_perm - Check permission for "mkblock" and "mkchar".
  *
  * @operation: Type of operation. (CCS_TYPE_MKCHAR or CCS_TYPE_MKBLOCK)
+ * @dir:       Pointer to "struct inode".
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
  ` @mode:      Create mode.
@@ -1408,9 +1776,9 @@ static int ccs_path_perm(const u8 operation, struct dentry *dentry,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
-				 struct vfsmount *mnt, const unsigned int mode,
-				 const unsigned int dev)
+static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
+				 struct dentry *dentry, struct vfsmount *mnt,
+				 const unsigned int mode, unsigned int dev)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1418,19 +1786,29 @@ static int ccs_path_number3_perm(const u8 operation, struct dentry *dentry,
 		.path1.mnt = mnt,
 		.dev = dev
 	};
-	int error = -ENOMEM;
+	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
+	    == CCS_CONFIG_DISABLED)
+		goto out;
+	error = ccs_pre_vfs_mknod(dir, dentry);
+	if (error)
+		goto out;
+	if (!capable(CAP_MKNOD)) {
+		error = -EPERM;
 		goto out;
 	}
-	if (!ccs_get_realpath(&buf, dentry, mnt))
+	if (!ccs_get_realpath(&buf, dentry, mnt)) {
+		error = -ENOMEM;
 		goto out;
+	}
 	r.obj = &obj;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	dev = new_decode_dev(dev);
+#endif
 	error = ccs_path_number3_perm2(&r, operation, &buf, mode, dev);
  out:
 	kfree(buf.name);
@@ -1487,15 +1865,18 @@ int ccs_rewrite_permission(struct file *filp)
  * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
  *
  * @operation: Type of operation.
+ * @dir1:      Pointer to "struct inode". May be NULL.
  * @dentry1:   Pointer to "struct dentry".
  * @mnt1:      Pointer to "struct vfsmount".
+ * @dir2:      Pointer to "struct inode". May be NULL.
  * @dentry2:   Pointer to "struct dentry".
  * @mnt2:      Pointer to "struct vfsmount".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
-			  struct vfsmount *mnt1, struct dentry *dentry2,
+static int ccs_path2_perm(const u8 operation, struct inode *dir1,
+			  struct dentry *dentry1, struct vfsmount *mnt1,
+			  struct inode *dir2, struct dentry *dentry2,
 			  struct vfsmount *mnt2)
 {
 	struct ccs_request_info r;
@@ -1524,6 +1905,14 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
 	    !ccs_get_realpath(&buf2, dentry2, mnt2))
 		goto out;
+	switch (operation) {
+	case CCS_TYPE_RENAME:
+		error = ccs_pre_vfs_rename(dir1, dentry1, dir2, dentry2);
+		break;
+	case CCS_TYPE_LINK:
+		error = ccs_pre_vfs_link(dentry1, dir2, dentry2);
+		break;
+	}
 	switch (operation) {
 	case CCS_TYPE_RENAME:
 	case CCS_TYPE_LINK:
@@ -1716,21 +2105,24 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 /**
  * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
+ * @type:   Type of operation.
+ * @dir:    Pointer to "struct inode". May be NULL.
  * @dentry: Pointer to "struct dentry".
  * @vfsmnt: Pointer to "struct vfsmount".
  * @number: Number.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
-				struct vfsmount *vfsmnt, unsigned long number)
+static int ccs_path_number_perm(const u8 type, struct inode *dir,
+				struct dentry *dentry, struct vfsmount *vfsmnt,
+				unsigned long number)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
 		.path1.mnt = vfsmnt
 	};
-	int error = -ENOMEM;
+	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
 	if (!vfsmnt || !dentry)
@@ -1738,12 +2130,26 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, NULL, ccs_pn2mac[type])
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
+	    == CCS_CONFIG_DISABLED)
+		goto out;
+	switch (type) {
+	case CCS_TYPE_CREATE:
+		error = ccs_pre_vfs_create(dir, dentry);
+		break;
+	case CCS_TYPE_MKDIR:
+		error = ccs_pre_vfs_mkdir(dir, dentry);
+		break;
+	case CCS_TYPE_MKFIFO:
+	case CCS_TYPE_MKSOCK:
+		error = ccs_pre_vfs_mknod(dir, dentry);
+		break;
+	}
+	if (error)
+		goto out;
+	if (!ccs_get_realpath(&buf, dentry, vfsmnt)) {
+		error = -ENOMEM;
 		goto out;
 	}
-	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
-		goto out;
 	r.obj = &obj;
 	if (type == CCS_TYPE_MKDIR)
 		ccs_add_slash(&buf);
@@ -1768,7 +2174,7 @@ static int ccs_path_number_perm(const u8 type, struct dentry *dentry,
 int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 			 unsigned long arg)
 {
-	return ccs_path_number_perm(CCS_TYPE_IOCTL, filp->f_dentry,
+	return ccs_path_number_perm(CCS_TYPE_IOCTL, NULL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
 }
 
@@ -1788,7 +2194,7 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 		return 0;
 	if (!ccs_capable(CCS_SYS_CHMOD))
 		return -EPERM;
-	return ccs_path_number_perm(CCS_TYPE_CHMOD, dentry, vfsmnt,
+	return ccs_path_number_perm(CCS_TYPE_CHMOD, NULL, dentry, vfsmnt,
 				    mode & S_IALLUGO);
 }
 
@@ -1811,11 +2217,11 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 	if (!ccs_capable(CCS_SYS_CHOWN))
 		return -EPERM;
 	if (user != (uid_t) -1)
-		error = ccs_path_number_perm(CCS_TYPE_CHOWN, dentry, vfsmnt,
-					     user);
+		error = ccs_path_number_perm(CCS_TYPE_CHOWN, NULL, dentry,
+					     vfsmnt, user);
 	if (!error && group != (gid_t) -1)
-		error = ccs_path_number_perm(CCS_TYPE_CHGRP, dentry, vfsmnt,
-					     group);
+		error = ccs_path_number_perm(CCS_TYPE_CHGRP, NULL, dentry,
+					     vfsmnt, group);
 	return error;
 }
 
@@ -1843,12 +2249,13 @@ int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
 		return -EPERM;
 #endif
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
-	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->path.dentry,
-			      new_path->path.mnt, old_path->path.dentry,
+	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, NULL, new_path->path.dentry,
+			      new_path->path.mnt, NULL, old_path->path.dentry,
 			      old_path->path.mnt);
 #else
-	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, new_path->dentry,
-			      new_path->mnt, old_path->dentry, old_path->mnt);
+	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, NULL, new_path->dentry,
+			      new_path->mnt, NULL, old_path->dentry,
+			      old_path->mnt);
 #endif
 }
 
@@ -1867,10 +2274,11 @@ int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
 		return -EPERM;
 #endif
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
-	return ccs_path_perm(CCS_TYPE_CHROOT, path->path.dentry,
+	return ccs_path_perm(CCS_TYPE_CHROOT, NULL, path->path.dentry,
 			     path->path.mnt, NULL);
 #else
-	return ccs_path_perm(CCS_TYPE_CHROOT, path->dentry, path->mnt, NULL);
+	return ccs_path_perm(CCS_TYPE_CHROOT, NULL, path->dentry, path->mnt,
+			     NULL);
 #endif
 }
 
@@ -1888,7 +2296,7 @@ int ccs_umount_permission(struct vfsmount *mnt, int flags)
 	if (!ccs_capable(CCS_SYS_UMOUNT))
 		return -EPERM;
 #endif
-	return ccs_path_perm(CCS_TYPE_UMOUNT, mnt->mnt_root, mnt, NULL);
+	return ccs_path_perm(CCS_TYPE_UMOUNT, NULL, mnt->mnt_root, mnt, NULL);
 }
 
 /**
@@ -1958,358 +2366,6 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 }
 
 /*
- * Below part contains copy of some of VFS helper functions.
- *
- * Since TOMOYO Linux requires "struct vfsmount" parameter to calculate
- * an absolute pathname of the requested "struct dentry" parameter
- * but the VFS helper functions don't receive "struct vfsmount" parameter,
- * TOMOYO Linux checks permission outside VFS helper functions.
- * To keep the DAC's permission checks are performed before the
- * TOMOYO Linux's permission checks are performed, I'm manually copying
- * these functions that performs the DAC's permission checks from fs/namei.c.
- *
- * The approach to obtain "struct vfsmount" parameter from
- * the "struct task_struct" doesn't work because it triggers deadlock.
- */
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-
-/* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
-{
-	int error;
-	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
-	if (!error && (!dir->i_op || !dir->i_op->create))
-		error = -EACCES;
-	up(&dir->i_zombie);
-	return error;
-}
-
-/* Permission checks from vfs_mknod(). */
-static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
-{
-	int error;
-	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
-	if (!error && (!dir->i_op || !dir->i_op->mknod))
-		error = -EPERM;
-	up(&dir->i_zombie);
-	return error;
-}
-
-/* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
-{
-	int error;
-	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
-	if (!error && (!dir->i_op || !dir->i_op->mkdir))
-		error = -EPERM;
-	up(&dir->i_zombie);
-	return error;
-}
-
-/* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_delete(dir, dentry, 1);
-	if (!error && (!dir->i_op || !dir->i_op->rmdir))
-		error = -EPERM;
-	return error;
-}
-
-/* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
-	int error;
-	down(&dir->i_zombie);
-	error = ccs_may_delete(dir, dentry, 0);
-	if (!error && (!dir->i_op || !dir->i_op->unlink))
-		error = -EPERM;
-	up(&dir->i_zombie);
-	return error;
-#else
-	int error;
-	struct inode *inode;
-	error = ccs_may_delete(dir, dentry, 0);
-	if (error)
-		return error;
-	inode = dentry->d_inode;
-	atomic_inc(&inode->i_count);
-	double_down(&dir->i_zombie, &inode->i_zombie);
-	error = -EPERM;
-	if (dir->i_op && dir->i_op->unlink)
-		error = 0;
-	double_up(&dir->i_zombie, &inode->i_zombie);
-	iput(inode);
-	return error;
-#endif
-}
-
-/* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
-{
-	int error;
-	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
-	if (error)
-		goto exit_lock;
-	if (!dir->i_op || !dir->i_op->symlink)
-		error = -EPERM;
- exit_lock:
-	up(&dir->i_zombie);
-	return error;
-}
-
-/* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
-{
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
-	struct inode *inode;
-	int error;
-	down(&dir->i_zombie);
-	error = -ENOENT;
-	inode = old_dentry->d_inode;
-	if (!inode)
-		goto exit_lock;
-	error = ccs_may_create(dir, new_dentry);
-	if (error)
-		goto exit_lock;
-	error = -EXDEV;
-	if (dir->i_dev != inode->i_dev)
-		goto exit_lock;
-	error = -EPERM;
-	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-		goto exit_lock;
-	if (!dir->i_op || !dir->i_op->link)
-		goto exit_lock;
-	error = 0;
- exit_lock:
-	up(&dir->i_zombie);
-	return error;
-#else
-	struct inode *inode;
-	int error;
-	error = -ENOENT;
-	inode = old_dentry->d_inode;
-	if (!inode)
-		goto exit;
-	error = -EXDEV;
-	if (dir->i_dev != inode->i_dev)
-		goto exit;
-	double_down(&dir->i_zombie, &old_dentry->d_inode->i_zombie);
-	error = ccs_may_create(dir, new_dentry);
-	if (error)
-		goto exit_lock;
-	error = -EPERM;
-	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-		goto exit_lock;
-	if (!dir->i_op || !dir->i_op->link)
-		goto exit_lock;
-	error = 0;
- exit_lock:
-	double_up(&dir->i_zombie, &old_dentry->d_inode->i_zombie);
- exit:
-	return error;
-#endif
-}
-
-/* Permission checks from vfs_rename_dir(). */
-static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
-					 struct dentry *old_dentry,
-					 struct inode *new_dir,
-					 struct dentry *new_dentry)
-{
-	int error;
-	if (old_dentry->d_inode == new_dentry->d_inode)
-		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, 1);
-	if (error)
-		return error;
-	if (new_dir->i_dev != old_dir->i_dev)
-		return -EXDEV;
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, 1);
-	if (error)
-		return error;
-	if (!old_dir->i_op || !old_dir->i_op->rename)
-		return -EPERM;
-	if (new_dir != old_dir)
-		error = permission(old_dentry->d_inode, MAY_WRITE);
-	return error;
-}
-
-/* Permission checks from vfs_rename_other(). */
-static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
-					   struct dentry *old_dentry,
-					   struct inode *new_dir,
-					   struct dentry *new_dentry)
-{
-	int error;
-	if (old_dentry->d_inode == new_dentry->d_inode)
-		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, 0);
-	if (error)
-		return error;
-	if (new_dir->i_dev != old_dir->i_dev)
-		return -EXDEV;
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, 0);
-	if (error)
-		return error;
-	if (!old_dir->i_op || !old_dir->i_op->rename)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
-{
-	int error;
-	lock_kernel(); /* From do_rename(). */
-	if (S_ISDIR(old_dentry->d_inode->i_mode))
-		error = ccs_pre_vfs_rename_dir(old_dir, old_dentry,
-					       new_dir, new_dentry);
-	else
-		error = ccs_pre_vfs_rename_other(old_dir, old_dentry,
-						 new_dir, new_dentry);
-	unlock_kernel(); /* From do_rename(). */
-	return error;
-}
-
-#else
-
-/* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_create(dir, dentry, 0);
-	if (error)
-		return error;
-	if (!dir->i_op || !dir->i_op->create)
-		return -EACCES; /* shouldn't it be ENOSYS? */
-	return 0;
-}
-
-/* Permission checks from vfs_mknod(). */
-static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry,
-			     int mode)
-{
-	int error = ccs_may_create(dir, dentry, 0);
-	if (error)
-		return error;
-	if ((S_ISCHR(mode) || S_ISBLK(mode)) && !capable(CAP_MKNOD))
-		return -EPERM;
-	if (!dir->i_op || !dir->i_op->mknod)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_create(dir, dentry, 1);
-	if (error)
-		return error;
-	if (!dir->i_op || !dir->i_op->mkdir)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_delete(dir, dentry, 1);
-	if (error)
-		return error;
-	if (!dir->i_op || !dir->i_op->rmdir)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_delete(dir, dentry, 0);
-	if (error)
-		return error;
-	if (!dir->i_op || !dir->i_op->unlink)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
-{
-	struct inode *inode = old_dentry->d_inode;
-	int error;
-	if (!inode)
-		return -ENOENT;
-	error = ccs_may_create(dir, new_dentry, 0);
-	if (error)
-		return error;
-	if (dir->i_sb != inode->i_sb)
-		return -EXDEV;
-	if (IS_APPEND(inode) || IS_IMMUTABLE(inode))
-		return -EPERM;
-	if (!dir->i_op || !dir->i_op->link)
-		return -EPERM;
-	if (S_ISDIR(old_dentry->d_inode->i_mode))
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
-{
-	int error = ccs_may_create(dir, dentry, 0);
-	if (error)
-		return error;
-	if (!dir->i_op || !dir->i_op->symlink)
-		return -EPERM;
-	return 0;
-}
-
-/* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
-{
-	int error;
-	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
-	if (old_dentry->d_inode == new_dentry->d_inode)
-		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, is_dir);
-	if (error)
-		return error;
-	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry, is_dir);
-	else
-		error = ccs_may_delete(new_dir, new_dentry, is_dir);
-	if (error)
-		return error;
-	if (!old_dir->i_op || !old_dir->i_op->rename)
-		return -EPERM;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 27)
-	if (is_dir && new_dir != old_dir)
-		error = permission(old_dentry->d_inode, MAY_WRITE, NULL);
-#else
-	if (is_dir && new_dir != old_dir)
-		error = inode_permission(old_dentry->d_inode, MAY_WRITE);
-#endif
-	return error;
-}
-
-#endif
-
-/*
  * Permission checks from vfs_mknod().
  *
  * This function is exported because
@@ -2319,109 +2375,86 @@ int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
 			 struct vfsmount *mnt, const unsigned int mode,
 			 unsigned int dev)
 {
-	int error;
-	if (S_ISCHR(mode) && !ccs_capable(CCS_CREATE_CHAR_DEV))
-		return -EPERM;
-	if (S_ISBLK(mode) && !ccs_capable(CCS_CREATE_BLOCK_DEV))
-		return -EPERM;
-	if (S_ISFIFO(mode) && !ccs_capable(CCS_CREATE_FIFO))
-		return -EPERM;
-	if (S_ISSOCK(mode) && !ccs_capable(CCS_CREATE_UNIX_SOCKET))
-		return -EPERM;
-	switch (mode & S_IFMT) {
-	case 0:
-	case S_IFREG:
-		error = ccs_pre_vfs_create(dir, dentry);
-		if (!error)
-			error = ccs_path_number_perm(CCS_TYPE_CREATE, dentry,
-						     mnt, mode & S_IALLUGO);
-		return error;
-	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	error = ccs_pre_vfs_mknod(dir, dentry);
-#else
-	error = ccs_pre_vfs_mknod(dir, dentry, mode);
-	dev = new_decode_dev(dev);
-#endif
-	if (error)
-		return error;
+	int error = 0;
+	const unsigned int perm = mode & S_IALLUGO;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dentry, mnt,
-					      mode & S_IALLUGO, dev);
+		if (!ccs_capable(CCS_CREATE_CHAR_DEV))
+			error = -EPERM;
+		else
+			error = ccs_path_number3_perm(CCS_TYPE_MKCHAR, dir,
+						      dentry, mnt, perm, dev);
 		break;
 	case S_IFBLK:
-		error = ccs_path_number3_perm(CCS_TYPE_MKBLOCK, dentry, mnt,
-					      mode & S_IALLUGO, dev);
+		if (!ccs_capable(CCS_CREATE_BLOCK_DEV))
+			error = -EPERM;
+		else
+			error = ccs_path_number3_perm(CCS_TYPE_MKBLOCK, dir,
+						      dentry, mnt, perm, dev);
 		break;
 	case S_IFIFO:
-		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dentry, mnt,
-					     mode & S_IALLUGO);
+		if (!ccs_capable(CCS_CREATE_FIFO))
+			error = -EPERM;
+		else
+			error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dir,
+						     dentry, mnt, perm);
 		break;
 	case S_IFSOCK:
-		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dentry, mnt,
-					     mode & S_IALLUGO);
+		if (!ccs_capable(CCS_CREATE_UNIX_SOCKET))
+			error = -EPERM;
+		else
+			error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dir,
+						     dentry, mnt, perm);
+		break;
+	case 0:
+	case S_IFREG:
+		error = ccs_path_number_perm(CCS_TYPE_CREATE, dir, dentry, mnt,
+					     perm);
 		break;
 	}
 	return error;
 }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 EXPORT_SYMBOL(ccs_mknod_permission); /* for net/unix/af_unix.c */
+#endif
 
 /* Permission checks for vfs_mkdir(). */
 int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
 			 struct vfsmount *mnt, unsigned int mode)
 {
-	int error = ccs_pre_vfs_mkdir(dir, dentry);
-	if (!error)
-		error = ccs_path_number_perm(CCS_TYPE_MKDIR, dentry, mnt,
-					     mode);
-	return error;
+	return ccs_path_number_perm(CCS_TYPE_MKDIR, dir, dentry, mnt, mode);
 }
 
 /* Permission checks for vfs_rmdir(). */
 int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
 			 struct vfsmount *mnt)
 {
-	int error = ccs_pre_vfs_rmdir(dir, dentry);
-	if (!error)
-		error = ccs_path_perm(CCS_TYPE_RMDIR, dentry, mnt,
-				      NULL);
-	return error;
+	return ccs_path_perm(CCS_TYPE_RMDIR, dir, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_unlink(). */
 int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 			  struct vfsmount *mnt)
 {
-	int error;
 	if (!ccs_capable(CCS_SYS_UNLINK))
 		return -EPERM;
-	error = ccs_pre_vfs_unlink(dir, dentry);
-	if (!error)
-		error = ccs_path_perm(CCS_TYPE_UNLINK, dentry, mnt,
-				      NULL);
-	return error;
+	return ccs_path_perm(CCS_TYPE_UNLINK, dir, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_symlink(). */
 int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 			   struct vfsmount *mnt, const char *from)
 {
-	int error;
 	if (!ccs_capable(CCS_SYS_SYMLINK))
 		return -EPERM;
-	error = ccs_pre_vfs_symlink(dir, dentry);
-	if (!error)
-		error = ccs_path_perm(CCS_TYPE_SYMLINK, dentry, mnt,
-				      from);
-	return error;
+	return ccs_path_perm(CCS_TYPE_SYMLINK, dir, dentry, mnt, from);
 }
 
 /* Permission checks for notify_change(). */
 int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
 			    loff_t length, unsigned int time_attrs)
 {
-	return ccs_path_perm(CCS_TYPE_TRUNCATE, dentry, mnt, NULL);
+	return ccs_path_perm(CCS_TYPE_TRUNCATE, NULL, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */
@@ -2429,28 +2462,20 @@ int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
 			  struct inode *new_dir, struct dentry *new_dentry,
 			  struct vfsmount *mnt)
 {
-	int error;
 	if (!ccs_capable(CCS_SYS_RENAME))
 		return -EPERM;
-	error = ccs_pre_vfs_rename(old_dir, old_dentry, new_dir, new_dentry);
-	if (!error)
-		error = ccs_path2_perm(CCS_TYPE_RENAME, old_dentry, mnt,
-				       new_dentry, mnt);
-	return error;
+	return ccs_path2_perm(CCS_TYPE_RENAME, old_dir, old_dentry, mnt,
+			      new_dir, new_dentry, mnt);
 }
 
 /* Permission checks for vfs_link(). */
 int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 			struct dentry *new_dentry, struct vfsmount *mnt)
 {
-	int error;
 	if (!ccs_capable(CCS_SYS_LINK))
 		return -EPERM;
-	error = ccs_pre_vfs_link(old_dentry, new_dir, new_dentry);
-	if (!error)
-		error = ccs_path2_perm(CCS_TYPE_LINK, old_dentry, mnt,
-				       new_dentry, mnt);
-	return error;
+	return ccs_path2_perm(CCS_TYPE_LINK, NULL, old_dentry, mnt,
+			      new_dir, new_dentry, mnt);
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
