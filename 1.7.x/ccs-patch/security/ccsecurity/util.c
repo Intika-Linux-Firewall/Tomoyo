@@ -1164,6 +1164,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
+		ccs_write_audit_log(false, r, CCS_KEYWORD_QUOTA_EXCEEDED "\n");
 		printk(KERN_WARNING "WARNING: "
 		       "Domain '%s' has so many ACLs to hold. "
 		       "Stopped learning mode.\n", domain->domainname->name);

@@ -661,13 +661,14 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		ccs_audit_domain_creation_log(domain);
  done:
 	if (!domain) {
-		printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
-		       ee->tmp);
-		if (r->mode == CCS_CONFIG_ENFORCING)
-			retval = -EPERM;
-		else {
-			retval = 0;
+		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
+		if (!r->domain->domain_transition_failed) {
 			r->domain->domain_transition_failed = true;
+			ccs_write_audit_log(false, r,
+					    CCS_KEYWORD_TRANSITION_FAILED
+					    "\n");
+			printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
+			       ee->tmp);
 		}
 	} else {
 		retval = 0;
