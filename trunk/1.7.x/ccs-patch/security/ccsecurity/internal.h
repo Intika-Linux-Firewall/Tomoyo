@@ -279,6 +279,8 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
+#define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
+#define CCS_KEYWORD_TRANSITION_FAILED         "transition_failed"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
 

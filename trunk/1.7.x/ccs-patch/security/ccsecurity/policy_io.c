@@ -960,6 +960,14 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		domain->ignore_global_allow_env = !is_delete;
 		return 0;
 	}
+	if (!strcmp(data, CCS_KEYWORD_QUOTA_EXCEEDED)) {
+		domain->quota_warned = !is_delete;
+		return 0;
+	}
+	if (!strcmp(data, CCS_KEYWORD_TRANSITION_FAILED)) {
+		domain->domain_transition_failed = !is_delete;
+		return 0;
+	}
 	cp = ccs_find_condition_part(data);
 	if (cp) {
 		cond = ccs_get_condition(cp);
@@ -1659,9 +1667,9 @@ static void ccs_read_domain_policy(struct ccs_io_buffer *head)
 			continue;
 		/* Print domainname and flags. */
 		if (domain->quota_warned)
-			quota_exceeded = "quota_exceeded\n";
+			quota_exceeded = CCS_KEYWORD_QUOTA_EXCEEDED "\n";
 		if (domain->domain_transition_failed)
-			transition_failed = "transition_failed\n";
+			transition_failed = CCS_KEYWORD_TRANSITION_FAILED "\n";
 		if (domain->ignore_global_allow_read)
 			ignore_global_allow_read
 				= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
