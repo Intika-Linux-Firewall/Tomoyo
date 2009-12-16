@@ -19,8 +19,6 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 #include <linux/dcache.h>
 #include <linux/namei.h>
-#else
-#include <linux/fs.h>
 #endif
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 
