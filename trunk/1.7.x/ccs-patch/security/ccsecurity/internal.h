@@ -32,6 +32,11 @@
 #endif
 #include <linux/in6.h>
 #include <linux/ccsecurity.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#include <linux/err.h>
+#else
+#include <linux/fs.h>
+#endif
 #include "compat.h"
 
 /* Index numbers for Access Controls. */
