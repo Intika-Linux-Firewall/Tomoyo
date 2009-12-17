@@ -5,7 +5,7 @@ CD_LABEL="CentOS-5.4-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.4-i386-TOMOYO-LiveCD.iso
 ORIGINAL_VERSION=2.6.18-164.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-164\.el5
-KERNEL_VERSION=2.6.18-164.6.1.el5_ccs # tomoyo_1.7.1
+KERNEL_VERSION=2.6.18-164.9.1.el5_ccs # tomoyo_1.7.1
 
 set -v
 
@@ -23,6 +23,7 @@ echo '<kernel>' > ext3/etc/ccs/domain_policy.conf
 echo 'use_profile 1' >> ext3/etc/ccs/domain_policy.conf
 
 mkdir -p -m 700 ext3/var/log/tomoyo
+grep -q mount || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
 grep -q ccs-auditd ext3/etc/rc.d/rc.local || echo '/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject.log' >> ext3/etc/rc.d/rc.local
 
 cd ext3/usr/share/doc/ || die "Can't change directory."
@@ -32,7 +33,7 @@ mv centos5-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@../startup\.css@startup.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
 cp -p resources/startup.css ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
-cp -p resources/tomoyo-*.desktop ext3/etc/skel/ || die "Can't copy shortcut."
+cp -p resources/tomoyo-*.desktop resources/install-japanese-font.desktop ext3/etc/skel/ || die "Can't copy shortcut."
 
 rm -f ext3/*.rpm
 rm -f ext3/package-install.sh
@@ -45,7 +46,7 @@ if ! grep -q TOMOYO ${SETUP_SCRIPT}
     then
     (
 	echo '# --- TOMOYO Linux Project (begin) ---'
-	echo 'mv /home/centos/tomoyo-*.desktop /home/centos/Desktop/'
+	echo 'mv /home/centos/tomoyo-*.desktop /home/centos/install-japanese-font.desktop /home/centos/Desktop/'
 	echo '# --- TOMOYO Linux Project (end) ---'
     ) >> ${SETUP_SCRIPT}
 fi
