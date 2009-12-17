@@ -1772,7 +1772,7 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
  * @dir:       Pointer to "struct inode".
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
- ` @mode:      Create mode.
+ * @mode:      Create mode.
  * @dev:       Device number.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1802,14 +1802,12 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
 	error = ccs_pre_vfs_mknod(dir, dentry);
 	if (error)
 		goto out;
-	if (!capable(CAP_MKNOD)) {
-		error = -EPERM;
+	error = -EPERM;
+	if (!capable(CAP_MKNOD))
 		goto out;
-	}
-	if (!ccs_get_realpath(&buf, dentry, mnt)) {
-		error = -ENOMEM;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, mnt))
 		goto out;
-	}
 	r.obj = &obj;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	dev = new_decode_dev(dev);
@@ -1837,7 +1835,7 @@ int ccs_rewrite_permission(struct file *filp)
 		.path1.dentry = filp->f_dentry,
 		.path1.mnt = filp->f_vfsmnt
 	};
-	int error = -ENOMEM;
+	int error = 0;
 	bool is_enforce = false;
 	struct ccs_path_info buf;
 	int idx;
@@ -1846,19 +1844,16 @@ int ccs_rewrite_permission(struct file *filp)
 	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
+	    == CCS_CONFIG_DISABLED)
 		goto out;
-	}
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
+	r.obj = &obj;
+	error = -ENOMEM;
 	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
-	if (!ccs_is_no_rewrite_file(&buf)) {
-		error = 0;
-		goto out;
-	}
-	r.obj = &obj;
-	error = ccs_path_permission(&r, CCS_TYPE_REWRITE, &buf);
+	error = 0;
+	if (ccs_is_no_rewrite_file(&buf))
+		error = ccs_path_permission(&r, CCS_TYPE_REWRITE, &buf);
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
