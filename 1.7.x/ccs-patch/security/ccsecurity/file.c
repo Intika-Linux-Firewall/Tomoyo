@@ -1714,16 +1714,15 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	bool is_enforce = false;
 	struct ccs_path_info symlink_target;
 	int idx;
+	if (!mnt)
+		return 0;
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
+	if (ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
 	    == CCS_CONFIG_DISABLED)
 		goto out;
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
-	if (!ccs_get_realpath(&buf, dentry, mnt))
-		goto out;
-	r.obj = &obj;
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
 		error = ccs_pre_vfs_rmdir(dir, dentry);
@@ -1737,6 +1736,10 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	}
 	if (error)
 		goto out;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, mnt))
+		goto out;
+	r.obj = &obj;
 	switch (operation) {
 	case CCS_TYPE_RMDIR:
 	case CCS_TYPE_CHROOT:
@@ -1786,12 +1789,16 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
 	};
 	int error = 0;
 	struct ccs_path_info buf;
+	bool is_enforce = false;
 	int idx;
+	if (!mnt)
+		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt || ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
+	if (ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
 	    == CCS_CONFIG_DISABLED)
 		goto out;
+	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
 	error = ccs_pre_vfs_mknod(dir, dentry);
 	if (error)
 		goto out;
@@ -1811,7 +1818,7 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
  out:
 	kfree(buf.name);
 	ccs_read_unlock(idx);
-	if (r.mode != CCS_CONFIG_ENFORCING)
+	if (!is_enforce)
 		error = 0;
 	return error;
 }
@@ -1834,10 +1841,11 @@ int ccs_rewrite_permission(struct file *filp)
 	bool is_enforce = false;
 	struct ccs_path_info buf;
 	int idx;
+	if (!filp->f_vfsmnt)
+		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (!filp->f_vfsmnt ||
-	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
+	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
 	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
@@ -1878,7 +1886,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 			  struct vfsmount *mnt2)
 {
 	struct ccs_request_info r;
-	int error = -ENOMEM;
+	int error = 0;
 	const char *msg = ccs_path22keyword(operation);
 	struct ccs_path_info buf1;
 	struct ccs_path_info buf2;
@@ -1890,19 +1898,15 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		.path2.mnt = mnt2
 	};
 	int idx;
+	if (!mnt1 || !mnt2)
+		return 0;
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
-	if (!mnt1 || !mnt2 ||
-	    ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
-	    == CCS_CONFIG_DISABLED) {
-		error = 0;
+	if (ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
+	    == CCS_CONFIG_DISABLED)
 		goto out;
-	}
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
-	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
-	    !ccs_get_realpath(&buf2, dentry2, mnt2))
-		goto out;
 	switch (operation) {
 	case CCS_TYPE_RENAME:
 		error = ccs_pre_vfs_rename(dir1, dentry1, dir2, dentry2);
@@ -1911,6 +1915,12 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		error = ccs_pre_vfs_link(dentry1, dir2, dentry2);
 		break;
 	}
+	if (error)
+		goto out;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf1, dentry1, mnt1) ||
+	    !ccs_get_realpath(&buf2, dentry2, mnt2))
+		goto out;
 	switch (operation) {
 	case CCS_TYPE_RENAME:
 	case CCS_TYPE_LINK:
@@ -2144,10 +2154,9 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 	}
 	if (error)
 		goto out;
-	if (!ccs_get_realpath(&buf, dentry, vfsmnt)) {
-		error = -ENOMEM;
+	error = -ENOMEM;
+	if (!ccs_get_realpath(&buf, dentry, vfsmnt))
 		goto out;
-	}
 	r.obj = &obj;
 	if (type == CCS_TYPE_MKDIR)
 		ccs_add_slash(&buf);

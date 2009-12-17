@@ -2281,13 +2281,6 @@ Fix 2009/12/12
 
 Fix 2009/12/15
 
-    @ Don't check DAC permission if disabled mode.
-
-      I was checking DAC permissions regarding directory entry modification
-      operations (e.g. mkdir()) even if mode=disabled . It is a waste of CPU
-      resource to check DAC permissions when MAC permissions are not checked.
-      Thus, I modified to skip DAC permission checks if mode=disabled .
-
     @ Allow deleting "quota_exceeded" and "transition_failed" entries.
 
       To notify users of "this domain has too many entries to hold" and "some
@@ -2305,3 +2298,10 @@ Fix 2009/12/17
       between TOMOYO 1.7.0 and 1.7.1 , I made a mistake which made TOMOYO to
       check allow_read permission of the programs specified by execute_handler
       and denied_execute_handler keywords.
+
+    @ Don't check DAC permission if disabled mode.
+
+      I was checking DAC permissions regarding directory entry modification
+      operations (e.g. mkdir()) even if mode=disabled . It is a waste of CPU
+      resource to check DAC permissions when MAC permissions are not checked.
+      Thus, I modified to skip DAC permission checks if mode=disabled .
