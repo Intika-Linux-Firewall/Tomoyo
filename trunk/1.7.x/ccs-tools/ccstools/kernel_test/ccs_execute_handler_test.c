@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2009/12/17
  *
  */
 #include "include.h"
@@ -74,6 +74,7 @@ int main(int raw_argc, char *raw_argv[])
 		return 1;
 	cp++;
 	fprintf(domain_fp, "execute_handler %s\n", cp);
+	set_profile(3, "file::open");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: execute handler succeeded",
 				 NULL };
@@ -82,6 +83,7 @@ int main(int raw_argc, char *raw_argv[])
 		_exit(1);
 	}
 	wait(&error);
+	set_profile(0, "file::open");
 	error = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
 	if (error) {
 		printf("BUG: execute handler failed\n");
@@ -93,6 +95,7 @@ int main(int raw_argc, char *raw_argv[])
 	fprintf(domain_fp, "%s %s\n", self_domain, cp);
 	fprintf(domain_fp, "use_profile 0\n");
 	set_profile(3, "file::execute");
+	set_profile(3, "file::open");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: denied execute handler succeeded",
 				 NULL };
@@ -101,6 +104,7 @@ int main(int raw_argc, char *raw_argv[])
 		_exit(1);
 	}
 	wait(&error);
+	set_profile(0, "file::open");
 	error = WIFEXITED(error) ? WEXITSTATUS(error) : -1;
 	if (error) {
 		printf("BUG: denied execute handler failed\n");
