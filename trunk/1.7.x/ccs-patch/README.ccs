@@ -2296,3 +2296,12 @@ Fix 2009/12/15
       These messages were not deletable. But it is more convenient for users
       to be notified again if such events occurred again after tuning policy.
       Thus, I made these messages deletable.
+
+Fix 2009/12/17
+
+    @ Don't check read permission in ccs_try_alt_exec().
+
+      While I was trying to remove ccs_execve_list list for GC optimization
+      between 1.7.0 and 1.7.1 , a regression which caused TOMOYO to require
+      allow_read permission of the programs specified by execute_handler and
+      denied_execute_handler keywords was introduced.
