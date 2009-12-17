@@ -1181,13 +1181,6 @@ int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **eep)
 	ee->previous_domain = task->ccs_domain_info;
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
-	/* Tell GC that I started execve(). */
-	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
-	/*
-	 * Make task->ccs_flags visible to GC before changing
-	 * task->ccs_domain_info .
-	 */
-	smp_mb();
 	*eep = ee;
 	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FILE_EXECUTE);
 	ee->r.ee = ee;
@@ -1212,6 +1205,16 @@ int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **eep)
  ok:
 	if (retval < 0)
 		goto out;
+	/*
+	 * Tell GC that I started execve().
+	 * Also, tell open_exec() to check read permission.
+	 */
+	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
+	/*
+	 * Make task->ccs_flags visible to GC before changing
+	 * task->ccs_domain_info .
+	 */
+	smp_mb();
 	/*
 	 * Proceed to the next domain in order to allow reaching via PID.
 	 * It will be reverted if execve() failed. Reverting is not good.
