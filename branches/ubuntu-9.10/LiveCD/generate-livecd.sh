@@ -41,9 +41,9 @@ cd squash/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-step/ubuntu9.10-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
 mv ubuntu9.10-live/ tomoyo || die "Can't create directory."
-sed -i -e 's@../startup\.css@startup.css@' -- tomoyo/index.html.* || die "Can't copy document."
+sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
-cp -p resources/startup.css squash/usr/share/doc/tomoyo/ || die "Can't copy document."
+cp -p resources/tomoyo.css squash/usr/share/doc/tomoyo/ || die "Can't copy document."
 cp -p resources/tomoyo-*.desktop squash/etc/skel/ || die "Can't copy shortcut."
 
 rm -f squash/var/cache/apt/*.bin
