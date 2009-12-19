@@ -22,15 +22,15 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.1-20091208.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091219.tar.gz ]
 then
     mkdir -p ccs-patch.tmp || die "Can't create directory."
     cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3240&root=tomoyo' || die "Can't download hotfix."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&root=tomoyo' || die "Can't download hotfix."
     tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
     patch -p1 < hotfix.patch || die "Can't apply hotfix."
     rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091208.tar.gz -- * || die "Can't create tar ball."
+    tar -zcf ../ccs-patch-1.7.1-20091219.tar.gz -- * || die "Can't create tar ball."
     cd ../ || die "Can't change directory."
     rm -fR ccs-patch.tmp  || die "Can't delete directory."
 fi
@@ -73,7 +73,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.1-20091208.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.1-20091219.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
 +
  cp %{SOURCE10} Documentation/
