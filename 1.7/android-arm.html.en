@@ -68,7 +68,7 @@ cd common/<br>
 wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz<br>
 tar -zxf ccs-patch-1.7.1-20091111.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
-wget -O patches/hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3240&amp;root=tomoyo'<br>
+wget -O patches/hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&amp;root=tomoyo'<br>
 patch -sp1 &lt; patches/hotfix.patch<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig<br>
