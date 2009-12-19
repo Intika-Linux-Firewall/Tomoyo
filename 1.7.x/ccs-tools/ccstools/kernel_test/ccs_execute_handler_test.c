@@ -74,6 +74,9 @@ int main(int raw_argc, char *raw_argv[])
 		return 1;
 	cp++;
 	fprintf(domain_fp, "execute_handler %s\n", cp);
+	fprintf(domain_fp, "%s %s\n", self_domain, cp);
+	fprintf(domain_fp, "use_profile 0\n");
+	fflush(domain_fp);
 	set_profile(3, "file::open");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: execute handler succeeded",
@@ -92,8 +95,6 @@ int main(int raw_argc, char *raw_argv[])
 	fprintf(domain_fp, "delete execute_handler %s\n", cp);
 	fprintf(domain_fp, "denied_execute_handler %s\n", cp);
 	fprintf(domain_fp, "delete allow_execute /bin/echo\n");
-	fprintf(domain_fp, "%s %s\n", self_domain, cp);
-	fprintf(domain_fp, "use_profile 0\n");
 	set_profile(3, "file::execute");
 	set_profile(3, "file::open");
 	if (fork() == 0) {
