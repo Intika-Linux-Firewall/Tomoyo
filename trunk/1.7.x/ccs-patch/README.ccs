@@ -2305,3 +2305,17 @@ Fix 2009/12/17
       operations (e.g. mkdir()) even if mode=disabled . It is a waste of CPU
       resource to check DAC permissions when MAC permissions are not checked.
       Thus, I modified to skip DAC permission checks if mode=disabled .
+
+Fix 2009/12/19
+
+    @ Fix memory leak in ccs_environ().
+
+      When I fixed a bug that a permission like
+
+        allow_env PATH if exec.envp["PATH"]="/"
+
+      was not working (2009/11/02), I allocated two buffers but only one buffer
+      was released.
+
+      This bug will trigger OOM killer if environment variable checking is
+      enabled.
