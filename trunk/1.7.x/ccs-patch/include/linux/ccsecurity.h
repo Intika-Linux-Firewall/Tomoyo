@@ -251,7 +251,8 @@ static inline int ccs_unlink_permission(struct inode *dir,
 
 static inline int ccs_symlink_permission(struct inode *dir,
 					 struct dentry *dentry,
-					 struct vfsmount *mnt, char *from)
+					 struct vfsmount *mnt,
+					 const char *from)
 {
 	return 0;
 }
