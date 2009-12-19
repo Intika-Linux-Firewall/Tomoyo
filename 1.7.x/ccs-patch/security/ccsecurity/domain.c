@@ -758,6 +758,7 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 	if (r->mode != 3)
 		error = 0;
 	kfree(env_page.data);
+	kfree(arg_ptr);
 	return error;
 }
 
