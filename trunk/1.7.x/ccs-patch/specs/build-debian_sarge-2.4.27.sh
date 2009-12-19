@@ -34,15 +34,15 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.1-20091208.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091219.tar.gz ]
 then
     mkdir -p ccs-patch.tmp || die "Can't create directory."
     cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3240&root=tomoyo' || die "Can't download hotfix."
+    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&root=tomoyo' || die "Can't download hotfix."
     tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
     patch -p1 < hotfix.patch || die "Can't apply hotfix."
     rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091208.tar.gz -- * || die "Can't create tar ball."
+    tar -zcf ../ccs-patch-1.7.1-20091219.tar.gz -- * || die "Can't create tar ball."
     cd ../ || die "Can't change directory."
     rm -fR ccs-patch.tmp  || die "Can't delete directory."
 fi
@@ -57,7 +57,7 @@ apt-get source kernel-image-2.4.27-4-686-smp || die "Can't install kernel source
 
 # Apply patches and create kernel config.
 cd kernel-image-2.4.27-i386-2.4.27/ || die "Can't chdir to kernel-image-2.4.27-i386-2.4.27/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091208.tar.gz config.ccs || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091219.tar.gz config.ccs || die "Can't extract patch."
 cat config/686-smp config.ccs > config/686-smp-ccs || die "Can't create config."
 cat config.ccs >> config/default || die "Can't create config."
 rm -f config.ccs
@@ -67,7 +67,7 @@ debian/rules flavours=686-smp-ccs || die "Can't run rules."
 for i in build-686-smp-ccs kernel-source-2.4.27
   do 
   cd $i/ || die "Can't chdir to $i/ ."
-  tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091208.tar.gz || die "Can't extract patch."
+  tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091219.tar.gz || die "Can't extract patch."
   patch -p1 < patches/ccs-patch-2.4.27-debian-sarge.diff || die "Can't apply patch."
   rm -fR patches/ specs/
   cd ../ || die "Can't chdir to ../ ."
