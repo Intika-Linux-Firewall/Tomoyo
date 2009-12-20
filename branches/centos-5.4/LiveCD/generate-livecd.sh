@@ -80,7 +80,7 @@ cd ${LIVECD_HOME}
 echo "********** Updating root filesystem for LiveCD. **********"
 
 rm squash/LiveOS/ext3fs.img || die "Can't delete old image file."
-dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || "die Can't create image file."
+dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't create image file."
 mke2fs -j -m 0 -L "CentOS-5.4-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
 tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
 mount -o loop,noatime,nodiratime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
