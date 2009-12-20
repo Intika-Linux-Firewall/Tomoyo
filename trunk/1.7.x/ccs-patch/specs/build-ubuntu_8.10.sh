@@ -20,22 +20,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20091111.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091220.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.1-20091219.tar.gz ]
-then
-    mkdir -p ccs-patch.tmp || die "Can't create directory."
-    cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&root=tomoyo' || die "Can't download hotfix."
-    tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
-    patch -p1 < hotfix.patch || die "Can't apply hotfix."
-    rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091219.tar.gz -- * || die "Can't create tar ball."
-    cd ../ || die "Can't change directory."
-    rm -fR ccs-patch.tmp  || die "Can't delete directory."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091220.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -49,7 +36,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 
 # Apply patches and create kernel config.
 cd linux-2.6.27/ || die "Can't chdir to linux-2.6.27/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091219.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20091220.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.27-ubuntu-8.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
