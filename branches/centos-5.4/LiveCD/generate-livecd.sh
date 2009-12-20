@@ -5,7 +5,7 @@ CD_LABEL="CentOS-5.4-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.4-i386-TOMOYO-LiveCD.iso
 ORIGINAL_VERSION=2.6.18-164.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-164\.el5
-KERNEL_VERSION=2.6.18-164.9.1.el5_ccs # tomoyo_1.7.1
+KERNEL_VERSION=2.6.18-164.9.1.el5_ccs # tomoyo_1.7.1p1
 
 set -v
 
@@ -23,7 +23,7 @@ echo '<kernel>' > ext3/etc/ccs/domain_policy.conf
 echo 'use_profile 1' >> ext3/etc/ccs/domain_policy.conf
 
 mkdir -p -m 700 ext3/var/log/tomoyo
-grep -q mount || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
+grep -q mount ext3/etc/rc.d/rc.local || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
 grep -q ccs-auditd ext3/etc/rc.d/rc.local || echo '/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject.log' >> ext3/etc/rc.d/rc.local
 
 cd ext3/usr/share/doc/ || die "Can't change directory."
