@@ -17,22 +17,9 @@ fi
 rpm -ivh kernel-2.4.20-46.9.legacy.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20091111.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091220.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.1-20091219.tar.gz ]
-then
-    mkdir -p ccs-patch.tmp || die "Can't create directory."
-    cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&root=tomoyo' || die "Can't download hotfix."
-    tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
-    patch -p1 < hotfix.patch || die "Can't apply hotfix."
-    rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091219.tar.gz -- * || die "Can't create tar ball."
-    cd ../ || die "Can't change directory."
-    rm -fR ccs-patch.tmp  || die "Can't delete directory."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091220.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -45,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 46.9.legacy
-+%define release 46.9.legacy_tomoyo_1.7.1
++%define release 46.9.legacy_tomoyo_1.7.1p1
  %define sublevel 20
  %define kversion 2.4.%{sublevel}
  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
@@ -63,7 +50,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.1-20091219.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.1-20091220.tar.gz
 +# sed -i -e "s/^SUBLEVEL.*/SUBLEVEL = 20/" -e "s/^EXTRAVERSION.*/EXTRAVERSION = -46.9.legacycustom/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.4.20-redhat-linux-9.diff
 +

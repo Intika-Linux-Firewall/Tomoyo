@@ -17,22 +17,9 @@ fi
 rpm -ivh kernel-2.6.17-1.2142_FC4.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20091111.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20091220.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091111.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.1-20091219.tar.gz ]
-then
-    mkdir -p ccs-patch.tmp || die "Can't create directory."
-    cd ccs-patch.tmp/ || die "Can't change directory."
-    wget -O hotfix.patch 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/hotfix.patch?revision=3273&root=tomoyo' || die "Can't download hotfix."
-    tar -zxf ../ccs-patch-1.7.1-20091111.tar.gz || die "Can't extract tar ball."
-    patch -p1 < hotfix.patch || die "Can't apply hotfix."
-    rm -f hotfix.patch || die "Can't delete hotfix."
-    tar -zcf ../ccs-patch-1.7.1-20091219.tar.gz -- * || die "Can't create tar ball."
-    cd ../ || die "Can't change directory."
-    rm -fR ccs-patch.tmp  || die "Can't delete directory."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091220.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -45,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4
-+%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.7.1
++%define release %(R="$Revision: 1.2142 $"; RR="${R##: }"; echo ${RR%%?})_FC4_tomoyo_1.7.1p1
  %define signmodules 0
  %define make_target bzImage
  %define kernel_image x86
@@ -73,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.1-20091219.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.1-20091220.tar.gz
 +# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -1.2142_FC4/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.17-fedora-core-4.diff
 +
