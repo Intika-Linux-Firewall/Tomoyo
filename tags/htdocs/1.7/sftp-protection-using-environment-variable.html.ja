@@ -3,13 +3,13 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>環境変数を使いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</title>
+<title>環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p style="text-align:right;"><a href="sftp-protection-using-environment-variable.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>環境変数を使いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</h1>
+<h1>環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</h1>
 
 <h2>概要</h2>
 
@@ -47,7 +47,7 @@ exit 1
 </pre></td></tr>
 </table>
 
-<p>以下の内容を /bin/sftp-shell および /bin/ro-sftp として保存し、実行許可を与えます。</p>
+<p>以下の内容を /bin/rw-sftp および /bin/ro-sftp として保存し、実行許可を与えます。</p>
 
 <table border="1">
 <tr><td><pre>
@@ -106,10 +106,10 @@ path_group SFTP_FILES /var/sftp/\*
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read /var/sftp/\{\*\}/\*<br>
+allow_read @SFTP_FILES<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read @SFTP_FILES<br>
+allow_read/write @SFTP_FILES<br>
 allow_create @SFTP_FILES 0644<br>
 allow_unlink @SFTP_FILES<br>
 allow_mkdir @SFTP_DIRS 0755<br>
