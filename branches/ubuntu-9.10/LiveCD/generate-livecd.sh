@@ -2,7 +2,7 @@
 
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 9.10 i386 TOMOYO 1.7.1"
-ISOIMAGE_NAME=../ubuntu-9.10-desktop-i386-tomoyo-1.7.1.iso
+ISOIMAGE_NAME=../ubuntu-9.10-desktop-i386-tomoyo-1.7.1p1.iso
 KERNEL_VERSION=2.6.31-16-ccs
 
 # set -v
@@ -47,7 +47,7 @@ mv ubuntu9.10-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
 cp -p resources/tomoyo.css squash/usr/share/doc/tomoyo/ || die "Can't copy document."
-cp -p resources/tomoyo-*.desktop squash/etc/skel/ || die "Can't copy shortcut."
+cp -p resources/tomoyo*.desktop squash/etc/skel/ || die "Can't copy shortcut."
 
 rm -f squash/var/cache/apt/*.bin
 rm -f squash/boot/*.bak
