@@ -18,6 +18,9 @@ echo "********** Updating root filesystem for LiveCD. **********"
 echo '<kernel>' > squash/etc/ccs/domain_policy.conf
 echo 'use_profile 1' >> squash/etc/ccs/domain_policy.conf
 
+echo '<kernel>' > squash/etc/tomoyo/domain_policy.conf
+echo 'use_profile 1' >> squash/etc/tomoyo/domain_policy.conf
+
 mkdir -p -m 700 squash/var/log/tomoyo
 if  ! grep -q ccs-auditd squash/etc/init.d/rc.local
 then
@@ -85,6 +88,7 @@ then
 (
     echo '# --- TOMOYO Linux Project (begin) ---'
     echo 'mv /root/home/$USERNAME/tomoyo-*.desktop /root/home/$USERNAME/Desktop/'
+    echo 'grep -q security=tomoyo /proc/cmdline && mv /root/home/$USERNAME/tomoyo2-editpolicy.desktop /root/home/$USERNAME/Desktop/' 
     echo '# --- TOMOYO Linux Project (end) ---'
 ) >> ${SETUP_SCRIPT}
 fi
