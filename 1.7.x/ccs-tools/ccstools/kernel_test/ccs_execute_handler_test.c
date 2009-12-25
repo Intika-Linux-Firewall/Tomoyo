@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/17
+ * Version: 1.7.1+   2009/12/25
  *
  */
 #include "include.h"
@@ -16,8 +16,11 @@ int main(int raw_argc, char *raw_argv[])
 	memset(buffer, 0, sizeof(buffer));
 	{
 		FILE *fp = fopen(proc_policy_process_status, "r+");
-		if (!fp)
+		if (!fp) {
+			printf("BUG: Can't open %s\n",
+			       proc_policy_process_status);
 			return 1;
+		}
 		fprintf(fp, "info %d\n", getpid());
 		fflush(fp);
 		fgets(buffer, sizeof(buffer) - 1, fp);

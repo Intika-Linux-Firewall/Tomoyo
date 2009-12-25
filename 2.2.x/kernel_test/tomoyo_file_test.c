@@ -1039,9 +1039,7 @@ static void stage_old_rewrite_test(void)
 	write_profile("255-MAC_FOR_FILE=disabled\n");
 }
 
-//////////////////////////////////////////////////////////
-//#define _GNU_SOURCE
-//#include "include.h"
+/*****************************************************************/
 
 static void show_prompt2(const char *str, const int is_enforce)
 {
@@ -1064,7 +1062,7 @@ static int child(void *arg)
 static int namespace_test(void)
 {
 	char c = 0;
-	ccs_test_init();
+	/* ccs_test_init(); */
 
 	mkdir(TEST_DIR, 0755);
 
