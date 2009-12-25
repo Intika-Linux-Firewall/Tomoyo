@@ -16,10 +16,6 @@ die () {
     exit 1
 }
 
-modprobe binfmt_misc
-modprobe -q -b lp
-modprobe -q -b ppdev
-
 mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t devpts none /dev/pts/
@@ -51,8 +47,8 @@ umount -l /var/lock/
 umount -l /var/run/
 umount -l /dev/shm/
 umount -l /dev/pts/
-umount /sys/
-umount /proc/
+umount -l /sys/
+umount -l /proc/
 
 echo "********** Done. **********"
 exit 0

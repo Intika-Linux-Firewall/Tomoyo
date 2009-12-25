@@ -3,6 +3,9 @@ wget http://ftp.jaist.ac.jp/pub/Linux/ubuntu-releases/9.10/ubuntu-9.10-desktop-i
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ubuntu-9.10/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 cd LiveCD/
 chmod +x *.sh
+modprobe binfmt_misc
+modprobe -q -b lp
+modprobe -q -b ppdev
 mkdir mnt cdrom squash initrd
 mount -o loop ~/ubuntu-9.10-desktop-i386.iso mnt/
 cp -a mnt/* mnt/.disk/ cdrom/
