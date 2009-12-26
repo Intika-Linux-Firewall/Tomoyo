@@ -77,4 +77,15 @@ sed -i -e 's/,generic/,ccs generic/' debian/rules || die "Can't edit file."
 debian/rules debian/control || die "Can't run control."
 debian/rules binary || die "Failed to build kernel package."
 
+# Generate meta packages.
+cd /usr/src/
+rm -fR linux-meta-2.6.22.16.23/
+apt-get source linux-meta
+cd linux-meta-2.6.22.16.23/
+sed -i -e 's/generic/ccs/g' -- debian/control
+sed -i -e 's/ccs-depends/generic-depends/g' -- debian/control
+debian/rules binary-arch
+cd ../
+rm -fR linux-meta-2.6.22.16.23/
+
 exit 0
