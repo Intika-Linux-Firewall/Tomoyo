@@ -75,4 +75,15 @@ sed -i -e 's/,generic/,generic-ccs generic/' debian/rules || die "Can't edit fil
 debian/rules debian/control || die "Can't run control."
 debian/rules binary flavours="${VERSION}-386 ${VERSION}-generic-ccs" || die "Failed to build kernel package."
 
+# Generate meta packages.
+cd /usr/src/
+rm -fR linux-meta-2.6.17.12.1/
+apt-get source linux-meta
+cd linux-meta-2.6.17.12.1/
+sed -i -e 's/generic/generic-ccs/g' -- debian/control
+sed -i -e 's/generic-ccs-depends/generic-depends/g' -- debian/control
+debian/rules binary-arch
+cd ../
+rm -fR linux-meta-2.6.17.12.1/
+
 exit 0

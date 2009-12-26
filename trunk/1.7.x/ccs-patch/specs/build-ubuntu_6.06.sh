@@ -77,4 +77,14 @@ cat debian/control.stub.in.tmp >> debian/control.stub.in || die "Can't edit file
 debian/rules debian/control || die "Can't run control."
 debian/rules binary flavours="${VERSION}-386 ${VERSION}-686-ccs" || die "Failed to build kernel package."
 
+# Generate meta packages.
+cd /usr/src/
+rm -fR linux-meta-*/
+apt-get source linux-meta
+cd linux-meta-*/
+sed -i -e 's/686/686-ccs/g' -- debian/control
+debian/rules binary-arch
+cd ../
+rm -fR linux-meta-*/
+
 exit 0

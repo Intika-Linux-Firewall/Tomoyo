@@ -78,4 +78,15 @@ cat debian/d-i/kernel-versions.in.tmp >> debian/d-i/kernel-versions.in || die "C
 debian/rules debian/control || die "Can't run control."
 debian/rules binary flavours="${VERSION}-386 ${VERSION}-generic ${VERSION}-ccs" || die "Failed to build kernel package."
 
+# Generate meta packages.
+cd /usr/src/
+rm -fR linux-meta-2.6.20.17.30/
+apt-get source linux-meta
+cd linux-meta-2.6.20.17.30/
+sed -i -e 's/generic/ccs/g' -- debian/control
+sed -i -e 's/ccs-depends/generic-depends/g' -- debian/control
+debian/rules binary-arch
+cd ../
+rm -fR linux-meta-2.6.20.17.30/
+
 exit 0

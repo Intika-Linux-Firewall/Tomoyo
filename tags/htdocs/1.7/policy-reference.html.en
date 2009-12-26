@@ -1237,7 +1237,11 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>This keyword indicates that this domain has failed to create a new domain since "the name of the domain to be created was too long" or "the kernel was unable to allocate memory" but processed the execute request without domain transition to avoid rejecting the execute request. You need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing to this domain.
+<p>This keyword indicates that some process in this domain was not able to transit to new domain when processing the execute request.</p>
+
+<p>If this domain was assigned a profile with <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing , the execute request was rejected.</p>
+
+<p>Otherwise, the execute request was not rejected. In that case, the process continued execution without domain transition. Since the reason of transition failure is either "the name of the domain was too long" or "the kernel was unable to allocate memory", you need to consider "suppressing domain transitions" or "increasing memory quota" if you are planning to assign a profile with <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing to this domain.</p>
 
 <p>See also:  <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">Memory Usage Information</a></p>
 

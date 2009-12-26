@@ -73,4 +73,16 @@ EOF
 debian/rules binary-headers || die "Failed to build kernel package."
 debian/rules binary-debs flavours=ccs || die "Failed to build kernel package."
 
+# Generate meta packages.
+cd /usr/src/
+rm -fR linux-meta-*/
+apt-get source linux-meta
+cd linux-meta-*/
+sed -e 's/generic/ccs/g' -- debian/control.d/generic > debian/ccs
+rm -f debian/control.d/*
+mv debian/ccs debian/control.d/ccs
+debian/rules binary-arch
+cd ../
+rm -fR linux-meta-*/
+
 exit 0

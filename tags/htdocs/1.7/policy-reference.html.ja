@@ -1237,7 +1237,11 @@ allow_chroot /</p>
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+<p>これは、このドメインに属しているプロセスが、プログラムの実行時にドメイン遷移をすることができなかったことを示しています。</p>
+
+<p>このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルが割り当てられていた場合、プログラムの実行要求は拒否されます。</p>
+
+<p>そうではない場合、プログラムの実行要求は拒否されません。そのため、ドメイン遷移をせずにプログラムが実行されます。ドメイン遷移が失敗した理由は「遷移先ドメインのドメイン名が長すぎる」または「遷移先ドメインのためのメモリを割り当てることができなかった」のどちらかであるため、このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
 
 <p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">メモリ使用量に関する情報</a></p>
 
