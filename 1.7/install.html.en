@@ -13,15 +13,235 @@
 
 <p>This page describes how to install TOMOYO Linux's kernel and userland tools.</p>
 
+<p>There are three ways to install. Choose one of "Step 1-A" / "Step 1-B" / "Step 1-C" depending on your environment and your requirement.</p>
+
+<ul>
+<li><a href="#install_from_repository">Step 1-A: Installing binary packages from repository</a></li>
+<li><a href="#install_manually">Step 1-B: Installing binary packages manually</a></li>
+<li><a href="#install_from_source">Step 1-C: Installing from source</a></li>
+</ul>
+
 <hr>
 
-<h2>Step 0: Installing from binary packages.</h2>
+<h2><a name="install_from_repository">Step 1-A: Installing binary packages from repository</a></h2>
 
-<p>You can use <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">binary packages</a> if these packages suit your environment. Otherwise, please do below steps.</p>
+<p>TOMOYO Linux provides some binary kernel packages and binary tool packages for i686 architecture.</p>
+
+<p>If your environment matches the list below and CPU is i686, you can install from repository.</p>
+
+<ul>
+<li>RedHat Linux 9</li>
+<li>Fedora Core 3/4/5/6</li>
+<li>Fedora 7/8/9/10/11/12</li>
+<li>CentOS 3.9/4.8/5.4</li>
+<li>OpenSUSE 10.1/10.2/10.3/11.0/11.1</li>
+<li>Vine Linux 4.2/5.0</li>
+<li>Asianux 2.0/3.0</li>
+<li>Ubuntu 6.06/6.10/7.04/7.10/8.04/8.10/9.04/9.10</li>
+</ul>
+
+<p>If you use RPM packages, please import GPG key by doing the following operation.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# rpm --import /tmp/key<br>
+</td></tr>
+</table>
+
+<p>If you use DEB packages, please import GPG key by doing the following operation.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'<br>
+[root@tomoyo ~]# apt-key add /tmp/key<br>
+</td></tr>
+</table>
+
+<p>To install from repository, do the following operation.</p>
+
+<table border="1">
+<tr><td>
+RedHat Linux 9 (for i586 and later)</td><td>
+[root@tomoyo ~]# curl http://tomoyo.sourceforge.jp/repos-1.7/RedHatLinux9/ccs.repo &gt;&gt; /etc/yum.conf<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 3 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/FedoraCore3/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 4 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/FedoraCore4/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 5 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/FedoraCore5/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Fedora Core 6 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/FedoraCore6/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 7 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora7/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 8 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora8/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 9 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora9/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 10 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora10/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 11 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora11/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Fedora 12 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Fedora12/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+CentOS 3.9 (for i686 and later)</td><td>
+[root@tomoyo ~]# curl http://tomoyo.sourceforge.jp/repos-1.7/CentOS3/ccs.repo >> /etc/yum.conf<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+CentOS 4.8 (for i586 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS4/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+CentOS 5.4 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Asianux 2.0 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Asianux2/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel-smp ccs-tools
+</td></tr><tr><td>
+Asianux 3.0 (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/Asianux3/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Vine Linux 4.2 (for i686 and later)</td><td>
+[root@tomoyo ~]# echo "repomd http://tomoyo.sourceforge.jp/ repos-1.7/VineLinux4/" &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install ccs-kernel ccs-tools
+</td></tr><tr><td>
+Vine Linux 5.0 (for i586 and later)</td><td>
+[root@tomoyo ~]# echo "repomd http://tomoyo.sourceforge.jp/ repos-1.7/VineLinux5/" &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install ccs-kernel ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.1 (for i586 and later)</td><td>
+[root@tomoyo ~]# rug service-add --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE10.1/ ccs<br>
+[root@tomoyo ~]# rug subscribe ccs<br>
+[root@tomoyo ~]# rug install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.2 (for i586 and later)</td><td>
+[root@tomoyo ~]# rug service-add --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE10.2/ ccs<br>
+[root@tomoyo ~]# rug subscribe ccs<br>
+[root@tomoyo ~]# rug install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 10.3 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE10.3/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 11.0 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.0/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+OpenSUSE 11.1 (for i586 and later)</td><td>
+[root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.1/ ccs<br>
+[root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
+</td></tr><tr><td>
+Ubuntu 6.06 (for 686 flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45064/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-686-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 6.10 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45065/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-generic-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 7.04 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45066/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 7.10 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45067/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 8.04 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45068/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 8.10 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45069/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 9.04 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45070/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 9.10 (for generic flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45071/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr>
+</table>
 
 <hr>
 
-<h2>Step 1: Compiling the kernel.</h2>
+<h2><a name="install_manually">Step 1-B: Installing binary packages manually</a></h2>
+
+<p>You can manually download and install from <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">binary packages</a> if you don't want to use repositories.</p>
+
+<p>If your environment matches the list below, you can install binary packages manually.</p>
+
+<ul>
+<li>Debian Sarge/Etch/Lenny</li>
+</ul>
+
+<p>To install binary packages, download the following files and install them.</p>
+
+<table border="1">
+<tr><td>
+Debian Sarge</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-image-2.4.27-4-686-smp-ccs1.7.1p1_2.4.27-10sarge7_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-pcmcia-modules-2.4.27-4-686-smp-ccs1.7.1p1_2.4.27-10sarge7_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-image-2.6.8-4-686-smp-ccs1.7.1p1_2.6.8-17sarge1_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/44490/ccs-tools_1.7.1-1_i386.deb
+</td></tr><tr><td>
+Debian Etch</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/44493/linux-image-2.6.18-6-686-ccs1.7.1p1-i686_2.6.18.dfsg.1-26etch1_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/44493/ccs-tools_1.7.1-1_i386.deb
+</td></tr><tr><td>
+Debian Lenny</td><td>
+http://osdn.dl.sourceforge.jp/tomoyo/44408/linux-image-2.6.26-2-686-ccs1.7.1p1-i686_2.6.26-19lenny2_i386.deb
+<br>
+http://osdn.dl.sourceforge.jp/tomoyo/44408/ccs-tools_1.7.1-1_i386.deb
+</td></tr>
+</table>
+
+<hr>
+
+<h2><a name="install_from_source">Step 1-C: Installing from source</a></h2>
+
+<p>If the CPU architecture differs or you want to customize kernel configuration, you need to compile kernel.</p>
+
+<p>To compile kernel, the following packages are needed.</p>
+
+<ul>
+<li>gcc</li>
+<li>make</li>
+<li>ncurses</li>
+</ul>
 
 <p>Download source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
 Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.32.2 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.32 in the below operations.</p>
@@ -62,9 +282,320 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 
 <p>Create initrd if you need.</p>
 
-<hr>
+<p>If you want to customize distoributor's kernels, feel free to follow below steps for reference.</p>
 
-<h2>Step 2: Installing the tools package.</h2>
+<table border="1">
+<tr><td>
+<a name="RedHatLinux9">RedHat Linux 9</a>
+</td><td>
+# Download build script.<br>
+wget -O build-rhl9-2.4.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-rhl9-2.4.20.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-rhl9-2.4.20.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i386 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore3">Fedora Core 3</a>
+</td><td>
+# Download build script.<br>
+wget -O build-fc3-2.6.12.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-fc3-2.6.12.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc3-2.6.12.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore4">Fedora Core 4</a>
+</td><td>
+# Download build script.<br>
+wget -O build-fc4-2.6.17.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-fc4-2.6.17.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc4-2.6.17.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore5">Fedora Core 5</a>
+</td><td>
+# Download build script.<br>
+wget -O build-fc5-2.6.20.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-fc5-2.6.20.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc5-2.6.20.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="FedoraCore6">Fedora Core 6</a>
+</td><td>
+# Download build script.<br>
+wget -O build-fc6-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-fc6-2.6.22.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-fc6-2.6.22.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora7">Fedora 7</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f7-2.6.23.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f7-2.6.23.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f7-2.6.23.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora8">Fedora 8</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f8-2.6.26.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f8-2.6.26.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f8-2.6.26.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora9">Fedora 9</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f9-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f9-2.6.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f9-2.6.27.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora10">Fedora 10</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f10-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f10-2.6.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f10-2.6.27.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora11">Fedora 11</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f11-2.6.30.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f11-2.6.30.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f11-2.6.30.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /root/rpmbuild/SPECS/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Fedora12">Fedora 12</a>
+</td><td>
+# Download build script.<br>
+wget -O build-f11-2.6.31.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-f12-2.6.31.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-f12-2.6.31.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 /root/rpmbuild/SPECS/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS3.9">CentOS 3.9</a>
+</td><td>
+# Download build script.<br>
+wget -O build-c3-2.4.21.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-c3-2.4.21.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-c3-2.4.21.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS4.8">CentOS 4.8</a>
+</td><td>
+# Download build script.<br>
+wget -O build-c4-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-c4-2.6.9.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-c4-2.6.9.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="CentOS5.4">CentOS 5.4</a>
+</td><td>
+# Download build script.<br>
+wget -O build-c5-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-c5-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-c5-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Sarge-2.4">Debian Sarge (2.4.27)</a>
+</td><td>
+# Download build script.<br>
+wget -O build-debian_sarge-2.4.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_sarge-2.4.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_sarge-2.4.27.sh<br>
+</td></tr><tr><td>
+<a name="Sarge-2.6">Debian Sarge (2.6.8)</a>
+</td><td>
+# Download build script.<br>
+wget -O build-debian_sarge-2.6.8.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_sarge-2.6.8.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_sarge-2.6.8.sh<br>
+</td></tr><tr><td>
+<a name="Etch">Debian Etch</a>
+</td><td>
+# Download build script.<br>
+wget -O build-debian_etch.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_etch.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_etch.sh<br>
+</td></tr><tr><td>
+<a name="Lenny">Debian Lenny</a>
+</td><td>
+# Download build script.<br>
+wget -O build-debian_lenny.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-debian_lenny.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-debian_lenny.sh<br>
+</td></tr><tr><td>
+<a name="OpenSUSE10.1">OpenSUSE 10.1</a>
+</td><td>
+# Download build script.<br>
+wget -O build-suse10.1-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse10.1-2.6.16.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.1-2.6.16.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE10.2">OpenSUSE 10.2</a>
+</td><td>
+# Download build script.<br>
+wget -O build-suse10.2-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse10.2-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.2-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE10.3">OpenSUSE 10.3</a>
+</td><td>
+# Download build script.<br>
+wget -O build-suse10.3-2.6.22.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse10.3-2.6.22.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse10.3-2.6.22.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE11.0">OpenSUSE 11.0</a>
+</td><td>
+# Download build script.<br>
+wget -O build-suse11.0-2.6.25.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse11.0-2.6.25.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse11.0-2.6.25.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="OpenSUSE11.1">OpenSUSE 11.1</a>
+</td><td>
+# Download build script.<br>
+wget -O build-suse11.1-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-suse11.1-2.6.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-suse11.1-2.6.27.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Asianux2">Asianux 2.0</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ax2-2.6.9.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ax2-2.6.9.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ax2-2.6.9.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Asianux3">Asianux 3.0</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ax3-2.6.18.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ax3-2.6.18.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ax3-2.6.18.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Ubuntu6.06">Ubuntu 6.06</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_6.06.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.06.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_6.06.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu6.10">Ubuntu 6.10</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_6.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_6.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu7.04">Ubuntu 7.04</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_7.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_7.04.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_7.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu7.10">Ubuntu 7.10</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_7.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_7.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_7.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu8.04">Ubuntu 8.04</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_8.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.04.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_8.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu8.10">Ubuntu 8.10</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_8.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_8.10.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu9.04">Ubuntu 9.04</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_9.04.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.04.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_9.04.sh<br>
+</td></tr><tr><td>
+<a name="Ubuntu9.10">Ubuntu 9.10</a>
+</td><td>
+# Download build script.<br>
+wget -O build-ubuntu_9.10.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-ubuntu_9.10.sh<br>
+</td></tr><tr><td>
+<a name="VineLinux4.2">VineLinux 4.2</a>
+</td><td>
+# Download build script.<br>
+wget -O build-vl4.2-2.6.16.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-vl4.2-2.6.16.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-vl4.2-2.6.16.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="VineLinux5.0">VineLinux 5.0</a>
+</td><td>
+# Download build script.<br>
+wget -O build-vl5.0-2.6.27.sh 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/specs/build-vl5.0-2.6.27.sh?root=tomoyo'<br>
+# Run build script.<br>
+sh build-vl5.0-2.6.27.sh<br>
+# Start compilation.<br>
+rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
+</td></tr><tr><td>
+<a name="Gentoo">Gentoo</a>
+</td><td>
+# Install layman package.<br>
+emerge layman<br>
+# Install subversion package.<br>
+emerge subversion<br>
+# Add sunrise repository.<br>
+layman -f -a sunrise<br>
+# Configure /etc/make.conf to include layman's make.conf .<br>
+echo "source /usr/local/portage/layman/make.conf" &gt;&gt; /etc/make.conf<br>
+# Download kernel source.<br>
+emerge ccs-sources<br>
+# Run genkernel to build.<br>
+genkernel --menuconfig all<br>
+# Configure grub . See http://www.gentoo.org/doc/en/kernel-upgrade.xml for detail.<br>
+# Install tools package.<br>
+emerge ccs-tools
+</td></tr>
+</table>
 
 <p>To compile tool, run the following commands.</p>
 
