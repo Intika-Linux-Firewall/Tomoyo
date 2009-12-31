@@ -8,6 +8,19 @@ die () {
     exit 1
 }
 
+generate_meta_package() {
+    [ -r $1 ] || die "Can't find $1 ."
+    dpkg-deb -x $1 tmp
+    dpkg-deb -e $1 tmp/DEBIAN
+    dir=tmp/usr/share/doc/*
+    mv ${dir} ${dir}-ccs
+    sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/md5sums
+    sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/control
+    dpkg-deb -b tmp
+    rm -fR tmp
+    mv tmp.deb $2
+}
+
 update_linux_26_header_package() {
     [ -r $1 ] || die "Can't find $1 ."
     [ -r $2 ] || die "Can't find $2 ."
@@ -67,5 +80,11 @@ debian/rules binary-arch flavours=686-smp-ccs || die "Failed to build kernel pac
 
 cd .. || die "Can't chdir to ../ ."
 update_linux_26_header_package kernel-headers-2.6.8-4_2.6.8-17sarge1_i386.deb kernel-headers-2.6.8-4-686-smp-ccs_2.6.8-17sarge1_i386.deb
+
+# Generate meta packages.
+wget http://archive.debian.org/debian-security/pool/updates/main/k/kernel-latest-2.6-i386/kernel-image-2.6-686-smp_101sarge2_i386.deb
+generate_meta_package kernel-image-2.6-686-smp_101sarge2_i386.deb kernel-image-2.6-686-smp-ccs_101sarge2_i386.deb
+wget http://archive.debian.org/debian-security/pool/updates/main/k/kernel-latest-2.6-i386/kernel-headers-2.6-686-smp_101sarge2_i386.deb
+generate_meta_package kernel-headers-2.6-686-smp_101sarge2_i386.deb kernel-headers-2.6-686-smp-ccs_101sarge2_i386.deb
 
 exit 0
