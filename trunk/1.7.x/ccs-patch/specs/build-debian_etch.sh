@@ -12,7 +12,7 @@ generate_meta_package() {
     [ -r $1 ] || die "Can't find $1 ."
     dpkg-deb -x $1 tmp
     dpkg-deb -e $1 tmp/DEBIAN
-    dir=tmp/usr/share/doc/*
+    dir=`echo -n tmp/usr/share/doc/*`
     mv ${dir} ${dir}-ccs
     sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/md5sums
     sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/control
