@@ -13,21 +13,18 @@
 
 <p>このページでは、 TOMOYO Linux 対応カーネルとツールをインストールする手順について説明します。</p>
 
-<p>インストールする方法が３通りあります。あなたの環境や要件に応じてステップ１－Ａ／ステップ１－Ｂ／ステップ１－Ｃのいずれかを選択してください。</p>
+<p>インストールする方法が２通りあります。あなたの環境や要件に応じてステップ１－Ａ／ステップ１－Ｂのどちらかを選択してください。</p>
 
 <ul>
-<li><a href="#install_from_repository">ステップ１－Ａ：バイナリパッケージをレポジトリからインストール</a></li>
-<li><a href="#install_manually">ステップ１－Ｂ：バイナリパッケージを手動でインストール</a></li>
-<li><a href="#install_from_source">ステップ１－Ｃ：ソースからインストール</a></li>
+<li><a href="#install_from_repository">ステップ１－Ａ：バイナリパッケージをインストール</a></li>
+<li><a href="#install_from_source">ステップ１－Ｂ：ソースからインストール</a></li>
 </ul>
 
 <hr>
 
-<h2><a name="install_from_repository">ステップ１－Ａ：バイナリパッケージをレポジトリからインストール</a></h2>
+<h2><a name="install_from_repository">ステップ１－Ａ：バイナリパッケージをインストール</a></h2>
 
-<p>TOMOYO Linux では、幾つかの i686 アーキテクチャ向けのバイナリカーネルとツールを提供しています。</p>
-
-<p>あなたの環境が以下のいずれかであり、かつ、ＣＰＵアーキテクチャが i686 である場合、レポジトリからインストールすることができます。</p>
+<p>TOMOYO Linux では、幾つかの i686 アーキテクチャ向けのバイナリカーネルとツールを提供しています。あなたの環境が以下のいずれかであり、かつ、ＣＰＵアーキテクチャが i686 である場合、バイナリパッケージをインストールすることができます。</p>
 
 <ul>
 <li>RedHat Linux 9</li>
@@ -37,6 +34,7 @@
 <li>OpenSUSE 10.1/10.2/10.3/11.0/11.1</li>
 <li>Vine Linux 4.2/5.0</li>
 <li>Asianux 2.0/3.0</li>
+<li>Debian Sarge/Etch/Lenny</li>
 <li>Ubuntu 6.06/6.10/7.04/7.10/8.04/8.10/9.04/9.10</li>
 </ul>
 
@@ -58,7 +56,7 @@
 </td></tr>
 </table>
 
-<p>レポジトリからインストールする場合、以下の操作を行ってください。</p>
+<p>レポジトリからインストールする場合、以下の操作を行ってください。レポジトリを使いたくない場合、<a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">バイナリパッケージ</a>から手動でダウンロードしてインストールすることができます。</p>
 
 <table border="1">
 <tr><td>
@@ -158,80 +156,71 @@ OpenSUSE 11.1 (for i586 and later)</td><td>
 [root@tomoyo ~]# zypper addrepo --type=YUM http://tomoyo.sourceforge.jp/repos-1.7/SUSE11.1/ ccs<br>
 [root@tomoyo ~]# zypper install ccs-kernel-default ccs-tools
 </td></tr><tr><td>
+Debian Sarge (2.4 kernel for 686 flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45229/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install kernel-image-2.4-686-smp-ccs kernel-pcmcia-modules-2.4-686-smp-ccs ccs-tools
+</td></tr><tr><td>
+Debian Sarge (2.6 kernel for 686 flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45229/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install kernel-image-2.6-686-smp-ccs ccs-tools
+</td></tr><tr><td>
+Debian Etch (for 686 flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45230/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install kernel-image-2.6-686-ccs ccs-tools
+</td></tr><tr><td>
+Debian Lenny (for 686 flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45231/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install kernel-image-2.6-686-ccs ccs-tools
+</td></tr><tr><td>
 Ubuntu 6.06 (for 686 flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45064/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-686-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 6.10 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45065/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-generic-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 7.04 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45066/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 7.10 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45067/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 8.04 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45068/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 8.10 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45069/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 9.04 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45070/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr><tr><td>
 Ubuntu 9.10 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45071/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr>
 </table>
 
 <hr>
 
-<h2><a name="install_manually">ステップ１－Ｂ：バイナリパッケージを手動でインストール</a></h2>
-
-<p>レポジトリを使わずにバイナリパッケージをインストールしたい場合は、<a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=10270" target="_blank">バイナリパッケージ</a>から手動でダウンロードしてインストールすることができます。</p>
-
-<p>あなたの環境が以下のいずれかである場合、手動でバイナリパッケージをインストールすることができます。</p>
-
-<ul>
-<li>Debian Sarge/Etch/Lenny</li>
-</ul>
-
-<p>バイナリパッケージをインストールするには、以下のファイルをダウンロードしてインストールしてください。</p>
-
-<table border="1">
-<tr><td>
-Debian Sarge</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-image-2.4.27-4-686-smp-ccs1.7.1p1_2.4.27-10sarge7_i386.deb
-<br>
-http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-pcmcia-modules-2.4.27-4-686-smp-ccs1.7.1p1_2.4.27-10sarge7_i386.deb
-<br>
-http://osdn.dl.sourceforge.jp/tomoyo/44490/kernel-image-2.6.8-4-686-smp-ccs1.7.1p1_2.6.8-17sarge1_i386.deb
-<br>
-http://osdn.dl.sourceforge.jp/tomoyo/44490/ccs-tools_1.7.1-1_i386.deb
-</td></tr><tr><td>
-Debian Etch</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/44493/linux-image-2.6.18-6-686-ccs1.7.1p1-i686_2.6.18.dfsg.1-26etch1_i386.deb
-<br>
-http://osdn.dl.sourceforge.jp/tomoyo/44493/ccs-tools_1.7.1-1_i386.deb
-</td></tr><tr><td>
-Debian Lenny</td><td>
-http://osdn.dl.sourceforge.jp/tomoyo/44408/linux-image-2.6.26-2-686-ccs1.7.1p1-i686_2.6.26-19lenny2_i386.deb
-<br>
-http://osdn.dl.sourceforge.jp/tomoyo/44408/ccs-tools_1.7.1-1_i386.deb
-</td></tr>
-</table>
-
-<hr>
-
-<h2><a name="install_from_source">ステップ１－Ｃ：ソースからインストール</a></h2>
+<h2><a name="install_from_source">ステップ１－Ｂ：ソースからインストール</a></h2>
 
 <p>ＣＰＵアーキテクチャが異なる場合やカーネルコンフィグをカスタマイズしたい場合、コンパイルする必要があります。</p>
 
