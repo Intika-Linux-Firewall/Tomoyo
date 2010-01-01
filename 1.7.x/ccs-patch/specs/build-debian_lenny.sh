@@ -52,7 +52,7 @@ make -s oldconfig
 
 # Start compilation.
 REVISION=`head -n 1 debian/changelog | awk ' { print $2 } ' | awk -F'(' ' { print $2 } ' |  awk -F')' ' { print $1 } '`
-make-kpkg --append-to-version -2-686-ccs --arch i386 --subarch i686 --arch-in-name --initrd --revision $REVISION linux-image || die "Failed to build kernel package."
+make-kpkg --append-to-version -2-686-ccs --initrd --revision $REVISION linux-image || die "Failed to build kernel package."
 
 # Generate meta packages.
 wget http://ftp.jp.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.26+17+lenny1_i386.deb
