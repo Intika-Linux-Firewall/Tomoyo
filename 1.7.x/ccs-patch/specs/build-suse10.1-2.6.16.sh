@@ -79,29 +79,29 @@ then
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
-cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
+cp -p /usr/src/packages/SOURCES/kernel-smp.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2008-01-24 20:35:45.000000000 +0900
-+++ kernel-default.spec	2008-04-01 11:31:06.000000000 +0900
+--- kernel-smp.spec	2008-01-24 20:35:46.000000000 +0900
++++ kernel-smp.spec	2010-01-01 19:28:22.000000000 +0900
 @@ -10,7 +10,7 @@
  
  # norootforbuild
  
--Name:           kernel-default
-+Name:           ccs-kernel-default
+-Name:           kernel-smp
++Name:           ccs-kernel-smp
  Url:            http://www.kernel.org/
- %define build_kdump %([ default != kdump ] ; echo $?)
- %define build_xen %(case default in (xen*) echo 1;; (*) echo 0;; esac)
+ %define build_kdump %([ smp != kdump ] ; echo $?)
+ %define build_xen %(case smp in (xen*) echo 1;; (*) echo 0;; esac)
 @@ -20,7 +20,7 @@
  BuildRequires:  python
  %endif
  Version:        2.6.16.54
 -Release: 0.2.5
 +Release: 0.2.5_tomoyo_1.7.1p1
- Summary:        The Standard Kernel
+ Summary:        Kernel with Multiprocessor Support
  License:        GPL v2 or later
  Group:          System/Kernel
-@@ -151,7 +151,7 @@
+@@ -136,7 +136,7 @@
  %define tolerate_unknown_new_config_options 0
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15;
  # see scripts/kabi-checks)
@@ -110,7 +110,7 @@ patch << "EOF" || die "Can't patch spec file."
  %(chmod +x %_sourcedir/{arch-symbols,guards,config-subst,check-for-config-changes,check-supported-list,built-in-where,find-provides,make-symsets,find-types,kabi-checks,install-configs})
  
  %description
-@@ -239,6 +239,10 @@
+@@ -225,6 +225,10 @@
  %build
  source .rpm-defs
  cd linux-2.6.16
@@ -122,7 +122,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{tolerate_unknown_new_config_options}
  MAKE_ARGS="$MAKE_ARGS -k"
 EOF
-sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
+sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' kernel-smp.spec > ccs-kernel.spec || die "Can't edit spec file."
 echo ""
 echo ""
 echo ""
