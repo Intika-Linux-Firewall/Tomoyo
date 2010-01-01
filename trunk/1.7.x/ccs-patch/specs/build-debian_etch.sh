@@ -51,7 +51,7 @@ cat /boot/config-2.6.18-6-686 config.ccs > .config || die "Can't create config."
 yes | make -s oldconfig > /dev/null
 
 # Start compilation.
-make-kpkg --append-to-version -6-686-ccs --subarch i686 --arch-in-name --initrd linux-image || die "Failed to build kernel package."
+make-kpkg --append-to-version -6-686-ccs --initrd linux-image || die "Failed to build kernel package."
 
 # Generate meta packages.
 wget http://ftp.jp.debian.org/debian/pool/main/l/linux-latest-2.6/linux-image-2.6-686_2.6.18+6etch3_i386.deb
