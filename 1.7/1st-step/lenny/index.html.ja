@@ -12,21 +12,18 @@
 <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> 導入手順書 （ Debian Lenny 版）</h1>
 
 <ul>
-<li><a href="#l1">概要</a></li>
-<li><a href="#l2">カーネルのインストール</a></li>
-<li><a href="#l3">ツールのインストール</a></li>
-<li><a href="#l4">自動設定スクリプトの実行</a>
-<li><a href="#l5">監査ログの取得準備</a></li>
-<li><a href="#l6">運用</a>
-<ul>
-<li><a href="#l7">システムの起動</a></li>
-<li><a href="#l8">ログイン後の操作の学習</a></li>
-<li><a href="#l9">ポリシーの参照</a></li>
-<li><a href="#l10">強制アクセス制御</a></li>
+<li><a href="#l1">1. 概要</a></li>
+<li><a href="#l2">2. カーネルとツールのインストール</a></li>
+<li><a href="#l3">3. 自動設定スクリプトの実行</a>
+<li><a href="#l4">4. 監査ログの取得準備</a></li>
+<li><a href="#l5">5. システムの再起動</a></li>
+<li><a href="#l6">6. ログイン後の操作の学習</a></li>
+<li><a href="#l7">7. ポリシーの参照</a></li>
+<li><a href="#l8">8. ログイン後の操作の制限</a></li>
 </ul></li>
 </ul>
 
-<h2><a name="l1">概要</a></h2>
+<h2><a name="l1">1. 概要</a></h2>
 
 <p>以下では、 Debian Lenny に TOMOYO Linux 1.7.1 を導入する手順を解説します。
 この手順書に従って操作すれば、 TOMOYO Linux の基本的な機能を体験し、簡単な設定と運用が行えるようになります。</p>
@@ -36,25 +33,27 @@
 <ol>
 <li>カーネルとツールのインストール</li>
 <li>基本的な設定</li>
-<li>ポリシーの自動学習と試験運用</li>
+<li>ポリシーの自動学習とレビュー</li>
+<li>ポリシーの適用</li>
 </ol>
 
-<h2><a name="l2">カーネルのインストール</a></h2>
+<h2><a name="l2">2. カーネルとツールのインストール</a></h2>
 
 <p>TOMOYO Linux は Linux カーネルへのパッチとして提供されており、本来は Linux カーネルのソースコードにパッチを適用する作業が必要になります。
-しかし Debian Lenny の場合は、 TOMOYO Linux のパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
+しかし Debian Lenny の場合は、 i686 アーキテクチャ向けの TOMOYO Linux のパッチを当てたコンパイル済みカーネルパッケージが提供されているので、今回はそれを利用します。</p>
 
-<p>まずはパッケージをダウンロードします。</p>
+<p>まずはレポジトリを登録し、パッケージ情報をダウンロードします。</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/44408/linux-image-2.6.26-2-686-ccs1.7.1-i686_2.6.26-19lenny2_i386.deb</span>
+# <span class="user">echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45231/ ./' &gt;&gt; /etc/apt/sources.list</span>
+# <span class="user">wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98' | apt-key add -</span>
+# <span class="user">apt-get update</span>
 </pre>
 
-<p>次に、ダウンロードしてきたパッケージをインストールします。</p>
+<p>次に、パッケージをインストールします。 ccs-tools パッケージには、ポリシーの管理を行うプログラムが収録されています。</p>
 
 <pre>
-# <span class="user">dpkg -i linux-image-2.6.26-2-686-ccs1.7.1-i686_2.6.26-19lenny2_i386.deb</span>
-# <span class="user">update-grub</span>
+# <span class="user">apt-get install linux-image-2.6-686-ccs ccs-tools</span>
 </pre>
 
 <p>インストールに成功すれば /boot/grub/menu.lst に以下の記述が追加されているはずです。</p>
@@ -72,22 +71,10 @@ initrd          /boot/initrd.img-2.6.26-2-686-ccs
 <span class="user">#</span>timeout=5
 </pre>
 
-<h2><a name="l3">ツールのインストール</a></h2>
-
-<p>カーネルの次は、 TOMOYO Linux のツールをインストールします。
-ツールには、ポリシーの管理を行うプログラムが収録されています。</p>
-
-<p>バイナリパッケージが用意されていますので、それを利用します。</p>
-
-<pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/44408/ccs-tools_1.7.1-1_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.7.1-1_i386.deb</span>
-</pre>
-
 <p>以上で TOMOYO Linux のインストールは終了です。
 続いて設定に移ります。</p>
 
-<h2><a name="l4">自動設定プログラムの実行</a></h2>
+<h2><a name="l3">3. 自動設定プログラムの実行</a></h2>
 
 <p>この節の操作を自動で行うプログラムが付属しているのでそれを実行します。</p>
 
@@ -173,7 +160,7 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の13種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の 13 種類の例外が指定されています。</p>
 
 <ol>
 <li>パス名のパターン (file_pattern)</li>
@@ -191,7 +178,7 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 <li>予約するローカルポート番号 (deny_autobind)</li>
 </ol>
 
-<h2><a name="l5">監査ログの取得準備</a></h2>
+<h2><a name="l4">4. 監査ログの取得準備</a></h2>
 
 <p>TOMOYO Linux のログは、アクセスが許可された要求のログと、アクセスが拒否された要求のログの2種類に分けることができます。
 今回は、アクセス拒否ログのみを保存する設定を行います。</p>
@@ -211,11 +198,13 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 
 <pre>
 # <span class="user">update-rc.d ccs-auditd start 99 2 3 4 5 .</span>
-Adding system startup for /etc/init.d/ccs-auditd ...
-/etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+update-rc.d: warning: /etc/init.d/ccs-auditd missing LSB information
+update-rc.d: see &lt;http://wiki.debian.org/LSBInitScripts&gt;
+ Adding system startup for /etc/init.d/ccs-auditd ...
+   /etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
 </pre>
 
 <p>この設定では、 /var/log/tomoyo/reject_log.txt にアクセス拒否ログが保存されます。
@@ -227,13 +216,9 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p>以上で TOMOYO Linux を使うための基本的な設定は終わりです。</p>
 
-<h2><a name="l6">運用</a></h2>
+<h2><a name="l5">5. システムの再起動</a></h2>
 
-<p>それでは、いよいよ TOMOYO Linux カーネルで起動してみましょう。</p>
-
-<h3><a name="l7">システムの起動</a></h3>
-
-<p>まずは Linux を再起動します。</p>
+<p>それでは TOMOYO Linux カーネルで起動してみましょう。</p>
 
 <pre>
 # <span class="user">reboot</span>
@@ -247,7 +232,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p><img alt="root でログイン" title="root でログイン" width="720" height="400" src="login.png"></p>
 
-<h3><a name="l8">ログイン後の操作の学習</a></h3>
+<h2><a name="l6">6. ログイン後の操作の学習</a></h2>
 
 <p>今回は、以下の操作を TOMOYO Linux に学習させ、強制モードでは学習させた操作以外が拒否されることを確かめます。</p>
 
@@ -285,7 +270,7 @@ Adding system startup for /etc/init.d/ccs-auditd ...
 
 <p>一見普通の Linux と変わりなく操作できますが、裏では TOMOYO Linux がアクセス許可を監視し、操作ごとにポリシーとしてメモリ上に記憶しています。</p>
 
-<h3><a name="l9">ポリシーの参照</a></h3>
+<h2><a name="l7">7. ポリシーの参照</a></h2>
 
 <p>生成されたポリシーの参照・編集には、 ccs-editpolicy を用います。</p>
 
@@ -335,7 +320,7 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 # <span class="user">/usr/sbin/ccs-savepolicy</span>
 </pre>
 
-<h3><a name="l10">強制アクセス制御</a></h3>
+<h2><a name="l8">8. ログイン後の操作の制限</a></h2>
 
 <p>それでは、先ほど自動学習したポリシーを使って、強制アクセス制御を体験してみましょう。</p>
 
@@ -366,9 +351,24 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 <p>エラーになった操作のログは、 ccs-auditd によって /var/log/tomoyo/reject_log.txt に保存されています。</p>
 
 <blockquote><p>
+#2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" } }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_read /usr/bin/tail<br>
+<br>
+#2010-01-02 20:28:47# profile=3 mode=enforcing (global-pid=2625) task={ pid=2625 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=42 ino=393334 major=8 minor=1 perm=0640 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2010-01-02 20:28:57# profile=3 mode=enforcing (global-pid=2629) task={ pid=2629 ppid=2626 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=214328 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=212993 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" } }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
+allow_execute /bin/date
 </p></blockquote>
 
-<p>このように TOMOYO Linux のファイルに対するアクセス制御を用いれば、</p>
+<p>このように TOMOYO Linux  のファイルに対するアクセス制御を用いれば、</p>
 
 <ul>
 <li>どのような実行履歴を持つプロセスが</li>

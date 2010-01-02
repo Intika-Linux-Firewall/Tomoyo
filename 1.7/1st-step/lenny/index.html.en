@@ -12,21 +12,17 @@
 <h1><a href="http://tomoyo.sourceforge.jp/">TOMOYO Linux</a> Kickstarting Manual for Debian Lenny</h1>
 
 <ul>
-<li><a href="#l1">About this page</a></li>
-<li><a href="#l2">Installing TOMOYO Linux kernel</a></li>
-<li><a href="#l3">Installing TOMOYO Linux tools</a></li>
-<li><a href="#l4">Executing automatic configuration script</a>
-<li><a href="#l5">Preparation for audit logs</a></li>
-<li><a href="#l6">Operation</a>
-<ul>
-<li><a href="#l7">Booting with TOMOYO Linux kernel</a></li>
-<li><a href="#l8">Generating policies for login operations</a></li>
-<li><a href="#l9">Editing generated policies</a></li>
-<li><a href="#l10">Enforcing MAC</a></li>
-</ul></li>
+<li><a href="#l1">1. About this page</a></li>
+<li><a href="#l2">2. Installing TOMOYO Linux kernel and tools</a></li>
+<li><a href="#l3">3. Executing automatic configuration script</a>
+<li><a href="#l4">4. Preparation for audit logs</a></li>
+<li><a href="#l5">5. Booting with TOMOYO Linux kernel</a></li>
+<li><a href="#l6">6. Generating policies for login operations</a></li>
+<li><a href="#l7">7. Editing generated policies</a></li>
+<li><a href="#l8">8. Applying restrictions for login operations</a></li>
 </ul>
 
-<h2><a name="l1">About this page</a></h2>
+<h2><a name="l1">1. About this page</a></h2>
 
 <p>This page explains you how to introduce TOMOYO Linux 1.7.1 on Debian Lenny systems.
 By operating along with this page, you will be able to experience the fundamental functionalities of TOMOYO Linux and configure and operate TOMOYO Linux.</p>
@@ -34,27 +30,29 @@ By operating along with this page, you will be able to experience the fundamenta
 <p>The following is the flow of introduction.</p>
 
 <ol>
-<li>Install TOMOYO Linux kernel and utilities</li>
+<li>Install TOMOYO Linux kernel and tools</li>
 <li>Configure fundamental policy</li>
-<li>Policy generation and operation</li>
+<li>Policy generation and review</li>
+<li>Apply reviewed policy</li>
 </ol>
 
-<h2><a name="l2">Installing TOMOYO Linux kernel</a></h2>
+<h2><a name="l2">2. Installing TOMOYO Linux kernel and tools</a></h2>
 
 <p>TOMOYO Linux is provided in the form of patches to the Linux kernels, and you need to apply these patches and compile.
-But regarding Debian Lenny, a binary kernel package is available and this page uses it.</p>
+But regarding Debian Lenny, a binary kernel package for i686 architecture is available and this page uses it.</p>
 
-<p>First, download the binary kernel package.</p>
+<p>First, add repository and fetch the package information. The ccs-tools package include programs for managing TOMOYO Linux's policy.</p>
 
 <pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/44408/linux-image-2.6.26-2-686-ccs1.7.1-i686_2.6.26-19lenny2_i386.deb</span>
+# <span class="user">echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45231/ ./' &gt;&gt; /etc/apt/sources.list</span>
+# <span class="user">wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98' | apt-key add -</span>
+# <span class="user">apt-get update</span>
 </pre>
 
-<p>Next, install the downloaded package.</p>
+<p>Next, install the packages.</p>
 
 <pre>
-# <span class="user">dpkg -i linux-image-2.6.26-2-686-ccs1.7.1-i686_2.6.26-19lenny2_i386.deb</span>
-# <span class="user">update-grub</span>
+# <span class="user">apt-get install linux-image-2.6-686-ccs ccs-tools</span>
 </pre>
 
 <p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
@@ -72,22 +70,10 @@ initrd          /boot/initrd.img-2.6.26-2-686-ccs
 <span class="user">#</span>timeout=5
 </pre>
 
-<h2><a name="l3">Installing TOMOYO Linux tools</a></h2>
-
-<p>Next, you need to install TOMOYO Linux tools.
-The TOMOYO Linux tools include programs for managing TOMOYO Linux's policy.</p>
-
-<p>A binary tools package is provided and this page uses it.</p>
-
-<pre>
-# <span class="user">wget http://osdn.dl.sourceforge.jp/tomoyo/44408/ccs-tools_1.7.1-1_i386.deb</span>
-# <span class="user">dpkg -i ccs-tools_1.7.1-1_i386.deb</span>
-</pre>
-
 <p>You have installed TOMOYO Linux.
 Now proceed to configuration.</p>
 
-<h2><a name="l4">Executing automatic configuration program</a></h2>
+<h2><a name="l3">3. Executing automatic configuration program</a></h2>
 
 <p>A program is included in the tools package that performs configurations in this chapter. Run the program as follows.</p>
 
@@ -99,7 +85,8 @@ Now proceed to configuration.</p>
 
 <h3>About profiles</h3>
 
-<p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles". Since this page explains only file access restrictions, /etc/ccs/profile.conf will contain the following entries.</p>
+<p>Since TOMOYO Linux has much functionality, you can selectively enable/disable them using "profiles".
+Since this page explains only file access restrictions, /etc/ccs/profile.conf will contain the following entries.</p>
 
 <pre>
 PROFILE_VERSION=20090903
@@ -117,7 +104,8 @@ PREFERENCE::permissive={ verbose=yes }
 3-CONFIG::file={ mode=enforcing grant_log=yes reject_log=yes }
 </pre>
 
-<p>You can use up to 256 profiles. Above example uses 4 profiles. Their meanings are shown below.</p>
+<p>You can use up to 256 profiles.
+Above example uses 4 profiles. Their meanings are shown below.</p>
 
 <table><tbody>
 <tr><th>Profile 0</th><td>Don't perform file access restrictions.</td></tr>
@@ -187,7 +175,7 @@ The following programs are listed.</p>
 <li>Reserved local ports (deny_autobind)</li>
 </ol>
 
-<h2><a name="l5">Preparation for audit logs</a></h2>
+<h2><a name="l4">4. Preparation for audit logs</a></h2>
 
 <p>TOMOYO Linux has two types of logs, "access granted logs" (access requests that didn't violate domain policy) and "access rejected logs" (access requests that violated domain policy).
 This page configures to save only "access rejected logs".</p>
@@ -207,11 +195,13 @@ To start "ccs-auditd" on bootup to save only "access rejected logs", create the 
 
 <pre>
 # <span class="user">update-rc.d ccs-auditd start 99 2 3 4 5 .</span>
-Adding system startup for /etc/init.d/ccs-auditd ...
-/etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
-/etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+update-rc.d: warning: /etc/init.d/ccs-auditd missing LSB information
+update-rc.d: see &lt;http://wiki.debian.org/LSBInitScripts&gt;
+ Adding system startup for /etc/init.d/ccs-auditd ...
+   /etc/rc2.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc3.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc4.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
+   /etc/rc5.d/S99ccs-auditd -&gt; ../init.d/ccs-auditd
 </pre>
 
 <p>This script will save "access rejected logs" as /var/log/tomoyo/reject_log.txt .
@@ -223,19 +213,15 @@ You need to create the directory to save before you run this script.</p>
 
 <p>You have finished all preparations.</p>
 
-<h2><a name="l6">Operation</a></h2>
+<h2><a name="l5">5. Booting with TOMOYO Linux kernel</a></h2>
 
-<p>Now, boot with TOMOYO Linux kernel.</p>
-
-<h3><a name="l7">Booting with TOMOYO Linux kernel</a></h3>
-
-<p>First, reboot the system.</p>
+<p>Now, reboot with TOMOYO Linux kernel.</p>
 
 <pre>
 # <span class="user">reboot</span>
 </pre>
 
-p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
+<p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
 
 <p><img alt="Booting with TOMOYO Linux kernel" title="Booting with TOMOYO Linux kernel" width="720" height="400" src="grub.png"></p>
 
@@ -243,7 +229,7 @@ p>Select the TOMOYO Linux kernel and press 'Enter' key.</p>
 
 <p><img alt="Log in as root" title="Log in as root" width="720" height="400" src="login.png"></p>
 
-<h3><a name="l8">Generating policies for login operations</a></h3>
+<h2><a name="l6">6. Generating policies for login operations</a></h2>
 
 <p>Let the TOMOYO Linux's kernel remember the following operations, and let's see any operations that weren't done in the learning mode are denied in the enforcing mode.</p>
 
@@ -279,7 +265,7 @@ All you need to do is do these operations as usual.</p>
 
 <p>You can operate as if the usual Linux, but the TOMOYO Linux kernel is monitoring accesses and generating policies and storing on the memory in the background.</p>
 
-<h3><a name="l9">Editing generated policies</a></h3>
+<h2><a name="l7">7. Editing generated policies</a></h2>
 
 <p>To refer and/or edit generated policy, you can use "ccs-editpolicy" in the TOMOYO Linux tools package.</p>
 
@@ -327,7 +313,7 @@ To save policies currently on the memory onto disk, run the following command.</
 # <span class="user">/usr/sbin/ccs-savepolicy</span>
 </pre>
 
-<h3><a name="l10">Enforcing MAC</a></h3>
+<h2><a name="l8">8. Applying restrictions for login operations</a></h2>
 
 <p>Now, let's experience MAC using previously generated policy.</p>
 
@@ -358,6 +344,21 @@ Operations with blue colored underline are denied.</p>
 <p>The logs for denied operations are saved in /var/log/tomoyo/reject_log.txt by ccs-auditd.</p>
 
 <blockquote><p>
+#2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" } }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_execute /usr/bin/tail<br>
+<br>
+#2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
+allow_read /usr/bin/tail<br>
+<br>
+#2010-01-02 20:28:47# profile=3 mode=enforcing (global-pid=2625) task={ pid=2625 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=42 ino=393334 major=8 minor=1 perm=0640 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
+allow_read /etc/shadow<br>
+<br>
+#2010-01-02 20:28:57# profile=3 mode=enforcing (global-pid=2629) task={ pid=2629 ppid=2626 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=214328 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=212993 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" } }<br>
+&lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
+allow_execute /bin/date
 </p></blockquote>
 
 <p>As you have seen above, by using TOMOYO Linux's MAC for file accesses functionality, you can monitor</p>
