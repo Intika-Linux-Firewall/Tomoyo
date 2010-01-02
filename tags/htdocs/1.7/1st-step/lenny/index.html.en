@@ -55,15 +55,6 @@ But regarding Debian Lenny, a binary kernel package for i686 architecture is ava
 # <span class="user">apt-get install linux-image-2.6-686-ccs ccs-tools</span>
 </pre>
 
-<p>The following entry is appended to /boot/grub/menu.lst if installation finishes successfully.</p>
-
-<pre>
-title           Debian GNU/Linux, kernel 2.6.26-2-686-ccs
-root            (hd0,0)
-kernel          /boot/vmlinuz-2.6.26-2-686-ccs root=/dev/sda1 ro
-initrd          /boot/initrd.img-2.6.26-2-686-ccs
-</pre>
-
 <p>Comment out the "timeout=" line of /boot/grub/menu.lst so that you will not fail to select TOMOYO Linux's kernel.</p>
 
 <pre>
