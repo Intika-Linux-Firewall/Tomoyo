@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -107,21 +107,23 @@ void editpolicy_init_keyword_map(void)
 	if (!fp)
 		goto use_default;
 	get();
-	while (freadline(fp)) {
-		char *cp = shared_buffer + 25;
-		if (strncmp(shared_buffer, "editpolicy.keyword_alias ", 25))
+	while (true) {
+		char *line = freadline(fp);
+		char *cp;
+		if (!line)
+			break;
+		if (!str_starts(line, "editpolicy.keyword_alias "))
 			continue;
-		memmove(shared_buffer, cp, strlen(cp) + 1);
-		cp = strchr(shared_buffer, '=');
+		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		normalize_line(shared_buffer);
+		normalize_line(line);
 		normalize_line(cp);
-		if (!*shared_buffer || !*cp)
+		if (!*line || !*cp)
 			continue;
 		for (i = 1; i < MAX_DIRECTIVE_INDEX; i++) {
-			if (strcmp(shared_buffer, directives[i].original))
+			if (strcmp(line, directives[i].original))
 				continue;
 			free((void *) directives[i].alias);
 			cp = strdup(cp);

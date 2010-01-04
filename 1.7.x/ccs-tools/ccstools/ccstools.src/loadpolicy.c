@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -181,26 +181,28 @@ int selectpolicy_main(int argc, char *argv[])
 	for (i = start; i < argc; i++)
 		normalize_line(argv[i]);
 	get();
-	while (freadline(stdin)) {
-		if (is_domain_def(shared_buffer)) {
+	while (true) {
+		char *line = freadline(stdin);
+		if (!line)
+			break;
+		if (is_domain_def(line)) {
 			matched = false;
 			for (i = start; i < argc; i++) {
 				const int len = strlen(argv[i]);
-				if (strncmp(shared_buffer, argv[i], len))
+				if (strncmp(line, argv[i], len))
 					continue;
 				if (!recursive) {
-					if (shared_buffer[len])
+					if (line[len])
 						continue;
 				} else {
-					if (shared_buffer[len] &&
-					    shared_buffer[len] != ' ')
+					if (line[len] && line[len] != ' ')
 						continue;
 				}
 				matched = true;
 			}
 		}
 		if (matched)
-			puts(shared_buffer);
+			puts(line);
 	}
 	put();
 	return 0;
@@ -417,9 +419,12 @@ static void move_file_to_proc(const char *src, const char *dest)
 		}
 	}
 	get();
-	while (freadline(file_fp)) {
-		if (shared_buffer[0])
-			fprintf(proc_fp, "%s\n", shared_buffer);
+	while (true) {
+		char *line = freadline(file_fp);
+		if (!line)
+			break;
+		if (line[0])
+			fprintf(proc_fp, "%s\n", line);
 	}
 	put();
 	close_write(proc_fp);
@@ -447,8 +452,12 @@ static void delete_proc_policy(const char *name)
 		return;
 	}
 	get();
-	while (freadline(fp_in))
-		fprintf(fp_out, "delete %s\n", shared_buffer);
+	while (true) {
+		char *line = freadline(fp_in);
+		if (!line)
+			break;
+		fprintf(fp_out, "delete %s\n", line);
+	}
 	put();
 	fclose(fp_in);
 	close_write(fp_out);
