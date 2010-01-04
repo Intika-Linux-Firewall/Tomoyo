@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -276,6 +276,7 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 
 	get();
 	for (index = 0; index < list_item_count[screen]; index++) {
+		char *line;
 		const u8 d_index = generic_acl_list[index].directive;
 		if (index == current)
 			continue;
@@ -302,11 +303,8 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			/* Source and dest start with different directive. */
 			continue;
 		}
-		shprintf("%s", generic_acl_list[index].operand);
-		if (!memchr(shared_buffer, '\0', sizeof(shared_buffer)))
-			continue; /* Line too long. */
-
-		d_cond = ccs_tokenize(shared_buffer, d, sizeof(d));
+		line = shprintf("%s", generic_acl_list[index].operand);
+		d_cond = ccs_tokenize(line, d, sizeof(d));
 
 		/* Compare condition part. */
 		if (!d_cond || strcmp(s_cond, d_cond))

@@ -528,31 +528,60 @@ static void check_file_policy(char *data)
 			continue;
 		if (acl_type_array[type].paths == 4) {
 			cp = strrchr(filename, ' ');
-			if (!cp || !is_correct_path(cp + 1, 0, 0, 0))
+			if (!cp) {
+				printf("%u: ERROR: Too few arguments.\n",
+				       line);
 				break;
+			}
+			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+				printf("%u: ERROR: '%s' is a bad argument\n",
+				       line, cp + 1);
+				break;
+			}
 			*cp = '\0';
 			cp = strrchr(filename, ' ');
-			if (!cp || !is_correct_path(cp + 1, 0, 0, 0))
+			if (!cp) {
+				printf("%u: ERROR: Too few arguments.\n",
+				       line);
 				break;
+			}
+			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+				printf("%u: ERROR: '%s' is a bad argument.\n",
+				       line, cp + 1);
+				break;
+			}
 			*cp = '\0';
 		}
 		if (acl_type_array[type].paths >= 2) {
 			cp = strrchr(filename, ' ');
-			if (!cp || !is_correct_path(cp + 1, 0, 0, 0))
+			if (!cp) {
+				printf("%u: ERROR: Too few arguments.\n",
+				       line);
 				break;
+			}
+			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+				printf("%u: ERROR: '%s' is a bad argument.\n",
+				       line, cp + 1);
+				break;
+			}
 			*cp = '\0';
 		}
-		if (!is_correct_path(filename, 0, 0, 0))
+		if (!is_correct_path(filename, 0, 0, 0)) {
+			printf("%u: ERROR: '%s' is a bad argument.\n", line,
+			       filename);
 			break;
+		}
 		/* "allow_execute" doesn't accept patterns. */
 		if (!type && filename[0] != '@' &&
-		    !is_correct_path(filename, 1, -1, -1))
+		    !is_correct_path(filename, 1, -1, -1)) {
+			printf("%u: ERROR: Patterns not allowed for "
+			       "execute permission.\n", line);
 			break;
+		}
 		return;
 	}
 	if (!acl_type_array[type].keyword)
 		goto out;
-	printf("%u: ERROR: '%s' is a bad pathname.\n", line, filename);
 	errors++;
 	return;
 out:

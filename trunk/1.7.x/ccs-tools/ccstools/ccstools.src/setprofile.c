@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -51,8 +51,11 @@ int setprofile_main(int argc, char *argv[])
 			exit(1);
 		}
 		get();
-		while (freadline(fp)) {
-			if (atoi(shared_buffer) != profile)
+		while (true) {
+			char *line = freadline(fp);
+			if (!line)
+				break;
+			if (atoi(line) != profile)
 				continue;
 			profile_found = true;
 			break;
@@ -71,8 +74,12 @@ int setprofile_main(int argc, char *argv[])
 		exit(1);
 	}
 	get();
-	while (freadline(fp_in)) {
-		char *cp = strchr(shared_buffer, ' ');
+	while (true) {
+		char *cp;
+		char *line = freadline(fp_in);
+		if (!line)
+			break;
+		cp = strchr(line, ' ');
 		if (!cp)
 			break;
 		*cp++ = '\0';

@@ -858,18 +858,21 @@ void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
 	int index = EOF;
 	if (!is_write)
 		goto read_policy;
-	while (freadline(fp)) {
+	while (true) {
+		char *line = freadline(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
 		unsigned int profile;
-		if (str_starts(shared_buffer, "delete "))
+		if (!line)
+			break;
+		if (str_starts(line, "delete "))
 			is_delete = true;
-		else if (str_starts(shared_buffer, "select "))
+		else if (str_starts(line, "select "))
 			is_select = true;
-		str_starts(shared_buffer, "domain=");
-		if (is_domain_def(shared_buffer)) {
+		str_starts(line, "domain=");
+		if (is_domain_def(line)) {
 			if (is_delete) {
-				index = find_domain(dp, shared_buffer, false,
+				index = find_domain(dp, line, false,
 						    false);
 				if (index >= 0)
 					delete_domain(dp, index);
@@ -877,23 +880,23 @@ void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
 				continue;
 			}
 			if (is_select) {
-				index = find_domain(dp, shared_buffer, false,
+				index = find_domain(dp, line, false,
 						    false);
 				continue;
 			}
-			index = find_or_assign_new_domain(dp, shared_buffer,
+			index = find_or_assign_new_domain(dp, line,
 							  false, false);
 			continue;
 		}
-		if (index == EOF || !shared_buffer[0])
+		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(shared_buffer, KEYWORD_USE_PROFILE "%u", &profile)
+		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile)
 		    == 1)
 			dp->list[index].profile = (u8) profile;
 		else if (is_delete)
-			del_string_entry(dp, shared_buffer, index);
+			del_string_entry(dp, line, index);
 		else
-			add_string_entry(dp, shared_buffer, index);
+			add_string_entry(dp, line, index);
 	}
 	return;
 read_policy:
@@ -912,7 +915,6 @@ read_policy:
 
 /* Variables */
 
-char shared_buffer[sizeof(shared_buffer)];
 static _Bool buffer_locked = false;
 
 /* Main functions */
@@ -931,42 +933,61 @@ void put(void)
 	buffer_locked = false;
 }
 
-void shprintf(const char *fmt, ...)
+char *shprintf(const char *fmt, ...)
 {
-	va_list args;
 	if (!buffer_locked)
 		out_of_memory();
-	memset(shared_buffer, 0, sizeof(shared_buffer));
-	va_start(args, fmt);
-	vsnprintf(shared_buffer, sizeof(shared_buffer) - 1, fmt, args);
-	va_end(args);
+	while (true) {
+		static char *policy = NULL;
+		static int max_policy_len = 0;
+		va_list args;
+		int len;
+		va_start(args, fmt);
+		len = vsnprintf(policy, max_policy_len, fmt, args);
+		va_end(args);
+		if (len < 0)
+			out_of_memory();
+		if (len >= max_policy_len) {
+			char *cp;
+			max_policy_len = len + 1;
+			cp = realloc(policy, max_policy_len);
+			if (!cp)
+				out_of_memory();
+			policy = cp;
+		} else
+			return policy;
+	}
 }
 
-_Bool freadline(FILE *fp)
+char *freadline(FILE *fp)
 {
-	char *cp;
+	static char *policy = NULL;
+	int pos = 0;
 	if (!buffer_locked)
 		out_of_memory();
-	memset(shared_buffer, 0, sizeof(shared_buffer));
-	if (network_mode) {
-		int i;
-		for (i = 0; i < sizeof(shared_buffer) - 1; i++) {
-			if (fread(shared_buffer + i, 1, 1, fp) != 1 ||
-			    !shared_buffer[i])
-				return false;
-			if (shared_buffer[i] == '\n')
-				break;
+	while (true) {
+		static int max_policy_len = 0;
+		int c = fgetc(fp);
+		if (c == EOF)
+			return NULL;
+		if (network_mode && !c)
+			return NULL;
+		if (pos == max_policy_len) {
+			char *cp;
+			max_policy_len += 4096;
+			cp = realloc(policy, max_policy_len);
+			if (!cp)
+				out_of_memory();
+			policy = cp;
 		}
-	} else {
-		if (!fgets(shared_buffer, sizeof(shared_buffer) - 1, fp))
-			return false;
+		policy[pos++] = (char) c;
+		if (c == '\n') {
+			policy[--pos] = '\0';
+			break;
+		}
 	}
-	cp = strchr(shared_buffer, '\n');
-	if (!cp)
-		return false;
-	*cp = '\0';
-	normalize_line(shared_buffer);
-	return true;
+	normalize_line(policy);
+	return policy;
 }
 
 _Bool check_remote_host(void)

@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -49,12 +49,14 @@ int setlevel_main(int argc, char *argv[])
 		}
 		fflush(fp);
 		get();
-		while (freadline(fp)) {
+		while (true) {
+			char *line = freadline(fp);
+			if (!line)
+				break;
 			for (i = 1; i < argc; i++) {
-				if (strncmp(shared_buffer, argv[i],
-					    strlen(argv[i])))
+				if (strncmp(line, argv[i], strlen(argv[i])))
 					continue;
-				printf("%s\n", shared_buffer);
+				printf("%s\n", line);
 				break;
 			}
 		}

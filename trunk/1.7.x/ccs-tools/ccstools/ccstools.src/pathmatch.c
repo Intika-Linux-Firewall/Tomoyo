@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -125,8 +125,12 @@ int pathmatch_main(int argc, char *argv[])
 			do_pathmatch_main(argv[i]);
 	} else {
 		get();
-		while (freadline(stdin))
-			do_pathmatch_main(shared_buffer);
+		while (true) {
+			char *line = freadline(stdin);
+			if (!line)
+				break;
+			do_pathmatch_main(line);
+		}
 		put();
 	}
 	return 0;

@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -546,7 +546,10 @@ int queryd_main(int argc, char *argv[])
 		socketpair(AF_UNIX, SOCK_DGRAM, 0, pipe_fd);
 		switch (fork()) {
 		case 0:
-			fclose(domain_fp);
+			if (domain_fp)
+				fclose(domain_fp);
+			else
+				close(domain_policy_fd);
 			close(query_fd);
 			close(pipe_fd[0]);
 			do_check_update(pipe_fd[1]);

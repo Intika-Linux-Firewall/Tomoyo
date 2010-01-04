@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -125,8 +125,10 @@ int patternize_main(int argc, char *argv[])
 		argv = NULL;
 		argc = 0;
 		get();
-		while (fp && freadline(fp)) {
-			char *line = shared_buffer;
+		while (fp) {
+			char *line = freadline(fp);
+			if (!line)
+				break;
 			normalize_line(line);
 			if (str_starts(line, "file_pattern ") ||
 			    str_starts(line, "path_group") ||
@@ -201,14 +203,16 @@ int patternize_main(int argc, char *argv[])
 			fill_path_info(&pattern_list[i].path);
 	}
 	get();
-	while (freadline(stdin)) {
-		char *sp = shared_buffer;
+	while (true) {
+		char *sp = freadline(stdin);
 		const char *cp;
 		_Bool first = true;
 		u8 path_count = 0;
 		u8 number_count = 0;
 		u8 address_count = 0;
 		u8 skip_count = 0;
+		if (!sp)
+			break;
 		while (true) {
 			cp = strsep(&sp, " ");
 			if (!cp)

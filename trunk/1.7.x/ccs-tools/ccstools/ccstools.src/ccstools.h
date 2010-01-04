@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 
@@ -340,8 +340,6 @@ int pstree_main(int argc, char *argv[]);
 int queryd_main(int argc, char *argv[]);
 int auditd_main(int argc, char *argv[]);
 int patternize_main(int argc, char *argv[]);
-void shprintf(const char *fmt, ...)
-	__attribute__ ((format(printf, 1, 2)));
 _Bool move_proc_to_file(const char *src, const char *dest);
 _Bool is_identical_file(const char *file1, const char *file2);
 FILE *open_read(const char *filename);
@@ -384,10 +382,10 @@ int editpolicy_get_current(void);
 int parse_number(const char *number, struct number_entry *entry);
 int parse_ip(const char *address, struct ip_address_entry *entry);
 
-extern char shared_buffer[8192];
 void get(void);
 void put(void);
-_Bool freadline(FILE *fp);
+char *freadline(FILE *fp);
+char *shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 
 char *simple_readline(const int start_y, const int start_x, const char *prompt,
 		      const char *history[], const int history_count,

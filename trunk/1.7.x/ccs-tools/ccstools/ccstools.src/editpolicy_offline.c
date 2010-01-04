@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -27,13 +27,16 @@ static void handle_misc_policy(struct misc_policy *mp, FILE *fp, _Bool is_write)
 	int i;
 	if (!is_write)
 		goto read_policy;
-	while (freadline(fp)) {
+	while (true) {
+		char *line = freadline(fp);
 		const struct path_info *cp;
 		_Bool is_delete;
-		if (!shared_buffer[0])
+		if (!line)
+			break;
+		if (!line[0])
 			continue;
-		is_delete = str_starts(shared_buffer, "delete ");
-		cp = savename(shared_buffer);
+		is_delete = str_starts(line, "delete ");
+		cp = savename(line);
 		if (!cp)
 			out_of_memory();
 		if (!is_delete)
@@ -95,14 +98,17 @@ void editpolicy_offline_daemon(void)
 {
 	struct misc_policy mp[3];
 	struct domain_policy dp;
+	static const int buffer_len = 8192;
+	char *buffer = malloc(buffer_len);
+	if (!buffer)
+		out_of_memory();
 	memset(&dp, 0, sizeof(dp));
 	memset(&mp, 0, sizeof(mp));
-	get();
 	find_or_assign_new_domain(&dp, ROOT_NAME, false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;
-		struct iovec iov = { shared_buffer, sizeof(shared_buffer) - 1 };
+		struct iovec iov = { buffer, buffer_len - 1 };
 		char cmsg_buf[CMSG_SPACE(sizeof(int))];
 		struct cmsghdr *cmsg = (struct cmsghdr *) cmsg_buf;
 		memset(&msg, 0, sizeof(msg));
@@ -110,7 +116,7 @@ void editpolicy_offline_daemon(void)
 		msg.msg_iovlen = 1;
 		msg.msg_control = cmsg_buf;
 		msg.msg_controllen = sizeof(cmsg_buf);
-		memset(shared_buffer, 0, sizeof(shared_buffer));
+		memset(buffer, 0, buffer_len);
 		errno = 0;
 		if (recvmsg(persistent_fd, &msg, 0) <= 0)
 			break;
@@ -129,30 +135,27 @@ void editpolicy_offline_daemon(void)
 		} else {
 			break;
 		}
-		if (str_starts(shared_buffer, "POST ")) {
-			if (!strcmp(shared_buffer, proc_policy_domain_policy))
+		if (str_starts(buffer, "POST ")) {
+			if (!strcmp(buffer, proc_policy_domain_policy))
 				handle_domain_policy(&dp, fp, true);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_exception_policy))
+			else if (!strcmp(buffer, proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, true);
-			else if (!strcmp(shared_buffer, proc_policy_profile))
+			else if (!strcmp(buffer, proc_policy_profile))
 				handle_misc_policy(&mp[1], fp, true);
-			else if (!strcmp(shared_buffer, proc_policy_manager))
+			else if (!strcmp(buffer, proc_policy_manager))
 				handle_misc_policy(&mp[2], fp, true);
-		} else if (str_starts(shared_buffer, "GET ")) {
-			if (!strcmp(shared_buffer, proc_policy_domain_policy))
+		} else if (str_starts(buffer, "GET ")) {
+			if (!strcmp(buffer, proc_policy_domain_policy))
 				handle_domain_policy(&dp, fp, false);
-			else if (!strcmp(shared_buffer,
-					 proc_policy_exception_policy))
+			else if (!strcmp(buffer, proc_policy_exception_policy))
 				handle_misc_policy(&mp[0], fp, false);
-			else if (!strcmp(shared_buffer, proc_policy_profile))
+			else if (!strcmp(buffer, proc_policy_profile))
 				handle_misc_policy(&mp[1], fp, false);
-			else if (!strcmp(shared_buffer, proc_policy_manager))
+			else if (!strcmp(buffer, proc_policy_manager))
 				handle_misc_policy(&mp[2], fp, false);
 		}
 		fclose(fp);
 	}
-	put();
 	clear_domain_policy(&dp);
 	{
 		int i;
@@ -162,5 +165,6 @@ void editpolicy_offline_daemon(void)
 			mp[i].list_len = 0;
 		}
 	}
+	free(buffer);
 	_exit(0);
 }

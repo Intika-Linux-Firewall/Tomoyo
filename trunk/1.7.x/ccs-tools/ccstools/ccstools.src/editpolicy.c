@@ -340,11 +340,11 @@ static void assign_domain_initializer_source(struct domain_policy *dp,
 					     const char *program)
 {
 	if (is_domain_initializer(domainname, program)) {
+		char *line;
 		get();
-		shprintf("%s %s", domainname->name, program);
-		normalize_line(shared_buffer);
-		if (find_or_assign_new_domain(dp, shared_buffer, true, false)
-		    == EOF)
+		line = shprintf("%s %s", domainname->name, program);
+		normalize_line(line);
+		if (find_or_assign_new_domain(dp, line, true, false) == EOF)
 			out_of_memory();
 		put();
 	}
@@ -366,6 +366,7 @@ static int show_domain_line(struct domain_policy *dp, const int index)
 	int tmp_col = 0;
 	const struct domain_initializer_entry *domain_initializer;
 	const struct domain_keeper_entry *domain_keeper;
+	char *line;
 	const char *sp;
 	const int number = dp->list[index].number;
 	int redirect_index;
@@ -403,14 +404,14 @@ static int show_domain_line(struct domain_policy *dp, const int index)
 		goto not_domain_initializer;
 	get();
 	if (domain_initializer->domainname)
-		shprintf(" ( " KEYWORD_INITIALIZE_DOMAIN "%s from %s )",
-			 domain_initializer->program->name,
-			 domain_initializer->domainname->name);
+		line = shprintf(" ( " KEYWORD_INITIALIZE_DOMAIN "%s from %s )",
+				domain_initializer->program->name,
+				domain_initializer->domainname->name);
 	else
-		shprintf(" ( " KEYWORD_INITIALIZE_DOMAIN "%s )",
-			 domain_initializer->program->name);
-	printw("%s", eat(shared_buffer));
-	tmp_col += strlen(shared_buffer);
+		line = shprintf(" ( " KEYWORD_INITIALIZE_DOMAIN "%s )",
+				domain_initializer->program->name);
+	printw("%s", eat(line));
+	tmp_col += strlen(line);
 	put();
 	goto done;
 not_domain_initializer:
@@ -419,28 +420,28 @@ not_domain_initializer:
 		goto not_domain_keeper;
 	get();
 	if (domain_keeper->program)
-		shprintf(" ( " KEYWORD_KEEP_DOMAIN "%s from %s )",
-			 domain_keeper->program->name,
-			 domain_keeper->domainname->name);
+		line = shprintf(" ( " KEYWORD_KEEP_DOMAIN "%s from %s )",
+				domain_keeper->program->name,
+				domain_keeper->domainname->name);
 	else
-		shprintf(" ( " KEYWORD_KEEP_DOMAIN "%s )",
-			 domain_keeper->domainname->name);
-	printw("%s", eat(shared_buffer));
-	tmp_col += strlen(shared_buffer);
+		line = shprintf(" ( " KEYWORD_KEEP_DOMAIN "%s )",
+				domain_keeper->domainname->name);
+	printw("%s", eat(line));
+	tmp_col += strlen(line);
 	put();
 	goto done;
 not_domain_keeper:
 	if (!is_initializer_source(dp, index))
 		goto done;
 	get();
-	shprintf(ROOT_NAME "%s", strrchr(domain_name(dp, index), ' '));
-	redirect_index = find_domain(dp, shared_buffer, false, false);
+	line = shprintf(ROOT_NAME "%s", strrchr(domain_name(dp, index), ' '));
+	redirect_index = find_domain(dp, line, false, false);
 	if (redirect_index >= 0)
 		shprintf(" ( -> %d )", dp->list[redirect_index].number);
 	else
 		shprintf(" ( -> Not Found )");
-	printw("%s", eat(shared_buffer));
-	tmp_col += strlen(shared_buffer);
+	printw("%s", eat(line));
+	tmp_col += strlen(line);
 	put();
 done:
 	return tmp_col;
@@ -485,35 +486,37 @@ static int show_literal_line(const int index)
 
 static int show_meminfo_line(const int index)
 {
+	char *line;
 	unsigned int now = 0;
 	unsigned int quota = -1;
 	const char *data = generic_acl_list[index].operand;
 	get();
 	if (sscanf(data, "Policy: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory used for policy      = %10u bytes   "
-			 "(Quota: %10u bytes)", now, quota);
+		line = shprintf("Memory used for policy      = %10u bytes   "
+				"(Quota: %10u bytes)", now, quota);
 	else if (sscanf(data, "Audit logs: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory used for audit logs  = %10u bytes   "
-			 "(Quota: %10u bytes)", now, quota);
+		line = shprintf("Memory used for audit logs  = %10u bytes   "
+				"(Quota: %10u bytes)", now, quota);
 	else if (sscanf(data, "Query lists: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory used for query lists = %10u bytes   "
-			 "(Quota: %10u bytes)", now, quota);
+		line = shprintf("Memory used for query lists = %10u bytes   "
+				"(Quota: %10u bytes)", now, quota);
 	else if (sscanf(data, "Total: %u", &now) == 1)
-		shprintf("Total memory in use         = %10u bytes", now);
+		line = shprintf("Total memory in use         = %10u bytes",
+				now);
 	else if (sscanf(data, "Shared: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for string data      = %10u bytes    "
-			 "Quota = %10u bytes", now, quota);
+		line = shprintf("Memory for string data      = %10u bytes    "
+				"Quota = %10u bytes", now, quota);
 	else if (sscanf(data, "Private: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for numeric data     = %10u bytes    "
-			 "Quota = %10u bytes", now, quota);
+		line = shprintf("Memory for numeric data     = %10u bytes    "
+				"Quota = %10u bytes", now, quota);
 	else if (sscanf(data, "Dynamic: %u (Quota: %u)", &now, &quota) >= 1)
-		shprintf("Memory for temporary data   = %10u bytes    "
-			 "Quota = %10u bytes", now, quota);
+		line = shprintf("Memory for temporary data   = %10u bytes    "
+				"Quota = %10u bytes", now, quota);
 	else
-		shprintf("%s", data);
-	if (shared_buffer[0])
-		printw("%s", eat(shared_buffer));
-	now = strlen(shared_buffer);
+		line = shprintf("%s", data);
+	if (line[0])
+		printw("%s", eat(line));
+	now = strlen(line);
 	put();
 	return now;
 }
@@ -947,35 +950,38 @@ static void read_generic_policy(void)
 		return;
 	}
 	get();
-	while (freadline(fp)) {
+	while (true) {
+		char *line = freadline(fp);
 		u16 directive;
 		char *cp;
+		if (!line)
+			break;
 		if (current_screen == SCREEN_ACL_LIST) {
-			if (is_domain_def(shared_buffer)) {
-				flag = !strcmp(shared_buffer, current_domain);
+			if (is_domain_def(line)) {
+				flag = !strcmp(line, current_domain);
 				continue;
 			}
-			if (!flag || !shared_buffer[0] ||
-			    !strncmp(shared_buffer, KEYWORD_USE_PROFILE,
+			if (!flag || !line[0] ||
+			    !strncmp(line, KEYWORD_USE_PROFILE,
 				     KEYWORD_USE_PROFILE_LEN))
 				continue;
 		} else {
-			if (!shared_buffer[0])
+			if (!line[0])
 				continue;
 		}
 		switch (current_screen) {
 		case SCREEN_EXCEPTION_LIST:
 		case SCREEN_ACL_LIST:
-			directive = find_directive(true, shared_buffer);
+			directive = find_directive(true, line);
 			if (directive == DIRECTIVE_NONE)
 				continue;
 			break;
 		case SCREEN_PROFILE_LIST:
-			cp = strchr(shared_buffer, '-');
+			cp = strchr(line, '-');
 			if (cp) {
 				*cp++ = '\0';
-				directive = atoi(shared_buffer);
-				memmove(shared_buffer, cp, strlen(cp) + 1);
+				directive = atoi(line);
+				memmove(line, cp, strlen(cp) + 1);
 			} else
 				directive = (u16) -1;
 			break;
@@ -988,7 +994,7 @@ static void read_generic_policy(void)
 					   sizeof(struct generic_acl));
 		if (!generic_acl_list)
 			out_of_memory();
-		cp = strdup(shared_buffer);
+		cp = strdup(line);
 		if (!cp)
 			out_of_memory();
 		generic_acl_list[generic_acl_list_count].directive = directive;
@@ -1130,24 +1136,28 @@ void read_process_list(_Bool show_all)
 		if (!fp)
 			return;
 		get();
-		while (freadline(fp)) {
+		while (true) {
+			char *line = freadline(fp);
 			unsigned int pid = 0;
 			unsigned int ppid = 0;
 			int profile = -1;
 			char *name;
 			char *domain;
-			sscanf(shared_buffer, "PID=%u PPID=%u", &pid, &ppid);
-			name = strstr(shared_buffer, "NAME=");
+			if (!line)
+				break;
+			sscanf(line, "PID=%u PPID=%u", &pid, &ppid);
+			name = strstr(line, "NAME=");
 			if (name)
 				name = strdup(name + 5);
 			if (!name)
 				name = strdup("<UNKNOWN>");
 			if (!name)
 				out_of_memory();
-			if (!freadline(fp))
+			line = freadline(fp);
+			if (!line)
 				break;
-			sscanf(shared_buffer, "%u %u", &pid, &profile);
-			domain = strchr(shared_buffer, '<');
+			sscanf(line, "%u %u", &pid, &profile);
+			domain = strchr(line, '<');
 			if (domain)
 				domain = strdup(domain);
 			if (!domain)
@@ -1171,6 +1181,8 @@ void read_process_list(_Bool show_all)
 		put();
 		fclose(fp);
 	} else {
+		static const int line_len = 8192;
+		char *line;
 		struct dirent **namelist;
 		int i;
 		int n;
@@ -1178,6 +1190,9 @@ void read_process_list(_Bool show_all)
 		if (status_fd == EOF)
 			return;
 		n = scandir("/proc/", &namelist, 0, 0);
+		line = malloc(line_len);
+		if (!line)
+			out_of_memory();
 		for (i = 0; i < n; i++) {
 			char *name;
 			char *domain;
@@ -1185,7 +1200,8 @@ void read_process_list(_Bool show_all)
 			unsigned int pid = 0;
 			char buffer[128];
 			char test[16];
-			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1 || !pid)
+			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1
+			    || !pid)
 				goto skip;
 			memset(buffer, 0, sizeof(buffer));
 			if (!show_all) {
@@ -1201,19 +1217,16 @@ void read_process_list(_Bool show_all)
 				out_of_memory();
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 			write(status_fd, buffer, strlen(buffer));
-			get();
-			memset(shared_buffer, 0, sizeof(shared_buffer));
-			read(status_fd, shared_buffer,
-			     sizeof(shared_buffer) - 1);
-			sscanf(shared_buffer, "%u %u", &pid, &profile);
-			domain = strchr(shared_buffer, '<');
+			memset(line, 0, line_len);
+			read(status_fd, line, line_len - 1);
+			sscanf(line, "%u %u", &pid, &profile);
+			domain = strchr(line, '<');
 			if (domain)
 				domain = strdup(domain);
 			if (!domain)
 				domain = strdup("<UNKNOWN>");
 			if (!domain)
 				out_of_memory();
-			put();
 			task_list = realloc(task_list, (task_list_len + 1) *
 					    sizeof(struct task_entry));
 			if (!task_list)
@@ -1229,6 +1242,7 @@ void read_process_list(_Bool show_all)
 skip:
 			free((void *) namelist[i]);
 		}
+		free(line);
 		if (n >= 0)
 			free((void *) namelist);
 		close(status_fd);
@@ -1392,22 +1406,24 @@ static void read_domain_and_exception_policy(struct domain_policy *dp)
 		goto no_exception;
 	}
 	get();
-	while (freadline(fp)) {
-		if (str_starts(shared_buffer, KEYWORD_INITIALIZE_DOMAIN))
-			add_domain_initializer_policy(shared_buffer, false);
-		else if (str_starts(shared_buffer,
-				    KEYWORD_NO_INITIALIZE_DOMAIN))
-			add_domain_initializer_policy(shared_buffer, true);
-		else if (str_starts(shared_buffer, KEYWORD_KEEP_DOMAIN))
-			add_domain_keeper_policy(shared_buffer, false);
-		else if (str_starts(shared_buffer, KEYWORD_NO_KEEP_DOMAIN))
-			add_domain_keeper_policy(shared_buffer, true);
-		else if (str_starts(shared_buffer, KEYWORD_PATH_GROUP))
-			add_path_group_policy(shared_buffer, false);
-		else if (str_starts(shared_buffer, KEYWORD_ADDRESS_GROUP))
-			add_address_group_policy(shared_buffer, false);
-		else if (str_starts(shared_buffer, KEYWORD_NUMBER_GROUP))
-			add_number_group_policy(shared_buffer, false);
+	while (true) {
+		char *line = freadline(fp);
+		if (!line)
+			break;
+		if (str_starts(line, KEYWORD_INITIALIZE_DOMAIN))
+			add_domain_initializer_policy(line, false);
+		else if (str_starts(line, KEYWORD_NO_INITIALIZE_DOMAIN))
+			add_domain_initializer_policy(line, true);
+		else if (str_starts(line, KEYWORD_KEEP_DOMAIN))
+			add_domain_keeper_policy(line, false);
+		else if (str_starts(line, KEYWORD_NO_KEEP_DOMAIN))
+			add_domain_keeper_policy(line, true);
+		else if (str_starts(line, KEYWORD_PATH_GROUP))
+			add_path_group_policy(line, false);
+		else if (str_starts(line, KEYWORD_ADDRESS_GROUP))
+			add_address_group_policy(line, false);
+		else if (str_starts(line, KEYWORD_NUMBER_GROUP))
+			add_number_group_policy(line, false);
 	}
 	put();
 	fclose(fp);
@@ -1435,30 +1451,29 @@ no_exception:
 	}
 	index = EOF;
 	get();
-	while (freadline(fp)) {
-		char *cp;
-		char *cp2;
+	while (true) {
+		char *line = freadline(fp);
 		unsigned int profile;
-		if (is_domain_def(shared_buffer)) {
-			index = find_or_assign_new_domain(dp, shared_buffer,
+		if (!line)
+			break;
+		if (is_domain_def(line)) {
+			index = find_or_assign_new_domain(dp, line,
 							  false, false);
 			continue;
 		} else if (index == EOF) {
 			continue;
 		}
-		if (str_starts(shared_buffer, KEYWORD_EXECUTE_HANDLER)) {
-			add_string_entry(dp, shared_buffer, index);
-		} else if (str_starts(shared_buffer,
-				      KEYWORD_DENIED_EXECUTE_HANDLER)) {
-			add_string_entry(dp, shared_buffer, index);
-		} else if (str_starts(shared_buffer, KEYWORD_ALLOW_EXECUTE)) {
-			cp = shared_buffer;
-			cp2 = strchr(cp, ' ');
-			if (cp2)
-				*cp2 = '\0';
-			if (*cp == '@' || is_correct_path(cp, 1, 0, -1))
-				add_string_entry(dp, cp, index);
-		} else if (sscanf(shared_buffer,
+		if (str_starts(line, KEYWORD_EXECUTE_HANDLER)) {
+			add_string_entry(dp, line, index);
+		} else if (str_starts(line, KEYWORD_DENIED_EXECUTE_HANDLER)) {
+			add_string_entry(dp, line, index);
+		} else if (str_starts(line, KEYWORD_ALLOW_EXECUTE)) {
+			char *cp = strchr(line, ' ');
+			if (cp)
+				*cp = '\0';
+			if (*line == '@' || is_correct_path(line, 1, 0, -1))
+				add_string_entry(dp, line, index);
+		} else if (sscanf(line,
 				  KEYWORD_USE_PROFILE "%u", &profile) == 1) {
 			dp->list[index].profile = (u8) profile;
 		}
@@ -1471,17 +1486,18 @@ no_domain:
 
 	/* Find unreachable domains. */
 	for (index = 0; index < max_index; index++) {
+		char *line;
 		get();
-		shprintf("%s", domain_name(dp, index));
+		line = shprintf("%s", domain_name(dp, index));
 		while (true) {
 			const struct domain_initializer_entry *d_i;
 			const struct domain_keeper_entry *d_k;
 			struct path_info parent;
-			char *cp = strrchr(shared_buffer, ' ');
+			char *cp = strrchr(line, ' ');
 			if (!cp)
 				break;
 			*cp++ = '\0';
-			parent.name = shared_buffer;
+			parent.name = line;
 			fill_path_info(&parent);
 			d_i = is_domain_initializer(&parent, cp);
 			if (d_i) {
@@ -1574,17 +1590,17 @@ no_domain:
 
 	/* Create missing parent domains. */
 	for (index = 0; index < max_index; index++) {
+		char *line;
 		get();
-		shprintf("%s", domain_name(dp, index));
+		line = shprintf("%s", domain_name(dp, index));
 		while (true) {
-			char *cp = strrchr(shared_buffer, ' ');
+			char *cp = strrchr(line, ' ');
 			if (!cp)
 				break;
 			*cp = '\0';
-			if (find_domain(dp, shared_buffer, false, false) != EOF)
+			if (find_domain(dp, line, false, false) != EOF)
 				continue;
-			if (find_or_assign_new_domain(dp, shared_buffer, false,
-						      true)
+			if (find_or_assign_new_domain(dp, line, false, true)
 			    == EOF)
 				out_of_memory();
 		}
@@ -1619,6 +1635,7 @@ no_domain:
 
 static int show_process_line(const int index)
 {
+	char *line;
 	int tmp_col = 0;
 	int i;
 	printw("%c%4d:%3u ",
@@ -1630,11 +1647,11 @@ static int show_process_line(const int index)
 		tmp_col += 4;
 	}
 	get();
-	shprintf("%s%s (%u) %s", task_list[index].depth ?
-		 " +- " : "", task_list[index].name,
-		 task_list[index].pid, task_list[index].domain);
-	printw("%s", eat(shared_buffer));
-	tmp_col += strlen(shared_buffer);
+	line = shprintf("%s%s (%u) %s", task_list[index].depth ?
+			" +- " : "", task_list[index].name,
+			task_list[index].pid, task_list[index].domain);
+	printw("%s", eat(line));
+	tmp_col += strlen(line);
 	put();
 	return tmp_col;
 }
@@ -1682,11 +1699,12 @@ static void show_list(struct domain_policy *dp)
 	eat_col = max_eat_col[current_screen];
 	max_col = 0;
 	if (current_screen == SCREEN_ACL_LIST) {
+		char *line;
 		get();
-		shprintf("%s", eat(current_domain));
+		line = shprintf("%s", eat(current_domain));
 		editpolicy_attr_change(A_REVERSE, true);  /* add color */
 		move(2, 0);
-		printw("%s", shared_buffer);
+		printw("%s", line);
 		editpolicy_attr_change(A_REVERSE, false); /* add color */
 		put();
 	}
@@ -1844,15 +1862,18 @@ int editpolicy_get_current(void)
 static void show_current(struct domain_policy *dp)
 {
 	if (current_screen == SCREEN_DOMAIN_LIST && !domain_sort_type) {
+		char *line;
 		get();
 		eat_col = max_eat_col[current_screen];
-		shprintf("%s", eat(domain_name(dp, editpolicy_get_current())));
-		if (window_width < sizeof(shared_buffer))
-			shared_buffer[window_width] = '\0';
+		line = shprintf("%s",
+				eat(domain_name(dp,
+						editpolicy_get_current())));
+		if (window_width < strlen(line))
+			line[window_width] = '\0';
 		move(2, 0);
 		clrtoeol();
 		editpolicy_attr_change(A_REVERSE, true);  /* add color */
-		printw("%s", shared_buffer);
+		printw("%s", line);
 		editpolicy_attr_change(A_REVERSE, false); /* add color */
 		put();
 	}
@@ -2103,14 +2124,13 @@ start_search:
 			else
 				cp = get_last_name(dp, index);
 		} else if (current_screen == SCREEN_PROFILE_LIST) {
-			shprintf("%u-%s", generic_acl_list[index].directive,
-				 generic_acl_list[index].operand);
-			cp = shared_buffer;
+			cp = shprintf("%u-%s",
+				      generic_acl_list[index].directive,
+				      generic_acl_list[index].operand);
 		} else {
 			const u8 directive = generic_acl_list[index].directive;
-			shprintf("%s %s", directives[directive].alias,
-				 generic_acl_list[index].operand);
-			cp = shared_buffer;
+			cp = shprintf("%s %s", directives[directive].alias,
+				      generic_acl_list[index].operand);
 		}
 		if (!strstr(cp, rl->search_buffer[current_screen]))
 			continue;
@@ -2205,19 +2225,20 @@ static void set_level(struct domain_policy *dp, const int current)
 	if (!fp)
 		goto out;
 	for (index = 0; index < generic_acl_list_count; index++) {
+		char *buf;
 		char *cp;
 		u16 directive;
 		if (!generic_acl_list[index].selected)
 			continue;
 		get();
-		shprintf("%s", generic_acl_list[index].operand);
-		cp = strchr(shared_buffer, '=');
+		buf = shprintf("%s", generic_acl_list[index].operand);
+		cp = strchr(buf, '=');
 		if (cp)
 			*cp = '\0';
 		directive = generic_acl_list[index].directive;
 		if (directive < 256)
 			fprintf(fp, "%u-", directive);
-		fprintf(fp, "%s=%s\n", shared_buffer, line);
+		fprintf(fp, "%s=%s\n", buf, line);
 		put();
 	}
 	close_write(fp);
@@ -2242,15 +2263,16 @@ static void set_quota(struct domain_policy *dp, const int current)
 	if (!fp)
 		goto out;
 	for (index = 0; index < generic_acl_list_count; index++) {
+		char *buf;
 		char *cp;
 		if (!generic_acl_list[index].selected)
 			continue;
 		get();
-		shprintf("%s", generic_acl_list[index].operand);
-		cp = strchr(shared_buffer, ':');
+		buf = shprintf("%s", generic_acl_list[index].operand);
+		cp = strchr(buf, ':');
 		if (cp)
 			*cp = '\0';
-		fprintf(fp, "%s: %s\n", shared_buffer, line);
+		fprintf(fp, "%s: %s\n", buf, line);
 		put();
 	}
 	close_write(fp);
@@ -2267,13 +2289,14 @@ static _Bool select_acl_window(struct domain_policy *dp, const int current,
 	if (domain_sort_type) {
 		current_pid = task_list[current].pid;
 	} else if (is_initializer_source(dp, current)) {
+		char *buf;
 		int redirect_index;
 		if (!may_refresh)
 			return false;
 		get();
-		shprintf(ROOT_NAME "%s",
-			 strrchr(domain_name(dp, current), ' '));
-		redirect_index = find_domain(dp, shared_buffer, false, false);
+		buf = shprintf(ROOT_NAME "%s",
+			       strrchr(domain_name(dp, current), ' '));
+		redirect_index = find_domain(dp, buf, false, false);
 		put();
 		if (redirect_index == EOF)
 			return false;
@@ -2389,16 +2412,14 @@ static void copy_to_history(struct domain_policy *dp, const int current,
 	case SCREEN_EXCEPTION_LIST:
 	case SCREEN_ACL_LIST:
 		directive = generic_acl_list[current].directive;
-		shprintf("%s %s", directives[directive].alias,
-			 generic_acl_list[current].operand);
-		line = shared_buffer;
+		line = shprintf("%s %s", directives[directive].alias,
+				generic_acl_list[current].operand);
 		break;
 	case SCREEN_MEMINFO_LIST:
 		line = NULL;
 		break;
 	default:
-		shprintf("%s", generic_acl_list[current].operand);
-		line = shared_buffer;
+		line = shprintf("%s", generic_acl_list[current].operand);
 	}
 	rl->count = simple_add_history(line, rl->history, rl->count, rl->max);
 	put();

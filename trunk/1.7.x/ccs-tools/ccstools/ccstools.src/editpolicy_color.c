@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include "ccstools.h"
@@ -58,22 +58,25 @@ void editpolicy_color_init(void)
 	if (!fp)
 		goto use_default;
 	get();
-	while (freadline(fp)) {
+	while (true) {
+		char *line = freadline(fp);
 		char *cp;
-		if (!str_starts(shared_buffer, "editpolicy.line_color "))
+		if (!line)
+			break;
+		if (!str_starts(line, "editpolicy.line_color "))
 			continue;
-		cp = strchr(shared_buffer, '=');
+		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		normalize_line(shared_buffer);
+		normalize_line(line);
 		normalize_line(cp);
-		if (!*shared_buffer || !*cp)
+		if (!*line || !*cp)
 			continue;
 		for (i = 0; color_env[i].name; i++) {
 			short int fore;
 			short int back;
-			if (strcmp(shared_buffer, color_env[i].name))
+			if (strcmp(line, color_env[i].name))
 				continue;
 			if (strlen(cp) != 2)
 				break;
