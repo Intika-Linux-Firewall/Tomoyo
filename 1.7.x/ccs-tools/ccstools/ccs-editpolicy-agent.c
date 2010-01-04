@@ -53,7 +53,8 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 		if (!dent)
 			break;
 		cp = dent->d_name;
-		if (dent->d_type != DT_DIR || sscanf(cp, "%u", &pid) != 1 || !pid)
+		if (dent->d_type != DT_DIR || sscanf(cp, "%u", &pid) != 1
+		    || !pid)
 			continue;
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/exe", pid);
