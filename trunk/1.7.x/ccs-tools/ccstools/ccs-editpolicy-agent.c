@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/01/04
  *
  */
 #include <stdio.h>
@@ -53,7 +53,7 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 		if (!dent)
 			break;
 		cp = dent->d_name;
-		if (dent->d_type != DT_DIR || sscanf(cp, "%u", &pid) != 1)
+		if (dent->d_type != DT_DIR || sscanf(cp, "%u", &pid) != 1 || !pid)
 			continue;
 		memset(buffer, 0, sizeof(buffer));
 		snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/exe", pid);
