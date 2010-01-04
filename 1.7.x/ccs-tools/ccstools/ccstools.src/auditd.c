@@ -37,7 +37,6 @@ int auditd_main(int argc, char *argv[])
 	int i;
 	int fd_in[CCS_AUDITD_MAX_FILES];
 	FILE *fp_out[CCS_AUDITD_MAX_FILES];
-	int need_flush = 0;
 	const char *logfile_path[2] = { NULL, NULL };
 
 	for (i = 1; i < argc; i++) {
@@ -136,14 +135,7 @@ int auditd_main(int argc, char *argv[])
 		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++)
 			FD_SET(fd_in[i], &rfds);
 		/* Wait for data. */
-		if (need_flush) {
-			struct timeval tv = { 1, 0 };
-			need_flush = 0;
-			if (select(FD_SETSIZE, &rfds, NULL, NULL, &tv) == 0) {
-				fflush(fp_out[0]);
-				fflush(fp_out[1]);
-			}
-		} else if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
+		if (select(FD_SETSIZE, &rfds, NULL, NULL, NULL) == EOF)
 			break;
 		for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
 			time_t stamp;
@@ -187,7 +179,7 @@ int auditd_main(int argc, char *argv[])
 					tm->tm_sec, cp);
 			} else
 				fprintf(fp_out[i], "%s\n", buffer);
-			need_flush = 1;
+			fflush(fp_out[i]);
 		}
 	}
 out:
