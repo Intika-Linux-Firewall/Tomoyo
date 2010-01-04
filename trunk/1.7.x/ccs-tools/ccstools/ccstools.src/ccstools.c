@@ -1061,8 +1061,7 @@ show_version:
 	 * Unlike busybox, I don't use argv[1] if argv[0] is the name of this
 	 * program because it is dangerous to allow updating policies via
 	 * unchecked argv[1].
-	 * You should use either "symbolic links with 'alias' directive" or
-	 * "hard links".
+	 * You should use either "symbolic links" or "hard links".
 	 */
 	printf("ccstools version 1.7.1+ build 2010/01/04\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
