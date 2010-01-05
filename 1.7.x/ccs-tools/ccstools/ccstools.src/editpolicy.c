@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/04
+ * Version: 1.7.1+   2010/01/05
  *
  */
 #include "ccstools.h"
@@ -437,9 +437,9 @@ not_domain_keeper:
 	line = shprintf(ROOT_NAME "%s", strrchr(domain_name(dp, index), ' '));
 	redirect_index = find_domain(dp, line, false, false);
 	if (redirect_index >= 0)
-		shprintf(" ( -> %d )", dp->list[redirect_index].number);
+		line = shprintf(" ( -> %d )", dp->list[redirect_index].number);
 	else
-		shprintf(" ( -> Not Found )");
+		line = shprintf(" ( -> Not Found )");
 	printw("%s", eat(line));
 	tmp_col += strlen(line);
 	put();
@@ -1457,8 +1457,8 @@ no_exception:
 		if (!line)
 			break;
 		if (is_domain_def(line)) {
-			index = find_or_assign_new_domain(dp, line,
-							  false, false);
+			index = find_or_assign_new_domain(dp, line, false,
+							  false);
 			continue;
 		} else if (index == EOF) {
 			continue;
@@ -1473,8 +1473,8 @@ no_exception:
 				*cp = '\0';
 			if (*line == '@' || is_correct_path(line, 1, 0, -1))
 				add_string_entry(dp, line, index);
-		} else if (sscanf(line,
-				  KEYWORD_USE_PROFILE "%u", &profile) == 1) {
+		} else if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile)
+			   == 1) {
 			dp->list[index].profile = (u8) profile;
 		}
 	}
@@ -1863,11 +1863,10 @@ static void show_current(struct domain_policy *dp)
 {
 	if (current_screen == SCREEN_DOMAIN_LIST && !domain_sort_type) {
 		char *line;
+		const int index = editpolicy_get_current();
 		get();
 		eat_col = max_eat_col[current_screen];
-		line = shprintf("%s",
-				eat(domain_name(dp,
-						editpolicy_get_current())));
+		line = shprintf("%s", eat(domain_name(dp, index)));
 		if (window_width < strlen(line))
 			line[window_width] = '\0';
 		move(2, 0);
