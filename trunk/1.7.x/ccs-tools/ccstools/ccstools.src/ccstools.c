@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/04
+ * Version: 1.7.1+   2010/01/05
  *
  */
 #include "ccstools.h"
@@ -872,26 +872,23 @@ void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
 		str_starts(line, "domain=");
 		if (is_domain_def(line)) {
 			if (is_delete) {
-				index = find_domain(dp, line, false,
-						    false);
+				index = find_domain(dp, line, false, false);
 				if (index >= 0)
 					delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = find_domain(dp, line, false,
-						    false);
+				index = find_domain(dp, line, false, false);
 				continue;
 			}
-			index = find_or_assign_new_domain(dp, line,
-							  false, false);
+			index = find_or_assign_new_domain(dp, line, false,
+							  false);
 			continue;
 		}
 		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile)
-		    == 1)
+		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile) == 1)
 			dp->list[index].profile = (u8) profile;
 		else if (is_delete)
 			del_string_entry(dp, line, index);
@@ -967,7 +964,7 @@ char *freadline(FILE *fp)
 		out_of_memory();
 	while (true) {
 		static int max_policy_len = 0;
-		int c = fgetc(fp);
+		const int c = fgetc(fp);
 		if (c == EOF)
 			return NULL;
 		if (network_mode && !c)
@@ -1063,7 +1060,7 @@ show_version:
 	 * unchecked argv[1].
 	 * You should use either "symbolic links" or "hard links".
 	 */
-	printf("ccstools version 1.7.1+ build 2010/01/04\n");
+	printf("ccstools version 1.7.1+ build 2010/01/05\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }
