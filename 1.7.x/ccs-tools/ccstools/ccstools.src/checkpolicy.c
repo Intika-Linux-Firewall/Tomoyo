@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/04
+ * Version: 1.7.1+   2010/01/06
  *
  */
 #include "ccstools.h"
@@ -946,6 +946,7 @@ int checkpolicy_main(int argc, char *argv[])
  out:
 	free(policy);
 	policy = NULL;
+	line--;
 	printf("Total:   %u Line%s   %u Error%s   %u Warning%s\n",
 	       line, line > 1 ? "s" : "", errors, errors > 1 ? "s" : "",
 	       warnings, warnings > 1 ? "s" : "");
