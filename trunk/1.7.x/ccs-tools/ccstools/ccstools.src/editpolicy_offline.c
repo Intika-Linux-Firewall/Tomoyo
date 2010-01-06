@@ -126,7 +126,8 @@ void editpolicy_offline_daemon(void)
 		if (cmsg->cmsg_level == SOL_SOCKET &&
 		    cmsg->cmsg_type == SCM_RIGHTS &&
 		    cmsg->cmsg_len == CMSG_LEN(sizeof(int))) {
-			const int fd = *(int *) CMSG_DATA(cmsg);
+			const int *fdp = (int *) CMSG_DATA(cmsg);
+			const int fd = *fdp;
 			fp = fdopen(fd, "w+");
 			if (!fp) {
 				close(fd);
