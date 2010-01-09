@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/04
+ * Version: 1.7.1+   2010/01/09
  *
  */
 #include "ccstools.h"
@@ -104,6 +104,7 @@ void editpolicy_offline_daemon(void)
 		out_of_memory();
 	memset(&dp, 0, sizeof(dp));
 	memset(&mp, 0, sizeof(mp));
+	get();
 	find_or_assign_new_domain(&dp, ROOT_NAME, false, false);
 	while (true) {
 		FILE *fp;
@@ -157,6 +158,7 @@ void editpolicy_offline_daemon(void)
 		}
 		fclose(fp);
 	}
+	put();
 	clear_domain_policy(&dp);
 	{
 		int i;
