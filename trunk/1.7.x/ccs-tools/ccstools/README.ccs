@@ -494,3 +494,30 @@ Version 1.7.1 2009/11/11   Fourth anniversary release.
     Updated to handle TOMOYO 1.7's syntax.
     Add support for "path_group" "number_group" "address_group" in addition to "file_pattern".
     Add "--file" option for passing the whole exception policy.
+
+Version 1.7.1p1 2010/01/10   Bug fix release.
+
+  Use dynamic buffer allocation for supporting longer lines.
+
+  /usr/sbin/ccs-auditd
+    Call fflush() immediately after fprintf() rather than calling fflush()
+    only when new logs are not available for a second. Omitting write() unless
+    needed should improve performance if there are many logs to fetch. But
+    it turned out that omitting fflush() causes audit logs more likely to be
+    written partially in some environments.
+
+  /usr/sbin/ccs-queryd
+    ccs-queryd was not monitoring /etc/ld.so.cache updates since 1.7.1
+    because of segmentation fault caused by fclose(NULL).
+
+  /usr/sbin/ccs-checkpolicy
+    Some of TOMOYO 1.7's syntaxes were not handled correctly.
+
+  /usr/sbin/ccs-editpolicy
+    Ignore /proc/0 which is an invalid proc entry.
+
+  /usr/sbin/ccs-pstree
+    Ignore /proc/0 which is an invalid proc entry.
+
+  /usr/lib/ccs/ccs-editpolicy-agent
+    Ignore /proc/0 which is an invalid proc entry.

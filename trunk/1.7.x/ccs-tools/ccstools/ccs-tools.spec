@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.7.1
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.1-1
+Conflicts: ccs-tools < 1.7.1-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.1-20091111.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.1-20100110.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,13 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Sun Jan 10 2010 1.7.1-2
+- ccs-auditd should call fflush() immediately after fprintf().
+- ccs-queryd was not able to handle /etc/ld.so.cache updates.
+- ccs-checkpolicy was not able to handle some of TOMOYO 1.7.1's syntax.
+- Use dynamic buffer allocation for supporting longer lines.
+- Ignore /proc/0 which is an invalid proc entry.
+
 * Wed Nov 11 2009 1.7.1-1
 - Fourth anniversary release.
 - Added network mode support to ccs-queryd and ccs-auditd.
