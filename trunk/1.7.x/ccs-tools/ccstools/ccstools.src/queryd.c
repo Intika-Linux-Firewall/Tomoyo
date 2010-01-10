@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/04
+ * Version: 1.7.1+   2010/01/10
  *
  */
 #include "ccstools.h"
@@ -574,6 +574,16 @@ int queryd_main(int argc, char *argv[])
 	clear();
 	refresh();
 	scrollok(stdscr, TRUE);
+	if (network_mode) {
+		const u32 ip = ntohl(network_ip);
+		_printw("Monitoring /proc/ccs/query via %u.%u.%u.%u:%u.",
+			(u8) (ip >> 24), (u8) (ip >> 16), (u8) (ip >> 8),
+			(u8) ip, ntohs(network_port));
+	} else
+		_printw("Monitoring /proc/ccs/query %s.",
+			check_update != GLOBALLY_READABLE_FILES_UPDATE_NONE ?
+			"and /etc/ld.so.cache " : "");
+	_printw(" Press Ctrl-C to terminate.\n\n");
 	while (true) {
 		static _Bool first = true;
 		static unsigned int prev_serial = 0;
