@@ -1,9 +1,9 @@
 /*
  * ccs_execute_handler_test.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/25
+ * Version: 1.7.1+   2010/01/10
  *
  */
 #include "include.h"
