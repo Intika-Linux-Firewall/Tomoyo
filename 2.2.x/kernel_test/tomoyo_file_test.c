@@ -3,9 +3,9 @@
  *
  * Testing program for security/tomoyo/
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 2.2.0   2009/06/23
+ * Version: 2.2.0   2010/01/11
  *
  */
 #include "include.h"
@@ -1064,6 +1064,7 @@ static int namespace_test(void)
 	char c = 0;
 	/* ccs_test_init(); */
 
+	write_profile("255-MAC_FOR_FILE=disabled\n");
 	mkdir(TEST_DIR, 0755);
 
 	/* Test mount(). */
@@ -1118,6 +1119,8 @@ static int namespace_test(void)
 	/* Test chroot(). */
 	{
 		int error;
+		write_profile("255-MAC_FOR_FILE=disabled\n");
+		mkdir(TEST_DIR, 0755);
 		write_profile("255-MAC_FOR_FILE=enforcing\n");
 
 		/* Test standard case */
