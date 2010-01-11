@@ -1,8 +1,11 @@
-[PATCH] TOMOYO: Remove temporary memory usage counter.
+[PATCH] TOMOYO: Remove usage counter for temporary memory.
 
 TOMOYO was using own memory usage counter for detecting memory leak.
 But as kernel 2.6.31 introduced memory leak detection mechanism
 ( CONFIG_DEBUG_KMEMLEAK ), we no longer need to have own counter.
+
+We remove usage counter for memory used for permission checks, but we keep
+usage counter for memory used for policy so that we can apply quota.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
