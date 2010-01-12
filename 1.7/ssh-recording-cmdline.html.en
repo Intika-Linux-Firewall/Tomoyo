@@ -111,7 +111,7 @@ int main(int raw_argc, char *raw_argv[])
 			free(buffer);
 		}
 		for (i = 0; i &lt; envc; i++) {
-			int max_len = strlen(argv[i]) * 4 + 128;
+			int max_len = strlen(envp[i]) * 4 + 128;
 			int len;
 			char *buffer = calloc(max_len, 1);
 			if (!buffer)
