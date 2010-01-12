@@ -60,12 +60,12 @@
 <table border="1">
 <tr><td>
 [root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
-#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } (global-pid=5739)<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 allow_execute /bin/cat<br>
 <br>
 --<br>
-#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 (global-pid=5739)<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 }<br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 allow_read /bin/cat
 </td></tr>
@@ -82,17 +82,17 @@ allow_read /bin/cat
 [root@tomoyo ~]# mail<br>
 Mail version 8.1 6/6/93.  Type ? for help.<br>
 "/var/spool/mail/root": 1 message 1 unread<br>
-&gt;U  1 root@localhost.local  Fri Sep  4 17:02  19/1072<br>
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234<br>
 &amp;<br>
 Message 1:<br>
-From root@localhost.localdomain  Fri Sep  4 17:02:40 2009<br>
-Date: Fri, 4 Sep 2009 17:02:40 +0900<br>
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010<br>
+Date: Tue, 12 Jan 2010 16:19:17 +0900<br>
 From: root &lt;root@localhost.localdomain&gt;<br>
 To: root@localhost.localdomain<br>
 <br>
 Q0-0<br>
-#2009-09-04 17:02:40# profile=3 mode=enforcing pid=5739 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } (global-pid=5739)<br>
-&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh
 allow_execute /bin/cat
 </td></tr>
 </table>
