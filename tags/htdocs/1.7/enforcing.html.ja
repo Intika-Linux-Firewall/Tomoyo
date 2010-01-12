@@ -116,53 +116,137 @@ allow_execute /bin/cat
 
 <p>TOMOYO Linux には、強制モードのままポリシーの修正を行うためのツールが付属しています。これらのツールを使うことで、軽微な変更ならば、ポリシーを最初から再取得することなくシステムの運用を継続できます。ただし、これらのツールは、全てのケースに対応できるとは限らず、最適なポリシーであることを保証するものではありません。</p>
 
+<h3>操作例</h3>
+
 <p>実際の操作手順について以下のムービーで紹介しています。<br>
 <object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=ja_JP&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=ja_JP&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
-<h3>操作例</h3>
-
-<p>まず、コンソールまたはターミナルを開いて、以下のコマンドを起動してください。</p>
-
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/sbin/ccs-queryd
+[root@tomoyo ~]# /usr/sbin/ccs-queryd<br>
+Monitoring /proc/ccs/query and /etc/ld.so.cache . Press Ctrl-C to terminate.<br>
+<br>
+#2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
+# select global-pid=4210<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+use_profile 3<br>
+<br>
+allow_read /bin/bash<br>
+allow_read/write /dev/tty<br>
+allow_capability SYS_IOCTL<br>
+allow_read/write /dev/pts/\$<br>
+allow_read /usr/lib/locale/locale-archive<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
+allow_read /etc/rc.d/init.d/sshd<br>
+allow_read /etc/rc.d/init.d/functions<br>
+allow_execute /sbin/consoletype if exec.realpath="/sbin/consoletype" exec.argv[0]="/sbin/consoletype"<br>
+allow_read /etc/profile.d/lang.sh<br>
+allow_read /etc/sysconfig/i18n<br>
+allow_read /etc/sysconfig/init<br>
+allow_execute /sbin/runlevel if exec.realpath="/sbin/runlevel" exec.argv[0]="runlevel"<br>
+allow_execute /bin/cp if exec.realpath="/bin/cp" exec.argv[0]="cp"<br>
+allow_execute /usr/sbin/sshd if exec.realpath="/usr/sbin/sshd" exec.argv[0]="/usr/sbin/sshd"<br>
+allow_execute /bin/touch if exec.realpath="/bin/touch" exec.argv[0]="touch"<br>
+allow_read/write /dev/console<br>
+allow_execute /bin/unicode_start if exec.realpath="/bin/unicode_start" exec.argv[0]="/bin/unicode_start"<br>
+allow_read /var/run/sshd.pid<br>
+allow_write /dev/null<br>
+allow_capability SYS_KILL<br>
+allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd<br>
+allow_execute /bin/usleep if exec.realpath="/bin/usleep" exec.argv[0]="usleep"<br>
+allow_execute /bin/rm if exec.realpath="/bin/rm" exec.argv[0]="rm"<br>
+allow_execute /usr/bin/killall if exec.realpath="/usr/bin/killall" exec.argv[0]="killall"<br>
+allow_execute /usr/bin/rhgb-client if exec.realpath="/usr/bin/rhgb-client" exec.argv[0]="/usr/bin/rhgb-client"<br>
+allow_execute /bin/sleep if exec.realpath="/bin/sleep" exec.argv[0]="sleep"<br>
+allow_signal 1 &lt;kernel&gt; /usr/sbin/sshd<br>
+allow_ioctl /dev/console 0x5401<br>
+allow_ioctl /etc/rc.d/init.d/sshd 0x5401<br>
+allow_ioctl /var/run/sshd.pid 0x5401<br>
+allow_ioctl /dev/pts/\$ 0x5401<br>
+<br>
+<br>
+#2010-01-10 12:27:20# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_ioctl /dev/null 0x5401<br>
+Added 'allow_ioctl /dev/null 0x5401'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"<br>
+Added 'allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"'.<br>
+<br>
+#2010-01-10 12:29:55# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+# wants to create domain<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry):y<br>
+<br>
+#2010-01-10 12:29:58# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=707247 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=688142 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+allow_read /usr/lib/locale/locale-archive<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_read /usr/lib/locale/locale-archive<br>
+Added 'allow_read /usr/lib/locale/locale-archive'.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=955698 major=8 minor=1 perm=0666 type=socket } path1.parent={ uid=0 gid=0 ino=950312 perm=0755 }<br>
+&lt;kernel&gt; /usr/sbin/acpid<br>
+allow_unlink /var/run/acpid.socket<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket<br>
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
 </td></tr>
 </table>
 
-<p>ccs-queryd は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加します。
-以下の例は、 /lib/libnss_hesiod-2.5.so というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加したことを示しています。</p>
+<p>ccs-queryd は、 /etc/ld.so.cache に登録されている共有ライブラリファイルの情報が変更された場合に、共有ライブラリのパス名を「無条件に読み込み可能なファイル」として例外ポリシーに追加します。例えば、</p>
 
 <table border="1">
 <tr><td>
-The pathname /lib/libnss_hesiod-2.5.so was created. Appended to globally readable file.
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
 </td></tr>
 </table>
 
-<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、例外ポリシーから削除します。
-以下の例は、/lib/libnss_hesiod-2.4.so というパス名が消滅したのでポリシーから削除したことを示しています。</p>
+<p>というメッセージは /usr/lib/libpurple.so.0.6.3 というパス名が作成されて /etc/ld.so.cache に登録されたので例外ポリシーに追加したことを示しています。</p>
+
+<p>また、「無条件に読み込み可能なファイル」として例外ポリシーに登録されているパス名が消滅した場合、例外ポリシーから削除します。例えば、</p>
 
 <table border="1">
 <tr><td>
-The pathname /lib/libnss_hesiod-2.4.so was deleted. Deleted from globally readable file.
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
 </td></tr>
 </table>
 
-<p>この状態で、パッケージのアップデートを行うためのコマンドを実行します。</p>
+<p>というメッセージは /usr/lib/libpurple.so.0.5.9 というパス名が消滅したのでポリシーから削除したことを示しています。
 
-<p>yum を使用している環境ならば yum update を、 apt を使用している環境ならば apt-get update および apt-get upgrade を実行します。</p>
-
-<p>パッケージをアップデート中に、デーモンの再起動などでポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 ccs-queryd に以下のようなプロンプトが表示されます。.</p>
+<p>パッケージをアップデート中に、デーモンの再起動などでポリシー違反が発生するかもしれません。ポリシー違反が発生した場合、 ccs-queryd にプロンプトが表示されます。</p>
 
 <table border="1">
 <tr><td>
-#2008-06-18 20:54:37# profile=3 mode=enforcing pid=2546 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 (global-pid=2546)<br>
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat<br>
-allow_read /etc/fstab<br>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </td></tr>
 </table>
 
-<p>上記の例は、 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat というドメインに属しているプロセスが /etc/fstab を読み込みモードでオープンしようとしたが、ポリシーによって拒否されたので、あなたの判断を仰いでいることを示しています。
+<p>上記の例は、 &lt;kernel&gt; /etc/rc.d/init.d/cups というドメインに属しているプロセスが sleep 1 というコマンドラインを処理するために /bin/sleep の実行を要求したが、ポリシーによって拒否されたので、あなたの判断を仰いでいることを示しています。
 アクセス要求の妥当性を判断して、答えを指定してください。 Y を押すと許可、 N を押すと拒否、 R を押すと再試行されます。また、 S を押すとそのプロセスのドメイン用ポリシが表示されます。 A を押すと編集した上でドメイン用ポリシーに追加後、再試行できます。</p>
 
 <p>無条件にアクセス要求を許可しないようにしてください。ポリシー違反の原因がパッケージのアップデートによるものとは限らず、侵入者の攻撃によるものである可能性があるからです。もし、侵入者の攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合、侵入されてしまいます。</p>
