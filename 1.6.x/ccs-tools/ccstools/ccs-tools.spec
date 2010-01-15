@@ -43,7 +43,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Fri Jan 15 2010 1.6.8-4
-- Convert /sbin/ccs-init and /sbin/tomoyo-init as C program in case awk and sed
+- Convert /sbin/ccs-init and /sbin/tomoyo-init as C program in case awk and seq
   are not available by the time /sbin/init starts.
 
 * Wed Nov 11 2009 1.6.8-3
