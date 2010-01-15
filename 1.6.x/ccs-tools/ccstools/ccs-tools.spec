@@ -2,15 +2,15 @@ Summary: TOMOYO Linux tools
 
 Name: ccs-tools
 Version: 1.6.8
-Release: 3
+Release: 4
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.6.8-3
+Conflicts: ccs-tools < 1.6.8-4
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20091111.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/30298/ccs-tools-1.6.8-20100115.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -42,6 +42,10 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Fri Jan 15 2010 1.6.8-4
+- Convert /sbin/ccs-init and /sbin/tomoyo-init as C program in case awk and sed
+  are not available by the time /sbin/init starts.
+
 * Wed Nov 11 2009 1.6.8-3
 - Fix typo.
 

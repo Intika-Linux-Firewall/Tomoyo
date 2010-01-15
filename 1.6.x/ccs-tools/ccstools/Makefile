@@ -1,6 +1,6 @@
 INSTALLDIR = /
 
-MAIN_FILES = ccstools realpath make_alias
+MAIN_FILES = ccstools realpath make_alias ccs-init tomoyo-init
 
 MISC_FILES = makesyaoranconf candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param ccs-editpolicy-agent
 
