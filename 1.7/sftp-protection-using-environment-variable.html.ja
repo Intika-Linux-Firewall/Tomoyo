@@ -77,9 +77,15 @@ SendEnv sftp_type
 
 <h2>ステップ４： TOMOYO Linux のインストールと初期化</h2>
 
-<p>TOMOYO Linux をインストールして初期設定を行ってください。</p>
+<p><a href="install.html.ja">TOMOYO Linux をインストール</a>してから、以下のコマンドを実行して初期設定を行ってください。</p>
 
-<p>初期設定が終わったら、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
+<table border="1">
+<tr><td>
+/usr/lib/ccs/init_policy
+</td></tr>
+</table>
+
+<p>その後、 TOMOYO Linux カーネルで再起動する前に以下の操作を行ってください。</p>
 
 <p>/bin/sftp-shell が実行された場合にはドメイン遷移が初期化されるようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
 
