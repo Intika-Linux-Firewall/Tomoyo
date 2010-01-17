@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>Anti SSH brute force attacks using environment variables.</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="ssh-protection-using-environment.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>Anti SSH brute force attacks using environment variables.</h1>
+
+<h2>About this page</h2>
+
+<p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/-2AQSqNa58c&hl=en_US&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/-2AQSqNa58c&hl=en_US&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+
+<p>This page explains you how to protect SSH service from brute force attacks by inserting environment variable based authentication before starting SSH login shell using TOMOYO Linux's execute_handler functionality.</p>
+
+<p>Even if the password for SSH authentication was cracked by brute force attacks, SSH login shell won't be started unless both the environment variable name and its value (which act as the other password) are not cracked.</p>
+
+<p>Conventional anti brute force attack methods are a kind of rejecting access from IP addresses for some period if the authentication failed. Therefore, if attacker uses distributed IP addresses, such methods could be run through.
+On the contrary, the method described in this page splits authentication into 2 stages. Therefore, the system won't be damaged even if the first stage was run through. Also, since the second stage has a lot of flexibility and has no need to notify the authentication method, it is quite difficult to use brute force attacks.</p>
+
+<hr>
+
+<h2>Step 1: Compiling the program</h2>
+
+<p>Decide the environment variable's name and its value which act as password. In this page, we assume the environment variable name is "CERBERUS" and its value is "sftp".</p>
+
+<p>Compile the below program. We assume the location of compiled program as /bin/env_chk . We assume the location of SSH server program as /usr/sbin/sshd .</p>
+
+<table border="1">
+<tr><td><pre>
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;syslog.h&gt;
+#include &lt;string.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/stat.h&gt;
+#include &lt;fcntl.h&gt;
+
+#define SECRET_ENVIRONMENT "CERBERUS=sftp"
+#define SSHD_EXECUTABLE_PATH "/usr/sbin/sshd"
+
+int main(int raw_argc, char *raw_argv[])
+{
+	int i;
+	int argc;
+	int envc;
+	char *filename;
+	char **argv;
+	char **envp;
+	{ /* Check that I'm an execute handler process.  */
+		int fd = open("/proc/ccs/.execute_handler", 0);
+		close(fd);
+		if (fd == EOF) {
+			fprintf(stderr, "FATAL: I'm not execute_handler.\n");
+			return 1;
+		}
+	}
+	if (raw_argc &lt; 7)
+		return 1;
+	filename = raw_argv[4];
+	argc = atoi(raw_argv[5]);
+	envc = atoi(raw_argv[6]);
+	if (raw_argc != argc + envc + 7)
+		return 1;
+	for (i = 5; i &lt; argc + 5; i++)
+		raw_argv[i] = raw_argv[i + 2];
+	raw_argv[argc + 5] = NULL;
+	for (i = argc + 6; i &lt; argc + envc + 6; i++)
+		raw_argv[i] = raw_argv[i + 1];
+	raw_argv[argc + envc + 6] = NULL;
+	argv = raw_argv + 5;
+	envp = raw_argv + argc + 6;
+	/* "/usr/sbin/sshd" executes "/usr/sbin/sshd" with "-R" option. */
+	if (argc == 2 &amp;&amp; !strcmp(argv[1], "-R") &amp;&amp;
+	    !strcmp(raw_argv[2], SSHD_EXECUTABLE_PATH) &amp;&amp;
+	    !strcmp(filename, SSHD_EXECUTABLE_PATH)) {
+		execve(filename, argv, envp);
+		return 1;
+	}
+	/*
+	 * Check environment variables passed to execve() request
+	 * and execute the program if it has SECRET_ENVIRONMENT environment.
+	 */
+	for (i = 0; i &lt; envc; i++) {
+		if (strcmp(envp[i], SECRET_ENVIRONMENT))
+			continue;
+		while (i &lt; envc) {
+			envp[i] = envp[i + 1];
+			i++;
+		}
+		execve(filename, argv, envp);
+		break;
+	}
+	return 1;
+}
+</pre></td></tr>
+</table>
+
+<h2>Step 2: Making SSH to pass and receive environment variables</h2>
+
+<p>Append the name of environment variable which SSH server accepts to /etc/ssh/sshd_config .</p>
+
+<table border="1">
+<tr><td>
+AcceptEnv CERBERUS
+</td></tr>
+</table>
+
+<p>Append the name of environment variable which SSH client sends to /etc/ssh/ssh_config .</p>
+
+<table border="1">
+<tr><td>
+SendEnv CERBERUS
+</td></tr>
+</table>
+
+<h2>Step 3: Install and initialize TOMOYO Linux</h2>
+
+<p><a href="install.html.en">Install TOMOYO Linux</a> and run below commandline in order to initialize TOMOYO Linux.</p>
+
+<table border="1">
+<tr><td>
+/usr/lib/ccs/init_policy
+</td></tr>
+</table>
+
+<p>Then, please do below operations before you reboot using TOMOYO Linux kernel.</p>
+
+<p>Append below line to /etc/ccs/exception_policy.conf in order to initialize domain transition when /usr/sbin/sshd is executed.</p>
+
+<table border="1">
+<tr><td>
+initialize_domain /usr/sbin/sshd
+</td></tr>
+</table>
+
+<p>Append below line to /etc/ccs/exception_policy.conf in order to suppress domain transition when /bin/env_chk is executed by /usr/sbin/sshd .</p>
+
+<table border="1">
+<tr><td>
+keep_domain from /bin/env_chk from &lt;kernel&gt; /usr/sbin/sshd
+</td></tr>
+</table>
+
+<p>Append below line to /etc/ccs/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/env_chk .</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+execute_handler /bin/env_chk
+</td></tr>
+</table>
+
+<h2>Step 4: Operation</h2>
+
+<p>Now, you are ready to start operation. Please reboot using TOMOYO Linux kernel.</p>
+
+<p>Access the SSH server using sftp program, and verify that the connection is closed immediately after the SSH authentication.</p>
+
+<p>Set environment variable "CERBERUS" with the value "sftp".</p>
+
+<p>Access the SSH server using sftp program, and verify that you can operate.</p>
+
+<h2>Explanation</h2>
+
+<p>TOMOYO Linux's execute_handler functionality intercepts program execution requests from /usr/sbin/sshd and passes the program execution requests to /bin/env_chk . Then, /bin/env_chk validates parameters and execute the requested program only when appropriate parameters are provided.</p>
+
+<p>This checking is applied after SSH authentication. Thus, operations without shell execution (e.g. TCP port forwarding) and operations after SSH login shell programs are permitted. If you want to restrict operations without shell execution or operations after SSH login shell, you need to develop policy for SSH server process and SSH login shells and apply enforcing mode.</p>
+
+<h2>Application idea</h2>
+
+<p>Since the movie above access SSH server for executing sftp service, it uses "sftp" as password. But there is no need to use fixed password. You may change behavior depending on the password. For example, you can provide download only sftp service if the environment variable "ssh_type" is set to "ro-sftp", uploadable sftp service if the environment variable "ssh_type" is set to "rw-sftp".</p>
+
+<p>Also, you can audit parameters passed to program execution requests. For example, you can audit the name of requested programs and commandline arguments and environment variables of programs executed from SSH login shell.</p>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
