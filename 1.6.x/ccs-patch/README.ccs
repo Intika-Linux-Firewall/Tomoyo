@@ -2005,3 +2005,8 @@ Fix 2010/01/17
       uses RCU primitives but spinlock does not prevent RCU callback if
       preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
       enabled.
+
+    @ Use current domain's name for execute_handler audit log.
+
+      Since 1.6.7 , /proc/ccs/grant_log was by error using next domain's name
+      when auditing current domain's "execute_handler" line.
