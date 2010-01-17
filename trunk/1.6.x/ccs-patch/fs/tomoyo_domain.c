@@ -172,12 +172,17 @@ int ccs_del_domain_acl(struct ccs_acl_info *acl)
 static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 					 const bool is_default)
 {
+	int error;
 	struct ccs_request_info *r = &ee->r;
+	struct ccs_domain_info *domain = r->domain;
 	const char *handler = ee->handler->name;
+	r->domain = ccs_current_domain();
 	r->mode = ccs_check_flags(r->domain, CCS_MAC_FOR_FILE);
-	return ccs_write_audit_log(true, r, "%s %s\n",
-				   is_default ? KEYWORD_EXECUTE_HANDLER :
-				   KEYWORD_DENIED_EXECUTE_HANDLER, handler);
+	error = ccs_write_audit_log(true, r, "%s %s\n",
+				    is_default ? KEYWORD_EXECUTE_HANDLER :
+				    KEYWORD_DENIED_EXECUTE_HANDLER, handler);
+	r->domain = domain;
+	return error;
 }
 
 /**
