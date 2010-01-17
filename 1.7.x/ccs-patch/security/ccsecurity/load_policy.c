@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/load_policy.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.1+   2010/01/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -158,7 +158,7 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "CCSecurity: 1.7.1+   2009/12/20\n");
+	printk(KERN_INFO "CCSecurity: 1.7.1+   2010/01/17\n");
 	ccs_check_profile();
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
