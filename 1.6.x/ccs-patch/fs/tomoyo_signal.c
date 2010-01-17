@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.8+   2010/01/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -142,7 +142,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 	{ /* Simplified checking. */
 		struct task_struct *p = NULL;
 		/***** CRITICAL SECTION START *****/
-		read_lock(&tasklist_lock);
+		ccs_tasklist_lock();
 		if (pid > 0)
 			p = find_task_by_pid((pid_t) pid);
 		else if (pid == 0)
@@ -153,7 +153,7 @@ int ccs_check_signal_acl(const int sig, const int pid)
 			p = find_task_by_pid((pid_t) -pid);
 		if (p)
 			dest = ccs_task_domain(p);
-		read_unlock(&tasklist_lock);
+		ccs_tasklist_unlock();
 		/***** CRITICAL SECTION END *****/
 	}
 	if (!dest)
