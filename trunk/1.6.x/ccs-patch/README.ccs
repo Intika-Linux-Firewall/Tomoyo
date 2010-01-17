@@ -1995,3 +1995,13 @@ Fix 2009/09/25
       Since 1.6.0 , I forgot to update dentry/vfsmount reference inside
       ccs_try_alt_exec(). But this bug did not come out because nobody used
       old dentry/vfsmount after ccs_try_alt_exec().
+
+Fix 2010/01/17
+
+    @ Use rcu_read_lock() for find_task_by_pid().
+
+      Since kernel 2.6.18 , caller of find_task_by_pid() needs to call
+      rcu_read_lock() rather than read_lock(&tasklist_lock) because find_pid()
+      uses RCU primitives but spinlock does not prevent RCU callback if
+      preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
+      enabled.

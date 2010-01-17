@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8   2009/05/28
+ * Version: 1.6.8+   2010/01/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -946,6 +946,30 @@ static inline void ccs_realpath_lock(void)
 static inline void ccs_realpath_unlock(void)
 {
 	spin_unlock(&dcache_lock);
+}
+
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
+
+static inline void ccs_tasklist_lock(void)
+{
+	rcu_read_lock();
+}
+static inline void ccs_tasklist_unlock(void)
+{
+	rcu_read_unlock();
+}
+
+#else
+
+static inline void ccs_tasklist_lock(void)
+{
+	spin_lock(&tasklist_lock);
+}
+static inline void ccs_tasklist_unlock(void)
+{
+	spin_unlock(&tasklist_lock);
 }
 
 #endif

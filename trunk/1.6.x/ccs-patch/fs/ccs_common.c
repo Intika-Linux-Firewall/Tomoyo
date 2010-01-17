@@ -3,9 +3,9 @@
  *
  * Common functions for SAKURA and TOMOYO.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8+   2009/09/25
+ * Version: 1.6.8+   2010/01/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1503,11 +1503,11 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	if (sscanf(data, "pid=%u", &pid) == 1) {
 		struct task_struct *p;
 		/***** CRITICAL SECTION START *****/
-		read_lock(&tasklist_lock);
+		ccs_tasklist_lock();
 		p = find_task_by_pid(pid);
 		if (p)
 			domain = ccs_task_domain(p);
-		read_unlock(&tasklist_lock);
+		ccs_tasklist_unlock();
 		/***** CRITICAL SECTION END *****/
 	} else if (!strncmp(data, "domain=", 7)) {
 		if (ccs_is_domain_def(data + 7))
@@ -2233,13 +2233,13 @@ static int ccs_read_pid(struct ccs_io_buffer *head)
 		task_info = true;
 	pid = (unsigned int) simple_strtoul(buf, NULL, 10);
 	/***** CRITICAL SECTION START *****/
-	read_lock(&tasklist_lock);
+	ccs_tasklist_lock();
 	p = find_task_by_pid(pid);
 	if (p) {
 		domain = ccs_task_domain(p);
 		ccs_flags = p->ccs_flags;
 	}
-	read_unlock(&tasklist_lock);
+	ccs_tasklist_unlock();
 	/***** CRITICAL SECTION END *****/
 	if (!domain)
 		goto done;
@@ -2607,7 +2607,7 @@ void ccs_load_policy(const char *filename)
 	printk(KERN_INFO "SAKURA: 1.6.8   2009/05/28\n");
 #endif
 #ifdef CONFIG_TOMOYO
-	printk(KERN_INFO "TOMOYO: 1.6.8+   2009/09/25\n");
+	printk(KERN_INFO "TOMOYO: 1.6.8+   2010/01/17\n");
 #endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 	ccs_policy_loaded = true;

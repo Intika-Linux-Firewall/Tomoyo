@@ -3,9 +3,9 @@
  *
  * Implementation of the Domain-Based Mandatory Access Control.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8+   2009/09/25
+ * Version: 1.6.8+   2010/01/17
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -771,14 +771,14 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 			continue;
 		flag = false;
 		/***** CRITICAL SECTION START *****/
-		read_lock(&tasklist_lock);
+		ccs_tasklist_lock();
 		for_each_process(p) {
 			if (ccs_task_domain(p) != domain)
 				continue;
 			flag = true;
 			break;
 		}
-		read_unlock(&tasklist_lock);
+		ccs_tasklist_unlock();
 		/***** CRITICAL SECTION END *****/
 		if (flag)
 			continue;
