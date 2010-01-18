@@ -15,7 +15,7 @@
 
 <p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/aEJAGBKc8uY&hl=en_US&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/aEJAGBKc8uY&hl=en_US&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
-<p>このページでは、 TOMOYO Linux の execute_handler 機能を用いてＳＳＨサーバからログインシェルが実行される時にロールの選択を行うことにより、システム管理者の操作を制限します。</p>
+<p>このページでは、ＳＳＨサーバからログインシェルが実行される時にロールの選択を行うことにより、システム管理者の操作を制限する手順について紹介します。</p>
 
 <hr>
 
@@ -196,6 +196,8 @@ execute_handler /bin/sshd_login
 
 <p>以上で設定は完了です。 TOMOYO Linux カーネルで再起動してください。</p>
 
+<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後に /bin/sshd_login によるプロンプトが表示されることを確認したら、 Ctrl-C を押してログアウトしてください。</p>
+
 <p>/bin/sshd_login から起動される操作を制限するために、学習モードを割り当てます。</p>
 
 <table border="1">
@@ -204,7 +206,7 @@ execute_handler /bin/sshd_login
 </td></tr>
 </table>
 
-<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後にプロンプトが表示されるので 1 を入力し、パスワードとして webadmin を入力してください。</p>
+<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後に /bin/sshd_login が表示したプロンプトに対して 1 を入力し、 /bin/webadmin-auth が表示したプロンプトに対して webadmin を入力してください。</p>
 
 <p>その後、「 Web サーバ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
@@ -219,7 +221,7 @@ less /var/log/httpd/access_log
 
 <p>許可したい操作が終わったらログアウトしてください。</p>
 
-<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後にプロンプトが表示されるので 2 を入力し、パスワードとして mailadmin を入力してください。</p>
+<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後に /bin/sshd_login が表示したプロンプトに対して 2 を入力し、 /bin/mailadmin-auth が表示したプロンプトに対して mailadmin を入力してください。</p>
 
 <p>その後、「 Mail サーバ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
@@ -233,7 +235,7 @@ less /var/log/maillog
 
 <p>許可したい操作が終わったらログアウトしてください。</p>
 
-<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後にプロンプトが表示されるので 3 を入力し、パスワードとして securityadmin を入力してください。</p>
+<p>クライアント側から ssh でサーバ側にアクセスしてください。ログイン認証後に /bin/sshd_login が表示したプロンプトに対して 3 を入力し、 /bin/securityadmin-auth が表示したプロンプトに対して securityadmin を入力してください。</p>
 
 <p>その後、「セキュリティ管理者」に対して許可したい操作を行います。冒頭の動画では以下の操作をしています。</p>
 
