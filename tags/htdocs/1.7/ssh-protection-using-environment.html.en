@@ -15,12 +15,11 @@
 
 <p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/-2AQSqNa58c&hl=en_US&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/-2AQSqNa58c&hl=en_US&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
-<p>This page explains you how to protect SSH service from brute force attacks by inserting environment variable based authentication before starting SSH login shell using TOMOYO Linux's execute_handler functionality.</p>
+<p>This page explains you how to protect SSH service from brute force attacks by inserting environment variable based authentication before starting SSH login shell.</p>
 
 <p>Even if the password for SSH authentication was cracked by brute force attacks, SSH login shell won't be started unless both the environment variable name and its value (which act as the other password) are not cracked.</p>
 
-<p>Conventional anti brute force attack methods are a kind of rejecting access from IP addresses for some period if the authentication failed. Therefore, if attacker uses distributed IP addresses, such methods could be run through.
-On the contrary, the method described in this page splits authentication into 2 stages. Therefore, the system won't be damaged even if the first stage was run through. Also, since the second stage has a lot of flexibility and has no need to notify the authentication method, it is quite difficult to use brute force attacks.</p>
+<p>Conventional anti brute force attack methods are a kind of rejecting futher access from IP addresses for some period upon authentication failure. Therefore, if attacker uses distributed IP addresses, such methods could be run through. On the contrary, the method described in this page splits authentication into 2 stages. Therefore, the system won't be damaged even if the first stage was run through. Also, since the second stage has a lot of flexibility and has no need to notify the authentication method, it is quite difficult to use brute force attacks.</p>
 
 <hr>
 

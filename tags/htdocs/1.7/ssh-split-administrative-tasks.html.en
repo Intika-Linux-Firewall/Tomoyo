@@ -15,7 +15,7 @@
 
 <p><object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/aEJAGBKc8uY&hl=en_US&fs=1&"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/aEJAGBKc8uY&hl=en_US&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
 
-<p>This page explains you how to restrict administrative operations by selecting roles before starting SSH login shell using TOMOYO Linux's execute_handler functionality.</p>
+<p>This page explains you how to restrict administrative operations by selecting roles before starting SSH login shell.</p>
 
 <hr>
 
@@ -196,6 +196,8 @@ execute_handler /bin/sshd_login
 
 <p>Now, you are ready to start operation. Please reboot using TOMOYO Linux kernel.</p>
 
+<p>Access the SSH server. Confirm that a prompt is shown by /bin/sshd_login after passing existing SSH authentication. Logout the SSH session by pressing Ctrl-C.</p>
+
 <p>Change access control mode to learning mode by assigning profile 1 so that we can restrict operations from /bin/sshd_login .</p>
 
 <table border="1">
@@ -204,9 +206,9 @@ execute_handler /bin/sshd_login
 </td></tr>
 </table>
 
-<p>Access the SSH server. After existing SSH authentication, a prompt is shown. Please select 1 and enter "webadmin" as password.</p>
+<p>Access the SSH server. Please select 1 for the prompt shown by /bin/sshd_login and enter "webadmin" to the prompt shown by /bin/webadmin-auth .</p>
 
-<p>Then, please do operations you want to allow for "Web server administrator". In the above movie, below operations are done,</p>
+<p>Then, please do operations you want to allow for "Web server administrator". In the above movie, below operations are done.</p>
 
 <table border="1">
 <tr><td>
@@ -219,9 +221,9 @@ less /var/log/httpd/access_log
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
 
-<p>Access the SSH server. After existing SSH authentication, a prompt is shown. Please select 2 and enter "mailadmin" as password.</p>
+<p>Access the SSH server. Please select 2 for the prompt shown by /bin/sshd_login and enter "mailadmin" for the prompt shown by /bin/mailadmin-auth .</p>
 
-<p>Then, please do operations you want to allow for "Mail server administrator". In the above movie, below operations are done,</p>
+<p>Then, please do operations you want to allow for "Mail server administrator". In the above movie, below operations are done.</p>
 
 <table border="1">
 <tr><td>
@@ -233,9 +235,9 @@ less /var/log/maillog
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
 
-<p>Access the SSH server. After existing SSH authentication, a prompt is shown. Please select 3 and enter "securityadmin" as password.</p>
+<p>Access the SSH server. Please select 3 for the prompt shown by /bin/sshd_login and enter "securityadmin" for the prompt shown by /bin/securityadmin-auth .</p>
 
-<p>Then, please do operations you want to allow for "Security administrator". In the above movie, below operations are done,</p>
+<p>Then, please do operations you want to allow for "Security administrator". In the above movie, below operations are done.</p>
 
 <table border="1">
 <tr><td>
@@ -267,7 +269,7 @@ less /var/log/tomoyo/reject_log.conf
 Since these programs are just for example, we used simple shell scripts. When you use at real systems, please use appropriate programs with appropriate authentication functionality.</p>
 
 
-<p>TOMOYO Linux's execute_handler functionality intercepts program execution requests from /usr/sbin/sshd and passes the program execution requests to /bin/sshd_login . Then, /bin/sshd_login shows a prompt for selecting role and receive response from the user.</p>
+<p>TOMOYO Linux's execute_handler functionality intercepts program execution requests from /usr/sbin/sshd and passes the program execution requests to /bin/sshd_login . Then, /bin/sshd_login shows a prompt for selecting role and receives response from the user.</p>
 
 <p>The role selection is applied after SSH authentication. Thus, operations without shell execution (e.g. TCP port forwarding) are permitted. If you want to restrict operations without shell execution, you need to develop policy for SSH server process and apply enforcing mode to the SSH server processes.</p>
 
