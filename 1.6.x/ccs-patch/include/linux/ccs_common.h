@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.6.8+   2010/01/17
+ * Version: 1.6.8+   2010/01/20
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -965,11 +965,11 @@ static inline void ccs_tasklist_unlock(void)
 
 static inline void ccs_tasklist_lock(void)
 {
-	spin_lock(&tasklist_lock);
+	read_lock(&tasklist_lock);
 }
 static inline void ccs_tasklist_unlock(void)
 {
-	spin_unlock(&tasklist_lock);
+	read_unlock(&tasklist_lock);
 }
 
 #endif
