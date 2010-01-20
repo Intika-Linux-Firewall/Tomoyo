@@ -175,15 +175,7 @@ initialize_domain /usr/sbin/sshd
 </td></tr>
 </table>
 
-<p>Append below line to /etc/ccs/exception_policy.conf in order to suppress domain transition when /bin/sshd_login is executed by /usr/sbin/sshd .</p>
-
-<table border="1">
-<tr><td>
-keep_domain /bin/sshd_login from &lt;kernel&gt; /usr/sbin/sshd
-</td></tr>
-</table>
-
-<p>Append below line to /etc/ccs/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/sshd_login .</p>
+<p>Append below lines to /etc/ccs/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/sshd_login .</p>
 
 <table border="1">
 <tr><td>
@@ -196,7 +188,7 @@ execute_handler /bin/sshd_login
 
 <p>Now, you are ready to start operation. Please reboot using TOMOYO Linux kernel.</p>
 
-<p>Access the SSH server. Confirm that a prompt is shown by /bin/sshd_login after passing existing SSH authentication. Logout the SSH session by pressing Ctrl-C.</p>
+<p>Access the SSH server. Confirm that a prompt is shown by /bin/sshd_login after passing existing SSH authentication. Logout the SSH session by pressing Ctrl-C. Now, the domain for /bin/sshd_login was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login".</p>
 
 <p>Change access control mode to learning mode by assigning profile 1 so that we can restrict operations from /bin/sshd_login .</p>
 
@@ -206,7 +198,7 @@ execute_handler /bin/sshd_login
 </td></tr>
 </table>
 
-<p>Access the SSH server. Please select 1 for the prompt shown by /bin/sshd_login and enter "webadmin" to the prompt shown by /bin/webadmin-auth .</p>
+<p>Access the SSH server. Please select 1 for the prompt shown by /bin/sshd_login and enter "webadmin" to the prompt shown by /bin/webadmin-auth . Now, the domain for "Web server administrator" was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash".</p>
 
 <p>Then, please do operations you want to allow for "Web server administrator". In the above movie, below operations are done.</p>
 
@@ -221,7 +213,7 @@ less /var/log/httpd/access_log
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
 
-<p>Access the SSH server. Please select 2 for the prompt shown by /bin/sshd_login and enter "mailadmin" for the prompt shown by /bin/mailadmin-auth .</p>
+<p>Access the SSH server. Please select 2 for the prompt shown by /bin/sshd_login and enter "mailadmin" for the prompt shown by /bin/mailadmin-auth . Now, the domain for "Mail server administrator" was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash".</p>
 
 <p>Then, please do operations you want to allow for "Mail server administrator". In the above movie, below operations are done.</p>
 
@@ -235,7 +227,7 @@ less /var/log/maillog
 
 <p>Logout from the SSH session after you finished doing all operations you want to allow.</p>
 
-<p>Access the SSH server. Please select 3 for the prompt shown by /bin/sshd_login and enter "securityadmin" for the prompt shown by /bin/securityadmin-auth .</p>
+<p>Access the SSH server. Please select 3 for the prompt shown by /bin/sshd_login and enter "securityadmin" for the prompt shown by /bin/securityadmin-auth . Now, the domain for "Security administrator" was created as "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash".</p>
 
 <p>Then, please do operations you want to allow for "Security administrator". In the above movie, below operations are done.</p>
 
@@ -265,9 +257,7 @@ less /var/log/tomoyo/reject_log.conf
 
 <h2>Explanation</h2>
 
-<p>We divide roles in the following way. We insert 3 programs ( /bin/webadmin-auth /bin/mailadmin-auth /bin/securityadmin-auth ) between /usr/sbin/sshd and login shell for SSH session. As a result, we get 3 domains with different parent domain. We assign these 3 domains to 3 roles by granting only necessary operations for each domain. 
-Since these programs are just for example, we used simple shell scripts. When you use at real systems, please use appropriate programs with appropriate authentication functionality.</p>
-
+<p>We divide roles in the following way. We insert 3 programs ( /bin/webadmin-auth /bin/mailadmin-auth /bin/securityadmin-auth ) between /usr/sbin/sshd and login shell for SSH session. As a result, we get 3 domains with different parent domain ("&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/webadmin-auth /bin/bash", "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/mailadmin-auth /bin/bash", "&lt;kernel&gt; /usr/sbin/sshd /bin/sshd_login /bin/securityadmin-auth /bin/bash" ). We assign these 3 domains to 3 roles ("Web server administrator", "Mail server administrator", "Security administrator") by granting only necessary operations for each domain. Since these programs are just for example, we used simple shell scripts. When you use at real systems, please use appropriate programs with appropriate authentication functionality.</p>
 
 <p>TOMOYO Linux's execute_handler functionality intercepts program execution requests from /usr/sbin/sshd and passes the program execution requests to /bin/sshd_login . Then, /bin/sshd_login shows a prompt for selecting role and receives response from the user.</p>
 
