@@ -109,6 +109,8 @@ path_group SFTP_FILES /var/sftp/\*
 
 <table border="1">
 <tr><td>
+&lt;kernel&gt; /bin/sftp-shell<br>
+<br>
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server<br>
 allow_read @SFTP_FILES<br>
 <br>
@@ -132,11 +134,11 @@ allow_truncate @SFTP_FILES
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server' '&lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /bin/sftp-shell'
 </td></tr>
 </table>
 
-<p>Set environment variable "sftp_type" with value "ro-sftp" and access the SFTP server.</p>
+<p>Set environment variable "sftp_type" with value "ro-sftp" and access the SFTP server. In this page, we assume the name of SFTP server as "server".</p>
 
 <table border="1">
 <tr><td>
@@ -145,7 +147,7 @@ sftp sftp@server
 </td></tr>
 </table>
 
-<p>Do download operations. But don't do upload operations.</p>
+<p>Now, the process belongs to "&lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server" domain. Do download operations from this domain. But don't do upload operations from this domain.</p>
 
 <p>Set environment variable "sftp_type" with value "rw-sftp" and access the SFTP server.</p>
 
@@ -156,13 +158,13 @@ sftp sftp@server
 </td></tr>
 </table>
 
-<p>Do download operations and upload operations.</p>
+<p>Now, the process belongs to "&lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server" domain. Do download operations and upload operations from this domain.</p>
 
 <p>Change access control mode to enforcing mode by assigning profile 3.</p>
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server' '&lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server'
+/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /bin/sftp-shell'
 </td></tr>
 </table>
 

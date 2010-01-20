@@ -109,6 +109,8 @@ path_group SFTP_FILES /var/sftp/\*
 
 <table border="1">
 <tr><td>
+&lt;kernel&gt; /bin/sftp-shell<br>
+<br>
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server<br>
 allow_read @SFTP_FILES<br>
 <br>
@@ -132,11 +134,11 @@ allow_truncate @SFTP_FILES
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server' '&lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server'
+/usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /bin/sftp-shell'
 </td></tr>
 </table>
 
-<p>環境変数 sftp_type に ro-sftp を設定して、クライアントから sftp でアクセスしてください。</p>
+<p>環境変数 sftp_type に ro-sftp を設定して、クライアントから sftp でアクセスしてください。このページでは、サーバのホスト名を server とします。</p>
 
 <table border="1">
 <tr><td>
@@ -145,7 +147,7 @@ sftp sftp@server
 </td></tr>
 </table>
 
-<p>適当に操作を行います。ただし、書込み操作は行わないでください。</p>
+<p>この時点では、プロセスには &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server ドメインが割り当てられています。このドメインから適当に操作を行います。ただし、書込み操作は行わないでください。</p>
 
 <p>環境変数 sftp_type に rw-sftp を設定して、クライアントから sftp でアクセスしてください。</p>
 
@@ -156,13 +158,13 @@ sftp sftp@server
 </td></tr>
 </table>
 
-<p>適当に操作を行います。書込み操作も行ってください。</p>
+<p>この時点では、プロセスには &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server ドメインが割り当てられています。このドメインから適当に操作を行います。書込み操作も行ってください。</p>
 
 <p>強制モードに切り替えます。</p>
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server' '&lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server'
+/usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /bin/sftp-shell'
 </td></tr>
 </table>
 
