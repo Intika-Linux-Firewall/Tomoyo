@@ -138,14 +138,6 @@ initialize_domain /usr/sbin/sshd
 </td></tr>
 </table>
 
-<p>Append below line to /etc/ccs/exception_policy.conf in order to suppress domain transition when /bin/env_chk is executed by /usr/sbin/sshd .</p>
-
-<table border="1">
-<tr><td>
-keep_domain /bin/env_chk from &lt;kernel&gt; /usr/sbin/sshd
-</td></tr>
-</table>
-
 <p>Append below line to /etc/ccs/domain_policy.conf so that program execution requests from /usr/sbin/sshd are passed to /bin/env_chk .</p>
 
 <table border="1">

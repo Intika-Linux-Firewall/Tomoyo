@@ -140,14 +140,6 @@ initialize_domain /usr/sbin/sshd
 </td></tr>
 </table>
 
-<p>/usr/sbin/sshd から /bin/env_chk が実行された場合にはドメイン遷移をしないようにするために、 /etc/ccs/exception_policy.conf に以下の内容を追加します。</p>
-
-<table border="1">
-<tr><td>
-keep_domain /bin/env_chk from &lt;kernel&gt; /usr/sbin/sshd
-</td></tr>
-</table>
-
 <p>/usr/sbin/sshd からのプログラムの実行要求が /bin/env_chk に渡されるようにするために、 /etc/ccs/domain_policy.conf に以下の内容を追加します。</p>
 
 <table border="1">
