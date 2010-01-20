@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.9-89.0.19.EL.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20091111.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20100120.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20091111.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20100120.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  # adding some text to the end of the version number.
  #
 -%define release 89.0.19.EL
-+%define release 89.0.19.EL_tomoyo_1.6.8p1
++%define release 89.0.19.EL_tomoyo_1.6.8p3
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20091111.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100120.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.9-centos-4.8.diff
 +
  cp %{SOURCE10} Documentation/

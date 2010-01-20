@@ -29,9 +29,9 @@ export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't expo
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20091111.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20100120.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20091111.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/30297/ccs-patch-1.6.8-20100120.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -44,7 +44,7 @@ apt-get source kernel-image-2.4.27-4-686-smp || die "Can't install kernel source
 
 # Apply patches and create kernel config.
 cd kernel-image-2.4.27-i386-2.4.27/ || die "Can't chdir to kernel-image-2.4.27-i386-2.4.27/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20091111.tar.gz config.ccs || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100120.tar.gz config.ccs || die "Can't extract patch."
 cat config/686-smp config.ccs > config/686-smp-ccs || die "Can't create config."
 cat config.ccs >> config/default || die "Can't create config."
 rm -f config.ccs
@@ -54,7 +54,7 @@ debian/rules flavours=686-smp-ccs || die "Can't run rules."
 for i in build-686-smp-ccs kernel-source-2.4.27
   do 
   cd $i/ || die "Can't chdir to $i/ ."
-  tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20091111.tar.gz || die "Can't extract patch."
+  tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100120.tar.gz || die "Can't extract patch."
   patch -p1 < patches/ccs-patch-2.4.27-debian-sarge.diff || die "Can't apply patch."
   rm -fR patches/ specs/
   cd ../ || die "Can't chdir to ../ ."
