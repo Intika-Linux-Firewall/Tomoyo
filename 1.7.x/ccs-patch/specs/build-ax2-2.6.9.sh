@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-78.19AXS2.src.rpm ]
+if [ ! -r kernel-2.6.9-89.5AXS2.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-78.19AXS2.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.5AXS2.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-78.19AXS2.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-89.5AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20091220.tar.gz ]
@@ -25,18 +25,18 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2009-12-24 11:40:32.000000000 +0900
-+++ kernel-2.6.spec	2010-01-14 19:57:02.000000000 +0900
-@@ -34,7 +34,7 @@
+--- kernel-2.6.spec	2009-11-06 16:04:48.000000000 +0900
++++ kernel-2.6.spec	2010-01-21 14:29:23.000000000 +0900
+@@ -26,7 +26,7 @@
+ # that the kernel isn't the stock distribution kernel, for example by
+ # adding some text to the end of the version number.
  #
- %define axbsys %([ "%{?WITH_LKST}" -eq 0 ] && echo || echo .lkst)
- %define dist AXS2
--%define release 78.19%{?dist}%{axbsys}
-+%define release 78.19%{?dist}%{axbsys}_tomoyo_1.7.1p1
+-%define release 89.5%{?dist}
++%define release 89.5%{?dist}_tomoyo_1.7.1p1
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
-@@ -147,6 +147,9 @@
+@@ -139,6 +139,9 @@
  # to versions below the minimum
  #
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -183,7 +186,7 @@
+@@ -175,7 +178,7 @@
  %define __find_provides /usr/lib/rpm/asianux/find-kmod-provides.sh
  %define __find_requires %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -5297,6 +5300,10 @@
+@@ -6066,6 +6069,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -5308,6 +5315,9 @@
+@@ -6077,6 +6084,9 @@
  for i in *.config 
  do 
  	mv $i .config 
