@@ -24,7 +24,7 @@ fi
 
 if [ ! -r ccs-patch-2.6.9-asianux-2-20100122.diff ]
 then
-    wget -O ccs-patch-2.6.9-asianux-2-20100122.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?rev=3390&root=tomoyo'
+    wget -O ccs-patch-2.6.9-asianux-2-20100122.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?revision=3390&root=tomoyo'
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
