@@ -38,9 +38,9 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/inet6_hashtables.c     |    7 ++++
  net/ipv6/raw.c                  |    8 +++++
  net/ipv6/udp.c                  |   18 ++++++++++++
- net/socket.c                    |   43 +++++++++++++++++++++++++++-
+ net/socket.c                    |   42 +++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    8 +++++
- 38 files changed, 513 insertions(+), 8 deletions(-)
+ 38 files changed, 513 insertions(+), 7 deletions(-)
 
 --- linux-2.6.18-128.13AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-128.13AXS3/arch/alpha/kernel/ptrace.c
@@ -1323,21 +1323,20 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -595,7 +600,12 @@ static inline int __sock_sendmsg(struct 
+@@ -595,6 +600,12 @@ static inline int __sock_sendmsg(struct 
  	err = security_socket_sendmsg(sock, msg, size);
  	if (err)
  		return err;
--
 +	/***** TOMOYO Linux start. *****/
 +	if (ccs_socket_sendmsg_permission(sock,
 +					  (struct sockaddr *) msg->msg_name,
 +					  msg->msg_namelen))
 +		return -EPERM;
 +	/***** TOMOYO Linux end. *****/
+ 
  	return sock->ops->sendmsg(iocb, sock, msg, size);
  }
- 
-@@ -1160,6 +1170,12 @@ static int __sock_create(int family, int
+@@ -1160,6 +1171,12 @@ static int __sock_create(int family, int
  		family = PF_PACKET;
  	}
  
@@ -1350,7 +1349,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	err = security_socket_create(family, type, protocol, kern);
  	if (err)
  		return err;
-@@ -1362,6 +1378,13 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1362,6 +1379,13 @@ asmlinkage long sys_bind(int fd, struct 
  	{
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
@@ -1364,7 +1363,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  			if (!err)
  				err = sock->ops->bind(sock,
  					(struct sockaddr *)address, addrlen);
-@@ -1390,6 +1413,10 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1390,6 +1414,10 @@ asmlinkage long sys_listen(int fd, int b
  			backlog = sysctl_somaxconn;
  
  		err = security_socket_listen(sock, backlog);
@@ -1375,7 +1374,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		if (!err)
  			err = sock->ops->listen(sock, backlog);
  
-@@ -1454,6 +1481,13 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1454,6 +1482,13 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1389,7 +1388,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1510,7 +1544,12 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1510,7 +1545,12 @@ asmlinkage long sys_connect(int fd, stru
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
  	if (err)
  		goto out_put;

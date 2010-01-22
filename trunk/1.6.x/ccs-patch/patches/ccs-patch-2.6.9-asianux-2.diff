@@ -29,35 +29,36 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  arch/x86_64/ia32/ptrace32.c        |    7 ++++
  arch/x86_64/kernel/ptrace.c        |    7 ++++
  fs/Kconfig                         |    2 +
- fs/Makefile                        |    2 +
+ fs/Makefile                        |    1 
  fs/attr.c                          |   19 +++++++++++
  fs/compat.c                        |   16 ++++++++-
  fs/exec.c                          |   23 ++++++++++++--
  fs/fcntl.c                         |    8 ++++
  fs/ioctl.c                         |   13 ++++++++
  fs/namei.c                         |   60 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   54 ++++++++++++++++++++++++++++++++-
+ fs/namespace.c                     |   53 ++++++++++++++++++++++++++++++++
  fs/open.c                          |   29 +++++++++++++++++
  fs/proc/Makefile                   |    3 +
  fs/proc/proc_misc.c                |    5 +++
  include/linux/init_task.h          |    4 ++
  include/linux/sched.h              |    8 ++++
+ kernel/compat.c                    |    7 ++++
  kernel/kmod.c                      |    5 +++
  kernel/module.c                    |   13 ++++++--
  kernel/sched.c                     |    7 ++++
  kernel/signal.c                    |   22 +++++++++++++
  kernel/sys.c                       |   21 ++++++++++++
- kernel/sysctl.c                    |   20 +++++++++++-
+ kernel/sysctl.c                    |   19 +++++++++++
  kernel/time.c                      |   15 +++++++++
  net/ipv4/raw.c                     |    8 ++++
  net/ipv4/tcp_ipv4.c                |   11 ++++++
- net/ipv4/udp.c                     |   20 +++++++++++-
+ net/ipv4/udp.c                     |   23 +++++++++++++-
  net/ipv6/raw.c                     |    8 ++++
  net/ipv6/tcp_ipv6.c                |    7 ++++
- net/ipv6/udp.c                     |   18 +++++++++++
+ net/ipv6/udp.c                     |   21 ++++++++++++
  net/socket.c                       |   43 ++++++++++++++++++++++++--
  net/unix/af_unix.c                 |    8 ++++
- 55 files changed, 645 insertions(+), 13 deletions(-)
+ 56 files changed, 656 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.5AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.5AXS2/arch/alpha/kernel/ptrace.c
@@ -673,11 +674,10 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
 --- linux-2.6.9-89.5AXS2.orig/fs/Makefile
 +++ linux-2.6.9-89.5AXS2/fs/Makefile
-@@ -97,3 +97,5 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
+@@ -97,3 +97,4 @@ obj-$(CONFIG_HPPFS)		+= hppfs/
  obj-$(CONFIG_RELAYFS_FS)	+= relayfs/
  obj-$(CONFIG_CONFIGFS_FS)	+= configfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
-+
 +include $(srctree)/fs/Makefile-2.6.ccs
 --- linux-2.6.9-89.5AXS2.orig/fs/attr.c
 +++ linux-2.6.9-89.5AXS2/fs/attr.c
@@ -1077,18 +1077,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -865,7 +885,9 @@ static int do_loopback(struct nameidata 
- 		} else
+@@ -866,6 +886,9 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
--
+ 
 +	/***** SAKURA Linux start. *****/
 + out:
 +	/***** SAKURA Linux end. *****/
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -926,7 +948,11 @@ static int do_move_mount(struct nameidat
+@@ -926,7 +949,11 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -1101,7 +1100,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1025,6 +1051,11 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1025,6 +1052,11 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -1113,7 +1112,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1248,6 +1279,17 @@ long do_mount(char * dev_name, char * di
+@@ -1248,6 +1280,17 @@ long do_mount(char * dev_name, char * di
  	if (data_page)
  		((char *)data_page)[PAGE_SIZE - 1] = 0;
  
@@ -1131,7 +1130,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	/* Separate the per-mountpoint flags */
  	if (flags & MS_NOSUID)
  		mnt_flags |= MNT_NOSUID;
-@@ -1505,6 +1547,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1505,6 +1548,10 @@ asmlinkage long sys_pivot_root(const cha
  
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
@@ -1142,7 +1141,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  	lock_kernel();
  
-@@ -1520,6 +1566,10 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1567,10 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -1236,7 +1235,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.9-89.5AXS2 2010/01/21\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.5AXS2 2010/01/22\n");
 +#endif
 +	/***** CCS end. *****/
  }
@@ -1277,6 +1276,29 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
+--- linux-2.6.9-89.5AXS2.orig/kernel/compat.c
++++ linux-2.6.9-89.5AXS2/kernel/compat.c
+@@ -23,6 +23,9 @@
+ #include <linux/security.h>
+ 
+ #include <asm/uaccess.h>
++/***** TOMOYO Linux start. *****/
++#include <linux/tomoyo.h>
++/***** TOMOYO Linux end. *****/
+ 
+ int get_compat_timespec(struct timespec *ts, const struct compat_timespec __user *cts)
+ {
+@@ -790,6 +793,10 @@ asmlinkage long compat_sys_stime(compat_
+ 		return -EPERM;
+ 	if (get_user(tv.tv_sec, tptr))
+ 		return -EFAULT;
++	/***** TOMOYO Linux start. *****/
++	if (!ccs_capable(CCS_SYS_SETTIME))
++		return -EPERM;
++	/***** TOMOYO Linux end. *****/
+ 
+ 	tv.tv_nsec = 0;
+ 
 --- linux-2.6.9-89.5AXS2.orig/kernel/kmod.c
 +++ linux-2.6.9-89.5AXS2/kernel/kmod.c
 @@ -169,6 +169,11 @@ static int ____exec_usermodehelper(char 
@@ -1462,18 +1484,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	errno = -EFAULT;
 --- linux-2.6.9-89.5AXS2.orig/kernel/sysctl.c
 +++ linux-2.6.9-89.5AXS2/kernel/sysctl.c
-@@ -48,6 +48,10 @@
+@@ -48,6 +48,9 @@
  static int proc_do_kdb(ctl_table *table, int write, struct file *filp, void *buffer, size_t *lenp, loff_t *ppos);
  #endif	/* CONFIG_KDB */
  
 +/***** TOMOYO Linux start. *****/
 +#include <linux/tomoyo.h>
 +/***** TOMOYO Linux end. *****/
-+
  #ifdef CONFIG_ROOT_NFS
  #include <linux/nfs_fs.h>
  #endif
-@@ -1252,6 +1256,11 @@ int do_sysctl(int __user *name, int nlen
+@@ -1252,6 +1255,11 @@ int do_sysctl(int __user *name, int nlen
  
  		spin_unlock(&sysctl_lock);
  
@@ -1485,7 +1506,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen, head->ctl_table,
  					&context);
-@@ -1325,6 +1334,15 @@ repeat:
+@@ -1325,6 +1333,15 @@ repeat:
  				if (ctl_perm(table, 001))
  					return -EPERM;
  				if (table->strategy) {
@@ -1501,7 +1522,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
-@@ -2352,7 +2370,7 @@ int sysctl_string(ctl_table *table, int 
+@@ -2352,7 +2369,7 @@ int sysctl_string(ctl_table *table, int 
  			len--;
  		((char *) table->data)[len] = 0;
  	}
@@ -1628,7 +1649,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  /*
   *	Snmp MIB for the UDP layer
-@@ -144,6 +150,10 @@ static int udp_v4_get_port(struct sock *
+@@ -137,6 +143,9 @@ static int udp_v4_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		/***** SAKURA Linux start. *****/
++		if (!ccs_lport_reserved(rover))
++		/***** SAKURA Linux end. *****/
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -144,6 +153,10 @@ static int udp_v4_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			struct hlist_head *list;
  			int size = 0;
@@ -1639,7 +1670,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -163,6 +173,9 @@ static int udp_v4_get_port(struct sock *
+@@ -163,6 +176,9 @@ static int udp_v4_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1649,7 +1680,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -799,7 +812,12 @@ try_again:
+@@ -799,7 +815,12 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -1725,7 +1756,17 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  DEFINE_SNMP_STAT(struct udp_mib, udp_stats_in6);
  
-@@ -86,6 +92,10 @@ static int udp_v6_get_port(struct sock *
+@@ -79,6 +85,9 @@ static int udp_v6_get_port(struct sock *
+ 		best_size_so_far = UINT_MAX;
+ 		best = rover = net_random() % remaining + low;
+ 
++		/***** SAKURA Linux start. *****/
++		if (!ccs_lport_reserved(rover))
++		/***** SAKURA Linux end. *****/
+ 		if (!udp_lport_inuse(rover))
+ 			goto gotit;
+ 
+@@ -86,6 +95,10 @@ static int udp_v6_get_port(struct sock *
  		for (i = 0; i < UDP_HTABLE_SIZE; i++) {
  			int size = 0;
  			struct hlist_head *list;
@@ -1736,7 +1777,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  
  			list = &udp_hash[rover & (UDP_HTABLE_SIZE - 1)];
  			if (hlist_empty(list))
-@@ -105,6 +115,9 @@ static int udp_v6_get_port(struct sock *
+@@ -105,6 +118,9 @@ static int udp_v6_get_port(struct sock *
  		/* 2nd pass: find hole in shortest hash chain */
  		rover = best;
  		for (i = 0; i < (1 << 16) / UDP_HTABLE_SIZE; i++) {
@@ -1746,7 +1787,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -241,6 +254,11 @@ try_again:
+@@ -241,6 +257,11 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
