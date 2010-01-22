@@ -30,15 +30,15 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
  net/ipv4/raw.c                  |    4 ++++
- net/ipv4/udp.c                  |    9 ++++++++-
+ net/ipv4/udp.c                  |    7 +++++++
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |    4 ++++
  net/ipv6/udp.c                  |    7 +++++++
- net/socket.c                    |   23 +++++++++++++++++++++--
+ net/socket.c                    |   22 +++++++++++++++++++++-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 268 insertions(+), 8 deletions(-)
+ 36 files changed, 267 insertions(+), 6 deletions(-)
 
 --- linux-2.6.18-128.13AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-128.13AXS3/arch/alpha/kernel/ptrace.c
@@ -1022,18 +1022,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  			if (!udp_lport_inuse(rover))
  				goto gotit;
  			rover += UDP_HTABLE_SIZE;
-@@ -815,7 +819,10 @@ try_again:
+@@ -815,6 +819,9 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
--  
 +	err = ccs_socket_recvmsg_permission(sk, skb, flags);
 +	if (err)
 +		goto out;
-+
+   
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
- 		copied = len;
 --- linux-2.6.18-128.13AXS3.orig/net/ipv6/inet6_hashtables.c
 +++ linux-2.6.18-128.13AXS3/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,7 @@
@@ -1121,7 +1119,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, char __user *buf,
  			 size_t size, loff_t pos);
-@@ -593,9 +595,10 @@ static inline int __sock_sendmsg(struct 
+@@ -593,6 +595,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1129,11 +1127,8 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
 +		err = ccs_socket_sendmsg_permission(sock, msg, size);
  	if (err)
  		return err;
--
- 	return sock->ops->sendmsg(iocb, sock, msg, size);
- }
  
-@@ -1161,6 +1164,8 @@ static int __sock_create(int family, int
+@@ -1161,6 +1165,8 @@ static int __sock_create(int family, int
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -1142,7 +1137,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (err)
  		return err;
  		
-@@ -1363,6 +1368,11 @@ asmlinkage long sys_bind(int fd, struct 
+@@ -1363,6 +1369,11 @@ asmlinkage long sys_bind(int fd, struct 
  		if((err=move_addr_to_kernel(umyaddr,addrlen,address))>=0) {
  			err = security_socket_bind(sock, (struct sockaddr *)address, addrlen);
  			if (!err)
@@ -1154,7 +1149,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  				err = sock->ops->bind(sock,
  					(struct sockaddr *)address, addrlen);
  		}
-@@ -1391,6 +1401,8 @@ asmlinkage long sys_listen(int fd, int b
+@@ -1391,6 +1402,8 @@ asmlinkage long sys_listen(int fd, int b
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -1163,7 +1158,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1454,6 +1466,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1454,6 +1467,11 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_fd;
  
@@ -1175,7 +1170,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
  			err = -ECONNABORTED;
-@@ -1508,9 +1525,11 @@ asmlinkage long sys_connect(int fd, stru
+@@ -1508,9 +1526,11 @@ asmlinkage long sys_connect(int fd, stru
  		goto out_put;
  
  	err = security_socket_connect(sock, (struct sockaddr *)address, addrlen);
