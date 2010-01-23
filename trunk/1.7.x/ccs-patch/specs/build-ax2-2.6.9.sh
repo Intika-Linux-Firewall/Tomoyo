@@ -22,9 +22,9 @@ then
     wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091220.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.6.8-20100122.diff ]
+if [ ! -r ccs-patch-1.7.1-20100122.diff ]
 then
-    wget -O ccs-patch-1.6.8-20100122.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?revision=3390&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.7.1-20100122.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?revision=3390&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.1-20091220.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100122.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.1-20100122.diff
 +
  cp %{SOURCE10} Documentation/
  
