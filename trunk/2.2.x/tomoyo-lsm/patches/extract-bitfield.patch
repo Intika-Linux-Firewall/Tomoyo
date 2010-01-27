@@ -207,7 +207,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		domain = old_domain;
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -689,7 +689,7 @@ static int tomoyo_check_single_path_acl2
+@@ -688,7 +688,7 @@ static int tomoyo_check_single_path_acl2
  
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_single_path_acl_record *acl;
@@ -216,7 +216,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
  				   head);
-@@ -771,8 +771,7 @@ static int tomoyo_check_file_perm2(struc
+@@ -770,8 +770,7 @@ static int tomoyo_check_file_perm2(struc
  	if (!filename)
  		return 0;
  	error = tomoyo_check_file_acl(domain, filename, perm);
@@ -226,7 +226,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	    && tomoyo_is_globally_readable_file(filename))
  		error = 0;
  	if (perm == 6)
-@@ -886,15 +885,12 @@ static int tomoyo_update_single_path_acl
+@@ -885,15 +884,12 @@ static int tomoyo_update_single_path_acl
  	if (is_delete)
  		goto delete;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -243,7 +243,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (perm <= 0xFFFF)
  			acl->perm |= perm;
  		else
-@@ -903,7 +899,6 @@ static int tomoyo_update_single_path_acl
+@@ -902,7 +898,6 @@ static int tomoyo_update_single_path_acl
  			acl->perm |= 1 << TOMOYO_TYPE_READ_WRITE_ACL;
  		else if (acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL))
  			acl->perm |= rw_mask;
@@ -251,7 +251,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		goto out;
  	}
-@@ -928,7 +923,7 @@ static int tomoyo_update_single_path_acl
+@@ -927,7 +922,7 @@ static int tomoyo_update_single_path_acl
   delete:
  	error = -ENOENT;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -260,7 +260,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_single_path_acl_record,
  				   head);
-@@ -942,8 +937,6 @@ static int tomoyo_update_single_path_acl
+@@ -941,8 +936,6 @@ static int tomoyo_update_single_path_acl
  			acl->perm &= ~(1 << TOMOYO_TYPE_READ_WRITE_ACL);
  		else if (!(acl->perm & (1 << TOMOYO_TYPE_READ_WRITE_ACL)))
  			acl->perm &= ~rw_mask;
@@ -269,7 +269,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		break;
  	}
-@@ -990,18 +983,14 @@ static int tomoyo_update_double_path_acl
+@@ -989,18 +982,14 @@ static int tomoyo_update_double_path_acl
  	if (is_delete)
  		goto delete;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -289,7 +289,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		goto out;
  	}
-@@ -1022,7 +1011,7 @@ static int tomoyo_update_double_path_acl
+@@ -1021,7 +1010,7 @@ static int tomoyo_update_double_path_acl
   delete:
  	error = -ENOENT;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -298,7 +298,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		acl = container_of(ptr, struct tomoyo_double_path_acl_record,
  				   head);
-@@ -1030,8 +1019,6 @@ static int tomoyo_update_double_path_acl
+@@ -1029,8 +1018,6 @@ static int tomoyo_update_double_path_acl
  		    acl->filename2 != saved_filename2)
  			continue;
  		acl->perm &= ~perm;
@@ -307,7 +307,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		break;
  	}
-@@ -1087,7 +1074,7 @@ static int tomoyo_check_double_path_acl(
+@@ -1086,7 +1073,7 @@ static int tomoyo_check_double_path_acl(
  		return 0;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_double_path_acl_record *acl;

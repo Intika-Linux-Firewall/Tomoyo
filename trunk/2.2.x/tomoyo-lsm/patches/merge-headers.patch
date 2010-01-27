@@ -185,7 +185,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /*
   * tomoyo_page_buffer is a structure which is used for holding a pathname
-@@ -76,15 +174,6 @@ struct tomoyo_name_entry {
+@@ -66,15 +164,6 @@ struct tomoyo_path_info {
  };
  
  /*
@@ -201,7 +201,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path_info_with_data is a structure which is used for holding a
   * pathname obtained from "struct dentry" and "struct vfsmount" pair.
   *
-@@ -165,9 +254,6 @@ struct tomoyo_domain_info {
+@@ -155,9 +244,6 @@ struct tomoyo_domain_info {
  	bool transition_failed; /* Domain transition failed flag. */
  };
  
@@ -211,7 +211,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * tomoyo_single_path_acl_record is a structure which is used for holding an
   * entry with one pathname operation (e.g. open(), mkdir()).
-@@ -214,29 +300,6 @@ struct tomoyo_double_path_acl_record {
+@@ -204,29 +290,6 @@ struct tomoyo_double_path_acl_record {
  	const struct tomoyo_path_info *filename2;
  };
  
@@ -241,7 +241,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * tomoyo_io_buffer is a structure which is used for reading and modifying
   * configuration via /sys/kernel/security/tomoyo/ interface.
-@@ -295,6 +358,149 @@ struct tomoyo_io_buffer {
+@@ -285,6 +348,149 @@ struct tomoyo_io_buffer {
  	int writebuf_size;
  };
  
@@ -391,7 +391,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Check whether the domain has too many ACL entries to hold. */
  bool tomoyo_domain_quota_is_ok(struct tomoyo_domain_info * const domain);
  /* Transactional sprintf() for policy dump. */
-@@ -377,6 +583,85 @@ void tomoyo_fill_path_info(struct tomoyo
+@@ -367,6 +573,85 @@ void tomoyo_fill_path_info(struct tomoyo
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
  
@@ -477,7 +477,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
-@@ -408,17 +693,25 @@ static inline bool tomoyo_is_invalid(con
+@@ -398,17 +683,25 @@ static inline bool tomoyo_is_invalid(con
  	return c && (c <= ' ' || c >= 127);
  }
  
@@ -512,7 +512,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * list_for_each_cookie - iterate over a list with cookie.
-@@ -438,16 +731,4 @@ extern struct tomoyo_domain_info tomoyo_
+@@ -428,16 +721,4 @@ extern struct tomoyo_domain_info tomoyo_
  	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
  	     (cookie) = pos, pos = rcu_dereference(pos->next))
  
@@ -619,14 +619,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -10,60 +10,8 @@
+@@ -10,58 +10,6 @@
   */
  
  #include "common.h"
 -#include "tomoyo.h"
 -#include "realpath.h"
- #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
- 
+-
 -/*
 - * tomoyo_globally_readable_file_entry is a structure which is used for holding
 - * "allow_read" entries.
@@ -676,10 +675,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	const struct tomoyo_path_info *pattern;
 -	bool is_deleted;
 -};
--
+ 
  /* Keyword array for single path operations. */
  static const char *tomoyo_sp_keyword[TOMOYO_MAX_SINGLE_PATH_OPERATION] = {
- 	[TOMOYO_TYPE_READ_WRITE_ACL] = "read/write",
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
 @@ -15,9 +15,7 @@

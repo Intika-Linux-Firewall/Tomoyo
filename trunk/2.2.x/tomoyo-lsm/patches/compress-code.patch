@@ -318,7 +318,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -216,38 +216,34 @@ static LIST_HEAD(tomoyo_globally_readabl
+@@ -215,38 +215,34 @@ static LIST_HEAD(tomoyo_globally_readabl
  static int tomoyo_update_globally_readable_entry(const char *filename,
  						 const bool is_delete)
  {
@@ -368,7 +368,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -365,38 +361,35 @@ static LIST_HEAD(tomoyo_pattern_list);
+@@ -364,38 +360,35 @@ static LIST_HEAD(tomoyo_pattern_list);
  static int tomoyo_update_file_pattern_entry(const char *pattern,
  					    const bool is_delete)
  {
@@ -422,7 +422,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -519,37 +512,34 @@ static LIST_HEAD(tomoyo_no_rewrite_list)
+@@ -518,37 +511,34 @@ static LIST_HEAD(tomoyo_no_rewrite_list)
  static int tomoyo_update_no_rewrite_entry(const char *pattern,
  					  const bool is_delete)
  {
@@ -473,7 +473,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -870,8 +860,8 @@ static int tomoyo_update_single_path_acl
+@@ -869,8 +859,8 @@ static int tomoyo_update_single_path_acl
  		(1 << TOMOYO_TYPE_READ_ACL) | (1 << TOMOYO_TYPE_WRITE_ACL);
  	const struct tomoyo_path_info *saved_filename;
  	struct tomoyo_acl_info *ptr;
@@ -484,7 +484,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	const u32 perm = 1 << type;
  
  	if (!domain)
-@@ -881,67 +871,55 @@ static int tomoyo_update_single_path_acl
+@@ -880,67 +870,55 @@ static int tomoyo_update_single_path_acl
  	saved_filename = tomoyo_save_name(filename);
  	if (!saved_filename)
  		return -ENOMEM;
@@ -588,7 +588,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -966,8 +944,8 @@ static int tomoyo_update_double_path_acl
+@@ -965,8 +943,8 @@ static int tomoyo_update_double_path_acl
  	const struct tomoyo_path_info *saved_filename1;
  	const struct tomoyo_path_info *saved_filename2;
  	struct tomoyo_acl_info *ptr;
@@ -599,7 +599,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	const u8 perm = 1 << type;
  
  	if (!domain)
-@@ -978,52 +956,38 @@ static int tomoyo_update_double_path_acl
+@@ -977,52 +955,38 @@ static int tomoyo_update_double_path_acl
  	saved_filename1 = tomoyo_save_name(filename1);
  	saved_filename2 = tomoyo_save_name(filename2);
  	if (!saved_filename1 || !saved_filename2)

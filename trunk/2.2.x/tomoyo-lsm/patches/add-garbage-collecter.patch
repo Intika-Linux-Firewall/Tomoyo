@@ -51,7 +51,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -633,6 +633,11 @@ int tomoyo_check_rewrite_permission(stru
+@@ -623,6 +623,11 @@ int tomoyo_check_rewrite_permission(stru
  				    struct file *filp);
  int tomoyo_find_next_domain(struct linux_binprm *bprm);
  
@@ -63,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** External variable definitions. **********/
  
  /* Lock for GC. */
-@@ -641,6 +646,16 @@ extern struct srcu_struct tomoyo_ss;
+@@ -631,6 +636,16 @@ extern struct srcu_struct tomoyo_ss;
  /* The list for "struct tomoyo_domain_info". */
  extern struct list_head tomoyo_domain_list;
  
@@ -111,7 +111,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_alias_entry - Update "struct tomoyo_alias_entry" list.
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -149,7 +149,7 @@ static int tomoyo_update_single_path_acl
+@@ -148,7 +148,7 @@ static int tomoyo_update_single_path_acl
   * given "allow_read /lib/libc-2.5.so" to the domain which current process
   * belongs to.
   */
@@ -120,7 +120,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * tomoyo_update_globally_readable_entry - Update "struct tomoyo_globally_readable_file_entry" list.
-@@ -296,7 +296,7 @@ bool tomoyo_read_globally_readable_polic
+@@ -295,7 +295,7 @@ bool tomoyo_read_globally_readable_polic
   * which pretends as if /proc/self/ is not a symlink; so that we can forbid
   * current process from accessing other process's information.
   */
@@ -129,7 +129,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * tomoyo_update_file_pattern_entry - Update "struct tomoyo_pattern_entry" list.
-@@ -449,7 +449,7 @@ bool tomoyo_read_file_pattern(struct tom
+@@ -448,7 +448,7 @@ bool tomoyo_read_file_pattern(struct tom
   * " (deleted)" suffix if the file is already unlink()ed; so that we don't
   * need to worry whether the file is already unlink()ed or not.
   */
