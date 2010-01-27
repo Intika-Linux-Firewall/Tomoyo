@@ -6,9 +6,9 @@ determine whether this struct is reffered by "struct cred"->security or not.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h |    5 +++++
- security/tomoyo/domain.c |    8 +++++++-
- security/tomoyo/tomoyo.c |   29 +++++++++++++----------------
- 3 files changed, 25 insertions(+), 17 deletions(-)
+ security/tomoyo/domain.c |    2 ++
+ security/tomoyo/tomoyo.c |   37 +++++++++++++++++++++----------------
+ 3 files changed, 28 insertions(+), 16 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
@@ -33,21 +33,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -817,7 +817,13 @@ int tomoyo_find_next_domain(struct linux
+@@ -817,6 +817,8 @@ int tomoyo_find_next_domain(struct linux
   out:
  	if (!domain)
  		domain = old_domain;
--	bprm->cred->security = domain;
 +	/* Update reference count on "struct tomoyo_domain_info". */
-+	if (bprm->cred->security != domain) {
-+		atomic_dec(&((struct tomoyo_domain_info *)
-+			     bprm->cred->security)->users);
-+		atomic_inc(&domain->users);
-+		bprm->cred->security = domain;
-+	}
++	atomic_inc(&domain->users);
+ 	bprm->cred->security = domain;
  	kfree(real_program_name);
  	kfree(symlink_program_name);
- 	kfree(tmp);
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
 @@ -21,21 +21,23 @@ static int tomoyo_cred_alloc_blank(struc
@@ -84,7 +78,22 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
-@@ -75,12 +77,6 @@ static int tomoyo_bprm_check_security(st
+@@ -59,6 +61,14 @@ static int tomoyo_bprm_set_creds(struct 
+ 	if (!tomoyo_policy_loaded)
+ 		tomoyo_load_policy(bprm->filename);
+ 	/*
++	 * Release reference to "struct tomoyo_domain_info" stored inside
++	 * "bprm->cred->security". New reference to "struct tomoyo_domain_info"
++	 * stored inside "bprm->cred->security" will be acquired later inside
++	 * tomoyo_find_next_domain().
++	 */
++	atomic_dec(&((struct tomoyo_domain_info *)
++		     bprm->cred->security)->users);
++	/*
+ 	 * Tell tomoyo_bprm_check_security() is called for the first time of an
+ 	 * execve operation.
+ 	 */
+@@ -75,12 +85,6 @@ static int tomoyo_bprm_check_security(st
  	 * using current domain.
  	 */
  	if (!domain) {
@@ -97,7 +106,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		const int idx = tomoyo_read_lock();
  		const int err = tomoyo_find_next_domain(bprm);
  		tomoyo_read_unlock(idx);
-@@ -265,6 +261,7 @@ static struct security_operations tomoyo
+@@ -265,6 +269,7 @@ static struct security_operations tomoyo
  	.cred_alloc_blank    = tomoyo_cred_alloc_blank,
  	.cred_prepare        = tomoyo_cred_prepare,
  	.cred_transfer	     = tomoyo_cred_transfer,
