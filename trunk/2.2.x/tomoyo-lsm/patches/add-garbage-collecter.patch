@@ -12,9 +12,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.h   |   15 +
  security/tomoyo/domain.c   |    6 
  security/tomoyo/file.c     |    6 
- security/tomoyo/gc.c       |  384 +++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/gc.c       |  370 +++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/realpath.c |   86 ++++------
- 7 files changed, 450 insertions(+), 54 deletions(-)
+ 7 files changed, 436 insertions(+), 54 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -140,7 +140,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_no_rewrite_entry - Update "struct tomoyo_no_rewrite_entry" list.
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/gc.c
-@@ -0,0 +1,384 @@
+@@ -0,0 +1,370 @@
 +/*
 + * security/tomoyo/gc.c
 + *
@@ -378,20 +378,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		struct tomoyo_domain_info *domain;
 +		list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
 +			struct tomoyo_acl_info *acl;
-+			if (domain->is_deleted &&
-+			    atomic_read(&domain->users) == 0) {
-+				/* Nobody is referring this domain. */
-+				list_for_each_entry_rcu(acl,
-+							&domain->acl_info_list,
-+							list) {
-+					if (tomoyo_add_to_gc(TOMOYO_ID_ACL,
-+							     acl))
-+						list_del_rcu(&acl->list);
-+					else
-+						break;
-+				}
-+				continue;
-+			}
 +			list_for_each_entry_rcu(acl, &domain->acl_info_list,
 +						list) {
 +				switch (acl->type) {
