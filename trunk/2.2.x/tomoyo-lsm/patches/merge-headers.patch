@@ -7,14 +7,14 @@ needs to know structures and constants which TOMOYO uses.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
  security/tomoyo/common.c   |   23 --
- security/tomoyo/common.h   |  407 ++++++++++++++++++++++++++++++++++++++-------
+ security/tomoyo/common.h   |  411 ++++++++++++++++++++++++++++++++++++++-------
  security/tomoyo/domain.c   |   72 -------
  security/tomoyo/file.c     |   52 -----
  security/tomoyo/realpath.c |   10 -
- security/tomoyo/realpath.h |   66 -------
+ security/tomoyo/realpath.h |   76 --------
  security/tomoyo/tomoyo.c   |    2 
  security/tomoyo/tomoyo.h   |  102 -----------
- 8 files changed, 344 insertions(+), 390 deletions(-)
+ 8 files changed, 351 insertions(+), 397 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -78,9 +78,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #include <linux/list.h>
 +#include <linux/cred.h>
 +struct linux_binprm;
- 
--struct dentry;
--struct vfsmount;
++
 +/********** Constants definitions. **********/
 +
 +/*
@@ -119,7 +117,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/* A domain definition starts with <kernel>. */
 +#define TOMOYO_ROOT_NAME                         "<kernel>"
 +#define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
-+
+ 
+-struct dentry;
+-struct vfsmount;
 +/* Index numbers for Access Controls. */
 +#define TOMOYO_MAC_FOR_FILE                  0  /* domain_policy.conf */
 +#define TOMOYO_MAX_ACCEPT_ENTRY              1
@@ -185,7 +185,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /*
   * tomoyo_page_buffer is a structure which is used for holding a pathname
-@@ -66,15 +164,6 @@ struct tomoyo_path_info {
+@@ -66,13 +164,14 @@ struct tomoyo_path_info {
  };
  
  /*
@@ -194,14 +194,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 - * A token consists of only ASCII printable characters.
 - * Non printable characters in a token is represented in \ooo style
 - * octal string. Thus, \ itself is represented as \\.
-- */
++ * tomoyo_name_entry is a structure which is used for linking
++ * "struct tomoyo_path_info" into tomoyo_name_list .
+  */
 -#define TOMOYO_MAX_PATHNAME_LEN 4000
--
--/*
++struct tomoyo_name_entry {
++	struct list_head list;
++	atomic_t users;
++	struct tomoyo_path_info entry;
++};
+ 
+ /*
   * tomoyo_path_info_with_data is a structure which is used for holding a
-  * pathname obtained from "struct dentry" and "struct vfsmount" pair.
-  *
-@@ -155,9 +244,6 @@ struct tomoyo_domain_info {
+@@ -155,9 +254,6 @@ struct tomoyo_domain_info {
  	bool transition_failed; /* Domain transition failed flag. */
  };
  
@@ -211,7 +216,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * tomoyo_single_path_acl_record is a structure which is used for holding an
   * entry with one pathname operation (e.g. open(), mkdir()).
-@@ -204,29 +290,6 @@ struct tomoyo_double_path_acl_record {
+@@ -204,29 +300,6 @@ struct tomoyo_double_path_acl_record {
  	const struct tomoyo_path_info *filename2;
  };
  
@@ -241,7 +246,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * tomoyo_io_buffer is a structure which is used for reading and modifying
   * configuration via /sys/kernel/security/tomoyo/ interface.
-@@ -285,6 +348,149 @@ struct tomoyo_io_buffer {
+@@ -285,6 +358,149 @@ struct tomoyo_io_buffer {
  	int writebuf_size;
  };
  
@@ -391,7 +396,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Check whether the domain has too many ACL entries to hold. */
  bool tomoyo_domain_quota_is_ok(struct tomoyo_domain_info * const domain);
  /* Transactional sprintf() for policy dump. */
-@@ -367,6 +573,85 @@ void tomoyo_fill_path_info(struct tomoyo
+@@ -367,6 +583,85 @@ void tomoyo_fill_path_info(struct tomoyo
  /* Run policy loader when /sbin/init starts. */
  void tomoyo_load_policy(const char *filename);
  
@@ -477,7 +482,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* strcmp() for "struct tomoyo_path_info" structure. */
  static inline bool tomoyo_pathcmp(const struct tomoyo_path_info *a,
  				  const struct tomoyo_path_info *b)
-@@ -398,17 +683,25 @@ static inline bool tomoyo_is_invalid(con
+@@ -398,17 +693,25 @@ static inline bool tomoyo_is_invalid(con
  	return c && (c <= ' ' || c >= 127);
  }
  
@@ -512,7 +517,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /**
   * list_for_each_cookie - iterate over a list with cookie.
-@@ -428,16 +721,4 @@ extern struct tomoyo_domain_info tomoyo_
+@@ -428,16 +731,4 @@ extern struct tomoyo_domain_info tomoyo_
  	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
  	     (cookie) = pos, pos = rcu_dereference(pos->next))
  
@@ -707,7 +712,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * "/lib/libc-2.5.so"), TOMOYO shares string data in the form of
 --- security-testing-2.6.orig/security/tomoyo/realpath.h
 +++ /dev/null
-@@ -1,66 +0,0 @@
+@@ -1,76 +0,0 @@
 -/*
 - * security/tomoyo/realpath.h
 - *
@@ -763,6 +768,16 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -
 -/* Initialize realpath related code. */
 -void __init tomoyo_realpath_init(void);
+-
+-/*
+- * tomoyo_name_entry is a structure which is used for linking
+- * "struct tomoyo_path_info" into tomoyo_name_list .
+- */
+-struct tomoyo_name_entry {
+-	struct list_head list;
+-	atomic_t users;
+-	struct tomoyo_path_info entry;
+-};
 -
 -static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
 -{

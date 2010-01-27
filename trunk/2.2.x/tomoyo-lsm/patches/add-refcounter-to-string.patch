@@ -10,8 +10,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/domain.c   |   32 +++++++++++++++++++++++---------
  security/tomoyo/file.c     |   24 ++++++++++++++++++------
  security/tomoyo/realpath.c |   30 +++++++++---------------------
- security/tomoyo/realpath.h |   11 ++++++++++-
- 5 files changed, 67 insertions(+), 40 deletions(-)
+ security/tomoyo/realpath.h |   21 ++++++++++++++++++++-
+ 5 files changed, 77 insertions(+), 40 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -416,10 +416,20 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* Check for memory usage. */
  int tomoyo_read_memory_counter(struct tomoyo_io_buffer *head);
-@@ -54,4 +54,13 @@ int tomoyo_write_memory_quota(struct tom
+@@ -54,4 +54,23 @@ int tomoyo_write_memory_quota(struct tom
  /* Initialize realpath related code. */
  void __init tomoyo_realpath_init(void);
  
++/*
++ * tomoyo_name_entry is a structure which is used for linking
++ * "struct tomoyo_path_info" into tomoyo_name_list .
++ */
++struct tomoyo_name_entry {
++	struct list_head list;
++	atomic_t users;
++	struct tomoyo_path_info entry;
++};
++
 +static inline void tomoyo_put_name(const struct tomoyo_path_info *name)
 +{
 +	if (name) {

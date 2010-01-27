@@ -51,7 +51,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -623,6 +623,11 @@ int tomoyo_check_rewrite_permission(stru
+@@ -633,6 +633,11 @@ int tomoyo_check_rewrite_permission(stru
  				    struct file *filp);
  int tomoyo_find_next_domain(struct linux_binprm *bprm);
  
@@ -63,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** External variable definitions. **********/
  
  /* Lock for GC. */
-@@ -631,6 +636,16 @@ extern struct srcu_struct tomoyo_ss;
+@@ -641,6 +646,16 @@ extern struct srcu_struct tomoyo_ss;
  /* The list for "struct tomoyo_domain_info". */
  extern struct list_head tomoyo_domain_list;
  
