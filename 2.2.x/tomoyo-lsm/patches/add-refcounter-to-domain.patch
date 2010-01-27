@@ -1,0 +1,107 @@
+[PATCH] TOMOYO: Add refcounter on domain structure.
+
+Add refcounter to "struct tomoyo_domain_info" since garbage collector needs to
+determine whether this struct is reffered by "struct cred"->security or not.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.h |    5 +++++
+ security/tomoyo/domain.c |    8 +++++++-
+ security/tomoyo/tomoyo.c |   29 +++++++++++++----------------
+ 3 files changed, 25 insertions(+), 17 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -234,6 +234,10 @@ struct tomoyo_acl_info {
+  *      name of the domain to be created was too long or it could not allocate
+  *      memory. If set to true, more than one process continued execve()
+  *      without domain transition.
++ *  (9) "users" is an atomic_t that holds how many "struct cred"->security
++ *      are referring this "struct tomoyo_domain_info". If is_deleted == true
++ *      and users == 0, this struct will be kfree()d upon next garbage
++ *      collection.
+  *
+  * A domain's lifecycle is an analogy of files on / directory.
+  * Multiple domains with the same domainname cannot be created (as with
+@@ -252,6 +256,7 @@ struct tomoyo_domain_info {
+ 	bool quota_warned; /* Quota warnning flag.   */
+ 	bool ignore_global_allow_read; /* Ignore "allow_read" flag. */
+ 	bool transition_failed; /* Domain transition failed flag. */
++	atomic_t users; /* Number of referring credentials. */
+ };
+ 
+ /*
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -817,7 +817,13 @@ int tomoyo_find_next_domain(struct linux
+  out:
+ 	if (!domain)
+ 		domain = old_domain;
+-	bprm->cred->security = domain;
++	/* Update reference count on "struct tomoyo_domain_info". */
++	if (bprm->cred->security != domain) {
++		atomic_dec(&((struct tomoyo_domain_info *)
++			     bprm->cred->security)->users);
++		atomic_inc(&domain->users);
++		bprm->cred->security = domain;
++	}
+ 	kfree(real_program_name);
+ 	kfree(symlink_program_name);
+ 	kfree(tmp);
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -21,21 +21,23 @@ static int tomoyo_cred_alloc_blank(struc
+ static int tomoyo_cred_prepare(struct cred *new, const struct cred *old,
+ 			       gfp_t gfp)
+ {
+-	/*
+-	 * Since "struct tomoyo_domain_info *" is a sharable pointer,
+-	 * we don't need to duplicate.
+-	 */
+-	new->security = old->security;
++	struct tomoyo_domain_info *domain = old->security;
++	new->security = domain;
++	if (domain)
++		atomic_inc(&domain->users);
+ 	return 0;
+ }
+ 
+ static void tomoyo_cred_transfer(struct cred *new, const struct cred *old)
+ {
+-	/*
+-	 * Since "struct tomoyo_domain_info *" is a sharable pointer,
+-	 * we don't need to duplicate.
+-	 */
+-	new->security = old->security;
++	tomoyo_cred_prepare(new, old, 0);
++}
++
++static void tomoyo_cred_free(struct cred *cred)
++{
++	struct tomoyo_domain_info *domain = cred->security;
++	if (domain)
++		atomic_dec(&domain->users);
+ }
+ 
+ static int tomoyo_bprm_set_creds(struct linux_binprm *bprm)
+@@ -75,12 +77,6 @@ static int tomoyo_bprm_check_security(st
+ 	 * using current domain.
+ 	 */
+ 	if (!domain) {
+-		/*
+-		 * We will need to protect whole execve() operation when GC
+-		 * starts kfree()ing "struct tomoyo_domain_info" because
+-		 * bprm->cred->security points to "struct tomoyo_domain_info"
+-		 * but "struct tomoyo_domain_info" does not have a refcounter.
+-		 */
+ 		const int idx = tomoyo_read_lock();
+ 		const int err = tomoyo_find_next_domain(bprm);
+ 		tomoyo_read_unlock(idx);
+@@ -265,6 +261,7 @@ static struct security_operations tomoyo
+ 	.cred_alloc_blank    = tomoyo_cred_alloc_blank,
+ 	.cred_prepare        = tomoyo_cred_prepare,
+ 	.cred_transfer	     = tomoyo_cred_transfer,
++	.cred_free           = tomoyo_cred_free,
+ 	.bprm_set_creds      = tomoyo_bprm_set_creds,
+ 	.bprm_check_security = tomoyo_bprm_check_security,
+ 	.file_fcntl          = tomoyo_file_fcntl,

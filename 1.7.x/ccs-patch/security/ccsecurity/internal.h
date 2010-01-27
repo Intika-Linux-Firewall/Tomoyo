@@ -658,7 +658,7 @@ struct ccs_envp_entry {
  * and executes the original execve() requests if appropriate.
  *
  * "denied_execute_handler" directive is used only when execve() request was
- * rejected in enforcing mode (i.e. MAC_FOR_FILE=enforcing).
+ * rejected in enforcing mode (i.e. CONFIG::file::execute={ mode=enforcing }).
  * The program specified by "denied_execute_handler" does whatever it wants
  * to do (e.g. silently terminate, change firewall settings,
  * redirect the user to honey pot etc.).
