@@ -20,7 +20,9 @@
 #include <linux/dcache.h>
 #include <linux/namei.h>
 #endif
+#ifndef ACC_MODE
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
+#endif
 
 static const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_READ_WRITE] = "read/write",
@@ -1577,6 +1579,7 @@ int ccs_exec_perm(struct ccs_request_info *r,
 	return ccs_file_perm(r, filename, 1);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 /*
  * Save original flags passed to sys_open().
  *
@@ -1604,6 +1607,7 @@ void ccs_clear_open_mode(void)
 	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
 				CCS_OPEN_FOR_READ_TRUNCATE);
 }
+#endif
 
 /**
  * ccs_open_permission - Check permission for "read" and "write".
@@ -1624,11 +1628,15 @@ int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	};
 	struct task_struct * const task = current;
 	const u32 ccs_flags = task->ccs_flags;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
+	const u8 acc_mode = (flag & 3) == 3 ? 0 : ACC_MODE(flag);
+#else
 	const u8 acc_mode = (ccs_flags & CCS_OPEN_FOR_IOCTL_ONLY) ? 0 :
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 14)
 		(ccs_flags & CCS_OPEN_FOR_READ_TRUNCATE) ? 4 :
 #endif
 		ACC_MODE(flag);
+#endif
 	int error = 0;
 	struct ccs_path_info buf;
 	int idx;
