@@ -66,8 +66,10 @@ int ccs_umount_permission(struct vfsmount *mnt, int flags);
 /* Check whether the given local port is reserved. */
 _Bool ccs_lport_reserved(const u16 port);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 void ccs_save_open_mode(int mode);
 void ccs_clear_open_mode(void);
+#endif
 int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			const int flag);
 int ccs_rewrite_permission(struct file *filp);
@@ -183,6 +185,7 @@ static inline _Bool ccs_lport_reserved(const u16 port)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 static inline void ccs_save_open_mode(int mode)
 {
 }
@@ -190,6 +193,7 @@ static inline void ccs_save_open_mode(int mode)
 static inline void ccs_clear_open_mode(void)
 {
 }
+#endif
 
 static inline int ccs_open_permission(struct dentry *dentry,
 				      struct vfsmount *mnt, const int flag)

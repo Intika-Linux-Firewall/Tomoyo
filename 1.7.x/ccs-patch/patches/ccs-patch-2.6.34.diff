@@ -6,7 +6,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  fs/compat_ioctl.c               |    4 +
  fs/exec.c                       |    2 
  fs/ioctl.c                      |    2 
- fs/namei.c                      |   10 ++
+ fs/namei.c                      |    6 +
  fs/namespace.c                  |    9 ++
  fs/open.c                       |    2 
  fs/proc/version.c               |    7 ++
@@ -31,7 +31,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  security/Kconfig                |    2 
  security/Makefile               |    3 
  security/security.c             |  135 +++++++++++++++++++++++++++++++++-------
- 29 files changed, 268 insertions(+), 47 deletions(-)
+ 29 files changed, 264 insertions(+), 47 deletions(-)
 
 --- linux-2.6.33-rc5-next-20100128.orig/fs/compat.c
 +++ linux-2.6.33-rc5-next-20100128/fs/compat.c
@@ -101,26 +101,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1727,7 +1733,9 @@ do_last:
- 		error = mnt_want_write(nd.path.mnt);
- 		if (error)
- 			goto exit_mutex_unlock;
-+		ccs_save_open_mode(open_flag);
- 		error = __open_namei_create(&nd, &path, open_flag, mode);
-+		ccs_clear_open_mode();
- 		if (error) {
- 			mnt_drop_write(nd.path.mnt);
- 			goto exit;
-@@ -1790,7 +1798,9 @@ ok:
- 		if (error)
- 			goto exit;
- 	}
-+	ccs_save_open_mode(open_flag);
- 	error = may_open(&nd.path, acc_mode, open_flag);
-+	ccs_clear_open_mode();
- 	if (error) {
- 		if (will_truncate)
- 			mnt_drop_write(nd.path.mnt);
 --- linux-2.6.33-rc5-next-20100128.orig/fs/namespace.c
 +++ linux-2.6.33-rc5-next-20100128/fs/namespace.c
 @@ -1474,6 +1474,9 @@ static int do_loopback(struct path *path
@@ -173,7 +153,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33-rc5 2010/01/22\n");
++	printk(KERN_INFO "Hook version: 2.6.33-rc5-next-20100128 2010/01/29\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
