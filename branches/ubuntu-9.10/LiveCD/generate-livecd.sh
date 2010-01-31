@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 9.10 i386 TOMOYO 1.7.1"
 ISOIMAGE_NAME=../ubuntu-9.10-desktop-i386-tomoyo-1.7.1p1.iso
-KERNEL_VERSION=2.6.31-16-ccs
+KERNEL_VERSION=2.6.31-17-ccs
 
 # set -v
 
