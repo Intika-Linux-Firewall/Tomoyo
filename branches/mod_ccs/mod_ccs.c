@@ -61,12 +61,15 @@ static _Bool ccs_set_context(request_rec *r)
 			return 1;
 		return 0;
 	}
-	ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r,
-		      "server='%s' filename='%s'", r->server->server_hostname,
-		      r->filename);
 	success = ccs_print_encoded(file, "/servername=", 0) &&
-		ccs_print_encoded(file, r->server->server_hostname, 1) &&
-		ccs_print_encoded(file, r->filename, 1);
+		ccs_print_encoded(file, r->server->server_hostname, 1);
+	if (!success)
+		goto out;
+	if (!strncmp(r->filename, "/usr/share/horde/", 17))
+		success = ccs_print_encoded(file, "/appname=horde", 1);
+	else
+		success = ccs_print_encoded(file, "/appname=static-data", 1);
+ out:
 	result = apr_file_close(file);
 	return success && result == APR_SUCCESS;
 }
