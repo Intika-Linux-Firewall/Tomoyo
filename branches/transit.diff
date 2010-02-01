@@ -1,7 +1,7 @@
-Index: trunk/1.7.x/ccs-patch/README.ccs
+Index: README.ccs
 ===================================================================
---- trunk/1.7.x/ccs-patch/README.ccs	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/README.ccs	(working copy)
+--- README.ccs	(revision 3413)
++++ README.ccs	(working copy)
 @@ -2326,3 +2326,19 @@
  
        Since 1.6.7 , /proc/ccs/grant_log was by error using next domain's name
@@ -22,10 +22,10 @@ Index: trunk/1.7.x/ccs-patch/README.ccs
 +      Note that prefix "/" is automatically added to requested domainname
 +      so that we can distinguish domain transitions with execve() and domain
 +      transitions without execve(). 
-Index: trunk/1.7.x/ccs-patch/security/ccsecurity/load_policy.c
+Index: security/ccsecurity/load_policy.c
 ===================================================================
---- trunk/1.7.x/ccs-patch/security/ccsecurity/load_policy.c	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/security/ccsecurity/load_policy.c	(working copy)
+--- security/ccsecurity/load_policy.c	(revision 3413)
++++ security/ccsecurity/load_policy.c	(working copy)
 @@ -158,7 +158,7 @@
  		spin_unlock_irq(&task->sigmask_lock);
  	}
@@ -35,10 +35,10 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/load_policy.c
  	ccs_check_profile();
  	printk(KERN_INFO "Mandatory Access Control activated.\n");
  }
-Index: trunk/1.7.x/ccs-patch/security/ccsecurity/domain.c
+Index: security/ccsecurity/domain.c
 ===================================================================
---- trunk/1.7.x/ccs-patch/security/ccsecurity/domain.c	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/security/ccsecurity/domain.c	(working copy)
+--- security/ccsecurity/domain.c	(revision 3413)
++++ security/ccsecurity/domain.c	(working copy)
 @@ -62,7 +62,7 @@
   *
   * Returns 0 on success, negative value otherwise.
@@ -48,10 +48,10 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/domain.c
  {
  	struct ccs_request_info r;
  	ccs_init_request_info(&r, domain, CCS_MAC_FILE_EXECUTE);
-Index: trunk/1.7.x/ccs-patch/security/ccsecurity/internal.h
+Index: security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.7.x/ccs-patch/security/ccsecurity/internal.h	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
+--- security/ccsecurity/internal.h	(revision 3413)
++++ security/ccsecurity/internal.h	(working copy)
 @@ -994,6 +994,7 @@
  void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
       __attribute__ ((format(printf, 2, 3)));
@@ -60,10 +60,10 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/internal.h
  
  /* strcmp() for "struct ccs_path_info" structure. */
  static inline bool ccs_pathcmp(const struct ccs_path_info *a,
-Index: trunk/1.7.x/ccs-patch/security/ccsecurity/proc_if.c
+Index: security/ccsecurity/proc_if.c
 ===================================================================
---- trunk/1.7.x/ccs-patch/security/ccsecurity/proc_if.c	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/security/ccsecurity/proc_if.c	(working copy)
+--- security/ccsecurity/proc_if.c	(revision 3413)
++++ security/ccsecurity/proc_if.c	(working copy)
 @@ -214,7 +214,7 @@
  	ccs_create_entry("grant_log",        0400, ccs_dir, CCS_GRANTLOG);
  	ccs_create_entry("reject_log",       0400, ccs_dir, CCS_REJECTLOG);
@@ -73,11 +73,11 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/proc_if.c
  	ccs_create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
  	ccs_create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
  	ccs_create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
-Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
+Index: security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 3412)
-+++ trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
-@@ -2420,11 +2420,76 @@
+--- security/ccsecurity/policy_io.c	(revision 3413)
++++ security/ccsecurity/policy_io.c	(working copy)
+@@ -2420,11 +2420,75 @@
  {
  	if (head->read_eof)
  		return;
@@ -92,6 +92,8 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
 + * @head: Pointer to "struct ccs_io_buffer".
 + *
 + * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
 + */
 +static int ccs_write_self_domain(struct ccs_io_buffer *head)
 +{
@@ -99,13 +101,11 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
 +	struct ccs_domain_info *domain = NULL;
 +	char *data = head->write_buf;
 +	char *domainname;
-+	int idx;
 +	int error = -ENOMEM;
 +	head->read_eof = false;
 +	head->read_avail = 0;
 +	if (!ccs_is_correct_path(data, 1, -1, -1))
 +		return -EINVAL;
-+	idx = ccs_read_lock();
 +	ccs_init_request_info(&r, NULL, CCS_MAC_FILE_EXECUTE);
 +	domainname = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
 +	if (!domainname)
@@ -147,7 +147,6 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
 +	}
 + out:
 +	kfree(domainname);
-+	ccs_read_unlock(idx);
 +	return error;
 +}
 +
@@ -155,7 +154,7 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
   * ccs_read_self_domain - Get the current process's domainname.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -2476,6 +2541,7 @@
+@@ -2476,6 +2540,7 @@
  		break;
  #endif
  	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
@@ -163,7 +162,7 @@ Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
  		head->read = ccs_read_self_domain;
  		break;
  	case CCS_DOMAIN_STATUS: /* /proc/ccs/.domain_status */
-@@ -2665,6 +2731,7 @@
+@@ -2665,6 +2730,7 @@
  		return -EFAULT;
  	/* Don't allow updating policies by non manager programs. */
  	if (head->write != ccs_write_pid &&
