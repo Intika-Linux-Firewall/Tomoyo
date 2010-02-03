@@ -2,8 +2,6 @@
 
 This patch adds garbage collector support to TOMOYO.
 Elements are protected by "struct srcu_struct tomoyo_ss".
-For now, "struct tomoyo_domain_info" is not kfree()d because
-we are not tracking "struct tomoyo_domain_info" users.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
