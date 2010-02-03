@@ -1,0 +1,365 @@
+Index: README.ccs
+===================================================================
+--- README.ccs	(revision 3417)
++++ README.ccs	(working copy)
+@@ -2326,3 +2326,28 @@
+ 
+       Since 1.6.7 , /proc/ccs/grant_log was by error using next domain's name
+       when auditing current domain's "execute_handler" line.
++
++Fix 2010/02/03
++
++    @ Allow domain transition without execve().
++
++      To be able to split permissions for Apache's CGI programs which are
++      executed without execve(), I added special domain transition which is
++      performed by atomically writing to /proc/ccs/.transition interface.
++
++      For example, a process which belongs to "<kernel> /usr/sbin/httpd" domain
++      will transit to "<kernel> /usr/sbin/httpd //app=cgi1/id=10000" domain by
++      atomically writing "//app=cgi1/id=10000\n" to /proc/ccs/.transition
++      using Apache's ap_hook_handler() functionality, provided that
++      "<kernel> /usr/sbin/httpd" domain has
++
++        allow_transit //app=cgi1/id=10000
++
++      permission and "<kernel> /usr/sbin/httpd //app=cgi1/id=10000" domain is
++      defined prior to atomically writing to /proc/ccs/.transition interface.
++
++      Unlike "allow_execute" keyword, the string parameter for "allow_transit"
++      keyword does not refer a real file on filesystem's namespace. Therefore,
++      you can embed any combination of parameters like LDAP's DN entry, as long
++      as the string starts with '/' and does not contain wildcard characters
++      (e.g. \? and \*) and does not end with '/'.
+Index: security/ccsecurity/load_policy.c
+===================================================================
+--- security/ccsecurity/load_policy.c	(revision 3417)
++++ security/ccsecurity/load_policy.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1+   2010/01/17
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -158,7 +158,7 @@
+ 		spin_unlock_irq(&task->sigmask_lock);
+ 	}
+ #endif
+-	printk(KERN_INFO "CCSecurity: 1.7.1+   2010/01/17\n");
++	printk(KERN_INFO "CCSecurity: 1.7.2-pre   2010/02/03\n");
+ 	ccs_check_profile();
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ }
+Index: security/ccsecurity/audit.c
+===================================================================
+--- security/ccsecurity/audit.c	(revision 3417)
++++ security/ccsecurity/audit.c	(working copy)
+@@ -1,9 +1,9 @@
+ /*
+  * security/ccsecurity/audit.c
+  *
+- * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1   2009/11/11
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -323,7 +323,7 @@
+  *
+  * @r: Pointer to "struct ccs_request_info".
+  */
+-static void ccs_update_task_state(struct ccs_request_info *r)
++void ccs_update_task_state(struct ccs_request_info *r)
+ {
+ 	/*
+ 	 * Don't change the lowest byte because it is reserved for
+Index: security/ccsecurity/file.c
+===================================================================
+--- security/ccsecurity/file.c	(revision 3417)
++++ security/ccsecurity/file.c	(working copy)
+@@ -1,9 +1,9 @@
+ /*
+  * security/ccsecurity/file.c
+  *
+- * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1+   2009/12/20
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -36,6 +36,7 @@
+ 	[CCS_TYPE_REWRITE]    = "rewrite",
+ 	[CCS_TYPE_CHROOT]     = "chroot",
+ 	[CCS_TYPE_UMOUNT]     = "unmount",
++	[CCS_TYPE_TRANSIT]    = "transit",
+ };
+ 
+ static const char *ccs_path_number3_keyword[CCS_MAX_PATH_NUMBER3_OPERATION] = {
+@@ -72,6 +73,7 @@
+ 	[CCS_TYPE_REWRITE]    = CCS_MAC_FILE_REWRITE,
+ 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
+ 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
++	[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
+ };
+ 
+ static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
+@@ -2612,3 +2614,53 @@
+ }
+ #endif
+ #endif
++
++/**
++ * ccs_may_transit - Check permission and do domain transition without execve().
++ *
++ * @domainname: Domainname to transit to.
++ * @pathname: Pathname to check.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds ccs_read_lock().
++ */
++int ccs_may_transit(const char *domainname, const char *pathname) {
++	/* Check allow_transit permission. */
++	struct ccs_path_info name; 
++	struct ccs_request_info r;
++	struct ccs_acl_info *ptr;
++	int error = -EPERM;
++	name.name = pathname;
++	ccs_fill_path_info(&name);
++	ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRANSIT);
++	printk(KERN_INFO "%s: scan '%s'\n", __func__, r.domain->domainname->name);
++	list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
++		struct ccs_path_acl *acl;
++		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
++			continue;
++		acl = container_of(ptr, struct ccs_path_acl, head);
++		printk(KERN_INFO "%s: scan 0x%X 0x%X\n", __func__,
++		       acl->perm, 1 << CCS_TYPE_TRANSIT);
++		if (!(acl->perm & 1 << CCS_TYPE_TRANSIT) ||
++		    !ccs_condition(&r, ptr) ||
++		    !ccs_compare_name_union_pattern(&name, &acl->name, 0))
++			continue;
++		r.cond = ptr->cond;
++		error = 0;
++		break;
++	}
++	printk(KERN_INFO "%s: transit '%s' = %d\n", __func__, pathname, error);
++	/* Check destination domain. */
++	if (!error) {
++		struct ccs_domain_info *domain = ccs_find_domain(domainname);
++		if (domain) {
++			error = 0;
++			current->ccs_domain_info = domain;
++			ccs_update_task_state(&r);
++		} else {
++			error = -ENOENT;
++		}
++	}
++	return error;
++}
+Index: security/ccsecurity/internal.h
+===================================================================
+--- security/ccsecurity/internal.h	(revision 3417)
++++ security/ccsecurity/internal.h	(working copy)
+@@ -1,9 +1,9 @@
+ /*
+  * security/ccsecurity/internal.h
+  *
+- * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1+   2009/12/20
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -75,6 +75,7 @@
+ 	CCS_TYPE_REWRITE,
+ 	CCS_TYPE_CHROOT,
+ 	CCS_TYPE_UMOUNT,
++	CCS_TYPE_TRANSIT,
+ 	CCS_MAX_PATH_OPERATION
+ };
+ 
+@@ -162,6 +163,7 @@
+ 	CCS_MAC_FILE_MOUNT,
+ 	CCS_MAC_FILE_UMOUNT,
+ 	CCS_MAC_FILE_PIVOT_ROOT,
++	CCS_MAC_FILE_TRANSIT,
+ 	CCS_MAC_NETWORK_UDP_BIND,
+ 	CCS_MAC_NETWORK_UDP_CONNECT,
+ 	CCS_MAC_NETWORK_TCP_BIND,
+@@ -916,6 +918,7 @@
+ int ccs_get_path(const char *pathname, struct path *path);
+ int ccs_init_request_info(struct ccs_request_info *r,
+ 			  struct ccs_domain_info *domain, const u8 index);
++int ccs_may_transit(const char *domainname, const char *pathname);
+ int ccs_open_control(const u8 type, struct file *file);
+ int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
+ int ccs_poll_control(struct file *file, poll_table *wait);
+@@ -991,6 +994,7 @@
+ void ccs_read_reject_log(struct ccs_io_buffer *head);
+ void ccs_read_unlock(const int idx);
+ void ccs_run_gc(void);
++void ccs_update_task_state(struct ccs_request_info *r);
+ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
+      __attribute__ ((format(printf, 2, 3)));
+ void ccs_warn_oom(const char *function);
+Index: security/ccsecurity/proc_if.c
+===================================================================
+--- security/ccsecurity/proc_if.c	(revision 3417)
++++ security/ccsecurity/proc_if.c	(working copy)
+@@ -1,9 +1,9 @@
+ /*
+  * security/ccsecurity/proc_if.c
+  *
+- * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1   2009/11/11
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -18,6 +18,68 @@
+ #include <linux/version.h>
+ #include "internal.h"
+ 
++/**
++ * ccs_write_transition - write() for /proc/ccs/.transition interface.
++ *
++ * @file:  Pointer to "struct file".
++ * @buf:   Domainname to transit to.
++ * @count: Size of @buf.
++ * @ppos:  Unused.
++ *
++ * Returns @count on success, negative value otherwise.
++ */
++static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
++				    size_t count, loff_t *ppos)
++{
++	const char *self_domain = ccs_current_domain()->domainname->name;
++	const int self_domain_len = strlen(self_domain) + 1;
++	char *data;
++	int idx;
++	int error = -EINVAL;
++	if (count < 2 || count > CCS_EXEC_TMPSIZE - 10) {
++		printk(KERN_INFO "%s: Invalid length (%u)\n", __func__, count);
++		return -ENOMEM;
++	}
++	data = kmalloc(self_domain_len + count + 2, GFP_KERNEL);
++	if (!data) {
++		printk(KERN_INFO "%s: Out of memory (%u)\n", __func__,
++		       self_domain_len + count + 2);		
++		return -ENOMEM;
++	}
++	if (copy_from_user(data + self_domain_len, buf, count)) {
++		printk(KERN_INFO "%s: Bad userspace address\n", __func__);
++		goto out;
++	}
++	if (data[self_domain_len + count - 1] != '\n') {
++		printk(KERN_INFO "%s: Invalid line\n", __func__);
++		goto out;
++	}
++	data[self_domain_len + count - 1] = '\0';
++	if (!ccs_is_correct_path(data + self_domain_len, 1, -1, -1)) {
++		printk(KERN_INFO "%s: Invalid pathname\n", __func__);
++		goto out;
++	}
++	memmove(data, self_domain, self_domain_len - 1);
++	data[self_domain_len - 1] = ' ';
++	idx = ccs_read_lock();
++	error = ccs_may_transit(data, data + self_domain_len);
++	ccs_read_unlock(idx);
++	printk(KERN_INFO "%s: Transition to '%s' domain = %d\n", __func__,
++	       data, error);
++ out:
++	kfree(data);
++	return error ? error : count;
++}
++
++/* Operations for /proc/ccs/.transition interface. */
++static
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
++const
++#endif
++struct file_operations ccs_transition_operations = {
++	.write = ccs_write_transition,
++};
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
+ #if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9
+ /**
+@@ -223,6 +285,12 @@
+ 	ccs_create_entry("version",          0400, ccs_dir, CCS_VERSION);
+ 	ccs_create_entry(".execute_handler", 0666, ccs_dir,
+ 			 CCS_EXECUTE_HANDLER);
++	{
++		struct proc_dir_entry *e = create_proc_entry(".transition",
++							     0222, ccs_dir);
++		if (e)
++			e->proc_fops = &ccs_transition_operations;
++	}
+ 	return 0;
+ }
+ 
+Index: security/ccsecurity/policy_io.c
+===================================================================
+--- security/ccsecurity/policy_io.c	(revision 3417)
++++ security/ccsecurity/policy_io.c	(working copy)
+@@ -1,9 +1,9 @@
+ /*
+  * security/ccsecurity/policy_io.c
+  *
+- * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.1+   2009/12/20
++ * Version: 1.7.2-pre   2010/02/03
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -94,6 +94,8 @@
+ 	= "file::umount",
+ 	[CCS_MAC_FILE_PIVOT_ROOT]
+ 	= "file::pivot_root",
++	[CCS_MAC_FILE_PIVOT_ROOT]
++	= "file::transit",
+ 	[CCS_MAC_ENVIRON]
+ 	= "misc::env",
+ 	[CCS_MAC_NETWORK_UDP_BIND]
+@@ -582,6 +584,8 @@
+ 			const char *g;
+ 			const char *r;
+ #endif
++			if (i == CCS_MAC_FILE_TRANSIT)
++				continue;
+ 			config = profile->config[i];
+ 			if (config == CCS_CONFIG_USE_DEFAULT)
+ 				continue;
+@@ -1227,7 +1231,8 @@
+ 	for (bit = head->read_bit; bit < CCS_MAX_PATH_OPERATION; bit++) {
+ 		if (!(perm & (1 << bit)))
+ 			continue;
+-		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE)
++		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE
++		    && bit != CCS_TYPE_TRANSIT)
+ 			continue;
+ 		/* Print "read/write" instead of "read" and "write". */
+ 		if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
+@@ -2420,7 +2425,7 @@
+ {
+ 	if (head->read_eof)
+ 		return;
+-	ccs_io_printf(head, "1.7.1");
++	ccs_io_printf(head, "1.7.2-pre");
+ 	head->read_eof = true;
+ }
+ 
