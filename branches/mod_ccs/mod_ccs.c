@@ -11,67 +11,94 @@
 #include "http_protocol.h"
 #include <unistd.h>
 
-static _Bool ccs_print_encoded(apr_file_t *file, const char *string,
-			       _Bool flush)
+static char *ccs_encode(const char *str)
 {
-	apr_size_t len;
-	while (1) {
-		unsigned char c = *(const unsigned char *) string++;
-		if (!c)
-			break;
+	int len = 0;
+	const char *p = str;
+	char *cp;
+	char *cp0;
+	if (!p)
+		return NULL;
+	while (*p) {
+		const unsigned char c = *p++;
+		if (c == '\\')
+			len += 2;
+		else if (c > ' ' && c < 127)
+			len++;
+		else
+			len += 4;
+	}
+	len++;
+	cp = malloc(len + 10);
+	if (!cp)
+		return NULL;
+	cp0 = cp;
+	p = str;
+	while (*p) {
+		const unsigned char c = *p++;
 		if (c == '\\') {
-			len = 2;
-			if (apr_file_write(file, "\\\\", &len) != APR_SUCCESS
-			    || len != 2)
-				return 0;
+			*cp++ = '\\';
+			*cp++ = '\\';
 		} else if (c > ' ' && c < 127) {
-			len = 1;
-			if (apr_file_write(file, &c , &len) != APR_SUCCESS
-			    || len != 1)
-				return 0;
+			*cp++ = c;
 		} else {
-			char buffer[4] = { '\\', (c >> 6) + '0',
-					   ((c >> 3) & 7) + '0',
-					   (c & 7) + '0' };
-			len = 4;
-			if (apr_file_write(file, buffer, &len) != APR_SUCCESS
-			    || len != 4)
-				return 0;
+			*cp++ = '\\';
+			*cp++ = (c >> 6) + '0';
+			*cp++ = ((c >> 3) & 7) + '0';
+			*cp++ = (c & 7) + '0';
 		}
 	}
-	if (flush) {
-		len = 1;
-		return apr_file_write(file, "\n", &len) == APR_SUCCESS &&
-			len == 1;
-	}
-	return 1;
+	return cp0;
 }
 
 static _Bool ccs_set_context(request_rec *r)
 {
-	apr_file_t *file = NULL;
-	apr_status_t result;
-	_Bool success;
-	result = apr_file_open(&file, "/proc/ccs/self_domain",
-			       APR_FOPEN_READ | APR_FOPEN_WRITE |
-			       APR_FOPEN_BINARY | APR_BUFFERED, APR_OS_DEFAULT,
-			       r->pool);
-	if (result != APR_SUCCESS) {
-		if (errno == ENOENT)
-			return 1;
-		return 0;
+	const int fd = open("/proc/ccs/.transition", O_WRONLY);
+	int len;
+	_Bool success = 0;
+	if (fd == EOF)
+		return errno == ENOENT ? 1 : 0;
+	{ /* Transit domain by virtual host's name. */
+		char *buffer;
+		char *name = ccs_encode(r->server->server_hostname);
+		if (!name)
+			goto out;
+		len = strlen(name) + 32;
+		buffer = calloc(len, 1);
+		if (buffer) {
+			len = snprintf(buffer, len - 1, "//servername=%s\n",
+				       name);
+			success = write(fd, buffer, len) == len;
+			free(buffer);
+		}
+		if (!success)
+			goto out;
 	}
-	success = ccs_print_encoded(file, "/servername=", 0) &&
-		ccs_print_encoded(file, r->server->server_hostname, 1);
-	if (!success)
-		goto out;
-	if (!strncmp(r->filename, "/usr/share/horde/", 17))
-		success = ccs_print_encoded(file, "/appname=horde", 1);
-	else
-		success = ccs_print_encoded(file, "/appname=static-data", 1);
+	success = 0;
+	{ /* Transit domain by requested pathname. */
+		const char *filename = r->filename;
+		if (!strncmp(filename, "/var/www/cgi-bin/", 17)) {
+			char *buffer;
+			char *name = ccs_encode(filename);
+			if (!name)
+				goto out;
+			len = strlen(name) + 32;
+			buffer = calloc(len, 1);
+			if (buffer) {
+				len = snprintf(buffer, len - 1,
+					       "//appname=%s\n", name);
+				success = write(fd, buffer, len) == len;
+				free(buffer);
+			}
+			free(name);
+		} else if (!strncmp(filename, "/usr/share/horde/", 17)) {
+			success = write(fd, "//appname=horde\n", 16) == 16;
+		} else {
+			success = write(fd, "//default\n", 10) == 10;
+		}
+	}
  out:
-	result = apr_file_close(file);
-	return success && result == APR_SUCCESS;
+	return close(fd) == 0 && success;
 }
 
 static int __thread volatile am_worker = 0;
