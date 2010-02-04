@@ -2467,12 +2467,9 @@ int ccs_open_control(const u8 type, struct file *file)
 		break;
 #ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
-		head->poll = ccs_poll_grant_log;
-		head->read = ccs_read_grant_log;
-		break;
 	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
-		head->poll = ccs_poll_reject_log;
-		head->read = ccs_read_reject_log;
+		head->poll = ccs_poll_audit_log;
+		head->read = ccs_read_audit_log;
 		break;
 #endif
 	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */
