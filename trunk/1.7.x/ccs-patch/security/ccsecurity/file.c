@@ -20,7 +20,13 @@
 #include <linux/dcache.h>
 #include <linux/namei.h>
 #endif
-#ifndef ACC_MODE
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 33)
+/*
+ * ACC_MODE() in this file uses old definition because may_open() receives
+ * open flags modified by open_to_namei_flags() until 2.6.33.
+ * may_open() receives unmodified flags after 2.6.34.
+ */
+#undef ACC_MODE
 #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
 #endif
 
