@@ -108,7 +108,7 @@ static ssize_t ccs_write(struct file *file, const char __user *buf,
 	return ccs_write_control(file, buf, count);
 }
 
-/* Operations for /proc/ccs/interface. */
+/* Operations for /proc/ccs/ interface. */
 static
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
 const
