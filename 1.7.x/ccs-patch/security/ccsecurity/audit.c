@@ -372,26 +372,26 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 
 #else
 
-static DECLARE_WAIT_QUEUE_HEAD(ccs_grant_log_wait);
-static DECLARE_WAIT_QUEUE_HEAD(ccs_reject_log_wait);
+static wait_queue_head_t ccs_audit_log_wait[2] = {
+	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_audit_log_wait[0]),
+	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_audit_log_wait[1]),
+};
 
 static DEFINE_SPINLOCK(ccs_audit_log_lock);
 
 /* Structure for audit log. */
-struct ccs_log_entry {
+struct ccs_audit_log_entry {
 	struct list_head list;
 	char *log;
 	int size;
 };
 
-/* The list for "struct ccs_log_entry". */
-static LIST_HEAD(ccs_grant_log);
+/* The list for "struct ccs_audit_log_entry". */
+static struct list_head ccs_audit_log[2] = {
+	LIST_HEAD_INIT(ccs_audit_log[0]), LIST_HEAD_INIT(ccs_audit_log[1])
+};
 
-/* The list for "struct ccs_log_entry". */
-static LIST_HEAD(ccs_reject_log);
-
-static unsigned int ccs_grant_log_count;
-static unsigned int ccs_reject_log_count;
+static unsigned int ccs_audit_log_count[2];
 
 /**
  * ccs_write_audit_log - Write audit log.
@@ -410,21 +410,19 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int pos;
 	int len;
 	char *buf;
-	struct ccs_log_entry *new_entry;
+	struct ccs_audit_log_entry *new_entry;
 	bool quota_exceeded = false;
+	struct ccs_preference *pref;
 	if (!r->domain)
 		r->domain = ccs_current_domain();
-	if (is_granted) {
-		if (ccs_grant_log_count >= ccs_profile(r->domain->profile)->
-		    audit->audit_max_grant_log
-		    || !ccs_get_audit(r->profile, r->type, true))
-			goto out;
-	} else {
-		if (ccs_reject_log_count >= ccs_profile(r->domain->profile)->
-		    audit->audit_max_reject_log
-		    || !ccs_get_audit(r->profile, r->type, false))
-			goto out;
-	}
+	pref = ccs_profile(r->domain->profile)->audit;
+	if (is_granted)
+		len = pref->audit_max_grant_log;
+	else
+		len = pref->audit_max_reject_log;
+	if (ccs_audit_log_count[is_granted] >= len ||
+	    !ccs_get_audit(r->profile, r->type, is_granted))
+		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
@@ -452,13 +450,8 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		quota_exceeded = true;
 	} else {
 		ccs_audit_log_memory_size += new_entry->size;
-		if (is_granted) {
-			list_add_tail(&new_entry->list, &ccs_grant_log);
-			ccs_grant_log_count++;
-		} else {
-			list_add_tail(&new_entry->list, &ccs_reject_log);
-			ccs_reject_log_count++;
-		}
+		list_add_tail(&new_entry->list, &ccs_audit_log[is_granted]);
+		ccs_audit_log_count[is_granted]++;
 	}
 	spin_unlock(&ccs_audit_log_lock);
 	if (quota_exceeded) {
@@ -466,10 +459,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		kfree(new_entry);
 		goto out;
 	}
-	if (is_granted)
-		wake_up(&ccs_grant_log_wait);
-	else
-		wake_up(&ccs_reject_log_wait);
+	wake_up(&ccs_audit_log_wait[is_granted]);
 	error = 0;
  out:
 	ccs_update_task_state(r);
@@ -477,13 +467,14 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 }
 
 /**
- * ccs_read_grant_log - Read a grant log.
+ * ccs_read_audit_log - Read an audit log.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  */
-void ccs_read_grant_log(struct ccs_io_buffer *head)
+void ccs_read_audit_log(struct ccs_io_buffer *head)
 {
-	struct ccs_log_entry *ptr = NULL;
+	struct ccs_audit_log_entry *ptr = NULL;
+	const bool is_granted = head->type == CCS_GRANTLOG;
 	if (head->read_avail)
 		return;
 	if (head->read_buf) {
@@ -492,11 +483,11 @@ void ccs_read_grant_log(struct ccs_io_buffer *head)
 		head->readbuf_size = 0;
 	}
 	spin_lock(&ccs_audit_log_lock);
-	if (!list_empty(&ccs_grant_log)) {
-		ptr = list_entry(ccs_grant_log.next, struct ccs_log_entry,
-				 list);
+	if (!list_empty(&ccs_audit_log[is_granted])) {
+		ptr = list_entry(ccs_audit_log[is_granted].next,
+				 struct ccs_audit_log_entry, list);
 		list_del(&ptr->list);
-		ccs_grant_log_count--;
+		ccs_audit_log_count[is_granted]--;
 		ccs_audit_log_memory_size -= ptr->size;
 	}
 	spin_unlock(&ccs_audit_log_lock);
@@ -509,70 +500,23 @@ void ccs_read_grant_log(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_poll_grant_log - Wait for a grant log.
+ * ccs_poll_audit_log - Wait for an audit log.
  *
  * @file: Pointer to "struct file".
  * @wait: Pointer to "poll_table".
  *
  * Returns POLLIN | POLLRDNORM when ready to read a grant log.
  */
-int ccs_poll_grant_log(struct file *file, poll_table *wait)
+int ccs_poll_audit_log(struct file *file, poll_table *wait)
 {
-	if (ccs_grant_log_count)
+	struct ccs_io_buffer *head = file->private_data;
+	const bool is_granted = head->type == CCS_GRANTLOG;
+	if (ccs_audit_log_count[is_granted])
 		return POLLIN | POLLRDNORM;
-	poll_wait(file, &ccs_grant_log_wait, wait);
-	if (ccs_grant_log_count)
+	poll_wait(file, &ccs_audit_log_wait[is_granted], wait);
+	if (ccs_audit_log_count[is_granted])
 		return POLLIN | POLLRDNORM;
 	return 0;
 }
 
-/**
- * ccs_read_reject_log - Read a reject log.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- */
-void ccs_read_reject_log(struct ccs_io_buffer *head)
-{
-	struct ccs_log_entry *ptr = NULL;
-	if (head->read_avail)
-		return;
-	if (head->read_buf) {
-		kfree(head->read_buf);
-		head->read_buf = NULL;
-		head->readbuf_size = 0;
-	}
-	spin_lock(&ccs_audit_log_lock);
-	if (!list_empty(&ccs_reject_log)) {
-		ptr = list_entry(ccs_reject_log.next, struct ccs_log_entry,
-				 list);
-		list_del(&ptr->list);
-		ccs_reject_log_count--;
-		ccs_audit_log_memory_size -= ptr->size;
-	}
-	spin_unlock(&ccs_audit_log_lock);
-	if (ptr) {
-		head->read_buf = ptr->log;
-		head->read_avail = strlen(ptr->log) + 1;
-		head->readbuf_size = head->read_avail;
-		kfree(ptr);
-	}
-}
-
-/**
- * ccs_poll_reject_log - Wait for a reject log.
- *
- * @file: Pointer to "struct file".
- * @wait: Pointer to "poll_table".
- *
- * Returns POLLIN | POLLRDNORM when ready to read a reject log.
- */
-int ccs_poll_reject_log(struct file *file, poll_table *wait)
-{
-	if (ccs_reject_log_count)
-		return POLLIN | POLLRDNORM;
-	poll_wait(file, &ccs_reject_log_wait, wait);
-	if (ccs_reject_log_count)
-		return POLLIN | POLLRDNORM;
-	return 0;
-}
 #endif

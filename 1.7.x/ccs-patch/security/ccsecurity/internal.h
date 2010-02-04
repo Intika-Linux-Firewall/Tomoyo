@@ -919,8 +919,7 @@ int ccs_init_request_info(struct ccs_request_info *r,
 int ccs_open_control(const u8 type, struct file *file);
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 int ccs_poll_control(struct file *file, poll_table *wait);
-int ccs_poll_grant_log(struct file *file, poll_table *wait);
-int ccs_poll_reject_log(struct file *file, poll_table *wait);
+int ccs_poll_audit_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
 int ccs_read_lock(void);
@@ -986,9 +985,8 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type);
 void ccs_put_name_union(struct ccs_name_union *ptr);
 void ccs_put_number_union(struct ccs_number_union *ptr);
-void ccs_read_grant_log(struct ccs_io_buffer *head);
+void ccs_read_audit_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
-void ccs_read_reject_log(struct ccs_io_buffer *head);
 void ccs_read_unlock(const int idx);
 void ccs_run_gc(void);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
