@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.30.10-105.2.4.fc11.src.rpm ]
+if [ ! -r kernel-2.6.30.10-105.2.16.fc11.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/kernel-2.6.30.10-105.2.4.fc11.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/kernel-2.6.30.10-105.2.16.fc11.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.30.10-105.2.4.fc11.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.30.10-105.2.16.fc11.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100120.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- ccs-kernel.spec	2010-01-20 07:24:04.000000000 +0900
-+++ ccs-kernel.spec	2010-01-23 12:14:16.685206160 +0900
+--- ccs-kernel.spec	2010-02-05 00:31:05.000000000 +0900
++++ ccs-kernel.spec	2010-02-06 21:15:28.392792040 +0900
 @@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -950,7 +955,7 @@
+@@ -983,7 +988,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1609,6 +1614,10 @@
+@@ -1672,6 +1677,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1635,6 +1644,9 @@
+@@ -1698,6 +1707,9 @@
  for i in *.config
  do
    mv $i .config
