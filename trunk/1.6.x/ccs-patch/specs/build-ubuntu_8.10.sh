@@ -39,16 +39,18 @@ cd linux-2.6.27/ || die "Can't chdir to linux-2.6.27/ ."
 tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100120.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.27-ubuntu-8.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
-for i in `find debian/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
-for i in debian/config/*/config; do cat config.ccs >> $i; done
-touch debian/control.stub.in || die "Can't touch control."
+for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+for i in debian.master/config/*/config; do cat config.ccs >> $i; done
+rm debian.master/control.stub || die "Can't delete control.stub."
+make -f debian.master/rules debian.master/control.stub || die "Can't update control.stub."
+rm debian/control || die "Can't delete control."
 debian/rules debian/control || die "Can't update control."
-for i in debian/abi/2.6.27-*/*/ ; do touch $i/ccs.ignore; done
+for i in debian.master/abi/2.6.27-*/*/ ; do touch $i/ccs.ignore; done
 
 # Make modified header files go into local header package.
 patch -p0 << "EOF" || die "Can't patch link-headers."
---- debian/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
-+++ debian/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
+--- debian.master/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
++++ debian.master/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
 @@ -37,4 +37,17 @@
  done
  )
