@@ -60,17 +60,17 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.31.8-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.31.12-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-source-2.6.31.8-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-source-2.6.31.12-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.31.8-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.31.12-0.1.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.31.8-0.1.1.nosrc.rpm ]
+if [ ! -r kernel-default-2.6.31.12-0.1.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-default-2.6.31.8-0.1.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-default-2.6.31.12-0.1.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-default-2.6.31.8-0.1.1.nosrc.rpm || die "Can't install source package."
+rpm -ivh kernel-default-2.6.31.12-0.1.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20091220.tar.gz ]
@@ -90,7 +90,7 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.31.8
+ Version:        2.6.31.12
 -Release:        0.1.1
 +Release:        0.1.1_tomoyo_1.7.1p1
  %if %using_buildservice
