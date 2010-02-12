@@ -11,46 +11,6 @@
 #include "http_protocol.h"
 #include <unistd.h>
 
-static char *ccs_encode(const char *str)
-{
-	int len = 0;
-	const char *p = str;
-	char *cp;
-	char *cp0;
-	if (!p)
-		return NULL;
-	while (*p) {
-		const unsigned char c = *p++;
-		if (c == '\\')
-			len += 2;
-		else if (c > ' ' && c < 127)
-			len++;
-		else
-			len += 4;
-	}
-	len++;
-	cp = malloc(len + 10);
-	if (!cp)
-		return NULL;
-	cp0 = cp;
-	p = str;
-	while (*p) {
-		const unsigned char c = *p++;
-		if (c == '\\') {
-			*cp++ = '\\';
-			*cp++ = '\\';
-		} else if (c > ' ' && c < 127) {
-			*cp++ = c;
-		} else {
-			*cp++ = '\\';
-			*cp++ = (c >> 6) + '0';
-			*cp++ = ((c >> 3) & 7) + '0';
-			*cp++ = (c & 7) + '0';
-		}
-	}
-	return cp0;
-}
-
 static _Bool ccs_set_context(request_rec *r)
 {
 	const int fd = open("/proc/ccs/.transition", O_WRONLY);
@@ -60,14 +20,13 @@ static _Bool ccs_set_context(request_rec *r)
 		return errno == ENOENT ? 1 : 0;
 	{ /* Transit domain by virtual host's name. */
 		char *buffer;
-		char *name = ccs_encode(r->server->server_hostname);
-		if (!name)
-			goto out;
+		char *name = r->server->server_hostname;
 		len = strlen(name) + 32;
 		buffer = calloc(len, 1);
 		if (buffer) {
-			len = snprintf(buffer, len - 1, "//servername=%s\n",
-				       name);
+			snprintf(buffer, len - 1, "servername=%s",
+				 name);
+			len = strlen(buffer) + 1;
 			success = write(fd, buffer, len) == len;
 			free(buffer);
 		}
@@ -79,22 +38,19 @@ static _Bool ccs_set_context(request_rec *r)
 		const char *filename = r->filename;
 		if (!strncmp(filename, "/var/www/cgi-bin/", 17)) {
 			char *buffer;
-			char *name = ccs_encode(filename);
-			if (!name)
-				goto out;
-			len = strlen(name) + 32;
+			len = strlen(filename) + 32;
 			buffer = calloc(len, 1);
 			if (buffer) {
-				len = snprintf(buffer, len - 1,
-					       "//appname=%s\n", name);
+				snprintf(buffer, len - 1,
+					 "appname=%s", filename);
+				len = strlen(buffer) + 1;
 				success = write(fd, buffer, len) == len;
 				free(buffer);
 			}
-			free(name);
 		} else if (!strncmp(filename, "/usr/share/horde/", 17)) {
-			success = write(fd, "//appname=horde\n", 16) == 16;
+			success = write(fd, "appname=horde", 14) == 14;
 		} else {
-			success = write(fd, "//default\n", 10) == 10;
+			success = write(fd, "default", 8) == 8;
 		}
 	}
  out:
