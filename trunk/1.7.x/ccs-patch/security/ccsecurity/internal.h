@@ -1104,7 +1104,7 @@ static inline void ccs_tasklist_unlock(void)
 }
 
 #endif
-	
+
 static inline struct ccs_domain_info *ccs_task_domain(struct task_struct *task)
 {
 	struct ccs_domain_info *domain = task->ccs_domain_info;
