@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-2.6.33-rc7-next-20100208.
+This is TOMOYO Linux patch for linux-2.6.33-rc7-next-20100212.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.33-rc7.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-rc7-next-20100208.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.33-rc7.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-rc7-next-20100212.bz2
 ---
  fs/compat.c                     |    2 
  fs/compat_ioctl.c               |    4 +
@@ -46,7 +46,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
 --- linux-next.orig/fs/compat_ioctl.c
 +++ linux-next/fs/compat_ioctl.c
-@@ -1717,6 +1717,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+@@ -1726,6 +1726,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -59,7 +59,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			if (error != -ENOIOCTLCMD)
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1366,7 +1366,7 @@ int do_execve(char * filename,
+@@ -1383,7 +1383,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -153,7 +153,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33-rc7-next-20100208 2010/02/08\n");
++	printk(KERN_INFO "Hook version: 2.6.33-rc7-next-20100212 2010/02/14\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -462,7 +462,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -603,6 +603,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -623,6 +623,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -471,7 +471,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -724,6 +726,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -744,6 +746,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
