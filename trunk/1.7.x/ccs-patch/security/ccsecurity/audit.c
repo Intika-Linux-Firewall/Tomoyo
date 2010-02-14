@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/audit.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/02/14
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -388,7 +388,8 @@ struct ccs_audit_log_entry {
 
 /* The list for "struct ccs_audit_log_entry". */
 static struct list_head ccs_audit_log[2] = {
-	LIST_HEAD_INIT(ccs_audit_log[0]), LIST_HEAD_INIT(ccs_audit_log[1])
+	LIST_HEAD_INIT(ccs_audit_log[0]),
+	LIST_HEAD_INIT(ccs_audit_log[1]),
 };
 
 static unsigned int ccs_audit_log_count[2];
