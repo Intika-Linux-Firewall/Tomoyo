@@ -65,8 +65,8 @@ cd $ANDROID_HOME/tmp/<br>
 wget -O kernel-source.tar.gz 'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=9d8732354c9efc9f5eb6f70a92ab436ccbfdf119;sf=tgz'<br>
 tar -zxf kernel-source.tar.gz<br>
 cd common/<br>
-wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20091220.tar.gz<br>
-tar -zxf ccs-patch-1.7.1-20091220.tar.gz<br>
+wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz<br>
+tar -zxf ccs-patch-1.7.1-20100214.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig<br>
