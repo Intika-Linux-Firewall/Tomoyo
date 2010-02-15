@@ -1,0 +1,230 @@
+[PATCH] TOMOYO: Remove unneeded parameter.
+
+tomoyo_path_perm() tomoyo_path2_perm() and tomoyo_check_rewrite_permission()
+always receive tomoyo_domain(). We can move it from caller to callee.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.h |   10 ++++------
+ security/tomoyo/file.c   |   15 ++++++---------
+ security/tomoyo/tomoyo.c |   40 +++++++++++++++++-----------------------
+ 3 files changed, 27 insertions(+), 38 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -637,12 +637,10 @@ int tomoyo_check_exec_perm(struct tomoyo
+ 			   const struct tomoyo_path_info *filename);
+ int tomoyo_check_open_permission(struct tomoyo_domain_info *domain,
+ 				 struct path *path, const int flag);
+-int tomoyo_path_perm(struct tomoyo_domain_info *domain, const u8 operation,
+-		     struct path *path);
+-int tomoyo_path2_perm(struct tomoyo_domain_info *domain, const u8 operation,
+-		      struct path *path1, struct path *path2);
+-int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
+-				    struct file *filp);
++int tomoyo_path_perm(const u8 operation, struct path *path);
++int tomoyo_path2_perm(const u8 operation, struct path *path1,
++		      struct path *path2);
++int tomoyo_check_rewrite_permission(struct file *filp);
+ int tomoyo_find_next_domain(struct linux_binprm *bprm);
+ 
+ /* Run garbage collector. */
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -1135,17 +1135,16 @@ int tomoyo_check_open_permission(struct 
+ /**
+  * tomoyo_path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate", "symlink", "ioctl", "chmod", "chown", "chgrp", "chroot", "mount" and "unmount".
+  *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+  * @operation: Type of operation.
+  * @path:      Pointer to "struct path".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_path_perm(struct tomoyo_domain_info *domain,
+-		     const u8 operation, struct path *path)
++int tomoyo_path_perm(const u8 operation, struct path *path)
+ {
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info *buf;
++	struct tomoyo_domain_info *domain = tomoyo_domain();
+ 	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	int idx;
+@@ -1180,15 +1179,14 @@ int tomoyo_path_perm(struct tomoyo_domai
+ /**
+  * tomoyo_check_rewrite_permission - Check permission for "rewrite".
+  *
+- * @domain: Pointer to "struct tomoyo_domain_info".
+  * @filp: Pointer to "struct file".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_check_rewrite_permission(struct tomoyo_domain_info *domain,
+-				    struct file *filp)
++int tomoyo_check_rewrite_permission(struct file *filp)
+ {
+ 	int error = -ENOMEM;
++	struct tomoyo_domain_info *domain = tomoyo_domain();
+ 	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	struct tomoyo_path_info *buf;
+@@ -1217,19 +1215,18 @@ int tomoyo_check_rewrite_permission(stru
+ /**
+  * tomoyo_path2_perm - Check permission for "rename", "link" and "pivot_root".
+  *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+  * @operation: Type of operation.
+  * @path1:      Pointer to "struct path".
+  * @path2:      Pointer to "struct path".
+  *
+  * Returns 0 on success, negative value otherwise.
+  */
+-int tomoyo_path2_perm(struct tomoyo_domain_info * const domain,
+-		      const u8 operation, struct path *path1,
++int tomoyo_path2_perm(const u8 operation, struct path *path1,
+ 		      struct path *path2)
+ {
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info *buf1, *buf2;
++	struct tomoyo_domain_info *domain = tomoyo_domain();
+ 	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == 3);
+ 	const char *msg;
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -100,33 +100,33 @@ static int tomoyo_bprm_check_security(st
+ static int tomoyo_path_truncate(struct path *path, loff_t length,
+ 				unsigned int time_attrs)
+ {
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_TRUNCATE, path);
++	return tomoyo_path_perm(TOMOYO_TYPE_TRUNCATE, path);
+ }
+ 
+ static int tomoyo_path_unlink(struct path *parent, struct dentry *dentry)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_UNLINK, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_UNLINK, &path);
+ }
+ 
+ static int tomoyo_path_mkdir(struct path *parent, struct dentry *dentry,
+ 			     int mode)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_MKDIR, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_MKDIR, &path);
+ }
+ 
+ static int tomoyo_path_rmdir(struct path *parent, struct dentry *dentry)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_RMDIR, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_RMDIR, &path);
+ }
+ 
+ static int tomoyo_path_symlink(struct path *parent, struct dentry *dentry,
+ 			       const char *old_name)
+ {
+ 	struct path path = { parent->mnt, dentry };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_SYMLINK, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_SYMLINK, &path);
+ }
+ 
+ static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
+@@ -149,7 +149,7 @@ static int tomoyo_path_mknod(struct path
+ 		type = TOMOYO_TYPE_MKSOCK;
+ 		break;
+ 	}
+-	return tomoyo_path_perm(tomoyo_domain(), type, &path);
++	return tomoyo_path_perm(type, &path);
+ }
+ 
+ static int tomoyo_path_link(struct dentry *old_dentry, struct path *new_dir,
+@@ -157,8 +157,7 @@ static int tomoyo_path_link(struct dentr
+ {
+ 	struct path path1 = { new_dir->mnt, old_dentry };
+ 	struct path path2 = { new_dir->mnt, new_dentry };
+-	return tomoyo_path2_perm(tomoyo_domain(), TOMOYO_TYPE_LINK, &path1,
+-				 &path2);
++	return tomoyo_path2_perm(TOMOYO_TYPE_LINK, &path1, &path2);
+ }
+ 
+ static int tomoyo_path_rename(struct path *old_parent,
+@@ -168,15 +167,14 @@ static int tomoyo_path_rename(struct pat
+ {
+ 	struct path path1 = { old_parent->mnt, old_dentry };
+ 	struct path path2 = { new_parent->mnt, new_dentry };
+-	return tomoyo_path2_perm(tomoyo_domain(), TOMOYO_TYPE_RENAME, &path1,
+-				 &path2);
++	return tomoyo_path2_perm(TOMOYO_TYPE_RENAME, &path1, &path2);
+ }
+ 
+ static int tomoyo_file_fcntl(struct file *file, unsigned int cmd,
+ 			     unsigned long arg)
+ {
+ 	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
+-		return tomoyo_check_rewrite_permission(tomoyo_domain(), file);
++		return tomoyo_check_rewrite_permission(file);
+ 	return 0;
+ }
+ 
+@@ -196,50 +194,46 @@ static int tomoyo_dentry_open(struct fil
+ static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
+ 			     unsigned long arg)
+ {
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_IOCTL,
+-				&file->f_path);
++	return tomoyo_path_perm(TOMOYO_TYPE_IOCTL, &file->f_path);
+ }
+ 
+ static int tomoyo_path_chmod(struct dentry *dentry, struct vfsmount *mnt,
+ 			     mode_t mode)
+ {
+ 	struct path path = { mnt, dentry };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_CHMOD, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_CHMOD, &path);
+ }
+ 
+ static int tomoyo_path_chown(struct path *path, uid_t uid, gid_t gid)
+ {
+ 	int error = 0;
+ 	if (uid != (uid_t) -1)
+-		error = tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_CHOWN,
+-					 path);
++		error = tomoyo_path_perm(TOMOYO_TYPE_CHOWN, path);
+ 	if (!error && gid != (gid_t) -1)
+-		error = tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_CHGRP,
+-					 path);
++		error = tomoyo_path_perm(TOMOYO_TYPE_CHGRP, path);
+ 	return error;
+ }
+ 
+ static int tomoyo_path_chroot(struct path *path)
+ {
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_CHROOT, path);
++	return tomoyo_path_perm(TOMOYO_TYPE_CHROOT, path);
+ }
+ 
+ static int tomoyo_sb_mount(char *dev_name, struct path *path,
+ 			   char *type, unsigned long flags, void *data)
+ {
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_MOUNT, path);
++	return tomoyo_path_perm(TOMOYO_TYPE_MOUNT, path);
+ }
+ 
+ static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
+ {
+ 	struct path path = { mnt, mnt->mnt_root };
+-	return tomoyo_path_perm(tomoyo_domain(), TOMOYO_TYPE_UMOUNT, &path);
++	return tomoyo_path_perm(TOMOYO_TYPE_UMOUNT, &path);
+ }
+ 
+ static int tomoyo_sb_pivotroot(struct path *old_path, struct path *new_path)
+ {
+-	return tomoyo_path2_perm(tomoyo_domain(), TOMOYO_TYPE_PIVOT_ROOT,
+-				 new_path, old_path);
++	return tomoyo_path2_perm(TOMOYO_TYPE_PIVOT_ROOT, new_path, old_path);
+ }
+ 
+ /*
