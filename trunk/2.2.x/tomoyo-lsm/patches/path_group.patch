@@ -1,0 +1,536 @@
+---
+ security/tomoyo/Makefile     |    2 
+ security/tomoyo/common.c     |  104 ++++++++++++++++++++++----
+ security/tomoyo/common.h     |   41 ++++++++++
+ security/tomoyo/gc.c         |   42 ++++++++++
+ security/tomoyo/path_group.c |  170 +++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 340 insertions(+), 19 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o
++obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -75,6 +75,49 @@ static int tomoyo_write_control(struct f
+ 				const int buffer_len);
+ 
+ /**
++ * tomoyo_parse_name_union - Parse a tomoyo_name_union.
++ *
++ * @filename: Name or name group.
++ * @ptr:      Pointer to "struct tomoyo_name_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool tomoyo_parse_name_union(const char *filename,
++			     struct tomoyo_name_union *ptr)
++{
++	if (!tomoyo_is_correct_path(filename, 0, 0, 0))
++		return false;
++	if (filename[0] == '@') {
++		ptr->group = tomoyo_get_path_group(filename + 1);
++		ptr->is_group = true;
++		return ptr->group != NULL;
++	}
++	ptr->filename = tomoyo_get_name(filename);
++	ptr->is_group = false;
++	return ptr->filename != NULL;
++}
++
++/**
++ * tomoyo_print_name_union - Print a tomoyo_name_union.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ * @ptr:  Pointer to "struct tomoyo_name_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool tomoyo_print_name_union(struct tomoyo_io_buffer *head,
++				 const struct tomoyo_name_union *ptr)
++{
++	int pos = head->read_avail;
++	if (pos && head->read_buf[pos - 1] == ' ')
++		head->read_avail--;
++	if (ptr->is_group)
++		return tomoyo_io_printf(head, " @%s",
++					ptr->group->group_name->name);
++	return tomoyo_io_printf(head, " %s", ptr->filename->name);
++}
++
++/**
+  * tomoyo_is_byte_range - Check whether the string isa \ooo style octal value.
+  *
+  * @str: Pointer to the string.
+@@ -171,6 +214,33 @@ static void tomoyo_normalize_line(unsign
+ }
+ 
+ /**
++ * tomoyo_tokenize - Tokenize string.
++ *
++ * @buffer: The line to tokenize.
++ * @w:      Pointer to "char *".
++ * @size:   Sizeof @w .
++ *
++ * Returns true on success, false otherwise.
++ */
++bool tomoyo_tokenize(char *buffer, char *w[], size_t size)
++{
++	int count = size / sizeof(char *);
++	int i;
++	for (i = 0; i < count; i++)
++		w[i] = "";
++	for (i = 0; i < count; i++) {
++		char *cp = strchr(buffer, ' ');
++		if (cp)
++			*cp = '\0';
++		w[i] = buffer;
++		if (!cp)
++			break;
++		buffer = cp + 1;
++	}
++	return i < count || !*buffer;
++}
++
++/**
+  * tomoyo_is_correct_path - Validate a pathname.
+  * @filename:     The pathname to check.
+  * @start_type:   Should the pathname start with '/'?
+@@ -1365,23 +1435,20 @@ static bool tomoyo_print_path_acl(struct
+ {
+ 	int pos;
+ 	u8 bit;
+-	const char *atmark = "";
+-	const char *filename;
+ 	const u32 perm = ptr->perm | (((u32) ptr->perm_high) << 16);
+ 
+-	filename = ptr->filename->name;
+ 	for (bit = head->read_bit; bit < TOMOYO_MAX_PATH_OPERATION; bit++) {
+-		const char *msg;
+ 		if (!(perm & (1 << bit)))
+ 			continue;
+ 		/* Print "read/write" instead of "read" and "write". */
+ 		if ((bit == TOMOYO_TYPE_READ || bit == TOMOYO_TYPE_WRITE)
+ 		    && (perm & (1 << TOMOYO_TYPE_READ_WRITE)))
+ 			continue;
+-		msg = tomoyo_path2keyword(bit);
+ 		pos = head->read_avail;
+-		if (!tomoyo_io_printf(head, "allow_%s %s%s\n", msg,
+-				      atmark, filename))
++		if (!tomoyo_io_printf(head, "allow_%s ",
++				      tomoyo_path2keyword(bit)) ||
++		    !tomoyo_print_name_union(head, &ptr->name) ||
++		    !tomoyo_io_printf(head, "\n"))
+ 			goto out;
+ 	}
+ 	head->read_bit = 0;
+@@ -1404,23 +1471,18 @@ static bool tomoyo_print_path2_acl(struc
+ 				   struct tomoyo_path2_acl *ptr)
+ {
+ 	int pos;
+-	const char *atmark1 = "";
+-	const char *atmark2 = "";
+-	const char *filename1;
+-	const char *filename2;
+ 	const u8 perm = ptr->perm;
+ 	u8 bit;
+ 
+-	filename1 = ptr->filename1->name;
+-	filename2 = ptr->filename2->name;
+ 	for (bit = head->read_bit; bit < TOMOYO_MAX_PATH2_OPERATION; bit++) {
+-		const char *msg;
+ 		if (!(perm & (1 << bit)))
+ 			continue;
+-		msg = tomoyo_path22keyword(bit);
+ 		pos = head->read_avail;
+-		if (!tomoyo_io_printf(head, "allow_%s %s%s %s%s\n", msg,
+-				      atmark1, filename1, atmark2, filename2))
++		if (!tomoyo_io_printf(head, "allow_%s ",
++				      tomoyo_path22keyword(bit)) ||
++		    !tomoyo_print_name_union(head, &ptr->name1) ||
++		    !tomoyo_print_name_union(head, &ptr->name2) ||
++		    !tomoyo_io_printf(head, "\n"))
+ 			goto out;
+ 	}
+ 	head->read_bit = 0;
+@@ -1681,6 +1743,8 @@ static int tomoyo_write_exception_policy
+ 		return tomoyo_write_pattern_policy(data, is_delete);
+ 	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DENY_REWRITE))
+ 		return tomoyo_write_no_rewrite_policy(data, is_delete);
++	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_PATH_GROUP))
++		return tomoyo_write_path_group_policy(data, is_delete);
+ 	return -EINVAL;
+ }
+ 
+@@ -1737,6 +1801,12 @@ static int tomoyo_read_exception_policy(
+ 			head->read_var2 = NULL;
+ 			head->read_step = 9;
+ 		case 9:
++			if (!tomoyo_read_path_group_policy(head))
++				break;
++			head->read_var1 = NULL;
++			head->read_var2 = NULL;
++			head->read_step = 10;
++		case 10:
+ 			head->read_eof = true;
+ 			break;
+ 		default:
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -54,6 +54,7 @@ struct linux_binprm;
+ #define TOMOYO_KEYWORD_KEEP_DOMAIN               "keep_domain "
+ #define TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
+ #define TOMOYO_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
++#define TOMOYO_KEYWORD_PATH_GROUP                "path_group "
+ #define TOMOYO_KEYWORD_SELECT                    "select "
+ #define TOMOYO_KEYWORD_USE_PROFILE               "use_profile "
+ #define TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
+@@ -204,6 +205,27 @@ struct tomoyo_path_info_with_data {
+ 	char barrier2[16]; /* Safeguard for overrun. */
+ };
+ 
++struct tomoyo_name_union {
++	const struct tomoyo_path_info *filename;
++	struct tomoyo_path_group *group;
++	u8 is_group;
++};
++
++/* Structure for "path_group" directive. */
++struct tomoyo_path_group {
++	struct list_head list;
++	const struct tomoyo_path_info *group_name;
++	struct list_head member_list;
++	atomic_t users;
++};
++
++/* Structure for "path_group" directive. */
++struct tomoyo_path_group_member {
++	struct list_head list;
++	bool is_deleted;
++	const struct tomoyo_path_info *member_name;
++};
++
+ /*
+  * tomoyo_acl_info is a structure which is used for holding
+  *
+@@ -289,6 +311,7 @@ struct tomoyo_path_acl {
+ 	u16 perm;
+ 	/* Pointer to single pathname. */
+ 	const struct tomoyo_path_info *filename;
++	struct tomoyo_name_union name; /* tmp */
+ };
+ 
+ /*
+@@ -311,6 +334,8 @@ struct tomoyo_path2_acl {
+ 	const struct tomoyo_path_info *filename1;
+ 	/* Pointer to single pathname. */
+ 	const struct tomoyo_path_info *filename2;
++	struct tomoyo_name_union name1; /* tmp */
++	struct tomoyo_name_union name2; /* tmp */
+ };
+ 
+ /*
+@@ -540,10 +565,14 @@ bool tomoyo_read_domain_initializer_poli
+ bool tomoyo_read_domain_keeper_policy(struct tomoyo_io_buffer *head);
+ /* Read "file_pattern" entry in exception policy. */
+ bool tomoyo_read_file_pattern(struct tomoyo_io_buffer *head);
++/* Read "path_group" entry in exception policy. */
++bool tomoyo_read_path_group_policy(struct tomoyo_io_buffer *head);
+ /* Read "allow_read" entry in exception policy. */
+ bool tomoyo_read_globally_readable_policy(struct tomoyo_io_buffer *head);
+ /* Read "deny_rewrite" entry in exception policy. */
+ bool tomoyo_read_no_rewrite_policy(struct tomoyo_io_buffer *head);
++/* Tokenize a line. */
++bool tomoyo_tokenize(char *buffer, char *w[], size_t size);
+ /* Write domain policy violation warning message to console? */
+ bool tomoyo_verbose_mode(const struct tomoyo_domain_info *domain);
+ /* Convert double path operation to operation name. */
+@@ -580,12 +609,17 @@ int tomoyo_write_globally_readable_polic
+ int tomoyo_write_no_rewrite_policy(char *data, const bool is_delete);
+ /* Create "file_pattern" entry in exception policy. */
+ int tomoyo_write_pattern_policy(char *data, const bool is_delete);
++/* Create "path_group" entry in exception policy. */
++int tomoyo_write_path_group_policy(char *data, const bool is_delete);
+ /* Find a domain by the given name. */
+ struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
+ /* Find or create a domain by the given name. */
+ struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *
+ 							    domainname,
+ 							    const u8 profile);
++
++struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
++
+ /* Check mode for specified functionality. */
+ unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
+ 				const u8 index);
+@@ -654,6 +688,7 @@ extern struct srcu_struct tomoyo_ss;
+ /* The list for "struct tomoyo_domain_info". */
+ extern struct list_head tomoyo_domain_list;
+ 
++extern struct list_head tomoyo_path_group_list;
+ extern struct list_head tomoyo_domain_initializer_list;
+ extern struct list_head tomoyo_domain_keeper_list;
+ extern struct list_head tomoyo_alias_list;
+@@ -725,6 +760,12 @@ static inline void tomoyo_put_name(const
+ 	}
+ }
+ 
++static inline void tomoyo_put_path_group(struct tomoyo_path_group *group)
++{
++	if (group)
++		atomic_dec(&group->users);
++}
++
+ static inline struct tomoyo_domain_info *tomoyo_domain(void)
+ {
+ 	return current_cred()->security;
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -11,6 +11,8 @@
+ #include <linux/kthread.h>
+ 
+ enum tomoyo_gc_id {
++	TOMOYO_ID_PATH_GROUP,
++	TOMOYO_ID_PATH_GROUP_MEMBER,
+ 	TOMOYO_ID_DOMAIN_INITIALIZER,
+ 	TOMOYO_ID_DOMAIN_KEEPER,
+ 	TOMOYO_ID_ALIAS,
+@@ -143,11 +145,20 @@ static bool tomoyo_del_domain(struct tom
+ 	return true;
+ }
+ 
+-
+ static void tomoyo_del_name(const struct tomoyo_name_entry *ptr)
+ {
+ }
+ 
++static void tomoyo_del_path_group_member(struct tomoyo_path_group_member *member)
++{
++	tomoyo_put_name(member->member_name);
++}
++
++static void tomoyo_del_path_group(struct tomoyo_path_group *group)
++{
++	tomoyo_put_name(group->group_name);
++}
++
+ static void tomoyo_collect_entry(void)
+ {
+ 	mutex_lock(&tomoyo_policy_lock);
+@@ -274,6 +285,29 @@ static void tomoyo_collect_entry(void)
+ 				break;
+ 		}
+ 	}
++	{
++		struct tomoyo_path_group *group;
++		list_for_each_entry_rcu(group, &tomoyo_path_group_list, list) {
++			struct tomoyo_path_group_member *member;
++			list_for_each_entry_rcu(member, &group->member_list,
++						list) {
++				if (!member->is_deleted)
++					continue;
++				if (tomoyo_add_to_gc(TOMOYO_ID_PATH_GROUP_MEMBER,
++						  member))
++					list_del_rcu(&member->list);
++				else
++					break;
++			}
++			if (!list_empty(&group->member_list) ||
++			    atomic_read(&group->users))
++				continue;
++			if (tomoyo_add_to_gc(TOMOYO_ID_PATH_GROUP, group))
++				list_del_rcu(&group->list);
++			else
++				break;
++		}
++	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+ 	mutex_lock(&tomoyo_name_list_lock);
+ 	{
+@@ -334,6 +368,12 @@ static void tomoyo_kfree_entry(void)
+ 			if (!tomoyo_del_domain(p->element))
+ 				continue;
+ 			break;
++		case TOMOYO_ID_PATH_GROUP_MEMBER:
++			tomoyo_del_path_group_member(p->element);
++			break;
++		case TOMOYO_ID_PATH_GROUP:
++			tomoyo_del_path_group(p->element);
++			break;
+ 		default:
+ 			printk(KERN_WARNING "Unknown type\n");
+ 			break;
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/path_group.c
+@@ -0,0 +1,170 @@
++/*
++ * security/tomoyo/path_group.c
++ *
++ * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ */
++
++#include "common.h"
++/* The list for "struct ccs_path_group". */
++LIST_HEAD(ccs_path_group_list);
++
++/**
++ * tomoyo_get_path_group - Allocate memory for "struct tomoyo_path_group".
++ *
++ * @group_name: The name of pathname group.
++ *
++ * Returns pointer to "struct tomoyo_path_group" on success, NULL otherwise.
++ */
++struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name)
++{
++	struct tomoyo_path_group *entry = NULL;
++	struct tomoyo_path_group *group;
++	const struct tomoyo_path_info *saved_group_name;
++	int error = -ENOMEM;
++	if (!tomoyo_is_correct_path(group_name, 0, 0, 0) ||
++	    !group_name[0])
++		return NULL;
++	saved_group_name = tomoyo_get_name(group_name);
++	if (!saved_group_name)
++		return NULL;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(group, &tomoyo_path_group_list, list) {
++		if (saved_group_name != group->group_name)
++			continue;
++		atomic_inc(&group->users);
++		error = 0;
++		break;
++	}
++	if (error && tomoyo_memory_ok(entry)) {
++		INIT_LIST_HEAD(&entry->member_list);
++		entry->group_name = saved_group_name;
++		saved_group_name = NULL;
++		atomic_set(&entry->users, 1);
++		list_add_tail_rcu(&entry->list, &tomoyo_path_group_list);
++		group = entry;
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_name(saved_group_name);
++	kfree(entry);
++	return !error ? group : NULL;
++}
++
++/**
++ * tomoyo_write_path_group_policy - Write "struct tomoyo_path_group" list.
++ *
++ * @data:      String to parse.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, nagative value otherwise.
++ */
++int tomoyo_write_path_group_policy(char *data, const bool is_delete)
++{
++	struct tomoyo_path_group *group;
++	struct tomoyo_path_group_member *entry = NULL;
++	struct tomoyo_path_group_member *member;
++	struct tomoyo_path_group_member e = { };
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	char *w[2];
++	if (!tomoyo_tokenize(data, w, sizeof(w)) || !w[1][0])
++		return -EINVAL;
++	group = tomoyo_get_path_group(w[0]);
++	if (!group)
++		return -ENOMEM;
++	e.member_name = tomoyo_get_name(w[1]);
++	if (!e.member_name)
++		goto out;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(member, &group->member_list, list) {
++		if (member->member_name != e.member_name)
++			continue;
++		member->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_memory_ok(entry)) {
++		memmove(entry, &e, sizeof(e));
++		list_add_tail_rcu(&entry->list, &group->member_list);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++ out:
++	tomoyo_put_name(e.member_name);
++	tomoyo_put_path_group(group);
++	kfree(entry);
++	return error;
++}
++
++/**
++ * tomoyo_read_path_group_policy - Read "struct tomoyo_path_group" list.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_read_path_group_policy(struct tomoyo_io_buffer *head)
++{
++	struct list_head *gpos;
++	struct list_head *mpos;
++	list_for_each_cookie(gpos, head->read_var1, &tomoyo_path_group_list) {
++		struct tomoyo_path_group *group;
++		group = list_entry(gpos, struct tomoyo_path_group, list);
++		list_for_each_cookie(mpos, head->read_var2,
++				     &group->member_list) {
++			struct tomoyo_path_group_member *member;
++			member = list_entry(mpos,
++					    struct tomoyo_path_group_member,
++					    list);
++			if (member->is_deleted)
++				continue;
++			if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_PATH_GROUP
++					      "%s %s\n",
++					      group->group_name->name,
++					      member->member_name->name))
++				return false;
++		}
++	}
++	return true;
++}
++
++/**
++ * tomoyo_path_matches_group - Check whether the given pathname matches members of the given pathname group.
++ *
++ * @pathname:        The name of pathname.
++ * @group:           Pointer to "struct tomoyo_path_group".
++ * @may_use_pattern: True if wild card is permitted.
++ *
++ * Returns true if @pathname matches pathnames in @group, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
++			       const struct tomoyo_path_group *group,
++			       const bool may_use_pattern)
++{
++	struct tomoyo_path_group_member *member;
++	bool matched = false;
++	list_for_each_entry_rcu(member, &group->member_list, list) {
++		if (member->is_deleted)
++			continue;
++		if (!member->member_name->is_patterned) {
++			if (tomoyo_pathcmp(pathname, member->member_name))
++				continue;
++		} else if (may_use_pattern) {
++			if (!tomoyo_path_matches_pattern(pathname,
++							 member->member_name))
++				continue;
++		} else
++			continue;
++		matched = true;
++		break;
++	}
++	return matched;
++}
