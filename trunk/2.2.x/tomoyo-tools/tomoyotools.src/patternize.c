@@ -99,11 +99,19 @@ int patternize_main(int argc, char *argv[])
 				    !strcmp(cp, "allow_truncate") ||
 				    !strcmp(cp, "allow_symlink") ||
 				    !strcmp(cp, "allow_rewrite") ||
+				    !strcmp(cp, "allow_ioctl") ||
+				    !strcmp(cp, "allow_chmod") ||
+				    !strcmp(cp, "allow_chown") ||
+				    !strcmp(cp, "allow_chgrp") ||
+				    !strcmp(cp, "allow_mount") ||
+				    !strcmp(cp, "allow_unmount") ||
+				    !strcmp(cp, "allow_chroot") ||
 				    !strcmp(cp, "2") || !strcmp(cp, "4") ||
 				    !strcmp(cp, "6"))
 					count = 1;
 				else if (!strcmp(cp, "allow_link") ||
-					 !strcmp(cp, "allow_rename"))
+					 !strcmp(cp, "allow_rename") ||
+					 !strcmp(cp, "allow_pivot_root"))
 					count = 2;
 				else
 					count = 0;

@@ -155,6 +155,14 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 		case DIRECTIVE_ALLOW_LINK:
 		case DIRECTIVE_ALLOW_RENAME:
 		case DIRECTIVE_ALLOW_REWRITE:
+		case DIRECTIVE_ALLOW_IOCTL:
+		case DIRECTIVE_ALLOW_CHMOD:
+		case DIRECTIVE_ALLOW_CHOWN:
+		case DIRECTIVE_ALLOW_CHGRP:
+		case DIRECTIVE_ALLOW_MOUNT:
+		case DIRECTIVE_ALLOW_UNMOUNT:
+		case DIRECTIVE_ALLOW_CHROOT:
+		case DIRECTIVE_ALLOW_PIVOT_ROOT:
 			if (!compare_path(&sarg1, &darg1, d_index))
 				continue;
 			break;
@@ -166,6 +174,7 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 		switch (d_index) {
 		case DIRECTIVE_ALLOW_LINK:
 		case DIRECTIVE_ALLOW_RENAME:
+		case DIRECTIVE_ALLOW_PIVOT_ROOT:
 			if (!compare_path(&sarg2, &darg2, d_index))
 				continue;
 			break;
