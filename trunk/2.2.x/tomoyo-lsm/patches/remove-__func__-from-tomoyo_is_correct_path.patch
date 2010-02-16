@@ -1,3 +1,8 @@
+[PATCH] TOMOYO: Remove __func__ from tomoyo_is_correct_path/domain.
+
+__func__ is used for only debug printk(). We can remove it.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   18 ++++--------------
  security/tomoyo/common.h |    6 ++----
