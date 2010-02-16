@@ -46,6 +46,14 @@ static void check_file_policy(char *data)
 		{ "link",       2 },
 		{ "rename",     2 },
 		{ "rewrite",    1 },
+		{ "ioctl",      1 },
+		{ "chmod",      1 },
+		{ "chown",      1 },
+		{ "chgrp",      1 },
+		{ "mount",      1 },
+		{ "unmount",    1 },
+		{ "chroot",     1 },
+		{ "pivot_root", 2 },
 		{ NULL, 0 }
 	};
 	char *filename = strchr(data, ' ');
