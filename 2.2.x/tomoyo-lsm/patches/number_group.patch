@@ -1,0 +1,485 @@
+---
+ security/tomoyo/Makefile       |    2 
+ security/tomoyo/common.c       |  153 ++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h       |   49 +++++++++++
+ security/tomoyo/number_group.c |  173 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 376 insertions(+), 1 deletion(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o
++obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o number_group.o
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -118,6 +118,159 @@ static bool tomoyo_print_name_union(stru
+ }
+ 
+ /**
++ * tomoyo_parse_ulong - Parse an "unsigned long" value.
++ *
++ * @result: Pointer to "unsigned long".
++ * @str:    Pointer to string to parse.
++ *
++ * Returns value type on success, 0 otherwise.
++ *
++ * The @src is updated to point the first character after the value
++ * on success.
++ */
++u8 tomoyo_parse_ulong(unsigned long *result, char **str)
++{
++	const char *cp = *str;
++	char *ep;
++	int base = 10;
++	if (*cp == '0') {
++		char c = *(cp + 1);
++		if (c == 'x' || c == 'X') {
++			base = 16;
++			cp += 2;
++		} else if (c >= '0' && c <= '7') {
++			base = 8;
++			cp++;
++		}
++	}
++	*result = simple_strtoul(cp, &ep, base);
++	if (cp == ep)
++		return 0;
++	*str = ep;
++	switch (base) {
++	case 16:
++		return TOMOYO_VALUE_TYPE_HEXADECIMAL;
++	case 8:
++		return TOMOYO_VALUE_TYPE_OCTAL;
++	default:
++		return TOMOYO_VALUE_TYPE_DECIMAL;
++	}
++}
++
++/**
++ * tomoyo_print_ulong - Print an "unsigned long" value.
++ *
++ * @buffer:     Pointer to buffer.
++ * @buffer_len: Size of @buffer.
++ * @value:      An "unsigned long" value.
++ * @type:       Type of @value.
++ *
++ * Returns nothing.
++ */
++void tomoyo_print_ulong(char *buffer, const int buffer_len,
++			const unsigned long value, const u8 type)
++{
++	if (type == TOMOYO_VALUE_TYPE_DECIMAL)
++		snprintf(buffer, buffer_len, "%lu", value);
++	else if (type == TOMOYO_VALUE_TYPE_OCTAL)
++		snprintf(buffer, buffer_len, "0%lo", value);
++	else if (type == TOMOYO_VALUE_TYPE_HEXADECIMAL)
++		snprintf(buffer, buffer_len, "0x%lX", value);
++	else
++		snprintf(buffer, buffer_len, "type(%u)", type);
++}
++
++/**
++ * tomoyo_print_number_union - Print a tomoyo_number_union.
++ *
++ * @head:       Pointer to "struct tomoyo_io_buffer".
++ * @ptr:        Pointer to "struct tomoyo_number_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool tomoyo_print_number_union(struct tomoyo_io_buffer *head,
++			       const struct tomoyo_number_union *ptr)
++{
++	unsigned long min;
++	unsigned long max;
++	u8 min_type;
++	u8 max_type;
++	if (!tomoyo_io_printf(head, " "))
++		return false;
++	if (ptr->is_group)
++		return tomoyo_io_printf(head, "@%s",
++					ptr->group->group_name->name);
++	min_type = ptr->min_type;
++	max_type = ptr->max_type;
++	min = ptr->values[0];
++	max = ptr->values[1];
++	switch (min_type) {
++	case TOMOYO_VALUE_TYPE_HEXADECIMAL:
++		if (!tomoyo_io_printf(head, "0x%lX", min))
++			return false;
++		break;
++	case TOMOYO_VALUE_TYPE_OCTAL:
++		if (!tomoyo_io_printf(head, "0%lo", min))
++			return false;
++		break;
++	default:
++		if (!tomoyo_io_printf(head, "%lu", min))
++			return false;
++		break;
++	}
++	if (min == max && min_type == max_type)
++		return true;
++	switch (max_type) {
++	case TOMOYO_VALUE_TYPE_HEXADECIMAL:
++		return tomoyo_io_printf(head, "-0x%lX", max);
++	case TOMOYO_VALUE_TYPE_OCTAL:
++		return tomoyo_io_printf(head, "-0%lo", max);
++	default:
++		return tomoyo_io_printf(head, "-%lu", max);
++	}
++}
++
++/**
++ * tomoyo_parse_number_union - Parse a tomoyo_number_union.
++ *
++ * @data: Number or number range or number group.
++ * @ptr:  Pointer to "struct tomoyo_number_union".
++ *
++ * Returns true on success, false otherwise.
++ */
++bool tomoyo_parse_number_union(char *data, struct tomoyo_number_union *num)
++{
++	u8 type;
++	unsigned long v;
++	memset(num, 0, sizeof(*num));
++	if (data[0] == '@') {
++		if (!tomoyo_is_correct_path(data, 0, 0, 0))
++			return false;
++		num->group = tomoyo_get_number_group(data + 1);
++		num->is_group = true;
++		return num->group != NULL;
++	}
++	type = tomoyo_parse_ulong(&v, &data);
++	if (!type)
++		return false;
++	num->values[0] = v;
++	num->min_type = type;
++	if (!*data) {
++		num->values[1] = v;
++		num->max_type = type;
++		return true;
++	}
++	if (*data++ != '-')
++		return false;
++	type = tomoyo_parse_ulong(&v, &data);
++	if (!type || *data)
++		return false;
++	num->values[1] = v;
++	num->max_type = type;
++	return true;
++}
++
++/**
+  * tomoyo_is_byte_range - Check whether the string isa \ooo style octal value.
+  *
+  * @str: Pointer to the string.
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -55,6 +55,7 @@ struct linux_binprm;
+ #define TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
+ #define TOMOYO_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
+ #define TOMOYO_KEYWORD_PATH_GROUP                "path_group "
++#define TOMOYO_KEYWORD_NUMBER_GROUP              "number_group "
+ #define TOMOYO_KEYWORD_SELECT                    "select "
+ #define TOMOYO_KEYWORD_USE_PROFILE               "use_profile "
+ #define TOMOYO_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
+@@ -62,6 +63,12 @@ struct linux_binprm;
+ #define TOMOYO_ROOT_NAME                         "<kernel>"
+ #define TOMOYO_ROOT_NAME_LEN                     (sizeof(TOMOYO_ROOT_NAME) - 1)
+ 
++/* Value type definition. */
++#define TOMOYO_VALUE_TYPE_INVALID     0
++#define TOMOYO_VALUE_TYPE_DECIMAL     1
++#define TOMOYO_VALUE_TYPE_OCTAL       2
++#define TOMOYO_VALUE_TYPE_HEXADECIMAL 3
++
+ /* Index numbers for Access Controls. */
+ enum tomoyo_mac_index {
+ 	TOMOYO_MAC_FOR_FILE,  /* domain_policy.conf */
+@@ -211,6 +218,14 @@ struct tomoyo_name_union {
+ 	u8 is_group;
+ };
+ 
++struct tomoyo_number_union {
++	unsigned long values[2];
++	struct tomoyo_number_group *group;
++	u8 min_type;
++	u8 max_type;
++	u8 is_group;
++};
++
+ /* Structure for "path_group" directive. */
+ struct tomoyo_path_group {
+ 	struct list_head list;
+@@ -219,6 +234,14 @@ struct tomoyo_path_group {
+ 	atomic_t users;
+ };
+ 
++/* Structure for "number_group" directive. */
++struct tomoyo_number_group {
++	struct list_head list;
++	const struct tomoyo_path_info *group_name;
++	struct list_head member_list;
++	atomic_t users;
++};
++
+ /* Structure for "path_group" directive. */
+ struct tomoyo_path_group_member {
+ 	struct list_head list;
+@@ -226,6 +249,13 @@ struct tomoyo_path_group_member {
+ 	const struct tomoyo_path_info *member_name;
+ };
+ 
++/* Structure for "number_group" directive. */
++struct tomoyo_number_group_member {
++	struct list_head list;
++	bool is_deleted;
++	struct tomoyo_number_union number;
++};
++
+ /*
+  * tomoyo_acl_info is a structure which is used for holding
+  *
+@@ -554,6 +584,11 @@ bool tomoyo_is_domain_def(const unsigned
+ /* Check whether the given filename matches the given pattern. */
+ bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
+ 				 const struct tomoyo_path_info *pattern);
++
++bool tomoyo_print_number_union(struct tomoyo_io_buffer *head,
++			       const struct tomoyo_number_union *ptr);
++bool tomoyo_parse_number_union(char *data, struct tomoyo_number_union *num);
++
+ /* Read "alias" entry in exception policy. */
+ bool tomoyo_read_alias_policy(struct tomoyo_io_buffer *head);
+ /*
+@@ -567,6 +602,8 @@ bool tomoyo_read_domain_keeper_policy(st
+ bool tomoyo_read_file_pattern(struct tomoyo_io_buffer *head);
+ /* Read "path_group" entry in exception policy. */
+ bool tomoyo_read_path_group_policy(struct tomoyo_io_buffer *head);
++/* Read "number_group" entry in exception policy. */
++bool tomoyo_read_number_group_policy(struct tomoyo_io_buffer *head);
+ /* Read "allow_read" entry in exception policy. */
+ bool tomoyo_read_globally_readable_policy(struct tomoyo_io_buffer *head);
+ /* Read "deny_rewrite" entry in exception policy. */
+@@ -611,6 +648,8 @@ int tomoyo_write_no_rewrite_policy(char 
+ int tomoyo_write_pattern_policy(char *data, const bool is_delete);
+ /* Create "path_group" entry in exception policy. */
+ int tomoyo_write_path_group_policy(char *data, const bool is_delete);
++/* Create "number_group" entry in exception policy. */
++int tomoyo_write_number_group_policy(char *data, const bool is_delete);
+ /* Find a domain by the given name. */
+ struct tomoyo_domain_info *tomoyo_find_domain(const char *domainname);
+ /* Find or create a domain by the given name. */
+@@ -619,6 +658,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 							    const u8 profile);
+ 
+ struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
++struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
+ 
+ /* Check mode for specified functionality. */
+ unsigned int tomoyo_check_flags(const struct tomoyo_domain_info *domain,
+@@ -628,6 +668,8 @@ void tomoyo_fill_path_info(struct tomoyo
+ /* Run policy loader when /sbin/init starts. */
+ void tomoyo_load_policy(const char *filename);
+ 
++void tomoyo_put_number_union(struct tomoyo_number_union *ptr);
++
+ /* Convert binary string to ascii string. */
+ int tomoyo_encode(char *buffer, int buflen, const char *str);
+ 
+@@ -689,6 +731,7 @@ extern struct srcu_struct tomoyo_ss;
+ extern struct list_head tomoyo_domain_list;
+ 
+ extern struct list_head tomoyo_path_group_list;
++extern struct list_head tomoyo_number_group_list;
+ extern struct list_head tomoyo_domain_initializer_list;
+ extern struct list_head tomoyo_domain_keeper_list;
+ extern struct list_head tomoyo_alias_list;
+@@ -766,6 +809,12 @@ static inline void tomoyo_put_path_group
+ 		atomic_dec(&group->users);
+ }
+ 
++static inline void tomoyo_put_number_group(struct tomoyo_number_group *group)
++{
++	if (group)
++		atomic_dec(&group->users);
++}
++
+ static inline struct tomoyo_domain_info *tomoyo_domain(void)
+ {
+ 	return current_cred()->security;
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/number_group.c
+@@ -0,0 +1,173 @@
++/*
++ * security/tomoyo/number_group.c
++ *
++ * Copyright (C) 2005-2009  NTT DATA CORPORATION
++ */
++
++#include <linux/slab.h>
++#include "common.h"
++
++/* The list for "struct tomoyo_number_group". */
++LIST_HEAD(tomoyo_number_group_list);
++
++/**
++ * tomoyo_get_number_group - Allocate memory for "struct tomoyo_number_group".
++ *
++ * @group_name: The name of number group.
++ *
++ * Returns pointer to "struct tomoyo_number_group" on success,
++ * NULL otherwise.
++ */
++struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name)
++{
++	struct tomoyo_number_group *entry = NULL;
++	struct tomoyo_number_group *group;
++	const struct tomoyo_path_info *saved_group_name;
++	int error = -ENOMEM;
++	if (!tomoyo_is_correct_path(group_name, 0, 0, 0) ||
++	    !group_name[0])
++		return NULL;
++	saved_group_name = tomoyo_get_name(group_name);
++	if (!saved_group_name)
++		return NULL;
++	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(group, &tomoyo_number_group_list, list) {
++		if (saved_group_name != group->group_name)
++			continue;
++		atomic_inc(&group->users);
++		error = 0;
++		break;
++	}
++	if (error && tomoyo_memory_ok(entry)) {
++		INIT_LIST_HEAD(&entry->member_list);
++		entry->group_name = saved_group_name;
++		saved_group_name = NULL;
++		atomic_set(&entry->users, 1);
++		list_add_tail_rcu(&entry->list, &tomoyo_number_group_list);
++		group = entry;
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_name(saved_group_name);
++	kfree(entry);
++	return !error ? group : NULL;
++}
++
++/**
++ * tomoyo_write_number_group_policy - Write "struct tomoyo_number_group" list.
++ *
++ * @data:      String to parse.
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, nagative value otherwise.
++ */
++int tomoyo_write_number_group_policy(char *data, const bool is_delete)
++{
++	struct tomoyo_number_group *group;
++	struct tomoyo_number_group_member *entry = NULL;
++	struct tomoyo_number_group_member e = { };
++	struct tomoyo_number_group_member *member;
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	char *w[2];
++	if (!tomoyo_tokenize(data, w, sizeof(w)))
++		return -EINVAL;
++	if (!tomoyo_parse_number_union(w[1], &e.number))
++		return -EINVAL;
++	if (e.number.is_group || e.number.values[0] > e.number.values[1]) {
++		tomoyo_put_number_union(&e.number);
++		return -EINVAL;
++	}
++	group = tomoyo_get_number_group(w[0]);
++	if (!group)
++		return -ENOMEM;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(member, &group->member_list, list) {
++		if (memcmp(&member->number, &e.number, sizeof(e.number)))
++			continue;
++		member->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_memory_ok(entry)) {
++		memmove(entry, &e, sizeof(e));
++		list_add_tail_rcu(&entry->list, &group->member_list);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_number_group(group);
++	kfree(entry);
++	return error;
++}
++
++/**
++ * tomoyo_read_number_group_policy - Read "struct tomoyo_number_group" list.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns true on success, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_read_number_group_policy(struct tomoyo_io_buffer *head)
++{
++	struct list_head *gpos;
++	struct list_head *mpos;
++	list_for_each_cookie(gpos, head->read_var1, &tomoyo_number_group_list) {
++		struct tomoyo_number_group *group;
++		const char *name;
++		group = list_entry(gpos, struct tomoyo_number_group, list);
++		name = group->group_name->name;
++		list_for_each_cookie(mpos, head->read_var2,
++				     &group->member_list) {
++			int pos;
++			const struct tomoyo_number_group_member *member
++				= list_entry(mpos,
++					     struct tomoyo_number_group_member,
++					     list);
++			if (member->is_deleted)
++				continue;
++			pos = head->read_avail;
++			if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_NUMBER_GROUP
++					      "%s", name) ||
++			    !tomoyo_print_number_union(head, &member->number) ||
++			    !tomoyo_io_printf(head, "\n")) {
++				head->read_avail = pos;
++				return false;
++			}
++		}
++	}
++	return true;
++}
++
++/**
++ * tomoyo_number_matches_group - Check whether the given number matches members of the given number group.
++ *
++ * @min:   Min number.
++ * @max:   Max number.
++ * @group: Pointer to "struct tomoyo_number_group".
++ *
++ * Returns true if @min and @max partially overlaps @group, false otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++bool tomoyo_number_matches_group(const unsigned long min, const unsigned long max,
++				 const struct tomoyo_number_group *group)
++{
++	struct tomoyo_number_group_member *member;
++	bool matched = false;
++	list_for_each_entry_rcu(member, &group->member_list, list) {
++		if (member->is_deleted)
++			continue;
++		if (min > member->number.values[1] ||
++		    max < member->number.values[0])
++			continue;
++		matched = true;
++		break;
++	}
++	return matched;
++}
