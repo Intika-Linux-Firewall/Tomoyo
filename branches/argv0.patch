@@ -1,0 +1,18 @@
+---
+ frameworks/base/libs/utils/ProcessState.cpp |    5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- mydroid.orig/frameworks/base/libs/utils/ProcessState.cpp
++++ mydroid/frameworks/base/libs/utils/ProcessState.cpp
+@@ -303,6 +303,11 @@ const char* const* ProcessState::getArgV
+ void ProcessState::setArgV0(const char* txt)
+ {
+     if (mArgV != NULL) {
++        const int fd = open("/proc/ccs/.transition", O_WRONLY);
++        if (fd != EOF) {
++            write(fd, txt, strlen(txt) + 1);
++            close(fd);
++        }
+         strncpy((char*)mArgV[0], txt, mArgLen);
+         set_process_name(txt);
+     }
