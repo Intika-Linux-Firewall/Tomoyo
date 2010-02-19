@@ -10,8 +10,8 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   28 ++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -36,7 +36,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 250 insertions(+), 2 deletions(-)
+ 34 files changed, 246 insertions(+), 2 deletions(-)
 
 --- linux-2.6.26-21lenny3.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26-21lenny3/arch/ia64/ia32/sys_ia32.c
@@ -381,7 +381,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
@@ -391,7 +391,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
@@ -401,7 +401,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -424,21 +424,12 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	if (retval)
  		goto dput_out;
  
-@@ -2182,6 +2200,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	error = __user_walk(new_root, LOOKUP_FOLLOW | LOOKUP_DIRECTORY,
- 			    &new_nd);
-@@ -2196,6 +2216,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2196,6 +2214,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd.path, &new_nd.path);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd.path, &new_nd.path);
  	if (error) {
  		path_put(&old_nd.path);
  		goto out1;
@@ -473,18 +464,16 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -559,6 +567,10 @@ asmlinkage long sys_chroot(const char __
+@@ -559,6 +567,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd.path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -592,6 +604,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -592,6 +602,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_drop_write;
@@ -494,7 +483,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -628,6 +643,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -628,6 +641,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_drop_write;
@@ -504,7 +493,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -694,6 +712,8 @@ asmlinkage long sys_chown(const char __u
+@@ -694,6 +710,8 @@ asmlinkage long sys_chown(const char __u
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -513,7 +502,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -719,6 +739,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -719,6 +737,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -522,7 +511,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -738,6 +760,8 @@ asmlinkage long sys_lchown(const char __
+@@ -738,6 +758,8 @@ asmlinkage long sys_lchown(const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -531,7 +520,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -762,6 +786,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -762,6 +784,8 @@ asmlinkage long sys_fchown(unsigned int 
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -540,7 +529,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1214,6 +1240,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1214,6 +1238,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -555,7 +544,7 @@ Source code for this patch is "apt-get install linux-source-2.6.26"
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.26-21lenny3 2010/02/13\n");
++	printk(KERN_INFO "Hook version: 2.6.26-21lenny3 2010/02/19\n");
  }
 --- linux-2.6.26-21lenny3.orig/include/linux/init_task.h
 +++ linux-2.6.26-21lenny3/include/linux/init_task.h

@@ -12,8 +12,8 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 ++++++++++++++++++++++++++++++++++-
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   30 ++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 255 insertions(+), 3 deletions(-)
+ 36 files changed, 251 insertions(+), 3 deletions(-)
 
 --- linux-2.6.25.20-0.6.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20-0.6/arch/ia64/ia32/sys_ia32.c
@@ -402,7 +402,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
@@ -412,7 +412,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
@@ -422,7 +422,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -440,26 +440,17 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, &nd, type_page,
++		retval = ccs_mount_permission(dev_name, &nd.path, type_page,
 +					      original_flags, data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1680,6 +1698,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -1696,6 +1716,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1696,6 +1714,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd.path, &new_nd.path);
  	if (error) {
  		path_put(&old_nd.path);
  		goto out1;
@@ -494,18 +485,16 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -539,6 +547,10 @@ asmlinkage long sys_chroot(const char __
+@@ -539,6 +547,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd.path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -572,6 +584,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -572,6 +582,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -515,7 +504,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -606,6 +621,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -606,6 +619,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -525,7 +514,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -674,6 +692,8 @@ asmlinkage long sys_chown(const char __u
+@@ -674,6 +690,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -534,7 +523,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = chown_common(nd.path.dentry, nd.path.mnt, user, group, NULL);
  	path_put(&nd.path);
  out:
-@@ -694,6 +714,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -694,6 +712,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -543,7 +532,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = chown_common(nd.path.dentry, nd.path.mnt, user, group, NULL);
  	path_put(&nd.path);
  out:
-@@ -708,6 +730,8 @@ asmlinkage long sys_lchown(const char __
+@@ -708,6 +728,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -552,7 +541,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = chown_common(nd.path.dentry, nd.path.mnt, user, group, NULL);
  	path_put(&nd.path);
  out:
-@@ -727,6 +751,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -727,6 +749,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -561,7 +550,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	fput(file);
  out:
-@@ -823,7 +849,9 @@ static struct file *do_filp_open(int dfd
+@@ -823,7 +847,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -571,7 +560,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1172,6 +1200,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1172,6 +1198,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -586,7 +575,7 @@ Source code for this patch is http://download.opensuse.org/update/11.0/rpm/i586/
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.25.20-0.6 2010/02/16\n");
++	printk(KERN_INFO "Hook version: 2.6.25.20-0.6 2010/02/19\n");
  }
 --- linux-2.6.25.20-0.6.orig/include/linux/init_task.h
 +++ linux-2.6.25.20-0.6/include/linux/init_task.h

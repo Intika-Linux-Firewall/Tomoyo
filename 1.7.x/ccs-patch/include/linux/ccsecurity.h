@@ -22,7 +22,6 @@
 struct path;
 struct dentry;
 struct vfsmount;
-struct nameidata;
 struct inode;
 struct linux_binprm;
 struct pt_regs;
@@ -35,31 +34,38 @@ struct sock;
 struct sk_buff;
 struct msghdr;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
+#if defined(_NAMESPACE_H_) || defined(_LINUX_VFS_H)
+/*
+ * 2.6 kernels up to 2.6.19 declare "struct path" inside fs/namei.c .
+ * I skip this block based on header files which are included by either
+ * fs/namespace.c or fs/open.c but not by fs/namei.c in order to avoid
+ * build failure.
+ */
+struct path {
+	struct vfsmount *mnt;
+	struct dentry *dentry;
+};
+#define _STRUCT_PATH_DEFINED
+#endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+/* Make "struct path" from "struct nameidata". */
+#define ccs_mkpath(nd) ({ struct path p = { (nd)->mnt, (nd)->dentry }; &p; })
+#endif
+
 #if defined(CONFIG_CCSECURITY)
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 /* Check whether the given pathname is allowed to chroot to. */
 int ccs_chroot_permission(struct path *path);
 /* Check whether the current process is allowed to pivot_root. */
 int ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
 /* Check whether the given mount operation hides an mounted partition. */
 int ccs_may_mount(struct path *path);
-#else
-int ccs_chroot_permission(struct nameidata *nd);
-int ccs_pivot_root_permission(struct nameidata *old_nd,
-			      struct nameidata *new_nd);
-int ccs_may_mount(struct nameidata *nd);
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
 /* Check whether the mount operation with the given parameters is allowed. */
-int ccs_mount_permission(char *dev_name, struct path *dir, char *type,
+int ccs_mount_permission(char *dev_name, struct path *path, char *type,
 			 unsigned long flags, void *data_page);
-#else
-int ccs_mount_permission(char *dev_name, struct nameidata *nd, char *type,
-			 unsigned long flags, void *data_page);
-#endif
-
 /* Check whether the given mountpoint is allowed to umount. */
 int ccs_umount_permission(struct vfsmount *mnt, int flags);
 
@@ -125,7 +131,6 @@ int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig);
 
 #else
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 static inline int ccs_chroot_permission(struct path *path)
 {
 	return 0;
@@ -141,39 +146,13 @@ static inline int ccs_may_mount(struct path *path)
 {
 	return 0;
 }
-#else
-static inline int ccs_chroot_permission(struct nameidata *nd)
-{
-	return 0;
-}
 
-static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
-					    struct nameidata *new_nd)
-{
-	return 0;
-}
-
-static inline int ccs_may_mount(struct nameidata *nd)
-{
-	return 0;
-}
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
-static inline int ccs_mount_permission(char *dev_name, struct path *dir,
+static inline int ccs_mount_permission(char *dev_name, struct path *path,
 				       char *type, unsigned long flags,
 				       void *data_page)
 {
 	return 0;
 }
-#else
-static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
-				       char *type, unsigned long flags,
-				       void *data_page)
-{
-	return 0;
-}
-#endif
 
 static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {

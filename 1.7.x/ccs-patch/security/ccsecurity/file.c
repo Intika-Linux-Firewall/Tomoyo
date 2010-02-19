@@ -2241,61 +2241,36 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 	return error;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-#define PATH_or_NAMEIDATA path
-#else
-#define PATH_or_NAMEIDATA nameidata
-#endif
-
 /**
  * ccs_pivot_root_permission - Check permission for pivot_root().
  *
- * @old_path: Pointer to "struct path" (for 2.6.27 and later).
- *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
- * @new_path: Pointer to "struct path" (for 2.6.27 and later).
- *            Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @old_path: Pointer to "struct path".
+ * @new_path: Pointer to "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_pivot_root_permission(struct PATH_or_NAMEIDATA *old_path,
-			      struct PATH_or_NAMEIDATA *new_path)
+int ccs_pivot_root_permission(struct path *old_path, struct path *new_path)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
 		return -EPERM;
-#endif
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
-	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, NULL, new_path->path.dentry,
-			      new_path->path.mnt, NULL, old_path->path.dentry,
-			      old_path->path.mnt);
-#else
 	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, NULL, new_path->dentry,
 			      new_path->mnt, NULL, old_path->dentry,
 			      old_path->mnt);
-#endif
 }
 
 /**
  * ccs_chroot_permission - Check permission for chroot().
  *
- * @path: Pointer to "struct path" (for 2.6.27 and later).
- *        Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @path: Pointer to "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_chroot_permission(struct PATH_or_NAMEIDATA *path)
+int ccs_chroot_permission(struct path *path)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	if (!ccs_capable(CCS_SYS_CHROOT))
 		return -EPERM;
-#endif
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25) || LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 26)
-	return ccs_path_perm(CCS_TYPE_CHROOT, NULL, path->path.dentry,
-			     path->path.mnt, NULL);
-#else
 	return ccs_path_perm(CCS_TYPE_CHROOT, NULL, path->dentry, path->mnt,
 			     NULL);
-#endif
 }
 
 /**

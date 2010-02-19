@@ -12,8 +12,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   35 ++++++++++++++++++++++++++++++++++-
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   30 ++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   28 ++++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 255 insertions(+), 3 deletions(-)
+ 36 files changed, 251 insertions(+), 3 deletions(-)
 
 --- linux-2.6.25.20.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.25.20/arch/ia64/ia32/sys_ia32.c
@@ -402,7 +402,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  
  	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
@@ -412,7 +412,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
@@ -422,7 +422,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(&nd->path))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -440,26 +440,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, &nd, type_page,
++		retval = ccs_mount_permission(dev_name, &nd.path, type_page,
 +					      original_flags, data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1680,6 +1698,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -1696,6 +1716,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1696,6 +1714,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(&old_nd.path, &new_nd.path);
  	if (error) {
  		path_put(&old_nd.path);
  		goto out1;
@@ -494,18 +485,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -540,6 +548,10 @@ asmlinkage long sys_chroot(const char __
+@@ -540,6 +548,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(&nd.path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -573,6 +585,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -573,6 +583,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -515,7 +504,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -607,6 +622,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -607,6 +620,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -525,7 +514,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -671,6 +689,8 @@ asmlinkage long sys_chown(const char __u
+@@ -671,6 +687,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -534,7 +523,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	path_put(&nd.path);
  out:
-@@ -691,6 +711,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -691,6 +709,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -543,7 +532,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	path_put(&nd.path);
  out:
-@@ -705,6 +727,8 @@ asmlinkage long sys_lchown(const char __
+@@ -705,6 +725,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -552,7 +541,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	path_put(&nd.path);
  out:
-@@ -724,6 +748,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -724,6 +746,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -561,7 +550,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(dentry, user, group);
  	fput(file);
  out:
-@@ -820,7 +846,9 @@ static struct file *do_filp_open(int dfd
+@@ -820,7 +844,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -571,7 +560,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1169,6 +1197,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1169,6 +1195,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -586,7 +575,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.25.20 2009/10/20\n");
++	printk(KERN_INFO "Hook version: 2.6.25.20 2010/02/19\n");
  }
 --- linux-2.6.25.20.orig/include/linux/init_task.h
 +++ linux-2.6.25.20/include/linux/init_task.h

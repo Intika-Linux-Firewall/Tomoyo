@@ -10,8 +10,8 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 247 insertions(+), 2 deletions(-)
+ 34 files changed, 243 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.42-0.1.1.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.42-0.1.1/arch/ia64/ia32/sys_ia32.c
@@ -421,16 +421,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	if (retval)
  		goto dput_out;
  
-@@ -2185,6 +2203,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	error = user_path_dir(new_root, &new);
- 	if (error)
-@@ -2198,6 +2218,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2198,6 +2216,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -469,18 +460,16 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -591,6 +598,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -591,6 +598,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
 +	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -620,6 +631,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -620,6 +629,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file->f_path.mnt, file);
  	if (err)
  		goto out_putf;
@@ -490,7 +479,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -627,6 +641,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -627,6 +639,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME | ATTR_FILE;
  	err = fnotify_change(dentry, file->f_path.mnt, &newattrs, file);
  	mutex_unlock(&inode->i_mutex);
@@ -498,7 +487,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -649,6 +664,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -649,6 +662,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -508,7 +497,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -656,6 +674,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -656,6 +672,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, path.mnt, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -516,7 +505,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -708,6 +727,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -708,6 +725,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -525,7 +514,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	error = chown_common(path.dentry, path.mnt, user, group, NULL);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -733,6 +754,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -733,6 +752,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -534,7 +523,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	error = chown_common(path.dentry, path.mnt, user, group, NULL);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -752,6 +775,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -752,6 +773,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -543,7 +532,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	error = chown_common(path.dentry, path.mnt, user, group, NULL);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -775,6 +800,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -775,6 +798,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -552,7 +541,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1163,6 +1190,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1163,6 +1188,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -567,7 +556,7 @@ Source code for this patch is http://download.opensuse.org/update/11.1/rpm/i586/
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27.42-0.1.1 2010/01/16\n");
++	printk(KERN_INFO "Hook version: 2.6.27.42-0.1.1 2010/02/19\n");
  }
 --- linux-2.6.27.42-0.1.1.orig/include/linux/init_task.h
 +++ linux-2.6.27.42-0.1.1/include/linux/init_task.h

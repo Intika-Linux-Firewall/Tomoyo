@@ -8,8 +8,8 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/noarc
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -34,10 +34,8 @@ Source code for this patch is http://download.opensuse.org/update/11.2/rpm/noarc
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 247 insertions(+), 3 deletions(-)
+ 32 files changed, 243 insertions(+), 3 deletions(-)
 
-Index: linux-2.6.31.12-0.1.1/fs/compat.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/compat.c
 +++ linux-2.6.31.12-0.1.1/fs/compat.c
 @@ -56,6 +56,7 @@
@@ -57,8 +55,6 @@ Index: linux-2.6.31.12-0.1.1/fs/compat.c
  	if (retval < 0)
  		goto out;
  
-Index: linux-2.6.31.12-0.1.1/fs/compat_ioctl.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/compat_ioctl.c
 +++ linux-2.6.31.12-0.1.1/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
@@ -89,8 +85,6 @@ Index: linux-2.6.31.12-0.1.1/fs/compat_ioctl.c
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
-Index: linux-2.6.31.12-0.1.1/fs/exec.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/exec.c
 +++ linux-2.6.31.12-0.1.1/fs/exec.c
 @@ -60,6 +60,7 @@
@@ -110,8 +104,6 @@ Index: linux-2.6.31.12-0.1.1/fs/exec.c
  	if (retval < 0)
  		goto out;
  
-Index: linux-2.6.31.12-0.1.1/fs/fcntl.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/fcntl.c
 +++ linux-2.6.31.12-0.1.1/fs/fcntl.c
 @@ -23,6 +23,7 @@
@@ -132,8 +124,6 @@ Index: linux-2.6.31.12-0.1.1/fs/fcntl.c
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
-Index: linux-2.6.31.12-0.1.1/fs/ioctl.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/ioctl.c
 +++ linux-2.6.31.12-0.1.1/fs/ioctl.c
 @@ -18,6 +18,7 @@
@@ -162,8 +152,6 @@ Index: linux-2.6.31.12-0.1.1/fs/ioctl.c
  	if (error)
  		goto out_fput;
  
-Index: linux-2.6.31.12-0.1.1/fs/namei.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/namei.c
 +++ linux-2.6.31.12-0.1.1/fs/namei.c
 @@ -37,6 +37,8 @@
@@ -297,8 +285,6 @@ Index: linux-2.6.31.12-0.1.1/fs/namei.c
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
-Index: linux-2.6.31.12-0.1.1/fs/namespace.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/namespace.c
 +++ linux-2.6.31.12-0.1.1/fs/namespace.c
 @@ -33,6 +33,7 @@
@@ -375,16 +361,7 @@ Index: linux-2.6.31.12-0.1.1/fs/namespace.c
  	if (retval)
  		goto dput_out;
  
-@@ -2140,6 +2158,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	error = user_path_dir(new_root, &new);
- 	if (error)
-@@ -2153,6 +2173,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2153,6 +2171,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -393,8 +370,6 @@ Index: linux-2.6.31.12-0.1.1/fs/namespace.c
  	if (error) {
  		path_put(&old);
  		goto out1;
-Index: linux-2.6.31.12-0.1.1/fs/open.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/open.c
 +++ linux-2.6.31.12-0.1.1/fs/open.c
 @@ -30,6 +30,7 @@
@@ -425,18 +400,16 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -586,6 +593,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -586,6 +593,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
 +	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -615,6 +626,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -615,6 +624,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
  		goto out_putf;
@@ -446,7 +419,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -622,6 +636,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -622,6 +634,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -454,7 +427,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -644,6 +659,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -644,6 +657,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -464,7 +437,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -651,6 +669,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -651,6 +667,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -472,7 +445,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -699,6 +718,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -699,6 +716,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -481,7 +454,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -724,6 +745,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -724,6 +743,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -490,7 +463,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -743,6 +766,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -743,6 +764,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -499,7 +472,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -766,6 +791,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -766,6 +789,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -508,7 +481,7 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1157,6 +1184,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1157,6 +1182,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -517,8 +490,6 @@ Index: linux-2.6.31.12-0.1.1/fs/open.c
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
-Index: linux-2.6.31.12-0.1.1/fs/proc/version.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/fs/proc/version.c
 +++ linux-2.6.31.12-0.1.1/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
@@ -528,12 +499,10 @@ Index: linux-2.6.31.12-0.1.1/fs/proc/version.c
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.31.12-0.1.1 2010/02/09\n");
++	printk(KERN_INFO "Hook version: 2.6.31.12-0.1.1 2010/02/19\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
-Index: linux-2.6.31.12-0.1.1/include/linux/init_task.h
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/include/linux/init_task.h
 +++ linux-2.6.31.12-0.1.1/include/linux/init_task.h
 @@ -105,6 +105,14 @@ extern struct cred init_cred;
@@ -559,8 +528,6 @@ Index: linux-2.6.31.12-0.1.1/include/linux/init_task.h
  }
  
  
-Index: linux-2.6.31.12-0.1.1/include/linux/sched.h
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/include/linux/sched.h
 +++ linux-2.6.31.12-0.1.1/include/linux/sched.h
 @@ -41,6 +41,8 @@
@@ -583,8 +550,6 @@ Index: linux-2.6.31.12-0.1.1/include/linux/sched.h
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
-Index: linux-2.6.31.12-0.1.1/kernel/compat.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/compat.c
 +++ linux-2.6.31.12-0.1.1/kernel/compat.c
 @@ -27,6 +27,7 @@
@@ -604,8 +569,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/compat.c
  
  	do_settimeofday(&tv);
  	return 0;
-Index: linux-2.6.31.12-0.1.1/kernel/kexec.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/kexec.c
 +++ linux-2.6.31.12-0.1.1/kernel/kexec.c
 @@ -38,6 +38,7 @@
@@ -625,11 +588,9 @@ Index: linux-2.6.31.12-0.1.1/kernel/kexec.c
  
  	/*
  	 * Verify we have a legal set of flags
-Index: linux-2.6.31.12-0.1.1/kernel/kmod.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/kmod.c
 +++ linux-2.6.31.12-0.1.1/kernel/kmod.c
-@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void
+@@ -176,6 +176,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
  
@@ -641,8 +602,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/kmod.c
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
-Index: linux-2.6.31.12-0.1.1/kernel/module.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/module.c
 +++ linux-2.6.31.12-0.1.1/kernel/module.c
 @@ -55,6 +55,7 @@
@@ -671,8 +630,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/module.c
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
-Index: linux-2.6.31.12-0.1.1/kernel/ptrace.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/ptrace.c
 +++ linux-2.6.31.12-0.1.1/kernel/ptrace.c
 @@ -22,6 +22,7 @@
@@ -701,8 +658,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/ptrace.c
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-Index: linux-2.6.31.12-0.1.1/kernel/sched.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/sched.c
 +++ linux-2.6.31.12-0.1.1/kernel/sched.c
 @@ -75,6 +75,7 @@
@@ -722,8 +677,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/sched.c
  
  	/*
  	 * Setpriority might change our priority at the same moment.
-Index: linux-2.6.31.12-0.1.1/kernel/signal.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/signal.c
 +++ linux-2.6.31.12-0.1.1/kernel/signal.c
 @@ -34,6 +34,7 @@
@@ -752,7 +705,7 @@ Index: linux-2.6.31.12-0.1.1/kernel/signal.c
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2356,6 +2361,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2356,6 +2361,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -761,7 +714,7 @@ Index: linux-2.6.31.12-0.1.1/kernel/signal.c
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2373,6 +2380,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
+@@ -2373,6 +2380,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -779,8 +732,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/signal.c
  
  	return do_send_specific(tgid, pid, sig, info);
  }
-Index: linux-2.6.31.12-0.1.1/kernel/sys.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/sys.c
 +++ linux-2.6.31.12-0.1.1/kernel/sys.c
 @@ -45,6 +45,7 @@
@@ -829,8 +780,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/sys.c
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
-Index: linux-2.6.31.12-0.1.1/kernel/sysctl.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/sysctl.c
 +++ linux-2.6.31.12-0.1.1/kernel/sysctl.c
 @@ -55,6 +55,7 @@
@@ -851,8 +800,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/sysctl.c
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
-Index: linux-2.6.31.12-0.1.1/kernel/time.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/time.c
 +++ linux-2.6.31.12-0.1.1/kernel/time.c
 @@ -41,6 +41,7 @@
@@ -863,7 +810,7 @@ Index: linux-2.6.31.12-0.1.1/kernel/time.c
  
  #include "timeconst.h"
  
-@@ -92,6 +93,8 @@ SYSCALL_DEFINE1(stime, time_t __user *,
+@@ -92,6 +93,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -872,7 +819,7 @@ Index: linux-2.6.31.12-0.1.1/kernel/time.c
  
  	do_settimeofday(&tv);
  	return 0;
-@@ -163,6 +166,8 @@ int do_sys_settimeofday(struct timespec
+@@ -163,6 +166,8 @@ int do_sys_settimeofday(struct timespec 
  	error = security_settime(tv, tz);
  	if (error)
  		return error;
@@ -881,8 +828,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/time.c
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
-Index: linux-2.6.31.12-0.1.1/kernel/time/ntp.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/kernel/time/ntp.c
 +++ linux-2.6.31.12-0.1.1/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
@@ -909,8 +854,6 @@ Index: linux-2.6.31.12-0.1.1/kernel/time/ntp.c
  
  		/*
  		 * if the quartz is off by more than 10% then
-Index: linux-2.6.31.12-0.1.1/net/ipv4/inet_connection_sock.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv4/inet_connection_sock.c
 +++ linux-2.6.31.12-0.1.1/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,7 @@
@@ -930,8 +873,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv4/inet_connection_sock.c
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (ib_net(tb) == net && tb->port == rover) {
  					if (tb->fastreuse > 0 &&
-Index: linux-2.6.31.12-0.1.1/net/ipv4/inet_hashtables.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv4/inet_hashtables.c
 +++ linux-2.6.31.12-0.1.1/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,7 @@
@@ -951,8 +892,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv4/inet_hashtables.c
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
-Index: linux-2.6.31.12-0.1.1/net/ipv4/raw.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv4/raw.c
 +++ linux-2.6.31.12-0.1.1/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
@@ -973,8 +912,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv4/raw.c
  
  	copied = skb->len;
  	if (len < copied) {
-Index: linux-2.6.31.12-0.1.1/net/ipv4/udp.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv4/udp.c
 +++ linux-2.6.31.12-0.1.1/net/ipv4/udp.c
 @@ -105,6 +105,7 @@
@@ -1005,8 +942,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv4/udp.c
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-Index: linux-2.6.31.12-0.1.1/net/ipv6/raw.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv6/raw.c
 +++ linux-2.6.31.12-0.1.1/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
@@ -1027,8 +962,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv6/raw.c
  
  	copied = skb->len;
  	if (copied > len) {
-Index: linux-2.6.31.12-0.1.1/net/ipv6/udp.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/ipv6/udp.c
 +++ linux-2.6.31.12-0.1.1/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
@@ -1049,8 +982,6 @@ Index: linux-2.6.31.12-0.1.1/net/ipv6/udp.c
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
-Index: linux-2.6.31.12-0.1.1/net/socket.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/socket.c
 +++ linux-2.6.31.12-0.1.1/net/socket.c
 @@ -96,6 +96,8 @@
@@ -1062,7 +993,7 @@ Index: linux-2.6.31.12-0.1.1/net/socket.c
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -567,6 +569,8 @@ static inline int __sock_sendmsg(struct
+@@ -567,6 +569,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -1123,8 +1054,6 @@ Index: linux-2.6.31.12-0.1.1/net/socket.c
  	if (err)
  		goto out_put;
  
-Index: linux-2.6.31.12-0.1.1/net/unix/af_unix.c
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/net/unix/af_unix.c
 +++ linux-2.6.31.12-0.1.1/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
@@ -1146,8 +1075,6 @@ Index: linux-2.6.31.12-0.1.1/net/unix/af_unix.c
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
-Index: linux-2.6.31.12-0.1.1/security/Kconfig
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/security/Kconfig
 +++ linux-2.6.31.12-0.1.1/security/Kconfig
 @@ -145,5 +145,7 @@ source security/apparmor/Kconfig
@@ -1158,8 +1085,6 @@ Index: linux-2.6.31.12-0.1.1/security/Kconfig
 +
  endmenu
  
-Index: linux-2.6.31.12-0.1.1/security/Makefile
-===================================================================
 --- linux-2.6.31.12-0.1.1.orig/security/Makefile
 +++ linux-2.6.31.12-0.1.1/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c

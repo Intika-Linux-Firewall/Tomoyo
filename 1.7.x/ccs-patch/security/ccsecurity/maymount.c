@@ -27,36 +27,22 @@
 #endif
 #include "internal.h"
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-#define PATH_or_NAMEIDATA path
-#else
-#define PATH_or_NAMEIDATA nameidata
-#endif
-
 /**
  * ccs_conceal_mount - Check whether this mount request shadows existing mounts.
  *
- * @path:   Pointer to "struct path" (for 2.6.27 and later).
- *          Pointer to "struct nameidata" (for 2.6.26 and earlier).
+ * @path:   Pointer to "struct path".
  * @vfsmnt: Pointer to "struct vfsmount".
  * @dentry: Pointer to "struct dentry".
  *
  * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
  */
-static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
-			      struct vfsmount *vfsmnt,
+static bool ccs_conceal_mount(struct path *path, struct vfsmount *vfsmnt,
 			      struct dentry *dentry)
 {
 	while (1) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 26)
-		if (path->path.mnt->mnt_root == vfsmnt->mnt_root &&
-		    path->path.dentry == dentry)
-			return true;
-#else
 		if (path->mnt->mnt_root == vfsmnt->mnt_root &&
 		    path->dentry == dentry)
 			return true;
-#endif
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
 			if (vfsmnt->mnt_parent == vfsmnt)
 				break;
@@ -72,11 +58,11 @@ static bool ccs_conceal_mount(struct PATH_or_NAMEIDATA *path,
 /**
  * ccs_may_mount - Check whether this mount request shadows existing mounts.
  *
- * @nd: Pointer to "struct nameidata".
+ * @path: Pointer to "struct path".
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_may_mount(struct PATH_or_NAMEIDATA *path)
+int ccs_may_mount(struct path *path)
 {
 	struct ccs_request_info r;
 	struct list_head *p;

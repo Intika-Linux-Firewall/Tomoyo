@@ -33,7 +33,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                     |   25 +++++++++++++++++++++++--
- fs/open.c                          |   28 ++++++++++++++++++++++++++++
+ fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
  include/linux/sched.h              |    6 ++++++
@@ -54,7 +54,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 52 files changed, 320 insertions(+), 11 deletions(-)
+ 52 files changed, 318 insertions(+), 11 deletions(-)
 
 --- linux-2.6.8-17sarge1.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-17sarge1/arch/alpha/kernel/ptrace.c
@@ -801,7 +801,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		err = -EPERM;
-+		if (ccs_may_mount(nd))
++		if (ccs_may_mount(ccs_mkpath(nd)))
 +			goto out;
  		err = -ENOMEM;
  		if (recurse)
@@ -821,7 +821,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
@@ -831,7 +831,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -844,31 +844,24 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1013,6 +1027,9 @@ long do_mount(char * dev_name, char * di
+@@ -1013,6 +1027,10 @@ long do_mount(char * dev_name, char * di
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, &nd, type_page,
-+					      original_flags, data_page);
++		retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd),
++					      type_page, original_flags,
++					      data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1251,6 +1268,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -1266,6 +1285,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1266,6 +1284,9 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
++						  ccs_mkpath(&new_nd));
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -902,18 +895,16 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -582,6 +589,10 @@ asmlinkage long sys_chroot(const char __
+@@ -582,6 +589,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(ccs_mkpath(&nd)))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -613,6 +624,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -613,6 +622,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -923,7 +914,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -646,6 +660,9 @@ asmlinkage long sys_chmod(const char __u
+@@ -646,6 +658,9 @@ asmlinkage long sys_chmod(const char __u
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -933,7 +924,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  
  	down(&inode->i_sem);
  	if (mode == (mode_t) -1)
-@@ -703,6 +720,8 @@ asmlinkage long sys_chown(const char __u
+@@ -703,6 +718,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -942,7 +933,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -716,6 +735,8 @@ asmlinkage long sys_lchown(const char __
+@@ -716,6 +733,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -951,7 +942,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -730,6 +751,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -730,6 +749,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -961,7 +952,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -761,7 +785,9 @@ struct file *filp_open(const char * file
+@@ -761,7 +783,9 @@ struct file *filp_open(const char * file
  	if (namei_flags & O_TRUNC)
  		namei_flags |= 2;
  
@@ -971,7 +962,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  	if (!error)
  		return dentry_open(nd.dentry, nd.mnt, flags);
  
-@@ -1049,6 +1075,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1049,6 +1073,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -986,7 +977,7 @@ Source code for this patch is "apt-get install kernel-source-2.6.8"
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2009/10/20\n");
++	printk(KERN_INFO "Hook version: 2.6.8-17sarge1 2010/02/19\n");
  }
 --- linux-2.6.8-17sarge1.orig/include/linux/init_task.h
 +++ linux-2.6.8-17sarge1/include/linux/init_task.h

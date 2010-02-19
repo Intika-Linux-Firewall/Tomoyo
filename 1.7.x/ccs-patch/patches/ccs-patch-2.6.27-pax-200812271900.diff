@@ -10,8 +10,8 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    2 ++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -36,7 +36,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 249 insertions(+), 2 deletions(-)
+ 34 files changed, 245 insertions(+), 2 deletions(-)
 
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/arch/ia64/ia32/sys_ia32.c
@@ -421,16 +421,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	if (retval)
  		goto dput_out;
  
-@@ -2189,6 +2207,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	error = user_path_dir(new_root, &new);
- 	if (error)
-@@ -2202,6 +2222,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2202,6 +2220,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -469,18 +460,16 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -571,6 +578,10 @@ asmlinkage long sys_chroot(const char __
+@@ -571,6 +578,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
 +	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -600,6 +611,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -600,6 +609,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = mnt_want_write(file->f_path.mnt);
  	if (err)
  		goto out_putf;
@@ -490,7 +479,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -607,6 +621,7 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -607,6 +619,7 @@ asmlinkage long sys_fchmod(unsigned int 
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -498,7 +487,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -630,6 +645,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -630,6 +643,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -508,7 +497,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -637,6 +655,7 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -637,6 +653,7 @@ asmlinkage long sys_fchmodat(int dfd, co
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -516,7 +505,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -685,6 +704,8 @@ asmlinkage long sys_chown(const char __u
+@@ -685,6 +702,8 @@ asmlinkage long sys_chown(const char __u
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -525,7 +514,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -710,6 +731,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -710,6 +729,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -534,7 +523,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -729,6 +752,8 @@ asmlinkage long sys_lchown(const char __
+@@ -729,6 +750,8 @@ asmlinkage long sys_lchown(const char __
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -543,7 +532,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -753,6 +778,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -753,6 +776,8 @@ asmlinkage long sys_fchown(unsigned int 
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -552,7 +541,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1140,6 +1167,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1140,6 +1165,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -568,7 +557,7 @@ Source code for this patch are http://www.kernel.org/pub/linux/kernel/v2.6/linux
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
 +	printk(KERN_INFO
-+	       "Hook version: 2.6.27.10+pax-200812271900 2009/10/20\n");
++	       "Hook version: 2.6.27.10+pax-200812271900 2010/02/19\n");
  }
 --- linux-2.6.27.10+pax-linux-2.6.27.10-200812271900.orig/include/linux/init_task.h
 +++ linux-2.6.27.10+pax-linux-2.6.27.10-200812271900/include/linux/init_task.h
