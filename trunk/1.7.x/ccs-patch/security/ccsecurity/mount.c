@@ -318,32 +318,20 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 	return error;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
-#define PATH_or_NAMEIDATA path
-#else
-#define PATH_or_NAMEIDATA nameidata
-#endif
-
 /**
  * ccs_mount_permission - Check permission for mount() operation.
  *
  * @dev_name:  Name of device file.
- * @path:      Pointer to "struct path" (for 2.6.26 and later).
- *             Pointer to "struct nameidata" (for 2.6.25 and earlier).
+ * @path:      Pointer to "struct path".
  * @type:      Name of filesystem type. May be NULL.
  * @flags:     Mount options.
  * @data_page: Optional data. May be NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_mount_permission(char *dev_name, struct PATH_or_NAMEIDATA *path,
-			 char *type, unsigned long flags, void *data_page)
+int ccs_mount_permission(char *dev_name, struct path *path, char *type,
+			 unsigned long flags, void *data_page)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
-	struct path dir = { path->mnt, path->dentry };
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 25)
-	struct path dir = { path->path.mnt, path->path.dentry };
-#endif
 	struct ccs_request_info r;
 	int error;
 	int idx;
@@ -355,11 +343,7 @@ int ccs_mount_permission(char *dev_name, struct PATH_or_NAMEIDATA *path,
 	if (!type)
 		type = "<NULL>";
 	idx = ccs_read_lock();
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
 	error = ccs_mount_acl(&r, dev_name, path, type, flags);
-#else
-	error = ccs_mount_acl(&r, dev_name, &dir, type, flags);
-#endif
 	ccs_read_unlock(idx);
 	return error;
 }

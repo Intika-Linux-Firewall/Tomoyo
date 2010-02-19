@@ -17,7 +17,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 +++++++++++++++++++++++++++++++-
  fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -43,7 +43,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 267 insertions(+), 3 deletions(-)
+ 41 files changed, 265 insertions(+), 3 deletions(-)
 
 --- linux-2.6.24-27.65.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-27.65/arch/ia64/ia32/sys_ia32.c
@@ -483,7 +483,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
  
  	err = -ENOMEM;
@@ -493,7 +493,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -503,7 +503,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -516,31 +516,24 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1464,6 +1479,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1464,6 +1479,10 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, &nd, type_page,
-+					      original_flags, data_page);
++		retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd),
++					      type_page, original_flags,
++					      data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1717,6 +1735,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -1733,6 +1753,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1733,6 +1752,9 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
++						  ccs_mkpath(&new_nd));
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -574,18 +567,16 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, file->f_path.mnt, length,
-@@ -542,6 +549,10 @@ asmlinkage long sys_chroot(const char __
+@@ -542,6 +549,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(ccs_mkpath(&nd)))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -575,6 +586,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -575,6 +584,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -595,7 +586,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -609,6 +623,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -609,6 +621,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -605,7 +596,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -676,6 +693,8 @@ asmlinkage long sys_chown(const char __u
+@@ -676,6 +691,8 @@ asmlinkage long sys_chown(const char __u
  	error = user_path_walk(filename, &nd);
  	if (error)
  		goto out;
@@ -614,7 +605,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -696,6 +715,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -696,6 +713,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (error)
  		goto out;
@@ -623,7 +614,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -710,6 +731,8 @@ asmlinkage long sys_lchown(const char __
+@@ -710,6 +729,8 @@ asmlinkage long sys_lchown(const char __
  	error = user_path_walk_link(filename, &nd);
  	if (error)
  		goto out;
@@ -632,7 +623,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(nd.dentry, nd.mnt, user, group, NULL);
  	path_release(&nd);
  out:
-@@ -729,6 +752,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -729,6 +750,8 @@ asmlinkage long sys_fchown(unsigned int 
  
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -641,7 +632,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	error = chown_common(dentry, file->f_path.mnt, user, group, file);
  	fput(file);
  out:
-@@ -825,7 +850,9 @@ static struct file *do_filp_open(int dfd
+@@ -825,7 +848,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -651,7 +642,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1162,6 +1189,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1162,6 +1187,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -666,7 +657,7 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.24-27.65 2010/02/04\n");
++	printk(KERN_INFO "Hook version: 2.6.24-27.65 2010/02/19\n");
  }
 --- linux-2.6.24-27.65.orig/include/linux/init_task.h
 +++ linux-2.6.24-27.65/include/linux/init_task.h

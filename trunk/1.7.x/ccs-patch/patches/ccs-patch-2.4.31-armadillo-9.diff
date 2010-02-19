@@ -37,8 +37,8 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |   10 ++++++++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   34 +++++++++++++++++++++++++++++++++-
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c                  |   33 ++++++++++++++++++++++++++++++++-
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/sched.h           |   14 ++++++++++++++
  kernel/kmod.c                   |    5 +++++
@@ -56,7 +56,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  net/ipv6/udp.c                  |   13 ++++++++++++-
  net/socket.c                    |   23 +++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 54 files changed, 354 insertions(+), 8 deletions(-)
+ 54 files changed, 351 insertions(+), 8 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.31-a9-3/arch/alpha/kernel/ptrace.c
@@ -904,7 +904,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		err = -EPERM;
-+		if (ccs_may_mount(nd))
++		if (ccs_may_mount(ccs_mkpath(nd)))
 +			goto out;
  		err = -ENOMEM;
  		if (recurse)
@@ -923,7 +923,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
 +
  	err = -ENOENT;
@@ -934,7 +934,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		goto unlock;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto unlock;
 +
  	mnt->mnt_flags = mnt_flags;
@@ -952,7 +952,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (retval)
  		return retval;
  
-+	retval = ccs_mount_permission(dev_name, &nd, type_page,
++	retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd), type_page,
 +				      original_flags, data_page);
 +	if (retval)
 +		goto out;
@@ -968,20 +968,12 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	path_release(&nd);
  	return retval;
  }
-@@ -911,6 +936,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -925,6 +952,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -925,6 +950,12 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
-+	error = ccs_pivot_root_permission(&old_nd, &new_nd);
++	error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
++					  ccs_mkpath(&new_nd));
 +	if (error) {
 +		path_release(&old_nd);
 +		goto out1;
@@ -1020,18 +1012,16 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length);
-@@ -464,6 +472,10 @@ asmlinkage long sys_chroot(const char * 
+@@ -464,6 +472,8 @@ asmlinkage long sys_chroot(const char * 
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(ccs_mkpath(&nd)))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -495,6 +507,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -495,6 +505,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -1041,7 +1031,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
  	newattrs.ia_mode = (mode & S_IALLUGO) | (inode->i_mode & ~S_IALLUGO);
-@@ -526,6 +541,9 @@ asmlinkage long sys_chmod(const char * f
+@@ -526,6 +539,9 @@ asmlinkage long sys_chmod(const char * f
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -1051,7 +1041,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -606,6 +624,8 @@ asmlinkage long sys_chown(const char * f
+@@ -606,6 +622,8 @@ asmlinkage long sys_chown(const char * f
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -1060,7 +1050,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -619,6 +639,8 @@ asmlinkage long sys_lchown(const char * 
+@@ -619,6 +637,8 @@ asmlinkage long sys_lchown(const char * 
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -1069,7 +1059,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -633,6 +655,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -633,6 +653,9 @@ asmlinkage long sys_fchown(unsigned int 
  
  	file = fget(fd);
  	if (file) {
@@ -1079,7 +1069,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		error = chown_common(file->f_dentry, user, group);
  		fput(file);
  	}
-@@ -664,7 +689,9 @@ struct file *filp_open(const char * file
+@@ -664,7 +687,9 @@ struct file *filp_open(const char * file
  	if (namei_flags & O_TRUNC)
  		namei_flags |= 2;
  
@@ -1089,7 +1079,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  	if (!error)
  		return dentry_open(nd.dentry, nd.mnt, flags);
  
-@@ -895,6 +922,8 @@ out_unlock:
+@@ -895,6 +920,8 @@ out_unlock:
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -1104,7 +1094,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2009/10/20\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2010/02/19\n");
  }
 --- linux-2.4.31-a9-3.orig/include/linux/sched.h
 +++ linux-2.4.31-a9-3/include/linux/sched.h

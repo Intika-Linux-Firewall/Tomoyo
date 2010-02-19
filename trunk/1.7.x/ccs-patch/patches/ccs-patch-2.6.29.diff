@@ -8,8 +8,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   22 ++++++++++++++++++++++
- fs/open.c                       |   29 +++++++++++++++++++++++++++++
+ fs/namespace.c                  |   20 ++++++++++++++++++++
+ fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 251 insertions(+), 3 deletions(-)
+ 32 files changed, 247 insertions(+), 3 deletions(-)
 
 --- linux-2.6.29.6.orig/fs/compat.c
 +++ linux-2.6.29.6/fs/compat.c
@@ -381,16 +381,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -2122,6 +2140,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	error = user_path_dir(new_root, &new);
- 	if (error)
-@@ -2135,6 +2155,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2135,6 +2153,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -429,18 +420,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -585,6 +592,10 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -585,6 +592,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
 +	if (ccs_chroot_permission(&path))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -614,6 +625,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -614,6 +623,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write(file->f_path.mnt);
  	if (err)
  		goto out_putf;
@@ -450,7 +439,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -621,6 +635,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -621,6 +633,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -458,7 +447,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -643,6 +658,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -643,6 +656,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -468,7 +457,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -650,6 +668,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -650,6 +666,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -476,7 +465,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -698,6 +717,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -698,6 +715,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -485,7 +474,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -723,6 +744,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -723,6 +742,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -494,7 +483,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -742,6 +765,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -742,6 +763,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -503,7 +492,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -765,6 +790,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -765,6 +788,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -512,7 +501,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1156,6 +1183,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1156,6 +1181,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -530,7 +519,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29.6 2009/10/20\n");
++	printk(KERN_INFO "Hook version: 2.6.29.6 2010/02/19\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

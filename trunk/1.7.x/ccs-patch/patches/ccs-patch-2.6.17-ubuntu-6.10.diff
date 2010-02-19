@@ -18,7 +18,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
  fs/namespace.c                  |   23 ++++++++++++++++++++++-
- fs/open.c                       |   31 ++++++++++++++++++++++++++++++-
+ fs/open.c                       |   29 ++++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -43,7 +43,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 286 insertions(+), 10 deletions(-)
+ 41 files changed, 284 insertions(+), 10 deletions(-)
 
 --- linux-2.6.17.1-12.44.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.17.1-12.44/arch/alpha/kernel/ptrace.c
@@ -511,7 +511,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
  
  	err = -ENOMEM;
@@ -522,7 +522,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -532,7 +532,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(nd))
++	if (ccs_may_mount(ccs_mkpath(nd)))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -545,31 +545,24 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1417,6 +1431,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1417,6 +1431,10 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, &nd, type_page,
-+					      original_flags, data_page);
++		retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd),
++					      type_page, original_flags,
++					      data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1685,6 +1702,8 @@ asmlinkage long sys_pivot_root(const cha
- 
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
-+	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-+		return -EPERM;
- 
- 	lock_kernel();
- 
-@@ -1701,6 +1720,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1701,6 +1719,9 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(&old_nd, &new_nd);
++		error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
++						  ccs_mkpath(&new_nd));
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -604,18 +597,16 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, 0, file);
-@@ -608,6 +614,10 @@ asmlinkage long sys_chroot(const char __
+@@ -608,6 +614,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (!ccs_capable(CCS_SYS_CHROOT))
-+		goto dput_and_out;
-+	if (ccs_chroot_permission(&nd))
++	if (ccs_chroot_permission(ccs_mkpath(&nd)))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
  	set_fs_altroot();
-@@ -641,6 +651,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -641,6 +649,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_putf;
@@ -625,7 +616,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -675,6 +688,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -675,6 +686,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto dput_and_out;
@@ -635,7 +626,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -737,6 +753,8 @@ asmlinkage long sys_chown(const char __u
+@@ -737,6 +751,8 @@ asmlinkage long sys_chown(const char __u
  
  	error = user_path_walk(filename, &nd);
  	if (!error) {
@@ -644,7 +635,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -756,6 +774,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -756,6 +772,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	follow = (flag & AT_SYMLINK_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
  	error = __user_walk_fd(dfd, filename, follow, &nd);
  	if (!error) {
@@ -653,7 +644,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -770,6 +790,8 @@ asmlinkage long sys_lchown(const char __
+@@ -770,6 +788,8 @@ asmlinkage long sys_lchown(const char __
  
  	error = user_path_walk_link(filename, &nd);
  	if (!error) {
@@ -662,7 +653,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		error = chown_common(nd.dentry, user, group);
  		path_release(&nd);
  	}
-@@ -787,6 +809,9 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -787,6 +807,9 @@ asmlinkage long sys_fchown(unsigned int 
  		struct dentry * dentry;
  		dentry = file->f_dentry;
  		audit_inode(NULL, dentry->d_inode, 0);
@@ -672,7 +663,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  		error = chown_common(dentry, user, group);
  		fput(file);
  	}
-@@ -879,7 +904,9 @@ static struct file *do_filp_open(int dfd
+@@ -879,7 +902,9 @@ static struct file *do_filp_open(int dfd
  	if ((namei_flags+1) & O_ACCMODE)
  		namei_flags++;
  
@@ -682,7 +673,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (!error)
  		return nameidata_to_filp(&nd, flags);
  
-@@ -1199,6 +1226,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1199,6 +1224,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -697,7 +688,7 @@ Source code for this patch is "apt-get install linux-source-2.6.17"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.17.1-12.44 2009/10/20\n");
++	printk(KERN_INFO "Hook version: 2.6.17.1-12.44 2010/02/19\n");
  }
 --- linux-2.6.17.1-12.44.orig/include/linux/init_task.h
 +++ linux-2.6.17.1-12.44/include/linux/init_task.h
