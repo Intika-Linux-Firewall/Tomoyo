@@ -167,6 +167,12 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
  <tr><td>/\*\-proc\-sys/</td><td>/\*/ other than /proc/ /sys/</td></tr>
  </table>
 </td></tr>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'. (Valid only in Kernel 2.6.33 and later)</td><td>
+ <ul>
+  <li>/var/www/html/\{\*\}/\*.html for /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html etc.</li>
+  <li>/home/\*/\{\*\-.\*\}/\* for /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* etc.</li>
+ </ul>
+</td></tr>
 </table>
 
 <h2>2.3 <a name="word_length_rules">Word Length Rules</a></h2>
@@ -179,7 +185,7 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 
 <h2>2.5 <a name="memory_allocation_rules">Memory Allocation Rules</a></h2>
 
-<p>In TOMOYO Linux, memory allocated for holding access permissions and words are never freed. There is no way except rebooting the system that can free unneeded memory.</p>
+<p>Regarding TOMOYO Linux for Kernel 2.6.33 and earlier, memory allocated for holding access permissions and words are never freed. There is no way except rebooting the system that can free unneeded memory.</p>
 
 <p>But don't worry. The policy seldom changes after you start production mode. By tuning policy before starting production mode, you can reduce memory usage to (usually) less than 1 MB.</p>
 
@@ -193,6 +199,18 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
 Shared:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;65536
 Private:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;49152
 Dynamic:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5106
+Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
+</pre></td></tr>
+</table>
+
+<p>Regarding TOMOYO Linux for Kernel 2.6.34 and later, memory allocated for holding access permissions and words are automatically freed. There is no need to reboot the system to free unneeded memory.</p>
+
+<p>The memory used by TOMOYO Linux can be obtained via /sys/kernel/security/tomoyo/meminfo . The unit is byte. "Policy:" indicates memory used for holding policy.</p>
+
+<table border="1">
+<tr><td><pre>
+# cat /sys/kernel/security/tomoyo/meminfo
+Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </pre></td></tr>
 </table>
@@ -690,10 +708,18 @@ chown -R demo /sys/kernel/security/tomoyo/
 
 <p>You can set memory quota by writing to /sys/kernel/security/tomoyo/meminfo like</p>
 
+<p>(For Kernel 2.6.33 and earlier)</p>
 <table border="1">
 <tr><td>
 echo Shared: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo<br>
 echo Private: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
+</td></tr>
+</table>
+
+<p>(For Kernel 2.6.34 and later)</p>
+<table border="1">
+<tr><td>
+echo Policy: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
 </td></tr>
 </table>
 

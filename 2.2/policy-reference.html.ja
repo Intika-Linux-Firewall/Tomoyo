@@ -167,6 +167,12 @@
  <tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
  </table>
 </td></tr>
+<tr><td>/\{dir\}/</td><td>/ ＋１回以上の dir/ の繰り返しに一致する演算子（カーネル 2.6.33 以降のみ有効）</td><td>
+ <ul>
+ <li>/var/www/html/\{\*\}/\*.html ・・・ /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html など</li>
+ <li>/home/\*/\{\*\-.\*\}/\* ・・・ /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* など</li>
+ </ul>
+</td></tr>
 </table>
 
 <h2>2.3 <a name="word_length_rules">単語の長さに関する制約</a></h2>
@@ -179,7 +185,7 @@
 
 <h2>2.5 <a name="memory_allocation_rules">メモリ使用量に関する制約</a></h2>
 
-<p>TOMOYO Linux に於いては、アクセス許可や単語を記憶するために一度割り当てられたメモリは解放されません。システムを再起動する以外に、不要になったメモリを解放する手段は存在しません。</p>
+<p>カーネル 2.6.33 以前に搭載されている TOMOYO Linux に於いては、アクセス許可や単語を記憶するために一度割り当てられたメモリは解放されません。システムを再起動する以外に、不要になったメモリを解放する手段は存在しません。</p>
 
 <p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
 
@@ -192,6 +198,18 @@
 Shared:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;65536
 Private:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;49152
 Dynamic:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5106
+Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
+</pre></td></tr>
+</table>
+
+<p>カーネル 2.6.34 以降に搭載されている TOMOYO Linux に於いては、アクセス許可や単語を記憶するために割り当てられたメモリは自動的に解放されます。そのため、不要になったメモリを解放するためにシステムを再起動する必要はありません。</p>
+
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Policy: がポリシーを記憶するために使用されている量です。</p>
+
+<table border="1">
+<tr><td><pre>
+# cat /sys/kernel/security/tomoyo/meminfo
+Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 </pre></td></tr>
 </table>
@@ -682,10 +700,18 @@ chown -R demo /sys/kernel/security/tomoyo/
 
 <p>/etc/tomoyo/tomoyo-post-init から以下のように /sys/kernel/security/tomoyo/meminfo に書き込みを行うことで設定できます。</p>
 
+<p>カーネル 2.6.33 以前の場合</p>
 <table border="1">
 <tr><td>
 echo Shared: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo<br>
 echo Private: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
+</td></tr>
+</table>
+
+<p>カーネル 2.6.34 以降の場合</p>
+<table border="1">
+<tr><td>
+echo Policy: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
 </td></tr>
 </table>
 
