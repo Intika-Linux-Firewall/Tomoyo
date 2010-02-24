@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-2.6.33-rc7-next-20100212.
+This is TOMOYO Linux patch for linux-2.6.33-rc8-next-20100223.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.33-rc7.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-rc7-next-20100212.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.33-rc8.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-rc8-next-20100223.bz2
 ---
  fs/compat.c                     |    2 
  fs/compat_ioctl.c               |    4 +
@@ -81,7 +81,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 --- linux-next.orig/fs/namei.c
 +++ linux-next/fs/namei.c
-@@ -1488,6 +1488,11 @@ int may_open(struct path *path, int acc_
+@@ -1501,6 +1501,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -93,7 +93,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1543,6 +1548,7 @@ out_unlock:
+@@ -1556,6 +1561,7 @@ out_unlock:
  	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
  }
  
@@ -153,7 +153,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33-rc7-next-20100212 2010/02/14\n");
++	printk(KERN_INFO "Hook version: 2.6.33-rc8-next-20100223 2010/02/24\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -193,7 +193,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1551,6 +1553,10 @@ struct task_struct {
+@@ -1554,6 +1556,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -482,7 +482,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	 * This lock_kernel fixes a subtle race with suid exec
 --- linux-next.orig/kernel/sched.c
 +++ linux-next/kernel/sched.c
-@@ -4326,6 +4326,8 @@ int can_nice(const struct task_struct *p
+@@ -4364,6 +4364,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -657,7 +657,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +		goto out;
  
  	ulen = skb->len - sizeof(struct udphdr);
- 	copied = len;
+ 	if (len > ulen)
 --- linux-next.orig/net/ipv6/raw.c
 +++ linux-next/net/ipv6/raw.c
 @@ -463,6 +463,9 @@ static int rawv6_recvmsg(struct kiocb *i
@@ -681,7 +681,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +		goto out;
  
  	ulen = skb->len - sizeof(struct udphdr);
- 	copied = len;
+ 	if (len > ulen)
 --- linux-next.orig/net/socket.c
 +++ linux-next/net/socket.c
 @@ -1520,6 +1520,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
