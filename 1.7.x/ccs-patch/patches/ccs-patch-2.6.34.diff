@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-2.6.33-rc8-next-20100223.
+This is TOMOYO Linux patch for linux-2.6.33-next-20100225.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.33-rc8.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-rc8-next-20100223.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.33.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.33-next-20100225.bz2
 ---
  fs/compat.c                     |    2 
  fs/compat_ioctl.c               |    4 +
@@ -59,7 +59,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  			if (error != -ENOIOCTLCMD)
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1383,7 +1383,7 @@ int do_execve(char * filename,
+@@ -1382,7 +1382,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -153,7 +153,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33-rc8-next-20100223 2010/02/24\n");
++	printk(KERN_INFO "Hook version: 2.6.33-next-20100225 2010/02/25\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -214,7 +214,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -2019,7 +2020,10 @@ static inline int security_syslog(int ty
+@@ -2021,7 +2022,10 @@ static inline int security_syslog(int ty
  
  static inline int security_settime(struct timespec *ts, struct timezone *tz)
  {
@@ -226,7 +226,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_vm_enough_memory(long pages)
-@@ -2097,7 +2101,7 @@ static inline int security_sb_mount(char
+@@ -2099,7 +2103,7 @@ static inline int security_sb_mount(char
  				    char *type, unsigned long flags,
  				    void *data)
  {
@@ -235,7 +235,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_sb_check_sb(struct vfsmount *mnt,
-@@ -2108,7 +2112,7 @@ static inline int security_sb_check_sb(s
+@@ -2110,7 +2114,7 @@ static inline int security_sb_check_sb(s
  
  static inline int security_sb_umount(struct vfsmount *mnt, int flags)
  {
@@ -244,7 +244,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline void security_sb_umount_close(struct vfsmount *mnt)
-@@ -2128,7 +2132,7 @@ static inline void security_sb_post_addm
+@@ -2130,7 +2134,7 @@ static inline void security_sb_post_addm
  static inline int security_sb_pivotroot(struct path *old_path,
  					struct path *new_path)
  {
@@ -253,7 +253,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline void security_sb_post_pivotroot(struct path *old_path,
-@@ -2326,7 +2330,7 @@ static inline void security_file_free(st
+@@ -2328,7 +2332,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -262,7 +262,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -2353,7 +2357,7 @@ static inline int security_file_lock(str
+@@ -2355,7 +2359,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -271,7 +271,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2743,7 +2747,7 @@ static inline int security_unix_may_send
+@@ -2745,7 +2749,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -280,7 +280,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2758,19 +2762,19 @@ static inline int security_socket_bind(s
+@@ -2760,19 +2764,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -303,7 +303,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2782,7 +2786,7 @@ static inline int security_socket_accept
+@@ -2784,7 +2788,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -312,7 +312,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2993,43 +2997,48 @@ int security_path_chroot(struct path *pa
+@@ -2995,43 +2999,48 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -368,7 +368,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -3037,24 +3046,26 @@ static inline int security_path_rename(s
+@@ -3039,24 +3048,26 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -462,7 +462,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (mutex_lock_interruptible(&module_mutex) != 0)
 --- linux-next.orig/kernel/ptrace.c
 +++ linux-next/kernel/ptrace.c
-@@ -623,6 +623,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+@@ -685,6 +685,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -471,7 +471,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -744,6 +746,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -832,6 +834,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -551,7 +551,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -378,6 +382,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -380,6 +384,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -560,7 +560,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1133,6 +1139,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1135,6 +1141,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -569,7 +569,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1182,6 +1190,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1184,6 +1192,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -717,7 +717,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
 --- linux-next.orig/security/security.c
 +++ linux-next/security/security.c
-@@ -210,7 +210,10 @@ int security_syslog(int type, bool from_
+@@ -217,7 +217,10 @@ int security_syslog(int type, bool from_
  
  int security_settime(struct timespec *ts, struct timezone *tz)
  {
@@ -729,7 +729,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_vm_enough_memory(long pages)
-@@ -296,7 +299,11 @@ int security_sb_statfs(struct dentry *de
+@@ -303,7 +306,11 @@ int security_sb_statfs(struct dentry *de
  int security_sb_mount(char *dev_name, struct path *path,
                         char *type, unsigned long flags, void *data)
  {
@@ -742,7 +742,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_sb_check_sb(struct vfsmount *mnt, struct path *path)
-@@ -306,7 +313,10 @@ int security_sb_check_sb(struct vfsmount
+@@ -313,7 +320,10 @@ int security_sb_check_sb(struct vfsmount
  
  int security_sb_umount(struct vfsmount *mnt, int flags)
  {
@@ -754,7 +754,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  void security_sb_umount_close(struct vfsmount *mnt)
-@@ -331,7 +341,10 @@ void security_sb_post_addmount(struct vf
+@@ -338,7 +348,10 @@ void security_sb_post_addmount(struct vf
  
  int security_sb_pivotroot(struct path *old_path, struct path *new_path)
  {
@@ -766,7 +766,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  void security_sb_post_pivotroot(struct path *old_path, struct path *new_path)
-@@ -392,85 +405,140 @@ EXPORT_SYMBOL(security_inode_init_securi
+@@ -399,85 +412,140 @@ EXPORT_SYMBOL(security_inode_init_securi
  int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
  			unsigned int dev)
  {
@@ -919,7 +919,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  #endif
  
-@@ -676,7 +744,10 @@ void security_file_free(struct file *fil
+@@ -683,7 +751,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -931,7 +931,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -704,7 +775,10 @@ int security_file_lock(struct file *file
+@@ -711,7 +782,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -943,7 +943,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -1065,7 +1139,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1072,7 +1146,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -955,7 +955,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1077,17 +1154,26 @@ int security_socket_post_create(struct s
+@@ -1084,17 +1161,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -985,7 +985,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1097,7 +1183,10 @@ int security_socket_accept(struct socket
+@@ -1104,7 +1190,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
