@@ -3,9 +3,9 @@
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 2.2.0   2009/07/27
+ * Version: 2.2.0+   2010/02/25
  *
  */
 #include "tomoyotools.h"
@@ -1220,7 +1220,7 @@ show_version:
 	 * You should use either "symbolic links with 'alias' directive" or
 	 * "hard links".
 	 */
-	printf("tomoyotools version 2.2.0 build 2009/07/27\n");
+	printf("tomoyotools version 2.2.0+ build 2010/02/25\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }
