@@ -1,11 +1,11 @@
 /*
- * init_policy.c
+ * tomoyo_init_policy.c
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 2.2.0   2009/07/27
+ * Version: 2.2.0+   2010/02/25
  *
  */
 #define _FILE_OFFSET_BITS 64

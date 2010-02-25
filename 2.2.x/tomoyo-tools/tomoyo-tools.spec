@@ -10,7 +10,7 @@ Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Conflicts: tomoyo-tools < 2.2.0-2
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-2010????.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/41908/tomoyo-tools-2.2.0-20100225.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -40,7 +40,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
-* ??? ??? ?? 2010 2.2.0-2
+* Thu Feb 25 2010 2.2.0-2
 - Recursive directory matching operator support was added to kernel 2.6.33.
 - Restriction for ioctl/chmod/chown/chgrp/mount/unmount/chroot/pivot_root was added to kernel 2.6.34.
 
