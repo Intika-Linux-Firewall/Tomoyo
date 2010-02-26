@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.27.25-78.2.56.fc9.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/9/SRPMS.newkey/kernel-2.6.27.25-78.2.56.fc9.src.rpm || die "Can't download source package."
+    wget http://archive.fedoraproject.org/pub/archive/fedora/linux/updates/9/SRPMS.newkey/kernel-2.6.27.25-78.2.56.fc9.src.rpm || die "Can't download source package."
 fi
 rpm -ivh kernel-2.6.27.25-78.2.56.fc9.src.rpm || die "Can't install source package."
 
