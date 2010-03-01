@@ -1,0 +1,763 @@
+[PATCH] TOMOYO: Use stack memory for pending entry.
+
+Use stack memory for pending entry so that we can use memcmp() for finding
+duplicated entry and memmove() for commiting the entry.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c   |   20 ++-----
+ security/tomoyo/common.h   |   83 ++++++++++++++++--------------
+ security/tomoyo/domain.c   |   91 ++++++++++++---------------------
+ security/tomoyo/file.c     |  122 +++++++++++++++++++--------------------------
+ security/tomoyo/realpath.c |   19 +++++++
+ 5 files changed, 161 insertions(+), 174 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -1071,41 +1071,37 @@ static int tomoyo_update_manager_entry(c
+ {
+ 	struct tomoyo_policy_manager_entry *entry = NULL;
+ 	struct tomoyo_policy_manager_entry *ptr;
+-	const struct tomoyo_path_info *saved_manager;
++	struct tomoyo_policy_manager_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	bool is_domain = false;
+ 
+ 	if (tomoyo_is_domain_def(manager)) {
+ 		if (!tomoyo_is_correct_domain(manager))
+ 			return -EINVAL;
+-		is_domain = true;
++		e.is_domain = true;
+ 	} else {
+ 		if (!tomoyo_is_correct_path(manager, 1, -1, -1))
+ 			return -EINVAL;
+ 	}
+-	saved_manager = tomoyo_get_name(manager);
+-	if (!saved_manager)
++	e.manager = tomoyo_get_name(manager);
++	if (!e.manager)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
+-		if (ptr->manager != saved_manager)
++		if (ptr->manager != e.manager)
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->manager = saved_manager;
+-		saved_manager = NULL;
+-		entry->is_domain = is_domain;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_policy_manager_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+-	tomoyo_put_name(saved_manager);
++	tomoyo_put_name(e.manager);
+ 	kfree(entry);
+ 	return error;
+ }
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -377,14 +377,14 @@ struct tomoyo_io_buffer {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_globally_readable_list .
+- *  (2) "filename" is a pathname which is allowed to open(O_RDONLY).
+- *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
++ *  (3) "filename" is a pathname which is allowed to open(O_RDONLY).
+  */
+ struct tomoyo_globally_readable_file_entry {
+ 	struct list_head list;
+-	const struct tomoyo_path_info *filename;
+ 	bool is_deleted;
++	const struct tomoyo_path_info *filename;
+ };
+ 
+ /*
+@@ -393,15 +393,15 @@ struct tomoyo_globally_readable_file_ent
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_pattern_list .
+- *  (2) "pattern" is a pathname pattern which is used for converting pathnames
+- *      to pathname patterns during learning mode.
+- *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
++ *  (3) "pattern" is a pathname pattern which is used for converting pathnames
++ *      to pathname patterns during learning mode.
+  */
+ struct tomoyo_pattern_entry {
+ 	struct list_head list;
+-	const struct tomoyo_path_info *pattern;
+ 	bool is_deleted;
++	const struct tomoyo_path_info *pattern;
+ };
+ 
+ /*
+@@ -410,15 +410,15 @@ struct tomoyo_pattern_entry {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_no_rewrite_list .
+- *  (2) "pattern" is a pathname which is by default not permitted to modify
+- *      already existing content.
+- *  (3) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
++ *  (3) "pattern" is a pathname which is by default not permitted to modify
++ *      already existing content.
+  */
+ struct tomoyo_no_rewrite_entry {
+ 	struct list_head list;
+-	const struct tomoyo_path_info *pattern;
+ 	bool is_deleted;
++	const struct tomoyo_path_info *pattern;
+ };
+ 
+ /*
+@@ -427,24 +427,24 @@ struct tomoyo_no_rewrite_entry {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_domain_initializer_list .
+- *  (2) "domainname" which is "a domainname" or "the last component of a
+- *      domainname". This field is NULL if "from" clause is not specified.
+- *  (3) "program" which is a program's pathname.
+- *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
+- *  (5) "is_not" is a bool which is true if "no_initialize_domain", false
++ *  (3) "is_not" is a bool which is true if "no_initialize_domain", false
+  *      otherwise.
+- *  (6) "is_last_name" is a bool which is true if "domainname" is "the last
++ *  (4) "is_last_name" is a bool which is true if "domainname" is "the last
+  *      component of a domainname", false otherwise.
++ *  (5) "domainname" which is "a domainname" or "the last component of a
++ *      domainname". This field is NULL if "from" clause is not specified.
++ *  (6) "program" which is a program's pathname.
+  */
+ struct tomoyo_domain_initializer_entry {
+ 	struct list_head list;
+-	const struct tomoyo_path_info *domainname;    /* This may be NULL */
+-	const struct tomoyo_path_info *program;
+ 	bool is_deleted;
+ 	bool is_not;       /* True if this entry is "no_initialize_domain".  */
+ 	/* True if the domainname is tomoyo_get_last_name(). */
+ 	bool is_last_name;
++	const struct tomoyo_path_info *domainname;    /* This may be NULL */
++	const struct tomoyo_path_info *program;
+ };
+ 
+ /*
+@@ -453,25 +453,25 @@ struct tomoyo_domain_initializer_entry {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_domain_keeper_list .
+- *  (2) "domainname" which is "a domainname" or "the last component of a
+- *      domainname".
+- *  (3) "program" which is a program's pathname.
+- *      This field is NULL if "from" clause is not specified.
+- *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
+- *  (5) "is_not" is a bool which is true if "no_initialize_domain", false
++ *  (3) "is_not" is a bool which is true if "no_initialize_domain", false
+  *      otherwise.
+- *  (6) "is_last_name" is a bool which is true if "domainname" is "the last
++ *  (4) "is_last_name" is a bool which is true if "domainname" is "the last
+  *      component of a domainname", false otherwise.
++ *  (5) "domainname" which is "a domainname" or "the last component of a
++ *      domainname".
++ *  (6) "program" which is a program's pathname.
++ *      This field is NULL if "from" clause is not specified.
+  */
+ struct tomoyo_domain_keeper_entry {
+ 	struct list_head list;
+-	const struct tomoyo_path_info *domainname;
+-	const struct tomoyo_path_info *program;       /* This may be NULL */
+ 	bool is_deleted;
+ 	bool is_not;       /* True if this entry is "no_keep_domain".        */
+ 	/* True if the domainname is tomoyo_get_last_name(). */
+ 	bool is_last_name;
++	const struct tomoyo_path_info *domainname;
++	const struct tomoyo_path_info *program;       /* This may be NULL */
+ };
+ 
+ /*
+@@ -479,16 +479,16 @@ struct tomoyo_domain_keeper_entry {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_alias_list .
+- *  (2) "original_name" which is a dereferenced pathname.
+- *  (3) "aliased_name" which is a symlink's pathname.
+- *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
++ *  (3) "original_name" which is a dereferenced pathname.
++ *  (4) "aliased_name" which is a symlink's pathname.
+  */
+ struct tomoyo_alias_entry {
+ 	struct list_head list;
++	bool is_deleted;
+ 	const struct tomoyo_path_info *original_name;
+ 	const struct tomoyo_path_info *aliased_name;
+-	bool is_deleted;
+ };
+ 
+ /*
+@@ -498,18 +498,18 @@ struct tomoyo_alias_entry {
+  * It has following fields.
+  *
+  *  (1) "list" which is linked to tomoyo_policy_manager_list .
+- *  (2) "manager" is a domainname or a program's pathname.
+- *  (3) "is_domain" is a bool which is true if "manager" is a domainname, false
++ *  (2) "is_deleted" is a bool which is true if marked as deleted, false
+  *      otherwise.
+- *  (4) "is_deleted" is a bool which is true if marked as deleted, false
++ *  (3) "is_domain" is a bool which is true if "manager" is a domainname, false
+  *      otherwise.
++ *  (4) "manager" is a domainname or a program's pathname.
+  */
+ struct tomoyo_policy_manager_entry {
+ 	struct list_head list;
++	bool is_deleted; /* True if this entry is deleted. */
++	bool is_domain;  /* True if manager is a domainname. */
+ 	/* A path to program or a domainname. */
+ 	const struct tomoyo_path_info *manager;
+-	bool is_domain;  /* True if manager is a domainname. */
+-	bool is_deleted; /* True if this entry is deleted. */
+ };
+ 
+ /********** Function prototypes. **********/
+@@ -616,6 +616,7 @@ char *tomoyo_realpath_from_path(struct p
+ 
+ /* Check memory quota. */
+ bool tomoyo_memory_ok(void *ptr);
++bool tomoyo_commit_ok(void *ptr, void *data, const unsigned int size);
+ 
+ /*
+  * Keep the given name on the RAM.
+@@ -692,6 +693,14 @@ static inline bool tomoyo_pathcmp(const 
+ 	return a->hash != b->hash || strcmp(a->name, b->name);
+ }
+ 
++/* memcmp() from given offset. */
++static inline int tomoyo_memcmp(void *a, void *b, const size_t offset,
++				const size_t size)
++{
++	return memcmp(((char *) a) + offset, ((char *) b) + offset,
++		      size - offset);
++}
++
+ /**
+  * tomoyo_is_valid - Check whether the character is a valid char.
+  *
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -131,45 +131,36 @@ static int tomoyo_update_domain_initiali
+ {
+ 	struct tomoyo_domain_initializer_entry *entry = NULL;
+ 	struct tomoyo_domain_initializer_entry *ptr;
+-	const struct tomoyo_path_info *saved_program = NULL;
+-	const struct tomoyo_path_info *saved_domainname = NULL;
++	struct tomoyo_domain_initializer_entry e = { .is_not = is_not };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	bool is_last_name = false;
+ 
+ 	if (!tomoyo_is_correct_path(program, 1, -1, -1))
+ 		return -EINVAL; /* No patterns allowed. */
+ 	if (domainname) {
+ 		if (!tomoyo_is_domain_def(domainname) &&
+ 		    tomoyo_is_correct_path(domainname, 1, -1, -1))
+-			is_last_name = true;
++			e.is_last_name = true;
+ 		else if (!tomoyo_is_correct_domain(domainname))
+ 			return -EINVAL;
+-		saved_domainname = tomoyo_get_name(domainname);
+-		if (!saved_domainname)
++		e.domainname = tomoyo_get_name(domainname);
++		if (!e.domainname)
+ 			goto out;
+ 	}
+-	saved_program = tomoyo_get_name(program);
+-	if (!saved_program)
++	e.program = tomoyo_get_name(program);
++	if (!e.program)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
+-		if (ptr->is_not != is_not ||
+-		    ptr->domainname != saved_domainname ||
+-		    ptr->program != saved_program)
++		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), is_not),
++				  sizeof(e)))
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->domainname = saved_domainname;
+-		saved_domainname = NULL;
+-		entry->program = saved_program;
+-		saved_program = NULL;
+-		entry->is_not = is_not;
+-		entry->is_last_name = is_last_name;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list,
+ 				  &tomoyo_domain_initializer_list);
+ 		entry = NULL;
+@@ -177,8 +168,8 @@ static int tomoyo_update_domain_initiali
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+  out:
+-	tomoyo_put_name(saved_domainname);
+-	tomoyo_put_name(saved_program);
++	tomoyo_put_name(e.domainname);
++	tomoyo_put_name(e.program);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -351,53 +342,44 @@ static int tomoyo_update_domain_keeper_e
+ {
+ 	struct tomoyo_domain_keeper_entry *entry = NULL;
+ 	struct tomoyo_domain_keeper_entry *ptr;
+-	const struct tomoyo_path_info *saved_domainname = NULL;
+-	const struct tomoyo_path_info *saved_program = NULL;
++	struct tomoyo_domain_keeper_entry e = { .is_not = is_not };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	bool is_last_name = false;
+ 
+ 	if (!tomoyo_is_domain_def(domainname) &&
+ 	    tomoyo_is_correct_path(domainname, 1, -1, -1))
+-		is_last_name = true;
++		e.is_last_name = true;
+ 	else if (!tomoyo_is_correct_domain(domainname))
+ 		return -EINVAL;
+ 	if (program) {
+ 		if (!tomoyo_is_correct_path(program, 1, -1, -1))
+ 			return -EINVAL;
+-		saved_program = tomoyo_get_name(program);
+-		if (!saved_program)
++		e.program = tomoyo_get_name(program);
++		if (!e.program)
+ 			goto out;
+ 	}
+-	saved_domainname = tomoyo_get_name(domainname);
+-	if (!saved_domainname)
++	e.domainname = tomoyo_get_name(domainname);
++	if (!e.domainname)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
+-		if (ptr->is_not != is_not ||
+-		    ptr->domainname != saved_domainname ||
+-		    ptr->program != saved_program)
++		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), is_not),
++				  sizeof(e)))
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->domainname = saved_domainname;
+-		saved_domainname = NULL;
+-		entry->program = saved_program;
+-		saved_program = NULL;
+-		entry->is_not = is_not;
+-		entry->is_last_name = is_last_name;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_domain_keeper_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+  out:
+-	tomoyo_put_name(saved_domainname);
+-	tomoyo_put_name(saved_program);
++	tomoyo_put_name(e.domainname);
++	tomoyo_put_name(e.program);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -552,41 +534,36 @@ static int tomoyo_update_alias_entry(con
+ {
+ 	struct tomoyo_alias_entry *entry = NULL;
+ 	struct tomoyo_alias_entry *ptr;
+-	const struct tomoyo_path_info *saved_original_name;
+-	const struct tomoyo_path_info *saved_aliased_name;
++	struct tomoyo_alias_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(original_name, 1, -1, -1) ||
+ 	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1))
+ 		return -EINVAL; /* No patterns allowed. */
+-	saved_original_name = tomoyo_get_name(original_name);
+-	saved_aliased_name = tomoyo_get_name(aliased_name);
+-	if (!saved_original_name || !saved_aliased_name)
++	e.original_name = tomoyo_get_name(original_name);
++	e.aliased_name = tomoyo_get_name(aliased_name);
++	if (!e.original_name || !e.aliased_name)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
+-		if (ptr->original_name != saved_original_name ||
+-		    ptr->aliased_name != saved_aliased_name)
++		if (tomoyo_memcmp(ptr, &e, offsetof(typeof(e), original_name),
++				  sizeof(e)))
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->original_name = saved_original_name;
+-		saved_original_name = NULL;
+-		entry->aliased_name = saved_aliased_name;
+-		saved_aliased_name = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_alias_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+  out:
+-	tomoyo_put_name(saved_original_name);
+-	tomoyo_put_name(saved_aliased_name);
++	tomoyo_put_name(e.original_name);
++	tomoyo_put_name(e.aliased_name);
+ 	kfree(entry);
+ 	return error;
+ }
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -165,33 +165,31 @@ static int tomoyo_update_globally_readab
+ {
+ 	struct tomoyo_globally_readable_file_entry *entry = NULL;
+ 	struct tomoyo_globally_readable_file_entry *ptr;
+-	const struct tomoyo_path_info *saved_filename;
++	struct tomoyo_globally_readable_file_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(filename, 1, 0, -1))
+ 		return -EINVAL;
+-	saved_filename = tomoyo_get_name(filename);
+-	if (!saved_filename)
++	e.filename = tomoyo_get_name(filename);
++	if (!e.filename)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list, list) {
+-		if (ptr->filename != saved_filename)
++		if (ptr->filename != e.filename)
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->filename = saved_filename;
+-		saved_filename = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_globally_readable_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+-	tomoyo_put_name(saved_filename);
++	tomoyo_put_name(e.filename);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -312,35 +310,32 @@ static int tomoyo_update_file_pattern_en
+ {
+ 	struct tomoyo_pattern_entry *entry = NULL;
+ 	struct tomoyo_pattern_entry *ptr;
+-	const struct tomoyo_path_info *saved_pattern;
++	struct tomoyo_pattern_entry e = { .pattern = tomoyo_get_name(pattern) };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+-	saved_pattern = tomoyo_get_name(pattern);
+-	if (!saved_pattern)
++	if (!e.pattern)
+ 		return error;
+-	if (!saved_pattern->is_patterned)
++	if (!e.pattern->is_patterned)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
+-		if (saved_pattern != ptr->pattern)
++		if (e.pattern != ptr->pattern)
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->pattern = saved_pattern;
+-		saved_pattern = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_pattern_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+  out:
++	tomoyo_put_name(e.pattern);
+ 	kfree(entry);
+-	tomoyo_put_name(saved_pattern);
+ 	return error;
+ }
+ 
+@@ -465,33 +460,31 @@ static int tomoyo_update_no_rewrite_entr
+ {
+ 	struct tomoyo_no_rewrite_entry *entry = NULL;
+ 	struct tomoyo_no_rewrite_entry *ptr;
+-	const struct tomoyo_path_info *saved_pattern;
++	struct tomoyo_no_rewrite_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_correct_path(pattern, 0, 0, 0))
+ 		return -EINVAL;
+-	saved_pattern = tomoyo_get_name(pattern);
+-	if (!saved_pattern)
++	e.pattern = tomoyo_get_name(pattern);
++	if (!e.pattern)
+ 		return error;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
+-		if (ptr->pattern != saved_pattern)
++		if (ptr->pattern != e.pattern)
+ 			continue;
+ 		ptr->is_deleted = is_delete;
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->pattern = saved_pattern;
+-		saved_pattern = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->list, &tomoyo_no_rewrite_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+-	tomoyo_put_name(saved_pattern);
++	tomoyo_put_name(e.pattern);
+ 	kfree(entry);
+ 	return error;
+ }
+@@ -804,70 +797,67 @@ static int tomoyo_update_path_acl(const 
+ 				  struct tomoyo_domain_info *const domain,
+ 				  const bool is_delete)
+ {
+-	static const u32 rw_mask =
++	static const u32 tomoyo_rw_mask =
+ 		(1 << TOMOYO_TYPE_READ) | (1 << TOMOYO_TYPE_WRITE);
+-	const struct tomoyo_path_info *saved_filename;
++	const u32 perm = 1 << type;
+ 	struct tomoyo_acl_info *ptr;
++	struct tomoyo_path_acl e = {
++		.head.type = TOMOYO_TYPE_PATH_ACL,
++		.perm_high = perm >> 16,
++		.perm = perm
++	};
+ 	struct tomoyo_path_acl *entry = NULL;
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	const u32 perm = 1 << type;
+ 
++	if (type == TOMOYO_TYPE_READ_WRITE)
++		e.perm |= tomoyo_rw_mask;
+ 	if (!domain)
+ 		return -EINVAL;
+ 	if (!tomoyo_is_correct_path(filename, 0, 0, 0))
+ 		return -EINVAL;
+-	saved_filename = tomoyo_get_name(filename);
+-	if (!saved_filename)
++	e.filename = tomoyo_get_name(filename);
++	if (!e.filename)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path_acl *acl =
+ 			container_of(ptr, struct tomoyo_path_acl, head);
+ 		if (ptr->type != TOMOYO_TYPE_PATH_ACL)
+ 			continue;
+-		if (acl->filename != saved_filename)
++		if (acl->filename != e.filename)
+ 			continue;
+ 		if (is_delete) {
+ 			if (perm <= 0xFFFF)
+ 				acl->perm &= ~perm;
+ 			else
+ 				acl->perm_high &= ~(perm >> 16);
+-			if ((acl->perm & rw_mask) != rw_mask)
++			if ((acl->perm & tomoyo_rw_mask) != tomoyo_rw_mask)
+ 				acl->perm &= ~(1 << TOMOYO_TYPE_READ_WRITE);
+ 			else if (!(acl->perm & (1 << TOMOYO_TYPE_READ_WRITE)))
+-				acl->perm &= ~rw_mask;
++				acl->perm &= ~tomoyo_rw_mask;
+ 		} else {
+ 			if (perm <= 0xFFFF)
+ 				acl->perm |= perm;
+ 			else
+ 				acl->perm_high |= (perm >> 16);
+-			if ((acl->perm & rw_mask) == rw_mask)
++			if ((acl->perm & tomoyo_rw_mask) == tomoyo_rw_mask)
+ 				acl->perm |= 1 << TOMOYO_TYPE_READ_WRITE;
+ 			else if (acl->perm & (1 << TOMOYO_TYPE_READ_WRITE))
+-				acl->perm |= rw_mask;
++				acl->perm |= tomoyo_rw_mask;
+ 		}
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->head.type = TOMOYO_TYPE_PATH_ACL;
+-		if (perm <= 0xFFFF)
+-			entry->perm = perm;
+-		else
+-			entry->perm_high = (perm >> 16);
+-		if (perm == (1 << TOMOYO_TYPE_READ_WRITE))
+-			entry->perm |= rw_mask;
+-		entry->filename = saved_filename;
+-		saved_filename = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++	tomoyo_put_name(e.filename);
+ 	kfree(entry);
+-	tomoyo_put_name(saved_filename);
+ 	return error;
+ }
+ 
+@@ -889,32 +879,34 @@ static int tomoyo_update_path2_acl(const
+ 				   struct tomoyo_domain_info *const domain,
+ 				   const bool is_delete)
+ {
+-	const struct tomoyo_path_info *saved_filename1;
+-	const struct tomoyo_path_info *saved_filename2;
++	const u8 perm = 1 << type;
++	struct tomoyo_path2_acl e = {
++		.head.type = TOMOYO_TYPE_PATH2_ACL,
++		.perm = perm
++	};
+ 	struct tomoyo_acl_info *ptr;
+ 	struct tomoyo_path2_acl *entry = NULL;
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+-	const u8 perm = 1 << type;
+ 
+ 	if (!domain)
+ 		return -EINVAL;
+ 	if (!tomoyo_is_correct_path(filename1, 0, 0, 0) ||
+ 	    !tomoyo_is_correct_path(filename2, 0, 0, 0))
+ 		return -EINVAL;
+-	saved_filename1 = tomoyo_get_name(filename1);
+-	saved_filename2 = tomoyo_get_name(filename2);
+-	if (!saved_filename1 || !saved_filename2)
++	e.filename1 = tomoyo_get_name(filename1);
++	e.filename2 = tomoyo_get_name(filename2);
++	if (!e.filename1 || !e.filename2)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path2_acl *acl =
+ 			container_of(ptr, struct tomoyo_path2_acl, head);
+ 		if (ptr->type != TOMOYO_TYPE_PATH2_ACL)
+ 			continue;
+-		if (acl->filename1 != saved_filename1 ||
+-		    acl->filename2 != saved_filename2)
++		if (acl->filename1 != e.filename1 ||
++		    acl->filename2 != e.filename2)
+ 			continue;
+ 		if (is_delete)
+ 			acl->perm &= ~perm;
+@@ -923,21 +915,15 @@ static int tomoyo_update_path2_acl(const
+ 		error = 0;
+ 		break;
+ 	}
+-	if (!is_delete && error && tomoyo_memory_ok(entry)) {
+-		entry->head.type = TOMOYO_TYPE_PATH2_ACL;
+-		entry->perm = perm;
+-		entry->filename1 = saved_filename1;
+-		saved_filename1 = NULL;
+-		entry->filename2 = saved_filename2;
+-		saved_filename2 = NULL;
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
+ 		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
+ 		entry = NULL;
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
+  out:
+-	tomoyo_put_name(saved_filename1);
+-	tomoyo_put_name(saved_filename2);
++	tomoyo_put_name(e.filename1);
++	tomoyo_put_name(e.filename2);
+ 	kfree(entry);
+ 	return error;
+ }
+--- security-testing-2.6.orig/security/tomoyo/realpath.c
++++ security-testing-2.6/security/tomoyo/realpath.c
+@@ -237,6 +237,25 @@ bool tomoyo_memory_ok(void *ptr)
+ }
+ 
+ /**
++ * tomoyo_commit_ok - Check memory quota.
++ *
++ * @ptr:    Pointer to allocated memory.
++ * @data:   Data to copy from.
++ * @size:   Size in byte.
++ *
++ * Returns true if @ptr is not NULL and quota not exceeded, false otherwise.
++ */
++bool tomoyo_commit_ok(void *ptr, void *data, const unsigned int size)
++{
++	if (tomoyo_memory_ok(ptr)) {
++		memmove(ptr, data, size);
++		memset(data, 0, size);
++		return true;
++	}
++	return false;
++}
++
++/**
+  * tomoyo_memory_free - Free memory for elements.
+  *
+  * @ptr:  Pointer to allocated memory.
