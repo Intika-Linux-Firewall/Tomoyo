@@ -2073,7 +2073,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
  *
  * @r:        Pointer to "strct ccs_request_info".
  * @filename: Filename to check.
- * @numr:     Number.
+ * @number:   Number.
  *
  * Returns 0 on success, 1 on retry, negative value otherwise.
  *
