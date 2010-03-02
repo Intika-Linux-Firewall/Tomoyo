@@ -6,11 +6,11 @@ arguments.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |   22 ---
- security/tomoyo/common.h |   23 ++-
+ security/tomoyo/common.h |   27 +++-
  security/tomoyo/domain.c |    2 
- security/tomoyo/file.c   |  311 +++++++++++++++++++----------------------------
+ security/tomoyo/file.c   |  313 +++++++++++++++++++----------------------------
  security/tomoyo/tomoyo.c |    2 
- 5 files changed, 157 insertions(+), 203 deletions(-)
+ 5 files changed, 160 insertions(+), 206 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -93,6 +93,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path_info is a structure which is used for holding a string data
   * used by TOMOYO.
   * This structure has several fields for supporting pattern matching.
+@@ -332,8 +350,8 @@ struct tomoyo_domain_info {
+  * "allow_read", "allow_write", "allow_create", "allow_unlink", "allow_mkdir",
+  * "allow_rmdir", "allow_mkfifo", "allow_mksock", "allow_mkblock",
+  * "allow_mkchar", "allow_truncate", "allow_symlink", "allow_rewrite",
+- * "allow_chmod", "allow_chown", "allow_chgrp", "allow_chroot", "allow_mount"
+- * and "allow_unmount".
++ * "allow_ioctl", "allow_chmod", "allow_chown", "allow_chgrp", "allow_chroot",
++ * "allow_mount" and "allow_unmount".
+  */
+ struct tomoyo_path_acl {
+ 	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_ACL */
 @@ -567,7 +585,7 @@ struct tomoyo_policy_manager_entry {
  bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
  			       const struct tomoyo_name_union *ptr);
@@ -469,7 +480,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	if (acc_mode == 0)
  		return 0;
-@@ -1136,19 +1126,16 @@ int tomoyo_check_open_permission(struct 
+@@ -1136,25 +1126,22 @@ int tomoyo_check_open_permission(struct 
  	if ((acc_mode & MAY_WRITE) &&
  	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
  	    (tomoyo_is_no_rewrite_file(buf))) {
@@ -493,6 +504,13 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	return error;
  }
+ 
+ /**
+- * tomoyo_path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate", "symlink", "ioctl", "chmod", "chown", "chgrp", "chroot", "mount" and "unmount".
++ * tomoyo_path_perm - Check permission for "create", "unlink", "mkdir", "rmdir", "mkfifo", "mksock", "mkblock", "mkchar", "truncate", "symlink", "rewrite", "ioctl", "chmod", "chown", "chgrp", "chroot", "mount" and "unmount".
+  *
+  * @operation: Type of operation.
+  * @path:      Pointer to "struct path".
 @@ -1165,18 +1152,23 @@ int tomoyo_path_perm(const u8 operation,
  {
  	int error = -ENOMEM;
