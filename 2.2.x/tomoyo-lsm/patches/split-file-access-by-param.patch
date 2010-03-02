@@ -954,7 +954,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		memset(minor_buf, 0, sizeof(minor_buf));
 +		snprintf(mode_buf, sizeof(mode_buf) - 1, "0%o", mode);
 +		snprintf(major_buf, sizeof(major_buf) - 1, "%u", major);
-+		snprintf(major_buf, sizeof(minor_buf) - 1, "%u", minor);
++		snprintf(minor_buf, sizeof(minor_buf) - 1, "%u", minor);
 +		tomoyo_update_path_number3_acl(operation,
 +					       tomoyo_get_file_pattern(filename)
 +					       ->name, mode_buf, major_buf,
