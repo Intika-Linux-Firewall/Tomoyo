@@ -1,0 +1,637 @@
+[PATCH] TOMOYO: Use structure for passing common arguments.
+
+Use "struct tomoyo_request_info" instead of passing individual
+arguments.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c |   22 ---
+ security/tomoyo/common.h |   23 ++-
+ security/tomoyo/domain.c |    2 
+ security/tomoyo/file.c   |  311 +++++++++++++++++++----------------------------
+ security/tomoyo/tomoyo.c |    2 
+ 5 files changed, 157 insertions(+), 203 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -984,21 +984,6 @@ static const char *tomoyo_get_exe(void)
+ }
+ 
+ /**
+- * tomoyo_get_msg - Get warning message.
+- *
+- * @is_enforce: Is it enforcing mode?
+- *
+- * Returns "ERROR" or "WARNING".
+- */
+-const char *tomoyo_get_msg(const bool is_enforce)
+-{
+-	if (is_enforce)
+-		return "ERROR";
+-	else
+-		return "WARNING";
+-}
+-
+-/**
+  * tomoyo_check_flags - Check mode for specified functionality.
+  *
+  * @domain: Pointer to "struct tomoyo_domain_info".
+@@ -1039,17 +1024,20 @@ bool tomoyo_verbose_mode(const struct to
+ /**
+  * tomoyo_domain_quota_is_ok - Check for domain's quota.
+  *
+- * @domain: Pointer to "struct tomoyo_domain_info".
++ * @r: Pointer to "struct tomoyo_request_info".
+  *
+  * Returns true if the domain is not exceeded quota, false otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-bool tomoyo_domain_quota_is_ok(struct tomoyo_domain_info * const domain)
++bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r)
+ {
+ 	unsigned int count = 0;
++	struct tomoyo_domain_info *domain = r->domain;
+ 	struct tomoyo_acl_info *ptr;
+ 
++	if (r->mode != TOMOYO_CONFIG_LEARNING)
++		return false;
+ 	if (!domain)
+ 		return true;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -44,6 +44,13 @@ struct linux_binprm;
+ /* Profile number is an integer between 0 and 255. */
+ #define TOMOYO_MAX_PROFILES 256
+ 
++enum tomoyo_mode_index {
++	TOMOYO_CONFIG_DISABLED,
++	TOMOYO_CONFIG_LEARNING,
++	TOMOYO_CONFIG_PERMISSIVE,
++	TOMOYO_CONFIG_ENFORCING
++};
++
+ /* Keywords for ACLs. */
+ #define TOMOYO_KEYWORD_ALIAS                     "alias "
+ #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
+@@ -153,6 +160,17 @@ struct tomoyo_page_buffer {
+ };
+ 
+ /*
++ * tomoyo_request_info is a structure which is used for holding
++ *
++ * (1) Domain information of current process.
++ * (2) Access control mode of the profile.
++ */
++struct tomoyo_request_info {
++	struct tomoyo_domain_info *domain;
++	u8 mode; /* One of tomoyo_mode_index . */
++};
++
++/*
+  * tomoyo_path_info is a structure which is used for holding a string data
+  * used by TOMOYO.
+  * This structure has several fields for supporting pattern matching.
+@@ -567,7 +585,7 @@ struct tomoyo_policy_manager_entry {
+ bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
+ 			       const struct tomoyo_name_union *ptr);
+ /* Check whether the domain has too many ACL entries to hold. */
+-bool tomoyo_domain_quota_is_ok(struct tomoyo_domain_info * const domain);
++bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
+ /* Transactional sprintf() for policy dump. */
+ bool tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
+ 	__attribute__ ((format(printf, 2, 3)));
+@@ -623,8 +641,6 @@ bool tomoyo_verbose_mode(const struct to
+ const char *tomoyo_path22keyword(const u8 operation);
+ /* Get the last component of the given domainname. */
+ const char *tomoyo_get_last_name(const struct tomoyo_domain_info *domain);
+-/* Get warning message. */
+-const char *tomoyo_get_msg(const bool is_enforce);
+ /* Convert single path operation to operation name. */
+ const char *tomoyo_path2keyword(const u8 operation);
+ /* Create "alias" entry in exception policy. */
+@@ -723,7 +739,6 @@ int tomoyo_check_open_permission(struct 
+ int tomoyo_path_perm(const u8 operation, struct path *path);
+ int tomoyo_path2_perm(const u8 operation, struct path *path1,
+ 		      struct path *path2);
+-int tomoyo_check_rewrite_permission(struct file *filp);
+ int tomoyo_find_next_domain(struct linux_binprm *bprm);
+ 
+ /* Drop refcount on tomoyo_name_union. */
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -690,7 +690,7 @@ int tomoyo_find_next_domain(struct linux
+ 	char *real_program_name = NULL;
+ 	char *symlink_program_name = NULL;
+ 	const u8 mode = tomoyo_check_flags(old_domain, TOMOYO_MAC_FOR_FILE);
+-	const bool is_enforce = (mode == 3);
++	const bool is_enforce = (mode == TOMOYO_CONFIG_ENFORCING);
+ 	int retval = -ENOMEM;
+ 	struct tomoyo_path_info r; /* real name */
+ 	struct tomoyo_path_info s; /* symlink name */
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -90,6 +90,59 @@ bool tomoyo_compare_number_union(const u
+ }
+ 
+ /**
++ * tomoyo_init_request_info - Initialize "struct tomoyo_request_info" members.
++ *
++ * @r:      Pointer to "struct tomoyo_request_info" to initialize.
++ * @domain: Pointer to "struct tomoyo_domain_info". NULL for tomoyo_domain().
++ *
++ * Returns mode.
++ */
++static int tomoyo_init_request_info(struct tomoyo_request_info *r,
++				    struct tomoyo_domain_info *domain)
++{
++	memset(r, 0, sizeof(*r));
++	if (!domain)
++		domain = tomoyo_domain();
++	r->domain = domain;
++	r->mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
++	return r->mode;
++}
++
++/**
++ * tomoyo_warn_log - Print warning or error message on console.
++ *
++ * @r:   Pointer to "struct tomoyo_request_info".
++ * @fmt: The printf()'s format string, followed by parameters.
++ */
++static void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
++{
++	int len = PAGE_SIZE;
++	va_list args;
++	char *buffer;
++	if (!tomoyo_verbose_mode(r->domain))
++		return;
++	while (1) {
++		int len2;
++		buffer = kmalloc(len, GFP_KERNEL);
++		if (!buffer)
++			return;
++		va_start(args, fmt);
++		len2 = vsnprintf(buffer, len - 1, fmt, args);
++		va_end(args);
++		if (len2 <= len - 1) {
++			buffer[len2] = '\0';
++			break;
++		}
++		len = len2 + 1;
++		kfree(buffer);
++	}
++	printk(KERN_WARNING "TOMOYO-%s: Access %s denied for %s\n",
++	       r->mode == TOMOYO_CONFIG_ENFORCING ? "ERROR" : "WARNING",
++	       buffer, tomoyo_get_last_name(r->domain));
++	kfree(buffer);
++}
++
++/**
+  * tomoyo_path2keyword - Get the name of single path operation.
+  *
+  * @operation: Type of operation.
+@@ -647,9 +700,9 @@ static int tomoyo_update_file_acl(const 
+ }
+ 
+ /**
+- * tomoyo_path_acl2 - Check permission for single path operation.
++ * tomoyo_path_acl - Check permission for single path operation.
+  *
+- * @domain:          Pointer to "struct tomoyo_domain_info".
++ * @r:               Pointer to "struct tomoyo_request_info".
+  * @filename:        Filename to check.
+  * @perm:            Permission.
+  * @may_use_pattern: True if patterned ACL is permitted.
+@@ -658,10 +711,11 @@ static int tomoyo_update_file_acl(const 
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_path_acl2(const struct tomoyo_domain_info *domain,
+-			    const struct tomoyo_path_info *filename,
+-			    const u32 perm, const bool may_use_pattern)
++static int tomoyo_path_acl(const struct tomoyo_request_info *r,
++			   const struct tomoyo_path_info *filename,
++			   const u32 perm, const bool may_use_pattern)
+ {
++	struct tomoyo_domain_info *domain = r->domain;
+ 	struct tomoyo_acl_info *ptr;
+ 	int error = -EPERM;
+ 
+@@ -687,89 +741,56 @@ static int tomoyo_path_acl2(const struct
+ }
+ 
+ /**
+- * tomoyo_check_file_acl - Check permission for opening files.
++ * tomoyo_file_perm - Check permission for opening files.
+  *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @r:         Pointer to "struct tomoyo_request_info".
+  * @filename:  Filename to check.
+- * @operation: Mode ("read" or "write" or "read/write" or "execute").
+- *
+- * Returns 0 on success, -EPERM otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+- */
+-static int tomoyo_check_file_acl(const struct tomoyo_domain_info *domain,
+-				 const struct tomoyo_path_info *filename,
+-				 const u8 operation)
+-{
+-	u32 perm = 0;
+-
+-	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
+-		return 0;
+-	if (operation == 6)
+-		perm = 1 << TOMOYO_TYPE_READ_WRITE;
+-	else if (operation == 4)
+-		perm = 1 << TOMOYO_TYPE_READ;
+-	else if (operation == 2)
+-		perm = 1 << TOMOYO_TYPE_WRITE;
+-	else if (operation == 1)
+-		perm = 1 << TOMOYO_TYPE_EXECUTE;
+-	else
+-		BUG();
+-	return tomoyo_path_acl2(domain, filename, perm, operation != 1);
+-}
+-
+-/**
+- * tomoyo_check_file_perm2 - Check permission for opening files.
+- *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
+- * @filename:  Filename to check.
+- * @perm:      Mode ("read" or "write" or "read/write" or "execute").
+- * @operation: Operation name passed used for verbose mode.
+- * @mode:      Access control mode.
++ * @mode:      Mode ("read" or "write" or "read/write" or "execute").
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_check_file_perm2(struct tomoyo_domain_info * const domain,
+-				   const struct tomoyo_path_info *filename,
+-				   const u8 perm, const char *operation,
+-				   const u8 mode)
++static int tomoyo_file_perm(struct tomoyo_request_info *r,
++			    const struct tomoyo_path_info *filename,
++			    const u8 mode)
+ {
+-	const bool is_enforce = (mode == 3);
+ 	const char *msg = "<unknown>";
+ 	int error = 0;
++	u32 perm = 0;
+ 
+ 	if (!filename)
+ 		return 0;
+-	error = tomoyo_check_file_acl(domain, filename, perm);
+-	if (error && perm == 4 && !domain->ignore_global_allow_read
+-	    && tomoyo_is_globally_readable_file(filename))
+-		error = 0;
+-	if (perm == 6)
++
++	if (mode == 6) {
+ 		msg = tomoyo_path2keyword(TOMOYO_TYPE_READ_WRITE);
+-	else if (perm == 4)
++		perm = 1 << TOMOYO_TYPE_READ_WRITE;
++	} else if (mode == 4) {
+ 		msg = tomoyo_path2keyword(TOMOYO_TYPE_READ);
+-	else if (perm == 2)
++		perm = 1 << TOMOYO_TYPE_READ;
++	} else if (mode == 2) {
+ 		msg = tomoyo_path2keyword(TOMOYO_TYPE_WRITE);
+-	else if (perm == 1)
++		perm = 1 << TOMOYO_TYPE_WRITE;
++	} else if (mode == 1) {
+ 		msg = tomoyo_path2keyword(TOMOYO_TYPE_EXECUTE);
+-	else
++		perm = 1 << TOMOYO_TYPE_EXECUTE;
++	} else
+ 		BUG();
++	error = tomoyo_path_acl(r, filename, perm, mode != 1);
++	if (error && mode == 4 && !r->domain->ignore_global_allow_read
++	    && tomoyo_is_globally_readable_file(filename))
++		error = 0;
+ 	if (!error)
+ 		return 0;
+-	if (tomoyo_verbose_mode(domain))
+-		printk(KERN_WARNING "TOMOYO-%s: Access '%s(%s) %s' denied "
+-		       "for %s\n", tomoyo_get_msg(is_enforce), msg, operation,
+-		       filename->name, tomoyo_get_last_name(domain));
+-	if (is_enforce)
++	tomoyo_warn_log(r, "%s %s", msg, filename->name);
++	if (r->mode == TOMOYO_CONFIG_ENFORCING)
+ 		return error;
+-	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
++	if (tomoyo_domain_quota_is_ok(r)) {
+ 		/* Don't use patterns for execute permission. */
+-		const struct tomoyo_path_info *patterned_file = (perm != 1) ?
++		const struct tomoyo_path_info *patterned_file = (mode != 1) ?
+ 			tomoyo_get_file_pattern(filename) : filename;
+-		tomoyo_update_file_acl(patterned_file->name, perm,
+-				       domain, false);
++		tomoyo_update_file_acl(patterned_file->name, mode,
++				       r->domain, false);
+ 	}
+ 	return 0;
+ }
+@@ -964,28 +985,9 @@ static int tomoyo_update_path2_acl(const
+ }
+ 
+ /**
+- * tomoyo_path_acl - Check permission for single path operation.
+- *
+- * @domain:   Pointer to "struct tomoyo_domain_info".
+- * @type:     Type of operation.
+- * @filename: Filename to check.
+- *
+- * Returns 0 on success, negative value otherwise.
+- *
+- * Caller holds tomoyo_read_lock().
+- */
+-static int tomoyo_path_acl(struct tomoyo_domain_info *domain, const u8 type,
+-			   const struct tomoyo_path_info *filename)
+-{
+-	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
+-		return 0;
+-	return tomoyo_path_acl2(domain, filename, 1 << type, 1);
+-}
+-
+-/**
+  * tomoyo_path2_acl - Check permission for double path operation.
+  *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @r:         Pointer to "struct tomoyo_request_info".
+  * @type:      Type of operation.
+  * @filename1: First filename to check.
+  * @filename2: Second filename to check.
+@@ -994,17 +996,15 @@ static int tomoyo_path_acl(struct tomoyo
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_path2_acl(const struct tomoyo_domain_info *domain,
+-			    const u8 type,
++static int tomoyo_path2_acl(const struct tomoyo_request_info *r, const u8 type,
+ 			    const struct tomoyo_path_info *filename1,
+ 			    const struct tomoyo_path_info *filename2)
+ {
++	const struct tomoyo_domain_info *domain = r->domain;
+ 	struct tomoyo_acl_info *ptr;
+ 	const u8 perm = 1 << type;
+ 	int error = -EPERM;
+ 
+-	if (!tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE))
+-		return 0;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path2_acl *acl;
+ 		if (ptr->type != TOMOYO_TYPE_PATH2_ACL)
+@@ -1023,42 +1023,32 @@ static int tomoyo_path2_acl(const struct
+ }
+ 
+ /**
+- * tomoyo_path_permission2 - Check permission for single path operation.
++ * tomoyo_path_permission - Check permission for single path operation.
+  *
+- * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @r:         Pointer to "struct tomoyo_request_info".
+  * @operation: Type of operation.
+  * @filename:  Filename to check.
+- * @mode:      Access control mode.
+  *
+  * Returns 0 on success, negative value otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static int tomoyo_path_permission2(struct tomoyo_domain_info *const domain,
+-				   u8 operation,
+-				   const struct tomoyo_path_info *filename,
+-				   const u8 mode)
++static int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
++				  const struct tomoyo_path_info *filename)
+ {
+-	const char *msg;
+ 	int error;
+-	const bool is_enforce = (mode == 3);
+ 
+-	if (!mode)
+-		return 0;
+  next:
+-	error = tomoyo_path_acl(domain, operation, filename);
+-	msg = tomoyo_path2keyword(operation);
++	error = tomoyo_path_acl(r, filename, 1 << operation, 1);
+ 	if (!error)
+ 		goto ok;
+-	if (tomoyo_verbose_mode(domain))
+-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s' denied for %s\n",
+-		       tomoyo_get_msg(is_enforce), msg, filename->name,
+-		       tomoyo_get_last_name(domain));
+-	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
++	tomoyo_warn_log(r, "%s %s", tomoyo_path2keyword(operation),
++			filename->name);
++	if (tomoyo_domain_quota_is_ok(r)) {
+ 		const char *name = tomoyo_get_file_pattern(filename)->name;
+-		tomoyo_update_path_acl(operation, name, domain, false);
++		tomoyo_update_path_acl(operation, name, r->domain, false);
+ 	}
+-	if (!is_enforce)
++	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+  ok:
+ 	/*
+@@ -1087,11 +1077,11 @@ static int tomoyo_path_permission2(struc
+ int tomoyo_check_exec_perm(struct tomoyo_domain_info *domain,
+ 			   const struct tomoyo_path_info *filename)
+ {
+-	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
++	struct tomoyo_request_info r;
+ 
+-	if (!mode)
++	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED)
+ 		return 0;
+-	return tomoyo_check_file_perm2(domain, filename, 1, "do_execve", mode);
++	return tomoyo_file_perm(&r, filename, 1);
+ }
+ 
+ /**
+@@ -1109,11 +1099,11 @@ int tomoyo_check_open_permission(struct 
+ 	const u8 acc_mode = ACC_MODE(flag);
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info *buf;
+-	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+-	const bool is_enforce = (mode == 3);
++	struct tomoyo_request_info r;
+ 	int idx;
+ 
+-	if (!mode || !path->mnt)
++	if (tomoyo_init_request_info(&r, domain) == TOMOYO_CONFIG_DISABLED ||
++	    !path->mnt)
+ 		return 0;
+ 	if (acc_mode == 0)
+ 		return 0;
+@@ -1136,19 +1126,16 @@ int tomoyo_check_open_permission(struct 
+ 	if ((acc_mode & MAY_WRITE) &&
+ 	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
+ 	    (tomoyo_is_no_rewrite_file(buf))) {
+-		error = tomoyo_path_permission2(domain, TOMOYO_TYPE_REWRITE,
+-						buf, mode);
++		error = tomoyo_path_permission(&r, TOMOYO_TYPE_REWRITE, buf);
+ 	}
+ 	if (!error)
+-		error = tomoyo_check_file_perm2(domain, buf, acc_mode, "open",
+-						mode);
++		error = tomoyo_file_perm(&r, buf, acc_mode);
+ 	if (!error && (flag & O_TRUNC))
+-		error = tomoyo_path_permission2(domain, TOMOYO_TYPE_TRUNCATE,
+-						buf, mode);
++		error = tomoyo_path_permission(&r, TOMOYO_TYPE_TRUNCATE, buf);
+  out:
+ 	kfree(buf);
+ 	tomoyo_read_unlock(idx);
+-	if (!is_enforce)
++	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
+ }
+@@ -1165,18 +1152,23 @@ int tomoyo_path_perm(const u8 operation,
+ {
+ 	int error = -ENOMEM;
+ 	struct tomoyo_path_info *buf;
+-	struct tomoyo_domain_info *domain = tomoyo_domain();
+-	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+-	const bool is_enforce = (mode == 3);
++	struct tomoyo_request_info r;
+ 	int idx;
+ 
+-	if (!mode || !path->mnt)
++	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
++	    !path->mnt)
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+ 	buf = tomoyo_get_path(path);
+ 	if (!buf)
+ 		goto out;
+ 	switch (operation) {
++	case TOMOYO_TYPE_REWRITE:
++		if (!tomoyo_is_no_rewrite_file(buf)) {
++			error = 0;
++			goto out;
++		}
++		break;
+ 	case TOMOYO_TYPE_MKDIR:
+ 	case TOMOYO_TYPE_RMDIR:
+ 	case TOMOYO_TYPE_CHROOT:
+@@ -1188,47 +1180,11 @@ int tomoyo_path_perm(const u8 operation,
+ 			tomoyo_fill_path_info(buf);
+ 		}
+ 	}
+-	error = tomoyo_path_permission2(domain, operation, buf, mode);
+- out:
+-	kfree(buf);
+-	tomoyo_read_unlock(idx);
+-	if (!is_enforce)
+-		error = 0;
+-	return error;
+-}
+-
+-/**
+- * tomoyo_check_rewrite_permission - Check permission for "rewrite".
+- *
+- * @filp: Pointer to "struct file".
+- *
+- * Returns 0 on success, negative value otherwise.
+- */
+-int tomoyo_check_rewrite_permission(struct file *filp)
+-{
+-	int error = -ENOMEM;
+-	struct tomoyo_domain_info *domain = tomoyo_domain();
+-	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+-	const bool is_enforce = (mode == 3);
+-	struct tomoyo_path_info *buf;
+-	int idx;
+-
+-	if (!mode || !filp->f_path.mnt)
+-		return 0;
+-
+-	idx = tomoyo_read_lock();
+-	buf = tomoyo_get_path(&filp->f_path);
+-	if (!buf)
+-		goto out;
+-	if (!tomoyo_is_no_rewrite_file(buf)) {
+-		error = 0;
+-		goto out;
+-	}
+-	error = tomoyo_path_permission2(domain, TOMOYO_TYPE_REWRITE, buf, mode);
++	error = tomoyo_path_permission(&r, operation, buf);
+  out:
+ 	kfree(buf);
+ 	tomoyo_read_unlock(idx);
+-	if (!is_enforce)
++	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
+ }
+@@ -1246,14 +1202,13 @@ int tomoyo_path2_perm(const u8 operation
+ 		      struct path *path2)
+ {
+ 	int error = -ENOMEM;
+-	struct tomoyo_path_info *buf1, *buf2;
+-	struct tomoyo_domain_info *domain = tomoyo_domain();
+-	const u8 mode = tomoyo_check_flags(domain, TOMOYO_MAC_FOR_FILE);
+-	const bool is_enforce = (mode == 3);
+-	const char *msg;
++	struct tomoyo_path_info *buf1;
++	struct tomoyo_path_info *buf2;
++	struct tomoyo_request_info r;
+ 	int idx;
+ 
+-	if (!mode || !path1->mnt || !path2->mnt)
++	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
++	    !path1->mnt || !path2->mnt)
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+ 	buf1 = tomoyo_get_path(path1);
+@@ -1276,26 +1231,22 @@ int tomoyo_path2_perm(const u8 operation
+ 			}
+ 		}
+ 	}
+-	error = tomoyo_path2_acl(domain, operation, buf1, buf2);
+-	msg = tomoyo_path22keyword(operation);
++	error = tomoyo_path2_acl(&r, operation, buf1, buf2);
+ 	if (!error)
+ 		goto out;
+-	if (tomoyo_verbose_mode(domain))
+-		printk(KERN_WARNING "TOMOYO-%s: Access '%s %s %s' "
+-		       "denied for %s\n", tomoyo_get_msg(is_enforce),
+-		       msg, buf1->name, buf2->name,
+-		       tomoyo_get_last_name(domain));
+-	if (mode == 1 && tomoyo_domain_quota_is_ok(domain)) {
++	tomoyo_warn_log(&r, "%s %s %s", tomoyo_path22keyword(operation),
++			buf1->name, buf2->name);
++	if (tomoyo_domain_quota_is_ok(&r)) {
+ 		const char *name1 = tomoyo_get_file_pattern(buf1)->name;
+ 		const char *name2 = tomoyo_get_file_pattern(buf2)->name;
+-		tomoyo_update_path2_acl(operation, name1, name2, domain,
++		tomoyo_update_path2_acl(operation, name1, name2, r.domain,
+ 					false);
+ 	}
+  out:
+ 	kfree(buf1);
+ 	kfree(buf2);
+ 	tomoyo_read_unlock(idx);
+-	if (!is_enforce)
++	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
+ }
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -174,7 +174,7 @@ static int tomoyo_file_fcntl(struct file
+ 			     unsigned long arg)
+ {
+ 	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
+-		return tomoyo_check_rewrite_permission(file);
++		return tomoyo_path_perm(TOMOYO_TYPE_REWRITE, &file->f_path);
+ 	return 0;
+ }
+ 

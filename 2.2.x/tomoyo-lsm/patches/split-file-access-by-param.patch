@@ -3,12 +3,12 @@
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h |   50 +--
- security/tomoyo/file.c   |  653 ++++++++++++++++++++++++++++++++++++++++++-----
- 2 files changed, 614 insertions(+), 89 deletions(-)
+ security/tomoyo/file.c   |  652 ++++++++++++++++++++++++++++++++++++++++++-----
+ 2 files changed, 613 insertions(+), 89 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -86,12 +86,14 @@ enum tomoyo_acl_entry_type_index {
+@@ -93,12 +93,14 @@ enum tomoyo_acl_entry_type_index {
  /* Index numbers for File Controls. */
  
  /*
@@ -29,7 +29,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   */
  
  enum tomoyo_path_acl_index {
-@@ -99,27 +101,23 @@ enum tomoyo_path_acl_index {
+@@ -106,27 +108,23 @@ enum tomoyo_path_acl_index {
  	TOMOYO_TYPE_EXECUTE,
  	TOMOYO_TYPE_READ,
  	TOMOYO_TYPE_WRITE,
@@ -63,7 +63,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  enum tomoyo_path2_acl_index {
  	TOMOYO_TYPE_LINK,
  	TOMOYO_TYPE_RENAME,
-@@ -127,16 +125,16 @@ enum tomoyo_path2_acl_index {
+@@ -134,16 +132,16 @@ enum tomoyo_path2_acl_index {
  	TOMOYO_MAX_PATH2_OPERATION
  };
  
@@ -156,7 +156,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr)
  {
  	if (!ptr)
-@@ -103,6 +113,19 @@ const char *tomoyo_path2keyword(const u8
+@@ -156,6 +166,19 @@ const char *tomoyo_path2keyword(const u8
  }
  
  /**
@@ -176,7 +176,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path22keyword - Get the name of double path operation.
   *
   * @operation: Type of operation.
-@@ -116,6 +139,19 @@ const char *tomoyo_path22keyword(const u
+@@ -169,6 +192,19 @@ const char *tomoyo_path22keyword(const u
  }
  
  /**
@@ -196,7 +196,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_strendswith - Check whether the token ends with the given token.
   *
   * @name: The token to check.
-@@ -775,54 +811,6 @@ static int tomoyo_check_file_perm2(struc
+@@ -796,54 +832,6 @@ static int tomoyo_file_perm(struct tomoy
  }
  
  /**
@@ -251,7 +251,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_path_acl - Update "struct tomoyo_path_acl" list.
   *
   * @type:      Type of operation.
-@@ -901,6 +889,80 @@ static int tomoyo_update_path_acl(const 
+@@ -922,6 +910,80 @@ static int tomoyo_update_path_acl(const 
  }
  
  /**
@@ -332,7 +332,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_path2_acl - Update "struct tomoyo_path2_acl" list.
   *
   * @type:      Type of operation.
-@@ -983,6 +1045,51 @@ static int tomoyo_path_acl(struct tomoyo
+@@ -985,6 +1047,51 @@ static int tomoyo_update_path2_acl(const
  }
  
  /**
@@ -383,8 +383,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +/**
   * tomoyo_path2_acl - Check permission for double path operation.
   *
-  * @domain:    Pointer to "struct tomoyo_domain_info".
-@@ -1075,6 +1182,113 @@ static int tomoyo_path_permission2(struc
+  * @r:         Pointer to "struct tomoyo_request_info".
+@@ -1065,6 +1172,113 @@ static int tomoyo_path_permission(struct
  }
  
  /**
@@ -498,7 +498,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_check_exec_perm - Check permission for "execute".
   *
   * @domain:   Pointer to "struct tomoyo_domain_info".
-@@ -1154,7 +1368,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1141,7 +1355,7 @@ int tomoyo_check_open_permission(struct 
  }
  
  /**
@@ -507,7 +507,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-@@ -1198,6 +1412,55 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1190,6 +1404,54 @@ int tomoyo_path_perm(const u8 operation,
  }
  
  /**
@@ -532,13 +532,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_path_info buf;
 +	bool is_enforce = false;
 +	int idx;
-+	if (!mnt)
++
++	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
++	    !mnt)
 +		return 0;
 +	buf.name = NULL;
 +	idx = tomoyo_read_lock();
-+	if (tomoyo_init_request_info(&r, NULL, tomoyo_pnnn2mac[operation])
-+	    == TOMOYO_CONFIG_DISABLED)
-+		goto out;
 +	is_enforce = (r.mode == TOMOYO_CONFIG_ENFORCING);
 +	error = tomoyo_pre_vfs_mknod(dir, dentry);
 +	if (error)
@@ -560,10 +559,10 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 +
 +/**
-  * tomoyo_check_rewrite_permission - Check permission for "rewrite".
+  * tomoyo_path2_perm - Check permission for "rename", "link" and "pivot_root".
   *
-  * @filp: Pointer to "struct file".
-@@ -1299,3 +1562,267 @@ int tomoyo_path2_perm(const u8 operation
+  * @operation: Type of operation.
+@@ -1250,3 +1512,267 @@ int tomoyo_path2_perm(const u8 operation
  		error = 0;
  	return error;
  }
