@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/02/14
+ * Version: 1.7.2-pre   2010/03/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -94,6 +94,8 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::umount",
 	[CCS_MAC_FILE_PIVOT_ROOT]
 	= "file::pivot_root",
+	[CCS_MAC_FILE_TRANSIT]
+	= "file::transit",
 	[CCS_MAC_ENVIRON]
 	= "misc::env",
 	[CCS_MAC_NETWORK_UDP_BIND]
@@ -1227,7 +1229,8 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 	for (bit = head->read_bit; bit < CCS_MAX_PATH_OPERATION; bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
-		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE)
+		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE
+		    && bit != CCS_TYPE_TRANSIT)
 			continue;
 		/* Print "read/write" instead of "read" and "write". */
 		if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)

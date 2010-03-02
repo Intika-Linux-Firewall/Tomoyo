@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/02/14
+ * Version: 1.7.2-pre   2010/03/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -75,6 +75,7 @@ enum ccs_path_acl_index {
 	CCS_TYPE_REWRITE,
 	CCS_TYPE_CHROOT,
 	CCS_TYPE_UMOUNT,
+	CCS_TYPE_TRANSIT,
 	CCS_MAX_PATH_OPERATION
 };
 
@@ -162,6 +163,7 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MOUNT,
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
+	CCS_MAC_FILE_TRANSIT,
 	CCS_MAC_NETWORK_UDP_BIND,
 	CCS_MAC_NETWORK_UDP_CONNECT,
 	CCS_MAC_NETWORK_TCP_BIND,
@@ -916,8 +918,11 @@ int ccs_get_mode(const u8 profile, const u8 index);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r,
 			  struct ccs_domain_info *domain, const u8 index);
+int ccs_may_transit(const char *domainname, const char *pathname);
 int ccs_open_control(const u8 type, struct file *file);
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
+int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+			const struct ccs_path_info *filename);
 int ccs_poll_control(struct file *file, poll_table *wait);
 int ccs_poll_audit_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,

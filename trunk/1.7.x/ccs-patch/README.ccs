@@ -2326,3 +2326,32 @@ Fix 2010/01/17
 
       Since 1.6.7 , /proc/ccs/grant_log was by error using next domain's name
       when auditing current domain's "execute_handler" line.
+
+Fix 2010/03/02
+
+    @ Allow domain transition without execve().
+
+      To be able to split permissions for Apache's CGI programs which are
+      executed without execve(), I added special domain transition which is
+      performed by atomically writing '\0'-terminated binary string to
+      /proc/ccs/.transition interface. For example, a process which belongs to
+      "<kernel> /usr/sbin/httpd" domain will transit to
+      "<kernel> /usr/sbin/httpd //app=cgi1\040id=10000" domain by atomically
+      writing "app=cgi1 id=10000" + '\0' to /proc/ccs/.transition using
+      Apache's ap_hook_handler() functionality.
+
+      Note that '\0'-terminated binary string is converted to TOMOYO's string
+      inside kernel and prefix "//" is automatically added to the string so
+      that domainname does not confclict with domainnames created by execve().
+      Without this prefix, if "<kernel> /usr/sbin/sshd /bin/bash" domain is
+      allowed to open /proc/ccs/.transition for writing and
+      "<kernel> /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain is allowed to
+      access /etc/shadow , /bin/bash will be able to access /etc/shadow by
+      atomically writing "/usr/bin/passwd" + '\0' to /proc/ccs/.transition .
+      Allowing /bin/bash to access /etc/shadow is not what people want.
+
+      Permission for this operation is checked by "allow_transit" keyword.
+      Unlike "allow_execute" keyword, the string parameter for "allow_transit"
+      keyword does not refer a real file on filesystem's namespace. Therefore,
+      you can store any combination of parameters like LDAP's DN entry in the
+      string parameter for "allow_transit" keyword.
