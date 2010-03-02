@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/02/14
+ * Version: 1.7.2-pre   2010/03/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1271,4 +1271,43 @@ void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
 	kfree(ee->tmp);
 	kfree(ee->dump.data);
 	kfree(ee);
+}
+
+/**
+ * ccs_may_transit - Check permission and do domain transition without execve().
+ *
+ * @domainname: Domainname to transit to.
+ * @pathname: Pathname to check.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+int ccs_may_transit(const char *domainname, const char *pathname) {
+	struct ccs_path_info name;
+	struct ccs_request_info r;
+	struct ccs_domain_info *domain;
+	int error;
+	name.name = pathname;
+	ccs_fill_path_info(&name);
+	/* Check allow_transit permission. */
+	ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRANSIT);
+	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
+	if (error)
+		return error;
+	/* Check destination domain. */
+	domain = ccs_find_domain(domainname);
+	if (!domain && r.mode != CCS_CONFIG_ENFORCING &&
+	    strlen(domainname) < CCS_EXEC_TMPSIZE - 10) {
+		domain = ccs_find_or_assign_new_domain(domainname, r.profile);
+		if (domain)
+			ccs_audit_domain_creation_log(domain);
+	}
+	if (domain) {
+		error = 0;
+		current->ccs_domain_info = domain;
+	} else {
+		error = -ENOENT;
+	}
+	return error;
 }

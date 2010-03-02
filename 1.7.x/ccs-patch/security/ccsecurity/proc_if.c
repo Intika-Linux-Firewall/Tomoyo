@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/proc_if.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,6 +17,73 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include "internal.h"
+
+/**
+ * ccs_write_transition - write() for /proc/ccs/.transition interface.
+ *
+ * @file:  Pointer to "struct file".
+ * @buf:   Domainname to transit to. Must ends with '\0'.
+ * @count: Size of @buf.
+ * @ppos:  Unused.
+ *
+ * Returns @count on success, negative value otherwise.
+ */
+static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
+				    size_t count, loff_t *ppos)
+{
+	const char *self_domain = ccs_current_domain()->domainname->name;
+	const int self_domain_len = strlen(self_domain);
+	char *data;
+	int data_len;
+	char *tmp;
+	int idx;
+	int error = -ENOMEM;
+	if (!count || count + self_domain_len >= CCS_EXEC_TMPSIZE - 10)
+		return -ENOMEM;
+	data = kmalloc(count, GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+	if (copy_from_user(data, buf, count)) {
+		error = -EFAULT;
+		goto out;
+	}
+	if (memchr(data, '\0', count) != data + count - 1) {
+		error = -EINVAL;
+		goto out;
+	}
+	tmp = ccs_encode(data);
+	kfree(data);
+	data = tmp;
+	if (!data)
+		goto out;
+	data_len = strlen(data);
+	tmp = kzalloc(self_domain_len + data_len + 5, GFP_KERNEL);
+	if (!tmp)
+		goto out;
+	/*
+	 * Add "//" prefix to requested name in order to distinguish domain
+	 * transitions with execve().
+	 */
+	snprintf(tmp, self_domain_len + data_len + 4, "%s //%s", self_domain,
+		 data);
+	kfree(data);
+	data = tmp;
+	idx = ccs_read_lock();
+	error = ccs_may_transit(data, data + self_domain_len + 1);
+	ccs_read_unlock(idx);
+ out:
+	kfree(data);
+	return error ? error : count;
+}
+
+/* Operations for /proc/ccs/.transition interface. */
+static
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 17)
+const
+#endif
+struct file_operations ccs_transition_operations = {
+	.write = ccs_write_transition,
+};
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 23)
 #if !defined(RHEL_VERSION) || RHEL_VERSION != 3 || !defined(RHEL_UPDATE) || RHEL_UPDATE != 9
@@ -223,6 +290,12 @@ static int __init ccs_proc_init(void)
 	ccs_create_entry("version",          0400, ccs_dir, CCS_VERSION);
 	ccs_create_entry(".execute_handler", 0666, ccs_dir,
 			 CCS_EXECUTE_HANDLER);
+	{
+		struct proc_dir_entry *e = create_proc_entry(".transition",
+							     0222, ccs_dir);
+		if (e)
+			e->proc_fops = &ccs_transition_operations;
+	}
 	return 0;
 }
 

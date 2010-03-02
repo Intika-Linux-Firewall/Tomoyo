@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/file.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.2-pre   2010/03/02
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -42,6 +42,7 @@ static const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_REWRITE]    = "rewrite",
 	[CCS_TYPE_CHROOT]     = "chroot",
 	[CCS_TYPE_UMOUNT]     = "unmount",
+	[CCS_TYPE_TRANSIT]    = "transit",
 };
 
 static const char *ccs_path_number3_keyword[CCS_MAX_PATH_NUMBER3_OPERATION] = {
@@ -78,6 +79,7 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_REWRITE]    = CCS_MAC_FILE_REWRITE,
 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
+	[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
 };
 
 static const u8 ccs_pnnn2mac[CCS_MAX_PATH_NUMBER3_OPERATION] = {
@@ -1491,10 +1493,8 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_path_permission(struct ccs_request_info *r,
-			       u8 operation,
-			       const struct ccs_path_info *
-			       filename)
+int ccs_path_permission(struct ccs_request_info *r, u8 operation,
+			const struct ccs_path_info *filename)
 {
 	const char *msg;
 	int error;
@@ -1503,7 +1503,8 @@ static int ccs_path_permission(struct ccs_request_info *r,
 	if (r->mode == CCS_CONFIG_DISABLED)
 		return 0;
 	do {
-		error = ccs_path_acl(r, filename, 1 << operation, 1);
+		error = ccs_path_acl(r, filename, 1 << operation,
+				     operation != CCS_TYPE_TRANSIT);
 		msg = ccs_path2keyword(operation);
 		ccs_audit_path_log(r, msg, filename->name, !error);
 		if (!error)
