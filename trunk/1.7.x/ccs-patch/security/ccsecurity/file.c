@@ -1110,7 +1110,7 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
 /**
  * ccs_file_perm - Check permission for opening files.
  *
- * @r:         Pointer to "strct ccs_request_info".
+ * @r:         Pointer to "struct ccs_request_info".
  * @filename:  Filename to check.
  * @mode:      Mode ("read" or "write" or "read/write" or "execute").
  *
@@ -2072,7 +2072,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 /**
  * ccs_path_number_perm2 - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
- * @r:        Pointer to "strct ccs_request_info".
+ * @r:        Pointer to "struct ccs_request_info".
  * @filename: Filename to check.
  * @number:   Number.
  *
