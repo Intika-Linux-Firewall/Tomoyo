@@ -2145,9 +2145,9 @@ static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  * @fmt:     The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
- * violated the policy in enforcing mode, 1 if the supervisor decided to
- * retry the access request which violated the policy in enforcing mode,
- * 0 if it is not in enforcing mode, -EPERM otherwise.
+ * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
+ * decided to retry the access request which violated the policy in enforcing
+ * mode, 0 if it is not in enforcing mode, -EPERM otherwise.
  */
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 {
@@ -2256,7 +2256,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	spin_unlock(&ccs_query_list_lock);
 	switch (ccs_query_entry->answer) {
 	case 3: /* Asked to retry by administrator. */
-		error = 1;
+		error = CCS_RETRY_REQUEST;
 		r->retry++;
 		break;
 	case 1:

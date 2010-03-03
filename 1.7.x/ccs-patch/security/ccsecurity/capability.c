@@ -68,7 +68,7 @@ static bool ccs_capable2(const u8 operation)
 			break;
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n",
 				       ccs_cap2keyword(operation));
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	return !error;
 }
 
@@ -123,8 +123,7 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl *acl =
-			container_of(ptr, struct ccs_capability_acl,
-				     head);
+			container_of(ptr, struct ccs_capability_acl, head);
 		if (ptr->type != CCS_TYPE_CAPABILITY_ACL ||
 		    ptr->cond != condition || acl->operation != capability)
 			continue;

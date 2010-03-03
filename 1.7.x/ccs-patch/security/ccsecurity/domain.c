@@ -621,7 +621,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 
 		/* Check execute permission. */
 		retval = ccs_exec_perm(r, &rn);
-		if (retval == 1)
+		if (retval == CCS_RETRY_REQUEST)
 			goto retry;
 		if (retval < 0)
 			goto out;
@@ -655,7 +655,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	if (r->mode == CCS_CONFIG_ENFORCING) {
 		int error = ccs_supervisor(r, "# wants to create domain\n"
 					   "%s\n", ee->tmp);
-		if (error == 1)
+		if (error == CCS_RETRY_REQUEST)
 			goto retry;
 		if (error < 0)
 			goto done;

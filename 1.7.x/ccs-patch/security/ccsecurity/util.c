@@ -1106,7 +1106,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	unsigned int count = 0;
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
-	if (r->mode != TOMOYO_CONFIG_LEARNING)
+	if (r->mode != CCS_CONFIG_LEARNING)
 		return false;
 	if (!domain)
 		return true;
