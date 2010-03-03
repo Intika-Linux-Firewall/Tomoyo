@@ -296,23 +296,27 @@ enum ccs_conditions_index {
 #define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
 
 /* Value type definition. */
-#define CCS_VALUE_TYPE_INVALID     0
-#define CCS_VALUE_TYPE_DECIMAL     1
-#define CCS_VALUE_TYPE_OCTAL       2
-#define CCS_VALUE_TYPE_HEXADECIMAL 3
+enum ccs_value_type {
+	CCS_VALUE_TYPE_INVALID,
+	CCS_VALUE_TYPE_DECIMAL,
+	CCS_VALUE_TYPE_OCTAL,
+	CCS_VALUE_TYPE_HEXADECIMAL
+};
 
 #define CCS_EXEC_TMPSIZE     4096
 
 /* Profile number is an integer between 0 and 255. */
 #define CCS_MAX_PROFILES 256
 
-#define CCS_CONFIG_DISABLED          0
-#define CCS_CONFIG_LEARNING          1
-#define CCS_CONFIG_PERMISSIVE        2
-#define CCS_CONFIG_ENFORCING         3
-#define CCS_CONFIG_WANT_REJECT_LOG  64
-#define CCS_CONFIG_WANT_GRANT_LOG  128
-#define CCS_CONFIG_USE_DEFAULT     255
+enum ccs_mode_value {
+	CCS_CONFIG_DISABLED,
+	CCS_CONFIG_LEARNING,
+	CCS_CONFIG_PERMISSIVE,
+	CCS_CONFIG_ENFORCING,
+	CCS_CONFIG_WANT_REJECT_LOG =  64,
+	CCS_CONFIG_WANT_GRANT_LOG  = 128,
+	CCS_CONFIG_USE_DEFAULT     = 255
+};
 
 #define CCS_OPEN_FOR_READ_TRUNCATE        4
 #define CCS_OPEN_FOR_IOCTL_ONLY           8
@@ -482,6 +486,8 @@ struct ccs_condition {
 };
 
 struct ccs_execve_entry;
+
+#define CCS_RETRY_REQUEST 1 /* Retry this request. */
 
 /* Structure for request info. */
 struct ccs_request_info {

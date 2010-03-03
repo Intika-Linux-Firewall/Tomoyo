@@ -198,8 +198,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		struct ccs_mount_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_MOUNT_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_mount_acl,
-				   head);
+		acl = container_of(ptr, struct ccs_mount_acl, head);
 		if (!ccs_compare_number_union(flags, &acl->flags) ||
 		    !ccs_compare_name_union(&rtype, &acl->fs_type) ||
 		    !ccs_compare_name_union(&rdir, &acl->dir_name) ||
@@ -312,7 +311,7 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 	else
 		do {
 			error = ccs_mount_acl2(r, dev_name, dir, type, flags);
-		} while (error == 1);
+		} while (error == CCS_RETRY_REQUEST);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;

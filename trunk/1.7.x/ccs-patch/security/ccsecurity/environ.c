@@ -181,7 +181,7 @@ int ccs_env_perm(struct ccs_request_info *r, const char *env)
 		if (!error)
 			break;
 		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	return error;
 }
 

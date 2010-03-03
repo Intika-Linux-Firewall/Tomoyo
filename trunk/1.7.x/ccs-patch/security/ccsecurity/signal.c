@@ -116,7 +116,7 @@ static int ccs_signal_acl2(const int sig, const int pid)
 			break;
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n",
 				       sig, dest_pattern);
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	return error;
 }
 

@@ -970,8 +970,7 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	bool done = true;
-	list_for_each_cookie(pos, head->read_var2,
-			     &ccs_no_rewrite_list) {
+	list_for_each_cookie(pos, head->read_var2, &ccs_no_rewrite_list) {
 		struct ccs_no_rewrite_entry *ptr;
 		ptr = list_entry(pos, struct ccs_no_rewrite_entry, list);
 		if (ptr->is_deleted)
@@ -1039,8 +1038,7 @@ static inline int ccs_update_file_acl(u8 perm, const char *filename,
  */
 static int ccs_path_acl(struct ccs_request_info *r,
 			const struct ccs_path_info *filename,
-			const u16 perm,
-			const bool may_use_pattern)
+			const u16 perm, const bool may_use_pattern)
 {
 	struct ccs_domain_info *domain = r->domain;
 	struct ccs_acl_info *ptr;
@@ -1049,8 +1047,7 @@ static int ccs_path_acl(struct ccs_request_info *r,
 		struct ccs_path_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_path_acl,
-				   head);
+		acl = container_of(ptr, struct ccs_path_acl, head);
 		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_name_union_pattern(filename, &acl->name,
 						    may_use_pattern))
@@ -1155,7 +1152,7 @@ static int ccs_file_perm(struct ccs_request_info *r,
 		 * Do not retry for execute request, for aggregator may have
 		 * changed.
 		 */
-	} while (error == 1 && !r->ee);
+	} while (error == CCS_RETRY_REQUEST && !r->ee);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
@@ -1264,8 +1261,7 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl =
-			container_of(ptr, struct ccs_path_acl,
-				     head);
+			container_of(ptr, struct ccs_path_acl, head);
 		if (ptr->type != CCS_TYPE_PATH_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
@@ -1413,8 +1409,7 @@ static inline int ccs_update_path2_acl(const u8 type,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path2_acl *acl =
-			container_of(ptr, struct ccs_path2_acl,
-				     head);
+			container_of(ptr, struct ccs_path2_acl, head);
 		if (ptr->type != CCS_TYPE_PATH2_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), name1), sizeof(e)))
@@ -1469,8 +1464,7 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 		struct ccs_path2_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH2_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_path2_acl,
-				   head);
+		acl = container_of(ptr, struct ccs_path2_acl, head);
 		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_name_union(filename1, &acl->name1) ||
 		    !ccs_compare_name_union(filename2, &acl->name2))
@@ -1511,7 +1505,7 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 			break;
 		error = ccs_supervisor(r, "allow_%s %s\n", msg,
 				       ccs_file_pattern(filename));
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	/*
@@ -1562,7 +1556,7 @@ static int ccs_path_number3_perm2(struct ccs_request_info *r,
 		error = ccs_supervisor(r, "allow_%s %s 0%o %u %u\n", msg,
 				       ccs_file_pattern(filename), mode,
 				       major, minor);
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
@@ -1950,7 +1944,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 		error = ccs_supervisor(&r, "allow_%s %s %s\n", msg,
 				       ccs_file_pattern(&buf1),
 				       ccs_file_pattern(&buf2));
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
  out:
 	kfree(buf1.name);
 	kfree(buf2.name);
@@ -2000,8 +1994,7 @@ static inline int ccs_update_path_number_acl(const u8 type,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl =
-			container_of(ptr, struct ccs_path_number_acl,
-				     head);
+			container_of(ptr, struct ccs_path_number_acl, head);
 		if (ptr->type != CCS_TYPE_PATH_NUMBER_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
@@ -2056,8 +2049,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 		struct ccs_path_number_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
-		acl = container_of(ptr, struct ccs_path_number_acl,
-				   head);
+		acl = container_of(ptr, struct ccs_path_number_acl, head);
 		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
 		    !ccs_compare_number_union(number, &acl->number) ||
 		    !ccs_compare_name_union(filename, &acl->name))
@@ -2114,7 +2106,7 @@ static int ccs_path_number_perm2(struct ccs_request_info *r, const u8 type,
 			return 0;
 		error = ccs_supervisor(r, "allow_%s %s %s\n", msg,
 				       ccs_file_pattern(filename), buffer);
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	if (r->mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;

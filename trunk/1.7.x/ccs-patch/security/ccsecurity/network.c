@@ -224,7 +224,7 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 			break;
 		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
 				       "%s %s %u\n", keyword, buf, port);
-	} while (error == 1);
+	} while (error == CCS_RETRY_REQUEST);
 	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;
 	return error;
@@ -347,8 +347,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl *acl =
-			container_of(ptr, struct ccs_ip_network_acl,
-				     head);
+			container_of(ptr, struct ccs_ip_network_acl, head);
 		if (ptr->type != CCS_TYPE_IP_NETWORK_ACL ||
 		    ptr->cond != condition ||
 		    ccs_memcmp(acl, &e, offsetof(typeof(e), address_type),
