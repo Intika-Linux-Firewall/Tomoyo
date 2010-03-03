@@ -1,0 +1,635 @@
+[PATCH] TOMOYO: Add mount restrictioon.
+
+mount(2) has three string and one numeric parameters.
+Split mount restriction code from security/tomoyo/file.c .
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/Makefile |    1 
+ security/tomoyo/common.c |   34 ++++
+ security/tomoyo/common.h |   46 +++++
+ security/tomoyo/file.c   |    9 -
+ security/tomoyo/gc.c     |   10 +
+ security/tomoyo/mount.c  |  366 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/tomoyo.c |    2 
+ 7 files changed, 457 insertions(+), 11 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/Makefile
++++ security-testing-2.6/security/tomoyo/Makefile
+@@ -1 +1 @@
+-obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o number_group.o
+\ No newline at end of file
++obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o number_group.o mount.o
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -1074,6 +1074,10 @@ bool tomoyo_domain_quota_is_ok(struct to
+ 				if (perm & (1 << i))
+ 					count++;
+ 			break;
++		case TOMOYO_TYPE_MOUNT_ACL:
++			if (!container_of(ptr, struct tomoyo_mount_acl, head)->
++			    is_deleted)
++				count++;
+ 		}
+ 	}
+ 	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
+@@ -1571,6 +1575,8 @@ static int tomoyo_write_domain_policy(st
+ 		domain->ignore_global_allow_read = !is_delete;
+ 		return 0;
+ 	}
++        if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
++                return tomoyo_write_mount_policy(data, domain, is_delete);
+ 	return tomoyo_write_file_policy(data, domain, is_delete);
+ }
+ 
+@@ -1716,6 +1722,29 @@ static bool tomoyo_print_path_number3_ac
+ }
+ 
+ /**
++ * tomoyo_print_mount_acl - Print a mount ACL entry.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ * @ptr:  Pointer to "struct tomoyo_mount_acl".
++ *
++ * Returns true on success, false otherwise.
++ */
++static bool tomoyo_print_mount_acl(struct tomoyo_io_buffer *head,
++				   struct tomoyo_mount_acl *ptr)
++{
++	const int pos = head->read_avail;
++	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_MOUNT) ||
++	    !tomoyo_print_name_union(head, &ptr->dev_name) ||
++	    !tomoyo_print_name_union(head, &ptr->dir_name) ||
++	    !tomoyo_print_name_union(head, &ptr->fs_type) ||
++	    !tomoyo_io_printf(head, "\n")) {
++		head->read_avail = pos;
++		return false;
++	}
++	return true;
++}
++
++/**
+  * tomoyo_print_entry - Print an ACL entry.
+  *
+  * @head: Pointer to "struct tomoyo_io_buffer".
+@@ -1750,6 +1779,11 @@ static bool tomoyo_print_entry(struct to
+ 				       head);
+ 		return tomoyo_print_path_number3_acl(head, acl);
+ 	}
++	if (acl_type == TOMOYO_TYPE_MOUNT_ACL) {
++		struct tomoyo_mount_acl *acl
++			= container_of(ptr, struct tomoyo_mount_acl, head);
++		return tomoyo_print_mount_acl(head, acl);
++	}
+ 	BUG(); /* This must not happen. */
+ 	return false;
+ }
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -53,6 +53,7 @@ enum tomoyo_mode_index {
+ 
+ /* Keywords for ACLs. */
+ #define TOMOYO_KEYWORD_ALIAS                     "alias "
++#define TOMOYO_KEYWORD_ALLOW_MOUNT               "allow_mount "
+ #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
+ #define TOMOYO_KEYWORD_DELETE                    "delete "
+ #define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
+@@ -90,6 +91,7 @@ enum tomoyo_acl_entry_type_index {
+ 	TOMOYO_TYPE_PATH2_ACL,
+ 	TOMOYO_TYPE_PATH_NUMBER_ACL,
+ 	TOMOYO_TYPE_PATH_NUMBER3_ACL,
++	TOMOYO_TYPE_MOUNT_ACL,
+ };
+ 
+ /* Index numbers for File Controls. */
+@@ -116,7 +118,6 @@ enum tomoyo_path_acl_index {
+ 	TOMOYO_TYPE_SYMLINK,
+ 	TOMOYO_TYPE_REWRITE,
+ 	TOMOYO_TYPE_CHROOT,
+-	TOMOYO_TYPE_MOUNT,
+ 	TOMOYO_TYPE_UMOUNT,
+ 	TOMOYO_MAX_PATH_OPERATION
+ };
+@@ -360,8 +361,8 @@ struct tomoyo_domain_info {
+  *
+  * Directives held by this structure are "allow_read/write", "allow_execute",
+  * "allow_read", "allow_write", "allow_unlink", "allow_rmdir",
+- * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_chroot",
+- * "allow_mount" and "allow_unmount".
++ * "allow_truncate", "allow_symlink", "allow_rewrite", "allow_chroot" and
++ * "allow_unmount".
+  */
+ struct tomoyo_path_acl {
+ 	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_PATH_ACL */
+@@ -435,6 +436,29 @@ struct tomoyo_path2_acl {
+ };
+ 
+ /*
++ * tomoyo_mount_acl is a structure which is used for holding an
++ * entry for mount operation.
++ * It has following fields.
++ *
++ *  (1) "head" which is a "struct tomoyo_acl_info".
++ *  (2) "is_deleted" is boolean.
++ *  (3) "dev_name" is the device name.
++ *  (4) "dir_name" is the mount point.
++ *  (5) "flags" is the mount flags.
++ *
++ * Directives held by this structure are "allow_rename", "allow_link" and
++ * "allow_pivot_root".
++ */
++struct tomoyo_mount_acl {
++	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_MOUNT_ACL */
++	bool is_deleted;
++	struct tomoyo_name_union dev_name;
++	struct tomoyo_name_union dir_name;
++	struct tomoyo_name_union fs_type;
++	struct tomoyo_number_union flags;
++};
++
++/*
+  * tomoyo_io_buffer is a structure which is used for reading and modifying
+  * configuration via /sys/kernel/security/tomoyo/ interface.
+  * It has many fields. ->read_var1 , ->read_var2 , ->write_var1 are used as
+@@ -638,6 +662,9 @@ struct tomoyo_policy_manager_entry {
+ /* Check whether the given name matches the given name_union. */
+ bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
+ 			       const struct tomoyo_name_union *ptr);
++/* Check whether the given number matches the given number_union. */
++bool tomoyo_compare_number_union(const unsigned long value,
++				 const struct tomoyo_number_union *ptr);
+ /* Check whether the domain has too many ACL entries to hold. */
+ bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
+ /* Transactional sprintf() for policy dump. */
+@@ -699,6 +726,12 @@ const char *tomoyo_path_number32keyword(
+ const char *tomoyo_get_last_name(const struct tomoyo_domain_info *domain);
+ /* Convert single path operation to operation name. */
+ const char *tomoyo_path2keyword(const u8 operation);
++/* Fill "struct tomoyo_request_info". */
++int tomoyo_init_request_info(struct tomoyo_request_info *r,
++			     struct tomoyo_domain_info *domain);
++/* Check permission for mount operation. */
++int tomoyo_mount_permission(char *dev_name, struct path *path, char *type,
++			    unsigned long flags, void *data_page);
+ /* Create "alias" entry in exception policy. */
+ int tomoyo_write_alias_policy(char *data, const bool is_delete);
+ /*
+@@ -721,6 +754,9 @@ int tomoyo_write_file_policy(char *data,
+ 			     const bool is_delete);
+ /* Create "allow_read" entry in exception policy. */
+ int tomoyo_write_globally_readable_policy(char *data, const bool is_delete);
++/* Create "allow_mount" entry in domain policy. */
++int tomoyo_write_mount_policy(char *data, struct tomoyo_domain_info *domain,
++			      const bool is_delete);
+ /* Create "deny_rewrite" entry in exception policy. */
+ int tomoyo_write_no_rewrite_policy(char *data, const bool is_delete);
+ /* Create "file_pattern" entry in exception policy. */
+@@ -735,7 +771,9 @@ struct tomoyo_domain_info *tomoyo_find_d
+ struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *
+ 							    domainname,
+ 							    const u8 profile);
+-
++/* Get patterned pathname. */
++const struct tomoyo_path_info *
++tomoyo_get_file_pattern(const struct tomoyo_path_info *filename);
+ /* Allocate memory for "struct tomoyo_path_group". */
+ struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
+ struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -23,7 +23,6 @@ static const char *tomoyo_path_keyword[T
+ 	[TOMOYO_TYPE_SYMLINK]    = "symlink",
+ 	[TOMOYO_TYPE_REWRITE]    = "rewrite",
+ 	[TOMOYO_TYPE_CHROOT]     = "chroot",
+-	[TOMOYO_TYPE_MOUNT]      = "mount",
+ 	[TOMOYO_TYPE_UMOUNT]     = "unmount",
+ };
+ 
+@@ -107,8 +106,8 @@ bool tomoyo_compare_number_union(const u
+  *
+  * Returns mode.
+  */
+-static int tomoyo_init_request_info(struct tomoyo_request_info *r,
+-				    struct tomoyo_domain_info *domain)
++int tomoyo_init_request_info(struct tomoyo_request_info *r,
++			     struct tomoyo_domain_info *domain)
+ {
+ 	memset(r, 0, sizeof(*r));
+ 	if (!domain)
+@@ -484,7 +483,7 @@ static int tomoyo_update_file_pattern_en
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-static const struct tomoyo_path_info *
++const struct tomoyo_path_info *
+ tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
+ {
+ 	struct tomoyo_pattern_entry *ptr;
+@@ -1418,7 +1417,7 @@ int tomoyo_check_open_permission(struct 
+ }
+ 
+ /**
+- * tomoyo_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "rewrite", "chroot", "mount" and "unmount".
++ * tomoyo_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "rewrite", "chroot" and "unmount".
+  *
+  * @operation: Type of operation.
+  * @path:      Pointer to "struct path".
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -123,6 +123,16 @@ static void tomoyo_del_acl(struct tomoyo
+ 			tomoyo_put_number_union(&entry->minor);
+ 		}
+ 		break;
++	case TOMOYO_TYPE_MOUNT_ACL:
++		{
++			struct tomoyo_mount_acl *entry
++				= container_of(acl, typeof(*entry), head);
++			tomoyo_put_name_union(&entry->dev_name);
++			tomoyo_put_name_union(&entry->dir_name);
++			tomoyo_put_name_union(&entry->fs_type);
++			tomoyo_put_number_union(&entry->flags);
++		}
++		break;
+ 	default:
+ 		printk(KERN_WARNING "Unknown type\n");
+ 		break;
+--- /dev/null
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -0,0 +1,366 @@
++/*
++ * security/tomoyo/mount.c
++ *
++ * Copyright (C) 2005-2010  NTT DATA CORPORATION
++ */
++
++#include "common.h"
++
++/* Keywords for mount restrictions. */
++
++/* Allow to call 'mount --bind /source_dir /dest_dir' */
++#define TOMOYO_MOUNT_BIND_KEYWORD                        "--bind"
++/* Allow to call 'mount --move /old_dir    /new_dir ' */
++#define TOMOYO_MOUNT_MOVE_KEYWORD                        "--move"
++/* Allow to call 'mount -o remount /dir             ' */
++#define TOMOYO_MOUNT_REMOUNT_KEYWORD                     "--remount"
++/* Allow to call 'mount --make-unbindable /dir'       */
++#define TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD             "--make-unbindable"
++/* Allow to call 'mount --make-private /dir'          */
++#define TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD                "--make-private"
++/* Allow to call 'mount --make-slave /dir'            */
++#define TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD                  "--make-slave"
++/* Allow to call 'mount --make-shared /dir'           */
++#define TOMOYO_MOUNT_MAKE_SHARED_KEYWORD                 "--make-shared"
++
++/**
++ * tomoyo_encode2: Encode binary string to ascii string.
++ *
++ * @str: String in binary format.
++ *
++ * Returns pointer to @str in ascii format on success, NULL otherwise.
++ *
++ * This function uses kzalloc(), so caller must kfree() if this function
++ * didn't return NULL.
++ */
++static char *tomoyo_encode2(const char *str)
++{
++	int len = 0;
++	const char *p = str;
++	char *cp;
++	char *cp0;
++	if (!p)
++		return NULL;
++	while (*p) {
++		const unsigned char c = *p++;
++		if (c == '\\')
++			len += 2;
++		else if (c > ' ' && c < 127)
++			len++;
++		else
++			len += 4;
++	}
++	len++;
++	/* Reserve space for appending "/". */
++	cp = kzalloc(len + 10, GFP_KERNEL);
++	if (!cp)
++		return NULL;
++	cp0 = cp;
++	p = str;
++	while (*p) {
++		const unsigned char c = *p++;
++		if (c == '\\') {
++			*cp++ = '\\';
++			*cp++ = '\\';
++		} else if (c > ' ' && c < 127) {
++			*cp++ = c;
++		} else {
++			*cp++ = '\\';
++			*cp++ = (c >> 6) + '0';
++			*cp++ = ((c >> 3) & 7) + '0';
++			*cp++ = (c & 7) + '0';
++		}
++	}
++	return cp0;
++}
++
++/**
++ * tomoyo_mount_acl2 - Check permission for mount() operation.
++ *
++ * @r:        Pointer to "struct tomoyo_request_info".
++ * @dev_name: Name of device file.
++ * @dir:      Pointer to "struct path".
++ * @type:     Name of filesystem type.
++ * @flags:    Mount options.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_mount_acl2(struct tomoyo_request_info *r, char *dev_name,
++			     struct path *dir, char *type, unsigned long flags)
++{
++	struct path path;
++	struct tomoyo_acl_info *ptr;
++	struct file_system_type *fstype = NULL;
++	const char *requested_type = NULL;
++	const char *requested_dir_name = NULL;
++	const char *requested_dev_name = NULL;
++	struct tomoyo_path_info rtype;
++	struct tomoyo_path_info rdev;
++	struct tomoyo_path_info rdir;
++	int need_dev = 0;
++	int error = -ENOMEM;
++
++	/* Get fstype. */
++	requested_type = tomoyo_encode2(type);
++	if (!requested_type)
++		goto out;
++	rtype.name = requested_type;
++	tomoyo_fill_path_info(&rtype);
++
++	/* Get mount point. */
++	requested_dir_name = tomoyo_realpath_from_path(dir);
++	if (!requested_dir_name) {
++		error = -ENOMEM;
++		goto out;
++	}
++	rdir.name = requested_dir_name;
++	tomoyo_fill_path_info(&rdir);
++
++	/* Compare fs name. */
++	if (!strcmp(type, TOMOYO_MOUNT_REMOUNT_KEYWORD)) {
++		/* dev_name is ignored. */
++	} else if (!strcmp(type, TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
++		   !strcmp(type, TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD) ||
++		   !strcmp(type, TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD) ||
++		   !strcmp(type, TOMOYO_MOUNT_MAKE_SHARED_KEYWORD)) {
++		/* dev_name is ignored. */
++	} else if (!strcmp(type, TOMOYO_MOUNT_BIND_KEYWORD) ||
++		   !strcmp(type, TOMOYO_MOUNT_MOVE_KEYWORD)) {
++		need_dev = -1; /* dev_name is a directory */
++	} else {
++		fstype = get_fs_type(type);
++		if (!fstype) {
++			error = -ENODEV;
++			goto out;
++		}
++		if (fstype->fs_flags & FS_REQUIRES_DEV)
++			/* dev_name is a block device file. */
++			need_dev = 1;
++	}
++	if (need_dev) {
++		/* Get mount point or device file. */
++		if (kern_path(dev_name, LOOKUP_FOLLOW, &path)) {
++			error = -ENOENT;
++			goto out;
++		}
++		requested_dev_name = tomoyo_realpath_from_path(&path);
++		if (!requested_dev_name) {
++			error = -ENOENT;
++			goto out;
++		}
++	} else {
++		/* Map dev_name to "<NULL>" if no dev_name given. */
++		if (!dev_name)
++			dev_name = "<NULL>";
++		requested_dev_name = tomoyo_encode2(dev_name);
++		if (!requested_dev_name) {
++			error = -ENOMEM;
++			goto out;
++		}
++	}
++	rdev.name = requested_dev_name;
++	tomoyo_fill_path_info(&rdev);
++	list_for_each_entry_rcu(ptr, &r->domain->acl_info_list, list) {
++		struct tomoyo_mount_acl *acl;
++		if (ptr->type != TOMOYO_TYPE_MOUNT_ACL)
++			continue;
++		acl = container_of(ptr, struct tomoyo_mount_acl, head);
++		if (acl->is_deleted ||
++		    !tomoyo_compare_number_union(flags, &acl->flags) ||
++		    !tomoyo_compare_name_union(&rtype, &acl->fs_type) ||
++		    !tomoyo_compare_name_union(&rdir, &acl->dir_name) ||
++		    (need_dev &&
++		     !tomoyo_compare_name_union(&rdev, &acl->dev_name)))
++			continue;
++		error = 0;
++		break;
++	}
++	if (error) {
++		const char *dev = tomoyo_get_file_pattern(&rdev)->name;
++		const char *dir = tomoyo_get_file_pattern(&rdir)->name;
++		int len = strlen(dev) + strlen(dir) + strlen(requested_type)
++			+ 64;
++		char *buf = kzalloc(len, GFP_KERNEL);
++		if (buf) {
++			snprintf(buf, len - 1, "%s %s %s 0x%lX",
++				 dev, dir, requested_type, flags);
++			tomoyo_write_mount_policy(buf, r->domain, false);
++			kfree(buf);
++		}
++	}
++ out:
++	kfree(requested_dev_name);
++	kfree(requested_dir_name);
++	if (fstype)
++		put_filesystem(fstype);
++	kfree(requested_type);
++	return error;
++}
++
++/**
++ * tomoyo_mount_acl - Check permission for mount() operation.
++ *
++ * @r:        Pointer to "struct tomoyo_request_info".
++ * @dev_name: Name of device file.
++ * @dir:      Pointer to "struct path".
++ * @type:     Name of filesystem type.
++ * @flags:    Mount options.
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_mount_acl(struct tomoyo_request_info *r, char *dev_name,
++			    struct path *dir, char *type, unsigned long flags)
++{
++	int error;
++	error = -EPERM;
++	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
++		flags &= ~MS_MGC_MSK;
++	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
++	case MS_REMOUNT:
++	case MS_MOVE:
++	case MS_BIND:
++	case 0:
++		break;
++	default:
++		printk(KERN_WARNING "ERROR: "
++		       "%s%s%sare given for single mount operation.\n",
++		       flags & MS_REMOUNT ? "'remount' " : "",
++		       flags & MS_MOVE    ? "'move' " : "",
++		       flags & MS_BIND    ? "'bind' " : "");
++		return -EINVAL;
++	}
++	switch (flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {
++	case MS_UNBINDABLE:
++	case MS_PRIVATE:
++	case MS_SLAVE:
++	case MS_SHARED:
++	case 0:
++		break;
++	default:
++		printk(KERN_WARNING "ERROR: "
++		       "%s%s%s%sare given for single mount operation.\n",
++		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
++		       flags & MS_PRIVATE    ? "'private' " : "",
++		       flags & MS_SLAVE      ? "'slave' " : "",
++		       flags & MS_SHARED     ? "'shared' " : "");
++		return -EINVAL;
++	}
++	if (flags & MS_REMOUNT)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_REMOUNT_KEYWORD,
++				      flags & ~MS_REMOUNT);
++	else if (flags & MS_MOVE)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_MOVE_KEYWORD,
++				      flags & ~MS_MOVE);
++	else if (flags & MS_BIND)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_BIND_KEYWORD,
++				      flags & ~MS_BIND);
++	else if (flags & MS_UNBINDABLE)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_MAKE_UNBINDABLE_KEYWORD,
++				      flags & ~MS_UNBINDABLE);
++	else if (flags & MS_PRIVATE)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_MAKE_PRIVATE_KEYWORD,
++				      flags & ~MS_PRIVATE);
++	else if (flags & MS_SLAVE)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_MAKE_SLAVE_KEYWORD,
++				      flags & ~MS_SLAVE);
++	else if (flags & MS_SHARED)
++		error = tomoyo_mount_acl(r, dev_name, dir,
++				      TOMOYO_MOUNT_MAKE_SHARED_KEYWORD,
++				      flags & ~MS_SHARED);
++	else
++		error = tomoyo_mount_acl2(r, dev_name, dir, type, flags);
++	if (r->mode != TOMOYO_CONFIG_ENFORCING)
++		error = 0;
++	return error;
++}
++
++/**
++ * tomoyo_mount_permission - Check permission for mount() operation.
++ *
++ * @dev_name:  Name of device file.
++ * @path:      Pointer to "struct path".
++ * @type:      Name of filesystem type. May be NULL.
++ * @flags:     Mount options.
++ * @data_page: Optional data. May be NULL.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_mount_permission(char *dev_name, struct path *path, char *type,
++			    unsigned long flags, void *data_page)
++{
++	struct tomoyo_request_info r;
++	int error;
++	int idx;
++
++	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED)
++		return 0;
++	if (!type)
++		type = "<NULL>";
++	idx = tomoyo_read_lock();
++	error = tomoyo_mount_acl(&r, dev_name, path, type, flags);
++	tomoyo_read_unlock(idx);
++	return error;
++}
++
++/**
++ * tomoyo_write_mount_policy - Write "struct tomoyo_mount_acl" list.
++ *
++ * @data:      String to parse.
++ * @domain:    Pointer to "struct tomoyo_domain_info".
++ * @is_delete: True if it is a delete request.
++ *
++ * Returns 0 on success, negative value otherwise.
++ */
++int tomoyo_write_mount_policy(char *data, struct tomoyo_domain_info *domain,
++			      const bool is_delete)
++{
++	struct tomoyo_mount_acl *entry = NULL;
++	struct tomoyo_acl_info *ptr;
++	struct tomoyo_mount_acl e = { .head.type = TOMOYO_TYPE_MOUNT_ACL };
++	int error = is_delete ? -ENOENT : -ENOMEM;
++	char *w[4];
++	if (!tomoyo_tokenize(data, w, sizeof(w)) || !w[3][0])
++		return -EINVAL;
++	if (!tomoyo_parse_name_union(w[0], &e.dev_name) ||
++	    !tomoyo_parse_name_union(w[1], &e.dir_name) ||
++	    !tomoyo_parse_name_union(w[2], &e.fs_type) ||
++	    !tomoyo_parse_number_union(w[3], &e.flags))
++		goto out;
++	if (!is_delete)
++		entry = kmalloc(sizeof(e), GFP_KERNEL);
++	mutex_lock(&tomoyo_policy_lock);
++	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
++		struct tomoyo_mount_acl *acl =
++			container_of(ptr, struct tomoyo_mount_acl, head);
++		if (ptr->type != TOMOYO_TYPE_MOUNT_ACL
++		    || tomoyo_memcmp(acl, &e, offsetof(typeof(e), dev_name),
++				     sizeof(e)))
++			continue;
++		acl->is_deleted = is_delete;
++		error = 0;
++		break;
++	}
++	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
++		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
++		entry = NULL;
++		error = 0;
++	}
++	mutex_unlock(&tomoyo_policy_lock);
++ out:
++	tomoyo_put_name_union(&e.dev_name);
++	tomoyo_put_name_union(&e.dir_name);
++	tomoyo_put_name_union(&e.fs_type);
++	tomoyo_put_number_union(&e.flags);
++	kfree(entry);
++	return error;
++}
+--- security-testing-2.6.orig/security/tomoyo/tomoyo.c
++++ security-testing-2.6/security/tomoyo/tomoyo.c
+@@ -231,7 +231,7 @@ static int tomoyo_path_chroot(struct pat
+ static int tomoyo_sb_mount(char *dev_name, struct path *path,
+ 			   char *type, unsigned long flags, void *data)
+ {
+-	return tomoyo_path_perm(TOMOYO_TYPE_MOUNT, path);
++	return tomoyo_mount_permission(dev_name, path, type, flags, data);
+ }
+ 
+ static int tomoyo_sb_umount(struct vfsmount *mnt, int flags)
