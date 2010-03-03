@@ -60,11 +60,11 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.42-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.45-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.42-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.45-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.27.42-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.27.45-0.1.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
@@ -75,9 +75,9 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-default.spec	2010-01-08 02:07:52.000000000 +0900
-+++ kernel-default.spec	2010-01-16 11:22:06.000000000 +0900
-@@ -57,13 +57,13 @@
+--- kernel-default.spec	2010-02-23 20:22:42.000000000 +0900
++++ kernel-default.spec	2010-03-03 12:06:46.000000000 +0900
+@@ -63,13 +63,13 @@
  %if %build_vanilla || %build_kdump || %CONFIG_MODULES != "y"
  %define split_packages 0
  %else
@@ -88,14 +88,14 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.42
+ Version:        2.6.27.45
 -Release:        0.1.1
 +Release:        0.1.1_tomoyo_1.7.1p2
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/
-@@ -226,7 +226,7 @@
- %define tolerate_unknown_new_config_options 0
+@@ -242,7 +242,7 @@
+ 
  # kABI change tolerance (default in maintenance should be 4, 6, 8 or 15,
  # 31 is the maximum; see scripts/kabi-checks)
 -%define tolerate_kabi_changes 6
@@ -103,9 +103,9 @@ patch << "EOF" || die "Can't patch spec file."
  
  %description
  The standard kernel for both uniprocessor and multiprocessor systems.
-@@ -311,6 +311,10 @@
- %build
+@@ -342,6 +342,10 @@
  source .rpm-defs
+ 
  cd linux-2.6.27
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.1-20100214.tar.gz
