@@ -24,7 +24,7 @@ fi
 
 if [ ! -r ccs-patch-1.7.1-20100306.diff ]
 then
-    wget -O ccs-patch-1.7.1-20100306.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-fedora-12.diff?revision=3498&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.7.1-20100306.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-fedora-12.diff?revision=3499&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
