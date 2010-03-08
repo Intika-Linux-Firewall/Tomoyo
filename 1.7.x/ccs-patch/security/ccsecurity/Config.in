@@ -9,6 +9,9 @@ bool 'CCSecurity support' CONFIG_CCSECURITY
 
 if [ "$CONFIG_CCSECURITY" = "y" ]; then
 
+  [ -z "$CONFIG_CCSECURITY_LKM" ] && define_bool CONFIG_CCSECURITY_LKM y
+  bool 'Compile as loadable kernel module' CONFIG_CCSECURITY_LKM
+
   [ -z "$CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY" ] && define_int CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY 2048
   [ $CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY -lt 0 ] && define_int CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY 0
   int  '  Default maximal count for learning mode' CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY

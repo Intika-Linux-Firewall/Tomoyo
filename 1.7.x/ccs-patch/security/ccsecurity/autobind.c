@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/autobind.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -79,12 +79,11 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_lport_reserved(const u16 port)
+static bool __ccs_lport_reserved(const u16 port)
 {
 	return ccs_reserved_port_map[port >> 8] & (1 << (port & 7))
 		? true : false;
 }
-EXPORT_SYMBOL(ccs_lport_reserved); /* for net/ipv4/ and net/ipv6/ */
 
 /**
  * ccs_write_reserved_port_policy - Write "struct ccs_reserved_entry" list.
@@ -141,4 +140,9 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 			return false;
 	}
 	return true;
+}
+
+void ccs_autobind_init(void)
+{
+	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
 }

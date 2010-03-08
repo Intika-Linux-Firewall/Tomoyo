@@ -2,6 +2,7 @@ This is TOMOYO Linux patch for Debian Sarge.
 
 Source code for this patch is "apt-get install kernel-source-2.4.27"
 ---
+ Makefile                     |    8 ++++++++
  arch/alpha/kernel/ptrace.c   |    3 +++
  arch/arm/kernel/ptrace.c     |    3 +++
  arch/cris/kernel/ptrace.c    |    3 +++
@@ -24,7 +25,6 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  arch/x86_64/ia32/ptrace32.c  |    3 +++
  arch/x86_64/kernel/ptrace.c  |    3 +++
  fs/Config.in                 |    3 +++
- fs/Makefile                  |    2 ++
  fs/exec.c                    |   12 +++++++++++-
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
@@ -48,8 +48,25 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 318 insertions(+), 6 deletions(-)
+ 46 files changed, 324 insertions(+), 6 deletions(-)
 
+--- linux-2.4.27-10sarge7.orig/Makefile
++++ linux-2.4.27-10sarge7/Makefile
+@@ -136,6 +136,14 @@ NETWORKS	=net/network.o
+ 
+ LIBS		=$(TOPDIR)/lib/lib.a
+ SUBDIRS		=kernel drivers mm fs net ipc lib crypto
++ifdef CONFIG_CCSECURITY
++SUBDIRS += security/ccsecurity
++ifdef CONFIG_CCSECURITY_LKM
++CORE_FILES += security/ccsecurity/load_policy.o
++else
++CORE_FILES += security/ccsecurity/ccsecurity.o
++endif
++endif
+ 
+ DRIVERS-n :=
+ DRIVERS-y :=
 --- linux-2.4.27-10sarge7.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.27-10sarge7/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,7 @@
@@ -472,16 +489,6 @@ Source code for this patch is "apt-get install kernel-source-2.4.27"
  endmenu
 +
 +source security/ccsecurity/Config.in
---- linux-2.4.27-10sarge7.orig/fs/Makefile
-+++ linux-2.4.27-10sarge7/fs/Makefile
-@@ -84,5 +84,7 @@ obj-$(CONFIG_FS_POSIX_ACL)	+= posix_acl.
- # persistent filesystems
- obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
-+obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
- 
- include $(TOPDIR)/Rules.make
 --- linux-2.4.27-10sarge7.orig/fs/exec.c
 +++ linux-2.4.27-10sarge7/fs/exec.c
 @@ -48,6 +48,8 @@

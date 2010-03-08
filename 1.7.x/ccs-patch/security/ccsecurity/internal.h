@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/02
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -26,18 +26,32 @@
 #include <asm/uaccess.h>
 #include <stdarg.h>
 #include <linux/delay.h>
+#include <linux/sched.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#include <linux/kmod.h>
-#endif
+//#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+//#include <linux/kmod.h>
+//#endif
 #include <linux/in6.h>
 #include <linux/ccsecurity.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-#include <linux/err.h>
+//#include <linux/err.h>
 #else
 #include <linux/fs.h>
 #endif
 #include "compat.h"
+
+/* Prototype definition for "struct ccsecurity_operations". */
+
+void __init ccs_policy_io_init(void);
+void __init ccs_mm_init(void);
+void __init ccs_domain_init(void);
+void __init ccs_file_init(void);
+void __init ccs_network_init(void);
+void __init ccs_signal_init(void);
+void __init ccs_capability_init(void);
+void __init ccs_mount_init(void);
+void __init ccs_maymount_init(void);
+void __init ccs_autobind_init(void);
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
@@ -329,8 +343,6 @@ enum ccs_mode_value {
 struct dentry;
 struct vfsmount;
 struct in6_addr;
-extern asmlinkage long sys_getpid(void);
-extern asmlinkage long sys_getppid(void);
 
 /**
  * list_for_each_cookie - iterate over a list with cookie.
@@ -856,7 +868,7 @@ struct ccs_profile {
 		  + CCS_MAX_MAC_CATEGORY_INDEX];
 };
 
-/* Prototype definition. */
+/* Prototype definition for internal use. */
 
 bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 			       const struct ccs_address_group *group);
@@ -984,10 +996,8 @@ struct ccs_number_group *ccs_get_number_group(const char *group_name);
 struct ccs_path_group *ccs_get_path_group(const char *group_name);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
-void ccs_check_profile(void);
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);
-void ccs_load_policy(const char *filename);
 void ccs_memory_free(const void *ptr, size_t size);
 void ccs_normalize_line(unsigned char *buffer);
 void ccs_print_ipv6(char *buffer, const int buffer_len,
@@ -1051,19 +1061,18 @@ extern unsigned int ccs_query_memory_size;
 extern unsigned int ccs_quota_for_query;
 
 #include <linux/dcache.h>
-extern spinlock_t vfsmount_lock;
 
 #ifdef D_PATH_DISCONNECT
 
 static inline void ccs_realpath_lock(void)
 {
-	spin_lock(&vfsmount_lock);
+	spin_lock(ccsecurity_exports.vfsmount_lock);
 	spin_lock(&dcache_lock);
 }
 static inline void ccs_realpath_unlock(void)
 {
 	spin_unlock(&dcache_lock);
-	spin_unlock(&vfsmount_lock);
+	spin_unlock(ccsecurity_exports.vfsmount_lock);
 }
 
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
@@ -1071,11 +1080,11 @@ static inline void ccs_realpath_unlock(void)
 static inline void ccs_realpath_lock(void)
 {
 	spin_lock(&dcache_lock);
-	spin_lock(&vfsmount_lock);
+	spin_lock(ccsecurity_exports.vfsmount_lock);
 }
 static inline void ccs_realpath_unlock(void)
 {
-	spin_unlock(&vfsmount_lock);
+	spin_unlock(ccsecurity_exports.vfsmount_lock);
 	spin_unlock(&dcache_lock);
 }
 

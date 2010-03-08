@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/02
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -970,9 +970,10 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
 			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
 			 "state[1]=%u state[2]=%u",
-			 (pid_t) sys_getpid(), current_uid(), current_gid(),
-			 current_euid(), current_egid(), current_suid(),
-			 current_sgid(), current_fsuid(), current_fsgid(),
+			 (pid_t) ccsecurity_exports.sys_getpid(),
+			 current_uid(), current_gid(), current_euid(),
+			 current_egid(), current_suid(), current_sgid(),
+			 current_fsuid(), current_fsgid(),
 			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
 			 (u8) (ccs_flags >> 8));
 		retval = copy_strings_kernel(1, &cp, bprm);
@@ -1165,14 +1166,13 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **eep)
+static int ccs_start_execve(struct linux_binprm *bprm,
+			    struct ccs_execve_entry **eep)
 {
 	int retval;
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee;
 	*eep = NULL;
-	if (!ccs_policy_loaded)
-		ccs_load_policy(bprm->filename);
 	ee = kzalloc(sizeof(*ee), GFP_KERNEL);
 	if (!ee)
 		return -ENOMEM;
@@ -1244,7 +1244,7 @@ int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **eep)
  *
  * Caller holds ccs_read_lock().
  */
-void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
+static void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
 {
 	struct task_struct *task = current;
 	if (!ee)
@@ -1310,4 +1310,23 @@ int ccs_may_transit(const char *domainname, const char *pathname) {
 		error = -ENOENT;
 	}
 	return error;
+}
+
+static int __ccs_search_binary_handler(struct linux_binprm *bprm,
+				       struct pt_regs *regs)
+{
+	struct ccs_execve_entry *ee;
+	int retval;
+	if (!ccs_policy_loaded)
+		ccsecurity_exports.load_policy(bprm->filename);
+	retval = ccs_start_execve(bprm, &ee);
+	if (!retval)
+		retval = search_binary_handler(bprm, regs);
+	ccs_finish_execve(retval, ee);
+	return retval;
+}
+
+void __init ccs_domain_init(void)
+{
+	ccsecurity_ops.search_binary_handler = __ccs_search_binary_handler;
 }

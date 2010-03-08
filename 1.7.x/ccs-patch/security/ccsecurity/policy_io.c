@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/02
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -287,7 +287,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 /**
  * ccs_check_profile - Check all profiles currently assigned to domains are defined.
  */
-void ccs_check_profile(void)
+static void ccs_check_profile(void)
 {
 	struct ccs_domain_info *domain;
 	ccs_policy_loaded = true;
@@ -301,6 +301,8 @@ void ccs_check_profile(void)
 	if (ccs_profile_version != 20090903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
+	printk(KERN_INFO "CCSecurity: 1.7.2-pre   2010/03/08\n");
+	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
 /**
@@ -851,9 +853,10 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 		ccs_tasklist_lock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 		if (global_pid)
-			p = find_task_by_pid_ns(pid, &init_pid_ns);
+			p = ccsecurity_exports.find_task_by_pid_ns(pid,
+							       &init_pid_ns);
 		else
-			p = find_task_by_vpid(pid);
+			p = ccsecurity_exports.find_task_by_vpid(pid);
 #else
 		p = find_task_by_pid(pid);
 #endif
@@ -1821,9 +1824,9 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 	ccs_tasklist_lock();
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 	if (global_pid)
-		p = find_task_by_pid_ns(pid, &init_pid_ns);
+		p = ccsecurity_exports.find_task_by_pid_ns(pid, &init_pid_ns);
 	else
-		p = find_task_by_vpid(pid);
+		p = ccsecurity_exports.find_task_by_vpid(pid);
 #else
 	p = find_task_by_pid(pid);
 #endif
@@ -2735,4 +2738,9 @@ int ccs_close_control(struct file *file)
 	if (is_write)
 		ccs_run_gc();
 	return 0;
+}
+
+void __init ccs_policy_io_init(void)
+{
+	ccsecurity_ops.check_profile = ccs_check_profile;
 }

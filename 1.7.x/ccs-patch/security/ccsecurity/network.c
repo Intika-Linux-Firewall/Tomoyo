@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/network.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -528,7 +528,7 @@ static inline int ccs_network_recvmsg_acl(const bool is_ipv6,
 #define MAX_SOCK_ADDR 128 /* net/socket.c */
 
 /* Check permission for creating a socket. */
-int ccs_socket_create_permission(int family, int type, int protocol)
+static int __ccs_socket_create_permission(int family, int type, int protocol)
 {
 	int error = 0;
 	/* Nothing to do if I am a kernel service. */
@@ -558,7 +558,7 @@ int ccs_socket_create_permission(int family, int type, int protocol)
 }
 
 /* Check permission for listening a TCP socket. */
-int ccs_socket_listen_permission(struct socket *sock)
+static int __ccs_socket_listen_permission(struct socket *sock)
 {
 	int error = 0;
 	char addr[MAX_SOCK_ADDR];
@@ -599,8 +599,8 @@ int ccs_socket_listen_permission(struct socket *sock)
 }
 
 /* Check permission for setting the remote IP address/port pair of a socket. */
-int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
-				  int addr_len)
+static int __ccs_socket_connect_permission(struct socket *sock,
+					   struct sockaddr *addr, int addr_len)
 {
 	int error = 0;
 	const unsigned int type = sock->type;
@@ -657,8 +657,8 @@ int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
 }
 
 /* Check permission for setting the local IP address/port pair of a socket. */
-int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
-			       int addr_len)
+static int __ccs_socket_bind_permission(struct socket *sock,
+					struct sockaddr *addr, int addr_len)
 {
 	int error = 0;
 	const unsigned int type = sock->type;
@@ -710,7 +710,8 @@ int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
  *
  * Currently, the LSM hook for this purpose is not provided.
  */
-int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr)
+static int __ccs_socket_accept_permission(struct socket *sock,
+					  struct sockaddr *addr)
 {
 	int error = 0;
 	int addr_len;
@@ -747,8 +748,8 @@ int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr)
 }
 
 /* Check permission for sending a datagram via a UDP or RAW socket. */
-int ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg,
-				  int size)
+static int __ccs_socket_sendmsg_permission(struct socket *sock,
+					   struct msghdr *msg, int size)
 {
 	struct sockaddr *addr = (struct sockaddr *) msg->msg_name;
 	const int addr_len = msg->msg_namelen;
@@ -856,8 +857,9 @@ static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
  *
  * Currently, the LSM hook for this purpose is not provided.
  */
-int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
-				  const unsigned int flags)
+static int __ccs_socket_recvmsg_permission(struct sock *sk,
+					   struct sk_buff *skb,
+					   const unsigned int flags)
 {
 	int error = 0;
 	const unsigned int type = sk->sk_type;
@@ -919,4 +921,20 @@ int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
 	/* Hope less harmful than -EPERM. */
 	return -ENOMEM;
 }
-EXPORT_SYMBOL(ccs_socket_recvmsg_permission);
+
+void __init ccs_network_init(void)
+{
+	ccsecurity_ops.socket_create_permission =
+		__ccs_socket_create_permission;
+	ccsecurity_ops.socket_listen_permission =
+		__ccs_socket_listen_permission;
+	ccsecurity_ops.socket_connect_permission =
+		__ccs_socket_connect_permission;
+	ccsecurity_ops.socket_bind_permission = __ccs_socket_bind_permission;
+	ccsecurity_ops.socket_accept_permission =
+		__ccs_socket_accept_permission;
+	ccsecurity_ops.socket_sendmsg_permission =
+		__ccs_socket_sendmsg_permission;
+	ccsecurity_ops.socket_recvmsg_permission =
+		__ccs_socket_recvmsg_permission;
+}

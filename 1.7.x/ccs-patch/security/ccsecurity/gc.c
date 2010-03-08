@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/gc.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -795,7 +795,7 @@ static int ccs_gc_thread(void *unused)
 		}
 		mutex_unlock(&ccs_gc_mutex);
 	}
-	do_exit(0);
+	return 0;
 }
 
 void ccs_run_gc(void)

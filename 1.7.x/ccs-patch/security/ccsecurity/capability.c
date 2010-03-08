@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/capability.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -79,12 +79,17 @@ static bool ccs_capable2(const u8 operation)
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_capable(const u8 operation)
+static bool __ccs_capable(const u8 operation)
 {
 	const int idx = ccs_read_lock();
 	const int error = ccs_capable2(operation);
 	ccs_read_unlock(idx);
 	return error;
+}
+
+static int __ccs_ptrace_permission(long request, long pid)
+{
+	return !__ccs_capable(CCS_SYS_PTRACE);
 }
 
 /**
@@ -139,4 +144,10 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
 	return error;
+}
+
+void __init ccs_capability_init(void)
+{
+	ccsecurity_ops.capable = __ccs_capable;
+	ccsecurity_ops.ptrace_permission = __ccs_ptrace_permission;
 }

@@ -2355,3 +2355,13 @@ Fix 2010/03/02
       keyword does not refer a real file on filesystem's namespace. Therefore,
       you can store any combination of parameters like LDAP's DN entry in the
       string parameter for "allow_transit" keyword.
+
+Fix 2010/03/08
+
+    @ Allow building as loadable kernel module.
+
+      To be able to minimize filesize increment on vmlinux, I made it
+      possible to compile TOMOYO Linux as loadable kernel module.
+      Although patching the kernel source and recompiling the kernel are
+      inevitable, this change will make it easier to enable TOMOYO Linux
+      when there is a filesize limitation on vmlinux (e.g. embedded systems).

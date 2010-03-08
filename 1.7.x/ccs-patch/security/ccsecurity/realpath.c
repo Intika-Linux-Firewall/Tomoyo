@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/realpath.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -113,7 +113,7 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 				len = 4;
 			}
 #else
-			if (!*ep && pid == sys_getpid()) {
+			if (!*ep && pid == ccsecurity_exports.sys_getpid()) {
 				name = "self";
 				len = 4;
 			}

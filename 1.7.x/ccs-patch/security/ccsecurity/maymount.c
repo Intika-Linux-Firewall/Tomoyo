@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/maymount.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -62,7 +62,7 @@ static bool ccs_conceal_mount(struct path *path, struct vfsmount *vfsmnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_may_mount(struct path *path)
+static int __ccs_may_mount(struct path *path)
 {
 	struct ccs_request_info r;
 	struct list_head *p;
@@ -94,4 +94,9 @@ int ccs_may_mount(struct path *path)
 	if (!found)
 		return 0;
 	return ccs_capable(CCS_CONCEAL_MOUNT) ? 0 : -EPERM;
+}
+
+void __init ccs_maymount_init(void)
+{
+	ccsecurity_ops.may_mount = __ccs_may_mount;
 }

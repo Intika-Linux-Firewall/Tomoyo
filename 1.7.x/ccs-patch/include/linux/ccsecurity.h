@@ -1,9 +1,9 @@
 /*
  * include/linux/ccsecurity.h
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -27,12 +27,14 @@ struct linux_binprm;
 struct pt_regs;
 struct file;
 struct ctl_table;
-struct iattr;
 struct socket;
 struct sockaddr;
 struct sock;
 struct sk_buff;
 struct msghdr;
+struct file_system_type;
+struct pid_namespace;
+int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
 #if defined(_NAMESPACE_H_) || defined(_LINUX_VFS_H)
@@ -55,79 +57,414 @@ struct path {
 #define ccs_mkpath(nd) ({ struct path p = { (nd)->mnt, (nd)->dentry }; &p; })
 #endif
 
-#if defined(CONFIG_CCSECURITY)
+#ifdef CONFIG_CCSECURITY
 
-/* Check whether the given pathname is allowed to chroot to. */
-int ccs_chroot_permission(struct path *path);
-/* Check whether the current process is allowed to pivot_root. */
-int ccs_pivot_root_permission(struct path *old_path, struct path *new_path);
-/* Check whether the given mount operation hides an mounted partition. */
-int ccs_may_mount(struct path *path);
-/* Check whether the mount operation with the given parameters is allowed. */
-int ccs_mount_permission(char *dev_name, struct path *path, char *type,
-			 unsigned long flags, void *data_page);
-/* Check whether the given mountpoint is allowed to umount. */
-int ccs_umount_permission(struct vfsmount *mnt, int flags);
+/* For exporting variables and functions. */
+struct ccsecurity_exports {
+	void (*load_policy) (const char *filename);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+	int (*may_create) (struct inode *dir, struct dentry *dentry);
+#else
+	int (*may_create) (struct inode *dir, struct dentry *dentry,
+			   int is_dir);
+#endif
+	int (*may_delete) (struct inode *dir, struct dentry *dentry,
+			   int is_dir);
+	void (*put_filesystem) (struct file_system_type *fs);
+	asmlinkage long (*sys_getppid) (void);
+	asmlinkage long (*sys_getpid) (void);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	spinlock_t *vfsmount_lock;
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+	struct task_struct *(*find_task_by_vpid) (pid_t pid);
+	struct task_struct *(*find_task_by_pid_ns) (pid_t pid,
+						    struct pid_namespace *ns);
+#endif
+};
 
-/* Check whether the given local port is reserved. */
-_Bool ccs_lport_reserved(const u16 port);
+/* For doing access control. */
+struct ccsecurity_operations {
+	void (*check_profile) (void);
+	int (*chroot_permission) (struct path *path);
+	int (*pivot_root_permission) (struct path *old_path,
+				      struct path *new_path);
+	int (*may_mount) (struct path *path);
+	int (*mount_permission) (char *dev_name, struct path *path, char *type,
+				 unsigned long flags, void *data_page);
+	int (*umount_permission) (struct vfsmount *mnt, int flags);
+	_Bool (*lport_reserved) (const u16 port);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+	void (*save_open_mode) (int mode);
+	void (*clear_open_mode) (void);
+#endif
+	int (*ptrace_permission) (long request, long pid);
+	int (*open_permission) (struct dentry *dentry, struct vfsmount *mnt,
+				const int flag);
+	int (*ioctl_permission) (struct file *filp, unsigned int cmd,
+				 unsigned long arg);
+	int (*parse_table) (int __user *name, int nlen, void __user *oldval,
+			    void __user *newval, struct ctl_table *table);
+	_Bool (*capable) (const u8 operation);
+	int (*mknod_permission) (struct inode *dir, struct dentry *dentry,
+				 struct vfsmount *mnt, unsigned int mode,
+				 unsigned int dev);
+	int (*mkdir_permission) (struct inode *dir, struct dentry *dentry,
+				 struct vfsmount *mnt, unsigned int mode);
+	int (*rmdir_permission) (struct inode *dir, struct dentry *dentry,
+				 struct vfsmount *mnt);
+	int (*unlink_permission) (struct inode *dir, struct dentry *dentry,
+				  struct vfsmount *mnt);
+	int (*symlink_permission) (struct inode *dir, struct dentry *dentry,
+				   struct vfsmount *mnt, const char *from);
+	int (*truncate_permission) (struct dentry *dentry,
+				    struct vfsmount *mnt, loff_t length,
+				    unsigned int time_attrs);
+	int (*rename_permission) (struct inode *old_dir,
+				  struct dentry *old_dentry,
+				  struct inode *new_dir,
+				  struct dentry *new_dentry,
+				  struct vfsmount *mnt);
+	int (*link_permission) (struct dentry *old_dentry,
+				struct inode *new_dir,
+				struct dentry *new_dentry,
+				struct vfsmount *mnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+	int (*open_exec_permission) (struct dentry *dentry,
+				     struct vfsmount *mnt);
+	int (*uselib_permission) (struct dentry *dentry, struct vfsmount *mnt);
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	int (*fcntl_permission) (struct file *file, unsigned int cmd,
+				 unsigned long arg);
+#else
+	int (*rewrite_permission) (struct file *filp);
+#endif
+	int (*kill_permission) (pid_t pid, int sig);
+	int (*tgkill_permission) (pid_t tgid, pid_t pid, int sig);
+	int (*tkill_permission) (pid_t pid, int sig);
+	int (*socket_create_permission) (int family, int type, int protocol);
+	int (*socket_listen_permission) (struct socket *sock);
+	int (*socket_connect_permission) (struct socket *sock,
+					  struct sockaddr *addr, int addr_len);
+	int (*socket_bind_permission) (struct socket *sock,
+				       struct sockaddr *addr, int addr_len);
+	int (*socket_accept_permission) (struct socket *sock,
+					 struct sockaddr *addr);
+	int (*socket_sendmsg_permission) (struct socket *sock,
+					  struct msghdr *msg, int size);
+	int (*socket_recvmsg_permission) (struct sock *sk, struct sk_buff *skb,
+					  const unsigned int flags);
+	int (*chown_permission) (struct dentry *dentry, struct vfsmount *mnt,
+				 uid_t user, gid_t group);
+	int (*chmod_permission) (struct dentry *dentry, struct vfsmount *mnt,
+				 mode_t mode);
+	int (*sigqueue_permission) (pid_t pid, int sig);
+	int (*tgsigqueue_permission) (pid_t tgid, pid_t pid, int sig);
+	int (*search_binary_handler) (struct linux_binprm *bprm,
+				      struct pt_regs *regs);
+};
+
+extern const struct ccsecurity_exports ccsecurity_exports;
+extern struct ccsecurity_operations ccsecurity_ops;
+
+static inline int ccs_chroot_permission(struct path *path)
+{
+	return ccsecurity_ops.chroot_permission ?
+		ccsecurity_ops.chroot_permission(path) : 0;
+}
+
+static inline int ccs_pivot_root_permission(struct path *old_path,
+					    struct path *new_path)
+{
+	return ccsecurity_ops.pivot_root_permission ?
+		ccsecurity_ops.pivot_root_permission(old_path, new_path) : 0;
+}
+
+static inline int ccs_may_mount(struct path *path)
+{
+	return ccsecurity_ops.may_mount ?
+		ccsecurity_ops.may_mount(path) : 0;
+}
+
+static inline int ccs_mount_permission(char *dev_name, struct path *path,
+				       char *type, unsigned long flags,
+				       void *data_page)
+{
+	return ccsecurity_ops.mount_permission ?
+		ccsecurity_ops.mount_permission(dev_name, path, type, flags,
+						data_page) : 0;
+}
+
+static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
+{
+	return ccsecurity_ops.umount_permission ?
+		ccsecurity_ops.umount_permission(mnt, flags) : 0;
+}
+
+static inline _Bool ccs_lport_reserved(const u16 port)
+{
+	return ccsecurity_ops.lport_reserved ?
+		ccsecurity_ops.lport_reserved(port) : 0;
+}
+
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	return ccsecurity_ops.ptrace_permission ?
+		ccsecurity_ops.ptrace_permission(request, pid) : 0;
+}
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-void ccs_save_open_mode(int mode);
-void ccs_clear_open_mode(void);
+static inline void ccs_save_open_mode(int mode)
+{
+	if (ccsecurity_ops.save_open_mode)
+		ccsecurity_ops.save_open_mode(mode);
+}
+
+static inline void ccs_clear_open_mode(void)
+{
+	if (ccsecurity_ops.clear_open_mode)
+		ccsecurity_ops.clear_open_mode();
+}
 #endif
-int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-			const int flag);
-int ccs_rewrite_permission(struct file *filp);
-int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
-			 unsigned long arg);
-int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
-		    void __user *newval, struct ctl_table *table);
 
-/* Check whether the given capability is allowed to use. */
-_Bool ccs_capable(const u8 operation);
+static inline int ccs_open_permission(struct dentry *dentry,
+				      struct vfsmount *mnt, const int flag)
+{
+	return ccsecurity_ops.open_permission ?
+		ccsecurity_ops.open_permission(dentry, mnt, flag) : 0;
+}
 
-int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt, unsigned int mode,
-			 unsigned int dev);
-int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt, unsigned int mode);
-int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt);
-int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
-			  struct vfsmount *mnt);
-int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
-			   struct vfsmount *mnt, const char *from);
-int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-			    loff_t length, unsigned int time_attrs);
-int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
-			  struct inode *new_dir, struct dentry *new_dentry,
-			  struct vfsmount *mnt);
-int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-			struct dentry *new_dentry, struct vfsmount *mnt);
-int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt);
-int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt);
-int ccs_kill_permission(pid_t pid, int sig);
-int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig);
-int ccs_tkill_permission(pid_t pid, int sig);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				       unsigned long arg)
+{
+	return ccsecurity_ops.fcntl_permission ?
+		ccsecurity_ops.fcntl_permission(file, cmd, arg) : 0;
+}
+#else
+static inline int ccs_rewrite_permission(struct file *filp)
+{
+	return ccsecurity_ops.rewrite_permission ?
+		ccsecurity_ops.rewrite_permission(filp) : 0;
+}
+#endif
 
-int ccs_socket_create_permission(int family, int type, int protocol);
-int ccs_socket_listen_permission(struct socket *sock);
-int ccs_socket_connect_permission(struct socket *sock, struct sockaddr *addr,
-				  int addr_len);
-int ccs_socket_bind_permission(struct socket *sock, struct sockaddr *addr,
-			       int addr_len);
-int ccs_socket_accept_permission(struct socket *sock, struct sockaddr *addr);
-int ccs_socket_sendmsg_permission(struct socket *sock, struct msghdr *msg,
-				  int size);
-int ccs_socket_recvmsg_permission(struct sock *sk, struct sk_buff *skb,
-				  const unsigned int flags);
-int ccs_chown_permission(struct dentry *dentry, struct vfsmount *mnt,
-			 uid_t user, gid_t group);
-int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *mnt,
-			 mode_t mode);
-int ccs_sigqueue_permission(pid_t pid, int sig);
-int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig);
+static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				       unsigned long arg)
+{
+	return ccsecurity_ops.ioctl_permission ?
+		ccsecurity_ops.ioctl_permission(filp, cmd, arg) : 0;
+}
+
+static inline int ccs_parse_table(int __user *name, int nlen,
+				  void __user *oldval, void __user *newval,
+				  struct ctl_table *table)
+{
+	return ccsecurity_ops.parse_table ?
+		ccsecurity_ops.parse_table(name, nlen, oldval, newval, table) :
+		0;
+}
+
+static inline _Bool ccs_capable(const u8 operation)
+{
+	return ccsecurity_ops.capable ? ccsecurity_ops.capable(operation) : 1;
+}
+
+static inline int ccs_mknod_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode,
+				       unsigned int dev)
+{
+	return ccsecurity_ops.mknod_permission ?
+		ccsecurity_ops.mknod_permission(dir, dentry, mnt, mode, dev) :
+		0;
+}
+
+static inline int ccs_mkdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode)
+{
+	return ccsecurity_ops.mkdir_permission ?
+		ccsecurity_ops.mkdir_permission(dir, dentry, mnt, mode) : 0;
+}
+
+static inline int ccs_rmdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt)
+{
+	return ccsecurity_ops.rmdir_permission ?
+		ccsecurity_ops.rmdir_permission(dir, dentry, mnt) : 0;
+}
+
+static inline int ccs_unlink_permission(struct inode *dir,
+					struct dentry *dentry,
+					struct vfsmount *mnt)
+{
+	return ccsecurity_ops.unlink_permission ?
+		ccsecurity_ops.unlink_permission(dir, dentry, mnt) : 0;
+}
+
+static inline int ccs_symlink_permission(struct inode *dir,
+					 struct dentry *dentry,
+					 struct vfsmount *mnt,
+					 const char *from)
+{
+	return ccsecurity_ops.symlink_permission ?
+		ccsecurity_ops.symlink_permission(dir, dentry, mnt, from) : 0;
+}
+
+static inline int ccs_truncate_permission(struct dentry *dentry,
+					  struct vfsmount *mnt, loff_t length,
+					  unsigned int time_attrs)
+{
+	return ccsecurity_ops.truncate_permission ?
+		ccsecurity_ops.truncate_permission(dentry, mnt, length,
+						   time_attrs) : 0;
+}
+
+static inline int ccs_rename_permission(struct inode *old_dir,
+					struct dentry *old_dentry,
+					struct inode *new_dir,
+					struct dentry *new_dentry,
+					struct vfsmount *mnt)
+{
+	return ccsecurity_ops.rename_permission ?
+		ccsecurity_ops.rename_permission(old_dir, old_dentry, new_dir,
+						 new_dentry, mnt) : 0;
+}
+
+static inline int ccs_link_permission(struct dentry *old_dentry,
+				      struct inode *new_dir,
+				      struct dentry *new_dentry,
+				      struct vfsmount *mnt)
+{
+	return ccsecurity_ops.link_permission ?
+		ccsecurity_ops.link_permission(old_dentry, new_dir, new_dentry,
+					       mnt) : 0;
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+static inline int ccs_open_exec_permission(struct dentry *dentry,
+					   struct vfsmount *mnt)
+{
+	return ccsecurity_ops.open_exec_permission ?
+		ccsecurity_ops.open_exec_permission(dentry, mnt) : 0;
+}
+
+static inline int ccs_uselib_permission(struct dentry *dentry,
+					struct vfsmount *mnt)
+{
+	return ccsecurity_ops.uselib_permission ?
+		ccsecurity_ops.uselib_permission(dentry, mnt) : 0;
+}
+#endif
+
+static inline int ccs_kill_permission(pid_t pid, int sig)
+{
+	return ccsecurity_ops.kill_permission ?
+		ccsecurity_ops.kill_permission(pid, sig) : 0;
+}
+
+static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return ccsecurity_ops.tgkill_permission ?
+		ccsecurity_ops.tgkill_permission(tgid, pid, sig) : 0;
+}
+
+static inline int ccs_tkill_permission(pid_t pid, int sig)
+{
+	return ccsecurity_ops.tkill_permission ?
+		ccsecurity_ops.tkill_permission(pid, sig) : 0;
+}
+
+static inline int ccs_socket_create_permission(int family, int type,
+					       int protocol)
+{
+	return ccsecurity_ops.socket_create_permission ?
+		ccsecurity_ops.socket_create_permission(family, type, protocol)
+		: 0;
+}
+
+static inline int ccs_socket_listen_permission(struct socket *sock)
+{
+	return ccsecurity_ops.socket_listen_permission ?
+		ccsecurity_ops.socket_listen_permission(sock) : 0;
+}
+
+static inline int ccs_socket_connect_permission(struct socket *sock,
+						struct sockaddr *addr,
+						int addr_len)
+{
+	return ccsecurity_ops.socket_connect_permission ?
+		ccsecurity_ops.socket_connect_permission(sock, addr, addr_len)
+		: 0;
+}
+
+static inline int ccs_socket_bind_permission(struct socket *sock,
+					     struct sockaddr *addr,
+					     int addr_len)
+{
+	return ccsecurity_ops.socket_bind_permission ?
+		ccsecurity_ops.socket_bind_permission(sock, addr, addr_len) :
+		0;
+}
+
+static inline int ccs_socket_accept_permission(struct socket *sock,
+					       struct sockaddr *addr)
+{
+	return ccsecurity_ops.socket_accept_permission ?
+		ccsecurity_ops.socket_accept_permission(sock, addr) : 0;
+}
+
+static inline int ccs_socket_sendmsg_permission(struct socket *sock,
+						struct msghdr *msg,
+						int size)
+{
+	return ccsecurity_ops.socket_sendmsg_permission ?
+		ccsecurity_ops.socket_sendmsg_permission(sock, msg, size) : 0;
+}
+
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
+{
+	return ccsecurity_ops.socket_recvmsg_permission ?
+		ccsecurity_ops.socket_recvmsg_permission(sk, skb, flags) : 0;
+}
+
+static inline int ccs_chown_permission(struct dentry *dentry,
+				       struct vfsmount *mnt, uid_t user,
+				       gid_t group)
+{
+	return ccsecurity_ops.chown_permission ?
+		ccsecurity_ops.chown_permission(dentry, mnt, user, group) : 0;
+}
+
+static inline int ccs_chmod_permission(struct dentry *dentry,
+				       struct vfsmount *mnt, mode_t mode)
+{
+	return ccsecurity_ops.chmod_permission ?
+		ccsecurity_ops.chmod_permission(dentry, mnt, mode) : 0;
+}
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	return ccsecurity_ops.sigqueue_permission ?
+		ccsecurity_ops.sigqueue_permission(pid, sig) : 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return ccsecurity_ops.tgsigqueue_permission ?
+		ccsecurity_ops.tgsigqueue_permission(tgid, pid, sig) : 0;
+}
+
+static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
+					    struct pt_regs *regs)
+{
+	return ccsecurity_ops.search_binary_handler(bprm, regs);
+}
 
 #else
 
@@ -164,7 +501,11 @@ static inline _Bool ccs_lport_reserved(const u16 port)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	return 0;
+}
+
 static inline void ccs_save_open_mode(int mode)
 {
 }
@@ -172,7 +513,6 @@ static inline void ccs_save_open_mode(int mode)
 static inline void ccs_clear_open_mode(void)
 {
 }
-#endif
 
 static inline int ccs_open_permission(struct dentry *dentry,
 				      struct vfsmount *mnt, const int flag)
@@ -276,6 +616,12 @@ static inline int ccs_uselib_permission(struct dentry *dentry,
 	return 0;
 }
 
+static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				       unsigned long arg)
+{
+	return 0;
+}
+
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {
 	return 0;
@@ -358,36 +704,20 @@ static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 	return 0;
 }
 
+static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
+					    struct pt_regs *regs)
+{
+	return search_binary_handler(bprm, regs);
+}
+
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 int ccs_may_create(struct inode *dir, struct dentry *dentry);
-int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
 #else
 int ccs_may_create(struct inode *dir, struct dentry *dentry, int is_dir);
+#endif
 int ccs_may_delete(struct inode *dir, struct dentry *dentry, int is_dir);
-#endif
-
-struct ccs_execve_entry;
-int ccs_start_execve(struct linux_binprm *bprm, struct ccs_execve_entry **ee);
-void ccs_finish_execve(int retval, struct ccs_execve_entry *ee);
-
-int search_binary_handler(struct linux_binprm *, struct pt_regs *);
-
-#if defined(CONFIG_CCSECURITY)
-static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
-					    struct pt_regs *regs)
-{
-	struct ccs_execve_entry *ee;
-	int retval = ccs_start_execve(bprm, &ee);
-	if (!retval)
-		retval = search_binary_handler(bprm, regs);
-	ccs_finish_execve(retval, ee);
-	return retval;
-}
-#else
-#define ccs_search_binary_handler search_binary_handler
-#endif
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
@@ -457,25 +787,5 @@ enum ccs_capability_acl_index {
 	CCS_CONCEAL_MOUNT,
 	CCS_MAX_CAPABILITY_INDEX
 };
-
-static inline int ccs_ptrace_permission(long request, long pid)
-{
-	return !ccs_capable(CCS_SYS_PTRACE);
-}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-#ifdef F_SETFL
-
-static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
-				       unsigned long arg)
-{
-	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND) &&
-	    ccs_rewrite_permission(file))
-		return -EPERM;
-	return 0;
-}
-
-#endif
-#endif
 
 #endif

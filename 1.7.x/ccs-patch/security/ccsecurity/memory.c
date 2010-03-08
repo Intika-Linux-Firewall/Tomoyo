@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/memory.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -183,10 +183,8 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 
 /**
  * ccs_mm_init - Initialize mm related code.
- *
- * Returns 0.
  */
-static int __init ccs_mm_init(void)
+void __init ccs_mm_init(void)
 {
 	int i;
 	for (i = 0; i < CCS_MAX_HASH; i++)
@@ -210,14 +208,7 @@ static int __init ccs_mm_init(void)
 			cp = cp2;
 		}
 	}
-	return 0;
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-__initcall(ccs_mm_init);
-#else
-core_initcall(ccs_mm_init);
-#endif
 
 unsigned int ccs_audit_log_memory_size;
 unsigned int ccs_quota_for_audit_log;

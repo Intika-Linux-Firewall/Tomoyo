@@ -2,6 +2,7 @@ This is TOMOYO Linux patch for kernel 2.4.36.9.
 
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-2.4.36.9.tar.bz2
 ---
+ Makefile                     |    8 ++++++++
  arch/alpha/kernel/ptrace.c   |    3 +++
  arch/arm/kernel/ptrace.c     |    3 +++
  arch/cris/kernel/ptrace.c    |    3 +++
@@ -24,7 +25,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  arch/x86_64/ia32/ptrace32.c  |    3 +++
  arch/x86_64/kernel/ptrace.c  |    3 +++
  fs/Config.in                 |    3 +++
- fs/Makefile                  |    2 ++
  fs/exec.c                    |   12 +++++++++++-
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |   10 ++++++++++
@@ -48,8 +48,25 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   23 +++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 317 insertions(+), 5 deletions(-)
+ 46 files changed, 323 insertions(+), 5 deletions(-)
 
+--- linux-2.4.36.9.orig/Makefile
++++ linux-2.4.36.9/Makefile
+@@ -136,6 +136,14 @@ NETWORKS	=net/network.o
+ 
+ LIBS		=$(TOPDIR)/lib/lib.a
+ SUBDIRS		=kernel drivers mm fs net ipc lib crypto
++ifdef CONFIG_CCSECURITY
++SUBDIRS += security/ccsecurity
++ifdef CONFIG_CCSECURITY_LKM
++CORE_FILES += security/ccsecurity/load_policy.o
++else
++CORE_FILES += security/ccsecurity/ccsecurity.o
++endif
++endif
+ 
+ DRIVERS-n :=
+ DRIVERS-y :=
 --- linux-2.4.36.9.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.36.9/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,7 @@
@@ -472,16 +489,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  endmenu
 +
 +source security/ccsecurity/Config.in
---- linux-2.4.36.9.orig/fs/Makefile
-+++ linux-2.4.36.9/fs/Makefile
-@@ -80,5 +80,7 @@ obj-$(CONFIG_BINFMT_ELF)	+= binfmt_elf.o
- # persistent filesystems
- obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
-+obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
- 
- include $(TOPDIR)/Rules.make
 --- linux-2.4.36.9.orig/fs/exec.c
 +++ linux-2.4.36.9/fs/exec.c
 @@ -48,6 +48,8 @@

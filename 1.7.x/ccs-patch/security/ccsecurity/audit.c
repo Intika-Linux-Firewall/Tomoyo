@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/02/14
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -160,7 +160,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	struct ccs_obj_info *obj = r->obj;
 	const u32 ccs_flags = current->ccs_flags;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-	const pid_t gpid = (pid_t) sys_getpid();
+	const pid_t gpid = (pid_t) ccsecurity_exports.sys_getpid();
 #else
 	const pid_t gpid = task_pid_nr(current);
 #endif
@@ -180,7 +180,8 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				" egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
 				" state[0]=%u state[1]=%u state[2]=%u"
 				" type%s=execute_handler }",
-				(pid_t) sys_getpid(), (pid_t) sys_getppid(),
+				(pid_t) ccsecurity_exports.sys_getpid(),
+				(pid_t) ccsecurity_exports.sys_getppid(),
 				current_uid(), current_gid(), current_euid(),
 				current_egid(), current_suid(), current_sgid(),
 				current_fsuid(), current_fsgid(),
