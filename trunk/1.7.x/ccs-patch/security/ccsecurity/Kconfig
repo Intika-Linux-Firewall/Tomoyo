@@ -1,9 +1,16 @@
 config CCSECURITY
 	bool "CCSecurity support"
-	default y
+	default m
 	help
 	  Say Y here to support non-LSM version of TOMOYO Linux.
 	  http://tomoyo.sourceforge.jp/
+
+config CCSECURITY_LKM
+	bool "Compile as loadable kernel module"
+	default y
+	depends on CCSECURITY && MODULES
+	help
+	  Say Y here if you want to keep vmlinux's size as small as possible.
 
 config CCSECURITY_MAX_ACCEPT_ENTRY
 	int "Default maximal count for learning mode"

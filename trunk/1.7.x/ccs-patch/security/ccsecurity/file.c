@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/02
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -123,7 +123,7 @@ static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
+	error = ccsecurity_exports.may_create(dir, dentry);
 	if (!error && (!dir->i_op || !dir->i_op->create))
 		error = -EACCES;
 	up(&dir->i_zombie);
@@ -135,7 +135,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
+	error = ccsecurity_exports.may_create(dir, dentry);
 	if (!error && (!dir->i_op || !dir->i_op->mknod))
 		error = -EPERM;
 	up(&dir->i_zombie);
@@ -147,7 +147,7 @@ static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
+	error = ccsecurity_exports.may_create(dir, dentry);
 	if (!error && (!dir->i_op || !dir->i_op->mkdir))
 		error = -EPERM;
 	up(&dir->i_zombie);
@@ -157,7 +157,7 @@ static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 /* Permission checks from vfs_rmdir(). */
 static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_delete(dir, dentry, 1);
+	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (!error && (!dir->i_op || !dir->i_op->rmdir))
 		error = -EPERM;
 	return error;
@@ -169,7 +169,7 @@ static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	int error;
 	down(&dir->i_zombie);
-	error = ccs_may_delete(dir, dentry, 0);
+	error = ccsecurity_exports.may_delete(dir, dentry, 0);
 	if (!error && (!dir->i_op || !dir->i_op->unlink))
 		error = -EPERM;
 	up(&dir->i_zombie);
@@ -177,7 +177,7 @@ static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 #else
 	int error;
 	struct inode *inode;
-	error = ccs_may_delete(dir, dentry, 0);
+	error = ccsecurity_exports.may_delete(dir, dentry, 0);
 	if (error)
 		return error;
 	inode = dentry->d_inode;
@@ -197,7 +197,7 @@ static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
-	error = ccs_may_create(dir, dentry);
+	error = ccsecurity_exports.may_create(dir, dentry);
 	if (error)
 		goto exit_lock;
 	if (!dir->i_op || !dir->i_op->symlink)
@@ -220,7 +220,7 @@ static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
 	inode = old_dentry->d_inode;
 	if (!inode)
 		goto exit_lock;
-	error = ccs_may_create(dir, new_dentry);
+	error = ccsecurity_exports.may_create(dir, new_dentry);
 	if (error)
 		goto exit_lock;
 	error = -EXDEV;
@@ -246,7 +246,7 @@ static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
 	if (dir->i_dev != inode->i_dev)
 		goto exit;
 	double_down(&dir->i_zombie, &old_dentry->d_inode->i_zombie);
-	error = ccs_may_create(dir, new_dentry);
+	error = ccsecurity_exports.may_create(dir, new_dentry);
 	if (error)
 		goto exit_lock;
 	error = -EPERM;
@@ -271,15 +271,15 @@ static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
 		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, 1);
+	error = ccsecurity_exports.may_delete(old_dir, old_dentry, 1);
 	if (error)
 		return error;
 	if (new_dir->i_dev != old_dir->i_dev)
 		return -EXDEV;
 	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry);
+		error = ccsecurity_exports.may_create(new_dir, new_dentry);
 	else
-		error = ccs_may_delete(new_dir, new_dentry, 1);
+		error = ccsecurity_exports.may_delete(new_dir, new_dentry, 1);
 	if (error)
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)
@@ -298,15 +298,15 @@ static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
 		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, 0);
+	error = ccsecurity_exports.may_delete(old_dir, old_dentry, 0);
 	if (error)
 		return error;
 	if (new_dir->i_dev != old_dir->i_dev)
 		return -EXDEV;
 	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry);
+		error = ccsecurity_exports.may_create(new_dir, new_dentry);
 	else
-		error = ccs_may_delete(new_dir, new_dentry, 0);
+		error = ccsecurity_exports.may_delete(new_dir, new_dentry, 0);
 	if (error)
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)
@@ -337,7 +337,7 @@ static inline int ccs_pre_vfs_rename(struct inode *old_dir,
 /* Permission checks from vfs_create(). */
 static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_create(dir, dentry, 0);
+	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->create)
@@ -348,7 +348,7 @@ static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 /* Permission checks from vfs_mknod(). */
 static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_create(dir, dentry, 0);
+	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->mknod)
@@ -359,7 +359,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 /* Permission checks from vfs_mkdir(). */
 static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_create(dir, dentry, 1);
+	int error = ccsecurity_exports.may_create(dir, dentry, 1);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->mkdir)
@@ -370,7 +370,7 @@ static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 /* Permission checks from vfs_rmdir(). */
 static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_delete(dir, dentry, 1);
+	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->rmdir)
@@ -381,7 +381,7 @@ static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 /* Permission checks from vfs_unlink(). */
 static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_delete(dir, dentry, 0);
+	int error = ccsecurity_exports.may_delete(dir, dentry, 0);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->unlink)
@@ -398,7 +398,7 @@ static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
 	int error;
 	if (!inode)
 		return -ENOENT;
-	error = ccs_may_create(dir, new_dentry, 0);
+	error = ccsecurity_exports.may_create(dir, new_dentry, 0);
 	if (error)
 		return error;
 	if (dir->i_sb != inode->i_sb)
@@ -415,7 +415,7 @@ static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
 /* Permission checks from vfs_symlink(). */
 static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
-	int error = ccs_may_create(dir, dentry, 0);
+	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
 		return error;
 	if (!dir->i_op || !dir->i_op->symlink)
@@ -433,13 +433,15 @@ static inline int ccs_pre_vfs_rename(struct inode *old_dir,
 	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
 	if (old_dentry->d_inode == new_dentry->d_inode)
 		return 0;
-	error = ccs_may_delete(old_dir, old_dentry, is_dir);
+	error = ccsecurity_exports.may_delete(old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
 	if (!new_dentry->d_inode)
-		error = ccs_may_create(new_dir, new_dentry, is_dir);
+		error = ccsecurity_exports.may_create(new_dir, new_dentry,
+						      is_dir);
 	else
-		error = ccs_may_delete(new_dir, new_dentry, is_dir);
+		error = ccsecurity_exports.may_delete(new_dir, new_dentry,
+						      is_dir);
 	if (error)
 		return error;
 	if (!old_dir->i_op || !old_dir->i_op->rename)
@@ -1592,7 +1594,7 @@ int ccs_exec_perm(struct ccs_request_info *r,
  * because read()/write() are not permitted. Instead, TOMOYO checks
  * "allow_ioctl" when ioctl() is requested.
  */
-void ccs_save_open_mode(int mode)
+static void __ccs_save_open_mode(int mode)
 {
 	if ((mode & 3) == 3)
 		current->ccs_flags |= CCS_OPEN_FOR_IOCTL_ONLY;
@@ -1603,7 +1605,7 @@ void ccs_save_open_mode(int mode)
 #endif
 }
 
-void ccs_clear_open_mode(void)
+static void __ccs_clear_open_mode(void)
 {
 	current->ccs_flags &= ~(CCS_OPEN_FOR_IOCTL_ONLY |
 				CCS_OPEN_FOR_READ_TRUNCATE);
@@ -1619,8 +1621,8 @@ void ccs_clear_open_mode(void)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
-			const int flag)
+static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
+				 const int flag)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -1837,7 +1839,7 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_rewrite_permission(struct file *filp)
+static int __ccs_rewrite_permission(struct file *filp)
 {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
@@ -2180,8 +2182,8 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
-			 unsigned long arg)
+static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				  unsigned long arg)
 {
 	return ccs_path_number_perm(CCS_TYPE_IOCTL, NULL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
@@ -2196,8 +2198,8 @@ int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
-			 mode_t mode)
+static int __ccs_chmod_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, mode_t mode)
 {
 	if (mode == (mode_t) -1)
 		return 0;
@@ -2217,8 +2219,9 @@ int ccs_chmod_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
-			 uid_t user, gid_t group)
+static int __ccs_chown_permission(struct dentry *dentry,
+				  struct vfsmount *vfsmnt, uid_t user,
+				  gid_t group)
 {
 	int error = 0;
 	if (user == (uid_t) -1 && group == (gid_t) -1)
@@ -2234,6 +2237,17 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				  unsigned long arg)
+{
+	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND) &&
+	    __ccs_rewrite_permission(file))
+		return -EPERM;
+	return 0;
+}
+#endif
+
 /**
  * ccs_pivot_root_permission - Check permission for pivot_root().
  *
@@ -2242,7 +2256,8 @@ int ccs_chown_permission(struct dentry *dentry, struct vfsmount *vfsmnt,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_pivot_root_permission(struct path *old_path, struct path *new_path)
+static int __ccs_pivot_root_permission(struct path *old_path,
+				       struct path *new_path)
 {
 	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
 		return -EPERM;
@@ -2258,7 +2273,7 @@ int ccs_pivot_root_permission(struct path *old_path, struct path *new_path)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_chroot_permission(struct path *path)
+static int __ccs_chroot_permission(struct path *path)
 {
 	if (!ccs_capable(CCS_SYS_CHROOT))
 		return -EPERM;
@@ -2274,7 +2289,7 @@ int ccs_chroot_permission(struct path *path)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_umount_permission(struct vfsmount *mnt, int flags)
+static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	if (!ccs_capable(CCS_SYS_UMOUNT))
@@ -2355,9 +2370,9 @@ int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
  * This function is exported because
  * vfs_mknod() is called from net/unix/af_unix.c.
  */
-int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt, const unsigned int mode,
-			 unsigned int dev)
+static int __ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
+				  struct vfsmount *mnt,
+				  const unsigned int mode, unsigned int dev)
 {
 	int error = 0;
 	const unsigned int perm = mode & S_IALLUGO;
@@ -2398,27 +2413,24 @@ int ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
 	}
 	return error;
 }
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
-EXPORT_SYMBOL(ccs_mknod_permission); /* for net/unix/af_unix.c */
-#endif
 
 /* Permission checks for vfs_mkdir(). */
-int ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt, unsigned int mode)
+static int __ccs_mkdir_permission(struct inode *dir, struct dentry *dentry,
+				  struct vfsmount *mnt, unsigned int mode)
 {
 	return ccs_path_number_perm(CCS_TYPE_MKDIR, dir, dentry, mnt, mode);
 }
 
 /* Permission checks for vfs_rmdir(). */
-int ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
-			 struct vfsmount *mnt)
+static int __ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
+				  struct vfsmount *mnt)
 {
 	return ccs_path_perm(CCS_TYPE_RMDIR, dir, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_unlink(). */
-int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
-			  struct vfsmount *mnt)
+static int __ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
+				   struct vfsmount *mnt)
 {
 	if (!ccs_capable(CCS_SYS_UNLINK))
 		return -EPERM;
@@ -2426,8 +2438,8 @@ int ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 }
 
 /* Permission checks for vfs_symlink(). */
-int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
-			   struct vfsmount *mnt, const char *from)
+static int __ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
+				    struct vfsmount *mnt, const char *from)
 {
 	if (!ccs_capable(CCS_SYS_SYMLINK))
 		return -EPERM;
@@ -2435,16 +2447,19 @@ int ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 }
 
 /* Permission checks for notify_change(). */
-int ccs_truncate_permission(struct dentry *dentry, struct vfsmount *mnt,
-			    loff_t length, unsigned int time_attrs)
+static int __ccs_truncate_permission(struct dentry *dentry,
+				     struct vfsmount *mnt, loff_t length,
+				     unsigned int time_attrs)
 {
 	return ccs_path_perm(CCS_TYPE_TRUNCATE, NULL, dentry, mnt, NULL);
 }
 
 /* Permission checks for vfs_rename(). */
-int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
-			  struct inode *new_dir, struct dentry *new_dentry,
-			  struct vfsmount *mnt)
+static int __ccs_rename_permission(struct inode *old_dir,
+				   struct dentry *old_dentry,
+				   struct inode *new_dir,
+				   struct dentry *new_dentry,
+				   struct vfsmount *mnt)
 {
 	if (!ccs_capable(CCS_SYS_RENAME))
 		return -EPERM;
@@ -2453,8 +2468,10 @@ int ccs_rename_permission(struct inode *old_dir, struct dentry *old_dentry,
 }
 
 /* Permission checks for vfs_link(). */
-int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
-			struct dentry *new_dentry, struct vfsmount *mnt)
+static int __ccs_link_permission(struct dentry *old_dentry,
+				 struct inode *new_dir,
+				 struct dentry *new_dentry,
+				 struct vfsmount *mnt)
 {
 	if (!ccs_capable(CCS_SYS_LINK))
 		return -EPERM;
@@ -2464,7 +2481,8 @@ int ccs_link_permission(struct dentry *old_dentry, struct inode *new_dir,
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
 /* Permission checks for open_exec(). */
-int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
+static int __ccs_open_exec_permission(struct dentry *dentry,
+				      struct vfsmount *mnt)
 {
 	return (current->ccs_flags & CCS_TASK_IS_IN_EXECVE) ?
 		/* 01 means "read". */
@@ -2472,7 +2490,7 @@ int ccs_open_exec_permission(struct dentry *dentry, struct vfsmount *mnt)
 }
 
 /* Permission checks for sys_uselib(). */
-int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
+static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
 	/* 01 means "read". */
 	return ccs_open_permission(dentry, mnt, 01);
@@ -2485,8 +2503,8 @@ int ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 #include <linux/sysctl.h>
 
 /* Permission checks for parse_table(). */
-int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
-		    void __user *newval, struct ctl_table *table)
+static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
+			     void __user *newval, struct ctl_table *table)
 {
 	int n;
 	int error = -ENOMEM;
@@ -2586,3 +2604,38 @@ int ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 }
 #endif
 #endif
+
+void __init ccs_file_init(void)
+{
+	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
+	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
+	ccsecurity_ops.open_permission = __ccs_open_permission;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
+	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
+#else
+	ccsecurity_ops.rewrite_permission = __ccs_rewrite_permission;
+#endif
+	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
+	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
+	ccsecurity_ops.chown_permission = __ccs_chown_permission;
+	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
+	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
+	ccsecurity_ops.umount_permission = __ccs_umount_permission;
+	ccsecurity_ops.mknod_permission = __ccs_mknod_permission;
+	ccsecurity_ops.mkdir_permission = __ccs_mkdir_permission;
+	ccsecurity_ops.rmdir_permission = __ccs_rmdir_permission;
+	ccsecurity_ops.unlink_permission = __ccs_unlink_permission;
+	ccsecurity_ops.symlink_permission = __ccs_symlink_permission;
+	ccsecurity_ops.truncate_permission = __ccs_truncate_permission;
+	ccsecurity_ops.rename_permission = __ccs_rename_permission;
+	ccsecurity_ops.link_permission = __ccs_link_permission;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
+	ccsecurity_ops.open_exec_permission = __ccs_open_exec_permission;
+	ccsecurity_ops.uselib_permission = __ccs_uselib_permission;
+#endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 18) || defined(CONFIG_SYSCTL_SYSCALL)
+	ccsecurity_ops.parse_table = __ccs_parse_table;
+#endif
+#endif
+};

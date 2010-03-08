@@ -3,21 +3,31 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/03
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
  *
  */
 
-#include "internal.h"
 #include <linux/version.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/binfmts.h>
+#include <linux/sched.h>
+#include <linux/ccsecurity.h>
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+#include <linux/kmod.h>
 #define __KERNEL_SYSCALLS__
 #include <linux/unistd.h>
+#define ccs_lookup_flags  (LOOKUP_FOLLOW | LOOKUP_POSITIVE)
+#else
+#include <linux/fs.h>
+#include <linux/namei.h>
+#define ccs_lookup_flags LOOKUP_FOLLOW
 #endif
 
-/* Path to the policy loader. The default is /sbin/ccs-init. */
+/* Path to the policy loader. The default is CONFIG_CCSECURITY_DEFAULT_LOADER . */
 static const char *ccs_loader;
 
 /**
@@ -40,7 +50,7 @@ __setup("CCS_loader=", ccs_loader_setup);
  *
  * Returns true if /sbin/ccs-init exists, false otherwise.
  */
-static bool ccs_policy_loader_exists(void)
+static _Bool ccs_policy_loader_exists(void)
 {
 	/*
 	 * Don't activate MAC if the path given by 'CCS_loader=' option doesn't
@@ -49,16 +59,30 @@ static bool ccs_policy_loader_exists(void)
 	 * policies are not loaded yet.
 	 * Thus, let do_execve() call this function everytime.
 	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
 	struct path path;
 	if (!ccs_loader)
 		ccs_loader = CONFIG_CCSECURITY_DEFAULT_LOADER;
-	if (ccs_get_path(ccs_loader, &path)) {
-		printk(KERN_INFO "Not activating Mandatory Access Control now "
-		       "since %s doesn't exist.\n", ccs_loader);
-		return false;
+	if (kern_path(ccs_loader, ccs_lookup_flags, &path) == 0) {
+		path_put(&path);
+		return 1;
 	}
-	path_put(&path);
-	return true;
+#else
+	struct nameidata nd;
+	if (!ccs_loader)
+		ccs_loader = CONFIG_CCSECURITY_DEFAULT_LOADER;
+	if (path_lookup(ccs_loader, ccs_lookup_flags, &nd) == 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		path_put(&nd.path);
+#else
+		path_release(&nd);
+#endif
+		return 1;
+	}
+#endif
+	printk(KERN_INFO "Not activating Mandatory Access Control now "
+	       "since %s doesn't exist.\n", ccs_loader);
+	return 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -97,10 +121,8 @@ static int ccs_run_loader(void *unused)
  *
  * Returns nothing.
  */
-void ccs_load_policy(const char *filename)
+static void ccs_load_policy(const char *filename)
 {
-	if (ccs_policy_loaded)
-		return;
 	if (strcmp(filename, "/sbin/init") &&
 	    strcmp(filename, CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER))
 		return;
@@ -158,7 +180,59 @@ void ccs_load_policy(const char *filename)
 		spin_unlock_irq(&task->sigmask_lock);
 	}
 #endif
-	printk(KERN_INFO "CCSecurity: 1.7.2-pre   2010/03/03\n");
-	ccs_check_profile();
-	printk(KERN_INFO "Mandatory Access Control activated.\n");
+	if (ccsecurity_ops.check_profile)
+		ccsecurity_ops.check_profile();
+	else
+		panic("Failed to load policy.");
 }
+
+static int __ccs_search_binary_handler(struct linux_binprm *bprm,
+				       struct pt_regs *regs)
+{
+	ccs_load_policy(bprm->filename);
+	if (ccsecurity_ops.search_binary_handler
+	    != __ccs_search_binary_handler)
+		return ccsecurity_ops.search_binary_handler(bprm, regs);
+	return search_binary_handler(bprm, regs);
+}
+
+extern asmlinkage long sys_getpid(void);
+extern asmlinkage long sys_getppid(void);
+extern spinlock_t vfsmount_lock;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+static inline void module_put(struct module *module)
+{
+	if (module)
+		__MOD_DEC_USE_COUNT(module);
+}
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
+static void put_filesystem(struct file_system_type *fs)
+{
+	module_put(fs->owner);
+}
+#endif
+
+const struct ccsecurity_exports ccsecurity_exports = {
+	.load_policy = ccs_load_policy,
+	.may_create = ccs_may_create,
+	.may_delete = ccs_may_delete,
+	.put_filesystem = put_filesystem,
+	.sys_getppid = sys_getppid,
+	.sys_getpid = sys_getpid,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+	.vfsmount_lock = &vfsmount_lock,
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+	.find_task_by_vpid = find_task_by_vpid,
+	.find_task_by_pid_ns = find_task_by_pid_ns,
+#endif
+};
+EXPORT_SYMBOL_GPL(ccsecurity_exports);
+
+struct ccsecurity_operations ccsecurity_ops = {
+	.search_binary_handler = __ccs_search_binary_handler, 
+};
+EXPORT_SYMBOL_GPL(ccsecurity_ops);

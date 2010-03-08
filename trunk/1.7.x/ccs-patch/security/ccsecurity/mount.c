@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/mount.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -84,23 +84,6 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
 				   "%s %s %s 0x%lX\n", dev_name, dir_name,
 				   type, flags);
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-/* For compatibility with older kernels. */
-static inline void module_put(struct module *module)
-{
-	if (module)
-		__MOD_DEC_USE_COUNT(module);
-}
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
-/* For compatibility with older kernels. */
-static void put_filesystem(struct file_system_type *fs)
-{
-	module_put(fs->owner);
-}
-#endif
 
 /**
  * ccs_mount_acl2 - Check permission for mount() operation.
@@ -222,7 +205,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	kfree(requested_dev_name);
 	kfree(requested_dir_name);
 	if (fstype)
-		put_filesystem(fstype);
+		ccsecurity_exports.put_filesystem(fstype);
 	kfree(requested_type);
 	/* Drop refcount obtained by ccs_get_path(). */
 	if (obj.path1.dentry)
@@ -328,8 +311,9 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_mount_permission(char *dev_name, struct path *path, char *type,
-			 unsigned long flags, void *data_page)
+static int __ccs_mount_permission(char *dev_name, struct path *path,
+				  char *type, unsigned long flags,
+				  void *data_page)
 {
 	struct ccs_request_info r;
 	int error;
@@ -401,4 +385,9 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	ccs_put_number_union(&e.flags);
 	kfree(entry);
 	return error;
+}
+
+void __init ccs_mount_init(void)
+{
+	ccsecurity_ops.mount_permission = __ccs_mount_permission;
 }

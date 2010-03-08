@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/02
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -189,6 +189,9 @@ struct file_operations ccs_operations = {
 };
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+
+struct iattr;
+
 /**
  * proc_notify_change - Update inode's attributes and reflect to the dentry.
  *
@@ -263,7 +266,7 @@ static void __init ccs_create_entry(const char *name, const mode_t mode,
  *
  * Returns 0.
  */
-static int __init ccs_proc_init(void)
+static void __init ccs_proc_init(void)
 {
 	struct proc_dir_entry *ccs_dir = proc_mkdir("ccs", NULL);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
@@ -296,11 +299,23 @@ static int __init ccs_proc_init(void)
 		if (e)
 			e->proc_fops = &ccs_transition_operations;
 	}
+}
+
+static int __init ccs_init_module(void)
+{
+	ccs_proc_init();
+	ccs_mm_init();
+	ccs_capability_init();
+	ccs_file_init();
+	ccs_network_init();
+	ccs_signal_init();
+	ccs_mount_init();
+	ccs_maymount_init();
+	ccs_autobind_init();
+	ccs_policy_io_init();
+	ccs_domain_init();
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-__initcall(ccs_proc_init);
-#else
-core_initcall(ccs_proc_init);
-#endif
+MODULE_LICENSE("GPL");
+module_init(ccs_init_module);

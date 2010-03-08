@@ -2,6 +2,7 @@ This is TOMOYO Linux patch for CentOS 3.9.
 
 Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS/kernel-2.4.21-63.EL.src.rpm
 ---
+ Makefile                     |    8 ++++++++
  arch/alpha/kernel/ptrace.c   |    3 +++
  arch/arm/kernel/ptrace.c     |    3 +++
  arch/cris/kernel/ptrace.c    |    3 +++
@@ -23,7 +24,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  arch/x86_64/ia32/ptrace32.c  |    3 +++
  arch/x86_64/kernel/ptrace.c  |    3 +++
  fs/Config.in                 |    3 +++
- fs/Makefile                  |    2 ++
  fs/exec.c                    |   10 +++++++++-
  fs/fcntl.c                   |    3 +++
  fs/ioctl.c                   |   10 ++++++++++
@@ -47,8 +47,25 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   21 +++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 45 files changed, 314 insertions(+), 3 deletions(-)
+ 45 files changed, 320 insertions(+), 3 deletions(-)
 
+--- linux-2.4.21-63.EL.orig/Makefile
++++ linux-2.4.21-63.EL/Makefile
+@@ -134,6 +134,14 @@ NETWORKS	=net/network.o
+ 
+ LIBS		=$(TOPDIR)/lib/lib.a
+ SUBDIRS		=kernel drivers mm fs net ipc lib crypto
++ifdef CONFIG_CCSECURITY
++SUBDIRS += security/ccsecurity
++ifdef CONFIG_CCSECURITY_LKM
++CORE_FILES += security/ccsecurity/load_policy.o
++else
++CORE_FILES += security/ccsecurity/ccsecurity.o
++endif
++endif
+ 
+ DRIVERS-n :=
+ DRIVERS-y :=
 --- linux-2.4.21-63.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.4.21-63.EL/arch/alpha/kernel/ptrace.c
 @@ -18,6 +18,7 @@
@@ -452,16 +469,6 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  endmenu
 +
 +source security/ccsecurity/Config.in
---- linux-2.4.21-63.EL.orig/fs/Makefile
-+++ linux-2.4.21-63.EL/fs/Makefile
-@@ -96,5 +96,7 @@ obj-$(CONFIG_NFSD_ACL)		+= solaris_acl.o
- # persistent filesystems
- obj-y += $(join $(subdir-y),$(subdir-y:%=/%.o))
- 
-+subdir-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity
-+obj-$(CONFIG_CCSECURITY)	+= ../security/ccsecurity/ccsecurity.o
- 
- include $(TOPDIR)/Rules.make
 --- linux-2.4.21-63.EL.orig/fs/exec.c
 +++ linux-2.4.21-63.EL/fs/exec.c
 @@ -51,6 +51,7 @@

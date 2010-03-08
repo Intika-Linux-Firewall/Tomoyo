@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/condition.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1099,10 +1099,10 @@ bool ccs_condition(struct ccs_request_info *r,
 				value = current_fsgid();
 				break;
 			case CCS_TASK_PID:
-				value = sys_getpid();
+				value = ccsecurity_exports.sys_getpid();
 				break;
 			case CCS_TASK_PPID:
-				value = sys_getppid();
+				value = ccsecurity_exports.sys_getppid();
 				break;
 			case CCS_TYPE_IS_SOCKET:
 				value = S_IFSOCK;

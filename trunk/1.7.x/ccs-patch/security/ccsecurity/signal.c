@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/signal.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2009/12/20
+ * Version: 1.7.2-pre   2010/03/08
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -14,7 +14,7 @@
 
 /* To support PID namespace. */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
-#define find_task_by_pid find_task_by_vpid
+#define find_task_by_pid ccsecurity_exports.find_task_by_vpid
 #endif
 
 /**
@@ -60,8 +60,9 @@ static int ccs_signal_acl2(const int sig, const int pid)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
-	if (sys_getpid() == pid) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
+	if (ccsecurity_exports.sys_getpid() == pid) {
+		ccs_audit_signal_log(&r, sig, r.domain->domainname->name,
+				     true);
 		return 0;                /* No check for self process. */
 	}
 	{ /* Simplified checking. */
@@ -196,7 +197,7 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_kill_permission(pid_t pid, int sig)
+static int __ccs_kill_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_signal_acl(sig, pid)))
@@ -213,7 +214,7 @@ int ccs_kill_permission(pid_t pid, int sig)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+static int __ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_signal_acl(sig, pid)))
@@ -229,7 +230,7 @@ int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_tkill_permission(pid_t pid, int sig)
+static int __ccs_tkill_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_signal_acl(sig, pid)))
@@ -237,7 +238,7 @@ int ccs_tkill_permission(pid_t pid, int sig)
 	return 0;
 }
 
-int ccs_sigqueue_permission(pid_t pid, int sig)
+static int __ccs_sigqueue_permission(pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_signal_acl(sig, pid)))
@@ -245,10 +246,19 @@ int ccs_sigqueue_permission(pid_t pid, int sig)
 	return 0;
 }
 
-int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+static int __ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
 	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
 		    ccs_signal_acl(sig, pid)))
 		return -EPERM;
 	return 0;
+}
+
+void __init ccs_signal_init(void)
+{
+	ccsecurity_ops.kill_permission = __ccs_kill_permission;
+	ccsecurity_ops.tgkill_permission = __ccs_tgkill_permission;
+	ccsecurity_ops.tkill_permission = __ccs_tkill_permission;
+	ccsecurity_ops.sigqueue_permission = __ccs_sigqueue_permission;
+	ccsecurity_ops.tgsigqueue_permission = __ccs_tgsigqueue_permission;
 }
