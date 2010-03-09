@@ -1429,6 +1429,28 @@ static void make_meminfo(void)
 		fprintf(stderr, "failed.\n");
 }
 
+static void make_module_loader(void)
+{
+	FILE *fp;
+	if (chdir(policy_dir) || !access("ccs-load-module", X_OK))
+		return;
+	fp = fopen("ccs-load-module.tmp", "w");
+	if (!fp) {
+		fprintf(stderr, "ERROR: Can't create module loader.\n");
+		return;
+	}
+	fprintf(stderr, "Creating module loader... ");
+	fprintf(fp, "#! /bin/sh\n");
+	fprintf(fp, "exec modprobe ccsecurity\n");
+	fclose(fp);
+	if (!chdir(policy_dir) &&
+	    !chmod("ccs-load-module.tmp", 0700) &&
+	    !rename("ccs-load-module.tmp", "ccs-load-module"))
+		fprintf(stderr, "OK\n");
+	else
+		fprintf(stderr, "failed.\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -1462,5 +1484,6 @@ int main(int argc, char *argv[])
 	make_manager();
 	make_profile();
 	make_meminfo();
+	make_module_loader();
 	return 0;
 }
