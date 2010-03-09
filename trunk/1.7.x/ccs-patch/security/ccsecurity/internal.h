@@ -28,14 +28,9 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 #include <linux/version.h>
-//#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-//#include <linux/kmod.h>
-//#endif
 #include <linux/in6.h>
 #include <linux/ccsecurity.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-//#include <linux/err.h>
-#else
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/fs.h>
 #endif
 #include "compat.h"

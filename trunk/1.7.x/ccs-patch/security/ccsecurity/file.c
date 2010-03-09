@@ -2607,8 +2607,10 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 
 void __init ccs_file_init(void)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
 	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
+#endif
 	ccsecurity_ops.open_permission = __ccs_open_permission;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;

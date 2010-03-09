@@ -291,6 +291,21 @@ int main(int argc, char *argv[])
 	if (lstat("/proc/self/", &buf) || !S_ISDIR(buf.st_mode))
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
 
+	/* Load kernel module if needed. */
+	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
+		if (!access("/etc/ccs/ccs-load-module", X_OK)) {
+			switch (fork()) {
+			case 0:
+				execl("/etc/ccs/ccs-load-module",
+				      "/etc/ccs/ccs-load-module", NULL);
+				_exit(0);
+			case -1:
+				panic();
+			}
+			wait(NULL);
+		}
+	}
+
 	/* Unmount /proc and exit if policy interface doesn't exist. */
 	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
 		if (proc_unmount)
