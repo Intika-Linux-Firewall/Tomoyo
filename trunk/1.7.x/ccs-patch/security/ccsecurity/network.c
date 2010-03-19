@@ -264,7 +264,6 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     struct ccs_condition *condition,
 			     const bool is_delete)
 {
-	struct ccs_ip_network_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_ip_network_acl e = {
 		.head.type = CCS_TYPE_IP_NETWORK_ACL,
@@ -342,8 +341,6 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!ccs_parse_number_union(w[3], &e.port))
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl *acl =
@@ -366,10 +363,13 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_ip_network_acl *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
@@ -380,7 +380,6 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		ccs_put_ipv6_address(e.address.ipv6.max);
 	}
 	ccs_put_number_union(&e.port);
-	kfree(entry);
 	return error;
 }
 

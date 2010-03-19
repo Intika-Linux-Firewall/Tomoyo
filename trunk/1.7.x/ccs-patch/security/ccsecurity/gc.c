@@ -16,6 +16,8 @@
 #include <linux/kthread.h>
 #endif
 
+DECLARE_WAIT_QUEUE_HEAD(ccs_gc_queue);
+
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
 	CCS_ID_ADDRESS_GROUP,
@@ -42,71 +44,86 @@ enum ccs_gc_id {
 struct ccs_gc_entry {
 	struct list_head list;
 	int type;
-	void *element;
+	struct list_head *element;
 };
-static LIST_HEAD(ccs_gc_queue);
-static DEFINE_MUTEX(ccs_gc_mutex);
+static LIST_HEAD(ccs_gc_list);
 
 /* Caller holds ccs_policy_lock mutex. */
-static bool ccs_add_to_gc(const int type, void *element)
+static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
-	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), GFP_ATOMIC);
+	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (!entry)
 		return false;
 	entry->type = type;
 	entry->element = element;
-	list_add(&entry->list, &ccs_gc_queue);
+	list_add(&entry->list, &ccs_gc_list);
+	list_del_rcu(element);
 	return true;
 }
 
-static size_t ccs_del_allow_read(struct ccs_globally_readable_file_entry *ptr)
+static size_t ccs_del_allow_read(struct list_head *element)
 {
+	struct ccs_globally_readable_file_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->filename);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_allow_env(struct ccs_globally_usable_env_entry *ptr)
+static size_t ccs_del_allow_env(struct list_head *element)
 {
+	struct ccs_globally_usable_env_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->env);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_file_pattern(struct ccs_pattern_entry *ptr)
+static size_t ccs_del_file_pattern(struct list_head *element)
 {
+	struct ccs_pattern_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->pattern);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_no_rewrite(struct ccs_no_rewrite_entry *ptr)
+static size_t ccs_del_no_rewrite(struct list_head *element)
 {
+	struct ccs_no_rewrite_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->pattern);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_domain_initializer(struct ccs_domain_initializer_entry *
-					 ptr)
+static size_t ccs_del_domain_initializer(struct list_head *element)
 {
+	struct ccs_domain_initializer_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_domain_keeper(struct ccs_domain_keeper_entry *ptr)
+static size_t ccs_del_domain_keeper(struct list_head *element)
 {
+	struct ccs_domain_keeper_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_aggregator(struct ccs_aggregator_entry *ptr)
+static size_t ccs_del_aggregator(struct list_head *element)
 {
+	struct ccs_aggregator_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aggregated_name);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_manager(struct ccs_policy_manager_entry *ptr)
+static size_t ccs_del_manager(struct list_head *element)
 {
+	struct ccs_policy_manager_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->manager);
 	return sizeof(*ptr);
 }
@@ -165,9 +182,10 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 	return in_use;
 }
 
-static size_t ccs_del_acl(struct ccs_acl_info *acl)
+static size_t ccs_del_acl(struct list_head *element)
 {
 	size_t size;
+	struct ccs_acl_info *acl = container_of(element, typeof(*acl), list);
 	ccs_put_condition(acl->cond);
 	switch (acl->type) {
 	case CCS_TYPE_PATH_ACL:
@@ -275,35 +293,42 @@ static size_t ccs_del_acl(struct ccs_acl_info *acl)
 	return size;
 }
 
-static size_t ccs_del_domain(struct ccs_domain_info *domain)
+static size_t ccs_del_domain(struct list_head *element)
 {
 	struct ccs_acl_info *acl;
 	struct ccs_acl_info *tmp;
+	struct ccs_domain_info *domain =
+		container_of(element, typeof(*domain), list);
 	if (ccs_used_by_task(domain))
 		return 0;
 	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
-		size_t size = ccs_del_acl(acl);
+		size_t size = ccs_del_acl(&acl->list);
 		ccs_memory_free(acl, size);
 	}
 	ccs_put_name(domain->domainname);
 	return sizeof(*domain);
 }
 
-static size_t ccs_del_path_group_member(struct ccs_path_group_member *member)
+static size_t ccs_del_path_group_member(struct list_head *element)
 {
+	struct ccs_path_group_member *member =
+		container_of(element, typeof(*member), list);
 	ccs_put_name(member->member_name);
 	return sizeof(*member);
 }
 
-static size_t ccs_del_path_group(struct ccs_path_group *group)
+static size_t ccs_del_path_group(struct list_head *element)
 {
+	struct ccs_path_group *group =
+		container_of(element, typeof(*group), list);
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
 }
 
-static size_t ccs_del_address_group_member
-(struct ccs_address_group_member *member)
+static size_t ccs_del_address_group_member(struct list_head *element)
 {
+	struct ccs_address_group_member *member =
+		container_of(element, typeof(*member), list);
 	if (member->is_ipv6) {
 		ccs_put_ipv6_address(member->min.ipv6);
 		ccs_put_ipv6_address(member->max.ipv6);
@@ -311,31 +336,40 @@ static size_t ccs_del_address_group_member
 	return sizeof(*member);
 }
 
-static size_t ccs_del_address_group(struct ccs_address_group *group)
+static size_t ccs_del_address_group(struct list_head *element)
 {
+	struct ccs_address_group *group =
+		container_of(element, typeof(*group), list);
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
 }
 
-static size_t ccs_del_number_group_member
-(struct ccs_number_group_member *member)
+static size_t ccs_del_number_group_member(struct list_head *element)
 {
+	struct ccs_number_group_member *member =
+		container_of(element, typeof(*member), list);
 	return sizeof(*member);
 }
 
-static size_t ccs_del_number_group(struct ccs_number_group *group)
+static size_t ccs_del_number_group(struct list_head *element)
 {
+	struct ccs_number_group *group =
+		container_of(element, typeof(*group), list);
 	ccs_put_name(group->group_name);
 	return sizeof(*group);
 }
 
-static size_t ccs_del_reservedport(struct ccs_reserved_entry *ptr)
+static size_t ccs_del_reservedport(struct list_head *element)
 {
+	struct ccs_reserved_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	return sizeof(*ptr);
 }
 
-static size_t ccs_del_ipv6_address(struct ccs_ipv6addr_entry *ptr)
+static size_t ccs_del_ipv6_address(struct list_head *element)
 {
+	struct ccs_ipv6addr_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	return sizeof(*ptr);
 }
 
@@ -377,8 +411,10 @@ size_t ccs_del_condition(struct ccs_condition *cond)
 	return cond->size;
 }
 
-static size_t ccs_del_name(const struct ccs_name_entry *ptr)
+static size_t ccs_del_name(struct list_head *element)
 {
+	const struct ccs_name_entry *ptr =
+		container_of(element, typeof(*ptr), list);
 	return ptr->size;
 }
 
@@ -466,9 +502,8 @@ static void ccs_collect_entry(void)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE,
+					   &ptr->list))
 				break;
 		}
 	}
@@ -478,9 +513,7 @@ static void ccs_collect_entry(void)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_GLOBAL_ENV, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_GLOBAL_ENV, &ptr->list))
 				break;
 		}
 	}
@@ -489,9 +522,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_PATTERN, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_PATTERN, &ptr->list))
 				break;
 		}
 	}
@@ -500,9 +531,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_NO_REWRITE, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_NO_REWRITE, &ptr->list))
 				break;
 		}
 	}
@@ -512,9 +541,8 @@ static void ccs_collect_entry(void)
 					list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER,
+					   &ptr->list))
 				break;
 		}
 	}
@@ -523,9 +551,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, &ptr->list))
 				break;
 		}
 	}
@@ -534,9 +560,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_MANAGER, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_MANAGER, &ptr->list))
 				break;
 		}
 	}
@@ -545,9 +569,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_AGGREGATOR, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_AGGREGATOR, &ptr->list))
 				break;
 		}
 	}
@@ -559,17 +581,13 @@ static void ccs_collect_entry(void)
 						list) {
 				if (!acl->is_deleted)
 					continue;
-				if (ccs_add_to_gc(CCS_ID_ACL, acl))
-					list_del_rcu(&acl->list);
-				else
+				if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
 					break;
 			}
 			if (!domain->is_deleted ||
 			    ccs_used_by_task(domain))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_DOMAIN, domain))
-				list_del_rcu(&domain->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
 				break;
 		}
 	}
@@ -581,18 +599,14 @@ static void ccs_collect_entry(void)
 						list) {
 				if (!member->is_deleted)
 					continue;
-				if (ccs_add_to_gc(CCS_ID_PATH_GROUP_MEMBER,
-						  member))
-					list_del_rcu(&member->list);
-				else
+				if (!ccs_add_to_gc(CCS_ID_PATH_GROUP_MEMBER,
+						   &member->list))
 					break;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_PATH_GROUP, group))
-				list_del_rcu(&group->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_PATH_GROUP, &group->list))
 				break;
 		}
 	}
@@ -604,18 +618,14 @@ static void ccs_collect_entry(void)
 						list) {
 				if (!member->is_deleted)
 					break;
-				if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP_MEMBER,
-						  member))
-					list_del_rcu(&member->list);
-				else
+				if (!ccs_add_to_gc(CCS_ID_ADDRESS_GROUP_MEMBER,
+						   &member->list))
 					break;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, group))
-				list_del_rcu(&group->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, &group->list))
 				break;
 		}
 	}
@@ -627,18 +637,14 @@ static void ccs_collect_entry(void)
 						list) {
 				if (!member->is_deleted)
 					continue;
-				if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP_MEMBER,
-						  member))
-					list_del_rcu(&member->list);
-				else
+				if (!ccs_add_to_gc(CCS_ID_NUMBER_GROUP_MEMBER,
+						   &member->list))
 					break;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_NUMBER_GROUP, group))
-				list_del_rcu(&group->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_NUMBER_GROUP, &group->list))
 				break;
 		}
 	}
@@ -647,9 +653,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 			if (!ptr->is_deleted)
 				continue;
-			if (ccs_add_to_gc(CCS_ID_RESERVEDPORT, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_RESERVEDPORT, &ptr->list))
 				break;
 		}
 	}
@@ -658,9 +662,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_address_list, list) {
 			if (atomic_read(&ptr->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_IPV6_ADDRESS, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_IPV6_ADDRESS, &ptr->list))
 				break;
 		}
 	}
@@ -669,9 +671,7 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
 			if (atomic_read(&ptr->users))
 				continue;
-			if (ccs_add_to_gc(CCS_ID_CONDITION, ptr))
-				list_del_rcu(&ptr->list);
-			else
+			if (!ccs_add_to_gc(CCS_ID_CONDITION, &ptr->list))
 				break;
 		}
 	}
@@ -684,9 +684,7 @@ static void ccs_collect_entry(void)
 			list_for_each_entry_rcu(ptr, &ccs_name_list[i], list) {
 				if (atomic_read(&ptr->users))
 					continue;
-				if (ccs_add_to_gc(CCS_ID_NAME, ptr))
-					list_del_rcu(&ptr->list);
-				else {
+				if (!ccs_add_to_gc(CCS_ID_NAME, &ptr->list)) {
 					i = CCS_MAX_HASH;
 					break;
 				}
@@ -701,7 +699,7 @@ static void ccs_kfree_entry(void)
 	struct ccs_gc_entry *p;
 	struct ccs_gc_entry *tmp;
 	size_t size = 0;
-	list_for_each_entry_safe(p, tmp, &ccs_gc_queue, list) {
+	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
 		switch (p->type) {
 		case CCS_ID_DOMAIN_INITIALIZER:
 			size = ccs_del_domain_initializer(p->element);
@@ -752,7 +750,10 @@ static void ccs_kfree_entry(void)
 			size = ccs_del_ipv6_address(p->element);
 			break;
 		case CCS_ID_CONDITION:
-			size = ccs_del_condition(p->element);
+			size = ccs_del_condition(container_of(p->element,
+							      struct
+							      ccs_condition,
+							      list));
 			break;
 		case CCS_ID_NAME:
 			size = ccs_del_name(p->element);
@@ -783,22 +784,23 @@ static int ccs_gc_thread(void *unused)
 #else
 	daemonize();
 	reparent_to_init();
+	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
-	if (mutex_trylock(&ccs_gc_mutex)) {
+	while (1) {
 		int i;
+		sleep_on(&ccs_gc_queue);
 		for (i = 0; i < 10; i++) {
 			ccs_collect_entry();
-			if (list_empty(&ccs_gc_queue))
+			if (list_empty(&ccs_gc_list))
 				break;
 			ccs_synchronize_srcu();
 			ccs_kfree_entry();
 		}
-		mutex_unlock(&ccs_gc_mutex);
 	}
 	return 0;
 }
 
-void ccs_run_gc(void)
+void __init ccs_gc_init(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	struct task_struct *task = kthread_create(ccs_gc_thread, NULL,

@@ -110,7 +110,6 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 		.head.type = CCS_TYPE_CAPABILITY_ACL,
 		.head.cond = condition,
 	};
-	struct ccs_capability_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	u8 capability;
@@ -123,8 +122,6 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	if (capability == CCS_MAX_CAPABILITY_INDEX)
 		return -EINVAL;
 	e.operation = capability;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl *acl =
@@ -136,13 +133,15 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_capability_acl *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
-	kfree(entry);
 	return error;
 }
 

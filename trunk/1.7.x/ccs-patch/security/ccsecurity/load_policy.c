@@ -27,7 +27,7 @@
 #define ccs_lookup_flags LOOKUP_FOLLOW
 #endif
 
-/* Path to the policy loader. The default is CONFIG_CCSECURITY_DEFAULT_LOADER . */
+/* Path to the policy loader. (default = CONFIG_CCSECURITY_DEFAULT_LOADER) */
 static const char *ccs_loader;
 
 /**
@@ -198,7 +198,9 @@ static int __ccs_search_binary_handler(struct linux_binprm *bprm,
 
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 extern spinlock_t vfsmount_lock;
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 static inline void module_put(struct module *module)

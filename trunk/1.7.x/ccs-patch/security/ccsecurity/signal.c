@@ -151,7 +151,6 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete)
 {
-	struct ccs_signal_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
 				    .head.cond = condition };
@@ -165,8 +164,6 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 	e.domainname = ccs_get_name(domainname + 1);
 	if (!e.domainname)
 		return -ENOMEM;
-	if (!is_delete)
-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_signal_acl *acl =
@@ -178,14 +175,15 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_signal_acl *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.domainname);
-	kfree(entry);
 	return error;
 }
 

@@ -87,7 +87,6 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 					       const bool is_not,
 					       const bool is_delete)
 {
-	struct ccs_domain_initializer_entry *entry = NULL;
 	struct ccs_domain_initializer_entry *ptr;
 	struct ccs_domain_initializer_entry e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -106,8 +105,6 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 	e.program = ccs_get_name(program);
 	if (!e.program)
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
@@ -117,16 +114,19 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_domain_initializer_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_domain_initializer_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_domain_initializer_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
-	kfree(entry);
 	return error;
 }
 
@@ -248,7 +248,6 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 					  const bool is_not,
 					  const bool is_delete)
 {
-	struct ccs_domain_keeper_entry *entry = NULL;
 	struct ccs_domain_keeper_entry *ptr;
 	struct ccs_domain_keeper_entry e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -267,8 +266,6 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 	e.domainname = ccs_get_name(domainname);
 	if (!e.domainname)
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
@@ -278,16 +275,19 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_domain_keeper_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_domain_keeper_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_domain_keeper_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
-	kfree(entry);
 	return error;
 }
 
@@ -402,7 +402,6 @@ static int ccs_update_aggregator_entry(const char *original_name,
 				       const char *aggregated_name,
 				       const bool is_delete)
 {
-	struct ccs_aggregator_entry *entry = NULL;
 	struct ccs_aggregator_entry *ptr;
 	struct ccs_aggregator_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -413,8 +412,6 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	e.aggregated_name = ccs_get_name(aggregated_name);
 	if (!e.original_name || !e.aggregated_name)
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), original_name),
@@ -424,16 +421,18 @@ static int ccs_update_aggregator_entry(const char *original_name,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_aggregator_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_aggregator_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list, &ccs_aggregator_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(e.original_name);
 	ccs_put_name(e.aggregated_name);
-	kfree(entry);
 	return error;
 }
 
@@ -532,7 +531,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 	saved_domainname = ccs_get_name(domainname);
 	if (!saved_domainname)
 		return NULL;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
 		if (domain->is_deleted ||
@@ -708,7 +707,7 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 	int error = -ENOMEM;
 	if (!r->mode || !envp_count)
 		return 0;
-	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
+	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
 	if (!arg_ptr)
 		goto out;
 	while (error == -ENOMEM) {
@@ -1013,7 +1012,7 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 	{
 		int depth = ccs_get_root_depth();
 		int len = ee->handler->total_len + 1;
-		char *cp = kmalloc(len, GFP_KERNEL);
+		char *cp = kmalloc(len, CCS_GFP_FLAGS);
 		if (!cp) {
 			retval = -ENOMEM;
 			goto out;
@@ -1118,7 +1117,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 	struct page *page;
 	/* dump->data is released by ccs_finish_execve(). */
 	if (!dump->data) {
-		dump->data = kzalloc(PAGE_SIZE, GFP_KERNEL);
+		dump->data = kzalloc(PAGE_SIZE, CCS_GFP_FLAGS);
 		if (!dump->data)
 			return false;
 	}
@@ -1173,10 +1172,10 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	struct task_struct *task = current;
 	struct ccs_execve_entry *ee;
 	*eep = NULL;
-	ee = kzalloc(sizeof(*ee), GFP_KERNEL);
+	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
 	if (!ee)
 		return -ENOMEM;
-	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
+	ee->tmp = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
 	if (!ee->tmp) {
 		kfree(ee);
 		return -ENOMEM;
@@ -1283,7 +1282,8 @@ static void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
  *
  * Caller holds ccs_read_lock().
  */
-int ccs_may_transit(const char *domainname, const char *pathname) {
+int ccs_may_transit(const char *domainname, const char *pathname)
+{
 	struct ccs_path_info name;
 	struct ccs_request_info r;
 	struct ccs_domain_info *domain;
