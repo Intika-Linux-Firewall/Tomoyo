@@ -34,16 +34,10 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		.min_port = min_port,
 		.max_port = max_port
 	};
-	int error = -ENOMEM;
-	u8 *ccs_tmp_map = kzalloc(8192, GFP_KERNEL);
-	struct ccs_reserved_entry *entry = kmalloc(sizeof(e), GFP_KERNEL);
-	if (!ccs_tmp_map || !entry) {
-		kfree(entry);
-		kfree(ccs_tmp_map);
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	u8 *ccs_tmp_map = kzalloc(8192, CCS_GFP_FLAGS);
+	if (!ccs_tmp_map)
 		return -ENOMEM;
-	}
-	if (is_delete)
-		error = -ENOENT;
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port != min_port || ptr->max_port != max_port)
@@ -52,10 +46,14 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_reservedport_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_reserved_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_reservedport_list);
+			error = 0;
+		}
 	}
 	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 		unsigned int port;
@@ -67,7 +65,6 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	memmove(ccs_reserved_port_map, ccs_tmp_map,
 		sizeof(ccs_reserved_port_map));
 	mutex_unlock(&ccs_policy_lock);
-	kfree(entry);
 	kfree(ccs_tmp_map);
 	return error;
 }

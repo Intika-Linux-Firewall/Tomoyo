@@ -262,7 +262,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	ptr = ccs_profile_ptr[profile];
 	if (ptr)
 		return ptr;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	mutex_lock(&ccs_policy_lock);
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
@@ -669,7 +669,6 @@ LIST_HEAD(ccs_policy_manager_list);
  */
 static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 {
-	struct ccs_policy_manager_entry *entry = NULL;
 	struct ccs_policy_manager_entry *ptr;
 	struct ccs_policy_manager_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -684,8 +683,6 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 	e.manager = ccs_get_name(manager);
 	if (!e.manager)
 		return -ENOMEM;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
 		if (ptr->manager != e.manager)
@@ -694,14 +691,17 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_policy_manager_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_policy_manager_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_policy_manager_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.manager);
-	kfree(entry);
 	return error;
 }
 
@@ -2054,7 +2054,7 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 			len += strlen(argv0) + 16;
 		}
 	}
-	buf = kmalloc(len, GFP_KERNEL);
+	buf = kmalloc(len, CCS_GFP_FLAGS);
 	if (!buf) {
 		kfree(realpath);
 		return NULL;
@@ -2100,7 +2100,7 @@ static struct ccs_condition *ccs_get_symlink_condition(struct ccs_request_info
 		symlink = r->obj->symlink_target->name;
 		len += strlen(symlink) + 18;
 	}
-	buf = kmalloc(len, GFP_KERNEL);
+	buf = kmalloc(len, CCS_GFP_FLAGS);
 	if (!buf)
 		return NULL;
 	snprintf(buf, len - 1, "if");
@@ -2173,7 +2173,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		va_start(args, fmt);
 		len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 4;
 		va_end(args);
-		buffer = kmalloc(len, GFP_KERNEL);
+		buffer = kmalloc(len, CCS_GFP_FLAGS);
 		if (!buffer)
 			return 0;
 		va_start(args, fmt);
@@ -2213,11 +2213,11 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	header = ccs_init_audit_log(&len, r);
 	if (!header)
 		goto out;
-	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), GFP_KERNEL);
+	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), CCS_GFP_FLAGS);
 	if (!ccs_query_entry)
 		goto out;
 	len = ccs_round2(len);
-	ccs_query_entry->query = kzalloc(len, GFP_KERNEL);
+	ccs_query_entry->query = kzalloc(len, CCS_GFP_FLAGS);
 	if (!ccs_query_entry->query)
 		goto out;
 	INIT_LIST_HEAD(&ccs_query_entry->list);
@@ -2350,7 +2350,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 		head->read_step = 0;
 		return;
 	}
-	buf = kzalloc(len, GFP_KERNEL);
+	buf = kzalloc(len, CCS_GFP_FLAGS);
 	if (!buf)
 		return;
 	pos = 0;
@@ -2457,7 +2457,7 @@ static void ccs_read_self_domain(struct ccs_io_buffer *head)
  */
 int ccs_open_control(const u8 type, struct file *file)
 {
-	struct ccs_io_buffer *head = kzalloc(sizeof(*head), GFP_KERNEL);
+	struct ccs_io_buffer *head = kzalloc(sizeof(*head), CCS_GFP_FLAGS);
 	if (!head)
 		return -ENOMEM;
 	mutex_init(&head->io_sem);
@@ -2530,7 +2530,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		/* Don't allocate read_buf for poll() access. */
 		if (!head->readbuf_size)
 			head->readbuf_size = 4096;
-		head->read_buf = kzalloc(head->readbuf_size, GFP_KERNEL);
+		head->read_buf = kzalloc(head->readbuf_size, CCS_GFP_FLAGS);
 		if (!head->read_buf) {
 			kfree(head);
 			return -ENOMEM;
@@ -2544,7 +2544,7 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->write = NULL;
 	} else if (head->write) {
 		head->writebuf_size = 4096;
-		head->write_buf = kzalloc(head->writebuf_size, GFP_KERNEL);
+		head->write_buf = kzalloc(head->writebuf_size, CCS_GFP_FLAGS);
 		if (!head->write_buf) {
 			kfree(head->read_buf);
 			kfree(head);
@@ -2620,7 +2620,7 @@ int ccs_read_control(struct file *file, char __user *buffer,
 		if (len || head->poll || head->read_eof)
 			break;
 		len = head->readbuf_size * 2;
-		cp = kzalloc(len, GFP_KERNEL);
+		cp = kzalloc(len, CCS_GFP_FLAGS);
 		if (!cp) {
 			len = -ENOMEM;
 			goto out;
@@ -2678,7 +2678,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		char c;
 		if (head->write_avail >= head->writebuf_size - 1) {
 			const int len = head->writebuf_size * 2;
-			char *cp = kzalloc(len, GFP_KERNEL);
+			char *cp = kzalloc(len, CCS_GFP_FLAGS);
 			if (!cp) {
 				error = -ENOMEM;
 				break;
@@ -2736,7 +2736,7 @@ int ccs_close_control(struct file *file)
 	head = NULL;
 	file->private_data = NULL;
 	if (is_write)
-		ccs_run_gc();
+		wake_up(&ccs_gc_queue);
 	return 0;
 }
 

@@ -1073,7 +1073,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	}
 	while (1) {
 		int len2;
-		buffer = kmalloc(len, GFP_KERNEL);
+		buffer = kmalloc(len, CCS_GFP_FLAGS);
 		if (!buffer)
 			return;
 		va_start(args, fmt);

@@ -40,7 +40,7 @@ static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
 	int error = -ENOMEM;
 	if (!count || count + self_domain_len >= CCS_EXEC_TMPSIZE - 10)
 		return -ENOMEM;
-	data = kmalloc(count, GFP_KERNEL);
+	data = kmalloc(count, CCS_GFP_FLAGS);
 	if (!data)
 		return -ENOMEM;
 	if (copy_from_user(data, buf, count)) {
@@ -57,7 +57,7 @@ static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
 	if (!data)
 		goto out;
 	data_len = strlen(data);
-	tmp = kzalloc(self_domain_len + data_len + 5, GFP_KERNEL);
+	tmp = kzalloc(self_domain_len + data_len + 5, CCS_GFP_FLAGS);
 	if (!tmp)
 		goto out;
 	/*
@@ -314,6 +314,7 @@ static int __init ccs_init_module(void)
 	ccs_autobind_init();
 	ccs_policy_io_init();
 	ccs_domain_init();
+	ccs_gc_init();
 	return 0;
 }
 

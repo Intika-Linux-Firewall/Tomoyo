@@ -47,6 +47,7 @@ void __init ccs_capability_init(void);
 void __init ccs_mount_init(void);
 void __init ccs_maymount_init(void);
 void __init ccs_autobind_init(void);
+void __init ccs_gc_init(void);
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
@@ -527,7 +528,7 @@ struct ccs_execve_entry {
 	int reader_idx;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
-	char *handler_path; /* = kstrdup(handler->name, GFP_KERNEL) */
+	char *handler_path; /* = kstrdup(handler->name, CCS_GFP_FLAGS) */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
 	/* For temporary use. */
@@ -867,7 +868,6 @@ struct ccs_profile {
 
 bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 			       const struct ccs_address_group *group);
-bool ccs_commit_ok(void *ptr, void *data, const unsigned int size);
 bool ccs_compare_name_union(const struct ccs_path_info *name,
 			    const struct ccs_name_union *ptr);
 bool ccs_compare_number_union(const unsigned long value,
@@ -1004,10 +1004,10 @@ void ccs_put_number_union(struct ccs_number_union *ptr);
 void ccs_read_audit_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_read_unlock(const int idx);
-void ccs_run_gc(void);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 void ccs_warn_oom(const char *function);
+void *ccs_commit_ok(void *data, const unsigned int size);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -1044,7 +1044,7 @@ extern struct list_head ccs_address_list;
 extern struct list_head ccs_condition_list;
 extern struct mutex ccs_name_list_lock;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
-
+extern wait_queue_head_t ccs_gc_queue;
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 
@@ -1204,5 +1204,21 @@ static inline void ccs_put_name(const struct ccs_path_info *name)
 		atomic_dec(&ptr->users);
 	}
 }
+
+#ifndef __GFP_HIGHIO
+#define __GFP_HIGHIO 0
+#endif
+#ifndef __GFP_NOWARN
+#define __GFP_NOWARN 0
+#endif
+#ifndef __GFP_NORETRY
+#define __GFP_NORETRY 0
+#endif
+#ifndef __GFP_NOMEMALLOC
+#define __GFP_NOMEMALLOC 0
+#endif
+
+#define CCS_GFP_FLAGS (__GFP_WAIT | __GFP_IO | __GFP_HIGHIO | __GFP_NOWARN | \
+		       __GFP_NORETRY | __GFP_NOMEMALLOC)
 
 #endif

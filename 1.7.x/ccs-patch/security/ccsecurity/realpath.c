@@ -162,7 +162,7 @@ char *ccs_realpath_from_path(struct path *path)
 		char *pos;
 		buf_len <<= 1;
 		kfree(buf);
-		buf = kmalloc(buf_len, GFP_KERNEL);
+		buf = kmalloc(buf_len, CCS_GFP_FLAGS);
 		if (!buf)
 			break;
 		/* Get better name for socket. */
@@ -285,7 +285,7 @@ char *ccs_encode(const char *str)
 	}
 	len++;
 	/* Reserve space for appending "/". */
-	cp = kzalloc(len + 10, GFP_KERNEL);
+	cp = kzalloc(len + 10, CCS_GFP_FLAGS);
 	if (!cp)
 		return NULL;
 	cp0 = cp;

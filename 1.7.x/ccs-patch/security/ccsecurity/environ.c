@@ -66,7 +66,6 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
  */
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 {
-	struct ccs_globally_usable_env_entry *entry = NULL;
 	struct ccs_globally_usable_env_entry e = { };
 	struct ccs_globally_usable_env_entry *ptr;
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -75,8 +74,6 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->env != e.env)
@@ -85,14 +82,17 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_globally_usable_env_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_globally_usable_env_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_globally_usable_env_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.env);
-	kfree(entry);
 	return error;
 }
 
@@ -199,7 +199,6 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete)
 {
-	struct ccs_env_acl *entry = NULL;
 	struct ccs_acl_info *ptr;
 	struct ccs_env_acl e = {
 		.head.type = CCS_TYPE_ENV_ACL,
@@ -211,8 +210,6 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl *acl =
@@ -224,13 +221,14 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_env_acl *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.env);
-	kfree(entry);
 	return error;
 }

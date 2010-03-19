@@ -54,22 +54,26 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
 }
 
 /**
- * ccs_commit_ok - Check memory quota.
+ * ccs_commit_ok - Allocate memory and check memory quota.
  *
- * @ptr:    Pointer to allocated memory.
  * @data:   Data to copy from.
  * @size:   Size in byte.
  *
- * Returns true if @ptr is not NULL and quota not exceeded, false otherwise.
+ * Returns pointer to allocated memory on success, NULL otherwise.
+ * @data is zero-cleared on success.
  */
-bool ccs_commit_ok(void *ptr, void *data, const unsigned int size)
+void *ccs_commit_ok(void *data, const unsigned int size)
 {
+	void *ptr = kmalloc(size, CCS_GFP_FLAGS);
+	if (!ptr)
+		return NULL;
 	if (ccs_memory_ok(ptr, size)) {
 		memmove(ptr, data, size);
 		memset(data, 0, size);
-		return true;
+		return ptr;
 	}
-	return false;
+	kfree(ptr);
+	return NULL;
 }
 
 
@@ -103,7 +107,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 	int error = -ENOMEM;
 	if (!addr)
 		return NULL;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry(ptr, &ccs_address_list, list) {
 		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
@@ -160,7 +164,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		goto out;
 	}
 	allocated_len = ccs_round2(sizeof(*ptr) + len);
-	ptr = kzalloc(allocated_len, GFP_KERNEL);
+	ptr = kzalloc(allocated_len, CCS_GFP_FLAGS);
 	if (!ptr || (ccs_quota_for_policy &&
 		     atomic_read(&ccs_policy_memory_size) + allocated_len
 		     > ccs_quota_for_policy)) {

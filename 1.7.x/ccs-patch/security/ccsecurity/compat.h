@@ -64,7 +64,7 @@
 #define mutex_lock(mutex) down(mutex)
 #define mutex_unlock(mutex) up(mutex)
 #define mutex_lock_interruptible(mutex) down_interruptible(mutex)
-#define mutex_trylock(mutex) !down_trylock(mutex)
+#define mutex_trylock(mutex) (!down_trylock(mutex))
 #define DEFINE_MUTEX(mutexname) DECLARE_MUTEX(mutexname)
 #endif
 

@@ -28,7 +28,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
 			    struct ccs_page_dump *dump)
 {
 	static const int ccs_buffer_len = 4096 * 2;
-	char *buffer = kzalloc(ccs_buffer_len, GFP_KERNEL);
+	char *buffer = kzalloc(ccs_buffer_len, CCS_GFP_FLAGS);
 	char *cp;
 	char *last_start;
 	int len;
@@ -165,7 +165,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	const pid_t gpid = task_pid_nr(current);
 #endif
 	static const int ccs_buffer_len = 4096;
-	char *buffer = kmalloc(ccs_buffer_len, GFP_KERNEL);
+	char *buffer = kmalloc(ccs_buffer_len, CCS_GFP_FLAGS);
 	int pos;
 	if (!buffer)
 		return NULL;
@@ -299,7 +299,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 		symlink = r->obj->symlink_target->name;
 		*len += 18 + strlen(symlink);
 	}
-	buf = kzalloc(*len, GFP_KERNEL);
+	buf = kzalloc(*len, CCS_GFP_FLAGS);
 	if (!buf)
 		goto out;
 	pos = snprintf(buf, (*len) - 1, "%s", header);
@@ -435,7 +435,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	va_start(args, fmt);
 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
 	va_end(args);
-	new_entry = kzalloc(sizeof(*new_entry), GFP_KERNEL);
+	new_entry = kzalloc(sizeof(*new_entry), CCS_GFP_FLAGS);
 	if (!new_entry) {
 		kfree(buf);
 		goto out;

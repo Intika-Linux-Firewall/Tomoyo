@@ -138,7 +138,7 @@ static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
 		checked = local_checked;
 		memset(local_checked, 0, sizeof(local_checked));
 	} else {
-		checked = kzalloc(argc + envc, GFP_KERNEL);
+		checked = kzalloc(argc + envc, CCS_GFP_FLAGS);
 		if (!checked)
 			return false;
 	}
@@ -625,7 +625,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		+ names_count * sizeof(struct ccs_name_union)
 		+ argc * sizeof(struct ccs_argv_entry)
 		+ envc * sizeof(struct ccs_envp_entry);
-	entry = kzalloc(size, GFP_KERNEL);
+	entry = kzalloc(size, CCS_GFP_FLAGS);
 	if (!entry)
 		return NULL;
 	INIT_LIST_HEAD(&entry->list);

@@ -36,7 +36,7 @@ struct ccs_address_group *ccs_get_address_group(const char *group_name)
 	saved_group_name = ccs_get_name(group_name);
 	if (!saved_group_name)
 		return NULL;
-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(group, &ccs_address_group_list, list) {
 		if (saved_group_name != group->group_name)
@@ -72,7 +72,6 @@ struct ccs_address_group *ccs_get_address_group(const char *group_name)
 int ccs_write_address_group_policy(char *data, const bool is_delete)
 {
 	struct ccs_address_group *group;
-	struct ccs_address_group_member *entry = NULL;
 	struct ccs_address_group_member *member;
 	struct ccs_address_group_member e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -101,8 +100,6 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	default:
 		goto out;
 	}
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (ccs_memcmp(member, &e, offsetof(typeof(e), is_ipv6),
@@ -112,10 +109,13 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &group->member_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_address_group_member *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list, &group->member_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
@@ -124,7 +124,6 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 		ccs_put_ipv6_address(e.max.ipv6);
 	}
 	ccs_put_address_group(group);
-	kfree(entry);
 	return error;
 }
 

@@ -735,7 +735,6 @@ static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
  */
 int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 {
-	struct ccs_globally_readable_file_entry *entry = NULL;
 	struct ccs_globally_readable_file_entry *ptr;
 	struct ccs_globally_readable_file_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -744,8 +743,6 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 	e.filename = ccs_get_name(data);
 	if (!e.filename)
 		return -ENOMEM;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->filename != e.filename)
@@ -754,14 +751,17 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_globally_readable_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_globally_readable_file_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list,
+					  &ccs_globally_readable_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.filename);
-	kfree(entry);
 	return error;
 }
 
@@ -835,7 +835,6 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
  */
 int ccs_write_pattern_policy(char *data, const bool is_delete)
 {
-	struct ccs_pattern_entry *entry = NULL;
 	struct ccs_pattern_entry *ptr;
 	struct ccs_pattern_entry e = { .pattern = ccs_get_name(data) };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -843,8 +842,6 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
 		return error;
 	if (!e.pattern->is_patterned)
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (e.pattern != ptr->pattern)
@@ -853,15 +850,16 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_pattern_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_pattern_entry *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list, &ccs_pattern_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(e.pattern);
-	kfree(entry);
 	return error;
 }
 
@@ -929,7 +927,6 @@ static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
  */
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 {
-	struct ccs_no_rewrite_entry *entry = NULL;
 	struct ccs_no_rewrite_entry *ptr;
 	struct ccs_no_rewrite_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -938,8 +935,6 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return error;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->pattern != e.pattern)
@@ -948,14 +943,16 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		list_add_tail_rcu(&entry->list, &ccs_no_rewrite_list);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_no_rewrite_entry *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			list_add_tail_rcu(&entry->list, &ccs_no_rewrite_list);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.pattern);
-	kfree(entry);
 	return error;
 }
 
@@ -1177,7 +1174,6 @@ static inline int ccs_update_execute_handler(const u8 type,
 {
 	struct ccs_acl_info *ptr;
 	struct ccs_execute_handler_record e = { .head.type = type };
-	struct ccs_execute_handler_record *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
@@ -1186,8 +1182,6 @@ static inline int ccs_update_execute_handler(const u8 type,
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
 		return -ENOMEM;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
@@ -1211,19 +1205,22 @@ static inline int ccs_update_execute_handler(const u8 type,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		/* Only one entry can exist in a domain. */
-		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-			if (ptr->type == type)
-				ptr->is_deleted = true;
+	if (!is_delete && error) {
+		struct ccs_execute_handler_record *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			/* Only one entry can exist in a domain. */
+			list_for_each_entry_rcu(ptr, &domain->acl_info_list,
+						list) {
+				if (ptr->type == type)
+					ptr->is_deleted = true;
+			}
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
 		}
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name(e.handler);
-	kfree(entry);
 	return error;
 }
 
@@ -1252,14 +1249,11 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (type == CCS_TYPE_READ_WRITE)
 		e.perm |= ccs_rw_mask;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl =
@@ -1289,14 +1283,15 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_path_acl *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
 	ccs_put_name_union(&e.name);
-	kfree(entry);
 	return error;
 }
 
@@ -1329,15 +1324,12 @@ static inline int ccs_update_path_number3_acl(const u8 type,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path_number3_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename, &e.name) ||
 	    !ccs_parse_number_union(mode, &e.mode) ||
 	    !ccs_parse_number_union(major, &e.major) ||
 	    !ccs_parse_number_union(minor, &e.minor))
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number3_acl *acl =
@@ -1359,10 +1351,13 @@ static inline int ccs_update_path_number3_acl(const u8 type,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_path_number3_acl *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
@@ -1370,7 +1365,6 @@ static inline int ccs_update_path_number3_acl(const u8 type,
 	ccs_put_number_union(&e.mode);
 	ccs_put_number_union(&e.major);
 	ccs_put_number_union(&e.minor);
-	kfree(entry);
 	return error;
 }
 
@@ -1401,13 +1395,10 @@ static inline int ccs_update_path2_acl(const u8 type,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path2_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename1, &e.name1) ||
 	    !ccs_parse_name_union(filename2, &e.name2))
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path2_acl *acl =
@@ -1429,16 +1420,17 @@ static inline int ccs_update_path2_acl(const u8 type,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_path2_acl *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name_union(&e.name1);
 	ccs_put_name_union(&e.name2);
-	kfree(entry);
 	return error;
 }
 
@@ -1983,7 +1975,6 @@ static inline int ccs_update_path_number_acl(const u8 type,
 		.head.cond = condition,
 		.perm = perm
 	};
-	struct ccs_path_number_acl *entry = NULL;
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
@@ -1991,8 +1982,6 @@ static inline int ccs_update_path_number_acl(const u8 type,
 		return -EINVAL;
 	if (!ccs_parse_number_union(number, &e.number))
 		goto out;
-	if (!is_delete)
-		entry = kmalloc(sizeof(e), GFP_KERNEL);
 	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl =
@@ -2014,16 +2003,18 @@ static inline int ccs_update_path_number_acl(const u8 type,
 		error = 0;
 		break;
 	}
-	if (!is_delete && error && ccs_commit_ok(entry, &e, sizeof(e))) {
-		ccs_add_domain_acl(domain, &entry->head);
-		entry = NULL;
-		error = 0;
+	if (!is_delete && error) {
+		struct ccs_path_number_acl *entry =
+			ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			ccs_add_domain_acl(domain, &entry->head);
+			error = 0;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name_union(&e.name);
 	ccs_put_number_union(&e.number);
-	kfree(entry);
 	return error;
 }
 
@@ -2525,7 +2516,7 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		error = 0;
 		goto out;
 	}
-	buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
 	if (!buffer)
 		goto out;
 	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
