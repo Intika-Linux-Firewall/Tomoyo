@@ -2342,7 +2342,7 @@ Fix 2010/03/02
 
       Note that '\0'-terminated binary string is converted to TOMOYO's string
       inside kernel and prefix "//" is automatically added to the string so
-      that domainname does not confclict with domainnames created by execve().
+      that domainname does not conflict with domainnames created by execve().
       Without this prefix, if "<kernel> /usr/sbin/sshd /bin/bash" domain is
       allowed to open /proc/ccs/.transition for writing and
       "<kernel> /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain is allowed to
@@ -2360,7 +2360,7 @@ Fix 2010/03/08
 
     @ Allow building as loadable kernel module.
 
-      To be able to minimize filesize increment on vmlinux, I made it
+      To be able to minimize filesize increment of vmlinux, I made it
       possible to compile TOMOYO Linux as loadable kernel module.
       Although patching the kernel source and recompiling the kernel are
       inevitable, this change will make it easier to enable TOMOYO Linux
