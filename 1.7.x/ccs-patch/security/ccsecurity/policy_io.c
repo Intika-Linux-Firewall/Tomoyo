@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/08
+ * Version: 1.7.2-pre   2010/03/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -301,7 +301,7 @@ static void ccs_check_profile(void)
 	if (ccs_profile_version != 20090903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
-	printk(KERN_INFO "CCSecurity: 1.7.2-pre   2010/03/08\n");
+	printk(KERN_INFO "CCSecurity: 1.7.2-pre   2010/03/21\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
@@ -2552,8 +2552,11 @@ int ccs_open_control(const u8 type, struct file *file)
 		}
 	}
 	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
-		head->reader_idx = ccs_read_lock();
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
+		spin_lock(&ccs_io_buffer_list_lock);
+		list_add(&head->list, &ccs_io_buffer_list);
+		spin_unlock(&ccs_io_buffer_list_lock);
+	}
 	file->private_data = head;
 	/*
 	 * Call the handler now if the file is /proc/ccs/self_domain
@@ -2606,12 +2609,14 @@ int ccs_read_control(struct file *file, char __user *buffer,
 	int len = 0;
 	struct ccs_io_buffer *head = file->private_data;
 	char *cp;
+	int idx;
 	if (!head->read)
 		return -ENOSYS;
 	if (!access_ok(VERIFY_WRITE, buffer, buffer_len))
 		return -EFAULT;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
+	idx = ccs_read_lock();
 	while (1) {
 		/* Call the policy handler. */
 		head->read(head);
@@ -2642,6 +2647,7 @@ int ccs_read_control(struct file *file, char __user *buffer,
 	head->read_avail -= len;
 	memmove(cp, cp + len, head->read_avail);
  out:
+	ccs_read_unlock(idx);
 	mutex_unlock(&head->io_sem);
 	return len;
 }
@@ -2662,6 +2668,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 	int error = buffer_len;
 	int avail_len = buffer_len;
 	char *cp0 = head->write_buf;
+	int idx;
 	if (!head->write)
 		return -ENOSYS;
 	if (!access_ok(VERIFY_READ, buffer, buffer_len))
@@ -2673,6 +2680,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		return -EPERM;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
+	idx = ccs_read_lock();
 	/* Read a line and dispatch it to the policy handler. */
 	while (avail_len > 0) {
 		char c;
@@ -2703,6 +2711,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		ccs_normalize_line(cp0);
 		head->write(head);
 	}
+	ccs_read_unlock(idx);
 	mutex_unlock(&head->io_sem);
 	return error;
 }
@@ -2725,8 +2734,11 @@ int ccs_close_control(struct file *file)
 	if (type == CCS_QUERY)
 		atomic_dec(&ccs_query_observers);
 	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
-		ccs_read_unlock(head->reader_idx);
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
+		spin_lock(&ccs_io_buffer_list_lock);
+		list_del(&head->list);
+		spin_unlock(&ccs_io_buffer_list_lock);
+	}
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);
 	head->read_buf = NULL;

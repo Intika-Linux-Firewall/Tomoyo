@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/08
+ * Version: 1.7.2-pre   2010/03/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -17,6 +17,8 @@
 #endif
 
 DECLARE_WAIT_QUEUE_HEAD(ccs_gc_queue);
+LIST_HEAD(ccs_io_buffer_list);
+DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
 
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
@@ -126,6 +128,29 @@ static size_t ccs_del_manager(struct list_head *element)
 		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->manager);
 	return sizeof(*ptr);
+}
+
+/**
+ * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
+ *
+ * @ptr: Pointer to scan.
+ *
+ * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
+ */
+static bool ccs_used_by_io_buffer(struct list_head *ptr)
+{
+	bool in_use = false;
+	struct ccs_io_buffer *entry;
+	spin_lock(&ccs_io_buffer_list_lock);
+	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
+		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
+		    &entry->write_var1->list == ptr) {
+			in_use = true;
+			break;
+		}
+	}
+	spin_unlock(&ccs_io_buffer_list_lock);
+	return in_use;
 }
 
 /* For compatibility with older kernels. */
@@ -425,16 +450,6 @@ static struct srcu_struct ccs_ss;
 
 int ccs_read_lock(void)
 {
-	/*
-	 * Kernel might try to populate root fs before processing initcalls.
-	 * Thus, I can't use core_initcall() for initializing ccs_ss.
-	 */
-	if (!ccs_ss.per_cpu_ref) {
-		mutex_lock(&ccs_policy_lock);
-		if (!ccs_ss.per_cpu_ref && init_srcu_struct(&ccs_ss))
-			panic("Out of memory.");
-		mutex_unlock(&ccs_policy_lock);
-	}
 	return srcu_read_lock(&ccs_ss);
 }
 
@@ -495,6 +510,9 @@ static void ccs_synchronize_srcu(void)
 
 static void ccs_collect_entry(void)
 {
+	struct ccs_gc_entry *p1;
+	struct ccs_gc_entry *p2;
+	int i;
 	mutex_lock(&ccs_policy_lock);
 	{
 		struct ccs_globally_readable_file_entry *ptr;
@@ -675,23 +693,40 @@ static void ccs_collect_entry(void)
 				break;
 		}
 	}
-	mutex_unlock(&ccs_policy_lock);
-	mutex_lock(&ccs_name_list_lock);
-	{
-		int i;
-		for (i = 0; i < CCS_MAX_HASH; i++) {
-			struct ccs_name_entry *ptr;
-			list_for_each_entry_rcu(ptr, &ccs_name_list[i], list) {
-				if (atomic_read(&ptr->users))
-					continue;
-				if (!ccs_add_to_gc(CCS_ID_NAME, &ptr->list)) {
-					i = CCS_MAX_HASH;
-					break;
-				}
+	for (i = 0; i < CCS_MAX_HASH; i++) {
+		struct ccs_name_entry *ptr;
+		list_for_each_entry_rcu(ptr, &ccs_name_list[i], list) {
+			if (atomic_read(&ptr->users))
+				continue;
+			if (!ccs_add_to_gc(CCS_ID_NAME, &ptr->list)) {
+				i = CCS_MAX_HASH;
+				break;
 			}
 		}
 	}
-	mutex_unlock(&ccs_name_list_lock);
+	/*
+	 * The order of kfree() by ccs_kfree_entry() is not sequential.
+	 * Thus, if "struct list_head"->next points elements on ccs_gc_list
+	 * list, reader will trigger oops by reaching already kfree()d element.
+	 * To avoid oops, make sure that "struct list_head"->next never points
+	 * elements on ccs_gc_list before waiting for SRCU grace period.
+	 */
+ restart:
+	list_for_each_entry(p1, &ccs_gc_list, list) {
+		list_for_each_entry(p2, &ccs_gc_list, list) {
+			if (p1->element->next == p2->element) {
+				rcu_assign_pointer(p1->element->next,
+						   p2->element->next);
+				goto restart;
+			}
+			if (p2->element->next == p1->element) {
+				rcu_assign_pointer(p2->element->next,
+						   p1->element->next);
+				goto restart;
+			}
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
 }
 
 static void ccs_kfree_entry(void)
@@ -700,6 +735,8 @@ static void ccs_kfree_entry(void)
 	struct ccs_gc_entry *tmp;
 	size_t size = 0;
 	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
+		if (ccs_used_by_io_buffer(p->element))
+			continue;
 		switch (p->type) {
 		case CCS_ID_DOMAIN_INITIALIZER:
 			size = ccs_del_domain_initializer(p->element);
@@ -809,5 +846,9 @@ void __init ccs_gc_init(void)
 		wake_up_process(task);
 #else
 	kernel_thread(ccs_gc_thread, NULL, 0);
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+	if (init_srcu_struct(&ccs_ss))
+		panic("Out of memory.");
 #endif
 }

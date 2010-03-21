@@ -2365,3 +2365,14 @@ Fix 2010/03/08
       Although patching the kernel source and recompiling the kernel are
       inevitable, this change will make it easier to enable TOMOYO Linux
       when there is a filesize limitation on vmlinux (e.g. embedded systems).
+
+Fix 2010/03/21
+
+    @ Improve garbage collector.
+
+      Until now, garbage collector did not start garbage collection until
+      /proc/ccs/ users call close(). But since it is not good behavior to
+      leave the kernel with SRCU read lock held, I changed /proc/ccs/ users
+      not to leave the kernel with SRCU read lock held. As a result, garbage
+      collector can start garbage collection before /proc/ccs/ users call
+      close().

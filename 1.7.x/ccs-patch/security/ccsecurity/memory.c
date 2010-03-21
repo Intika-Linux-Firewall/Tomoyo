@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/08
+ * Version: 1.7.2-pre   2010/03/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -130,7 +130,6 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 
 /* The list for "struct ccs_name_entry". */
 struct list_head ccs_name_list[CCS_MAX_HASH];
-DEFINE_MUTEX(ccs_name_list_lock);
 
 /**
  * ccs_get_name - Allocate memory for string data.
@@ -156,7 +155,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 #else
 	head = &ccs_name_list[hash % CCS_MAX_HASH];
 #endif
-	mutex_lock(&ccs_name_list_lock);
+	mutex_lock(&ccs_policy_lock);
 	list_for_each_entry(ptr, head, list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 			continue;
@@ -181,7 +180,7 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	ptr->size = allocated_len;
 	list_add_tail(&ptr->list, head);
  out:
-	mutex_unlock(&ccs_name_list_lock);
+	mutex_unlock(&ccs_policy_lock);
 	return ptr ? &ptr->entry : NULL;
 }
 
