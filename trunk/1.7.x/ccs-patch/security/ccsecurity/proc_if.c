@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/08
+ * Version: 1.7.2-pre   2010/03/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -245,7 +245,8 @@ static struct inode_operations ccs_file_inode_operations;
  * Returns nothing.
  */
 static void __init ccs_create_entry(const char *name, const mode_t mode,
-				    struct proc_dir_entry *parent, const u8 key)
+				    struct proc_dir_entry *parent,
+				    const u8 key)
 {
 	struct proc_dir_entry *entry = create_proc_entry(name, mode, parent);
 	if (entry) {
@@ -303,6 +304,7 @@ static void __init ccs_proc_init(void)
 
 static int __init ccs_init_module(void)
 {
+	ccs_gc_init();
 	ccs_proc_init();
 	ccs_mm_init();
 	ccs_capability_init();
@@ -314,7 +316,6 @@ static int __init ccs_init_module(void)
 	ccs_autobind_init();
 	ccs_policy_io_init();
 	ccs_domain_init();
-	ccs_gc_init();
 	return 0;
 }
 

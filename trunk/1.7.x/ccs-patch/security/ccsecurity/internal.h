@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/08
+ * Version: 1.7.2-pre   2010/03/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -801,8 +801,8 @@ struct ccs_io_buffer {
 	int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
-	/* Index returned by ccs_read_lock().   */
-	int reader_idx;
+	/* List head for allowing GC to scan.   */
+	struct list_head list;
 	/* The position currently reading from. */
 	struct list_head *read_var1;
 	/* Extra variables for reading.         */
@@ -1027,6 +1027,7 @@ static inline int ccs_memcmp(void *a, void *b, const size_t offset,
 #define CCS_MAX_HASH (1 << CCS_HASH_BITS)
 
 extern struct mutex ccs_policy_lock;
+extern spinlock_t ccs_io_buffer_list_lock;
 extern struct list_head ccs_domain_list;
 extern struct list_head ccs_address_group_list;
 extern struct list_head ccs_globally_readable_list;
@@ -1042,8 +1043,8 @@ extern struct list_head ccs_reservedport_list;
 extern struct list_head ccs_policy_manager_list;
 extern struct list_head ccs_address_list;
 extern struct list_head ccs_condition_list;
-extern struct mutex ccs_name_list_lock;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
+extern struct list_head ccs_io_buffer_list;
 extern wait_queue_head_t ccs_gc_queue;
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
