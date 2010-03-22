@@ -46,7 +46,7 @@ mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
