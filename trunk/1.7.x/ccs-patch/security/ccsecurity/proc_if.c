@@ -304,6 +304,8 @@ static void __init ccs_proc_init(void)
 
 static int __init ccs_init_module(void)
 {
+	if (ccsecurity_ops.disabled)
+		return -EINVAL;
 	ccs_gc_init();
 	ccs_proc_init();
 	ccs_mm_init();
