@@ -46,6 +46,24 @@ static int __init ccs_loader_setup(char *str)
 __setup("CCS_loader=", ccs_loader_setup);
 
 /**
+ * ccs_setup - Set enable/disable upon boot.
+ *
+ * @str: "off" to disable, "on" to enable.
+ *
+ * Returns 0.
+ */
+static int __init ccs_setup(char *str)
+{
+	if (!strcmp(str, "off"))
+		ccsecurity_ops.disabled = 1;
+	else if (!strcmp(str, "on"))
+		ccsecurity_ops.disabled = 0;
+	return 0;
+}
+
+__setup("ccsecurity=", ccs_setup);
+
+/**
  * ccs_policy_loader_exists - Check whether /sbin/ccs-init exists.
  *
  * Returns true if /sbin/ccs-init exists, false otherwise.
@@ -123,6 +141,8 @@ static int ccs_run_loader(void *unused)
  */
 static void ccs_load_policy(const char *filename)
 {
+	if (ccsecurity_ops.disabled)
+		return;
 	if (strcmp(filename, "/sbin/init") &&
 	    strcmp(filename, CONFIG_CCSECURITY_ALTERNATIVE_TRIGGER))
 		return;
@@ -235,6 +255,9 @@ const struct ccsecurity_exports ccsecurity_exports = {
 EXPORT_SYMBOL_GPL(ccsecurity_exports);
 
 struct ccsecurity_operations ccsecurity_ops = {
-	.search_binary_handler = __ccs_search_binary_handler, 
+	.search_binary_handler = __ccs_search_binary_handler,
+#ifdef CONFIG_CCSECURITY_DISABLE_BY_DEFAULT
+	.disabled = 1,
+#endif
 };
 EXPORT_SYMBOL_GPL(ccsecurity_ops);

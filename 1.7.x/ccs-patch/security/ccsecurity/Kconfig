@@ -12,6 +12,15 @@ config CCSECURITY_LKM
 	help
 	  Say Y here if you want to keep vmlinux's size as small as possible.
 
+config CCSECURITY_DISABLE_BY_DEFAULT
+	bool "Disable by default"
+	default n
+	depends on CCSECURITY
+	help
+	  Say Y here if you want TOMOYO disabled by default.
+	  To enable TOMOYO, pass ccsecurity=on to kernel command line.
+	  To disable TOMOYO, pass ccsecurity=off to kernel command line.
+
 config CCSECURITY_MAX_ACCEPT_ENTRY
 	int "Default maximal count for learning mode"
 	default 2048

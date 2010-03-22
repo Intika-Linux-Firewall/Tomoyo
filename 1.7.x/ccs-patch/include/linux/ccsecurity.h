@@ -163,6 +163,7 @@ struct ccsecurity_operations {
 	int (*tgsigqueue_permission) (pid_t tgid, pid_t pid, int sig);
 	int (*search_binary_handler) (struct linux_binprm *bprm,
 				      struct pt_regs *regs);
+	_Bool disabled;
 };
 
 extern const struct ccsecurity_exports ccsecurity_exports;
