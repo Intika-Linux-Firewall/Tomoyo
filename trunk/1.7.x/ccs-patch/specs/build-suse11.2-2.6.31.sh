@@ -60,17 +60,17 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.31.12-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.31.12-0.2.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-source-2.6.31.12-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-source-2.6.31.12-0.2.1.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-source-2.6.31.12-0.1.1.src.rpm || die "Can't install source package."
+rpm -ivh kernel-source-2.6.31.12-0.2.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-2.6.31.12-0.1.1.nosrc.rpm ]
+if [ ! -r kernel-default-2.6.31.12-0.2.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-default-2.6.31.12-0.1.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.2/rpm/src/kernel-default-2.6.31.12-0.2.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-default-2.6.31.12-0.1.1.nosrc.rpm || die "Can't install source package."
+rpm -ivh kernel-default-2.6.31.12-0.2.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
@@ -81,9 +81,9 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- /usr/src/packages/SPECS/kernel-default.spec	2009-12-18 09:51:08.000000000 +0900
-+++ /tmp/kernel-default.spec	2010-01-05 10:39:14.000000000 +0900
-@@ -46,10 +46,10 @@
+--- kernel-default.spec	2010-03-18 00:25:10.000000000 +0900
++++ kernel-default.spec	2010-03-23 17:16:19.000000000 +0900
+@@ -53,10 +53,10 @@
  %define install_vdso 0
  %endif
  
@@ -91,12 +91,12 @@ patch << "EOF" || die "Can't patch spec file."
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
  Version:        2.6.31.12
--Release:        0.1.1
-+Release:        0.1.1_tomoyo_1.7.1p2
+-Release:        0.2.1
++Release:        0.2.1_tomoyo_1.7.1p2
  %if %using_buildservice
  %else
  %endif
-@@ -243,6 +243,10 @@
+@@ -267,6 +267,10 @@
      sed 's:^:patch -s -F0 -E -p1 --no-backup-if-mismatch -i ../:' \
      >>../apply-patches.sh
  bash -ex ../apply-patches.sh
@@ -104,9 +104,9 @@ patch << "EOF" || die "Can't patch spec file."
 +tar -zxf %_sourcedir/ccs-patch-1.7.1-20100214.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.31-suse-11.2.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
+ 
  cd %kernel_build_dir
- if [ -f %_sourcedir/localversion ] ; then
-     cat %_sourcedir/localversion > localversion
+ 
 EOF
 touch /usr/src/packages/SOURCES/IGNORE-KABI-BADNESS
 sed -e 's:^Provides:#Provides:' -e 's:^Obsoletes:#Obsoletes:' -e 's:-n kernel:-n ccs-kernel:' kernel-default.spec > ccs-kernel.spec || die "Can't edit spec file."
