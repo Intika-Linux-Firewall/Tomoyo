@@ -825,7 +825,7 @@ static int ccs_gc_thread(void *unused)
 #endif
 	while (1) {
 		int i;
-		sleep_on(&ccs_gc_queue);
+		interruptible_sleep_on(&ccs_gc_queue);
 		for (i = 0; i < 10; i++) {
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
