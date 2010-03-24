@@ -306,6 +306,9 @@ static int __init ccs_init_module(void)
 {
 	if (ccsecurity_ops.disabled)
 		return -EINVAL;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 0)
+	MOD_INC_USE_COUNT;
+#endif
 	ccs_gc_init();
 	ccs_proc_init();
 	ccs_mm_init();
