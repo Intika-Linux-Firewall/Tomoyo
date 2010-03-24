@@ -29,6 +29,7 @@ static void ccs_resched(void)
 DECLARE_WAIT_QUEUE_HEAD(ccs_gc_queue);
 LIST_HEAD(ccs_io_buffer_list);
 DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
+bool ccs_need_gc;
 
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
@@ -833,11 +834,29 @@ static int ccs_gc_thread(void *unused)
 #else
 	daemonize();
 	reparent_to_init();
+#if defined(TASK_DEAD)
+	{
+		struct task_struct *task = current;
+		spin_lock_irq(&task->sighand->siglock);
+		siginitsetinv(&task->blocked, 0);
+		recalc_sigpending();
+		spin_unlock_irq(&task->sighand->siglock);
+	}
+#else
+	{
+		struct task_struct *task = current;
+		spin_lock_irq(&task->sigmask_lock);
+		siginitsetinv(&task->blocked, 0);
+		recalc_sigpending(task);
+		spin_unlock_irq(&task->sigmask_lock);
+	}
+#endif
 	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
 	while (1) {
 		int i;
-		interruptible_sleep_on(&ccs_gc_queue);
+		wait_event_interruptible(ccs_gc_queue, ccs_need_gc);
+		ccs_need_gc = 0;
 		for (i = 0; i < 10; i++) {
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
