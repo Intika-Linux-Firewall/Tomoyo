@@ -1046,6 +1046,7 @@ extern struct list_head ccs_condition_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern struct list_head ccs_io_buffer_list;
 extern wait_queue_head_t ccs_gc_queue;
+extern bool ccs_need_gc;
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 

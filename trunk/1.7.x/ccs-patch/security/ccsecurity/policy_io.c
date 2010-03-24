@@ -2747,8 +2747,10 @@ int ccs_close_control(struct file *file)
 	kfree(head);
 	head = NULL;
 	file->private_data = NULL;
-	if (is_write)
+	if (is_write) {
+		ccs_need_gc = 1;
 		wake_up(&ccs_gc_queue);
+	}
 	return 0;
 }
 

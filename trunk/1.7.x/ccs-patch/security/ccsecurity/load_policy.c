@@ -172,7 +172,7 @@ static void ccs_load_policy(const char *filename)
 		siginitsetinv(&task->blocked,
 			      sigmask(SIGKILL) | sigmask(SIGSTOP));
 		recalc_sigpending();
-		spin_unlock_irq(&current->sighand->siglock);
+		spin_unlock_irq(&task->sighand->siglock);
 		if (pid >= 0)
 			waitpid(pid, NULL, __WCLONE);
 		spin_lock_irq(&task->sighand->siglock);
