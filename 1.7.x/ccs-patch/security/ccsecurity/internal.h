@@ -350,12 +350,21 @@ struct in6_addr;
  * @cookie must be NULL when iteration starts, and @cookie will become
  * NULL when iteration finishes.
  */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 #define list_for_each_cookie(pos, cookie, head)				\
 	for (({ if (!cookie)						\
 				     cookie = head; }),			\
 		     pos = rcu_dereference((cookie)->next);		\
 	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
 	     (cookie) = pos, pos = rcu_dereference(pos->next))
+#else
+#define list_for_each_cookie(pos, cookie, head)				\
+	for (({ if (!cookie)						\
+				     cookie = head; }),			\
+		     pos = srcu_dereference((cookie)->next, &ccs_ss);	\
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
+	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
+#endif
 
 struct ccs_name_union {
 	const struct ccs_path_info *filename;

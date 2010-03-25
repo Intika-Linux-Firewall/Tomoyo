@@ -503,8 +503,10 @@ static void ccs_collect_entry(void)
 	struct ccs_gc_entry *p1;
 	struct ccs_gc_entry *p2;
 	int i;
+	int idx;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return;
+	idx = ccs_read_lock();
 	{
 		struct ccs_globally_readable_file_entry *ptr;
 		list_for_each_entry_rcu(ptr, &ccs_globally_readable_list,
@@ -695,6 +697,7 @@ static void ccs_collect_entry(void)
 			}
 		}
 	}
+	ccs_read_unlock(idx);
 	/*
 	 * The order of kfree() by ccs_kfree_entry() is not sequential.
 	 * Thus, if "struct list_head"->next points elements on ccs_gc_list
