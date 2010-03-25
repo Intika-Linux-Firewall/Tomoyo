@@ -103,12 +103,13 @@ LIST_HEAD(ccs_address_list);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 {
 	struct ccs_ipv6addr_entry *entry;
-	struct ccs_ipv6addr_entry *ptr;
+	struct ccs_ipv6addr_entry *ptr = NULL;
 	int error = -ENOMEM;
 	if (!addr)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry(ptr, &ccs_address_list, list) {
 		if (memcmp(&ptr->addr, addr, sizeof(*addr)))
 			continue;
@@ -125,6 +126,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	kfree(entry);
 	return !error ? &ptr->addr : NULL;
 }
@@ -156,7 +158,8 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 #else
 	head = &ccs_name_list[hash % CCS_MAX_HASH];
 #endif
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		return NULL;
 	list_for_each_entry(ptr, head, list) {
 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
 			continue;

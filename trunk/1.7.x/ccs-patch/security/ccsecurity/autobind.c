@@ -38,7 +38,8 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	u8 *ccs_tmp_map = kzalloc(8192, CCS_GFP_FLAGS);
 	if (!ccs_tmp_map)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_reservedport_list, list) {
 		if (ptr->min_port != min_port || ptr->max_port != max_port)
 			continue;
@@ -65,6 +66,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	memmove(ccs_reserved_port_map, ccs_tmp_map,
 		sizeof(ccs_reserved_port_map));
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	kfree(ccs_tmp_map);
 	return error;
 }

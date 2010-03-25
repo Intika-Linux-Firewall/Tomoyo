@@ -61,7 +61,6 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 #define mutex semaphore
 #define mutex_init(mutex) init_MUTEX(mutex)
-#define mutex_lock(mutex) down(mutex)
 #define mutex_unlock(mutex) up(mutex)
 #define mutex_lock_interruptible(mutex) down_interruptible(mutex)
 #define mutex_trylock(mutex) (!down_trylock(mutex))

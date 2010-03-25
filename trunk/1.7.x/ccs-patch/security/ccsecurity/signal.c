@@ -164,7 +164,8 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 	e.domainname = ccs_get_name(domainname + 1);
 	if (!e.domainname)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_signal_acl *acl =
 			container_of(ptr, struct ccs_signal_acl, head);
@@ -183,6 +184,7 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.domainname);
 	return error;
 }

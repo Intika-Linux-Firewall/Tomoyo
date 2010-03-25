@@ -743,7 +743,8 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 	e.filename = ccs_get_name(data);
 	if (!e.filename)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_globally_readable_list, list) {
 		if (ptr->filename != e.filename)
 			continue;
@@ -761,6 +762,7 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.filename);
 	return error;
 }
@@ -842,7 +844,8 @@ int ccs_write_pattern_policy(char *data, const bool is_delete)
 		return error;
 	if (!e.pattern->is_patterned)
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
 		if (e.pattern != ptr->pattern)
 			continue;
@@ -935,7 +938,8 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return error;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_no_rewrite_list, list) {
 		if (ptr->pattern != e.pattern)
 			continue;
@@ -952,6 +956,7 @@ int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.pattern);
 	return error;
 }
@@ -1182,7 +1187,8 @@ static inline int ccs_update_execute_handler(const u8 type,
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
 		if (ptr->type != type)
@@ -1220,6 +1226,7 @@ static inline int ccs_update_execute_handler(const u8 type,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.handler);
 	return error;
 }
@@ -1254,7 +1261,8 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 		e.perm |= ccs_rw_mask;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl =
 			container_of(ptr, struct ccs_path_acl, head);
@@ -1291,6 +1299,7 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name_union(&e.name);
 	return error;
 }
@@ -1330,7 +1339,8 @@ static inline int ccs_update_path_number3_acl(const u8 type,
 	    !ccs_parse_number_union(major, &e.major) ||
 	    !ccs_parse_number_union(minor, &e.minor))
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number3_acl *acl =
 			container_of(ptr, struct ccs_path_number3_acl, head);
@@ -1399,7 +1409,8 @@ static inline int ccs_update_path2_acl(const u8 type,
 	if (!ccs_parse_name_union(filename1, &e.name1) ||
 	    !ccs_parse_name_union(filename2, &e.name2))
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path2_acl *acl =
 			container_of(ptr, struct ccs_path2_acl, head);
@@ -1982,7 +1993,8 @@ static inline int ccs_update_path_number_acl(const u8 type,
 		return -EINVAL;
 	if (!ccs_parse_number_union(number, &e.number))
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl =
 			container_of(ptr, struct ccs_path_number_acl, head);

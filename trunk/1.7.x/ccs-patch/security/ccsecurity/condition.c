@@ -765,7 +765,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	BUG_ON(envc);
 	BUG_ON(condc);
 	entry->size = size;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
 		if (ccs_memcmp(ptr, entry, offsetof(typeof(*entry), size),
 			       size))

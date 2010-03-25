@@ -341,7 +341,8 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!ccs_parse_number_union(w[3], &e.port))
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl *acl =
 			container_of(ptr, struct ccs_ip_network_acl, head);

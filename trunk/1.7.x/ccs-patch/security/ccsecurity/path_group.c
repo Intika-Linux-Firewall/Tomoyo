@@ -24,7 +24,7 @@ LIST_HEAD(ccs_path_group_list);
 struct ccs_path_group *ccs_get_path_group(const char *group_name)
 {
 	struct ccs_path_group *entry = NULL;
-	struct ccs_path_group *group;
+	struct ccs_path_group *group = NULL;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
@@ -34,7 +34,8 @@ struct ccs_path_group *ccs_get_path_group(const char *group_name)
 	if (!saved_group_name)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(group, &ccs_path_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
@@ -53,6 +54,7 @@ struct ccs_path_group *ccs_get_path_group(const char *group_name)
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(saved_group_name);
 	kfree(entry);
 	return !error ? group : NULL;
@@ -81,7 +83,8 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
 	e.member_name = ccs_get_name(w[1]);
 	if (!e.member_name)
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (member->member_name != e.member_name)
 			continue;
