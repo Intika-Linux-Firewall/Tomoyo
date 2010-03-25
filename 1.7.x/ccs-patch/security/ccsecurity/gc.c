@@ -26,10 +26,8 @@ static void ccs_resched(void)
 	mutex_lock(&ccs_policy_lock);
 }
 
-DECLARE_WAIT_QUEUE_HEAD(ccs_gc_queue);
 LIST_HEAD(ccs_io_buffer_list);
 DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
-bool ccs_need_gc;
 
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
@@ -458,17 +456,7 @@ static size_t ccs_del_name(struct list_head *element)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 
 /* Lock for GC. */
-static struct srcu_struct ccs_ss;
-
-int ccs_read_lock(void)
-{
-	return srcu_read_lock(&ccs_ss);
-}
-
-void ccs_read_unlock(const int idx)
-{
-	srcu_read_unlock(&ccs_ss, idx);
-}
+struct srcu_struct ccs_ss;
 
 static inline void ccs_synchronize_srcu(void)
 {
@@ -829,6 +817,7 @@ static void ccs_kfree_entry(void)
 
 static int ccs_gc_thread(void *unused)
 {
+	static DEFINE_MUTEX(ccs_gc_mutex);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	daemonize("GC for CCS");
 #else
@@ -853,10 +842,8 @@ static int ccs_gc_thread(void *unused)
 #endif
 	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
-	while (1) {
+	if (mutex_trylock(&ccs_gc_mutex)) {
 		int i;
-		wait_event_interruptible(ccs_gc_queue, ccs_need_gc);
-		ccs_need_gc = 0;
 		for (i = 0; i < 10; i++) {
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
@@ -864,11 +851,12 @@ static int ccs_gc_thread(void *unused)
 			ccs_synchronize_srcu();
 			ccs_kfree_entry();
 		}
+		mutex_unlock(&ccs_gc_mutex);
 	}
 	return 0;
 }
 
-void __init ccs_gc_init(void)
+void ccs_run_gc(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	struct task_struct *task = kthread_create(ccs_gc_thread, NULL,
@@ -877,9 +865,5 @@ void __init ccs_gc_init(void)
 		wake_up_process(task);
 #else
 	kernel_thread(ccs_gc_thread, NULL, 0);
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-	if (init_srcu_struct(&ccs_ss))
-		panic("Out of memory.");
 #endif
 }
