@@ -122,7 +122,8 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	if (capability == CCS_MAX_CAPABILITY_INDEX)
 		return -EINVAL;
 	e.operation = capability;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		return error;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_capability_acl *acl =
 			container_of(ptr, struct ccs_capability_acl, head);

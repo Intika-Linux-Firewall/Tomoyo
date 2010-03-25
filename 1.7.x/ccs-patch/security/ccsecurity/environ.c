@@ -74,7 +74,8 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
 		if (ptr->env != e.env)
 			continue;
@@ -92,6 +93,7 @@ int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.env);
 	return error;
 }
@@ -210,7 +212,8 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_env_acl *acl =
 			container_of(ptr, struct ccs_env_acl, head);
@@ -229,6 +232,7 @@ int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.env);
 	return error;
 }

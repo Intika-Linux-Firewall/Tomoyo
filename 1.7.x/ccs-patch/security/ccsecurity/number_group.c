@@ -27,7 +27,7 @@ LIST_HEAD(ccs_number_group_list);
 struct ccs_number_group *ccs_get_number_group(const char *group_name)
 {
 	struct ccs_number_group *entry = NULL;
-	struct ccs_number_group *group;
+	struct ccs_number_group *group = NULL;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
 	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
@@ -37,7 +37,8 @@ struct ccs_number_group *ccs_get_number_group(const char *group_name)
 	if (!saved_group_name)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(group, &ccs_number_group_list, list) {
 		if (saved_group_name != group->group_name)
 			continue;
@@ -56,6 +57,7 @@ struct ccs_number_group *ccs_get_number_group(const char *group_name)
 		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(saved_group_name);
 	kfree(entry);
 	return !error ? group : NULL;
@@ -87,7 +89,8 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
 	group = ccs_get_number_group(w[0]);
 	if (!group)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(member, &group->member_list, list) {
 		if (memcmp(&member->number, &e.number, sizeof(e.number)))
 			continue;
@@ -104,6 +107,7 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_number_group(group);
 	return error;
 }

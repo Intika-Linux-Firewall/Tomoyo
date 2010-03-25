@@ -357,7 +357,8 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	    !ccs_parse_name_union(w[2], &e.fs_type) ||
 	    !ccs_parse_number_union(w[3], &e.flags))
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mount_acl *acl =
 			container_of(ptr, struct ccs_mount_acl, head);

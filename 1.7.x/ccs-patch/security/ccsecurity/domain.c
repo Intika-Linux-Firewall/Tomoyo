@@ -105,7 +105,8 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 	e.program = ccs_get_name(program);
 	if (!e.program)
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
 			       sizeof(e)))
@@ -266,7 +267,8 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 	e.domainname = ccs_get_name(domainname);
 	if (!e.domainname)
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
 			       sizeof(e)))
@@ -412,7 +414,8 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	e.aggregated_name = ccs_get_name(aggregated_name);
 	if (!e.original_name || !e.aggregated_name)
 		goto out;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
 		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), original_name),
 			       sizeof(e)))
@@ -494,7 +497,8 @@ int ccs_delete_domain(char *domainname)
 	struct ccs_path_info name;
 	name.name = domainname;
 	ccs_fill_path_info(&name);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		return 0;
 	/* Is there an active domain? */
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
 		/* Never delete ccs_kernel_domain */
@@ -522,7 +526,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 						      const u8 profile)
 {
 	struct ccs_domain_info *entry;
-	struct ccs_domain_info *domain;
+	struct ccs_domain_info *domain = NULL;
 	const struct ccs_path_info *saved_domainname;
 	bool found = false;
 
@@ -532,7 +536,8 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 	if (!saved_domainname)
 		return NULL;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
 		if (domain->is_deleted ||
 		    ccs_pathcmp(saved_domainname, domain->domainname))
@@ -551,6 +556,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 		found = true;
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(saved_domainname);
 	kfree(entry);
 	return found ? domain : NULL;

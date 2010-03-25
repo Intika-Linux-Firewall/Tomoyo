@@ -16,16 +16,6 @@
 #include <linux/kthread.h>
 #endif
 
-/* Caller holds ccs_policy_lock mutex. */
-static void ccs_resched(void)
-{
-	if (!need_resched())
-		return;
-	mutex_unlock(&ccs_policy_lock);
-	cond_resched();
-	mutex_lock(&ccs_policy_lock);
-}
-
 LIST_HEAD(ccs_io_buffer_list);
 DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
 
@@ -69,7 +59,7 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
 	entry->element = element;
 	list_add(&entry->list, &ccs_gc_list);
 	list_del_rcu(element);
-	ccs_resched();
+	cond_resched();
 	return true;
 }
 
@@ -513,7 +503,8 @@ static void ccs_collect_entry(void)
 	struct ccs_gc_entry *p1;
 	struct ccs_gc_entry *p2;
 	int i;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		return;
 	{
 		struct ccs_globally_readable_file_entry *ptr;
 		list_for_each_entry_rcu(ptr, &ccs_globally_readable_list,
@@ -712,7 +703,7 @@ static void ccs_collect_entry(void)
 	 * elements on ccs_gc_list before waiting for SRCU grace period.
 	 */
  restart:
-	ccs_resched();
+	cond_resched();
 	list_for_each_entry(p1, &ccs_gc_list, list) {
 		list_for_each_entry(p2, &ccs_gc_list, list) {
 			if (p1->element->next == p2->element) {

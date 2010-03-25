@@ -263,7 +263,8 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 	if (ptr)
 		return ptr;
 	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
@@ -280,6 +281,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 		entry = NULL;
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	kfree(entry);
 	return ptr;
 }
@@ -683,7 +685,8 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 	e.manager = ccs_get_name(manager);
 	if (!e.manager)
 		return -ENOMEM;
-	mutex_lock(&ccs_policy_lock);
+	if (mutex_lock_interruptible(&ccs_policy_lock))
+		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_policy_manager_list, list) {
 		if (ptr->manager != e.manager)
 			continue;
@@ -701,6 +704,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
+ out:
 	ccs_put_name(e.manager);
 	return error;
 }
