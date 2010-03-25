@@ -309,7 +309,10 @@ static int __init ccs_init_module(void)
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 0)
 	MOD_INC_USE_COUNT;
 #endif
-	ccs_gc_init();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+	if (init_srcu_struct(&ccs_ss))
+		panic("Out of memory.");
+#endif
 	ccs_proc_init();
 	ccs_mm_init();
 	ccs_capability_init();
