@@ -47,7 +47,6 @@ void __init ccs_capability_init(void);
 void __init ccs_mount_init(void);
 void __init ccs_maymount_init(void);
 void __init ccs_autobind_init(void);
-void __init ccs_gc_init(void);
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
@@ -940,7 +939,6 @@ int ccs_poll_control(struct file *file, poll_table *wait);
 int ccs_poll_audit_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
-int ccs_read_lock(void);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
@@ -1003,7 +1001,7 @@ void ccs_put_name_union(struct ccs_name_union *ptr);
 void ccs_put_number_union(struct ccs_number_union *ptr);
 void ccs_read_audit_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
-void ccs_read_unlock(const int idx);
+void ccs_run_gc(void);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 void ccs_warn_oom(const char *function);
@@ -1045,10 +1043,24 @@ extern struct list_head ccs_address_list;
 extern struct list_head ccs_condition_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern struct list_head ccs_io_buffer_list;
-extern wait_queue_head_t ccs_gc_queue;
-extern bool ccs_need_gc;
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+extern struct srcu_struct ccs_ss;
+
+static inline int ccs_read_lock(void)
+{
+	return srcu_read_lock(&ccs_ss);
+}
+
+static inline void ccs_read_unlock(const int idx)
+{
+	srcu_read_unlock(&ccs_ss, idx);
+}
+#else
+int ccs_read_lock(void);
+void ccs_read_unlock(const int idx);
+#endif
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 
