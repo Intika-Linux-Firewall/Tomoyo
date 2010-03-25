@@ -193,12 +193,13 @@ const struct ccs_path_info *ccs_get_name(const char *name)
  */
 void __init ccs_mm_init(void)
 {
-	int i;
-	for (i = 0; i < CCS_MAX_HASH; i++)
-		INIT_LIST_HEAD(&ccs_name_list[i]);
+	int idx;
+	for (idx = 0; idx < CCS_MAX_HASH; idx++)
+		INIT_LIST_HEAD(&ccs_name_list[idx]);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
+	idx = ccs_read_lock();
 	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
 	{
@@ -215,6 +216,7 @@ void __init ccs_mm_init(void)
 			cp = cp2;
 		}
 	}
+	ccs_read_unlock(idx);
 }
 
 unsigned int ccs_audit_log_memory_size;

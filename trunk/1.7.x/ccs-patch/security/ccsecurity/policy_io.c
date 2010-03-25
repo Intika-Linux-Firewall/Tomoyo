@@ -292,6 +292,7 @@ static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
 static void ccs_check_profile(void)
 {
 	struct ccs_domain_info *domain;
+	const int idx = ccs_read_lock();
 	ccs_policy_loaded = true;
 	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
 		const u8 profile = domain->profile;
@@ -300,6 +301,7 @@ static void ccs_check_profile(void)
 		panic("Profile %u (used by '%s') not defined.\n",
 		      profile, domain->domainname->name);
 	}
+	ccs_read_unlock(idx);
 	if (ccs_profile_version != 20090903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
@@ -2677,14 +2679,16 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		return -ENOSYS;
 	if (!access_ok(VERIFY_READ, buffer, buffer_len))
 		return -EFAULT;
-	/* Don't allow updating policies by non manager programs. */
-	if (head->write != ccs_write_pid &&
-	    head->write != ccs_write_domain_policy &&
-	    !ccs_is_policy_manager())
-		return -EPERM;
 	if (mutex_lock_interruptible(&head->io_sem))
 		return -EINTR;
 	idx = ccs_read_lock();
+	/* Don't allow updating policies by non manager programs. */
+	if (head->write != ccs_write_pid &&
+	    head->write != ccs_write_domain_policy &&
+	    !ccs_is_policy_manager()) {
+		ccs_read_unlock(idx);
+		return -EPERM;
+	}
 	/* Read a line and dispatch it to the policy handler. */
 	while (avail_len > 0) {
 		char c;
