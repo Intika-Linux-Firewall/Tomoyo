@@ -2376,3 +2376,12 @@ Fix 2010/03/21
       not to leave the kernel with SRCU read lock held. As a result, garbage
       collector can start garbage collection before /proc/ccs/ users call
       close().
+
+Fix 2010/03/25
+
+    @ Fix ccs_get_ipv6_address() bug.
+
+      Since 1.7.0 , ccs_get_ipv6_address() was by error returning address of
+      "struct list_head ccs_address_list" if memory allocation failed.
+      As a result, ccs_put_ipv6_address() will modify memory near
+      "struct list_head ccs_address_list" if memory allocation failed.

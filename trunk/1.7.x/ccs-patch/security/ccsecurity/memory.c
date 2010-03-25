@@ -122,10 +122,11 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		atomic_set(&ptr->users, 1);
 		list_add_tail(&ptr->list, &ccs_address_list);
 		entry = NULL;
+		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
-	return ptr ? &ptr->addr : NULL;
+	return !error ? &ptr->addr : NULL;
 }
 
 /* The list for "struct ccs_name_entry". */
