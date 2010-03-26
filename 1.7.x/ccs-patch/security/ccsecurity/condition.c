@@ -768,8 +768,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_condition_list, list) {
-		if (ccs_memcmp(ptr, entry, offsetof(typeof(*entry), size),
-			       size))
+		if (!ccs_is_same_condition(ptr, entry))
 			continue;
 		/* Same entry found. Share this entry. */
 		atomic_inc(&ptr->users);

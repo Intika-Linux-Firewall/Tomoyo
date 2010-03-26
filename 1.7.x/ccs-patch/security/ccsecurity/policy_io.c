@@ -2687,6 +2687,7 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 	    head->write != ccs_write_domain_policy &&
 	    !ccs_is_policy_manager()) {
 		ccs_read_unlock(idx);
+		mutex_unlock(&head->io_sem);
 		return -EPERM;
 	}
 	/* Read a line and dispatch it to the policy handler. */

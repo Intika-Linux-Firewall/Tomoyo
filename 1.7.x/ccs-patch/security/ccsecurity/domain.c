@@ -108,8 +108,7 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_domain_initializer_list, list) {
-		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
-			       sizeof(e)))
+		if (!ccs_is_same_domain_initializer_entry(ptr, &e))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
@@ -270,8 +269,7 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_domain_keeper_list, list) {
-		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), is_not),
-			       sizeof(e)))
+		if (!ccs_is_same_domain_keeper_entry(ptr, &e))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;
@@ -417,8 +415,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_aggregator_list, list) {
-		if (ccs_memcmp(ptr, &e, offsetof(typeof(e), original_name),
-			       sizeof(e)))
+		if (!ccs_is_same_aggregator_entry(ptr, &e))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;

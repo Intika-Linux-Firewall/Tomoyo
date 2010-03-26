@@ -105,8 +105,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(member, &group->member_list, list) {
-		if (ccs_memcmp(member, &e, offsetof(typeof(e), is_ipv6),
-			       sizeof(e)))
+		if (!ccs_is_same_address_group_member(member, &e))
 			continue;
 		member->is_deleted = is_delete;
 		error = 0;
