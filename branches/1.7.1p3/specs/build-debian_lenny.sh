@@ -32,9 +32,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20100326.tar.gz ]
 then
-    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz || die "Can't download patch."
+    wget http://osdn.dl.sourceforge.jp/tomoyo/43375/ccs-patch-1.7.1-20100326.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -45,7 +45,7 @@ apt-get source linux-image-2.6.26-2-686 || die "Can't install kernel source."
 
 # Apply patches and create kernel config.
 cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20100214.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20100326.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
 cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
 make -s oldconfig

@@ -1,9 +1,9 @@
 /*
  * security/ccsecurity/memory.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.1+   2010/03/26
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -118,10 +118,11 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 		atomic_set(&ptr->users, 1);
 		list_add_tail(&ptr->list, &ccs_address_list);
 		entry = NULL;
+		error = 0;
 	}
 	mutex_unlock(&ccs_policy_lock);
 	kfree(entry);
-	return ptr ? &ptr->addr : NULL;
+	return !error ? &ptr->addr : NULL;
 }
 
 /* The list for "struct ccs_name_entry". */
