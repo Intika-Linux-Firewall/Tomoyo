@@ -2385,3 +2385,10 @@ Fix 2010/03/25
       "struct list_head ccs_address_list" if memory allocation failed.
       As a result, ccs_put_ipv6_address() will modify memory near
       "struct list_head ccs_address_list" if memory allocation failed.
+
+Fix 2010/03/26
+
+    @ Fix ccs_lport_reserved() bug.
+
+      Since 1.7.0 , ccs_lport_reserved() was by error checking wrong port
+      number. As a result, "deny_autobind" keyword was not working as expected.

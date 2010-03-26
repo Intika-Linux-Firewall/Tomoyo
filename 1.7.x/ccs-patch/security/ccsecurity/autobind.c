@@ -61,7 +61,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		if (ptr->is_deleted)
 			continue;
 		for (port = ptr->min_port; port <= ptr->max_port; port++)
-			ccs_tmp_map[port >> 8] |= 1 << (port & 7);
+			ccs_tmp_map[port >> 3] |= 1 << (port & 7);
 	}
 	memmove(ccs_reserved_port_map, ccs_tmp_map,
 		sizeof(ccs_reserved_port_map));
@@ -80,7 +80,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
  */
 static bool __ccs_lport_reserved(const u16 port)
 {
-	return ccs_reserved_port_map[port >> 8] & (1 << (port & 7))
+	return ccs_reserved_port_map[port >> 3] & (1 << (port & 7))
 		? true : false;
 }
 
