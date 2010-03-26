@@ -20,9 +20,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20100326.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.1-20100326.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -34,7 +34,7 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 
 # Apply patches and create kernel config.
 cd linux-2.6.31/ || die "Can't chdir to linux-2.6.31/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20100214.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.1-20100326.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.31-ubuntu-9.10.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
