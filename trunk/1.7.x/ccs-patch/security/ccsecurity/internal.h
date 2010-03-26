@@ -1023,11 +1023,131 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-static inline int ccs_memcmp(void *a, void *b, const size_t offset,
-			     const size_t size)
+static inline bool ccs_is_same_acl_head(const struct ccs_acl_info *p1,
+					const struct ccs_acl_info *p2)
 {
-	return memcmp(((char *) a) + offset, ((char *) b) + offset,
-		      size - offset);
+	return p1->type == p2->type && p1->cond == p2->cond;
+}
+
+static inline bool ccs_is_same_name_union(const struct ccs_name_union *p1,
+					  const struct ccs_name_union *p2)
+{
+	return p1->filename == p2->filename && p1->group == p2->group &&
+		p1->is_group == p2->is_group;
+}
+
+static inline bool ccs_is_same_number_union(const struct ccs_number_union *p1,
+					    const struct ccs_number_union *p2)
+{
+	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
+		&& p1->group == p2->group && p1->min_type == p2->min_type &&
+		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
+}
+
+static inline bool ccs_is_same_path_acl(const struct ccs_path_acl *p1,
+					const struct ccs_path_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head) &&
+		ccs_is_same_name_union(&p1->name, &p2->name);
+}
+
+static inline bool ccs_is_same_path_number3_acl
+(const struct ccs_path_number3_acl *p1,
+ const struct ccs_path_number3_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head)
+		&& ccs_is_same_name_union(&p1->name, &p2->name)
+		&& ccs_is_same_number_union(&p1->mode, &p2->mode)
+		&& ccs_is_same_number_union(&p1->major, &p2->major)
+		&& ccs_is_same_number_union(&p1->minor, &p2->minor);
+}
+
+static inline bool ccs_is_same_path2_acl(const struct ccs_path2_acl *p1,
+					 const struct ccs_path2_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head)
+		&& ccs_is_same_name_union(&p1->name1, &p2->name1)
+		&& ccs_is_same_name_union(&p1->name2, &p2->name2);
+}
+
+static inline bool ccs_is_same_path_number_acl
+(const struct ccs_path_number_acl *p1, const struct ccs_path_number_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head)
+		&& ccs_is_same_name_union(&p1->name, &p2->name)
+		&& ccs_is_same_number_union(&p1->number, &p2->number);
+}
+
+static inline bool ccs_is_same_mount_acl(const struct ccs_mount_acl *p1,
+					 const struct ccs_mount_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head) &&
+		ccs_is_same_name_union(&p1->dev_name, &p2->dev_name) &&
+		ccs_is_same_name_union(&p1->dir_name, &p2->dir_name) &&
+		ccs_is_same_name_union(&p1->fs_type, &p2->fs_type) &&
+		ccs_is_same_number_union(&p1->flags, &p2->flags);
+}
+
+static inline bool ccs_is_same_ip_network_acl
+(const struct ccs_ip_network_acl *p1, const struct ccs_ip_network_acl *p2)
+{
+	return ccs_is_same_acl_head(&p1->head, &p2->head)
+		&& p1->address_type == p2->address_type &&
+		p1->address.ipv4.min == p2->address.ipv4.min &&
+		p1->address.ipv6.min == p2->address.ipv6.min &&
+		p1->address.ipv4.max == p2->address.ipv4.max &&
+		p1->address.ipv6.max == p2->address.ipv6.max &&
+		p1->address.group == p2->address.group &&
+		ccs_is_same_number_union(&p1->port, &p2->port);
+}
+
+static inline bool ccs_is_same_address_group_member
+(const struct ccs_address_group_member *p1,
+ const struct ccs_address_group_member *p2)
+{
+	return p1->is_ipv6 == p2->is_ipv6 &&
+		p1->min.ipv4 == p2->min.ipv4 && p1->min.ipv6 == p2->min.ipv6 &&
+		p1->max.ipv4 == p2->max.ipv4 && p1->max.ipv6 == p2->max.ipv6;
+}
+
+static inline bool ccs_is_same_domain_initializer_entry
+(const struct ccs_domain_initializer_entry *p1,
+ const struct ccs_domain_initializer_entry *p2)
+{
+	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
+		&& p1->domainname == p2->domainname
+		&& p1->program == p2->program;
+}
+
+static inline bool ccs_is_same_domain_keeper_entry
+(const struct ccs_domain_keeper_entry *p1,
+ const struct ccs_domain_keeper_entry *p2)
+{
+	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
+		&& p1->domainname == p2->domainname
+		&& p1->program == p2->program;
+}
+
+static inline bool ccs_is_same_aggregator_entry
+(const struct ccs_aggregator_entry *p1,
+ const struct ccs_aggregator_entry *p2)
+{
+	return p1->original_name == p2->original_name &&
+		p1->aggregated_name == p2->aggregated_name;
+}
+
+static inline bool ccs_is_same_condition(const struct ccs_condition *p1,
+					 const struct ccs_condition *p2)
+{
+	return p1->size == p2->size && p1->condc == p2->condc &&
+		p1->numbers_count == p2->numbers_count &&
+		p1->names_count == p2->names_count &&
+		p1->argc == p2->argc && p1->envc == p2->envc &&
+		p1->post_state[0] == p2->post_state[0] &&
+		p1->post_state[1] == p2->post_state[1] &&
+		p1->post_state[2] == p2->post_state[2] &&
+		p1->post_state[3] == p2->post_state[3] &&
+		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
 }
 
 #define CCS_HASH_BITS 8

@@ -6,7 +6,6 @@ export PATH=$PWD:${PATH}
 echo "Testing all. (All results are reported)"
 newns ccs_accept_test
 newns ccs_filesystem_test
-newns ccs_bind_test
 newns ccs_file_test
 newns ccs_rewrite_test
 newns ccs_capability_test
@@ -18,6 +17,7 @@ newns ccs_new_file_test
 newns ccs_new_capability_test
 newns ccs_new_network_test
 newns ccs_new_test
+newns ccs_bind_test
 echo
 echo
 echo

@@ -362,9 +362,7 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mount_acl *acl =
 			container_of(ptr, struct ccs_mount_acl, head);
-		if (ptr->type != CCS_TYPE_MOUNT_ACL || ptr->cond != condition
-		    || ccs_memcmp(acl, &e, offsetof(typeof(e), dev_name),
-				  sizeof(e)))
+		if (!ccs_is_same_mount_acl(acl, &e))
 			continue;
 		ptr->is_deleted = is_delete;
 		error = 0;

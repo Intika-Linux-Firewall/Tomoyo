@@ -346,10 +346,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_ip_network_acl *acl =
 			container_of(ptr, struct ccs_ip_network_acl, head);
-		if (ptr->type != CCS_TYPE_IP_NETWORK_ACL ||
-		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), address_type),
-			       sizeof(e)))
+		if (!ccs_is_same_ip_network_acl(acl, &e))
 			continue;
 		if (is_delete) {
 			acl->perm &= ~e.perm;

@@ -1266,9 +1266,7 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_acl *acl =
 			container_of(ptr, struct ccs_path_acl, head);
-		if (ptr->type != CCS_TYPE_PATH_ACL ||
-		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
+		if (!ccs_is_same_path_acl(acl, &e))
 			continue;
 		if (is_delete) {
 			acl->perm &= ~perm;
@@ -1344,9 +1342,7 @@ static inline int ccs_update_path_number3_acl(const u8 type,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number3_acl *acl =
 			container_of(ptr, struct ccs_path_number3_acl, head);
-		if (ptr->type != CCS_TYPE_PATH_NUMBER3_ACL ||
-		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
+		if (!ccs_is_same_path_number3_acl(acl, &e))
 			continue;
 		if (is_delete) {
 			acl->perm &= ~perm;
@@ -1414,9 +1410,7 @@ static inline int ccs_update_path2_acl(const u8 type,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path2_acl *acl =
 			container_of(ptr, struct ccs_path2_acl, head);
-		if (ptr->type != CCS_TYPE_PATH2_ACL ||
-		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), name1), sizeof(e)))
+		if (!ccs_is_same_path2_acl(acl, &e))
 			continue;
 		if (is_delete) {
 			acl->perm &= ~perm;
@@ -1998,9 +1992,7 @@ static inline int ccs_update_path_number_acl(const u8 type,
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_path_number_acl *acl =
 			container_of(ptr, struct ccs_path_number_acl, head);
-		if (ptr->type != CCS_TYPE_PATH_NUMBER_ACL ||
-		    ptr->cond != condition ||
-		    ccs_memcmp(acl, &e, offsetof(typeof(e), name), sizeof(e)))
+		if (!ccs_is_same_path_number_acl(acl, &e))
 			continue;
 		if (is_delete) {
 			acl->perm &= ~perm;
