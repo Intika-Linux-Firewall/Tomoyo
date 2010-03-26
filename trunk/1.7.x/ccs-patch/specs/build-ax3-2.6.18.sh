@@ -17,9 +17,9 @@ fi
 rpm -ivh kernel-2.6.18-128.14.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.1-20100214.tar.gz ]
+if [ ! -r ccs-patch-1.7.1-20100326.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.1-20100214.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.1-20100326.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -32,7 +32,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 128.14%{?dist}
-+%define release 128.14%{?dist}_tomoyo_1.7.1p2
++%define release 128.14%{?dist}_tomoyo_1.7.1p3
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.1-20100214.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.1-20100326.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
 +
  cp %{SOURCE10} Documentation/
