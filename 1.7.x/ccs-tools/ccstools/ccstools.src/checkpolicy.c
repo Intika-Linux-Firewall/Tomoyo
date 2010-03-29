@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "ccstools.h"
@@ -485,6 +485,7 @@ static void check_file_policy(char *data)
 		const int paths;
 	} acl_type_array[] = {
 		{ "execute",    1 },
+		{ "transit",    1 },
 		{ "read/write", 1 },
 		{ "read",       1 },
 		{ "write",      1 },
@@ -571,11 +572,11 @@ static void check_file_policy(char *data)
 			       filename);
 			break;
 		}
-		/* "allow_execute" doesn't accept patterns. */
-		if (!type && filename[0] != '@' &&
+		/* "allow_execute"/"allow_transit" don't accept patterns. */
+		if (type <= 1 && filename[0] != '@' &&
 		    !is_correct_path(filename, 1, -1, -1)) {
 			printf("%u: ERROR: Patterns not allowed for "
-			       "execute permission.\n", line);
+			       "execute/transit permission.\n", line);
 			break;
 		}
 		return;

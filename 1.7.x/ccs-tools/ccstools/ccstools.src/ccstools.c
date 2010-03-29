@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "ccstools.h"
@@ -888,9 +888,10 @@ void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
 		}
 		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile) == 1)
+		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile) == 1) {
 			dp->list[index].profile = (u8) profile;
-		else if (is_delete)
+			dp->list[index].profile_assigned = 1;
+		} else if (is_delete)
 			del_string_entry(dp, line, index);
 		else
 			add_string_entry(dp, line, index);
@@ -902,8 +903,11 @@ read_policy:
 		const struct path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
-		fprintf(fp, "%s\n" KEYWORD_USE_PROFILE "%u\n\n",
-			domain_name(dp, i), dp->list[i].profile);
+		fprintf(fp, "%s\n", domain_name(dp, i));
+		if (dp->list[i].profile_assigned)
+			fprintf(fp, KEYWORD_USE_PROFILE "%u\n",
+				dp->list[i].profile);
+		fprintf(fp, "\n");
 		for (j = 0; j < string_count; j++)
 			fprintf(fp, "%s\n", string_ptr[j]->name);
 		fprintf(fp, "\n");
@@ -1060,7 +1064,7 @@ show_version:
 	 * unchecked argv[1].
 	 * You should use either "symbolic links" or "hard links".
 	 */
-	printf("ccstools version 1.7.1+ build 2010/01/10\n");
+	printf("ccstools version 1.7.2-pre build 2010/03/29\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

@@ -1,16 +1,16 @@
 Summary: TOMOYO Linux tools
 
 Name: ccs-tools
-Version: 1.7.1
-Release: 2
+Version: 1.7.2
+Release: 1
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.1-2
+Conflicts: ccs-tools < 1.7.2-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.1-20100110.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20100401.tar.gz
 
 %description
 This is TOMOYO Linux tools.
@@ -41,6 +41,11 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
+* Thu Apr 1 2010 1.7.2-1
+- ccs-sortpolicy should not remove use_profile lines.
+- ccs-init calls /etc/ccs/ccs-load-module to execute modprobe.
+- Updated to handle TOMOYO 1.7.2's syntax.
+
 * Sun Jan 10 2010 1.7.1-2
 - ccs-auditd should call fflush() immediately after fprintf().
 - ccs-queryd was not able to handle /etc/ld.so.cache updates.

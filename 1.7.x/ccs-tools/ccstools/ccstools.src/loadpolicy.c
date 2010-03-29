@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "ccstools.h"
@@ -30,7 +30,15 @@ static int write_domain_policy(struct domain_policy *dp, const int fd)
 		const int string_count = dp->list[i].string_count;
 		write(fd, dp->list[i].domainname->name,
 		      dp->list[i].domainname->total_len);
-		write(fd, "\n\n", 2);
+		write(fd, "\n", 1);
+		if (dp->list[i].profile_assigned) {
+			char buf[128];
+			memset(buf, 0, sizeof(buf));
+			snprintf(buf, sizeof(buf) - 1, KEYWORD_USE_PROFILE
+				 "%u\n\n", dp->list[i].profile);
+			write(fd, buf, strlen(buf));
+		} else
+			write(fd, "\n", 1);
 		for (j = 0; j < string_count; j++) {
 			write(fd, string_ptr[j]->name,
 			      string_ptr[j]->total_len);
@@ -102,8 +110,9 @@ usage:
 			continue;
 		/* This domain was added. */
 		printf("%s\n\n", domainname->name);
-		printf(KEYWORD_USE_PROFILE "%u\n",
-		       new_policy.list[new_index].profile);
+		if (new_policy.list[new_index].profile_assigned)
+			printf(KEYWORD_USE_PROFILE "%u\n",
+			       new_policy.list[new_index].profile);
 		new_string_ptr = new_policy.list[new_index].string_ptr;
 		new_string_count = new_policy.list[new_index].string_count;
 		for (i = 0; i < new_string_count; i++)
@@ -150,8 +159,9 @@ usage:
 			if (first)
 				printf("%s\n\n", domainname->name);
 			first = false;
-			printf(KEYWORD_USE_PROFILE "%u\n",
-			       old_policy.list[old_index].profile);
+			if (old_policy.list[old_index].profile_assigned)
+				printf(KEYWORD_USE_PROFILE "%u\n",
+				       old_policy.list[old_index].profile);
 		}
 		if (!first)
 			printf("\n");
@@ -487,7 +497,6 @@ static void update_domain_policy(struct domain_policy *proc_policy,
 		int j;
 		const struct path_info *domainname
 			= file_policy->list[file_index].domainname;
-		const u8 profile = file_policy->list[file_index].profile;
 		const struct path_info **file_string_ptr
 			= file_policy->list[file_index].string_ptr;
 		const int file_string_count
@@ -518,7 +527,9 @@ not_found:
 		/* Append entries defined in disk policy. */
 		for (i = 0; i < file_string_count; i++)
 			fprintf(proc_fp, "%s\n", file_string_ptr[i]->name);
-		fprintf(proc_fp, "use_profile %u\n", profile);
+		if (file_policy->list[file_index].profile_assigned)
+			fprintf(proc_fp, KEYWORD_USE_PROFILE "%u\n",
+				file_policy->list[file_index].profile);
 	}
 	/* Delete all domains that are not defined in disk policy. */
 	for (proc_index = 0; proc_index < proc_policy->list_len; proc_index++) {

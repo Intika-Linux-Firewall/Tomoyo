@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "ccstools.h"
@@ -31,6 +31,7 @@ struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX] = {
 	[DIRECTIVE_ALLOW_LINK]       = { "allow_link", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_RENAME]     = { "allow_rename", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_REWRITE]    = { "allow_rewrite", NULL, 0, 0 },
+	[DIRECTIVE_ALLOW_TRANSIT]    = { "allow_transit", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_IOCTL]      = { "allow_ioctl", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_SIGNAL]     = { "allow_signal", NULL, 0, 0 },
 	[DIRECTIVE_ALLOW_NETWORK]    = { "allow_network", NULL, 0, 0 },
@@ -144,4 +145,3 @@ use_default:
 		directives[i].alias_len = strlen(directives[i].alias);
 	}
 }
-
