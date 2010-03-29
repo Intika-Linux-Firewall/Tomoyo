@@ -48,16 +48,8 @@ struct ccs_gc_entry {
 	struct list_head *element;
 };
 static LIST_HEAD(ccs_gc_list);
-
-/* Caller holds ccs_policy_lock mutex. */
-static void ccs_resched(void)
-{
-	if (!need_resched())
-		return;
-	mutex_unlock(&ccs_policy_lock);
-	cond_resched();
-	mutex_lock(&ccs_policy_lock);
-}
+static int ccs_gc_count;
+#define CCS_COUNT_PER_GC 128
 
 /* Caller holds ccs_policy_lock mutex. */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
@@ -69,8 +61,7 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
 	entry->element = element;
 	list_add(&entry->list, &ccs_gc_list);
 	list_del_rcu(element);
-	ccs_resched();
-	return true;
+	return ccs_gc_count++ < CCS_COUNT_PER_GC;
 }
 
 static size_t ccs_del_allow_read(struct list_head *element)
@@ -525,7 +516,7 @@ static void ccs_collect_entry(void)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_GLOBALLY_READABLE,
 					   &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -535,7 +526,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_GLOBAL_ENV, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -544,7 +535,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_PATTERN, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -553,7 +544,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_NO_REWRITE, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -564,7 +555,7 @@ static void ccs_collect_entry(void)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_DOMAIN_INITIALIZER,
 					   &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -573,7 +564,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_DOMAIN_KEEPER, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -582,7 +573,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_MANAGER, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -591,7 +582,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_AGGREGATOR, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -603,13 +594,13 @@ static void ccs_collect_entry(void)
 				if (!acl->is_deleted)
 					continue;
 				if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
-					break;
+					goto unlock;
 			}
 			if (!domain->is_deleted ||
 			    ccs_used_by_task(domain))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -622,13 +613,13 @@ static void ccs_collect_entry(void)
 					continue;
 				if (!ccs_add_to_gc(CCS_ID_PATH_GROUP_MEMBER,
 						   &member->list))
-					break;
+					goto unlock;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_PATH_GROUP, &group->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -638,16 +629,16 @@ static void ccs_collect_entry(void)
 			list_for_each_entry_rcu(member, &group->member_list,
 						list) {
 				if (!member->is_deleted)
-					break;
+					continue;
 				if (!ccs_add_to_gc(CCS_ID_ADDRESS_GROUP_MEMBER,
 						   &member->list))
-					break;
+					goto unlock;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_ADDRESS_GROUP, &group->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -660,13 +651,13 @@ static void ccs_collect_entry(void)
 					continue;
 				if (!ccs_add_to_gc(CCS_ID_NUMBER_GROUP_MEMBER,
 						   &member->list))
-					break;
+					goto unlock;
 			}
 			if (!list_empty(&group->member_list) ||
 			    atomic_read(&group->users))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_NUMBER_GROUP, &group->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -675,7 +666,7 @@ static void ccs_collect_entry(void)
 			if (!ptr->is_deleted)
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_RESERVEDPORT, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -684,7 +675,7 @@ static void ccs_collect_entry(void)
 			if (atomic_read(&ptr->users))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_IPV6_ADDRESS, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	{
@@ -693,7 +684,7 @@ static void ccs_collect_entry(void)
 			if (atomic_read(&ptr->users))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_CONDITION, &ptr->list))
-				break;
+				goto unlock;
 		}
 	}
 	for (i = 0; i < CCS_MAX_HASH; i++) {
@@ -701,12 +692,11 @@ static void ccs_collect_entry(void)
 		list_for_each_entry_rcu(ptr, &ccs_name_list[i], list) {
 			if (atomic_read(&ptr->users))
 				continue;
-			if (!ccs_add_to_gc(CCS_ID_NAME, &ptr->list)) {
-				i = CCS_MAX_HASH;
-				break;
-			}
+			if (!ccs_add_to_gc(CCS_ID_NAME, &ptr->list))
+				goto unlock;
 		}
 	}
+ unlock:
 	ccs_read_unlock(idx);
 	/*
 	 * The order of kfree() by ccs_kfree_entry() is not sequential.
@@ -716,7 +706,6 @@ static void ccs_collect_entry(void)
 	 * elements on ccs_gc_list before waiting for SRCU grace period.
 	 */
  restart:
-	ccs_resched();
 	list_for_each_entry(p1, &ccs_gc_list, list) {
 		list_for_each_entry(p2, &ccs_gc_list, list) {
 			if (p1->element->next == p2->element) {
@@ -849,11 +838,14 @@ static int ccs_gc_thread(void *unused)
 	if (mutex_trylock(&ccs_gc_mutex)) {
 		int i;
 		for (i = 0; i < 10; i++) {
+			ccs_gc_count = 0;
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
 				break;
 			ccs_synchronize_srcu();
 			ccs_kfree_entry();
+			if (ccs_gc_count >= CCS_COUNT_PER_GC)
+				i = 0;
 		}
 		mutex_unlock(&ccs_gc_mutex);
 	}
