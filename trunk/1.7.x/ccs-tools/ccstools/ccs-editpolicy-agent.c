@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include <stdio.h>
@@ -78,6 +78,12 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 			}
 			fclose(status_fp);
 		}
+		snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
+		write(status_fd, buffer, strlen(buffer));
+		memset(buffer, 0, sizeof(buffer));
+		read(status_fd, buffer, sizeof(buffer));
+		if (!buffer[0])
+			continue;
 		fprintf(fp, "PID=%u PPID=%u NAME=", pid, ppid);
 		if (name) {
 			cp = name;
@@ -107,9 +113,7 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 			fprintf(fp, "<UNKNOWN>");
 		}
 		fputc('\n', fp);
-		snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
-		write(status_fd, buffer, strlen(buffer));
-		memset(buffer, 0, sizeof(buffer));
+		fwrite(buffer, strlen(buffer), 1, fp);
 		while (1) {
 			int len = read(status_fd, buffer, sizeof(buffer));
 			if (len <= 0)

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "include.h"

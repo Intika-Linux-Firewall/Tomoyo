@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 #include "ccstools.h"
@@ -370,14 +370,16 @@ static int show_domain_line(struct domain_policy *dp, const int index)
 	const char *sp;
 	const int number = dp->list[index].number;
 	int redirect_index;
-	if (number >= 0)
-		printw("%c%4d:%3u %c%c%c ",
-			 dp->list_selected[index] ? '&' : ' ',
-			 number, dp->list[index].profile,
-			 is_keeper_domain(dp, index) ? '#' : ' ',
-			 is_initializer_target(dp, index) ? '*' : ' ',
-			 is_domain_unreachable(dp, index) ? '!' : ' ');
-	else
+	if (number >= 0) {
+		printw("%c%4d:", dp->list_selected[index] ? '&' : ' ', number);
+		if (dp->list[index].profile_assigned)
+			printw("%3u", dp->list[index].profile);
+		else
+			printw("???");
+		printw(" %c%c%c ", is_keeper_domain(dp, index) ? '#' : ' ',
+		       is_initializer_target(dp, index) ? '*' : ' ',
+		       is_domain_unreachable(dp, index) ? '!' : ' ');
+	} else
 		printw("              ");
 	tmp_col += 14;
 	sp = domain_name(dp, index);
@@ -1154,9 +1156,11 @@ void read_process_list(_Bool show_all)
 			if (!name)
 				out_of_memory();
 			line = freadline(fp);
-			if (!line)
+			if (!line ||
+			    sscanf(line, "%u %u", &pid, &profile) != 2) {
+				free(name);
 				break;
-			sscanf(line, "%u %u", &pid, &profile);
+			}
 			domain = strchr(line, '<');
 			if (domain)
 				domain = strdup(domain);
@@ -1219,7 +1223,10 @@ void read_process_list(_Bool show_all)
 			write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
 			read(status_fd, line, line_len - 1);
-			sscanf(line, "%u %u", &pid, &profile);
+			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
+				free(name);
+				goto skip;
+			}
 			domain = strchr(line, '<');
 			if (domain)
 				domain = strdup(domain);
@@ -1476,6 +1483,7 @@ no_exception:
 		} else if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile)
 			   == 1) {
 			dp->list[index].profile = (u8) profile;
+			dp->list[index].profile_assigned = 1;
 		}
 	}
 	put();
@@ -1638,9 +1646,8 @@ static int show_process_line(const int index)
 	char *line;
 	int tmp_col = 0;
 	int i;
-	printw("%c%4d:%3u ",
-	       task_list[index].selected ? '&' : ' ',
-	       index, task_list[index].profile);
+	printw("%c%4d:%3u ", task_list[index].selected ? '&' : ' ', index,
+	       task_list[index].profile);
 	tmp_col += 10;
 	for (i = 0; i < task_list[index].depth - 1; i++) {
 		printw("%s", eat("    "));
@@ -2707,7 +2714,7 @@ int editpolicy_main(int argc, char *argv[])
 			else if (sscanf(ptr, "refresh=%u", &refresh_interval)
 				 != 1) {
 usage:
-				printf("Usage: %s [s|e|d|p|m|u] [readonly] "
+				printf("Usage: %s [e|d|p|m|u] [readonly] "
 				       "[refresh=interval] "
 				       "[{policy_dir|remote_ip:remote_port}]\n",
 				       argv[0]);

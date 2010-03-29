@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1+   2010/01/10
+ * Version: 1.7.2-pre   2010/03/29
  *
  */
 
@@ -143,6 +143,7 @@ enum editpolicy_directives {
 	DIRECTIVE_ALLOW_LINK,
 	DIRECTIVE_ALLOW_RENAME,
 	DIRECTIVE_ALLOW_REWRITE,
+	DIRECTIVE_ALLOW_TRANSIT,
 	DIRECTIVE_ALLOW_SIGNAL,
 	DIRECTIVE_ALLOW_NETWORK,
 	DIRECTIVE_ALLOW_IOCTL,
@@ -270,6 +271,7 @@ struct domain_info {
 	_Bool is_dk;  /* domain keeper */
 	_Bool is_du;  /* unreachable domain */
 	_Bool is_dd;  /* deleted domain */
+	_Bool profile_assigned;
 };
 
 struct domain_policy {
