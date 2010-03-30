@@ -319,6 +319,7 @@ static size_t ccs_del_domain(struct list_head *element)
 	struct ccs_acl_info *acl;
 	struct ccs_domain_info *domain =
 		container_of(element, typeof(*domain), list);
+	int idx;
 	if (ccs_used_by_task(domain))
 		goto out;
 	if (domain->gc_in_progress)
@@ -331,8 +332,10 @@ static size_t ccs_del_domain(struct list_head *element)
 	 * deleted will be collected by ccs_collect_entry() and deleted by
 	 * ccs_del_acl().
 	 */
+	idx = ccs_read_lock();
 	list_for_each_entry_rcu(acl, &domain->acl_info_list, list)
 		acl->is_deleted = true;
+	ccs_read_unlock(idx);
 	domain->gc_in_progress = true;
 	mutex_unlock(&ccs_policy_lock);
  out:
