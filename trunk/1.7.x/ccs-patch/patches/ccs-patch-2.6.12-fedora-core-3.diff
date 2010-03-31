@@ -591,7 +591,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -1028,7 +1028,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedoralegacy/fedora/3/up
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2010/02/19\n");
++	printk(KERN_INFO "Hook version: 2.6.12-2.3.legacy_FC3 2010/03/31\n");
  }
 --- linux-2.6.12-2.3.legacy_FC3.orig/include/linux/init_task.h
 +++ linux-2.6.12-2.3.legacy_FC3/include/linux/init_task.h
