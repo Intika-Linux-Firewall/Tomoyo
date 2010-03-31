@@ -16,9 +16,6 @@
 #include <linux/kthread.h>
 #endif
 
-LIST_HEAD(ccs_io_buffer_list);
-DEFINE_SPINLOCK(ccs_io_buffer_list_lock);
-
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
 	CCS_ID_ADDRESS_GROUP,
@@ -42,29 +39,6 @@ enum ccs_gc_id {
 	CCS_ID_DOMAIN
 };
 
-/**
- * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
- *
- * @ptr: Pointer to scan.
- *
- * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
- */
-static bool ccs_used_by_io_buffer(struct list_head *ptr)
-{
-	bool in_use = false;
-	struct ccs_io_buffer *entry;
-	spin_lock(&ccs_io_buffer_list_lock);
-	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
-		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
-		    &entry->write_var1->list == ptr) {
-			in_use = true;
-			break;
-		}
-	}
-	spin_unlock(&ccs_io_buffer_list_lock);
-	return in_use;
-}
-
 struct ccs_gc_entry {
 	struct list_head list;
 	int type;
@@ -76,10 +50,7 @@ static int ccs_gc_list_len;
 /* Caller holds ccs_policy_lock mutex. */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
-	struct ccs_gc_entry *entry;
-	if (ccs_used_by_io_buffer(element))
-		return true;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (!entry)
 		return false;
 	entry->type = type;
@@ -315,7 +286,6 @@ static size_t ccs_del_acl(struct list_head *element)
 		break;
 	default:
 		size = 0;
-		printk(KERN_WARNING "Unknown type\n");
 		break;
 	}
 	return size;
@@ -447,64 +417,53 @@ static size_t ccs_del_name(struct list_head *element)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-
-/* Lock for GC. */
+/* Lock for syscall users. */
 struct srcu_struct ccs_ss;
+#endif
 
-static inline void ccs_synchronize_srcu(void)
-{
-	synchronize_srcu(&ccs_ss);
-}
-
-#else
-
-/* Lock for GC. */
+/* Lock for /proc/ccs/ users. */
 static struct {
 	int counter_idx;
 	int counter[2];
-} ccs_gc;
+} ccs_counter;
 static DEFINE_SPINLOCK(ccs_counter_lock);
 
-int ccs_read_lock(void)
+int ccs_lock(void)
 {
 	int idx;
 	spin_lock(&ccs_counter_lock);
-	idx = ccs_gc.counter_idx;
-	ccs_gc.counter[idx]++;
+	idx = ccs_counter.counter_idx;
+	ccs_counter.counter[idx]++;
 	spin_unlock(&ccs_counter_lock);
 	return idx;
 }
 
-void ccs_read_unlock(const int idx)
+void ccs_unlock(const int idx)
 {
 	spin_lock(&ccs_counter_lock);
-	ccs_gc.counter[idx]--;
+	ccs_counter.counter[idx]--;
 	spin_unlock(&ccs_counter_lock);
 }
 
-static void ccs_synchronize_srcu(void)
+static void ccs_synchronize_counter(void)
 {
 	int idx;
 	int v;
 	spin_lock(&ccs_counter_lock);
-	idx = ccs_gc.counter_idx;
-	ccs_gc.counter_idx ^= 1;
-	v = ccs_gc.counter[idx];
+	idx = ccs_counter.counter_idx;
+	ccs_counter.counter_idx ^= 1;
+	v = ccs_counter.counter[idx];
 	spin_unlock(&ccs_counter_lock);
 	while (v) {
 		ssleep(1);
 		spin_lock(&ccs_counter_lock);
-		v = ccs_gc.counter[idx];
+		v = ccs_counter.counter[idx];
 		spin_unlock(&ccs_counter_lock);
 	}
 }
 
-#endif
-
 static void ccs_collect_entry(void)
 {
-	struct ccs_gc_entry *p1;
-	struct ccs_gc_entry *p2;
 	int i;
 	int idx;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
@@ -700,30 +659,6 @@ static void ccs_collect_entry(void)
 	}
  unlock:
 	ccs_read_unlock(idx);
-	/*
-	 * The order of kfree() by ccs_kfree_entry() is not sequential.
-	 * Thus, if "struct list_head"->next points elements on ccs_gc_list
-	 * list, reader will trigger oops by reaching already kfree()d element.
-	 * To avoid oops, make sure that "struct list_head"->next never points
-	 * elements on ccs_gc_list before waiting for SRCU grace period.
-	 */
- restart:
-	list_for_each_entry(p1, &ccs_gc_list, list) {
-		list_for_each_entry(p2, &ccs_gc_list, list) {
-			if (p1->type != p2->type)
-				continue;
-			if (p1->element->next == p2->element) {
-				rcu_assign_pointer(p1->element->next,
-						   p2->element->next);
-				goto restart;
-			}
-			if (p2->element->next == p1->element) {
-				rcu_assign_pointer(p2->element->next,
-						   p1->element->next);
-				goto restart;
-			}
-		}
-	}
 	mutex_unlock(&ccs_policy_lock);
 }
 
@@ -734,8 +669,6 @@ static bool ccs_kfree_entry(void)
 	size_t size = 0;
 	bool result = false;
 	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
-		if (ccs_used_by_io_buffer(p->element))
-			continue;
 		switch (p->type) {
 		case CCS_ID_DOMAIN_INITIALIZER:
 			size = ccs_del_domain_initializer(p->element);
@@ -804,7 +737,6 @@ static bool ccs_kfree_entry(void)
 			break;
 		default:
 			size = 0;
-			printk(KERN_WARNING "Unknown type\n");
 			break;
 		}
 		ccs_memory_free(p->element, size);
@@ -848,7 +780,10 @@ static int ccs_gc_thread(void *unused)
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
 				break;
-			ccs_synchronize_srcu();
+			ccs_synchronize_counter();
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
+			synchronize_srcu(&ccs_ss);
+#endif
 		} while (ccs_kfree_entry());
 		mutex_unlock(&ccs_gc_mutex);
 	}
