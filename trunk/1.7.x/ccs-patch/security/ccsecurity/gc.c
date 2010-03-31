@@ -42,26 +42,51 @@ enum ccs_gc_id {
 	CCS_ID_DOMAIN
 };
 
+/**
+ * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
+ *
+ * @ptr: Pointer to scan.
+ *
+ * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
+ */
+static bool ccs_used_by_io_buffer(struct list_head *ptr)
+{
+	bool in_use = false;
+	struct ccs_io_buffer *entry;
+	spin_lock(&ccs_io_buffer_list_lock);
+	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
+		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
+		    &entry->write_var1->list == ptr) {
+			in_use = true;
+			break;
+		}
+	}
+	spin_unlock(&ccs_io_buffer_list_lock);
+	return in_use;
+}
+
 struct ccs_gc_entry {
 	struct list_head list;
 	int type;
 	struct list_head *element;
 };
 static LIST_HEAD(ccs_gc_list);
-static int ccs_gc_count;
-#define CCS_COUNT_PER_GC 128
+static int ccs_gc_list_len;
 
 /* Caller holds ccs_policy_lock mutex. */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
-	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	struct ccs_gc_entry *entry;
+	if (ccs_used_by_io_buffer(element))
+		return true;
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (!entry)
 		return false;
 	entry->type = type;
 	entry->element = element;
 	list_add(&entry->list, &ccs_gc_list);
 	list_del_rcu(element);
-	return ccs_gc_count++ < CCS_COUNT_PER_GC;
+	return ccs_gc_list_len++ < 128;
 }
 
 static size_t ccs_del_allow_read(struct list_head *element)
@@ -129,29 +154,6 @@ static size_t ccs_del_manager(struct list_head *element)
 		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->manager);
 	return sizeof(*ptr);
-}
-
-/**
- * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
- *
- * @ptr: Pointer to scan.
- *
- * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
- */
-static bool ccs_used_by_io_buffer(struct list_head *ptr)
-{
-	bool in_use = false;
-	struct ccs_io_buffer *entry;
-	spin_lock(&ccs_io_buffer_list_lock);
-	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
-		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
-		    &entry->write_var1->list == ptr) {
-			in_use = true;
-			break;
-		}
-	}
-	spin_unlock(&ccs_io_buffer_list_lock);
-	return in_use;
 }
 
 /* For compatibility with older kernels. */
@@ -708,6 +710,8 @@ static void ccs_collect_entry(void)
  restart:
 	list_for_each_entry(p1, &ccs_gc_list, list) {
 		list_for_each_entry(p2, &ccs_gc_list, list) {
+			if (p1->type != p2->type)
+				continue;
 			if (p1->element->next == p2->element) {
 				rcu_assign_pointer(p1->element->next,
 						   p2->element->next);
@@ -723,11 +727,12 @@ static void ccs_collect_entry(void)
 	mutex_unlock(&ccs_policy_lock);
 }
 
-static void ccs_kfree_entry(void)
+static bool ccs_kfree_entry(void)
 {
 	struct ccs_gc_entry *p;
 	struct ccs_gc_entry *tmp;
 	size_t size = 0;
+	bool result = false;
 	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
 		if (ccs_used_by_io_buffer(p->element))
 			continue;
@@ -805,7 +810,10 @@ static void ccs_kfree_entry(void)
 		ccs_memory_free(p->element, size);
 		list_del(&p->list);
 		kfree(p);
+		ccs_gc_list_len--;
+		result = true;
 	}
+	return result;
 }
 
 static int ccs_gc_thread(void *unused)
@@ -836,17 +844,12 @@ static int ccs_gc_thread(void *unused)
 	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
 	if (mutex_trylock(&ccs_gc_mutex)) {
-		int i;
-		for (i = 0; i < 10; i++) {
-			ccs_gc_count = 0;
+		do {
 			ccs_collect_entry();
 			if (list_empty(&ccs_gc_list))
 				break;
 			ccs_synchronize_srcu();
-			ccs_kfree_entry();
-			if (ccs_gc_count >= CCS_COUNT_PER_GC)
-				i = 0;
-		}
+		} while (ccs_kfree_entry());
 		mutex_unlock(&ccs_gc_mutex);
 	}
 	return 0;
