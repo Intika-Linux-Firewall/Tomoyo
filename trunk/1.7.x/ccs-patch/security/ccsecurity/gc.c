@@ -42,45 +42,26 @@ enum ccs_gc_id {
 	CCS_ID_DOMAIN
 };
 
-#define CCS_MAX_GC_ELEMENTS 128
-static u8 ccs_gc_elements_type[CCS_MAX_GC_ELEMENTS];
-static struct list_head *ccs_gc_elements[CCS_MAX_GC_ELEMENTS];
-static unsigned int ccs_gc_count;
-
-/**
- * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
- *
- * @ptr: Pointer to scan.
- *
- * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
- */
-static bool ccs_used_by_io_buffer(struct list_head *ptr)
-{
-	bool in_use = false;
-	struct ccs_io_buffer *entry;
-	spin_lock(&ccs_io_buffer_list_lock);
-	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
-		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
-		    &entry->write_var1->list == ptr) {
-			in_use = true;
-			break;
-		}
-	}
-	spin_unlock(&ccs_io_buffer_list_lock);
-	return in_use;
-}
+struct ccs_gc_entry {
+	struct list_head list;
+	int type;
+	struct list_head *element;
+};
+static LIST_HEAD(ccs_gc_list);
+static int ccs_gc_count;
+#define CCS_COUNT_PER_GC 128
 
 /* Caller holds ccs_policy_lock mutex. */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
-	if (ccs_gc_count == CCS_MAX_GC_ELEMENTS)
+	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	if (!entry)
 		return false;
-	if (!ccs_used_by_io_buffer(element)) {
-		ccs_gc_elements_type[ccs_gc_count] = type;
-		ccs_gc_elements[ccs_gc_count++] = element;
-		list_del_rcu(element);
-	}
-	return true;
+	entry->type = type;
+	entry->element = element;
+	list_add(&entry->list, &ccs_gc_list);
+	list_del_rcu(element);
+	return ccs_gc_count++ < CCS_COUNT_PER_GC;
 }
 
 static size_t ccs_del_allow_read(struct list_head *element)
@@ -148,6 +129,29 @@ static size_t ccs_del_manager(struct list_head *element)
 		container_of(element, typeof(*ptr), list);
 	ccs_put_name(ptr->manager);
 	return sizeof(*ptr);
+}
+
+/**
+ * ccs_used_by_io_buffer - Check whether the given pointer is referenced by ccs_io_buffer.
+ *
+ * @ptr: Pointer to scan.
+ *
+ * Returns true if @ptr is referenced by ccs_io_buffer, false otherwise.
+ */
+static bool ccs_used_by_io_buffer(struct list_head *ptr)
+{
+	bool in_use = false;
+	struct ccs_io_buffer *entry;
+	spin_lock(&ccs_io_buffer_list_lock);
+	list_for_each_entry(entry, &ccs_io_buffer_list, list) {
+		if (entry->read_var1 == ptr || entry->read_var2 == ptr ||
+		    &entry->write_var1->list == ptr) {
+			in_use = true;
+			break;
+		}
+	}
+	spin_unlock(&ccs_io_buffer_list_lock);
+	return in_use;
 }
 
 /* For compatibility with older kernels. */
@@ -309,6 +313,7 @@ static size_t ccs_del_acl(struct list_head *element)
 		break;
 	default:
 		size = 0;
+		printk(KERN_WARNING "Unknown type\n");
 		break;
 	}
 	return size;
@@ -317,44 +322,15 @@ static size_t ccs_del_acl(struct list_head *element)
 static size_t ccs_del_domain(struct list_head *element)
 {
 	struct ccs_acl_info *acl;
+	struct ccs_acl_info *tmp;
 	struct ccs_domain_info *domain =
 		container_of(element, typeof(*domain), list);
-	int idx;
 	if (ccs_used_by_task(domain))
-		goto out;
-	if (domain->gc_in_progress)
-		goto check;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	/*
-	 * Mark all elements in this domain as deleted. Also, suppress callback
-	 * until all elements in this domain are deleted. Elements marked as
-	 * deleted will be collected by ccs_collect_entry() and deleted by
-	 * ccs_del_acl().
-	 */
-	idx = ccs_read_lock();
-	list_for_each_entry_rcu(acl, &domain->acl_info_list, list)
-		acl->is_deleted = true;
-	ccs_read_unlock(idx);
-	domain->gc_in_progress = true;
-	mutex_unlock(&ccs_policy_lock);
- out:
-	/* Push this domain back to ccs_domain_list for later callback. */
-	return 0;
- check:
-	/*
-	 * Elements which could not be deleted are pushed back to this domain.
-	 * Since ccs_gc_elements is a FIFO, ccs_del_acl() for this domain is
-	 * processed before ccs_del_domain() for this domain is processed.
-	 * Therefore, pushing back to this domain is safe and list_empty() will
-	 * return false when an element was pushed back.
-	 */
-	if (!list_empty(&domain->acl_info_list))
-		goto out;
-	/*
-	 * All elements in this domain were deleted. Thus, ready to delete
-	 * this domain.
-	 */
+		return 0;
+	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
+		size_t size = ccs_del_acl(&acl->list);
+		ccs_memory_free(acl, size);
+	}
 	ccs_put_name(domain->domainname);
 	return sizeof(*domain);
 }
@@ -523,12 +499,14 @@ static void ccs_synchronize_srcu(void)
 
 #endif
 
-static bool ccs_collect_entry(void)
+static void ccs_collect_entry(void)
 {
+	struct ccs_gc_entry *p1;
+	struct ccs_gc_entry *p2;
 	int i;
 	int idx;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
-		return false;
+		return;
 	idx = ccs_read_lock();
 	{
 		struct ccs_globally_readable_file_entry *ptr;
@@ -618,10 +596,8 @@ static bool ccs_collect_entry(void)
 				if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
 					goto unlock;
 			}
-			if (domain->gc_in_progress &&
-			    !list_empty(&domain->acl_info_list))
-				continue;
-			if (!domain->is_deleted || ccs_used_by_task(domain))
+			if (!domain->is_deleted ||
+			    ccs_used_by_task(domain))
 				continue;
 			if (!ccs_add_to_gc(CCS_ID_DOMAIN, &domain->list))
 				goto unlock;
@@ -724,123 +700,112 @@ static bool ccs_collect_entry(void)
 	ccs_read_unlock(idx);
 	/*
 	 * The order of kfree() by ccs_kfree_entry() is not sequential.
-	 * Thus, if ccs_gc_elements[i]->next points ccs_gc_elements[j] ,
-	 * reader will trigger oops by reaching already kfree()d element.
-	 * To avoid oops, make sure that ccs_gc_elements[i]->next never points
-	 * ccs_gc_elements[j] before waiting for SRCU grace period. After SRCU
-	 * grace period, it is safe to push ccs_gc_elements[i] back to between
-	 * ccs_gc_elements[i]->next->prev and ccs_gc_elements[i]->next if
-	 * ccs_gc_elements[i] is still used by "struct ccs_io_buffer" or
-	 * "struct task_struct".
+	 * Thus, if "struct list_head"->next points elements on ccs_gc_list
+	 * list, reader will trigger oops by reaching already kfree()d element.
+	 * To avoid oops, make sure that "struct list_head"->next never points
+	 * elements on ccs_gc_list before waiting for SRCU grace period.
 	 */
  restart:
-	for (i = 0; i < ccs_gc_count; i++) {
-		int j;
-		for (j = 0; j < ccs_gc_count; j++) {
-			if (ccs_gc_elements_type[i] != ccs_gc_elements_type[j])
-				continue;
-			if (ccs_gc_elements[i]->next == ccs_gc_elements[j]) {
-				rcu_assign_pointer(ccs_gc_elements[i]->next,
-						   ccs_gc_elements[j]->next);
+	list_for_each_entry(p1, &ccs_gc_list, list) {
+		list_for_each_entry(p2, &ccs_gc_list, list) {
+			if (p1->element->next == p2->element) {
+				rcu_assign_pointer(p1->element->next,
+						   p2->element->next);
 				goto restart;
 			}
-			if (ccs_gc_elements[j]->next == ccs_gc_elements[i]) {
-				rcu_assign_pointer(ccs_gc_elements[j]->next,
-						   ccs_gc_elements[i]->next);
+			if (p2->element->next == p1->element) {
+				rcu_assign_pointer(p2->element->next,
+						   p1->element->next);
 				goto restart;
 			}
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
-	return ccs_gc_count != 0;
 }
 
 static void ccs_kfree_entry(void)
 {
+	struct ccs_gc_entry *p;
+	struct ccs_gc_entry *tmp;
 	size_t size = 0;
-	int i;
-	for (i = 0; i < ccs_gc_count; i++) {
-		struct list_head *element = ccs_gc_elements[i];
-		if (ccs_used_by_io_buffer(element)) {
-			/* Push back to list. */
-			list_add_tail_rcu(element, element->next);
+	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
+		if (ccs_used_by_io_buffer(p->element))
 			continue;
-		}
-		switch (ccs_gc_elements_type[i]) {
+		switch (p->type) {
 		case CCS_ID_DOMAIN_INITIALIZER:
-			size = ccs_del_domain_initializer(element);
+			size = ccs_del_domain_initializer(p->element);
 			break;
 		case CCS_ID_DOMAIN_KEEPER:
-			size = ccs_del_domain_keeper(element);
+			size = ccs_del_domain_keeper(p->element);
 			break;
 		case CCS_ID_GLOBALLY_READABLE:
-			size = ccs_del_allow_read(element);
+			size = ccs_del_allow_read(p->element);
 			break;
 		case CCS_ID_PATTERN:
-			size = ccs_del_file_pattern(element);
+			size = ccs_del_file_pattern(p->element);
 			break;
 		case CCS_ID_NO_REWRITE:
-			size = ccs_del_no_rewrite(element);
+			size = ccs_del_no_rewrite(p->element);
 			break;
 		case CCS_ID_MANAGER:
-			size = ccs_del_manager(element);
+			size = ccs_del_manager(p->element);
 			break;
 		case CCS_ID_GLOBAL_ENV:
-			size = ccs_del_allow_env(element);
+			size = ccs_del_allow_env(p->element);
 			break;
 		case CCS_ID_AGGREGATOR:
-			size = ccs_del_aggregator(element);
+			size = ccs_del_aggregator(p->element);
 			break;
 		case CCS_ID_PATH_GROUP_MEMBER:
-			size = ccs_del_path_group_member(element);
+			size = ccs_del_path_group_member(p->element);
 			break;
 		case CCS_ID_PATH_GROUP:
-			size = ccs_del_path_group(element);
+			size = ccs_del_path_group(p->element);
 			break;
 		case CCS_ID_ADDRESS_GROUP_MEMBER:
-			size = ccs_del_address_group_member(element);
+			size = ccs_del_address_group_member(p->element);
 			break;
 		case CCS_ID_ADDRESS_GROUP:
-			size = ccs_del_address_group(element);
+			size = ccs_del_address_group(p->element);
 			break;
 		case CCS_ID_NUMBER_GROUP_MEMBER:
-			size = ccs_del_number_group_member(element);
+			size = ccs_del_number_group_member(p->element);
 			break;
 		case CCS_ID_NUMBER_GROUP:
-			size = ccs_del_number_group(element);
+			size = ccs_del_number_group(p->element);
 			break;
 		case CCS_ID_RESERVEDPORT:
-			size = ccs_del_reservedport(element);
+			size = ccs_del_reservedport(p->element);
 			break;
 		case CCS_ID_IPV6_ADDRESS:
-			size = ccs_del_ipv6_address(element);
+			size = ccs_del_ipv6_address(p->element);
 			break;
 		case CCS_ID_CONDITION:
-			size = ccs_del_condition(container_of(element,
+			size = ccs_del_condition(container_of(p->element,
 							      struct
 							      ccs_condition,
 							      list));
 			break;
 		case CCS_ID_NAME:
-			size = ccs_del_name(element);
+			size = ccs_del_name(p->element);
 			break;
 		case CCS_ID_ACL:
-			size = ccs_del_acl(element);
+			size = ccs_del_acl(p->element);
 			break;
 		case CCS_ID_DOMAIN:
-			size = ccs_del_domain(element);
-			if (size)
-				break;
-			/* Push back to list. */
-			list_add_tail_rcu(element, element->next);
-			continue;
+			size = ccs_del_domain(p->element);
+			if (!size)
+				continue;
+			break;
 		default:
 			size = 0;
+			printk(KERN_WARNING "Unknown type\n");
 			break;
 		}
-		ccs_memory_free(element, size);
+		ccs_memory_free(p->element, size);
+		list_del(&p->list);
+		kfree(p);
 	}
-	ccs_gc_count = 0;
 }
 
 static int ccs_gc_thread(void *unused)
@@ -871,9 +836,16 @@ static int ccs_gc_thread(void *unused)
 	snprintf(current->comm, sizeof(current->comm) - 1, "GC for CCS");
 #endif
 	if (mutex_trylock(&ccs_gc_mutex)) {
-		while (ccs_collect_entry()) {
+		int i;
+		for (i = 0; i < 10; i++) {
+			ccs_gc_count = 0;
+			ccs_collect_entry();
+			if (list_empty(&ccs_gc_list))
+				break;
 			ccs_synchronize_srcu();
 			ccs_kfree_entry();
+			if (ccs_gc_count >= CCS_COUNT_PER_GC)
+				i = 0;
 		}
 		mutex_unlock(&ccs_gc_mutex);
 	}
