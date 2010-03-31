@@ -571,7 +571,6 @@ struct ccs_domain_info {
 	 * More than one process continued execve() without domain transition.
 	 */
 	bool domain_transition_failed;
-	bool gc_in_progress;
 };
 
 /* Structure for "allow_read" keyword. */
