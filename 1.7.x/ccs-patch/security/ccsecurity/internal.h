@@ -809,8 +809,8 @@ struct ccs_io_buffer {
 	int (*poll) (struct file *file, poll_table *wait);
 	/* Exclusive lock for this structure.   */
 	struct mutex io_sem;
-	/* List head for allowing GC to scan.   */
-	struct list_head list;
+	/* Index returned by ccs_lock().        */
+	int reader_idx;
 	/* The position currently reading from. */
 	struct list_head *read_var1;
 	/* Extra variables for reading.         */
@@ -939,6 +939,7 @@ int ccs_get_mode(const u8 profile, const u8 index);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r,
 			  struct ccs_domain_info *domain, const u8 index);
+int ccs_lock(void);
 int ccs_may_transit(const char *domainname, const char *pathname);
 int ccs_open_control(const u8 type, struct file *file);
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
@@ -1011,6 +1012,7 @@ void ccs_put_number_union(struct ccs_number_union *ptr);
 void ccs_read_audit_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
+void ccs_unlock(const int idx);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 void ccs_warn_oom(const char *function);
@@ -1154,7 +1156,6 @@ static inline bool ccs_is_same_condition(const struct ccs_condition *p1,
 #define CCS_MAX_HASH (1 << CCS_HASH_BITS)
 
 extern struct mutex ccs_policy_lock;
-extern spinlock_t ccs_io_buffer_list_lock;
 extern struct list_head ccs_domain_list;
 extern struct list_head ccs_address_group_list;
 extern struct list_head ccs_globally_readable_list;
@@ -1171,7 +1172,6 @@ extern struct list_head ccs_policy_manager_list;
 extern struct list_head ccs_address_list;
 extern struct list_head ccs_condition_list;
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
-extern struct list_head ccs_io_buffer_list;
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_kernel_domain;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
@@ -1187,8 +1187,14 @@ static inline void ccs_read_unlock(const int idx)
 	srcu_read_unlock(&ccs_ss, idx);
 }
 #else
-int ccs_read_lock(void);
-void ccs_read_unlock(const int idx);
+static inline int ccs_read_lock(void)
+{
+	return ccs_lock();
+}
+static inline void ccs_read_unlock(const int idx)
+{
+	ccs_unlock(idx);
+}
 #endif
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];

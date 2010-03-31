@@ -2558,11 +2558,8 @@ int ccs_open_control(const u8 type, struct file *file)
 		}
 	}
 	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
-		spin_lock(&ccs_io_buffer_list_lock);
-		list_add(&head->list, &ccs_io_buffer_list);
-		spin_unlock(&ccs_io_buffer_list_lock);
-	}
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+		head->reader_idx = ccs_lock();
 	file->private_data = head;
 	/*
 	 * Call the handler now if the file is /proc/ccs/self_domain
@@ -2743,11 +2740,8 @@ int ccs_close_control(struct file *file)
 	if (type == CCS_QUERY)
 		atomic_dec(&ccs_query_observers);
 	if (type != CCS_QUERY &&
-	    type != CCS_GRANTLOG && type != CCS_REJECTLOG) {
-		spin_lock(&ccs_io_buffer_list_lock);
-		list_del(&head->list);
-		spin_unlock(&ccs_io_buffer_list_lock);
-	}
+	    type != CCS_GRANTLOG && type != CCS_REJECTLOG)
+		ccs_unlock(head->reader_idx);
 	/* Release memory used for policy I/O. */
 	kfree(head->read_buf);
 	head->read_buf = NULL;
