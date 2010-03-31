@@ -152,7 +152,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.4/updates/SRPMS
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -585,7 +585,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/5.4/updates/SRPMS
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-164.15.1.el5 2010/03/19\n");
++	printk(KERN_INFO "Hook version: 2.6.18-164.15.1.el5 2010/03/31\n");
  }
 --- linux-2.6.18-164.15.1.el5.orig/include/linux/init_task.h
 +++ linux-2.6.18-164.15.1.el5/include/linux/init_task.h

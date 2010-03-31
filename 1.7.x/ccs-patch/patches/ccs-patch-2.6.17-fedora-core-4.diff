@@ -254,7 +254,7 @@ Source code for this patch is http://archive.fedoraproject.org/pub/archive/fedor
  	/* RED-PEN how should LSM module know it's handling 32bit? */
  	error = security_file_ioctl(filp, cmd, arg);
 +	if (!error)
-+		error = ccs_check_ioctl_permission(filp, cmd, arg);
++		error = ccs_ioctl_permission(filp, cmd, arg);
  	if (error)
  		goto out_fput;
  
@@ -689,7 +689,7 @@ Source code for this patch is http://archive.fedoraproject.org/pub/archive/fedor
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.17-1.2142_FC4 2010/02/19\n");
++	printk(KERN_INFO "Hook version: 2.6.17-1.2142_FC4 2010/03/31\n");
  }
 --- linux-2.6.17-1.2142_FC4.orig/include/linux/init_task.h
 +++ linux-2.6.17-1.2142_FC4/include/linux/init_task.h
