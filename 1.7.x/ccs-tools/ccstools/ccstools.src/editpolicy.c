@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/29
+ * Version: 1.7.2   2010/04/01
  *
  */
 #include "ccstools.h"
@@ -1187,32 +1187,37 @@ void read_process_list(_Bool show_all)
 	} else {
 		static const int line_len = 8192;
 		char *line;
-		struct dirent **namelist;
-		int i;
-		int n;
 		int status_fd = open(proc_policy_process_status, O_RDWR);
-		if (status_fd == EOF)
+		DIR *dir = opendir("/proc/");
+		if (status_fd == EOF || !dir) {
+			if (status_fd != EOF)
+				close(status_fd);
+			if (dir)
+				closedir(dir);
 			return;
-		n = scandir("/proc/", &namelist, 0, 0);
+		}
 		line = malloc(line_len);
 		if (!line)
 			out_of_memory();
-		for (i = 0; i < n; i++) {
+		while (1) {
 			char *name;
 			char *domain;
 			int profile = -1;
 			unsigned int pid = 0;
 			char buffer[128];
 			char test[16];
-			if (sscanf(namelist[i]->d_name, "%u", &pid) != 1
-			    || !pid)
-				goto skip;
+			struct dirent *dent = readdir(dir);
+			if (!dent)
+				break;
+			if (dent->d_type != DT_DIR ||
+			    sscanf(dent->d_name, "%u", &pid) != 1 || !pid)
+				continue;
 			memset(buffer, 0, sizeof(buffer));
 			if (!show_all) {
 				snprintf(buffer, sizeof(buffer) - 1,
 					 "/proc/%u/exe", pid);
 				if (readlink(buffer, test, sizeof(test)) <= 0)
-					goto skip;
+					continue;
 			}
 			name = get_name(pid);
 			if (!name)
@@ -1225,7 +1230,7 @@ void read_process_list(_Bool show_all)
 			read(status_fd, line, line_len - 1);
 			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
 				free(name);
-				goto skip;
+				continue;
 			}
 			domain = strchr(line, '<');
 			if (domain)
@@ -1246,12 +1251,9 @@ void read_process_list(_Bool show_all)
 			task_list[task_list_len].name = name;
 			task_list[task_list_len].domain = domain;
 			task_list_len++;
-skip:
-			free((void *) namelist[i]);
 		}
 		free(line);
-		if (n >= 0)
-			free((void *) namelist);
+		closedir(dir);
 		close(status_fd);
 	}
 	sort_process_entry(1, 0);

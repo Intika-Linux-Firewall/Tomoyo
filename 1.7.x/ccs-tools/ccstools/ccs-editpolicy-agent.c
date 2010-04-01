@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2-pre   2010/03/29
+ * Version: 1.7.2   2010/04/01
  *
  */
 #include <stdio.h>
@@ -49,17 +49,18 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 		char test[16];
 		unsigned int pid;
 		struct dirent *dent = readdir(dir);
-		const char *cp;
 		if (!dent)
 			break;
-		cp = dent->d_name;
-		if (dent->d_type != DT_DIR || sscanf(cp, "%u", &pid) != 1
-		    || !pid)
+		if (dent->d_type != DT_DIR ||
+		    sscanf(dent->d_name, "%u", &pid) != 1 || !pid)
 			continue;
 		memset(buffer, 0, sizeof(buffer));
-		snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/exe", pid);
-		if (!show_all && readlink(buffer, test, sizeof(test)) <= 0)
-			continue;
+		if (!show_all) {
+			snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/exe",
+				 pid);
+			if (readlink(buffer, test, sizeof(test)) <= 0)
+				continue;
+		}
 		snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
 		status_fp = fopen(buffer, "r");
 		if (status_fp) {
@@ -86,7 +87,7 @@ static void show_tasklist(FILE *fp, const _Bool show_all)
 			continue;
 		fprintf(fp, "PID=%u PPID=%u NAME=", pid, ppid);
 		if (name) {
-			cp = name;
+			const char *cp = name;
 			while (1) {
 				unsigned char c = *cp++;
 				if (!c)
