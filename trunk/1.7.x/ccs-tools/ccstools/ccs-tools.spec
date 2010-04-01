@@ -41,9 +41,9 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog
-* Thu Apr 1 2010 1.7.2-1
+* Thu Apr 01 2010 1.7.2-1
 - ccs-sortpolicy should not remove use_profile lines.
-- ccs-init calls /etc/ccs/ccs-load-module to execute modprobe.
+- ccs-init calls /etc/ccs/ccs-load-module for loading TOMOYO which was built as a loadable kernel module.
 - Updated to handle TOMOYO 1.7.2's syntax.
 
 * Sun Jan 10 2010 1.7.1-2
