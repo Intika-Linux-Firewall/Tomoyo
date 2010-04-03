@@ -237,7 +237,7 @@ Ubuntu 9.10 (for generic flavour)</td><td>
 </ul>
 
 <p>Download source code from <a href="http://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="http://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> and extract it and goto the extracted directory.<br>
-Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.33.1 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.33 in the below operations.</p>
+Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding linux-2.6 , linux-2.6.11.12.tar.bz2 and later are supported. If you use kernel 2.6.33.2 , replace 2.$PATCHLEVEL.$SUBLEVEL with 2.6.33 in the below operations.</p>
 
 <table border="1">
 <tr><td>
@@ -252,6 +252,8 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 
 <ul>
 <li>[*] CCSecurity support</li>
+<li>[ ]   Compile as loadable kernel module
+<li>[ ]   Disable by default
 <li>(2048) Default maximal count for learning mode</li>
 <li>(/sbin/ccs-init) Default policy loader</li>
 <li>(/sbin/ccs-start) Alternative activation trigger</li>
@@ -260,6 +262,10 @@ Regarding linux-2.4 , linux-2.4.30.tar.bz2 and later are supported. Regarding li
 <li>(1024)&nbsp;&nbsp;Default maximal count for grant log</li>
 <li>(1024)&nbsp;&nbsp;Default maximal count for reject log</li>
 </ul>
+
+<p>If you choose "Compile as loadable kernel module" option, you can minimize file size increment of vmlinux because most part of TOMOYO is compiled as a loadable kernel module. You can choose this option when there is a file size limitation for vmlinux (e.g. embedded systems).</p>
+
+<p>If you choose "Disable by default", TOMOYO is enabled only when ccsecurity=on is passed to the kernel's command line options. If you don't choose this option, TOMOYO is disabled only when ccsecurity=off is passed to the kernel's command line options.</p>
 
 <p>After creating a kernel config, compile the kernel.</p>
 
