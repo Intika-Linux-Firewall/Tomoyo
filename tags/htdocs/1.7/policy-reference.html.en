@@ -39,6 +39,7 @@
 
 <ul>
 <li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
+<li><a href="#profile_CONFIG::file::transit">CONFIG::file::transit</a></li>
 <li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
 <li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
 <li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
@@ -131,6 +132,7 @@
 
 <ul>
 <li><a href="#domain_policy_allow_execute">allow_execute</a></li>
+<li><a href="#domain_policy_allow_transit">allow_transit</a></li>
 <li><a href="#domain_policy_allow_read">allow_read</a></li>
 <li><a href="#domain_policy_allow_write">allow_write</a></li>
 <li><a href="#domain_policy_allow_read/write">allow_read/write</a></li>
@@ -252,7 +254,7 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
  <li>/\*\-proc\-sys/ for /\*/ other than /proc/ /sys/</li>
  </ul>
 </td></tr>
-<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'. (Valid only in 1.7.1 and later)</td><td>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'. (Valid only in 1.7.1 and later.)</td><td>
  <ul>
   <li>/var/www/html/\{\*\}/\*.html for /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html etc.</li>
   <li>/home/\*/\{\*\-.\*\}/\* for /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* etc.</li>
@@ -647,6 +649,10 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding program execution and domain transition.</p>
 
+<h3><a name="profile_CONFIG::file::transit">CONFIG::file::transit</a></h3>
+
+<p>Specifies access control level regarding domain transition without program execution. (Valid only in 1.7.2 and later.)</p>
+
 <h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
 
 <p>Specifies access control level regarding file open for reading and/or writing.</p>
@@ -965,6 +971,10 @@ cat /proc/ccs/domain_policy</p>
 <p>This keyword grants execution of the specified pathname. No wildcards are permitted for the pathname. If you have to use wildcards, use <a href="#exception_policy_aggregator">aggregator</a> keyword before granting execute permission using this keyword.</p>
 <p>(Example) allow_execute /bin/ls</p>
 <p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_aggregator">aggregator</a></p>
+
+<h3><a name="domain_policy_allow_transit">allow_transit</a></h3>
+<p>This keyword grants domain transition to the specified pathname without executing program. No wildcards are permitted for the pathname. (Valid only in 1.7.2 and later.)</p>
+<p>(Example) allow_transit //app=cgi1\040id=10000</p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
 <p>This keyword grants the specified pathname to be opened for writing.</p>
