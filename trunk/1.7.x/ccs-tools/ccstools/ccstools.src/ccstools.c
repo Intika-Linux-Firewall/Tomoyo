@@ -5,37 +5,37 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
 /* Prototypes */
 
-static _Bool is_byte_range(const char *str);
-static _Bool is_decimal(const char c);
-static _Bool is_hexadecimal(const char c);
-static _Bool is_alphabet_char(const char c);
-static u8 make_byte(const u8 c1, const u8 c2, const u8 c3);
-static inline unsigned long partial_name_hash(unsigned long c,
-					      unsigned long prevhash);
-static inline unsigned int full_name_hash(const unsigned char *name,
-					  unsigned int len);
-static void *alloc_element(const unsigned int size);
-static int const_part_length(const char *filename);
-static int domainname_compare(const void *a, const void *b);
-static int path_info_compare(const void *a, const void *b);
-static void sort_domain_policy(struct domain_policy *dp);
+static _Bool ccs_is_byte_range(const char *str);
+static _Bool ccs_is_decimal(const char c);
+static _Bool ccs_is_hexadecimal(const char c);
+static _Bool ccs_is_alphabet_char(const char c);
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
+static inline unsigned long ccs_partial_name_hash(unsigned long c,
+						  unsigned long prevhash);
+static inline unsigned int ccs_full_name_hash(const unsigned char *name,
+					      unsigned int len);
+static void *ccs_alloc_element(const unsigned int size);
+static int ccs_const_part_length(const char *filename);
+static int ccs_domainname_compare(const void *a, const void *b);
+static int ccs_path_info_compare(const void *a, const void *b);
+static void ccs_sort_domain_policy(struct ccs_domain_policy *dp);
 
 /* Utility functions */
 
-void out_of_memory(void)
+void ccs_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
 }
 
-_Bool str_starts(char *str, const char *begin)
+_Bool ccs_str_starts(char *str, const char *begin)
 {
 	const int len = strlen(begin);
 	if (strncmp(str, begin, len))
@@ -44,36 +44,36 @@ _Bool str_starts(char *str, const char *begin)
 	return true;
 }
 
-static _Bool is_byte_range(const char *str)
+static _Bool ccs_is_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
 		*str >= '0' && *str <= '7';
 }
 
-static _Bool is_decimal(const char c)
+static _Bool ccs_is_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
-static _Bool is_hexadecimal(const char c)
+static _Bool ccs_is_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
 		(c >= 'a' && c <= 'f');
 }
 
-static _Bool is_alphabet_char(const char c)
+static _Bool ccs_is_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-static u8 make_byte(const u8 c1, const u8 c2, const u8 c3)
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 }
 
-void normalize_line(unsigned char *line)
+void ccs_normalize_line(unsigned char *line)
 {
 	unsigned char *sp = line;
 	unsigned char *dp = line;
@@ -92,7 +92,7 @@ void normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
-char *make_filename(const char *prefix, const time_t time)
+char *ccs_make_filename(const char *prefix, const time_t time)
 {
 	struct tm *tm = localtime(&time);
 	static char filename[1024];
@@ -105,35 +105,35 @@ char *make_filename(const char *prefix, const time_t time)
 }
 
 /* Copied from kernel source. */
-static inline unsigned long partial_name_hash(unsigned long c,
-					      unsigned long prevhash)
+static inline unsigned long ccs_partial_name_hash(unsigned long c,
+						  unsigned long prevhash)
 {
 	return (prevhash + (c << 4) + (c >> 4)) * 11;
 }
 
 /* Copied from kernel source. */
-static inline unsigned int full_name_hash(const unsigned char *name,
-					  unsigned int len)
+static inline unsigned int ccs_full_name_hash(const unsigned char *name,
+					      unsigned int len)
 {
 	unsigned long hash = 0;
 	while (len--)
-		hash = partial_name_hash(*name++, hash);
+		hash = ccs_partial_name_hash(*name++, hash);
 	return (unsigned int) hash;
 }
 
-static void *alloc_element(const unsigned int size)
+static void *ccs_alloc_element(const unsigned int size)
 {
 	static char *buf = NULL;
-	static unsigned int buf_used_len = PAGE_SIZE;
+	static unsigned int buf_used_len = CCS_PAGE_SIZE;
 	char *ptr = NULL;
-	if (size > PAGE_SIZE)
+	if (size > CCS_PAGE_SIZE)
 		return NULL;
-	if (buf_used_len + size > PAGE_SIZE) {
-		ptr = malloc(PAGE_SIZE);
+	if (buf_used_len + size > CCS_PAGE_SIZE) {
+		ptr = malloc(CCS_PAGE_SIZE);
 		if (!ptr)
-			out_of_memory();
+			ccs_out_of_memory();
 		buf = ptr;
-		memset(buf, 0, PAGE_SIZE);
+		memset(buf, 0, CCS_PAGE_SIZE);
 		buf_used_len = size;
 		ptr = buf;
 	} else if (size) {
@@ -142,12 +142,12 @@ static void *alloc_element(const unsigned int size)
 		buf_used_len += size;
 		for (i = 0; i < size; i++)
 			if (ptr[i])
-				out_of_memory();
+				ccs_out_of_memory();
 	}
 	return ptr;
 }
 
-static int const_part_length(const char *filename)
+static int ccs_const_part_length(const char *filename)
 {
 	int len = 0;
 	if (filename) {
@@ -183,18 +183,18 @@ static int const_part_length(const char *filename)
 	return len;
 }
 
-_Bool is_domain_def(const unsigned char *domainname)
+_Bool ccs_is_domain_def(const unsigned char *domainname)
 {
-	return !strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN) &&
-		(domainname[ROOT_NAME_LEN] == '\0'
-		 || domainname[ROOT_NAME_LEN] == ' ');
+	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
+		(domainname[CCS_ROOT_NAME_LEN] == '\0'
+		 || domainname[CCS_ROOT_NAME_LEN] == ' ');
 }
 
-_Bool is_correct_domain(const unsigned char *domainname)
+_Bool ccs_is_correct_domain(const unsigned char *domainname)
 {
-	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
+	if (!domainname || strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN))
 		goto out;
-	domainname += ROOT_NAME_LEN;
+	domainname += CCS_ROOT_NAME_LEN;
 	if (!*domainname)
 		return true;
 	do {
@@ -243,7 +243,7 @@ out:
 	return false;
 }
 
-void fprintf_encoded(FILE *fp, const char *pathname)
+void ccs_fprintf_encoded(FILE *fp, const char *pathname)
 {
 	while (true) {
 		unsigned char c = *(const unsigned char *) pathname++;
@@ -261,7 +261,7 @@ void fprintf_encoded(FILE *fp, const char *pathname)
 	}
 }
 
-_Bool decode(const char *ascii, char *bin)
+_Bool ccs_decode(const char *ascii, char *bin)
 {
 	while (true) {
 		char c = *ascii++;
@@ -302,8 +302,8 @@ _Bool decode(const char *ascii, char *bin)
 	return true;
 }
 
-_Bool is_correct_path(const char *filename, const s8 start_type,
-		     const s8 pattern_type, const s8 end_type)
+_Bool ccs_is_correct_path(const char *filename, const s8 start_type,
+			  const s8 pattern_type, const s8 end_type)
 {
 	const char *const start = filename;
 	_Bool in_repetition = false;
@@ -379,7 +379,7 @@ _Bool is_correct_path(const char *filename, const s8 start_type,
 				e = *filename++;
 				if (e < '0' || e > '7')
 					break;
-				c = make_byte(c, d, e);
+				c = ccs_make_byte(c, d, e);
 				if (c && (c <= ' ' || c >= 127))
 					continue; /* pattern is not \000 */
 			}
@@ -401,9 +401,9 @@ out:
 	return false;
 }
 
-static _Bool file_matches_pattern2(const char *filename,
-				  const char *filename_end,
-				  const char *pattern, const char *pattern_end)
+static _Bool ccs_file_matches_pattern2(const char *filename,
+				       const char *filename_end,
+				       const char *pattern, const char *pattern_end)
 {
 	while (filename < filename_end && pattern < pattern_end) {
 		char c;
@@ -423,7 +423,7 @@ static _Bool file_matches_pattern2(const char *filename,
 			} else if (c == '\\') {
 				if (filename[1] == '\\')
 					filename++;
-				else if (is_byte_range(filename + 1))
+				else if (ccs_is_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
@@ -436,22 +436,22 @@ static _Bool file_matches_pattern2(const char *filename,
 				return false;
 			break;
 		case '+':
-			if (!is_decimal(c))
+			if (!ccs_is_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!is_hexadecimal(c))
+			if (!ccs_is_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!is_alphabet_char(c))
+			if (!ccs_is_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && is_byte_range(filename + 1)
+			if (c == '\\' && ccs_is_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -461,10 +461,10 @@ static _Bool file_matches_pattern2(const char *filename,
 		case '*':
 		case '@':
 			for (i = 0; i <= filename_end - filename; i++) {
-				if (file_matches_pattern2(filename + i,
-							  filename_end,
-							  pattern + 1,
-							  pattern_end))
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
 					return true;
 				c = filename[i];
 				if (c == '.' && *pattern == '@')
@@ -473,7 +473,7 @@ static _Bool file_matches_pattern2(const char *filename,
 					continue;
 				if (filename[i + 1] == '\\')
 					i++;
-				else if (is_byte_range(filename + i + 1))
+				else if (ccs_is_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -483,20 +483,20 @@ static _Bool file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (is_decimal(filename[j]))
+				while (ccs_is_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (is_hexadecimal(filename[j]))
+				while (ccs_is_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (is_alphabet_char(filename[j]))
+				while (ccs_is_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
-				if (file_matches_pattern2(filename + i,
-							  filename_end,
-							  pattern + 1,
-							  pattern_end))
+				if (ccs_file_matches_pattern2(filename + i,
+							      filename_end,
+							      pattern + 1,
+							      pattern_end))
 					return true;
 			}
 			return false; /* Not matched or bad pattern. */
@@ -510,9 +510,9 @@ static _Bool file_matches_pattern2(const char *filename,
 	return filename == filename_end && pattern == pattern_end;
 }
 
-static _Bool file_matches_pattern(const char *filename,
-				  const char *filename_end,
-				  const char *pattern, const char *pattern_end)
+static _Bool ccs_file_matches_pattern(const char *filename,
+				      const char *filename_end,
+				      const char *pattern, const char *pattern_end)
 {
 	const char *pattern_start = pattern;
 	_Bool first = true;
@@ -521,8 +521,8 @@ static _Bool file_matches_pattern(const char *filename,
 		/* Split at "\-" pattern. */
 		if (*pattern++ != '\\' || *pattern++ != '-')
 			continue;
-		result = file_matches_pattern2(filename, filename_end,
-					       pattern_start, pattern - 2);
+		result = ccs_file_matches_pattern2(filename, filename_end,
+						   pattern_start, pattern - 2);
 		if (first)
 			result = !result;
 		if (result)
@@ -530,12 +530,12 @@ static _Bool file_matches_pattern(const char *filename,
 		first = false;
 		pattern_start = pattern;
 	}
-	result = file_matches_pattern2(filename, filename_end,
-				       pattern_start, pattern_end);
+	result = ccs_file_matches_pattern2(filename, filename_end,
+					   pattern_start, pattern_end);
 	return first ? result : !result;
 }
 
-static _Bool path_matches_pattern2(const char *f, const char *p)
+static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 {
 	const char *f_delimiter;
 	const char *p_delimiter;
@@ -548,7 +548,7 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 			p_delimiter = p + strlen(p);
 		if (*p == '\\' && *(p + 1) == '{')
 			goto recursive;
-		if (!file_matches_pattern(f, f_delimiter, p, p_delimiter))
+		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
 		if (*f)
@@ -574,8 +574,8 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 		return false; /* Bad pattern. */
 	do {
 		/* Compare current component with pattern. */
-		if (!file_matches_pattern(f, f_delimiter, p + 2,
-					  p_delimiter - 2))
+		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
+					      p_delimiter - 2))
 			break;
 		/* Proceed to next component. */
 		f = f_delimiter;
@@ -583,15 +583,15 @@ static _Bool path_matches_pattern2(const char *f, const char *p)
 			break;
 		f++;
 		/* Continue comparison. */
-		if (path_matches_pattern2(f, p_delimiter + 1))
+		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
 			return true;
 		f_delimiter = strchr(f, '/');
 	} while (f_delimiter);
 	return false; /* Not matched. */
 }
 
-_Bool path_matches_pattern(const struct path_info *filename,
-			   const struct path_info *pattern)
+_Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
+			       const struct ccs_path_info *pattern)
 {
 	/*
 	if (!filename || !pattern)
@@ -602,7 +602,7 @@ _Bool path_matches_pattern(const struct path_info *filename,
 	const int len = pattern->const_len;
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (!pattern->is_patterned)
-		return !pathcmp(filename, pattern);
+		return !ccs_pathcmp(filename, pattern);
 	/* Don't compare directory and non-directory. */
 	if (filename->is_dir != pattern->is_dir)
 		return false;
@@ -611,62 +611,62 @@ _Bool path_matches_pattern(const struct path_info *filename,
 		return false;
 	f += len;
 	p += len;
-	return path_matches_pattern2(f, p);
+	return ccs_path_matches_pattern2(f, p);
 }
 
-int string_compare(const void *a, const void *b)
+int ccs_string_compare(const void *a, const void *b)
 {
 	return strcmp(*(char **) a, *(char **) b);
 }
 
-_Bool pathcmp(const struct path_info *a, const struct path_info *b)
+_Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-void fill_path_info(struct path_info *ptr)
+void ccs_fill_path_info(struct ccs_path_info *ptr)
 {
 	const char *name = ptr->name;
 	const int len = strlen(name);
 	ptr->total_len = len;
-	ptr->const_len = const_part_length(name);
+	ptr->const_len = ccs_const_part_length(name);
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
-	ptr->hash = full_name_hash(name, len);
+	ptr->hash = ccs_full_name_hash(name, len);
 }
 
-static unsigned int memsize(const unsigned int size)
+static unsigned int ccs_memsize(const unsigned int size)
 {
 	if (size <= 1048576)
-		return ((size / PAGE_SIZE) + 1) * PAGE_SIZE;
+		return ((size / CCS_PAGE_SIZE) + 1) * CCS_PAGE_SIZE;
 	return 0;
 }
 
-const struct path_info *savename(const char *name)
+const struct ccs_path_info *ccs_savename(const char *name)
 {
-	static struct free_memory_block_list fmb_list = { NULL, NULL, 0 };
+	static struct ccs_free_memory_block_list fmb_list = { NULL, NULL, 0 };
 	/* The list of names. */
-	static struct savename_entry name_list[SAVENAME_MAX_HASH];
-	struct savename_entry *ptr;
-	struct savename_entry *prev = NULL;
+	static struct ccs_savename_entry name_list[CCS_SAVENAME_MAX_HASH];
+	struct ccs_savename_entry *ptr;
+	struct ccs_savename_entry *prev = NULL;
 	unsigned int hash;
-	struct free_memory_block_list *fmb = &fmb_list;
+	struct ccs_free_memory_block_list *fmb = &fmb_list;
 	int len;
 	static _Bool first_call = true;
 	if (!name)
 		return NULL;
 	len = strlen(name) + 1;
-	hash = full_name_hash((const unsigned char *) name, len - 1);
+	hash = ccs_full_name_hash((const unsigned char *) name, len - 1);
 	if (first_call) {
 		int i;
 		first_call = false;
 		memset(&name_list, 0, sizeof(name_list));
-		for (i = 0; i < SAVENAME_MAX_HASH; i++) {
+		for (i = 0; i < CCS_SAVENAME_MAX_HASH; i++) {
 			name_list[i].entry.name = "/";
-			fill_path_info(&name_list[i].entry);
+			ccs_fill_path_info(&name_list[i].entry);
 		}
 	}
-	ptr = &name_list[hash % SAVENAME_MAX_HASH];
+	ptr = &name_list[hash % CCS_SAVENAME_MAX_HASH];
 	while (ptr) {
 		if (hash == ptr->entry.hash && !strcmp(name, ptr->entry.name))
 			goto out;
@@ -679,29 +679,29 @@ const struct path_info *savename(const char *name)
 			fmb = fmb->next;
 			continue;
 		}
-		cp = malloc(memsize(len));
+		cp = malloc(ccs_memsize(len));
 		if (!cp)
-			out_of_memory();
-		fmb->next = alloc_element(sizeof(*fmb->next));
+			ccs_out_of_memory();
+		fmb->next = ccs_alloc_element(sizeof(*fmb->next));
 		if (!fmb->next)
-			out_of_memory();
-		memset(cp, 0, memsize(len));
+			ccs_out_of_memory();
+		memset(cp, 0, ccs_memsize(len));
 		fmb = fmb->next;
 		fmb->ptr = cp;
-		fmb->len = memsize(len);
+		fmb->len = ccs_memsize(len);
 	}
-	ptr = alloc_element(sizeof(*ptr));
+	ptr = ccs_alloc_element(sizeof(*ptr));
 	if (!ptr)
-		out_of_memory();
-	memset(ptr, 0, sizeof(struct savename_entry));
+		ccs_out_of_memory();
+	memset(ptr, 0, sizeof(struct ccs_savename_entry));
 	ptr->entry.name = fmb->ptr;
 	memmove(fmb->ptr, name, len);
-	fill_path_info(&ptr->entry);
+	ccs_fill_path_info(&ptr->entry);
 	fmb->ptr += len;
 	fmb->len -= len;
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
 	if (!fmb->len) {
-		struct free_memory_block_list *ptr = &fmb_list;
+		struct ccs_free_memory_block_list *ptr = &fmb_list;
 		while (ptr->next != fmb)
 			ptr = ptr->next;
 		ptr->next = fmb->next;
@@ -710,11 +710,11 @@ out:
 	return ptr ? &ptr->entry : NULL;
 }
 
-_Bool move_proc_to_file(const char *src, const char *dest)
+_Bool ccs_move_proc_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp;
 	FILE *file_fp = stdout;
-	proc_fp = open_read(src);
+	proc_fp = ccs_open_read(src);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s\n", src);
 		return false;
@@ -729,7 +729,7 @@ _Bool move_proc_to_file(const char *src, const char *dest)
 	}
 	while (true) {
 		int c = fgetc(proc_fp);
-		if (network_mode && !c)
+		if (ccs_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -741,7 +741,7 @@ _Bool move_proc_to_file(const char *src, const char *dest)
 	return true;
 }
 
-_Bool is_identical_file(const char *file1, const char *file2)
+_Bool ccs_is_identical_file(const char *file1, const char *file2)
 {
 	char buffer1[4096];
 	char buffer2[4096];
@@ -771,7 +771,7 @@ out:
 	return false;
 }
 
-void clear_domain_policy(struct domain_policy *dp)
+void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 {
 	int index;
 	for (index = 0; index < dp->list_len; index++) {
@@ -784,8 +784,8 @@ void clear_domain_policy(struct domain_policy *dp)
 	dp->list_len = 0;
 }
 
-int find_domain_by_ptr(struct domain_policy *dp,
-		       const struct path_info *domainname)
+int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
+			   const struct ccs_path_info *domainname)
 {
 	int i;
 	for (i = 0; i < dp->list_len; i++) {
@@ -795,53 +795,53 @@ int find_domain_by_ptr(struct domain_policy *dp,
 	return EOF;
 }
 
-const char *domain_name(const struct domain_policy *dp, const int index)
+const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].domainname->name;
 }
 
-static int domainname_compare(const void *a, const void *b)
+static int ccs_domainname_compare(const void *a, const void *b)
 {
-	return strcmp(((struct domain_info *) a)->domainname->name,
-		      ((struct domain_info *) b)->domainname->name);
+	return strcmp(((struct ccs_domain_info *) a)->domainname->name,
+		      ((struct ccs_domain_info *) b)->domainname->name);
 }
 
-static int path_info_compare(const void *a, const void *b)
+static int ccs_path_info_compare(const void *a, const void *b)
 {
-	const char *a0 = (*(struct path_info **) a)->name;
-	const char *b0 = (*(struct path_info **) b)->name;
+	const char *a0 = (*(struct ccs_path_info **) a)->name;
+	const char *b0 = (*(struct ccs_path_info **) b)->name;
 	return strcmp(a0, b0);
 }
 
-static void sort_domain_policy(struct domain_policy *dp)
+static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
 {
 	int i;
-	qsort(dp->list, dp->list_len, sizeof(struct domain_info),
-	      domainname_compare);
+	qsort(dp->list, dp->list_len, sizeof(struct ccs_domain_info),
+	      ccs_domainname_compare);
 	for (i = 0; i < dp->list_len; i++)
 		qsort(dp->list[i].string_ptr, dp->list[i].string_count,
-		      sizeof(struct path_info *), path_info_compare);
+		      sizeof(struct ccs_path_info *), ccs_path_info_compare);
 }
 
-void read_domain_policy(struct domain_policy *dp, const char *filename)
+void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
 {
 	FILE *fp = stdin;
 	if (filename) {
-		fp = open_read(filename);
+		fp = ccs_open_read(filename);
 		if (!fp) {
 			fprintf(stderr, "Can't open %s\n", filename);
 			return;
 		}
 	}
-	get();
-	handle_domain_policy(dp, fp, true);
-	put();
+	ccs_get();
+	ccs_handle_domain_policy(dp, fp, true);
+	ccs_put();
 	if (fp != stdin)
 		fclose(fp);
-	sort_domain_policy(dp);
+	ccs_sort_domain_policy(dp);
 }
 
-void delete_domain(struct domain_policy *dp, const int index)
+void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
 {
 	if (index >= 0 && index < dp->list_len) {
 		int i;
@@ -852,60 +852,60 @@ void delete_domain(struct domain_policy *dp, const int index)
 	}
 }
 
-void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write)
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_write)
 {
 	int i;
 	int index = EOF;
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = freadline(fp);
+		char *line = ccs_freadline(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
 		unsigned int profile;
 		if (!line)
 			break;
-		if (str_starts(line, "delete "))
+		if (ccs_str_starts(line, "delete "))
 			is_delete = true;
-		else if (str_starts(line, "select "))
+		else if (ccs_str_starts(line, "select "))
 			is_select = true;
-		str_starts(line, "domain=");
-		if (is_domain_def(line)) {
+		ccs_str_starts(line, "domain=");
+		if (ccs_is_domain_def(line)) {
 			if (is_delete) {
-				index = find_domain(dp, line, false, false);
+				index = ccs_find_domain(dp, line, false, false);
 				if (index >= 0)
-					delete_domain(dp, index);
+					ccs_delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = find_domain(dp, line, false, false);
+				index = ccs_find_domain(dp, line, false, false);
 				continue;
 			}
-			index = find_or_assign_new_domain(dp, line, false,
-							  false);
+			index = ccs_find_or_assign_new_domain(dp, line, false,
+							      false);
 			continue;
 		}
 		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(line, KEYWORD_USE_PROFILE "%u", &profile) == 1) {
+		if (sscanf(line, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1) {
 			dp->list[index].profile = (u8) profile;
 			dp->list[index].profile_assigned = 1;
 		} else if (is_delete)
-			del_string_entry(dp, line, index);
+			ccs_del_string_entry(dp, line, index);
 		else
-			add_string_entry(dp, line, index);
+			ccs_add_string_entry(dp, line, index);
 	}
 	return;
 read_policy:
 	for (i = 0; i < dp->list_len; i++) {
 		int j;
-		const struct path_info **string_ptr
+		const struct ccs_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
-		fprintf(fp, "%s\n", domain_name(dp, i));
+		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
 		if (dp->list[i].profile_assigned)
-			fprintf(fp, KEYWORD_USE_PROFILE "%u\n",
+			fprintf(fp, CCS_KEYWORD_USE_PROFILE "%u\n",
 				dp->list[i].profile);
 		fprintf(fp, "\n");
 		for (j = 0; j < string_count; j++)
@@ -916,28 +916,28 @@ read_policy:
 
 /* Variables */
 
-static _Bool buffer_locked = false;
+static _Bool ccs_buffer_locked = false;
 
 /* Main functions */
 
-void get(void)
+void ccs_get(void)
 {
-	if (buffer_locked)
-		out_of_memory();
-	buffer_locked = true;
+	if (ccs_buffer_locked)
+		ccs_out_of_memory();
+	ccs_buffer_locked = true;
 }
 
-void put(void)
+void ccs_put(void)
 {
-	if (!buffer_locked)
-		out_of_memory();
-	buffer_locked = false;
+	if (!ccs_buffer_locked)
+		ccs_out_of_memory();
+	ccs_buffer_locked = false;
 }
 
-char *shprintf(const char *fmt, ...)
+char *ccs_shprintf(const char *fmt, ...)
 {
-	if (!buffer_locked)
-		out_of_memory();
+	if (!ccs_buffer_locked)
+		ccs_out_of_memory();
 	while (true) {
 		static char *policy = NULL;
 		static int max_policy_len = 0;
@@ -947,38 +947,38 @@ char *shprintf(const char *fmt, ...)
 		len = vsnprintf(policy, max_policy_len, fmt, args);
 		va_end(args);
 		if (len < 0)
-			out_of_memory();
+			ccs_out_of_memory();
 		if (len >= max_policy_len) {
 			char *cp;
 			max_policy_len = len + 1;
 			cp = realloc(policy, max_policy_len);
 			if (!cp)
-				out_of_memory();
+				ccs_out_of_memory();
 			policy = cp;
 		} else
 			return policy;
 	}
 }
 
-char *freadline(FILE *fp)
+char *ccs_freadline(FILE *fp)
 {
 	static char *policy = NULL;
 	int pos = 0;
-	if (!buffer_locked)
-		out_of_memory();
+	if (!ccs_buffer_locked)
+		ccs_out_of_memory();
 	while (true) {
 		static int max_policy_len = 0;
 		const int c = fgetc(fp);
 		if (c == EOF)
 			return NULL;
-		if (network_mode && !c)
+		if (ccs_network_mode && !c)
 			return NULL;
 		if (pos == max_policy_len) {
 			char *cp;
 			max_policy_len += 4096;
 			cp = realloc(policy, max_policy_len);
 			if (!cp)
-				out_of_memory();
+				ccs_out_of_memory();
 			policy = cp;
 		}
 		policy[pos++] = (char) c;
@@ -987,23 +987,23 @@ char *freadline(FILE *fp)
 			break;
 		}
 	}
-	normalize_line(policy);
+	ccs_normalize_line(policy);
 	return policy;
 }
 
-_Bool check_remote_host(void)
+_Bool ccs_check_remote_host(void)
 {
-	int ccs_major = 0;
-	int ccs_minor = 0;
-	int ccs_rev = 0;
-	FILE *fp = open_read("version");
+	int major = 0;
+	int minor = 0;
+	int rev = 0;
+	FILE *fp = ccs_open_read("version");
 	if (!fp ||
-	    fscanf(fp, "%u.%u.%u", &ccs_major, &ccs_minor, &ccs_rev) < 2 ||
-	    ccs_major != 1 || ccs_minor != 7) {
-		const u32 ip = ntohl(network_ip);
+	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
+	    major != 1 || minor != 7) {
+		const u32 ip = ntohl(ccs_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
-			(u8) (ip >> 8), (u8) ip, ntohs(network_port));
+			(u8) (ip >> 8), (u8) ip, ntohs(ccs_network_port));
 		if (fp)
 			fclose(fp);
 		return false;
@@ -1023,37 +1023,37 @@ int main(int argc, char *argv[])
 	if (strrchr(argv0, '/'))
 		argv0 = strrchr(argv0, '/') + 1;
 	if (!strcmp(argv0, "ccs-sortpolicy"))
-		ret = sortpolicy_main(argc, argv);
+		ret = ccs_sortpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-setprofile"))
-		ret = setprofile_main(argc, argv);
+		ret = ccs_setprofile_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-setlevel"))
-		ret = setlevel_main(argc, argv);
+		ret = ccs_setlevel_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-selectpolicy"))
-		ret = selectpolicy_main(argc, argv);
+		ret = ccs_selectpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-diffpolicy"))
-		ret = diffpolicy_main(argc, argv);
+		ret = ccs_diffpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-savepolicy"))
-		ret = savepolicy_main(argc, argv);
+		ret = ccs_savepolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-pathmatch"))
-		ret = pathmatch_main(argc, argv);
+		ret = ccs_pathmatch_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-loadpolicy"))
-		ret = loadpolicy_main(argc, argv);
+		ret = ccs_loadpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-ld-watch"))
-		ret = ldwatch_main(argc, argv);
+		ret = ccs_ldwatch_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-findtemp"))
-		ret = findtemp_main(argc, argv);
+		ret = ccs_findtemp_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-editpolicy"))
-		ret = editpolicy_main(argc, argv);
+		ret = ccs_editpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-checkpolicy"))
-		ret = checkpolicy_main(argc, argv);
+		ret = ccs_checkpolicy_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-pstree"))
-		ret = pstree_main(argc, argv);
+		ret = ccs_pstree_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-queryd"))
-		ret = queryd_main(argc, argv);
+		ret = ccs_queryd_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-auditd"))
-		ret = auditd_main(argc, argv);
+		ret = ccs_auditd_main(argc, argv);
 	else if (!strcmp(argv0, "ccs-patternize"))
-		ret = patternize_main(argc, argv);
+		ret = ccs_patternize_main(argc, argv);
 	else
 		goto show_version;
 	return ret;
@@ -1064,7 +1064,7 @@ show_version:
 	 * unchecked argv[1].
 	 * You should use either "symbolic links" or "hard links".
 	 */
-	printf("ccstools version 1.7.2 build 2010/04/01\n");
+	printf("ccstools version 1.7.2+ build 2010/04/06\n");
 	fprintf(stderr, "Function %s not implemented.\n", argv0);
 	return 1;
 }

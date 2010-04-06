@@ -10,10 +10,10 @@
  */
 #include "ccstools.h"
 
-static struct dll_pathname_entry *entry_list = NULL;
-static int entry_list_count = 0;
+static struct ccs_dll_pathname_entry *ccs_entry_list = NULL;
+static int ccs_entry_list_count = 0;
 
-static void update_ld_list(int argc, char *argv[], FILE *fp_policy)
+static void ccs_update_ld_list(int argc, char *argv[], FILE *fp_policy)
 {
 	struct stat64 buf;
 	static time_t last_modified = 0;
@@ -42,11 +42,11 @@ static void update_ld_list(int argc, char *argv[], FILE *fp_policy)
 		real_pathname = realpath(cp, NULL);
 		if (!real_pathname)
 			continue;
-		for (i = 0; i < entry_list_count; i++) {
-			if (!strcmp(entry_list[i].real_pathname, real_pathname))
+		for (i = 0; i < ccs_entry_list_count; i++) {
+			if (!strcmp(ccs_entry_list[i].real_pathname, real_pathname))
 				break;
 		}
-		if (i < entry_list_count) {
+		if (i < ccs_entry_list_count) {
 			free(real_pathname);
 			continue;
 		}
@@ -64,31 +64,31 @@ static void update_ld_list(int argc, char *argv[], FILE *fp_policy)
 		/* Add an entry. */
 		pathname = strdup(cp);
 		if (!pathname)
-			out_of_memory();
-		entry_list = realloc(entry_list, (entry_list_count + 1) *
-				     sizeof(struct dll_pathname_entry));
-		if (!entry_list)
-			out_of_memory();
-		entry_list[entry_list_count].pathname = pathname;
-		entry_list[entry_list_count++].real_pathname = real_pathname;
+			ccs_out_of_memory();
+		ccs_entry_list = realloc(ccs_entry_list, (ccs_entry_list_count + 1) *
+				     sizeof(struct ccs_dll_pathname_entry));
+		if (!ccs_entry_list)
+			ccs_out_of_memory();
+		ccs_entry_list[ccs_entry_list_count].pathname = pathname;
+		ccs_entry_list[ccs_entry_list_count++].real_pathname = real_pathname;
 		printf("Added %s : %s\n", pathname, real_pathname);
-		fprintf(fp_policy, KEYWORD_ALLOW_READ);
-		fprintf_encoded(fp_policy, real_pathname);
+		fprintf(fp_policy, CCS_KEYWORD_ALLOW_READ);
+		ccs_fprintf_encoded(fp_policy, real_pathname);
 		fprintf(fp_policy, "\n");
 		fflush(fp_policy);
 	}
 	pclose(fp_ldconfig);
 out:
-	printf("Monitoring %d files.\n", entry_list_count);
+	printf("Monitoring %d files.\n", ccs_entry_list_count);
 }
 
-int ldwatch_main(int argc, char *argv[])
+int ccs_ldwatch_main(int argc, char *argv[])
 {
 	FILE *fp_policy;
 	if (argc > 1 && !strcmp(argv[1], "--help"))
 		goto usage;
 	{
-		const int fd = open(proc_policy_exception_policy, O_RDWR);
+		const int fd = open(ccs_proc_policy_exception_policy, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this program "
 				"for this kernel.\n");
@@ -96,30 +96,30 @@ int ldwatch_main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				proc_policy_manager);
+				ccs_proc_policy_manager);
 			return 1;
 		}
 		close(fd);
 	}
-	fp_policy = fopen(proc_policy_exception_policy, "w");
+	fp_policy = fopen(ccs_proc_policy_exception_policy, "w");
 	if (!fp_policy) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);
 	}
 	while (true) {
 		int i;
-		update_ld_list(argc, argv, fp_policy);
+		ccs_update_ld_list(argc, argv, fp_policy);
 		/* Check entries for update. */
-		for (i = 0; i < entry_list_count; i++) {
-			struct dll_pathname_entry *ptr = &entry_list[i];
+		for (i = 0; i < ccs_entry_list_count; i++) {
+			struct ccs_dll_pathname_entry *ptr = &ccs_entry_list[i];
 			char *real_pathname = realpath(ptr->pathname, NULL);
 			if (real_pathname &&
 			    strcmp(ptr->real_pathname, real_pathname)) {
 				printf("Changed %s : %s -> %s\n",
 				       ptr->pathname, ptr->real_pathname,
 				       real_pathname);
-				fprintf(fp_policy, KEYWORD_ALLOW_READ);
-				fprintf_encoded(fp_policy, real_pathname);
+				fprintf(fp_policy, CCS_KEYWORD_ALLOW_READ);
+				ccs_fprintf_encoded(fp_policy, real_pathname);
 				fprintf(fp_policy, "\n");
 				fflush(fp_policy);
 				free(ptr->real_pathname);

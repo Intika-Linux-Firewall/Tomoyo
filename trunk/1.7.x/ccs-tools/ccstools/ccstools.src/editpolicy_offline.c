@@ -5,44 +5,44 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-struct misc_policy {
-	const struct path_info **list;
+struct ccs_misc_policy {
+	const struct ccs_path_info **list;
 	int list_len;
 };
 
 /* Prototypes */
 
-static void handle_misc_policy(struct misc_policy *mp, FILE *fp,
-			       _Bool is_write);
+static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp,
+				   _Bool is_write);
 
 /* Utility functions */
 
-static void handle_misc_policy(struct misc_policy *mp, FILE *fp, _Bool is_write)
+static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp, _Bool is_write)
 {
 	int i;
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = freadline(fp);
-		const struct path_info *cp;
+		char *line = ccs_freadline(fp);
+		const struct ccs_path_info *cp;
 		_Bool is_delete;
 		if (!line)
 			break;
 		if (!line[0])
 			continue;
-		is_delete = str_starts(line, "delete ");
-		cp = savename(line);
+		is_delete = ccs_str_starts(line, "delete ");
+		cp = ccs_savename(line);
 		if (!cp)
-			out_of_memory();
+			ccs_out_of_memory();
 		if (!is_delete)
 			goto append_policy;
 		for (i = 0; i < mp->list_len; i++)
-			/* Faster comparison, for they are savename'd. */
+			/* Faster comparison, for they are ccs_savename'd. */
 			if (mp->list[i] == cp)
 				break;
 		if (i < mp->list_len)
@@ -51,15 +51,15 @@ static void handle_misc_policy(struct misc_policy *mp, FILE *fp, _Bool is_write)
 		continue;
 append_policy:
 		for (i = 0; i < mp->list_len; i++)
-			/* Faster comparison, for they are savename'd. */
+			/* Faster comparison, for they are ccs_savename'd. */
 			if (mp->list[i] == cp)
 				break;
 		if (i < mp->list_len)
 			continue;
 		mp->list = realloc(mp->list, (mp->list_len + 1)
-				   * sizeof(const struct path_info *));
+				   * sizeof(const struct ccs_path_info *));
 		if (!mp->list)
-			out_of_memory();
+			ccs_out_of_memory();
 		mp->list[mp->list_len++] = cp;
 	}
 	return;
@@ -70,11 +70,11 @@ read_policy:
 
 /* Variables */
 
-int persistent_fd = EOF;
+int ccs_persistent_fd = EOF;
 
 /* Main functions */
 
-void send_fd(char *data, int *fd)
+void ccs_send_fd(char *data, int *fd)
 {
 	struct msghdr msg;
 	struct iovec iov = { data, strlen(data) };
@@ -90,22 +90,22 @@ void send_fd(char *data, int *fd)
 	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 	msg.msg_controllen = cmsg->cmsg_len;
 	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
-	sendmsg(persistent_fd, &msg, 0);
+	sendmsg(ccs_persistent_fd, &msg, 0);
 	close(*fd);
 }
 
-void editpolicy_offline_daemon(void)
+void ccs_editpolicy_offline_daemon(void)
 {
-	struct misc_policy mp[3];
-	struct domain_policy dp;
+	struct ccs_misc_policy mp[3];
+	struct ccs_domain_policy dp;
 	static const int buffer_len = 8192;
 	char *buffer = malloc(buffer_len);
 	if (!buffer)
-		out_of_memory();
+		ccs_out_of_memory();
 	memset(&dp, 0, sizeof(dp));
 	memset(&mp, 0, sizeof(mp));
-	get();
-	find_or_assign_new_domain(&dp, ROOT_NAME, false, false);
+	ccs_get();
+	ccs_find_or_assign_new_domain(&dp, CCS_ROOT_NAME, false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;
@@ -119,7 +119,7 @@ void editpolicy_offline_daemon(void)
 		msg.msg_controllen = sizeof(cmsg_buf);
 		memset(buffer, 0, buffer_len);
 		errno = 0;
-		if (recvmsg(persistent_fd, &msg, 0) <= 0)
+		if (recvmsg(ccs_persistent_fd, &msg, 0) <= 0)
 			break;
 		cmsg = CMSG_FIRSTHDR(&msg);
 		if (!cmsg)
@@ -137,29 +137,29 @@ void editpolicy_offline_daemon(void)
 		} else {
 			break;
 		}
-		if (str_starts(buffer, "POST ")) {
-			if (!strcmp(buffer, proc_policy_domain_policy))
-				handle_domain_policy(&dp, fp, true);
-			else if (!strcmp(buffer, proc_policy_exception_policy))
-				handle_misc_policy(&mp[0], fp, true);
-			else if (!strcmp(buffer, proc_policy_profile))
-				handle_misc_policy(&mp[1], fp, true);
-			else if (!strcmp(buffer, proc_policy_manager))
-				handle_misc_policy(&mp[2], fp, true);
-		} else if (str_starts(buffer, "GET ")) {
-			if (!strcmp(buffer, proc_policy_domain_policy))
-				handle_domain_policy(&dp, fp, false);
-			else if (!strcmp(buffer, proc_policy_exception_policy))
-				handle_misc_policy(&mp[0], fp, false);
-			else if (!strcmp(buffer, proc_policy_profile))
-				handle_misc_policy(&mp[1], fp, false);
-			else if (!strcmp(buffer, proc_policy_manager))
-				handle_misc_policy(&mp[2], fp, false);
+		if (ccs_str_starts(buffer, "POST ")) {
+			if (!strcmp(buffer, ccs_proc_policy_domain_policy))
+				ccs_handle_domain_policy(&dp, fp, true);
+			else if (!strcmp(buffer, ccs_proc_policy_exception_policy))
+				ccs_handle_misc_policy(&mp[0], fp, true);
+			else if (!strcmp(buffer, ccs_proc_policy_profile))
+				ccs_handle_misc_policy(&mp[1], fp, true);
+			else if (!strcmp(buffer, ccs_proc_policy_manager))
+				ccs_handle_misc_policy(&mp[2], fp, true);
+		} else if (ccs_str_starts(buffer, "GET ")) {
+			if (!strcmp(buffer, ccs_proc_policy_domain_policy))
+				ccs_handle_domain_policy(&dp, fp, false);
+			else if (!strcmp(buffer, ccs_proc_policy_exception_policy))
+				ccs_handle_misc_policy(&mp[0], fp, false);
+			else if (!strcmp(buffer, ccs_proc_policy_profile))
+				ccs_handle_misc_policy(&mp[1], fp, false);
+			else if (!strcmp(buffer, ccs_proc_policy_manager))
+				ccs_handle_misc_policy(&mp[2], fp, false);
 		}
 		fclose(fp);
 	}
-	put();
-	clear_domain_policy(&dp);
+	ccs_put();
+	ccs_clear_domain_policy(&dp);
 	{
 		int i;
 		for (i = 0; i < 3; i++) {

@@ -5,12 +5,12 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-int setprofile_main(int argc, char *argv[])
+int ccs_setprofile_main(int argc, char *argv[])
 {
 	FILE *fp_in;
 	FILE *fp_out;
@@ -28,9 +28,9 @@ int setprofile_main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		normalize_line(argv[i]);
+		ccs_normalize_line(argv[i]);
 	{
-		const int fd = open(proc_policy_domain_status, O_RDWR);
+		const int fd = open(ccs_proc_policy_domain_status, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this command for this "
 				"kernel.\n");
@@ -38,21 +38,21 @@ int setprofile_main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				proc_policy_manager);
+				ccs_proc_policy_manager);
 			return 1;
 		}
 		close(fd);
 	}
 	{
 		_Bool profile_found = false;
-		FILE *fp = fopen(proc_policy_profile, "r");
+		FILE *fp = fopen(ccs_proc_policy_profile, "r");
 		if (!fp) {
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
 		}
-		get();
+		ccs_get();
 		while (true) {
-			char *line = freadline(fp);
+			char *line = ccs_freadline(fp);
 			if (!line)
 				break;
 			if (atoi(line) != profile)
@@ -60,23 +60,23 @@ int setprofile_main(int argc, char *argv[])
 			profile_found = true;
 			break;
 		}
-		put();
+		ccs_put();
 		fclose(fp);
 		if (!profile_found) {
 			fprintf(stderr, "Profile %u not defined.\n", profile);
 			exit(1);
 		}
 	}
-	fp_in = fopen(proc_policy_domain_status, "r");
-	fp_out = fopen(proc_policy_domain_status, "w");
+	fp_in = fopen(ccs_proc_policy_domain_status, "r");
+	fp_out = fopen(ccs_proc_policy_domain_status, "w");
 	if (!fp_in || !fp_out) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);
 	}
-	get();
+	ccs_get();
 	while (true) {
 		char *cp;
-		char *line = freadline(fp_in);
+		char *line = ccs_freadline(fp_in);
 		if (!line)
 			break;
 		cp = strchr(line, ' ');
@@ -98,7 +98,7 @@ int setprofile_main(int argc, char *argv[])
 			printf("%u %s\n", profile, cp);
 		}
 	}
-	put();
+	ccs_put();
 	fclose(fp_in);
 	fclose(fp_out);
 	return 0;

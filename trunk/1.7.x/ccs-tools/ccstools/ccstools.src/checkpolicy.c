@@ -5,12 +5,12 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-static int parse_ulong(unsigned long *result, char **str)
+static int ccs_parse_ulong(unsigned long *result, char **str)
 {
 	const char *cp = *str;
 	char *ep;
@@ -29,11 +29,11 @@ static int parse_ulong(unsigned long *result, char **str)
 	if (cp == ep)
 		return 0;
 	*str = ep;
-	return base == 16 ? VALUE_TYPE_HEXADECIMAL :
-		(base == 8 ? VALUE_TYPE_OCTAL : VALUE_TYPE_DECIMAL);
+	return base == 16 ? CCS_VALUE_TYPE_HEXADECIMAL :
+		(base == 8 ? CCS_VALUE_TYPE_OCTAL : CCS_VALUE_TYPE_DECIMAL);
 }
 
-static char *find_condition_part(char *data)
+static char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
 	if (!cp)
@@ -43,11 +43,11 @@ static char *find_condition_part(char *data)
 	return cp;
 }
 
-static unsigned int line = 0;
-static unsigned int errors = 0;
-static unsigned int warnings = 0;
+static unsigned int ccs_line = 0;
+static unsigned int ccs_errors = 0;
+static unsigned int ccs_warnings = 0;
 
-static _Bool check_condition(char *condition)
+static _Bool ccs_check_condition(char *condition)
 {
 	enum ccs_conditions_index {
 		CCS_TASK_UID,             /* current_uid()   */
@@ -219,7 +219,7 @@ static _Bool check_condition(char *condition)
 			if (post_state[3] & (1 << i))
 				goto out;
 			post_state[3] |= 1 << i;
-			if (!parse_ulong(&right_min, &condition) ||
+			if (!ccs_parse_ulong(&right_min, &condition) ||
 			    right_min > 255)
 				goto out;
 			post_state[i] = (u8) right_min;
@@ -241,7 +241,7 @@ static _Bool check_condition(char *condition)
 		int r_len;
 		if (next)
 			*next++ = '\0';
-		if (!is_correct_path(pos, 0, 0, 0))
+		if (!ccs_is_correct_path(pos, 0, 0, 0))
 			goto out;
 		eq = strchr(pos, '=');
 		if (!eq)
@@ -252,7 +252,7 @@ static _Bool check_condition(char *condition)
 		r_len = strlen(eq + 1);
 		if (!strncmp(pos, "exec.argv[", 10)) {
 			pos += 10;
-			if (!parse_ulong(&left_min, &pos) || strcmp(pos, "]"))
+			if (!ccs_parse_ulong(&left_min, &pos) || strcmp(pos, "]"))
 				goto out;
 			pos = eq + 1;
 			if (r_len < 2)
@@ -279,11 +279,11 @@ static _Bool check_condition(char *condition)
 			break;
 		}
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
-			if (!parse_ulong(&left_min, &pos))
+			if (!ccs_parse_ulong(&left_min, &pos))
 				goto out;
 			if (pos[0] == '-') {
 				pos++;
-				if (!parse_ulong(&left_max, &pos) || pos[0] ||
+				if (!ccs_parse_ulong(&left_max, &pos) || pos[0] ||
 				    left_min > left_max)
 					goto out;
 			} else if (pos[0])
@@ -309,11 +309,11 @@ static _Bool check_condition(char *condition)
 			goto next;
 		if (pos[0] == '@' && pos[1])
 			goto next;
-		if (!parse_ulong(&right_min, &pos))
+		if (!ccs_parse_ulong(&right_min, &pos))
 			goto out;
 		if (pos[0] == '-') {
 			pos++;
-			if (!parse_ulong(&right_max, &pos) || pos[0] ||
+			if (!ccs_parse_ulong(&right_max, &pos) || pos[0] ||
 			    right_min > right_max)
 				goto out;
 		} else if (pos[0])
@@ -323,12 +323,12 @@ next:
 	}
 	return true;
 out:
-	printf("%u: ERROR: '%s' is an illegal condition.\n", line, pos);
-	errors++;
+	printf("%u: ERROR: '%s' is an illegal condition.\n", ccs_line, pos);
+	ccs_errors++;
 	return false;
 }
 
-static void check_capability_policy(char *data)
+static void ccs_check_capability_policy(char *data)
 {
 	static const char *capability_keywords[] = {
 		"inet_tcp_create", "inet_tcp_listen", "inet_tcp_connect",
@@ -346,40 +346,40 @@ static void check_capability_policy(char *data)
 		if (!strcmp(data, capability_keywords[i]))
 			return;
 	}
-	printf("%u: ERROR: '%s' is a bad capability name.\n", line, data);
-	errors++;
+	printf("%u: ERROR: '%s' is a bad capability name.\n", ccs_line, data);
+	ccs_errors++;
 }
 
-static void check_signal_policy(char *data)
+static void ccs_check_signal_policy(char *data)
 {
 	int sig;
 	char *cp;
 	cp = strchr(data, ' ');
 	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
 		return;
 	}
 	*cp++ = '\0';
 	if (sscanf(data, "%d", &sig) != 1) {
-		printf("%u: ERROR: '%s' is a bad signal number.\n", line, data);
-		errors++;
+		printf("%u: ERROR: '%s' is a bad signal number.\n", ccs_line, data);
+		ccs_errors++;
 	}
-	if (!is_correct_domain(cp)) {
-		printf("%u: ERROR: '%s' is a bad domainname.\n", line, cp);
-		errors++;
+	if (!ccs_is_correct_domain(cp)) {
+		printf("%u: ERROR: '%s' is a bad domainname.\n", ccs_line, cp);
+		ccs_errors++;
 	}
 }
 
-static void check_env_policy(char *data)
+static void ccs_check_env_policy(char *data)
 {
-	if (!is_correct_path(data, 0, 0, 0)) {
-		printf("%u: ERROR: '%s' is a bad variable name.\n", line, data);
-		errors++;
+	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+		printf("%u: ERROR: '%s' is a bad variable name.\n", ccs_line, data);
+		ccs_errors++;
 	}
 }
 
-static void check_network_policy(char *data)
+static void ccs_check_network_policy(char *data)
 {
 	int sock_type;
 	int operation;
@@ -407,17 +407,17 @@ static void check_network_policy(char *data)
 		goto out;
 	cp2++;
 	if (!strncmp(cp1, "bind ", 5)) {
-		operation = (sock_type == SOCK_STREAM) ? NETWORK_ACL_TCP_BIND :
-			(sock_type == SOCK_DGRAM) ? NETWORK_ACL_UDP_BIND :
-			NETWORK_ACL_RAW_BIND;
+		operation = (sock_type == SOCK_STREAM) ? CCS_NETWORK_ACL_TCP_BIND :
+			(sock_type == SOCK_DGRAM) ? CCS_NETWORK_ACL_UDP_BIND :
+			CCS_NETWORK_ACL_RAW_BIND;
 	} else if (!strncmp(cp1, "connect ", 8)) {
 		operation = (sock_type == SOCK_STREAM) ?
-			NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM) ?
-			NETWORK_ACL_UDP_CONNECT : NETWORK_ACL_RAW_CONNECT;
+			CCS_NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM) ?
+			CCS_NETWORK_ACL_UDP_CONNECT : CCS_NETWORK_ACL_RAW_CONNECT;
 	} else if (sock_type == SOCK_STREAM && !strncmp(cp1, "listen ", 7)) {
-		operation = NETWORK_ACL_TCP_LISTEN;
+		operation = CCS_NETWORK_ACL_TCP_LISTEN;
 	} else if (sock_type == SOCK_STREAM && !strncmp(cp1, "accept ", 7)) {
-		operation = NETWORK_ACL_TCP_ACCEPT;
+		operation = CCS_NETWORK_ACL_TCP_ACCEPT;
 	} else {
 		goto out;
 	}
@@ -474,11 +474,11 @@ next:
 			return;
 	}
 out:
-	printf("%u: ERROR: Bad network address.\n", line);
-	errors++;
+	printf("%u: ERROR: Bad network address.\n", ccs_line);
+	ccs_errors++;
 }
 
-static void check_file_policy(char *data)
+static void ccs_check_file_policy(char *data)
 {
 	static const struct {
 		const char * const keyword;
@@ -516,8 +516,8 @@ static void check_file_policy(char *data)
 	char *cp;
 	int type;
 	if (!filename) {
-		printf("%u: ERROR: Unknown command '%s'\n", line, data);
-		errors++;
+		printf("%u: ERROR: Unknown command '%s'\n", ccs_line, data);
+		ccs_errors++;
 		return;
 	}
 	*filename++ = '\0';
@@ -531,24 +531,24 @@ static void check_file_policy(char *data)
 			cp = strrchr(filename, ' ');
 			if (!cp) {
 				printf("%u: ERROR: Too few arguments.\n",
-				       line);
+				       ccs_line);
 				break;
 			}
-			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
 				printf("%u: ERROR: '%s' is a bad argument\n",
-				       line, cp + 1);
+				       ccs_line, cp + 1);
 				break;
 			}
 			*cp = '\0';
 			cp = strrchr(filename, ' ');
 			if (!cp) {
 				printf("%u: ERROR: Too few arguments.\n",
-				       line);
+				       ccs_line);
 				break;
 			}
-			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
 				printf("%u: ERROR: '%s' is a bad argument.\n",
-				       line, cp + 1);
+				       ccs_line, cp + 1);
 				break;
 			}
 			*cp = '\0';
@@ -557,40 +557,40 @@ static void check_file_policy(char *data)
 			cp = strrchr(filename, ' ');
 			if (!cp) {
 				printf("%u: ERROR: Too few arguments.\n",
-				       line);
+				       ccs_line);
 				break;
 			}
-			if (!is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
 				printf("%u: ERROR: '%s' is a bad argument.\n",
-				       line, cp + 1);
+				       ccs_line, cp + 1);
 				break;
 			}
 			*cp = '\0';
 		}
-		if (!is_correct_path(filename, 0, 0, 0)) {
-			printf("%u: ERROR: '%s' is a bad argument.\n", line,
+		if (!ccs_is_correct_path(filename, 0, 0, 0)) {
+			printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line,
 			       filename);
 			break;
 		}
 		/* "allow_execute"/"allow_transit" don't accept patterns. */
 		if (type <= 1 && filename[0] != '@' &&
-		    !is_correct_path(filename, 1, -1, -1)) {
+		    !ccs_is_correct_path(filename, 1, -1, -1)) {
 			printf("%u: ERROR: Patterns not allowed for "
-			       "execute/transit permission.\n", line);
+			       "execute/transit permission.\n", ccs_line);
 			break;
 		}
 		return;
 	}
 	if (!acl_type_array[type].keyword)
 		goto out;
-	errors++;
+	ccs_errors++;
 	return;
 out:
-	printf("%u: ERROR: Invalid permission '%s %s'\n", line, data, filename);
-	errors++;
+	printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data, filename);
+	ccs_errors++;
 }
 
-static void check_reserved_port_policy(char *data)
+static void ccs_check_reserved_port_policy(char *data)
 {
 	unsigned int from;
 	unsigned int to;
@@ -603,129 +603,129 @@ static void check_reserved_port_policy(char *data)
 		if (from < 65536)
 			return;
 	} else {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
 		return;
 	}
 out:
-	printf("%u: ERROR: '%s' is a bad port number.\n", line, data);
-	errors++;
+	printf("%u: ERROR: '%s' is a bad port number.\n", ccs_line, data);
+	ccs_errors++;
 }
 
-static void check_domain_initializer_entry(const char *domainname,
-					const char *program)
+static void ccs_check_domain_initializer_entry(const char *domainname,
+					       const char *program)
 {
-	if (!is_correct_path(program, 1, 0, -1)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", line, program);
-		errors++;
+	if (!ccs_is_correct_path(program, 1, 0, -1)) {
+		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
+		ccs_errors++;
 	}
-	if (domainname && !is_correct_path(domainname, 1, -1, -1) &&
-	    !is_correct_domain(domainname)) {
+	if (domainname && !ccs_is_correct_path(domainname, 1, -1, -1) &&
+	    !ccs_is_correct_domain(domainname)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n",
-		       line, domainname);
-		errors++;
+		       ccs_line, domainname);
+		ccs_errors++;
 	}
 }
 
-static void check_domain_initializer_policy(char *data)
+static void ccs_check_domain_initializer_policy(char *data)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
 		*cp = '\0';
-		check_domain_initializer_entry(cp + 6, data);
+		ccs_check_domain_initializer_entry(cp + 6, data);
 	} else {
-		check_domain_initializer_entry(NULL, data);
+		ccs_check_domain_initializer_entry(NULL, data);
 	}
 }
 
-static void check_domain_keeper_entry(const char *domainname,
-				      const char *program)
+static void ccs_check_domain_keeper_entry(const char *domainname,
+					  const char *program)
 {
-	if (!is_correct_path(domainname, 1, -1, -1) &&
-	    !is_correct_domain(domainname)) {
+	if (!ccs_is_correct_path(domainname, 1, -1, -1) &&
+	    !ccs_is_correct_domain(domainname)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n",
-		       line, domainname);
-		errors++;
+		       ccs_line, domainname);
+		ccs_errors++;
 	}
-	if (program && !is_correct_path(program, 1, 0, -1)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", line, program);
-		errors++;
+	if (program && !ccs_is_correct_path(program, 1, 0, -1)) {
+		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
+		ccs_errors++;
 	}
 }
 
-static void check_domain_keeper_policy(char *data)
+static void ccs_check_domain_keeper_policy(char *data)
 {
 	char *cp = strstr(data, " from ");
 	if (cp) {
 		*cp = '\0';
-		check_domain_keeper_entry(cp + 6, data);
+		ccs_check_domain_keeper_entry(cp + 6, data);
 	} else {
-		check_domain_keeper_entry(data, NULL);
+		ccs_check_domain_keeper_entry(data, NULL);
 	}
 }
 
-static void check_path_group_policy(char *data)
+static void ccs_check_path_group_policy(char *data)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
 		return;
 	}
 	*cp++ = '\0';
-	if (!is_correct_path(data, 0, 0, 0)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", line, data);
-		errors++;
+	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
+		ccs_errors++;
 	}
-	if (!is_correct_path(cp, 0, 0, 0)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", line, cp);
-		errors++;
+	if (!ccs_is_correct_path(cp, 0, 0, 0)) {
+		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, cp);
+		ccs_errors++;
 	}
 }
 
-static void check_number_group_policy(char *data)
+static void ccs_check_number_group_policy(char *data)
 {
 	char *cp = strchr(data, ' ');
 	unsigned long v;
 	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
 		return;
 	}
 	*cp++ = '\0';
-	if (!is_correct_path(data, 0, 0, 0)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", line, data);
-		errors++;
+	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
+		ccs_errors++;
 	}
 	data = cp;
 	cp = strchr(data, '-');
 	if (cp)
 		*cp = '\0';
-	if (!parse_ulong(&v, &data) || *data) {
-		printf("%u: ERROR: '%s' is a bad number.\n", line, data);
-		errors++;
+	if (!ccs_parse_ulong(&v, &data) || *data) {
+		printf("%u: ERROR: '%s' is a bad number.\n", ccs_line, data);
+		ccs_errors++;
 	}
-	if (cp && !parse_ulong(&v, &cp)) {
-		printf("%u: ERROR: '%s' is a bad number.\n", line, cp);
-		errors++;
+	if (cp && !ccs_parse_ulong(&v, &cp)) {
+		printf("%u: ERROR: '%s' is a bad number.\n", ccs_line, cp);
+		ccs_errors++;
 	}
 }
 
-static void check_address_group_policy(char *data)
+static void ccs_check_address_group_policy(char *data)
 {
 	char *cp = strchr(data, ' ');
 	u16 min_address[8];
 	u16 max_address[8];
 	int count;
 	if (!cp) {
-		printf("%u: ERROR: Too few parameters.\n", line);
-		errors++;
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
 		return;
 	}
 	*cp++ = '\0';
-	if (!is_correct_path(data, 0, 0, 0)) {
-		printf("%u: ERROR: '%s' is a bad group name.\n", line, data);
-		errors++;
+	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
+		ccs_errors++;
 	}
 	count = sscanf(cp, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
 		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
@@ -743,25 +743,25 @@ static void check_address_group_policy(char *data)
 		       &max_address[2], &max_address[3]);
 	if (count == 4 || count == 8)
 		return;
-	printf("%u: ERROR: '%s' is a bad address.\n", line, cp);
-	errors++;
+	printf("%u: ERROR: '%s' is a bad address.\n", ccs_line, cp);
+	ccs_errors++;
 }
 
-static void check_domain_policy(char *policy)
+static void ccs_check_domain_policy(char *policy)
 {
 	static int domain = EOF;
 	_Bool is_delete = false;
 	_Bool is_select = false;
-	if (str_starts(policy, KEYWORD_DELETE))
+	if (ccs_str_starts(policy, CCS_KEYWORD_DELETE))
 		is_delete = true;
-	else if (str_starts(policy, KEYWORD_SELECT))
+	else if (ccs_str_starts(policy, CCS_KEYWORD_SELECT))
 		is_select = true;
 	if (!strncmp(policy, "<kernel>", 8)) {
-		if (!is_correct_domain(policy) ||
+		if (!ccs_is_correct_domain(policy) ||
 		    strlen(policy) >= CCS_MAX_PATHNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		} else {
 			if (is_delete)
 				domain = EOF;
@@ -770,142 +770,142 @@ static void check_domain_policy(char *policy)
 		}
 	} else if (is_select) {
 		printf("%u: ERROR: Command 'select' is valid for selecting "
-		       "domains only.\n", line);
-		errors++;
+		       "domains only.\n", ccs_line);
+		ccs_errors++;
 	} else if (domain == EOF) {
 		printf("%u: WARNING: '%s' is unprocessed because domain is not "
-		       "selected.\n", line, policy);
-		warnings++;
-	} else if (str_starts(policy, KEYWORD_USE_PROFILE)) {
+		       "selected.\n", ccs_line, policy);
+		ccs_warnings++;
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_USE_PROFILE)) {
 		unsigned int profile;
 		if (sscanf(policy, "%u", &profile) != 1 ||
 		    profile >= 256) {
 			printf("%u: ERROR: '%s' is a bad profile.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
 	} else if (!strcmp(policy, "ignore_global_allow_read")) {
 		/* Nothing to do. */
 	} else if (!strcmp(policy, "ignore_global_allow_env")) {
 		/* Nothing to do. */
-	} else if (str_starts(policy, "execute_handler ") ||
-		   str_starts(policy, "denied_execute_handler")) {
-		if (!is_correct_path(policy, 1, -1, -1)) {
+	} else if (ccs_str_starts(policy, "execute_handler ") ||
+		   ccs_str_starts(policy, "denied_execute_handler")) {
+		if (!ccs_is_correct_path(policy, 1, -1, -1)) {
 			printf("%u: ERROR: '%s' is a bad pathname.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
 	} else if (!strcmp(policy, "transition_failed")) {
 		/* Nothing to do. */
 	} else if (!strcmp(policy, "quota_exceeded")) {
 		/* Nothing to do. */
 	} else {
-		char *cp = find_condition_part(policy);
-		if (cp && !check_condition(cp))
+		char *cp = ccs_find_condition_part(policy);
+		if (cp && !ccs_check_condition(cp))
 			return;
-		if (str_starts(policy, KEYWORD_ALLOW_CAPABILITY))
-			check_capability_policy(policy);
-		else if (str_starts(policy, KEYWORD_ALLOW_NETWORK))
-			check_network_policy(policy);
-		else if (str_starts(policy, KEYWORD_ALLOW_SIGNAL))
-			check_signal_policy(policy);
-		else if (str_starts(policy, KEYWORD_ALLOW_ENV))
-			check_env_policy(policy);
+		if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_CAPABILITY))
+			ccs_check_capability_policy(policy);
+		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_NETWORK))
+			ccs_check_network_policy(policy);
+		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_SIGNAL))
+			ccs_check_signal_policy(policy);
+		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_ENV))
+			ccs_check_env_policy(policy);
 		else
-			check_file_policy(policy);
+			ccs_check_file_policy(policy);
 	}
 }
 
-static void check_exception_policy(char *policy)
+static void ccs_check_exception_policy(char *policy)
 {
-	str_starts(policy, KEYWORD_DELETE);
-	if (str_starts(policy, KEYWORD_ALLOW_READ)) {
-		if (!is_correct_path(policy, 1, 0, -1)) {
+	ccs_str_starts(policy, CCS_KEYWORD_DELETE);
+	if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_READ)) {
+		if (!ccs_is_correct_path(policy, 1, 0, -1)) {
 			printf("%u: ERROR: '%s' is a bad pathname.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
-	} else if (str_starts(policy, KEYWORD_INITIALIZE_DOMAIN)) {
-		check_domain_initializer_policy(policy);
-	} else if (str_starts(policy, KEYWORD_NO_INITIALIZE_DOMAIN)) {
-		check_domain_initializer_policy(policy);
-	} else if (str_starts(policy, KEYWORD_KEEP_DOMAIN)) {
-		check_domain_keeper_policy(policy);
-	} else if (str_starts(policy, KEYWORD_NO_KEEP_DOMAIN)) {
-		check_domain_keeper_policy(policy);
-	} else if (str_starts(policy, KEYWORD_PATH_GROUP)) {
-		check_path_group_policy(policy);
-	} else if (str_starts(policy, KEYWORD_NUMBER_GROUP)) {
-		check_number_group_policy(policy);
-	} else if (str_starts(policy, KEYWORD_ADDRESS_GROUP)) {
-		check_address_group_policy(policy);
-	} else if (str_starts(policy, KEYWORD_AGGREGATOR)) {
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_INITIALIZE_DOMAIN)) {
+		ccs_check_domain_initializer_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_NO_INITIALIZE_DOMAIN)) {
+		ccs_check_domain_initializer_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_KEEP_DOMAIN)) {
+		ccs_check_domain_keeper_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_NO_KEEP_DOMAIN)) {
+		ccs_check_domain_keeper_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_PATH_GROUP)) {
+		ccs_check_path_group_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_NUMBER_GROUP)) {
+		ccs_check_number_group_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_ADDRESS_GROUP)) {
+		ccs_check_address_group_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_AGGREGATOR)) {
 		char *cp = strchr(policy, ' ');
 		if (!cp) {
-			printf("%u: ERROR: Too few parameters.\n", line);
-			errors++;
+			printf("%u: ERROR: Too few parameters.\n", ccs_line);
+			ccs_errors++;
 		} else {
 			*cp++ = '\0';
-			if (!is_correct_path(policy, 1, 0, -1)) {
+			if (!ccs_is_correct_path(policy, 1, 0, -1)) {
 				printf("%u: ERROR: '%s' is a bad pattern.\n",
-				       line, policy);
-				errors++;
+				       ccs_line, policy);
+				ccs_errors++;
 			}
-			if (!is_correct_path(cp, 1, -1, -1)) {
+			if (!ccs_is_correct_path(cp, 1, -1, -1)) {
 				printf("%u: ERROR: '%s' is a bad pathname.\n",
-				       line, cp);
-				errors++;
+				       ccs_line, cp);
+				ccs_errors++;
 			}
 		}
-	} else if (str_starts(policy, KEYWORD_FILE_PATTERN)) {
-		if (!is_correct_path(policy, 0, 1, 0)) {
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_FILE_PATTERN)) {
+		if (!ccs_is_correct_path(policy, 0, 1, 0)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
-	} else if (str_starts(policy, KEYWORD_DENY_REWRITE)) {
-		if (!is_correct_path(policy, 0, 0, 0)) {
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_REWRITE)) {
+		if (!ccs_is_correct_path(policy, 0, 0, 0)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
-	} else if (str_starts(policy, KEYWORD_ALLOW_ENV)) {
-		if (!is_correct_path(policy, 0, 0, 0)) {
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_ENV)) {
+		if (!ccs_is_correct_path(policy, 0, 0, 0)) {
 			printf("%u: ERROR: '%s' is a bad variable name.\n",
-			       line, policy);
-			errors++;
+			       ccs_line, policy);
+			ccs_errors++;
 		}
-	} else if (str_starts(policy, KEYWORD_DENY_AUTOBIND)) {
-		check_reserved_port_policy(policy);
+	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_AUTOBIND)) {
+		ccs_check_reserved_port_policy(policy);
 	} else {
 		printf("%u: ERROR: Unknown command '%s'.\n",
-		       line, policy);
-		errors++;
+		       ccs_line, policy);
+		ccs_errors++;
 	}
 }
 
-int checkpolicy_main(int argc, char *argv[])
+int ccs_checkpolicy_main(int argc, char *argv[])
 {
 	char *policy = NULL;
-	int policy_type = POLICY_TYPE_UNKNOWN;
+	int policy_type = CCS_POLICY_TYPE_UNKNOWN;
 	if (argc > 1) {
 		switch (argv[1][0]) {
 		case 'e':
-			policy_type = POLICY_TYPE_EXCEPTION_POLICY;
+			policy_type = CCS_POLICY_TYPE_EXCEPTION_POLICY;
 			break;
 		case 'd':
-			policy_type = POLICY_TYPE_DOMAIN_POLICY;
+			policy_type = CCS_POLICY_TYPE_DOMAIN_POLICY;
 			break;
 		}
 	}
-	if (policy_type == POLICY_TYPE_UNKNOWN) {
+	if (policy_type == CCS_POLICY_TYPE_UNKNOWN) {
 		fprintf(stderr, "%s e|d < policy_to_check\n", argv[0]);
 		return 0;
 	}
 	while (true) {
 		bool badchar_warned = false;
 		int pos = 0;
-		line++;
+		ccs_line++;
 		while (true) {
 			static int max_policy_len = 0;
 			int c = getchar();
@@ -916,7 +916,7 @@ int checkpolicy_main(int argc, char *argv[])
 				max_policy_len += 4096;
 				cp = realloc(policy, max_policy_len);
 				if (!cp)
-					out_of_memory();
+					ccs_out_of_memory();
 				policy = cp;
 			}
 			policy[pos++] = (char) c;
@@ -928,28 +928,28 @@ int checkpolicy_main(int argc, char *argv[])
 			    c == '\t' || (c >= ' ' && c < 127))
 				continue;
 			printf("%u: WARNING: Line contains illegal "
-			       "character (\\%03o).\n", line, c);
-			warnings++;
+			       "character (\\%03o).\n", ccs_line, c);
+			ccs_warnings++;
 			badchar_warned = true;
 		}
-		normalize_line(policy);
+		ccs_normalize_line(policy);
 		if (!policy[0] || policy[0] == '#')
 			continue;
 		switch (policy_type) {
-		case POLICY_TYPE_DOMAIN_POLICY:
-			check_domain_policy(policy);
+		case CCS_POLICY_TYPE_DOMAIN_POLICY:
+			ccs_check_domain_policy(policy);
 			break;
-		case POLICY_TYPE_EXCEPTION_POLICY:
-			check_exception_policy(policy);
+		case CCS_POLICY_TYPE_EXCEPTION_POLICY:
+			ccs_check_exception_policy(policy);
 			break;
 		}
 	}
  out:
 	free(policy);
 	policy = NULL;
-	line--;
+	ccs_line--;
 	printf("Total:   %u Line%s   %u Error%s   %u Warning%s\n",
-	       line, line > 1 ? "s" : "", errors, errors > 1 ? "s" : "",
-	       warnings, warnings > 1 ? "s" : "");
-	return errors ? 2 : (warnings ? 1 : 0);
+	       ccs_line, ccs_line > 1 ? "s" : "", ccs_errors, ccs_errors > 1 ? "s" : "",
+	       ccs_warnings, ccs_warnings > 1 ? "s" : "");
+	return ccs_errors ? 2 : (ccs_warnings ? 1 : 0);
 }

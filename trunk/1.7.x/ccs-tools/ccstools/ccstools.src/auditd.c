@@ -5,12 +5,12 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-int open_stream(const char *filename)
+int ccs_open_stream(const char *filename)
 {
 	const int fd = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -18,8 +18,8 @@ int open_stream(const char *filename)
 	int len = strlen(filename) + 1;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = network_ip;
-	addr.sin_port = network_port;
+	addr.sin_addr.s_addr = ccs_network_ip;
+	addr.sin_port = ccs_network_port;
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
 	    write(fd, filename, len) != len || read(fd, &c, 1) != 1 || c) {
 		close(fd);
@@ -28,11 +28,11 @@ int open_stream(const char *filename)
 	return fd;
 }
 
-int auditd_main(int argc, char *argv[])
+int ccs_auditd_main(int argc, char *argv[])
 {
 	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
-		proc_policy_grant_log,
-		proc_policy_reject_log
+		ccs_proc_policy_grant_log,
+		ccs_proc_policy_reject_log
 	};
 	int i;
 	int fd_in[CCS_AUDITD_MAX_FILES];
@@ -51,12 +51,12 @@ int auditd_main(int argc, char *argv[])
 				goto usage;
 		} else if (cp) {
 			*cp++ = '\0';
-			if (network_mode)
+			if (ccs_network_mode)
 				goto usage;
-			network_ip = inet_addr(ptr);
-			network_port = htons(atoi(cp));
-			network_mode = true;
-			if (!check_remote_host())
+			ccs_network_ip = inet_addr(ptr);
+			ccs_network_port = htons(atoi(cp));
+			ccs_network_mode = true;
+			if (!ccs_check_remote_host())
 				return 1;
 			procfile_path[0] = "proc:grant_log";
 			procfile_path[1] = "proc:reject_log";
@@ -65,7 +65,7 @@ int auditd_main(int argc, char *argv[])
 	}
 	if (!logfile_path[1])
 		goto usage;
-	if (network_mode)
+	if (ccs_network_mode)
 		goto start;
 	if (access(procfile_path[0], R_OK) || access(procfile_path[1], R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel.\n");
@@ -117,8 +117,8 @@ int auditd_main(int argc, char *argv[])
 	close(2);
 	openlog("ccs-auditd", 0,  LOG_USER);
 	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
-		if (network_mode)
-			fd_in[i] = open_stream(procfile_path[i]);
+		if (ccs_network_mode)
+			fd_in[i] = ccs_open_stream(procfile_path[i]);
 		else
 			fd_in[i] = open(procfile_path[i], O_RDONLY);
 		if (fd_in[i] == EOF) {
@@ -143,7 +143,7 @@ int auditd_main(int argc, char *argv[])
 			if (!FD_ISSET(fd_in[i], &rfds))
 				continue;
 			memset(buffer, 0, sizeof(buffer));
-			if (network_mode) {
+			if (ccs_network_mode) {
 				int j;
 				for (j = 0; j < sizeof(buffer) - 1; j++) {
 					if (read(fd_in[i], buffer + j, 1) != 1)
