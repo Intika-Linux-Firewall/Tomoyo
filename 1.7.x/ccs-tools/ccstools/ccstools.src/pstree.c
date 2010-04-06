@@ -10,30 +10,30 @@
  */
 #include "ccstools.h"
 
-static void dump(const pid_t pid, const int depth)
+static void ccs_dump(const pid_t pid, const int depth)
 {
 	int i;
-	for (i = 0; i < task_list_len; i++) {
+	for (i = 0; i < ccs_task_list_len; i++) {
 		int j;
-		if (pid != task_list[i].pid)
+		if (pid != ccs_task_list[i].pid)
 			continue;
-		printf("%3d", task_list[i].profile);
+		printf("%3d", ccs_task_list[i].profile);
 		for (j = 0; j < depth - 1; j++)
 			printf("    ");
 		for (; j < depth; j++)
 			printf("  +-");
-		printf(" %s (%u) %s\n", task_list[i].name,
-		       task_list[i].pid, task_list[i].domain);
-		task_list[i].selected = true;
+		printf(" %s (%u) %s\n", ccs_task_list[i].name,
+		       ccs_task_list[i].pid, ccs_task_list[i].domain);
+		ccs_task_list[i].selected = true;
 	}
-	for (i = 0; i < task_list_len; i++) {
-		if (pid != task_list[i].ppid)
+	for (i = 0; i < ccs_task_list_len; i++) {
+		if (pid != ccs_task_list[i].ppid)
 			continue;
-		dump(task_list[i].pid, depth + 1);
+		ccs_dump(ccs_task_list[i].pid, depth + 1);
 	}
 }
 
-int pstree_main(int argc, char *argv[])
+int ccs_pstree_main(int argc, char *argv[])
 {
 	static _Bool show_all = false;
 	int i;
@@ -42,12 +42,12 @@ int pstree_main(int argc, char *argv[])
 		char *cp = strchr(ptr, ':');
 		if (cp) {
 			*cp++ = '\0';
-			if (network_mode)
+			if (ccs_network_mode)
 				goto usage;
-			network_ip = inet_addr(ptr);
-			network_port = htons(atoi(cp));
-			network_mode = true;
-			if (!check_remote_host())
+			ccs_network_ip = inet_addr(ptr);
+			ccs_network_port = htons(atoi(cp));
+			ccs_network_mode = true;
+			if (!ccs_check_remote_host())
 				return 1;
 		} else if (!strcmp(ptr, "-a")) {
 			show_all = true;
@@ -58,9 +58,9 @@ usage:
 			return 0;
 		}
 	}
-	read_process_list(show_all);
-	if (!task_list_len) {
-		if (network_mode) {
+	ccs_read_process_list(show_all);
+	if (!ccs_task_list_len) {
+		if (ccs_network_mode) {
 			fprintf(stderr, "Can't connect.\n");
 			return 1;
 		} else {
@@ -69,21 +69,21 @@ usage:
 			return 1;
 		}
 	}
-	dump(1, 0);
-	for (i = 0; i < task_list_len; i++) {
-		if (task_list[i].selected)
+	ccs_dump(1, 0);
+	for (i = 0; i < ccs_task_list_len; i++) {
+		if (ccs_task_list[i].selected)
 			continue;
 		printf("%3d %s (%u) %s\n",
-		       task_list[i].profile, task_list[i].name,
-		       task_list[i].pid, task_list[i].domain);
-		task_list[i].selected = true;
+		       ccs_task_list[i].profile, ccs_task_list[i].name,
+		       ccs_task_list[i].pid, ccs_task_list[i].domain);
+		ccs_task_list[i].selected = true;
 	}
-	while (task_list_len) {
-		task_list_len--;
-		free((void *) task_list[task_list_len].name);
-		free((void *) task_list[task_list_len].domain);
+	while (ccs_task_list_len) {
+		ccs_task_list_len--;
+		free((void *) ccs_task_list[ccs_task_list_len].name);
+		free((void *) ccs_task_list[ccs_task_list_len].domain);
 	}
-	free(task_list);
-	task_list = NULL;
+	free(ccs_task_list);
+	ccs_task_list = NULL;
 	return 0;
 }

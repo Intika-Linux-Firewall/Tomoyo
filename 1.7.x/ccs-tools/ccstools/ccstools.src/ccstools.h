@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 
@@ -43,226 +43,226 @@
 #define true     1
 #define false    0
 
-enum screen_type {
-	SCREEN_EXCEPTION_LIST,
-	SCREEN_DOMAIN_LIST,
-	SCREEN_ACL_LIST,
-	SCREEN_PROFILE_LIST,
-	SCREEN_MANAGER_LIST,
-	SCREEN_QUERY_LIST,
-	SCREEN_MEMINFO_LIST,
-	MAXSCREEN
+enum ccs_screen_type {
+	CCS_SCREEN_EXCEPTION_LIST,
+	CCS_SCREEN_DOMAIN_LIST,
+	CCS_SCREEN_ACL_LIST,
+	CCS_SCREEN_PROFILE_LIST,
+	CCS_SCREEN_MANAGER_LIST,
+	CCS_SCREEN_QUERY_LIST,
+	CCS_SCREEN_MEMINFO_LIST,
+	CCS_MAXSCREEN
 };
 
-enum policy_type {
-	POLICY_TYPE_UNKNOWN,
-	POLICY_TYPE_DOMAIN_POLICY,
-	POLICY_TYPE_EXCEPTION_POLICY,
+enum ccs_policy_type {
+	CCS_POLICY_TYPE_UNKNOWN,
+	CCS_POLICY_TYPE_DOMAIN_POLICY,
+	CCS_POLICY_TYPE_EXCEPTION_POLICY,
 };
 
-#define VALUE_TYPE_DECIMAL     1
-#define VALUE_TYPE_OCTAL       2
-#define VALUE_TYPE_HEXADECIMAL 3
+#define CCS_VALUE_TYPE_DECIMAL     1
+#define CCS_VALUE_TYPE_OCTAL       2
+#define CCS_VALUE_TYPE_HEXADECIMAL 3
 
-enum socket_operation_type {
-	NETWORK_ACL_UDP_BIND,
-	NETWORK_ACL_UDP_CONNECT,
-	NETWORK_ACL_TCP_BIND,
-	NETWORK_ACL_TCP_LISTEN,
-	NETWORK_ACL_TCP_CONNECT,
-	NETWORK_ACL_TCP_ACCEPT,
-	NETWORK_ACL_RAW_BIND,
-	NETWORK_ACL_RAW_CONNECT
+enum ccs_socket_operation_type {
+	CCS_NETWORK_ACL_UDP_BIND,
+	CCS_NETWORK_ACL_UDP_CONNECT,
+	CCS_NETWORK_ACL_TCP_BIND,
+	CCS_NETWORK_ACL_TCP_LISTEN,
+	CCS_NETWORK_ACL_TCP_CONNECT,
+	CCS_NETWORK_ACL_TCP_ACCEPT,
+	CCS_NETWORK_ACL_RAW_BIND,
+	CCS_NETWORK_ACL_RAW_CONNECT
 };
 
-#define KEYWORD_AGGREGATOR               "aggregator "
-#define KEYWORD_ALLOW_ENV                "allow_env "
-#define KEYWORD_ALLOW_IOCTL              "allow_ioctl "
-#define KEYWORD_ALLOW_CAPABILITY         "allow_capability "
-#define KEYWORD_ALLOW_CHROOT             "allow_chroot "
-#define KEYWORD_ALLOW_MOUNT              "allow_mount "
-#define KEYWORD_ALLOW_NETWORK            "allow_network "
-#define KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
-#define KEYWORD_ALLOW_READ               "allow_read "
-#define KEYWORD_ALLOW_SIGNAL             "allow_signal "
-#define KEYWORD_DELETE                   "delete "
-#define KEYWORD_DENY_AUTOBIND            "deny_autobind "
-#define KEYWORD_DENY_REWRITE             "deny_rewrite "
-#define KEYWORD_ALLOW_UNMOUNT            "allow_unmount "
-#define KEYWORD_ALLOW_CHMOD              "allow_chmod "
-#define KEYWORD_ALLOW_CHOWN              "allow_chown "
-#define KEYWORD_ALLOW_CHGRP              "allow_chgrp "
-#define KEYWORD_FILE_PATTERN             "file_pattern "
-#define KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
-#define KEYWORD_SELECT                   "select "
-#define KEYWORD_UNDELETE                 "undelete "
-#define KEYWORD_USE_PROFILE              "use_profile "
-#define KEYWORD_USE_PROFILE_LEN          (sizeof(KEYWORD_USE_PROFILE) - 1)
-#define KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
-#define KEYWORD_KEEP_DOMAIN              "keep_domain "
-#define KEYWORD_PATH_GROUP               "path_group "
-#define KEYWORD_ADDRESS_GROUP            "address_group "
-#define KEYWORD_NUMBER_GROUP             "number_group "
-#define KEYWORD_NO_INITIALIZE_DOMAIN     "no_" KEYWORD_INITIALIZE_DOMAIN
-#define KEYWORD_NO_KEEP_DOMAIN           "no_" KEYWORD_KEEP_DOMAIN
-#define KEYWORD_EXECUTE_HANDLER          "execute_handler "
-#define KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
-#define KEYWORD_ALLOW_EXECUTE            "allow_execute "
+#define CCS_KEYWORD_AGGREGATOR               "aggregator "
+#define CCS_KEYWORD_ALLOW_ENV                "allow_env "
+#define CCS_KEYWORD_ALLOW_IOCTL              "allow_ioctl "
+#define CCS_KEYWORD_ALLOW_CAPABILITY         "allow_capability "
+#define CCS_KEYWORD_ALLOW_CHROOT             "allow_chroot "
+#define CCS_KEYWORD_ALLOW_MOUNT              "allow_mount "
+#define CCS_KEYWORD_ALLOW_NETWORK            "allow_network "
+#define CCS_KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
+#define CCS_KEYWORD_ALLOW_READ               "allow_read "
+#define CCS_KEYWORD_ALLOW_SIGNAL             "allow_signal "
+#define CCS_KEYWORD_DELETE                   "delete "
+#define CCS_KEYWORD_DENY_AUTOBIND            "deny_autobind "
+#define CCS_KEYWORD_DENY_REWRITE             "deny_rewrite "
+#define CCS_KEYWORD_ALLOW_UNMOUNT            "allow_unmount "
+#define CCS_KEYWORD_ALLOW_CHMOD              "allow_chmod "
+#define CCS_KEYWORD_ALLOW_CHOWN              "allow_chown "
+#define CCS_KEYWORD_ALLOW_CHGRP              "allow_chgrp "
+#define CCS_KEYWORD_FILE_PATTERN             "file_pattern "
+#define CCS_KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
+#define CCS_KEYWORD_SELECT                   "select "
+#define CCS_KEYWORD_UNDELETE                 "undelete "
+#define CCS_KEYWORD_USE_PROFILE              "use_profile "
+#define CCS_KEYWORD_USE_PROFILE_LEN          (sizeof(CCS_KEYWORD_USE_PROFILE) - 1)
+#define CCS_KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
+#define CCS_KEYWORD_KEEP_DOMAIN              "keep_domain "
+#define CCS_KEYWORD_PATH_GROUP               "path_group "
+#define CCS_KEYWORD_ADDRESS_GROUP            "address_group "
+#define CCS_KEYWORD_NUMBER_GROUP             "number_group "
+#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN     "no_" CCS_KEYWORD_INITIALIZE_DOMAIN
+#define CCS_KEYWORD_NO_KEEP_DOMAIN           "no_" CCS_KEYWORD_KEEP_DOMAIN
+#define CCS_KEYWORD_EXECUTE_HANDLER          "execute_handler "
+#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
+#define CCS_KEYWORD_ALLOW_EXECUTE            "allow_execute "
 
 #define CCS_AUDITD_MAX_FILES             2
-#define SAVENAME_MAX_HASH                256
-#define PAGE_SIZE                        4096
+#define CCS_SAVENAME_MAX_HASH            256
+#define CCS_PAGE_SIZE                    4096
 #define CCS_MAX_PATHNAME_LEN             4000
-#define ROOT_NAME                        "<kernel>"
-#define ROOT_NAME_LEN                    (sizeof(ROOT_NAME) - 1)
+#define CCS_ROOT_NAME                    "<kernel>"
+#define CCS_ROOT_NAME_LEN            (sizeof(CCS_ROOT_NAME) - 1)
 
 #define CCSTOOLS_CONFIG_FILE "/usr/lib/ccs/ccstools.conf"
 
-#define DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
-#define DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
-#define DISK_POLICY_PROFILE          "profile.conf"
-#define DISK_POLICY_MANAGER          "manager.conf"
-#define DISK_POLICY_MEMINFO          "meminfo.conf"
+#define CCS_DISK_POLICY_DOMAIN_POLICY    "domain_policy.conf"
+#define CCS_DISK_POLICY_EXCEPTION_POLICY "exception_policy.conf"
+#define CCS_DISK_POLICY_PROFILE          "profile.conf"
+#define CCS_DISK_POLICY_MANAGER          "manager.conf"
+#define CCS_DISK_POLICY_MEMINFO          "meminfo.conf"
 
-enum editpolicy_directives {
-	DIRECTIVE_NONE,
-	DIRECTIVE_ALLOW_EXECUTE,
-	DIRECTIVE_ALLOW_READ,
-	DIRECTIVE_ALLOW_WRITE,
-	DIRECTIVE_ALLOW_READ_WRITE,
-	DIRECTIVE_ALLOW_CREATE,
-	DIRECTIVE_ALLOW_UNLINK,
-	DIRECTIVE_ALLOW_MKDIR,
-	DIRECTIVE_ALLOW_RMDIR,
-	DIRECTIVE_ALLOW_MKFIFO,
-	DIRECTIVE_ALLOW_MKSOCK,
-	DIRECTIVE_ALLOW_MKBLOCK,
-	DIRECTIVE_ALLOW_MKCHAR,
-	DIRECTIVE_ALLOW_TRUNCATE,
-	DIRECTIVE_ALLOW_SYMLINK,
-	DIRECTIVE_ALLOW_LINK,
-	DIRECTIVE_ALLOW_RENAME,
-	DIRECTIVE_ALLOW_REWRITE,
-	DIRECTIVE_ALLOW_TRANSIT,
-	DIRECTIVE_ALLOW_SIGNAL,
-	DIRECTIVE_ALLOW_NETWORK,
-	DIRECTIVE_ALLOW_IOCTL,
-	DIRECTIVE_ALLOW_ENV,
-	DIRECTIVE_ADDRESS_GROUP,
-	DIRECTIVE_AGGREGATOR,
-	DIRECTIVE_ALLOW_CAPABILITY,
-	DIRECTIVE_ALLOW_CHROOT,
-	DIRECTIVE_ALLOW_MOUNT,
-	DIRECTIVE_ALLOW_PIVOT_ROOT,
-	DIRECTIVE_DENY_AUTOBIND,
-	DIRECTIVE_DENY_REWRITE,
-	DIRECTIVE_ALLOW_UNMOUNT,
-	DIRECTIVE_ALLOW_CHMOD,
-	DIRECTIVE_ALLOW_CHOWN,
-	DIRECTIVE_ALLOW_CHGRP,
-	DIRECTIVE_FILE_PATTERN,
-	DIRECTIVE_EXECUTE_HANDLER,
-	DIRECTIVE_DENIED_EXECUTE_HANDLER,
-	DIRECTIVE_IGNORE_GLOBAL_ALLOW_ENV,
-	DIRECTIVE_IGNORE_GLOBAL_ALLOW_READ,
-	DIRECTIVE_INITIALIZE_DOMAIN,
-	DIRECTIVE_KEEP_DOMAIN,
-	DIRECTIVE_NO_INITIALIZE_DOMAIN,
-	DIRECTIVE_NO_KEEP_DOMAIN,
-	DIRECTIVE_PATH_GROUP,
-	DIRECTIVE_NUMBER_GROUP,
-	DIRECTIVE_QUOTA_EXCEEDED,
-	DIRECTIVE_USE_PROFILE,
-	DIRECTIVE_TRANSITION_FAILED,
-	MAX_DIRECTIVE_INDEX
+enum ccs_editpolicy_directives {
+	CCS_DIRECTIVE_NONE,
+	CCS_DIRECTIVE_ALLOW_EXECUTE,
+	CCS_DIRECTIVE_ALLOW_READ,
+	CCS_DIRECTIVE_ALLOW_WRITE,
+	CCS_DIRECTIVE_ALLOW_READ_WRITE,
+	CCS_DIRECTIVE_ALLOW_CREATE,
+	CCS_DIRECTIVE_ALLOW_UNLINK,
+	CCS_DIRECTIVE_ALLOW_MKDIR,
+	CCS_DIRECTIVE_ALLOW_RMDIR,
+	CCS_DIRECTIVE_ALLOW_MKFIFO,
+	CCS_DIRECTIVE_ALLOW_MKSOCK,
+	CCS_DIRECTIVE_ALLOW_MKBLOCK,
+	CCS_DIRECTIVE_ALLOW_MKCHAR,
+	CCS_DIRECTIVE_ALLOW_TRUNCATE,
+	CCS_DIRECTIVE_ALLOW_SYMLINK,
+	CCS_DIRECTIVE_ALLOW_LINK,
+	CCS_DIRECTIVE_ALLOW_RENAME,
+	CCS_DIRECTIVE_ALLOW_REWRITE,
+	CCS_DIRECTIVE_ALLOW_TRANSIT,
+	CCS_DIRECTIVE_ALLOW_SIGNAL,
+	CCS_DIRECTIVE_ALLOW_NETWORK,
+	CCS_DIRECTIVE_ALLOW_IOCTL,
+	CCS_DIRECTIVE_ALLOW_ENV,
+	CCS_DIRECTIVE_ADDRESS_GROUP,
+	CCS_DIRECTIVE_AGGREGATOR,
+	CCS_DIRECTIVE_ALLOW_CAPABILITY,
+	CCS_DIRECTIVE_ALLOW_CHROOT,
+	CCS_DIRECTIVE_ALLOW_MOUNT,
+	CCS_DIRECTIVE_ALLOW_PIVOT_ROOT,
+	CCS_DIRECTIVE_DENY_AUTOBIND,
+	CCS_DIRECTIVE_DENY_REWRITE,
+	CCS_DIRECTIVE_ALLOW_UNMOUNT,
+	CCS_DIRECTIVE_ALLOW_CHMOD,
+	CCS_DIRECTIVE_ALLOW_CHOWN,
+	CCS_DIRECTIVE_ALLOW_CHGRP,
+	CCS_DIRECTIVE_FILE_PATTERN,
+	CCS_DIRECTIVE_EXECUTE_HANDLER,
+	CCS_DIRECTIVE_DENIED_EXECUTE_HANDLER,
+	CCS_DIRECTIVE_IGNORE_GLOBAL_ALLOW_ENV,
+	CCS_DIRECTIVE_IGNORE_GLOBAL_ALLOW_READ,
+	CCS_DIRECTIVE_INITIALIZE_DOMAIN,
+	CCS_DIRECTIVE_KEEP_DOMAIN,
+	CCS_DIRECTIVE_NO_INITIALIZE_DOMAIN,
+	CCS_DIRECTIVE_NO_KEEP_DOMAIN,
+	CCS_DIRECTIVE_PATH_GROUP,
+	CCS_DIRECTIVE_NUMBER_GROUP,
+	CCS_DIRECTIVE_QUOTA_EXCEEDED,
+	CCS_DIRECTIVE_USE_PROFILE,
+	CCS_DIRECTIVE_TRANSITION_FAILED,
+	CCS_MAX_DIRECTIVE_INDEX
 };
 
-enum color_pair {
-	NORMAL, DOMAIN_HEAD, DOMAIN_CURSOR,
-	EXCEPTION_HEAD, EXCEPTION_CURSOR, ACL_HEAD, ACL_CURSOR,
-	PROFILE_HEAD, PROFILE_CURSOR, MANAGER_HEAD, MANAGER_CURSOR,
-	MEMORY_HEAD, MEMORY_CURSOR, DISP_ERR
+enum ccs_color_pair {
+	CCS_NORMAL, CCS_DOMAIN_HEAD, CCS_DOMAIN_CURSOR,
+	CCS_EXCEPTION_HEAD, CCS_EXCEPTION_CURSOR, CCS_ACL_HEAD, CCS_ACL_CURSOR,
+	CCS_PROFILE_HEAD, CCS_PROFILE_CURSOR, CCS_MANAGER_HEAD, CCS_MANAGER_CURSOR,
+	CCS_MEMORY_HEAD, CCS_MEMORY_CURSOR, CCS_DISP_ERR
 };
 
-static const int header_lines = 3;
+static const int ccs_header_lines = 3;
 
 /***** CONSTANTS DEFINITION END *****/
 
 /***** STRUCTURES DEFINITION START *****/
 
-struct path_info {
+struct ccs_path_info {
 	const char *name;
-	u32 hash;           /* = full_name_hash(name, strlen(name)) */
-	u16 total_len;      /* = strlen(name)                       */
-	u16 const_len;      /* = const_part_length(name)            */
-	_Bool is_dir;       /* = strendswith(name, "/")             */
-	_Bool is_patterned; /* = const_len < total_len              */
+	u32 hash;           /* = ccs_full_name_hash(name, total_len) */
+	u16 total_len;      /* = strlen(name)                        */
+	u16 const_len;      /* = ccs_const_part_length(name)         */
+	_Bool is_dir;       /* = ccs_strendswith(name, "/")          */
+	_Bool is_patterned; /* = const_len < total_len               */
 };
 
-struct path_group_entry {
-	const struct path_info *group_name;
-	const struct path_info **member_name;
+struct ccs_path_group_entry {
+	const struct ccs_path_info *group_name;
+	const struct ccs_path_info **member_name;
 	int member_name_len;
 };
 
-struct ip_address_entry {
+struct ccs_ip_address_entry {
 	u8 min[16];
 	u8 max[16];
 	_Bool is_ipv6;
 };
 
-struct address_group_entry {
-	const struct path_info *group_name;
-	struct ip_address_entry *member_name;
+struct ccs_address_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_ip_address_entry *member_name;
 	int member_name_len;
 };
 
-struct number_entry {
+struct ccs_number_entry {
 	unsigned long min;
 	unsigned long max;
 };
 
-struct number_group_entry {
-	const struct path_info *group_name;
-	struct number_entry *member_name;
+struct ccs_number_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_number_entry *member_name;
 	int member_name_len;
 };
 
-struct savename_entry {
-	struct savename_entry *next;
-	struct path_info entry;
+struct ccs_savename_entry {
+	struct ccs_savename_entry *next;
+	struct ccs_path_info entry;
 };
 
-struct free_memory_block_list {
-	struct free_memory_block_list *next;
+struct ccs_free_memory_block_list {
+	struct ccs_free_memory_block_list *next;
 	char *ptr;
 	int len;
 };
 
-struct dll_pathname_entry {
+struct ccs_dll_pathname_entry {
 	char *pathname;
 	char *real_pathname;
 };
 
-struct domain_initializer_entry {
-	const struct path_info *domainname;    /* This may be NULL */
-	const struct path_info *program;
+struct ccs_domain_initializer_entry {
+	const struct ccs_path_info *domainname;    /* This may be NULL */
+	const struct ccs_path_info *program;
 	_Bool is_not;
 	_Bool is_last_name;
 };
 
-struct domain_keeper_entry {
-	const struct path_info *domainname;
-	const struct path_info *program;       /* This may be NULL */
+struct ccs_domain_keeper_entry {
+	const struct ccs_path_info *domainname;
+	const struct ccs_path_info *program;       /* This may be NULL */
 	_Bool is_not;
 	_Bool is_last_name;
 };
 
-struct domain_info {
-	const struct path_info *domainname;
-	const struct domain_initializer_entry *d_i; /* This may be NULL */
-	const struct domain_keeper_entry *d_k; /* This may be NULL */
-	const struct path_info **string_ptr;
+struct ccs_domain_info {
+	const struct ccs_path_info *domainname;
+	const struct ccs_domain_initializer_entry *d_i; /* This may be NULL */
+	const struct ccs_domain_keeper_entry *d_k; /* This may be NULL */
+	const struct ccs_path_info **string_ptr;
 	int string_count;
 	int number;   /* domain number (-1 if is_dis or is_dd) */
 	u8 profile;
@@ -274,26 +274,26 @@ struct domain_info {
 	_Bool profile_assigned;
 };
 
-struct domain_policy {
-	struct domain_info *list;
+struct ccs_domain_policy {
+	struct ccs_domain_info *list;
 	int list_len;
 	unsigned char *list_selected;
 };
 
-struct generic_acl {
+struct ccs_generic_acl {
 	u16 directive;
 	u8 selected;
 	const char *operand;
 };
 
-struct editpolicy_directive {
+struct ccs_editpolicy_directive {
 	const char *original;
 	const char *alias;
 	int original_len;
 	int alias_len;
 };
 
-struct task_entry {
+struct ccs_task_entry {
 	pid_t pid;
 	pid_t ppid;
 	char *name;
@@ -308,126 +308,126 @@ struct task_entry {
 
 /***** PROTOTYPES DEFINITION START *****/
 
-_Bool check_remote_host(void);
-void out_of_memory(void);
-void normalize_line(unsigned char *line);
-_Bool is_domain_def(const unsigned char *domainname);
-_Bool is_correct_domain(const unsigned char *domainname);
-void fprintf_encoded(FILE *fp, const char *pathname);
-_Bool decode(const char *ascii, char *bin);
-_Bool is_correct_path(const char *filename, const s8 start_type,
-		      const s8 pattern_type, const s8 end_type);
-int string_compare(const void *a, const void *b);
-_Bool pathcmp(const struct path_info *a, const struct path_info *b);
-void fill_path_info(struct path_info *ptr);
-const struct path_info *savename(const char *name);
-_Bool str_starts(char *str, const char *begin);
-_Bool path_matches_pattern(const struct path_info *pathname0,
-			   const struct path_info *pattern0);
-char *make_filename(const char *prefix, const time_t time);
+_Bool ccs_check_remote_host(void);
+void ccs_out_of_memory(void);
+void ccs_normalize_line(unsigned char *line);
+_Bool ccs_is_domain_def(const unsigned char *domainname);
+_Bool ccs_is_correct_domain(const unsigned char *domainname);
+void ccs_fprintf_encoded(FILE *fp, const char *ccs_pathname);
+_Bool ccs_decode(const char *ascii, char *bin);
+_Bool ccs_is_correct_path(const char *filename, const s8 start_type,
+			  const s8 pattern_type, const s8 end_type);
+int ccs_string_compare(const void *a, const void *b);
+_Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b);
+void ccs_fill_path_info(struct ccs_path_info *ptr);
+const struct ccs_path_info *ccs_savename(const char *name);
+_Bool ccs_str_starts(char *str, const char *begin);
+_Bool ccs_path_matches_pattern(const struct ccs_path_info *pathname0,
+			       const struct ccs_path_info *pattern0);
+char *ccs_make_filename(const char *prefix, const time_t time);
 
-int sortpolicy_main(int argc, char *argv[]);
-int setprofile_main(int argc, char *argv[]);
-int setlevel_main(int argc, char *argv[]);
-int selectpolicy_main(int argc, char *argv[]);
-int diffpolicy_main(int argc, char *argv[]);
-int savepolicy_main(int argc, char *argv[]);
-int pathmatch_main(int argc, char *argv[]);
-int loadpolicy_main(int argc, char *argv[]);
-int ldwatch_main(int argc, char *argv[]);
-int findtemp_main(int argc, char *argv[]);
-int editpolicy_main(int argc, char *argv[]);
-int checkpolicy_main(int argc, char *argv[]);
-int pstree_main(int argc, char *argv[]);
-int queryd_main(int argc, char *argv[]);
-int auditd_main(int argc, char *argv[]);
-int patternize_main(int argc, char *argv[]);
-_Bool move_proc_to_file(const char *src, const char *dest);
-_Bool is_identical_file(const char *file1, const char *file2);
-FILE *open_read(const char *filename);
-FILE *open_write(const char *filename);
-int open_stream(const char *filename);
-void clear_domain_policy(struct domain_policy *dp);
-int find_domain_by_ptr(struct domain_policy *dp,
-		       const struct path_info *domainname);
-void read_domain_policy(struct domain_policy *dp, const char *filename);
-void delete_domain(struct domain_policy *dp, const int index);
-void handle_domain_policy(struct domain_policy *dp, FILE *fp, _Bool is_write);
-int del_string_entry(struct domain_policy *dp, const char *entry,
-		     const int index);
-int add_string_entry(struct domain_policy *dp, const char *entry,
-		     const int index);
-int find_domain(struct domain_policy *dp, const char *domainname0,
-		const _Bool is_dis, const _Bool is_dd);
-int find_or_assign_new_domain(struct domain_policy *dp, const char *domainname,
-			      const _Bool is_dis, const _Bool is_dd);
-const char *domain_name(const struct domain_policy *dp, const int index);
-void send_fd(char *data, int *fd);
-void read_process_list(_Bool show_all);
-void editpolicy_offline_daemon(void);
-void editpolicy_init_keyword_map(void);
-void editpolicy_line_draw(const int screen);
-void editpolicy_try_optimize(struct domain_policy *dp, const int current,
-			     const int screen);
-struct path_group_entry *find_path_group(const char *group_name);
-int add_address_group_policy(char *data, const _Bool is_delete);
-int add_number_group_policy(char *data, const _Bool is_delete);
-u8 find_directive(const _Bool forward, char *line);
-void editpolicy_color_init(void);
-void editpolicy_color_change(const attr_t attr, const _Bool flg);
-void editpolicy_attr_change(const attr_t attr, const _Bool flg);
-void editpolicy_sttr_save(void);
-void editpolicy_sttr_restore(void);
-int editpolicy_color_head(const int screen);
-int editpolicy_color_cursor(const int screen);
-int editpolicy_get_current(void);
-int parse_number(const char *number, struct number_entry *entry);
-int parse_ip(const char *address, struct ip_address_entry *entry);
+int ccs_sortpolicy_main(int argc, char *argv[]);
+int ccs_setprofile_main(int argc, char *argv[]);
+int ccs_setlevel_main(int argc, char *argv[]);
+int ccs_selectpolicy_main(int argc, char *argv[]);
+int ccs_diffpolicy_main(int argc, char *argv[]);
+int ccs_savepolicy_main(int argc, char *argv[]);
+int ccs_pathmatch_main(int argc, char *argv[]);
+int ccs_loadpolicy_main(int argc, char *argv[]);
+int ccs_ldwatch_main(int argc, char *argv[]);
+int ccs_findtemp_main(int argc, char *argv[]);
+int ccs_editpolicy_main(int argc, char *argv[]);
+int ccs_checkpolicy_main(int argc, char *argv[]);
+int ccs_pstree_main(int argc, char *argv[]);
+int ccs_queryd_main(int argc, char *argv[]);
+int ccs_auditd_main(int argc, char *argv[]);
+int ccs_patternize_main(int argc, char *argv[]);
+_Bool ccs_move_proc_to_file(const char *src, const char *dest);
+_Bool ccs_is_identical_file(const char *file1, const char *file2);
+FILE *ccs_open_read(const char *filename);
+FILE *ccs_open_write(const char *filename);
+int ccs_open_stream(const char *filename);
+void ccs_clear_domain_policy(struct ccs_domain_policy *dp);
+int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
+			   const struct ccs_path_info *domainname);
+void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename);
+void ccs_delete_domain(struct ccs_domain_policy *dp, const int index);
+void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_write);
+int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
+			 const int index);
+int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
+			 const int index);
+int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
+		    const _Bool is_dis, const _Bool is_dd);
+int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *domainname,
+				  const _Bool is_dis, const _Bool is_dd);
+const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index);
+void ccs_send_fd(char *data, int *fd);
+void ccs_read_process_list(_Bool show_all);
+void ccs_editpolicy_offline_daemon(void);
+void ccs_editpolicy_init_keyword_map(void);
+void ccs_editpolicy_line_draw(const int screen);
+void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current,
+				 const int screen);
+struct ccs_path_group_entry *ccs_find_path_group(const char *group_name);
+int ccs_add_address_group_policy(char *data, const _Bool is_delete);
+int ccs_add_number_group_policy(char *data, const _Bool is_delete);
+u8 ccs_find_directive(const _Bool forward, char *line);
+void ccs_editpolicy_color_init(void);
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
+void ccs_editpolicy_sttr_save(void);
+void ccs_editpolicy_sttr_restore(void);
+int ccs_editpolicy_color_head(const int screen);
+int ccs_editpolicy_color_cursor(const int screen);
+int ccs_editpolicy_get_current(void);
+int ccs_parse_number(const char *number, struct ccs_number_entry *entry);
+int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry);
 
-void get(void);
-void put(void);
-char *freadline(FILE *fp);
-char *shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+void ccs_get(void);
+void ccs_put(void);
+char *ccs_freadline(FILE *fp);
+char *ccs_shprintf(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
 
-char *simple_readline(const int start_y, const int start_x, const char *prompt,
-		      const char *history[], const int history_count,
-		      const int max_length, const int scroll_width);
-int simple_add_history(const char *buffer, const char **history,
-		       const int history_count, const int max_history);
-int getch2(void);
+char *ccs_simple_readline(const int start_y, const int start_x, const char *prompt,
+			  const char *history[], const int history_count,
+			  const int max_length, const int scroll_width);
+int ccs_simple_add_history(const char *buffer, const char **history,
+			   const int history_count, const int max_history);
+int ccs_getch2(void);
 
-extern _Bool offline_mode;
-extern const char *policy_dir;
-extern _Bool network_mode;
-extern u32 network_ip;
-extern u16 network_port;
-extern int persistent_fd;
-extern int query_fd;
-extern int path_group_list_len;
-extern int address_group_list_len;
-extern int number_group_list_len;
-extern struct generic_acl *generic_acl_list;
-extern int generic_acl_list_count;
-extern char *initial_readline_data;
-extern struct path_group_entry *path_group_list;
-extern int path_group_list_len;
-extern int current_y[MAXSCREEN];
-extern int list_item_count[MAXSCREEN];
-extern struct editpolicy_directive directives[MAX_DIRECTIVE_INDEX];
-extern struct task_entry *task_list;
-extern int task_list_len;
+extern _Bool ccs_offline_mode;
+extern const char *ccs_policy_dir;
+extern _Bool ccs_network_mode;
+extern u32 ccs_network_ip;
+extern u16 ccs_network_port;
+extern int ccs_persistent_fd;
+extern int ccs_query_fd;
+extern int ccs_path_group_list_len;
+extern int ccs_address_group_list_len;
+extern int ccs_number_group_list_len;
+extern struct ccs_generic_acl *ccs_generic_acl_list;
+extern int ccs_generic_acl_list_count;
+extern char *ccs_initial_readline_data;
+extern struct ccs_path_group_entry *ccs_path_group_list;
+extern int ccs_path_group_list_len;
+extern int ccs_current_y[CCS_MAXSCREEN];
+extern int ccs_list_item_count[CCS_MAXSCREEN];
+extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
+extern struct ccs_task_entry *ccs_task_list;
+extern int ccs_task_list_len;
 
-#define proc_policy_dir              "/proc/ccs/"
-#define disk_policy_dir              "/etc/ccs/"
-#define proc_policy_domain_policy    "/proc/ccs/domain_policy"
-#define proc_policy_exception_policy "/proc/ccs/exception_policy"
-#define proc_policy_profile          "/proc/ccs/profile"
-#define proc_policy_manager          "/proc/ccs/manager"
-#define proc_policy_meminfo          "/proc/ccs/meminfo"
-#define proc_policy_query            "/proc/ccs/query"
-#define proc_policy_grant_log        "/proc/ccs/grant_log"
-#define proc_policy_reject_log       "/proc/ccs/reject_log"
-#define proc_policy_domain_status    "/proc/ccs/.domain_status"
-#define proc_policy_process_status   "/proc/ccs/.process_status"
+#define ccs_proc_policy_dir              "/proc/ccs/"
+#define ccs_disk_policy_dir              "/etc/ccs/"
+#define ccs_proc_policy_domain_policy    "/proc/ccs/domain_policy"
+#define ccs_proc_policy_exception_policy "/proc/ccs/exception_policy"
+#define ccs_proc_policy_profile          "/proc/ccs/profile"
+#define ccs_proc_policy_manager          "/proc/ccs/manager"
+#define ccs_proc_policy_meminfo          "/proc/ccs/meminfo"
+#define ccs_proc_policy_query            "/proc/ccs/query"
+#define ccs_proc_policy_grant_log        "/proc/ccs/grant_log"
+#define ccs_proc_policy_reject_log       "/proc/ccs/reject_log"
+#define ccs_proc_policy_domain_status    "/proc/ccs/.domain_status"
+#define ccs_proc_policy_process_status   "/proc/ccs/.process_status"
 
 /***** PROTOTYPES DEFINITION END *****/

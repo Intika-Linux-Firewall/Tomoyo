@@ -5,72 +5,72 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
 /* Prototypes */
 
-static void editpolicy_color_save(const _Bool flg);
+static void ccs_editpolicy_color_save(const _Bool flg);
 
 /* Main functions */
 
 #ifdef COLOR_ON
 
-void editpolicy_color_init(void)
+void ccs_editpolicy_color_init(void)
 {
-	static struct color_env_t {
-		enum color_pair	tag;
+	static struct ccs_color_env_t {
+		enum ccs_color_pair tag;
 		short int fore;
 		short int back;
 		const char *name;
 	} color_env[] = {
-		{ DOMAIN_HEAD,      COLOR_BLACK,
+		{ CCS_DOMAIN_HEAD,      COLOR_BLACK,
 		  COLOR_GREEN,      "DOMAIN_HEAD" },
-		{ DOMAIN_CURSOR,    COLOR_BLACK,
+		{ CCS_DOMAIN_CURSOR,    COLOR_BLACK,
 		  COLOR_GREEN,      "DOMAIN_CURSOR" },
-		{ EXCEPTION_HEAD,   COLOR_BLACK,
+		{ CCS_EXCEPTION_HEAD,   COLOR_BLACK,
 		  COLOR_CYAN,       "EXCEPTION_HEAD" },
-		{ EXCEPTION_CURSOR, COLOR_BLACK,
+		{ CCS_EXCEPTION_CURSOR, COLOR_BLACK,
 		  COLOR_CYAN,       "EXCEPTION_CURSOR" },
-		{ ACL_HEAD,         COLOR_BLACK,
+		{ CCS_ACL_HEAD,         COLOR_BLACK,
 		  COLOR_YELLOW,     "ACL_HEAD" },
-		{ ACL_CURSOR,       COLOR_BLACK,
+		{ CCS_ACL_CURSOR,       COLOR_BLACK,
 		  COLOR_YELLOW,     "ACL_CURSOR" },
-		{ PROFILE_HEAD,     COLOR_WHITE,
+		{ CCS_PROFILE_HEAD,     COLOR_WHITE,
 		  COLOR_RED,        "PROFILE_HEAD" },
-		{ PROFILE_CURSOR,   COLOR_WHITE,
+		{ CCS_PROFILE_CURSOR,   COLOR_WHITE,
 		  COLOR_RED,        "PROFILE_CURSOR" },
-		{ MANAGER_HEAD,     COLOR_WHITE,
+		{ CCS_MANAGER_HEAD,     COLOR_WHITE,
 		  COLOR_GREEN,      "MANAGER_HEAD" },
-		{ MANAGER_CURSOR,   COLOR_WHITE,
+		{ CCS_MANAGER_CURSOR,   COLOR_WHITE,
 		  COLOR_GREEN,      "MANAGER_CURSOR" },
-		{ MEMORY_HEAD,      COLOR_BLACK,
+		{ CCS_MEMORY_HEAD,      COLOR_BLACK,
 		  COLOR_YELLOW,     "MEMORY_HEAD" },
-		{ MEMORY_CURSOR,    COLOR_BLACK,
+		{ CCS_MEMORY_CURSOR,    COLOR_BLACK,
 		  COLOR_YELLOW,     "MEMORY_CURSOR" },
-		{ NORMAL,           COLOR_WHITE,
+		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
 	FILE *fp = fopen(CCSTOOLS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;
-	get();
+	ccs_get();
 	while (true) {
-		char *line = freadline(fp);
+		char *line = ccs_freadline(fp);
 		char *cp;
 		if (!line)
 			break;
-		if (!str_starts(line, "editpolicy.line_color "))
+		if (!ccs_str_starts(line, "editpolicy.line_color "))
 			continue;
 		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		normalize_line(line);
-		normalize_line(cp);
+		ccs_normalize_line(line);
+		ccs_normalize_line(cp);
 		if (!*line || !*cp)
 			continue;
 		for (i = 0; color_env[i].name; i++) {
@@ -89,27 +89,27 @@ void editpolicy_color_init(void)
 			break;
 		}
 	}
-	put();
+	ccs_put();
 	fclose(fp);
 use_default:
 	start_color();
 	for (i = 0; color_env[i].name; i++) {
-		struct color_env_t *colorp = &color_env[i];
+		struct ccs_color_env_t *colorp = &color_env[i];
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
-	init_pair(DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
+	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
 }
 
-static void editpolicy_color_save(const _Bool flg)
+static void ccs_editpolicy_color_save(const _Bool flg)
 {
-	static attr_t save_color = NORMAL;
+	static attr_t save_color = CCS_NORMAL;
 	if (flg)
 		save_color = getattrs(stdscr);
 	else
 		attrset(save_color);
 }
 
-void editpolicy_color_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(COLOR_PAIR(attr));
@@ -117,7 +117,7 @@ void editpolicy_color_change(const attr_t attr, const _Bool flg)
 		attroff(COLOR_PAIR(attr));
 }
 
-void editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(attr);
@@ -125,59 +125,59 @@ void editpolicy_attr_change(const attr_t attr, const _Bool flg)
 		attroff(attr);
 }
 
-void editpolicy_sttr_save(void)
+void ccs_editpolicy_sttr_save(void)
 {
-	editpolicy_color_save(true);
+	ccs_editpolicy_color_save(true);
 }
 
-void editpolicy_sttr_restore(void)
+void ccs_editpolicy_sttr_restore(void)
 {
-	editpolicy_color_save(false);
+	ccs_editpolicy_color_save(false);
 }
 
-int editpolicy_color_head(const int screen)
+int ccs_editpolicy_color_head(const int screen)
 {
 	switch (screen) {
-	case SCREEN_DOMAIN_LIST:
-		return DOMAIN_HEAD;
-	case SCREEN_EXCEPTION_LIST:
-		return EXCEPTION_HEAD;
-	case SCREEN_PROFILE_LIST:
-		return PROFILE_HEAD;
-	case SCREEN_MANAGER_LIST:
-		return MANAGER_HEAD;
-	case SCREEN_MEMINFO_LIST:
-		return MEMORY_HEAD;
+	case CCS_SCREEN_DOMAIN_LIST:
+		return CCS_DOMAIN_HEAD;
+	case CCS_SCREEN_EXCEPTION_LIST:
+		return CCS_EXCEPTION_HEAD;
+	case CCS_SCREEN_PROFILE_LIST:
+		return CCS_PROFILE_HEAD;
+	case CCS_SCREEN_MANAGER_LIST:
+		return CCS_MANAGER_HEAD;
+	case CCS_SCREEN_MEMINFO_LIST:
+		return CCS_MEMORY_HEAD;
 	default:
-		return ACL_HEAD;
+		return CCS_ACL_HEAD;
 	}
 }
 
-int editpolicy_color_cursor(const int screen)
+int ccs_editpolicy_color_cursor(const int screen)
 {
 	switch (screen) {
-	case SCREEN_DOMAIN_LIST:
-		return DOMAIN_CURSOR;
-	case SCREEN_EXCEPTION_LIST:
-		return EXCEPTION_CURSOR;
-	case SCREEN_PROFILE_LIST:
-		return PROFILE_CURSOR;
-	case SCREEN_MANAGER_LIST:
-		return MANAGER_CURSOR;
-	case SCREEN_MEMINFO_LIST:
-		return MEMORY_CURSOR;
+	case CCS_SCREEN_DOMAIN_LIST:
+		return CCS_DOMAIN_CURSOR;
+	case CCS_SCREEN_EXCEPTION_LIST:
+		return CCS_EXCEPTION_CURSOR;
+	case CCS_SCREEN_PROFILE_LIST:
+		return CCS_PROFILE_CURSOR;
+	case CCS_SCREEN_MANAGER_LIST:
+		return CCS_MANAGER_CURSOR;
+	case CCS_SCREEN_MEMINFO_LIST:
+		return CCS_MEMORY_CURSOR;
 	default:
-		return ACL_CURSOR;
+		return CCS_ACL_CURSOR;
 	}
 }
 
-void editpolicy_line_draw(const int screen)
+void ccs_editpolicy_line_draw(const int screen)
 {
-	static int before_current[MAXSCREEN] = { -1, -1, -1, -1,
-						 -1, -1, -1 };
-	static int before_y[MAXSCREEN]       = { -1, -1, -1, -1,
-						 -1, -1, -1 };
-	int current = editpolicy_get_current();
+	static int ccs_before_current[CCS_MAXSCREEN] = { -1, -1, -1, -1,
+							 -1, -1, -1 };
+	static int ccs_before_y[CCS_MAXSCREEN]       = { -1, -1, -1, -1,
+							 -1, -1, -1 };
+	int current = ccs_editpolicy_get_current();
 	int y;
 	int x;
 
@@ -185,44 +185,44 @@ void editpolicy_line_draw(const int screen)
 		return;
 
 	getyx(stdscr, y, x);
-	if (-1 < before_current[screen] &&
-	    current != before_current[screen]){
-		move(header_lines + before_y[screen], 0);
-		chgat(-1, A_NORMAL, NORMAL, NULL);
+	if (-1 < ccs_before_current[screen] &&
+	    current != ccs_before_current[screen]){
+		move(ccs_header_lines + ccs_before_y[screen], 0);
+		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
 	}
 
 	move(y, x);
-	chgat(-1, A_NORMAL, editpolicy_color_cursor(screen), NULL);
+	chgat(-1, A_NORMAL, ccs_editpolicy_color_cursor(screen), NULL);
 	touchwin(stdscr);
 
-	before_current[screen] = current;
-	before_y[screen] = current_y[screen];
+	ccs_before_current[screen] = current;
+	ccs_before_y[screen] = ccs_current_y[screen];
 }
 
 #else
 
-void editpolicy_color_init(void)
+void ccs_editpolicy_color_init(void)
 {
 }
-void editpolicy_color_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 }
-void editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 }
-void editpolicy_sttr_save(void)
+void ccs_editpolicy_sttr_save(void)
 {
 }
-void editpolicy_sttr_restore(void)
+void ccs_editpolicy_sttr_restore(void)
 {
 }
-int editpolicy_color_head(const int screen)
+int ccs_editpolicy_color_head(const int screen)
 {
 }
-int editpolicy_color_cursor(const int screen)
+int ccs_editpolicy_color_cursor(const int screen)
 {
 }
-void editpolicy_line_draw(const int screen)
+void ccs_editpolicy_line_draw(const int screen)
 {
 }
 

@@ -5,38 +5,38 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
 /* Prototypes */
-static int add_address_group_entry(const char *group_name,
-				   const char *member_name,
-				   const _Bool is_delete);
-static struct address_group_entry *find_address_group(const char *group_name);
-static int add_number_group_entry(const char *group_name,
-				  const char *member_name,
-				  const _Bool is_delete);
-static struct number_group_entry *find_number_group(const char *group_name);
-static _Bool compare_path(const char *sarg, const char *darg,
-			  const u8 directive);
-static _Bool compare_number(const char *sarg, const char *darg);
-static _Bool compare_address(const char *sarg, const char *darg);
+static int ccs_add_address_group_entry(const char *group_name,
+				       const char *member_name,
+				       const _Bool is_delete);
+static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
+static int ccs_add_number_group_entry(const char *group_name,
+				      const char *member_name,
+				      const _Bool is_delete);
+static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
+static _Bool ccs_compare_path(const char *sarg, const char *darg,
+			      const u8 directive);
+static _Bool ccs_compare_number(const char *sarg, const char *darg);
+static _Bool ccs_compare_address(const char *sarg, const char *darg);
 
 /* Utility functions */
 
-struct path_group_entry *find_path_group(const char *group_name)
+struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < path_group_list_len; i++) {
-		if (!strcmp(group_name, path_group_list[i].group_name->name))
-			return &path_group_list[i];
+	for (i = 0; i < ccs_path_group_list_len; i++) {
+		if (!strcmp(group_name, ccs_path_group_list[i].group_name->name))
+			return &ccs_path_group_list[i];
 	}
 	return NULL;
 }
 
-int parse_ip(const char *address, struct ip_address_entry *entry)
+int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 {
 	unsigned int min[8];
 	unsigned int max[8];
@@ -77,63 +77,63 @@ int parse_ip(const char *address, struct ip_address_entry *entry)
 	return -EINVAL;
 }
 
-int add_address_group_policy(char *data, const _Bool is_delete)
+int ccs_add_address_group_policy(char *data, const _Bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return add_address_group_entry(data, cp, is_delete);
+	return ccs_add_address_group_entry(data, cp, is_delete);
 }
 
-static _Bool compare_path(const char *sarg, const char *darg,
-			  const u8 directive)
+static _Bool ccs_compare_path(const char *sarg, const char *darg,
+			      const u8 directive)
 {
 	int i;
-	struct path_group_entry *group;
-	struct path_info s;
-	struct path_info d;
+	struct ccs_path_group_entry *group;
+	struct ccs_path_info s;
+	struct ccs_path_info d;
 	_Bool may_use_pattern;
 	s.name = sarg;
 	d.name = darg;
-	fill_path_info(&s);
-	fill_path_info(&d);
+	ccs_fill_path_info(&s);
+	ccs_fill_path_info(&d);
 	may_use_pattern = !d.is_patterned
-		&& (directive != DIRECTIVE_ALLOW_EXECUTE);
-	if (!pathcmp(&s, &d))
+		&& (directive != CCS_DIRECTIVE_ALLOW_EXECUTE);
+	if (!ccs_pathcmp(&s, &d))
 		return true;
 	if (d.name[0] == '@')
 		return false;
 	if (s.name[0] != '@') {
 		/* Pathname component. */
-		return may_use_pattern && path_matches_pattern(&d, &s);
+		return may_use_pattern && ccs_path_matches_pattern(&d, &s);
 	}
 	/* path_group component. */
-	group = find_path_group(s.name + 1);
+	group = ccs_find_path_group(s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		const struct path_info *member_name;
+		const struct ccs_path_info *member_name;
 		member_name = group->member_name[i];
-		if (!pathcmp(member_name, &d))
+		if (!ccs_pathcmp(member_name, &d))
 			return true;
-		if (may_use_pattern && path_matches_pattern(&d, member_name))
+		if (may_use_pattern && ccs_path_matches_pattern(&d, member_name))
 			return true;
 	}
 	return false;
 }
 
-static _Bool compare_address(const char *sarg, const char *darg)
+static _Bool ccs_compare_address(const char *sarg, const char *darg)
 {
 	int i;
-	struct ip_address_entry sentry;
-	struct ip_address_entry dentry;
-	struct address_group_entry *group;
-	if (parse_ip(darg, &dentry))
+	struct ccs_ip_address_entry sentry;
+	struct ccs_ip_address_entry dentry;
+	struct ccs_address_group_entry *group;
+	if (ccs_parse_ip(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
 		/* IP address component. */
-		if (parse_ip(sarg, &sentry))
+		if (ccs_parse_ip(sarg, &sentry))
 			return false;
 		if (sentry.is_ipv6 != dentry.is_ipv6 ||
 		    memcmp(dentry.min, sentry.min, 16) < 0 ||
@@ -142,11 +142,11 @@ static _Bool compare_address(const char *sarg, const char *darg)
 		return true;
 	}
 	/* IP address group component. */
-	group = find_address_group(sarg + 1);
+	group = ccs_find_address_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		struct ip_address_entry *sentry = &group->member_name[i];
+		struct ccs_ip_address_entry *sentry = &group->member_name[i];
 		if (sentry->is_ipv6 == dentry.is_ipv6
 		    && memcmp(sentry->min, dentry.min, 16) <= 0
 		    && memcmp(dentry.max, sentry->max, 16) <= 0)
@@ -181,7 +181,7 @@ static char *ccs_tokenize(char *buffer, char *w[], size_t size)
 	return i < count || !*buffer ? cp : NULL;
 }
 
-int parse_number(const char *number, struct number_entry *entry)
+int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
 {
 	unsigned long min;
 	unsigned long max;
@@ -211,37 +211,37 @@ int parse_number(const char *number, struct number_entry *entry)
 	return 0;
 }
 
-int add_number_group_policy(char *data, const _Bool is_delete)
+int ccs_add_number_group_policy(char *data, const _Bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return add_number_group_entry(data, cp, is_delete);
+	return ccs_add_number_group_entry(data, cp, is_delete);
 }
 
-static _Bool compare_number(const char *sarg, const char *darg)
+static _Bool ccs_compare_number(const char *sarg, const char *darg)
 {
 	int i;
-	struct number_entry sentry;
-	struct number_entry dentry;
-	struct number_group_entry *group;
-	if (parse_number(darg, &dentry))
+	struct ccs_number_entry sentry;
+	struct ccs_number_entry dentry;
+	struct ccs_number_group_entry *group;
+	if (ccs_parse_number(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
 		/* Number component. */
-		if (parse_number(sarg, &sentry))
+		if (ccs_parse_number(sarg, &sentry))
 			return false;
 		if (sentry.min > dentry.min || sentry.max < dentry.max)
 			return false;
 		return true;
 	}
 	/* Number group component. */
-	group = find_number_group(sarg + 1);
+	group = ccs_find_number_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		struct number_entry *entry = &group->member_name[i];
+		struct ccs_number_entry *entry = &group->member_name[i];
 		if (entry->min > dentry.min || entry->max < dentry.max)
 			continue;
 		return true;
@@ -249,8 +249,8 @@ static _Bool compare_number(const char *sarg, const char *darg)
 	return false;
 }
 
-void editpolicy_try_optimize(struct domain_policy *dp, const int current,
-			     const int screen)
+void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current,
+				 const int screen)
 {
 	char *cp;
 	u8 s_index;
@@ -261,10 +261,10 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 	char *d[5];
 	if (current < 0)
 		return;
-	s_index = generic_acl_list[current].directive;
-	if (s_index == DIRECTIVE_NONE)
+	s_index = ccs_generic_acl_list[current].directive;
+	if (s_index == CCS_DIRECTIVE_NONE)
 		return;
-	cp = strdup(generic_acl_list[current].operand);
+	cp = strdup(ccs_generic_acl_list[current].operand);
 	if (!cp)
 		return;
 
@@ -274,21 +274,21 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 		return;
 	}
 
-	get();
-	for (index = 0; index < list_item_count[screen]; index++) {
+	ccs_get();
+	for (index = 0; index < ccs_list_item_count[screen]; index++) {
 		char *line;
-		const u8 d_index = generic_acl_list[index].directive;
+		const u8 d_index = ccs_generic_acl_list[index].directive;
 		if (index == current)
 			continue;
-		if (generic_acl_list[index].selected)
+		if (ccs_generic_acl_list[index].selected)
 			continue;
-		if (s_index == DIRECTIVE_ALLOW_READ_WRITE) {
+		if (s_index == CCS_DIRECTIVE_ALLOW_READ_WRITE) {
 			/* Source starts with "allow_read/write " */
-			if (d_index == DIRECTIVE_ALLOW_READ_WRITE) {
+			if (d_index == CCS_DIRECTIVE_ALLOW_READ_WRITE) {
 				/* Dest starts with "allow_read/write " */
-			} else if (d_index == DIRECTIVE_ALLOW_READ) {
+			} else if (d_index == CCS_DIRECTIVE_ALLOW_READ) {
 				/* Dest starts with "allow_read " */
-			} else if (d_index == DIRECTIVE_ALLOW_WRITE) {
+			} else if (d_index == CCS_DIRECTIVE_ALLOW_WRITE) {
 				/* Dest starts with "allow_write " */
 			} else {
 				/*
@@ -303,7 +303,7 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			/* Source and dest start with different directive. */
 			continue;
 		}
-		line = shprintf("%s", generic_acl_list[index].operand);
+		line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
 		d_cond = ccs_tokenize(line, d, sizeof(d));
 
 		/* Compare condition part. */
@@ -321,54 +321,54 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			fclose(fp);
 		}
 		switch (d_index) {
-			struct path_info sarg;
-			struct path_info darg;
+			struct ccs_path_info sarg;
+			struct ccs_path_info darg;
 			char c;
 			int len;
-		case DIRECTIVE_ALLOW_MKBLOCK:
-		case DIRECTIVE_ALLOW_MKCHAR:
-			if (!compare_number(s[3], d[3]) ||
-			    !compare_number(s[2], d[2]))
+		case CCS_DIRECTIVE_ALLOW_MKBLOCK:
+		case CCS_DIRECTIVE_ALLOW_MKCHAR:
+			if (!ccs_compare_number(s[3], d[3]) ||
+			    !ccs_compare_number(s[2], d[2]))
 				continue;
 			/* fall through */
-		case DIRECTIVE_ALLOW_CREATE:
-		case DIRECTIVE_ALLOW_MKDIR:
-		case DIRECTIVE_ALLOW_MKFIFO:
-		case DIRECTIVE_ALLOW_MKSOCK:
-		case DIRECTIVE_ALLOW_IOCTL:
-		case DIRECTIVE_ALLOW_CHMOD:
-		case DIRECTIVE_ALLOW_CHOWN:
-		case DIRECTIVE_ALLOW_CHGRP:
-			if (!compare_number(s[1], d[1]))
+		case CCS_DIRECTIVE_ALLOW_CREATE:
+		case CCS_DIRECTIVE_ALLOW_MKDIR:
+		case CCS_DIRECTIVE_ALLOW_MKFIFO:
+		case CCS_DIRECTIVE_ALLOW_MKSOCK:
+		case CCS_DIRECTIVE_ALLOW_IOCTL:
+		case CCS_DIRECTIVE_ALLOW_CHMOD:
+		case CCS_DIRECTIVE_ALLOW_CHOWN:
+		case CCS_DIRECTIVE_ALLOW_CHGRP:
+			if (!ccs_compare_number(s[1], d[1]))
 				continue;
 			/* fall through */
-		case DIRECTIVE_ALLOW_EXECUTE:
-		case DIRECTIVE_ALLOW_READ:
-		case DIRECTIVE_ALLOW_WRITE:
-		case DIRECTIVE_ALLOW_READ_WRITE:
-		case DIRECTIVE_ALLOW_UNLINK:
-		case DIRECTIVE_ALLOW_RMDIR:
-		case DIRECTIVE_ALLOW_TRUNCATE:
-		case DIRECTIVE_ALLOW_REWRITE:
-		case DIRECTIVE_ALLOW_UNMOUNT:
-		case DIRECTIVE_ALLOW_CHROOT:
-		case DIRECTIVE_ALLOW_SYMLINK:
-			if (!compare_path(s[0], d[0], d_index))
+		case CCS_DIRECTIVE_ALLOW_EXECUTE:
+		case CCS_DIRECTIVE_ALLOW_READ:
+		case CCS_DIRECTIVE_ALLOW_WRITE:
+		case CCS_DIRECTIVE_ALLOW_READ_WRITE:
+		case CCS_DIRECTIVE_ALLOW_UNLINK:
+		case CCS_DIRECTIVE_ALLOW_RMDIR:
+		case CCS_DIRECTIVE_ALLOW_TRUNCATE:
+		case CCS_DIRECTIVE_ALLOW_REWRITE:
+		case CCS_DIRECTIVE_ALLOW_UNMOUNT:
+		case CCS_DIRECTIVE_ALLOW_CHROOT:
+		case CCS_DIRECTIVE_ALLOW_SYMLINK:
+			if (!ccs_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
-		case DIRECTIVE_ALLOW_MOUNT:
-			if (!compare_number(s[3], d[3]) ||
-			    !compare_path(s[2], d[2], d_index))
+		case CCS_DIRECTIVE_ALLOW_MOUNT:
+			if (!ccs_compare_number(s[3], d[3]) ||
+			    !ccs_compare_path(s[2], d[2], d_index))
 				continue;
 			/* fall through */
-		case DIRECTIVE_ALLOW_LINK:
-		case DIRECTIVE_ALLOW_RENAME:
-		case DIRECTIVE_ALLOW_PIVOT_ROOT:
-			if (!compare_path(s[1], d[1], d_index) ||
-			    !compare_path(s[0], d[0], d_index))
+		case CCS_DIRECTIVE_ALLOW_LINK:
+		case CCS_DIRECTIVE_ALLOW_RENAME:
+		case CCS_DIRECTIVE_ALLOW_PIVOT_ROOT:
+			if (!ccs_compare_path(s[1], d[1], d_index) ||
+			    !ccs_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
-		case DIRECTIVE_ALLOW_SIGNAL:
+		case CCS_DIRECTIVE_ALLOW_SIGNAL:
 			/* Signal number component. */
 			if (strcmp(s[0], d[0]))
 				continue;
@@ -380,60 +380,60 @@ void editpolicy_try_optimize(struct domain_policy *dp, const int current,
 			if (c && c != ' ')
 				continue;
 			break;
-		case DIRECTIVE_ALLOW_NETWORK:
+		case CCS_DIRECTIVE_ALLOW_NETWORK:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
-			    !compare_address(s[2], d[2]) ||
-			    !compare_number(s[3], d[3]))
+			    !ccs_compare_address(s[2], d[2]) ||
+			    !ccs_compare_number(s[3], d[3]))
 				continue;
 			break;
-		case DIRECTIVE_ALLOW_ENV:
+		case CCS_DIRECTIVE_ALLOW_ENV:
 			/* An environemnt variable name component. */
 			sarg.name = s[0];
-			fill_path_info(&sarg);
+			ccs_fill_path_info(&sarg);
 			darg.name = d[0];
-			fill_path_info(&darg);
-			if (!pathcmp(&sarg, &darg))
+			ccs_fill_path_info(&darg);
+			if (!ccs_pathcmp(&sarg, &darg))
 				break;
 			/* allow_env doesn't interpret leading @ as
 			   path_group. */
 			if (darg.is_patterned ||
-			    !path_matches_pattern(&darg, &sarg))
+			    !ccs_path_matches_pattern(&darg, &sarg))
 				continue;
 			break;
 		default:
 			continue;
 		}
-		generic_acl_list[index].selected = 1;
+		ccs_generic_acl_list[index].selected = 1;
 	}
-	put();
+	ccs_put();
 	free(cp);
 }
 
 /* Variables */
 
-static struct address_group_entry *address_group_list = NULL;
-int address_group_list_len = 0;
+static struct ccs_address_group_entry *ccs_address_group_list = NULL;
+int ccs_address_group_list_len = 0;
 
 /* Main functions */
 
-static int add_address_group_entry(const char *group_name,
-				   const char *member_name,
-				   const _Bool is_delete)
+static int ccs_add_address_group_entry(const char *group_name,
+				       const char *member_name,
+				       const _Bool is_delete)
 {
-	const struct path_info *saved_group_name;
+	const struct ccs_path_info *saved_group_name;
 	int i;
 	int j;
-	struct ip_address_entry entry;
-	struct address_group_entry *group = NULL;
-	if (parse_ip(member_name, &entry))
+	struct ccs_ip_address_entry entry;
+	struct ccs_address_group_entry *group = NULL;
+	if (ccs_parse_ip(member_name, &entry))
 		return -EINVAL;
-	if (!is_correct_path(group_name, 0, 0, 0))
+	if (!ccs_is_correct_path(group_name, 0, 0, 0))
 		return -EINVAL;
-	saved_group_name = savename(group_name);
+	saved_group_name = ccs_savename(group_name);
 	if (!saved_group_name)
 		return -ENOMEM;
-	for (i = 0; i < address_group_list_len; i++) {
-		group = &address_group_list[i];
+	for (i = 0; i < ccs_address_group_list_len; i++) {
+		group = &ccs_address_group_list[i];
 		if (saved_group_name != group->group_name)
 			continue;
 		for (j = 0; j < group->member_name_len; j++) {
@@ -452,58 +452,58 @@ static int add_address_group_entry(const char *group_name,
 	}
 	if (is_delete)
 		return -ENOENT;
-	if (i == address_group_list_len) {
+	if (i == ccs_address_group_list_len) {
 		void *vp;
-		vp = realloc(address_group_list,
-			     (address_group_list_len + 1) *
-			     sizeof(struct address_group_entry));
+		vp = realloc(ccs_address_group_list,
+			     (ccs_address_group_list_len + 1) *
+			     sizeof(struct ccs_address_group_entry));
 		if (!vp)
-			out_of_memory();
-		address_group_list = vp;
-		group = &address_group_list[address_group_list_len++];
-		memset(group, 0, sizeof(struct address_group_entry));
+			ccs_out_of_memory();
+		ccs_address_group_list = vp;
+		group = &ccs_address_group_list[ccs_address_group_list_len++];
+		memset(group, 0, sizeof(struct ccs_address_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name = realloc(group->member_name,
 				     (group->member_name_len + 1) *
-				     sizeof(const struct ip_address_entry));
+				     sizeof(const struct ccs_ip_address_entry));
 	if (!group->member_name)
-		out_of_memory();
+		ccs_out_of_memory();
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
 
-static struct address_group_entry *find_address_group(const char *group_name)
+static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < address_group_list_len; i++) {
-		if (!strcmp(group_name, address_group_list[i].group_name->name))
-			return &address_group_list[i];
+	for (i = 0; i < ccs_address_group_list_len; i++) {
+		if (!strcmp(group_name, ccs_address_group_list[i].group_name->name))
+			return &ccs_address_group_list[i];
 	}
 	return NULL;
 }
 
-static struct number_group_entry *number_group_list = NULL;
-int number_group_list_len = 0;
+static struct ccs_number_group_entry *ccs_number_group_list = NULL;
+int ccs_number_group_list_len = 0;
 
-static int add_number_group_entry(const char *group_name,
-				  const char *member_name,
-				  const _Bool is_delete)
+static int ccs_add_number_group_entry(const char *group_name,
+				      const char *member_name,
+				      const _Bool is_delete)
 {
-	const struct path_info *saved_group_name;
+	const struct ccs_path_info *saved_group_name;
 	int i;
 	int j;
-	struct number_entry entry;
-	struct number_group_entry *group = NULL;
-	if (parse_number(member_name, &entry))
+	struct ccs_number_entry entry;
+	struct ccs_number_group_entry *group = NULL;
+	if (ccs_parse_number(member_name, &entry))
 		return -EINVAL;
-	if (!is_correct_path(group_name, 0, 0, 0))
+	if (!ccs_is_correct_path(group_name, 0, 0, 0))
 		return -EINVAL;
-	saved_group_name = savename(group_name);
+	saved_group_name = ccs_savename(group_name);
 	if (!saved_group_name)
 		return -ENOMEM;
-	for (i = 0; i < number_group_list_len; i++) {
-		group = &number_group_list[i];
+	for (i = 0; i < ccs_number_group_list_len; i++) {
+		group = &ccs_number_group_list[i];
 		if (saved_group_name != group->group_name)
 			continue;
 		for (j = 0; j < group->member_name_len; j++) {
@@ -522,33 +522,33 @@ static int add_number_group_entry(const char *group_name,
 	}
 	if (is_delete)
 		return -ENOENT;
-	if (i == number_group_list_len) {
+	if (i == ccs_number_group_list_len) {
 		void *vp;
-		vp = realloc(number_group_list,
-			     (number_group_list_len + 1) *
-			     sizeof(struct number_group_entry));
+		vp = realloc(ccs_number_group_list,
+			     (ccs_number_group_list_len + 1) *
+			     sizeof(struct ccs_number_group_entry));
 		if (!vp)
-			out_of_memory();
-		number_group_list = vp;
-		group = &number_group_list[number_group_list_len++];
-		memset(group, 0, sizeof(struct number_group_entry));
+			ccs_out_of_memory();
+		ccs_number_group_list = vp;
+		group = &ccs_number_group_list[ccs_number_group_list_len++];
+		memset(group, 0, sizeof(struct ccs_number_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name = realloc(group->member_name,
 				     (group->member_name_len + 1) *
-				     sizeof(const struct number_entry));
+				     sizeof(const struct ccs_number_entry));
 	if (!group->member_name)
-		out_of_memory();
+		ccs_out_of_memory();
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
 
-static struct number_group_entry *find_number_group(const char *group_name)
+static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < number_group_list_len; i++) {
-		if (!strcmp(group_name, number_group_list[i].group_name->name))
-			return &number_group_list[i];
+	for (i = 0; i < ccs_number_group_list_len; i++) {
+		if (!strcmp(group_name, ccs_number_group_list[i].group_name->name))
+			return &ccs_number_group_list[i];
 	}
 	return NULL;
 }

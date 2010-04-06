@@ -1,20 +1,20 @@
 /*
- * pathmatch.c
+ * ccs_pathmatch.c
  *
  * TOMOYO Linux's utilities.
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-static unsigned char revalidate_path(const char *path)
+static unsigned char ccs_revalidate_path(const char *ccs_path)
 {
 	struct stat buf;
 	unsigned char type = DT_UNKNOWN;
-	if (!lstat(path, &buf)) {
+	if (!lstat(ccs_path, &buf)) {
 		if (S_ISREG(buf.st_mode))
 			type = DT_REG;
 		else if (S_ISDIR(buf.st_mode))
@@ -25,23 +25,23 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-static int scandir_filter(const struct dirent *buf)
+static int ccs_scandir_filter(const struct dirent *buf)
 {
 	return strcmp(buf->d_name, ".") && strcmp(buf->d_name, "..");
 }
 
-static struct path_info target;
-static _Bool print_path_needs_separator = false;
+static struct ccs_path_info ccs_target;
+static _Bool ccs_print_path_needs_separator = false;
 
-static _Bool print_path(const char *path, const int type)
+static _Bool ccs_print_path(const char *path, const int type)
 {
-	struct path_info name;
+	struct ccs_path_info name;
 	int len;
 	char *cp;
 	len = strlen(path) * 4 + 4;
 	cp = malloc(len);
 	if (!cp)
-		out_of_memory();
+		ccs_out_of_memory();
 	name.name = cp;
 	while (true) {
 		const unsigned char c = *(const unsigned char *) path++;
@@ -62,76 +62,76 @@ static _Bool print_path(const char *path, const int type)
 			*cp++ = (c & 7) + '0';
 		}
 	}
-	fill_path_info(&name);
-	if (path_matches_pattern(&name, &target)) {
-		if (print_path_needs_separator)
+	ccs_fill_path_info(&name);
+	if (ccs_path_matches_pattern(&name, &ccs_target)) {
+		if (ccs_print_path_needs_separator)
 			putchar(' ');
-		print_path_needs_separator = true;
+		ccs_print_path_needs_separator = true;
 		printf("%s", name.name);
 	}
-	len = name.total_len >= target.const_len ? target.const_len :
+	len = name.total_len >= ccs_target.const_len ? ccs_target.const_len :
 		name.total_len;
-	len = strncmp(name.name, target.name, len);
+	len = strncmp(name.name, ccs_target.name, len);
 	free((void *) name.name);
 	return !len;
 }
 
-static char path[8192];
+static char ccs_path[8192];
 
-static void scan_dir(void)
+static void ccs_scan_dir(void)
 {
 	struct dirent **namelist;
-	int n = scandir(path, &namelist, scandir_filter, 0);
+	int n = scandir(ccs_path, &namelist, ccs_scandir_filter, 0);
 	int len;
 	int i;
 	if (n < 0)
 		return;
-	len = strlen(path);
+	len = strlen(ccs_path);
 	if (len == 1)
 		len = 0;
 	for (i = 0; i < n; i++) {
 		unsigned char type = namelist[i]->d_type;
-		snprintf(path + len, sizeof(path) - len - 1, "/%s",
+		snprintf(ccs_path + len, sizeof(ccs_path) - len - 1, "/%s",
 			 namelist[i]->d_name);
 		if (type == DT_UNKNOWN)
-			type = revalidate_path(path);
-		if (print_path(path, type) && type == DT_DIR)
-			scan_dir();
+			type = ccs_revalidate_path(ccs_path);
+		if (ccs_print_path(ccs_path, type) && type == DT_DIR)
+			ccs_scan_dir();
 		free((void *) namelist[i]);
 	}
 	free((void *) namelist);
 }
 
-static void do_pathmatch_main(char *find)
+static void ccs_do_pathmatch_main(char *find)
 {
 	if (!strcmp(find, "/"))
 		putchar('/');
-	else if (is_correct_path(find, 1, 0, 0)) {
-		target.name = find;
-		fill_path_info(&target);
-		print_path_needs_separator = false;
-		memset(path, 0, sizeof(path));
-		strncpy(path, "/", sizeof(path) - 1);
-		scan_dir();
+	else if (ccs_is_correct_path(find, 1, 0, 0)) {
+		ccs_target.name = find;
+		ccs_fill_path_info(&ccs_target);
+		ccs_print_path_needs_separator = false;
+		memset(ccs_path, 0, sizeof(ccs_path));
+		strncpy(ccs_path, "/", sizeof(ccs_path) - 1);
+		ccs_scan_dir();
 	}
 	putchar('\n');
 }
 
-int pathmatch_main(int argc, char *argv[])
+int ccs_pathmatch_main(int argc, char *argv[])
 {
 	if (argc > 1) {
 		int i;
 		for (i = 1; i < argc; i++)
-			do_pathmatch_main(argv[i]);
+			ccs_do_pathmatch_main(argv[i]);
 	} else {
-		get();
+		ccs_get();
 		while (true) {
-			char *line = freadline(stdin);
+			char *line = ccs_freadline(stdin);
 			if (!line)
 				break;
-			do_pathmatch_main(line);
+			ccs_do_pathmatch_main(line);
 		}
-		put();
+		ccs_put();
 	}
 	return 0;
 }

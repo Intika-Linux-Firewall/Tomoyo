@@ -5,18 +5,18 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-int setlevel_main(int argc, char *argv[])
+int ccs_setlevel_main(int argc, char *argv[])
 {
-	const char *policy_file = proc_policy_profile;
+	const char *policy_file = ccs_proc_policy_profile;
 	int i;
 	int fd;
 	char c;
-	if (access(proc_policy_dir, F_OK)) {
+	if (access(ccs_proc_policy_dir, F_OK)) {
 		fprintf(stderr, "You can't use this command for this "
 			"kernel.\n");
 		return 1;
@@ -27,7 +27,7 @@ int setlevel_main(int argc, char *argv[])
 		return 1;
 	} else if (write(fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", proc_policy_manager);
+			"run this program.\n", ccs_proc_policy_manager);
 		return 1;
 	}
 	if (argc == 1) {
@@ -48,9 +48,9 @@ int setlevel_main(int argc, char *argv[])
 				*(cp + 1) = '\0';
 		}
 		fflush(fp);
-		get();
+		ccs_get();
 		while (true) {
-			char *line = freadline(fp);
+			char *line = ccs_freadline(fp);
 			if (!line)
 				break;
 			for (i = 1; i < argc; i++) {
@@ -60,7 +60,7 @@ int setlevel_main(int argc, char *argv[])
 				break;
 			}
 		}
-		put();
+		ccs_put();
 		fclose(fp);
 	}
 	close(fd);

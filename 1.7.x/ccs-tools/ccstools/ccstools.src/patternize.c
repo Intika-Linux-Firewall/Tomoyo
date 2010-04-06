@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
@@ -14,7 +14,7 @@
  * Check whether the given filename is patterened.
  * Returns nonzero if patterned, zero otherwise.
  */
-static _Bool path_contains_pattern(const char *filename)
+static _Bool ccs_path_contains_pattern(const char *filename)
 {
 	if (filename) {
 		char c;
@@ -49,74 +49,74 @@ static _Bool path_contains_pattern(const char *filename)
 	return false;
 }
 
-struct path_pattern_entry {
+struct ccs_path_pattern_entry {
 	const char *group_name;
-	struct path_info path;
-	struct number_entry number;
-	struct ip_address_entry ip;
+	struct ccs_path_info path;
+	struct ccs_number_entry number;
+	struct ccs_ip_address_entry ip;
 	int type;
 };
 
-static struct path_pattern_entry *pattern_list = NULL;
-static int pattern_list_len = 0;
+static struct ccs_path_pattern_entry *ccs_pattern_list = NULL;
+static int ccs_pattern_list_len = 0;
 
-static const char *path_patternize(const char *cp)
+static const char *ccs_path_patternize(const char *cp)
 {
 	int i;
-	struct path_info cp2;
+	struct ccs_path_info cp2;
 	cp2.name = cp;
-	fill_path_info(&cp2);
-	for (i = 1; i < pattern_list_len; i++) {
-		const int type = pattern_list[i].type;
+	ccs_fill_path_info(&cp2);
+	for (i = 1; i < ccs_pattern_list_len; i++) {
+		const int type = ccs_pattern_list[i].type;
 		if (type != 1 && type != 2)
 			continue;
-		if (!path_matches_pattern(&cp2, &pattern_list[i].path))
+		if (!ccs_path_matches_pattern(&cp2, &ccs_pattern_list[i].path))
 			continue;
 		if (type == 2)
-			return pattern_list[i].group_name;
-		return pattern_list[i].path.name;
+			return ccs_pattern_list[i].group_name;
+		return ccs_pattern_list[i].path.name;
 	}
 	return cp;
 }
 
-static const char *number_patternize(const char *cp)
+static const char *ccs_number_patternize(const char *cp)
 {
 	int i;
-	struct number_entry entry;
-	if (parse_number(cp, &entry))
+	struct ccs_number_entry entry;
+	if (ccs_parse_number(cp, &entry))
 		return cp;
-	for (i = 1; i < pattern_list_len; i++) {
-		const int type = pattern_list[i].type;
+	for (i = 1; i < ccs_pattern_list_len; i++) {
+		const int type = ccs_pattern_list[i].type;
 		if (type != 3)
 			continue;
-		if (pattern_list[i].number.min > entry.min ||
-		    pattern_list[i].number.max < entry.max)
+		if (ccs_pattern_list[i].number.min > entry.min ||
+		    ccs_pattern_list[i].number.max < entry.max)
 			continue;
-		return pattern_list[i].group_name;
+		return ccs_pattern_list[i].group_name;
 	}
 	return cp;
 }
 
-static const char *address_patternize(const char *cp)
+static const char *ccs_address_patternize(const char *cp)
 {
 	int i;
-	struct ip_address_entry entry;
-	if (parse_ip(cp, &entry))
+	struct ccs_ip_address_entry entry;
+	if (ccs_parse_ip(cp, &entry))
 		return cp;
-	for (i = 1; i < pattern_list_len; i++) {
-		const int type = pattern_list[i].type;
+	for (i = 1; i < ccs_pattern_list_len; i++) {
+		const int type = ccs_pattern_list[i].type;
 		if (type != 4)
 			continue;
-		if (pattern_list[i].ip.is_ipv6 != entry.is_ipv6 ||
-		    memcmp(entry.min, pattern_list[i].ip.min, 16) < 0 ||
-		    memcmp(pattern_list[i].ip.max, entry.max, 16) < 0)
+		if (ccs_pattern_list[i].ip.is_ipv6 != entry.is_ipv6 ||
+		    memcmp(entry.min, ccs_pattern_list[i].ip.min, 16) < 0 ||
+		    memcmp(ccs_pattern_list[i].ip.max, entry.max, 16) < 0)
 			continue;
-		return pattern_list[i].group_name;
+		return ccs_pattern_list[i].group_name;
 	}
 	return cp;
 }
 
-int patternize_main(int argc, char *argv[])
+int ccs_patternize_main(int argc, char *argv[])
 {
 	int i;
 	_Bool need_free = 0;
@@ -124,87 +124,87 @@ int patternize_main(int argc, char *argv[])
 		FILE *fp = fopen(argv[2], "r");
 		argv = NULL;
 		argc = 0;
-		get();
+		ccs_get();
 		while (fp) {
-			char *line = freadline(fp);
+			char *line = ccs_freadline(fp);
 			if (!line)
 				break;
-			normalize_line(line);
-			if (str_starts(line, "file_pattern ") ||
-			    str_starts(line, "path_group") ||
-			    str_starts(line, "number_group") ||
-			    is_correct_path(line, 0, 1, 0)) {
+			ccs_normalize_line(line);
+			if (ccs_str_starts(line, "file_pattern ") ||
+			    ccs_str_starts(line, "path_group") ||
+			    ccs_str_starts(line, "number_group") ||
+			    ccs_is_correct_path(line, 0, 1, 0)) {
 				char *cp = strdup(line);
 				argv = realloc(argv,
 					       (argc + 1) * sizeof(char *));
 				if (!argv || !cp)
-					out_of_memory();
+					ccs_out_of_memory();
 				argv[argc++] = cp;
 			}
 		}
-		put();
+		ccs_put();
 		if (fp)
 			fclose(fp);
 		need_free = 1;
 	}
-	pattern_list_len = argc;
-	pattern_list = calloc(argc, sizeof(struct path_pattern_entry));
-	if (!pattern_list)
-		out_of_memory();
+	ccs_pattern_list_len = argc;
+	ccs_pattern_list = calloc(argc, sizeof(struct ccs_path_pattern_entry));
+	if (!ccs_pattern_list)
+		ccs_out_of_memory();
 	for (i = 0; i < argc; i++) {
-		normalize_line(argv[i]);
-		if (str_starts(argv[i], "file_pattern ")) {
-			if (!is_correct_path(argv[i], 0, 1, 0))
+		ccs_normalize_line(argv[i]);
+		if (ccs_str_starts(argv[i], "file_pattern ")) {
+			if (!ccs_is_correct_path(argv[i], 0, 1, 0))
 				continue;
-			pattern_list[i].path.name = argv[i];
-			pattern_list[i].type = 1;
-		} else if (str_starts(argv[i], "path_group")) {
+			ccs_pattern_list[i].path.name = argv[i];
+			ccs_pattern_list[i].type = 1;
+		} else if (ccs_str_starts(argv[i], "path_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !is_correct_path(argv[i] + 1, 0, 0, 0) ||
-			    !is_correct_path(cp + 1, 0, 0, 0))
+			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
+			    !ccs_is_correct_path(cp + 1, 0, 0, 0))
 				continue;
 			argv[i][0] = '@';
-			pattern_list[i].group_name = argv[i];
-			pattern_list[i].path.name = cp + 1;
-			pattern_list[i].type = 2;
-		} else if (str_starts(argv[i], "number_group")) {
+			ccs_pattern_list[i].group_name = argv[i];
+			ccs_pattern_list[i].path.name = cp + 1;
+			ccs_pattern_list[i].type = 2;
+		} else if (ccs_str_starts(argv[i], "number_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !is_correct_path(argv[i] + 1, 0, 0, 0) ||
-			    parse_number(cp + 1, &pattern_list[i].number))
+			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
+			    ccs_parse_number(cp + 1, &ccs_pattern_list[i].number))
 				continue;
 			argv[i][0] = '@';
-			pattern_list[i].group_name = argv[i];
-			pattern_list[i].type = 3;
-		} else if (str_starts(argv[i], "address_group")) {
+			ccs_pattern_list[i].group_name = argv[i];
+			ccs_pattern_list[i].type = 3;
+		} else if (ccs_str_starts(argv[i], "address_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !is_correct_path(argv[i] + 1, 0, 0, 0) ||
-			    parse_ip(cp + 1, &pattern_list[i].ip))
+			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
+			    ccs_parse_ip(cp + 1, &ccs_pattern_list[i].ip))
 				continue;
 			argv[i][0] = '@';
-			pattern_list[i].group_name = argv[i];
-			pattern_list[i].type = 4;
-		} else if (is_correct_path(argv[i], 0, 1, 0)) {
-			pattern_list[i].path.name = argv[i];
-			pattern_list[i].type = 1;
+			ccs_pattern_list[i].group_name = argv[i];
+			ccs_pattern_list[i].type = 4;
+		} else if (ccs_is_correct_path(argv[i], 0, 1, 0)) {
+			ccs_pattern_list[i].path.name = argv[i];
+			ccs_pattern_list[i].type = 1;
 		}
-		if (pattern_list[i].path.name)
-			fill_path_info(&pattern_list[i].path);
+		if (ccs_pattern_list[i].path.name)
+			ccs_fill_path_info(&ccs_pattern_list[i].path);
 	}
-	get();
+	ccs_get();
 	while (true) {
-		char *sp = freadline(stdin);
+		char *sp = ccs_freadline(stdin);
 		const char *cp;
 		_Bool first = true;
 		u8 path_count = 0;
@@ -259,14 +259,14 @@ int patternize_main(int argc, char *argv[])
 				skip_count--;
 			} else if (path_count) {
 				if (path_count-- && *cp != '@' &&
-				    !path_contains_pattern(cp))
-					cp = path_patternize(cp);
+				    !ccs_path_contains_pattern(cp))
+					cp = ccs_path_patternize(cp);
 			} else if (address_count) {
 				if (address_count-- && *cp != '@')
-					cp = address_patternize(cp);
+					cp = ccs_address_patternize(cp);
 			} else if (number_count) {
 				if (number_count-- && *cp != '@')
-					cp = number_patternize(cp);
+					cp = ccs_number_patternize(cp);
 			}
 			if (!first)
 				putchar(' ');
@@ -275,8 +275,8 @@ int patternize_main(int argc, char *argv[])
 		}
 		putchar('\n');
 	}
-	put();
-	free(pattern_list);
+	ccs_put();
+	free(ccs_pattern_list);
 	if (need_free) {
 		while (argc)
 			free(argv[--argc]);
