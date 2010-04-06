@@ -1,5 +1,5 @@
 /*
- * ccs_pathmatch.c
+ * ccs-pathmatch.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -117,7 +117,7 @@ static void ccs_do_pathmatch_main(char *find)
 	putchar('\n');
 }
 
-int ccs_pathmatch_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	if (argc > 1) {
 		int i;

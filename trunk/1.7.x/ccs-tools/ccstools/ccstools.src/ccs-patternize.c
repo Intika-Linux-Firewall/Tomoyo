@@ -1,5 +1,5 @@
 /*
- * patternize.c
+ * ccs-patternize.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -116,7 +116,7 @@ static const char *ccs_address_patternize(const char *cp)
 	return cp;
 }
 
-int ccs_patternize_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int i;
 	_Bool need_free = 0;

@@ -1,14 +1,13 @@
 /*
- * readline.c
+ * readline.h
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
 
 static int ccs_getch0(void)
 {
@@ -28,7 +27,7 @@ again:
 	return c;
 }
 
-int ccs_getch2(void)
+static int ccs_getch2(void)
 {
 	static int c0 = 0;
 	static int c1 = 0;
@@ -78,8 +77,8 @@ int ccs_getch2(void)
 	return 0;
 }
 
-int ccs_simple_add_history(const char *buffer, const char **history,
-			   const int history_count, const int max_history)
+static int ccs_simple_add_history(const char *buffer, const char **history,
+				  const int history_count, const int max_history)
 {
 	char *cp = buffer ? strdup(buffer) : NULL;
 	if (!cp)
@@ -102,12 +101,12 @@ int ccs_simple_add_history(const char *buffer, const char **history,
 	return 0;
 }
 
-int ccs_query_fd = EOF;
-char *ccs_initial_readline_data = NULL;
+static int ccs_query_fd = EOF;
+static char *ccs_initial_readline_data = NULL;
 
-char *ccs_simple_readline(const int start_y, const int start_x, const char *prompt,
-			  const char *history[], const int history_count,
-			  const int max_length, const int scroll_width)
+static char *ccs_simple_readline(const int start_y, const int start_x, const char *prompt,
+				 const char *history[], const int history_count,
+				 const int max_length, const int scroll_width)
 {
 	const int prompt_len = prompt ? strlen(prompt) : 0;
 	int buffer_len = 0;

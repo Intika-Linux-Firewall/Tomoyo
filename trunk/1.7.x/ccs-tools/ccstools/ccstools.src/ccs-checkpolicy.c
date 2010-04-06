@@ -1,5 +1,5 @@
 /*
- * checkpolicy.c
+ * ccs-checkpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -9,6 +9,27 @@
  *
  */
 #include "ccstools.h"
+
+enum ccs_policy_type {
+	CCS_POLICY_TYPE_UNKNOWN,
+	CCS_POLICY_TYPE_DOMAIN_POLICY,
+	CCS_POLICY_TYPE_EXCEPTION_POLICY,
+};
+
+enum ccs_socket_operation_type {
+	CCS_NETWORK_ACL_UDP_BIND,
+	CCS_NETWORK_ACL_UDP_CONNECT,
+	CCS_NETWORK_ACL_TCP_BIND,
+	CCS_NETWORK_ACL_TCP_LISTEN,
+	CCS_NETWORK_ACL_TCP_CONNECT,
+	CCS_NETWORK_ACL_TCP_ACCEPT,
+	CCS_NETWORK_ACL_RAW_BIND,
+	CCS_NETWORK_ACL_RAW_CONNECT
+};
+
+#define CCS_VALUE_TYPE_DECIMAL     1
+#define CCS_VALUE_TYPE_OCTAL       2
+#define CCS_VALUE_TYPE_HEXADECIMAL 3
 
 static int ccs_parse_ulong(unsigned long *result, char **str)
 {
@@ -884,7 +905,7 @@ static void ccs_check_exception_policy(char *policy)
 	}
 }
 
-int ccs_checkpolicy_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	char *policy = NULL;
 	int policy_type = CCS_POLICY_TYPE_UNKNOWN;

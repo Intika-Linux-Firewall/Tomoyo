@@ -9,6 +9,7 @@
  *
  */
 #include "ccstools.h"
+#include "editpolicy.h"
 
 /* Variables */
 

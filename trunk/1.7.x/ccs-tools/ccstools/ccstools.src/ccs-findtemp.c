@@ -1,16 +1,16 @@
 /*
- * findtemp.c
+ * ccs-findtemp.c
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
 
-int ccs_findtemp_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	const char **pattern_list = NULL;
 	int pattern_list_count = 0;
