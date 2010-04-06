@@ -4,6 +4,10 @@ CC=gcc
 
 CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/null > /dev/null 2>&1 && echo "-Wno-pointer-sign"}
 
+export CC
+export CFLAGS
+export INSTALLDIR
+
 all:
 	$(MAKE) -C sbin/ all
 	$(MAKE) -C usr_sbin/ all

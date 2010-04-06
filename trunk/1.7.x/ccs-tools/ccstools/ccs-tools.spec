@@ -34,7 +34,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /sbin/ccs-init
-/usr/lib/ccs/
+/usr/lib/
 /usr/sbin/
 /usr/share/man/
 %attr(4755,root,root) /usr/lib/ccs/force-logout

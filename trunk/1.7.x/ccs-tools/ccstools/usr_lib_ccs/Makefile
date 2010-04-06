@@ -1,14 +1,14 @@
-USR_LIB_CCS_LIST = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
+BUILD_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
 
-all: $(USR_LIB_CCS_LIST)
+all: $(BUILD_FILES)
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
-	chmod 755 $(USR_LIB_CCS_LIST) init_policy.sh
+	chmod 755 $(BUILD_FILES) init_policy.sh
 	chmod 4711 force-logout
 	chown -R root:root .
-	cp -af --remove-destination $(USR_LIB_CCS_LIST) ccstools.conf init_policy.sh README.ccs COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
+	cp -af --remove-destination $(BUILD_FILES) ccstools.conf init_policy.sh ../README.ccs ../COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
@@ -27,6 +27,6 @@ falsh: falsh.c /usr/include/curses.h /usr/include/readline/readline.h
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f $(USR_LIB_CCS_LIST)
+	rm -f -- $(BUILD_FILES)
 
 .PHONY: clean install
