@@ -9,8 +9,8 @@
  *
  */
 #include "ccstools.h"
-#include "readline.h"
 #include "editpolicy.h"
+#include "readline.h"
 
 /* Variables */
 
@@ -21,6 +21,7 @@ int ccs_path_group_list_len = 0;
 struct ccs_generic_acl *ccs_generic_acl_list = NULL;
 int ccs_generic_acl_list_count = 0;
 
+static const char *ccs_policy_dir = NULL;
 static _Bool ccs_offline_mode = false;
 static _Bool ccs_readonly_mode = false;
 static unsigned int ccs_refresh_interval = 0;
@@ -993,9 +994,9 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	ccs_find_or_assign_new_domain(dp, CCS_ROOT_NAME, false, false);
 
 	/* Load domain_initializer list, domain_keeper list. */
-	fp = ccs_editpolicy_open_read(ccs_proc_policy_exception_policy);
+	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	if (!fp) {
-		ccs_set_error(ccs_proc_policy_exception_policy);
+		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		goto no_exception;
 	}
 	ccs_get();
@@ -1037,9 +1038,9 @@ no_exception:
 		fflush(fp);
 	}
 	if (!fp)
-		fp = ccs_editpolicy_open_read(ccs_proc_policy_domain_policy);
+		fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_DOMAIN_POLICY);
 	if (!fp) {
-		ccs_set_error(ccs_proc_policy_domain_policy);
+		ccs_set_error(CCS_PROC_POLICY_DOMAIN_POLICY);
 		goto no_domain;
 	}
 	index = EOF;
@@ -1261,7 +1262,7 @@ static void ccs_show_list(struct ccs_domain_policy *dp)
 		ccs_list_item_count[ccs_current_screen] = ccs_generic_acl_list_count;
 	clear();
 	move(0, 0);
-	if (ccs_window_height < ccs_header_lines + 1) {
+	if (ccs_window_height < CCS_HEADER_LINES + 1) {
 		printw("Please enlarge window.");
 		clrtobot();
 		refresh();
@@ -1318,7 +1319,7 @@ static void ccs_show_list(struct ccs_domain_policy *dp)
 		ccs_eat_col = ccs_max_eat_col[ccs_current_screen];
 		if (index >= ccs_list_item_count[ccs_current_screen])
 			break;
-		move(ccs_header_lines + i, 0);
+		move(CCS_HEADER_LINES + i, 0);
 		switch (ccs_current_screen) {
 		case CCS_SCREEN_DOMAIN_LIST:
 			if (!ccs_domain_sort_type)
@@ -1351,7 +1352,7 @@ static void ccs_show_list(struct ccs_domain_policy *dp)
 static void ccs_resize_window(void)
 {
 	getmaxyx(stdscr, ccs_window_height, ccs_window_width);
-	ccs_body_lines = ccs_window_height - ccs_header_lines;
+	ccs_body_lines = ccs_window_height - CCS_HEADER_LINES;
 	if (ccs_body_lines <= ccs_current_y[ccs_current_screen])
 		ccs_current_y[ccs_current_screen] = ccs_body_lines - 1;
 	if (ccs_current_y[ccs_current_screen] < 0)
@@ -1469,7 +1470,7 @@ static void ccs_show_current(struct ccs_domain_policy *dp)
 		ccs_editpolicy_attr_change(A_REVERSE, false); /* add color */
 		ccs_put();
 	}
-	move(ccs_header_lines + ccs_current_y[ccs_current_screen], 0);
+	move(CCS_HEADER_LINES + ccs_current_y[ccs_current_screen], 0);
 	ccs_editpolicy_line_draw(ccs_current_screen);     /* add color */
 	refresh();
 }
@@ -1594,7 +1595,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 	}
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		int i;
-		FILE *fp = ccs_editpolicy_open_write(ccs_proc_policy_domain_policy);
+		FILE *fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
 		if (!fp)
 			return;
 		for (i = 1; i < dp->list_len; i++) {
@@ -1633,12 +1634,12 @@ static void ccs_add_entry(struct ccs_readline_data *rl)
 	FILE *fp;
 	char *line;
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = ccs_simple_readline(ccs_window_height - 1, 0, "Enter new entry> ",
-				   rl->history, rl->count, 128000, 8);
+	line = ccs_readline(ccs_window_height - 1, 0, "Enter new entry> ",
+			    rl->history, rl->count, 128000, 8);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	rl->count = ccs_simple_add_history(line, rl->history, rl->count, rl->max);
+	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
 	fp = ccs_editpolicy_open_write(ccs_policy_file);
 	if (!fp)
 		goto out;
@@ -1689,12 +1690,12 @@ static void ccs_find_entry(struct ccs_domain_policy *dp, _Bool input, _Bool forw
 	if (!input)
 		goto start_search;
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = ccs_simple_readline(ccs_window_height - 1, 0, "Search> ",
-				   rl->history, rl->count, 128000, 8);
+	line = ccs_readline(ccs_window_height - 1, 0, "Search> ",
+			    rl->history, rl->count, 128000, 8);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	rl->count = ccs_simple_add_history(line, rl->history, rl->count, rl->max);
+	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
 	free(rl->search_buffer[ccs_current_screen]);
 	rl->search_buffer[ccs_current_screen] = line;
 	line = NULL;
@@ -1760,12 +1761,12 @@ static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
 		}
 	}
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = ccs_simple_readline(ccs_window_height - 1, 0, "Enter profile number> ",
-				   NULL, 0, 8, 1);
+	line = ccs_readline(ccs_window_height - 1, 0, "Enter profile number> ",
+			    NULL, 0, 8, 1);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_editpolicy_open_write(ccs_proc_policy_domain_policy);
+	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
 	if (!fp)
 		goto out;
 	if (!ccs_domain_sort_type) {
@@ -1807,13 +1808,13 @@ static void ccs_set_level(struct ccs_domain_policy *dp, const int current)
 		ccs_initial_readline_data = cp + 1;
 		break;
 	}
-	line = ccs_simple_readline(ccs_window_height - 1, 0, "Enter new value> ",
-				   NULL, 0, 128000, 1);
+	line = ccs_readline(ccs_window_height - 1, 0, "Enter new value> ",
+			    NULL, 0, 128000, 1);
 	ccs_initial_readline_data = NULL;
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_editpolicy_open_write(ccs_proc_policy_profile);
+	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_PROFILE);
 	if (!fp)
 		goto out;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -1846,12 +1847,12 @@ static void ccs_set_quota(struct ccs_domain_policy *dp, const int current)
 	if (!ccs_count2(ccs_generic_acl_list, ccs_generic_acl_list_count))
 		ccs_select_item(dp, current);
 	ccs_editpolicy_attr_change(A_BOLD, true);  /* add color */
-	line = ccs_simple_readline(ccs_window_height - 1, 0, "Enter new value> ",
-				   NULL, 0, 20, 1);
+	line = ccs_readline(ccs_window_height - 1, 0, "Enter new value> ",
+			    NULL, 0, 20, 1);
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_editpolicy_open_write(ccs_proc_policy_meminfo);
+	fp = ccs_editpolicy_open_write(CCS_PROC_POLICY_MEMINFO);
 	if (!fp)
 		goto out;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -2013,7 +2014,7 @@ static void ccs_copy_to_history(struct ccs_domain_policy *dp, const int current,
 	default:
 		line = ccs_shprintf("%s", ccs_generic_acl_list[current].operand);
 	}
-	rl->count = ccs_simple_add_history(line, rl->history, rl->count, rl->max);
+	rl->count = ccs_add_history(line, rl->history, rl->count, rl->max);
 	ccs_put();
 }
 
@@ -2033,25 +2034,25 @@ static int ccs_generic_list_loop(struct ccs_domain_policy *dp)
 		first = false;
 	}
 	if (ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST) {
-		ccs_policy_file = ccs_proc_policy_exception_policy;
+		ccs_policy_file = CCS_PROC_POLICY_EXCEPTION_POLICY;
 		ccs_list_caption = "Exception Policy Editor";
 	} else if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-		ccs_policy_file = ccs_proc_policy_domain_policy;
+		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
 		ccs_list_caption = "Domain Policy Editor";
 	} else if (ccs_current_screen == CCS_SCREEN_QUERY_LIST) {
-		ccs_policy_file = ccs_proc_policy_query;
+		ccs_policy_file = CCS_PROC_POLICY_QUERY;
 		ccs_list_caption = "Interactive Enforcing Mode";
 	} else if (ccs_current_screen == CCS_SCREEN_PROFILE_LIST) {
-		ccs_policy_file = ccs_proc_policy_profile;
+		ccs_policy_file = CCS_PROC_POLICY_PROFILE;
 		ccs_list_caption = "Profile Editor";
 	} else if (ccs_current_screen == CCS_SCREEN_MANAGER_LIST) {
-		ccs_policy_file = ccs_proc_policy_manager;
+		ccs_policy_file = CCS_PROC_POLICY_MANAGER;
 		ccs_list_caption = "Manager Policy Editor";
 	} else if (ccs_current_screen == CCS_SCREEN_MEMINFO_LIST) {
-		ccs_policy_file = ccs_proc_policy_meminfo;
+		ccs_policy_file = CCS_PROC_POLICY_MEMINFO;
 		ccs_list_caption = "Memory Usage";
 	} else {
-		ccs_policy_file = ccs_proc_policy_domain_policy;
+		ccs_policy_file = CCS_PROC_POLICY_DOMAIN_POLICY;
 		/* ccs_list_caption = "Domain Transition Editor"; */
 	}
 	ccs_current_item_index[ccs_current_screen]
@@ -2265,7 +2266,6 @@ int main(int argc, char *argv[])
 	memset(ccs_current_item_index, 0, sizeof(ccs_current_item_index));
 	memset(ccs_list_item_count, 0, sizeof(ccs_list_item_count));
 	memset(ccs_max_eat_col, 0, sizeof(ccs_max_eat_col));
-	ccs_policy_dir = NULL;
 	if (argc > 1) {
 		int i;
 		for (i = 1; i < argc; i++) {
@@ -2333,27 +2333,27 @@ usage:
 		close(fd[1]);
 		ccs_persistent_fd = fd[0];
 		ccs_copy_file(CCS_DISK_POLICY_EXCEPTION_POLICY,
-			      ccs_proc_policy_exception_policy);
-		ccs_copy_file(CCS_DISK_POLICY_DOMAIN_POLICY, ccs_proc_policy_domain_policy);
-		ccs_copy_file(CCS_DISK_POLICY_PROFILE, ccs_proc_policy_profile);
-		ccs_copy_file(CCS_DISK_POLICY_MANAGER, ccs_proc_policy_manager);
+			      CCS_PROC_POLICY_EXCEPTION_POLICY);
+		ccs_copy_file(CCS_DISK_POLICY_DOMAIN_POLICY, CCS_PROC_POLICY_DOMAIN_POLICY);
+		ccs_copy_file(CCS_DISK_POLICY_PROFILE, CCS_PROC_POLICY_PROFILE);
+		ccs_copy_file(CCS_DISK_POLICY_MANAGER, CCS_PROC_POLICY_MANAGER);
 	} else if (!ccs_network_mode) {
-		if (chdir(ccs_proc_policy_dir)) {
+		if (chdir(CCS_PROC_POLICY_DIR)) {
 			fprintf(stderr,
 				"You can't use this editor for this kernel.\n");
 			return 1;
 		}
 		if (!ccs_readonly_mode) {
-			const int fd1 = ccs_open2(ccs_proc_policy_exception_policy,
+			const int fd1 = ccs_open2(CCS_PROC_POLICY_EXCEPTION_POLICY,
 						  O_RDWR);
-			const int fd2 = ccs_open2(ccs_proc_policy_domain_policy,
+			const int fd2 = ccs_open2(CCS_PROC_POLICY_DOMAIN_POLICY,
 						  O_RDWR);
 			if ((fd1 != EOF && write(fd1, "", 0) != 0) ||
 			    (fd2 != EOF && write(fd2, "", 0) != 0)) {
 				fprintf(stderr,
 					"You need to register this program to "
 					"%s to run this program.\n",
-					ccs_proc_policy_manager);
+					CCS_PROC_POLICY_MANAGER);
 				return 1;
 			}
 			close(fd1);
@@ -2385,7 +2385,7 @@ usage:
 	if (ccs_offline_mode && !ccs_readonly_mode) {
 		time_t now = time(NULL);
 		const char *filename = ccs_make_filename("exception_policy", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_exception_policy, filename)) {
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)) {
 			if (ccs_is_identical_file("exception_policy.conf",
 						  filename)) {
 				unlink(filename);
@@ -2396,7 +2396,7 @@ usage:
 		}
 		ccs_clear_domain_policy(&dp);
 		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_domain_policy, filename)) {
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)) {
 			if (ccs_is_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2405,7 +2405,7 @@ usage:
 			}
 		}
 		filename = ccs_make_filename("profile", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_profile, filename)) {
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, filename)) {
 			if (ccs_is_identical_file("profile.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2414,7 +2414,7 @@ usage:
 			}
 		}
 		filename = ccs_make_filename("manager", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_manager, filename)) {
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, filename)) {
 			if (ccs_is_identical_file("manager.conf", filename)) {
 				unlink(filename);
 			} else {

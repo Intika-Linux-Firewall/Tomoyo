@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	if (argc > 1 && !strcmp(argv[1], "--help"))
 		goto usage;
 	{
-		const int fd = open(ccs_proc_policy_exception_policy, O_RDWR);
+		const int fd = open(CCS_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this program "
 				"for this kernel.\n");
@@ -101,12 +101,12 @@ int main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				ccs_proc_policy_manager);
+				CCS_PROC_POLICY_MANAGER);
 			return 1;
 		}
 		close(fd);
 	}
-	fp_policy = fopen(ccs_proc_policy_exception_policy, "w");
+	fp_policy = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "w");
 	if (!fp_policy) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);

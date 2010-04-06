@@ -127,22 +127,22 @@ void ccs_editpolicy_offline_daemon(void)
 			break;
 		}
 		if (ccs_str_starts(buffer, "POST ")) {
-			if (!strcmp(buffer, ccs_proc_policy_domain_policy))
+			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
 				ccs_handle_domain_policy(&dp, fp, true);
-			else if (!strcmp(buffer, ccs_proc_policy_exception_policy))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, true);
-			else if (!strcmp(buffer, ccs_proc_policy_profile))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
 				ccs_handle_misc_policy(&mp[1], fp, true);
-			else if (!strcmp(buffer, ccs_proc_policy_manager))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
 				ccs_handle_misc_policy(&mp[2], fp, true);
 		} else if (ccs_str_starts(buffer, "GET ")) {
-			if (!strcmp(buffer, ccs_proc_policy_domain_policy))
+			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
 				ccs_handle_domain_policy(&dp, fp, false);
-			else if (!strcmp(buffer, ccs_proc_policy_exception_policy))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
 				ccs_handle_misc_policy(&mp[0], fp, false);
-			else if (!strcmp(buffer, ccs_proc_policy_profile))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
 				ccs_handle_misc_policy(&mp[1], fp, false);
-			else if (!strcmp(buffer, ccs_proc_policy_manager))
+			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
 				ccs_handle_misc_policy(&mp[2], fp, false);
 		}
 		fclose(fp);

@@ -12,10 +12,10 @@ CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/n
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses5-dev'"
 	sleep 10
 
-ccs-editpolicy: ccstools.c editpolicy*.c readline.h ccstools.h /usr/include/curses.h
+ccs-editpolicy: ccstools.c ccstools.h editpolicy*.c readline.h /usr/include/curses.h
 	$(CC) $(CFLAGS) -o ccs-editpolicy ccstools.c editpolicy*.c -lncurses -DCOLOR_ON
 
-ccs-queryd: ccstools.c ccs-queryd.c readline.h ccstools.h /usr/include/curses.h
+ccs-queryd: ccstools.c ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
 	$(CC) $(CFLAGS) -o ccs-queryd ccstools.c ccs-queryd.c -lncurses
 
 .c:

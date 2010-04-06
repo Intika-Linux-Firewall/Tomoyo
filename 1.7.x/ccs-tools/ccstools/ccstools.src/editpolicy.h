@@ -8,6 +8,8 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
+#include <signal.h>
+#include <curses.h>
 
 enum ccs_screen_type {
 	CCS_SCREEN_EXCEPTION_LIST,
@@ -119,38 +121,49 @@ enum ccs_editpolicy_directives {
 };
 
 enum ccs_color_pair {
-	CCS_NORMAL, CCS_DOMAIN_HEAD, CCS_DOMAIN_CURSOR,
-	CCS_EXCEPTION_HEAD, CCS_EXCEPTION_CURSOR, CCS_ACL_HEAD, CCS_ACL_CURSOR,
-	CCS_PROFILE_HEAD, CCS_PROFILE_CURSOR, CCS_MANAGER_HEAD, CCS_MANAGER_CURSOR,
-	CCS_MEMORY_HEAD, CCS_MEMORY_CURSOR, CCS_DISP_ERR
+	CCS_NORMAL,
+	CCS_DOMAIN_HEAD,
+	CCS_DOMAIN_CURSOR,
+	CCS_EXCEPTION_HEAD,
+	CCS_EXCEPTION_CURSOR,
+	CCS_ACL_HEAD,
+	CCS_ACL_CURSOR,
+	CCS_PROFILE_HEAD,
+	CCS_PROFILE_CURSOR,
+	CCS_MANAGER_HEAD,
+	CCS_MANAGER_CURSOR,
+	CCS_MEMORY_HEAD,
+	CCS_MEMORY_CURSOR,
+	CCS_DISP_ERR
 };
 
-static const int ccs_header_lines = 3;
+#define CCS_HEADER_LINES 3
 
-void ccs_editpolicy_offline_daemon(void);
-void ccs_editpolicy_init_keyword_map(void);
-void ccs_editpolicy_line_draw(const int screen);
-void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current, const int screen);
-void ccs_editpolicy_color_init(void);
-void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
-void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
-void ccs_editpolicy_sttr_save(void);
-void ccs_editpolicy_sttr_restore(void);
-int ccs_editpolicy_color_head(const int screen);
-int ccs_editpolicy_color_cursor(const int screen);
-int ccs_editpolicy_get_current(void);
+#define CCS_CONFIG_FILE "/usr/lib/ccs/ccstools.conf"
+
 int ccs_add_address_group_policy(char *data, const _Bool is_delete);
 int ccs_add_number_group_policy(char *data, const _Bool is_delete);
+int ccs_editpolicy_color_cursor(const int screen);
+int ccs_editpolicy_color_head(const int screen);
+int ccs_editpolicy_get_current(void);
+void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
+void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
+void ccs_editpolicy_color_init(void);
+void ccs_editpolicy_init_keyword_map(void);
+void ccs_editpolicy_line_draw(const int screen);
+void ccs_editpolicy_offline_daemon(void);
+void ccs_editpolicy_sttr_restore(void);
+void ccs_editpolicy_sttr_save(void);
+void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current, const int screen);
+void ccs_send_fd(char *data, int *fd);
 
-
-extern int ccs_persistent_fd;
-extern int ccs_path_group_list_len;
 extern int ccs_address_group_list_len;
-extern int ccs_number_group_list_len;
-extern struct ccs_generic_acl *ccs_generic_acl_list;
-extern int ccs_generic_acl_list_count;
-extern struct ccs_path_group_entry *ccs_path_group_list;
-extern int ccs_path_group_list_len;
-extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
-extern int ccs_list_item_count[CCS_MAXSCREEN];
 extern int ccs_current_y[CCS_MAXSCREEN];
+extern int ccs_generic_acl_list_count;
+extern int ccs_list_item_count[CCS_MAXSCREEN];
+extern int ccs_number_group_list_len;
+extern int ccs_path_group_list_len;
+extern int ccs_persistent_fd;
+extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
+extern struct ccs_generic_acl *ccs_generic_acl_list;
+extern struct ccs_path_group_entry *ccs_path_group_list;

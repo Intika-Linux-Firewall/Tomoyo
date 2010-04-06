@@ -10,6 +10,27 @@
  */
 #include "ccstools.h"
 
+#define CCS_KEYWORD_AGGREGATOR               "aggregator "
+#define CCS_KEYWORD_ALLOW_CAPABILITY         "allow_capability "
+#define CCS_KEYWORD_ALLOW_CHGRP              "allow_chgrp "
+#define CCS_KEYWORD_ALLOW_CHMOD              "allow_chmod "
+#define CCS_KEYWORD_ALLOW_CHOWN              "allow_chown "
+#define CCS_KEYWORD_ALLOW_CHROOT             "allow_chroot "
+#define CCS_KEYWORD_ALLOW_ENV                "allow_env "
+#define CCS_KEYWORD_ALLOW_IOCTL              "allow_ioctl "
+#define CCS_KEYWORD_ALLOW_MOUNT              "allow_mount "
+#define CCS_KEYWORD_ALLOW_NETWORK            "allow_network "
+#define CCS_KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
+#define CCS_KEYWORD_ALLOW_SIGNAL             "allow_signal "
+#define CCS_KEYWORD_ALLOW_UNMOUNT            "allow_unmount "
+#define CCS_KEYWORD_DENY_AUTOBIND            "deny_autobind "
+#define CCS_KEYWORD_DENY_REWRITE             "deny_rewrite "
+#define CCS_KEYWORD_FILE_PATTERN             "file_pattern "
+#define CCS_KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
+#define CCS_KEYWORD_SELECT                   "select "
+
+#define CCS_MAX_PATHNAME_LEN             4000
+
 enum ccs_policy_type {
 	CCS_POLICY_TYPE_UNKNOWN,
 	CCS_POLICY_TYPE_DOMAIN_POLICY,
@@ -924,7 +945,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	while (true) {
-		bool badchar_warned = false;
+		_Bool badchar_warned = false;
 		int pos = 0;
 		ccs_line++;
 		while (true) {

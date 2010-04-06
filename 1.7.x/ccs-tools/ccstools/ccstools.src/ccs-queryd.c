@@ -100,8 +100,8 @@ static _Bool ccs_check_path_info(const char *buffer)
 	char *sp = strdup(buffer);
 	char *str = sp;
 	const char *path_list[2] = {
-		ccs_proc_policy_exception_policy,
-		ccs_proc_policy_domain_policy
+		CCS_PROC_POLICY_EXCEPTION_POLICY,
+		CCS_PROC_POLICY_DOMAIN_POLICY
 	};
 	if (!str)
 		return false;
@@ -135,7 +135,7 @@ static _Bool ccs_check_path_info(const char *buffer)
 
 static void ccs_do_check_update(const int fd)
 {
-	FILE *fp_in = fopen(ccs_proc_policy_exception_policy, "r");
+	FILE *fp_in = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r");
 	char **pathnames = NULL;
 	int pathnames_len = 0;
 	char buffer[16384];
@@ -285,7 +285,7 @@ static void ccs_handle_update(const int check_update, const int fd)
 	char pathname[8192];
 	int c;
 	if (!fp)
-		fp = fopen(ccs_proc_policy_exception_policy, "w");
+		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "w");
 	memset(pathname, 0, sizeof(pathname));
 	if (recv(fd, pathname, sizeof(pathname) - 1, 0) == EOF)
 		return;
@@ -326,7 +326,7 @@ static int ccs_check_update = CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO;
 
 static FILE *ccs_domain_fp = NULL;
 static int ccs_domain_policy_fd = EOF;
-static const int ccs_max_readline_history = 20;
+#define CCS_MAX_READLINE_HISTORY 20
 static const char **ccs_readline_history = NULL;
 static int ccs_readline_history_count = 0;
 static const int ccs_buffer_len = 32768;
@@ -435,20 +435,20 @@ static _Bool ccs_handle_query(unsigned int serial)
 		return false;
 	*cp++ = '\0';
 	ccs_initial_readline_data = cp;
-	ccs_readline_history_count = ccs_simple_add_history(cp, ccs_readline_history,
-							    ccs_readline_history_count,
-							    ccs_max_readline_history);
-	line = ccs_simple_readline(y, 0, "Enter new entry> ", ccs_readline_history,
-				   ccs_readline_history_count, 128000, 8);
+	ccs_readline_history_count = ccs_add_history(cp, ccs_readline_history,
+						     ccs_readline_history_count,
+						     CCS_MAX_READLINE_HISTORY);
+	line = ccs_readline(y, 0, "Enter new entry> ", ccs_readline_history,
+			    ccs_readline_history_count, 128000, 8);
 	scrollok(stdscr, TRUE);
 	ccs_printw("\n");
 	if (!line || !*line) {
 		ccs_printw("None added.\n");
 		goto not_append;
 	}
-	ccs_readline_history_count = ccs_simple_add_history(line, ccs_readline_history,
-							    ccs_readline_history_count,
-							    ccs_max_readline_history);
+	ccs_readline_history_count = ccs_add_history(line, ccs_readline_history,
+						     ccs_readline_history_count,
+						     CCS_MAX_READLINE_HISTORY);
 	if (ccs_network_mode) {
 		fprintf(ccs_domain_fp, "%s%s\n", pidbuf, line);
 		fflush(ccs_domain_fp);
@@ -526,10 +526,10 @@ int main(int argc, char *argv[])
  ok:
 	if (ccs_network_mode) {
 		ccs_query_fd = ccs_open_stream("proc:query");
-		ccs_domain_fp = ccs_open_write(ccs_proc_policy_domain_policy);
+		ccs_domain_fp = ccs_open_write(CCS_PROC_POLICY_DOMAIN_POLICY);
 	} else {
-		ccs_query_fd = open(ccs_proc_policy_query, O_RDWR);
-		ccs_domain_policy_fd = open(ccs_proc_policy_domain_policy, O_RDWR);
+		ccs_query_fd = open(CCS_PROC_POLICY_QUERY, O_RDWR);
+		ccs_domain_policy_fd = open(CCS_PROC_POLICY_DOMAIN_POLICY, O_RDWR);
 	}
 	if (ccs_query_fd == EOF) {
 		fprintf(stderr,
@@ -537,7 +537,7 @@ int main(int argc, char *argv[])
 		return 1;
 	} else if (!ccs_network_mode && write(ccs_query_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", ccs_proc_policy_manager);
+			"run this program.\n", CCS_PROC_POLICY_MANAGER);
 		return 1;
 	}
 	if (ccs_check_update != CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE) {
@@ -559,7 +559,7 @@ int main(int argc, char *argv[])
 		close(pipe_fd[1]);
 		pipe_fd[1] = EOF;
 	}
-	ccs_readline_history = malloc(ccs_max_readline_history * sizeof(const char *));
+	ccs_readline_history = malloc(CCS_MAX_READLINE_HISTORY * sizeof(const char *));
 	if (!ccs_readline_history)
 		ccs_out_of_memory();
 	ccs_send_keepalive();

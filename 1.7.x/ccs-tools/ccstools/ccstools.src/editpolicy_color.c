@@ -48,7 +48,7 @@ void ccs_editpolicy_color_init(void)
 		{ CCS_NORMAL,           COLOR_WHITE,
 		  COLOR_BLACK,      NULL }
 	};
-	FILE *fp = fopen(CCSTOOLS_CONFIG_FILE, "r");
+	FILE *fp = fopen(CCS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;
@@ -182,7 +182,7 @@ void ccs_editpolicy_line_draw(const int screen)
 	getyx(stdscr, y, x);
 	if (-1 < ccs_before_current[screen] &&
 	    current != ccs_before_current[screen]){
-		move(ccs_header_lines + ccs_before_y[screen], 0);
+		move(CCS_HEADER_LINES + ccs_before_y[screen], 0);
 		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
 	}
 
