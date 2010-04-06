@@ -12,16 +12,21 @@ CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/n
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses5-dev'"
 	sleep 10
 
-ccs-editpolicy: ccstools.c ccstools.h editpolicy*.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-editpolicy ccstools.c editpolicy*.c -lncurses -DCOLOR_ON
+ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h
+	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
 
-ccs-queryd: ccstools.c ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-queryd ccstools.c ccs-queryd.c -lncurses
+ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
+	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+
+libccstools.so: ccstools.c ccstools.h
+	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.0
+	ln -sf libccstools.so.1.0.0 libccstools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ ccstools.c $<
+	[ -r libccstools.so ] || $(MAKE) libccstools.so
+	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
 
 clean:
-	rm -f -- $(USR_SBIN_LIST)
+	rm -f -- $(USR_SBIN_LIST) libccstools.so*
 
 .PHONY: clean install
