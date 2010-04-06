@@ -1,10 +1,6 @@
-USR_SBIN_LIST = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
+BUILD_FILES = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
 
-all: $(USR_SBIN_LIST)
-
-#CC=gcc
-
-#CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/null > /dev/null 2>&1 && echo "-Wno-pointer-sign"}
+all: $(BUILD_FILES)
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
@@ -27,10 +23,10 @@ libccstools.so: ccstools.c ccstools.h
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
-	cp -af --remove-destination $(USR_SBIN_LIST) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -af --remove-destination $(BUILD_FILES) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
 	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/ 
 
 clean:
-	rm -f -- $(USR_SBIN_LIST) libccstools.so*
+	rm -f -- $(BUILD_FILES) libccstools.so*
 
 .PHONY: clean install

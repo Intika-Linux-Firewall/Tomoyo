@@ -1,17 +1,17 @@
-SBIN_LIST = ccs-init
+BUILD_FILES = ccs-init
 
-all: $(SBIN_LIST)
+all: $(BUILD_FILES)
 
 install: all
 	mkdir -p $(INSTALLDIR)/sbin
-	chmod 700 $(SBIN_LIST)
+	chmod 700 $(BUILD_FILES)
 	chown -R root:root .
-	cp -af --remove-destination $(SBIN_LIST) $(INSTALLDIR)/sbin/
+	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/sbin/
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
-	rm -f $(SBIN_LIST)
+	rm -f -- $(BUILD_FILES)
 
 .PHONY: clean install
