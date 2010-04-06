@@ -29,7 +29,6 @@ u32 ccs_network_ip = INADDR_NONE;
 u16 ccs_network_port = 0;
 struct ccs_task_entry *ccs_task_list = NULL;
 int ccs_task_list_len = 0;
-const char *ccs_policy_dir = NULL;
 
 /* Prototypes */
 
@@ -1028,7 +1027,7 @@ void ccs_read_process_list(_Bool show_all)
 	} else {
 		static const int line_len = 8192;
 		char *line;
-		int status_fd = open(ccs_proc_policy_process_status, O_RDWR);
+		int status_fd = open(CCS_PROC_POLICY_PROCESS_STATUS, O_RDWR);
 		DIR *dir = opendir("/proc/");
 		if (status_fd == EOF || !dir) {
 			if (status_fd != EOF)

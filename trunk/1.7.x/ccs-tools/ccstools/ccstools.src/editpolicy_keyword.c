@@ -104,7 +104,7 @@ u8 ccs_find_directive(const _Bool forward, char *line)
 
 void ccs_editpolicy_init_keyword_map(void)
 {
-	FILE *fp = fopen(CCSTOOLS_CONFIG_FILE, "r");
+	FILE *fp = fopen(CCS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;

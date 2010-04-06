@@ -9,14 +9,15 @@
  *
  */
 #include "ccstools.h"
+#include <syslog.h>
 
-#define CCS_AUDITD_MAX_FILES             2
+#define CCS_AUDITD_MAX_FILES 2
 
 int main(int argc, char *argv[])
 {
 	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
-		ccs_proc_policy_grant_log,
-		ccs_proc_policy_reject_log
+		CCS_PROC_POLICY_GRANT_LOG,
+		CCS_PROC_POLICY_REJECT_LOG
 	};
 	int i;
 	int fd_in[CCS_AUDITD_MAX_FILES];

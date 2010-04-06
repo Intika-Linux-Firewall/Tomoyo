@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	_Bool force_save = false;
 	time_t now = time(NULL);
 	int i;
-	ccs_policy_dir = NULL;
+	const char *ccs_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
@@ -62,13 +62,13 @@ int main(int argc, char *argv[])
 			argv[i] = "";
 		}
 	}
-	if (!ccs_network_mode && access(ccs_proc_policy_dir, F_OK)) {
+	if (!ccs_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 0;
 	}
 	if (!ccs_network_mode && !ccs_policy_dir)
-		ccs_policy_dir = ccs_disk_policy_dir;
+		ccs_policy_dir = CCS_DISK_POLICY_DIR;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *e = strchr(ptr, 'e');
@@ -118,39 +118,39 @@ int main(int argc, char *argv[])
 
 	if (!ccs_network_mode) {
 		/* Exclude nonexistent policy. */
-		if (access(ccs_proc_policy_exception_policy, R_OK))
+		if (access(CCS_PROC_POLICY_EXCEPTION_POLICY, R_OK))
 			save_exception_policy = 0;
-		if (access(ccs_proc_policy_domain_policy, R_OK))
+		if (access(CCS_PROC_POLICY_DOMAIN_POLICY, R_OK))
 			save_domain_policy = 0;
-		if (access(ccs_proc_policy_profile, R_OK))
+		if (access(CCS_PROC_POLICY_PROFILE, R_OK))
 			save_profile = 0;
-		if (access(ccs_proc_policy_manager, R_OK))
+		if (access(CCS_PROC_POLICY_MANAGER, R_OK))
 			save_manager = 0;
-		if (access(ccs_proc_policy_meminfo, R_OK))
+		if (access(CCS_PROC_POLICY_MEMINFO, R_OK))
 			save_meminfo = 0;
 	}
 
 	if (write_to_stdout) {
 		if (save_profile)
-			ccs_cat_file(ccs_proc_policy_profile);
+			ccs_cat_file(CCS_PROC_POLICY_PROFILE);
 		else if (save_manager)
-			ccs_cat_file(ccs_proc_policy_manager);
+			ccs_cat_file(CCS_PROC_POLICY_MANAGER);
 		else if (save_exception_policy)
-			ccs_cat_file(ccs_proc_policy_exception_policy);
+			ccs_cat_file(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		else if (save_domain_policy)
-			ccs_cat_file(ccs_proc_policy_domain_policy);
+			ccs_cat_file(CCS_PROC_POLICY_DOMAIN_POLICY);
 		else if (save_meminfo)
-			ccs_cat_file(ccs_proc_policy_meminfo);
+			ccs_cat_file(CCS_PROC_POLICY_MEMINFO);
 		goto done;
 	}
 	if (save_profile)
-		ccs_move_proc_to_file(ccs_proc_policy_profile, CCS_DISK_POLICY_PROFILE);
+		ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, CCS_DISK_POLICY_PROFILE);
 	if (save_manager)
-		ccs_move_proc_to_file(ccs_proc_policy_manager, CCS_DISK_POLICY_MANAGER);
+		ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, CCS_DISK_POLICY_MANAGER);
 
 	if (save_exception_policy) {
 		filename = ccs_make_filename("exception_policy", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_exception_policy, filename)
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
 			    ccs_is_identical_file("exception_policy.conf",
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
 	if (save_domain_policy) {
 		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_move_proc_to_file(ccs_proc_policy_domain_policy, filename)
+		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
 			    ccs_is_identical_file("domain_policy.conf", filename)) {

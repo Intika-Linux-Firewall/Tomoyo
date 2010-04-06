@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	for (i = start; i < argc; i++)
 		ccs_normalize_line(argv[i]);
 	{
-		const int fd = open(ccs_proc_policy_domain_status, O_RDWR);
+		const int fd = open(CCS_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
 		if (fd == EOF) {
 			fprintf(stderr, "You can't run this command for this "
 				"kernel.\n");
@@ -38,14 +38,14 @@ int main(int argc, char *argv[])
 		} else if (write(fd, "", 0) != 0) {
 			fprintf(stderr, "You need to register this program to "
 				"%s to run this program.\n",
-				ccs_proc_policy_manager);
+				CCS_PROC_POLICY_MANAGER);
 			return 1;
 		}
 		close(fd);
 	}
 	{
 		_Bool profile_found = false;
-		FILE *fp = fopen(ccs_proc_policy_profile, "r");
+		FILE *fp = fopen(CCS_PROC_POLICY_PROFILE, "r");
 		if (!fp) {
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
-	fp_in = fopen(ccs_proc_policy_domain_status, "r");
-	fp_out = fopen(ccs_proc_policy_domain_status, "w");
+	fp_in = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "r");
+	fp_out = fopen(CCS_PROC_POLICY_DOMAIN_STATUS, "w");
 	if (!fp_in || !fp_out) {
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);

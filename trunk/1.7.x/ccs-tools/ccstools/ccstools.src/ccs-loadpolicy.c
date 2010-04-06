@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
 	int load_meminfo = 0;
 	_Bool refresh_policy = false;
 	int i;
-	ccs_policy_dir = NULL;
+	const char *ccs_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (!ccs_network_mode && !ccs_policy_dir)
-		ccs_policy_dir = ccs_disk_policy_dir;
+		ccs_policy_dir = CCS_DISK_POLICY_DIR;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *e = strchr(ptr, 'e');
@@ -226,36 +226,36 @@ int main(int argc, char *argv[])
 
 	if (load_profile) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, ccs_proc_policy_profile);
+			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_PROFILE);
 		else
 			ccs_move_file_to_proc(CCS_DISK_POLICY_PROFILE,
-					      ccs_proc_policy_profile);
+					      CCS_PROC_POLICY_PROFILE);
 	}
 	
 	if (load_manager) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, ccs_proc_policy_manager);
+			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MANAGER);
 		else
 			ccs_move_file_to_proc(CCS_DISK_POLICY_MANAGER,
-					      ccs_proc_policy_manager);
+					      CCS_PROC_POLICY_MANAGER);
 	}
 	
 	if (load_meminfo) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, ccs_proc_policy_meminfo);
+			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MEMINFO);
 		else
 			ccs_move_file_to_proc(CCS_DISK_POLICY_MEMINFO,
-					      ccs_proc_policy_meminfo);
+					      CCS_PROC_POLICY_MEMINFO);
 	}
 
 	if (load_exception_policy) {
 		if (refresh_policy)
-			ccs_delete_proc_policy(ccs_proc_policy_exception_policy);
+			ccs_delete_proc_policy(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, ccs_proc_policy_exception_policy);
+			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_EXCEPTION_POLICY);
 		else
 			ccs_move_file_to_proc(CCS_DISK_POLICY_EXCEPTION_POLICY,
-					      ccs_proc_policy_exception_policy);
+					      CCS_PROC_POLICY_EXCEPTION_POLICY);
 	}
 	
 	if (load_domain_policy) {
@@ -263,20 +263,20 @@ int main(int argc, char *argv[])
 			if (read_from_stdin)
 				ccs_update_domain_policy(&proc_policy, &file_policy,
 							 NULL,
-							 ccs_proc_policy_domain_policy);
+							 CCS_PROC_POLICY_DOMAIN_POLICY);
 			else
 				ccs_update_domain_policy(&proc_policy, &file_policy,
 							 CCS_DISK_POLICY_DOMAIN_POLICY,
-							 ccs_proc_policy_domain_policy);
+							 CCS_PROC_POLICY_DOMAIN_POLICY);
 			ccs_clear_domain_policy(&proc_policy);
 			ccs_clear_domain_policy(&file_policy);
 		} else {
 			if (read_from_stdin)
 				ccs_move_file_to_proc(NULL,
-						      ccs_proc_policy_domain_policy);
+						      CCS_PROC_POLICY_DOMAIN_POLICY);
 			else
 				ccs_move_file_to_proc(CCS_DISK_POLICY_DOMAIN_POLICY,
-						      ccs_proc_policy_domain_policy);
+						      CCS_PROC_POLICY_DOMAIN_POLICY);
 		}
 	}
 	return 0;
