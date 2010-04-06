@@ -1,5 +1,5 @@
 /*
- * setlevel.c
+ * ccs-setlevel.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -10,7 +10,7 @@
  */
 #include "ccstools.h"
 
-int ccs_setlevel_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	const char *policy_file = ccs_proc_policy_profile;
 	int i;

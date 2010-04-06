@@ -1,5 +1,5 @@
 /*
- * pstree.c
+ * ccs-pstree.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -33,7 +33,7 @@ static void ccs_dump(const pid_t pid, const int depth)
 	}
 }
 
-int ccs_pstree_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	static _Bool show_all = false;
 	int i;

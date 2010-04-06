@@ -9,18 +9,7 @@
  *
  */
 #include "ccstools.h"
-
-struct ccs_misc_policy {
-	const struct ccs_path_info **list;
-	int list_len;
-};
-
-/* Prototypes */
-
-static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp,
-				   _Bool is_write);
-
-/* Utility functions */
+#include "editpolicy.h"
 
 static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp, _Bool is_write)
 {

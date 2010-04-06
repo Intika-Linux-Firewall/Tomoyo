@@ -9,18 +9,26 @@
  *
  */
 #include "ccstools.h"
+#include "editpolicy.h"
+
+struct ccs_address_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_ip_address_entry *member_name;
+	int member_name_len;
+};
+
+struct ccs_number_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_number_entry *member_name;
+	int member_name_len;
+};
 
 /* Prototypes */
-static int ccs_add_address_group_entry(const char *group_name,
-				       const char *member_name,
-				       const _Bool is_delete);
+static int ccs_add_address_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
-static int ccs_add_number_group_entry(const char *group_name,
-				      const char *member_name,
-				      const _Bool is_delete);
+static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
-static _Bool ccs_compare_path(const char *sarg, const char *darg,
-			      const u8 directive);
+static _Bool ccs_compare_path(const char *sarg, const char *darg, const u8 directive);
 static _Bool ccs_compare_number(const char *sarg, const char *darg);
 static _Bool ccs_compare_address(const char *sarg, const char *darg);
 
@@ -34,47 +42,6 @@ struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
 			return &ccs_path_group_list[i];
 	}
 	return NULL;
-}
-
-int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
-{
-	unsigned int min[8];
-	unsigned int max[8];
-	int i;
-	int j;
-	memset(entry, 0, sizeof(*entry));
-	i = sscanf(address, "%u.%u.%u.%u-%u.%u.%u.%u",
-		   &min[0], &min[1], &min[2], &min[3],
-		   &max[0], &max[1], &max[2], &max[3]);
-	if (i == 4)
-		for (j = 0; j < 4; j++)
-			max[j] = min[j];
-	if (i == 4 || i == 8) {
-		for (j = 0; j < 4; j++) {
-			entry->min[j] = (u8) min[j];
-			entry->max[j] = (u8) max[j];
-		}
-		return 0;
-	}
-	i = sscanf(address, "%X:%X:%X:%X:%X:%X:%X:%X-%X:%X:%X:%X:%X:%X:%X:%X",
-		   &min[0], &min[1], &min[2], &min[3],
-		   &min[4], &min[5], &min[6], &min[7],
-		   &max[0], &max[1], &max[2], &max[3],
-		   &max[4], &max[5], &max[6], &max[7]);
-	if (i == 8)
-		for (j = 0; j < 8; j++)
-			max[j] = min[j];
-	if (i == 8 || i == 16) {
-		for (j = 0; j < 8; j++) {
-			entry->min[j * 2] = (u8) (min[j] >> 8);
-			entry->min[j * 2 + 1] = (u8) min[j];
-			entry->max[j * 2] = (u8) (max[j] >> 8);
-			entry->max[j * 2 + 1] = (u8) max[j];
-		}
-		entry->is_ipv6 = true;
-		return 0;
-	}
-	return -EINVAL;
 }
 
 int ccs_add_address_group_policy(char *data, const _Bool is_delete)
@@ -179,36 +146,6 @@ static char *ccs_tokenize(char *buffer, char *w[], size_t size)
 		buffer = cp + 1;
 	}
 	return i < count || !*buffer ? cp : NULL;
-}
-
-int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
-{
-	unsigned long min;
-	unsigned long max;
-	char *cp;
-	memset(entry, 0, sizeof(*entry));
-	if (number[0] != '0') {
-		if (sscanf(number, "%lu", &min) != 1)
-			return -EINVAL;
-	} else if (number[1] == 'x' || number[1] == 'X') {
-		if (sscanf(number + 2, "%lX", &min) != 1)
-			return -EINVAL;
-	} else if (sscanf(number, "%lo", &min) != 1)
-		return -EINVAL;
-	cp = strchr(number, '-');
-	if (cp)
-		number = cp + 1;
-	if (number[0] != '0') {
-		if (sscanf(number, "%lu", &max) != 1)
-			return -EINVAL;
-	} else if (number[1] == 'x' || number[1] == 'X') {
-		if (sscanf(number + 2, "%lX", &max) != 1)
-			return -EINVAL;
-	} else if (sscanf(number, "%lo", &max) != 1)
-		return -EINVAL;
-	entry->min = min;
-	entry->max = max;
-	return 0;
 }
 
 int ccs_add_number_group_policy(char *data, const _Bool is_delete)

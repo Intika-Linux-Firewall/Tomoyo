@@ -9,46 +9,69 @@
  *
  */
 #include "ccstools.h"
+#include "readline.h"
+#include "editpolicy.h"
 
-struct ccs_readline_data {
-	const char **history;
-	int count;
-	int max;
-	char *search_buffer[CCS_MAXSCREEN];
-};
+/* Variables */
+
+extern int ccs_persistent_fd;
+
+struct ccs_path_group_entry *ccs_path_group_list = NULL;
+int ccs_path_group_list_len = 0;
+struct ccs_generic_acl *ccs_generic_acl_list = NULL;
+int ccs_generic_acl_list_count = 0;
+
+static _Bool ccs_offline_mode = false;
+static _Bool ccs_readonly_mode = false;
+static unsigned int ccs_refresh_interval = 0;
+static _Bool ccs_need_reload = false;
+static const char *ccs_policy_file = NULL;
+static const char *ccs_list_caption = NULL;
+static char *ccs_current_domain = NULL;
+static unsigned int ccs_current_pid = 0;
+static int ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
+static struct ccs_domain_keeper_entry *ccs_domain_keeper_list = NULL;
+static int ccs_domain_keeper_list_len = 0;
+static struct ccs_domain_initializer_entry *ccs_domain_initializer_list = NULL;
+static int ccs_domain_initializer_list_len = 0;
+static int ccs_profile_sort_type = 0;
+static int ccs_unnumbered_domain_count = 0;
+static int ccs_window_width = 0;
+static int ccs_window_height = 0;
+static int ccs_current_item_index[CCS_MAXSCREEN];
+int ccs_current_y[CCS_MAXSCREEN];
+int ccs_list_item_count[CCS_MAXSCREEN];
+static int ccs_body_lines = 0;
+static int ccs_max_eat_col[CCS_MAXSCREEN];
+static int ccs_eat_col = 0;
+static int ccs_max_col = 0;
+static int ccs_list_indent = 0;
+static int ccs_acl_sort_type = 1;
+static char *ccs_last_error = NULL;
 
 /* Prototypes */
 
 static void ccs_sigalrm_handler(int sig);
-static const char *ccs_get_last_name(const struct ccs_domain_policy *dp,
-				     const int index);
+static const char *ccs_get_last_name(const struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_is_keeper_domain(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_is_initializer_source(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_is_initializer_target(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_is_domain_unreachable(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_is_deleted_domain(struct ccs_domain_policy *dp, const int index);
-static const struct ccs_domain_keeper_entry *
-ccs_is_domain_keeper(const struct ccs_path_info *domainname, const char *program);
-static const struct ccs_domain_initializer_entry *
-ccs_is_domain_initializer(const struct ccs_path_info *domainname, const char *program);
+static const struct ccs_domain_keeper_entry *ccs_is_domain_keeper(const struct ccs_path_info *domainname, const char *program);
+static const struct ccs_domain_initializer_entry *ccs_is_domain_initializer(const struct ccs_path_info *domainname, const char *program);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static int ccs_profile_entry_compare(const void *a, const void *b);
 static void ccs_read_generic_policy(void);
-static int ccs_add_domain_initializer_entry(const char *domainname,
-					    const char *program,
-					    const _Bool is_not);
+static int ccs_add_domain_initializer_entry(const char *domainname, const char *program, const _Bool is_not);
 static int ccs_add_domain_initializer_policy(char *data, const _Bool is_not);
-static int ccs_add_domain_keeper_entry(const char *domainname, const char *program,
-				       const _Bool is_not);
+static int ccs_add_domain_keeper_entry(const char *domainname, const char *program, const _Bool is_not);
 static int ccs_add_domain_keeper_policy(char *data, const _Bool is_not);
-static int ccs_add_path_group_entry(const char *group_name, const char *member_name,
-				    const _Bool is_delete);
+static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
-static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp,
-						 const struct ccs_path_info *domainname,
-						 const char *program);
+static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname, const char *program);
 static int ccs_domainname_attribute_compare(const void *a, const void *b);
 static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp);
 static void ccs_show_current(struct ccs_domain_policy *dp);
@@ -72,8 +95,7 @@ static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index);
 static void ccs_add_entry(struct ccs_readline_data *rl);
-static void ccs_find_entry(struct ccs_domain_policy *dp, _Bool input, _Bool forward,
-			   const int current, struct ccs_readline_data *rl);
+static void ccs_find_entry(struct ccs_domain_policy *dp, _Bool input, _Bool forward, const int current, struct ccs_readline_data *rl);
 static void ccs_set_profile(struct ccs_domain_policy *dp, const int current);
 static void ccs_set_level(struct ccs_domain_policy *dp, const int current);
 static void ccs_set_quota(struct ccs_domain_policy *dp, const int current);
@@ -81,13 +103,14 @@ static int ccs_select_window(struct ccs_domain_policy *dp, const int current);
 static _Bool ccs_show_command_key(const int screen, const _Bool readonly);
 static int ccs_generic_list_loop(struct ccs_domain_policy *dp);
 static void ccs_copy_file(const char *source, const char *dest);
+static FILE *ccs_editpolicy_open_write(const char *filename);
 
 /* Utility Functions */
 
 static void ccs_copy_file(const char *source, const char *dest)
 {
 	FILE *fp_in = fopen(source, "r");
-	FILE *fp_out = fp_in ? ccs_open_write(dest) : NULL;
+	FILE *fp_out = fp_in ? ccs_editpolicy_open_write(dest) : NULL;
 	while (fp_in && fp_out) {
 		int c = fgetc(fp_in);
 		if (c == EOF)
@@ -163,120 +186,6 @@ static _Bool ccs_is_domain_unreachable(struct ccs_domain_policy *dp, const int i
 static _Bool ccs_is_deleted_domain(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_dd;
-}
-
-int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
-			 const int index)
-{
-	const struct ccs_path_info **acl_ptr;
-	int acl_count;
-	const struct ccs_path_info *cp;
-	int i;
-	if (index < 0 || index >= dp->list_len) {
-		fprintf(stderr, "ERROR: domain is out of range.\n");
-		return -EINVAL;
-	}
-	if (!entry || !*entry)
-		return -EINVAL;
-	cp = ccs_savename(entry);
-	if (!cp)
-		ccs_out_of_memory();
-
-	acl_ptr = dp->list[index].string_ptr;
-	acl_count = dp->list[index].string_count;
-
-	/* Check for the same entry. */
-	for (i = 0; i < acl_count; i++) {
-		/* Faster comparison, for they are ccs_savename'd. */
-		if (cp == acl_ptr[i])
-			return 0;
-	}
-
-	acl_ptr = realloc(acl_ptr, (acl_count + 1)
-			  * sizeof(const struct ccs_path_info *));
-	if (!acl_ptr)
-		ccs_out_of_memory();
-	acl_ptr[acl_count++] = cp;
-	dp->list[index].string_ptr = acl_ptr;
-	dp->list[index].string_count = acl_count;
-	return 0;
-}
-
-int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
-			 const int index)
-{
-	const struct ccs_path_info **acl_ptr;
-	int acl_count;
-	const struct ccs_path_info *cp;
-	int i;
-	if (index < 0 || index >= dp->list_len) {
-		fprintf(stderr, "ERROR: domain is out of range.\n");
-		return -EINVAL;
-	}
-	if (!entry || !*entry)
-		return -EINVAL;
-	cp = ccs_savename(entry);
-	if (!cp)
-		ccs_out_of_memory();
-
-	acl_ptr = dp->list[index].string_ptr;
-	acl_count = dp->list[index].string_count;
-
-	for (i = 0; i < acl_count; i++) {
-		/* Faster comparison, for they are ccs_savename'd. */
-		if (cp != acl_ptr[i])
-			continue;
-		dp->list[index].string_count--;
-		for (; i < acl_count - 1; i++)
-			acl_ptr[i] = acl_ptr[i + 1];
-		return 0;
-	}
-	return -ENOENT;
-}
-
-int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
-		    const _Bool is_dis, const _Bool is_dd)
-{
-	int i;
-	struct ccs_path_info domainname;
-	domainname.name = domainname0;
-	ccs_fill_path_info(&domainname);
-	for (i = 0; i < dp->list_len; i++) {
-		if (dp->list[i].is_dis == is_dis &&
-		    dp->list[i].is_dd == is_dd &&
-		    !ccs_pathcmp(&domainname, dp->list[i].domainname))
-			return i;
-	}
-	return EOF;
-}
-
-int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *domainname,
-				  const _Bool is_dis, const _Bool is_dd)
-{
-	const struct ccs_path_info *saved_domainname;
-	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
-	if (index >= 0)
-		goto found;
-	if (!ccs_is_correct_domain(domainname)) {
-		fprintf(stderr, "Invalid domainname '%s'\n",
-			domainname);
-		return EOF;
-	}
-	dp->list = realloc(dp->list, (dp->list_len + 1) *
-			   sizeof(struct ccs_domain_info));
-	if (!dp->list)
-		ccs_out_of_memory();
-	memset(&dp->list[dp->list_len], 0,
-	       sizeof(struct ccs_domain_info));
-	saved_domainname = ccs_savename(domainname);
-	if (!saved_domainname)
-		ccs_out_of_memory();
-	dp->list[dp->list_len].domainname = saved_domainname;
-	dp->list[dp->list_len].is_dis = is_dis;
-	dp->list[dp->list_len].is_dd = is_dd;
-	index = dp->list_len++;
-found:
-	return index;
 }
 
 static int ccs_generic_acl_compare0(const void *a, const void *b)
@@ -620,60 +529,6 @@ static _Bool ccs_show_command_key(const int screen, const _Bool readonly)
 	return true;
 }
 
-/* Variables */
-
-static _Bool ccs_readonly_mode = false;
-static unsigned int ccs_refresh_interval = 0;
-static _Bool ccs_need_reload = false;
-
-_Bool ccs_offline_mode = false;
-const char *ccs_policy_dir = NULL;
-_Bool ccs_network_mode = false;
-u32 ccs_network_ip = INADDR_NONE;
-u16 ccs_network_port = 0;
-
-struct ccs_path_group_entry *ccs_path_group_list = NULL;
-int ccs_path_group_list_len = 0;
-
-static const char *ccs_policy_file = NULL;
-static const char *ccs_list_caption = NULL;
-static char *ccs_current_domain = NULL;
-static unsigned int ccs_current_pid = 0;
-
-static int ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
-
-struct ccs_generic_acl *ccs_generic_acl_list = NULL;
-int ccs_generic_acl_list_count = 0;
-
-struct ccs_task_entry *ccs_task_list = NULL;
-int ccs_task_list_len = 0;
-static int ccs_dump_index = 0;
-
-static struct ccs_domain_keeper_entry *ccs_domain_keeper_list = NULL;
-static int ccs_domain_keeper_list_len = 0;
-static struct ccs_domain_initializer_entry *ccs_domain_initializer_list = NULL;
-static int ccs_domain_initializer_list_len = 0;
-
-static int ccs_profile_sort_type = 0;
-static int ccs_unnumbered_domain_count = 0;
-
-static int ccs_window_width = 0;
-static int ccs_window_height = 0;
-static int ccs_current_item_index[CCS_MAXSCREEN];
-int ccs_current_y[CCS_MAXSCREEN];
-int ccs_list_item_count[CCS_MAXSCREEN];
-
-static int ccs_body_lines = 0;
-
-static int ccs_max_eat_col[CCS_MAXSCREEN];
-static int ccs_eat_col = 0;
-static int ccs_max_col = 0;
-static int ccs_list_indent = 0;
-
-static int ccs_acl_sort_type = 1;
-
-static char *ccs_last_error = NULL;
-
 /* Main Functions */
 
 static void ccs_close_write(FILE *fp)
@@ -698,6 +553,71 @@ static void ccs_set_error(const char *filename)
 	} else {
 		free(ccs_last_error);
 		ccs_last_error = NULL;
+	}
+}
+
+static FILE *ccs_editpolicy_open_write(const char *filename)
+{
+	if (ccs_network_mode) {
+		FILE *fp = ccs_open_write(filename);
+		if (!fp)
+			ccs_set_error(filename);
+		return fp;
+	} else if (ccs_offline_mode) {
+		char request[1024];
+		int fd[2];
+		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+			fprintf(stderr, "socketpair()\n");
+			exit(1);
+		}
+		if (shutdown(fd[0], SHUT_RD))
+			goto out;
+		memset(request, 0, sizeof(request));
+		snprintf(request, sizeof(request) - 1, "POST %s", filename);
+		ccs_send_fd(request, &fd[1]);
+		return fdopen(fd[0], "w");
+out:
+		close(fd[1]);
+		close(fd[0]);
+		exit(1);
+	} else {
+		FILE *fp;
+		if (ccs_readonly_mode)
+			return NULL;
+		fp = ccs_open_write(filename);
+		if (!fp)
+			ccs_set_error(filename);
+		return fp;
+	}
+}
+
+static FILE *ccs_editpolicy_open_read(const char *filename)
+{
+	if (ccs_network_mode) {
+		return ccs_open_read(filename);
+	} else if (ccs_offline_mode) {
+		char request[1024];
+		int fd[2];
+		FILE *fp;
+		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
+			fprintf(stderr, "socketpair()\n");
+			exit(1);
+		}
+		if (shutdown(fd[0], SHUT_WR))
+			goto out;
+		fp = fdopen(fd[0], "r");
+		if (!fp)
+			goto out;
+		memset(request, 0, sizeof(request));
+		snprintf(request, sizeof(request) - 1, "GET %s", filename);
+		ccs_send_fd(request, &fd[1]);
+		return fp;
+out:
+		close(fd[1]);
+		close(fd[0]);
+		exit(1);
+	} else {
+		return fopen(filename, "r");
 	}
 }
 
@@ -787,95 +707,6 @@ ccs_is_domain_initializer(const struct ccs_path_info *domainname, const char *pr
 	return flag;
 }
 
-FILE *ccs_open_write(const char *filename)
-{
-	if (ccs_network_mode) {
-		const int fd = socket(AF_INET, SOCK_STREAM, 0);
-		struct sockaddr_in addr;
-		FILE *fp;
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = ccs_network_ip;
-		addr.sin_port = ccs_network_port;
-		if (connect(fd, (struct sockaddr *) &addr, sizeof(addr))) {
-			close(fd);
-			ccs_set_error(filename);
-			return NULL;
-		}
-		fp = fdopen(fd, "r+");
-		/* setbuf(fp, NULL); */
-		fprintf(fp, "%s", filename);
-		fputc(0, fp);
-		fflush(fp);
-		if (fgetc(fp) != 0) {
-			fclose(fp);
-			ccs_set_error(filename);
-			return NULL;
-		}
-		return fp;
-	} else if (ccs_offline_mode) {
-		char request[1024];
-		int fd[2];
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_RD))
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "POST %s", filename);
-		ccs_send_fd(request, &fd[1]);
-		return fdopen(fd[0], "w");
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		FILE *fp;
-		if (ccs_readonly_mode)
-			return NULL;
-		fp = fdopen(ccs_open2(filename, O_WRONLY), "w");
-		if (!fp)
-			ccs_set_error(filename);
-		return fp;
-	}
-}
-
-FILE *ccs_open_read(const char *filename)
-{
-	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(filename);
-		if (fp) {
-			fputc(0, fp);
-			fflush(fp);
-		}
-		return fp;
-	} else if (ccs_offline_mode) {
-		char request[1024];
-		int fd[2];
-		FILE *fp;
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, fd)) {
-			fprintf(stderr, "socketpair()\n");
-			exit(1);
-		}
-		if (shutdown(fd[0], SHUT_WR))
-			goto out;
-		fp = fdopen(fd[0], "r");
-		if (!fp)
-			goto out;
-		memset(request, 0, sizeof(request));
-		snprintf(request, sizeof(request) - 1, "GET %s", filename);
-		ccs_send_fd(request, &fd[1]);
-		return fp;
-out:
-		close(fd[1]);
-		close(fd[0]);
-		exit(1);
-	} else {
-		return fopen(filename, "r");
-	}
-}
-
 static int ccs_profile_entry_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
@@ -928,7 +759,7 @@ static void ccs_read_generic_policy(void)
 	if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
 		if (ccs_network_mode)
 			/* We can read after write. */
-			fp = ccs_open_write(ccs_policy_file);
+			fp = ccs_editpolicy_open_write(ccs_policy_file);
 		else if (!ccs_offline_mode)
 			/* Don't set error message if failed. */
 			fp = fopen(ccs_policy_file, "r+");
@@ -944,7 +775,7 @@ static void ccs_read_generic_policy(void)
 		}
 	}
 	if (!fp)
-		fp = ccs_open_read(ccs_policy_file);
+		fp = ccs_editpolicy_open_read(ccs_policy_file);
 	if (!fp) {
 		ccs_set_error(ccs_policy_file);
 		return;
@@ -1020,251 +851,6 @@ static void ccs_read_generic_policy(void)
 		qsort(ccs_generic_acl_list, ccs_generic_acl_list_count,
 		      sizeof(struct ccs_generic_acl), ccs_string_acl_compare);
 	}
-}
-
-static pid_t ccs_get_ppid(const pid_t pid)
-{
-	char buffer[1024];
-	FILE *fp;
-	pid_t ppid = 1;
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
-	fp = fopen(buffer, "r");
-	if (fp) {
-		while (memset(buffer, 0, sizeof(buffer)),
-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
-			if (sscanf(buffer, "PPid: %u", &ppid) == 1)
-				break;
-		}
-		fclose(fp);
-	}
-	return ppid;
-}
-
-static char *ccs_get_name(const pid_t pid)
-{
-	char buffer[1024];
-	FILE *fp;
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "/proc/%u/status", pid);
-	fp = fopen(buffer, "r");
-	if (fp) {
-		static const int offset = sizeof(buffer) / 6;
-		while (memset(buffer, 0, sizeof(buffer)),
-		       fgets(buffer, sizeof(buffer) - 1, fp)) {
-			if (!strncmp(buffer, "Name:\t", 6)) {
-				char *cp = buffer + 6;
-				memmove(buffer, cp, strlen(cp) + 1);
-				cp = strchr(buffer, '\n');
-				if (cp)
-					*cp = '\0';
-				break;
-			}
-		}
-		fclose(fp);
-		if (buffer[0] && strlen(buffer) < offset - 1) {
-			const char *src = buffer;
-			char *dest = buffer + offset;
-			while (1) {
-				unsigned char c = *src++;
-				if (!c) {
-					*dest = '\0';
-					break;
-				}
-				if (c == '\\') {
-					c = *src++;
-					if (c == '\\') {
-						memmove(dest, "\\\\", 2);
-						dest += 2;
-					} else if (c == 'n') {
-						memmove(dest, "\\012", 4);
-						dest += 4;
-					} else {
-						break;
-					}
-				} else if (c > ' ' && c <= 126) {
-					*dest++ = c;
-				} else {
-					*dest++ = '\\';
-					*dest++ = (c >> 6) + '0';
-					*dest++ = ((c >> 3) & 7) + '0';
-					*dest++ = (c & 7) + '0';
-				}
-			}
-			return strdup(buffer + offset);
-		}
-	}
-	return NULL;
-}
-
-static void ccs_sort_process_entry(const pid_t pid, const int depth)
-{
-	int i;
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (pid != ccs_task_list[i].pid)
-			continue;
-		ccs_task_list[i].index = ccs_dump_index++;
-		ccs_task_list[i].depth = depth;
-		ccs_task_list[i].selected = true;
-	}
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (pid != ccs_task_list[i].ppid)
-			continue;
-		ccs_sort_process_entry(ccs_task_list[i].pid, depth + 1);
-	}
-}
-
-static int ccs_task_entry_compare(const void *a, const void *b)
-{
-	const struct ccs_task_entry *a0 = (struct ccs_task_entry *) a;
-	const struct ccs_task_entry *b0 = (struct ccs_task_entry *) b;
-	return a0->index - b0->index;
-}
-
-void ccs_read_process_list(_Bool show_all)
-{
-	int i;
-	while (ccs_task_list_len) {
-		ccs_task_list_len--;
-		free((void *) ccs_task_list[ccs_task_list_len].name);
-		free((void *) ccs_task_list[ccs_task_list_len].domain);
-	}
-	ccs_dump_index = 0;
-	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(show_all ? "proc:all_process_status" :
-					  "proc:process_status");
-		if (!fp)
-			return;
-		ccs_get();
-		while (true) {
-			char *line = ccs_freadline(fp);
-			unsigned int pid = 0;
-			unsigned int ppid = 0;
-			int profile = -1;
-			char *name;
-			char *domain;
-			if (!line)
-				break;
-			sscanf(line, "PID=%u PPID=%u", &pid, &ppid);
-			name = strstr(line, "NAME=");
-			if (name)
-				name = strdup(name + 5);
-			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				ccs_out_of_memory();
-			line = ccs_freadline(fp);
-			if (!line ||
-			    sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				break;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list,
-						(ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ppid;
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
-		}
-		ccs_put();
-		fclose(fp);
-	} else {
-		static const int line_len = 8192;
-		char *line;
-		int status_fd = open(ccs_proc_policy_process_status, O_RDWR);
-		DIR *dir = opendir("/proc/");
-		if (status_fd == EOF || !dir) {
-			if (status_fd != EOF)
-				close(status_fd);
-			if (dir)
-				closedir(dir);
-			return;
-		}
-		line = malloc(line_len);
-		if (!line)
-			ccs_out_of_memory();
-		while (1) {
-			char *name;
-			char *domain;
-			int profile = -1;
-			unsigned int pid = 0;
-			char buffer[128];
-			char test[16];
-			struct dirent *dent = readdir(dir);
-			if (!dent)
-				break;
-			if (dent->d_type != DT_DIR ||
-			    sscanf(dent->d_name, "%u", &pid) != 1 || !pid)
-				continue;
-			memset(buffer, 0, sizeof(buffer));
-			if (!show_all) {
-				snprintf(buffer, sizeof(buffer) - 1,
-					 "/proc/%u/exe", pid);
-				if (readlink(buffer, test, sizeof(test)) <= 0)
-					continue;
-			}
-			name = ccs_get_name(pid);
-			if (!name)
-				name = strdup("<UNKNOWN>");
-			if (!name)
-				ccs_out_of_memory();
-			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
-			write(status_fd, buffer, strlen(buffer));
-			memset(line, 0, line_len);
-			read(status_fd, line, line_len - 1);
-			if (sscanf(line, "%u %u", &pid, &profile) != 2) {
-				free(name);
-				continue;
-			}
-			domain = strchr(line, '<');
-			if (domain)
-				domain = strdup(domain);
-			if (!domain)
-				domain = strdup("<UNKNOWN>");
-			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list, (ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ccs_get_ppid(pid);
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
-		}
-		free(line);
-		closedir(dir);
-		close(status_fd);
-	}
-	ccs_sort_process_entry(1, 0);
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (ccs_task_list[i].selected) {
-			ccs_task_list[i].selected = false;
-			continue;
-		}
-		ccs_task_list[i].index = ccs_dump_index++;
-		ccs_task_list[i].depth = 0;
-	}
-	qsort(ccs_task_list, ccs_task_list_len, sizeof(struct ccs_task_entry),
-	      ccs_task_entry_compare);
 }
 
 static int ccs_add_domain_initializer_entry(const char *domainname,
@@ -1407,7 +993,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	ccs_find_or_assign_new_domain(dp, CCS_ROOT_NAME, false, false);
 
 	/* Load domain_initializer list, domain_keeper list. */
-	fp = ccs_open_read(ccs_proc_policy_exception_policy);
+	fp = ccs_editpolicy_open_read(ccs_proc_policy_exception_policy);
 	if (!fp) {
 		ccs_set_error(ccs_proc_policy_exception_policy);
 		goto no_exception;
@@ -1440,7 +1026,7 @@ no_exception:
 	fp = NULL;
 	if (ccs_network_mode)
 		/* We can read after write. */
-		fp = ccs_open_write(ccs_policy_file);
+		fp = ccs_editpolicy_open_write(ccs_policy_file);
 	else if (!ccs_offline_mode)
 		/* Don't set error message if failed. */
 		fp = fopen(ccs_policy_file, "r+");
@@ -1451,7 +1037,7 @@ no_exception:
 		fflush(fp);
 	}
 	if (!fp)
-		fp = ccs_open_read(ccs_proc_policy_domain_policy);
+		fp = ccs_editpolicy_open_read(ccs_proc_policy_domain_policy);
 	if (!fp) {
 		ccs_set_error(ccs_proc_policy_domain_policy);
 		goto no_domain;
@@ -2008,7 +1594,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 	}
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		int i;
-		FILE *fp = ccs_open_write(ccs_proc_policy_domain_policy);
+		FILE *fp = ccs_editpolicy_open_write(ccs_proc_policy_domain_policy);
 		if (!fp)
 			return;
 		for (i = 1; i < dp->list_len; i++) {
@@ -2019,7 +1605,7 @@ static void ccs_delete_entry(struct ccs_domain_policy *dp, const int index)
 		ccs_close_write(fp);
 	} else {
 		int i;
-		FILE *fp = ccs_open_write(ccs_policy_file);
+		FILE *fp = ccs_editpolicy_open_write(ccs_policy_file);
 		if (!fp)
 			return;
 		if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
@@ -2053,7 +1639,7 @@ static void ccs_add_entry(struct ccs_readline_data *rl)
 	if (!line || !*line)
 		goto out;
 	rl->count = ccs_simple_add_history(line, rl->history, rl->count, rl->max);
-	fp = ccs_open_write(ccs_policy_file);
+	fp = ccs_editpolicy_open_write(ccs_policy_file);
 	if (!fp)
 		goto out;
 	switch (ccs_current_screen) {
@@ -2179,7 +1765,7 @@ static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_open_write(ccs_proc_policy_domain_policy);
+	fp = ccs_editpolicy_open_write(ccs_proc_policy_domain_policy);
 	if (!fp)
 		goto out;
 	if (!ccs_domain_sort_type) {
@@ -2227,7 +1813,7 @@ static void ccs_set_level(struct ccs_domain_policy *dp, const int current)
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_open_write(ccs_proc_policy_profile);
+	fp = ccs_editpolicy_open_write(ccs_proc_policy_profile);
 	if (!fp)
 		goto out;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -2265,7 +1851,7 @@ static void ccs_set_quota(struct ccs_domain_policy *dp, const int current)
 	ccs_editpolicy_attr_change(A_BOLD, false); /* add color */
 	if (!line || !*line)
 		goto out;
-	fp = ccs_open_write(ccs_proc_policy_meminfo);
+	fp = ccs_editpolicy_open_write(ccs_proc_policy_meminfo);
 	if (!fp)
 		goto out;
 	for (index = 0; index < ccs_generic_acl_list_count; index++) {
@@ -2671,7 +2257,7 @@ start2:
 	}
 }
 
-int ccs_editpolicy_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	struct ccs_domain_policy dp = { NULL, 0, NULL };
 	struct ccs_domain_policy bp = { NULL, 0, NULL };

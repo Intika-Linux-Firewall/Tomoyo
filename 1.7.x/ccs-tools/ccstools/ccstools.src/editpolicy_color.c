@@ -9,12 +9,7 @@
  *
  */
 #include "ccstools.h"
-
-/* Prototypes */
-
-static void ccs_editpolicy_color_save(const _Bool flg);
-
-/* Main functions */
+#include "editpolicy.h"
 
 #ifdef COLOR_ON
 

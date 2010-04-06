@@ -1,5 +1,5 @@
 /*
- * auditd.c
+ * ccs-auditd.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -10,25 +10,9 @@
  */
 #include "ccstools.h"
 
-int ccs_open_stream(const char *filename)
-{
-	const int fd = socket(AF_INET, SOCK_STREAM, 0);
-	struct sockaddr_in addr;
-	char c;
-	int len = strlen(filename) + 1;
-	memset(&addr, 0, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = ccs_network_ip;
-	addr.sin_port = ccs_network_port;
-	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
-	    write(fd, filename, len) != len || read(fd, &c, 1) != 1 || c) {
-		close(fd);
-		return EOF;
-	}
-	return fd;
-}
+#define CCS_AUDITD_MAX_FILES             2
 
-int ccs_auditd_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	const char *procfile_path[CCS_AUDITD_MAX_FILES] = {
 		ccs_proc_policy_grant_log,

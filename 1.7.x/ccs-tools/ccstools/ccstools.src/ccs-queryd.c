@@ -1,5 +1,5 @@
 /*
- * queryd.c
+ * ccs-queryd.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -9,6 +9,7 @@
  *
  */
 #include "ccstools.h"
+#include "readline.h"
 
 #define CCS_GLOBALLY_READABLE_FILES_UPDATE_NONE 0
 #define CCS_GLOBALLY_READABLE_FILES_UPDATE_ASK  1
@@ -16,15 +17,12 @@
 
 /* Prototypes */
 
-static void ccs_printw(const char *fmt, ...)
-     __attribute__ ((format(printf, 1, 2)));
-static int ccs_send_encoded(const int fd, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
+static void ccs_printw(const char *fmt, ...) __attribute__ ((format(printf, 1, 2)));
+static int ccs_send_encoded(const int fd, const char *fmt, ...) __attribute__ ((format(printf, 2, 3)));
 static void ccs_do_check_update(const int fd);
 static void ccs_handle_update(const int ccs_check_update, const int fd);
 /*
-static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern,
-				   const char *new);
+static _Bool ccs_convert_path_info(FILE *fp, const struct ccs_path_info *pattern, const char *new);
 */
 static _Bool ccs_handle_query(unsigned int serial);
 
@@ -487,7 +485,7 @@ not_domain_query:
 	goto write_answer;
 }
 
-int ccs_queryd_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	int pipe_fd[2] = { EOF, EOF };
 	if (argc == 1)

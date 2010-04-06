@@ -1,5 +1,5 @@
 /*
- * setprofile.c
+ * ccs-setprofile.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -10,7 +10,7 @@
  */
 #include "ccstools.h"
 
-int ccs_setprofile_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	FILE *fp_in;
 	FILE *fp_out;

@@ -1,14 +1,19 @@
 /*
- * ld-watch.c
+ * ccs-ld-watch.c
  *
  * TOMOYO Linux's utilities.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.7.2+   2010/04/06
  *
  */
 #include "ccstools.h"
+
+struct ccs_dll_pathname_entry {
+	char *pathname;
+	char *real_pathname;
+};
 
 static struct ccs_dll_pathname_entry *ccs_entry_list = NULL;
 static int ccs_entry_list_count = 0;
@@ -82,7 +87,7 @@ out:
 	printf("Monitoring %d files.\n", ccs_entry_list_count);
 }
 
-int ccs_ldwatch_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	FILE *fp_policy;
 	if (argc > 1 && !strcmp(argv[1], "--help"))
