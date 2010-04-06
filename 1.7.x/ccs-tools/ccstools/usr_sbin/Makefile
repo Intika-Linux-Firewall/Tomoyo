@@ -1,11 +1,10 @@
-
 USR_SBIN_LIST = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
 
 all: $(USR_SBIN_LIST)
 
-CC=gcc
+#CC=gcc
 
-CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/null > /dev/null 2>&1 && echo "-Wno-pointer-sign"}
+#CFLAGS=-Wall -O2 ${shell $(CC) -Wno-pointer-sign -S -o /dev/null -x c - < /dev/null > /dev/null 2>&1 && echo "-Wno-pointer-sign"}
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
@@ -25,6 +24,11 @@ libccstools.so: ccstools.c ccstools.h
 .c:
 	[ -r libccstools.so ] || $(MAKE) libccstools.so
 	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
+
+install: all
+	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
+	cp -af --remove-destination $(USR_SBIN_LIST) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/ 
 
 clean:
 	rm -f -- $(USR_SBIN_LIST) libccstools.so*
