@@ -18,13 +18,14 @@ libccstools.so: ccstools.c ccstools.h
 	ln -sf libccstools.so.1.0.0 libccstools.so
 
 .c:
-	[ -r libccstools.so ] || $(MAKE) libccstools.so
+	$(MAKE) libccstools.so
 	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
 	cp -af --remove-destination $(BUILD_FILES) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
-	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/ 
+	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/
+	ln -s libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/libccstools.so.1
 
 clean:
 	rm -f -- $(BUILD_FILES) libccstools.so*
