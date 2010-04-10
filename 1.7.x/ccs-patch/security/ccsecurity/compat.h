@@ -206,12 +206,10 @@ static inline struct socket *SOCKET_I(struct inode *inode)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-#ifndef _STRUCT_PATH_DEFINED
 struct path {
 	struct vfsmount *mnt;
 	struct dentry *dentry;
 };
-#endif
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)

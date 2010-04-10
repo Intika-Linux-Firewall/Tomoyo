@@ -96,7 +96,19 @@ static int __ccs_may_mount(struct path *path)
 	return ccs_capable(CCS_CONCEAL_MOUNT) ? 0 : -EPERM;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+static int ccs_old_may_mount(struct nameidata *nd)
+{
+	struct path path = { nd->mnt, nd->dentry };
+	return __ccs_may_mount(&path);
+}
+#endif
+
 void __init ccs_maymount_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.may_mount = __ccs_may_mount;
+#else
+	ccsecurity_ops.may_mount = ccs_old_may_mount;
+#endif
 }
