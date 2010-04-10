@@ -2384,3 +2384,12 @@ Fix 2010/03/26
 
 Version 1.7.2   2010/04/01   Feature enhancement release.
 
+Fix 2010/04/10
+
+    @ Fix invalid "struct nameidata" to "struct path" conversion macro.
+
+      Regarding kernels 2.6.24 and earlier, I was converting "struct nameidata"
+      to "struct path" in caller side so that I can unify the callee function's
+      parameter type. But it turned out that the macro I used did not follow C
+      standards and did not work with gcc 4.x . As a result, "allow_pivot_root"
+      keyword was not working as expected.

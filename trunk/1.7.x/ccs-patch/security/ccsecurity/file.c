@@ -2600,6 +2600,22 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 #endif
 #endif
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+static int ccs_old_pivot_root_permission(struct nameidata *old_nd,
+					 struct nameidata *new_nd)
+{
+	struct path old_path = { old_nd->mnt, old_nd->dentry };
+	struct path new_path = { new_nd->mnt, new_nd->dentry };
+	return __ccs_pivot_root_permission(&old_path, &new_path);
+}
+
+static int ccs_old_chroot_permission(struct nameidata *nd)
+{
+	struct path path = { nd->mnt, nd->dentry };
+	return __ccs_chroot_permission(&path);
+}
+#endif
+
 void __init ccs_file_init(void)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
@@ -2615,8 +2631,13 @@ void __init ccs_file_init(void)
 	ccsecurity_ops.ioctl_permission = __ccs_ioctl_permission;
 	ccsecurity_ops.chmod_permission = __ccs_chmod_permission;
 	ccsecurity_ops.chown_permission = __ccs_chown_permission;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.pivot_root_permission = __ccs_pivot_root_permission;
 	ccsecurity_ops.chroot_permission = __ccs_chroot_permission;
+#else
+	ccsecurity_ops.pivot_root_permission = ccs_old_pivot_root_permission;
+	ccsecurity_ops.chroot_permission = ccs_old_chroot_permission;
+#endif
 	ccsecurity_ops.umount_permission = __ccs_umount_permission;
 	ccsecurity_ops.mknod_permission = __ccs_mknod_permission;
 	ccsecurity_ops.mkdir_permission = __ccs_mkdir_permission;

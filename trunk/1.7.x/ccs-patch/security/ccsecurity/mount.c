@@ -384,7 +384,21 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	return error;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
+static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
+				    char *type, unsigned long flags,
+				    void *data_page)
+{
+	struct path path = { nd->mnt, nd->dentry };
+	return __ccs_mount_permission(dev_name, &path, type, flags,data_page);
+}
+#endif
+
 void __init ccs_mount_init(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	ccsecurity_ops.mount_permission = __ccs_mount_permission;
+#else
+	ccsecurity_ops.mount_permission = ccs_old_mount_permission;
+#endif
 }
