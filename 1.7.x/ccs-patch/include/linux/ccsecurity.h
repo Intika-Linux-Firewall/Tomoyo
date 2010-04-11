@@ -37,6 +37,9 @@ struct file_system_type;
 struct pid_namespace;
 int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 
+/* This macro was wrong. Handle nameidata to path conversion in callee side. */
+#define ccs_mkpath(nd) (nd)
+
 #ifdef CONFIG_CCSECURITY
 
 /* For exporting variables and functions. */
@@ -190,9 +193,6 @@ static inline int ccs_mount_permission(char *dev_name, struct path *path,
 }
 
 #else
-
-/* This macro was wrong. Handle nameidata to path conversion in callee side. */
-#define ccs_mkpath(nd) (nd)
 
 static inline int ccs_chroot_permission(struct nameidata *nd)
 {
@@ -494,46 +494,276 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 
 #else
 
-#define ccs_chroot_permission(path) 0
-#define ccs_pivot_root_permission(old_path, new_path) 0
-#define ccs_may_mount(path) 0
-#define ccs_mount_permission(dev_name, path, type, flags, data_page) 0
-#define ccs_umount_permission(mnt, flags) 0
-#define ccs_lport_reserved(port) 0
-#define ccs_ptrace_permission(request, pid) 0
-#define ccs_save_open_mode(mode) do { } while (0)
-#define ccs_clear_open_mode() do { } while (0)
-#define ccs_open_permission(dentry, mnt, flag) 0
-#define ccs_rewrite_permission(filp) 0
-#define ccs_ioctl_permission(filp, cmd, arg) 0
-#define ccs_parse_table(name, nlen, oldval, newval, table) 0
-#define ccs_capable(operation) 1
-#define ccs_mknod_permission(dir, dentry, mnt, mode, dev) 0
-#define ccs_mkdir_permission(dir, dentry, mnt, mode) 0
-#define ccs_rmdir_permission(dir, dentry, mnt) 0
-#define ccs_unlink_permission(dir, dentry, mnt) 0
-#define ccs_symlink_permission(dir, dentry, mnt, from) 0
-#define ccs_truncate_permission(dentry, mnt, length, time_attrs) 0
-#define ccs_rename_permission(old_dir, old_dentry, new_dir, new_dentry, mnt) 0
-#define ccs_link_permission(old_dentry, new_dir, new_dentry, mnt) 0
-#define ccs_open_exec_permission(dentry, mnt) 0
-#define ccs_uselib_permission(dentry, mnt) 0
-#define ccs_fcntl_permission(file, cmd, arg) 0
-#define ccs_kill_permission(pid, sig) 0
-#define ccs_tgkill_permission(tgid, pid, sig) 0
-#define ccs_tkill_permission(pid, sig) 0
-#define ccs_socket_create_permission(family, type, protocol) 0
-#define ccs_socket_listen_permission(sock) 0
-#define ccs_socket_connect_permission(sock, addr, addr_len) 0
-#define ccs_socket_bind_permission(sock, addr, addr_len) 0
-#define ccs_socket_accept_permission(sock, addr) 0
-#define ccs_socket_sendmsg_permission(sock, msg, size) 0
-#define ccs_socket_recvmsg_permission(sk, skb, flags) 0
-#define ccs_chown_permission(dentry, mnt, user, group) 0
-#define ccs_chmod_permission(dentry, mnt, mode) 0
-#define ccs_sigqueue_permission(pid, sig) 0
-#define ccs_tgsigqueue_permission(tgid, pid, sig) 0
-#define ccs_search_binary_handler search_binary_handler
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+
+static inline int ccs_chroot_permission(struct path *path)
+{
+	return 0;
+}
+
+static inline int ccs_pivot_root_permission(struct path *old_path,
+					    struct path *new_path)
+{
+	return 0;
+}
+
+static inline int ccs_may_mount(struct path *path)
+{
+	return 0;
+}
+
+static inline int ccs_mount_permission(char *dev_name, struct path *path,
+				       char *type, unsigned long flags,
+				       void *data_page)
+{
+	return 0;
+}
+
+#else
+
+static inline int ccs_chroot_permission(struct nameidata *nd)
+{
+	return 0;
+}
+
+static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
+					    struct nameidata *new_nd)
+{
+	return 0;
+}
+
+static inline int ccs_may_mount(struct nameidata *nd)
+{
+	return 0;
+}
+
+static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
+				       char *type, unsigned long flags,
+				       void *data_page)
+{
+	return 0;
+}
+
+#endif
+
+static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
+{
+	return 0;
+}
+
+static inline _Bool ccs_lport_reserved(const u16 port)
+{
+	return 0;
+}
+
+static inline int ccs_ptrace_permission(long request, long pid)
+{
+	return 0;
+}
+
+static inline void ccs_save_open_mode(int mode)
+{
+}
+
+static inline void ccs_clear_open_mode(void)
+{
+}
+
+static inline int ccs_open_permission(struct dentry *dentry,
+				      struct vfsmount *mnt, const int flag)
+{
+	return 0;
+}
+
+static inline int ccs_rewrite_permission(struct file *filp)
+{
+	return 0;
+}
+
+static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
+				       unsigned long arg)
+{
+	return 0;
+}
+
+static inline int ccs_parse_table(int __user *name, int nlen,
+				  void __user *oldval, void __user *newval,
+				  struct ctl_table *table)
+{
+	return 0;
+}
+
+static inline _Bool ccs_capable(const u8 operation)
+{
+	return 1;
+}
+
+static inline int ccs_mknod_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode,
+				       unsigned int dev)
+{
+	return 0;
+}
+
+static inline int ccs_mkdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt, unsigned int mode)
+{
+	return 0;
+}
+
+static inline int ccs_rmdir_permission(struct inode *dir,
+				       struct dentry *dentry,
+				       struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_unlink_permission(struct inode *dir,
+					struct dentry *dentry,
+					struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_symlink_permission(struct inode *dir,
+					 struct dentry *dentry,
+					 struct vfsmount *mnt,
+					 const char *from)
+{
+	return 0;
+}
+
+static inline int ccs_truncate_permission(struct dentry *dentry,
+					  struct vfsmount *mnt, loff_t length,
+					  unsigned int time_attrs)
+{
+	return 0;
+}
+
+static inline int ccs_rename_permission(struct inode *old_dir,
+					struct dentry *old_dentry,
+					struct inode *new_dir,
+					struct dentry *new_dentry,
+					struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_link_permission(struct dentry *old_dentry,
+				      struct inode *new_dir,
+				      struct dentry *new_dentry,
+				      struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_open_exec_permission(struct dentry *dentry,
+					   struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_uselib_permission(struct dentry *dentry,
+					struct vfsmount *mnt)
+{
+	return 0;
+}
+
+static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
+				       unsigned long arg)
+{
+	return 0;
+}
+
+static inline int ccs_kill_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tkill_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_socket_create_permission(int family, int type,
+					       int protocol)
+{
+	return 0;
+}
+
+static inline int ccs_socket_listen_permission(struct socket *sock)
+{
+	return 0;
+}
+
+static inline int ccs_socket_connect_permission(struct socket *sock,
+						struct sockaddr *addr,
+						int addr_len)
+{
+	return 0;
+}
+
+static inline int ccs_socket_bind_permission(struct socket *sock,
+					     struct sockaddr *addr,
+					     int addr_len)
+{
+	return 0;
+}
+
+static inline int ccs_socket_accept_permission(struct socket *sock,
+					       struct sockaddr *addr)
+{
+	return 0;
+}
+
+static inline int ccs_socket_sendmsg_permission(struct socket *sock,
+						struct msghdr *msg, int size)
+{
+	return 0;
+}
+
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
+{
+	return 0;
+}
+
+static inline int ccs_chown_permission(struct dentry *dentry,
+				       struct vfsmount *mnt, uid_t user,
+				       gid_t group)
+{
+	return 0;
+}
+
+static inline int ccs_chmod_permission(struct dentry *dentry,
+				       struct vfsmount *mnt, mode_t mode)
+{
+	return 0;
+}
+
+static inline int ccs_sigqueue_permission(pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
+{
+	return 0;
+}
+
+static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
+					    struct pt_regs *regs)
+{
+	return search_binary_handler(bprm, regs);
+}
 
 #endif
 
