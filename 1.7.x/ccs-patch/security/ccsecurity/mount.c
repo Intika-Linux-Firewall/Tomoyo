@@ -390,7 +390,7 @@ static int ccs_old_mount_permission(char *dev_name, struct nameidata *nd,
 				    void *data_page)
 {
 	struct path path = { nd->mnt, nd->dentry };
-	return __ccs_mount_permission(dev_name, &path, type, flags,data_page);
+	return __ccs_mount_permission(dev_name, &path, type, flags, data_page);
 }
 #endif
 
