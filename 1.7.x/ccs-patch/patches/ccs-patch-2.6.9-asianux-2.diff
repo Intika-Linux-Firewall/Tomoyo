@@ -33,7 +33,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    7 +++++++
  fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   24 +++++++++++++++++++++++-
+ fs/namespace.c                     |   22 +++++++++++++++++++++-
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 332 insertions(+), 12 deletions(-)
+ 54 files changed, 330 insertions(+), 12 deletions(-)
 
 --- linux-2.6.9-89.9.AXS2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.9.AXS2/arch/alpha/kernel/ptrace.c
@@ -848,7 +848,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		err = -EPERM;
-+		if (ccs_may_mount(ccs_mkpath(nd)))
++		if (ccs_may_mount(nd))
 +			goto out;
  		err = -ENOMEM;
  		if (recurse)
@@ -867,7 +867,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
@@ -877,7 +877,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -890,24 +890,22 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1263,6 +1278,10 @@ long do_mount(char * dev_name, char * di
+@@ -1263,6 +1278,9 @@ long do_mount(char * dev_name, char * di
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd),
-+					      type_page, original_flags,
-+					      data_page);
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1520,6 +1539,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1520,6 +1538,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
-+						  ccs_mkpath(&new_nd));
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -945,7 +943,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (ccs_chroot_permission(ccs_mkpath(&nd)))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -1023,7 +1021,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Miracle/ia32/stand
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.9.AXS2 2010/02/24\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.9.AXS2 2010/04/12\n");
  }
 --- linux-2.6.9-89.9.AXS2.orig/include/linux/init_task.h
 +++ linux-2.6.9-89.9.AXS2/include/linux/init_task.h
