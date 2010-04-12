@@ -89,5 +89,20 @@ echo "to build kernel rpm packages."
 echo ""
 echo "I'll start 'rpmbuild -bb --target i686 /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
+patch << "EOF" || die "Can't patch spec file."
+--- /tmp/ccs-kernel.spec
++++ /tmp/ccs-kernel.spec
+@@ -3,8 +3,8 @@
+ # What parts do we want to build?  We must build at least one kernel.
+ # These are the kernels that are built IF the architecture allows it.
+ 
+-%define buildup 1
+-%define buildsmp 0
++%define buildup 0
++%define buildsmp 1
+ %define builddoc 0
+ 
+ # Versions of various parts
+EOF
 exec rpmbuild -bb --target i686 /tmp/ccs-kernel.spec
 exit 0

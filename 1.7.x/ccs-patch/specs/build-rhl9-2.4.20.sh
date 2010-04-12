@@ -78,5 +78,23 @@ echo "to build kernel rpm packages."
 echo ""
 echo "I'll start 'rpmbuild -bb --target i586 /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
+patch << "EOF" || die "Can't patch spec file."
+--- /tmp/ccs-kernel.spec
++++ /tmp/ccs-kernel.spec
+@@ -4,10 +4,10 @@
+ # These are the kernels that are built IF the architecture allows and
+ # no contrary --with/--without arguments are given on the command line.
+ 
+-%define buildup 1
++%define buildup 0
+ %define buildsmp 1
+-%define buildBOOT 1
+-%define buildbigmem 1
++%define buildBOOT 0
++%define buildbigmem 0
+ %define buildjensen 0
+ 
+ 
+EOF
 exec rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 exit 0

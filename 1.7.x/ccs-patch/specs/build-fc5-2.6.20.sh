@@ -89,5 +89,30 @@ echo "to build kernel rpm packages."
 echo ""
 echo "I'll start 'rpmbuild -bb --target i586 /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
+patch << "EOF" || die "Can't patch spec file."
+--- /tmp/ccs-kernel.spec
++++ /tmp/ccs-kernel.spec
+@@ -3,16 +3,16 @@
+ # What parts do we want to build?  We must build at least one kernel.
+ # These are the kernels that are built IF the architecture allows it.
+ 
+-%define buildup 1
++%define buildup 0
+ # Only used on archs without run-time support (ie ppc, sparc64)
+-%define buildsmp 0
++%define buildsmp 1
+ %define buildpae 0
+ # Whether to apply the Xen patches, leave this enabled.
+ %define includexen 1
+ # Whether to build the Xen kernels, disable if you want.
+-%define buildxen 1
++%define buildxen 0
+ %define builddoc 0
+-%define buildkdump 1
++%define buildkdump 0
+ %define buildheaders 0
+ %define builddebug 0
+ 
+EOF
 exec rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 exit 0
