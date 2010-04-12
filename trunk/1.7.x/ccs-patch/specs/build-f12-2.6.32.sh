@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32.10-90.fc12.src.rpm ]
+if [ ! -r kernel-2.6.32.11-99.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.10-90.fc12.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.11-99.fc12.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.32.10-90.fc12.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.32.11-99.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100401.tar.gz ]
@@ -25,8 +25,8 @@ fi
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- ccs-kernel.spec	2010-03-23 06:18:08.000000000 +0900
-+++ ccs-kernel.spec	2010-03-30 20:34:44.200183205 +0900
+--- ccs-kernel.spec	2010-04-06 04:29:56.000000000 +0900
++++ ccs-kernel.spec	2010-04-12 13:49:16.000000000 +0900
 @@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -886,7 +891,7 @@
+@@ -889,7 +894,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1439,6 +1444,10 @@
+@@ -1444,6 +1449,10 @@
  
  # END OF PATCH APPLICATIONS ====================================================
  
@@ -86,7 +86,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1465,6 +1474,9 @@
+@@ -1470,6 +1479,9 @@
  for i in *.config
  do
    mv $i .config
