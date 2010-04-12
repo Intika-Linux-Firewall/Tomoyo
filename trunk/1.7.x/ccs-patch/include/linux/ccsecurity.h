@@ -37,9 +37,6 @@ struct file_system_type;
 struct pid_namespace;
 int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 
-/* This macro was wrong. Handle nameidata to path conversion in callee side. */
-#define ccs_mkpath(nd) (nd)
-
 #ifdef CONFIG_CCSECURITY
 
 /* For exporting variables and functions. */

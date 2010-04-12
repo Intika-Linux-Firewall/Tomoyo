@@ -14,12 +14,13 @@ if [ ! -r kernel-2.6.30.10-105.2.23.fc11.src.rpm ]
 then
     wget http://ftp.riken.jp/Linux/fedora/updates/11/SRPMS/kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't download source package."
 fi
+rpm --checksig kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100401.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100401.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100412.tar.gz || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -80,7 +81,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100412.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.30-fedora-11.diff
 +
  %endif
@@ -103,4 +104,8 @@ echo ""
 echo "Edit /root/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb /root/rpmbuild/SPECS/ccs-kernel.spec"
 echo "to build kernel rpm packages."
+echo ""
+echo "I'll start 'rpmbuild -bb --target i586 --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+sleep 30
+exec rpmbuild -bb --target i586 --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec
 exit 0

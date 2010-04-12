@@ -38,9 +38,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p /usr/src/rpm/SOURCES/
 cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100401.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100401.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100412.tar.gz || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -53,7 +53,7 @@ apt-get source linux-restricted-modules-${VERSION}-generic || die "Can't install
 
 # Apply patches and create kernel config.
 cd linux-source-2.6.17-2.6.17.1/ || die "Can't chdir to linux-2.6.17-2.6.17.1/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100401.tar.gz || die "Can't extract patch."
+tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100412.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.17-ubuntu-6.10.diff || die "Can't apply patch."
 cat debian/config/i386/config.generic config.ccs > debian/config/i386/config.generic-ccs || die "Can't create config."
 cat debian/config/vars.generic > debian/config/i386/vars.generic-ccs || die "Can't create file."
