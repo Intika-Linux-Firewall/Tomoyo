@@ -17,7 +17,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    5 +++++
  fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   23 ++++++++++++++++++++++-
+ fs/namespace.c                  |   21 ++++++++++++++++++++-
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -43,7 +43,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 283 insertions(+), 8 deletions(-)
+ 41 files changed, 281 insertions(+), 8 deletions(-)
 
 --- linux-2.6.18.8.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18.8/arch/alpha/kernel/ptrace.c
@@ -512,7 +512,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto out;
  
  	err = -ENOMEM;
@@ -523,7 +523,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		goto out;
 -
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
@@ -533,7 +533,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
@@ -546,24 +546,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1423,6 +1437,10 @@ long do_mount(char *dev_name, char *dir_
+@@ -1423,6 +1437,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
 +	if (!retval)
-+		retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd),
-+					      type_page, original_flags,
-+					      data_page);
++		retval = ccs_mount_permission(dev_name, &nd, type_page,
++					      original_flags, data_page);
  	if (retval)
  		goto dput_out;
  
-@@ -1707,6 +1725,9 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1707,6 +1724,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
 +	if (!error)
-+		error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
-+						  ccs_mkpath(&new_nd));
++		error = ccs_pivot_root_permission(&old_nd, &new_nd);
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
@@ -600,7 +598,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (ccs_chroot_permission(ccs_mkpath(&nd)))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -687,7 +685,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18.8 2010/03/31\n");
++	printk(KERN_INFO "Hook version: 2.6.18.8 2010/04/12\n");
  }
 --- linux-2.6.18.8.orig/include/linux/init_task.h
 +++ linux-2.6.18.8/include/linux/init_task.h

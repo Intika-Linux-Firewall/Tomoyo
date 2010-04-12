@@ -28,7 +28,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/fcntl.c                   |    3 +++
  fs/ioctl.c                   |   10 ++++++++++
  fs/namei.c                   |   37 +++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   32 ++++++++++++++++++++++++++++++++
+ fs/namespace.c               |   31 +++++++++++++++++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
@@ -47,7 +47,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |    8 ++++++++
  net/socket.c                 |   21 +++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 45 files changed, 320 insertions(+), 3 deletions(-)
+ 45 files changed, 319 insertions(+), 3 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -725,7 +725,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 +		err = -EPERM;
-+		if (ccs_may_mount(ccs_mkpath(nd)))
++		if (ccs_may_mount(nd))
 +			goto out;
  		err = -ENOMEM;
  		if (recurse)
@@ -743,7 +743,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		goto out;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto out;
 +
  	err = -ENOENT;
@@ -754,7 +754,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  		goto unlock;
  
 +	err = -EPERM;
-+	if (ccs_may_mount(ccs_mkpath(nd)))
++	if (ccs_may_mount(nd))
 +		goto unlock;
 +
  	mnt->mnt_flags = mnt_flags;
@@ -772,8 +772,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if (retval)
  		return retval;
  
-+	retval = ccs_mount_permission(dev_name, ccs_mkpath(&nd), type_page,
-+				      original_flags, data_page);
++	retval = ccs_mount_permission(dev_name, &nd, type_page, original_flags,
++				      data_page);
 +	if (retval)
 +		goto out;
 +
@@ -788,12 +788,11 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	path_release(&nd);
  	return retval;
  }
-@@ -922,6 +948,12 @@ asmlinkage long sys_pivot_root(const cha
+@@ -922,6 +948,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  
-+	error = ccs_pivot_root_permission(ccs_mkpath(&old_nd),
-+					  ccs_mkpath(&new_nd));
++	error = ccs_pivot_root_permission(&old_nd, &new_nd);
 +	if (error) {
 +		path_release(&old_nd);
 +		goto out1;
@@ -836,7 +835,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
-+	if (ccs_chroot_permission(ccs_mkpath(&nd)))
++	if (ccs_chroot_permission(&nd))
 +		goto dput_and_out;
  
  	set_fs_root(current->fs, nd.mnt, nd.dentry);
@@ -914,7 +913,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2010/02/19\n");
++	printk(KERN_INFO "Hook version: 2.4.21-63.EL 2010/04/12\n");
  }
 --- linux-2.4.21-63.EL.orig/include/linux/sched.h
 +++ linux-2.4.21-63.EL/include/linux/sched.h
