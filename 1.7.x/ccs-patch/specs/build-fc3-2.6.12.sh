@@ -14,12 +14,13 @@ if [ ! -r kernel-2.6.12-2.3.legacy_FC3.src.rpm ]
 then
     wget http://ftp.riken.go.jp/Linux/fedoralegacy/fedora/3/updates/SRPMS/kernel-2.6.12-2.3.legacy_FC3.src.rpm || die "Can't download source package."
 fi
+rpm --checksig kernel-2.6.12-2.3.legacy_FC3.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.12-2.3.legacy_FC3.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100401.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100401.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100412.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -60,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100412.tar.gz
 +# sed -i -e "s/^EXTRAVERSION.*/EXTRAVERSION = -2.3.legacy_FC3/" -- Makefile
 +patch -sp1 < patches/ccs-patch-2.6.12-fedora-core-3.diff
 +
@@ -85,4 +86,8 @@ echo ""
 echo "Edit /tmp/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
+echo ""
+echo "I'll start 'rpmbuild -bb --target i586 /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+sleep 30
+exec rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 exit 0
