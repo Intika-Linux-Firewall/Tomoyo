@@ -86,7 +86,7 @@ echo "Edit /tmp/ccs-kernel.spec if needed, and run"
 echo "rpmbuild -bb --without kabichk /tmp/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
-echo "I'll start 'rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+echo "I'll start 'rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
-exec rpmbuild -bb --target i586 --without kabichk /tmp/ccs-kernel.spec
+exec rpmbuild -bb --target i686 --without kabichk --with baseonly --without debug --without debuginfo /tmp/ccs-kernel.spec
 exit 0
