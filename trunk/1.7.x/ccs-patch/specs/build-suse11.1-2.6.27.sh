@@ -126,5 +126,18 @@ echo "to build kernel rpm packages."
 echo ""
 echo "I'll start 'rpmbuild -bb --target i586 /tmp/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
+patch << "EOF" || die "Can't patch spec file."
+--- /tmp/ccs-kernel.spec
++++ /tmp/ccs-kernel.spec
+@@ -97,7 +97,7 @@
+ #!BuildIgnore:  perl-Bootloader mkinitrd
+ 
+ %if ! 0%{?opensuse_bs}
+-BuildRequires:  kernel-dummy
++#BuildRequires:  kernel-dummy
+ %endif
+ %ifarch ia64
+ # arch/ia64/scripts/unwcheck.py
+EOF
 exec rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 exit 0
