@@ -27,6 +27,7 @@ update_linux_26_header_package() {
 }
 
 VERSION=`uname -r | cut -d - -f 1,2`
+VERSION=2.6.17-12
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."
 
 apt-get -y install wget
