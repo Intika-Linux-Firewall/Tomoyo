@@ -13,7 +13,6 @@ mv tmp/control tmp/DEBIAN/
 echo "Processing " $1
 dpkg-deb -x $1 tmp
 sed -i -e 's/^Maintainer:.*/Maintainer: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>/' -- tmp/DEBIAN/control
-dpkg-deb -b tmp
+dpkg-deb -b tmp && mv tmp.deb $1
 rm -fR tmp
-mv tmp.deb $1
 exit 0
