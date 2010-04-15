@@ -14,11 +14,9 @@ generate_meta_package() {
     dpkg-deb -e $1 tmp/DEBIAN
     dir=`echo -n tmp/usr/share/doc/*`
     mv ${dir} ${dir}-ccs
-    sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/md5sums
-    sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/control
-    dpkg-deb -b tmp
+    sed -i -e 's:-686-smp:-686-smp-ccs:' -- tmp/DEBIAN/md5sums tmp/DEBIAN/control
+    dpkg-deb -b tmp && mv tmp.deb $2
     rm -fR tmp
-    mv tmp.deb $2
 }
 
 update_linux_24_header_package() {
@@ -32,9 +30,8 @@ update_linux_24_header_package() {
       rm -f new/usr/src/*/include/linux/$i
       cp -p old/usr/src/*/include/linux/$i new/usr/src/*/include/linux/
     done
-    dpkg-deb -b new
+    dpkg-deb -b new && mv new.deb $2
     rm -fR new old
-    mv new.deb $2
 }
 
 export CONCURRENCY_LEVEL=`grep -c '^processor' /proc/cpuinfo` || die "Can't export."

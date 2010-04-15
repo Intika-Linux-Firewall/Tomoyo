@@ -21,9 +21,8 @@ update_linux_26_header_package() {
     done
     rm -f new/usr/src/*/security
     (cd old/usr/src/*/ ; tar -cf - security/ ) | ( cd new/usr/src/*/ ; tar -xf - )
-    dpkg-deb -b new
+    dpkg-deb -b new && mv new.deb $2
     rm -fR new old
-    mv new.deb $2
 }
 
 VERSION=`uname -r | cut -d - -f 1,2`
