@@ -394,22 +394,21 @@ static void ccs_normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
+static int ccs_transition_fd = EOF;
+
 static _Bool ccs_set_context(request_rec *r)
 {
-	const int fd = open("/proc/ccs/.transition", O_WRONLY);
 	static char buffer[8192];
 	FILE *fp;
 	int len;
 	_Bool success = 0;
-	if (fd == EOF)
-		return errno == ENOENT ? 1 : 0;
 	memset(buffer, 0, sizeof(buffer));
 	fp = fopen("/etc/apache_domain_map.conf", "r");
 	{ /* Transit domain by virtual host's name. */
 		char *name = r->server->server_hostname;
 		snprintf(buffer, sizeof(buffer) - 1, "servername=%s", name);
 		len = strlen(buffer) + 1;
-		success = write(fd, buffer, len) == len;
+		success = write(ccs_transition_fd, buffer, len) == len;
 		if (!success)
 			goto out;
 	}
@@ -429,13 +428,13 @@ static _Bool ccs_set_context(request_rec *r)
 						      buffer))
 				continue;
 			len = strlen(cp + 1) + 1;
-			success = write(fd, cp + 1, len) == len;
+			success = write(ccs_transition_fd, cp + 1, len) == len;
 			break;
 		}
 		fclose(fp);
 	}
  out:
-	return close(fd) == 0 && success;
+	return success;
 }
 
 static int __thread volatile am_worker = 0;
@@ -444,16 +443,16 @@ static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
 						void *data)
 {
 	request_rec *r = (request_rec *) data;
-	int result;
+	int result = HTTP_INTERNAL_SERVER_ERROR;
 	/* marks as the current context is worker thread */
 	am_worker = 1;
 	/* set security context */
-	if (!ccs_set_context(r))
-		apr_thread_exit(thread, HTTP_INTERNAL_SERVER_ERROR);
-	/* invoke content handler */
-	result = ap_run_handler(r);
-	if (result == DECLINED)
-		result = HTTP_INTERNAL_SERVER_ERROR;
+	if (ccs_set_context(r)) {
+		/* invoke content handler */
+		result = ap_run_handler(r);
+		if (result == DECLINED)
+			result = HTTP_INTERNAL_SERVER_ERROR;
+	}
 	apr_thread_exit(thread, result);
 	return NULL;
 }
@@ -466,6 +465,11 @@ static int ccs_handler(request_rec *r)
 	apr_status_t thread_rv;
 	if (am_worker)
 		return DECLINED;
+	if (ccs_transition_fd == EOF) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, ENOENT, r,
+			      "mod_ccs: /proc/ccs/.transition is not available.");
+		return HTTP_INTERNAL_SERVER_ERROR;
+	}
 	apr_threadattr_create(&thread_attr, r->pool);
 	apr_threadattr_detach_set(thread_attr, 0);
 	rv = apr_thread_create(&thread, thread_attr, ccs_worker_handler, r,
@@ -490,11 +494,18 @@ static void ccs_hooks(apr_pool_t *p)
 	ap_hook_handler(ccs_handler, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
+static void *ccs_server_config(apr_pool_t *p, server_rec *s)
+{
+	if (ccs_transition_fd == EOF)
+		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
+	return NULL;
+}
+
 module AP_MODULE_DECLARE_DATA ccs_module = {
 	STANDARD20_MODULE_STUFF,
 	NULL,                   /* create per-directory config */
 	NULL,                   /* merge per-directory config */
-	NULL,                   /* server config creator */
+	ccs_server_config,      /* server config creator */
 	NULL,                   /* server config merger */
 	NULL,                   /* command table */
 	ccs_hooks,              /* set up other hooks */
