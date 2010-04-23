@@ -23,16 +23,16 @@ then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100412.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-1.7.2-20100422.diff ]
+if [ ! -r ccs-patch-1.7.2-20100423.diff ]
 then
-    wget -O ccs-patch-1.7.2-20100422.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3602&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.7.2-20100423.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3603&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec	2010-03-10 07:17:58.000000000 +0900
-+++ ccs-kernel.spec	2010-04-22 14:50:02.187693634 +0900
++++ ccs-kernel.spec	2010-04-23 09:07:48.000000000 +0900
 @@ -14,7 +14,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -52,6 +52,15 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
+@@ -467,7 +470,7 @@
+ # Packages that need to be installed before the kernel is, because the %post
+ # scripts use them.
+ #
+-%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, kernel-firmware >= %{rpmversion}-%{pkg_release}, grubby >= 7.0.4-1
++%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, grubby >= 7.0.4-1
+ %if %{with_dracut}
+ %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
+ %else
 @@ -503,7 +506,7 @@
  AutoProv: yes\
  %{nil}
@@ -76,7 +85,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100412.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100422.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100423.diff
 +
  # Any further pre-build tree manipulations happen here.
  
