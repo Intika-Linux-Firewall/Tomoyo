@@ -31,11 +31,12 @@
 <li>Fedora Core 3/4/5/6</li>
 <li>Fedora 7/8/9/10/11/12</li>
 <li>CentOS 3.9/4.8/5.4</li>
+<li>RHEL 6 beta</li>
 <li>OpenSUSE 10.1/10.2/10.3/11.0/11.1/11.2</li>
 <li>Vine Linux 4.2/5.0</li>
 <li>Asianux 2.0/3.0</li>
 <li>Debian Sarge/Etch/Lenny</li>
-<li>Ubuntu 6.06/6.10/7.04/7.10/8.04/8.10/9.04/9.10</li>
+<li>Ubuntu 6.06/6.10/7.04/7.10/8.04/8.10/9.04/9.10/10.04</li>
 </ul>
 
 <p>RPM 形式のバイナリパッケージをインストールする場合、以下のように GPG 鍵をインストールしてください。</p>
@@ -114,6 +115,10 @@ CentOS 4.8 (for i586 and later)</td><td>
 </td></tr><tr><td>
 CentOS 5.4 (for i686 and later)</td><td>
 [root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo<br>
+[root@tomoyo ~]# yum install ccs-kernel ccs-tools
+</td></tr><tr><td>
+RHEL 6 beta (for i686 and later)</td><td>
+[root@tomoyo ~]# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/RHEL6beta/ccs.repo<br>
 [root@tomoyo ~]# yum install ccs-kernel ccs-tools
 </td></tr><tr><td>
 Asianux 2.0 (for i686 and later)</td><td>
@@ -217,6 +222,11 @@ Ubuntu 9.04 (for generic flavour)</td><td>
 </td></tr><tr><td>
 Ubuntu 9.10 (for generic flavour)</td><td>
 [root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/45071/ ./' &gt;&gt; /etc/apt/sources.list<br>
+[root@tomoyo ~]# apt-get update<br>
+[root@tomoyo ~]# apt-get install linux-ccs ccs-tools
+</td></tr><tr><td>
+Ubuntu 10.04 (for generic-pae flavour)</td><td>
+[root@tomoyo ~]# echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' &gt;&gt; /etc/apt/sources.list<br>
 [root@tomoyo ~]# apt-get update<br>
 [root@tomoyo ~]# apt-get install linux-ccs ccs-tools
 </td></tr>
