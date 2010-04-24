@@ -19,8 +19,8 @@ do
 done
 
 # Download TOMOYO Linux patches.
-mkdir -p /usr/src/rpm/SOURCES/
-cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+mkdir -p /root/rpmbuild/SOURCES/
+cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
 then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100412.tar.gz || die "Can't download patch."
@@ -40,21 +40,21 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 
 # Apply patches and create kernel config.
 cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100412.tar.gz || die "Can't extract patch."
-patch -p1 < /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100424.diff || die "Can't apply patch."
+tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100412.tar.gz || die "Can't extract patch."
+patch -p1 < /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100424.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic-pae*'`; do cp -p $i `echo $i | sed -e 's/generic-pae/ccs/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
 rm debian.master/control.stub || die "Can't delete control.stub."
-make -f debian.master/rules debian.master/control.stub || die "Can't update control.stub."
+make -f debian/rules debian.master/control.stub || die "Can't update control.stub."
 rm debian/control || die "Can't delete control."
 debian/rules debian/control || die "Can't update control."
 for i in debian.master/abi/2.6.32-*/*/ ; do touch $i/ccs.ignore; done
 
 # Make modified header files go into local header package.
 patch -p0 << "EOF" || die "Can't patch link-headers."
---- debian.master/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
-+++ debian.master/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
+--- debian/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
++++ debian/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
 @@ -39,4 +39,17 @@
  done
  )
