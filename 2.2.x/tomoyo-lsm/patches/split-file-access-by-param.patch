@@ -48,7 +48,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
-@@ -1574,7 +1587,7 @@ static bool tomoyo_print_path_acl(struct
+@@ -1575,7 +1588,7 @@ static bool tomoyo_print_path_acl(struct
  {
  	int pos;
  	u8 bit;
@@ -57,7 +57,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	for (bit = head->read_bit; bit < TOMOYO_MAX_PATH_OPERATION; bit++) {
  		if (!(perm & (1 << bit)))
-@@ -1633,6 +1646,76 @@ static bool tomoyo_print_path2_acl(struc
+@@ -1634,6 +1647,76 @@ static bool tomoyo_print_path2_acl(struc
  }
  
  /**
@@ -134,7 +134,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1655,6 +1738,18 @@ static bool tomoyo_print_entry(struct to
+@@ -1656,6 +1739,18 @@ static bool tomoyo_print_entry(struct to
  			= container_of(ptr, struct tomoyo_path2_acl, head);
  		return tomoyo_print_path2_acl(head, acl);
  	}
@@ -1127,7 +1127,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				}
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -113,7 +113,8 @@ static int tomoyo_path_mkdir(struct path
+@@ -112,7 +112,8 @@ static int tomoyo_path_mkdir(struct path
  			     int mode)
  {
  	struct path path = { parent->mnt, dentry };
@@ -1137,7 +1137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_path_rmdir(struct path *parent, struct dentry *dentry)
-@@ -134,6 +135,7 @@ static int tomoyo_path_mknod(struct path
+@@ -133,6 +134,7 @@ static int tomoyo_path_mknod(struct path
  {
  	struct path path = { parent->mnt, dentry };
  	int type = TOMOYO_TYPE_CREATE;
@@ -1145,7 +1145,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	switch (mode & S_IFMT) {
  	case S_IFCHR:
-@@ -142,6 +144,12 @@ static int tomoyo_path_mknod(struct path
+@@ -141,6 +143,12 @@ static int tomoyo_path_mknod(struct path
  	case S_IFBLK:
  		type = TOMOYO_TYPE_MKBLOCK;
  		break;
@@ -1158,7 +1158,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case S_IFIFO:
  		type = TOMOYO_TYPE_MKFIFO;
  		break;
-@@ -149,7 +157,7 @@ static int tomoyo_path_mknod(struct path
+@@ -148,7 +156,7 @@ static int tomoyo_path_mknod(struct path
  		type = TOMOYO_TYPE_MKSOCK;
  		break;
  	}
@@ -1167,7 +1167,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  static int tomoyo_path_link(struct dentry *old_dentry, struct path *new_dir,
-@@ -194,23 +202,24 @@ static int tomoyo_dentry_open(struct fil
+@@ -189,23 +197,24 @@ static int tomoyo_dentry_open(struct fil
  static int tomoyo_file_ioctl(struct file *file, unsigned int cmd,
  			     unsigned long arg)
  {
