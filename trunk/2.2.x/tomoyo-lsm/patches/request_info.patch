@@ -646,7 +646,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -174,7 +174,7 @@ static int tomoyo_file_fcntl(struct file
+@@ -173,7 +173,7 @@ static int tomoyo_file_fcntl(struct file
  			     unsigned long arg)
  {
  	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))

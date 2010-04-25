@@ -32,7 +32,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
-@@ -1571,6 +1575,8 @@ static int tomoyo_write_domain_policy(st
+@@ -1572,6 +1576,8 @@ static int tomoyo_write_domain_policy(st
  		domain->ignore_global_allow_read = !is_delete;
  		return 0;
  	}
@@ -41,7 +41,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1716,6 +1722,30 @@ static bool tomoyo_print_path_number3_ac
+@@ -1717,6 +1723,30 @@ static bool tomoyo_print_path_number3_ac
  }
  
  /**
@@ -72,7 +72,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1750,6 +1780,11 @@ static bool tomoyo_print_entry(struct to
+@@ -1751,6 +1781,11 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_path_number3_acl(head, acl);
  	}
@@ -624,7 +624,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +}
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c
 +++ security-testing-2.6/security/tomoyo/tomoyo.c
-@@ -231,7 +231,7 @@ static int tomoyo_path_chroot(struct pat
+@@ -226,7 +226,7 @@ static int tomoyo_path_chroot(struct pat
  static int tomoyo_sb_mount(char *dev_name, struct path *path,
  			   char *type, unsigned long flags, void *data)
  {

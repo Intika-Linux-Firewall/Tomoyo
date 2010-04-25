@@ -180,7 +180,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_byte_range - Check whether the string isa \ooo style octal value.
   *
   * @str: Pointer to the string.
-@@ -1745,6 +1898,8 @@ static int tomoyo_write_exception_policy
+@@ -1746,6 +1899,8 @@ static int tomoyo_write_exception_policy
  		return tomoyo_write_no_rewrite_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_PATH_GROUP))
  		return tomoyo_write_path_group_policy(data, is_delete);
@@ -189,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1807,6 +1962,12 @@ static int tomoyo_read_exception_policy(
+@@ -1808,6 +1963,12 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 10;
  		case 10:

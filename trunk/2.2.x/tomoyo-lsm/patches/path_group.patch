@@ -104,7 +104,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_correct_path - Validate a pathname.
   * @filename:     The pathname to check.
   * @start_type:   Should the pathname start with '/'?
-@@ -1363,21 +1433,20 @@ static bool tomoyo_print_path_acl(struct
+@@ -1364,21 +1434,20 @@ static bool tomoyo_print_path_acl(struct
  {
  	int pos;
  	u8 bit;
@@ -130,7 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			goto out;
  	}
  	head->read_bit = 0;
-@@ -1400,21 +1469,18 @@ static bool tomoyo_print_path2_acl(struc
+@@ -1401,21 +1470,18 @@ static bool tomoyo_print_path2_acl(struc
  				   struct tomoyo_path2_acl *ptr)
  {
  	int pos;
@@ -157,7 +157,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			goto out;
  	}
  	head->read_bit = 0;
-@@ -1677,6 +1743,8 @@ static int tomoyo_write_exception_policy
+@@ -1678,6 +1744,8 @@ static int tomoyo_write_exception_policy
  		return tomoyo_write_pattern_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DENY_REWRITE))
  		return tomoyo_write_no_rewrite_policy(data, is_delete);
@@ -166,7 +166,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1733,6 +1801,12 @@ static int tomoyo_read_exception_policy(
+@@ -1734,6 +1802,12 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 9;
  		case 9:
