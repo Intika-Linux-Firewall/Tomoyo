@@ -24,14 +24,71 @@ A demo movie is available at http://www.youtube.com/watch?v=b9q1Jo25LPA .
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c   |  379 ++++++++++++++++++++++++++++++++++++++++++++-
- security/tomoyo/common.h   |   21 ++
- security/tomoyo/realpath.c |   19 ++
- 3 files changed, 413 insertions(+), 6 deletions(-)
+ security/tomoyo/common.c   |  426 ++++++++++++++++++++++++++++++++++++++++++++-
+ security/tomoyo/common.h   |   28 ++
+ security/tomoyo/domain.c   |   47 +++-
+ security/tomoyo/file.c     |  140 +++++++-------
+ security/tomoyo/mount.c    |   24 +-
+ security/tomoyo/realpath.c |   19 +-
+ 6 files changed, 564 insertions(+), 120 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -2185,6 +2185,338 @@ void tomoyo_load_policy(const char *file
+@@ -73,6 +73,8 @@ static int tomoyo_read_control(struct fi
+ /* Write operation for /sys/kernel/security/tomoyo/ interface. */
+ static int tomoyo_write_control(struct file *file, const char __user *buffer,
+ 				const int buffer_len);
++/* Check whether the domain has too many ACL entries to hold. */
++static bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
+ 
+ /**
+  * tomoyo_parse_name_union - Parse a tomoyo_name_union.
+@@ -1030,7 +1032,7 @@ bool tomoyo_verbose_mode(const struct to
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r)
++static bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r)
+ {
+ 	unsigned int count = 0;
+ 	struct tomoyo_domain_info *domain = r->domain;
+@@ -1530,6 +1532,24 @@ static int tomoyo_delete_domain(char *do
+ }
+ 
+ /**
++ * tomoyo_write_domain_policy2 - Write domain policy.
++ *
++ * @head: Pointer to "struct tomoyo_io_buffer".
++ *
++ * Returns 0 on success, negative value otherwise.
++ *
++ * Caller holds tomoyo_read_lock().
++ */
++static int tomoyo_write_domain_policy2(char *data,
++				       struct tomoyo_domain_info *domain,
++				       const bool is_delete)
++{
++	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
++                return tomoyo_write_mount_policy(data, domain, is_delete);
++	return tomoyo_write_file_policy(data, domain, is_delete);
++}
++
++/**
+  * tomoyo_write_domain_policy - Write domain policy.
+  *
+  * @head: Pointer to "struct tomoyo_io_buffer".
+@@ -1579,9 +1599,7 @@ static int tomoyo_write_domain_policy(st
+ 		domain->ignore_global_allow_read = !is_delete;
+ 		return 0;
+ 	}
+-        if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_MOUNT))
+-                return tomoyo_write_mount_policy(data, domain, is_delete);
+-	return tomoyo_write_file_policy(data, domain, is_delete);
++	return tomoyo_write_domain_policy2(data, domain, is_delete);
+ }
+ 
+ /**
+@@ -2185,6 +2203,357 @@ void tomoyo_load_policy(const char *file
  }
  
  /**
@@ -146,8 +203,27 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	struct tomoyo_query_entry *tomoyo_query_entry = NULL;
 +	bool quota_exceeded = false;
 +	char *header;
-+	if (r->mode != TOMOYO_CONFIG_ENFORCING)
++	switch (r->mode) {
++		char *buffer;
++	case TOMOYO_CONFIG_LEARNING:
++		if (!tomoyo_domain_quota_is_ok(r))
++			return 0;
++		va_start(args, fmt);
++		len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 4;
++		va_end(args);
++		buffer = kmalloc(len, GFP_NOFS);
++		if (!buffer)
++			return 0;
++		va_start(args, fmt);
++		vsnprintf(buffer, len - 1, fmt, args);
++		va_end(args);
++		tomoyo_normalize_line(buffer);
++		tomoyo_write_domain_policy2(buffer, r->domain, false);
++		kfree(buffer);
++		/* fall through */
++	case TOMOYO_CONFIG_PERMISSIVE:
 +		return 0;
++	}
 +	if (!r->domain)
 +		r->domain = tomoyo_domain();
 +	if (!atomic_read(&tomoyo_query_observers))
@@ -370,7 +446,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_version: Get version.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -2238,6 +2570,7 @@ static int tomoyo_open_control(const u8 
+@@ -2238,6 +2607,7 @@ static int tomoyo_open_control(const u8 
  	if (!head)
  		return -ENOMEM;
  	mutex_init(&head->io_sem);
@@ -378,7 +454,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	switch (type) {
  	case TOMOYO_DOMAINPOLICY:
  		/* /sys/kernel/security/tomoyo/domain_policy */
-@@ -2279,6 +2612,11 @@ static int tomoyo_open_control(const u8 
+@@ -2279,6 +2649,11 @@ static int tomoyo_open_control(const u8 
  		head->write = tomoyo_write_profile;
  		head->read = tomoyo_read_profile;
  		break;
@@ -390,7 +466,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_MANAGER:
  		/* /sys/kernel/security/tomoyo/manager */
  		head->write = tomoyo_write_manager_policy;
-@@ -2291,7 +2629,9 @@ static int tomoyo_open_control(const u8 
+@@ -2291,7 +2666,9 @@ static int tomoyo_open_control(const u8 
  		 * for reading.
  		 */
  		head->read = NULL;
@@ -401,7 +477,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (!head->readbuf_size)
  			head->readbuf_size = 4096 * 2;
  		head->read_buf = kzalloc(head->readbuf_size, GFP_NOFS);
-@@ -2315,7 +2655,8 @@ static int tomoyo_open_control(const u8 
+@@ -2315,7 +2692,8 @@ static int tomoyo_open_control(const u8 
  			return -ENOMEM;
  		}
  	}
@@ -411,7 +487,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	file->private_data = head;
  	/*
  	 * Call the handler now if the file is
-@@ -2326,10 +2667,35 @@ static int tomoyo_open_control(const u8 
+@@ -2326,10 +2704,35 @@ static int tomoyo_open_control(const u8 
  	 */
  	if (type == TOMOYO_SELFDOMAIN)
  		tomoyo_read_control(file, NULL, 0);
@@ -447,7 +523,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_read_control - read() for /sys/kernel/security/tomoyo/ interface.
   *
   * @file:       Pointer to "struct file".
-@@ -2442,7 +2808,14 @@ static int tomoyo_close_control(struct f
+@@ -2442,7 +2845,14 @@ static int tomoyo_close_control(struct f
  	struct tomoyo_io_buffer *head = file->private_data;
  	const bool is_write = !!head->write_buf;
  
@@ -463,6 +539,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	/* Release memory used for policy I/O. */
  	kfree(head->read_buf);
  	head->read_buf = NULL;
+@@ -2561,6 +2971,8 @@ static int __init tomoyo_initerface_init
+ 		return 0;
+ 
+ 	tomoyo_dir = securityfs_create_dir("tomoyo", NULL);
++	tomoyo_create_entry("query",            0600, tomoyo_dir,
++			    TOMOYO_QUERY);
+ 	tomoyo_create_entry("domain_policy",    0600, tomoyo_dir,
+ 			    TOMOYO_DOMAINPOLICY);
+ 	tomoyo_create_entry("exception_policy", 0600, tomoyo_dir,
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
 @@ -20,6 +20,7 @@
@@ -519,7 +604,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  };
  
  /*
-@@ -659,6 +670,9 @@ struct tomoyo_policy_manager_entry {
+@@ -659,14 +670,15 @@ struct tomoyo_policy_manager_entry {
  
  /********** Function prototypes. **********/
  
@@ -529,7 +614,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Check whether the given name matches the given name_union. */
  bool tomoyo_compare_name_union(const struct tomoyo_path_info *name,
  			       const struct tomoyo_name_union *ptr);
-@@ -763,6 +777,8 @@ int tomoyo_write_no_rewrite_policy(char 
+ /* Check whether the given number matches the given number_union. */
+ bool tomoyo_compare_number_union(const unsigned long value,
+ 				 const struct tomoyo_number_union *ptr);
+-/* Check whether the domain has too many ACL entries to hold. */
+-bool tomoyo_domain_quota_is_ok(struct tomoyo_request_info *r);
+ /* Transactional sprintf() for policy dump. */
+ bool tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
+ 	__attribute__ ((format(printf, 2, 3)));
+@@ -763,6 +775,8 @@ int tomoyo_write_no_rewrite_policy(char 
  int tomoyo_write_pattern_policy(char *data, const bool is_delete);
  /* Create "path_group" entry in exception policy. */
  int tomoyo_write_path_group_policy(char *data, const bool is_delete);
@@ -538,7 +631,26 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Create "number_group" entry in exception policy. */
  int tomoyo_write_number_group_policy(char *data, const bool is_delete);
  /* Find a domain by the given name. */
-@@ -878,6 +894,9 @@ extern bool tomoyo_policy_loaded;
+@@ -771,9 +785,6 @@ struct tomoyo_domain_info *tomoyo_find_d
+ struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *
+ 							    domainname,
+ 							    const u8 profile);
+-/* Get patterned pathname. */
+-const struct tomoyo_path_info *
+-tomoyo_get_file_pattern(const struct tomoyo_path_info *filename);
+ /* Allocate memory for "struct tomoyo_path_group". */
+ struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
+ struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
+@@ -807,6 +818,8 @@ char *tomoyo_realpath(const char *pathna
+ char *tomoyo_realpath_nofollow(const char *pathname);
+ /* Same with tomoyo_realpath() except that the pathname is already solved. */
+ char *tomoyo_realpath_from_path(struct path *path);
++/* Get patterned pathname. */
++const char *tomoyo_file_pattern(const struct tomoyo_path_info *filename);
+ 
+ /* Check memory quota. */
+ bool tomoyo_memory_ok(void *ptr);
+@@ -878,6 +891,9 @@ extern bool tomoyo_policy_loaded;
  /* The kernel's domain. */
  extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
@@ -548,6 +660,379 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** Inlined functions. **********/
  
  static inline int tomoyo_read_lock(void)
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -677,6 +677,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+  */
+ int tomoyo_find_next_domain(struct linux_binprm *bprm)
+ {
++	struct tomoyo_request_info r;
+ 	/*
+ 	 * This function assumes that the size of buffer returned by
+ 	 * tomoyo_realpath() = TOMOYO_MAX_PATHNAME_LEN.
+@@ -692,11 +693,12 @@ int tomoyo_find_next_domain(struct linux
+ 	const u8 mode = tomoyo_check_flags(old_domain, TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == TOMOYO_CONFIG_ENFORCING);
+ 	int retval = -ENOMEM;
+-	struct tomoyo_path_info r; /* real name */
+-	struct tomoyo_path_info s; /* symlink name */
+-	struct tomoyo_path_info l; /* last name */
++	struct tomoyo_path_info rn; /* real name */
++	struct tomoyo_path_info sn; /* symlink name */
++	struct tomoyo_path_info ln; /* last name */
+ 	static bool initialized;
+ 
++	tomoyo_init_request_info(&r, NULL);
+ 	if (!tmp)
+ 		goto out;
+ 
+@@ -712,6 +714,7 @@ int tomoyo_find_next_domain(struct linux
+ 		initialized = true;
+ 	}
+ 
++ retry:
+ 	/* Get tomoyo_realpath of program. */
+ 	retval = -ENOENT;
+ 	/* I hope tomoyo_realpath() won't fail with -ENOMEM. */
+@@ -723,37 +726,39 @@ int tomoyo_find_next_domain(struct linux
+ 	if (!symlink_program_name)
+ 		goto out;
+ 
+-	r.name = real_program_name;
+-	tomoyo_fill_path_info(&r);
+-	s.name = symlink_program_name;
+-	tomoyo_fill_path_info(&s);
+-	l.name = tomoyo_get_last_name(old_domain);
+-	tomoyo_fill_path_info(&l);
++	rn.name = real_program_name;
++	tomoyo_fill_path_info(&rn);
++	sn.name = symlink_program_name;
++	tomoyo_fill_path_info(&sn);
++	ln.name = tomoyo_get_last_name(old_domain);
++	tomoyo_fill_path_info(&ln);
+ 
+ 	/* Check 'alias' directive. */
+-	if (tomoyo_pathcmp(&r, &s)) {
++	if (tomoyo_pathcmp(&rn, &sn)) {
+ 		struct tomoyo_alias_entry *ptr;
+ 		/* Is this program allowed to be called via symbolic links? */
+ 		list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
+ 			if (ptr->is_deleted ||
+-			    tomoyo_pathcmp(&r, ptr->original_name) ||
+-			    tomoyo_pathcmp(&s, ptr->aliased_name))
++			    tomoyo_pathcmp(&rn, ptr->original_name) ||
++			    tomoyo_pathcmp(&sn, ptr->aliased_name))
+ 				continue;
+ 			memset(real_program_name, 0, TOMOYO_MAX_PATHNAME_LEN);
+ 			strncpy(real_program_name, ptr->aliased_name->name,
+ 				TOMOYO_MAX_PATHNAME_LEN - 1);
+-			tomoyo_fill_path_info(&r);
++			tomoyo_fill_path_info(&rn);
+ 			break;
+ 		}
+ 	}
+ 
+ 	/* Check execute permission. */
+-	retval = tomoyo_check_exec_perm(old_domain, &r);
++	retval = tomoyo_check_exec_perm(old_domain, &rn);
++	if (retval == TOMOYO_RETRY_REQUEST)
++		goto retry;
+ 	if (retval < 0)
+ 		goto out;
+ 
+ 	new_domain_name = tmp->buffer;
+-	if (tomoyo_is_domain_initializer(old_domain->domainname, &r, &l)) {
++	if (tomoyo_is_domain_initializer(old_domain->domainname, &rn, &ln)) {
+ 		/* Transit to the child of tomoyo_kernel_domain domain. */
+ 		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
+ 			 TOMOYO_ROOT_NAME " " "%s", real_program_name);
+@@ -765,7 +770,7 @@ int tomoyo_find_next_domain(struct linux
+ 		 * initializers because they might start before /sbin/init.
+ 		 */
+ 		domain = old_domain;
+-	} else if (tomoyo_is_domain_keeper(old_domain->domainname, &r, &l)) {
++	} else if (tomoyo_is_domain_keeper(old_domain->domainname, &rn, &ln)) {
+ 		/* Keep current domain. */
+ 		domain = old_domain;
+ 	} else {
+@@ -778,8 +783,14 @@ int tomoyo_find_next_domain(struct linux
+ 	domain = tomoyo_find_domain(new_domain_name);
+ 	if (domain)
+ 		goto done;
+-	if (is_enforce)
+-		goto done;
++	if (is_enforce) {
++		int error = tomoyo_supervisor(&r, "# wants to create domain\n"
++					      "%s\n", new_domain_name);
++		if (error == TOMOYO_RETRY_REQUEST)
++			goto retry;
++		if (error < 0)
++			goto done;
++	}
+ 	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
+ 						  old_domain->profile);
+  done:
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -477,7 +477,7 @@ static int tomoyo_update_file_pattern_en
+ }
+ 
+ /**
+- * tomoyo_get_file_pattern - Get patterned pathname.
++ * tomoyo_file_pattern - Get patterned pathname.
+  *
+  * @filename: The filename to find patterned pathname.
+  *
+@@ -485,8 +485,7 @@ static int tomoyo_update_file_pattern_en
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+-const struct tomoyo_path_info *
+-tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
++const char *tomoyo_file_pattern(const struct tomoyo_path_info *filename)
+ {
+ 	struct tomoyo_pattern_entry *ptr;
+ 	const struct tomoyo_path_info *pattern = NULL;
+@@ -506,7 +505,7 @@ tomoyo_get_file_pattern(const struct tom
+ 	}
+ 	if (pattern)
+ 		filename = pattern;
+-	return filename;
++	return filename->name;
+ }
+ 
+ /**
+@@ -811,23 +810,25 @@ static int tomoyo_file_perm(struct tomoy
+ 		perm = 1 << TOMOYO_TYPE_EXECUTE;
+ 	} else
+ 		BUG();
+-	error = tomoyo_path_acl(r, filename, perm, mode != 1);
+-	if (error && mode == 4 && !r->domain->ignore_global_allow_read
+-	    && tomoyo_is_globally_readable_file(filename))
++	do {
++		error = tomoyo_path_acl(r, filename, perm, mode != 1);
++		if (error && mode == 4 && !r->domain->ignore_global_allow_read
++		    && tomoyo_is_globally_readable_file(filename))
++			error = 0;
++		if (!error)
++			break;
++		tomoyo_warn_log(r, "%s %s", msg, filename->name);
++		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
++					  mode == 1 ? filename->name :
++					  tomoyo_file_pattern(filename));
++		/*
++                 * Do not retry for execute request, for alias may have
++		 * changed.
++                 */
++	} while (error == TOMOYO_RETRY_REQUEST && mode != 1);
++	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+-	if (!error)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s", msg, filename->name);
+-	if (r->mode == TOMOYO_CONFIG_ENFORCING)
+-		return error;
+-	if (tomoyo_domain_quota_is_ok(r)) {
+-		/* Don't use patterns for execute permission. */
+-		const struct tomoyo_path_info *patterned_file = (mode != 1) ?
+-			tomoyo_get_file_pattern(filename) : filename;
+-		tomoyo_update_file_acl(mode, patterned_file->name, r->domain,
+-				       false);
+-	}
+-	return 0;
++	return error;
+ }
+ 
+ /**
+@@ -1122,21 +1123,21 @@ static int tomoyo_path2_acl(const struct
+ static int tomoyo_path_permission(struct tomoyo_request_info *r, u8 operation,
+ 				  const struct tomoyo_path_info *filename)
+ {
++	const char *msg;
+ 	int error;
+ 
+  next:
+-	error = tomoyo_path_acl(r, filename, 1 << operation, 1);
+-	if (!error)
+-		goto ok;
+-	tomoyo_warn_log(r, "%s %s", tomoyo_path2keyword(operation),
+-			filename->name);
+-	if (tomoyo_domain_quota_is_ok(r)) {
+-		const char *name = tomoyo_get_file_pattern(filename)->name;
+-		tomoyo_update_path_acl(operation, name, r->domain, false);
+-	}
++	do {
++		error = tomoyo_path_acl(r, filename, 1 << operation, 1);
++		if (!error)
++			break;
++		msg = tomoyo_path2keyword(operation);
++		tomoyo_warn_log(r, "%s %s", msg, filename->name);
++		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
++					  tomoyo_file_pattern(filename));
++	} while (error == TOMOYO_RETRY_REQUEST);
+ 	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+- ok:
+ 	/*
+ 	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
+ 	 * we need to check "allow_rewrite" permission if the filename is
+@@ -1266,6 +1267,7 @@ static int tomoyo_path_number_perm2(stru
+ 	char buffer[64];
+ 	int error;
+ 	u8 radix;
++	const char *msg;
+ 
+ 	if (!filename)
+ 		return 0;
+@@ -1285,15 +1287,16 @@ static int tomoyo_path_number_perm2(stru
+ 		break;
+ 	}
+ 	tomoyo_print_ulong(buffer, sizeof(buffer), number, radix);
+-	error = tomoyo_path_number_acl(r, type, filename, number);
+-	if (!error)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s %s", tomoyo_path_number2keyword(type),
+-			filename->name, buffer);
+-	if (tomoyo_domain_quota_is_ok(r))
+-		tomoyo_update_path_number_acl(type,
+-					      tomoyo_get_file_pattern(filename)
+-					      ->name, buffer, r->domain, false);
++	do {
++		error = tomoyo_path_number_acl(r, type, filename, number);
++		if (!error)
++			break;
++		msg = tomoyo_path_number2keyword(type);
++		tomoyo_warn_log(r, "%s %s %s", msg, filename->name, buffer);
++		error = tomoyo_supervisor(r, "allow_%s %s %s\n", msg,
++					  tomoyo_file_pattern(filename),
++					  buffer);
++	} while (error == TOMOYO_RETRY_REQUEST);
+ 	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
+@@ -1483,32 +1486,23 @@ static int tomoyo_path_number3_perm2(str
+ 				     const unsigned int dev)
+ {
+ 	int error;
++	const char *msg;
+ 	const unsigned int major = MAJOR(dev);
+ 	const unsigned int minor = MINOR(dev);
+ 
+-	error = tomoyo_path_number3_acl(r, filename, 1 << operation, mode,
+-					major, minor);
+-	if (!error)
+-		return 0;
+-	tomoyo_warn_log(r, "%s %s 0%o %u %u",
+-			tomoyo_path_number32keyword(operation),
+-			filename->name, mode, major, minor);
+-	if (tomoyo_domain_quota_is_ok(r)) {
+-		char mode_buf[64];
+-		char major_buf[64];
+-		char minor_buf[64];
+-		memset(mode_buf, 0, sizeof(mode_buf));
+-		memset(major_buf, 0, sizeof(major_buf));
+-		memset(minor_buf, 0, sizeof(minor_buf));
+-		snprintf(mode_buf, sizeof(mode_buf) - 1, "0%o", mode);
+-		snprintf(major_buf, sizeof(major_buf) - 1, "%u", major);
+-		snprintf(minor_buf, sizeof(minor_buf) - 1, "%u", minor);
+-		tomoyo_update_path_number3_acl(operation,
+-					       tomoyo_get_file_pattern(filename)
+-					       ->name, mode_buf, major_buf,
+-					       minor_buf, r->domain, false);
+-	}
+-	if (r->mode != TOMOYO_CONFIG_ENFORCING)
++	do {
++		error = tomoyo_path_number3_acl(r, filename, 1 << operation,
++						mode, major, minor);
++		if (!error)
++			break;
++		msg = tomoyo_path_number32keyword(operation);
++		tomoyo_warn_log(r, "%s %s 0%o %u %u", msg, filename->name,
++				mode, major, minor);
++		error = tomoyo_supervisor(r, "allow_%s %s 0%o %u %u\n", msg,
++					  tomoyo_file_pattern(filename), mode,
++					  major, minor);
++	} while (error == TOMOYO_RETRY_REQUEST);
++        if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
+ }
+@@ -1561,6 +1555,7 @@ int tomoyo_path2_perm(const u8 operation
+ 		      struct path *path2)
+ {
+ 	int error = -ENOMEM;
++	const char *msg;
+ 	struct tomoyo_path_info *buf1;
+ 	struct tomoyo_path_info *buf2;
+ 	struct tomoyo_request_info r;
+@@ -1590,17 +1585,16 @@ int tomoyo_path2_perm(const u8 operation
+ 			}
+ 		}
+ 	}
+-	error = tomoyo_path2_acl(&r, operation, buf1, buf2);
+-	if (!error)
+-		goto out;
+-	tomoyo_warn_log(&r, "%s %s %s", tomoyo_path22keyword(operation),
+-			buf1->name, buf2->name);
+-	if (tomoyo_domain_quota_is_ok(&r)) {
+-		const char *name1 = tomoyo_get_file_pattern(buf1)->name;
+-		const char *name2 = tomoyo_get_file_pattern(buf2)->name;
+-		tomoyo_update_path2_acl(operation, name1, name2, r.domain,
+-					false);
+-	}
++	do {
++		error = tomoyo_path2_acl(&r, operation, buf1, buf2);
++		if (!error)
++			break;
++		msg = tomoyo_path22keyword(operation);
++		tomoyo_warn_log(&r, "%s %s %s", msg, buf1->name, buf2->name);
++		error = tomoyo_supervisor(&r, "allow_%s %s %s\n", msg,
++					  tomoyo_file_pattern(buf1),
++					  tomoyo_file_pattern(buf2));
++        } while (error == TOMOYO_RETRY_REQUEST);
+  out:
+ 	kfree(buf1);
+ 	kfree(buf2);
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -177,19 +177,12 @@ static int tomoyo_mount_acl2(struct tomo
+ 		error = 0;
+ 		break;
+ 	}
+-	if (error) {
+-		const char *dev = tomoyo_get_file_pattern(&rdev)->name;
+-		const char *dir = tomoyo_get_file_pattern(&rdir)->name;
+-		int len = strlen(dev) + strlen(dir) + strlen(requested_type)
+-			+ 64;
+-		char *buf = kzalloc(len, GFP_NOFS);
+-		if (buf) {
+-			snprintf(buf, len - 1, "%s %s %s 0x%lX",
+-				 dev, dir, requested_type, flags);
+-			tomoyo_write_mount_policy(buf, r->domain, false);
+-			kfree(buf);
+-		}
+-	}
++	if (error)
++		error = tomoyo_supervisor(r, TOMOYO_KEYWORD_ALLOW_MOUNT
++					  "%s %s %s 0x%lX\n",
++					  tomoyo_file_pattern(&rdev),
++					  tomoyo_file_pattern(&rdir),
++					  requested_type, flags);
+  out:
+ 	kfree(requested_dev_name);
+ 	kfree(requested_dir_name);
+@@ -278,7 +271,10 @@ static int tomoyo_mount_acl(struct tomoy
+ 				      TOMOYO_MOUNT_MAKE_SHARED_KEYWORD,
+ 				      flags & ~MS_SHARED);
+ 	else
+-		error = tomoyo_mount_acl2(r, dev_name, dir, type, flags);
++		do {
++			error = tomoyo_mount_acl2(r, dev_name, dir, type,
++						  flags);
++		} while (error == TOMOYO_RETRY_REQUEST);
+ 	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+ 	return error;
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
 @@ -332,6 +332,9 @@ void __init tomoyo_realpath_init(void)
