@@ -1,9 +1,8 @@
 [PATCH] TOMOYO: Use GFP_NOFS rather than GFP_KERNEL.
 
-Use GFP_NOFS rather than GFP_KERNEL for memory allocation. In Ubuntu,
-security_path_*() hooks are exported to Unionfs. Thus, prepare for being called
-from inside VFS functions because I'm not sure whether it is safe to use
-GFP_KERNEL or not.
+In Ubuntu, security_path_*() hooks are exported to Unionfs. Thus, prepare for
+being called from inside VFS functions because I'm not sure whether it is safe
+to use GFP_KERNEL or not.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
