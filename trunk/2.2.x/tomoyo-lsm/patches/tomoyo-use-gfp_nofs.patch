@@ -1,0 +1,185 @@
+[PATCH] TOMOYO: Use GFP_NOFS rather than GFP_KERNEL.
+
+Use GFP_NOFS rather than GFP_KERNEL for memory allocation. In Ubuntu,
+security_path_*() hooks are exported to Unionfs. Thus, prepare for being called
+from inside VFS functions because I'm not sure whether it is safe to use
+GFP_KERNEL or not.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c   |   10 +++++-----
+ security/tomoyo/domain.c   |   10 +++++-----
+ security/tomoyo/file.c     |   12 ++++++------
+ security/tomoyo/realpath.c |    4 ++--
+ 4 files changed, 18 insertions(+), 18 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -883,7 +883,7 @@ static struct tomoyo_profile *tomoyo_fin
+ 	ptr = tomoyo_profile_ptr[profile];
+ 	if (ptr)
+ 		goto ok;
+-	ptr = kmalloc(sizeof(*ptr), GFP_KERNEL);
++	ptr = kmalloc(sizeof(*ptr), GFP_NOFS);
+ 	if (!tomoyo_memory_ok(ptr)) {
+ 		kfree(ptr);
+ 		ptr = NULL;
+@@ -1088,7 +1088,7 @@ static int tomoyo_update_manager_entry(c
+ 	if (!saved_manager)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
+ 		if (ptr->manager != saved_manager)
+@@ -1881,7 +1881,7 @@ static int tomoyo_read_self_domain(struc
+  */
+ static int tomoyo_open_control(const u8 type, struct file *file)
+ {
+-	struct tomoyo_io_buffer *head = kzalloc(sizeof(*head), GFP_KERNEL);
++	struct tomoyo_io_buffer *head = kzalloc(sizeof(*head), GFP_NOFS);
+ 
+ 	if (!head)
+ 		return -ENOMEM;
+@@ -1942,7 +1942,7 @@ static int tomoyo_open_control(const u8 
+ 	} else {
+ 		if (!head->readbuf_size)
+ 			head->readbuf_size = 4096 * 2;
+-		head->read_buf = kzalloc(head->readbuf_size, GFP_KERNEL);
++		head->read_buf = kzalloc(head->readbuf_size, GFP_NOFS);
+ 		if (!head->read_buf) {
+ 			kfree(head);
+ 			return -ENOMEM;
+@@ -1956,7 +1956,7 @@ static int tomoyo_open_control(const u8 
+ 		head->write = NULL;
+ 	} else if (head->write) {
+ 		head->writebuf_size = 4096 * 2;
+-		head->write_buf = kzalloc(head->writebuf_size, GFP_KERNEL);
++		head->write_buf = kzalloc(head->writebuf_size, GFP_NOFS);
+ 		if (!head->write_buf) {
+ 			kfree(head->read_buf);
+ 			kfree(head);
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -152,7 +152,7 @@ static int tomoyo_update_domain_initiali
+ 	if (!saved_program)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
+ 		if (ptr->is_not != is_not ||
+@@ -372,7 +372,7 @@ static int tomoyo_update_domain_keeper_e
+ 	if (!saved_domainname)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
+ 		if (ptr->is_not != is_not ||
+@@ -564,7 +564,7 @@ static int tomoyo_update_alias_entry(con
+ 	if (!saved_original_name || !saved_aliased_name)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
+ 		if (ptr->original_name != saved_original_name ||
+@@ -664,7 +664,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 	saved_domainname = tomoyo_get_name(domainname);
+ 	if (!saved_domainname)
+ 		return NULL;
+-	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
++	entry = kzalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
+ 		if (domain->is_deleted ||
+@@ -704,7 +704,7 @@ int tomoyo_find_next_domain(struct linux
+ 	 * This function assumes that the size of buffer returned by
+ 	 * tomoyo_realpath() = TOMOYO_MAX_PATHNAME_LEN.
+ 	 */
+-	struct tomoyo_page_buffer *tmp = kzalloc(sizeof(*tmp), GFP_KERNEL);
++	struct tomoyo_page_buffer *tmp = kzalloc(sizeof(*tmp), GFP_NOFS);
+ 	struct tomoyo_domain_info *old_domain = tomoyo_domain();
+ 	struct tomoyo_domain_info *domain = NULL;
+ 	const char *old_domain_name = old_domain->domainname->name;
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -99,7 +99,7 @@ static struct tomoyo_path_info *tomoyo_g
+ {
+ 	int error;
+ 	struct tomoyo_path_info_with_data *buf = kzalloc(sizeof(*buf),
+-							 GFP_KERNEL);
++							 GFP_NOFS);
+ 
+ 	if (!buf)
+ 		return NULL;
+@@ -174,7 +174,7 @@ static int tomoyo_update_globally_readab
+ 	if (!saved_filename)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list, list) {
+ 		if (ptr->filename != saved_filename)
+@@ -321,7 +321,7 @@ static int tomoyo_update_file_pattern_en
+ 	if (!saved_pattern->is_patterned)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
+ 		if (saved_pattern != ptr->pattern)
+@@ -474,7 +474,7 @@ static int tomoyo_update_no_rewrite_entr
+ 	if (!saved_pattern)
+ 		return error;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
+ 		if (ptr->pattern != saved_pattern)
+@@ -820,7 +820,7 @@ static int tomoyo_update_path_acl(const 
+ 	if (!saved_filename)
+ 		return -ENOMEM;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path_acl *acl =
+@@ -906,7 +906,7 @@ static int tomoyo_update_path2_acl(const
+ 	if (!saved_filename1 || !saved_filename2)
+ 		goto out;
+ 	if (!is_delete)
+-		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
++		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+ 	mutex_lock(&tomoyo_policy_lock);
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path2_acl *acl =
+--- security-testing-2.6.orig/security/tomoyo/realpath.c
++++ security-testing-2.6/security/tomoyo/realpath.c
+@@ -138,7 +138,7 @@ int tomoyo_realpath_from_path2(struct pa
+  */
+ char *tomoyo_realpath_from_path(struct path *path)
+ {
+-	char *buf = kzalloc(sizeof(struct tomoyo_page_buffer), GFP_KERNEL);
++	char *buf = kzalloc(sizeof(struct tomoyo_page_buffer), GFP_NOFS);
+ 
+ 	BUILD_BUG_ON(sizeof(struct tomoyo_page_buffer)
+ 		     <= TOMOYO_MAX_PATHNAME_LEN - 1);
+@@ -269,7 +269,7 @@ const struct tomoyo_path_info *tomoyo_ge
+ 		atomic_inc(&ptr->users);
+ 		goto out;
+ 	}
+-	ptr = kzalloc(sizeof(*ptr) + len, GFP_KERNEL);
++	ptr = kzalloc(sizeof(*ptr) + len, GFP_NOFS);
+ 	allocated_len = ptr ? ksize(ptr) : 0;
+ 	if (!ptr || (tomoyo_quota_for_policy &&
+ 		     atomic_read(&tomoyo_policy_memory_size) + allocated_len

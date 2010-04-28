@@ -1,0 +1,277 @@
+[PATCH] TOMOYO: Use mutex_lock_interruptible.
+
+Some of TOMOYO's functions may sleep after mutex_lock(). If OOM-killer selected
+a process which is waiting at mutex_lock(), the to-be-killed process can't be
+killed. Thus, replace mutex_lock() with mutex_lock_interruptible() so that the
+to-be-killed process can immediately return from TOMOYO's functions.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c   |   13 ++++++++-----
+ security/tomoyo/common.h   |    1 -
+ security/tomoyo/domain.c   |   15 ++++++++++-----
+ security/tomoyo/file.c     |   18 +++++++++++++-----
+ security/tomoyo/gc.c       |    7 +++----
+ security/tomoyo/realpath.c |    7 +++----
+ 6 files changed, 37 insertions(+), 24 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -873,13 +873,13 @@ bool tomoyo_domain_quota_is_ok(struct to
+ static struct tomoyo_profile *tomoyo_find_or_assign_new_profile(const unsigned
+ 								int profile)
+ {
+-	static DEFINE_MUTEX(lock);
+ 	struct tomoyo_profile *ptr = NULL;
+ 	int i;
+ 
+ 	if (profile >= TOMOYO_MAX_PROFILES)
+ 		return NULL;
+-	mutex_lock(&lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		return NULL;
+ 	ptr = tomoyo_profile_ptr[profile];
+ 	if (ptr)
+ 		goto ok;
+@@ -894,7 +894,7 @@ static struct tomoyo_profile *tomoyo_fin
+ 	mb(); /* Avoid out-of-order execution. */
+ 	tomoyo_profile_ptr[profile] = ptr;
+  ok:
+-	mutex_unlock(&lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	return ptr;
+ }
+ 
+@@ -1089,7 +1089,8 @@ static int tomoyo_update_manager_entry(c
+ 		return -ENOMEM;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list, list) {
+ 		if (ptr->manager != saved_manager)
+ 			continue;
+@@ -1106,6 +1107,7 @@ static int tomoyo_update_manager_entry(c
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++ out:
+ 	tomoyo_put_name(saved_manager);
+ 	kfree(entry);
+ 	return error;
+@@ -1286,7 +1288,8 @@ static int tomoyo_delete_domain(char *do
+ 
+ 	name.name = domainname;
+ 	tomoyo_fill_path_info(&name);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		return 0;
+ 	/* Is there an active domain? */
+ 	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
+ 		/* Never delete tomoyo_kernel_domain */
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -662,7 +662,6 @@ extern struct list_head tomoyo_pattern_l
+ extern struct list_head tomoyo_no_rewrite_list;
+ extern struct list_head tomoyo_policy_manager_list;
+ extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
+-extern struct mutex tomoyo_name_list_lock;
+ 
+ /* Lock for protecting policy. */
+ extern struct mutex tomoyo_policy_lock;
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -153,7 +153,8 @@ static int tomoyo_update_domain_initiali
+ 		goto out;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_initializer_list, list) {
+ 		if (ptr->is_not != is_not ||
+ 		    ptr->domainname != saved_domainname ||
+@@ -373,7 +374,8 @@ static int tomoyo_update_domain_keeper_e
+ 		goto out;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_domain_keeper_list, list) {
+ 		if (ptr->is_not != is_not ||
+ 		    ptr->domainname != saved_domainname ||
+@@ -565,7 +567,8 @@ static int tomoyo_update_alias_entry(con
+ 		goto out;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
+ 		if (ptr->original_name != saved_original_name ||
+ 		    ptr->aliased_name != saved_aliased_name)
+@@ -655,7 +658,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 							    const u8 profile)
+ {
+ 	struct tomoyo_domain_info *entry;
+-	struct tomoyo_domain_info *domain;
++	struct tomoyo_domain_info *domain = NULL;
+ 	const struct tomoyo_path_info *saved_domainname;
+ 	bool found = false;
+ 
+@@ -665,7 +668,8 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 	if (!saved_domainname)
+ 		return NULL;
+ 	entry = kzalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(domain, &tomoyo_domain_list, list) {
+ 		if (domain->is_deleted ||
+ 		    tomoyo_pathcmp(saved_domainname, domain->domainname))
+@@ -684,6 +688,7 @@ struct tomoyo_domain_info *tomoyo_find_o
+ 		found = true;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++ out:
+ 	tomoyo_put_name(saved_domainname);
+ 	kfree(entry);
+ 	return found ? domain : NULL;
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -175,7 +175,8 @@ static int tomoyo_update_globally_readab
+ 		return -ENOMEM;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list, list) {
+ 		if (ptr->filename != saved_filename)
+ 			continue;
+@@ -191,6 +192,7 @@ static int tomoyo_update_globally_readab
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++ out:
+ 	tomoyo_put_name(saved_filename);
+ 	kfree(entry);
+ 	return error;
+@@ -322,7 +324,8 @@ static int tomoyo_update_file_pattern_en
+ 		goto out;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_pattern_list, list) {
+ 		if (saved_pattern != ptr->pattern)
+ 			continue;
+@@ -475,7 +478,8 @@ static int tomoyo_update_no_rewrite_entr
+ 		return error;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_no_rewrite_list, list) {
+ 		if (ptr->pattern != saved_pattern)
+ 			continue;
+@@ -491,6 +495,7 @@ static int tomoyo_update_no_rewrite_entr
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++ out:
+ 	tomoyo_put_name(saved_pattern);
+ 	kfree(entry);
+ 	return error;
+@@ -821,7 +826,8 @@ static int tomoyo_update_path_acl(const 
+ 		return -ENOMEM;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path_acl *acl =
+ 			container_of(ptr, struct tomoyo_path_acl, head);
+@@ -866,6 +872,7 @@ static int tomoyo_update_path_acl(const 
+ 		error = 0;
+ 	}
+ 	mutex_unlock(&tomoyo_policy_lock);
++ out:
+ 	kfree(entry);
+ 	tomoyo_put_name(saved_filename);
+ 	return error;
+@@ -907,7 +914,8 @@ static int tomoyo_update_path2_acl(const
+ 		goto out;
+ 	if (!is_delete)
+ 		entry = kmalloc(sizeof(*entry), GFP_NOFS);
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
+ 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+ 		struct tomoyo_path2_acl *acl =
+ 			container_of(ptr, struct tomoyo_path2_acl, head);
+--- security-testing-2.6.orig/security/tomoyo/gc.c
++++ security-testing-2.6/security/tomoyo/gc.c
+@@ -150,7 +150,8 @@ static void tomoyo_del_name(const struct
+ 
+ static void tomoyo_collect_entry(void)
+ {
+-	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		return;
+ 	{
+ 		struct tomoyo_globally_readable_file_entry *ptr;
+ 		list_for_each_entry_rcu(ptr, &tomoyo_globally_readable_list,
+@@ -274,8 +275,6 @@ static void tomoyo_collect_entry(void)
+ 				break;
+ 		}
+ 	}
+-	mutex_unlock(&tomoyo_policy_lock);
+-	mutex_lock(&tomoyo_name_list_lock);
+ 	{
+ 		int i;
+ 		for (i = 0; i < TOMOYO_MAX_HASH; i++) {
+@@ -293,7 +292,7 @@ static void tomoyo_collect_entry(void)
+ 			}
+ 		}
+ 	}
+-	mutex_unlock(&tomoyo_name_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ }
+ 
+ static void tomoyo_kfree_entry(void)
+--- security-testing-2.6.orig/security/tomoyo/realpath.c
++++ security-testing-2.6/security/tomoyo/realpath.c
+@@ -239,8 +239,6 @@ void tomoyo_memory_free(void *ptr)
+  * "const struct tomoyo_path_info *".
+  */
+ struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
+-/* Lock for protecting tomoyo_name_list . */
+-DEFINE_MUTEX(tomoyo_name_list_lock);
+ 
+ /**
+  * tomoyo_get_name - Allocate permanent memory for string data.
+@@ -262,7 +260,8 @@ const struct tomoyo_path_info *tomoyo_ge
+ 	len = strlen(name) + 1;
+ 	hash = full_name_hash((const unsigned char *) name, len - 1);
+ 	head = &tomoyo_name_list[hash_long(hash, TOMOYO_HASH_BITS)];
+-	mutex_lock(&tomoyo_name_list_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		return NULL;
+ 	list_for_each_entry(ptr, head, list) {
+ 		if (hash != ptr->entry.hash || strcmp(name, ptr->entry.name))
+ 			continue;
+@@ -289,7 +288,7 @@ const struct tomoyo_path_info *tomoyo_ge
+ 	tomoyo_fill_path_info(&ptr->entry);
+ 	list_add_tail(&ptr->list, head);
+  out:
+-	mutex_unlock(&tomoyo_name_list_lock);
++	mutex_unlock(&tomoyo_policy_lock);
+ 	return ptr ? &ptr->entry : NULL;
+ }
+ 
