@@ -7,12 +7,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/Makefile |    2 
  security/tomoyo/common.c |   35 ++++
- security/tomoyo/common.h |   46 +++++
+ security/tomoyo/common.h |   56 ++++++-
  security/tomoyo/file.c   |    9 -
  security/tomoyo/gc.c     |   10 +
- security/tomoyo/mount.c  |  366 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/mount.c  |  365 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c |    2 
- 7 files changed, 459 insertions(+), 11 deletions(-)
+ 7 files changed, 468 insertions(+), 11 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -32,7 +32,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
-@@ -1572,6 +1576,8 @@ static int tomoyo_write_domain_policy(st
+@@ -1575,6 +1579,8 @@ static int tomoyo_write_domain_policy(st
  		domain->ignore_global_allow_read = !is_delete;
  		return 0;
  	}
@@ -41,7 +41,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return tomoyo_write_file_policy(data, domain, is_delete);
  }
  
-@@ -1717,6 +1723,30 @@ static bool tomoyo_print_path_number3_ac
+@@ -1720,6 +1726,30 @@ static bool tomoyo_print_path_number3_ac
  }
  
  /**
@@ -72,7 +72,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1751,6 +1781,11 @@ static bool tomoyo_print_entry(struct to
+@@ -1754,6 +1784,11 @@ static bool tomoyo_print_entry(struct to
  				       head);
  		return tomoyo_print_path_number3_acl(head, acl);
  	}
@@ -195,6 +195,23 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Allocate memory for "struct tomoyo_path_group". */
  struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
  struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
+@@ -972,6 +1010,16 @@ static inline bool tomoyo_is_same_path_n
+ 		&& tomoyo_is_same_number_union(&p1->number, &p2->number);
+ }
+ 
++static inline bool tomoyo_is_same_mount_acl(const struct tomoyo_mount_acl *p1,
++					    const struct tomoyo_mount_acl *p2)
++{
++	return tomoyo_is_same_acl_head(&p1->head, &p2->head) &&
++		tomoyo_is_same_name_union(&p1->dev_name, &p2->dev_name) &&
++		tomoyo_is_same_name_union(&p1->dir_name, &p2->dir_name) &&
++		tomoyo_is_same_name_union(&p1->fs_type, &p2->fs_type) &&
++		tomoyo_is_same_number_union(&p1->flags, &p2->flags);
++}
++
+ static inline bool tomoyo_is_same_domain_initializer_entry
+ (const struct tomoyo_domain_initializer_entry *p1,
+  const struct tomoyo_domain_initializer_entry *p2)
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -23,7 +23,6 @@ static const char *tomoyo_path_keyword[T
@@ -216,7 +233,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	memset(r, 0, sizeof(*r));
  	if (!domain)
-@@ -484,7 +483,7 @@ static int tomoyo_update_file_pattern_en
+@@ -486,7 +485,7 @@ static int tomoyo_update_file_pattern_en
   *
   * Caller holds tomoyo_read_lock().
   */
@@ -225,7 +242,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  tomoyo_get_file_pattern(const struct tomoyo_path_info *filename)
  {
  	struct tomoyo_pattern_entry *ptr;
-@@ -1418,7 +1417,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1417,7 +1416,7 @@ int tomoyo_check_open_permission(struct 
  }
  
  /**
@@ -255,7 +272,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/mount.c
-@@ -0,0 +1,366 @@
+@@ -0,0 +1,365 @@
 +/*
 + * security/tomoyo/mount.c
 + *
@@ -310,7 +327,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	}
 +	len++;
 +	/* Reserve space for appending "/". */
-+	cp = kzalloc(len + 10, GFP_KERNEL);
++	cp = kzalloc(len + 10, GFP_NOFS);
 +	if (!cp)
 +		return NULL;
 +	cp0 = cp;
@@ -440,7 +457,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		const char *dir = tomoyo_get_file_pattern(&rdir)->name;
 +		int len = strlen(dev) + strlen(dir) + strlen(requested_type)
 +			+ 64;
-+		char *buf = kzalloc(len, GFP_KERNEL);
++		char *buf = kzalloc(len, GFP_NOFS);
 +		if (buf) {
 +			snprintf(buf, len - 1, "%s %s %s 0x%lX",
 +				 dev, dir, requested_type, flags);
@@ -582,7 +599,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_write_mount_policy(char *data, struct tomoyo_domain_info *domain,
 +			      const bool is_delete)
 +{
-+	struct tomoyo_mount_acl *entry = NULL;
 +	struct tomoyo_acl_info *ptr;
 +	struct tomoyo_mount_acl e = { .head.type = TOMOYO_TYPE_MOUNT_ACL };
 +	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -594,24 +610,25 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	    !tomoyo_parse_name_union(w[2], &e.fs_type) ||
 +	    !tomoyo_parse_number_union(w[3], &e.flags))
 +		goto out;
-+	if (!is_delete)
-+		entry = kmalloc(sizeof(e), GFP_KERNEL);
-+	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_mount_acl *acl =
 +			container_of(ptr, struct tomoyo_mount_acl, head);
-+		if (ptr->type != TOMOYO_TYPE_MOUNT_ACL
-+		    || tomoyo_memcmp(acl, &e, offsetof(typeof(e), dev_name),
-+				     sizeof(e)))
++		if (!tomoyo_is_same_mount_acl(acl, &e))
 +			continue;
 +		acl->is_deleted = is_delete;
 +		error = 0;
 +		break;
 +	}
-+	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
-+		entry = NULL;
-+		error = 0;
++	if (!is_delete && error) {
++		struct tomoyo_mount_acl *entry =
++			tomoyo_commit_ok(&e, sizeof(e));
++		if (entry) {
++			list_add_tail_rcu(&entry->head.list,
++					  &domain->acl_info_list);
++			error = 0;
++		}
 +	}
 +	mutex_unlock(&tomoyo_policy_lock);
 + out:
@@ -619,7 +636,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_put_name_union(&e.dir_name);
 +	tomoyo_put_name_union(&e.fs_type);
 +	tomoyo_put_number_union(&e.flags);
-+	kfree(entry);
 +	return error;
 +}
 --- security-testing-2.6.orig/security/tomoyo/tomoyo.c

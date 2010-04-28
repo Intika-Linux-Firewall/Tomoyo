@@ -6,12 +6,12 @@ numeric values such as file's UID, DAC's mode, ioctl()'s cmd number.
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> 
 ---
  security/tomoyo/Makefile       |    2 
- security/tomoyo/common.c       |  161 ++++++++++++++++++++++++++++++++++++++
- security/tomoyo/common.h       |   53 ++++++++++++
+ security/tomoyo/common.c       |  161 +++++++++++++++++++++++++++++++++++++
+ security/tomoyo/common.h       |   61 ++++++++++++++
  security/tomoyo/file.c         |   14 +++
  security/tomoyo/gc.c           |   41 +++++++++
- security/tomoyo/number_group.c |  173 +++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 443 insertions(+), 1 deletion(-)
+ security/tomoyo/number_group.c |  176 +++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 454 insertions(+), 1 deletion(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -180,7 +180,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_byte_range - Check whether the string isa \ooo style octal value.
   *
   * @str: Pointer to the string.
-@@ -1746,6 +1899,8 @@ static int tomoyo_write_exception_policy
+@@ -1749,6 +1902,8 @@ static int tomoyo_write_exception_policy
  		return tomoyo_write_no_rewrite_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_PATH_GROUP))
  		return tomoyo_write_path_group_policy(data, is_delete);
@@ -189,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1808,6 +1963,12 @@ static int tomoyo_read_exception_policy(
+@@ -1811,6 +1966,12 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 10;
  		case 10:
@@ -331,7 +331,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct list_head tomoyo_domain_initializer_list;
  extern struct list_head tomoyo_domain_keeper_list;
  extern struct list_head tomoyo_alias_list;
-@@ -782,6 +829,12 @@ static inline void tomoyo_put_path_group
+@@ -773,6 +820,12 @@ static inline void tomoyo_put_path_group
  		atomic_dec(&group->users);
  }
  
@@ -344,6 +344,21 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static inline struct tomoyo_domain_info *tomoyo_domain(void)
  {
  	return current_cred()->security;
+@@ -797,6 +850,14 @@ static inline bool tomoyo_is_same_name_u
+ 		p1->is_group == p2->is_group;
+ }
+ 
++static inline bool tomoyo_is_same_number_union
++(const struct tomoyo_number_union *p1, const struct tomoyo_number_union *p2)
++{
++	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
++		&& p1->group == p2->group && p1->min_type == p2->min_type &&
++		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
++}
++
+ static inline bool tomoyo_is_same_path_acl(const struct tomoyo_path_acl *p1,
+ 					   const struct tomoyo_path_acl *p2)
+ {
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -75,6 +75,20 @@ static bool tomoyo_compare_name_union_pa
@@ -394,8 +409,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +
  static void tomoyo_collect_entry(void)
  {
- 	mutex_lock(&tomoyo_policy_lock);
-@@ -310,6 +322,29 @@ static void tomoyo_collect_entry(void)
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+@@ -328,6 +340,29 @@ static void tomoyo_collect_entry(void)
  				break;
  		}
  	}
@@ -423,9 +438,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		}
 +	}
  	mutex_unlock(&tomoyo_policy_lock);
- 	mutex_lock(&tomoyo_name_list_lock);
- 	{
-@@ -376,6 +411,12 @@ static void tomoyo_kfree_entry(void)
+ }
+ 
+@@ -375,6 +410,12 @@ static void tomoyo_kfree_entry(void)
  		case TOMOYO_ID_PATH_GROUP:
  			tomoyo_del_path_group(p->element);
  			break;
@@ -440,7 +455,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/number_group.c
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,176 @@
 +/*
 + * security/tomoyo/number_group.c
 + *
@@ -464,7 +479,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name)
 +{
 +	struct tomoyo_number_group *entry = NULL;
-+	struct tomoyo_number_group *group;
++	struct tomoyo_number_group *group = NULL;
 +	const struct tomoyo_path_info *saved_group_name;
 +	int error = -ENOMEM;
 +	if (!tomoyo_is_correct_path(group_name, 0, 0, 0) ||
@@ -473,8 +488,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	saved_group_name = tomoyo_get_name(group_name);
 +	if (!saved_group_name)
 +		return NULL;
-+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
-+	mutex_lock(&tomoyo_policy_lock);
++	entry = kzalloc(sizeof(*entry), GFP_NOFS);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
 +	list_for_each_entry_rcu(group, &tomoyo_number_group_list, list) {
 +		if (saved_group_name != group->group_name)
 +			continue;
@@ -493,6 +509,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = 0;
 +	}
 +	mutex_unlock(&tomoyo_policy_lock);
++ out:
 +	tomoyo_put_name(saved_group_name);
 +	kfree(entry);
 +	return !error ? group : NULL;
@@ -509,7 +526,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +int tomoyo_write_number_group_policy(char *data, const bool is_delete)
 +{
 +	struct tomoyo_number_group *group;
-+	struct tomoyo_number_group_member *entry = NULL;
 +	struct tomoyo_number_group_member e = { };
 +	struct tomoyo_number_group_member *member;
 +	int error = is_delete ? -ENOENT : -ENOMEM;
@@ -525,9 +541,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	group = tomoyo_get_number_group(w[0]);
 +	if (!group)
 +		return -ENOMEM;
-+	if (!is_delete)
-+		entry = kmalloc(sizeof(e), GFP_KERNEL);
-+	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
 +	list_for_each_entry_rcu(member, &group->member_list, list) {
 +		if (memcmp(&member->number, &e.number, sizeof(e.number)))
 +			continue;
@@ -535,14 +550,17 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = 0;
 +		break;
 +	}
-+	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->list, &group->member_list);
-+		entry = NULL;
-+		error = 0;
++	if (!is_delete && error) {
++		struct tomoyo_number_group_member *entry =
++			tomoyo_commit_ok(&e, sizeof(e));
++		if (entry) {
++			list_add_tail_rcu(&entry->list, &group->member_list);
++			error = 0;
++		}
 +	}
 +	mutex_unlock(&tomoyo_policy_lock);
++ out:
 +	tomoyo_put_number_group(group);
-+	kfree(entry);
 +	return error;
 +}
 +

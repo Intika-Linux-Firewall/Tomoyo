@@ -1,7 +1,6 @@
 [PATCH] TOMOYO: Use structure for passing common arguments.
 
-Use "struct tomoyo_request_info" instead of passing individual
-arguments.
+Use "struct tomoyo_request_info" instead of passing individual arguments.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
@@ -182,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return;
 +	while (1) {
 +		int len2;
-+		buffer = kmalloc(len, GFP_KERNEL);
++		buffer = kmalloc(len, GFP_NOFS);
 +		if (!buffer)
 +			return;
 +		va_start(args, fmt);
@@ -205,7 +204,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path2keyword - Get the name of single path operation.
   *
   * @operation: Type of operation.
-@@ -647,9 +702,9 @@ static int tomoyo_update_file_acl(const 
+@@ -651,9 +706,9 @@ static int tomoyo_update_file_acl(const 
  }
  
  /**
@@ -217,7 +216,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @filename:        Filename to check.
   * @perm:            Permission.
   * @may_use_pattern: True if patterned ACL is permitted.
-@@ -658,10 +713,11 @@ static int tomoyo_update_file_acl(const 
+@@ -662,10 +717,11 @@ static int tomoyo_update_file_acl(const 
   *
   * Caller holds tomoyo_read_lock().
   */
@@ -232,7 +231,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	struct tomoyo_acl_info *ptr;
  	int error = -EPERM;
  
-@@ -687,89 +743,56 @@ static int tomoyo_path_acl2(const struct
+@@ -691,89 +747,56 @@ static int tomoyo_path_acl2(const struct
  }
  
  /**
@@ -349,7 +348,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	}
  	return 0;
  }
-@@ -964,28 +987,9 @@ static int tomoyo_update_path2_acl(const
+@@ -965,28 +988,9 @@ static int tomoyo_update_path2_acl(const
  }
  
  /**
@@ -379,7 +378,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @type:      Type of operation.
   * @filename1: First filename to check.
   * @filename2: Second filename to check.
-@@ -994,17 +998,15 @@ static int tomoyo_path_acl(struct tomoyo
+@@ -995,17 +999,15 @@ static int tomoyo_path_acl(struct tomoyo
   *
   * Caller holds tomoyo_read_lock().
   */
@@ -399,7 +398,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
  		struct tomoyo_path2_acl *acl;
  		if (ptr->type != TOMOYO_TYPE_PATH2_ACL)
-@@ -1023,42 +1025,32 @@ static int tomoyo_path2_acl(const struct
+@@ -1024,42 +1026,32 @@ static int tomoyo_path2_acl(const struct
  }
  
  /**
@@ -452,7 +451,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
   ok:
  	/*
-@@ -1087,11 +1079,11 @@ static int tomoyo_path_permission2(struc
+@@ -1088,11 +1080,11 @@ static int tomoyo_path_permission2(struc
  int tomoyo_check_exec_perm(struct tomoyo_domain_info *domain,
  			   const struct tomoyo_path_info *filename)
  {
@@ -467,7 +466,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -1109,11 +1101,11 @@ int tomoyo_check_open_permission(struct 
+@@ -1110,11 +1102,11 @@ int tomoyo_check_open_permission(struct 
  	const u8 acc_mode = ACC_MODE(flag);
  	int error = -ENOMEM;
  	struct tomoyo_path_info *buf;
@@ -482,7 +481,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	if (acc_mode == 0)
  		return 0;
-@@ -1136,25 +1128,22 @@ int tomoyo_check_open_permission(struct 
+@@ -1137,25 +1129,22 @@ int tomoyo_check_open_permission(struct 
  	if ((acc_mode & MAY_WRITE) &&
  	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
  	    (tomoyo_is_no_rewrite_file(buf))) {
@@ -513,7 +512,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-@@ -1165,18 +1154,23 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1166,18 +1155,23 @@ int tomoyo_path_perm(const u8 operation,
  {
  	int error = -ENOMEM;
  	struct tomoyo_path_info *buf;
@@ -541,7 +540,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_TYPE_MKDIR:
  	case TOMOYO_TYPE_RMDIR:
  	case TOMOYO_TYPE_CHROOT:
-@@ -1188,47 +1182,11 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1189,47 +1183,11 @@ int tomoyo_path_perm(const u8 operation,
  			tomoyo_fill_path_info(buf);
  		}
  	}
@@ -591,7 +590,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  	return error;
  }
-@@ -1246,14 +1204,13 @@ int tomoyo_path2_perm(const u8 operation
+@@ -1247,14 +1205,13 @@ int tomoyo_path2_perm(const u8 operation
  		      struct path *path2)
  {
  	int error = -ENOMEM;
@@ -611,7 +610,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	idx = tomoyo_read_lock();
  	buf1 = tomoyo_get_path(path1);
-@@ -1276,26 +1233,22 @@ int tomoyo_path2_perm(const u8 operation
+@@ -1277,26 +1234,22 @@ int tomoyo_path2_perm(const u8 operation
  			}
  		}
  	}

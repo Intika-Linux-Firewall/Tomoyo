@@ -1,13 +1,16 @@
 [PATCH] TOMOYO: Split file access control functions by type of parameters.
 
+Check numeric parameters for operations that deal them
+(e.g. chmod/chown/ioctl).
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |  105 +++++++-
- security/tomoyo/common.h |  105 ++++++--
- security/tomoyo/file.c   |  590 ++++++++++++++++++++++++++++++++++++++++-------
+ security/tomoyo/common.h |  126 ++++++++--
+ security/tomoyo/file.c   |  588 ++++++++++++++++++++++++++++++++++++++++-------
  security/tomoyo/gc.c     |   35 ++
  security/tomoyo/tomoyo.c |   21 +
- 5 files changed, 733 insertions(+), 123 deletions(-)
+ 5 files changed, 752 insertions(+), 123 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -48,7 +51,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  	}
  	if (count < tomoyo_check_flags(domain, TOMOYO_MAX_ACCEPT_ENTRY))
-@@ -1575,7 +1588,7 @@ static bool tomoyo_print_path_acl(struct
+@@ -1578,7 +1591,7 @@ static bool tomoyo_print_path_acl(struct
  {
  	int pos;
  	u8 bit;
@@ -57,7 +60,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  	for (bit = head->read_bit; bit < TOMOYO_MAX_PATH_OPERATION; bit++) {
  		if (!(perm & (1 << bit)))
-@@ -1634,6 +1647,76 @@ static bool tomoyo_print_path2_acl(struc
+@@ -1637,6 +1650,76 @@ static bool tomoyo_print_path2_acl(struc
  }
  
  /**
@@ -134,7 +137,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_print_entry - Print an ACL entry.
   *
   * @head: Pointer to "struct tomoyo_io_buffer".
-@@ -1656,6 +1739,18 @@ static bool tomoyo_print_entry(struct to
+@@ -1659,6 +1742,18 @@ static bool tomoyo_print_entry(struct to
  			= container_of(ptr, struct tomoyo_path2_acl, head);
  		return tomoyo_print_path2_acl(head, acl);
  	}
@@ -332,6 +335,41 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Drop refcount on tomoyo_name_union. */
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr);
  
+@@ -880,6 +943,18 @@ static inline bool tomoyo_is_same_path_a
+ 		tomoyo_is_same_name_union(&p1->name, &p2->name);
+ }
+ 
++static inline bool tomoyo_is_same_path_number3_acl
++(const struct tomoyo_path_number3_acl *p1,
++ const struct tomoyo_path_number3_acl *p2)
++{
++	return tomoyo_is_same_acl_head(&p1->head, &p2->head)
++		&& tomoyo_is_same_name_union(&p1->name, &p2->name)
++		&& tomoyo_is_same_number_union(&p1->mode, &p2->mode)
++		&& tomoyo_is_same_number_union(&p1->major, &p2->major)
++		&& tomoyo_is_same_number_union(&p1->minor, &p2->minor);
++}
++
++
+ static inline bool tomoyo_is_same_path2_acl(const struct tomoyo_path2_acl *p1,
+ 					    const struct tomoyo_path2_acl *p2)
+ {
+@@ -888,6 +963,15 @@ static inline bool tomoyo_is_same_path2_
+ 		tomoyo_is_same_name_union(&p1->name2, &p2->name2);
+ }
+ 
++static inline bool tomoyo_is_same_path_number_acl
++(const struct tomoyo_path_number_acl *p1,
++ const struct tomoyo_path_number_acl *p2)
++{
++	return tomoyo_is_same_acl_head(&p1->head, &p2->head)
++		&& tomoyo_is_same_name_union(&p1->name, &p2->name)
++		&& tomoyo_is_same_number_union(&p1->number, &p2->number);
++}
++
+ static inline bool tomoyo_is_same_domain_initializer_entry
+ (const struct tomoyo_domain_initializer_entry *p1,
+  const struct tomoyo_domain_initializer_entry *p2)
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -11,39 +11,49 @@
@@ -438,7 +476,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_strendswith - Check whether the token ends with the given token.
   *
   * @name: The token to check.
-@@ -660,8 +696,8 @@ bool tomoyo_read_no_rewrite_policy(struc
+@@ -664,8 +700,8 @@ bool tomoyo_read_no_rewrite_policy(struc
  /**
   * tomoyo_update_file_acl - Update file's read/write/execute ACL.
   *
@@ -448,7 +486,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @domain:    Pointer to "struct tomoyo_domain_info".
   * @is_delete: True if it is a delete request.
   *
-@@ -674,7 +710,7 @@ bool tomoyo_read_no_rewrite_policy(struc
+@@ -678,7 +714,7 @@ bool tomoyo_read_no_rewrite_policy(struc
   *
   * Caller holds tomoyo_read_lock().
   */
@@ -457,7 +495,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  				  struct tomoyo_domain_info * const domain,
  				  const bool is_delete)
  {
-@@ -726,14 +762,8 @@ static int tomoyo_path_acl(const struct 
+@@ -730,14 +766,8 @@ static int tomoyo_path_acl(const struct 
  		if (ptr->type != TOMOYO_TYPE_PATH_ACL)
  			continue;
  		acl = container_of(ptr, struct tomoyo_path_acl, head);
@@ -474,7 +512,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
                                                         may_use_pattern))
  			continue;
  		error = 0;
-@@ -791,61 +821,13 @@ static int tomoyo_file_perm(struct tomoy
+@@ -795,61 +825,13 @@ static int tomoyo_file_perm(struct tomoy
  		/* Don't use patterns for execute permission. */
  		const struct tomoyo_path_info *patterned_file = (mode != 1) ?
  			tomoyo_get_file_pattern(filename) : filename;
@@ -538,7 +576,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_path_acl - Update "struct tomoyo_path_acl" list.
   *
   * @type:      Type of operation.
-@@ -861,13 +843,12 @@ static int tomoyo_update_path_acl(const 
+@@ -865,13 +847,12 @@ static int tomoyo_update_path_acl(const 
  				  struct tomoyo_domain_info *const domain,
  				  const bool is_delete)
  {
@@ -553,9 +591,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -		.perm_high = perm >> 16,
  		.perm = perm
  	};
- 	struct tomoyo_path_acl *entry = NULL;
-@@ -891,19 +872,13 @@ static int tomoyo_update_path_acl(const 
- 				  sizeof(e)))
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+@@ -890,19 +871,13 @@ static int tomoyo_update_path_acl(const 
+ 		if (!tomoyo_is_same_path_acl(acl, &e))
  			continue;
  		if (is_delete) {
 -			if (perm <= 0xFFFF)
@@ -576,7 +614,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			if ((acl->perm & tomoyo_rw_mask) == tomoyo_rw_mask)
  				acl->perm |= 1 << TOMOYO_TYPE_READ_WRITE;
  			else if (acl->perm & (1 << TOMOYO_TYPE_READ_WRITE))
-@@ -924,6 +899,72 @@ static int tomoyo_update_path_acl(const 
+@@ -927,6 +902,71 @@ static int tomoyo_update_path_acl(const 
  }
  
  /**
@@ -606,22 +644,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		.head.type = TOMOYO_TYPE_PATH_NUMBER3_ACL,
 +		.perm = perm
 +	};
-+	struct tomoyo_path_number3_acl *entry = NULL;
 +	int error = is_delete ? -ENOENT : -ENOMEM;
 +	if (!tomoyo_parse_name_union(filename, &e.name) ||
 +	    !tomoyo_parse_number_union(mode, &e.mode) ||
 +	    !tomoyo_parse_number_union(major, &e.major) ||
 +	    !tomoyo_parse_number_union(minor, &e.minor))
 +		goto out;
-+	if (!is_delete)
-+		entry = kmalloc(sizeof(e), GFP_KERNEL);
-+	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_path_number3_acl *acl =
 +			container_of(ptr, struct tomoyo_path_number3_acl, head);
-+		if (ptr->type != TOMOYO_TYPE_PATH_NUMBER3_ACL ||
-+		    tomoyo_memcmp(acl, &e, offsetof(typeof(e), name),
-+				  sizeof(e)))
++		if (!tomoyo_is_same_path_number3_acl(acl, &e))
 +			continue;
 +		if (is_delete)
 +			acl->perm &= ~perm;
@@ -630,10 +664,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = 0;
 +		break;
 +	}
-+	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
-+		entry = NULL;
-+		error = 0;
++	if (!is_delete && error) {
++		struct tomoyo_path_number3_acl *entry =
++			tomoyo_commit_ok(&e, sizeof(e));
++		if (entry) {
++			list_add_tail_rcu(&entry->head.list,
++					  &domain->acl_info_list);
++			error = 0;
++		}
 +	}
 +	mutex_unlock(&tomoyo_policy_lock);
 + out:
@@ -641,7 +679,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +	tomoyo_put_number_union(&e.mode);
 +	tomoyo_put_number_union(&e.major);
 +	tomoyo_put_number_union(&e.minor);
-+	kfree(entry);
 +	return error;
 +}
 +
@@ -649,7 +686,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_update_path2_acl - Update "struct tomoyo_path2_acl" list.
   *
   * @type:      Type of operation.
-@@ -987,6 +1028,50 @@ static int tomoyo_update_path2_acl(const
+@@ -988,6 +1028,50 @@ static int tomoyo_update_path2_acl(const
  }
  
  /**
@@ -700,7 +737,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path2_acl - Check permission for double path operation.
   *
   * @r:         Pointer to "struct tomoyo_request_info".
-@@ -1067,6 +1152,196 @@ static int tomoyo_path_permission(struct
+@@ -1068,6 +1152,195 @@ static int tomoyo_path_permission(struct
  }
  
  /**
@@ -763,7 +800,6 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		.head.type = TOMOYO_TYPE_PATH_NUMBER_ACL,
 +		.perm = perm
 +	};
-+	struct tomoyo_path_number_acl *entry = NULL;
 +	int error = is_delete ? -ENOENT : -ENOMEM;
 +	if (!domain)
 +		return -EINVAL;
@@ -771,15 +807,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EINVAL;
 +	if (!tomoyo_parse_number_union(number, &e.number))
 +		goto out;
-+	if (!is_delete)
-+		entry = kmalloc(sizeof(e), GFP_KERNEL);
-+	mutex_lock(&tomoyo_policy_lock);
++	if (mutex_lock_interruptible(&tomoyo_policy_lock))
++		goto out;
 +	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 +		struct tomoyo_path_number_acl *acl =
 +			container_of(ptr, struct tomoyo_path_number_acl, head);
-+		if (ptr->type != TOMOYO_TYPE_PATH_NUMBER_ACL ||
-+		    tomoyo_memcmp(acl, &e, offsetof(typeof(e), name),
-+				  sizeof(e)))
++		if (!tomoyo_is_same_path_number_acl(acl, &e))
 +			continue;
 +		if (is_delete)
 +			acl->perm &= ~perm;
@@ -788,16 +821,19 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		error = 0;
 +		break;
 +	}
-+	if (!is_delete && error && tomoyo_commit_ok(entry, &e, sizeof(e))) {
-+		list_add_tail_rcu(&entry->head.list, &domain->acl_info_list);
-+		entry = NULL;
-+		error = 0;
++	if (!is_delete && error) {
++		struct tomoyo_path_number_acl *entry =
++			tomoyo_commit_ok(&e, sizeof(e));
++		if (entry) {
++			list_add_tail_rcu(&entry->head.list,
++					  &domain->acl_info_list);
++			error = 0;
++		}
 +	}
 +	mutex_unlock(&tomoyo_policy_lock);
 + out:
 +	tomoyo_put_name_union(&e.name);
 +	tomoyo_put_number_union(&e.number);
-+	kfree(entry);
 +	return error;
 +}
 +
@@ -897,7 +933,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_check_exec_perm - Check permission for "execute".
   *
   * @domain:   Pointer to "struct tomoyo_domain_info".
-@@ -1143,7 +1418,7 @@ int tomoyo_check_open_permission(struct 
+@@ -1144,7 +1417,7 @@ int tomoyo_check_open_permission(struct 
  }
  
  /**
@@ -906,7 +942,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * @operation: Type of operation.
   * @path:      Pointer to "struct path".
-@@ -1171,7 +1446,6 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1172,7 +1445,6 @@ int tomoyo_path_perm(const u8 operation,
  			goto out;
  		}
  		break;
@@ -914,7 +950,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	case TOMOYO_TYPE_RMDIR:
  	case TOMOYO_TYPE_CHROOT:
  		if (!buf->is_dir) {
-@@ -1192,6 +1466,91 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1193,6 +1465,91 @@ int tomoyo_path_perm(const u8 operation,
  }
  
  /**
@@ -1006,7 +1042,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_path2_perm - Check permission for "rename", "link" and "pivot_root".
   *
   * @operation: Type of operation.
-@@ -1252,3 +1611,60 @@ int tomoyo_path2_perm(const u8 operation
+@@ -1253,3 +1610,60 @@ int tomoyo_path2_perm(const u8 operation
  		error = 0;
  	return error;
  }
@@ -1094,7 +1130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	default:
  		printk(KERN_WARNING "Unknown type\n");
  		break;
-@@ -266,10 +284,7 @@ static void tomoyo_collect_entry(void)
+@@ -267,10 +285,7 @@ static void tomoyo_collect_entry(void)
  				case TOMOYO_TYPE_PATH_ACL:
  					if (container_of(acl,
  					 struct tomoyo_path_acl,
@@ -1106,7 +1142,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  						continue;
  					break;
  				case TOMOYO_TYPE_PATH2_ACL:
-@@ -278,6 +293,18 @@ static void tomoyo_collect_entry(void)
+@@ -279,6 +294,18 @@ static void tomoyo_collect_entry(void)
  							 head)->perm)
  						continue;
  					break;
