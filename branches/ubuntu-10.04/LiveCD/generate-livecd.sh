@@ -1,9 +1,9 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="Ubuntu 9.10 i386 TOMOYO 1.7.1"
-ISOIMAGE_NAME=../ubuntu-9.10-desktop-i386-tomoyo-1.7.1p1.iso
-KERNEL_VERSION=2.6.31-17-ccs
+CD_LABEL="Ubuntu 10.04 i386 TOMOYO 1.7.2"
+ISOIMAGE_NAME=../ubuntu-10.04-desktop-i386-tomoyo-1.7.2.iso
+KERNEL_VERSION=2.6.32-21-ccs
 
 # set -v
 
@@ -42,8 +42,8 @@ fi
 
 cd squash/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-step/ubuntu9.10-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
-mv ubuntu9.10-live/ tomoyo || die "Can't create directory."
+wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-step/ubuntu10.04-live.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+mv ubuntu10.04-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
 cp -p resources/tomoyo.css squash/usr/share/doc/tomoyo/ || die "Can't copy document."
