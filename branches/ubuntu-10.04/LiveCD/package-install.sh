@@ -37,9 +37,9 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list clean
 
 /usr/lib/ccs/init_policy
 
-wget http://osdn.dl.sourceforge.jp/tomoyo/47128/tomoyo-tools_2.2.0-1_i386.deb
-dpkg -i tomoyo-tools_2.2.0-1_i386.deb
-rm -f tomoyo-tools_2.2.0-1_i386.deb
+wget http://osdn.dl.sourceforge.jp/tomoyo/47128/tomoyo-tools_2.2.0-2_i386.deb
+dpkg -i tomoyo-tools_2.2.0-2_i386.deb
+rm -f tomoyo-tools_2.2.0-2_i386.deb
 /usr/lib/tomoyo/tomoyo_init_policy
 
 umount -l /lib/init/rw/
