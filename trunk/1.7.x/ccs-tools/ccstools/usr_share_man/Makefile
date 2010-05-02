@@ -1,5 +1,6 @@
 all:
 	mkdir -p man8
+	chmod 755 ccs-* init_policy
 	for i in ccs-* init_policy; do ./$$i; done
 
 install: all
