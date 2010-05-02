@@ -1,6 +1,6 @@
 BUILD_FILES = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
 
-all: $(BUILD_FILES)
+all: libccstools.so $(BUILD_FILES)
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
@@ -8,17 +8,16 @@ all: $(BUILD_FILES)
 	sleep 10
 
 ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON
+	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON || ln -f dummy ccs-editpolicy
 
 ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L.
+	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L. || ln -f dummy ccs-queryd
 
 libccstools.so: ccstools.c ccstools.h
 	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.0
 	ln -sf libccstools.so.1.0.0 libccstools.so
 
 .c:
-	$(MAKE) libccstools.so
 	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
 
 install: all
