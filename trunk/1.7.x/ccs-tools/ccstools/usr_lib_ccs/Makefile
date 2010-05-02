@@ -21,7 +21,8 @@ install: all
 	sleep 10
 
 falsh: falsh.c /usr/include/curses.h /usr/include/readline/readline.h
-	$(CC) $(CFLAGS) -o falsh falsh.c -lncurses -lreadline
+	chmod 755 dummy
+	$(CC) $(CFLAGS) -o falsh falsh.c -lncurses -lreadline || ln -f dummy falsh
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<
