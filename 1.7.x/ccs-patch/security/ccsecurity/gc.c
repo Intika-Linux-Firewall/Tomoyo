@@ -16,6 +16,7 @@
 #include <linux/kthread.h>
 #endif
 
+/* Index numbers for garbage collection. */
 enum ccs_gc_id {
 	CCS_ID_RESERVEDPORT,
 	CCS_ID_ADDRESS_GROUP,
@@ -39,15 +40,35 @@ enum ccs_gc_id {
 	CCS_ID_DOMAIN
 };
 
+/* Structure for garbage collection. */
 struct ccs_gc_entry {
 	struct list_head list;
-	int type;
+	int type; /* = one of values in "enum ccs_gc_id" */
 	struct list_head *element;
 };
+/* List of entries to be deleted. */
 static LIST_HEAD(ccs_gc_list);
+/* Length of list. */
 static int ccs_gc_list_len;
 
-/* Caller holds ccs_policy_lock mutex. */
+/**
+ * ccs_add_to_gc - Add an entry to to be deleted list.
+ *
+ * @type:    Type of this entry.
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns true on success, false otherwise.
+ *
+ * Caller holds ccs_policy_lock mutex.
+ *
+ * Adding an entry needs kmalloc(). Thus, if we try to add thousands of
+ * entries at once, it will take too long time. Thus, do not add more than 128
+ * entries per a scan. But to be able to handle worst case where all entries
+ * are in-use, we accept one more entry per a scan.
+ *
+ * If we use singly linked list using "struct list_head"->prev (which is
+ * LIST_POISON2), we can avoid kmalloc().
+ */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
 	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
@@ -60,6 +81,13 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
 	return ccs_gc_list_len++ < 128;
 }
 
+/**
+ * ccs_del_allow_read - Delete members in "struct ccs_globally_readable_file_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_allow_read(struct list_head *element)
 {
 	struct ccs_globally_readable_file_entry *ptr =
@@ -68,6 +96,13 @@ static size_t ccs_del_allow_read(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccsdel_allow_env - Delete members in "struct ccs_globally_usable_env_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_allow_env(struct list_head *element)
 {
 	struct ccs_globally_usable_env_entry *ptr =
@@ -76,6 +111,13 @@ static size_t ccs_del_allow_env(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_file_pattern - Delete members in "struct ccs_pattern_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_file_pattern(struct list_head *element)
 {
 	struct ccs_pattern_entry *ptr =
@@ -84,6 +126,13 @@ static size_t ccs_del_file_pattern(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_no_rewrite - Delete members in "struct ccs_no_rewrite_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_no_rewrite(struct list_head *element)
 {
 	struct ccs_no_rewrite_entry *ptr =
@@ -92,6 +141,13 @@ static size_t ccs_del_no_rewrite(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_domain_initializer - Delete members in "struct ccs_domain_initializer_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_domain_initializer(struct list_head *element)
 {
 	struct ccs_domain_initializer_entry *ptr =
@@ -101,6 +157,13 @@ static size_t ccs_del_domain_initializer(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_domain_keeper - Delete members in "struct ccs_domain_keeper_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_domain_keeper(struct list_head *element)
 {
 	struct ccs_domain_keeper_entry *ptr =
@@ -110,6 +173,13 @@ static size_t ccs_del_domain_keeper(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_aggregator - Delete members in "struct ccs_aggregator_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_aggregator(struct list_head *element)
 {
 	struct ccs_aggregator_entry *ptr =
@@ -119,6 +189,13 @@ static size_t ccs_del_aggregator(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_manager - Delete members in "struct ccs_policy_manager_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_manager(struct list_head *element)
 {
 	struct ccs_policy_manager_entry *ptr =
@@ -181,6 +258,13 @@ static bool ccs_used_by_task(struct ccs_domain_info *domain)
 	return in_use;
 }
 
+/**
+ * ccs_del_acl - Delete members in "struct ccs_acl_info".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_acl(struct list_head *element)
 {
 	size_t size;
@@ -291,12 +375,36 @@ static size_t ccs_del_acl(struct list_head *element)
 	return size;
 }
 
+/**
+ * ccs_del_domain - Delete members in "struct ccs_domain_info".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()) on success, 0 otherwise.
+ */
 static size_t ccs_del_domain(struct list_head *element)
 {
 	struct ccs_acl_info *acl;
 	struct ccs_acl_info *tmp;
 	struct ccs_domain_info *domain =
 		container_of(element, typeof(*domain), list);
+	/*
+	 * We need to recheck domain at this point.
+	 *
+	 * (1) Reader starts SRCU section upon execve().
+	 * (2) Reader traverses ccs_domain_list and finds this domain.
+	 * (3) Writer marks this domain as deleted.
+	 * (4) Garbage collector removes this domain from ccs_domain_list
+	 *     because this domain is marked as deleted and used by nobody.
+	 * (5) Reader saves reference to this domain into
+	 *     "struct task_struct"->ccs_domain_info .
+	 * (6) Reader finishes execve() operation and starts using this domain.
+	 * (7) Garbage collector waits for SRCU synchronization.
+	 * (8) Garbage collector kfree() this domain.
+	 *
+	 * By rechecking whether this domain is used by somebody or not at (8),
+	 * we can solve this race problem.
+	 */
 	if (ccs_used_by_task(domain))
 		return 0;
 	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
@@ -307,6 +415,13 @@ static size_t ccs_del_domain(struct list_head *element)
 	return sizeof(*domain);
 }
 
+/**
+ * ccs_del_path_group_member - Delete members in "struct ccs_path_group_member".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_path_group_member(struct list_head *element)
 {
 	struct ccs_path_group_member *member =
@@ -315,6 +430,13 @@ static size_t ccs_del_path_group_member(struct list_head *element)
 	return sizeof(*member);
 }
 
+/**
+ * ccs_del_path_group - Delete members in "struct ccs_path_group".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_path_group(struct list_head *element)
 {
 	struct ccs_path_group *group =
@@ -323,6 +445,13 @@ static size_t ccs_del_path_group(struct list_head *element)
 	return sizeof(*group);
 }
 
+/**
+ * ccs_del_address_group_member - Delete members in "struct ccs_address_group_member".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_address_group_member(struct list_head *element)
 {
 	struct ccs_address_group_member *member =
@@ -334,6 +463,13 @@ static size_t ccs_del_address_group_member(struct list_head *element)
 	return sizeof(*member);
 }
 
+/**
+ * ccs_del_address_group - Delete members in "struct ccs_address_group".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_address_group(struct list_head *element)
 {
 	struct ccs_address_group *group =
@@ -342,6 +478,13 @@ static size_t ccs_del_address_group(struct list_head *element)
 	return sizeof(*group);
 }
 
+/**
+ * ccs_del_number_group_member - Delete members in "struct ccs_number_group_member".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_number_group_member(struct list_head *element)
 {
 	struct ccs_number_group_member *member =
@@ -349,6 +492,13 @@ static size_t ccs_del_number_group_member(struct list_head *element)
 	return sizeof(*member);
 }
 
+/**
+ * ccs_del_number_group - Delete members in "struct ccs_number_group".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_number_group(struct list_head *element)
 {
 	struct ccs_number_group *group =
@@ -357,6 +507,13 @@ static size_t ccs_del_number_group(struct list_head *element)
 	return sizeof(*group);
 }
 
+/**
+ * ccs_del_reservedport - Delete members in "struct ccs_reserved_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_reservedport(struct list_head *element)
 {
 	struct ccs_reserved_entry *ptr =
@@ -364,6 +521,13 @@ static size_t ccs_del_reservedport(struct list_head *element)
 	return sizeof(*ptr);
 }
 
+/**
+ * ccs_del_ipv6_address - Delete members in "struct ccs_ipv6addr_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_ipv6_address(struct list_head *element)
 {
 	struct ccs_ipv6addr_entry *ptr =
@@ -372,11 +536,11 @@ static size_t ccs_del_ipv6_address(struct list_head *element)
 }
 
 /**
- * ccs_del_conditiopn - Delete condition part.
+ * ccs_del_conditiopn - Delete members in "struct ccs_condition".
  *
  * @cond: Pointer to "struct ccs_condition".
  *
- * Returns size of condition in bytes.
+ * Returns size of @cond (for later kfree()).
  */
 size_t ccs_del_condition(struct ccs_condition *cond)
 {
@@ -409,6 +573,13 @@ size_t ccs_del_condition(struct ccs_condition *cond)
 	return cond->size;
 }
 
+/**
+ * ccs_del_name - Delete members in "struct ccs_name_entry".
+ *
+ * @element: Pointer to "struct list_head".
+ *
+ * Returns size of @element (for later kfree()).
+ */
 static size_t ccs_del_name(struct list_head *element)
 {
 	const struct ccs_name_entry *ptr =
@@ -421,13 +592,30 @@ static size_t ccs_del_name(struct list_head *element)
 struct srcu_struct ccs_ss;
 #endif
 
-/* Lock for /proc/ccs/ users. */
+/*
+ * Lock for /proc/ccs/ users.
+ *
+ * Currently, we hold SRCU lock upon open() and release upon close().
+ * Thus, kernel complains about returning to userspace with SRCU lock held.
+ * Therefore, non-SRCU lock is used for suppressing the kernel's complain
+ * messages. Modifying to hold/release SRCU lock upon each read()/write() is
+ * to-do list.
+ *
+ * Also used for syscall users for 2.6.18 and earlier kernels because
+ * they don't have SRCU support.
+ */
 static struct {
 	int counter_idx;
 	int counter[2];
 } ccs_counter;
+/* Lock for protecting counter. */
 static DEFINE_SPINLOCK(ccs_counter_lock);
 
+/**
+ * ccs_lock - Hold non-SRCU lock.
+ *
+ * Returns index number which has to be passed to ccs_unlock().
+ */
 int ccs_lock(void)
 {
 	int idx;
@@ -438,6 +626,11 @@ int ccs_lock(void)
 	return idx;
 }
 
+/**
+ * ccs_unlock - Release non-SRCU lock.
+ *
+ * @idx: Index number returned by ccs_lock().
+ */
 void ccs_unlock(const int idx)
 {
 	spin_lock(&ccs_counter_lock);
@@ -445,6 +638,9 @@ void ccs_unlock(const int idx)
 	spin_unlock(&ccs_counter_lock);
 }
 
+/**
+ * ccs_synchronize_counter - Wait for SRCU grace period.
+ */
 static void ccs_synchronize_counter(void)
 {
 	int idx;
@@ -462,6 +658,9 @@ static void ccs_synchronize_counter(void)
 	}
 }
 
+/**
+ * ccs_collect_entry - Scan lists for deleted elements.
+ */
 static void ccs_collect_entry(void)
 {
 	int i;
@@ -662,6 +861,11 @@ static void ccs_collect_entry(void)
 	mutex_unlock(&ccs_policy_lock);
 }
 
+/**
+ * ccs_kfree_entry - Delete entries in ccs_gc_list .
+ *
+ * Returns true if some entries were kfree()d, false otherwise.
+ */
 static bool ccs_kfree_entry(void)
 {
 	struct ccs_gc_entry *p;
@@ -748,6 +952,14 @@ static bool ccs_kfree_entry(void)
 	return result;
 }
 
+/**
+ * ccs_gc_thread - Garbage collector thread function.
+ *
+ * In case OOM-killer choose this thread for termination, we create this thread
+ * as a short live thread whenever /proc/ccs/ interface was close()d.
+ *
+ * Returns 0.
+ */
 static int ccs_gc_thread(void *unused)
 {
 	static DEFINE_MUTEX(ccs_gc_mutex);
@@ -790,6 +1002,9 @@ static int ccs_gc_thread(void *unused)
 	return 0;
 }
 
+/**
+ * ccs_run_gc - Start garbage collector thread.
+ */
 void ccs_run_gc(void)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
