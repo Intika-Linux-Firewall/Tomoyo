@@ -170,8 +170,8 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 	const u32 ip = ntohl(*address);
 	int error;
 	char buf[64];
-	if (ccs_init_request_info(&r, NULL,
-				  CCS_MAC_NETWORK_UDP_BIND + operation)
+	const struct ccs_domain_info * const domain = ccs_current_domain();
+	if (ccs_init_request_info(&r, CCS_MAC_NETWORK_UDP_BIND + operation)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
 	memset(buf, 0, sizeof(buf));
@@ -182,7 +182,7 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
 	do {
 		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			struct ccs_ip_network_acl *acl;
 			if (ptr->is_deleted ||
 			    ptr->type != CCS_TYPE_IP_NETWORK_ACL)

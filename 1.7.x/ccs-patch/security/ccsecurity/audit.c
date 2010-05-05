@@ -275,10 +275,7 @@ char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
 	const char *symlink = NULL;
 	const char *header = NULL;
 	int pos;
-	const char *domainname;
-	if (!r->domain)
-		r->domain = ccs_current_domain();
-	domainname = r->domain->domainname->name;
+	const char *domainname = ccs_current_domain()->domainname->name;
 	header = ccs_print_header(r);
 	if (!header)
 		return NULL;
@@ -414,10 +411,8 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	char *buf;
 	struct ccs_audit_log_entry *new_entry;
 	bool quota_exceeded = false;
-	struct ccs_preference *pref;
-	if (!r->domain)
-		r->domain = ccs_current_domain();
-	pref = ccs_profile(r->domain->profile)->audit;
+	struct ccs_preference *pref =
+		ccs_profile(ccs_current_domain()->profile)->audit;
 	if (is_granted)
 		len = pref->audit_max_grant_log;
 	else

@@ -2042,7 +2042,8 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
 	int len = 256;
 	char *realpath = NULL;
 	char *argv0 = NULL;
-	const struct ccs_profile *profile = ccs_profile(ee->r.domain->profile);
+	const struct ccs_profile *profile = ccs_profile(ccs_current_domain()->
+							profile);
 	if (profile->learning->learning_exec_realpath) {
 		struct file *file = ee->bprm->file;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
@@ -2168,8 +2169,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	struct ccs_query_entry *ccs_query_entry = NULL;
 	bool quota_exceeded = false;
 	char *header;
-	if (!r->domain)
-		r->domain = ccs_current_domain();
+	struct ccs_domain_info * const domain = ccs_current_domain();
 	switch (r->mode) {
 		char *buffer;
 		struct ccs_condition *cond;
@@ -2195,7 +2195,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 			cond = ccs_get_condition(str);
 		} else
 			cond = NULL;
-		ccs_write_domain_policy2(buffer, r->domain, cond, false);
+		ccs_write_domain_policy2(buffer, domain, cond, false);
 		ccs_put_condition(cond);
 		kfree(buffer);
 		/* fall through */
@@ -2206,7 +2206,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		int i;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
-		for (i = 0; i < ccs_profile(r->domain->profile)->enforcing->
+		for (i = 0; i < ccs_profile(domain->profile)->enforcing->
 			     enforcing_penalty; i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);

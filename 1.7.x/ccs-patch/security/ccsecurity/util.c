@@ -1009,20 +1009,14 @@ int ccs_get_mode(const u8 profile, const u8 index)
  * ccs_init_request_info - Initialize "struct ccs_request_info" members.
  *
  * @r:      Pointer to "struct ccs_request_info" to initialize.
- * @domain: Pointer to "struct ccs_domain_info". NULL for ccs_current_domain().
  * @index:  Index number of functionality.
  *
  * Returns mode.
  */
-int ccs_init_request_info(struct ccs_request_info *r,
-			  struct ccs_domain_info *domain, const u8 index)
+int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 {
-	u8 profile;
+	const u8 profile = ccs_current_domain()->profile;
 	memset(r, 0, sizeof(*r));
-	if (!domain)
-		domain = ccs_current_domain();
-	r->domain = domain;
-	profile = domain->profile;
 	r->profile = profile;
 	r->type = index;
 	r->mode = ccs_get_mode(profile, index);
@@ -1055,8 +1049,8 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	int len = PAGE_SIZE;
 	va_list args;
 	char *buffer;
-	const struct ccs_profile *profile =
-		ccs_profile(r->domain->profile);
+	const struct ccs_domain_info * const domain = ccs_current_domain();
+	const struct ccs_profile *profile = ccs_profile(domain->profile);
 	switch (r->mode) {
 	case CCS_CONFIG_ENFORCING:
 		if (!profile->enforcing->enforcing_verbose)
@@ -1088,7 +1082,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	}
 	printk(KERN_WARNING "%s: Access %s denied for %s\n",
 	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
-	       ccs_last_word(r->domain->domainname->name));
+	       ccs_last_word(domain->domainname->name));
 	kfree(buffer);
 }
 
@@ -1104,7 +1098,7 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 bool ccs_domain_quota_ok(struct ccs_request_info *r)
 {
 	unsigned int count = 0;
-	struct ccs_domain_info *domain = r->domain;
+	struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	if (r->mode != CCS_CONFIG_LEARNING)
 		return false;

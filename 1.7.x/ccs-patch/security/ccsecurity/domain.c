@@ -34,39 +34,30 @@ LIST_HEAD(ccs_domain_list);
  * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
  * @ee:         Pointer to "struct ccs_execve_entry".
- * @is_default: True if it is "execute_handler" log.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
-					 const bool is_default)
+static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee)
 {
-	int error;
 	struct ccs_request_info *r = &ee->r;
-	struct ccs_domain_info *domain = r->domain;
 	const char *handler = ee->handler->name;
 	r->type = CCS_MAC_FILE_EXECUTE;
 	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
-	r->domain = ee->previous_domain;
-	error = ccs_write_audit_log(true, r, "%s %s\n",
-				    is_default ? CCS_KEYWORD_EXECUTE_HANDLER :
-				    CCS_KEYWORD_DENIED_EXECUTE_HANDLER,
-				    handler);
-	r->domain = domain;
-	return error;
+	return ccs_write_audit_log(true, r, "%s" CCS_KEYWORD_EXECUTE_HANDLER
+				   " %s\n", ee->handler_type ==
+				   CCS_TYPE_DENIED_EXECUTE_HANDLER ?
+				   "denied" : "", handler);
 }
 
 /**
  * ccs_audit_domain_creation_log - Audit domain creation log.
  *
- * @domain:  Pointer to "struct ccs_domain_info".
- *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_domain_creation_log(struct ccs_domain_info *domain)
+static int ccs_audit_domain_creation_log(void)
 {
 	struct ccs_request_info r;
-	ccs_init_request_info(&r, domain, CCS_MAC_FILE_EXECUTE);
+	ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
 	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
 }
 
@@ -574,13 +565,16 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_path_info *handler = ee->handler;
 	struct ccs_domain_info *domain = NULL;
-	const char *old_domain_name = r->domain->domainname->name;
+	struct ccs_domain_info * const old_domain = ccs_current_domain();
+	const char *old_domain_name = old_domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
-	const u32 ccs_flags = current->ccs_flags;
+	struct task_struct *task = current;
+	const u32 ccs_flags = task->ccs_flags;
 	struct ccs_path_info rn = { }; /* real name */
 	struct ccs_path_info ln; /* last name */
 	int retval;
 	bool need_kfree = false;
+	bool domain_created = false;
 	ln.name = ccs_last_word(old_domain_name);
 	ccs_fill_path_info(&ln);
  retry:
@@ -631,20 +625,20 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 
 	/* Calculate domain to transit to. */
-	if (ccs_is_domain_initializer(r->domain->domainname, &rn, &ln)) {
+	if (ccs_is_domain_initializer(old_domain->domainname, &rn, &ln)) {
 		/* Transit to the child of ccs_kernel_domain domain. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
 			 rn.name);
-	} else if (r->domain == &ccs_kernel_domain && !ccs_policy_loaded) {
+	} else if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
 		/*
 		 * Needn't to transit from kernel domain before starting
 		 * /sbin/init. But transit from kernel domain if executing
 		 * initializers because they might start before /sbin/init.
 		 */
-		domain = r->domain;
-	} else if (ccs_is_domain_keeper(r->domain->domainname, &rn, &ln)) {
+		domain = old_domain;
+	} else if (ccs_is_domain_keeper(old_domain->domainname, &rn, &ln)) {
 		/* Keep current domain. */
-		domain = r->domain;
+		domain = old_domain;
 	} else {
 		/* Normal domain transition. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
@@ -665,12 +659,12 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 	domain = ccs_find_or_assign_new_domain(ee->tmp, r->profile);
 	if (domain)
-		ccs_audit_domain_creation_log(domain);
+		domain_created = true;
  done:
 	if (!domain) {
 		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
-		if (!r->domain->domain_transition_failed) {
-			r->domain->domain_transition_failed = true;
+		if (!old_domain->domain_transition_failed) {
+			old_domain->domain_transition_failed = true;
 			ccs_write_audit_log(false, r,
 					    CCS_KEYWORD_TRANSITION_FAILED
 					    "\n");
@@ -680,9 +674,29 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	} else {
 		retval = 0;
 	}
- out:
+	if (!retval && handler)
+		ccs_audit_execute_handler_log(ee);
+	/*
+	 * Tell GC that I started execve().
+	 * Also, tell open_exec() to check read permission.
+	 */
+	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
+	/*
+	 * Make task->ccs_flags visible to GC before changing
+	 * task->ccs_domain_info .
+	 */
+	smp_mb();
+	/*
+	 * Proceed to the next domain in order to allow reaching via PID.
+	 * It will be reverted if execve() failed. Reverting is not good.
+	 * But it is better than being unable to reach via PID in interactive
+	 * enforcing mode.
+	 */
 	if (domain)
-		r->domain = domain;
+		task->ccs_domain_info = domain;
+	if (domain_created)
+		ccs_audit_domain_creation_log();
+ out:
 	if (need_kfree)
 		kfree(rn.name);
 	return retval;
@@ -709,6 +723,9 @@ static int ccs_environ(struct ccs_execve_entry *ee)
 	int envp_count = bprm->envc;
 	/* printk(KERN_DEBUG "start %d %d\n", argv_count, envp_count); */
 	int error = -ENOMEM;
+	ee->r.type = CCS_MAC_ENVIRON;
+	ee->r.mode = ccs_get_mode(ccs_current_domain()->profile,
+				  CCS_MAC_ENVIRON);
 	if (!r->mode || !envp_count)
 		return 0;
 	arg_ptr = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
@@ -1086,7 +1103,7 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 				     const u8 type)
 {
 	struct task_struct *task = current;
-	const struct ccs_domain_info *domain = ccs_current_domain();
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	bool found = false;
 	/*
@@ -1102,6 +1119,7 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 		acl = container_of(ptr, struct ccs_execute_handler_record,
 				   head);
 		ee->handler = acl->handler;
+		ee->handler_type = type;
 		found = true;
 		break;
 	}
@@ -1193,53 +1211,26 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	/* Clear manager flag. */
 	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
 	*eep = ee;
-	ccs_init_request_info(&ee->r, NULL, CCS_MAC_FILE_EXECUTE);
+	ccs_init_request_info(&ee->r, CCS_MAC_FILE_EXECUTE);
 	ee->r.ee = ee;
 	ee->bprm = bprm;
 	ee->r.obj = &ee->obj;
 	ee->obj.path1.dentry = bprm->file->f_dentry;
 	ee->obj.path1.mnt = bprm->file->f_vfsmnt;
-	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER)) {
-		retval = ccs_try_alt_exec(ee);
-		if (!retval)
-			ccs_audit_execute_handler_log(ee, true);
-		goto ok;
-	}
+	/*
+	 * No need to call ccs_environ() for execute handler because envp[] is
+	 * moved to argv[].
+	 */
+	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER))
+		return ccs_try_alt_exec(ee);
 	retval = ccs_find_next_domain(ee);
-	if (retval != -EPERM)
-		goto ok;
-	if (ccs_find_execute_handler(ee, CCS_TYPE_DENIED_EXECUTE_HANDLER)) {
-		retval = ccs_try_alt_exec(ee);
-		if (!retval)
-			ccs_audit_execute_handler_log(ee, false);
+	if (retval == -EPERM) {
+		if (ccs_find_execute_handler(ee,
+					     CCS_TYPE_DENIED_EXECUTE_HANDLER))
+			return ccs_try_alt_exec(ee);
 	}
- ok:
-	if (retval < 0)
-		goto out;
-	/*
-	 * Tell GC that I started execve().
-	 * Also, tell open_exec() to check read permission.
-	 */
-	task->ccs_flags |= CCS_TASK_IS_IN_EXECVE;
-	/*
-	 * Make task->ccs_flags visible to GC before changing
-	 * task->ccs_domain_info .
-	 */
-	smp_mb();
-	/*
-	 * Proceed to the next domain in order to allow reaching via PID.
-	 * It will be reverted if execve() failed. Reverting is not good.
-	 * But it is better than being unable to reach via PID in interactive
-	 * enforcing mode.
-	 */
-	task->ccs_domain_info = ee->r.domain;
-	ee->r.type = CCS_MAC_ENVIRON;
-	ee->r.mode = ccs_get_mode(ee->r.domain->profile, CCS_MAC_ENVIRON);
-	retval = ccs_environ(ee);
-	if (retval < 0)
-		goto out;
-	retval = 0;
- out:
+ 	if (!retval)
+		retval = ccs_environ(ee);
 	return retval;
 }
 
@@ -1296,10 +1287,11 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 	struct ccs_request_info r;
 	struct ccs_domain_info *domain;
 	int error;
+	bool domain_created = false;
 	name.name = pathname;
 	ccs_fill_path_info(&name);
 	/* Check allow_transit permission. */
-	ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRANSIT);
+	ccs_init_request_info(&r, CCS_MAC_FILE_TRANSIT);
 	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
 	if (error)
 		return error;
@@ -1309,11 +1301,13 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 	    strlen(domainname) < CCS_EXEC_TMPSIZE - 10) {
 		domain = ccs_find_or_assign_new_domain(domainname, r.profile);
 		if (domain)
-			ccs_audit_domain_creation_log(domain);
+			domain_created = true;
 	}
 	if (domain) {
 		error = 0;
 		current->ccs_domain_info = domain;
+		if (domain_created)
+			ccs_audit_domain_creation_log();
 	} else {
 		error = -ENOENT;
 	}

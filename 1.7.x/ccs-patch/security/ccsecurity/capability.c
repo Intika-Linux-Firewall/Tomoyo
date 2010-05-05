@@ -43,13 +43,14 @@ static bool ccs_capable2(const u8 operation)
 {
 	struct ccs_request_info r;
 	struct ccs_acl_info *ptr;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	int error;
-	if (ccs_init_request_info(&r, NULL, CCS_MAX_MAC_INDEX + operation)
+	if (ccs_init_request_info(&r, CCS_MAX_MAC_INDEX + operation)
 	    == CCS_CONFIG_DISABLED)
 		return true;
 	do {
 		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			struct ccs_capability_acl *acl;
 			if (ptr->is_deleted ||
 			    ptr->type != CCS_TYPE_CAPABILITY_ACL)

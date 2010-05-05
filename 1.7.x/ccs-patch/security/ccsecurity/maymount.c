@@ -76,8 +76,7 @@ static int __ccs_may_mount(struct path *path)
 	struct mnt_namespace *namespace = current->nsproxy->mnt_ns;
 #endif
 	if (!namespace ||
-	    ccs_init_request_info(&r, NULL,
-				  CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT)
+	    ccs_init_request_info(&r, CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
 	found = false;
