@@ -46,7 +46,6 @@ void __init ccs_signal_init(void);
 void __init ccs_capability_init(void);
 void __init ccs_mount_init(void);
 void __init ccs_maymount_init(void);
-void __init ccs_autobind_init(void);
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {

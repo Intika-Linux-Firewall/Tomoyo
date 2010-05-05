@@ -34,7 +34,8 @@
  * @vfsmnt: Pointer to "struct vfsmount".
  * @dentry: Pointer to "struct dentry".
  *
- * Returns true if @vfsmnt is parent directory compared to @nd, false otherwise.
+ * Returns true if @vfsmnt is parent directory compared to @nd,
+ * false otherwise.
  */
 static bool ccs_conceal_mount(struct path *path, struct vfsmount *vfsmnt,
 			      struct dentry *dentry)

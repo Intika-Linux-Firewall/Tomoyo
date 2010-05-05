@@ -75,7 +75,8 @@ int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
 			       + (((u8) min[2]) << 8) + (u8) min[3]);
 		memmove(min, &ip, sizeof(ip));
 		if (count == 8)
-			ip = htonl((((u8) max[0]) << 24) + (((u8) max[1]) << 16)
+			ip = htonl((((u8) max[0]) << 24)
+				   + (((u8) max[1]) << 16)
 				   + (((u8) max[2]) << 8) + (u8) max[3]);
 		memmove(max, &ip, sizeof(ip));
 		return 1;
@@ -390,8 +391,8 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_listen_acl(const bool is_ipv6, const u8 *address,
-					 const u16 port)
+static int ccs_network_listen_acl(const bool is_ipv6, const u8 *address,
+				  const u16 port)
 {
 	return ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN,
 				 (const u32 *) address, ntohs(port));
@@ -407,9 +408,8 @@ static inline int ccs_network_listen_acl(const bool is_ipv6, const u8 *address,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_connect_acl(const bool is_ipv6,
-					  const int sock_type,
-					  const u8 *address, const u16 port)
+static int ccs_network_connect_acl(const bool is_ipv6, const int sock_type,
+				   const u8 *address, const u16 port)
 {
 	u8 operation;
 	switch (sock_type) {
@@ -463,8 +463,8 @@ static int ccs_network_bind_acl(const bool is_ipv6, const int sock_type,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_accept_acl(const bool is_ipv6, const u8 *address,
-					 const u16 port)
+static int ccs_network_accept_acl(const bool is_ipv6, const u8 *address,
+				  const u16 port)
 {
 	int retval;
 	current->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
@@ -484,9 +484,8 @@ static inline int ccs_network_accept_acl(const bool is_ipv6, const u8 *address,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_sendmsg_acl(const bool is_ipv6,
-					  const int sock_type,
-					  const u8 *address, const u16 port)
+static int ccs_network_sendmsg_acl(const bool is_ipv6, const int sock_type,
+				   const u8 *address, const u16 port)
 {
 	u8 operation;
 	if (sock_type == SOCK_DGRAM)
@@ -507,9 +506,8 @@ static inline int ccs_network_sendmsg_acl(const bool is_ipv6,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static inline int ccs_network_recvmsg_acl(const bool is_ipv6,
-					  const int sock_type,
-					  const u8 *address, const u16 port)
+static int ccs_network_recvmsg_acl(const bool is_ipv6, const int sock_type,
+				   const u8 *address, const u16 port)
 {
 	int retval;
 	const u8 operation
@@ -521,6 +519,14 @@ static inline int ccs_network_recvmsg_acl(const bool is_ipv6,
 	current->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
 	return retval;
 }
+
+#ifndef CONFIG_NET
+
+void __init ccs_network_init(void)
+{
+}
+
+#else
 
 #define MAX_SOCK_ADDR 128 /* net/socket.c */
 
@@ -935,3 +941,5 @@ void __init ccs_network_init(void)
 	ccsecurity_ops.socket_recvmsg_permission =
 		__ccs_socket_recvmsg_permission;
 }
+
+#endif

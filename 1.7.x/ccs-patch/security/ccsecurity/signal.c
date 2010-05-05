@@ -83,7 +83,8 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	if (!dest)
 		return 0; /* I can't find destinatioin. */
 	if (r.domain == dest) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name, true);
+		ccs_audit_signal_log(&r, sig, r.domain->domainname->name,
+				     true);
 		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;

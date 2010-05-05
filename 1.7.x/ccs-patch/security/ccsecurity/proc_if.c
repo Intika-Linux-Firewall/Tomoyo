@@ -287,7 +287,8 @@ static void __init ccs_proc_init(void)
 #endif
 	ccs_create_entry("self_domain",      0400, ccs_dir, CCS_SELFDOMAIN);
 	ccs_create_entry(".domain_status",   0600, ccs_dir, CCS_DOMAIN_STATUS);
-	ccs_create_entry(".process_status",  0600, ccs_dir, CCS_PROCESS_STATUS);
+	ccs_create_entry(".process_status",  0600, ccs_dir,
+			 CCS_PROCESS_STATUS);
 	ccs_create_entry("meminfo",          0600, ccs_dir, CCS_MEMINFO);
 	ccs_create_entry("profile",          0600, ccs_dir, CCS_PROFILE);
 	ccs_create_entry("manager",          0600, ccs_dir, CCS_MANAGER);
@@ -321,7 +322,6 @@ static int __init ccs_init_module(void)
 	ccs_signal_init();
 	ccs_mount_init();
 	ccs_maymount_init();
-	ccs_autobind_init();
 	ccs_policy_io_init();
 	ccs_domain_init();
 	return 0;

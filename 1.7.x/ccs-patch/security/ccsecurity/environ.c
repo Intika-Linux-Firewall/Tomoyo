@@ -48,7 +48,8 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
 	struct ccs_globally_usable_env_entry *ptr;
 	bool found = false;
 	list_for_each_entry_rcu(ptr, &ccs_globally_usable_env_list, list) {
-		if (ptr->is_deleted || !ccs_path_matches_pattern(env, ptr->env))
+		if (ptr->is_deleted ||
+		    !ccs_path_matches_pattern(env, ptr->env))
 			continue;
 		found = true;
 		break;

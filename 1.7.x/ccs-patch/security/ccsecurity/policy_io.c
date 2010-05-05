@@ -1539,8 +1539,8 @@ static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
  */
 static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
 					     const char *keyword,
-					     struct ccs_execute_handler_record *
-					     ptr)
+					     struct ccs_execute_handler_record
+					     *ptr)
 {
 	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
 }
@@ -2305,8 +2305,8 @@ static int ccs_poll_query(struct file *file, poll_table *wait)
 	for (i = 0; i < 2; i++) {
 		spin_lock(&ccs_query_list_lock);
 		list_for_each(tmp, &ccs_query_list) {
-			struct ccs_query_entry *ptr
-				= list_entry(tmp, struct ccs_query_entry, list);
+			struct ccs_query_entry *ptr =
+				list_entry(tmp, struct ccs_query_entry, list);
 			if (ptr->answer)
 				continue;
 			found = true;
