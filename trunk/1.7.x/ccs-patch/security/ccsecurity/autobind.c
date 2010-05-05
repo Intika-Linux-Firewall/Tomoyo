@@ -18,6 +18,19 @@ LIST_HEAD(ccs_reservedport_list);
 static u8 ccs_reserved_port_map[8192];
 
 /**
+ * ccs_lport_reserved - Check permission for bind()'s automatic port number selection.
+ *
+ * @port: Port number.
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool __ccs_lport_reserved(const u16 port)
+{
+	return ccs_reserved_port_map[port >> 3] & (1 << (port & 7))
+		? true : false;
+}
+
+/**
  * ccs_update_reserved_entry - Update "struct ccs_reserved_entry" list.
  *
  * @min_port: Start of port number range.
@@ -65,23 +78,15 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	}
 	memmove(ccs_reserved_port_map, ccs_tmp_map,
 		sizeof(ccs_reserved_port_map));
+	/*
+	 * Since this feature is no-op by default, we don't need to register
+	 * this callback hook unless the first entry is added.
+	 */
+	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
 	mutex_unlock(&ccs_policy_lock);
  out:
 	kfree(ccs_tmp_map);
 	return error;
-}
-
-/**
- * ccs_lport_reserved - Check permission for bind()'s automatic port number selection.
- *
- * @port: Port number.
- *
- * Returns true on success, false otherwise.
- */
-static bool __ccs_lport_reserved(const u16 port)
-{
-	return ccs_reserved_port_map[port >> 3] & (1 << (port & 7))
-		? true : false;
 }
 
 /**
@@ -103,7 +108,8 @@ int ccs_write_reserved_port_policy(char *data, const bool is_delete)
 			return ccs_update_reserved_entry(from, to, is_delete);
 	} else if (sscanf(data, "%u", &from) == 1) {
 		if (from < 65536)
-			return ccs_update_reserved_entry(from, from, is_delete);
+			return ccs_update_reserved_entry(from, from,
+							 is_delete);
 	}
  out:
 	return -EINVAL;
@@ -139,9 +145,4 @@ bool ccs_read_reserved_port_policy(struct ccs_io_buffer *head)
 			return false;
 	}
 	return true;
-}
-
-void ccs_autobind_init(void)
-{
-	ccsecurity_ops.lport_reserved = __ccs_lport_reserved;
 }

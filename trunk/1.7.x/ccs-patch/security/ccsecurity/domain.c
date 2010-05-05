@@ -815,7 +815,7 @@ static void ccs_unescape(unsigned char *dest)
  *
  * Returns number of directories to strip.
  */
-static inline int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
+static int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
 {
 	int depth = 0;
 	ccs_realpath_lock();
@@ -1046,7 +1046,9 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 #endif
 #endif
 
-	/* OK, now restart the process with execute handler program's dentry. */
+	/*
+	 * OK, now restart the process with execute handler program's dentry.
+	 */
 	filp = open_exec(ee->handler_path);
 	if (IS_ERR(filp)) {
 		retval = PTR_ERR(filp);
@@ -1146,7 +1148,8 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		 */
 		char *kaddr = kmap_atomic(page, KM_USER0);
 		dump->page = page;
-		memcpy(dump->data + offset, kaddr + offset, PAGE_SIZE - offset);
+		memcpy(dump->data + offset, kaddr + offset,
+		       PAGE_SIZE - offset);
 		kunmap_atomic(kaddr, KM_USER0);
 	}
 	/* Same with put_arg_page(page) in fs/exec.c */
