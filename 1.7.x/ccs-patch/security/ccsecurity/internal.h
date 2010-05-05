@@ -506,13 +506,50 @@ struct ccs_execve_entry;
 
 /* Structure for request info. */
 struct ccs_request_info {
+	/*
+	 * For holding domain of this request.
+	 * Always current->ccs_domain_info except execve() operations.
+	 * For execve() operations, this member is also used for holding domain
+	 * after execve() succeeds.
+	 */
 	struct ccs_domain_info *domain;
+	/*
+	 * For holding parameters specific to operations which deal files.
+	 */
 	struct ccs_obj_info *obj;
+	/*
+	 * For holding parameters specific to execve() request.
+	 */
 	struct ccs_execve_entry *ee;
+	/*
+	 * For updating current->ccs_flags at ccs_update_task_state().
+	 * Initialized to NULL at ccs_init_request_info().
+	 * Matching "struct ccs_acl_info"->cond is copied if access request was
+	 * granted. Re-initialized to NULL at ccs_update_task_state().
+	 */
 	struct ccs_condition *cond;
+	/*
+	 * For counting number of retries made for this request.
+	 * This counter is incremented whenever ccs_supervisor() returned
+	 * CCS_RETRY_REQUEST.
+	 */
 	u8 retry;
+	/*
+	 * For holding profile number used for this request.
+	 * One of values between 0 and CCS_MAX_PROFILES - 1.
+	 */
 	u8 profile;
+	/*
+	 * For holding access control mode used for this request.
+	 * One of CCS_CONFIG_DISABLED, CCS_CONFIG_LEARNING,
+	 * CCS_CONFIG_PERMISSIVE, CCS_CONFIG_ENFORCING.
+	 */
 	u8 mode;
+	/*
+	 * For holding operation index used for this request.
+	 * Used by ccs_init_request_info() / ccs_get_mode() / 
+	 * ccs_write_audit_log(). One of values in "enum ccs_mac_index".
+	 */
 	u8 type;
 };
 
