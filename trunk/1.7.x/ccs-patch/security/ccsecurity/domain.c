@@ -46,7 +46,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee)
 	return ccs_write_audit_log(true, r, "%s" CCS_KEYWORD_EXECUTE_HANDLER
 				   " %s\n", ee->handler_type ==
 				   CCS_TYPE_DENIED_EXECUTE_HANDLER ?
-				   "denied" : "", handler);
+				   "denied_" : "", handler);
 }
 
 /**
