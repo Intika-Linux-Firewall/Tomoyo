@@ -206,16 +206,39 @@ static void ccs_load_policy(const char *filename)
 		panic("Failed to load policy.");
 }
 
+/**
+ * __ccs_search_binary_handler - Load policy before calling search_binary_handler().
+ *
+ * @bprm: Pointer to "struct linux_binprm".
+ * @regs: Pointer to "struct pt_regs".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
 static int __ccs_search_binary_handler(struct linux_binprm *bprm,
 				       struct pt_regs *regs)
 {
 	ccs_load_policy(bprm->filename);
+	/*
+	 * ccs_load_policy() executes /sbin/ccs-init if bprm->filename is
+	 * /sbin/init . /sbin/ccs-init executes /etc/ccs/ccs-load-module to
+	 * load loadable kernel module. The loadable kernel module modifies
+	 * "struct ccsecurity_ops". Thus, we need to transfer control to
+	 * __ccs_search_binary_handler() in security/ccsecurity/domain.c
+	 * if "struct ccsecurity_ops" was modified.
+	 */
 	if (ccsecurity_ops.search_binary_handler
 	    != __ccs_search_binary_handler)
 		return ccsecurity_ops.search_binary_handler(bprm, regs);
 	return search_binary_handler(bprm, regs);
 }
 
+/*
+ * Some exports for loadable kernel module part.
+ *
+ * Although scripts/checkpatch.pl complains about use of "extern" in C file,
+ * we don't put these into security/ccsecurity/compat.h because we want to
+ * split built-in part and loadable kernel module part.
+ */
 extern asmlinkage long sys_getpid(void);
 extern asmlinkage long sys_getppid(void);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
@@ -237,6 +260,7 @@ static void put_filesystem(struct file_system_type *fs)
 }
 #endif
 
+/* Jump table for loadable kernel module. */
 const struct ccsecurity_exports ccsecurity_exports = {
 	.load_policy = ccs_load_policy,
 	.may_create = ccs_may_create,
@@ -254,6 +278,7 @@ const struct ccsecurity_exports ccsecurity_exports = {
 };
 EXPORT_SYMBOL_GPL(ccsecurity_exports);
 
+/* Members are updated by loadable kernel module. */
 struct ccsecurity_operations ccsecurity_ops = {
 	.search_binary_handler = __ccs_search_binary_handler,
 #ifdef CONFIG_CCSECURITY_DISABLE_BY_DEFAULT
