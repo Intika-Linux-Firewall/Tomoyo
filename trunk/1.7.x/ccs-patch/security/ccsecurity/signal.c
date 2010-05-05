@@ -55,13 +55,13 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	struct ccs_acl_info *ptr;
 	const u16 hash = sig;
 	int error;
-	if (ccs_init_request_info(&r, NULL, CCS_MAC_SIGNAL)
-	    == CCS_CONFIG_DISABLED)
+	const struct ccs_domain_info * const domain = ccs_current_domain();
+	if (ccs_init_request_info(&r, CCS_MAC_SIGNAL) == CCS_CONFIG_DISABLED)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
 	if (ccsecurity_exports.sys_getpid() == pid) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name,
+		ccs_audit_signal_log(&r, sig, domain->domainname->name,
 				     true);
 		return 0;                /* No check for self process. */
 	}
@@ -82,15 +82,14 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	}
 	if (!dest)
 		return 0; /* I can't find destinatioin. */
-	if (r.domain == dest) {
-		ccs_audit_signal_log(&r, sig, r.domain->domainname->name,
-				     true);
+	if (domain == dest) {
+		ccs_audit_signal_log(&r, sig, domain->domainname->name, true);
 		return 0;                /* No check for self domain. */
 	}
 	dest_pattern = dest->domainname->name;
 	do {
 		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &r.domain->acl_info_list, list) {
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 			struct ccs_signal_acl *acl;
 			if (ptr->is_deleted ||
 			    ptr->type != CCS_TYPE_SIGNAL_ACL)

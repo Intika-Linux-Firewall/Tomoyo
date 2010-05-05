@@ -507,13 +507,6 @@ struct ccs_execve_entry;
 /* Structure for request info. */
 struct ccs_request_info {
 	/*
-	 * For holding domain of this request.
-	 * Always current->ccs_domain_info except execve() operations.
-	 * For execve() operations, this member is also used for holding domain
-	 * after execve() succeeds.
-	 */
-	struct ccs_domain_info *domain;
-	/*
 	 * For holding parameters specific to operations which deal files.
 	 */
 	struct ccs_obj_info *obj;
@@ -573,6 +566,8 @@ struct ccs_execve_entry {
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	char *handler_path; /* = kstrdup(handler->name, CCS_GFP_FLAGS) */
+	u8 handler_type; /* = CCS_TYPE_EXECUTE_HANDLER or
+			    CCS_TYPE_DENIED_EXECUTE_HANDLER */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
 	/* For temporary use. */
@@ -973,8 +968,7 @@ int ccs_exec_perm(struct ccs_request_info *r,
 		  const struct ccs_path_info *filename);
 int ccs_get_mode(const u8 profile, const u8 index);
 int ccs_get_path(const char *pathname, struct path *path);
-int ccs_init_request_info(struct ccs_request_info *r,
-			  struct ccs_domain_info *domain, const u8 index);
+int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
 int ccs_lock(void);
 int ccs_may_transit(const char *domainname, const char *pathname);
 int ccs_open_control(const u8 type, struct file *file);

@@ -139,7 +139,7 @@ bool ccs_read_globally_usable_env_policy(struct ccs_io_buffer *head)
  */
 static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 {
-	const struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	int error = -EPERM;
 	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;

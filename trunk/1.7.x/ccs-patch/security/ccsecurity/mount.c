@@ -113,6 +113,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	struct ccs_path_info rdir;
 	int need_dev = 0;
 	int error = -ENOMEM;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	r->obj = &obj;
 
 	/* Get fstype. */
@@ -177,7 +178,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	}
 	rdev.name = requested_dev_name;
 	ccs_fill_path_info(&rdev);
-	list_for_each_entry_rcu(ptr, &r->domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_mount_acl *acl;
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_MOUNT_ACL)
 			continue;
@@ -320,7 +321,7 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	int idx;
 	if (!ccs_capable(CCS_SYS_MOUNT))
 		return -EPERM;
-	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_MOUNT)
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
 	if (!type)

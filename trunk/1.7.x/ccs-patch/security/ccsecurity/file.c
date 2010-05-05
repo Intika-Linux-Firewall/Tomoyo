@@ -1038,7 +1038,7 @@ static int ccs_path_acl(struct ccs_request_info *r,
 			const struct ccs_path_info *filename,
 			const u16 perm, const bool may_use_pattern)
 {
-	struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -1077,7 +1077,7 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
 				const unsigned int major,
 				const unsigned int minor)
 {
-	struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	int error = -EPERM;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
@@ -1119,6 +1119,7 @@ static int ccs_file_perm(struct ccs_request_info *r,
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	if (!filename)
 		return 0;
 	if (mode == 6) {
@@ -1137,7 +1138,7 @@ static int ccs_file_perm(struct ccs_request_info *r,
 		BUG();
 	do {
 		error = ccs_path_acl(r, filename, perm, mode != 1);
-		if (error && mode == 4 && !r->domain->ignore_global_allow_read
+		if (error && mode == 4 && !domain->ignore_global_allow_read
 		    && ccs_is_globally_readable_file(filename))
 			error = 0;
 		ccs_audit_path_log(r, msg, filename->name, !error);
@@ -1444,7 +1445,7 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 			 const struct ccs_path_info *filename1,
 			 const struct ccs_path_info *filename2)
 {
-	const struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
@@ -1645,7 +1646,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	 * opened for append mode or the filename is truncated at open time.
 	 */
 	if ((acc_mode & MAY_WRITE) && !(flag & O_APPEND)
-	    && ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
+	    && ccs_init_request_info(&r, CCS_MAC_FILE_REWRITE)
 	    != CCS_CONFIG_DISABLED) {
 		if (!ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
@@ -1658,7 +1659,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		}
 	}
 	if (!error && acc_mode &&
-	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_OPEN)
+	    ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
 	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
@@ -1669,7 +1670,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 	if (!error && (flag & O_TRUNC) &&
-	    ccs_init_request_info(&r, NULL, CCS_MAC_FILE_TRUNCATE)
+	    ccs_init_request_info(&r, CCS_MAC_FILE_TRUNCATE)
 	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
@@ -1717,7 +1718,7 @@ static int ccs_path_perm(const u8 operation, struct inode *dir,
 	buf.name = NULL;
 	symlink_target.name = NULL;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, ccs_p2mac[operation])
+	if (ccs_init_request_info(&r, ccs_p2mac[operation])
 	    == CCS_CONFIG_DISABLED)
 		goto out;
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
@@ -1793,7 +1794,7 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, ccs_pnnn2mac[operation])
+	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
 	    == CCS_CONFIG_DISABLED)
 		goto out;
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
@@ -1841,7 +1842,7 @@ static int __ccs_rewrite_permission(struct file *filp)
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_REWRITE)
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_REWRITE)
 	    == CCS_CONFIG_DISABLED)
 		goto out;
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
@@ -1896,7 +1897,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 	buf1.name = NULL;
 	buf2.name = NULL;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, ccs_pp2mac[operation])
+	if (ccs_init_request_info(&r, ccs_pp2mac[operation])
 	    == CCS_CONFIG_DISABLED)
 		goto out;
 	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
@@ -2026,7 +2027,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 			       const struct ccs_path_info *filename,
 			       const unsigned long number)
 {
-	struct ccs_domain_info *domain = r->domain;
+	const struct ccs_domain_info * const domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	const u8 perm = 1 << type;
 	int error = -EPERM;
@@ -2124,8 +2125,7 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 		return 0;
 	buf.name = NULL;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, ccs_pn2mac[type])
-	    == CCS_CONFIG_DISABLED)
+	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
 		goto out;
 	switch (type) {
 	case CCS_TYPE_CREATE:
@@ -2503,7 +2503,7 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	if (!op) /* Neither read nor write */
 		return 0;
 	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, NULL, CCS_MAC_FILE_OPEN)
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
 	    == CCS_CONFIG_DISABLED) {
 		error = 0;
 		goto out;
