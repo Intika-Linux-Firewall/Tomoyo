@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/05/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1481,7 +1481,8 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 	const char *msg;
 	int error;
  repeat:
-	r->mode = ccs_get_mode(r->profile, ccs_p2mac[operation]);
+	r->type = ccs_p2mac[operation];
+	r->mode = ccs_get_mode(r->profile, r->type);
 	if (r->mode == CCS_CONFIG_DISABLED)
 		return 0;
 	do {

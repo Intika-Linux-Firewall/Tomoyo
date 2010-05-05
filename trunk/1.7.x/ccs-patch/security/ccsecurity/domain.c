@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/05/05
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -45,6 +45,7 @@ static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee,
 	struct ccs_request_info *r = &ee->r;
 	struct ccs_domain_info *domain = r->domain;
 	const char *handler = ee->handler->name;
+	r->type = CCS_MAC_FILE_EXECUTE;
 	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
 	r->domain = ee->previous_domain;
 	error = ccs_write_audit_log(true, r, "%s %s\n",
@@ -1232,6 +1233,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	 * enforcing mode.
 	 */
 	task->ccs_domain_info = ee->r.domain;
+	ee->r.type = CCS_MAC_ENVIRON;
 	ee->r.mode = ccs_get_mode(ee->r.domain->profile, CCS_MAC_ENVIRON);
 	retval = ccs_environ(ee);
 	if (retval < 0)

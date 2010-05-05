@@ -2393,3 +2393,15 @@ Fix 2010/04/10
       parameter type. But it turned out that the macro I used did not follow C
       standards and did not work with gcc 4.x . As a result, "allow_pivot_root"
       keyword was not working as expected.
+
+Fix 2010/05/05
+
+    @ Fix incorrect audit on/off control.
+
+      The grant_log= and reject_log= parameters of CONFIG::misc::env were not
+      used because I forgot to update request type. As a result, those of
+      CONFIG::file::execute were used for CONFIG::misc::env .
+
+      Those of CONFIG::file::rewrite were not used because I forgot to update
+      request type. As a result, those of CONFIG::file::truncate were used for
+      CONFIG::file::rewrite .
