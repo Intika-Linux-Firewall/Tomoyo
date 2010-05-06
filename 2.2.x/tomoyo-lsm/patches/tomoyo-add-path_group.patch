@@ -20,7 +20,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +obj-y = common.o realpath.o tomoyo.o domain.o file.o gc.o path_group.o
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -75,6 +75,49 @@ static int tomoyo_write_control(struct f
+@@ -76,6 +76,49 @@ static int tomoyo_write_control(struct f
  				const int buffer_len);
  
  /**
@@ -70,7 +70,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_byte_range - Check whether the string isa \ooo style octal value.
   *
   * @str: Pointer to the string.
-@@ -171,6 +214,33 @@ static void tomoyo_normalize_line(unsign
+@@ -172,6 +215,33 @@ static void tomoyo_normalize_line(unsign
  }
  
  /**
@@ -104,7 +104,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_is_correct_path - Validate a pathname.
   * @filename:     The pathname to check.
   * @start_type:   Should the pathname start with '/'?
-@@ -1367,21 +1437,20 @@ static bool tomoyo_print_path_acl(struct
+@@ -1368,21 +1438,20 @@ static bool tomoyo_print_path_acl(struct
  {
  	int pos;
  	u8 bit;
@@ -130,7 +130,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			goto out;
  	}
  	head->read_bit = 0;
-@@ -1404,21 +1473,18 @@ static bool tomoyo_print_path2_acl(struc
+@@ -1405,21 +1474,18 @@ static bool tomoyo_print_path2_acl(struc
  				   struct tomoyo_path2_acl *ptr)
  {
  	int pos;
@@ -157,7 +157,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			goto out;
  	}
  	head->read_bit = 0;
-@@ -1681,6 +1747,8 @@ static int tomoyo_write_exception_policy
+@@ -1682,6 +1748,8 @@ static int tomoyo_write_exception_policy
  		return tomoyo_write_pattern_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_DENY_REWRITE))
  		return tomoyo_write_no_rewrite_policy(data, is_delete);
@@ -166,7 +166,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return -EINVAL;
  }
  
-@@ -1737,6 +1805,12 @@ static int tomoyo_read_exception_policy(
+@@ -1738,6 +1806,12 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 9;
  		case 9:
@@ -385,7 +385,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   const struct tomoyo_domain_initializer_entry *p2)
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -44,6 +44,37 @@ static const char *tomoyo_path2_keyword[
+@@ -45,6 +45,37 @@ static const char *tomoyo_path2_keyword[
  	[TOMOYO_TYPE_PIVOT_ROOT] = "pivot_root",
  };
  
@@ -423,7 +423,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /**
   * tomoyo_path2keyword - Get the name of single path operation.
   *
-@@ -636,13 +667,9 @@ static int tomoyo_path_acl2(const struct
+@@ -637,13 +668,9 @@ static int tomoyo_path_acl2(const struct
  			if (!(acl->perm_high & (perm >> 16)))
  				continue;
  		}
@@ -439,7 +439,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		error = 0;
  		break;
  	}
-@@ -816,19 +843,14 @@ static int tomoyo_update_path_acl(const 
+@@ -817,19 +844,14 @@ static int tomoyo_update_path_acl(const 
  		e.perm |= tomoyo_rw_mask;
  	if (!domain)
  		return -EINVAL;
@@ -462,7 +462,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		if (is_delete) {
  			if (perm <= 0xFFFF)
-@@ -863,7 +885,7 @@ static int tomoyo_update_path_acl(const 
+@@ -864,7 +886,7 @@ static int tomoyo_update_path_acl(const 
  	}
  	mutex_unlock(&tomoyo_policy_lock);
   out:
@@ -471,7 +471,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -895,22 +917,15 @@ static int tomoyo_update_path2_acl(const
+@@ -896,22 +918,15 @@ static int tomoyo_update_path2_acl(const
  
  	if (!domain)
  		return -EINVAL;
@@ -497,7 +497,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		if (is_delete)
  			acl->perm &= ~perm;
-@@ -930,8 +945,8 @@ static int tomoyo_update_path2_acl(const
+@@ -931,8 +946,8 @@ static int tomoyo_update_path2_acl(const
  	}
  	mutex_unlock(&tomoyo_policy_lock);
   out:
@@ -508,7 +508,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -984,9 +999,9 @@ static int tomoyo_path2_acl(const struct
+@@ -985,9 +1000,9 @@ static int tomoyo_path2_acl(const struct
  		acl = container_of(ptr, struct tomoyo_path2_acl, head);
  		if (!(acl->perm & perm))
  			continue;
@@ -522,8 +522,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
 --- security-testing-2.6.orig/security/tomoyo/gc.c
 +++ security-testing-2.6/security/tomoyo/gc.c
-@@ -11,6 +11,8 @@
- #include <linux/kthread.h>
+@@ -12,6 +12,8 @@
+ #include <linux/slab.h>
  
  enum tomoyo_gc_id {
 +	TOMOYO_ID_PATH_GROUP,
@@ -531,7 +531,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	TOMOYO_ID_DOMAIN_INITIALIZER,
  	TOMOYO_ID_DOMAIN_KEEPER,
  	TOMOYO_ID_ALIAS,
-@@ -90,15 +92,15 @@ static void tomoyo_del_acl(struct tomoyo
+@@ -91,15 +93,15 @@ static void tomoyo_del_acl(struct tomoyo
  		{
  			struct tomoyo_path_acl *entry
  				= container_of(acl, typeof(*entry), head);
@@ -550,7 +550,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		}
  		break;
  	default:
-@@ -148,6 +150,17 @@ static void tomoyo_del_name(const struct
+@@ -149,6 +151,17 @@ static void tomoyo_del_name(const struct
  {
  }
  
@@ -568,7 +568,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  static void tomoyo_collect_entry(void)
  {
  	if (mutex_lock_interruptible(&tomoyo_policy_lock))
-@@ -292,6 +305,29 @@ static void tomoyo_collect_entry(void)
+@@ -293,6 +306,29 @@ static void tomoyo_collect_entry(void)
  			}
  		}
  	}
@@ -598,7 +598,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	mutex_unlock(&tomoyo_policy_lock);
  }
  
-@@ -333,6 +369,12 @@ static void tomoyo_kfree_entry(void)
+@@ -334,6 +370,12 @@ static void tomoyo_kfree_entry(void)
  			if (!tomoyo_del_domain(p->element))
  				continue;
  			break;

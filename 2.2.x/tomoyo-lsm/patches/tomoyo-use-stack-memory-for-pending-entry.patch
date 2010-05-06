@@ -13,7 +13,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1070,46 +1070,42 @@ LIST_HEAD(tomoyo_policy_manager_list);
+@@ -1071,46 +1071,42 @@ LIST_HEAD(tomoyo_policy_manager_list);
  static int tomoyo_update_manager_entry(const char *manager,
  				       const bool is_delete)
  {
@@ -118,7 +118,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * @pos:        the &struct list_head to use as a loop cursor.
 --- security-testing-2.6.orig/security/tomoyo/domain.c
 +++ security-testing-2.6/security/tomoyo/domain.c
-@@ -129,58 +129,47 @@ static int tomoyo_update_domain_initiali
+@@ -130,58 +130,47 @@ static int tomoyo_update_domain_initiali
  						  const bool is_not,
  						  const bool is_delete)
  {
@@ -194,7 +194,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -350,57 +339,47 @@ static int tomoyo_update_domain_keeper_e
+@@ -351,57 +340,47 @@ static int tomoyo_update_domain_keeper_e
  					     const bool is_not,
  					     const bool is_delete)
  {
@@ -269,7 +269,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -552,45 +531,38 @@ static int tomoyo_update_alias_entry(con
+@@ -553,45 +532,38 @@ static int tomoyo_update_alias_entry(con
  				     const char *aliased_name,
  				     const bool is_delete)
  {
@@ -331,7 +331,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -163,38 +163,36 @@ LIST_HEAD(tomoyo_globally_readable_list)
+@@ -164,38 +164,36 @@ LIST_HEAD(tomoyo_globally_readable_list)
  static int tomoyo_update_globally_readable_entry(const char *filename,
  						 const bool is_delete)
  {
@@ -383,7 +383,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -312,38 +310,34 @@ LIST_HEAD(tomoyo_pattern_list);
+@@ -313,38 +311,34 @@ LIST_HEAD(tomoyo_pattern_list);
  static int tomoyo_update_file_pattern_entry(const char *pattern,
  					    const bool is_delete)
  {
@@ -434,7 +434,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -466,38 +460,36 @@ LIST_HEAD(tomoyo_no_rewrite_list);
+@@ -467,38 +461,36 @@ LIST_HEAD(tomoyo_no_rewrite_list);
  static int tomoyo_update_no_rewrite_entry(const char *pattern,
  					  const bool is_delete)
  {
@@ -486,7 +486,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -809,23 +801,26 @@ static int tomoyo_update_path_acl(const 
+@@ -810,23 +802,26 @@ static int tomoyo_update_path_acl(const 
  				  struct tomoyo_domain_info *const domain,
  				  const bool is_delete)
  {
@@ -521,7 +521,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (mutex_lock_interruptible(&tomoyo_policy_lock))
  		goto out;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-@@ -833,48 +828,42 @@ static int tomoyo_update_path_acl(const 
+@@ -834,48 +829,42 @@ static int tomoyo_update_path_acl(const 
  			container_of(ptr, struct tomoyo_path_acl, head);
  		if (ptr->type != TOMOYO_TYPE_PATH_ACL)
  			continue;
@@ -584,7 +584,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	return error;
  }
  
-@@ -896,24 +885,23 @@ static int tomoyo_update_path2_acl(const
+@@ -897,24 +886,23 @@ static int tomoyo_update_path2_acl(const
  				   struct tomoyo_domain_info *const domain,
  				   const bool is_delete)
  {
@@ -617,7 +617,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (mutex_lock_interruptible(&tomoyo_policy_lock))
  		goto out;
  	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-@@ -921,8 +909,8 @@ static int tomoyo_update_path2_acl(const
+@@ -922,8 +910,8 @@ static int tomoyo_update_path2_acl(const
  			container_of(ptr, struct tomoyo_path2_acl, head);
  		if (ptr->type != TOMOYO_TYPE_PATH2_ACL)
  			continue;
@@ -628,7 +628,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		if (is_delete)
  			acl->perm &= ~perm;
-@@ -931,22 +919,19 @@ static int tomoyo_update_path2_acl(const
+@@ -932,22 +920,19 @@ static int tomoyo_update_path2_acl(const
  		error = 0;
  		break;
  	}
@@ -663,7 +663,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/realpath.c
 +++ security-testing-2.6/security/tomoyo/realpath.c
-@@ -222,6 +222,25 @@ bool tomoyo_memory_ok(void *ptr)
+@@ -223,6 +223,25 @@ bool tomoyo_memory_ok(void *ptr)
  }
  
  /**
