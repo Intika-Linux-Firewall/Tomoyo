@@ -394,47 +394,41 @@ static void ccs_normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
+module AP_MODULE_DECLARE_DATA ccs_module;
+
 static int ccs_transition_fd = EOF;
+
+struct ccs_map_entry {
+	const char *pathname;
+	const char *domainname;
+};
+
+struct ccs_map_table {
+	struct ccs_map_entry *entry;
+	int len;
+};
 
 static _Bool ccs_set_context(request_rec *r)
 {
-	static char buffer[8192];
-	FILE *fp;
+	struct ccs_map_table *ptr =
+		ap_get_module_config(r->server->module_config, &ccs_module);
+	int i;
 	int len;
-	_Bool success = 0;
-	memset(buffer, 0, sizeof(buffer));
-	fp = fopen("/etc/apache_domain_map.conf", "r");
-	{ /* Transit domain by virtual host's name. */
-		char *name = r->server->server_hostname;
-		snprintf(buffer, sizeof(buffer) - 1, "servername=%s", name);
-		len = strlen(buffer) + 1;
-		success = write(ccs_transition_fd, buffer, len) == len;
-		if (!success)
-			goto out;
+	/* Transit domain by virtual host's name. */
+	char *name = r->server->server_hostname;
+	len = strlen(name) + 1;
+	if (write(ccs_transition_fd, name, len) != len)
+		return 0;
+	/* Transit domain by requested pathname. */
+	for (i = 0; i < ptr->len; i++) {
+		if (!ccs_path_matches_pattern(r->filename,
+					      ptr->entry[i].pathname))
+			continue;
+		len = strlen(ptr->entry[i].domainname) + 1;
+		return write(ccs_transition_fd,
+			     ptr->entry[i].domainname, len) == len;
 	}
-	if (fp) {
-		/* Transit domain by requested pathname. */
-		success = 0;
-		while (fgets(buffer, sizeof(buffer) - 1, fp)) {
-			char *cp = strchr(buffer, '\n');
-			if (!cp)
-				break;
-			ccs_normalize_line(buffer);
-			cp = strchr(buffer, ' ');
-			if (!cp)
-				break;
-			*cp = '\0';
-			if (!ccs_path_matches_pattern(r->filename,
-						      buffer))
-				continue;
-			len = strlen(cp + 1) + 1;
-			success = write(ccs_transition_fd, cp + 1, len) == len;
-			break;
-		}
-		fclose(fp);
-	}
- out:
-	return success;
+	return i ? write(ccs_transition_fd, "default", 7) == 7 : 1;
 }
 
 static int __thread volatile am_worker = 0;
@@ -444,9 +438,9 @@ static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
 {
 	request_rec *r = (request_rec *) data;
 	int result = HTTP_INTERNAL_SERVER_ERROR;
-	/* marks as the current context is worker thread */
+	/* Avoid recursive call. */
 	am_worker = 1;
-	/* set security context */
+	/* Set security context. */
 	if (ccs_set_context(r)) {
 		/* invoke content handler */
 		result = ap_run_handler(r);
@@ -465,11 +459,6 @@ static int ccs_handler(request_rec *r)
 	apr_status_t thread_rv;
 	if (am_worker)
 		return DECLINED;
-	if (ccs_transition_fd == EOF) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, ENOENT, r,
-			      "mod_ccs: /proc/ccs/.transition is not available.");
-		return HTTP_INTERNAL_SERVER_ERROR;
-	}
 	apr_threadattr_create(&thread_attr, r->pool);
 	apr_threadattr_detach_set(thread_attr, 0);
 	rv = apr_thread_create(&thread, thread_attr, ccs_worker_handler, r,
@@ -496,10 +485,87 @@ static void ccs_hooks(apr_pool_t *p)
 
 static void *ccs_server_config(apr_pool_t *p, server_rec *s)
 {
+	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
+	if (0) {
+		FILE *fp = fopen("/tmp/log", "a");
+		fprintf(fp, "server=%p name='%s' ptr=%p\n", s,
+			s->server_hostname, ptr);
+		fclose(fp);
+	}
 	if (ccs_transition_fd == EOF)
 		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
-	return NULL;
+	return ptr;
 }
+
+static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
+				   const char *args)
+{
+	char buffer[8192];
+	int line = 0;
+	FILE *fp;
+	struct ccs_map_table *ptr =
+		ap_get_module_config(parms->server->module_config,
+				     &ccs_module);
+	if (!ptr)
+		goto oom;
+	if (ccs_transition_fd == EOF)
+		return "mod_ccs: /proc/ccs/.transition is not available.";
+	if (0) {
+		FILE *fp = fopen("/tmp/log", "a");
+		fprintf(fp, "server=%p name='%s' ptr=%p args='%s'\n",
+			parms->server, parms->server->server_hostname,
+			ptr, args);
+		fclose(fp);
+	}
+	fp = fopen("/etc/apache_domain_map.conf", "r"); // args
+	if (!fp)
+		goto nofile;
+	{
+		int c;
+		while ((c = fgetc(fp)) != EOF)
+			if (c == '\n')
+				line++;
+		if (!line)
+			goto nofile;
+	}
+	ptr->entry = apr_palloc(parms->pool,
+				line * sizeof(struct ccs_map_entry));
+	if (!ptr->entry)
+		goto oom;
+	ptr->len = line;
+	line = 0;
+	rewind(fp);
+	while (line < ptr->len && fgets(buffer, sizeof(buffer) - 1, fp)) {
+		char *cp = strchr(buffer, '\n');
+		if (!cp)
+			return "mod_ccs: Line too long.";
+		ccs_normalize_line(buffer);
+		cp = strchr(buffer, ' ');
+		if (!cp)
+			return "mod_ccs: Invalid line.";
+		*cp = '\0';
+		cp = apr_pstrdup(parms->pool, cp + 1);
+		if (!cp)
+			goto oom;
+		ptr->entry[line].domainname = cp;
+		cp = apr_pstrdup(parms->pool, buffer);
+		if (!cp)
+			goto oom;
+		ptr->entry[line++].pathname = cp;
+	}
+	fclose(fp);
+	return NULL;
+ oom:
+	return "mod_ccs: Out of memory.";
+ nofile:
+	return "mod_ccs: Can't read mapping table.";
+}
+
+static command_rec ccs_cmds[2] = {
+	AP_INIT_RAW_ARGS("CCS_TransitionMap", ccs_parse_table, NULL,
+			 RSRC_CONF, "Path to path/domain mapping table."),
+	{ NULL }
+};
 
 module AP_MODULE_DECLARE_DATA ccs_module = {
 	STANDARD20_MODULE_STUFF,
@@ -507,6 +573,6 @@ module AP_MODULE_DECLARE_DATA ccs_module = {
 	NULL,                   /* merge per-directory config */
 	ccs_server_config,      /* server config creator */
 	NULL,                   /* server config merger */
-	NULL,                   /* command table */
+	ccs_cmds,               /* command table */
 	ccs_hooks,              /* set up other hooks */
 };
