@@ -628,7 +628,7 @@ static _Bool ccs_set_context(request_rec *r)
 		return write(ccs_transition_fd,
 			     ptr->entry[i].domainname, len) == len;
 	}
-	return i ? write(ccs_transition_fd, "default", 7) == 7 : 1;
+	return i ? write(ccs_transition_fd, "default", 8) == 8 : 1;
 }
 
 /* This "__thread" keyword depends on Linux 2.6 kernels. */
@@ -704,13 +704,14 @@ static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 				   const char *args)
 {
-	char buffer[8192];
+	static const int buffer_len = 8192;
+	char *buffer = apr_palloc(parms->pool, buffer_len);
 	int line = 0;
 	FILE *fp = NULL;
 	struct ccs_map_table *ptr =
 		ap_get_module_config(parms->server->module_config,
 				     &ccs_module);
-	if (!ptr)
+	if (!ptr || !buffer)
 		goto no_memory;
 	fp = fopen(args, "r");
 	if (!fp)
@@ -720,8 +721,10 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 		while ((c = fgetc(fp)) != EOF)
 			if (c == '\n')
 				line++;
-		if (!line)
+		if (!line) {
+			fclose(fp);
 			goto no_file;
+		}
 	}
 	ptr->entry = apr_palloc(parms->pool,
 				line * sizeof(struct ccs_map_entry));
@@ -730,13 +733,17 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 	ptr->len = line;
 	line = 0;
 	rewind(fp);
-	memset(buffer, 0, sizeof(buffer));
-	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
+	memset(buffer, 0, buffer_len);
+	while (fgets(buffer, buffer_len - 1, fp)) {
 		char *cp = strchr(buffer, '\n');
 		if (line == ptr->len)
 			goto invalid_line;
-		if (!cp)
-			return "mod_ccs: Line too long.";
+		if (!cp) {
+			fclose(fp);
+			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+				 "Line %u of %s : Too long.", line + 1, args);
+			return buffer;
+		}
 		ccs_normalize_line((unsigned char *) buffer);
 		cp = strchr(buffer, ' ');
 		if (!cp)
@@ -744,11 +751,17 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 		*cp++ = '\0';
 		if (!ccs_is_correct_path(buffer, 1, 0, -1)) {
 			fclose(fp);
-			return "mod_ccs: Invalid pathname pattern.";
+			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+				 "Line %u of %s : Bad pathname.", line + 1,
+				 args);
+			return buffer;
 		}
 		if (!ccs_is_correct_path(cp, 0, 0, 0)) {
 			fclose(fp);
-			return "mod_ccs: Invalid domainname.";
+			snprintf(buffer, buffer_len - 1, "mod_ccs: "
+				 "Line %u of %s : Bad domainname.", line + 1,
+				 args);
+			return buffer;
 		}
 		cp = apr_pstrdup(parms->pool, cp);
 		if (!cp)
@@ -766,13 +779,13 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 		fclose(fp);
 	return "mod_ccs: Out of memory.";
  no_file:
-	if (fp)
-		fclose(fp);
-	return "mod_ccs: Can't read mapping table.";
+	snprintf(buffer, buffer_len - 1, "mod_ccs: %s : Can't read.", args);
+	return buffer;
  invalid_line:
-	if (fp)
-		fclose(fp);
-	return "mod_ccs: Invalid line.";
+	fclose(fp);
+	snprintf(buffer, buffer_len - 1, "mod_ccs: "
+		 "Line %u of %s : Bad line.", line + 1, args);
+	return buffer;
 }
 
 static command_rec ccs_cmds[2] = {
