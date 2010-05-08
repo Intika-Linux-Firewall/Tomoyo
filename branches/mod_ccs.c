@@ -2,11 +2,12 @@
  * mod_ccs.c - Apache module for TOMOYO Linux.
  *
  * This module allows Apache 2.x running on TOMOYO Linux kernels to process
- * requests under different TOMOYO Linux's domains based on requested pathname
- * by requesting TOMOYO Linux's domain transition before processing requests.
+ * requests under different TOMOYO Linux's domains based on requested server's
+ * name (and optionally based on requested resource's pathname) by requesting
+ * TOMOYO Linux's domain transition before processing requests.
  *
- * The idea to use one-time-thread is borrowed from mod_selinux developed by
- * KaiGai Kohei.
+ * The idea to use one-time worker thread is borrowed from mod_selinux
+ * developed by KaiGai Kohei.
  *
  * Access restrictions are provided by TOMOYO Linux kernel's Mandatory Access
  * Control functionality. Therefore, if you want Apache 2.x to process requests
@@ -29,7 +30,13 @@
  *
  * How to configure:
  *
+ *   Domain transition based on server's name is automatically performed by
+ *   this module.
+ *
  *   CCS_TransitionMap directive is provided by this module.
+ *   You may perform domain transition based on requested resource's pathname
+ *   using this directive after the domain transition based on server's name.
+ *
  *   This directive can appear in the server-wide configuration files
  *   (e.g., httpd.conf) outside <Directory> or <Location> containers.
  *
@@ -640,6 +647,9 @@ static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
 		result = ap_run_handler(r);
 		if (result == DECLINED)
 			result = HTTP_INTERNAL_SERVER_ERROR;
+	} else {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, EPERM, r, "mod_ccs: "
+			      "Unable to set security context.");
 	}
 	apr_thread_exit(thread, result);
 	return NULL;
@@ -653,19 +663,21 @@ static int ccs_handler(request_rec *r)
 	apr_status_t thread_rv;
 	if (am_worker)
 		return DECLINED;
+	if (ccs_transition_fd == EOF)
+		return DECLINED;
 	apr_threadattr_create(&thread_attr, r->pool);
 	apr_threadattr_detach_set(thread_attr, 0);
 	rv = apr_thread_create(&thread, thread_attr, ccs_worker_handler, r,
 			       r->pool);
 	if (rv != APR_SUCCESS) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r,
-			      "Unable to launch a one-time worker thread");
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_ccs: "
+			      "Unable to launch a one-time worker thread.");
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
 	rv = apr_thread_join(&thread_rv, thread);
 	if (rv != APR_SUCCESS) {
-		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r,
-			      "Unable to join the one-time worker thread");
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, errno, r, "mod_ccs: "
+			      "Unable to join the one-time worker thread.");
 		r->connection->aborted = 1;
 		return HTTP_INTERNAL_SERVER_ERROR;
 	}
@@ -680,11 +692,11 @@ static void ccs_hooks(apr_pool_t *p)
 static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 {
 	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
+	if (ptr)
+		memset(ptr, 0, sizeof(struct ccs_map_table));
 	/* We can share because /proc/ccs/.transition interface has no data. */
 	if (ccs_transition_fd == EOF)
 		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
-	if (ptr)
-		memset(ptr, 0, sizeof(struct ccs_map_table));
 	/* Allocation failure is reported by ccs_parse_table(). */
 	return ptr;
 }
@@ -700,8 +712,6 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 				     &ccs_module);
 	if (!ptr)
 		goto no_memory;
-	if (ccs_transition_fd == EOF)
-		return "mod_ccs: /proc/ccs/.transition is not available.";
 	fp = fopen(args, "r");
 	if (!fp)
 		goto no_file;
