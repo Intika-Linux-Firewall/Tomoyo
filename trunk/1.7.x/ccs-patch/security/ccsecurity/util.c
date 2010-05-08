@@ -248,7 +248,7 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 }
 
 /**
- * ccs_is_byte_range - Check whether the string isa \ooo style octal value.
+ * ccs_is_byte_range - Check whether the string is a \ooo style octal value.
  *
  * @str: Pointer to the string.
  *
@@ -780,7 +780,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 }
 
 /**
- * ccs_file_matches_pattern - Pattern matching without without '/' character.
+ * ccs_file_matches_pattern - Pattern matching without '/' character.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.

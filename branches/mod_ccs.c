@@ -1,22 +1,76 @@
-#include "httpd.h"
-#include "apr_signal.h"
-#include "apr_strings.h"
-#include "apr_file_io.h"
-#include "apr_thread_proc.h"
-#include "ap_listen.h"
-#include "ap_mpm.h"
-#include "http_connection.h"
-#include "http_request.h"
-#include "http_log.h"
-#include "http_protocol.h"
+/*
+ * mod_ccs.c - Apache module for TOMOYO Linux.
+ *
+ * This module allows Apache 2.x running on TOMOYO Linux kernels to process
+ * requests under different TOMOYO Linux's domains based on requested pathname
+ * by requesting TOMOYO Linux's domain transition before processing requests.
+ *
+ * The idea to use one-time-thread is borrowed from mod_selinux developed by
+ * KaiGai Kohei.
+ *
+ * Access restrictions are provided by TOMOYO Linux kernel's Mandatory Access
+ * Control functionality. Therefore, if you want Apache 2.x to process requests
+ * with limited set of permissions, you have to configure TOMOYO Linux's policy
+ * and assign "enforcing mode".
+ *
+ * Buildtime Dependency:
+ *
+ *   None.
+ *
+ * Runtime Dependency:
+ *
+ *   TOMOYO Linux 1.7.2 (or later) running on Linux 2.6 kernels.
+ *
+ * How to build and install:
+ *
+ *   apxs -c mod_ccs.c && apxs -i mod_ccs.la
+ *
+ *   (If your system has apxs2, use apxs2 rather than apxs.)
+ *
+ * How to configure:
+ *
+ *   CCS_TransitionMap directive is provided by this module.
+ *   This directive can appear in the server-wide configuration files
+ *   (e.g., httpd.conf) outside <Directory> or <Location> containers.
+ *
+ *     DocumentRoot /var/www/html/
+ *     ServerName www.example.com
+ *     CCS_TransitionMap /etc/ccs/apache2_transition_table.conf
+ *
+ *     <VirtualHost *:80>
+ *         DocumentRoot /home/cat/html/
+ *         ServerName cat.example.com
+ *         CCS_TransitionMap /home/cat/apache2_transition_table.conf
+ *     </VirtualHost>
+ *
+ *     <VirtualHost *:80>
+ *         DocumentRoot /home/dog/html/
+ *         ServerName dog.example.com
+ *         CCS_TransitionMap /home/dog/apache2_transition_table.conf
+ *     </VirtualHost>
+ *
+ *   This directive takes one parameter which specifies pathname to mapping
+ *   table file. The mapping table file contains list of "pathname patterns"
+ *   and "domainname" pairs, written in accordance to with TOMOYO Linux's
+ *   pathname representation rule and wildcard characters.
+ *
+ *     /var/www/cgi-bin/\*         cgi-programs
+ *     /usr/share/horde/\{\*\}/\*  horde
+ *     /var/www/html/\{\*\}/\*     static-files
+ */
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
+#define s8 char
+#define u8 unsigned char
 #define bool _Bool
 #define false 0
 #define true 1
 
 /**
- * ccs_is_byte_range - Check whether the string isa \ooo style octal value.
+ * ccs_is_byte_range - Check whether the string is a \ooo style octal value.
  *
  * @str: Pointer to the string.
  *
@@ -188,7 +242,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 }
 
 /**
- * ccs_file_matches_pattern - Pattern matching without without '/' character.
+ * ccs_file_matches_pattern - Pattern matching without '/' character.
  *
  * @filename:     The start of string to check.
  * @filename_end: The end of string to check.
@@ -364,9 +418,6 @@ static bool ccs_path_matches_pattern(const char *filename, const char *pattern)
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (len == strlen(pattern))
 		return !strcmp(filename, pattern);
-	/* Don't compare directory and non-directory. */
-	//if (filename->is_dir != pattern->is_dir)
-	//	return false;
 	/* Compare the initial length without patterns. */
 	if (strncmp(f, p, len))
 		return false;
@@ -375,6 +426,16 @@ static bool ccs_path_matches_pattern(const char *filename, const char *pattern)
 	return ccs_path_matches_pattern2(f, p);
 }
 
+/**
+ * ccs_normalize_line - Format string.
+ *
+ * @line: The line to normalize.
+ *
+ * Leading and trailing whitespaces are removed.
+ * Multiple whitespaces are packed into single space.
+ *
+ * Returns nothing.
+ */
 static void ccs_normalize_line(unsigned char *line)
 {
 	unsigned char *sp = line;
@@ -393,6 +454,138 @@ static void ccs_normalize_line(unsigned char *line)
 	}
 	*dp = '\0';
 }
+
+/**
+ * ccs_make_byte - Make byte value from three octal characters.
+ *
+ * @c1: The first character.
+ * @c2: The second character.
+ * @c3: The third character.
+ *
+ * Returns byte value.
+ */
+static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
+{
+	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
+}
+
+/**
+ * ccs_is_correct_path - Validate a pathname.
+ *
+ * @filename:     The pathname to check.
+ * @start_type:   Should the pathname start with '/'?
+ *                1 = must / -1 = must not / 0 = don't care
+ * @pattern_type: Can the pathname contain a wildcard?
+ *                1 = must / -1 = must not / 0 = don't care
+ * @end_type:     Should the pathname end with '/'?
+ *                1 = must / -1 = must not / 0 = don't care
+ *
+ * Check whether the given filename follows the naming rules.
+ * Returns true if @filename follows the naming rules, false otherwise.
+ */
+static bool ccs_is_correct_path(const char *filename, const s8 start_type,
+				const s8 pattern_type, const s8 end_type)
+{
+	const char *const start = filename;
+	bool in_repetition = false;
+	bool contains_pattern = false;
+	unsigned char c;
+	unsigned char d;
+	unsigned char e;
+	if (!filename)
+		goto out;
+	c = *filename;
+	if (start_type == 1) { /* Must start with '/' */
+		if (c != '/')
+			goto out;
+	} else if (start_type == -1) { /* Must not start with '/' */
+		if (c == '/')
+			goto out;
+	}
+	if (c)
+		c = *(filename + strlen(filename) - 1);
+	if (end_type == 1) { /* Must end with '/' */
+		if (c != '/')
+			goto out;
+	} else if (end_type == -1) { /* Must not end with '/' */
+		if (c == '/')
+			goto out;
+	}
+	while (1) {
+		c = *filename++;
+		if (!c)
+			break;
+		if (c == '\\') {
+			c = *filename++;
+			switch (c) {
+			case '\\':  /* "\\" */
+				continue;
+			case '$':   /* "\$" */
+			case '+':   /* "\+" */
+			case '?':   /* "\?" */
+			case '*':   /* "\*" */
+			case '@':   /* "\@" */
+			case 'x':   /* "\x" */
+			case 'X':   /* "\X" */
+			case 'a':   /* "\a" */
+			case 'A':   /* "\A" */
+			case '-':   /* "\-" */
+				if (pattern_type == -1)
+					break; /* Must not contain pattern */
+				contains_pattern = true;
+				continue;
+			case '{':   /* "/\{" */
+				if (filename - 3 < start ||
+				    *(filename - 3) != '/')
+					break;
+				if (pattern_type == -1)
+					break; /* Must not contain pattern */
+				contains_pattern = true;
+				in_repetition = true;
+				continue;
+			case '}':   /* "\}/" */
+				if (*filename != '/')
+					break;
+				if (!in_repetition)
+					break;
+				in_repetition = false;
+				continue;
+			case '0':   /* "\ooo" */
+			case '1':
+			case '2':
+			case '3':
+				d = *filename++;
+				if (d < '0' || d > '7')
+					break;
+				e = *filename++;
+				if (e < '0' || e > '7')
+					break;
+				c = ccs_make_byte(c, d, e);
+				if (c && (c <= ' ' || c >= 127))
+					continue; /* pattern is not \000 */
+			}
+			goto out;
+		} else if (in_repetition && c == '/') {
+			goto out;
+		} else if (c <= ' ' || c >= 127) {
+			goto out;
+		}
+	}
+	if (pattern_type == 1) { /* Must contain pattern */
+		if (!contains_pattern)
+			goto out;
+	}
+	if (in_repetition)
+		goto out;
+	return true;
+ out:
+	return false;
+}
+
+#include "httpd.h"
+#include "apr_strings.h"
+#include "ap_listen.h"
+#include "http_log.h"
 
 module AP_MODULE_DECLARE_DATA ccs_module;
 
@@ -431,6 +624,7 @@ static _Bool ccs_set_context(request_rec *r)
 	return i ? write(ccs_transition_fd, "default", 7) == 7 : 1;
 }
 
+/* This "__thread" keyword depends on Linux 2.6 kernels. */
 static int __thread volatile am_worker = 0;
 
 static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
@@ -483,18 +677,13 @@ static void ccs_hooks(apr_pool_t *p)
 	ap_hook_handler(ccs_handler, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
-static void *ccs_server_config(apr_pool_t *p, server_rec *s)
+static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 {
-	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
-	if (0) {
-		FILE *fp = fopen("/tmp/log", "a");
-		fprintf(fp, "server=%p name='%s' ptr=%p\n", s,
-			s->server_hostname, ptr);
-		fclose(fp);
-	}
+	/* We can share because /proc/ccs/.transition interface has no data. */
 	if (ccs_transition_fd == EOF)
 		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
-	return ptr;
+	/* Allocation failure is checked later. */
+	return apr_palloc(p, sizeof(struct ccs_map_table));
 }
 
 static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
@@ -502,63 +691,75 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 {
 	char buffer[8192];
 	int line = 0;
-	FILE *fp;
+	FILE *fp = NULL;
 	struct ccs_map_table *ptr =
 		ap_get_module_config(parms->server->module_config,
 				     &ccs_module);
 	if (!ptr)
-		goto oom;
+		goto no_memory;
 	if (ccs_transition_fd == EOF)
 		return "mod_ccs: /proc/ccs/.transition is not available.";
-	if (0) {
-		FILE *fp = fopen("/tmp/log", "a");
-		fprintf(fp, "server=%p name='%s' ptr=%p args='%s'\n",
-			parms->server, parms->server->server_hostname,
-			ptr, args);
-		fclose(fp);
-	}
-	fp = fopen("/etc/apache_domain_map.conf", "r"); // args
+	fp = fopen(args, "r");
 	if (!fp)
-		goto nofile;
+		goto no_file;
 	{
 		int c;
 		while ((c = fgetc(fp)) != EOF)
 			if (c == '\n')
 				line++;
 		if (!line)
-			goto nofile;
+			goto no_file;
 	}
 	ptr->entry = apr_palloc(parms->pool,
 				line * sizeof(struct ccs_map_entry));
 	if (!ptr->entry)
-		goto oom;
+		goto no_memory;
 	ptr->len = line;
 	line = 0;
 	rewind(fp);
-	while (line < ptr->len && fgets(buffer, sizeof(buffer) - 1, fp)) {
+	memset(buffer, 0, sizeof(buffer));
+	while (fgets(buffer, sizeof(buffer) - 1, fp)) {
 		char *cp = strchr(buffer, '\n');
+		if (line == ptr->len)
+			goto invalid_line;
 		if (!cp)
 			return "mod_ccs: Line too long.";
-		ccs_normalize_line(buffer);
+		ccs_normalize_line((unsigned char *) buffer);
 		cp = strchr(buffer, ' ');
 		if (!cp)
-			return "mod_ccs: Invalid line.";
-		*cp = '\0';
-		cp = apr_pstrdup(parms->pool, cp + 1);
+			goto invalid_line;
+		*cp++ = '\0';
+		if (!ccs_is_correct_path(buffer, 1, 0, -1)) {
+			fclose(fp);
+			return "mod_ccs: Invalid pathname pattern.";
+		}
+		if (!ccs_is_correct_path(cp, 0, 0, 0)) {
+			fclose(fp);
+			return "mod_ccs: Invalid domainname.";
+		}
+		cp = apr_pstrdup(parms->pool, cp);
 		if (!cp)
-			goto oom;
+			goto no_memory;
 		ptr->entry[line].domainname = cp;
 		cp = apr_pstrdup(parms->pool, buffer);
 		if (!cp)
-			goto oom;
+			goto no_memory;
 		ptr->entry[line++].pathname = cp;
 	}
 	fclose(fp);
 	return NULL;
- oom:
+ no_memory:
+	if (fp)
+		fclose(fp);
 	return "mod_ccs: Out of memory.";
- nofile:
+ no_file:
+	if (fp)
+		fclose(fp);
 	return "mod_ccs: Can't read mapping table.";
+ invalid_line:
+	if (fp)
+		fclose(fp);
+	return "mod_ccs: Invalid line.";
 }
 
 static command_rec ccs_cmds[2] = {
@@ -568,11 +769,6 @@ static command_rec ccs_cmds[2] = {
 };
 
 module AP_MODULE_DECLARE_DATA ccs_module = {
-	STANDARD20_MODULE_STUFF,
-	NULL,                   /* create per-directory config */
-	NULL,                   /* merge per-directory config */
-	ccs_server_config,      /* server config creator */
-	NULL,                   /* server config merger */
-	ccs_cmds,               /* command table */
-	ccs_hooks,              /* set up other hooks */
+	STANDARD20_MODULE_STUFF, NULL, NULL,
+	ccs_create_server_config, NULL, ccs_cmds, ccs_hooks
 };
