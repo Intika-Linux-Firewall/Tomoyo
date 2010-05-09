@@ -1,32 +1,28 @@
 /*
  * mod_ccs.c - Apache module for TOMOYO Linux.
  *
- * This module allows Apache 2.x running on TOMOYO Linux kernels to process
- * requests under different TOMOYO Linux's domains based on requested server's
- * name (and optionally based on requested resource's pathname) by requesting
- * TOMOYO Linux's domain transition before processing requests.
+ * About this module:
  *
- * The idea to use one-time worker thread is borrowed from mod_selinux
- * developed by KaiGai Kohei.
+ *   This module allows Apache 2.x running on TOMOYO Linux kernels to process
+ *   requests under different TOMOYO Linux's domains based on requested
+ *   server's name (and optionally based on requested resource's pathname) by
+ *   requesting TOMOYO Linux's domain transition before processing requests.
  *
- * Access restrictions are provided by TOMOYO Linux kernel's Mandatory Access
- * Control functionality. Therefore, if you want Apache 2.x to process requests
- * with limited set of permissions, you have to configure TOMOYO Linux's policy
- * and assign "enforcing mode".
+ *   Access restrictions are provided by TOMOYO Linux kernel's Mandatory Access
+ *   Control functionality. Therefore, if you want Apache to process requests
+ *   with limited set of permissions, you have to configure TOMOYO Linux's
+ *   policy and assign "enforcing mode".
  *
- * Buildtime Dependency:
- *
- *   None.
- *
- * Runtime Dependency:
+ * Runtime dependency:
  *
  *   TOMOYO Linux 1.7.2 (or later) running on Linux 2.6 kernels.
  *
  * How to build and install:
  *
- *   apxs -c mod_ccs.c && apxs -i mod_ccs.la
+ *   Install packages needed for developing Apache modules and run below
+ *   command. If your system has apxs2, use apxs2 rather than apxs.
  *
- *   (If your system has apxs2, use apxs2 rather than apxs.)
+ *     apxs -c mod_ccs.c && apxs -i mod_ccs.la
  *
  * How to configure:
  *
@@ -58,12 +54,19 @@
  *
  *   This directive takes one parameter which specifies pathname to mapping
  *   table file. The mapping table file contains list of "pathname patterns"
- *   and "domainname" pairs, written in accordance to with TOMOYO Linux's
- *   pathname representation rule and wildcard characters.
+ *   and "domainname" pairs, written in accordance with TOMOYO Linux's pathname
+ *   representation rule and wildcard characters.
  *
  *     /var/www/cgi-bin/\*         cgi-programs
  *     /usr/share/horde/\{\*\}/\*  horde
  *     /var/www/html/\{\*\}/\*     static-files
+ *
+ * Author:
+ *
+ *   Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+ *
+ *   The idea to use one-time worker thread is borrowed from mod_selinux.c
+ *   developed by KaiGai Kohei.
  */
 #include <stdio.h>
 #include <string.h>
