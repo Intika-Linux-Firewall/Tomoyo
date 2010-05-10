@@ -995,7 +995,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	kfree(buf2);
 --- security-testing-2.6.orig/security/tomoyo/mount.c
 +++ security-testing-2.6/security/tomoyo/mount.c
-@@ -177,19 +177,12 @@ static int tomoyo_mount_acl2(struct tomo
+@@ -178,19 +178,12 @@ static int tomoyo_mount_acl2(struct tomo
  		error = 0;
  		break;
  	}
@@ -1021,7 +1021,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   out:
  	kfree(requested_dev_name);
  	kfree(requested_dir_name);
-@@ -278,7 +271,10 @@ static int tomoyo_mount_acl(struct tomoy
+@@ -279,7 +272,10 @@ static int tomoyo_mount_acl(struct tomoy
  				      TOMOYO_MOUNT_MAKE_SHARED_KEYWORD,
  				      flags & ~MS_SHARED);
  	else
