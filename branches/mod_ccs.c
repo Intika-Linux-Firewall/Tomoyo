@@ -22,7 +22,7 @@
  *   Install packages needed for developing Apache modules and run below
  *   command. If your system has apxs2, use apxs2 rather than apxs.
  *
- *     apxs -c mod_ccs.c && apxs -i mod_ccs.la
+ *     apxs -i -a -c mod_ccs.c
  *
  * How to configure:
  *
