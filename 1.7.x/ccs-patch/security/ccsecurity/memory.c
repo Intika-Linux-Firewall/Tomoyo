@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/05/10
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -15,6 +15,11 @@
 #include <linux/hash.h>
 #endif
 
+/**
+ * ccs_warn_oom - Print out of memory warning message.
+ *
+ * @function: Function's name.
+ */
 void ccs_warn_oom(const char *function)
 {
 	/* Reduce error messages. */
@@ -29,7 +34,9 @@ void ccs_warn_oom(const char *function)
 		panic("MAC Initialization failed.\n");
 }
 
+/* Memory allocated for policy. */
 static atomic_t ccs_policy_memory_size;
+/* Quota for holding policy. */
 static unsigned int ccs_quota_for_policy;
 
 /**
@@ -65,8 +72,6 @@ bool ccs_memory_ok(const void *ptr, const unsigned int size)
 void *ccs_commit_ok(void *data, const unsigned int size)
 {
 	void *ptr = kmalloc(size, CCS_GFP_FLAGS);
-	if (!ptr)
-		return NULL;
 	if (ccs_memory_ok(ptr, size)) {
 		memmove(ptr, data, size);
 		memset(data, 0, size);
@@ -89,6 +94,7 @@ void ccs_memory_free(const void *ptr, size_t size)
 	kfree(ptr);
 }
 
+/* Lis of IPv6 address. */
 LIST_HEAD(ccs_address_list);
 
 /**
@@ -219,10 +225,14 @@ void __init ccs_mm_init(void)
 	ccs_read_unlock(idx);
 }
 
+/* Memory allocated for audit logs. */
 unsigned int ccs_audit_log_memory_size;
+/* Quota for holding audit logs. */
 unsigned int ccs_quota_for_audit_log;
 
+/* Memory allocated for query lists. */
 unsigned int ccs_query_memory_size;
+/* Quota for holding query lists. */
 unsigned int ccs_quota_for_query;
 
 /**
