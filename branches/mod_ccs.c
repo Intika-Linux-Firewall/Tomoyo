@@ -611,6 +611,30 @@ struct ccs_map_table {
 	int len;
 };
 
+static char *ccs_encode_string(const char *str)
+{
+	char *cp = malloc(strlen(str) * 4 + 1);
+	char *cp0 = cp;
+	if (!cp)
+		return NULL;
+	while (*str) {
+		const unsigned char c = *str++;
+		if (c == '\\') {
+			*cp++ = '\\';
+			*cp++ = '\\';
+		} else if (c > ' ' && c < 127) {
+			*cp++ = c;
+		} else {
+			*cp++ = '\\';
+			*cp++ = (c >> 6) + '0';
+			*cp++ = ((c >> 3) & 7) + '0';
+			*cp++ = (c & 7) + '0';
+		}
+	}
+	*cp = '\0';
+	return cp0;
+}
+
 static _Bool ccs_set_context(request_rec *r)
 {
 	struct ccs_map_table *ptr =
@@ -618,23 +642,27 @@ static _Bool ccs_set_context(request_rec *r)
 	int i;
 	int len;
 	/* Transit domain by virtual host's name. */
-	char *name = r->server->server_hostname;
+	const char *name = r->server->server_hostname;
 	len = strlen(name) + 1;
 	if (write(ccs_transition_fd, name, len) != len)
 		return 0;
 	/* Transit domain by requested pathname. */
+	name = ccs_encode_string(r->filename);
+	if (!name)
+		return 0;
 	for (i = 0; i < ptr->len; i++) {
-		if (!ccs_path_matches_pattern(r->filename,
-					      ptr->entry[i].pathname))
+		if (!ccs_path_matches_pattern(name, ptr->entry[i].pathname))
 			continue;
-		len = strlen(ptr->entry[i].domainname) + 1;
-		return write(ccs_transition_fd,
-			     ptr->entry[i].domainname, len) == len;
+		free((void *) name);
+		name = ptr->entry[i].domainname;
+		len = strlen(name) + 1;
+		return write(ccs_transition_fd, name, len) == len;
 	}
+	free((void *) name);
 	return i ? write(ccs_transition_fd, "default", 8) == 8 : 1;
 }
 
-/* This "__thread" keyword depends on Linux 2.6 kernels. */
+/* This "__thread" keyword does not work on Linux 2.4 kernels. */
 static int __thread volatile am_worker = 0;
 
 static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
@@ -642,11 +670,14 @@ static void *APR_THREAD_FUNC ccs_worker_handler(apr_thread_t *thread,
 {
 	request_rec *r = (request_rec *) data;
 	int result = HTTP_INTERNAL_SERVER_ERROR;
-	/* Avoid recursive call. */
 	am_worker = 1;
 	/* Set security context. */
 	if (ccs_set_context(r)) {
-		/* invoke content handler */
+		/*
+		 * Invoke content handler again.
+		 * Thread local variable am_worker prevents from
+		 * being called infinitely.
+		 */
 		result = ap_run_handler(r);
 		if (result == DECLINED)
 			result = HTTP_INTERNAL_SERVER_ERROR;
@@ -759,7 +790,7 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 				 args);
 			return buffer;
 		}
-		if (!ccs_is_correct_path(cp, 0, 0, 0)) {
+		if (!ccs_is_correct_path(cp, 0, 0, -1)) {
 			fclose(fp);
 			snprintf(buffer, buffer_len - 1, "mod_ccs: "
 				 "Line %u of %s : Bad domainname.", line + 1,
