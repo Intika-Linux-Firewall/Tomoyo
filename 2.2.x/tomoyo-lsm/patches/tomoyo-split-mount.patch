@@ -10,9 +10,9 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.h |   56 ++++++-
  security/tomoyo/file.c   |    9 -
  security/tomoyo/gc.c     |   10 +
- security/tomoyo/mount.c  |  365 +++++++++++++++++++++++++++++++++++++++++++++++
+ security/tomoyo/mount.c  |  366 +++++++++++++++++++++++++++++++++++++++++++++++
  security/tomoyo/tomoyo.c |    2 
- 7 files changed, 468 insertions(+), 11 deletions(-)
+ 7 files changed, 469 insertions(+), 11 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -272,13 +272,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		break;
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/mount.c
-@@ -0,0 +1,365 @@
+@@ -0,0 +1,366 @@
 +/*
 + * security/tomoyo/mount.c
 + *
 + * Copyright (C) 2005-2010  NTT DATA CORPORATION
 + */
 +
++#include <linux/slab.h>
 +#include "common.h"
 +
 +/* Keywords for mount restrictions. */

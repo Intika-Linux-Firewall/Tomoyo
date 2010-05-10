@@ -10,8 +10,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.h     |   94 +++++++++++++++++++++--
  security/tomoyo/file.c       |   73 +++++++++++-------
  security/tomoyo/gc.c         |   48 +++++++++++-
- security/tomoyo/path_group.c |  171 +++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 433 insertions(+), 55 deletions(-)
+ security/tomoyo/path_group.c |  172 +++++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 434 insertions(+), 55 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/Makefile
 +++ security-testing-2.6/security/tomoyo/Makefile
@@ -613,13 +613,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			break;
 --- /dev/null
 +++ security-testing-2.6/security/tomoyo/path_group.c
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,172 @@
 +/*
 + * security/tomoyo/path_group.c
 + *
 + * Copyright (C) 2005-2009  NTT DATA CORPORATION
 + */
 +
++#include <linux/slab.h>
 +#include "common.h"
 +/* The list for "struct ccs_path_group". */
 +LIST_HEAD(tomoyo_path_group_list);
