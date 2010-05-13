@@ -40,8 +40,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  net/unix/af_unix.c              |    8 +++++
  38 files changed, 519 insertions(+), 7 deletions(-)
 
---- linux-2.6.18-194.el5.orig/arch/alpha/kernel/ptrace.c
-+++ linux-2.6.18-194.el5/arch/alpha/kernel/ptrace.c
+--- linux-2.6.18-194.3.1.el5.orig/arch/alpha/kernel/ptrace.c
++++ linux-2.6.18-194.3.1.el5/arch/alpha/kernel/ptrace.c
 @@ -20,6 +20,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -63,8 +63,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	lock_kernel();
  	DBG(DBG_MEM, ("request=%ld pid=%ld addr=0x%lx data=0x%lx\n",
---- linux-2.6.18-194.el5.orig/arch/ia64/ia32/sys_ia32.c
-+++ linux-2.6.18-194.el5/arch/ia64/ia32/sys_ia32.c
+--- linux-2.6.18-194.3.1.el5.orig/arch/ia64/ia32/sys_ia32.c
++++ linux-2.6.18-194.3.1.el5/arch/ia64/ia32/sys_ia32.c
 @@ -58,6 +58,9 @@
  #include <asm/types.h>
  #include <asm/uaccess.h>
@@ -86,8 +86,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-194.el5.orig/arch/m32r/kernel/ptrace.c
-+++ linux-2.6.18-194.el5/arch/m32r/kernel/ptrace.c
+--- linux-2.6.18-194.3.1.el5.orig/arch/m32r/kernel/ptrace.c
++++ linux-2.6.18-194.3.1.el5/arch/m32r/kernel/ptrace.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/processor.h>
@@ -109,8 +109,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	lock_kernel();
  	if (request == PTRACE_TRACEME) {
---- linux-2.6.18-194.el5.orig/arch/mips/kernel/ptrace32.c
-+++ linux-2.6.18-194.el5/arch/mips/kernel/ptrace32.c
+--- linux-2.6.18-194.3.1.el5.orig/arch/mips/kernel/ptrace32.c
++++ linux-2.6.18-194.3.1.el5/arch/mips/kernel/ptrace32.c
 @@ -35,6 +35,9 @@
  #include <asm/system.h>
  #include <asm/uaccess.h>
@@ -132,8 +132,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  #if 0
  	printk("ptrace(r=%d,pid=%d,addr=%08lx,data=%08lx)\n",
---- linux-2.6.18-194.el5.orig/arch/sparc/kernel/ptrace.c
-+++ linux-2.6.18-194.el5/arch/sparc/kernel/ptrace.c
+--- linux-2.6.18-194.3.1.el5.orig/arch/sparc/kernel/ptrace.c
++++ linux-2.6.18-194.3.1.el5/arch/sparc/kernel/ptrace.c
 @@ -23,6 +23,9 @@
  #include <asm/pgtable.h>
  #include <asm/system.h>
@@ -157,8 +157,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	lock_kernel();
  #ifdef DEBUG_PTRACE
---- linux-2.6.18-194.el5.orig/fs/Kconfig
-+++ linux-2.6.18-194.el5/fs/Kconfig
+--- linux-2.6.18-194.3.1.el5.orig/fs/Kconfig
++++ linux-2.6.18-194.3.1.el5/fs/Kconfig
 @@ -2072,5 +2072,7 @@ endmenu
  source "fs/nls/Kconfig"
  source "fs/dlm/Kconfig"
@@ -167,16 +167,16 @@ This is TOMOYO Linux patch for CentOS 5.5.
 +
  endmenu
  
---- linux-2.6.18-194.el5.orig/fs/Makefile
-+++ linux-2.6.18-194.el5/fs/Makefile
+--- linux-2.6.18-194.3.1.el5.orig/fs/Makefile
++++ linux-2.6.18-194.3.1.el5/fs/Makefile
 @@ -115,3 +115,5 @@ obj-$(CONFIG_CACHEFILES)	+= cachefiles/
  obj-$(CONFIG_DEBUG_FS)		+= debugfs/
  obj-$(CONFIG_OCFS2_FS)		+= ocfs2/
  obj-$(CONFIG_GFS2_FS)           += gfs2/
 +
 +include $(srctree)/fs/Makefile-2.6.ccs
---- linux-2.6.18-194.el5.orig/fs/attr.c
-+++ linux-2.6.18-194.el5/fs/attr.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/attr.c
++++ linux-2.6.18-194.3.1.el5/fs/attr.c
 @@ -15,6 +15,9 @@
  #include <linux/fcntl.h>
  #include <linux/quotaops.h>
@@ -216,8 +216,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  		if (!error) {
  			if ((ia_valid & ATTR_UID && attr->ia_uid != inode->i_uid) ||
  			    (ia_valid & ATTR_GID && attr->ia_gid != inode->i_gid))
---- linux-2.6.18-194.el5.orig/fs/compat.c
-+++ linux-2.6.18-194.el5/fs/compat.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/compat.c
++++ linux-2.6.18-194.3.1.el5/fs/compat.c
 @@ -52,6 +52,9 @@
  #include <asm/uaccess.h>
  #include <asm/mmu_context.h>
@@ -261,8 +261,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	if (retval >= 0) {
  		/* execve success */
  		security_bprm_free(bprm);
---- linux-2.6.18-194.el5.orig/fs/exec.c
-+++ linux-2.6.18-194.el5/fs/exec.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/exec.c
++++ linux-2.6.18-194.3.1.el5/fs/exec.c
 @@ -60,6 +60,10 @@
  #include <linux/kmod.h>
  #endif
@@ -299,7 +299,7 @@ This is TOMOYO Linux patch for CentOS 5.5.
  			file = ERR_PTR(err);
  			if (!err) {
  				file = nameidata_to_filp(&nd, force_o_largefile() ?
-@@ -1395,7 +1410,8 @@ int do_execve(char * filename,
+@@ -1403,7 +1418,8 @@ int do_execve(char * filename,
  		goto out;
  	bprm->argv_len = env_p - bprm->p;
  
@@ -309,8 +309,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	if (retval >= 0) {
  		/* execve success */
  		free_arg_pages(bprm);
---- linux-2.6.18-194.el5.orig/fs/fcntl.c
-+++ linux-2.6.18-194.el5/fs/fcntl.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/fcntl.c
++++ linux-2.6.18-194.3.1.el5/fs/fcntl.c
 @@ -22,6 +22,9 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -334,8 +334,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (current->fsuid != inode->i_uid && !capable(CAP_FOWNER))
---- linux-2.6.18-194.el5.orig/fs/ioctl.c
-+++ linux-2.6.18-194.el5/fs/ioctl.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/ioctl.c
++++ linux-2.6.18-194.3.1.el5/fs/ioctl.c
 @@ -17,6 +17,9 @@
  
  #include <asm/uaccess.h>
@@ -368,8 +368,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.18-194.el5.orig/fs/namei.c
-+++ linux-2.6.18-194.el5/fs/namei.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/namei.c
++++ linux-2.6.18-194.3.1.el5/fs/namei.c
 @@ -37,6 +37,10 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
@@ -507,8 +507,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
---- linux-2.6.18-194.el5.orig/fs/namespace.c
-+++ linux-2.6.18-194.el5/fs/namespace.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/namespace.c
++++ linux-2.6.18-194.3.1.el5/fs/namespace.c
 @@ -25,6 +25,12 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
@@ -622,8 +622,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	if (error) {
  		path_release(&old_nd);
  		goto out1;
---- linux-2.6.18-194.el5.orig/fs/open.c
-+++ linux-2.6.18-194.el5/fs/open.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/open.c
++++ linux-2.6.18-194.3.1.el5/fs/open.c
 @@ -31,6 +31,12 @@
  #include <linux/falloc.h>
  
@@ -687,8 +687,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup(current->signal->tty);
  		return 0;
---- linux-2.6.18-194.el5.orig/fs/proc/Makefile
-+++ linux-2.6.18-194.el5/fs/proc/Makefile
+--- linux-2.6.18-194.3.1.el5.orig/fs/proc/Makefile
++++ linux-2.6.18-194.3.1.el5/fs/proc/Makefile
 @@ -13,3 +13,6 @@ proc-y       += inode.o root.o base.o ge
  proc-$(CONFIG_PROC_KCORE)	+= kcore.o
  proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
@@ -696,20 +696,20 @@ This is TOMOYO Linux patch for CentOS 5.5.
 +
 +proc-$(CONFIG_SAKURA) += ccs_proc.o
 +proc-$(CONFIG_TOMOYO) += ccs_proc.o
---- linux-2.6.18-194.el5.orig/fs/proc/proc_misc.c
-+++ linux-2.6.18-194.el5/fs/proc/proc_misc.c
+--- linux-2.6.18-194.3.1.el5.orig/fs/proc/proc_misc.c
++++ linux-2.6.18-194.3.1.el5/fs/proc/proc_misc.c
 @@ -738,4 +738,9 @@ void __init proc_misc_init(void)
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
 +	/***** CCS start. *****/
 +#if defined(CONFIG_SAKURA) || defined(CONFIG_TOMOYO)
-+	printk(KERN_INFO "Hook version: 2.6.18-194.el5 2010/03/31\n");
++	printk(KERN_INFO "Hook version: 2.6.18-194.3.1.el5 2010/05/13\n");
 +#endif
 +	/***** CCS end. *****/
  }
---- linux-2.6.18-194.el5.orig/include/linux/init_task.h
-+++ linux-2.6.18-194.el5/include/linux/init_task.h
+--- linux-2.6.18-194.3.1.el5.orig/include/linux/init_task.h
++++ linux-2.6.18-194.3.1.el5/include/linux/init_task.h
 @@ -125,6 +125,10 @@ extern struct group_info init_groups;
  	.pi_lock	= SPIN_LOCK_UNLOCKED,				\
  	INIT_TRACE_IRQFLAGS						\
@@ -721,8 +721,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  }
  
  
---- linux-2.6.18-194.el5.orig/include/linux/sched.h
-+++ linux-2.6.18-194.el5/include/linux/sched.h
+--- linux-2.6.18-194.3.1.el5.orig/include/linux/sched.h
++++ linux-2.6.18-194.3.1.el5/include/linux/sched.h
 @@ -25,6 +25,10 @@
  #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
  #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
@@ -745,8 +745,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  };
  
  static inline pid_t process_group(struct task_struct *tsk)
---- linux-2.6.18-194.el5.orig/kernel/compat.c
-+++ linux-2.6.18-194.el5/kernel/compat.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/compat.c
++++ linux-2.6.18-194.3.1.el5/kernel/compat.c
 @@ -24,6 +24,9 @@
  #include <linux/migrate.h>
  
@@ -768,8 +768,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.18-194.el5.orig/kernel/kexec.c
-+++ linux-2.6.18-194.el5/kernel/kexec.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/kexec.c
++++ linux-2.6.18-194.3.1.el5/kernel/kexec.c
 @@ -32,6 +32,9 @@
  #include <asm/system.h>
  #include <asm/semaphore.h>
@@ -791,8 +791,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.18-194.el5.orig/kernel/kmod.c
-+++ linux-2.6.18-194.el5/kernel/kmod.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/kmod.c
++++ linux-2.6.18-194.3.1.el5/kernel/kmod.c
 @@ -147,6 +147,11 @@ __exec_usermodehelper(char *path, char *
  
  	key_put(old_session);
@@ -805,8 +805,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	retval = -EPERM;
  	if (current->fs->root)
  		retval = execve(path, argv, envp);
---- linux-2.6.18-194.el5.orig/kernel/module.c
-+++ linux-2.6.18-194.el5/kernel/module.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/module.c
++++ linux-2.6.18-194.3.1.el5/kernel/module.c
 @@ -46,6 +46,9 @@
  #include <linux/license.h>
  #include <linux/tracepoint.h>
@@ -841,8 +841,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
  		return -EINTR;
---- linux-2.6.18-194.el5.orig/kernel/ptrace.c
-+++ linux-2.6.18-194.el5/kernel/ptrace.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/ptrace.c
++++ linux-2.6.18-194.3.1.el5/kernel/ptrace.c
 @@ -26,6 +26,9 @@
  #include <asm/tracehook.h>
  #include <asm/pgtable.h>
@@ -875,8 +875,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	pr_debug("%d compat_sys_ptrace(%d, %d, %x, %x)\n",
  		 current->pid, request, pid, addr, cdata);
---- linux-2.6.18-194.el5.orig/kernel/sched.c
-+++ linux-2.6.18-194.el5/kernel/sched.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/sched.c
++++ linux-2.6.18-194.3.1.el5/kernel/sched.c
 @@ -57,6 +57,9 @@
  #include <trace/sched.h>
  
@@ -898,8 +898,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.18-194.el5.orig/kernel/signal.c
-+++ linux-2.6.18-194.el5/kernel/signal.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/signal.c
++++ linux-2.6.18-194.3.1.el5/kernel/signal.c
 @@ -29,6 +29,9 @@
  #include <asm/siginfo.h>
  #include "audit.h"	/* audit_signal_info() */
@@ -949,8 +949,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	return do_tkill(0, pid, sig);
  }
---- linux-2.6.18-194.el5.orig/kernel/sys.c
-+++ linux-2.6.18-194.el5/kernel/sys.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/sys.c
++++ linux-2.6.18-194.3.1.el5/kernel/sys.c
 @@ -37,6 +37,9 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -1007,8 +1007,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.18-194.el5.orig/kernel/sysctl.c
-+++ linux-2.6.18-194.el5/kernel/sysctl.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/sysctl.c
++++ linux-2.6.18-194.3.1.el5/kernel/sysctl.c
 @@ -48,6 +48,9 @@
  
  #include <asm/uaccess.h>
@@ -1047,8 +1047,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  					error = table->strategy(
  						table, name, nlen,
  						oldval, oldlenp,
---- linux-2.6.18-194.el5.orig/kernel/time.c
-+++ linux-2.6.18-194.el5/kernel/time.c
+--- linux-2.6.18-194.3.1.el5.orig/kernel/time.c
++++ linux-2.6.18-194.3.1.el5/kernel/time.c
 @@ -39,6 +39,9 @@
  
  #include <asm/uaccess.h>
@@ -1092,8 +1092,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  		
  	/* Now we validate the data before disabling interrupts */
  
---- linux-2.6.18-194.el5.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.18-194.el5/net/ipv4/inet_connection_sock.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.18-194.3.1.el5/net/ipv4/inet_connection_sock.c
 @@ -23,6 +23,9 @@
  #include <net/route.h>
  #include <net/tcp_states.h>
@@ -1115,8 +1115,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (tb->port == rover)
  					goto next;
---- linux-2.6.18-194.el5.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.18-194.el5/net/ipv4/inet_hashtables.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.18-194.3.1.el5/net/ipv4/inet_hashtables.c
 @@ -22,6 +22,9 @@
  #include <net/inet_connection_sock.h>
  #include <net/inet_hashtables.h>
@@ -1138,8 +1138,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-194.el5.orig/net/ipv4/raw.c
-+++ linux-2.6.18-194.el5/net/ipv4/raw.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv4/raw.c
++++ linux-2.6.18-194.3.1.el5/net/ipv4/raw.c
 @@ -78,6 +78,9 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -1162,8 +1162,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.18-194.el5.orig/net/ipv4/udp.c
-+++ linux-2.6.18-194.el5/net/ipv4/udp.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv4/udp.c
++++ linux-2.6.18-194.3.1.el5/net/ipv4/udp.c
 @@ -109,6 +109,12 @@
  #include <net/inet_common.h>
  #include <net/checksum.h>
@@ -1222,8 +1222,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
  		copied = len;
---- linux-2.6.18-194.el5.orig/net/ipv6/inet6_hashtables.c
-+++ linux-2.6.18-194.el5/net/ipv6/inet6_hashtables.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv6/inet6_hashtables.c
++++ linux-2.6.18-194.3.1.el5/net/ipv6/inet6_hashtables.c
 @@ -21,6 +21,9 @@
  #include <net/inet_hashtables.h>
  #include <net/inet6_hashtables.h>
@@ -1245,8 +1245,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
   			head = &hinfo->bhash[inet_bhashfn(port, hinfo->bhash_size)];
   			spin_lock(&head->lock);
  
---- linux-2.6.18-194.el5.orig/net/ipv6/raw.c
-+++ linux-2.6.18-194.el5/net/ipv6/raw.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv6/raw.c
++++ linux-2.6.18-194.3.1.el5/net/ipv6/raw.c
 @@ -56,6 +56,9 @@
  
  #include <linux/proc_fs.h>
@@ -1269,8 +1269,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
  	copied = skb->len;
    	if (copied > len) {
---- linux-2.6.18-194.el5.orig/net/ipv6/udp.c
-+++ linux-2.6.18-194.el5/net/ipv6/udp.c
+--- linux-2.6.18-194.3.1.el5.orig/net/ipv6/udp.c
++++ linux-2.6.18-194.3.1.el5/net/ipv6/udp.c
 @@ -58,6 +58,12 @@
  
  #include <linux/proc_fs.h>
@@ -1327,8 +1327,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
---- linux-2.6.18-194.el5.orig/net/socket.c
-+++ linux-2.6.18-194.el5/net/socket.c
+--- linux-2.6.18-194.3.1.el5.orig/net/socket.c
++++ linux-2.6.18-194.3.1.el5/net/socket.c
 @@ -96,6 +96,11 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -1420,8 +1420,8 @@ This is TOMOYO Linux patch for CentOS 5.5.
  	err = sock->ops->connect(sock, (struct sockaddr *) address, addrlen,
  				 sock->file->f_flags);
  out_put:
---- linux-2.6.18-194.el5.orig/net/unix/af_unix.c
-+++ linux-2.6.18-194.el5/net/unix/af_unix.c
+--- linux-2.6.18-194.3.1.el5.orig/net/unix/af_unix.c
++++ linux-2.6.18-194.3.1.el5/net/unix/af_unix.c
 @@ -116,6 +116,9 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
