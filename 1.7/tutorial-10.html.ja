@@ -136,98 +136,121 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
 
 <h3>プログラムの起動方法による振る舞いの変化について</h3>
 
-<p>ちょっと横道に逸れますが，ここでアクセス制御を行う場合に注意すべき点として，プログラムの起動方法による振る舞いの変化について触れておきたいと思います．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，リスト2のプログラムを/tmp/test.shという名前で保存してください．</p>
+<p>ちょっと横道に逸れますが，ここでアクセス制御を行う場合に注意すべき点として，プログラムの起動方法による振る舞いの変化について触れておきたいと思います．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，リスト2のプログラムを/tmp/argv0.cという名前で保存してください．</p>
 
 <table border="1" summary="list2">
 <tr><td>
-<p style="text-align:center;">■リスト2 起動方法を表示するプログラム</p>
+<p style="text-align:center;">■リスト2 起動方法を表示するＣプログラム</p>
 <br>
 <pre>
-#!/bin/sh
-echo "I am running as "${0##*/}
+#include &lt;stdio.h&gt;
+int main(int argc, char *argv[])
+{
+        printf("I am running as %s\n", argv[0]);
+        return 0;
+}
 </pre>
 </td></tr>
 </table>
 
-<p>その後，図4で実行可能にしてから，図5のようにシンボリックリンクを作成してください．そして，そのシンボリックリンクを実行してください．</p>
+<p>その後，図4のようにコンパイルしておよびシンボリックリンク（またはハードリンク）を作成してください．</p>
 
 <table border="1" summary="fig4">
 <tr><td>
 <pre>
-# chmod 755 /tmp/test.sh
+# gcc -o /tmp/argv0 /tmp/argv0.c
+# ln -s /tmp/argv0 /tmp/cat
+# ln -s /tmp/argv0 /tmp/passwd
 </pre>
 <br>
-<p style="text-align:center;">■図4 実行可能にする</p>
+<p style="text-align:center;">■図4 コンパイルしてシンボリックリンクを作成するする</p>
 </td></tr>
 </table>
+
+<p>そして，そのシンボリックリンク（またはハードリンク）を実行してください．すると，シンボリックリンクの名前が表示されます（図5） ．</p>
 
 <table border="1" summary="fig5">
 <tr><td>
 <pre>
-# ln -s /tmp/test.sh /tmp/cat
-# ln -s /tmp/test.sh /tmp/passwd
+# /tmp/cat
+I am running as /tmp/cat
+# /tmp/passwd
+I am running as /tmp/passwd
 </pre>
 <br>
-<p style="text-align:center;">■図5 シンボリックリンクを作成する</p>
+<p style="text-align:center;">■図5 シンボリックリンク経由で起動する</p>
 </td></tr>
 </table>
 
-<p>すると，シンボリックリンクの名前が表示されます（図6） ．</p>
+<p>一部のコマンドは，そのコマンドが起動されたときの「名前（argv[0]と呼ばれているものです） 」によって振る舞いを変えるように作られています．たとえば，CentOS 5.4において，/sbin/pidofは/sbin/killall5へのシンボリックリンクであり，pidofという名前で起動された場合には指定されたプログラムのプロセスIDを表示し，killall5という名前で起動された場合には自分のセッション以外のすべてのプロセスにシグナルを送信します．</p>
+
+<p>TOMOYO Linuxでは/tmp/catを実行すれば/tmp/catのドメインで動作し，/tmp/passwdを実行すれば/tmp/passwdのドメインで動作します．では，図6のように/tmp/catという名前で/tmp/passwdを実行した場合には，どのようになるでしょうか？（結果を予想してみてください）</p>
 
 <table border="1" summary="fig6">
 <tr><td>
 <pre>
-# /tmp/cat
-I am running as cat
-# /tmp/passwd
-I am running as passwd
+# sh -c 'exec -a /tmp/cat /tmp/passwd'
 </pre>
 <br>
-<p style="text-align:center;">■図6 シンボリックリンク経由で起動する</p>
+<p style="text-align:center;">■図6 passwdコマンドをcatという名前で実行する</p>
 </td></tr>
 </table>
 
-<p>一部のコマンドは，そのコマンドが起動されたときの「名前（argv[0]と呼ばれているものです） 」によって振る舞いを変えるように作られています．「名前」の変更はファイルの複製（cp）によらなくてもハードリンク，シンボリックリンクでも可能です．たとえば，CentOS 5.4において，/sbin/pidofは/sbin/killall5へのシンボリックリンクであり，pidofという名前で起動された場合には指定されたプログラムのプロセスIDを表示し，killall5という名前で起動された場合には自分のセッション以外のすべてのプロセスにシグナルを送信します．ということは，もし/tmp/test.shがargv[0]の内容によって異なる振る舞いをするようになっていた場合には問題が発生するということです． /usr/bin/passwdコマンドと/bin/catコマンドがどちらも/sbin/busyboxのハードリンクとして提供されていると仮定します．この場合，TOMOYO Linuxでは/bin/catを実行すれば/bin/catのドメインで動作し，/usr/bin/passwdを実行すれば/usr/bin/passwdのドメインで動作します．しかし，図7のように/tmp/catという名前で/usr/bin/passwdへのシンボリックリンクを作成して，図8のように実行した場合には，どのようになるでしょうか？（結果を予想してみてください）</p>
+<p>図6の実行結果は図7となります．このことから，図6を認めることは図8を認めることと同じです．ただし，図8は/tmp/catドメインで/tmp/catとして動作するのを認めているのに対して，図6は/tmp/passwdドメインで/tmp/catとして動作することを認めているという点に注意してください．</p>
 
 <table border="1" summary="fig7">
 <tr><td>
 <pre>
-# ln -s /usr/bin/passwd /tmp/cat
+I am running as /tmp/cat
 </pre>
 <br>
-<p style="text-align:center;">■図7 シンボリックリンクを作成する</p>
+<p style="text-align:center;">■図7 catコマンドとして動作する</p>
 </td></tr>
 </table>
 
 <table border="1" summary="fig8">
 <tr><td>
 <pre>
-# /tmp/cat /etc/shadow
+# sh -c 'exec /tmp/cat'
 </pre>
 <br>
-<p style="text-align:center;">■図8 シンボリックリンク経由で起動する</p>
+<p style="text-align:center;">■図8 図6がもたらす結果</p>
 </td></tr>
 </table>
 
-<p>TOMOYO Linuxではシンボリックリンクを解決する前のパス名を用いてドメイン遷移を行うので，上記のケースでは/tmp/catは/tmp/catドメインで動作します．しかし，起動時の名前がcatであったため，その振る舞いはcatとなります．パスワードを変更するための/usr/bin/passwdドメインには/etc/shadowへのアクセスを認める必要があるので，結果として図9のような振る舞いを許可してしまったのと等価になり，大問題です．</p>
+<p>/usr/bin/passwdコマンドと/bin/catコマンドが/sbin/busyboxのハードリンクまたはシンボリックリンクとして提供されていると仮定します．この場合，TOMOYO Linuxでは/bin/catを実行すれば/bin/catのドメインで動作し，/usr/bin/passwdを実行すれば/usr/bin/passwdのドメインで動作します．パスワードを変更するための/usr/bin/passwdドメインには/etc/shadowへのアクセスを認める必要がありますが，ファイルの内容を表示するための/bin/catドメインには/etc/shadowへのアクセスを認めたくありません．</p>
+
+<p>図9のように/bin/catという名前で/usr/bin/passwdを実行した場合には，どのようになるでしょうか？</p>
 
 <table border="1" summary="fig9">
 <tr><td>
 <pre>
-# /bin/cat /etc/shadow
+# sh -c 'exec -a /bin/cat /usr/bin/passwd /etc/shadow'
 </pre>
 <br>
-<p style="text-align:center;">■図9 パスワードファイルを閲覧する</p>
+<p style="text-align:center;">■図9 passwdコマンドをcatという名前で実行する</p>
 </td></tr>
 </table>
 
-<p>このような脅威を防ぐために，TOMOYO Linuxではプログラムのパス名とargv[0]の組み合わせをチェックする機能を備えています．先のような脅威も/usr/bin/passwdコマンドをcatという名前で起動することを禁止することで防ぐことができるようになります．実は，前回示したMovable Typeのポリシーの中にもallow_execute /usr/sbin/sendmail.sendmail if exec.argv[0]="sendmail"というアクセス許可がありました．これは，/usr/sbin/sendmail.sendmailコマンドをsendmailという名前で起動することを許可するという意味です．話が長くなりましたが，本連載で使用しているプロファイルでは自動的にexec.argv[0]をチェックするようにしてありますので，そのまま先に進んでください．</p>
+<p>図9を実行すると，/usr/bin/passwdは/usr/bin/passwdドメインで動作します．しかし，起動時の名前が/bin/catであったため，その振る舞いは/bin/catとなります．結果として図10のような振る舞いを許可してしまったことになります．</p>
+
+<table border="1" summary="fig10">
+<tr><td>
+<pre>
+# sh -c 'exec /bin/cat /etc/shadow'
+</pre>
+<br>
+<p style="text-align:center;">■図10 パスワードファイルを閲覧できる</p>
+</td></tr>
+</table>
+
+<p>このような脅威を防ぐために，TOMOYO Linuxではプログラムのパス名とargv[0]の組み合わせをチェックする機能を備えています．図9のような脅威も/usr/bin/passwdコマンドを/bin/catという名前で起動することを禁止することで防ぐことができるようになります．実は，前回示したMovable Typeのポリシーの中にもallow_execute /usr/sbin/sendmail.sendmail if exec.argv[0]="sendmail"というアクセス許可がありました．これは，/usr/sbin/sendmail.sendmailコマンドをsendmailという名前で起動することを許可するという意味です．表2で指定しているプログラムの中に図9のような指定をされると困るプログラムが含まれている場合には，そのプログラムはpath_groupから除外し，allow_execute /usr/bin/passwd if exec.argv[0]="passwd"のように個別に指定するようにしてください．</p>
 
 <h2>ステップ2：読み書きを許可するファイルの決定</h2>
 
 <h3>ハードリンクの脅威と対策</h3>
 
-<p>TOMOYO Linuxではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図10の操作を試してみてください（/etc/ディレクトリと /tmp/ディレクトリが別のパーティションになっているシステムでは失敗します．その場合，/etc/ディレクトリと同じパーティションにある /root/ディレクトリなどに読み替えてください） ．</p>
+<p>TOMOYO Linuxではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図11の操作を試してみてください（/etc/ディレクトリと /tmp/ディレクトリが別のパーティションになっているシステムでは失敗します．その場合，/etc/ディレクトリと同じパーティションにある /root/ディレクトリなどに読み替えてください） ．</p>
 
 <table border="1" summary="fig10">
 <tr><td>
@@ -236,11 +259,11 @@ I am running as passwd
 # cat /tmp/shadow
 </pre>
 <br>
-<p style="text-align:center;">■図10 ハードリンク経由でパスワードファイルにアクセスする</p>
+<p style="text-align:center;">■図11 ハードリンク経由でパスワードファイルにアクセスする</p>
 </td></tr>
 </table>
 
-<p>これは，ログインパスワードを格納している/etc/shadowというファイルを/tmp/ディレクトリの下にハードリンクすることで，/tmp /shadowというパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「/etc/shadowを/tmp/shadowにハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は，/etc /shadowのハードリンクの作成はrootユーザでなくても可能です．一般ユーザが/etc/shadowのハードリンクを一般ユーザが書き込めるディレクトリである/tmp/ディレクトリに作成し，実行を許可されているコマンド（たとえば/usr/bin/sudo）を利用してroot権限を手に入れてから，/tmp/ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だからTOMOYO Linuxでは，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです． （実際に/tmp/shadowを作成した方は，この先を読み続ける前に，忘れないうちに/tmp/shadowを削除しておくように！）/etc /shadowのリンク数が2以上であれば，どこかにハードリンクが残っています（図11） ．</p>
+<p>これは，ログインパスワードを格納している/etc/shadowというファイルを/tmp/ディレクトリの下にハードリンクすることで，/tmp /shadowというパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「/etc/shadowを/tmp/shadowにハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は，/etc /shadowのハードリンクの作成はrootユーザでなくても可能です．一般ユーザが/etc/shadowのハードリンクを一般ユーザが書き込めるディレクトリである/tmp/ディレクトリに作成し，実行を許可されているコマンド（たとえば/usr/bin/sudo）を利用してroot権限を手に入れてから，/tmp/ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だからTOMOYO Linuxでは，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです． （実際に/tmp/shadowを作成した方は，この先を読み続ける前に，忘れないうちに/tmp/shadowを削除しておくように！）/etc /shadowのリンク数が2以上であれば，どこかにハードリンクが残っています（図12） ．</p>
 
 <table border="1" summary="fig11">
 <tr><td>
@@ -252,11 +275,11 @@ I am running as passwd
 -r-------- 1 root root 946 May 29 18:14 /etc/shadow
 </pre>
 <br>
-<p style="text-align:center;">■図11 /etc/shadowのハードリンクを削除する</p>
+<p style="text-align:center;">■図12 /etc/shadowのハードリンクを削除する</p>
 </td></tr>
 </table>
 
-<p>名前の変更についても同様です．/etc/shadowの読み書きは厳しく制限できますが，/tmp/ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図12のような操作ができてしまうようでは困ります（/etc/ディレクトリと/tmp/ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので，/etc/shadowの読み書きを禁止することで/tmp/ディレクトリに移動されることを防止できます） ．</p>
+<p>名前の変更についても同様です．/etc/shadowの読み書きは厳しく制限できますが，/tmp/ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図13のような操作ができてしまうようでは困ります（/etc/ディレクトリと/tmp/ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので，/etc/shadowの読み書きを禁止することで/tmp/ディレクトリに移動されることを防止できます） ．</p>
 
 <table border="1" summary="fig12">
 <tr><td>
@@ -266,7 +289,7 @@ I am running as passwd
 # mv /tmp/shadow /etc/shadow
 </pre>
 <br>
-<p style="text-align:center;">■図12 名前を変更してからパスワードファイルにアクセスする</p>
+<p style="text-align:center;">■図13 名前を変更してからパスワードファイルにアクセスする</p>
 </td></tr>
 </table>
 
