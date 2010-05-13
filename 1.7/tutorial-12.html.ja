@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linuxの世界　第１２回：「【最終回】パッケージのアップデートをしてみよう」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<!--
+<p style="text-align:right;"><a href="tutorial-12.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+-->
+
+<h1>TOMOYO Linuxの世界<br>第１２回：「【最終回】パッケージのアップデートをしてみよう」</h1>
+
+<p>本連載は今回で最終回となります．今回は，TOMOYO Linuxを使ってパッケージのアップデートを行う方法を解説します．</p>
+
+<h2>今回の内容</h2>
+
+<p>セキュアOSを導入していれば，プロセスを乗っ取られたり，管理者権限を不正に奪われたりしてもそれがただちに致命的被害にはつながりません．システムのアップデートについて，標準のOSほど神経を使わなくても良くなりますが過信は禁物です．アップデートを適用しシステムを万全な状態に維持しましょう．強制アクセス制御機能を搭載しているOSでは，管理者が定義したポリシーにより振る舞いが制限されます．そのため，ソフトウェアのアップデートなどによりプログラムの依存関係などが変化した場合，ポリシーを修正してやらないと正常に動作できなくなってしまう可能性があります．管理者が自らポリシーを作成するという考え方を持つTOMOYO Linuxでは，ポリシーの修正も自力で行わなければいけません．今回は，ソフトウェアのアップデートに伴って必要となる，ポリシーの修正作業を支援する機能について紹介します．</p>
+
+<h2>ポリシーの修正を支援する機能について</h2>
+
+<h3>使用するプログラム</h3>
+
+<p>TOMOYO Linuxでは，ポリシーの修正を支援するためのツールとして，表1のプログラムを提供しています．</p>
+
+<table border="1" summary="table1">
+<tr><td>
+<p style="text-align:center;">■表1 TOMOYO の管理を行うためのプログラム</p>
+<br>
+<table border="1" summary="ccstools">
+<tr><td>プログラム名</td><td>役割</td></tr>
+<tr><td>ccs-queryd</td><td>アクセス要求を対話的に許可する</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>コンソールでの操作例</h3>
+
+<p>まずはログイン後の操作を制限する場合の例で説明します．操作を間違えてロックアウトされてしまわないようにするため，この連載ではexampleというユーザを作成して作業することにします．また，exampleユーザとrootユーザの作業をコンソールウィンドウの切り替えを行いながら進めることにします．コンソールウィンドウの切り替えは「ALT」＋「F1」～「F6」で行います．「ALT」＋「F1」でウィンドウ1を開き，rootユーザとexampleユーザのシェルを異なるものに設定してください．これは，ログインシェルを異なるものにすることによって，ログインシェルのドメインを異なるものにし，特定のログインシェルのドメインだけでアクセス制御を有効にするためです．本連載ではrootユーザのシェルは/bin/bashの場合で説明しているので，exampleユーザには/bin/tcshを割り当てます（図1） ．</p>
+
+<table border="1" summary="fig1">
+<tr><td>
+<pre>
+# usermod -s /bin/tcsh example
+</pre>
+<br>
+<p style="text-align:center;">■図1 exampleユーザに/bin/tcshを割り当てる</p>
+</td></tr>
+</table>
+
+<p>次に「ALT」＋「F2」でウィンドウ2を開き，exampleユーザとしてログインしてください．CentOS 5.3の場合，コンソールからログインしたドメインは「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh」となるはずです．（sshdからログインした場合は「&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh」となるはずです．）ウィンドウ1に切り替えて，このドメインに対して強制モード用のプロファイル（プロファイル3）を割り当てます（図2） ．</p>
+
+<table border="1" summary="fig2">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh'
+</pre>
+<br>
+<p style="text-align:center;">■図2 exampleユーザのシェル（ウィンドウ2）のドメインに強制モード用プロファイルを割り当て</p>
+</td></tr>
+</table>
+
+<p>これにより，exampleユーザのシェル（ウィンドウ2）からは，ほとんど何もできない状態になります（図3） ．</p>
+
+<table border="1" summary="fig3">
+<tr><td>
+<pre>
+$ ls
+/bin/ls: Operation not permitted.
+$ cat /etc/passwd
+/bin/cat: Operation not permitted.
+</pre>
+<br>
+<p style="text-align:center;">■図3 図2の適用結果を確認</p>
+</td></tr>
+</table>
+
+<p>ccs-querydというプログラムを使用する（図5）と，強制モードで動作中のプロセスがポリシーに違反する内容のアクセス要求を行った場合でも，ただちに拒否するのではなく，システム管理者の指示を仰ぐようにすることができます．このモードは，SELinuxやAppArmorには存在しない，TOMOYO Linux特有の機能です．</p>
+
+<table border="1" summary="fig5">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-queryd
+</pre>
+<br>
+<p style="text-align:center;">■図5 ccs-querydの実行</p>
+</td></tr>
+</table>
+
+<p>ウィンドウ2に切り替えて，/bin/lsコマンドの実行を要求してみましょう（図6）．</p>
+
+<table border="1" summary="fig6">
+<tr><td>
+<pre>
+$ /bin/ls
+</pre>
+<br>
+<p style="text-align:center;">■図6 lsコマンドを実行</p>
+</td></tr>
+</table>
+
+<p>先ほどはただちに拒否されてしまいましたが，今度は拒否されずに止まっています．この状態のままウィンドウ1に切り替えてみましょう．すると，図7のようなプロンプトが表示されているはずです．</p>
+
+<table border="1" summary="fig7">
+<tr><td>
+<pre>
+#2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
+allow_execute /bin/ls
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+<br>
+<p style="text-align:center;">■図7 図6実行後，ウィンドウ1に表示されるプロンプト</p>
+</td></tr>
+</table>
+
+<p>最初の行はポリシーに違反するアクセス要求を行ったプロセスの属しているドメイン名が，2行目はアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「Y」を押すと，そのアクセス要求を許可することができます．また，「N」を押すと，そのアクセス要求を拒否することができます．「Y」キーを押した場合，/bin/lsの実行が許可されますが，ドメイン用ポリシーの中には/bin/lsを実行するためのドメインがまだ作成されていません．そのため，図8のようなプロンプトが表示されます．</p>
+
+<table border="1" summary="fig8">
+<tr><td>
+<pre>
+#2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
+# wants to create domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
+Allow? ('Y'es/'N'o/'R'etry):
+</pre>
+<br>
+<p style="text-align:center;">■図8 ドメイン作成の許可を求めるプロンプト</p>
+</td></tr>
+</table>
+
+<p>「Y」を押した場合，/bin/ls用のドメインが作成されるので，/bin/lsは先に進むことができます．「N」を押した場合，ドメインが見つからないという理由で/bin/lsの実行要求は拒否されます．/bin/lsのドメインの作成を許可すると，図9のように聞かれます．</p>
+
+<table border="1" summary="fig9">
+<tr><td>
+<pre>
+#2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
+allow_read /etc/selinux/config
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+<br>
+<p style="text-align:center;">■図9 ドメイン作成を許可した際のプロンプト</p>
+</td></tr>
+</table>
+
+<p>/bin/lsのドメインは作成されたばかりですから，何もアクセス許可が与えられていません．表示されている内容を見ながら，許可するかどうかを慎重に判断して回答してください．「A」を押すと，必要に応じてアクセス許可の内容を編集してポリシーに追加してから再試行することができます．たとえば/etc/passwdだけでなく，/etc/\*shadow\*以外の/etc/\*に一致するファイルへのアクセスを許可したい場合には，/etc/passwdという内容を/etc/\*\-\*shadow\*に書き換えてから「ENTER」を押してください． ccs-querydを終了させるには「CTRL」＋「C」を押してください．</p>
+
+<p>ccs-querydを使う際には，無条件にアクセス要求の内容を許可しないように注意してください．ポリシー違反の原因がクラッカーの攻撃によるものであった場合，せっかくの強制アクセス制御によるシステムの保護が無意味になってしまいます．（もしポリシー違反の原因がクラッカーによる攻撃であるかどうかをコンピュータ自身が判断できるのであれば，人間がポリシーを作成する必要はなくなりますが，実際にはそういうわけにはいきません．判断するのは人間の役目なのです．）</p>
+
+<h2>実際のサービスに対する操作例</h2>
+
+<p><a href="http://tomoyo.sourceforge.jp/1.7/enforcing.html#using_interactive_mode">ソフトウェアのアップデート時に発生するポリシー違反を処理する</a>を参照してください．</p>
+
+<h3>共有ライブラリの扱い</h3>
+
+<p>TOMOYO Linuxのインストール時に実行したinit_policyにより，/etc/ld.so.cacheに登録されている共有ライブラリ（/sbin/ldconfig -NXpにより確認できます）に関しては例外ポリシーでallow_read（無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのバージョンを含むファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーにallow_readという指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
+
+<p>先に説明したccs-querydにより検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的にallow_readという指定を更新してくれたほうが便利でしょう．そのため，ccs-querydはポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである/etc/ld.so.cacheの変化を監視し，自動的にallow_readを例外ポリシーに追加するようになっています．</p>
+
+<h3>まとめ</h3>
+
+<p>手順をまとめると以下のようになります．</p>
+
+<ol>
+<li>ウィンドウ1でポリシーに違反するアクセス要求を監視するccs-querydを実行</li>
+<li>ウィンドウ2で実際のアップデート操作（yum -y update）を行う</li>
+<li>ウィンドウ1のccs-querydを終了</li>
+</ol>
+
+<h2>ポリシーのゴミを除去する機能について</h2>
+
+<h3>使用するプログラム</h3>
+
+<p>TOMOYO Linuxでは，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，表2のプログラムを提供しています．</p>
+
+<table border="1" summary="table2">
+<tr><td>
+<p style="text-align:center;">■表2 TOMOYO の管理を行うためのプログラム</p>
+<br>
+<table border="1" summary="ccstools">
+<tr><td>プログラム名</td><td>役割</td></tr>
+<tr><td>ccs-findtemp</td><td>存在しないパス名を検出する</td></tr>
+<tr><td>ccs-domainmatch</td><td>アクセス許可が与えられているドメインを検索する</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>これらを使うことで，パターン化する前のテンポラリファイルやソフトウェアのアップデートにより削除されたライブラリファイルなどの余計なアクセス許可を検出して除去することができます．</p>
+
+<h3>コンソールでの操作例</h3>
+
+<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図10の操作を行ってみてください．</p>
+
+<table border="1" summary="fig10">
+<tr><td>
+<pre>
+# touch /tmp/abc12345
+# rm -f /tmp/abc12345
+</pre>
+<br>
+<p style="text-align:center;">■図10 学習モードで行う操作</p>
+</td></tr>
+</table>
+
+<p>この操作によりtouchとrmの/tmp/abc12345に対するアクセスが学習されましたが，/tmp/abc12345というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます．この状態で，ccs-findtempコマンドはそうした可能性を持つファイルを探します．なお，図11の実行例では/tmp/abc12345というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
+
+<table border="1" summary="fig11">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
+/tmp/abc12345
+# /usr/sbin/ccs-findtemp --with-domainname &lt; /proc/ccs/domain_policy
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
+/tmp/abc12345
+/tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
+/tmp/abc12345
+# /usr/sbin/ccs-domainmatch /tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
+allow_create /tmp/abc12345
+allow_write /tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
+allow_unlink /tmp/abc12345
+</pre>
+<br>
+<p style="text-align:center;">■図11 ccs-findtempの実行例</p>
+</td></tr>
+</table>
+
+<p>ccs-findtempにより表示されたパス名を引数としてccs-domainmatchコマンドを実行すると，引数で指定されたパス名に対するアクセス許可を含んでいるドメインが表示されます．不要だと判断した場合には，ccs-editpolicyを起動して，当該するドメインへ移動し，不要なアクセス許可を削除します．</p>
+
+<h2>本連載のまとめ</h2>
+
+<p>2007年1月号から始まった本連載は，12回目となる今回で終了することとなりました．連載に先立ち特集を掲載いただいた『ネットワークセキュリティ Expert 5』（技術評論社）ともども，TOMOYO Linuxとしては初の活字メディアであり，執筆者としても思い入れの深いものとなりました．執筆にあたっては，リファレンス的な使い方を意識し，Webの情報を補完するものとして活用いただくことを心がけました．行き届かない面も多々あったと思いますが，皆さんのおかげで1年の連載を無事完了できました．ここに深く感謝致します．連載は終ってもTOMOYO Linuxの活動はまだ続きます．また，皆さんとお会いできることを楽しみにしています．</p>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

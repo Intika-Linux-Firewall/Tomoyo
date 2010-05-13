@@ -1,0 +1,624 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linuxの世界　第３回：「ポリシーをチューニングしてみよう」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<!--
+<p style="text-align:right;"><a href="tutorial-3.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+-->
+
+<h1>TOMOYO Linuxの世界<br>第３回：「ポリシーをチューニングしてみよう」</h1>
+
+<p>「TOMOYO Linux」の魅力をお届けする連載の第3回．今回は，TOMOYO Linuxを使いこなすうえで必須のポリシーチューニング手法について解説していきます．どうぞお楽しみに．</p>
+
+<h2>今回の内容</h2>
+
+<p>第2回は，TOMOYO Linuxにおける制御モードとプロファイルについて紹介し，それらを組み合わせて実際に強制アクセス制御を行う手順について紹介しました．やや駆け足でしたが，実はこれまでの部分でTOMOYO Linuxの基本部分の説明は終わっています．今回からは必要に応じて説明を補足しながら，詳細，応用的な使い方について紹介していくことにします．どうぞおつきあいください．今回のテーマは，ポリシーのチューニングと，それを支援する機能についてです．</p>
+
+<h2>ポリシーのチューニング</h2>
+
+<h3>TOMOYO Linuxにおけるドメイン遷移</h3>
+
+<p>第2回で説明したように，TOMOYO Linuxでは原則としてプログラムを実行するたびにドメイン遷移が発生します（図1）．</p>
+
+<table border="1" summary="fig1">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig01.png" alt="sd200703-fig01.png">
+<br>
+<p style="text-align:center;">■図1 TOMOYO Linuxにおけるドメイン遷移<br>（プログラムの実行により新たなドメインに遷移する．）</p>
+</td></tr>
+</table>
+
+<p>つまりすべてのプログラムはそれぞれが独立なドメインになります．ドメインの名称は，基点である"&lt;kernel&gt;"に実行されたプログラムのパス名を結合したものになります．これに対して，SELinuxにおけるドメインは，階層的な構造を持っておらずフラットに並んでいます．プログラムとドメインの対応はポリシー策定者が定めますが，通常はドメインには複数のプログラムが含まれます．各ドメインであらかじめ定義されたプログラムを実行することにより定められたドメインに遷移します（図2．その結果アクセス制御の内容が変わります）．</p>
+
+<table border="1" summary="fig2">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig02.png" alt="sd200703-fig02.png">
+<br>
+<p style="text-align:center;">■図2 SELinuxにおけるドメイン遷移
+</p>
+</td></tr>
+</table>
+
+<h3>ドメイン遷移の例外</h3>
+
+<p>TOMOYO Linuxにおけるドメインの遷移には，例外が5つあります．</p>
+
+<p>1つ目は，initialize_domainという構文により指定されたプログラムが実行された場合で，そのときには，&lt;kernel&gt;直下のドメイン（たとえばinitialize_domain /etc/rc.d/init.d/sshdという指定が行われていた場合は&lt;kernel&gt; /etc/rc.d/init.d/sshdドメイン）へ強制的に遷移します（図3）．</p>
+
+<p>2つ目は，keep_domainという構文により指定されたドメインについては，そこに属しているプロセスは，initialize_domainに指定されたプログラムが実行されない限り，同一のドメインに留まります（図4）．複数のプログラムが同一ドメインに所属するという意味ではSELinuxのドメインに近い部分があります．</p>
+
+<table border="1" summary="fig3">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig03.png" alt="sd200703-fig03.png">
+<br>
+<p style="text-align:center;">■図3 initialize_domainによるドメイン遷移<br>（/some/where/bazがinitialize_domainとして登録されているので，それが実行された時点で強制的に&lt;kernel&gt;直下の/some/where/bazドメインに遷移する．）</p>
+</td><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig04.png" alt="sd200703-fig04.png">
+<br>
+<p style="text-align:center;">■図4 keep_domainの効果<br>（&lt;kernel&gt; /sbin/init・・・foo barドメインはkeep_domain指定されているため，プログラムを実行してもドメイン遷移は起こらない．initialize_domain指定されているプログラムが実行されることにより&lt;kernel&gt; /some/where/bazに遷移している．）</p>
+</td></tr>
+</table>
+
+<p>残りの3つの例外については次回以降紹介します．</p>
+
+<h3>一連の操作をグループ化する</h3>
+
+<p>initialize_domainとkeep_domainという2つの例外を組み合わせることにより，柔軟なアクセス制御の指定が可能になります．以下，例を挙げて説明します．ログインしてccs-editpolicyを実行してください．そして，/etc/rc.d/init.d/networkの実行されるドメイン（&lt;kernel&gt; /etc/rc.d/init.d/network）を探してください．/etc/rc.d/init.d/networkから/sbin/ifupや /bin/touchなど，たくさんのプログラムが実行されているのがおわかりだと思います（図5）．</p>
+
+<table border="1" summary="fig5">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig05.jpg" alt="sd200703-fig05.jpg">
+<br>
+<p style="text-align:center;">■図5 keep_domain指定前のドメイン遷移(この図では/etc/init.d/networking)</p>
+</td></tr>
+</table>
+
+<p>ここで，「TAB」を2回押してください．&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;から&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;という画面に切り替わったと思います．この画面をスクロールしていくと，initialize_domainで始まる行が現れます．一番下までスクロールしてください．この位置で，「A」を押してからkeep_domain &lt;kernel&gt; /etc/rc.d/init.d/networkと入力して「ENTER」を押してください．すると，入力した内容が現れるはずです（図6）．</p>
+
+<table border="1" summary="fig6">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig06.jpg" alt="sd200703-fig06.jpg">
+<br>
+<p style="text-align:center;">■図6 keep_domainを指定(この図ではkeep_domain &lt;kernel&gt; /etc/init.d/networking)</p>
+</td></tr>
+</table>
+
+<p>再度，「TAB」を1回押してください．&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;から&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;という画面に切り替わったと思います．そこから，&lt;kernel&gt; /etc/rc.d/init.d/networkドメインを探してください（図7）．</p>
+
+<table border="1" summary="fig7">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig07.jpg" alt="sd200703-fig07.jpg">
+<br>
+<p style="text-align:center;">■図7 keep_domain指定直後のドメイン遷移(この図では&lt;kernel&gt; /etc/init.d/networking)</p>
+</td></tr>
+</table>
+
+<p>"*"という表示が"#*"に変化しました．"#"は「このドメインはkeep_domainに指定されているので複数のプログラムがこのドメインで動作する可能性がある」ことを，"*"は「このドメインはinitialize_domainに指定されているので複数のドメインからこのドメインへ遷移する可能性がある」ことを意味します．ここで，/etc/rc.d/init.d/networkの実行されるドメインをkeep_domainに指定したことで，そのドメインのアクセス許可を学習し直す必要が生じます．&lt;kernel&gt; /etc/rc.d/init.d/networkドメインの子孫ドメイン（図7の67～73行）にカーソルを合わせて「スペース」キーを押すと，行頭に&amp;マークが表示されます．最後に「D」を押すと図8のように聞かれるので「Y」を押します．</p>
+
+<table border="1" summary="fig8">
+<tr><td>
+<pre>
+Delete selected domains? ('Y'es/'N'o)
+</pre>
+<br>
+<p style="text-align:center;">■図8 ドメインを削除するかどうかの確認メッセージ</p>
+</td></tr>
+</table>
+
+<p>すると，行頭に&amp;マークが表示されているドメインが削除されます．「Q」を押してccs-editpolicyを終了し，/etc/rc.d /init.d/network restartを実行します．再度ccs-editpolicyを実行して&lt;kernel&gt; /etc/rc.d/init.d/networkドメインを探してみてください．今度は/sbin/ifupや/bin/touchなどは現れなくなります（図9）．</p>
+
+<table border="1" summary="fig9">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig09.jpg" alt="sd200703-fig09.jpg">
+<br>
+<p style="text-align:center;">■図9 再学習後のドメイン遷移(この図では&lt;kernel&gt; /etc/init.d/networking)</p>
+</td></tr>
+</table>
+
+<p>TOMOYO Linuxの自動ドメイン定義機能は強力ですが，実行するプログラムの限定とそのアクセス制御は行いたいが，プログラムの実行順序が特定できないような場合（典型的なものとしてはログイン後の作業）はポリシーの策定が大変です．グループ化を行うことで，ログイン後のドメインをグループ化してから，そのドメインに強制モード用のプロファイルを割り当てれば，コマンドの実行順序は制限せずにアクセス可能な資源だけを制限することができます．また，強制モード用以外のプロファイルを割り当てれば，従来のLinuxと同様に自由に振る舞うことができるようになります．</p>
+
+<h3>条件付きアクセス許可について</h3>
+
+<p>TOMOYO LinuxにはRBAC（Role Based AccessControl）機能はありませんが，ポリシーの中でユーザIDに基づく条件を付けることができます．これにより，システムアカウントのユーザIDに基づくアクセス制御が可能です．条件はアクセス許可の後ろに「if 条件式」という形で指定します．利用できる条件について表1に，使い方の例を表2に示します．</p>
+
+<table border="1" summary="table1">
+<tr><td>
+<p style="text-align:center;">■表1 条件指定に使えるパラメータ</p>
+<br>
+<table border="1" summary="condition">
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>task.uid</td><td>呼び出したプロセスのユーザID</td></tr>
+<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザID</td></tr>
+<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザID</td></tr>
+<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザID</td></tr>
+<tr><td>task.gid</td><td>呼び出したプロセスのグループID</td></tr>
+<tr><td>task.egid</td><td>呼び出したプロセスの実効グループID</td></tr>
+<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループID</td></tr>
+<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループID</td></tr>
+<tr><td>task.pid</td><td>呼び出したプロセスのプロセスID</td></tr>
+<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスID</td></tr>
+<tr><td>task.type</td><td>呼び出したプロセスの種類（ execute_handler か否か）</td></tr>
+<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数0</td></tr>
+<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数1</td></tr>
+<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数2</td></tr>
+<tr><td>path1.uid</td><td>１つめのパス名の所有者ID</td></tr>
+<tr><td>path1.gid</td><td>１つめのパス名のグループID</td></tr>
+<tr><td>path1.ino</td><td>１つめのパス名のiノード番号</td></tr>
+<tr><td>path1.type</td><td>１つめのパス名の種類（ファイル，ディレクトリ，ソケット等）</td></tr>
+<tr><td>path1.perm</td><td>１つめのパス名のパーミッション</td></tr>
+<tr><td>path1.major</td><td>１つめのパス名の存在しているデバイスファイルのメジャー番号</td></tr>
+<tr><td>path1.minor</td><td>１つめのパス名の存在しているデバイスファイルのマイナー番号</td></tr>
+<tr><td>path1.dev_major</td><td>１つめのパス名のパス名（デバイスファイル）のメジャー番号</td></tr>
+<tr><td>path1.dev_minor</td><td>１つめのパス名のパス名（デバイスファイル）のマイナー番号</td></tr>
+<tr><td>path1.parent.uid</td><td>１つめのパス名の親ディレクトリの所有者ID</td></tr>
+<tr><td>path1.parent.gid</td><td>１つめのパス名の親ディレクトリのグループID</td></tr>
+<tr><td>path1.parent.ino</td><td>１つめのパス名の親ディレクトリのiノード番号</td></tr>
+<tr><td>path1.parent.perm</td><td>１つめのパス名の親ディレクトリのパーミッション</td></tr>
+<tr><td>path2.uid</td><td>２つめのパス名の所有者ID</td></tr>
+<tr><td>path2.gid</td><td>２つめのパス名のグループID</td></tr>
+<tr><td>path2.ino</td><td>２つめのパス名のiノード番号</td></tr>
+<tr><td>path2.type</td><td>２つめのパス名の種類（ファイル，ディレクトリ，ソケット等）</td></tr>
+<tr><td>path2.perm</td><td>２つめのパス名のパーミッション</td></tr>
+<tr><td>path2.major</td><td>２つめのパス名の存在しているデバイスファイルのメジャー番号</td></tr>
+<tr><td>path2.minor</td><td>２つめのパス名の存在しているデバイスファイルのマイナー番号</td></tr>
+<tr><td>path2.dev_major</td><td>２つめのパス名のパス名（デバイスファイル）のメジャー番号</td></tr>
+<tr><td>path2.dev_minor</td><td>２つめのパス名のパス名（デバイスファイル）のマイナー番号</td></tr>
+<tr><td>path2.parent.uid</td><td>２つめのパス名の親ディレクトリの所有者ID</td></tr>
+<tr><td>path2.parent.gid</td><td>２つめのパス名の親ディレクトリのグループID</td></tr>
+<tr><td>path2.parent.ino</td><td>２つめのパス名の親ディレクトリのiノード番号</td></tr>
+<tr><td>path2.parent.perm</td><td>２つめのパス名の親ディレクトリのパーミッション</td></tr>
+<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
+<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
+<tr><td>exec.argv[index]</td><td>プログラム実行時のindex番目の引数</td></tr>
+<tr><td>exec.envp["name"]</td><td>プログラム実行時の環境変数name</td></tr>
+<tr><td>exec.realpath</td><td>プログラム実行時のシンボリックリンクを解決したパス</td></tr>
+<tr><td>symlink.target</td><td>シンボリックリンク作成時のリンク先</td></tr>
+</table>
+</td></tr>
+</table>
+
+<table border="1" summary="table2">
+<tr><td>
+<p style="text-align:center;">■表2 条件指定の例</p>
+<br>
+<table border="1" summary="condition">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>if task.uid=0</td><td>プロセスのユーザIDが0（root）である場合</td></tr>
+<tr><td>if task.uid!=0</td><td>プロセスのユーザIDが0（root）ではない場合</td></tr>
+<tr><td>if task.uid=100-500</td><td>プロセスのユーザIDが100以上500以下である場合</td></tr>
+<tr><td>if task.uid=0 task.gid=0</td><td>プロセスのユーザIDとグループIDの両方が0（root）である場合</td></tr>
+<tr><td>if task.uid!=0 task.gid!=0</td><td>プロセスのユーザIDとグループIDの両方が0（root）ではない場合</td></tr>
+<tr><td>if task.uid=100-500 task.gid!=0</td><td>プロセスのユーザIDが100以上500以下であり，かつ，グループIDが0ではない場合</td></tr>
+<tr><td>if exec.argv[index]="value"</td><td>index（0&lt;=index&lt;exec.argc）番目の引数の値がvalueである場合</td></tr>
+<tr><td>if exec.argv[index]!="value"</td><td>index（0&lt;=index&lt;exec.argc）番目の引数の値がvalueではない場合</td></tr>
+<tr><td>if exec.envp["name"]="value"</td><td>環境変数nameが定義されており，値がvalueである場合</td></tr>
+<tr><td>if exec.envp["name"]!="value"</td><td>環境変数nameが定義されていないか，あるいは値がvalueではない場合</td></tr>
+<tr><td>if exec.envp["name"]!=NULL</td><td>環境変数nameが定義されている場合</td></tr>
+<tr><td>if exec.envp["name"]=NULL</td><td>環境変数nameが定義されていない場合</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>(1)条件を付与してみよう</p>
+
+<p>例として，コンソールからログインしたユーザが，catコマンドで自分の所有するファイルのみを閲覧できるようにする手順について説明します．説明用に，user1とuser2というアカウント使用します．コンソールからログインして，以降の操作を行ってください．まず，アカウントを2つ作成します（図10）．</p>
+
+<table border="1" summary="fig10">
+<tr><td>
+<pre>
+# useradd -s /bin/bash user1
+# useradd -s /bin/bash user2
+</pre>
+<br>
+<p style="text-align:center;">■図10 アカウントを2つ作成</p>
+</td></tr>
+</table>
+
+<p>パスワードを適当に設定してください（図11）．</p>
+
+<table border="1" summary="fig11">
+<tr><td>
+<pre>
+# passwd user1
+# passwd user2
+</pre>
+<br>
+<p style="text-align:center;">■図11 作成したアカウントのパスワードを設定</p>
+</td></tr>
+</table>
+
+<p>catコマンド用のドメインを作成するために，catコマンドを実行してください．ついでに，このコマンドが動作するドメインも表示してみます（図 12）．</p>
+
+<table border="1" summary="fig12">
+<tr><td>
+<pre>
+# cat /proc/ccs/self_domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+</pre>
+<br>
+<p style="text-align:center;">■図12 catコマンドが動作するドメインを表示</p>
+</td></tr>
+</table>
+
+<p>このドメインに学習用プロファイルを割り当ててください．この連載では学習用プロファイルの番号は1ですので，図13のようになります．</p>
+
+<table border="1" summary="fig13">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+<br>
+<p style="text-align:center;">■図13 catコマンド用ドメインに学習用プロファイルを割り当て</p>
+</td></tr>
+</table>
+
+<p>ログアウトして，user1としてログインし直します．そして，図14の操作を行ってください．</p>
+
+<table border="1" summary="fig14">
+<tr><td>
+<pre>
+$ echo "This file was created by user1" &gt; /tmp/testfile1
+$ cat /tmp/testfile1
+This file was created by user1
+</pre>
+<br>
+<p style="text-align:center;">■図14 user1でログインし，/tmp/testfile1を作成</p>
+</td></tr>
+</table>
+
+<p>ログアウトして，user2としてログインし直します．user1と同様に操作を行ってください（図15）．</p>
+
+<table border="1" summary="fig15">
+<tr><td>
+<pre>
+$ echo "This file was created by user2" &gt; /tmp/testfile2
+$ cat /tmp/testfile2
+This file was created by user2
+</pre>
+<br>
+<p style="text-align:center;">■図15 user2でログインし，/tmp/testfile2を作成</p>
+</td></tr>
+</table>
+
+<p>ログアウトして，rootとしてログインし直します．ccs-editpolicyを起動して，&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/catドメインのアクセス許可を確認してください．リスト1のようなエントリが含まれているはずです．</p>
+
+<table border="1" summary="list1">
+<tr><td>
+<p style="text-align:center;">■リスト1 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/catドメインのアクセス許可</p>
+<br>
+<pre>
+allow_read /tmp/testfile1
+allow_read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>このままではどちらのファイルもDAC（任意アクセス制御）のパーミッションにより許可されれば誰でも読むことができてしまいます．ここで，キーボードの「A」を押して，リスト2のように入力してください．</p>
+
+<table border="1" summary="list2">
+<tr><td>
+<p style="text-align:center;">■リスト2 アクセス許可を追加<br>（※これらをまとめて，allow_read /tmp/\* if task.uid=path1.uid のように入力してもかまいません．）</p>
+<br>
+<pre>
+allow_read /tmp/testfile1 if task.uid=path1.uid
+allow_read /tmp/testfile2 if task.uid=path1.uid
+</pre>
+</td></tr>
+</table>
+
+<p>それから，リスト3の内容をキーボードの「D」を押して削除します．</p>
+
+<table border="1" summary="list3">
+<tr><td>
+<p style="text-align:center;">■リスト3 削除する内容</p>
+<br>
+<pre>
+allow_read /tmp/testfile1
+allow_read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
+
+<p>キーボードの「Q」を押して，ccs-editpolicyを終了します．そして，catコマンド用のドメインに強制用プロファイルを割り当ててください．この連載では強制用プロファイルの番号は3ですので図16のようになります．</p>
+
+<table border="1" summary="fig16">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+<br>
+<p style="text-align:center;">■図16 catコマンド用ドメインに強制用プロファイルを割り当て</p>
+</td></tr>
+</table>
+
+<p>ログアウトして，user1としてログインし直します．そして，/tmp/testfile1と/tmp/testfile2をcatしてみてください． /tmp/testfile2へのアクセスが禁止されていることを確認できます（図17）．</p>
+
+<table border="1" summary="fig17">
+<tr><td>
+<pre>
+$ cat /tmp/testfile1
+This file was created by user1
+$ cat /tmp/testfile2
+cat: /tmp/testfile2: Operation not permitted
+</pre>
+<br>
+<p style="text-align:center;">■図17 /tmp/testfile2へのアクセスが禁止されている</p>
+</td></tr>
+</table>
+
+<p>ログアウトして，user2としてログインし直します．user1と同様に操作を行ってください．/tmp/testfile1へのアクセスが禁止されていることを確認できます．変数の代わりにユーザIDを直接指定することもできます．たとえば，ユーザ認証を行ってログインシェルを起動するための&lt;kernel&gt; /sbin/mingetty /bin/loginドメインに対して，リスト4のように変更してやると，rootユーザのログインを禁止することができます．</p>
+
+<table border="1" summary="list4">
+<tr><td>
+<p style="text-align:center;">■リスト4 rootユーザのログインを禁止する設定</p>
+<br>
+<pre>
+[修正前]
+allow_execute /bin/bash
+[修正後]
+allow_execute /bin/bash if task.uid!=0
+</pre>
+</td></tr>
+</table>
+
+<p>また，リスト5のように変更してやると，ユーザIDが500以上1000以下のユーザだけがログインできるようにすることができます．SSH経由でのログインを制限したい場合に使うことができます．</p>
+
+<table border="1" summary="list5">
+<tr><td>
+<p style="text-align:center;">■リスト5 ユーザID500以上1000以下のユーザのみログインできる設定</p>
+<br>
+<pre>
+[修正前]
+allow_execute /bin/bash
+[修正後]
+allow_execute /bin/bash if task.uid=500-1000
+</pre>
+</td></tr>
+</table>
+
+<h2>アクセスログの保存について</h2>
+
+<p>TOMOYO Linuxでは，「ポリシーに違反しなかったアクセス要求のログ」（アクセス許可ログ）と「ポリシーに違反したアクセス要求のログ」（アクセス拒否ログ）を取得することができます．アクセス許可ログとアクセス拒否ログをカーネルから読み出してファイルに保存するために，ccs-auditdというデーモンプログラムを利用できます．</p>
+
+<p>(1)アクセスログを保存してみよう</p>
+
+<p>まず，アクセスログを保存するディレクトリを作成します（図18）．</p>
+
+<table border="1" summary="fig18">
+<tr><td>
+<pre>
+# mkdir -p /var/log/tomoyo
+</pre>
+<br>
+<p style="text-align:center;">■図18 アクセスログ保存用のディレクトリを作成</p>
+</td></tr>
+</table>
+
+<p>次に，/etc/rc.d/rc.localにリスト6の行を追加します．最初の引数が「アクセス許可ログ」の保存場所で，2番目の引数が「アクセス拒否ログ」の保存場所です．</p>
+
+<table border="1" summary="list6">
+<tr><td>
+<p style="text-align:center;">■リスト6 /etc/rc.d/rc.localを修正</p>
+<br>
+<pre>
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+</pre>
+</td></tr>
+</table>
+
+<p>次に，logrotateによるローテーションを行わせるために，リスト7のような内容のファイルを/etc/logrotate.d/tomoyoとして作成してください．なお，nocreateオプションを必ず指定してください．nocreateオプションを忘れると，最初のローテーションが実行されて以降のログが保存されなくなってしまいます．</p>
+
+<table border="1" summary="list7">
+<tr><td>
+<p style="text-align:center;">■リスト7 logrotateによるローテーションの設定（/etc/logrotate.d/tomoyo）</p>
+<br>
+<pre>
+/var/log/tomoyo/reject_log.txt {
+    weekly
+    rotate 9
+    missingok
+    notifempty
+    nocreate
+}
+</pre>
+</td></tr>
+</table>
+
+<p>アクセス許可ログを保存する必要がない場合は，プロファイルで「PREFERENCE::audit={ max_grant_log=0 }」という指定をして，アクセス許可ログの保存場所として/dev/nullを指定することができます． ccs-auditdにはフィルタリング機能がありませんので，アクセス許可ログを保存する場合はディスク容量に注意してください．アクセス拒否ログを保存する必要がない場合は，プロファイルで「PREFERENCE::audit={ max_reject_log=0 }」という指定をして，アクセス拒否ログの保存場所として/dev/nullを指定することができます．アクセス拒否ログは保存しておくことを推奨します．アクセス許可ログ／アクセス拒否ログのどちらも保存しない場合にはccs-auditdを実行する必要はありません．また，プロファイルで「PREFERENCE::audit={ max_grant_log=0 max_reject_log=0 }」を指定しておくことで，消費メモリの節約と応答速度の向上が期待できます．</p>
+
+<p>(2)アクセスログを閲覧してみよう</p>
+
+<p>アクセスログは，そのまま/etc/ccs/domain_policy.confに追記可能な形式になっています（図19）．</p>
+
+<table border="1" summary="fig19">
+<tr><td>
+<pre>
+# cat /var/log/tomoyo/reject_log.txt
+#2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile2
+
+#2010-05-13 15:36:36# profile=3 mode=enforcing (global-pid=4518) task={ pid=4518 ppid=4480 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=500 gid=500 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile1
+</pre>
+<br>
+<p style="text-align:center;">■図19 アクセスログの内容例（/var/log/tomoyo/reject_log.txt）</p>
+</td></tr>
+</table>
+
+<p>また，プロセスのユーザIDなどの情報も記録されているため，個々のアクセス許可に条件を付与する際のヒントにもなります．</p>
+
+<h2>対話的なアクセス許可の追加について</h2>
+
+<p>TOMOYO Linuxでは，強制モードで運用中にポリシー違反が発生しても，そのアクセス要求を直ちに拒否する（図20）のではなく，管理者による対話的な操作によりそのアクセス要求の諾否を指示する（図21）ことができます．この機能は，強制モードでの動作確認中にポリシー違反が発生した場合や，ソフトウェアのアップデートなどによりポリシーの微調整が必要になった場合に役に立ちます．</p>
+
+<table border="1" summary="fig20/fig21">
+<tr><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig31.png" alt="sd200703-fig31.png"><br>
+<p style="text-align:center;">■図20 ポリシーに違反する要求はすぐに拒否</p>
+</td><td>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig20.png" alt="sd200703-fig20.png"><br>
+<p style="text-align:center;">■図21 ポリシーに違反する要求は対話的に処理</p>
+</td></tr>
+</table>
+
+<p>(1)対話的にアクセス許可を追加してみよう</p>
+
+<p>ポリシー違反の発生を監視して管理者に問い合わせを行うccs-querydコマンドを起動してください（図22）．</p>
+
+<table border="1" summary="fig22">
+<tr><td>
+<pre>
+# /usr/sbin/ccs-queryd
+Monitoring /proc/ccs/query and /etc/ld.so.cache . Press Ctrl-C to terminate.
+</pre>
+<br>
+<p style="text-align:center;">■図22 ccs-querydを起動</p>
+</td></tr>
+</table>
+
+<p>この状態でポリシー違反が発生すると，ccs-querydを実行中の画面にアクセス要求の内容が表示されます．このメッセージは，/etc/ccs /domain_policy.confと同じ構文になっていますので，許可すべきかどうかを判断してください．先ほど，コンソールからログインしたユーザがcatコマンドで自分の所有するファイルのみを閲覧できるようにするポリシーを作成しましたので，ここではそれを用いてポリシー違反を発生させることにします． ccs-querydを動作させている画面を残したまま，別の画面を開いてuser1としてログインします．その後，図23のコマンドを実行してください．</p>
+
+<table border="1" summary="fig23">
+<tr><td>
+<pre>
+$ cat /tmp/testfile1
+This file was created by user1
+$ cat /tmp/testfile2
+</pre>
+<br>
+<p style="text-align:center;">■図23 user1で操作を行う</p>
+</td></tr>
+</table>
+
+<p>この操作によりポリシー違反が発生しました．ccs-querydを動作させている画面をチェックしてみてください．図24のようなメッセージが表示されているはずです．</p>
+
+<table border="1" summary="fig24">
+<tr><td>
+<pre>
+#2010-05-13 15:39:20# profile=3 mode=enforcing (global-pid=4619) task={ pid=4619 ppid=4581 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile2
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+<br>
+<p style="text-align:center;">■図24 ポリシー違反が発生した場合のccs-querydの画面</p>
+</td></tr>
+</table>
+
+<p>許可したい場合は「Y」を，拒否したい場合は「N」を，ポリシーに追加したうえで再試行したい場合は「A」を押します．ここで「N」を押してから，user1の画面を見てください．図25のようなメッセージが表示されました．</p>
+
+<table border="1" summary="fig25">
+<tr><td>
+<pre>
+cat: /tmp/testfile2: Operation not permitted
+</pre>
+<br>
+<p style="text-align:center;">■図25 操作が許可されていないことを知らせるメッセージ</p>
+</td></tr>
+</table>
+
+<p>再度図26を実行して，ccs-querydの画面をチェックしてください．</p>
+
+<table border="1" summary="fig26">
+<tr><td>
+<pre>
+$ cat /tmp/testfile2
+</pre>
+<br>
+<p style="text-align:center;">■図26 再度user1で操作を行う</p>
+</td></tr>
+</table>
+
+<p>図27のようなメッセージが表示されているはずです．</p>
+
+<table border="1" summary="fig26">
+<tr><td>
+<pre>
+#2010-05-13 15:41:36# profile=3 mode=enforcing (global-pid=4620) task={ pid=4620 ppid=4581 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile2
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+<br>
+<p style="text-align:center;">■図27 ポリシー違反が発生した場合のccs-querydの画面</p>
+</td></tr>
+</table>
+
+<p>ここで「Y」を押してから，user1の画面を見てください．図28のように，/tmp/testfile2の内容が表示されました．</p>
+
+<table border="1" summary="fig28">
+<tr><td>
+<pre>
+This file was created by user2
+</pre>
+<br>
+<p style="text-align:center;">■図28 /tmp/testfile2の内容が表示される</p>
+</td></tr>
+</table>
+
+<p>再度図26を実行して，ccs-querydの画面をチェックしてください．</p>
+
+<p>今度は「A」を押してください．図29という内容が表示されます．</p>
+
+<table border="1" summary="fig29">
+<tr><td>
+<pre>
+Enter new entry&gt; allow_read /tmp/testfile2
+</pre>
+<br>
+<p style="text-align:center;">■図29 編集を行うプロンプト</p>
+</td></tr>
+</table>
+
+<p>このまま「ENTER」を押すと，編集中の内容がポリシーに追加され（図30），再試行されます．</p>
+
+<table border="1" summary="fig30">
+<tr><td>
+<pre>
+Added 'allow_read /tmp/testfile2'.
+</pre>
+<br>
+<p style="text-align:center;">■図30 ポリシーに追加される</p>
+</td></tr>
+</table>
+
+<p>ポリシーに追加されたことでポリシー違反は発生しなくなるため，図28のように/tmp/testfile2の内容が表示されます．</p>
+
+<p>また，ccs-editpolicyを起動して&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/catドメインに対するアクセス許可の一覧を表示してみると，図31のようになっているはずです．</p>
+
+<table border="1" summary="fig31">
+<tr><td>
+<pre>
+allow_read /tmp/testfile1 if task.uid=path1.uid
+allow_read /tmp/testfile2
+allow_read /tmp/testfile2 if task.uid=path1.uid
+</pre>
+<br>
+<p style="text-align:center;">■図31 アクセス許可の一覧を表示する</p>
+</td></tr>
+</table>
+
+<p>これは，ccs-querydによって「allow_read /tmp/testfile2」というアクセス許可が追加されたためです．チューニングが終わったら，ccs-querydを「CTRL＋C」により終了させてください．</p>
+
+<h3>ccs-queryd利用時の注意点</h3>
+
+<p>ccs-querydを利用するうえで注意すべき点が2つあります．1つは，無条件にアクセス要求を許可してはいけない点です．ポリシー違反の原因が悪意あるユーザによる攻撃である可能性があるからです．もし，悪意あるユーザによる攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合，強制アクセス制御による保護が無意味になってしまいます．もう1つは，ccs-querydが動作している間は，ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となる点です．そのため，ccs-querydを動作させたまま席を外したりログアウトしたりしないでください．</p>
+
+<h2>次回予告</h2>
+
+<p>今回はドメイン遷移の制御とポリシーのチューニング方法について紹介しました．次回は，ファイルに関する強制アクセス制御以外の機能について紹介していきます．どうぞお楽しみに．</p>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
