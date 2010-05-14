@@ -6,9 +6,9 @@ mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t selinuxfs none /selinux/
 
-# rpmdb of CentOS 5.4 LiveCD seems to be damaged...
-rm -f /var/lib/rpm/__db*
-rpm --rebuilddb
+## rpmdb of CentOS 5.4 LiveCD seems to be damaged...
+#rm -f /var/lib/rpm/__db*
+#rpm --rebuilddb
 rpm -ivh /*.rpm
 rpm -e kernel
 tar -zcf /locale.tar.gz /usr/lib/locale/ /usr/share/locale/
