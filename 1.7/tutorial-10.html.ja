@@ -41,13 +41,12 @@
 <li>以上の作業で決定したアクセス許可をあらかじめ与えたうえで，実際に学習モードを用いて不足しているアクセス許可を追加していきます．</li>
 </ol>
 
-<p>以上の手順で登場するキーワードを表1に示します．</p>
+<p>以上の手順で登場するキーワードを図1に示します．</p>
 
-<table border="1" summary="table1">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表1 使用するキーワード</p>
-<br>
-<table border="1" summary="keyword">
+■図1 使用するキーワード<br>
+<table border="1" summary="fig">
 <tr><td>キーワード</td><td>意味</td></tr>
 <tr><td>path_group</td><td>プログラムファイルやホームディレクトリ以下のファイルをグループ化する</td></tr>
 <tr><td>keep_domain</td><td>ドメイン遷移を抑制する</td></tr>
@@ -63,24 +62,22 @@
 
 <h3>実行を許可するプログラムの決定</h3>
 
-<p>システムにログインしたユーザが悪意あるプログラムを実行できないようにするには，あらかじめシステムにインストールされているプログラム以外の実行を禁止するのが効果的です．この連載では，システムにすでにインストールされているプログラムの内，ログインセッションにおいて表2のコマンドの実行だけを許可するものとします．</p>
+<p>システムにログインしたユーザが悪意あるプログラムを実行できないようにするには，あらかじめシステムにインストールされているプログラム以外の実行を禁止するのが効果的です．この連載では，システムにすでにインストールされているプログラムの内，ログインセッションにおいて図2のコマンドの実行だけを許可するものとします．</p>
 
-<table border="1" summary="table2">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表2 実行を許可するコマンド</p>
-<br>
-<table border="1" summary="command">
+■図2 実行を許可するコマンド<br>
+<table border="1" summary="fig">
 <tr><td>/bin/basename /bin/bash /bin/cat /bin/egrep /bin/grep /bin/hostname /bin/ln /bin/ls /bin/mkdir /bin/mv /bin/rm /bin/rmdir /bin/sed /bin/touch /sbin/consoletype /usr/bin/clear /usr/bin/dircolors /usr/bin/emacs-x /usr/bin/id /usr/bin/passwd /usr/bin/perl /usr/bin/ssh /usr/bin/ssh-keygen /usr/bin/wget /usr/bin/which</td></tr>
 </table>
 </td></tr>
 </table>
 
-<p>これらのコマンドをpath_groupとして例外ポリシーに登録しておきましょう（リスト1） ．</p>
+<p>これらのコマンドをpath_groupとして例外ポリシーに登録しておきましょう（図3） ．</p>
 
-<table border="1" summary="list1">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト1 実行を許可するコマンドをグループ化</p>
-<br>
+■図3 実行を許可するコマンドをグループ化
 <pre>
 path_group COMMANDS_FOR_LOGIN_SESSION /bin/basename
 path_group COMMANDS_FOR_LOGIN_SESSION /bin/bash
@@ -91,18 +88,17 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
 </td></tr>
 </table>
 
-<p>コマンドの所在（パス）を確認するにはwhichやtypeなどのコマンドを使います（図1） ．</p>
+<p>コマンドの所在（パス）を確認するにはwhichやtypeなどのコマンドを使います（図4） ．</p>
 
-<table border="1" summary="fig1">
+<table border="1" summary="fig">
 <tr><td>
+■図4 コマンドの所在を確認する
 <pre>
 # which perl sed grep
 /usr/bin/perl
 /bin/sed
 /bin/grep
 </pre>
-<br>
-<p style="text-align:center;">■図1 コマンドの所在を確認する</p>
 </td></tr>
 </table>
 
@@ -110,25 +106,19 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
 
 <h3>ドメイン遷移の設計</h3>
 
-<p>これまでの連載で説明してきたようにTOMOYO Linuxでは，原則としてコマンドを実行するたびにドメイン遷移を行う仕様となっています．そのため，たとえば図2の場合は/bin/catはシェルの子ドメインとして動作しますが，図3の場合は/bin/catは/usr/bin/xargsの子ドメインとして動作します．</p>
+<p>これまでの連載で説明してきたようにTOMOYO Linuxでは，原則としてコマンドを実行するたびにドメイン遷移を行う仕様となっています．そのため，たとえば図5の場合は/bin/catはシェルの子ドメインとして動作しますが，図6の場合は/bin/catは/usr/bin/xargsの子ドメインとして動作します．</p>
 
-<table border="1" summary="fig2">
+<table border="1" summary="fig">
 <tr><td>
+■図5 シェルから/bin/catを実行
 <pre>
 # /bin/cat /etc/*.conf
 </pre>
-<br>
-<p style="text-align:center;">■図2 シェルから/bin/catを実行</p>
-</td></tr>
-</table>
-
-<table border="1" summary="fig3">
-<tr><td>
+</td><td>
+■図6 xargsから/bin/catを実行
 <pre>
 # echo /etc/*.conf | xargs /bin/cat --
 </pre>
-<br>
-<p style="text-align:center;">■図3 xargsから/bin/catを実行</p>
 </td></tr>
 </table>
 
@@ -136,12 +126,11 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
 
 <h3>プログラムの起動方法による振る舞いの変化について</h3>
 
-<p>ちょっと横道に逸れますが，ここでアクセス制御を行う場合に注意すべき点として，プログラムの起動方法による振る舞いの変化について触れておきたいと思います．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，リスト2のプログラムを/tmp/argv0.cという名前で保存してください．</p>
+<p>ちょっと横道に逸れますが，ここでアクセス制御を行う場合に注意すべき点として，プログラムの起動方法による振る舞いの変化について触れておきたいと思います．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図7のプログラムを/tmp/argv0.cという名前で保存してください．</p>
 
-<table border="1" summary="list2">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト2 起動方法を表示するＣプログラム</p>
-<br>
+■図7 起動方法を表示するＣプログラム
 <pre>
 #include &lt;stdio.h&gt;
 int main(int argc, char *argv[])
@@ -153,120 +142,113 @@ int main(int argc, char *argv[])
 </td></tr>
 </table>
 
-<p>その後，図4のようにコンパイルしておよびシンボリックリンク（またはハードリンク）を作成してください．</p>
+<p>その後，図8のようにコンパイルしておよびシンボリックリンク（またはハードリンク）を作成してください．</p>
 
-<table border="1" summary="fig4">
+<table border="1" summary="fig">
 <tr><td>
+■図8 コンパイルしてシンボリックリンクを作成するする
 <pre>
 # gcc -o /tmp/argv0 /tmp/argv0.c
 # ln -s /tmp/argv0 /tmp/cat
 # ln -s /tmp/argv0 /tmp/passwd
 </pre>
-<br>
-<p style="text-align:center;">■図4 コンパイルしてシンボリックリンクを作成するする</p>
 </td></tr>
 </table>
 
-<p>そして，そのシンボリックリンク（またはハードリンク）を実行してください．すると，シンボリックリンクの名前が表示されます（図5） ．</p>
+<p>そして，そのシンボリックリンク（またはハードリンク）を実行してください．すると，シンボリックリンクの名前が表示されます（図9） ．</p>
 
-<table border="1" summary="fig5">
+<table border="1" summary="fig">
 <tr><td>
+■図9 シンボリックリンク経由で起動する
 <pre>
 # /tmp/cat
 I am running as /tmp/cat
 # /tmp/passwd
 I am running as /tmp/passwd
 </pre>
-<br>
-<p style="text-align:center;">■図5 シンボリックリンク経由で起動する</p>
 </td></tr>
 </table>
 
 <p>一部のコマンドは，そのコマンドが起動されたときの「名前（argv[0]と呼ばれているものです） 」によって振る舞いを変えるように作られています．たとえば，CentOS 5.5において，/sbin/pidofは/sbin/killall5へのシンボリックリンクであり，pidofという名前で起動された場合には指定されたプログラムのプロセスIDを表示し，killall5という名前で起動された場合には自分のセッション以外のすべてのプロセスにシグナルを送信します．</p>
 
-<p>TOMOYO Linuxでは/tmp/catを実行すれば/tmp/catのドメインで動作し，/tmp/passwdを実行すれば/tmp/passwdのドメインで動作します．では，図6のように/tmp/catという名前で/tmp/passwdを実行した場合には，どのようになるでしょうか？（結果を予想してみてください）</p>
+<p>TOMOYO Linuxでは/tmp/catを実行すれば/tmp/catのドメインで動作し，/tmp/passwdを実行すれば/tmp/passwdのドメインで動作します．では，図10のように/tmp/catという名前で/tmp/passwdを実行した場合には，どのようになるでしょうか？（結果を予想してみてください）</p>
 
-<table border="1" summary="fig6">
+<table border="1" summary="fig">
 <tr><td>
+■図10 passwdコマンドをcatという名前で実行する
 <pre>
 # sh -c 'exec -a /tmp/cat /tmp/passwd'
 </pre>
-<br>
-<p style="text-align:center;">■図6 passwdコマンドをcatという名前で実行する</p>
 </td></tr>
 </table>
 
-<p>図6の実行結果は図7となります．このことから，図6を認めることは図8を認めることと同じです．ただし，図8は/tmp/catドメインで/tmp/catとして動作するのを認めているのに対して，図6は/tmp/passwdドメインで/tmp/catとして動作することを認めているという点に注意してください．</p>
+<p>図10の実行結果は図11となります．このことから，図10を認めることは図12を認めることと同じです．ただし，図12は/tmp/catドメインで/tmp/catとして動作するのを認めているのに対して，図10は/tmp/passwdドメインで/tmp/catとして動作することを認めているという点に注意してください．</p>
 
-<table border="1" summary="fig7">
+<table border="1" summary="fig">
 <tr><td>
+■図11 catコマンドとして動作する
 <pre>
 I am running as /tmp/cat
 </pre>
-<br>
-<p style="text-align:center;">■図7 catコマンドとして動作する</p>
 </td></tr>
 </table>
 
-<table border="1" summary="fig8">
+<table border="1" summary="fig">
 <tr><td>
+■図12 図10がもたらす結果
 <pre>
 # sh -c 'exec /tmp/cat'
 </pre>
-<br>
-<p style="text-align:center;">■図8 図6がもたらす結果</p>
 </td></tr>
 </table>
 
 <p>/usr/bin/passwdコマンドと/bin/catコマンドが/sbin/busyboxのハードリンクまたはシンボリックリンクとして提供されていると仮定します．この場合，TOMOYO Linuxでは/bin/catを実行すれば/bin/catのドメインで動作し，/usr/bin/passwdを実行すれば/usr/bin/passwdのドメインで動作します．パスワードを変更するための/usr/bin/passwdドメインには/etc/shadowへのアクセスを認める必要がありますが，ファイルの内容を表示するための/bin/catドメインには/etc/shadowへのアクセスを認めたくありません．</p>
 
-<p>図9のように/bin/catという名前で/usr/bin/passwdを実行した場合には，どのようになるでしょうか？</p>
+<p>図13のように/bin/catという名前で/usr/bin/passwdを実行した場合には，どのようになるでしょうか？</p>
 
-<table border="1" summary="fig9">
+<table border="1" summary="fig">
 <tr><td>
+■図13 passwdコマンドをcatという名前で実行する
 <pre>
 # sh -c 'exec -a /bin/cat /usr/bin/passwd /etc/shadow'
 </pre>
-<br>
-<p style="text-align:center;">■図9 passwdコマンドをcatという名前で実行する</p>
 </td></tr>
 </table>
 
-<p>図9を実行すると，/usr/bin/passwdは/usr/bin/passwdドメインで動作します．しかし，起動時の名前が/bin/catであったため，その振る舞いは/bin/catとなります．結果として図10のような振る舞いを許可してしまったことになります．</p>
+<p>図13を実行すると，/usr/bin/passwdは/usr/bin/passwdドメインで動作します．しかし，起動時の名前が/bin/catであったため，その振る舞いは/bin/catとなります．結果として図14のような振る舞いを許可してしまったことになります．</p>
 
-<table border="1" summary="fig10">
+<table border="1" summary="fig">
 <tr><td>
+■図14 パスワードファイルを閲覧できる
 <pre>
 # sh -c 'exec /bin/cat /etc/shadow'
 </pre>
-<br>
-<p style="text-align:center;">■図10 パスワードファイルを閲覧できる</p>
 </td></tr>
 </table>
 
-<p>このような脅威を防ぐために，TOMOYO Linuxではプログラムのパス名とargv[0]の組み合わせをチェックする機能を備えています．図9のような脅威も/usr/bin/passwdコマンドを/bin/catという名前で起動することを禁止することで防ぐことができるようになります．実は，前回示したMovable Typeのポリシーの中にもallow_execute /usr/sbin/sendmail.sendmail if exec.argv[0]="sendmail"というアクセス許可がありました．これは，/usr/sbin/sendmail.sendmailコマンドをsendmailという名前で起動することを許可するという意味です．表2で指定しているプログラムの中に図9のような指定をされると困るプログラムが含まれている場合には，そのプログラムはpath_groupから除外し，allow_execute /usr/bin/passwd if exec.argv[0]="passwd"のように個別に指定するようにしてください．</p>
+<p>このような脅威を防ぐために，TOMOYO Linuxではプログラムのパス名とargv[0]の組み合わせをチェックする機能を備えています．図13のような脅威も/usr/bin/passwdコマンドを/bin/catという名前で起動することを禁止することで防ぐことができるようになります．実は，前回示したMovable Typeのポリシーの中にもallow_execute /usr/sbin/sendmail.sendmail if exec.argv[0]="sendmail"というアクセス許可がありました．これは，/usr/sbin/sendmail.sendmailコマンドをsendmailという名前で起動することを許可するという意味です．図2で指定しているプログラムの中に図13のような指定をされると困るプログラムが含まれている場合には，そのプログラムはpath_groupから除外し，allow_execute /usr/bin/passwd if exec.argv[0]="passwd"のように個別に指定するようにしてください．</p>
 
 <h2>ステップ2：読み書きを許可するファイルの決定</h2>
 
 <h3>ハードリンクの脅威と対策</h3>
 
-<p>TOMOYO Linuxではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図11の操作を試してみてください（/etc/ディレクトリと /tmp/ディレクトリが別のパーティションになっているシステムでは失敗します．その場合，/etc/ディレクトリと同じパーティションにある /root/ディレクトリなどに読み替えてください） ．</p>
+<p>TOMOYO Linuxではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図15の操作を試してみてください（/etc/ディレクトリと /tmp/ディレクトリが別のパーティションになっているシステムでは失敗します．その場合，/etc/ディレクトリと同じパーティションにある /root/ディレクトリなどに読み替えてください） ．</p>
 
-<table border="1" summary="fig10">
+<table border="1" summary="fig">
 <tr><td>
+■図15 ハードリンク経由でパスワードファイルにアクセスする
 <pre>
 # ln /etc/shadow /tmp/shadow
 # cat /tmp/shadow
 </pre>
-<br>
-<p style="text-align:center;">■図11 ハードリンク経由でパスワードファイルにアクセスする</p>
 </td></tr>
 </table>
 
-<p>これは，ログインパスワードを格納している/etc/shadowというファイルを/tmp/ディレクトリの下にハードリンクすることで，/tmp /shadowというパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「/etc/shadowを/tmp/shadowにハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は，/etc /shadowのハードリンクの作成はrootユーザでなくても可能です．一般ユーザが/etc/shadowのハードリンクを一般ユーザが書き込めるディレクトリである/tmp/ディレクトリに作成し，実行を許可されているコマンド（たとえば/usr/bin/sudo）を利用してroot権限を手に入れてから，/tmp/ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だからTOMOYO Linuxでは，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです． （実際に/tmp/shadowを作成した方は，この先を読み続ける前に，忘れないうちに/tmp/shadowを削除しておくように！）/etc /shadowのリンク数が2以上であれば，どこかにハードリンクが残っています（図12） ．</p>
+<p>これは，ログインパスワードを格納している/etc/shadowというファイルを/tmp/ディレクトリの下にハードリンクすることで，/tmp /shadowというパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「/etc/shadowを/tmp/shadowにハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は，/etc /shadowのハードリンクの作成はrootユーザでなくても可能です．一般ユーザが/etc/shadowのハードリンクを一般ユーザが書き込めるディレクトリである/tmp/ディレクトリに作成し，実行を許可されているコマンド（たとえば/usr/bin/sudo）を利用してroot権限を手に入れてから，/tmp/ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だからTOMOYO Linuxでは，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです． （実際に/tmp/shadowを作成した方は，この先を読み続ける前に，忘れないうちに/tmp/shadowを削除しておくように！）/etc /shadowのリンク数が2以上であれば，どこかにハードリンクが残っています（図16） ．</p>
 
-<table border="1" summary="fig11">
+<table border="1" summary="fig">
 <tr><td>
+■図16 /etc/shadowのハードリンクを削除する
 <pre>
 # ls -l /etc/shadow
 -r-------- 2 root root 946 May 29 18:14 /etc/shadow
@@ -274,22 +256,19 @@ I am running as /tmp/cat
 # ls -l /etc/shadow
 -r-------- 1 root root 946 May 29 18:14 /etc/shadow
 </pre>
-<br>
-<p style="text-align:center;">■図12 /etc/shadowのハードリンクを削除する</p>
 </td></tr>
 </table>
 
-<p>名前の変更についても同様です．/etc/shadowの読み書きは厳しく制限できますが，/tmp/ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図13のような操作ができてしまうようでは困ります（/etc/ディレクトリと/tmp/ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので，/etc/shadowの読み書きを禁止することで/tmp/ディレクトリに移動されることを防止できます） ．</p>
+<p>名前の変更についても同様です．/etc/shadowの読み書きは厳しく制限できますが，/tmp/ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図17のような操作ができてしまうようでは困ります（/etc/ディレクトリと/tmp/ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので，/etc/shadowの読み書きを禁止することで/tmp/ディレクトリに移動されることを防止できます） ．</p>
 
-<table border="1" summary="fig12">
+<table border="1" summary="fig">
 <tr><td>
+■図17 名前を変更してからパスワードファイルにアクセスする
 <pre>
 # mv /etc/shadow /tmp/shadow
 # cat /tmp/shadow
 # mv /tmp/shadow /etc/shadow
 </pre>
-<br>
-<p style="text-align:center;">■図13 名前を変更してからパスワードファイルにアクセスする</p>
 </td></tr>
 </table>
 
@@ -297,12 +276,11 @@ I am running as /tmp/cat
 
 <h3>アクセスをホームディレクトリ以下に限定する</h3>
 
-<p>ドメインを遷移させるのは，アクセス権限を切り替えるためです．ログインセッションでは原則としてドメイン遷移を行わないということは，ログインセッションで読み書きを許可するファイルを区別しないことを意味します．基本的に，ログインセッションでは，プログラムファイルを作成したり書き換えたりする必要はありません．そのため，ホームディレクトリ以下のファイルの読み書きを中心に許可すれば良いでしょう．ホームディレクトリ以下のファイルをグループ化するために，例外ポリシーでリスト3のグループを定義します．</p>
+<p>ドメインを遷移させるのは，アクセス権限を切り替えるためです．ログインセッションでは原則としてドメイン遷移を行わないということは，ログインセッションで読み書きを許可するファイルを区別しないことを意味します．基本的に，ログインセッションでは，プログラムファイルを作成したり書き換えたりする必要はありません．そのため，ホームディレクトリ以下のファイルの読み書きを中心に許可すれば良いでしょう．ホームディレクトリ以下のファイルをグループ化するために，例外ポリシーで図18のグループを定義します．</p>
 
-<table border="1" summary="list3">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト3 ホームディレクトリのファイルをグループ化</p>
-<br>
+■図18 ホームディレクトリのファイルをグループ化
 <pre>
 path_group HOME_FILE /home/\{\*\}/\*
 path_group HOME_DIR /home/\{\*\}/\*/
@@ -314,12 +292,11 @@ path_group HOME_DIR /home/\{\*\}/\*/
 
 <h3>特定のパス名を除外する</h3>
 
-<p>しかし，ホームディレクトリ以下のファイルでも，~/.ssh/ディレクトリのファイルのように，/bin/catなどでの閲覧を禁止させたいファイルがあるはずです．そこで，\*\-.sshという指定を行うことで，.sshディレクトリ内のパス名を除外することができるようになっています．具体的には，リスト4のように修正します．</p>
+<p>しかし，ホームディレクトリ以下のファイルでも，~/.ssh/ディレクトリのファイルのように，/bin/catなどでの閲覧を禁止させたいファイルがあるはずです．そこで，\*\-.sshという指定を行うことで，.sshディレクトリ内のパス名を除外することができるようになっています．具体的には，図19のように修正します．</p>
 
-<table border="1" summary="list4">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト4 .sshディレクトリをグループから除外する</p>
-<br>
+■図19 .sshディレクトリをグループから除外する
 <pre>
 path_group HOME_FILE /home/\{\*\-.ssh\}/\*
 path_group HOME_DIR /home/\{\*\-.ssh\}/
@@ -331,12 +308,11 @@ path_group HOME_DIR /home/\{\*\-.ssh\}/
 
 <h3>アクセス許可をあらかじめ与えておく</h3>
 
-<p>ログインセッションである&lt;kernel&gt; /usr/sbin/sshd /bin/bashドメインに対しては，リスト5のようなアクセスを認めます．</p>
+<p>ログインセッションである&lt;kernel&gt; /usr/sbin/sshd /bin/bashドメインに対しては，図20のようなアクセスを認めます．</p>
 
-<table border="1" summary="list5">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト5 あらかじめアクセス許可を与えておく</p>
-<br>
+■図20 あらかじめアクセス許可を与えておく
 <pre>
 allow_execute @COMMANDS_FOR_LOGIN
 allow_read/write @HOME_FILE
@@ -375,13 +351,11 @@ allow_rename @HOME_DIR @HOME_DIR
 
 <h3>所有者によるアクセスのみを認める</h3>
 
-<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを0700に設定することで実現できます．しかし，たとえば Apache に対して~/public_html/ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対してif task.uid=path1.uidのように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，リスト5をリスト6のように置き換えます．</p>
+<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを0700に設定することで実現できます．しかし，たとえば Apache に対して~/public_html/ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対してif task.uid=path1.uidのように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，図20を図21のように置き換えます．</p>
 
-
-<table border="1" summary="list6">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト6 所有者によるアクセスのみを認める</p>
-<br>
+■図21 所有者によるアクセスのみを認める
 <pre>
 allow_execute @COMMANDS_FOR_LOGIN
 allow_read/write @HOME_FILE if task.uid=path1.uid

@@ -24,12 +24,11 @@
 
 <h3>制御モードについて</h3>
 
-<p>前回，/etc/ccs/profile.confにはリスト1のような内容を記述しました．このうち，mode=の右側を制御モードと呼びます．制御モードはdisabled/learning/permissive/enforcingのいずれかを取り，それぞれの意味は表1となります．</p>
+<p>前回，/etc/ccs/profile.confには図1のような内容を記述しました．このうち，mode=の右側を制御モードと呼びます．制御モードはdisabled/learning/permissive/enforcingのいずれかを取り，それぞれの意味は図2となります．</p>
 
-<table border="1" summary="list1">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト1 前回使用したプロファイル</p>
-<br>
+■図1 前回使用したプロファイル
 <pre>
 PROFILE_VERSION=20090903
 0-CONFIG::file={ mode=learning }
@@ -38,11 +37,10 @@ PREFERENCE::learning={ verbose=no }
 </td></tr>
 </table>
 
-<table border="1" summary="table1">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表1 制御モード</p>
-<br>
-<table border="1" summary="mode">
+■図2 制御モード<br>
+<table border="1" summary="fig">
 <tr><td>モード</td><td>内容</td><td>動作</td></tr>
 <tr><td>disabled</td><td>無効</td><td>通常のカーネルと同様に動作する</td></tr>
 <tr><td>learning</td><td>学習</td><td>ポリシー違反が発生しても要求を拒否せず，ポリシーに追加する</td></tr>
@@ -54,35 +52,32 @@ PREFERENCE::learning={ verbose=no }
 
 <p>前回はlearningを指定したので，学習モードとして動作していました．その結果，発生したすべてのファイルに関するアクセス要求が許可され，その内容がシステム起動時に読み込まれたポリシーに追加されていったわけです．</p>
 
-<p>ポリシーを策定する基本的な流れについて図1に示します．この流れに沿って，今回は確認モードと強制モードを使用してみます．</p>
+<p>ポリシーを策定する基本的な流れについて図3に示します．この流れに沿って，今回は確認モードと強制モードを使用してみます．</p>
 
-<table border="1" summary="fig1">
+<table border="1" summary="fig">
 <tr><td>
+■図3 ポリシー作成の流れ<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig1.png" alt="sd200702-fig1.png">
-<br>
-<p style="text-align:center;">■図1 ポリシー作成の流れ</p>
 </td></tr>
 </table>
 
-<p>起動時に制御モードを切り替えたい場合は，/etc/ccs/profile.confの内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevelというコマンドを使用します．たとえば，図2のコマンドを実行すると確認モードに，図3を実行すると強制モードになります（TOMOYO Linuxの確認モードがSELinuxのpermissiveモードに，強制モードがenforcingモードに相当します）．</p>
+<p>起動時に制御モードを切り替えたい場合は，/etc/ccs/profile.confの内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevelというコマンドを使用します．たとえば，図4のコマンドを実行すると確認モードに，図5を実行すると強制モードになります（TOMOYO Linuxの確認モードがSELinuxのpermissiveモードに，強制モードがenforcingモードに相当します）．</p>
 
-<table border="1" summary="fig2">
+<table border="1" summary="fig">
 <tr><td>
+■図4 確認モードに変更
 <pre>
 # /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=permissive }'
 </pre>
-<br>
-<p style="text-align:center;">■図2 確認モードに変更</p>
 </td></tr>
 </table>
 
-<table border="1" summary="fig3">
+<table border="1" summary="fig">
 <tr><td>
+■図5 強制モードに変更
 <pre>
 # /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=enforcing }'
 </pre>
-<br>
-<p style="text-align:center;">■図3 強制モードに変更</p>
 </td></tr>
 </table>
 
@@ -90,17 +85,12 @@ PREFERENCE::learning={ verbose=no }
 
 <h3>プロファイルについて</h3>
 
-<h4>バージョン1.2以前と1.3以降の違い</h4>
+<p>TOMOYO Linuxでは，強制アクセス制御のモードについてドメイン単位で指定することが可能です．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義（図6）を複数作成し，ccs-setprofileコマンドを用いてプロファイルをドメインに割り当てて使用します（図7）．ccs-setprofileコマンドの使い方は後述します．</p>
 
-<p>TOMOYO Linux 1.2以前では，強制アクセス制御のモードについて個別の指定を行えませんでした．そのためサービスを提供しているシステムで特定のツールの動作を確認したいという場合があっても，一時的にシステム全体の強制アクセス制御を無効，あるいは確認モードにしなければなりませんでした．また，特定のアプリケーション（ドメイン）だけのアクセス許可を定義したい場合でも，すべてのアプリケーション用のポリシーを一括して定義し，一斉にモードを切り替える必要があり，管理者の負担が大きいという問題がありました．</p>
-
-<p>TOMOYO Linux 1.3以降では，強制アクセス制御のモードについてドメイン単位で指定することが可能となりました．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義（表2）を複数作成し，ccs-setprofileコマンドを用いてプロファイルをドメインに割り当てて使用します（図4）．一斉にモードを切り替える必要がないため，管理者の負担を減らすことが可能になります．ccs-setprofileコマンドの使い方は後述します．</p>
-
-<table border="1" summary="table2">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表2 プロファイル</p>
-<br>
-<table border="1" summary="profile">
+■図6 プロファイル<br>
+<table border="1" summary="fig">
 <tr><td>名称</td><td>用途</td><td>プロファイル</td></tr>
 <tr><td>プロファイル0</td><td>信頼済み</td><td>アクセス制御を適用しない</td></tr>
 <tr><td>プロファイル1</td><td>学習モード用</td><td>ファイルのアクセスを学習 ネットワークのアクセスを学習</td></tr>
@@ -110,22 +100,20 @@ PREFERENCE::learning={ verbose=no }
 </td></tr>
 </table>
 
-<table border="1" summary="fig4">
+<table border="1" summary="fig">
 <tr><td>
+■図7 プロファイルをドメインに割り当て<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig4.png" alt="sd200702-fig4.png">
-<br>
-<p style="text-align:center;">■図4 プロファイルをドメインに割り当て</p>
 </td></tr>
 </table>
 
-<h4>プロファイルの作成</h4>
+<h4>●プロファイルの作成</h4>
 
-<p>本連載では，4種類のプロファイルを使用します．/etc/ccs/profile.confの内容をリスト2のように書き換えてください．</p>
+<p>本連載では，4種類のプロファイルを使用します．/etc/ccs/profile.confの内容を図8のように書き換えてください．</p>
 
-<table border="1" summary="list2">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト2 この連載で使用するプロファイル</p>
-<br>
+■図8 この連載で使用するプロファイル
 <pre>
 PROFILE_VERSION=20090903
 PREFERENCE::learning={ verbose=no }
@@ -141,15 +129,14 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <p>行頭の数字がプロファイルの番号（プロファイル番号は0～255まで使用できます．）であり，同じものは同一プロファイルに所属します．プロファイル番号の割り当ては自由ですが，本連載では，制御モードとの対応を連想しやすいように，0番を「アクセス制御を行わないプロファイル」用，1番を「アクセス許可を学習させるためのプロファイル」用，2番を「アクセス許可の不足がないかを確認するためのプロファイル」用，3番を「アクセス制御を行うためのプロファイル」用として使用することにします．</p>
 
-<p>/etc/ccs/profile.confをリスト2のように修正したら，それを反映するためにTOMOYOカーネルで再起動するか，あるいは図5のコマンドを実行してください．</p>
+<p>/etc/ccs/profile.confを図8のように修正したら，それを反映するためにTOMOYOカーネルで再起動するか，あるいは図9のコマンドを実行してください．</p>
 
-<table border="1" summary="fig5">
+<table border="1" summary="fig">
 <tr><td>
+■図9 プロファイルの再読み込み
 <pre>
 # /usr/sbin/ccs-loadpolicy p
 </pre>
-<br>
-<p style="text-align:center;">■図5 プロファイルの再読み込み</p>
 </td></tr>
 </table>
 
@@ -159,27 +146,25 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>例外ポリシーの更新</h3>
 
-<p>最初に，このパス名をinitialize_domainに指定します．図6のようにeditpolicyをeオプション付きで実行してください．</p>
+<p>最初に，このパス名をinitialize_domainに指定します．図10のようにeditpolicyをeオプション付きで実行してください．</p>
 
-<table border="1" summary="fig6">
+<table border="1" summary="fig">
 <tr><td>
+■図10 ポリシーエディタを実行
 <pre>
 # /usr/sbin/ccs-editpolicy e
 </pre>
-<br>
-<p style="text-align:center;">■図6 ポリシーエディタを実行</p>
 </td></tr>
 </table>
 
-<table border="1" summary="fig7">
+<p>すると，「&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;」という画面が表示されます．この画面をスクロールしていくと，initialize_domainで始まる行が現れます（図11．表示される内容は環境により異なります）．</p>
+
+<table border="1" summary="fig">
 <tr><td>
+■図11 例外ポリシーのinitialize_domain指定部分<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig07.png" alt="sd200702-fig07.png">
-<br>
-<p style="text-align:center;">■図7 例外ポリシーのinitialize_domain指定部分</p>
 </td></tr>
 </table>
-
-<p>すると，「&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;」という画面が表示されます．この画面をスクロールしていくと，initialize_domainで始まる行が現れます（図 7．表示される内容は環境により異なります）．</p>
 
 <p>連載第1回の手順を実行していれば，その中に「initialize_domain /usr/sbin/httpd」という行が存在しているはずです．もし存在していない場合は，次の手順により追加してください．</p>
 
@@ -187,27 +172,25 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <p>TOMOYO Linuxでは，同一のプログラムであったとしてもそれを起動した経緯によって異なるドメインが割り当てられます．これは状況に応じて異なるアクセス許可を与えたい場合には便利ですが，デーモンプロセスのように状況に依らず同じアクセス許可を与えたいという場合もあります．それを解決するために TOMOYO Linuxではinitialize_domainと呼ばれる機能を実現しています．</p>
 
-<p>利用方法は，起動した経緯によらず同一ドメインとして扱いたいプログラムについて，initialize_domainというキーワードで登録します．そうするとシステムの起動時に自動的に起動された場合でも管理者がログインしてサービスを再起動させた場合でも&lt;kernel&gt;直下の同じドメインで動作させることができます（図8）．</p>
+<p>利用方法は，起動した経緯によらず同一ドメインとして扱いたいプログラムについて，initialize_domainというキーワードで登録します．そうするとシステムの起動時に自動的に起動された場合でも管理者がログインしてサービスを再起動させた場合でも&lt;kernel&gt;直下の同じドメインで動作させることができます（図12）．</p>
 
-<table border="1" summary="fig8">
+<table border="1" summary="fig">
 <tr><td>
+■図12 initialize_domainによる指定<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig8.png" alt="sd200702-fig8.png">
-<br>
-<p style="text-align:center;">■図8 initialize_domainによる指定</p>
 </td></tr>
 </table>
 
 <h3>起動</h3>
 
-<p>まず，Apacheを動作させるためのドメインを作成します（図9）．</p>
+<p>まず，Apacheを動作させるためのドメインを作成します（図13）．</p>
 
-<table border="1" summary="fig9">
+<table border="1" summary="fig">
 <tr><td>
+■図13 Apacheを起動
 <pre>
 # service httpd restart
 </pre>
-<br>
-<p style="text-align:center;">■図9 Apacheを起動</p>
 </td></tr>
 </table>
 
@@ -215,31 +198,29 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>学習モード</h3>
 
-<p>先ほど作成したプロファイルの中から学習用のプロファイルを割り当ててみます（図10）．引数の"-r"は，「&lt;kernel&gt; /usr/sbin/httpd」ドメイン配下のすべてのドメイン（ドメイン名が「&lt;kernel&gt; /usr/sbin/httpd」で始まるすべてのドメイン）を適用対象とするという意味です．ccs-setprofileコマンドでドメイン名を指定する場合，適切に引用符を付けてやらないと，&lt;や&gt;がシェルのリダイレクトとして解釈されてしまいますので注意してください．</p>
+<p>先ほど作成したプロファイルの中から学習用のプロファイルを割り当ててみます（図14）．引数の"-r"は，「&lt;kernel&gt; /usr/sbin/httpd」ドメイン配下のすべてのドメイン（ドメイン名が「&lt;kernel&gt; /usr/sbin/httpd」で始まるすべてのドメイン）を適用対象とするという意味です．ccs-setprofileコマンドでドメイン名を指定する場合，適切に引用符を付けてやらないと，&lt;や&gt;がシェルのリダイレクトとして解釈されてしまいますので注意してください．</p>
 
-<table border="1" summary="fig10">
+<table border="1" summary="fig">
 <tr><td>
+■図14 学習用プロファイルを割り当て
 <pre>
 # /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
 </pre>
-<br>
-<p style="text-align:center;">■図10 学習用プロファイルを割り当て</p>
 </td></tr>
 </table>
 
-<p>図10のコマンドを実行した後で，許可したい操作（たとえばページの閲覧やWikiの操作）を行います．</p>
+<p>図14のコマンドを実行した後で，許可したい操作（たとえばページの閲覧やWikiの操作）を行います．</p>
 
 <h3>確認モード</h3>
 
-<p>ひととおりの操作が完了したら，今度は確認用のプロファイルを割り当ててみましょう（図11）．確認用に作成したプロファイルでは，「PREFERENCE::permissive={ verbose=yes }」という指定がされているので，ポリシー違反が発生するとコンソールに「WARNING:」で始まるメッセージが表示されます．許可したい操作を行ってもこのメッセージが表示されないようであれば，許可したい操作を行うのに必要なアクセス許可がポリシーに含まれていることがわかります．</p>
+<p>ひととおりの操作が完了したら，今度は確認用のプロファイルを割り当ててみましょう（図15）．確認用に作成したプロファイルでは，「PREFERENCE::permissive={ verbose=yes }」という指定がされているので，ポリシー違反が発生するとコンソールに「WARNING:」で始まるメッセージが表示されます．許可したい操作を行ってもこのメッセージが表示されないようであれば，許可したい操作を行うのに必要なアクセス許可がポリシーに含まれていることがわかります．</p>
 
-<table border="1" summary="fig11">
+<table border="1" summary="fig">
 <tr><td>
+■図15 確認用プロファイルを割り当て
 <pre>
 # /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
 </pre>
-<br>
-<p style="text-align:center;">■図11 確認用プロファイルを割り当て</p>
 </td></tr>
 </table>
 
@@ -247,15 +228,14 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>強制モード</h3>
 
-<p>ポリシーが完成したと判断したら，強制用のプロファイルを割り当てます（図12）．</p>
+<p>ポリシーが完成したと判断したら，強制用のプロファイルを割り当てます（図16）．</p>
 
-<table border="1" summary="fig12">
+<table border="1" summary="fig">
 <tr><td>
+■図16 強制用プロファイルを割り当て
 <pre>
 # /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
 </pre>
-<br>
-<p style="text-align:center;">■図12 強制用プロファイルを割り当て</p>
 </td></tr>
 </table>
 
@@ -273,13 +253,12 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <p>ポリシーでは必要なアクセスについて許可を与えることが必要ですが，プログラムによっては/tmpなどのディレクトリにランダムな英数字やプロセス IDなどを名前に含むファイルを作成するものがあります．そうした場合には，学習モードで追加されたパス名だけでは正しく動作できません．</p>
 
-<p>TOMOYO Linuxでは，こうした場合を想定して，ポリシーでのワイルドカードの使用に対応しています（表3）．ワイルドカードを適切に使用することによりアクセス許可の数を減らし，メモリ消費を節約することができます．</p>
+<p>TOMOYO Linuxでは，こうした場合を想定して，ポリシーでのワイルドカードの使用に対応しています（図17）．ワイルドカードを適切に使用することによりアクセス許可の数を減らし，メモリ消費を節約することができます．</p>
 
-<table border="1" summary="table3">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表3 TOMOYO Linuxで使用可能なワイルドカード</p>
-<br>
-<table border="1" summary="wildcard">
+■図17 TOMOYO Linuxで使用可能なワイルドカード<br>
+<table border="1" summary="fig">
 <tr><td>表記</td><td>意味</td></tr>
 <tr><td>\*</td><td>/以外の0文字以上</td></tr>
 <tr><td>\@</td><td>/と.以外の0文字以上</td></tr>
@@ -300,22 +279,20 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>パス名をパターン化してみよう</h3>
 
-<p>パス名をパターン化する操作は，ポリシーエディタを用いて行うことができます．ccs-editpolicyを起動すると，「&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;」という画面が表示されます．そこから，「&lt;kernel&gt; /usr/sbin/httpd」というドメインを探してください．「&lt;kernel&gt; /usr/sbin/httpd」という行にカーソルを合わせてから「ENTER」を押すと，「&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;」という画面が表示されるはずです（図13．表示される内容は環境により異なります）．</p>
+<p>パス名をパターン化する操作は，ポリシーエディタを用いて行うことができます．ccs-editpolicyを起動すると，「&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;」という画面が表示されます．そこから，「&lt;kernel&gt; /usr/sbin/httpd」というドメインを探してください．「&lt;kernel&gt; /usr/sbin/httpd」という行にカーソルを合わせてから「ENTER」を押すと，「&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;」という画面が表示されるはずです（図18．表示される内容は環境により異なります）．</p>
 
-<table border="1" summary="fig13">
+<table border="1" summary="fig">
 <tr><td>
+■図18 Apache用のポリシー<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig13.png" alt="sd200702-fig13.png">
-<br>
-<p style="text-align:center;">■図13 Apache用のポリシー</p>
 </td></tr>
 </table>
 
-<p>Webサーバは/var/www/ディレクトリ以下のファイルをアクセスします．そこで，/var/www/html/ディレクトリ以下のファイルの参照を許可するには，リスト3のように指定します．「A」を押して1行ずつ追加します（図14）．</p>
+<p>Webサーバは/var/www/ディレクトリ以下のファイルをアクセスします．そこで，/var/www/html/ディレクトリ以下のファイルの参照を許可するには，図19のように指定します．「A」を押して1行ずつ追加します（図20）．</p>
 
-<table border="1" summary="list3">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト3 /var/www/html/以下の参照を許可する例</p>
-<br>
+■図19 /var/www/html/以下の参照を許可する例
 <pre>
 allow_read /var/www/html/\*
 allow_read /var/www/html/\{\*\}/\*
@@ -323,20 +300,18 @@ allow_read /var/www/html/\{\*\}/\*
 </td></tr>
 </table>
 
-<table border="1" summary="fig14">
+<table border="1" summary="fig">
 <tr><td>
+■図20 Apacheに対して/var/www/html/以下の参照を許可<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-2&amp;src=sd200702-fig14.png" alt="sd200702-fig14.png">
-<br>
-<p style="text-align:center;">■図14 Apacheに対して/var/www/html/以下の参照を許可</p>
 </td></tr>
 </table>
 
-<p>アプリケーションによっては，テンポラリファイルを使用します．たとえば，リスト4のようなエントリが含まれていた場合，これらは/tmp /phpXXXXXXというパターンで作成されるテンポラリファイルであると考えることができます．そのため，/tmp/phpXXXXXXというパターンをTOMOYO Linuxにおけるワイルドカードで表記した/tmp/php\?\?\?\?\?\?というパターンで置き換えます．操作手順は，次のようになります．</p>
+<p>アプリケーションによっては，テンポラリファイルを使用します．たとえば，図21のようなエントリが含まれていた場合，これらは/tmp /phpXXXXXXというパターンで作成されるテンポラリファイルであると考えることができます．そのため，/tmp/phpXXXXXXというパターンをTOMOYO Linuxにおけるワイルドカードで表記した/tmp/php\?\?\?\?\?\?というパターンで置き換えます．操作手順は，次のようになります．</p>
 
-<table border="1" summary="list4">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■リスト4 テンポラリファイル</p>
-<br>
+■図21 テンポラリファイル
 <pre>
 allow_read/write /tmp/phpAb9fD1
 allow_read/write /tmp/phpkzqf5p
@@ -345,7 +320,7 @@ allow_read/write /tmp/php3lo7ab
 </td></tr>
 </table>
 
-<p>まず，キーボードの「A」を押して，リスト4の内容をパターン化した「allow_read/write /tmp/php\?\?\?\?\?\?」というエントリを入力してください．次に，「allow_read/write /tmp/php\?\?\?\?\?\?」というエントリの行にカーソルを合わせてキーボードの「O」を押すと，「allow_read/write /tmp/php\?\?\?\?\?\?」に包含されているアクセス許可の行頭に&amp;マークが表示されます．リスト4の内容について行頭に&amp;マークが表示されていることを確認後，キーボードの「D」を押すと「Delete selected entries? ('Y'es/'N'o)」と尋ねられますので，キーボードの「Y」を押してください．</p>
+<p>まず，キーボードの「A」を押して，図21の内容をパターン化した「allow_read/write /tmp/php\?\?\?\?\?\?」というエントリを入力してください．次に，「allow_read/write /tmp/php\?\?\?\?\?\?」というエントリの行にカーソルを合わせてキーボードの「O」を押すと，「allow_read/write /tmp/php\?\?\?\?\?\?」に包含されているアクセス許可の行頭に&amp;マークが表示されます．図21の内容について行頭に&amp;マークが表示されていることを確認後，キーボードの「D」を押すと「Delete selected entries? ('Y'es/'N'o)」と尋ねられますので，キーボードの「Y」を押してください．</p>
 
 <p>確認モードで動作させながら，必要なアクセス許可が与えられるまでチューニングを行ってください．</p>
 
