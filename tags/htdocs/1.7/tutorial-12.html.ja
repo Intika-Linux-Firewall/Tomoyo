@@ -24,13 +24,12 @@
 
 <h3>使用するプログラム</h3>
 
-<p>TOMOYO Linuxでは，ポリシーの修正を支援するためのツールとして，表1のプログラムを提供しています．</p>
+<p>TOMOYO Linuxでは，ポリシーの修正を支援するためのツールとして，図1のプログラムを提供しています．</p>
 
-<table border="1" summary="table1">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表1 TOMOYO の管理を行うためのプログラム</p>
-<br>
-<table border="1" summary="ccstools">
+■図1 TOMOYO の管理を行うためのプログラム<br>
+<table border="1" summary="fig">
 <tr><td>プログラム名</td><td>役割</td></tr>
 <tr><td>ccs-queryd</td><td>アクセス要求を対話的に許可する</td></tr>
 </table>
@@ -39,88 +38,83 @@
 
 <h3>コンソールでの操作例</h3>
 
-<p>まずはログイン後の操作を制限する場合の例で説明します．操作を間違えてロックアウトされてしまわないようにするため，この連載ではexampleというユーザを作成して作業することにします．また，exampleユーザとrootユーザの作業をコンソールウィンドウの切り替えを行いながら進めることにします．コンソールウィンドウの切り替えは「ALT」＋「F1」～「F6」で行います．「ALT」＋「F1」でウィンドウ1を開き，rootユーザとexampleユーザのシェルを異なるものに設定してください．これは，ログインシェルを異なるものにすることによって，ログインシェルのドメインを異なるものにし，特定のログインシェルのドメインだけでアクセス制御を有効にするためです．本連載ではrootユーザのシェルは/bin/bashの場合で説明しているので，exampleユーザには/bin/tcshを割り当てます（図1） ．</p>
+<p>まずはログイン後の操作を制限する場合の例で説明します．操作を間違えてロックアウトされてしまわないようにするため，この連載ではexampleというユーザを作成して作業することにします．また，exampleユーザとrootユーザの作業をコンソールウィンドウの切り替えを行いながら進めることにします．コンソールウィンドウの切り替えは「ALT」＋「F1」～「F6」で行います．「ALT」＋「F1」でウィンドウ1を開き，rootユーザとexampleユーザのシェルを異なるものに設定してください．これは，ログインシェルを異なるものにすることによって，ログインシェルのドメインを異なるものにし，特定のログインシェルのドメインだけでアクセス制御を有効にするためです．本連載ではrootユーザのシェルは/bin/bashの場合で説明しているので，exampleユーザには/bin/tcshを割り当てます（図2） ．</p>
 
-<table border="1" summary="fig1">
+<table border="1" summary="fig">
 <tr><td>
+■図2 exampleユーザに/bin/tcshを割り当てる
 <pre>
 # usermod -s /bin/tcsh example
 </pre>
-<br>
-<p style="text-align:center;">■図1 exampleユーザに/bin/tcshを割り当てる</p>
 </td></tr>
 </table>
 
-<p>次に「ALT」＋「F2」でウィンドウ2を開き，exampleユーザとしてログインしてください．CentOS 5.3の場合，コンソールからログインしたドメインは「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh」となるはずです．（sshdからログインした場合は「&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh」となるはずです．）ウィンドウ1に切り替えて，このドメインに対して強制モード用のプロファイル（プロファイル3）を割り当てます（図2） ．</p>
+<p>次に「ALT」＋「F2」でウィンドウ2を開き，exampleユーザとしてログインしてください．CentOS 5.3の場合，コンソールからログインしたドメインは「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh」となるはずです．（sshdからログインした場合は「&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh」となるはずです．）ウィンドウ1に切り替えて，このドメインに対して強制モード用のプロファイル（プロファイル3）を割り当てます（図3） ．</p>
 
-<table border="1" summary="fig2">
+<table border="1" summary="fig">
 <tr><td>
+■図3 exampleユーザのシェル（ウィンドウ2）のドメインに強制モード用プロファイルを割り当て
 <pre>
 # /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh'
 </pre>
-<br>
-<p style="text-align:center;">■図2 exampleユーザのシェル（ウィンドウ2）のドメインに強制モード用プロファイルを割り当て</p>
 </td></tr>
 </table>
 
-<p>これにより，exampleユーザのシェル（ウィンドウ2）からは，ほとんど何もできない状態になります（図3） ．</p>
+<p>これにより，exampleユーザのシェル（ウィンドウ2）からは，ほとんど何もできない状態になります（図4） ．</p>
 
-<table border="1" summary="fig3">
+<table border="1" summary="fig">
 <tr><td>
+■図4 図3の適用結果を確認
 <pre>
 $ ls
 /bin/ls: Operation not permitted.
 $ cat /etc/passwd
 /bin/cat: Operation not permitted.
 </pre>
-<br>
-<p style="text-align:center;">■図3 図2の適用結果を確認</p>
 </td></tr>
 </table>
 
 <p>ccs-querydというプログラムを使用する（図5）と，強制モードで動作中のプロセスがポリシーに違反する内容のアクセス要求を行った場合でも，ただちに拒否するのではなく，システム管理者の指示を仰ぐようにすることができます．このモードは，SELinuxやAppArmorには存在しない，TOMOYO Linux特有の機能です．</p>
 
-<table border="1" summary="fig5">
+<table border="1" summary="fig">
 <tr><td>
+■図5 ccs-querydの実行
 <pre>
 # /usr/sbin/ccs-queryd
 </pre>
-<br>
-<p style="text-align:center;">■図5 ccs-querydの実行</p>
 </td></tr>
 </table>
 
 <p>ウィンドウ2に切り替えて，/bin/lsコマンドの実行を要求してみましょう（図6）．</p>
 
-<table border="1" summary="fig6">
+<table border="1" summary="fig">
 <tr><td>
+■図6 lsコマンドを実行
 <pre>
 $ /bin/ls
 </pre>
-<br>
-<p style="text-align:center;">■図6 lsコマンドを実行</p>
 </td></tr>
 </table>
 
 <p>先ほどはただちに拒否されてしまいましたが，今度は拒否されずに止まっています．この状態のままウィンドウ1に切り替えてみましょう．すると，図7のようなプロンプトが表示されているはずです．</p>
 
-<table border="1" summary="fig7">
+<table border="1" summary="fig">
 <tr><td>
+■図7 図6実行後，ウィンドウ1に表示されるプロンプト
 <pre>
 #2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
 allow_execute /bin/ls
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
-<br>
-<p style="text-align:center;">■図7 図6実行後，ウィンドウ1に表示されるプロンプト</p>
 </td></tr>
 </table>
 
 <p>最初の行はポリシーに違反するアクセス要求を行ったプロセスの属しているドメイン名が，2行目はアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「Y」を押すと，そのアクセス要求を許可することができます．また，「N」を押すと，そのアクセス要求を拒否することができます．「Y」キーを押した場合，/bin/lsの実行が許可されますが，ドメイン用ポリシーの中には/bin/lsを実行するためのドメインがまだ作成されていません．そのため，図8のようなプロンプトが表示されます．</p>
 
-<table border="1" summary="fig8">
+<table border="1" summary="fig">
 <tr><td>
+■図8 ドメイン作成の許可を求めるプロンプト
 <pre>
 #2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
@@ -128,23 +122,20 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
 Allow? ('Y'es/'N'o/'R'etry):
 </pre>
-<br>
-<p style="text-align:center;">■図8 ドメイン作成の許可を求めるプロンプト</p>
 </td></tr>
 </table>
 
 <p>「Y」を押した場合，/bin/ls用のドメインが作成されるので，/bin/lsは先に進むことができます．「N」を押した場合，ドメインが見つからないという理由で/bin/lsの実行要求は拒否されます．/bin/lsのドメインの作成を許可すると，図9のように聞かれます．</p>
 
-<table border="1" summary="fig9">
+<table border="1" summary="fig">
 <tr><td>
+■図9 ドメイン作成を許可した際のプロンプト
 <pre>
 #2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
 allow_read /etc/selinux/config
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
-<br>
-<p style="text-align:center;">■図9 ドメイン作成を許可した際のプロンプト</p>
 </td></tr>
 </table>
 
@@ -176,13 +167,12 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>使用するプログラム</h3>
 
-<p>TOMOYO Linuxでは，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，表2のプログラムを提供しています．</p>
+<p>TOMOYO Linuxでは，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，図10のプログラムを提供しています．</p>
 
-<table border="1" summary="table2">
+<table border="1" summary="fig">
 <tr><td>
-<p style="text-align:center;">■表2 TOMOYO の管理を行うためのプログラム</p>
-<br>
-<table border="1" summary="ccstools">
+■図10 TOMOYO の管理を行うためのプログラム<br>
+<table border="1" summary="fig">
 <tr><td>プログラム名</td><td>役割</td></tr>
 <tr><td>ccs-findtemp</td><td>存在しないパス名を検出する</td></tr>
 <tr><td>ccs-domainmatch</td><td>アクセス許可が与えられているドメインを検索する</td></tr>
@@ -194,23 +184,23 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>コンソールでの操作例</h3>
 
-<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図10の操作を行ってみてください．</p>
+<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図11の操作を行ってみてください．</p>
 
-<table border="1" summary="fig10">
+<table border="1" summary="fig">
 <tr><td>
+■図11 学習モードで行う操作
 <pre>
 # touch /tmp/abc12345
 # rm -f /tmp/abc12345
 </pre>
-<br>
-<p style="text-align:center;">■図10 学習モードで行う操作</p>
 </td></tr>
 </table>
 
-<p>この操作によりtouchとrmの/tmp/abc12345に対するアクセスが学習されましたが，/tmp/abc12345というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます．この状態で，ccs-findtempコマンドはそうした可能性を持つファイルを探します．なお，図11の実行例では/tmp/abc12345というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
+<p>この操作によりtouchとrmの/tmp/abc12345に対するアクセスが学習されましたが，/tmp/abc12345というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます．この状態で，ccs-findtempコマンドはそうした可能性を持つファイルを探します．なお，図12の実行例では/tmp/abc12345というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
 
-<table border="1" summary="fig11">
+<table border="1" summary="fig">
 <tr><td>
+■図12 ccs-findtempの実行例
 <pre>
 # /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
 /tmp/abc12345
@@ -227,8 +217,6 @@ allow_write /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
 allow_unlink /tmp/abc12345
 </pre>
-<br>
-<p style="text-align:center;">■図11 ccs-findtempの実行例</p>
 </td></tr>
 </table>
 
