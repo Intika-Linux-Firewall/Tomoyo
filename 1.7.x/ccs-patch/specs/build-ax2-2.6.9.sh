@@ -26,8 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2010-03-26 11:49:34.000000000 +0900
-+++ kernel-2.6.spec	2010-04-16 12:24:57.927706637 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -26,7 +26,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.

@@ -13,8 +13,8 @@ cd /usr/lib/rpm/ || die "Can't chdir to /usr/lib/rpm/ ."
 if ! grep -q ccs-kernel find-supplements.ksyms
 then
 	patch << "EOF" || die "Can't patch find-supplements.ksyms ."
---- find-supplements.ksyms	2008-04-16 14:42:14.000000000 +0900
-+++ find-supplements.ksyms	2008-04-16 14:38:50.000000000 +0900
+--- find-supplements.ksyms
++++ find-supplements.ksyms
 @@ -5,6 +5,7 @@
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
@@ -29,8 +29,8 @@ fi
 if ! grep -q ccs-kernel find-requires.ksyms
 then
 	patch << "EOF" || die "Can't patch find-requires.ksyms ."
---- find-requires.ksyms	2008-04-16 14:42:14.000000000 +0900
-+++ find-requires.ksyms	2008-04-16 14:39:03.000000000 +0900
+--- find-requires.ksyms
++++ find-requires.ksyms
 @@ -5,11 +5,12 @@
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
@@ -51,8 +51,8 @@ fi
 if ! grep -q ccs-kernel find-provides.ksyms
 then
 	patch << "EOF" || die "Can't patch find-provides.ksyms ."
---- find-provides.ksyms	2008-04-16 14:42:14.000000000 +0900
-+++ find-provides.ksyms	2008-04-16 14:39:19.000000000 +0900
+--- find-provides.ksyms
++++ find-provides.ksyms
 @@ -5,6 +5,7 @@
  case "$1" in
  kernel-module-*)    ;; # Fedora kernel module package names start with
@@ -82,8 +82,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/packages/SOURCES/kernel-smp.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-smp.spec	2008-01-24 20:35:46.000000000 +0900
-+++ kernel-smp.spec	2010-01-01 19:28:22.000000000 +0900
+--- kernel-smp.spec
++++ kernel-smp.spec
 @@ -10,7 +10,7 @@
  
  # norootforbuild

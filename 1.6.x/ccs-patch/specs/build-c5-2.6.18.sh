@@ -30,8 +30,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2010-03-17 10:43:31.000000000 +0900
-+++ kernel-2.6.spec	2010-03-31 10:31:53.000000000 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -70,7 +70,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -9872,6 +9875,10 @@
+@@ -9905,6 +9908,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -9939,6 +9946,9 @@
+@@ -9972,6 +9979,9 @@
  for i in *.config
  do
    mv $i .config

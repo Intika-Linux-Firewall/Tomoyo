@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2006-07-12 11:30:41.000000000 +0900
-+++ kernel-2.6.spec	2008-04-16 12:23:17.000000000 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -18,7 +18,7 @@
  %define sublevel 17
  %define kversion 2.6.%{sublevel}

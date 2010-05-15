@@ -26,8 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /root/rpmbuild/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel.spec	2009-12-11 00:16:43.000000000 +0900
-+++ kernel.spec	2009-12-12 13:03:45.000000000 +0900
+--- kernel.spec
++++ kernel.spec
 @@ -15,7 +15,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"

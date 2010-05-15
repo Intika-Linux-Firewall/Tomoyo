@@ -26,8 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2010-05-07 01:04:40.000000000 +0900
-+++ kernel-2.6.spec	2010-05-07 16:34:45.000000000 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -27,7 +27,7 @@
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.

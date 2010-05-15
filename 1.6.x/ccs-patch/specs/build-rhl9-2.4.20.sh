@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.4.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.4.spec	2006-03-03 02:01:06.000000000 +0900
-+++ kernel-2.4.spec	2008-04-16 09:31:57.000000000 +0900
+--- kernel-2.4.spec
++++ kernel-2.4.spec
 @@ -21,7 +21,7 @@
  # that the kernel isn't the stock RHL kernel, for example by
  # adding some text to the end of the version number.
