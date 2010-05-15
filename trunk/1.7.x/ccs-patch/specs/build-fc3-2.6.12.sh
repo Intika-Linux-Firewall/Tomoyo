@@ -26,8 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2006-02-18 23:05:50.000000000 +0900
-+++ kernel-2.6.spec	2008-04-16 12:15:41.000000000 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -21,7 +21,7 @@
  %define rpmversion 2.6.%{sublevel}
  #define rhbsys  %([ -r /etc/beehive-root -o -n "%{?__beehive_build}" ] && echo || echo .`whoami`)

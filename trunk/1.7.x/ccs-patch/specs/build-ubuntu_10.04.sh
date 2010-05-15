@@ -53,8 +53,8 @@ for i in debian.master/abi/2.6.32-*/*/ ; do touch $i/ccs.ignore; done
 
 # Make modified header files go into local header package.
 patch -p0 << "EOF" || die "Can't patch link-headers."
---- debian/scripts/link-headers	2009-11-07 11:20:15.000000000 +0900
-+++ debian/scripts/link-headers	2009-11-07 11:09:28.000000000 +0900
+--- debian/scripts/link-headers
++++ debian/scripts/link-headers
 @@ -39,4 +39,17 @@
  done
  )

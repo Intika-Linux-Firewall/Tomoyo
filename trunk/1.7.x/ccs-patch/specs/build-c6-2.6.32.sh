@@ -31,8 +31,8 @@ fi
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- ccs-kernel.spec	2010-03-10 07:17:58.000000000 +0900
-+++ ccs-kernel.spec	2010-04-23 09:07:48.000000000 +0900
+--- ccs-kernel.spec
++++ ccs-kernel.spec
 @@ -14,7 +14,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"

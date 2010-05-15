@@ -26,8 +26,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/vine/SPECS/kernel-2.6-vl.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6-vl.spec	2010-01-09 11:18:54.000000000 +0900
-+++ kernel-2.6-vl.spec	2010-01-22 17:03:42.000000000 +0900
+--- kernel-2.6-vl.spec
++++ kernel-2.6-vl.spec
 @@ -27,7 +27,7 @@
  %define patchlevel 43
  %define kversion 2.6.%{sublevel}

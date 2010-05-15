@@ -25,8 +25,8 @@ fi
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/redhat/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel-2.6.spec	2008-05-15 12:30:44.000000000 +0900
-+++ kernel-2.6.spec	2008-05-18 09:27:33.000000000 +0900
+--- kernel-2.6.spec
++++ kernel-2.6.spec
 @@ -12,7 +12,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
