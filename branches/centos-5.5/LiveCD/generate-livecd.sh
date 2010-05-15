@@ -84,7 +84,7 @@ dd if=/dev/zero of=squash/LiveOS/ext3fs.img bs=1048576 count=4096 || die "Can't 
 mke2fs -j -m 0 -L "CentOS-5.5-i386-" -F squash/LiveOS/ext3fs.img || die "Can't create filesystem."
 tune2fs -c -1 -i 0 -o user_xattr,acl squash/LiveOS/ext3fs.img || die "Can't tune filesystem."
 mount -o loop,noatime,nodiratime squash/LiveOS/ext3fs.img mnt/ || die "Can't mount filesystem."
-cp -a ext3/* ext3/.rnd mnt/ || die "Can't copy image file."
+cp -a ext3/* mnt/ || die "Can't copy image file."
 umount -d ext3/ || die "Can't unmount old filesystem." 
 
 chroot mnt/ mount -t proc none /proc/
