@@ -5,7 +5,7 @@ CD_LABEL="CentOS-5.5-i386-TOMOYO-LiveCD"
 ISOIMAGE_NAME=../CentOS-5.5-i386-TOMOYO-LiveCD.iso
 ORIGINAL_VERSION=2.6.18-194.el5
 ORIGINAL_VERSION_REGEXP=2\.6\.18-194\.el5
-KERNEL_VERSION=2.6.18-194.el5_tomoyo_1.7.2
+KERNEL_VERSION=2.6.18-194.3.1.el5_tomoyo_1.7.2
 
 set -v
 
@@ -32,24 +32,14 @@ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.7/1st-st
 mv centos5-live/ tomoyo || die "Can't create directory."
 sed -i -e 's@http://tomoyo\.sourceforge\.jp/tomoyo\.css@tomoyo.css@' -- tomoyo/index.html.* || die "Can't copy document."
 cd ../../../../ || die "Can't change directory."
-cp -p resources/tomoyo.css ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
-cp -p resources/tomoyo-*.desktop resources/install-japanese-font.desktop ext3/etc/skel/ || die "Can't copy shortcut."
+cp -p resources/tomoyo.css resources/*.desktop ext3/usr/share/doc/tomoyo/ || die "Can't copy document."
+grep -q desktop ext3/etc/rc.d/rc.local || echo 'cp -af --remove-destination /usr/share/doc/tomoyo/*.desktop /home/centos/Desktop/' >> ext3/etc/rc.d/rc.local
+grep -q centos:centos ext3/etc/rc.d/rc.local || echo 'chown centos:centos /home/centos/Desktop/*.desktop' >> ext3/etc/rc.d/rc.local
 
 rm -f ext3/*.rpm
 rm -f ext3/package-install.sh
 rm -f ext3/root/.bash_history
 rm -f ext3/boot/initrd-*
-
-SETUP_SCRIPT=ext3/etc/rc.d/init.d/centos-live
-
-if ! grep -q TOMOYO ${SETUP_SCRIPT}
-    then
-    (
-	echo '# --- TOMOYO Linux Project (begin) ---'
-	echo 'mv /home/centos/tomoyo-*.desktop /home/centos/install-japanese-font.desktop /home/centos/Desktop/'
-	echo '# --- TOMOYO Linux Project (end) ---'
-    ) >> ${SETUP_SCRIPT}
-fi
 
 cd ${LIVECD_HOME}
 echo "********** Copying kernel. **********"
