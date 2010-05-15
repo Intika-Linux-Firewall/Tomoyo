@@ -1,0 +1,167 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linuxの世界　第７回：「新学期スタート」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<!--
+<p style="text-align:right;"><a href="tutorial-7.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+-->
+<h1>TOMOYO Linuxの世界<br>第７回：「新学期スタート」</h1>
+
+<p>今回は，TOMOYO Linuxの最新バージョンである1.7.2の紹介と，CE Linux Forum Worldwide Embedded Linux Conference 2007の模様をお届けします．</p>
+
+<h2>今回の内容</h2>
+
+<p>前回まででTOMOYO Linuxの基本的な機能の紹介と使い方についての説明が完了しました．連載を開始した2006年12月時点のバージョンは1.3.1でしたが，2010年4月現在の最新バージョンは1.7.2となっています．</p>
+
+<p>今回はドメイン遷移のパターンの説明をメインに，4月に発表を行ったELC2007の様子も紹介します．リリースの詳細については，<a href="http://sourceforge.jp/projects/tomoyo/news/">プロジェクトのニュース</a>や<a href="http://lists.sourceforge.jp/mailman/archives/tomoyo-users/">メーリングリストのアーカイブ</a>にてご確認ください．</p>
+
+<h2>多様なドメイン遷移パターンに対応</h2>
+
+<p>TOMOYO Linuxは，当初ネットワークにつながっているサーバを外部の攻撃から保護することをおもな用途として開発されました．そのため，ログイン後の操作を制限する用途では対応しにくいことがありました．現在では，ログイン後の操作を制限する用途やデスクトップアプリケーション（Webブラウザやメールクライアントなど）を保護する用途にも利用できます．パターンが多く一度に理解するのは難しいと思いますが，必要に応じて活用ください．</p>
+
+<h4>●条件付きでドメイン遷移を抑制させる</h4>
+
+<p>例外ポリシーで「keep_domain ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインに到達した場合にはデフォルトでドメイン遷移が行われなくなります（図1）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図1 keep_domain使用例（ドメイン指定）<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig05.jpg" alt="sd200707-fig05.jpg">
+</td></tr>
+</table>
+
+<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけを指定することも可能です．たとえば， 「ドメイン名」として /bin/bash を指定した場合，ドメイン名が /bin/bash で終わるすべてのドメインに対してkeep_domainが指定されたものとして扱われます（図2） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図2 keep_domain使用例（最終プログラム名指定）<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig06.jpg" alt="sd200707-fig06.jpg">
+</td></tr>
+</table>
+
+<p>また， 「keep_domain プログラム名from ドメイン名」のように指定した場合， 「ドメイン名」で指定されたドメインから「プログラム名」で指定されたプログラムが実行される場合に限り，ドメイン遷移が発生しなくなります（図3） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図3 from条件付きkeep_domain<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig07.jpg" alt="sd200707-fig07.jpg">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を初期化させる</h4>
+
+<p>例外ポリシーで「initialize_domain プログラム名」と指定しておくと， 「プログラム名」で指定されたプログラムが実行された場合， 「&lt;kernel&gt; プログラム名」というドメインへ遷移します．（図4） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図4 initialize_domainによる強制的ドメイン遷移<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig08.jpg" alt="sd200707-fig08.jpg">
+</td></tr>
+</table>
+
+<p>「initialize_domainプログラム名 from ドメイン名」のように「ドメイン名」を指定することも可能です． 「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけでもかまいません．</p>
+
+<p>たとえば， 「initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd」という指定をすると，「&lt;kernel&gt; /etc/rc.d/init.d/sshd」ドメインから「/usr/sbin/sshd」が実行される場合に限り，「&lt;kernel&gt; /usr/sbin/sshd」ドメインへ遷移します（図5） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図5 from条件付きinitialize_domain<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig09.jpg" alt="sd200707-fig09.jpg">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を再開させる</h4>
+
+<p>ログイン後にはどのようなコマンドをどのような順序で実行するかを事前に知ることはできないため，keep_domainというキーワードを指定してドメイン遷移を行わせないようにすることができます．しかし，パスワードの変更のためにパスワードファイルへのアクセスを必要とする場合や，デーモンとして動作するサービスを再スタートさせる場合などはドメイン遷移を再開させたい場合があります．</p>
+
+<p>例外ポリシーで「no_keep_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合にはkeep_domainキーワードによる指定を無視します．</p>
+
+<p>たとえば， 「keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定がされている場合に「no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定を行うことで，デフォルトではドメイン遷移をさせないようにしながら「/bin/cat」を実行する場合には「&lt;kernel&gt;/usr/sbin/sshd /bin/bash /bin/cat」ドメインへ遷移させるようにすることができます（図6） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図6 no_keep_domainとの組み合わせ<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig10.jpg" alt="sd200707-fig10.jpg">
+</td></tr>
+</table>
+
+<h4>●条件付きでドメイン遷移を初期化させない</h4>
+
+<p>例外ポリシーで「no_initialize_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合にはinitialize_domainキーワードによる指定を無視します．</p>
+
+<p>たとえば，メールを送信するための「/bin/mail」は「/usr/sbin/sendmail.sendmail」を実行しますが，メールを受信するために「/usr/sbin/sendmail.sendmail」を実行するのとは別の権限を与えたい場合には， 「no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail」と指定しておくことで「&lt;kernel&gt; /usr/sbin/sendmail.sendmail」ドメインへ遷移させないようにすることができます（図7）．（ドメイン名が/bin/mailで終わる場合のみ機能します．/bin/mailがkeep_domainに指定されたシェルのドメインから呼ばれる場合には/bin/mailの代わりにシェルのドメインを指定する必要があります．）</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図7 no_initialize_domainによるドメイン遷移の使い分け
+<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig11.jpg" alt="sd200707-fig11.jpg">
+</td></tr>
+</table>
+
+<h4>●プログラムの実行を伴わないでドメイン遷移を行う</h4>
+
+<p>ドメイン遷移は原則としてプログラムの実行時に発生しますが，プログラムの中からドメイン遷移を行うための処理を呼び出すことにより，プログラムの実行を伴わずにドメイン遷移を行うことが可能です．</p>
+
+<p>ApacheはＣＧＩをサポートしており，Apacheとは別プロセスとして動作する（プログラムの実行を必要とする）ものとApacheプロセス内で動作する（プログラムの実行を必要としない）ものがあります．Apacheがリクエストを処理する前にバーチャルホスト名や実行されるＣＧＩの名前などに基づいてドメイン遷移を行うことにより，Apacheプロセス内で動作するＣＧＩに対しても権限の分割を行うことができます．</p>
+
+<h2>ELC2007レポート</h2>
+
+<h3>ELC2007について</h3>
+
+<p>連載第5回で予告したように4月17～19日までサンノゼで開催されたCE Linux Forum Worldwide Embedded Linux Conference 2007に参加し，TOMOYO Linuxのプレゼンテーションとチュートリアルを行ってきました．</p>
+
+<ul>
+<li><a href="http://www.celinux.org/elc2007/">イベントWebページ</a></li>
+<li><a href="http://tree.celinuxforum.org/CelfPubWiki/ELC2007Presentations">プレゼンテーション資料</a></li>
+<li><a href="http://tree.celinuxforum.org/CelfPubWiki/JapanTechnicalJamboree12">CELinux Forum Japan Technical Jamboree12</a></li>
+</ul>
+
+<p>CE LinuxのCEはConsumer Electronicsの略です．本会議については，2006年12月8日にJapan Technical Jamboree12でTOMOYO Linuxについて紹介させていただいた際に， 「ぜひ国内だけでなく海外のイベントでも発表してみては」とお勧めいただいたことが応募のきっかけとなり実現しました．</p>
+
+<h3>会議の模様</h3>
+
+<p>会議は，3つの部屋でプログラムが同時進行するという形式で行われ，参加者は興味のあるセッションを自由に選択します．参加者名簿がないので正確な人数はわかりませんが，会場の規模から判断して少なくとも200名以上が参加していたと思います．</p>
+
+<p>発表の内容はハードウェアからソフトウェアまで多岐にわたり，組込みLinuxの領域の広さをあらためて感じました．キーノートセッションは，Thomas Gleixner氏によるしゃれっ気に満ちた“Embedded Linux - An Increasing Nightmare?” （ 「組込みLinuxは増殖する悪夢か？」 ）と，LinuxDevice Driversの著者で有名なJonathan Corbet氏による“The State of the Linux Kernel” （ 「Linuxカーネルの状態」 ）の2本で（資料はいずれも上記のプレゼンテーション資料のリンクより参照，ダウンロードできます） ，BOFも含めると56ものセッションがありました．</p>
+
+<p>セキュリティに関するものは残念ながらあまり多くはなく，日立ソフトウェアエンジニアリング㈱中村雄一氏の“Comparison of Secure OSes and Embedded SELinux Activity in Japan”と，TOMOYO Linuxのプレゼンテーション“TOMOYOLinux - A Lightweight and Manageable Security System for PC and Embedded Linux” ，およびチュートリアル“TOMOYO Linux - Tutorial”の3本でした．</p>
+
+<p>プログラムでは予定されていなかったのですが，「日本セキュアOS連合チーム」はデモにも参加しました．</p>
+
+<p>TOMOYO Linux関連のセッションについての反響ですが，残念ながら参加者はあまり多くありませんでした．ただ，Jonathan Corbet氏が足を運んでくれて，発表を聞いてもらうことができ，「 （TOMOYO Linuxと同じくパス名ベースのアクセス制御を行っている）AppArmorのチームと話をしてみると良い」 「できるだけ早くLinuxカーネルに対するパッチを投稿してみるべきだ」などのコメントをいただくことができました．これらのアドバイスについては，帰国後さっそく対応を行っています．</p>
+
+<p>余談ですが，氏は大変長身で，話をすると見上げるような形になります．発言は静かですが深みがあり， 「達人」という言葉を連想しました．</p>
+
+<h3>サンノゼ，会場の様子</h3>
+
+<p>サンノゼを訪れたのは今回が初めてでしたが，とにかくお店が少なく，人が歩いていないところという印象でした．宿泊したホテルから会場まで徒歩約 30分の距離を毎日往復しましたが，基本的に他の人とすれ違うことはありません（歩いている人はほとんどいないのです） ．空はまさに「カリフォルニアの青い空！」という感じで，CGで描いたような色をしています．</p>
+
+<p>会場は会議用の施設で，無線LAN の設備が提供されていましたが，セキュリティはかかっておらず（笑） ，誰でも自由につなげられます．2日目の夜にはレセプションがあり，チャーターバスで何故か博物館に連れて行かれ，そこで立食パーティが開催されました．</p>
+
+<h3>ゲーム</h3>
+
+<p>最終日，すべてのセッションが終了後，ELC恒例（？）のゲームが始まるというので呼び出されました．</p>
+
+<p>ゲームの内容は，人物，契約などテーマ毎に分類されたクイズを参加者の出身地区3つを代表するメンバー3人が回答するというもので，どうやらアメリカの有名なクイズ番組のパロディのようです．</p>
+
+<p>問題はテーマごとに難易度の異なるものが配置されていて，当然ながら難しいものほど得点が高くなっています．司会は，CE Linux Forum の Wiki の管理者でもある Tim Bird氏が行いましたが，設問が茶目っ気たっぷりで大変楽しいものでした．たとえば， 「人物」ではLinus氏のアップの写真が投影されて， 「これは誰でしょう？」という感じです．</p>
+
+<h3>そしてOLSへ！</h3>
+
+<p>ELC2007への参加はもちろん，世界の組込み Linux の関係者に対して TOMOYO Linux を知ってもらうことが目的でしたが，それは同時にメインライン化（Linuxカーネル本体への取り込み）提案を行うための最初のステップでもありました．</p>
+
+<p>本誌が店頭に並ぶのは6月18日ですが，6月27～29日までオタワで開催される Ottawa Linux Symposium（通称OLS）では，TOMOYO Linux の BOFセッションを持ちます．国産セキュアOSであるTOMOYO Linuxの開発を通じて得られたものを Linux の世界とコミュニティにフィードバックすることができればと願っています．</p>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
