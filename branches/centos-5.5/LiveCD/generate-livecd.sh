@@ -88,7 +88,12 @@ umount -d mnt/ || die "Can't unmount new filesystem."
 
 cd ${LIVECD_HOME}
 echo "********** Generating squashfs image file. **********"
-mksquashfs squash cdrom/LiveOS/squashfs.img -noappend || die "Can't generate squashfs image file."
+if mksquashfs -version | grep -qF 3.4
+    then
+    mksquashfs squash cdrom/LiveOS/squashfs.img -noappend -b 65536 -no-sparse -no-exports -no-recovery || die "Can't generate squashfs image file."
+else
+    mksquashfs squash cdrom/LiveOS/squashfs.img -noappend || die "Can't generate squashfs image file."
+fi
 
 cd ${LIVECD_HOME}
 echo "********** Generating iso image file. **********"
