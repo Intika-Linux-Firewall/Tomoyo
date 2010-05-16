@@ -3,57 +3,57 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第１回：「ポリシー自動学習を経験する」</title>
+<title>TOMOYO Linux の世界　第１回：「ポリシー自動学習を経験する」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-1.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
-<h1>TOMOYO Linuxの世界<br>第１回：「ポリシー自動学習を経験する」</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>TOMOYO Linux の世界<br>第１回：「ポリシー自動学習を経験する」</h1>
 
-<p>今回から始まる本連載では，国産のセキュアOSとして注目を集めている「TOMOYO Linux」にフォーカスを当て，その使いこなし術を徹底的に解説していきます．どうぞお楽しみに！</p>
+<p>今回から始まる本連載では，国産のセキュアＯＳとして注目を集めている「 TOMOYO Linux 」にフォーカスを当て，その使いこなし術を徹底的に解説していきます．どうぞお楽しみに！</p>
 
-<h2>TOMOYO Linuxの世界へようこそ</h2>
+<h2>TOMOYO Linux の世界へようこそ</h2>
 
 <h3>TOMOYO Linux とは</h3>
 
-<p>TOMOYO LinuxはNTTデータが開発し，2005年11月にGPLライセンスで公開したセキュアOSです．技術的な情報については，『ネットワークセキュリティExpert 5』（技術評論社／ISBN4-7741-2973-9）やSourceForgeの<a href="http://tomoyo.sourceforge.jp/">プロジェクトページ</a>にて紹介していますが，本連載では読者の方々に実際にTOMOYO Linuxを体験し，使いこなしていただくことを目的として解説したいと思います．どうぞ最後までおつきあいください．</p>
+<p>TOMOYO Linux は NTT データが開発し， 2005 年 11 月に GPL ライセンスで公開したセキュアＯＳです．一部の機能は 2009 年 6 月にリリースされた Linux カーネル 2.6.30 にも含まれています．技術的な情報については，『ネットワークセキュリティ Expert 5 』（技術評論社／ ISBN4-7741-2973-9 ）や SourceForge の<a href="http://tomoyo.sourceforge.jp/">プロジェクトページ</a>にて紹介していますが，本連載では読者の方々に実際に TOMOYO Linux を体験し，使いこなしていただくことを目的として解説したいと思います．どうぞ最後までおつきあいください．</p>
 
 <h3>今回の内容</h3>
 
-<p>セキュアOSの概要とTOMOYO Linuxの導入手順について説明します．手順については，VMware上に構築したCentOS 5.5にコンパイル済みのTOMOYO Linuxカーネルバージョン1.7.2を導入します．導入しただけではつまらないので，実際にTOMOYO Linuxカーネルで起動し，TOMOYOLinuxのポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
+<p>セキュアＯＳの概要と TOMOYO Linux の導入手順について説明します．手順については， VMware 上に構築した CentOS 5.5 にコンパイル済みの TOMOYO Linux カーネルバージョン 1.7.2 を導入します．導入しただけではつまらないので，実際に TOMOYO Linux カーネルで起動し， TOMOYO Linux のポリシー自動学習を「体験」していただくまでが今回の内容です．</p>
 
-<h2>セキュアOSについて</h2>
+<h2>セキュアＯＳについて</h2>
 
-<p>セキュアOSは一般には，強制アクセス制御と最少権限を備えたOSとして説明されることが多いでしょう．いずれの機能も，OSが提供する機能の利用を制限するためのしくみです．筆者は「セキュアOSは負の技術」だと思っています．その意味は，セキュアOSを導入しても機能やできることが増えるわけではなく，その逆に「できることを減らす」のがセキュアOSだからです．さらに「できることを減らすための作業や負荷が伴う」という嬉しくないおまけまで付きます．なぜ，わざわざ手間暇かけてできることを制限しなければならないのでしょうか？その理由は，セキュリティの強化につきます．標準のOSは，不正アクセスなどによりコントロールを奪われてしまうと，その汎用性が仇になりかねません．たとえば，インターネットに公開しているWebサーバでは，「Webサービスだけ提供できれば良い」のであって，他の機能は使えないほうが良いわけです．もともと汎用の機能を目指して作られたものを制限する，それがセキュアOSです（図1，2）．</p>
+<p>セキュアＯＳは一般には，強制アクセス制御と最少権限を備えたＯＳとして説明されることが多いでしょう．いずれの機能も，ＯＳが提供する機能の利用を制限するためのしくみです．筆者は「セキュアＯＳは負の技術」だと思っています．その意味は，セキュアＯＳを導入しても機能やできることが増えるわけではなく，その逆に「できることを減らす」のがセキュアＯＳだからです．さらに「できることを減らすための作業や負荷が伴う」という嬉しくないおまけまで付きます．なぜ，わざわざ手間暇かけてできることを制限しなければならないのでしょうか？その理由は，セキュリティの強化につきます．標準のＯＳは，不正アクセスなどによりコントロールを奪われてしまうと，その汎用性が仇になりかねません．たとえば，インターネットに公開している Web サーバでは，「 Web サービスだけ提供できれば良い」のであって，他の機能は使えないほうが良いわけです．もともと汎用の機能を目指して作られたものを制限する，それがセキュアＯＳです（図１，図２）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図1 標準のOSではアクセスは自由<br>（通常のOSは自動車のようなもので，目的地にアクセスするためにさまざまなルートを自由に選択できる．つまり，道路に沿って走る義務は無く，道路を無視しながら目的地へ到達することも可能である．）<br>
+■図１　標準のＯＳではアクセスは自由<br>（通常のＯＳは自動車のようなもので，目的地にアクセスするためにさまざまなルートを自由に選択できる．つまり，道路に沿って走る義務は無く，道路を無視しながら目的地へ到達することも可能である．）<br>
 <img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig1.png" alt="sd200701-fig1.png">
 </td><td>
-■図2 セキュアOSはポリシーに従いアクセスを制限する<br>（セキュアOSは電車のようなもので，決められたポリシー（線路）に従ってのみ目的地にアクセスすることができる．つまり，線路に沿って走る義務があり，線路を無視しながら目的地へ到達することは不可能である．）<br><img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig2.png" alt="sd200701-fig2.png">
+■図２　セキュアＯＳはポリシーに従いアクセスを制限する<br>（セキュアＯＳは電車のようなもので，決められたポリシー（線路）に従ってのみ目的地にアクセスすることができる．つまり，線路に沿って走る義務があり，線路を無視しながら目的地へ到達することは不可能である．）<br><img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig2.png" alt="sd200701-fig2.png">
 </td></tr>
 </table>
 
-<h3>どのように制限するか，なぜセキュアOSは普及しないのか？</h3>
+<h3>どのように制限するか，なぜセキュアＯＳは普及しないのか？</h3>
 
-<p>「制限」は，おもにアクセス制御の強化という形で実装されます．それがいわゆる「強制アクセス制御」，MAC（Mandatory Access Control）です．コンピュータには，どれが必要であり，どれが必要でないかはわかりません．したがって，強制アクセス制御という仕組みに対して，実行して良い機能と悪い機能を告げる必要があります．その定義が「ポリシー」です．つまりセキュアOSを導入するということはポリシーを管理するという作業が義務付けられるということになります．セキュリティに関する重要度は日増しに高まる一方です．それなのになぜセキュアOSはなかなか普及しないのでしょうか？それにはいくつかの要因が存在しますが，その最大のポイントは「セキュアOSの概念が難しく，ポリシーの管理運用が非常に複雑」な点にあるのではないかと思います．ここでは深く説明しませんが，長年Linuxの管理をしてきた人であってもポリシーを書くという作業は容易には行えないのです．</p>
+<p>「制限」は，おもにアクセス制御の強化という形で実装されます．それがいわゆる「強制アクセス制御」， MAC （ Mandatory Access Control ）です．コンピュータには，どれが必要であり，どれが必要でないかはわかりません．したがって，強制アクセス制御という仕組みに対して，実行して良い機能と悪い機能を告げる必要があります．その定義が「ポリシー」です．つまりセキュアＯＳを導入するということはポリシーを管理するという作業が義務付けられるということになります．セキュリティに関する重要度は日増しに高まる一方です．それなのになぜセキュアＯＳはなかなか普及しないのでしょうか？それにはいくつかの要因が存在しますが，その最大のポイントは「セキュアＯＳの概念が難しく，ポリシーの管理運用が非常に複雑」な点にあるのではないかと思います．ここでは深く説明しませんが，長年 Linux の管理をしてきた人であってもポリシーを書くという作業は容易には行えないのです．</p>
 
-<h3>そしてTOMOYO Linux</h3>
+<h3>そして TOMOYO Linux</h3>
 
-<p>このセキュアOSの本質的な課題であるポリシーについて，「OS自体がポリシーを自分で生成する」というアプローチにより実用レベルの「使いこなせるセキュアOS」を実現したのがTOMOYO Linuxです．TOMOYO Linuxであれば，Linuxをインストール，管理した経験があれば，誰でもその日から使うことができます．連載の第1回では，TOMOYO Linuxの導入から，最初のポリシーを自動学習するまでを解説します．とくに難しい部分はないので，ぜひ実際に手を動かし，TOMOYO Linuxが拓く新しい世界を体験してみてください．</p>
-<h2>TOMOYO Linuxのインストール</h2>
+<p>このセキュアＯＳの本質的な課題であるポリシーについて，「ＯＳ自体がポリシーを自分で生成する」というアプローチにより実用レベルの「使いこなせるセキュアＯＳ」を実現したのが TOMOYO Linux です． TOMOYO Linux であれば， Linux をインストール，管理した経験があれば，誰でもその日から使うことができます．連載の第１回では， TOMOYO Linux の導入から，最初のポリシーを自動学習するまでを解説します．とくに難しい部分はないので，ぜひ実際に手を動かし， TOMOYO Linux が拓く新しい世界を体験してみてください．</p>
+<h2>TOMOYO Linux のインストール</h2>
 
 <h3>準備</h3>
 
-<p>TOMOYO Linuxはカーネル2.4.30以降および2.6.11以降に対応しています．現在図3のディストリビューションについてはi686向けのコンパイル済みカーネルとツールのパッケージを用意しています．</p>
+<p>TOMOYO Linux はカーネル 2.4.30 以降および 2.6.11 以降に対応しています．図３のディストリビューションについては i686 向けのコンパイル済みカーネルとツールのパッケージを用意しています．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図3 バイナリパッケージが提供されているディストリビューション<br>
+■図３　バイナリパッケージが提供されているディストリビューション<br>
 <ul>
 <li>Fedora 11/12</li>
 <li>CentOS 3.9/4.8/5.5</li>
@@ -66,29 +66,29 @@
 </td></tr>
 </table>
 
-<p>本連載では，CentOS 5.5を例に挙げて説明しますが，上記ディストリビューションであればほぼ同じ手順で利用いただけます．</p>
+<p>本連載では， CentOS 5.5 を例に挙げて説明しますが，上記ディストリビューションであればほぼ同じ手順で利用いただけます．</p>
 
 <h4>●カーネルのインストール</h4>
 
-<p>コンパイル済みのカーネルパッケージをダウンロードし，インストールします（図4）．</p>
+<p>コンパイル済みのカーネルパッケージをダウンロードし，インストールします（図４）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図4 コンパイル済みカーネルのインストール
+■図４　コンパイル済みカーネルのインストール
 <pre>
 # wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'
 # rpm --import /tmp/key
 # wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
-# yum install ccs-kernel
+# yum -y install ccs-kernel
 </pre>
 </td></tr>
 </table>
 
-<p>カーネルのインストールが成功していれば，/boot/grub/grub.confには図5のようなエントリが追加されているはずです．</p>
+<p>カーネルのインストールが成功していれば， /boot/grub/grub.conf には図５のようなエントリが追加されているはずです．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図5 grub.confに追加されるTOMOYO Linuxカーネル用のエントリ
+■図５　grub.conf に追加される TOMOYO Linux カーネル用のエントリ
 <pre>
 title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
         root (hd0,0)
@@ -102,22 +102,22 @@ title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
 
 <h4>●ユーティリティのインストール</h4>
 
-<p>ポリシーを管理するためのユーティリティをダウンロードし，インストールします（図6）．</p>
+<p>ポリシーを管理するためのユーティリティをダウンロードし，インストールします（図６）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図6 ユーティリティのインストール
+■図６　ユーティリティのインストール
 <pre>
-# yum install ccs-tools
+# yum -y install ccs-tools
 </pre>
 </td></tr>
 </table>
 
-<p>ユーティリティは/usr/sbin/ディレクトリにインストールされます．各プログラムの役割は図7のとおりです．それぞれの使い方については，本連載の中で登場したところで説明していきます．</p>
+<p>ユーティリティは /usr/sbin/ ディレクトリにインストールされます．各プログラムの役割は図７のとおりです．それぞれの使い方については，本連載の中で登場したところで説明していきます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図7 TOMOYO の管理を行うためのプログラム<br>
+■図７　TOMOYO の管理を行うためのプログラム<br>
 <table border="1" summary="fig">
 <tr><td>プログラム名</td><td>役割</td></tr>
 <tr><td>ccs-loadpolicy</td><td>ポリシーの再読み込みを行う</td></tr>
@@ -129,15 +129,15 @@ title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
 </td></tr>
 </table>
 
-<h3>TOMOYO Linuxの初期設定</h3>
+<h3>TOMOYO Linux の初期設定</h3>
 
 <h4>●コマンド検索パスの追加</h4>
 
-<p>TOMOYO Linuxのユーティリティを保存してある場所を環境変数PATHに追加しておきます．bashを使っている場合は~/.bashrcに図8の行を追加します．</p>
+<p>TOMOYO Linux のユーティリティを保存してある場所を環境変数 PATH に追加しておきます． bash を使っている場合は ~/.bashrc に図８の行を追加します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図8 環境変数PATHの設定
+■図８　環境変数 PATH の設定
 <pre>
 export PATH=$PATH:/usr/sbin
 </pre>
@@ -148,13 +148,20 @@ export PATH=$PATH:/usr/sbin
 
 <p>TOMOYO Linuxではポリシーに書かれていないアクセスは拒否されます．必要なアクセスはすべて洗い出して記述しなければなりませんが，ポリシーをコンパクトにするために「例外ポリシー」という概念を持っています．</p>
 
-<p>例外ポリシーの内容は，ポリシーを策定しながら随時見直しを行いますが，図9のコマンドを実行することにより初期値を登録します．</p>
+<p>例外ポリシーの内容は，ポリシーを策定しながら随時見直しを行いますが，図９のコマンドを実行することにより初期値を登録します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図9 ポリシーの初期化
+■図９　ポリシーの初期化
 <pre>
 # /usr/lib/ccs/init_policy
+Creating policy directory... OK
+Creating exception policy... OK
+Creating domain policy... OK
+Creating manager policy... OK
+Creating default profile... OK
+Creating memory quota policy... OK
+Creating module loader... OK
 </pre>
 </td></tr>
 </table>
@@ -163,15 +170,14 @@ export PATH=$PATH:/usr/sbin
 
 <p>TOMOYO Linuxではアクセス制御の方法をプロファイルという概念により管理します．プロファイルの詳細と制御の方法（手順）については，次回以降紹介します．</p>
 
-<p>先ほど実行したinit_policyにより/etc/ccs/profile.confというファイルが作成されていますが，今回はこのファイルの内容を図10の内容で上書きしてください．2行目は「ファイルのアクセス制御を学習モードにする」，3行目は「TOMOYO Linuxの出力メッセージを抑制する」という意味です．</p>
+<p>先ほど実行した init_policy により /etc/ccs/profile.conf というファイルが作成されていますが，今回はこのファイルの内容を図１０の内容で上書きしてください．１行目はプロファイルのバージョン，２行目は「ファイルのアクセス制御を学習モードにする」という意味です．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図10 /etc/ccs/profile.confに指定する内容
+■図１０　/etc/ccs/profile.confに指定する内容
 <pre>
 PROFILE_VERSION=20090903
 0-CONFIG::file={ mode=learning }
-PREFERENCE::learning={ verbose=no }
 </pre>
 </td></tr>
 </table>
@@ -180,90 +186,94 @@ PREFERENCE::learning={ verbose=no }
 
 <p>ここまでで準備は完了です（お疲れさまでした）．</p>
 
-<p>rebootコマンドによりシステムを再起動します（図11）．</p>
+<p>reboot コマンドによりシステムを再起動します（図１１）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図11 再起動
+■図１１　再起動
 <pre>
 # reboot
 </pre>
 </td></tr>
 </table>
 
-<p>再起動後表示されるGRUBメニューではTOMOYO Linuxカーネルを選択してください（図12）．</p>
+<p>再起動後表示される GRUB メニューでは TOMOYO Linux カーネルを選択してください（図１２）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図12 TOMOYO Linuxカーネルを選択<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig07.png" alt="sd200701-fig07.png">
+■図１２　TOMOYO Linuxカーネルを選択<br>
+<img src="tutorial/fig-1-12.png" alt="fig-1-12.png">
 </td></tr>
 </table>
 
-<p>ここまでの手順が正しく行われると，「学習モード」でTOMOYO Linuxが起動します（図13）．</p>
+<p>ここまでの手順が正しく行われると，「学習モード」で TOMOYO Linux が起動します（図１３）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図13 TOMOYO Linuxカーネルが起動<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig08.png" alt="sd200701-fig08.png">
+■図１３　TOMOYO Linux カーネルが起動<br>
+<img src="tutorial/fig-1-13.png" alt="fig-1-13.png">
 </td></tr>
 </table>
 
-<h3>アンインストール方法</h3>
+<h3>TOMOYO Linux を無効化する方法について</h3>
 
-<p>TOMOYO Linux はLinux標準のライブラリやユーザランドのツール類を書き換えないのでアンインストールは簡単です．都合によりTOMOYO Linuxをアンインストールしたくなった場合には，起動時にポリシーを読み込むためのプログラムである/sbin/ccs-initを削除すると元の状態に戻ります．また，カーネルも削除したい場合にはTOMOYO Linuxでないカーネルで再起動してからrpmコマンドでパッケージの削除を実行してください．</p>
+<p>もし， TOMOYO Linux が原因でシステムが起動できなくなった場合には，カーネル起動時のコマンドラインに ccsecurity=off というパラメータを追加することにより， TOMOYO Linux を無効化して起動することができます．</p>
+
+<h3>TOMOYO Linux をアンインストールする方法について</h3>
+
+<p>TOMOYO Linux は Linux 標準のライブラリやユーザランドのツール類を書き換えないのでアンインストールは簡単です．都合により TOMOYO Linux をアンインストールしたくなった場合には，起動時にポリシーを読み込むためのプログラムである /sbin/ccs-init を削除すると元の状態に戻ります．また，カーネルも削除したい場合には TOMOYO Linux でないカーネルで再起動してから rpm コマンドでパッケージの削除を実行してください．</p>
 
 <h2>振る舞いを観察してみよう</h2>
 
 <h3>ドメインとドメイン遷移</h3>
 
-<p>TOMOYO Linuxではドメインという単位でアクセス制御を行います．すべてのプロセスはいずれか1個のドメインに属しており，原則としてプログラムを実行するたびに異なるドメインへ遷移します．</p>
+<p>TOMOYO Linux ではドメインという単位でアクセス制御を行います．すべてのプロセスはいずれか１個のドメインに属しており，原則としてプログラムを実行するたびに異なるドメインへ遷移します．</p>
 
-<p>TOMOYO Linuxにおけるドメインは，&lt;kernel&gt;を基点としたプロセスの起動履歴を文字列として結合したものになります．たとえば，「カーネルプロセス」のドメインが「&lt;kernel&gt;」，「カーネルプロセスから起動される/sbin/init」のドメインは「&lt;kernel&gt; /sbin/init」，「/sbin/initから起動された/etc/rc.d/rc」のドメインは「&lt;kernel&gt; /sbin/init /etc/rc.d/rc」のようになります．</p>
+<p>TOMOYO Linux におけるドメインは， &lt;kernel&gt; を基点としたプロセスの起動履歴を文字列として結合したものになります．たとえば，「カーネルプロセス」のドメインが「 &lt;kernel&gt; 」，「カーネルプロセスから起動される /sbin/init 」のドメインは「 &lt;kernel&gt; /sbin/init 」，「 /sbin/init から起動された /etc/rc.d/rc 」のドメインは「 &lt;kernel&gt; /sbin/init /etc/rc.d/rc 」のようになります．</p>
 
 <h3>ポリシーエディタで確認</h3>
 
-<p>それでは，実際にTOMOYO Linuxが学習した内容を確認してみましょう．TOMOYO Linuxには，CUIのポリシーエディタが付属しています（図14）．rootでログインして，コマンドccs-editpolicyを実行してください（ccs-editpolicyは/usr/sbinの下にあります．TOMOYO Linuxカーネルで起動した場合でなければ実行できませんので注意ください）．</p>
+<p>それでは，実際に TOMOYO Linux が学習した内容を確認してみましょう． TOMOYO Linux には，ＣＵＩのポリシーエディタが付属しています（図１４）． root でログインして，コマンド ccs-editpolicy を実行してください（ ccs-editpolicy は /usr/sbin/ の下にあります． TOMOYO Linux カーネルで起動した場合でなければ実行できませんので注意ください）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図14 ポリシーエディタ起動直後の画面<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig09.png" alt="sd200701-fig09.png">
+■図１４　ポリシーエディタ起動直後の画面<br>
+<img src="tutorial/fig-1-14.png" alt="fig-1-14.png">
 </td></tr>
 </table>
 
-<p>ポリシーエディタには複数の機能がありますが，起動直後は"Domain Transition Editor"（ドメイン遷移エディタ）となっています．「↑」あるいは「↓」により，TOMOYO Linuxが「学習」したドメインの遷移内容を一覧してみましょう．図15は，/sbin/initからのドメイン遷移で，画面最上部より全部で712のドメインが学習されていることがわかります（この数値は同じディストリビューションであっても，学習内容，設定により変わりますので一致しなくても問題ではありません）．</p>
+<p>ポリシーエディタには複数の機能がありますが，起動直後は「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」（ドメイン遷移エディタ）となっています．「↑」あるいは「↓」により， TOMOYO Linux が「学習」したドメインの遷移内容を一覧してみましょう．図１５は， /sbin/init からのドメイン遷移で，画面最上部より全部で 342 のドメインが学習されていることがわかります（この数値は同じディストリビューションであっても，学習内容，設定により変わりますので一致しなくても問題ではありません）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図15 ポリシーエディタ起動直後の画面<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig10.png" alt="sd200701-fig10.png">
+■図１５　/sbin/initのドメイン<br>
+<img src="tutorial/fig-1-15.png" alt="fig-1-15.png">
 </td></tr>
 </table>
 
-<p>ここでは具体例として，実行しているポリシーエディタ自体のドメインの学習内容について調べてみましょう．「F」を入力すると，カーソルが最下行に移り入力待ちとなるので，ccs-editpolicyと入力して「ENTER」を押すと，現在操作を行っているポリシーエディタのドメインにカーソルが移動します（図16）．</p>
+<p>ここでは具体例として，実行しているポリシーエディタ自体のドメインの学習内容について調べてみましょう．「 F 」を入力すると，カーソルが最下行に移り入力待ちとなるので， ccs-editpolicy と入力して「 ENTER 」を押すと，現在操作を行っているポリシーエディタのドメインにカーソルが移動します（図１６）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図16 /usr/sbin/ccs-editpolicyのドメイン<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig11.png" alt="sd200701-fig11.png">
+■図１６　/usr/sbin/ccs-editpolicyのドメイン<br>
+<img src="tutorial/fig-1-16.png" alt="fig-1-16.png">
 </td></tr>
 </table>
 
-<p>この場合では，ポリシーエディタはコンソールから起動されたbashから起動されていることがわかります（sshdからログインして起動した場合には/usr/sbin/sshdを含むドメインになっているはずです）．画面3行目には現在選択されているドメイン名が表示され，TOMOYO Linuxはポリシーエディタのドメインを「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy」として認識していることがわかります．</p>
+<p>この場合では，ポリシーエディタはコンソールから起動された bash から起動されていることがわかります（ sshd からログインして起動した場合には /usr/sbin/sshd を含むドメインになっているはずです）．画面３行目には現在選択されているドメイン名が表示され， TOMOYO Linux はポリシーエディタのドメインを「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」として認識していることがわかります．</p>
 
-<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「ENTER」を入力します．すると図17のような画面になるはずです．画面の最上部の行が「Domain Transition Editor」から「Domain Policy Editor」になりました．この画面は，「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy」ドメインのアクセス制御内容で，画面では現在5つの内容が登録されています．各行の先頭の数字は行番号です．allow_read/writeは「読み書きモードでのオープンを許可」，allow_readは「読み込みモードでのオープンを許可」を意味します．</p>
+<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「 ENTER 」を入力します．すると図１７のような画面になるはずです．画面の最上部の行が「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」になりました．この画面は，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」ドメインのアクセス制御内容で，画面では現在７つの内容が登録されています．各行の先頭の数字は行番号です． allow_read/write は「読み書きモードでのオープンを許可」， allow_read は「読み込みモードでのオープンを許可」， allow_ioctl は「指定された番号での ioctl 要求を許可」を意味します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図17 /usr/sbin/ccs-editpolicyのドメインに対するアクセス許可<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig12.png" alt="sd200701-fig12.png">
+■図１７　/usr/sbin/ccs-editpolicyのドメインに対するアクセス許可<br>
+<img src="tutorial/fig-1-17.png" alt="fig-1-17.png">
 </td></tr>
 </table>
 
-<p>この状態から再びドメイン遷移エディタに戻るためには「ENTER」を入力します．ポリシーエディタ自身の終了は「Q」により行います．ccs- editpolicyは（ディスク上のポリシーファイルではなく）現在カーネルに存在しているポリシーを直接編集するためのエディタです．そのため，ccs-editpolicyで行ったポリシーの登録，削除の操作は即時に反映されますし，学習モードであれば時々刻々追加されたポリシーの内容をモニターすることができます．</p>
+<p>この状態から再びドメイン遷移エディタに戻るためには「 ENTER 」を入力します．ポリシーエディタ自身の終了は「 Q 」により行います． ccs-editpolicy は（ディスク上のポリシーファイルではなく）現在カーネルに存在しているポリシーを直接編集するためのエディタです．そのため， ccs-editpolicy で行ったポリシーの登録，削除の操作は即時に反映されますし，学習モードであれば時々刻々追加されたポリシーの内容をモニターすることができます．</p>
 
-<p>さまざまなコマンドを実行し，それがどのようにドメインとして登録され，アクセス制御内容が記録されているかを確認してみてください．何度か操作を行うことにより，TOMOYO Linuxのドメイン管理，学習機能，ポリシーについて自然にご理解いただけると思います．このわかりやすさこそがTOMOYO Linuxの特徴です．</p>
+<p>さまざまなコマンドを実行し，それがどのようにドメインとして登録され，アクセス制御内容が記録されているかを確認してみてください．何度か操作を行うことにより， TOMOYO Linux のドメイン管理，学習機能，ポリシーについて自然にご理解いただけると思います．このわかりやすさこそが TOMOYO Linux の特徴です．</p>
 
 <ul>
 <li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html">ポリシーエディタの使い方</a></li>
@@ -271,33 +281,33 @@ PREFERENCE::learning={ verbose=no }
 
 <h3>プロセスとドメインの関係を確認</h3>
 
-<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するにはccs-pstreeというコマンドを実行してください．プロファイル番号，プロセス名，プロセスID，ドメイン名の順番でpstreeのように出力されます（図18）．</p>
+<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccs-pstree というコマンドを実行してください．プロファイル番号，プロセス名，プロセスＩＤ，ドメイン名の順番で pstree のように出力されます（図１８）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図18 実行中のプロセスに割り当てられているドメインを表示<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-1&amp;src=sd200701-fig13.png" alt="sd200701-fig13.png">
+■図１８　実行中のプロセスに割り当てられているドメインを表示<br>
+<img src="tutorial/fig-1-18.png" alt="fig-1-18.png">
 </td></tr>
 </table>
 
 <h3>ポリシーファイルの保存と読み込み</h3>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには，ccs-savepolicyコマンドを使います．ccs-savepolicyを実行することで，/etc/ccs/ディレクトリに exception_policy.conf,domain_policy.confの2つのファイルが作成されます．TOMOYO Linuxのポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには，ccs-loadpolicyコマンドを使用します（図19）．</p>
+<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを使います． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます． TOMOYO Linux のポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには， ccs-loadpolicy コマンドを使用します（図２０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図19 ディスク上のポリシーファイルをカーネルに読み込ませる
+■図２０　ディスク上のポリシーファイルをカーネルに読み込ませる
 <pre>
 # /usr/sbin/ccs-loadpolicy af
 </pre>
 </td></tr>
 </table>
 
-<p>オプションのaは前述の2つのファイルすべて，fは上書き，を意味しています．</p>
+<p>オプションの a は前述の exception_policy.conf と domain_policy.conf の両方を， f は上書き，を意味しています．</p>
 
 <h3>次回予告</h3>
 
-<p>今回はTOMOYO Linuxの導入から，ファイルに対するアクセスの自動学習の手順と学習結果の保存までをご紹介しました．次回は定義されたポリシーに基づきアクセスを制御するまでを紹介します．どうぞお楽しみに．</p>
+<p>今回は TOMOYO Linux の導入から，ファイルに対するアクセスの自動学習の手順と学習結果の保存までをご紹介しました．次回は定義されたポリシーに基づきアクセスを制御するまでを紹介します．どうぞお楽しみに．</p>
 
 <hr>
 
