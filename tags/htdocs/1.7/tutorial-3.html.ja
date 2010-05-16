@@ -64,12 +64,12 @@
 
 <h3>一連の操作をグループ化する</h3>
 
-<p>initialize_domain と keep_domain という２つの例外を組み合わせることにより，柔軟なアクセス制御の指定が可能になります．以下，例を挙げて説明します．ログインして ccs-editpolicy を実行してください．そして， /etc/rc.d/init.d/network の実行されるドメイン（ &lt;kernel&gt; /etc/rc.d/init.d/network ）を探してください． /etc/rc.d/init.d/network から /sbin/ifup や /bin/touch など，たくさんのプログラムが実行されているのがおわかりだと思います（図５）．</p>
+<p>initialize_domain と keep_domain という２つの例外を組み合わせることにより，柔軟なアクセス制御の指定が可能になります．以下，例を挙げて説明します．ログインして ccs-editpolicy を実行してください．そして， /etc/rc.d/init.d/network の実行されるドメイン（ &lt;kernel&gt; /etc/rc.d/init.d/network ）を探してください． /etc/rc.d/init.d/network から /etc/sysconfig/network-scripts/ifup や /bin/touch など，たくさんのプログラムが実行されているのがおわかりだと思います（図５）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図５　keep_domain 指定前のドメイン遷移（この図では /etc/init.d/networking ）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig05.jpg" alt="sd200703-fig05.jpg">
+■図５　keep_domain 指定前のドメイン遷移<br>
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png">
 </td></tr>
 </table>
 
@@ -77,8 +77,8 @@
 
 <table border="1" summary="fig">
 <tr><td>
-■図６　keep_domain を指定（この図では keep_domain &lt;kernel&gt; /etc/init.d/networking ）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig06.jpg" alt="sd200703-fig06.jpg">
+■図６　keep_domain を指定<br>
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png">
 </td></tr>
 </table>
 
@@ -86,28 +86,26 @@
 
 <table border="1" summary="fig">
 <tr><td>
-■図７　keep_domain 指定直後のドメイン遷移（この図では &lt;kernel&gt; /etc/init.d/networking ）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig07.jpg" alt="sd200703-fig07.jpg">
+■図７　keep_domain 指定直後のドメイン遷移<br>
+<img src="tutorial/fig-3-7.png" alt="fig-3-7.png">
 </td></tr>
 </table>
 
-<p>「 * 」という表示が「 #* 」に変化しました．「 # 」は「このドメインは keep_domain に指定されているので複数のプログラムがこのドメインで動作する可能性がある」ことを，「 * 」は「このドメインは initialize_domain に指定されているので複数のドメインからこのドメインへ遷移する可能性がある」ことを意味します．ここで， /etc/rc.d/init.d/network の実行されるドメインを keep_domain に指定したことで，そのドメインのアクセス許可を学習し直す必要が生じます．「 &lt;kernel&gt; /etc/rc.d/init.d/network 」ドメインの子孫ドメイン（図７の６７～７３行）にカーソルを合わせて「スペース」キーを押すと，行頭に &amp; マークが表示されます．最後に「 D 」を押すと図８のように聞かれるので「 Y 」を押します．</p>
+<p>「 * 」という表示が「 #* 」に変化しました．「 # 」は「このドメインは keep_domain に指定されているので複数のプログラムがこのドメインで動作する可能性がある」ことを，「 * 」は「このドメインは initialize_domain に指定されているので複数のドメインからこのドメインへ遷移する可能性がある」ことを意味します．ここで， /etc/rc.d/init.d/network の実行されるドメインを keep_domain に指定したことで，そのドメインのアクセス許可を学習し直す必要が生じます．「 ! 」という表示が付いている行（図７の８６～１８９行）へは「 keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network 」という指定が行われたことにより到達できなくなったので削除します．カーソルを合わせて「スペース」キーを押すと，行頭に &amp; マークが表示されます．最後に「 D 」を押すと図８のように聞かれるので「 Y 」を押します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図８　ドメインを削除するかどうかの確認メッセージ
-<pre>
-Delete selected domains? ('Y'es/'N'o)
-</pre>
+■図８　ドメインを削除するかどうかの確認メッセージ<br>
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png">
 </td></tr>
 </table>
 
-<p>すると，行頭に &amp; マークが表示されているドメインが削除されます．「 Q 」を押して ccs-editpolicy を終了し， /etc/rc.d /init.d/network restart を実行します．再度 ccs-editpolicy を実行して &lt;kernel&gt; /etc/rc.d/init.d/network ドメインを探してみてください．今度は /sbin/ifup や /bin/touch などは現れなくなります（図１０）．</p>
+<p>すると，行頭に &amp; マークが表示されているドメインが削除されます．「 Q 」を押して ccs-editpolicy を終了し， /etc/rc.d/init.d/network restart を実行します．再度 ccs-editpolicy を実行して &lt;kernel&gt; /etc/rc.d/init.d/network ドメインを探してみてください．今度は /etc/sysconfig/network-scripts/ifup や /bin/touch などは現れなくなります（図９）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１０　再学習後のドメイン遷移（この図では &lt;kernel&gt; /etc/init.d/networking ）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig09.jpg" alt="sd200703-fig09.jpg">
+■図９　再学習後のドメイン遷移<br>
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png">
 </td></tr>
 </table>
 
