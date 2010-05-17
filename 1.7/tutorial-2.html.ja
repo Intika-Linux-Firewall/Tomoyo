@@ -42,7 +42,7 @@ PROFILE_VERSION=20090903
 <table border="1" summary="fig">
 <tr><td>モード</td><td>内容</td><td>動作</td></tr>
 <tr><td>disabled</td><td>無効</td><td>通常のカーネルと同様に動作する．</td></tr>
-<tr><td>learning</td><td>学習</td><td>ポリシー違反が発生しても要求を拒否しない．ポリシー違反が発生しないようにするのに必要なアクセス許可を，ポリシーに追加する．</td></tr>
+<tr><td>learning</td><td>学習</td><td>ポリシー違反が発生しても要求を拒否しない．<br>ポリシー違反が発生しないようにするのに必要なアクセス許可を，ポリシーに追加する．</td></tr>
 <tr><td>permissive</td><td>確認</td><td>ポリシー違反が発生しても要求を拒否しない．</td></tr>
 <tr><td>enforcing</td><td>強制</td><td>ポリシー違反が発生したら要求を拒否する．</td></tr>
 </table>
@@ -60,7 +60,7 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-<p>起動時に制御モードを切り替えたい場合は， /etc/ccs/profile.conf の内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevel というコマンドを使用します．たとえば，図４のコマンドを実行すると確認モードに，図５を実行すると強制モードになります（ TOMOYO Linux の確認モードが SELinux の permissive モードに，強制モードが SELinux の enforcing モードに相当します）．</p>
+<p>起動時に制御モードを切り替えたい場合は， /etc/ccs/profile.conf の内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevel または ccs-editpolicy コマンドを使用します．たとえば，図４のコマンドを実行すると確認モードに，図５を実行すると強制モードになります（ TOMOYO Linux の確認モードが SELinux の permissive モードに，強制モードが SELinux の enforcing モードに相当します）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -86,7 +86,7 @@ PROFILE_VERSION=20090903
 
 <h3>プロファイルについて</h3>
 
-<p>TOMOYO Linux では，強制アクセス制御のモードについてドメイン単位で指定することが可能です．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義（図６）を複数作成し， ccs-setprofile コマンドを用いてプロファイルをドメインに割り当てて使用します（図７）． ccs-setprofile コマンドの使い方は後述します．</p>
+<p>TOMOYO Linux では，強制アクセス制御のモードについてドメイン単位で指定することが可能です．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義（図６）を複数作成し， ccs-setprofile または ccs-editpolicy コマンドを用いてプロファイルをドメインに割り当てて使用します（図７）． ccs-setprofile コマンドの使い方は後述します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -178,7 +178,7 @@ PREFERENCE::enforcing={ verbose=yes }
 <table border="1" summary="fig">
 <tr><td>
 ■図１２　initialize_domain による指定<br>
-<img src="tutorial/fig-2-12.png" alt="fig-2-12.png">
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig03.png" alt="sd200703-fig03.png">
 </td></tr>
 </table>
 
@@ -341,6 +341,8 @@ allow_read/write /tmp/php3lo7ab
 <p>今回は実際にアクセス制御を行う手順と， Web サービスを保護する方法について紹介しました． TOMOYO Linux の基本的な操作方法は，前回と今回で説明した内容に含まれており，ここに書かれた内容を理解すれば，「 TOMOYO Linux を使える」と言って良いでしょう．</p>
 
 <p>次回は，ポリシーのチューニングの続きと，それを支援する機能について紹介します．どうぞお楽しみに．</p>
+
+<p><a href="tutorial-1.html.ja">第１回へ戻る</a>　<a href="tutorial-3.html.ja">第３回へ進む</a></p>
 
 <hr>
 

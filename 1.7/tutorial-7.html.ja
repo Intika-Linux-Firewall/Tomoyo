@@ -13,103 +13,13 @@
 -->
 <h1>TOMOYO Linuxの世界<br>第７回：「新学期スタート」</h1>
 
-<p>今回は，TOMOYO Linuxの最新バージョンである1.7.2の紹介と，CE Linux Forum Worldwide Embedded Linux Conference 2007の模様をお届けします．</p>
+<p>今回は， CE Linux Forum Worldwide Embedded Linux Conference 2007の模様をお届けします．</p>
 
 <h2>今回の内容</h2>
 
-<p>前回まででTOMOYO Linuxの基本的な機能の紹介と使い方についての説明が完了しました．連載を開始した2006年12月時点のバージョンは1.3.1でしたが，2010年4月現在の最新バージョンは1.7.2となっています．</p>
+<p>前回まででTOMOYO Linuxの基本的な機能の紹介と使い方についての説明が完了しました．</p>
 
-<p>今回はドメイン遷移のパターンの説明をメインに，4月に発表を行ったELC2007の様子も紹介します．リリースの詳細については，<a href="http://sourceforge.jp/projects/tomoyo/news/">プロジェクトのニュース</a>や<a href="http://lists.sourceforge.jp/mailman/archives/tomoyo-users/">メーリングリストのアーカイブ</a>にてご確認ください．</p>
-
-<h2>多様なドメイン遷移パターンに対応</h2>
-
-<p>TOMOYO Linuxは，当初ネットワークにつながっているサーバを外部の攻撃から保護することをおもな用途として開発されました．そのため，ログイン後の操作を制限する用途では対応しにくいことがありました．現在では，ログイン後の操作を制限する用途やデスクトップアプリケーション（Webブラウザやメールクライアントなど）を保護する用途にも利用できます．パターンが多く一度に理解するのは難しいと思いますが，必要に応じて活用ください．</p>
-
-<h4>●条件付きでドメイン遷移を抑制させる</h4>
-
-<p>例外ポリシーで「keep_domain ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインに到達した場合にはデフォルトでドメイン遷移が行われなくなります（図1）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図1 keep_domain使用例（ドメイン指定）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig05.jpg" alt="sd200707-fig05.jpg">
-</td></tr>
-</table>
-
-<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけを指定することも可能です．たとえば， 「ドメイン名」として /bin/bash を指定した場合，ドメイン名が /bin/bash で終わるすべてのドメインに対してkeep_domainが指定されたものとして扱われます（図2） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図2 keep_domain使用例（最終プログラム名指定）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig06.jpg" alt="sd200707-fig06.jpg">
-</td></tr>
-</table>
-
-<p>また， 「keep_domain プログラム名from ドメイン名」のように指定した場合， 「ドメイン名」で指定されたドメインから「プログラム名」で指定されたプログラムが実行される場合に限り，ドメイン遷移が発生しなくなります（図3） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図3 from条件付きkeep_domain<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig07.jpg" alt="sd200707-fig07.jpg">
-</td></tr>
-</table>
-
-<h4>●条件付きでドメイン遷移を初期化させる</h4>
-
-<p>例外ポリシーで「initialize_domain プログラム名」と指定しておくと， 「プログラム名」で指定されたプログラムが実行された場合， 「&lt;kernel&gt; プログラム名」というドメインへ遷移します．（図4） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図4 initialize_domainによる強制的ドメイン遷移<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig08.jpg" alt="sd200707-fig08.jpg">
-</td></tr>
-</table>
-
-<p>「initialize_domainプログラム名 from ドメイン名」のように「ドメイン名」を指定することも可能です． 「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけでもかまいません．</p>
-
-<p>たとえば， 「initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd」という指定をすると，「&lt;kernel&gt; /etc/rc.d/init.d/sshd」ドメインから「/usr/sbin/sshd」が実行される場合に限り，「&lt;kernel&gt; /usr/sbin/sshd」ドメインへ遷移します（図5） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図5 from条件付きinitialize_domain<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig09.jpg" alt="sd200707-fig09.jpg">
-</td></tr>
-</table>
-
-<h4>●条件付きでドメイン遷移を再開させる</h4>
-
-<p>ログイン後にはどのようなコマンドをどのような順序で実行するかを事前に知ることはできないため，keep_domainというキーワードを指定してドメイン遷移を行わせないようにすることができます．しかし，パスワードの変更のためにパスワードファイルへのアクセスを必要とする場合や，デーモンとして動作するサービスを再スタートさせる場合などはドメイン遷移を再開させたい場合があります．</p>
-
-<p>例外ポリシーで「no_keep_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合にはkeep_domainキーワードによる指定を無視します．</p>
-
-<p>たとえば， 「keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定がされている場合に「no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定を行うことで，デフォルトではドメイン遷移をさせないようにしながら「/bin/cat」を実行する場合には「&lt;kernel&gt;/usr/sbin/sshd /bin/bash /bin/cat」ドメインへ遷移させるようにすることができます（図6） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図6 no_keep_domainとの組み合わせ<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig10.jpg" alt="sd200707-fig10.jpg">
-</td></tr>
-</table>
-
-<h4>●条件付きでドメイン遷移を初期化させない</h4>
-
-<p>例外ポリシーで「no_initialize_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合にはinitialize_domainキーワードによる指定を無視します．</p>
-
-<p>たとえば，メールを送信するための「/bin/mail」は「/usr/sbin/sendmail.sendmail」を実行しますが，メールを受信するために「/usr/sbin/sendmail.sendmail」を実行するのとは別の権限を与えたい場合には， 「no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail」と指定しておくことで「&lt;kernel&gt; /usr/sbin/sendmail.sendmail」ドメインへ遷移させないようにすることができます（図7）．（ドメイン名が/bin/mailで終わる場合のみ機能します．/bin/mailがkeep_domainに指定されたシェルのドメインから呼ばれる場合には/bin/mailの代わりにシェルのドメインを指定する必要があります．）</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図7 no_initialize_domainによるドメイン遷移の使い分け
-<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig11.jpg" alt="sd200707-fig11.jpg">
-</td></tr>
-</table>
-
-<h4>●プログラムの実行を伴わないでドメイン遷移を行う</h4>
-
-<p>ドメイン遷移は原則としてプログラムの実行時に発生しますが，プログラムの中からドメイン遷移を行うための処理を呼び出すことにより，プログラムの実行を伴わずにドメイン遷移を行うことが可能です．</p>
-
-<p>ApacheはＣＧＩをサポートしており，Apacheとは別プロセスとして動作する（プログラムの実行を必要とする）ものとApacheプロセス内で動作する（プログラムの実行を必要としない）ものがあります．Apacheがリクエストを処理する前にバーチャルホスト名や実行されるＣＧＩの名前などに基づいてドメイン遷移を行うことにより，Apacheプロセス内で動作するＣＧＩに対しても権限の分割を行うことができます．</p>
+<p>今回は4月に発表を行ったELC2007の様子も紹介します．リリースの詳細については，<a href="http://sourceforge.jp/projects/tomoyo/news/">プロジェクトのニュース</a>や<a href="http://lists.sourceforge.jp/mailman/archives/tomoyo-users/">メーリングリストのアーカイブ</a>にてご確認ください．</p>
 
 <h2>ELC2007レポート</h2>
 
@@ -158,6 +68,8 @@
 <p>ELC2007への参加はもちろん，世界の組込み Linux の関係者に対して TOMOYO Linux を知ってもらうことが目的でしたが，それは同時にメインライン化（Linuxカーネル本体への取り込み）提案を行うための最初のステップでもありました．</p>
 
 <p>本誌が店頭に並ぶのは6月18日ですが，6月27～29日までオタワで開催される Ottawa Linux Symposium（通称OLS）では，TOMOYO Linux の BOFセッションを持ちます．国産セキュアOSであるTOMOYO Linuxの開発を通じて得られたものを Linux の世界とコミュニティにフィードバックすることができればと願っています．</p>
+
+<p><a href="tutorial-6.html.ja">第６回へ戻る</a>　<a href="tutorial-8.html.ja">第８回へ進む</a></p>
 
 <hr>
 
