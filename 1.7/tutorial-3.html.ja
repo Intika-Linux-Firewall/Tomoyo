@@ -29,7 +29,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図１　TOMOYO Linux におけるドメイン遷移<br>（プログラムの実行により新たなドメインに遷移する．）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig01.png" alt="sd200703-fig01.png">
+<img src="tutorial/fig-3-1.png" alt="fig-3-1.png">
 </td></tr>
 </table>
 
@@ -38,7 +38,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図２　SELinuxにおけるドメイン遷移<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig02.png" alt="sd200703-fig02.png">
+<img src="tutorial/fig-3-2.png" alt="fig-3-2.png">
 </td></tr>
 </table>
 
@@ -53,7 +53,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図３　initialize_domain の効果<br>（ /some/where/baz が実行されると無条件に &lt;kernel&gt; 直下の /some/where/baz ドメインに遷移する．）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig03.png" alt="sd200703-fig03.png">
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png">
 </td></tr>
 </table>
 
@@ -64,7 +64,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図４　無条件にドメイン遷移を初期化する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig08.jpg" alt="sd200707-fig08.jpg">
+<img src="tutorial/fig-3-4.png" alt="fig-3-4.png">
 </td></tr>
 </table>
 
@@ -74,7 +74,7 @@
 <tr><td>
 ■図５　特定のドメインから実行された場合のみドメイン遷移を初期化する<br>
 （ initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd という指定により， &lt;kernel&gt; /etc/rc.d/init.d/sshd ドメインから /usr/sbin/sshd が実行された場合に限り， &lt;kernel&gt; /usr/sbin/sshd ドメインへ遷移する．）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig09.jpg" alt="sd200707-fig09.jpg">
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png">
 </td></tr>
 </table>
 
@@ -89,7 +89,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図６　no_initialize_domain との組み合わせ<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig11.jpg" alt="sd200707-fig11.jpg">
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png">
 </td></tr>
 </table>
 
@@ -100,7 +100,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図７　keep_domain の効果<br>（ &lt;kernel&gt; /sbin/init ・・・ foo bar ドメインは keep_domain 指定されているため，プログラムを実行してもドメイン遷移は起こらない． initialize_domain 指定されている /some/where/baz が実行されることにより &lt;kernel&gt; /some/where/baz に遷移している．）<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig04.png" alt="sd200703-fig04.png">
+<img src="tutorial/fig-3-7.png" alt="fig-3-7.png">
 </td></tr>
 </table>
 
@@ -109,7 +109,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図８　keep_domain の効果<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig06.jpg" alt="sd200707-fig06.jpg">
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png">
 </td></tr>
 </table>
 
@@ -120,7 +120,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図９　無条件にドメイン遷移を抑制する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig05.jpg" alt="sd200707-fig05.jpg">
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png">
 </td></tr>
 </table>
 
@@ -129,7 +129,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図１０　特定のプログラムが実行された場合だけドメイン遷移を抑制する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig07.jpg" alt="sd200707-fig07.jpg">
+<img src="tutorial/fig-3-10.png" alt="fig-3-10.png">
 </td></tr>
 </table>
 
@@ -144,7 +144,7 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図１１　no_keep_domain との組み合わせ<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-7&amp;src=sd200707-fig10.jpg" alt="sd200707-fig10.jpg">
+<img src="tutorial/fig-3-11.png" alt="fig-3-11.png">
 </td></tr>
 </table>
 
@@ -525,10 +525,14 @@ allow_read /tmp/testfile1
 <table border="1" summary="fig">
 <tr><td>
 ■図３６　ポリシーに違反する要求はすぐに拒否<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig31.png" alt="sd200703-fig31.png">
-</td><td>
+<img src="tutorial/fig-3-36.png" alt="fig-3-36.png">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
 ■図３７　ポリシーに違反する要求は対話的に処理<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-3&amp;src=sd200703-fig20.png" alt="sd200703-fig20.png">
+<img src="tutorial/fig-3-37.png" alt="fig-3-37.png">
 </td></tr>
 </table>
 
