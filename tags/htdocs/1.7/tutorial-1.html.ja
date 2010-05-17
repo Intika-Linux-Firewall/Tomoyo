@@ -50,7 +50,7 @@
 
 <h3>準備</h3>
 
-<p>TOMOYO Linux はカーネル 2.4.30 以降および 2.6.11 以降に対応しています．図３のディストリビューションについては i686 向けのコンパイル済みカーネルとツールのパッケージを用意しています．</p>
+<p>TOMOYO Linux はカーネル 2.4.30 以降および 2.6.11 以降に対応しています．図３のディストリビューションについては<a href="http://tomoyo.sourceforge.jp/1.7/install.html#install_from_repository"> i686 向けのコンパイル済みカーネルとツールのパッケージ</a>を用意しています．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -99,8 +99,6 @@ title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
 </td></tr>
 </table>
 
-<p>利用可能な最新のカーネルは<a href="http://tomoyo.sourceforge.jp/1.7/install.html#install_from_repository">バイナリパッケージをインストール</a>を参照ください．</p>
-
 <h4>●ユーティリティのインストール</h4>
 
 <p>ポリシーを管理するためのユーティリティをダウンロードし，インストールします（図６）．</p>
@@ -123,9 +121,10 @@ title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
 <tr><td>プログラム名</td><td>役割</td></tr>
 <tr><td>ccs-loadpolicy</td><td>ポリシーの再読み込みを行う</td></tr>
 <tr><td>ccs-editpolicy</td><td>ポリシーエディタ</td></tr>
-<tr><td>ccs-setlevel</td><td>プロファイルの内容を変更する</td></tr>
-<tr><td>ccs-setprofile</td><td>ドメインに割り当てるプロファイルを変更する</td></tr>
+<tr><td>ccs-savepolicy</td><td>現在のポリシーを保存する</td></tr>
 <tr><td>ccs-queryd</td><td>アクセス要求を対話的に許可する</td></tr>
+<tr><td>ccs-setlevel</td><td>プロファイルの内容を変更する（ ccs-editpolicy からも変更できます）</td></tr>
+<tr><td>ccs-setprofile</td><td>ドメインに割り当てるプロファイルを変更する（ ccs-editpolicy からも変更できます）</td></tr>
 </table>
 </td></tr>
 </table>
@@ -309,6 +308,8 @@ PROFILE_VERSION=20090903
 <h3>次回予告</h3>
 
 <p>今回は TOMOYO Linux の導入から，ファイルに対するアクセスの自動学習の手順と学習結果の保存までをご紹介しました．次回は定義されたポリシーに基づきアクセスを制御するまでを紹介します．どうぞお楽しみに．</p>
+
+<p><a href="tutorial-2.html.ja">第２回へ進む</a></p>
 
 <hr>
 
