@@ -3,71 +3,518 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第７回：「新学期スタート」</title>
+<title>TOMOYO Linuxの世界　第７回：「いろんな機能を試してみよう」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-7.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
-<h1>TOMOYO Linuxの世界<br>第７回：「新学期スタート」</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
 
-<p>今回は， CE Linux Forum Worldwide Embedded Linux Conference 2007の模様をお届けします．</p>
+<h1>TOMOYO Linux の世界<br>第７回：「いろんな機能を試してみよう」</h1>
 
 <h2>今回の内容</h2>
 
-<p>前回まででTOMOYO Linuxの基本的な機能の紹介と使い方についての説明が完了しました．</p>
+<p>これまでの連載では，ファイルに対するアクセス制御機能について紹介してきました．ファイルに対するアクセス制御機能は，プログラムやデータへの不要なアクセスを排除する，セキュアＯＳを用いたセキュリティ強化の基本となります．しかし，この機能だけでは十分とは言えません．今回は， TOMOYO Linux が備える他のアクセス制御機能の中からネットワークに対するアクセス制御機能をはじめ主要なものを紹介します．</p>
 
-<p>今回は4月に発表を行ったELC2007の様子も紹介します．リリースの詳細については，<a href="http://sourceforge.jp/projects/tomoyo/news/">プロジェクトのニュース</a>や<a href="http://lists.sourceforge.jp/mailman/archives/tomoyo-users/">メーリングリストのアーカイブ</a>にてご確認ください．</p>
+<h2>ネットワークに対するアクセス制御機能について</h2>
 
-<h2>ELC2007レポート</h2>
+<p>Linux ではデフォルトで iptables というパケットフィルタリングを行うための機能が利用できます． TOMOYO Linux でも同様の機能を提供しますが， TOMOYO Linux のネットワークに対するアクセス制御機能はドメイン単位やユーザＩＤ単位でパケットフィルタリングを行うことができ，設定も容易です． iptables の設定は構文が難しくてわからないという人でも使えます（ただし， iptables と連携しているわけではないので， iptables でしか利用できない機能もあります．）．</p>
 
-<h3>ELC2007について</h3>
+<h3>制御可能な範囲</h3>
 
-<p>連載第5回で予告したように4月17～19日までサンノゼで開催されたCE Linux Forum Worldwide Embedded Linux Conference 2007に参加し，TOMOYO Linuxのプレゼンテーションとチュートリアルを行ってきました．</p>
+<p>TOMOYO Linux におけるネットワーク制御の対象について図１に示します．</p>
 
-<ul>
-<li><a href="http://www.celinux.org/elc2007/">イベントWebページ</a></li>
-<li><a href="http://tree.celinuxforum.org/CelfPubWiki/ELC2007Presentations">プレゼンテーション資料</a></li>
-<li><a href="http://tree.celinuxforum.org/CelfPubWiki/JapanTechnicalJamboree12">CELinux Forum Japan Technical Jamboree12</a></li>
-</ul>
+<table border="1" summary="fig">
+<tr><td>
+■図１　ネットワーク制御の対象
+<pre>
+ＴＣＰプロトコル／ＵＤＰプロトコル／ＩＰプロトコル
+ＩＰｖ４ネットワークアドレス／ＩＰｖ６ネットワークアドレス
+ポート番号
+</pre>
+</td></tr>
+</table>
 
-<p>CE LinuxのCEはConsumer Electronicsの略です．本会議については，2006年12月8日にJapan Technical Jamboree12でTOMOYO Linuxについて紹介させていただいた際に， 「ぜひ国内だけでなく海外のイベントでも発表してみては」とお勧めいただいたことが応募のきっかけとなり実現しました．</p>
+<p>TOMOYO Linux のネットワークアクセス制御機能を用いると，たとえば「 sshd からログインしたユーザＩＤが 500 のユーザが実行した svn プロセスのみが，ホスト 202.221.179.21 のポート 80 に対してＴＣＰプロトコルを用いた通信を行うことができる」といった制御が可能となります．次節以降，実際に設定してみることにしましょう．</p>
 
-<h3>会議の模様</h3>
+<h3>準備</h3>
 
-<p>会議は，3つの部屋でプログラムが同時進行するという形式で行われ，参加者は興味のあるセッションを自由に選択します．参加者名簿がないので正確な人数はわかりませんが，会場の規模から判断して少なくとも200名以上が参加していたと思います．</p>
+<p>ネットワークに対するアクセス制御はファイルに対するアクセス制御と同様にドメイン毎に指定ができます．ここでは，「ネットワークアクセス制御のみの学習」「ネットワークアクセス制御のみの確認」「ネットワークアクセス制御のみの強制」の３種類のプロファイルを作ります．</p>
 
-<p>発表の内容はハードウェアからソフトウェアまで多岐にわたり，組込みLinuxの領域の広さをあらためて感じました．キーノートセッションは，Thomas Gleixner氏によるしゃれっ気に満ちた“Embedded Linux - An Increasing Nightmare?” （ 「組込みLinuxは増殖する悪夢か？」 ）と，LinuxDevice Driversの著者で有名なJonathan Corbet氏による“The State of the Linux Kernel” （ 「Linuxカーネルの状態」 ）の2本で（資料はいずれも上記のプレゼンテーション資料のリンクより参照，ダウンロードできます） ，BOFも含めると56ものセッションがありました．</p>
+<h3>(1)プロファイルの定義</h3>
 
-<p>セキュリティに関するものは残念ながらあまり多くはなく，日立ソフトウェアエンジニアリング㈱中村雄一氏の“Comparison of Secure OSes and Embedded SELinux Activity in Japan”と，TOMOYO Linuxのプレゼンテーション“TOMOYOLinux - A Lightweight and Manageable Security System for PC and Embedded Linux” ，およびチュートリアル“TOMOYO Linux - Tutorial”の3本でした．</p>
+<p>準備としてプロファイル５～７を作成することにします． /etc/ccs/profile.conf の末尾に図２の内容を追加してください．</p>
 
-<p>プログラムでは予定されていなかったのですが，「日本セキュアOS連合チーム」はデモにも参加しました．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図２　/etc/ccs/profile.conf の末尾に追加する内容
+<pre>
+5-COMMENT=Learning Mode (Network Only)
+5-CONFIG::network={ mode=learning }
+6-COMMENT=Permissive Mode (Network Only)
+6-CONFIG::network={ mode=permissive }
+7-COMMENT=Enforcing Mode (Network Only)
+7-CONFIG::network={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
 
-<p>TOMOYO Linux関連のセッションについての反響ですが，残念ながら参加者はあまり多くありませんでした．ただ，Jonathan Corbet氏が足を運んでくれて，発表を聞いてもらうことができ，「 （TOMOYO Linuxと同じくパス名ベースのアクセス制御を行っている）AppArmorのチームと話をしてみると良い」 「できるだけ早くLinuxカーネルに対するパッチを投稿してみるべきだ」などのコメントをいただくことができました．これらのアドバイスについては，帰国後さっそく対応を行っています．</p>
+<p>保存したら，図３のコマンドを実行して変更を反映してください．</p>
 
-<p>余談ですが，氏は大変長身で，話をすると見上げるような形になります．発言は静かですが深みがあり， 「達人」という言葉を連想しました．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図３　変更を反映する
+<pre>
+# /usr/sbin/ccs-loadpolicy p
+</pre>
+</td></tr>
+</table>
 
-<h3>サンノゼ，会場の様子</h3>
+<h3>(2)学習させるドメインの決定</h3>
 
-<p>サンノゼを訪れたのは今回が初めてでしたが，とにかくお店が少なく，人が歩いていないところという印象でした．宿泊したホテルから会場まで徒歩約 30分の距離を毎日往復しましたが，基本的に他の人とすれ違うことはありません（歩いている人はほとんどいないのです） ．空はまさに「カリフォルニアの青い空！」という感じで，CGで描いたような色をしています．</p>
+<p>学習させるドメインの範囲は任意ですが，今回は操作中のシェルが属しているドメイン以下を対象としましょう．現在のプロセスが属しているドメイン名は， /proc/ccs/self_domain の内容を cat するとわかります．もし，現在実行中のシェルが keep_domain によりドメイン遷移を行わないように指定されていた場合は，ポリシーエディタを用いて一時的に keep_domain の指定を削除してください（ポリシーエディタで表示する際に見やすくするためであり，実環境で利用する場合には keep_domain の指定を削除する必要はありません．）．なお，学習されるＩＰアドレスやポート番号は環境により異なりますのでご了承ください．</p>
 
-<p>会場は会議用の施設で，無線LAN の設備が提供されていましたが，セキュリティはかかっておらず（笑） ，誰でも自由につなげられます．2日目の夜にはレセプションがあり，チャーターバスで何故か博物館に連れて行かれ，そこで立食パーティが開催されました．</p>
+<h3>学習させてみよう</h3>
 
-<h3>ゲーム</h3>
+<h4>(1)クライアント側の学習</h4>
 
-<p>最終日，すべてのセッションが終了後，ELC恒例（？）のゲームが始まるというので呼び出されました．</p>
+<p>図４の内容を実行し，現在のプロセスの属しているドメイン以下を学習モードにします（リダイレクトの部分は，実際のドメイン名を文字列として引用しても結構です）．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図４　現在のプロセスが属しているドメイン以下を学習モードにする
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 5 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
 
-<p>ゲームの内容は，人物，契約などテーマ毎に分類されたクイズを参加者の出身地区3つを代表するメンバー3人が回答するというもので，どうやらアメリカの有名なクイズ番組のパロディのようです．</p>
+<p>学習させるためのコマンドとして，ここではcurlコマンドを用いて http://www.sourceforge.jp/ にアクセスしてみます（図５）．</p>
 
-<p>問題はテーマごとに難易度の異なるものが配置されていて，当然ながら難しいものほど得点が高くなっています．司会は，CE Linux Forum の Wiki の管理者でもある Tim Bird氏が行いましたが，設問が茶目っ気たっぷりで大変楽しいものでした．たとえば， 「人物」ではLinus氏のアップの写真が投影されて， 「これは誰でしょう？」という感じです．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図５　curl コマンドを学習させる
+<pre>
+# curl http://www.sourceforge.jp/ &gt; /dev/null
+</pre>
+</td></tr>
+</table>
 
-<h3>そしてOLSへ！</h3>
+<p>なお， curl コマンドが使えない場合は， wget や telnet などでもかまいません．ポリシーエディタを起動して， curl コマンドを実行したドメインのアクセス許可を表示してみましょう（図６）．</p>
 
-<p>ELC2007への参加はもちろん，世界の組込み Linux の関係者に対して TOMOYO Linux を知ってもらうことが目的でしたが，それは同時にメインライン化（Linuxカーネル本体への取り込み）提案を行うための最初のステップでもありました．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図６　curl コマンドを実行したドメインのアクセス許可<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig04.jpg" alt="sd200704-fig04.jpg">
+</td></tr>
+</table>
 
-<p>本誌が店頭に並ぶのは6月18日ですが，6月27～29日までオタワで開催される Ottawa Linux Symposium（通称OLS）では，TOMOYO Linux の BOFセッションを持ちます．国産セキュアOSであるTOMOYO Linuxの開発を通じて得られたものを Linux の世界とコミュニティにフィードバックすることができればと願っています．</p>
+<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.10.1 53 」という部分は， UDP プロトコルを用いてＤＮＳサーバ 192.168.10.1 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
+
+<h4>(2)サーバ側の学習</h4>
+
+<p>今度は， ssh コマンドを用いて SSH サービスにログインしてみます（ SSH サービスを稼動させていない場合には， HTTP などの他のサービスでもかまいません）．例外ポリシーで「 initialize_domain /usr/sbin/sshd 」という指定がされている場合（連載第１回で実行した init_policy によりそのように指定されているはずです）， /usr/sbin/sshd は「 &lt;kernel&gt; /usr/sbin/sshd 」というドメインで動作することになるので，そのドメインに学習用のプロファイルを割り当ててみます（図７）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　&lt;kernel&gt; /usr/sbin/sshd ドメインに学習用プロファイルを割り当てる
+<pre>
+# /usr/sbin/ccs-setprofile 5 '&lt;kernel&gt; /usr/sbin/sshd'
+</pre>
+</td></tr>
+</table>
+
+<p>その後， ssh で localhost にログインし（図８），ポリシーエディタを実行して &lt;kernel&gt; /usr/sbin/sshd ドメインに対するアクセス許可を確認してください（図９）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　ssh で localhost にログイン
+<pre>
+# ssh localhost
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　&lt;kernel&gt; /usr/sbin/sshd ドメインに対するアクセス許可<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig07.jpg" alt="sd200704-fig07.jpg">
+</td></tr>
+</table>
+
+<p>図９では「 allow_network TCP accept 127.0.0.1 51051 」としてアクセス許可が与えられていますが，もしＩＰｖ６が有効になっている場合はＩＰｖ６のアドレスになりますので注意してください．ファイルに対するアクセス許可と同様に，ネットワークに対するアクセス許可にも条件を付与することができます．たとえば，図１０のようにプロセスのユーザＩＤと組み合わせることで，ユーザごとに接続可能なサーバを制限したりすることもできます．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１０　ユーザごとに接続可能なサーバを制限
+<pre>
+allow_network TCP connect 202.221.179.21 80 if task.uid=500
+allow_network TCP connect 66.35.250.203 80 if task.uid=501
+</pre>
+</td></tr>
+</table>
+
+<p>ＩＰソケットの場合には，ポート番号の代わりにプロトコル番号を指定します． ping コマンドを例に説明します．図１１の内容を実行してから，ポリシーエディタで ping コマンドの動作するドメインに対するアクセス許可を確認してください（図１２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　ping コマンドを実行
+<pre>
+# ping -c 4 www.sourceforge.jp
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　ping コマンドの動作するドメインに対するアクセス許可<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig09.jpg" alt="sd200704-fig09.jpg">
+</td></tr>
+</table>
+
+<p>「 allow_network RAW connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
+
+<h3>チューニングしてみよう</h3>
+
+<p>ひととおり学習してみたら，確認モードに切り替えて確認してみましょう．確認モードにするにはプロファイル６を割り当てます（図１３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　プロファイル６を割り当て，確認モードに切り替え
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 6 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<h4>(1)アドレスのパターン化</h4>
+
+<p>ファイルに対するアクセス制御を行う際にワイルドカードを用いてパターン化したように，ネットワークに対するアクセス制御を行う際にもパターン化が必要になります．パターン化を行う場合は，開始アドレスと終了アドレスを-を用いて図１４のように指定してください．-の前後に空白を入れてはいけません．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１４　ＩＰｖ４アドレスを範囲で指定する
+<pre>
+xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy
+</pre>
+</td></tr>
+</table>
+
+<p>ＩＰｖ６アドレスによる指定もＩＰｖ４アドレスの場合と同様ですが，「 :: 」という省略表記や「 . 」混じりの表記はサポートしていません．つねに図１５のような形式で指定する必要があります．その他，負荷分散のため複数のＩＰアドレスを持つサーバに対するアクセス許可を与える場合は，使う可能性のあるすべてのＩＰアドレスを指定することを忘れないでください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１５　ＩＰｖ６アドレスを指定する
+<pre>
+xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx
+</pre>
+</td></tr>
+</table>
+
+<h4>(2)ポート番号のパターン化</h4>
+
+<p>サーバがクライアントからのリクエストを受け付けるためのポート番号は一般に固定されているのに対し，クライアントがリクエストを送り出すときに使用するポート番号は固定されていません．そのため，サーバ側でクライアントが使用する可能性のあるポート番号を範囲としてパターン化してやる必要があります．パターン化を行う場合は，開始ポートと終了ポートを-を用いて図１６のように指定してください．-の前後に空白を入れてはいけません．よくあるパターンは図１７の３つです．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１６　ポート番号を範囲で指定する
+<pre>
+xxxxx-yyyyy
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１７　ポート番号パターン化の例
+<pre>
+1024-65535
+32768-61000
+600-1023
+</pre>
+</td></tr>
+</table>
+
+<p>最初のパターンは通常のクライアントがサーバに接続する際に選択する可能性がある範囲で，おもにサーバ側のプログラムで必要になります．２番目のパターンは「 /proc/sys/net/ipv4/ip_local_port_range 」に指定されているポート番号の範囲です．通常のクライアントはこの範囲から未使用のローカルポート番号を選択してサーバに接続するため，おもにクライアント側のプログラムで必要になります．実際の /proc/sys/net/ipv4/ip_local_port_range の内容に合わせてパターンを定義してください．</p>
+
+<p>最後のパターンは， portmap コマンドのように未使用の特権ポート（ポート番号が 1024 未満のポート）を選択して接続するプログラムで必要になります．実際に必要な範囲は異なる場合があります．パターン化が必要か否かを判断する簡単な方法は，プログラムを何度か実行してみることです．たとえば，学習モードで何度か実行すると，図１８のように，ポート番号が連続するアクセス許可が増えていきますので，その傾向から必要な範囲を推測してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　ポート番号が連続するアクセス許可の例①
+<pre>
+allow_network TCP bind 127.0.0.1 610
+allow_network TCP bind 127.0.0.1 611
+allow_network TCP bind 127.0.0.1 612
+allow_network TCP bind 127.0.0.1 613
+</pre>
+</td></tr>
+</table>
+
+<p>図１８の例の場合，図１９のような許可が必要である可能性が高いと言えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　図１８を元にパターン化したアクセス許可
+<pre>
+allow_network TCP bind 127.0.0.1 600-1023
+</pre>
+</td></tr>
+</table>
+
+<p>また，図２０であれば，図２１または図２２という許可が必要である可能性が高いでしょう．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２０　ポート番号が連続するアクセス許可の例②
+<pre>
+allow_network TCP accept 127.0.0.1 32780
+allow_network TCP accept 127.0.0.1 32781
+allow_network TCP accept 127.0.0.1 32782
+allow_network TCP accept 127.0.0.1 32783
+allow_network TCP accept 127.0.0.1 32784
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２１　図２０を元にパターン化したアクセス許可
+<pre>
+allow_network TCP accept 127.0.0.1 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２２　図２０を元にパターン化したアクセス許可
+<pre>
+allow_network TCP accept 127.0.0.1 32768-61000
+</pre>
+</td></tr>
+</table>
+
+<h3>強制してみよう</h3>
+
+<p>確認が終わったら，実際にネットワークのアクセス制御を適用しましょう．強制モードにするにはプロファイル７を割り当てます（図２３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２３　プロファイル７を割り当て，強制モードを適用
+<pre>
+xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>なお，プロファイル５～７はファイルに関するアクセス制御を行っていないことに注意してください．本連載の４回目で紹介した，対話的にアクセス許可を追加する ccs-queryd を用いることで，その場で不足しているアクセス許可を追加することもできます． TOMOYO Linux を使うと， iptables 単体で行えるネットワークアクセス制御の内容を細分，詳細化できることがご理解いただけると思います．</p>
+
+<h2>ケイパビリティに対するアクセス制御機能について</h2>
+
+<p>Linux カーネル 2.2 以降では POSIX ケイパビリティに対応しています．ケイパビリティは，セキュアＯＳの基本概念である最少権限を形にしたもので，プロセス単位で各種特権の利用について制限を加えるために用いられます． Linux で対応済みのケイパビリティについては， /usr/include/linux/capability.h の中で参照することができます．しかし， CAP_SYS_ADMIN 権限がさまざまな目的に用いられているので，そのままでは本来の効果が期待できません．そこで TOMOYO Linux では独自にケイパビリティを定義，制御しています（以下「ケイパビリティ」は TOMOYO Linux におけるケイパビリティを指します）．</p>
+
+<p>TOMOYO Linux では POSIX とは異なる独自のケイパビリティを使用していますが，プログラムからはその存在は見えないので，プログラムに変更を加える必要はありません．バージョン 1.7.2 では図２４の操作の可否を制限することができます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２４　TOMOYO Linux 1.7.2 のケイパビリティ<br>
+<table border="1" summary="fig">
+<tr><td>値</td><td>内容</td></tr>
+<tr><td>inet_tcp_create</td><td>ＴＣＰソケットの作成を許可</td></tr>
+<tr><td>inet_tcp_listen</td><td>ＴＣＰソケットの listen を許可</td></tr>
+<tr><td>inet_tcp_connect</td><td>ＴＣＰソケットの connect を許可</td></tr>
+<tr><td>use_inet_udp</td><td>ＵＤＰソケットの使用を許可</td></tr>
+<tr><td>use_inet_ip</td><td>ＲＡＷソケットの使用を許可</td></tr>
+<tr><td>use_route</td><td>ＲＯＵＴＥソケットの使用を許可</td></tr>
+<tr><td>use_packet</td><td>ＰＡＣＫＥＴソケットの使用を許可</td></tr>
+<tr><td>use_kernel_module</td><td>create_module(2), init_module(2), delete_module(2) の使用を許可</td></tr>
+<tr><td>create_fifo</td><td>mknod(2) でＦＩＦＯの作成を許可</td></tr>
+<tr><td>create_block_dev</td><td>mknod(2) でブロック型デバイスの作成を許可</td></tr>
+<tr><td>create_char_dev</td><td>mknod(2) でキャラクタ型デバイスの作成を許可</td></tr>
+<tr><td>create_unix_socket</td><td>mknod(2) でＵＮＩＸドメインソケットの作成を許可</td></tr>
+<tr><td>SYS_MOUNT</td><td>mount(2) の使用を許可</td></tr>
+<tr><td>SYS_UMOUNT</td><td>umount(2) の使用を許可</td></tr>
+<tr><td>SYS_REBOOT</td><td>reboot(2) の使用を許可</td></tr>
+<tr><td>SYS_CHROOT</td><td>chroot(2) の使用を許可</td></tr>
+<tr><td>SYS_KILL</td><td>０以外のシグナルで kill(2), tkill(2), tgkill(2) の使用を許可</td></tr>
+<tr><td>SYS_VHANGUP</td><td>vhangup(2) の使用を許可</td></tr>
+<tr><td>SYS_TIME</td><td>stime(2), settimeofday(2), adjtimex(2) の使用を許可</td></tr>
+<tr><td>SYS_NICE</td><td>nice(2), setpriority(2) の使用を許可</td></tr>
+<tr><td>SYS_SETHOSTNAME</td><td>sethostname(2), setdomainname(2) の使用を許可</td></tr>
+<tr><td>SYS_LINK</td><td>link(2) の使用を許可</td></tr>
+<tr><td>SYS_SYMLINK</td><td>symlink(2) の使用を許可</td></tr>
+<tr><td>SYS_RENAME</td><td>rename(2) の使用を許可</td></tr>
+<tr><td>SYS_UNLINK</td><td>unlink(2) の使用を許可</td></tr>
+<tr><td>SYS_CHMOD</td><td>chmod(2), fchmod(2) の使用を許可</td></tr>
+<tr><td>SYS_CHOWN</td><td>chown(2), fchown(2), lchown(2) の使用を許可</td></tr>
+<tr><td>SYS_IOCTL</td><td>ioctl(2), compat_sys_ioctl(2) の使用を許可</td></tr>
+<tr><td>SYS_KEXEC_LOAD</td><td>kexec_load(2) の使用を許可</td></tr>
+<tr><td>SYS_PIVOT_ROOT</td><td>pivot_root(2) の使用を許可</td></tr>
+<tr><td>SYS_PTRACE</td><td>ptrace(2) の使用を許可</td></tr>
+<tr><td>conceal_mount</td><td>既存のマウントを隠ぺいするようなマウントを許可</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>ここではマウント操作を行う権限（ SYS_MOUNT ）を例に説明します． TOMOYO Linux はパス名を用いてアクセス制御を行うため，管理者が期待したとおりにファイルシステムがマウントされていることは絶対の前提となります． root 権限で動作しているすべてのプロセスが好き勝手にマウントをしてしまうようでは困ります．そのため，ケイパビリティを用いることでマウント操作を許可するドメインを制限します．ケイパビリティのアクセス制御の手順はネットワークに関するアクセス制御のときと同様です．まず，制限したいケイパビリティをプロファイルで指定します． /etc/ccs/profile.conf の末尾に図２５の内容を追加してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２５　/etc/ccs/profile.conf の末尾に追加する内容（ケイパビリティに対するアクセス制御）
+<pre>
+9-CONFIG::capability::SYS_MOUNT={ mode=learning }
+10-CONFIG::capability::SYS_MOUNT={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>ファイルやネットワークとは異なり，ケイパビリティの場合は操作対象を指定する必要がありません．学習モードで学習させるだけで強制モードで必要なすべてのケイパビリティが与えられるので，図２５のプロファイルでは確認モードを省略しています．保存したら，図３のコマンドを実行して変更を反映してください．</p>
+
+<p>説明のために，先に強制モード用のプロファイル（10）を使用します（図２７）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２７　強制モード用プロファイルを使用
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 10 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>その後，適当なディレクトリに tmpfs をマウントします（図２７）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２７　tmpfs をマウントする
+<pre>
+# mount -t tmpfs none /tmp/
+mount: permission denied
+</pre>
+</td></tr>
+</table>
+
+<p>拒否されました．これは， mount コマンドを実行したドメインに対して，マウント操作を行う権限が与えられていないためです．次に，学習モード用のプロファイル（9）を割り当てます（図２８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２８　学習モード用プロファイルを使用
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 9 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>再度，適当なディレクトリに tmpfs をマウントします（図２９）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２９　tmpfs をマウントする
+<pre>
+# mount -t tmpfs none /tmp/
+</pre>
+</td></tr>
+</table>
+
+<p>今度は正常に動作しました．ポリシーエディタを起動して mount コマンドを実行したドメインを探し，アクセス許可を確認してください（図３０）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３０　allow_capability SYS_MOUNT というアクセス許可が学習されている<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig18.jpg" alt="sd200704-fig18.jpg">
+</td></tr>
+</table>
+
+<p>allow_capability SYS_MOUNT というアクセス許可が学習されていることを確認できます．この状態で強制モード用のプロファイル（10）を割り当てれば，許可されていないドメインからマウント操作を行うことを禁止できるようになります．</p>
+
+<p>マウント操作の可否だけを制限しても，マウント操作が許可されていれば任意のディレクトリにマウントできてしまうので，不十分だと思われる方がいるかもしれません．実際そのとおりであり， TOMOYO Linux ではマウントを許可するパーティションとマウントポイントの組み合わせを制限する機能も備えています．ファイルに対するアクセス制御も学習モードに設定して図２９の操作を行うと，図３０には allow_mount none /tmp/ tmpfs 0 という結果が学習されるはずです．</p>
+
+<h2>シグナルに対するアクセス制御機能について</h2>
+
+<p>TOMOYO Linux では，シグナルの種類と送信先を制限することができます．手順はネットワークに関するアクセス制御のときと同様です． /etc/ccs/profile.conf 末尾に図３１の内容を追加してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３１　/etc/ccs/profile.conf の末尾に追加する内容（シグナルに対するアクセス制御）
+<pre>
+11-CONFIG::ipc::signal={ mode=learning }
+12-CONFIG::ipc::signal={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>保存したら，図３のコマンドを実行して変更を反映してください．</p>
+
+<p>以降の操作は，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインに属しているシェル（つまり sshd からログインしたときのログインシェル）から行うものとします．事前に「 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定がされていないことを確認しておいてください．最初に， sleep コマンドを実行してください（図３２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３２　sleep コマンドを実行
+<pre>
+# sleep 100
+</pre>
+</td></tr>
+</table>
+
+<p>この状態で，別の画面を開いてログインしてください．説明のために，先に強制モード用のプロファイル（14）を割り当てます（図３３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３３　強制モード用プロファイルを使用
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 14 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>次に，動作中の sleep コマンドのプロセスＩＤを取得し，そのプロセスＩＤに対してシグナルを送信します（図３４．シェルのビルトインではなく， /bin/kill が実行されるよう明示的に指定しています）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３４　sleep コマンドのプロセスＩＤに対してシグナル送信
+<pre>
+# pidof sleep
+4649
+# /bin/kill -15 4649
+kill 4649: Operation not permitted
+</pre>
+</td></tr>
+</table>
+
+<p>拒否されました．これは， kill コマンドが動作するドメインに対して， sleep コマンドが動作するドメインへシグナルを送信する権限が与えられていないためです．次に，学習モード用のプロファイル（13）を割り当て（図３５），再度シグナルを送信します（図３６）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３５　学習モード用プロファイルを使用
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 13 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３６　再度 sleep コマンドのプロセスＩＤに対してシグナル送信
+<pre>
+# /bin/kill -15 4649
+</pre>
+</td></tr>
+</table>
+
+<p>今度は正常に動作しました．ポリシーエディタを起動して kill コマンドを実行したドメインを探し，アクセス許可を確認してください（図３７）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３７　kill コマンドを実行したドメインのアクセス許可<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig25.jpg" alt="sd200704-fig25.jpg">
+</td></tr>
+</table>
+
+<p>「 allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」というアクセス許可が学習されていることを確認できます．これは，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」という名前で始まるドメインに属しているプロセスに対して１５番のシグナル（ SIGTERM ）を送信することを許可するという意味です． TOMOYO Linux におけるドメイン名は &lt;kernel&gt; で始まる階層構造であるため， allow_signal 15 &lt;kernel&gt; のように指定した場合，すべてのプロセスに対して１５番のシグナルを送信することが許可されることに注意してください．例外として，シグナルの送信元が送信先と同じドメインの場合はつねに許可されます．また，０番のシグナルもつねに許可されます．</p>
+
+<h2>次回予告</h2>
+
+<p>今回は TOMOYO Linux のネットワークのアクセス制御機能を中心に紹介しました．通信を行うドメインを限定したうえで，強力かつ柔軟なアクセス制御を行えることがご理解いただけたと思います．次回は，ログインセッションを制限する方法についての紹介を行います．どうぞお楽しみに．</p>
 
 <p><a href="tutorial-6.html.ja">第６回へ戻る</a>　<a href="tutorial-8.html.ja">第８回へ進む</a></p>
 

@@ -3,381 +3,492 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第１０回：「ログインセッションを制限してみよう（前編）」</title>
+<title>TOMOYO Linuxの世界　第１０回：「blogのポリシーを作成してみよう（前編）」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-10.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
+<p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>TOMOYO Linuxの世界<br>第１０回：「ログインセッションを制限してみよう（前編）」</h1>
-
-<p>今回は，さらに実践的なTOMOYO Linuxの設定方法として，システムへのログイン後にユーザが行う操作を制限する手順を解説します．</p>
+<h1>TOMOYO Linuxの世界<br>第１０回：「blogのポリシーを作成してみよう（前編）」</h1>
 
 <h2>今回の内容</h2>
 
-<p>今回はTOMOYO Linux 1.7.2の機能をフルに活用して，システムにログイン後行う操作を制限する方法について解説します．</p>
+<p>今回は実際のシステムに近い形でTOMOYO Linuxを用いたシステム構築手順について紹介しようと思います．環境としては，CentOS 5.5上でMovableType 3.3を動作させることにします．</p>
 
-<p>SELinuxでは現在reference policyへの移行が進行中ですが，これまではログインセッションを含めてすべてのプロセスに対して強制アクセス制御を適用するstrictポリシーと，攻撃を受けやすいサービスに対してだけ強制アクセス制御を適用するtargetedポリシーの2種類がデフォルトポリシーとして提供されていました． 「セキュリティの強化」という観点からは，文字通り厳格なstrictポリシーのほうが効果が高いわけですが，制限の内容を間違えるとログインすらできなくなるなどの問題もあり，SELinuxを有効にしているユーザの多くはtargetedポリシーをベースにカスタマイズしているケースが多いのではないかと思われます． Russell Coker氏やLKMLでのSELinux関係者の発言によると，SELinux陣営には， 「SELinuxのポリシーの内容を理解できないシステム管理者はポリシーを修正すべきではない．我々プロが作成したポリシーをそのまま使いなさい」という考え方があります．これに対して， 「システム管理者自身がポリシーを作成する」TOMOYO Linuxは，まっこうから考え方が異なっています．これに関連した議論の一部は，<a href="http://slashdot.jp/linux/article.pl?sid=07/06/07/1211201">http://slashdot.jp/linux/article.pl?sid=07/06/07/1211201</a>から辿ることができます．読者のみなさんはどのように考えられますでしょうか．</p>
+<h3>MovableTypeのインストール</h3>
 
-<p>さて，この連載はTOMOYO Linuxの連載なので，ポリシーを自分で作ることができるTOMOYO Linuxを使って，ログインして行う操作の制限を行ってみることにしましょう．</p>
+<p>CentOS 5.5にMovableTypeをインストールするところから始めます．TOMOYO Linuxの設定は含まれませんので，すでにMovableTypeを導入済みの方は次の項目へ飛んでください．なお，MovableTypeのインストールについて，本稿では最低限の内容しか触れません．詳細については，<a href="http://www.sixapart.jp/movabletype/manual/3.3/">オンラインドキュメントの「システム管理者ガイド」</a>などを参照してください．</p>
 
-<h2>ログインセッションを制御してみよう</h2>
+<h3>Apache のインストール</h3>
 
-<h3>ログインセッションを制御する理由</h3>
-
-<p>Linuxをサーバとして利用する場合，ユーザがシステムにログインしてからの操作を制限したいと思う場合があるでしょう．たとえば， 「システム管理者が顧客情報の格納されたデータベースファイルを持ち出すのを禁止したい」とか「システムにログインしたユーザに対してパスワードの変更だけを許可したい」とか「Webサーバの再起動とWebコンテンツの更新だけを社外に委託したい（それ以外の操作は行えないようにしたい） 」などなど．他にも， 「システムにログインしたユーザが他人のパスワードを盗聴するためのバックドアを仕掛けるのを阻止したい」とか「インターネットから社内ネットワークにアクセスするためのゲートウェイサーバとして使いたい」という要求もあるかもしれません．プロセスの起動履歴ごとにドメインを管理するTOMOYO Linuxを使えば，このような要求に対応するのは簡単です．</p>
-
-<h3>基本手順</h3>
-
-<p>ログインセッションを保護するための手順は大きく分けて4つあります．</p>
-
-<ol>
-<li>まず，ログインセッションで実行を許可するコマンドを決定します（たとえば，ファイルの内容を閲覧するために/bin/catの実行を許可したり，パスワードの変更を行うために/usr/bin/passwdの実行を許可したりするなど） ．</li>
-<li>次に，ログインセッションでアクセスを許可したいファイルを決定します（たとえば，原則としてホームディレクトリ以下のファイルのみ読み書きを許可するなど） ．</li>
-<li>次に，ログインセッションで通信を許可したいネットワークを決定します（たとえば，DNSサーバ，HTTPサーバ，FTPサーバ，SSHサーバとだけ通信を許可するなど） ．</li>
-<li>以上の作業で決定したアクセス許可をあらかじめ与えたうえで，実際に学習モードを用いて不足しているアクセス許可を追加していきます．</li>
-</ol>
-
-<p>以上の手順で登場するキーワードを図1に示します．</p>
+<p>まず，Apacheをインストールします．rootユーザとしてログインし，図1のコマンドを実行してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図1 使用するキーワード<br>
-<table border="1" summary="fig">
-<tr><td>キーワード</td><td>意味</td></tr>
-<tr><td>path_group</td><td>プログラムファイルやホームディレクトリ以下のファイルをグループ化する</td></tr>
-<tr><td>keep_domain</td><td>ドメイン遷移を抑制する</td></tr>
-<tr><td>no_keep_domain</td><td>ドメイン遷移を再開する</td></tr>
-<tr><td>exec.argv[0]</td><td>シンボリックリンク経由の不正アクセスを防ぐ</td></tr>
-<tr><td>address_group</td><td>ネットワークアドレスをグループ化する</td></tr>
-<tr><td>if</td><td>自分が所有しているファイルへのアクセスのみを認める</td></tr>
-</table>
-</td></tr>
-</table>
-
-<h2>ステップ1：実行可能なコマンドの決定</h2>
-
-<h3>実行を許可するプログラムの決定</h3>
-
-<p>システムにログインしたユーザが悪意あるプログラムを実行できないようにするには，あらかじめシステムにインストールされているプログラム以外の実行を禁止するのが効果的です．この連載では，システムにすでにインストールされているプログラムの内，ログインセッションにおいて図2のコマンドの実行だけを許可するものとします．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図2 実行を許可するコマンド<br>
-<table border="1" summary="fig">
-<tr><td>/bin/basename /bin/bash /bin/cat /bin/egrep /bin/grep /bin/hostname /bin/ln /bin/ls /bin/mkdir /bin/mv /bin/rm /bin/rmdir /bin/sed /bin/touch /sbin/consoletype /usr/bin/clear /usr/bin/dircolors /usr/bin/emacs /usr/bin/id /usr/bin/passwd /usr/bin/perl /usr/bin/ssh /usr/bin/ssh-keygen /usr/bin/wget /usr/bin/which</td></tr>
-</table>
-</td></tr>
-</table>
-
-<p>これらのコマンドをpath_groupとして例外ポリシーに登録しておきましょう（図3） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図3 実行を許可するコマンドをグループ化
+■図1 Apacheのインストール
 <pre>
-path_group COMMANDS_FOR_LOGIN_SESSION /bin/basename
-path_group COMMANDS_FOR_LOGIN_SESSION /bin/bash
+# yum install httpd
+</pre>
+</td></tr>
+</table>
+
+<p>iptablesを有効にしている場合，設定が不適切だとApacheに接続できなくなります．図2のコマンドを実行して， ［Firewall Configuration］→［Customize］から［WWW (HTTP)］にチェックがされていることを確認してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図2 firstbootコマンドの実行
+<pre>
+# /usr/sbin/firstboot --reconfig
+</pre>
+</td></tr>
+</table>
+
+<h3>MovableType のインストール</h3>
+
+<p>本稿では図3のディレクトリ構成で使用します．データベースにはBERKELEYDBを使用します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図3 本稿で使用するディレクトリ構成<br>
+<table border="1" summary="fig">
+<tr><td>用途</td><td>ディレクトリ</td></tr>
+<tr><td>アプリケーションディレクトリ</td><td>/var/www/cgi-bin/mt/</td></tr>
+<tr><td>スタティックディレクトリ</td><td>/var/www/html/mt-static/</td></tr>
+<tr><td>blogディレクトリ</td><td>/var/www/html/blog/</td></tr>
+<tr><td>データベースディレクトリ</td><td>/var/www/mt-db/</td></tr>
+<tr><td>テンポラリディレクトリ</td><td>/var/www/mt-tmp/</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>MovableType 3.3をダウンロードしてインストールします．本稿ではMT-3_36-ja.zipを使用します．図4の内容を実行します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図4 MovableType 3.3のインストール
+<pre>
+# cd /var/www/cgi-bin/
+# unzip MT-3_36-ja.zip
+# mv MT-3.36-ja mt
+# cd mt/
+# mv mt-static /var/www/html/
+# mkdir /var/www/html/blog /var/www/mt-db /var/www/mt-tmp
+# chown apache:apache /var/www/html/blog/ /var/www/mt-db/ /var/www/mt-tmp/
+# cp -p mt-config.cgi-original mt-config.cgi
+</pre>
+</td></tr>
+</table>
+
+<p>次に，mt-config.cgiを編集します．/var/www/cgi-bin/mt/mt-config.cgiをエディタで開き，www.example.comとなっている箇所（2ヵ所）を実際のサーバ名（本稿ではyourserverと表記します）に置き換えてください（図5） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図5 /var/www/cgi-bin/mt/mt-config.cgiの変更箇所
+<pre>
+[修正前]
+CGIPath http://www.example.com/cgi-bin/mt/
+StaticWebPath http://www.example.com/mt-static
+[修正後]
+CGIPath http://yourserver/cgi-bin/mt/
+StaticWebPath http://yourserver/mt-static
+</pre>
+</td></tr>
+</table>
+
+<p>「##### MYSQL #####」 「##### POSTGRESQL#####」 「##### SQLITE #####」のセクションは不要なので削除します． 「##### BERKELEYDB #####」セクションではDataSourceという箇所を実際のパス名（/var/www/mt-db）に置き換えてください（図6） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図6 DataSourceを変更（/var/www/cgi-bin/mt/mt-config.cgi）
+<pre>
+[修正前]
+DataSource /path/to/database/directory
+[修正後]
+DataSource /var/www/mt-db
+</pre>
+</td></tr>
+</table>
+
+<p>また，図7の内容を追加します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図7 /var/www/cgi-bin/mt/mt-config.cgiに追加する内容
+<pre>
+DBUmask 0077
+HTMLUmask 0077
+UploadUmask 0077
+DirUmask 0077
+TempDir /var/www/mt-tmp
+</pre>
+</td></tr>
+</table>
+
+<p>apacheユーザの権限で実行するのでファイル作成時には所有者のみがアクセスできるようにしておくことができます．テンポラリディレクトリは TempDirキーワードを用いて指示します．</p>
+
+<h3>MovableType の初期化</h3>
+
+<p>Apacheをスタートさせます（図8） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図8 Apacheの起動
+<pre>
+# service httpd start
+</pre>
+</td></tr>
+</table>
+
+<p>Webブラウザを使って http://yourserver/cgi-bin/mt/mt-check.cgi を表示し，MovableTypeの実行に必要なプログラムが揃っていることを確認します．</p>
+
+<p>「MovableTypeのシステム・チェックは，無事に完了しました． 」という表示を確認したら， http://yourserver/cgi-bin/mt/mt.cgi にアクセスしてmt.cgiを実行します．</p>
+
+<p>この画面でMovableTypeのシステム管理者を登録してから，ログインしてください．ログイン後は， ［First Weblog］→［設定］→［サイトＵＲＬ／パス］の順に選択して，サイトURLとサイトパスを図9のように設定してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図9 サイトURLとサイトパスの設定<br>
+<table border="1" summary="fig">
+<tr><td>設定項目</td><td>設定内容</td></tr>
+<tr><td>サイトURL</td><td>http://yourserver/blog/</td></tr>
+<tr><td>サイトパス</td><td>/var/www/html/blog</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>その後， ［変更を保存］を選択し， ［サイトを再構築］→［再構築］の順に選択してください．以上でMovableTypeのインストールは完了です．</p>
+
+<h2>TOMOYO Linuxのインストール</h2>
+
+<p>では，いよいよTOMOYO Linuxをインストールしてみることにしましょう．この連載では，2010年4月1日にリリースされたバージョン1.7.2を用います．</p>
+
+
+<h3>プログラムのインストール</h3>
+
+<p>CentOS 5.5用のコンパイル済みパッケージをダウンロードしインストールします（図10） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図10 TOMOYO Linux 1.7.2のインストール
+<pre>
+# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'
+# rpm --import /tmp/key
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
+# yum install ccs-kernel
+</pre>
+</td></tr>
+</table>
+
+<p>利用可能な最新のカーネルは<a href="http://tomoyo.sourceforge.jp/1.7/install.html#install_from_repository">バイナリパッケージをインストール</a>を参照ください．</p>
+
+<p>次にツールをインストールします．（図11） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図11 ツールをインストール
+<pre>
+# yum install ccs-tools
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linuxのユーティリティを保存してある場所を環境変数PATHに追加しておきます．bashを使っている場合は~/.bashrcに図12の行を追加します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図12 環境変数PATHの設定
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+</td></tr>
+</table>
+
+<h3>ポリシーの初期化</h3>
+
+<p>init_policyによりポリシーファイルを初期化します（図13） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図13 ポリシーファイルを初期化
+<pre>
+# /usr/lib/ccs/init_policy
+</pre>
+</td></tr>
+</table>
+
+<p>このプログラムはポリシーファイルが存在する場合は何もしないので，すでに/etc/ccs/ディレクトリが存在する場合には/etc/ccs/ディレクトリをどこかに移動してから実行してください． init_policyの実行により，/etc/ccs/ディレクトリに図14の5つのファイルが作成されます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図14 init_policyによって作成されるファイル<br>
+<table border="1" summary="fig">
+<tr><td>ファイル名</td><td>役割</td></tr>
+<tr><td>exception_policy.conf</td><td>例外ポリシー</td></tr>
+<tr><td>domain_policy.conf</td><td>ドメインポリシー</td></tr>
+<tr><td>manager.conf</td><td>マネージャーポリシー</td></tr>
+<tr><td>profile.conf</td><td>プロファイル</td></tr>
+<tr><td>meminfo.conf</td><td>メモリ使用量制限</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>exception_policy.confは「例外ポリシー」と呼ばれ，パス名のグループを定義したりドメイン遷移を制御したりするために使われます． domain_policy.confは「ドメインポリシー」と呼ばれ，ドメイン単位でアクセスを制御するために使われます． manager.confは「マネージャーポリシー」と呼ばれ，/proc/ccs/ディレクトリ経由でポリシーの更新を許可するプログラムやドメインを指定するために使われます． profile.confは「プロファイル」と呼ばれ，アクセス制御の方法(どの機能を有効にするか)を指定するために使われます．行頭の数字はプロファイル番号で， 「0-」で始まる行は要求された内容をチェックしないで許可する「無効モード」 ， 「1-」で始まる行は要求された内容を記録に残してから許可する「学習モード」 ， 「2-」で始まる行は要求された内容をチェックするが拒否はしない「確認モード」 ， 「3-」で始まる行は要求された内容をチェックして許可されていない場合には拒否する「強制モード」用として使います．この連載では，すべてのアクセス制御を有効にしたプロファイルを用いますが，難しいと感じたらファイルに関するアクセス制御以外は無効（CONFIG= という部分を CONFIG::file= に書き換える）にしてもかまいません．</p>
+
+<h2>学習の開始</h2>
+
+<h3>システムの再起動</h3>
+
+<p>ここまで準備ができたら，システムをリブートします．GRUBのメニューではTOMOYO Linuxカーネルを選択してください．</p>
+
+<h3>学習モードに切り替える</h3>
+
+<p>Apache をスタートさせます（図15） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図15 Apacheの起動
+<pre>
+# service httpd start
+</pre>
+</td></tr>
+</table>
+
+<p>ポリシーエディタを起動してください（図16） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図16 ポリシーエディタの起動
+<pre>
+# /usr/sbin/ccs-editpolicy
+</pre>
+</td></tr>
+</table>
+
+<p>すると「&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;」という画面が表示され，ドメイン遷移の一覧が表示されます．行番号の右には各ドメインのモード（プロファイル番号）が表示されています．「&lt;kernel&gt; /usr/sbin/httpd」というドメインにカーソルを合わせて，「S」を押してから学習モードに対応するプロファイルの番号「1」を入力して「ENTER」を押します（図17） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図17 &lt;kernel&gt; /usr/sbin/httpdドメインを学習モードにする<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig12.png" alt="sd200708-fig12.png">
+</td></tr>
+</table>
+
+<p>これにより，&lt;kernel&gt; /usr/sbin/httpdドメインが学習モードになり，今後&lt;kernel&gt; /usr/sbin/httpdによって新規作成されるドメインも学習モードになります．</p>
+
+<h3>アクセス許可を学習させる</h3>
+
+<p>Apacheを再起動させます（図18） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図18 Apacheの再起動
+<pre>
+# service httpd restart
+</pre>
+</td></tr>
+</table>
+
+<p>これにより，Apacheの起動と終了に必要なアクセス許可が学習されます．その後， http://yourserver/cgi-bin/mt/mt.cgi にアクセスしてmt.cgiを実行します．</p>
+
+<p>MovableTypeにログインし，エントリを投稿したりページを再構築したりトラックバックを受け付けるなどの操作を行います．TOMOYO Linuxは操作に対する要求に応えながら，それに必要なアクセス許可内容を学習します．ポリシーは後から確認，追加できますが，初期の自動学習で多くの機能を実行させておくと全体の作業がスムーズに進みます．MovableTypeのように複雑なものでは少し難しいですが，あらかじめ試験項目を作成しておくと良いでしょう．</p>
+
+<h3>アクセス許可を確認する </h3>
+
+<p>ひととおり学習したら，ccs-editpolicyで学習結果を確認してみましょう．図19のようなドメインが作成されているはずです（操作内容や設定内容により異なる場合があります．）．ApacheからMovable TypeのCGIが呼ばれ，そこからいくつかの外部プログラムが呼ばれていることがわかります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図19 ドメインの学習結果<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig14.png" alt="sd200708-fig14.png">
+</td></tr>
+</table>
+
+<h3>パス名のグループ化</h3>
+
+<p>「&lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt.cgi」ドメインにカーソルを合わせて「ENTER」を押すと，&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;という画面に移動します．その画面をスクロールしてみると，図20のようなエントリが見つかるはずです．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図20 作成されたポリシーの内容（一部）
+<pre>
+allow_read /var/www/cgi-bin/mt/extlib/CGI.pm
+allow_read /var/www/cgi-bin/mt/extlib/CGI/Cookie.pm
+allow_read /var/www/cgi-bin/mt/extlib/CGI/Util.pm
 （中略）
-path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/wget
-path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
+allow_read /var/www/cgi-bin/mt/lib/MT/Trackback.pm
+allow_read /var/www/cgi-bin/mt/lib/MT/Util.pm
+allow_read /var/www/cgi-bin/mt/lib/MT/WeblogPublisher.pm
 </pre>
 </td></tr>
 </table>
 
-<p>コマンドの所在（パス）を確認するにはwhichやtypeなどのコマンドを使います（図4） ．</p>
+<p>もちろん，ここまでの内容で作成したポリシーでも運用は可能ですが，実際のシステム運用ではポリシーを整理してから行います．今度はその手順を紹介します．さきほど確認したmt.cgiドメインの学習結果を見ると，多数のPerlモジュールにアクセスしていることがわかります．そこでまず，これらの Perlモジュールへのパス名を“MT-LIB”という名前でグループ化することにします．グループ化をすると，対象となるパス名をまとめて扱えるのでポリシーがコンパクトで見通しやすくなります．</p>
+
+<p>ccs-editpolicyで，「TAB」を押して&lt;&lt;&lt; ExceptionPolicy Editor &gt;&gt;&gt;という画面に移動してから図21の内容の指定を追加してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図4 コマンドの所在を確認する
+■図21 パス名をグループ化するための設定内容
 <pre>
-# which perl sed grep
-/usr/bin/perl
-/bin/sed
-/bin/grep
+path_group MT-LIB /var/www/cgi-bin/mt/\{\*\}/\@.pm
 </pre>
 </td></tr>
 </table>
 
-<p>「/sbin/consoletypeや/usr/bin/dircolorsなども許可する必要があるの？」と思われるかも知れませんが，シェルを起動したときに自動実行されるスクリプト（/bin/bashの場合は~/.bashrc）によって利用者が意識していない場所で多くのコマンドが実行されています．それらの内容を知るためには，TOMOYO Linuxカーネルで動作しているシステムで「ログイン」してすぐに「ログアウト」してください．そうすることで，ログインシェルの子ドメインという形でどのようなコマンドが実行されたのかを知ることができます．さらに，CONFIG::file={ mode=learning } （学習モード）が指定されたプロファイルをログインシェルのドメインに割り当てた状態で実行すれば，プログラムの実行だけでなくアクセスされたファイルも知ることができます．</p>
-
-<h3>ドメイン遷移の設計</h3>
-
-<p>これまでの連載で説明してきたようにTOMOYO Linuxでは，原則としてコマンドを実行するたびにドメイン遷移を行う仕様となっています．そのため，たとえば図5の場合は/bin/catはシェルの子ドメインとして動作しますが，図6の場合は/bin/catは/usr/bin/xargsの子ドメインとして動作します．</p>
+<p>その後，「TAB」を押すと&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;という画面に戻り，さらに「ENTER」を押すと&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;という画面に移動することができます．登録したばかりのMT-LIBを使ってグループ化してみましょう．まずccs-editpolicyで，mt.cgiのドメインを選択し，図22の行を追加します．図22の行を追加後に，図22の行にカーソルを合わせてから「O」キーを押すと，カーソル行のアクセス許可に包含されているアクセス許可に対して&amp;マークが付与されるので，「D」キーを押すことで学習結果から図22の行のアクセス許可に包含されているエントリを削除できます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図5 シェルから/bin/catを実行
+■図22 図21でグループ化したパス名を指定
 <pre>
-# /bin/cat /etc/*.conf
-</pre>
-</td><td>
-■図6 xargsから/bin/catを実行
-<pre>
-# echo /etc/*.conf | xargs /bin/cat --
+allow_read @MT-LIB
 </pre>
 </td></tr>
 </table>
 
-<p>しかし，この場合はどちらも同じドメインで動作してくれたほうがユーザとしては使い勝手が良く，まとめたとしてもとくにセキュリティ上の問題はなさそうですね．ログインセッションでは，どのようなコマンドをどのような順序で実行するかを予測することが困難であるため，原則としてドメイン遷移は行いません．ログインシェルを/bin/bashと仮定した場合，sshdからログインしたシェルのドメインは&lt;kernel&gt; /usr/sbin/sshd /bin/bashとなるので，例外ポリシーに「keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定を行うことでドメイン遷移を抑制します．しかし，パスワードを格納している/etc/shadowのように，/bin/catコマンドなどで閲覧されるのは困るが，パスワードを変更する/usr /bin/passwdコマンドがアクセスできないのも困るという場合があります．そのような場合は，例外ポリシーに「no_keep_domain /usr/bin/passwd from &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定を行うことで，/usr/bin/passwdコマンドを &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwdドメインで実行させることができます．同様に，sshの秘密鍵などを格納している~/.ssh/ディレクトリのファイルのように，/bin/catコマンドなどで閲覧されては困るが，ssh接続を行う/usr/bin/sshコマンドがアクセスできないのも困るので，例外ポリシーに「no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/sbin/sshd /bin/bash」という指定を行うことで，sshコマンドを別のドメインで実行させることができます．</p>
+<p>これは， 「グループ名がMT-LIBであるpath_groupに割り当てられているパス名」に対して読み込みを許可するという意味です．</p>
 
-<h3>プログラムの起動方法による振る舞いの変化について</h3>
-
-<p>ちょっと横道に逸れますが，ここでアクセス制御を行う場合に注意すべき点として，プログラムの起動方法による振る舞いの変化について触れておきたいと思います．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図7のプログラムを/tmp/argv0.cという名前で保存してください．</p>
+<p>mt.cgiドメインにはMT-LIBで定義した以外にもグループ化するほうが良さそうなエントリがありそうです（図23） ．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図7 起動方法を表示するＣプログラム
+■図23 グループ化できそうなパス名のエントリ
 <pre>
-#include &lt;stdio.h&gt;
-int main(int argc, char *argv[])
-{
-        printf("I am running as %s\n", argv[0]);
-        return 0;
-}
+allow_read/write /var/www/mt-db/__db.notification.blog_id.idx
+allow_read/write /var/www/mt-db/__db.notification.db
+（中略）
+allow_read/write /var/www/mt-db/trackback.entry_id.idx
+allow_read/write /var/www/mt-db/trackback.entry_id.idx.lock
+allow_create /var/www/mt-db/__db.notification.blog_id.idx
+allow_create /var/www/mt-db/__db.notification.db
+（中略）
+allow_create /var/www/mt-db/objecttag.db.lock
+allow_create /var/www/mt-db/plugindata.blog_id.idx.lock
+allow_rename /var/www/mt-db/__db.notification.blog_id.idx /var/www/mt-db/notification.blog_id.idx
+allow_rename /var/www/mt-db/__db.notification.db /var/www/mt-db/notification.db
+（略）
 </pre>
 </td></tr>
 </table>
 
-<p>その後，図8のようにコンパイルしておよびシンボリックリンク（またはハードリンク）を作成してください．</p>
+<p>データベースディレクトリ内のファイルは読み書き／新規作成／名称変更が行われることがわかります．これらのパス名もグループ化することにします．ここでは，/var/www/mt-db/\*をMT-DBという名前で登録することにします．</p>
+
+<p>&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;という画面において図24の指定を登録し，&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;という画面に戻ってから，さきほどと同様に登録済みエントリの削除を行い，新たに図25の3行を追加します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図8 コンパイルしてシンボリックリンクを作成するする
+■図24 /var/www/mt-db/\*をグループ化
 <pre>
-# gcc -o /tmp/argv0 /tmp/argv0.c
-# ln -s /tmp/argv0 /tmp/cat
-# ln -s /tmp/argv0 /tmp/passwd
-</pre>
-</td></tr>
-</table>
-
-<p>そして，そのシンボリックリンク（またはハードリンク）を実行してください．すると，シンボリックリンクの名前が表示されます（図9） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図9 シンボリックリンク経由で起動する
-<pre>
-# /tmp/cat
-I am running as /tmp/cat
-# /tmp/passwd
-I am running as /tmp/passwd
-</pre>
-</td></tr>
-</table>
-
-<p>一部のコマンドは，そのコマンドが起動されたときの「名前（argv[0]と呼ばれているものです） 」によって振る舞いを変えるように作られています．たとえば，CentOS 5.5において，/sbin/pidofは/sbin/killall5へのシンボリックリンクであり，pidofという名前で起動された場合には指定されたプログラムのプロセスIDを表示し，killall5という名前で起動された場合には自分のセッション以外のすべてのプロセスにシグナルを送信します．</p>
-
-<p>TOMOYO Linuxでは/tmp/catを実行すれば/tmp/catのドメインで動作し，/tmp/passwdを実行すれば/tmp/passwdのドメインで動作します．では，図10のように/tmp/catという名前で/tmp/passwdを実行した場合には，どのようになるでしょうか？（結果を予想してみてください）</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図10 passwdコマンドをcatという名前で実行する
-<pre>
-# sh -c 'exec -a /tmp/cat /tmp/passwd'
-</pre>
-</td></tr>
-</table>
-
-<p>図10の実行結果は図11となります．このことから，図10を認めることは図12を認めることと同じです．ただし，図12は/tmp/catドメインで/tmp/catとして動作するのを認めているのに対して，図10は/tmp/passwdドメインで/tmp/catとして動作することを認めているという点に注意してください．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図11 catコマンドとして動作する
-<pre>
-I am running as /tmp/cat
+path_group MT-DB /var/www/mt-db/\*
 </pre>
 </td></tr>
 </table>
 
 <table border="1" summary="fig">
 <tr><td>
-■図12 図10がもたらす結果
+■図25 図24でグループ化したパス名を指定
 <pre>
-# sh -c 'exec /tmp/cat'
+allow_read/write @MT-DB
+allow_create @MT-DB
+allow_rename @MT-DB @MT-DB
 </pre>
 </td></tr>
 </table>
 
-<p>/usr/bin/passwdコマンドと/bin/catコマンドが/sbin/busyboxのハードリンクまたはシンボリックリンクとして提供されていると仮定します．この場合，TOMOYO Linuxでは/bin/catを実行すれば/bin/catのドメインで動作し，/usr/bin/passwdを実行すれば/usr/bin/passwdのドメインで動作します．パスワードを変更するための/usr/bin/passwdドメインには/etc/shadowへのアクセスを認める必要がありますが，ファイルの内容を表示するための/bin/catドメインには/etc/shadowへのアクセスを認めたくありません．</p>
+<p>これは， 「グループ名がMT-DBであるpath_groupに割り当てられているパス名」に対して読み書きと新規作成と名称変更を許可するという意味です． MT-LIB, MT-DBの登録を行った後でmt.cgiを実行すると登録したパターンに一致する個別のファイルは学習結果に現れなくなります．パス名のグループ化はどこまで行わなければならないという決まりはありません．学習結果を見ながら，まとめられそうな部分があれば同様に処理を行います．ここで示した以外には，Perlのライブラリ（/usr/lib/perl5/5.8.8/ディレクトリ以下のファイル）やblogディレクトリのファイル（/var/www/html/blog/ディレクトリ以下のファイル）などが対象になるでしょう．mt.cgi以外のCGIについても同様にグループ化を行ってください．</p>
 
-<p>図13のように/bin/catという名前で/usr/bin/passwdを実行した場合には，どのようになるでしょうか？</p>
+<h3>ポリシーを保存する</h3>
+
+<p>ポリシーエディタで表示されるポリシーはカーネル内にのみ存在しており，再起動すると失われてしまいます．ポリシーをディスク上のファイルに保存するにはccs-savepolicyというコマンドを実行してください（図26） ．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図13 passwdコマンドをcatという名前で実行する
+■図26 ccs-savepolicyコマンドの実行
 <pre>
-# sh -c 'exec -a /bin/cat /usr/bin/passwd /etc/shadow'
+# /usr/sbin/ccs-savepolicy
 </pre>
 </td></tr>
 </table>
 
-<p>図13を実行すると，/usr/bin/passwdは/usr/bin/passwdドメインで動作します．しかし，起動時の名前が/bin/catであったため，その振る舞いは/bin/catとなります．結果として図14のような振る舞いを許可してしまったことになります．</p>
+<h3>ドメインの集約</h3>
+
+<p>パス名のグループ化を行っているときに，個々のCGIに必要なアクセス許可が似ていることに気が付いたと思います．MovableTypeは機能ごとに別々のCGIプログラムに分かれているので，TOMOYO Linuxでは個々のCGIごとにドメインが分かれます．もちろん，個々のCGIごとにアクセス許可を設定するほうが安全ですが，数が多くて手間がかかります．そこで，個々のCGI用のドメインを1個に集約してしまうという選択肢もあります．ここでは例として，MovableTypeのCGIプログラムを，/./MovableTypeCGIという名前で集約してみることにします．ドメインを集約するには，&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;という画面に移動してから図27の指定を追加してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図14 パスワードファイルを閲覧できる
+■図27 ドメインを集約するための設定
 <pre>
-# sh -c 'exec /bin/cat /etc/shadow'
+aggregator /var/www/cgi-bin/mt/\@.cgi /./MovableTypeCGI
+aggregator /var/www/cgi-bin/mt/extras/examples/plugins/\*/\@.cgi /./MovableTypeCGI
+aggregator /var/www/cgi-bin/mt/plugins/\*/\@.cgi /./MovableTypeCGI
 </pre>
 </td></tr>
 </table>
 
-<p>このような脅威を防ぐために，TOMOYO Linuxではプログラムのパス名とargv[0]の組み合わせをチェックする機能を備えています．図13のような脅威も/usr/bin/passwdコマンドを/bin/catという名前で起動することを禁止することで防ぐことができるようになります．実は，前回示したMovable Typeのポリシーの中にもallow_execute /usr/sbin/sendmail.sendmail if exec.argv[0]="sendmail"というアクセス許可がありました．これは，/usr/sbin/sendmail.sendmailコマンドをsendmailという名前で起動することを許可するという意味です．図2で指定しているプログラムの中に図13のような指定をされると困るプログラムが含まれている場合には，そのプログラムはpath_groupから除外し，allow_execute /usr/bin/passwd if exec.argv[0]="passwd"のように個別に指定するようにしてください．</p>
-
-<h2>ステップ2：読み書きを許可するファイルの決定</h2>
-
-<h3>ハードリンクの脅威と対策</h3>
-
-<p>TOMOYO Linuxではハードリンクの作成時には「リンク元のパス名／リンク先のパス名」をペアにして，名前の変更時には「変更前のパス名／変更後のパス名」をペアにしてアクセス許可のチェックを行っています．その理由について触れておきます．システム（TOMOYO Linuxカーネルで動作しているシステムである必要はありません）にログインして，図15の操作を試してみてください（/etc/ディレクトリと /tmp/ディレクトリが別のパーティションになっているシステムでは失敗します．その場合，/etc/ディレクトリと同じパーティションにある /root/ディレクトリなどに読み替えてください） ．</p>
+<p>このように指定すると，/var/www/cgi-bin/mt/\@.cgiまたは/var/www/cgi-bin/mt/extras /examples/plugins/\*/\@.cgiまたは/var/www/cgi-bin/mt/plugins/\*/\@.cgiというパターンに一致するプログラムが実行された場合には/./MovableTypeCGIというプログラムが実行されたのかのように振舞うようになり，結果としてドメインが集約されます．その後，「TAB」を押して&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;という画面に戻り，図28のドメインを削除してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図15 ハードリンク経由でパスワードファイルにアクセスする
-<pre>
-# ln /etc/shadow /tmp/shadow
-# cat /tmp/shadow
-</pre>
+■図28 ドメインを削除する<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig17.png" alt="sd200708-fig17.png">
 </td></tr>
 </table>
 
-<p>これは，ログインパスワードを格納している/etc/shadowというファイルを/tmp/ディレクトリの下にハードリンクすることで，/tmp /shadowというパス名を用いてログインパスワードを格納しているファイルにアクセスできることを示しています．「/etc/shadowを/tmp/shadowにハードリンクしてしまうシステム管理者なんていないよ」と思われるかもしれませんが，実は，/etc /shadowのハードリンクの作成はrootユーザでなくても可能です．一般ユーザが/etc/shadowのハードリンクを一般ユーザが書き込めるディレクトリである/tmp/ディレクトリに作成し，実行を許可されているコマンド（たとえば/usr/bin/sudo）を利用してroot権限を手に入れてから，/tmp/ディレクトリにハードリンクされたパスワードファイルにアクセスできてしまう危険性があるのです．だからTOMOYO Linuxでは，ハードリンクを作成する際に，リンク元とリンク先の両方をチェックすることでその危険性を最小限に抑えられるようにしているわけです． （実際に/tmp/shadowを作成した方は，この先を読み続ける前に，忘れないうちに/tmp/shadowを削除しておくように！）/etc /shadowのリンク数が2以上であれば，どこかにハードリンクが残っています（図16） ．</p>
+<p>また，&lt;kernel&gt; /usr/sbin/httpdドメインのアクセス許可からこれらのCGIの実行許可を削除してください（図29） ．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図16 /etc/shadowのハードリンクを削除する
-<pre>
-# ls -l /etc/shadow
--r-------- 2 root root 946 May 29 18:14 /etc/shadow
-# unlink /tmp/shadow
-# ls -l /etc/shadow
--r-------- 1 root root 946 May 29 18:14 /etc/shadow
-</pre>
+■図29 CGIの実行許可を削除する<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig18.png" alt="sd200708-fig18.png">
 </td></tr>
 </table>
 
-<p>名前の変更についても同様です．/etc/shadowの読み書きは厳しく制限できますが，/tmp/ディレクトリ内のファイルの読み書きを厳しく制限することは困難です．しかし，図17のような操作ができてしまうようでは困ります（/etc/ディレクトリと/tmp/ディレクトリが別のパーティションになっているシステムでは，パーティションを跨ぐ名前の変更はできないので，/etc/shadowの読み書きを禁止することで/tmp/ディレクトリに移動されることを防止できます） ．</p>
+<p>この状態で先ほどと同様に操作すると，図30のようなドメインが作成されるはずです．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図17 名前を変更してからパスワードファイルにアクセスする
-<pre>
-# mv /etc/shadow /tmp/shadow
-# cat /tmp/shadow
-# mv /tmp/shadow /etc/shadow
-</pre>
+■図30 集約したドメインが作成される<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig19.jpg" alt="sd200708-fig19.jpg">
 </td></tr>
 </table>
 
-<p>そのため，TOMOYO Linuxではファイル名を変更する際に，変更前のパス名と変更後のパス名の両方をチェックすることで，その危険性を最小限に抑えられるようにしています．パス名でアクセスを制限する方式では，ちょっとした油断で想定外のアクセスを認めてしまうことになります． TOMOYO Linuxを用いてハードリンクや名前の変更の許可を与える際には，必要以上の範囲にアクセスさせないように注意してください．</p>
+<h3>ドメイン遷移を抑制する</h3>
 
-<h3>アクセスをホームディレクトリ以下に限定する</h3>
-
-<p>ドメインを遷移させるのは，アクセス権限を切り替えるためです．ログインセッションでは原則としてドメイン遷移を行わないということは，ログインセッションで読み書きを許可するファイルを区別しないことを意味します．基本的に，ログインセッションでは，プログラムファイルを作成したり書き換えたりする必要はありません．そのため，ホームディレクトリ以下のファイルの読み書きを中心に許可すれば良いでしょう．ホームディレクトリ以下のファイルをグループ化するために，例外ポリシーで図18のグループを定義します．</p>
+<p>環境や設定によっては，perlのCwdモジュールによりカレントディレクトリを取得するために/bin/pwdコマンドが実行される場合があります．そのような場合には，図31のように/bin/pwdコマンド用のドメインが作成されます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図18 ホームディレクトリのファイルをグループ化
-<pre>
-path_group HOME_FILE /home/\{\*\}/\*
-path_group HOME_DIR /home/\{\*\}/\*/
-</pre>
+■図31 /bin/pwdコマンド用のドメインが作成される<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig20.jpg" alt="sd200708-fig20.jpg">
 </td></tr>
 </table>
 
-<p>このように定義すると，ホームディレクトリ以下のファイルを区別しないで扱うことになります．</p>
-
-<h3>特定のパス名を除外する</h3>
-
-<p>しかし，ホームディレクトリ以下のファイルでも，~/.ssh/ディレクトリのファイルのように，/bin/catなどでの閲覧を禁止させたいファイルがあるはずです．そこで，\*\-.sshという指定を行うことで，.sshディレクトリ内のパス名を除外することができるようになっています．具体的には，図19のように修正します．</p>
+<p>しかし，この/bin/pwdについてはわざわざドメイン遷移させる必要はなさそうです．そこで，/./MovableTypeCGIから/bin /pwdが実行される場合にはドメイン遷移させないようにするという選択肢もあります．ドメイン遷移を抑制するには，&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;という画面に移動してから図32の指定を追加してください．その後，&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;という画面に戻ると，/bin/pwdドメインに対して( keep_domain /bin/pwdfrom /./MovableTypeCGI )という理由と共に「!」という表示により「このドメインには到達不能である」ことを示すようになるので，そのドメインを削除します（図33） ．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図19 .sshディレクトリをグループから除外する
+■図32 ドメインを集約するための設定
 <pre>
-path_group HOME_FILE /home/\{\*\-.ssh\}/\*
-path_group HOME_DIR /home/\{\*\-.ssh\}/
+keep_domain /bin/pwd from /./MovableTypeCGI
 </pre>
 </td></tr>
 </table>
-
-<p>これで， /bin/cat コマンドなどで/home/\*/.ssh/\*にアクセスしたり，/bin/mvコマンドなどで/home/\*/.ssh/を/home/\*/ssh/にリネームしたりするのを阻止することができます．</p>
-
-<h3>アクセス許可をあらかじめ与えておく</h3>
-
-<p>ログインセッションである&lt;kernel&gt; /usr/sbin/sshd /bin/bashドメインに対しては，図20のようなアクセスを認めます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図20 あらかじめアクセス許可を与えておく
-<pre>
-allow_execute @COMMANDS_FOR_LOGIN
-allow_read/write @HOME_FILE
-allow_create @HOME_FILE
-allow_unlink @HOME_FILE
-allow_symlink @HOME_FILE
-allow_link @HOME_FILE @HOME_FILE
-allow_rename @HOME_FILE @HOME_FILE
-allow_truncate @HOME_FILE
-allow_rewrite @HOME_FILE
-allow_mkdir @HOME_DIR
-allow_rmdir @HOME_DIR
-allow_rename @HOME_DIR @HOME_DIR
-</pre>
+■図33 到達不能なドメインを削除する<br>
+<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig21.jpg" alt="sd200708-fig21.jpg">
 </td></tr>
 </table>
 
-<p>上から順番に，</p>
-
-<ul>
-<li>COMMANDS_FOR_LOGIN というグループに指定されているプログラムの実行を許可</li>
-<li>ホームディレクトリ内のファイルを読み書きモードでオープンすることを許可</li>
-<li>ホームディレクトリ内のファイル作成を許可</li>
-<li>ホームディレクトリ内のファイル削除を許可</li>
-<li>ホームディレクトリ内でのシンボリックリンク作成を許可</li>
-<li>ホームディレクトリ内であればハードリンクの作成を許可</li>
-<li>ホームディレクトリ内であればファイルの名前の変更を許可</li>
-<li>ホームディレクトリ内のファイル切り詰めを許可</li>
-<li>ホームディレクトリ内のファイル上書きを許可</li>
-<li>ホームディレクトリ内のディレクトリ作成を許可</li>
-<li>ホームディレクトリ内のディレクトリ削除を許可</li>
-<li>ホームディレクトリであればディレクトリ名変更を許可</li>
-</ul>
-
-<p>という意味です．なお，リスト4の修正により，上記のホームディレクトリには ~/.ssh/および~/.ssh/\*に一致するものは含まれません．上記では，ホームディレクトリ内では自由にシンボリックリンクを作成できるようにしています． TOMOYO Linuxはシンボリックリンクを解決したパス名を用いてファイルの読み書きを制限しているので，どのようにシンボリックリンクを作成しようとも関係ありません．プログラムの実行時にはシンボリックリンクを経由することでargv[0]の内容を自由に指定できてしまいますが，exec.argv[0]のチェックを有効にしているので，busyboxのハードリンクへのシンボリックリンクを作成して任意のコマンドを実行されるという危険性はありません．ホームディレクトリ内でのみハードリンクの作成を認めています．そのため，/etc/shadowのハードリンクをホームディレクトリ内に作成して，ホームディレクトリを経由してパスワードファイルにアクセスされるという危険性はありません．名前の変更についても同様です．</p>
-
-<h3>所有者によるアクセスのみを認める</h3>
-
-<p>他人が自分のホームディレクトリ内にアクセスしてくるのを阻止するには，ホームディレクトリのパーミッションを0700に設定することで実現できます．しかし，たとえば Apache に対して~/public_html/ディレクトリへのアクセスを認めるためにホームディレクトリのパーミッションを緩くしておかざるを得ない場合もあります．そんな場合，個々のアクセス許可に対してif task.uid=path1.uidのように条件を付与することで，ホームディレクトリのパーミッションでは防げないアクセスを防げるようになります．具体的には，図20を図21のように置き換えます．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図21 所有者によるアクセスのみを認める
-<pre>
-allow_execute @COMMANDS_FOR_LOGIN
-allow_read/write @HOME_FILE if task.uid=path1.uid
-allow_create @HOME_FILE if task.uid=path1.parent.uid
-allow_unlink @HOME_FILE if task.uid=path1.uid
-allow_symlink @HOME_FILE if task.uid=path1.parent.uid
-allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_truncate @HOME_FILE if task.uid=path1.uid
-allow_rewrite @HOME_FILE if task.uid=path1.uid
-allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
-allow_rmdir @HOME_DIR if task.uid=path1.uid
-allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-</pre>
-</td></tr>
-</table>
-
-<p>task.uidはアクセスを要求しているプロセスのユーザID（つまり，ログインしているユーザのユーザID） ，path1.uidは1つ目のパス名（たとえば「 allow_read/write /dev/null」であれば/dev/null，allow_link /tmp/source /tmp/destであれば/tmp/source）の所有者IDです．path1.parent.uidはpath1の親ディレクトリ（たとえば「 allow_read/write /dev/null」であれば/dev/）の所有者IDです．path2.uidは2つめのパス名（たとえば「 allow_mount /dev/sda2 /home/ ext3 0」であれば/home/）の所有者IDです．ただし，allow_renameやallow_linkで指定する2つめのパス名は，アクセス許可のチェックの時点ではアクセスできないパス名であるため，path2.uidという指定はできません．path2.parent.uidは2つ目のパス名（たとえば「allow_link /tmp/source /tmp/dest」であれば/tmp/dest）の親ディレクトリの所有者IDです．</p>
+<p>なお，ドメイン遷移を抑制しているのは/bin/pwdプログラムだからであって，たとえば/bin/catプログラムの場合にはドメイン遷移を抑制すべきではありません．/bin/catを呼び出し元のドメイン（この例では/./MovableTypeCGI）で実行することは，呼び出し元のドメインで読み込みが許可されているすべての資源（たとえばCGIプログラムやデータベース）の内容をそっくり漏洩させてしまう危険性を高めることにつながります．</p>
 
 <h2>次回予告</h2>
 
-<p>今回は，システムにログインして行う操作を制限する手順のうち，ファイルアクセスに関する部分について解説しました．次回は，残りのステップと実際の操作手順を説明します．</p>
+<p>今回は，MovableTypeの導入からポリシーの自動学習までの手順について紹介し，併せて応用的な使い方であるパス名のグループ化，ドメイン遷移の集約と抑制について解説しました．パス名のグループ化やドメイン遷移の調整については，最初のうちは難しいかもしれませんが，本稿を参考に少しずつ挑戦していただければと思います．次回は，確認モードを用いて必要なアクセス許可が与えられているかどうかを確認する方法と，チューニングの続きについて説明します．</p>
 
 <p><a href="tutorial-9.html.ja">第９回へ戻る</a>　<a href="tutorial-11.html.ja">第１１回へ進む</a></p>
 

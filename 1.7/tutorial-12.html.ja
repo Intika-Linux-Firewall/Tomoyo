@@ -3,224 +3,220 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第１２回：「【最終回】パッケージのアップデートをしてみよう」</title>
+<title>TOMOYO Linuxの世界　第１２回：「【最終回】」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-12.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
+<p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>TOMOYO Linuxの世界<br>第１２回：「【最終回】パッケージのアップデートをしてみよう」</h1>
-
-<p>本連載は今回で最終回となります．今回は，TOMOYO Linuxを使ってパッケージのアップデートを行う方法を解説します．</p>
+<h1>TOMOYO Linuxの世界<br>第１２回：「【最終回】」</h1>
 
 <h2>今回の内容</h2>
 
-<p>セキュアOSを導入していれば，プロセスを乗っ取られたり，管理者権限を不正に奪われたりしてもそれがただちに致命的被害にはつながりません．システムのアップデートについて，標準のOSほど神経を使わなくても良くなりますが過信は禁物です．アップデートを適用しシステムを万全な状態に維持しましょう．強制アクセス制御機能を搭載しているOSでは，管理者が定義したポリシーにより振る舞いが制限されます．そのため，ソフトウェアのアップデートなどによりプログラムの依存関係などが変化した場合，ポリシーを修正してやらないと正常に動作できなくなってしまう可能性があります．管理者が自らポリシーを作成するという考え方を持つTOMOYO Linuxでは，ポリシーの修正も自力で行わなければいけません．今回は，ソフトウェアのアップデートに伴って必要となる，ポリシーの修正作業を支援する機能について紹介します．</p>
+<p>今回は読み物です．</p>
 
-<h2>ポリシーの修正を支援する機能について</h2>
+<h2>パス名に基づくアクセス制御の注意点</h2>
 
-<h3>使用するプログラム</h3>
+<p>TOMOYO Linuxはパス名に基づきアクセスを制御します．ポリシーファイルの中でもパス名を用いて記述しますから，パス名の正しさが保たれていなければ，期待された効果をあげられません．ファイルシステムが意図したとおりにマウントされていることも不可欠です．</p>
 
-<p>TOMOYO Linuxでは，ポリシーの修正を支援するためのツールとして，図1のプログラムを提供しています．</p>
+<p>今回例として紹介する操作はファイルシステムに関する操作であるため，一歩間違えるとファイルにアクセスできなくなったりシステムが動作しなくなったりする危険があります．記事を読みながら実際に動作を確認される際にはご注意ください．万一起動できなくなってしまった場合には，本記事末尾のレスキュー手順を参照してください．</p>
 
-<table border="1" summary="fig">
-<tr><td>
-■図1 TOMOYO の管理を行うためのプログラム<br>
-<table border="1" summary="fig">
-<tr><td>プログラム名</td><td>役割</td></tr>
-<tr><td>ccs-queryd</td><td>アクセス要求を対話的に許可する</td></tr>
-</table>
-</td></tr>
-</table>
+<h3>パス名は便利だけど曖昧</h3>
 
-<h3>コンソールでの操作例</h3>
-
-<p>まずはログイン後の操作を制限する場合の例で説明します．操作を間違えてロックアウトされてしまわないようにするため，この連載ではexampleというユーザを作成して作業することにします．また，exampleユーザとrootユーザの作業をコンソールウィンドウの切り替えを行いながら進めることにします．コンソールウィンドウの切り替えは「ALT」＋「F1」～「F6」で行います．「ALT」＋「F1」でウィンドウ1を開き，rootユーザとexampleユーザのシェルを異なるものに設定してください．これは，ログインシェルを異なるものにすることによって，ログインシェルのドメインを異なるものにし，特定のログインシェルのドメインだけでアクセス制御を有効にするためです．本連載ではrootユーザのシェルは/bin/bashの場合で説明しているので，exampleユーザには/bin/tcshを割り当てます（図2） ．</p>
+<p>ユーザにはそれぞれホームディレクトリという領域が割り当てられており，そこに個人が管理するデータを保存しています．そのため，たとえば"mount -t tmpfs none /home/"というマウントが行われてしまうと，一般ユーザのホームディレクトリが見えなくなってしまいます（図1）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図2 exampleユーザに/bin/tcshを割り当てる
+■図1 一般ユーザのホームディレクトリが見えない
 <pre>
-# usermod -s /bin/tcsh example
+# ls -l /home/
+total 8
+drwx------3 user1 user1 4096 Feb 21 10:16 user1
+drwx------3 user2 user2 4096 Feb 21 10:17 user2
+# mount -t tmpfs none /home/
+# ls -l /home/
+total 0
+# umount /home/
+# ls -l /home/
+total 8
+drwx------3 user1 user1 4096 Feb 21 10:16 user1
+drwx------3 user2 user2 4096 Feb 21 10:17 user2
 </pre>
 </td></tr>
 </table>
 
-<p>次に「ALT」＋「F2」でウィンドウ2を開き，exampleユーザとしてログインしてください．CentOS 5.3の場合，コンソールからログインしたドメインは「&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh」となるはずです．（sshdからログインした場合は「&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh」となるはずです．）ウィンドウ1に切り替えて，このドメインに対して強制モード用のプロファイル（プロファイル3）を割り当てます（図3） ．</p>
+<p>また，Linuxでは，あるディレクトリの内容を別のディレクトリからも見えるようにする bind mountという機能（ハードリンク機能のディレクトリ版に相当）を備えているので，"mount --bind / /var/www/html/"というマウントが行われてしまうと，Webサーバを通じて/ディレクトリ以下の全内容が丸見えになってしまいます（図 2）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図3 exampleユーザのシェル（ウィンドウ2）のドメインに強制モード用プロファイルを割り当て
+■図2 Webサーバを通じて/ディレクトリ以下が丸見えに
 <pre>
-# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh'
+# ls /var/www/html/
+en index.html.en index.html.ja index.var ja tomoyo-links.html tomoyo.css
+# mount --bind / /var/www/html/
+# ls /var/www/html/
+bin boot dev etc home initrd lib lost+found media misc mnt opt proc root sbin selinux srv sys tmp usr var
+# umount /var/www/html/
+# ls /var/www/html/
+en index.html.en index.html.ja index.var ja tomoyo-links.html tomoyo.css
 </pre>
 </td></tr>
 </table>
 
-<p>これにより，exampleユーザのシェル（ウィンドウ2）からは，ほとんど何もできない状態になります（図4） ．</p>
+<p>これまでの例で，パス名というものはマウントの内容1つでがらりと変わってしまうということをご理解いただけたと思います．もちろん，このような異常なマウントは正規の管理者であれば行わないはずですが，管理者権限で動作しているプロセスの欠陥を攻撃して侵入してきたクラッカーが行わないとは限りません．TOMOYO Linuxではそうした脅威を防ぐための機能を備えています．</p>
+
+<h3>曖昧さを減らすために</h3>
+
+<p>TOMOYO Linuxでは，allow_mountというキーワードを用いて，マウント可能なデバイスファイルとマウントポイントの組み合わせを制限できます．これにより，システム管理者が許可したいマウントだけを許可できるようになります．</p>
+
+<h3>それだけで充分？</h3>
+
+<p>allow_mountキーワードでマウントを制限するだけで充分なのでしょうか？次のようなケースを考えてみましょう．</p>
+
+<p>まず，マウントポイントとして/mnt/dir/を作成します．次に，/mnt/dir/の上にtmpfsをマウントし，/mnt/dir /fileという名前のファイルを作成します（図3）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図4 図3の適用結果を確認
+■図3 /mnt/dir/にtmpfsをマウントし，/mnt/dir/fileを作成
 <pre>
-$ ls
-/bin/ls: Operation not permitted.
-$ cat /etc/passwd
-/bin/cat: Operation not permitted.
+# mkdir -p /mnt/dir
+# mount -t tmpfs none /mnt/dir/
+# touch /mnt/dir/file
+# ls /mnt/dir/file
+/mnt/dir/file
 </pre>
 </td></tr>
 </table>
 
-<p>ccs-querydというプログラムを使用する（図5）と，強制モードで動作中のプロセスがポリシーに違反する内容のアクセス要求を行った場合でも，ただちに拒否するのではなく，システム管理者の指示を仰ぐようにすることができます．このモードは，SELinuxやAppArmorには存在しない，TOMOYO Linux特有の機能です．</p>
+<p>この状態で，再度/mnt/dir/の上にtmpfsをマウントすると，/mnt/dir/fileが見えなくなってしまいました（図4）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図5 ccs-querydの実行
+■図4 再度tmpfsをマウントすると，/mnt/dir/fileが見えない
 <pre>
-# /usr/sbin/ccs-queryd
+# mount -t tmpfs none /mnt/dir/
+# ls /mnt/dir/file
+ls: /mnt/dir/file: No such file or directory
+# umount /mnt/dir/
+# ls /mnt/dir/file
+/mnt/dir/file
+# umount /mnt/dir/
 </pre>
 </td></tr>
 </table>
 
-<p>ウィンドウ2に切り替えて，/bin/lsコマンドの実行を要求してみましょう（図6）．</p>
+<p>アンマウントすれば元に戻るわけですが，前述したallow_mountキーワードによるマウント制限だけでは，マウント可能なデバイスファイルとマウントポイントの組み合わせを制限できても，許可されている組み合わせで複数回マウントすることは防げないことがわかります．</p>
+
+<p>でも，ちょっと待ってください．普通は，マウントは/ディレクトリに近い順に行いますよね．たとえば，/usr/と/usr/local/が別パーティションになっている場合，/usr/→/usr/local/の順にマウントするでしょう．/usr/local/→/usr/の順番にしてしまうと /usr/local/の内容が見えなくなってしまい，システムの動作に支障が発生するので，そのような順番にはしません．つまり，既存のマウントを隠蔽するようなマウントは禁止してしまっても大丈夫ということです．</p>
+
+<p>TOMOYO Linuxでは，既存のマウントを隠蔽するようなマウントを行う場合，conceal_mountという（TOMOYO Linux独自の）ケイパビリティがチェックされます（図5）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図6 lsコマンドを実行
+■図5 既存のマウントを隠蔽するようなマウントを行うためのアクセス許可
 <pre>
-$ /bin/ls
+allow_capability conceal_mount
 </pre>
 </td></tr>
 </table>
 
-<p>先ほどはただちに拒否されてしまいましたが，今度は拒否されずに止まっています．この状態のままウィンドウ1に切り替えてみましょう．すると，図7のようなプロンプトが表示されているはずです．</p>
+<h3>アンマウントは？</h3>
 
-<table border="1" summary="fig">
-<tr><td>
-■図7 図6実行後，ウィンドウ1に表示されるプロンプト
-<pre>
-#2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-allow_execute /bin/ls
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
-</pre>
-</td></tr>
-</table>
+<p>マウントを制限するだけでは，まだ不十分です．たとえば，/proc/ディレクトリにマウントされているprocファイルシステムがアンマウントされてしまうと，多くのプログラムが正常に動作できなくなってしまう可能性があります．</p>
 
-<p>最初の行はポリシーに違反するアクセス要求を行ったプロセスの属しているドメイン名が，2行目はアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「Y」を押すと，そのアクセス要求を許可することができます．また，「N」を押すと，そのアクセス要求を拒否することができます．「Y」キーを押した場合，/bin/lsの実行が許可されますが，ドメイン用ポリシーの中には/bin/lsを実行するためのドメインがまだ作成されていません．そのため，図8のようなプロンプトが表示されます．</p>
+<p>TOMOYO Linuxでは，allow_unmountというキーワードを用いて，アンマウント可能なマウントポイントを制限できます．</p>
 
-<table border="1" summary="fig">
-<tr><td>
-■図8 ドメイン作成の許可を求めるプロンプト
-<pre>
-#2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-# wants to create domain
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-Allow? ('Y'es/'N'o/'R'etry):
-</pre>
-</td></tr>
-</table>
+<p>以上でマウントおよびアンマウントの制御の説明を終わります．</p>
 
-<p>「Y」を押した場合，/bin/ls用のドメインが作成されるので，/bin/lsは先に進むことができます．「N」を押した場合，ドメインが見つからないという理由で/bin/lsの実行要求は拒否されます．/bin/lsのドメインの作成を許可すると，図9のように聞かれます．</p>
+<h3>chrootは？</h3>
 
-<table border="1" summary="fig">
-<tr><td>
-■図9 ドメイン作成を許可した際のプロンプト
-<pre>
-#2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-allow_read /etc/selinux/config
-Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
-</pre>
-</td></tr>
-</table>
+<p>Linuxでは，chrootという，ルートディレクトリを変更する機能を備えています．アプリケーションがchrootを用いて/tmp/のように書き込み可能なディレクトリへルートディレクトリを変更できてしまうと，悪意あるプログラム一式を展開して実行されてしまう危険性があります．</p>
 
-<p>/bin/lsのドメインは作成されたばかりですから，何もアクセス許可が与えられていません．表示されている内容を見ながら，許可するかどうかを慎重に判断して回答してください．「A」を押すと，必要に応じてアクセス許可の内容を編集してポリシーに追加してから再試行することができます．たとえば/etc/passwdだけでなく，/etc/\*shadow\*以外の/etc/\*に一致するファイルへのアクセスを許可したい場合には，/etc/passwdという内容を/etc/\*\-\*shadow\*に書き換えてから「ENTER」を押してください． ccs-querydを終了させるには「CTRL」＋「C」を押してください．</p>
+<p>TOMOYO Linuxはchroot前のルートディレクトリから見たパス名を記憶しており，chrootする前のパス名でアクセス制御をするため，どこに chrootしても問題ありませんが，
+allow_chrootというキーワードを用いて移動可能なディレクトリを制限できます．</p>
 
-<p>ccs-querydを使う際には，無条件にアクセス要求の内容を許可しないように注意してください．ポリシー違反の原因がクラッカーの攻撃によるものであった場合，せっかくの強制アクセス制御によるシステムの保護が無意味になってしまいます．（もしポリシー違反の原因がクラッカーによる攻撃であるかどうかをコンピュータ自身が判断できるのであれば，人間がポリシーを作成する必要はなくなりますが，実際にはそういうわけにはいきません．判断するのは人間の役目なのです．）</p>
+<h3>デバイスファイルの作成は？</h3>
 
-<h2>実際のサービスに対する操作例</h2>
+<p>Linuxでは，マウントするときもデバイス名を使います（LABEL=やUUID=という指定方法も使えますが，ここでは侵入者が前述したマウント制限の突破を試みる場合を想定します）．たとえば，SCSI接続された最初のHDDの最初のパーティションをマウントするときには"mount -dev=0801 /mnt/"のようにデバイスの属性ではなく，"mount /dev/sda1 /mnt/"のようにデバイス名を使います．これが正しく動作するためには，デバイスファイルが指すデバイスが，管理者が期待したとおりの属性を持っていることが不可欠です．いくらマウントできるデバイス名とマウントポイントの組み合わせを制限しても，デバイスファイルが改竄されていたら何の役にも立ちません．root権限があれば，ファイルを削除して同名のファイルを作り直すことで改竄できてしまいます．</p>
 
-<p><a href="http://tomoyo.sourceforge.jp/1.7/enforcing.html#using_interactive_mode">ソフトウェアのアップデート時に発生するポリシー違反を処理する</a>を参照してください．</p>
+<p>パス名が指すデバイスが期待していたものとは違っていたら何が起こるでしょう？たとえば，/dev/nullが通常ファイルになっていたら……．消えたはずだと思っていた情報が蓄積されていき，情報漏洩や誤動作の原因になる場合もあります．たとえば，/dev/sda1が/dev/sda2の属性を持っていたら…．/home/ディレクトリにマウントされるべき内容が/var/ディレクトリにマウントされてしまい，ユーザがログインできなくなってしまったという事態も起こり得ます．そのような不安を解消するために，TOMOYO Linuxではallow_unlink（ファイルの削除を許可）やallow_mkblock（ブロック型デバイスファイルの作成を許可）のように書き込み権限を細分化することでリスクを減らしています．</p>
 
-<h3>共有ライブラリの扱い</h3>
+<h2>レスキュー手順</h2>
 
-<p>TOMOYO Linuxのインストール時に実行したinit_policyにより，/etc/ld.so.cacheに登録されている共有ライブラリ（/sbin/ldconfig -NXpにより確認できます）に関しては例外ポリシーでallow_read（無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのバージョンを含むファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーにallow_readという指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
+<p>もし，TOMOYO Linuxのアクセス制御が原因でシステムが起動できなくなった場合には，カーネル起動時のコマンドラインに ccsecurity=off というパラメータを追加することにより，TOMOYO Linuxのアクセス制御を無効化して起動することができます．</p>
 
-<p>先に説明したccs-querydにより検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的にallow_readという指定を更新してくれたほうが便利でしょう．そのため，ccs-querydはポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである/etc/ld.so.cacheの変化を監視し，自動的にallow_readを例外ポリシーに追加するようになっています．</p>
+<h2>TOMOYOプロジェクト便り</h2>
 
-<h3>まとめ</h3>
+<p>2006年12月にCE Linux Forumのイベント，「Japan Technical Jamboree12」で，組込みLinuxフォーラムの関係の方々にTOMOYO Linuxをご紹介させていただきました．そのときの説明資料と様子は，<a href="http://tree.celinuxforum.org/CelfPubWiki/JapanTechnicalJamboree12">Wikiページ</a>で参照することができます．</p>
 
-<p>手順をまとめると以下のようになります．</p>
+<p>Linuxはデジタルテレビや携帯電話など組込み機器の分野でも急速に利用が広まっています．ハードディスクレコーダーが掲示板への書き込みの踏み台にされたり，携帯電話を対象にしたウィルスが問題になるなど，セキュリティに対する関心は，むしろ通常のサーバ用途以上に高まっています．</p>
 
-<ol>
-<li>ウィンドウ1でポリシーに違反するアクセス要求を監視するccs-querydを実行</li>
-<li>ウィンドウ2で実際のアップデート操作（yum -y update）を行う</li>
-<li>ウィンドウ1のccs-querydを終了</li>
-</ol>
+<p>イベントでは多数の貴重なご意見をいただきましたが，その中に「ぜひTOMOYO Linuxをメインラインに含めることを目指してほしい」という声がありました．このイベントの関係の方々から，2007年4月に米サンノゼで開催される組込みLinuxの国際会議，「<a href="http://www.celinux.org/elc2007/">CELF Embedded Linux Conference</a>」をご紹介いただき，投稿したところプレゼンテーションとチュートリアルを行えることになりました．TOMOYO Linuxとしての世界デビューとなります．</p>
 
-<h2>ポリシーのゴミを除去する機能について</h2>
+<p>また、2007年2月にYLUGのイベント，「第72回カーネル読書会」でもTOMOYO Linuxをご紹介させていただきました．そのイベントでもメインラインへ向けて頑張るよう激励され，このイベントの参加者の方々から2007年6月にカナダのオタワで開催されるLinuxの国際会議「<a href="http://www.linuxsymposium.org/2007/">Linux Symposium 2007</a>」をご紹介いただき，投稿したところBoFセッションを行えることになりました．</p>
 
-<h3>使用するプログラム</h3>
+<p>今年はメインストリームを目標に一気に活動が広がるかもしれません．TOMOYOプロジェクトでは，社外からも開発者やテスターなどを募集しています．みんなの力で盛り上げていきたいと思います．</p>
 
-<p>TOMOYO Linuxでは，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，図10のプログラムを提供しています．</p>
+<p>このコラムは2007年3月28日に執筆していますが，読者の皆さんがこの号を手にとられるときにはCELFの発表が終了しているはずです．今後連載の中で組込み向けの機能や会議の様子についてご紹介していきたいと思います．</p>
 
-<table border="1" summary="fig">
-<tr><td>
-■図10 TOMOYO の管理を行うためのプログラム<br>
-<table border="1" summary="fig">
-<tr><td>プログラム名</td><td>役割</td></tr>
-<tr><td>ccs-findtemp</td><td>存在しないパス名を検出する</td></tr>
-<tr><td>ccs-domainmatch</td><td>アクセス許可が与えられているドメインを検索する</td></tr>
-</table>
-</td></tr>
-</table>
+<h2>今回の内容</h2>
 
-<p>これらを使うことで，パターン化する前のテンポラリファイルやソフトウェアのアップデートにより削除されたライブラリファイルなどの余計なアクセス許可を検出して除去することができます．</p>
+<p>今回は4月に発表を行ったELC2007の様子も紹介します．リリースの詳細については，<a href="http://sourceforge.jp/projects/tomoyo/news/">プロジェクトのニュース</a>や<a href="http://lists.sourceforge.jp/mailman/archives/tomoyo-users/">メーリングリストのアーカイブ</a>にてご確認ください．</p>
 
-<h3>コンソールでの操作例</h3>
+<h2>ELC2007レポート</h2>
 
-<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図11の操作を行ってみてください．</p>
+<h3>ELC2007について</h3>
 
-<table border="1" summary="fig">
-<tr><td>
-■図11 学習モードで行う操作
-<pre>
-# touch /tmp/abc12345
-# rm -f /tmp/abc12345
-</pre>
-</td></tr>
-</table>
+<p>連載第5回で予告したように4月17～19日までサンノゼで開催されたCE Linux Forum Worldwide Embedded Linux Conference 2007に参加し，TOMOYO Linuxのプレゼンテーションとチュートリアルを行ってきました．</p>
 
-<p>この操作によりtouchとrmの/tmp/abc12345に対するアクセスが学習されましたが，/tmp/abc12345というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます．この状態で，ccs-findtempコマンドはそうした可能性を持つファイルを探します．なお，図12の実行例では/tmp/abc12345というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
+<ul>
+<li><a href="http://www.celinux.org/elc2007/">イベントWebページ</a></li>
+<li><a href="http://tree.celinuxforum.org/CelfPubWiki/ELC2007Presentations">プレゼンテーション資料</a></li>
+<li><a href="http://tree.celinuxforum.org/CelfPubWiki/JapanTechnicalJamboree12">CELinux Forum Japan Technical Jamboree12</a></li>
+</ul>
 
-<table border="1" summary="fig">
-<tr><td>
-■図12 ccs-findtempの実行例
-<pre>
-# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
-/tmp/abc12345
-# /usr/sbin/ccs-findtemp --with-domainname &lt; /proc/ccs/domain_policy
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-/tmp/abc12345
-/tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-/tmp/abc12345
-# /usr/sbin/ccs-domainmatch /tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-allow_create /tmp/abc12345
-allow_write /tmp/abc12345
-&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-allow_unlink /tmp/abc12345
-</pre>
-</td></tr>
-</table>
+<p>CE LinuxのCEはConsumer Electronicsの略です．本会議については，2006年12月8日にJapan Technical Jamboree12でTOMOYO Linuxについて紹介させていただいた際に， 「ぜひ国内だけでなく海外のイベントでも発表してみては」とお勧めいただいたことが応募のきっかけとなり実現しました．</p>
 
-<p>ccs-findtempにより表示されたパス名を引数としてccs-domainmatchコマンドを実行すると，引数で指定されたパス名に対するアクセス許可を含んでいるドメインが表示されます．不要だと判断した場合には，ccs-editpolicyを起動して，当該するドメインへ移動し，不要なアクセス許可を削除します．</p>
+<h3>会議の模様</h3>
+
+<p>会議は，3つの部屋でプログラムが同時進行するという形式で行われ，参加者は興味のあるセッションを自由に選択します．参加者名簿がないので正確な人数はわかりませんが，会場の規模から判断して少なくとも200名以上が参加していたと思います．</p>
+
+<p>発表の内容はハードウェアからソフトウェアまで多岐にわたり，組込みLinuxの領域の広さをあらためて感じました．キーノートセッションは，Thomas Gleixner氏によるしゃれっ気に満ちた“Embedded Linux - An Increasing Nightmare?” （ 「組込みLinuxは増殖する悪夢か？」 ）と，LinuxDevice Driversの著者で有名なJonathan Corbet氏による“The State of the Linux Kernel” （ 「Linuxカーネルの状態」 ）の2本で（資料はいずれも上記のプレゼンテーション資料のリンクより参照，ダウンロードできます） ，BOFも含めると56ものセッションがありました．</p>
+
+<p>セキュリティに関するものは残念ながらあまり多くはなく，日立ソフトウェアエンジニアリング㈱中村雄一氏の“Comparison of Secure OSes and Embedded SELinux Activity in Japan”と，TOMOYO Linuxのプレゼンテーション“TOMOYOLinux - A Lightweight and Manageable Security System for PC and Embedded Linux” ，およびチュートリアル“TOMOYO Linux - Tutorial”の3本でした．</p>
+
+<p>プログラムでは予定されていなかったのですが，「日本セキュアOS連合チーム」はデモにも参加しました．</p>
+
+<p>TOMOYO Linux関連のセッションについての反響ですが，残念ながら参加者はあまり多くありませんでした．ただ，Jonathan Corbet氏が足を運んでくれて，発表を聞いてもらうことができ，「 （TOMOYO Linuxと同じくパス名ベースのアクセス制御を行っている）AppArmorのチームと話をしてみると良い」 「できるだけ早くLinuxカーネルに対するパッチを投稿してみるべきだ」などのコメントをいただくことができました．これらのアドバイスについては，帰国後さっそく対応を行っています．</p>
+
+<p>余談ですが，氏は大変長身で，話をすると見上げるような形になります．発言は静かですが深みがあり， 「達人」という言葉を連想しました．</p>
+
+<h3>サンノゼ，会場の様子</h3>
+
+<p>サンノゼを訪れたのは今回が初めてでしたが，とにかくお店が少なく，人が歩いていないところという印象でした．宿泊したホテルから会場まで徒歩約 30分の距離を毎日往復しましたが，基本的に他の人とすれ違うことはありません（歩いている人はほとんどいないのです） ．空はまさに「カリフォルニアの青い空！」という感じで，CGで描いたような色をしています．</p>
+
+<p>会場は会議用の施設で，無線LAN の設備が提供されていましたが，セキュリティはかかっておらず（笑） ，誰でも自由につなげられます．2日目の夜にはレセプションがあり，チャーターバスで何故か博物館に連れて行かれ，そこで立食パーティが開催されました．</p>
+
+<h3>ゲーム</h3>
+
+<p>最終日，すべてのセッションが終了後，ELC恒例（？）のゲームが始まるというので呼び出されました．</p>
+
+<p>ゲームの内容は，人物，契約などテーマ毎に分類されたクイズを参加者の出身地区3つを代表するメンバー3人が回答するというもので，どうやらアメリカの有名なクイズ番組のパロディのようです．</p>
+
+<p>問題はテーマごとに難易度の異なるものが配置されていて，当然ながら難しいものほど得点が高くなっています．司会は，CE Linux Forum の Wiki の管理者でもある Tim Bird氏が行いましたが，設問が茶目っ気たっぷりで大変楽しいものでした．たとえば， 「人物」ではLinus氏のアップの写真が投影されて， 「これは誰でしょう？」という感じです．</p>
+
+<h3>そしてOLSへ！</h3>
+
+<p>ELC2007への参加はもちろん，世界の組込み Linux の関係者に対して TOMOYO Linux を知ってもらうことが目的でしたが，それは同時にメインライン化（Linuxカーネル本体への取り込み）提案を行うための最初のステップでもありました．</p>
+
+<p>本誌が店頭に並ぶのは6月18日ですが，6月27～29日までオタワで開催される Ottawa Linux Symposium（通称OLS）では，TOMOYO Linux の BOFセッションを持ちます．国産セキュアOSであるTOMOYO Linuxの開発を通じて得られたものを Linux の世界とコミュニティにフィードバックすることができればと願っています．</p>
+
+<h2>まとめ</h2>
+
+<p>セキュアOSというと「なんだか難しそう」「特殊な技術」「使えない」というイメージがありますが，TOMOYO Linuxに関しては決してそんなことがないことをご理解いただけたのではないかと思います．セキュアOSは，バッファオーバーフローによる侵入を防ぐための保険としてだけではなく，抜け道を心配しながらのアプリケーションレベルでの複雑な設定をも一掃してくれる，便利な機能を備えています．この連載が，セキュアOSによるセキュリティ強化推進の役に立つことを願っています．ぜひ連載の原稿を手元に置きながら，TOMOYO Linuxを皆さまのサーバのセキュリティ強化にご活用ください．</p>
 
 <h2>本連載のまとめ</h2>
 

@@ -11,9 +11,8 @@
 <p style="text-align:right;"><a href="tutorial-1.html.en">English Page</a></p>
 -->
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>TOMOYO Linux の世界<br>第１回：「ポリシー自動学習を経験する」</h1>
 
-<p>今回から始まる本連載では，国産のセキュアＯＳとして注目を集めている「 TOMOYO Linux 」にフォーカスを当て，その使いこなし術を徹底的に解説していきます．どうぞお楽しみに！</p>
+<h1>TOMOYO Linux の世界<br>第１回：「ポリシー自動学習を経験する」</h1>
 
 <h2>TOMOYO Linux の世界へようこそ</h2>
 
@@ -292,7 +291,18 @@ PROFILE_VERSION=20090903
 
 <h3>ポリシーファイルの保存と読み込み</h3>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを使います． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます． TOMOYO Linux のポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには， ccs-loadpolicy コマンドを使用します（図２０）．</p>
+<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを使います． ccs-savepolicy を実行する（図１９）ことで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．
+
+<table border="1" summary="fig">
+<tr><td>
+■図１９　カーネル内のポリシーをディスク上のファイルに保存する
+<pre>
+# /usr/sbin/ccs-savepolicy
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linux のポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには， ccs-loadpolicy コマンドを使用します（図２０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -303,7 +313,7 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-<p>オプションの a は前述の exception_policy.conf と domain_policy.conf の両方を， f は上書き，を意味しています．</p>
+<p>オプションの a は前述の exception_policy.conf と domain_policy.conf の両方を， f は上書き，を意味しています． f を指定しなかった場合，現在のカーネル内のポリシーにディスク上のポリシーが追加されます．</p>
 
 <h3>次回予告</h3>
 

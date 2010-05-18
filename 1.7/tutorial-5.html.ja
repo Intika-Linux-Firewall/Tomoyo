@@ -3,169 +3,376 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第５回：「いろんな機能を試してみよう（後編）」</title>
+<title>TOMOYO Linux の世界　第５回：「アクセス許可に条件を付けてみよう」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-5.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
-<h1>TOMOYO Linuxの世界<br>第５回：「いろんな機能を試してみよう（後編）」</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
 
-<p>今回は，パス名に基づくアクセス制御の注意点について解説します．</p>
+<h1>TOMOYO Linux の世界<br>第５回：「アクセス許可に条件を付けてみよう」</h1>
 
 <h2>今回の内容</h2>
 
-<p>今回は自分で手を動かし作業するというよりは，機能の説明，解説が中心で読み物っぽくなってしまいますがご了承ください．</p>
+<p>今回は TOMOYO Linux の強力なパラメータチェック機能を活用するための「条件付きアクセス許可」について紹介します．</p>
 
-<h2>パス名に基づくアクセス制御の注意点</h2>
+<h2>アクセス許可に条件を付ける</h2>
 
-<p>TOMOYO Linuxはパス名に基づきアクセスを制御します．ポリシーファイルの中でもパス名を用いて記述しますから，パス名の正しさが保たれていなければ，期待された効果をあげられません．ファイルシステムが意図したとおりにマウントされていることも不可欠です．</p>
+<h3>条件付きアクセス許可について</h3>
 
-<p>今回例として紹介する操作はファイルシステムに関する操作であるため，一歩間違えるとファイルにアクセスできなくなったりシステムが動作しなくなったりする危険があります．記事を読みながら実際に動作を確認される際にはご注意ください．万一起動できなくなってしまった場合には，本記事末尾のレスキュー手順を参照してください．</p>
-
-<h3>パス名は便利だけど曖昧</h3>
-
-<p>ユーザにはそれぞれホームディレクトリという領域が割り当てられており，そこに個人が管理するデータを保存しています．そのため，たとえば"mount -t tmpfs none /home/"というマウントが行われてしまうと，一般ユーザのホームディレクトリが見えなくなってしまいます（図1）．</p>
+<p>TOMOYO Linux には RBAC （ Role Based Access Control ）機能はありませんが，ポリシーの中でユーザＩＤに基づく条件を付けることができます．これにより，システムアカウントのユーザＩＤに基づくアクセス制御が可能です．条件はアクセス許可の後ろに「 if 条件式」という形で指定します．利用できる条件について図１に，使い方の例を図２に示します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図1 一般ユーザのホームディレクトリが見えない
+■図１　条件指定に使えるパラメータ<br>
+<table border="1" summary="fig">
+<tr><td>変数</td><td>意味</td></tr>
+<tr><td>task.uid</td><td>呼び出したプロセスのユーザＩＤ</td></tr>
+<tr><td>task.euid</td><td>呼び出したプロセスの実効ユーザＩＤ</td></tr>
+<tr><td>task.suid</td><td>呼び出したプロセスの保存ユーザＩＤ</td></tr>
+<tr><td>task.fsuid</td><td>呼び出したプロセスのファイルシステムユーザＩＤ</td></tr>
+<tr><td>task.gid</td><td>呼び出したプロセスのグループＩＤ</td></tr>
+<tr><td>task.egid</td><td>呼び出したプロセスの実効グループＩＤ</td></tr>
+<tr><td>task.sgid</td><td>呼び出したプロセスの保存グループＩＤ</td></tr>
+<tr><td>task.fsgid</td><td>呼び出したプロセスのファイルシステムグループＩＤ</td></tr>
+<tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
+<tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
+<tr><td>task.type</td><td>呼び出したプロセスの種類（ execute_handler か否か）</td></tr>
+<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数0</td></tr>
+<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数1</td></tr>
+<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数2</td></tr>
+<tr><td>path1.uid</td><td>１つめのパス名の所有者ＩＤ</td></tr>
+<tr><td>path1.gid</td><td>１つめのパス名のグループＩＤ</td></tr>
+<tr><td>path1.ino</td><td>１つめのパス名のiノード番号</td></tr>
+<tr><td>path1.type</td><td>１つめのパス名の種類（ファイル，ディレクトリ，ソケット等）</td></tr>
+<tr><td>path1.perm</td><td>１つめのパス名のパーミッション</td></tr>
+<tr><td>path1.major</td><td>１つめのパス名の存在しているデバイスファイルのメジャー番号</td></tr>
+<tr><td>path1.minor</td><td>１つめのパス名の存在しているデバイスファイルのマイナー番号</td></tr>
+<tr><td>path1.dev_major</td><td>１つめのパス名のパス名（デバイスファイル）のメジャー番号</td></tr>
+<tr><td>path1.dev_minor</td><td>１つめのパス名のパス名（デバイスファイル）のマイナー番号</td></tr>
+<tr><td>path1.parent.uid</td><td>１つめのパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path1.parent.gid</td><td>１つめのパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path1.parent.ino</td><td>１つめのパス名の親ディレクトリのiノード番号</td></tr>
+<tr><td>path1.parent.perm</td><td>１つめのパス名の親ディレクトリのパーミッション</td></tr>
+<tr><td>path2.uid</td><td>２つめのパス名の所有者ＩＤ</td></tr>
+<tr><td>path2.gid</td><td>２つめのパス名のグループＩＤ</td></tr>
+<tr><td>path2.ino</td><td>２つめのパス名のiノード番号</td></tr>
+<tr><td>path2.type</td><td>２つめのパス名の種類（ファイル，ディレクトリ，ソケット等）</td></tr>
+<tr><td>path2.perm</td><td>２つめのパス名のパーミッション</td></tr>
+<tr><td>path2.major</td><td>２つめのパス名の存在しているデバイスファイルのメジャー番号</td></tr>
+<tr><td>path2.minor</td><td>２つめのパス名の存在しているデバイスファイルのマイナー番号</td></tr>
+<tr><td>path2.dev_major</td><td>２つめのパス名のパス名（デバイスファイル）のメジャー番号</td></tr>
+<tr><td>path2.dev_minor</td><td>２つめのパス名のパス名（デバイスファイル）のマイナー番号</td></tr>
+<tr><td>path2.parent.uid</td><td>２つめのパス名の親ディレクトリの所有者ＩＤ</td></tr>
+<tr><td>path2.parent.gid</td><td>２つめのパス名の親ディレクトリのグループＩＤ</td></tr>
+<tr><td>path2.parent.ino</td><td>２つめのパス名の親ディレクトリのiノード番号</td></tr>
+<tr><td>path2.parent.perm</td><td>２つめのパス名の親ディレクトリのパーミッション</td></tr>
+<tr><td>exec.argc</td><td>プログラム実行時の引数の数</td></tr>
+<tr><td>exec.envc</td><td>プログラム実行時の環境変数の数</td></tr>
+<tr><td>exec.argv[index]</td><td>プログラム実行時のindex番目の引数</td></tr>
+<tr><td>exec.envp["name"]</td><td>プログラム実行時の環境変数name</td></tr>
+<tr><td>exec.realpath</td><td>プログラム実行時のシンボリックリンクを解決したパス</td></tr>
+<tr><td>symlink.target</td><td>シンボリックリンク作成時のリンク先</td></tr>
+</table>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　条件指定の例<br>
+<table border="1" summary="fig">
+<tr><td>条件</td><td>意味</td></tr>
+<tr><td>if task.uid=0</td><td>プロセスのユーザＩＤが 0 （ root ）である場合</td></tr>
+<tr><td>if task.uid!=0</td><td>プロセスのユーザＩＤが 0 （ root ）ではない場合</td></tr>
+<tr><td>if task.uid=100-500</td><td>プロセスのユーザＩＤが 100 以上 500 以下である場合</td></tr>
+<tr><td>if task.uid=0 task.gid=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）である場合</td></tr>
+<tr><td>if task.uid!=0 task.gid!=0</td><td>プロセスのユーザＩＤとグループＩＤの両方が 0 （ root ）ではない場合</td></tr>
+<tr><td>if task.uid=100-500 task.gid!=0</td><td>プロセスのユーザＩＤが 100 以上 500 以下であり，かつ，グループＩＤが 0 ではない場合</td></tr>
+<tr><td>if exec.argv[index]="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value である場合</td></tr>
+<tr><td>if exec.argv[index]!="value"</td><td>index （ 0&lt;=index&lt;exec.argc ）番目の引数の値が value ではない場合</td></tr>
+<tr><td>if exec.envp["name"]="value"</td><td>環境変数 name が定義されており，値が value である場合</td></tr>
+<tr><td>if exec.envp["name"]!="value"</td><td>環境変数 name が定義されていないか，あるいは値が value ではない場合</td></tr>
+<tr><td>if exec.envp["name"]!=NULL</td><td>環境変数 name が定義されている場合</td></tr>
+<tr><td>if exec.envp["name"]=NULL</td><td>環境変数 name が定義されていない場合</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>条件を付与してみよう</h3>
+
+<p>例として，コンソールからログインしたユーザが， cat コマンドで自分の所有するファイルのみを閲覧できるようにする手順について説明します．説明用に， user1 と user2 というアカウントを使用します．コンソールからログインして，以降の操作を行ってください．まず，アカウントを２つ作成します（図３）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　アカウントを２つ作成
 <pre>
-# ls -l /home/
-total 8
-drwx------3 user1 user1 4096 Feb 21 10:16 user1
-drwx------3 user2 user2 4096 Feb 21 10:17 user2
-# mount -t tmpfs none /home/
-# ls -l /home/
-total 0
-# umount /home/
-# ls -l /home/
-total 8
-drwx------3 user1 user1 4096 Feb 21 10:16 user1
-drwx------3 user2 user2 4096 Feb 21 10:17 user2
+# useradd -s /bin/bash user1
+# useradd -s /bin/bash user2
 </pre>
 </td></tr>
 </table>
 
-<p>また，Linuxでは，あるディレクトリの内容を別のディレクトリからも見えるようにする bind mountという機能（ハードリンク機能のディレクトリ版に相当）を備えているので，"mount --bind / /var/www/html/"というマウントが行われてしまうと，Webサーバを通じて/ディレクトリ以下の全内容が丸見えになってしまいます（図 2）．</p>
+<p>パスワードを適当に設定してください（図４）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図2 Webサーバを通じて/ディレクトリ以下が丸見えに
+■図４　作成したアカウントのパスワードを設定
 <pre>
-# ls /var/www/html/
-en index.html.en index.html.ja index.var ja tomoyo-links.html tomoyo.css
-# mount --bind / /var/www/html/
-# ls /var/www/html/
-bin boot dev etc home initrd lib lost+found media misc mnt opt proc root sbin selinux srv sys tmp usr var
-# umount /var/www/html/
-# ls /var/www/html/
-en index.html.en index.html.ja index.var ja tomoyo-links.html tomoyo.css
+# passwd user1
+# passwd user2
 </pre>
 </td></tr>
 </table>
 
-<p>これまでの例で，パス名というものはマウントの内容1つでがらりと変わってしまうということをご理解いただけたと思います．もちろん，このような異常なマウントは正規の管理者であれば行わないはずですが，管理者権限で動作しているプロセスの欠陥を攻撃して侵入してきたクラッカーが行わないとは限りません．TOMOYO Linuxではそうした脅威を防ぐための機能を備えています．</p>
-
-<h3>曖昧さを減らすために</h3>
-
-<p>TOMOYO Linuxでは，allow_mountというキーワードを用いて，マウント可能なデバイスファイルとマウントポイントの組み合わせを制限できます．これにより，システム管理者が許可したいマウントだけを許可できるようになります．</p>
-
-<h3>それだけで充分？</h3>
-
-<p>allow_mountキーワードでマウントを制限するだけで充分なのでしょうか？次のようなケースを考えてみましょう．</p>
-
-<p>まず，マウントポイントとして/mnt/dir/を作成します．次に，/mnt/dir/の上にtmpfsをマウントし，/mnt/dir /fileという名前のファイルを作成します（図3）．</p>
+<p>cat コマンド用のドメインを作成するために， cat コマンドを実行してください．ついでに，このコマンドが動作するドメインも表示してみます（図５）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図3 /mnt/dir/にtmpfsをマウントし，/mnt/dir/fileを作成
+■図５　cat コマンドが動作するドメインを表示
 <pre>
-# mkdir -p /mnt/dir
-# mount -t tmpfs none /mnt/dir/
-# touch /mnt/dir/file
-# ls /mnt/dir/file
-/mnt/dir/file
+# cat /proc/ccs/self_domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
 </pre>
 </td></tr>
 </table>
 
-<p>この状態で，再度/mnt/dir/の上にtmpfsをマウントすると，/mnt/dir/fileが見えなくなってしまいました（図4）．</p>
+<p>このドメインに学習用プロファイルを割り当ててください．この連載では学習用プロファイルの番号は１ですので，図６のようになります．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図4 再度tmpfsをマウントすると，/mnt/dir/fileが見えない
+■図６　cat コマンド用ドメインに学習用プロファイルを割り当て
 <pre>
-# mount -t tmpfs none /mnt/dir/
-# ls /mnt/dir/file
-ls: /mnt/dir/file: No such file or directory
-# umount /mnt/dir/
-# ls /mnt/dir/file
-/mnt/dir/file
-# umount /mnt/dir/
+# /usr/sbin/ccs-setprofile 1 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
 </pre>
 </td></tr>
 </table>
 
-<p>アンマウントすれば元に戻るわけですが，前述したallow_mountキーワードによるマウント制限だけでは，マウント可能なデバイスファイルとマウントポイントの組み合わせを制限できても，許可されている組み合わせで複数回マウントすることは防げないことがわかります．</p>
-
-<p>でも，ちょっと待ってください．普通は，マウントは/ディレクトリに近い順に行いますよね．たとえば，/usr/と/usr/local/が別パーティションになっている場合，/usr/→/usr/local/の順にマウントするでしょう．/usr/local/→/usr/の順番にしてしまうと /usr/local/の内容が見えなくなってしまい，システムの動作に支障が発生するので，そのような順番にはしません．つまり，既存のマウントを隠蔽するようなマウントは禁止してしまっても大丈夫ということです．</p>
-
-<p>TOMOYO Linuxでは，既存のマウントを隠蔽するようなマウントを行う場合，conceal_mountという（TOMOYO Linux独自の）ケイパビリティがチェックされます（図5）．</p>
+<p>ログアウトして， user1 としてログインし直します．そして，図７の操作を行ってください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図5 既存のマウントを隠蔽するようなマウントを行うためのアクセス許可
+■図７　user1 でログインし， /tmp/testfile1 を作成
 <pre>
-allow_capability conceal_mount
+$ echo "This file was created by user1" &gt; /tmp/testfile1
+$ cat /tmp/testfile1
+This file was created by user1
 </pre>
 </td></tr>
 </table>
 
-<h3>アンマウントは？</h3>
+<p>ログアウトして， user2 としてログインし直します． user1 と同様に操作を行ってください（図８）．</p>
 
-<p>マウントを制限するだけでは，まだ不十分です．たとえば，/proc/ディレクトリにマウントされているprocファイルシステムがアンマウントされてしまうと，多くのプログラムが正常に動作できなくなってしまう可能性があります．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図８　user2 でログインし， /tmp/testfile2 を作成
+<pre>
+$ echo "This file was created by user2" &gt; /tmp/testfile2
+$ cat /tmp/testfile2
+This file was created by user2
+</pre>
+</td></tr>
+</table>
 
-<p>TOMOYO Linuxでは，allow_unmountというキーワードを用いて，アンマウント可能なマウントポイントを制限できます．</p>
+<p>ログアウトして， root としてログインし直します． ccs-editpolicy を起動して，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat 」ドメインのアクセス許可を確認してください．図９のようなエントリが含まれているはずです．</p>
 
-<p>以上でマウントおよびアンマウントの制御の説明を終わります．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図９　&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat ドメインのアクセス許可
+<pre>
+allow_read /tmp/testfile1
+allow_read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
 
-<h3>chrootは？</h3>
+<p>このままではどちらのファイルもＤＡＣ（任意アクセス制御）のパーミッションにより許可されれば誰でも読むことができてしまいます．ここで，キーボードの「 A 」を押して，図１０のように入力してください．</p>
 
-<p>Linuxでは，chrootという，ルートディレクトリを変更する機能を備えています．アプリケーションがchrootを用いて/tmp/のように書き込み可能なディレクトリへルートディレクトリを変更できてしまうと，悪意あるプログラム一式を展開して実行されてしまう危険性があります．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１０　アクセス許可を追加<br>（※これらをまとめて， allow_read /tmp/testfile\+ if task.uid=path1.uid のように入力してもかまいません．）
+<pre>
+allow_read /tmp/testfile1 if task.uid=path1.uid
+allow_read /tmp/testfile2 if task.uid=path1.uid
+</pre>
+</td></tr>
+</table>
 
-<p>TOMOYO Linuxはchroot前のルートディレクトリから見たパス名を記憶しており，chrootする前のパス名でアクセス制御をするため，どこに chrootしても問題ありませんが，
-allow_chrootというキーワードを用いて移動可能なディレクトリを制限できます．</p>
+<p>それから，図１１の内容をキーボードの「 D 」を押して削除します．</p>
 
-<h3>デバイスファイルの作成は？</h3>
+<table border="1" summary="fig">
+<tr><td>
+■図１１　削除する内容
+<pre>
+allow_read /tmp/testfile1
+allow_read /tmp/testfile2
+</pre>
+</td></tr>
+</table>
 
-<p>Linuxでは，マウントするときもデバイス名を使います（LABEL=やUUID=という指定方法も使えますが，ここでは侵入者が前述したマウント制限の突破を試みる場合を想定します）．たとえば，SCSI接続された最初のHDDの最初のパーティションをマウントするときには"mount -dev=0801 /mnt/"のようにデバイスの属性ではなく，"mount /dev/sda1 /mnt/"のようにデバイス名を使います．これが正しく動作するためには，デバイスファイルが指すデバイスが，管理者が期待したとおりの属性を持っていることが不可欠です．いくらマウントできるデバイス名とマウントポイントの組み合わせを制限しても，デバイスファイルが改竄されていたら何の役にも立ちません．root権限があれば，ファイルを削除して同名のファイルを作り直すことで改竄できてしまいます．</p>
+<p>キーボードの「 Q 」を押して， ccs-editpolicy を終了します．そして， cat コマンド用のドメインに強制用プロファイルを割り当ててください．この連載では強制用プロファイルの番号は３ですので図１２のようになります．</p>
 
-<p>パス名が指すデバイスが期待していたものとは違っていたら何が起こるでしょう？たとえば，/dev/nullが通常ファイルになっていたら……．消えたはずだと思っていた情報が蓄積されていき，情報漏洩や誤動作の原因になる場合もあります．たとえば，/dev/sda1が/dev/sda2の属性を持っていたら…．/home/ディレクトリにマウントされるべき内容が/var/ディレクトリにマウントされてしまい，ユーザがログインできなくなってしまったという事態も起こり得ます．そのような不安を解消するために，TOMOYO Linuxではallow_unlink（ファイルの削除を許可）やallow_mkblock（ブロック型デバイスファイルの作成を許可）のように書き込み権限を細分化することでリスクを減らしています．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１２　cat コマンド用ドメインに強制用プロファイルを割り当て
+<pre>
+# /usr/sbin/ccs-setprofile 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat'
+</pre>
+</td></tr>
+</table>
 
-<h2>TOMOYOプロジェクト便り</h2>
+<p>ログアウトして， user1 としてログインし直します．そして， /tmp/testfile1 と /tmp/testfile2 を cat してみてください． /tmp/testfile2 へのアクセスが禁止されていることを確認できます（図１３）．</p>
 
-<p>2006年12月にCE Linux Forumのイベント，「Japan Technical Jamboree12」で，組込みLinuxフォーラムの関係の方々にTOMOYO Linuxをご紹介させていただきました．そのときの説明資料と様子は，<a href="http://tree.celinuxforum.org/CelfPubWiki/JapanTechnicalJamboree12">Wikiページ</a>で参照することができます．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１３ /tmp/testfile2 へのアクセスが禁止されている
+<pre>
+$ cat /tmp/testfile1
+This file was created by user1
+$ cat /tmp/testfile2
+cat: /tmp/testfile2: Operation not permitted
+</pre>
+</td></tr>
+</table>
 
-<p>Linuxはデジタルテレビや携帯電話など組込み機器の分野でも急速に利用が広まっています．ハードディスクレコーダーが掲示板への書き込みの踏み台にされたり，携帯電話を対象にしたウィルスが問題になるなど，セキュリティに対する関心は，むしろ通常のサーバ用途以上に高まっています．</p>
+<p>ログアウトして， user2 としてログインし直します． user1 と同様に操作を行ってください． /tmp/testfile1 へのアクセスが禁止されていることを確認できます．変数の代わりにユーザＩＤを直接指定することもできます．たとえば，ユーザ認証を行ってログインシェルを起動するための「 &lt;kernel&gt; /sbin/mingetty /bin/login 」ドメインに対して，図１４のように変更してやると， root ユーザのログインを禁止することができます．</p>
 
-<p>イベントでは多数の貴重なご意見をいただきましたが，その中に「ぜひTOMOYO Linuxをメインラインに含めることを目指してほしい」という声がありました．このイベントの関係の方々から，2007年4月に米サンノゼで開催される組込みLinuxの国際会議，「<a href="http://www.celinux.org/elc2007/">CELF Embedded Linux Conference</a>」をご紹介いただき，投稿したところプレゼンテーションとチュートリアルを行えることになりました．TOMOYO Linuxとしての世界デビューとなります．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１４　root ユーザのログインを禁止する設定
+<pre>
+[修正前]
+allow_execute /bin/bash
+[修正後]
+allow_execute /bin/bash if task.uid!=0
+</pre>
+</td></tr>
+</table>
 
-<p>また、2007年2月にYLUGのイベント，「第72回カーネル読書会」でもTOMOYO Linuxをご紹介させていただきました．そのイベントでもメインラインへ向けて頑張るよう激励され，このイベントの参加者の方々から2007年6月にカナダのオタワで開催されるLinuxの国際会議「<a href="http://www.linuxsymposium.org/2007/">Linux Symposium 2007</a>」をご紹介いただき，投稿したところBoFセッションを行えることになりました．</p>
+<p>また，図１５のように変更してやると，ユーザＩＤが 500 以上 1000 以下のユーザだけがログインできるようにすることができます． SSH 経由でのログインを制限したい場合に使うことができます．</p>
 
-<p>今年はメインストリームを目標に一気に活動が広がるかもしれません．TOMOYOプロジェクトでは，社外からも開発者やテスターなどを募集しています．みんなの力で盛り上げていきたいと思います．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図１５　ユーザＩＤ 500 以上 1000 以下のユーザのみログインできる設定
+<pre>
+[修正前]
+allow_execute /bin/bash
+[修正後]
+allow_execute /bin/bash if task.uid=500-1000
+</pre>
+</td></tr>
+</table>
 
-<p>このコラムは2007年3月28日に執筆していますが，読者の皆さんがこの号を手にとられるときにはCELFの発表が終了しているはずです．今後連載の中で組込み向けの機能や会議の様子についてご紹介していきたいと思います．</p>
+<p>以上で条件付きアクセス許可の説明は終わりです．この説明のために作成したアカウントを削除します（図１６）．</p>
 
-<h2>レスキュー手順</h2>
+<table border="1" summary="fig">
+<tr><td>
+■図１６　図３で作成したアカウントを削除
+<pre>
+# userdel user1
+# userdel user2
+</pre>
+</td></tr>
+</table>
 
-<p>もし，TOMOYO Linuxのアクセス制御が原因でシステムが起動できなくなった場合には，カーネル起動時のコマンドラインに ccsecurity=off というパラメータを追加することにより，TOMOYO Linuxのアクセス制御を無効化して起動することができます．</p>
+<h2>アクセスログからポリシーを生成する（上級者向け）</h2>
+
+<p>学習モードで生成されるポリシーに含まれているアクセス許可には exec.realpath と exec.argv[0] と symlink.target だけしか含まれていませんが，アクセスログには図１で示した全ての変数が含まれています．そのため，アクセスログからポリシーを生成してやれば，最も厳格な条件付きアクセス許可を定義することができます．</p>
+
+<h3>自動的にアクセス許可を追加しないように設定する</h3>
+
+<p>学習モードでは，一度ポリシー違反が発生すると，そのポリシー違反を起こさないようにするために必要なアクセス許可が自動的に追加されてしまいます．しかし，自動的に追加されるアクセス許可には図１で示した全ての情報が含まれているわけではありません．そのため，プロファイルを図１７のように編集して自動的に追加されないようにします．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１７　/etc/ccs/profile.conf の変更箇所
+<pre>
+[修正前]
+PREFERENCE::learning={ verbose=no }
+[修正後]
+PREFERENCE::learning={ verbose=no max_entry=0 }
+</pre>
+</td></tr>
+</table>
+
+<p>保存したら，図１８のコマンドを実行して変更を反映してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　変更を反映する
+<pre>
+# /usr/sbin/ccs-loadpolicy p
+</pre>
+</td></tr>
+</table>
+
+<h3>プログラムを動作させる</h3>
+
+<p>この状態でプログラムを動作させます．ポリシー違反は全てアクセスログとして保存されていきます．</p>
+
+<p>図１７で max_entry=0 という指定をしたため，図１９のようなメッセージが大量に表示されますが無視してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１９　学習する件数の上限に達したことを示すメッセージ
+<pre>
+WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mode.
+</pre>
+</td></tr>
+</table>
+
+<h3>アクセスログから必要な部分を抽出する</h3>
+
+<p>grep を用いて mode=learning を含むログを抽出します（図２０）．前後に空白を含めていることに注意してください．空白を入れ忘れると，ファイル名などと一致してしまう可能性があります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２０　学習モードのアクセスログだけを抽出する
+<pre>
+# grep -F -A 2 " mode=learning " /var/log/tomoyo/reject_log.txt &gt; /var/log/tomoyo/learning_log.txt
+</pre>
+</td></tr>
+</table>
+
+<p>抽出したら，条件付きのアクセス許可に変換します（図２１）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２１　条件付きのアクセス許可に変換する
+<pre>
+# /usr/lib/ccs/convert-audit-log &lt; /var/log/tomoyo/learning_log.txt &gt; /var/log/tomoyo/policy.tmp
+</pre>
+</td></tr>
+</table>
+
+<p>変換したら，ドメイン単位でソートすることにより圧縮します（図２２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２２　ドメイン単位でソートする
+<pre>
+# /usr/sbin/ccs-sortpolicy &lt; /var/log/tomoyo/policy.tmp &gt; /var/log/tomoyo/policy.txt
+</pre>
+</td></tr>
+</table>
+
+<h3>加工してからポリシーとして追加する</h3>
+
+<p>/var/log/tomoyo/policy.txt はそのままドメインポリシーとして /etc/ccs/domain_policy.conf に追加することが可能ですが，図２３のように条件が厳密すぎて使い物にならない（例えばプロセスＩＤやｉノード番号などは毎回変わるため、指定しない方が良い）ので，テキストエディタを用いて条件を緩めて（不要と思われる条件部分を除去して）から追加してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２３　厳密すぎるアクセス許可
+<pre>
+allow_execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+</pre>
+</td></tr>
+</table>
 
 <h2>次回予告</h2>
 
-<p>今回で，TOMOYO Linuxの基本的な使い方と主要機能の説明は終わりです．次回は，TOMOYO Linuxの特徴である階層化されたドメイン遷移を利用して，近年急増しているsshブルートフォース攻撃への対策と管理者権限の分割方法について紹介します．どうぞお楽しみに．</p>
+<p>今回はドメイン遷移の制御とポリシーのチューニング方法について紹介しました．次回は， TOMOYO Linux の特徴である階層化されたドメイン遷移を利用して，近年急増している ssh ブルートフォース攻撃への対策と管理者権限の分割方法について紹介します．どうぞお楽しみに．</p>
 
 <p><a href="tutorial-4.html.ja">第４回へ戻る</a>　<a href="tutorial-6.html.ja">第６回へ進む</a></p>
 
