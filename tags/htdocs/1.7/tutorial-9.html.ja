@@ -3,551 +3,366 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linuxの世界　第９回：「blogのポリシーを作成してみよう（後編）」</title>
+<title>TOMOYO Linuxの世界　第９回：「ログインセッションを制限してみよう（後編）」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <!--
 <p style="text-align:right;"><a href="tutorial-9.html.en">English Page</a></p>
-<p style="text-align:right;">Last modified: $Date$</p>
 -->
-<h1>TOMOYO Linuxの世界<br>第９回：「blogのポリシーを作成してみよう（後編）」</h1>
+<p style="text-align:right;">Last modified: $Date$</p>
 
-<p>今回も引き続き，blogソフトウェアとして広く利用されているMovable Typeを題材に，ポリシー設定方法を解説します．TOMOYO Linux活用のための実践的なノウハウ満載でお届けします．</p>
+<h1>TOMOYO Linuxの世界<br>第９回：「ログインセッションを制限してみよう（後編）」</h1>
 
 <h2>今回の内容</h2>
 
-<p>前回はCentOS 5.5上でMovable Type 3.3を動作させるためのポリシーを学習させる方法と，パス名をパターン化する方法およびドメイン遷移を調節する方法について紹介しました．今回は前回説明しきれなかった残りの部分について紹介します．</p>
+<p>前回は，システムにログインして行う操作を制限する手順のうち，ドメイン遷移とファイルアクセスに関する制限について解説しました．今回は，ネットワーク（通信）の制限と実際の操作手順を説明します．</p>
 
-<h2>チューニング</h2>
+<h2>ステップ3：通信を許可したいネットワークの決定</h2>
 
-<h3>グループ化の利点</h3>
+<h3>ネットワークのアクセス制限</h3>
 
-<p>前回，path_groupという構文を使ってパス名のグループ化を行いました．以前からTOMOYO Linuxを使われている方の中には， 「file_pattern構文であらかじめパス名のパターンを定義しておけば，path_group構文は不要なのでは？」と思われた方もいらっしゃると思います．実際，path_groupは必須の機能ではなく，file_patternでも代用可能です．しかし，file_patternはすべてのドメインに対して適用されてしまうため， 「あるドメインでは/var/www/html/\*.htmlという単位でグループ化したいが，別のドメインでは/var/www/html /index.htmlのようにグループ化させたくない」といった場合に対応できません．そして，path_groupを使うことで，見通しよくポリシーを記述できるようになります．今回使用しているMovable Typeの例で説明しましょう．Movable TypeはApacheから起動されるCGIとして動作し，動的にWebページを作成します．そして，CGIによって作成されたWebコンテンツを Apacheがクライアントに提供します．そのため，ApacheのドメインとMovable Typeのドメインの間には，同じパス名にアクセスしているという共通点があります．図1の上側はpath_groupを使わない場合のアクセス許可の与え方，下側はpath_groupを使う場合のアクセス許可の与え方です．</p>
+<p>システムにログインしたユーザはファイルへのアクセスだけでなくネットワークにもアクセスすることでしょう．そこで，ログインしたユーザに対してどのサーバへのアクセスを許可するかを設計します．ネットワークに関するアクセス許可の構文は，「allow_network プロトコル IPアドレス ポート番号」となっています．プロトコルはTCPまたはUDPまたはRAWのいずれか，IPアドレスはIPv4またはIPv6アドレスを指定します．IP アドレスの部分は前回の記事で説明したファイルのグループ化と同様にグループ化が可能です．ここではHTTP，DNS，FTPとSSHの設定について説明します．</p>
 
-<table border="1" summary="fig">
-<tr><td>
-■図1 path_groupによるグループ化<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig01.png" alt="sd200709-fig01.png">
-</td></tr>
-</table>
+<h4>●HTTP</h4>
 
-<p>アクセスするパス名が変化した場合，path_groupを使わない場合には個々のドメイン内のアクセス許可を修正してやらなければいけませんが，path_groupを使う場合には1ヵ所を修正するだけで対処できます． Movable Typeを用いてサービスを提供する際には，通常，DNSサーバに対して問い合わせを行うことは欠かせません．そこで今回は，パス名だけでなくIPアドレスもグループ化することにします．図2の上側はaddress_groupを使わない場合のアクセス許可の与え方，下側はaddress_groupを使う場合のアクセス許可の与え方です．DNSサーバのIPアドレスが変化した場合，address_groupを使わない場合には個々のドメイン内のアクセス許可を修正してやらなければいけませんが，address_groupを使う場合には1ヵ所を修正するだけで対処できます．</p>
+<p>最初に，HTTPサーバのIPアドレスをHTTP_SERVERSという名前でグループ化することにします．グループ化することにより，ポリシーファイルを読みやすくすることができ，また，サーバのIPアドレスの変更や追加や削除が発生した場合にも修正個所が1ヵ所で済みます．IPアドレスをグループ化するには，address_groupというキーワードを使います． HTTPサーバのアドレスが192.168.1.100と192.168.1.200の場合，例外ポリシーで図1のように定義してから，ログインシェルのドメイン（&lt;kernel&gt; /usr/sbin/sshd /bin/bash）に対して図2という許可を与えます（以降に登場するDNS_SERVERSやFTP_SERVERSやSSH_SERVERSも，HTTP_SERVERSと同様に定義してください） ．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図2 address_groupによるグループ化<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig02.png" alt="sd200709-fig02.png">
+■図1 アドレスをグループ化する
+<pre>
+address_group HTTP_SERVERS 192.168.1.100
+address_group HTTP_SERVERS 192.168.1.20
+</pre>
 </td></tr>
 </table>
-
-<h3>プロセスの依存関係について</h3>
-
-<p>図3は，Movable Typeが動作するために関連しているプロセスの一覧とそれぞれの連携を表示したものです．矢印はTCPまたはUDPによる通信を示しています．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図3 Movable Typeと関連するプロセス<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig03.png" alt="sd200709-fig03.png">
+■図2 HTTPサーバと通信するためのアクセス許可
+<pre>
+allow_network TCP connect @HTTP_SERVERS 80
+</pre>
 </td></tr>
 </table>
 
-<p>この連載では，Apacheと書かれている円の内部をTOMOYO Linuxで保護する手順について説明しています．Movable TypeはApacheの上で動作します．そのため，Movable Typeのドメインだけでなくその親ドメインであるApacheのドメインも含めた形でポリシーを作成しています（Movable Typeをいくら保護してもその土台のApacheの脆弱性を突かれては意味がありませんからね） ．</p>
+<h4>●DNS</h4>
+
+<p>DNSサーバとの通信ではUDPプロトコルのポート53を使うので，ログインシェルのドメインに対して図3という許可を与えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図3 DNSサーバと通信するためのアクセス許可
+<pre>
+allow_network TCP connect @HTTP_SERVERS 80
+</pre>
+</td></tr>
+</table>
+
+<h4>●FTP</h4>
+
+<p>FTPサーバとの通信ではTCPプロトコルのポート21を使うので，図4という許可を与えます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図4 FTP制御用のアクセス許可
+<pre>
+allow_network TCP connect @HTTP_SERVERS 80
+</pre>
+</td></tr>
+</table>
+
+<p>FTPプロトコルではサーバ側からクライアント側へ向けてTCPコネクションを張る場合があるので，図5の許可が必要になる場合があります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図5 FTPデータ（アクティブモード）用のアクセス許可
+<pre>
+allow_network TCP accept @FTP_SERVERS 20
+</pre>
+</td></tr>
+</table>
+
+<p>ファイアウォールの内側にいる場合など，サーバ側からクライアント側へ向けてTCPコネクションを張ることができない場合にはパッシブモードを使うので，図5の代わりに図6という許可を与えることになるでしょう．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図6 FTPデータ（パッシブモード）用のアクセス許可
+<pre>
+allow_network TCP connect @FTP_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<h4>●SSH</h4>
+
+<p>SSHサーバとの通信ではTCPプロトコルでポート22へコネクションを張るので，図7という許可を与えることになります．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図7 SSHサーバと通信するためのアクセス許可
+<pre>
+allow_network TCP connect @FTP_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<p>ただし，前回のドメイン遷移の設計では，SSHの秘密鍵へのアクセスを認める必要がある/usr/bin/sshコマンドはログインシェルとは別のドメインで動作させるように指定している（図8）ので，このアクセス許可はログインシェルのドメインにではなく，/usr/bin/sshのドメイン（図9）に対して与えることに注意してください．ポリシーエディタを実行して，「A」を押してからリスト9の内容を入力して「ENTER」を押すことで/usr/bin/sshのドメインを作成できます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図8 ログインシェルとは別のドメインで実行する
+<pre>
+no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/bin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図9 /usr/bin/ssh用のドメイン
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh
+</pre>
+</td></tr>
+</table>
+
+<h2>ステップ4：学習の開始</h2>
+
+<p>さて，これまでの作業でアクセス許可の基本的な設定が完了しました．しかし，これだけではまだアクセス許可が不足していますから，学習モードを用いて不足しているアクセス許可を追加していくことにします．ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル1を割り当てます（ポリシーエディタを使わずに，rootユーザで図10のコマンドラインを実行しても結構です） ．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図10 学習モード用プロファイルを割り当てる
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>そして，許可したい操作（具体的には，前回定義したCOMMANDS_FOR_LOGIN_SESSIONに含まれているコマンドを実行したり，HOME_FILEに該当するファイルを編集したり，ネットワークへアクセスしたりなど）を行ってください．操作例として，図11～図15の内容を参考にしてください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図11 SSHの鍵ペアを作成する
+<pre>
+$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/example/.ssh/id_rsa):
+Created directory '/home/example/.ssh'.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/example/.ssh/id_rsa.
+Your public key has been saved in /home/example/.ssh/id_rsa.pub.
+The key fingerprint is:
+c7:4f:53:39:6f:7e:17:fb:ec:94:0d:02:09:84:d5:67 example@tomoyo
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図12 SSHで接続する
+<pre>
+$ ssh 192.168.99.138 id
+example@192.168.99.138's password:
+uid=500(example) gid=500(example) groups=500(example)
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図13 パスワードを変更する
+<pre>
+$ passwd
+Changing password for user example.
+Changing password for example
+(current) UNIX password:
+New UNIX password:
+Retype new UNIX password:
+passwd: all authentication tokens updated successfully.
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図14 HTTPサーバにアクセスする 
+<pre>
+$ wget http://192.168.1.100/
+Length: unspecified [text/html]
+Saving to: `index.html'
+[ &lt;=&gt;     ] 2,997       --.-K/s   in 0s
+14:22:14 (286 MB/s) - `index.html' saved [2997]
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図15 ホームディレクトリ内のファイルにアクセスする 
+<pre>
+$ ls .bashrc | xargs /bin/cat &gt; /dev/null
+</pre>
+</td></tr>
+</table>
+
+<p>ここでは，一般ユーザとしてexampleユーザを使用しています．前回の手順で図16のようにホームディレクトリ以下のファイルの読み書きに関するアクセス許可をあらかじめ与えているため，図16に含まれるアクセス要求は学習されません．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図16 あらかじめ与えておいたアクセス許可
+<pre>
+allow_execute @COMMANDS_FOR_LOGIN
+allow_read/write @HOME_FILE if task.uid=path1.uid
+allow_create @HOME_FILE if task.uid=path1.parent.uid
+allow_unlink @HOME_FILE if task.uid=path1.uid
+allow_symlink @HOME_FILE if task.uid=path1.parent.uid
+allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_truncate @HOME_FILE if task.uid=path1.uid
+allow_rewrite @HOME_FILE if task.uid=path1.uid
+allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
+allow_rmdir @HOME_DIR if task.uid=path1.uid
+allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+</pre>
+</td></tr>
+</table>
+
+<p>ただし，図17に示したようにSSHの秘密鍵を保存するディレクトリはHOME_FILEから除外してあるので，図11の操作を行うと/home/example/.ssh/id_rsaのように個別に学習されます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図17 ホームディレクトリに含まれる範囲
+<pre>
+path_group HOME_FILE /home/\{\*\-.ssh\}/\*
+path_group HOME_DIR /home/\{\*\-.ssh\}/
+</pre>
+</td></tr>
+</table>
+
+<h2>ポリシーのチューニング</h2>
 
 <h3>確認モードに切り替える</h3>
 
-<p>ポリシーエディタを実行して「&lt;kernel&gt; /usr/sbin/httpd」ドメイン以下を選択し，「S」を押してから2を入力して「ENTER」を押します（本連載における各プロファイルの定義内容については前回の記事を参照ください） ．これにより，&lt;kernel&gt; /usr/sbin/httpdドメイン以下が確認モードになります（図4） ．</p>
+<p>ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル2を割り当てます．ここから先は必要に応じて学習モード（プロファイル1）と確認モード（プロファイル2）を切り替えながら使います．ポリシーエディタを起動して，ログインシェルのドメインに対して与えられたアクセス許可の内容を確認してください．実は，前回の連載の手順では解説を行うために意図的にいくつかの設定を不完全なものにしています．この後，順に内容を見ながら修正していきますので，読みながら一緒に考えてみてください．</p>
+
+<h3>ドメイン遷移の見直し</h3>
+
+<p>前回，/usr/bin/sshをログインシェルとは別のドメインで実行するように指定しました．しかし，よくよく考えてみると，SSHの秘密鍵へのアクセスを認めなければいけないのは/usr/bin/ssh-keygenも同じです．せっかく/usr/bin/sshをログインシェルとは別のドメインで動作させることで/bin/catなどでアクセスできないようにしようとしているのに，/usr/bin/ssh-keygenがログインシェルのドメインで動作してしまうと，ログインシェルのドメインからもSSHの秘密鍵へアクセスできるようになってしまいます．そこで，/usr/bin/ssh-keygenも/usr/bin/sshと同様にログインシェルとは別のドメインで実行させるように修正します．単純に図18の指定を追加するだけでも可能ですが， 「SSHの秘密鍵へのアクセスを認めなければいけないプログラム」という意味で，/usr/bin/sshと/usr/bin/ssh-keygenを同じようにまとめて扱えると便利ですね．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図4 確認モードに変更する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig04.jpg" alt="sd200709-fig04.jpg">
-</td></tr>
-</table>
-
-<p>確認モードでは，ポリシー違反が発生しても自動的にアクセス許可が追加されることはありません．また，PREFERENCE::permissive={ verbose=yes }と指定しているので，ポリシー違反が発生した場合にはコンソールに警告メッセージが表示されます（図5） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図5 PREFERENCE::permissive={ verbose=yes }による警告メッセージ
+■図18 ログインシェルとは別のドメインで実行する
 <pre>
-CentOS release 5.5 (Final)
-Kernel 2.6.18-194.3.1.el5_tomoyo_1.7.2 on an i686
-tomoyo login: WARNING: Access read /var/www/cgi-bin/mt/mt.cgi denied for /var/www/cgi-bin/mt/mt.cgi
-WARNING: Signal 15 to /var/www/cgi-bin/mt/mt.cgi denied for /usr/sbin/httpd
+no_keep_domain /usr/bin/ssh-keygen from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
 </pre>
 </td></tr>
 </table>
 
-<p>操作を行って大量に警告メッセージが表示されるようであれば，まだ学習内容が不十分であることを意味します．再度学習モードに戻りポリシーを追加しましょう．学習モードに戻すには，ポリシーエディタを実行して&lt;kernel&gt; /usr/sbin/httpdドメイン以下を選択し，「S」を押してから1を入力して「ENTER」を押します．</p>
-
-<h3>アクセスログの保存</h3>
-
-<p>確認モードではポリシーにないアクセス要求が発生しても，コンソールに警告メッセージが表示されるだけであり，ポリシーへのアクセス許可の追加は行われません．そのため，そのまま強制モードにしてしまうと，正常に動作できなくなってしまいます．しかし，警告メッセージからはどのようなアクセス許可を追加したら良いのかわからないので，どのように対処すれば良いのか困ってしまうでしょう． TOMOYO Linuxでは，ポリシーに違反したアクセス要求のログ（アクセス拒否ログ）とポリシーに違反しなかったアクセス要求のログ（アクセス許可ログ）を取得することができます．アクセス許可ログとアクセス拒否ログはドメイン用ポリシーと同じ形式で生成されます．アクセス拒否ログを閲覧して，許可すべきアクセス要求と判断したものは手作業で追加することができます．</p>
-
-<p>ここで，アクセスログを保存する方法について紹介します．まず，アクセスログを保存するためのディレクトリを作成します（図6）．</p>
+<p>そのような目的のためにTOMOYO Linuxでは，aggregatorというキーワードが利用できます．構文は「aggregator 集約前のプログラム名 集約後のプログラム名」で，このように指定すると集約前のプログラムは集約後のプログラム名と同様に扱われます．図19のように指定すると，/usr/bin/ssh-keygenの実行が要求された場合，実行許可のチェックとドメイン遷移処理は/usr/bin/sshの実行が要求されたものとして行われるようになります．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図6 アクセスログを保存するディレクトリを作成する
+■図19 /usr/bin/ssh-keygenを/usr/bin/sshと同様に扱う
 <pre>
-# mkdir /var/log/tomoyo
+aggregator /usr/bin/ssh-keygen /usr/bin/ssh
 </pre>
 </td></tr>
 </table>
 
-<p>/etc/rc.d/rc.localの末尾にccs-auditdを起動するための指定を追加します（図7） ．</p>
+<p>そのため，時20のようなドメインを作成したり，図18という指定を追加したりする必要がなくなります．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図7 ccs-auditdを自動起動する
+■図20 /usr/bin/ssh-keygen用のドメイン
 <pre>
-# echo /usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt &gt;&gt; /etc/rc.d/rc.local
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh-keygen
 </pre>
 </td></tr>
 </table>
 
-<p>この例では，アクセス許可ログを/dev/nullへ保存し（つまり読み捨てる） ，アクセス拒否ログを/var/log/tomoyo/reject_log.txtへ保存するように指定しています． /etc/rc.d/rc.localを実行してccs-auditdを起動します（図8） ．</p>
+<p>今回はaggregatorを使うことにしますので，図19の内容を例外ポリシーに追加してください．その後，ログインシェルのドメインからSSHの秘密鍵へのアクセス許可（図20）を削除しておいてください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図8 ccs-auditdを起動する
+■図20 ログインシェルのドメインから削除すべきアクセス許可
 <pre>
-# /etc/rc.d/rc.local
+allow_write /home/example/.ssh/id_rsa
+allow_write /home/example/.ssh/id_rsa.pub
+allow_mkdir /home/example/.ssh/
+allow_create /home/example/.ssh/id_rsa
+allow_create /home/example/.ssh/id_rsa.pub
 </pre>
 </td></tr>
 </table>
 
-<p>この状態でポリシー違反が発生すると，コンソールへの警告メッセージだけでなく/var/log/tomoyo/reject_log.txtへの出力も行われます（図9） ．ログは3行で1組です．</p>
+<h3>path_groupの更新</h3>
+
+<p>ログインシェルのドメインに与えられたプログラムの実行許可を見ると，リスト16の内容も学習されていることがわかります．これは前回，実行を許可するコマンドを定義したときに想定していなかったものです．/usr/bin/xargsは複数のファイルに対して一括操作を行うときに便利なコマンドですので，ログインセッションでの実行を許可することにします．このまま図21の内容を残しておいてもかまいませんが，せっかくなのでCOMMANDS_FOR_LOGIN_SESSIONグループに追加してみましょう．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図9 アクセスログの例（/var/log/tomoyo/reject_log.txt）
+■図21 想定していなかったコマンドの実行許可
 <pre>
-#2007-07-06 13:16:49# profile=2 mode=permissive (global-pid=4620) task={ pid=4620 ppid=4581 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
-&lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/mt.cgi
-allow_read /var/www/cgi-bin/mt/mt.cgi
+allow_execute /usr/bin/xargs
 </pre>
 </td></tr>
 </table>
 
-<p>1行目は発生時刻とプロセスのIDなどの情報，2行目はドメイン，3行目がアクセス要求の内容です．アクセス要求の内容を判断し，許可すべきであると判断した場合は，ポリシーエディタを起動して2行目のドメイン名が示すドメインを選択し，「A」を押してから3行目の内容を入力して「ENTER」を押します．必要であれば3行目の内容をワイルドカードでパターン化してから入力してもかまいません．また，対象が個々のドメインに閉じたものではなく複数のドメインにまたがるような場合にはpath_groupの定義を検討すると良いでしょう． /var/log/tomoyo/reject_log.txtを監視し，ログが発生したら，内容を確認したうえでポリシーエディタを使ってアクセス許可を追加してください（図10） ．</p>
+<p>例外ポリシーの画面に移動して，リスト17というエントリを追加してから，ログインシェルのドメインに戻って図22の内容を削除します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図10 ログの発生を監視する
+■図22 想定していなかったコマンドの実行許可
 <pre>
-# tail -f /var/log/tomoyo/reject_log.txt
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
 </pre>
 </td></tr>
 </table>
 
-<h3>アクセスログのローテーション</h3>
+<h3>ケイパビリティについて</h3>
 
-<p>先ほどアクセスログを保存する設定をしましたが，自動的にローテーションさせたい場合もあると思います．そのような場合は，図11の内容を /etc/logrotate.d/tomoyoという名前で作成してください．nocreateオプションを忘れるとローテーション以降のログが保存されなくなりますので注意してください．</p>
+<p>学習モードで操作を行うと，図23のようにallow_capabilityで始まる行が学習されたと思います．ケイパビリティは許可する操作種別を指定するだけであるため，操作対象を指定する必要はありません．学習モードで必要だったものは運用中にも必要になるのでそのまま残しておきます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図11 アクセスログをローテーションの対象にする（/etc/logrotate.d/tomoyo）
+■図23 学習されたケイパビリティの例
 <pre>
-/var/log/tomoyo/reject_log.txt {
-   weekly
-   rotate 9
-   missingok
-   notifempty
-   nocreate
-}
-</pre>
-</td></tr>
-</table>
-
-<h3>パス名のパターン化</h3>
-
-<p>前回，MT-LIBやMT-DBというグループ名を用いてパス名のパターン化を行ったと思いますが，他にもパターン化が必要な個所があると思います． Movable Typeにより動的に生成されるWebコンテンツは「&lt;kernel&gt; /usr/sbin/httpd」ドメインからアクセスされるので，パターン化が必要です．この時点でパターン化に漏れがないかを確認してください．確認できたらネットワークへと進みます．</p>
-
-<h3>ネットワークアドレスのパターン化</h3>
-
-<p>前回定義したプロファイルではネットワークに関する強制アクセス制御（CONFIG::network）を有効にしています．ファイルに対するアクセス制御だけで十分だとお考えの方もいらっしゃると思いますが，そうではありません．2003年に開催されたJNSA主催のイベント， 「セキュリティ・スタジアム」では，防御側として出展したTOMOYO Linuxサーバについて，Apacheの脆弱性（バッファオーバーフロー）を突いて他のホストへの接続を試みるという攻撃を受けました．接続を許可すべきIPアドレスやポート番号を把握するのは，どんなパス名にアクセスしているかを把握するのに比べればずっと簡単です．ワームなどの拡散を防ぐためにも，ネットワークに対するアクセス制御も有効にしておくことを推奨します．</p>
-
-<p>&lt;kernel&gt; /usr/sbin/httpdドメインに対するアクセス許可を確認してみると，allow_network TCP acceptで始まる行が多数見つかるはずです（図12） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図12 クライアントのIPアドレスとポート番号<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig10.jpg" alt="sd200709-fig10.jpg">
-</td></tr>
-</table>
-
-<p>これらは，ApacheにアクセスしてきたクライアントのIPアドレスとポート番号を示しています．通常，クライアントがサーバにアクセスする場合には，クライアントは1024以上の未使用のローカルポート番号を選択してアクセスします．そのため，Apacheサーバ側では1024以上の任意のローカルポート番号からのアクセスを許可するようにします（図13） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図13 ポート番号部分をまとめる<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig11.jpg" alt="sd200709-fig11.jpg">
-</td></tr>
-</table>
-
-<p>1024以上のローカルポート番号を一括して許可したので，個々のローカルポートに対するアクセス許可は不要となりますから削除してください（図14） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図14 不要になったアクセス許可を削除する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig12.jpg" alt="sd200709-fig12.jpg">
-</td></tr>
-</table>
-
-<p>この例ではアクセス元のIPアドレスは2つ（127.0.0.1と192.168.99.1）だけなのでこのままでもかまいませんが，実際のシステムでは他のアドレスからの接続も受け付けると思います．そこで，接続を受け付けるクライアントのアドレスをグループ化してみましょう．この連載では HTTP_CLIENTSという名前でグループ化することにします．</p>
-
-<p>&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;という画面に移動し，「A」を押してから「address_group HTTP_CLIENTS IPアドレス」または「address_group HTTP_CLIENTS 開始IPアドレス-終了IPアドレス」という形式で入力して「ENTER」を押します（図15） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図15 IPアドレスもまとめる<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig13.jpg" alt="sd200709-fig13.jpg">
-</td></tr>
-</table>
-
-<p>HTTP_CLIENTSという名前を用いてアクセス許可を追加後，HTTP_CLIENTSに含まれるアドレスに対するアクセス許可を削除します（図16） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図16 グループ名に置き換える<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig14.jpg" alt="sd200709-fig14.jpg">
-</td></tr>
-</table>
-
-<p>このようにしておくことで，アクセスを許可するクライアントのIPアドレスを変更したくなった場合に，個々のドメインのアクセス許可を編集する代わりにHTTP_CLIENTS の定義を修正するだけで対応できるようになります．これがaddress_groupの利点です．</p>
-
-<p>&lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt.cgiドメインに対するアクセス許可を確認してみると，Movable TypeのCGIがトラックバックを送信するために外部のWebサーバにアクセスしていることがわかります（図17） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図17 Movable Typeがアクセスしたネットワーク<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig15.jpg" alt="sd200709-fig15.jpg">
-</td></tr>
-</table>
-
-<p>TCPのポート80へのアクセスはWebサーバへのアクセスを，UDPのポート53へのアクセスはDNSサーバへのアクセスを，TCPのポート25 へのアクセスはメールサーバへのアクセスを意味します．これらのWebサーバのアドレスもグループ化してみます．この連載ではHTTP_PING_SERVERSという名前でグループ化することにします（図16） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図18 外部のWebサーバをまとめる<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig16.jpg" alt="sd200709-fig16.jpg">
-</td></tr>
-</table>
-
-<p>HTTP_PING_SERVERSという名前を用いてアクセス許可を追加後，HTTP_PING_SERVERSに含まれるアクセス許可を削除します（図19） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図19 グループ名で置き換える<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-9&amp;src=sd200709-fig17.jpg" alt="sd200709-fig17.jpg">
-</td></tr>
-</table>
-
-<p>もし，Movable Typeから外部のメールサーバにメールを送るなどネットワークを利用している場合，この時点でチューニングを行います．</p>
-
-<h3>パターン化の例</h3>
-
-<p>参考までに，筆者の環境ではどのようなパターン化を行ったかを載せておきます（図20） ．適切なパターン化の内容は環境により異なりますから，あくまでパターン化の一例とお考えください．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図20 パターン化の例
-<pre>
-path_group MT-LIB /var/www/cgi-bin/mt/\{\*\}/\@.pm
-path_group MT-PLUGIN /var/www/cgi-bin/mt/plugins/\*
-path_group MT-PLUGIN /var/www/cgi-bin/mt/plugins/\{\*\}/\*
-path_group MT-STATIC /var/www/html/mt-static/\*
-path_group MT-STATIC /var/www/html/mt-static/\{\*\}/\*
-path_group MT-TEMPLATE /var/www/cgi-bin/mt/tmpl/\*
-path_group MT-TEMPLATE /var/www/cgi-bin/mt/tmpl/\{\*\}/\*
-path_group PERL-LIB /usr/lib/perl5/5.8.8/\*
-path_group PERL-LIB /usr/lib/perl5/5.8.8/\{\*\}/\*
-path_group MT-DB /var/www/mt-db/\*
-path_group BLOG-FILE /var/www/html/blog/\*
-path_group BLOG-FILE /var/www/html/blog/\{\*\}/\*
-path_group BLOG-DIR /var/www/html/blog/\{\*\}/
-address_group HTTP_CLIENTS 0:0:0:0:0:ffff:7f00:1
-address_group HTTP_CLIENTS 0:0:0:0:0:ffff:c0a8:6301
-address_group HTTP_PING_SERVERS 172.18.1.53
-address_group HTTP_PING_SERVERS 192.168.99.129
-address_group HTTP_PING_SERVERS 204.9.178.67
-</pre>
-</td></tr>
-</table>
-
-<h3>ポリシーの例（抜粋） </h3>
-
-<p>参考までに，筆者の環境ではどのようなポリシーになったかを載せておきます（図21～図27） ．こちらも参考としてご利用ください．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図21 &lt;kernel&gt; /usr/sbin/httpdドメインのアクセス許可
-<pre>
-allow_read/write /dev/null
-allow_read /dev/urandom
-allow_read /etc/group
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/httpd/conf.d/proxy_ajp.conf
-allow_read /etc/httpd/conf.d/welcome.conf
-allow_read /etc/httpd/conf/httpd.conf
-allow_read /etc/httpd/conf/magic
-allow_read /etc/mime.types
-allow_read /etc/nsswitch.conf
-allow_read /etc/passwd
-allow_read /etc/resolv.conf
-allow_read /etc/selinux/config
-allow_read /proc/filesystems
-allow_read /proc/sys/kernel/ngroups_max
-allow_read /usr/lib/httpd/modules/\*.so
-allow_write /var/log/httpd/access_log
-allow_write /var/log/httpd/error_log
-allow_write /var/run/httpd.pid
-allow_execute /var/www/cgi-bin/mt/mt-comments.cgi
-allow_execute /var/www/cgi-bin/mt/mt-feed.cgi
-allow_execute /var/www/cgi-bin/mt/mt-tb.cgi
-allow_execute /var/www/cgi-bin/mt/mt.cgi
-allow_execute /var/www/cgi-bin/mt/plugins/StyleCatcher/stylecatcher.cgi
-allow_read /var/www/cgi-bin/mt/mt-comments.cgi
-allow_read /var/www/cgi-bin/mt/mt-feed.cgi
-allow_read /var/www/cgi-bin/mt/mt-tb.cgi
-allow_read /var/www/cgi-bin/mt/mt.cgi
-allow_read /var/www/cgi-bin/mt/plugins/StyleCatcher/stylecatcher.cgi
-allow_read @MT-BLOG-FILE
-allow_read @MT-STATIC
+allow_capability SYS_CHMOD
+allow_capability SYS_IOCTL
 allow_capability SYS_KILL
-allow_capability SYS_UNLINK
-allow_capability inet_tcp_create
-allow_capability inet_tcp_listen
-allow_capability use_inet_udp
-allow_capability use_route
-allow_create /var/run/httpd.pid
-allow_network TCP accept @HTTP_CLIENTS 1024-65535
-allow_network TCP bind 0:0:0:0:0:0:0:0 80
-allow_network TCP listen 0:0:0:0:0:0:0:0 80
-allow_network UDP connect 0.0.0.0 80
-allow_network UDP connect 0:0:0:0:0:0:0:0 80
-allow_truncate /var/run/httpd.pid
-allow_unlink /var/run/httpd.pid
-</pre>
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-■図22 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/ mt-comments.cgiドメインのアクセス許可
-<pre>
-allow_read /dev/urandom
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/nsswitch.conf
-allow_read /etc/resolv.conf
-allow_read /proc/stat
-allow_read /usr/bin/perl
-allow_execute /usr/sbin/sendmail.sendmail
-allow_read/write @MT-DB
-allow_read @MT-LIB
-allow_read @PERL-LIB
-allow_argv0 /usr/sbin/sendmail.sendmail sendmail
-allow_capability SYS_IOCTL
-allow_capability use_inet_udp
-allow_network UDP connect 192.168.99.2 53
-allow_truncate /var/www/mt-db/blog.db
-</pre>
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-■図23 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/mt-comments.cgi /usr/sbin/sendmail.sendmailドメインのアクセス許可
-<pre>
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/mail/submit.cf
-allow_read /etc/mail/trusted-users
-allow_read /etc/nsswitch.conf
-allow_read /etc/passwd
-allow_read /etc/resolv.conf
-allow_read /etc/services
-allow_read /proc/loadavg
-allow_read /proc/stat
-allow_read/write /var/spool/clientmqueue/\*
-allow_capability SYS_IOCTL
-allow_capability SYS_UNLINK
-allow_capability inet_tcp_connect
-allow_capability inet_tcp_create
-allow_capability use_inet_udp
-allow_create /var/spool/clientmqueue/\*
-allow_network TCP connect 0:0:0:0:0:ffff:7f00:1 25
-allow_network UDP connect 192.168.99.2 53
-allow_unlink /var/spool/clientmqueue/\*
-</pre>
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-■図24 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/mt-feed.cgiドメインのアクセス許可
-<pre>
-allow_read /dev/urandom
-allow_read /proc/stat
-allow_read /usr/bin/perl
-allow_read/write /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-allow_read/write @MT-DB
-allow_read @MT-LIB
-allow_read @PERL-LIB
-allow_capability SYS_IOCTL
-allow_capability SYS_UNLINK
-allow_create /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-allow_unlink /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-</pre>
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-■図25 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/mt-tb.cgiドメインのアクセス許可
-<pre>
-allow_read /dev/urandom
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/nsswitch.conf
-allow_read /etc/resolv.conf
-allow_read /proc/stat
-allow_read /usr/bin/perl
-allow_read/write /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-allow_read/write @MT-DB
-allow_read @MT-LIB
-allow_read @PERL-LIB
-allow_capability SYS_IOCTL
-allow_capability SYS_UNLINK
-allow_capability use_inet_udp
-allow_create /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-allow_network UDP connect 192.168.99.2 53
-allow_truncate @MT-DB
-allow_unlink /var/www/mt-tmp/mt-tasks-_var_www_cgi_bin_mt.lock
-</pre>
-</td></tr>
-</table>
-
-<table border="1" summary="fig">
-<tr><td>
-■図26 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/mt.cgiドメインのアクセス許可
-<pre>
-allow_read /dev/urandom
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/nsswitch.conf
-allow_read /etc/protocols
-allow_read /etc/resolv.conf
-allow_read /proc/stat
-allow_read /usr/bin/perl
-allow_read/write /var/tmp/CGItemp\$
-allow_read /var/www/cgi-bin/mt/mt-config.cgi
-allow_read/write /var/www/html/mt-static/themes/base-weblog.css
-allow_read/write @MT-BLOG-FILE
-allow_read/write @MT-DB
-allow_read @MT-LIB
-allow_read @MT-PLUGIN
-allow_read @MT-TEMPLATE
-allow_read @PERL-LIB
-allow_capability SYS_IOCTL
+allow_capability SYS_LINK
 allow_capability SYS_RENAME
+allow_capability SYS_SYMLINK
 allow_capability SYS_UNLINK
-allow_capability inet_tcp_connect
-allow_capability inet_tcp_create
-allow_capability use_inet_udp
-allow_create /var/tmp/CGItemp\$
-allow_create /var/www/html/mt-static/themes/base-weblog.css
-allow_create @MT-BLOG-FILE
-allow_create @MT-DB
-allow_mkdir /var/www/html/mt-static/themes/
-allow_mkdir @MT-BLOG-DIR
-allow_network TCP connect @HTTP_PING_SERVERS 80
-allow_network UDP connect 192.168.99.2 53
-allow_rename @MT-BLOG-FILE @MT-BLOG-FILE
-allow_rename @MT-DB @MT-DB
-allow_truncate /var/www/html/mt-static/themes/base-weblog.css
-allow_truncate /var/www/mt-db/blog.db
-allow_truncate @MT-BLOG-FILE
-allow_unlink /var/tmp/CGItemp\$
-allow_unlink @MT-DB
 </pre>
 </td></tr>
 </table>
 
-<table border="1" summary="fig">
-<tr><td>
-■図27 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt/plugins/StyleCatcher/stylecatcher.cgiドメインのアクセス許可
-<pre>
-allow_read /dev/urandom
-allow_read /etc/host.conf
-allow_read /etc/hosts
-allow_read /etc/nsswitch.conf
-allow_read /etc/protocols
-allow_read /etc/resolv.conf
-allow_read /proc/stat
-allow_read /usr/bin/perl
-allow_read /var/www/cgi-bin/mt/mt-config.cgi
-allow_read/write @MT-DB
-allow_read @MT-LIB
-allow_read @MT-PLUGIN
-allow_read @MT-TEMPLATE
-allow_read @PERL-LIB
-allow_capability SYS_IOCTL
-allow_capability inet_tcp_connect
-allow_capability inet_tcp_create
-allow_capability use_inet_udp
-allow_network TCP connect 204.9.178.25 80
-allow_network UDP connect 192.168.99.2 53
-</pre>
-</td></tr>
-</table>
+<p>なお，TOMOYO Linuxで扱うケイパビリティは，普通のLinuxが扱うPOSIXケイパビリティとは異なり，独自に定義したものですのでご注意ください．</p>
+
+<h3>シグナルについて</h3>
+
+<p>学習モードで操作中に，allow_signalで始まる行が学習されたかもしれません．TOMOYO Linuxではシグナルの送信先を制限することもできます．シグナルを送信する場合には/bin/killというコマンドを使用します．しかし，/bin/bashなどのシェルは，内部コマンドとしてkillというコマンドを提供しているため，実際には/bin/bashから/bin/killを実行することなくシグナルを送信することができます．そのため，シグナルの送信を制限しない場合，COMMANDS_FOR_LOGIN_SESSIONに/bin/killが含まれていないにもかかわらず，rootユーザとしてログインして/bin/bashの内部コマンドとしてのkillコマンドを使用することで任意のプロセスを強制終了させてしまうことができてしまいます．シグナルのアクセス制御を行うにはプロファイル中でMAC_FOR_SIGNALを有効にします．今回使用しているプロファイルでは有効になっているので，シグナルの送信要求を制限することができます．シグナルに関するアクセス許可の構文は，「allow_signal シグナル番号 送信先ドメイン名」となっています．シグナルの送信先となるプロセスが属しているドメインのドメイン名が「送信先ドメイン名」で始まる場合に， 「シグナル番号」の種類のシグナルを送信できます（いくつか例外がありますが，通常は気にする必要はありません．詳細についてはプロジェクトのwebページのポリシー仕様書を参照ください） ．</p>
+
+<h2>仕上げ</h2>
+
+<h3>学習モードと確認モードを繰り返す</h3>
+
+<p>再度学習モードで学習を行い，確認モードで許可したい操作を行ってください．警告メッセージが表示されないようになれば学習は完了です．確認モードでポリシーエディタを実行し，ログインシェルのドメインに対して不適切なアクセス許可（たとえば/etc/shadowへのアクセス許可や SSH秘密鍵へのアクセス許可など）がないことを確認してください．</p>
 
 <h3>強制モードに切り替える</h3>
 
-<p>ポリシーエディタを実行して &lt;kernel&gt; /usr/sbin/httpdドメイン以下を選択し，「S」を押してから3を入力して「ENTER」を押します．つまり，&lt;kernel&gt;  /usr/sbin/httpdドメイン以下が強制モードになります．これによりApacheとApacheから起動されるMovable TypeのCGIが保護されている状態になります．今回作成したポリシーは，パス名をpath_group構文で，IPアドレスをaddress_group構文でグループ化しています．そのため，同様な構成で動作するシステムであれば，ポリシーファイルをコピーしてpath_groupやaddress_groupを修正するだけで再利用できることでしょう．筆者はMovable Typeについては初心者であり，まだ試していない機能がたくさんあります．手順としては本稿で説明したとおりですが，もし他に学習させるべき操作や注意点などコメントがあればご連絡いただければ幸いです．</p>
+<p>ポリシーエディタを用いてログインシェルのドメインとその子孫ドメインに対してプロファイル3を割り当てます．ポリシーエディタなどを用いてポリシーを変更できるのはrootユーザだけです．rootユーザの操作を制限するつもりがないのならこのままでもかまいませんが，rootユーザで行う作業の一部を委託する場合，SSHログインしたログインシェルからポリシーエディタを用いてアクセス制御を無効化されてしまっては困ります．そのため，自分以外にrootユーザとしてSSHログインさせる場合には，ログインシェルのドメイン（&lt;kernel&gt; /usr/sbin/sshd /bin/bash）からポリシーエディタ（ccs-editpolicyやccs-setprofileなど）の実行許可と/proc/ccs/\*へのアクセス許可を削除しておくのを忘れないでください．</p>
 
-<h3>さらに高度なチューニング</h3>
-
-<p>TOMOYO Linuxでは必要に応じてアクセス許可に条件を付与することができます．</p>
-
-<h4>①rootにmt.cgiを実行させない</h4>
-
-<p>たとえば， &lt;kernel&gt; /usr/sbin/httpd ドメインに与えられた/var/www/cgi-bin/mt/mt.cgiに対する実行許可に対して「if task.uid!=0 task.euid!=0 task.gid!=0 task.egid!=0」という条件を追加することで，rootユーザの権限のまま/var/www/cgi-bin/mt/mt.cgiが実行されないようにすることができます（図28） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図28 rootユーザでの実行を禁止
-<pre>
-allow_execute /var/www/cgi-bin/mt/mt.cgi if task.uid!=0 task.euid!=0 task.gid!=0 task.egid!=0
-allow_read /var/www/cgi-bin/mt/mt.cgi if task.uid!=0 task.euid!=0 task.gid!=0 task.egid!=0
-</pre>
-</td></tr>
-</table>
-
-<h4>②所有者以外にblogデータをアクセスさせない</h4>
-
-<p>Movable Typeがアクセスするファイルに対して「if task.uid=path1.uid」という条件を追加することで，所有者以外の権限で動作しているMovable Typeプロセスからアクセスさせないようにすることができます（図29） ．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図29 自分のホームディレクトリ内だけ読み書きを許可
-<pre>
-allow_read/write /home/\*/public_html/blog/\* if task.uid=path1.uid
-</pre>
-</td></tr>
-</table>
-
-<p>これは，/usr/sbin/suexec経由でMovable Typeを実行している場合に，他人からアクセスされないようにする場合に利用できます．</p>
+<p>以上でTOMOYO Linuxを用いてログインセッションを制限する方法の説明は終わりです．</p>
 
 <h2>次回予告</h2>
 
-<p>今回は，Movable Typeのポリシーをチューニングして，実際に保護するまでの手順について解説しました．利用するパッケージの構成などが変わっても行うべき手順としては今回と大きく変わることはありません．ぜひご自分の環境でTOMOYO Linuxによるセキュリティ強化にチャレンジいただきたいと思います．次回からは，TOMOYO Linux 1.7.2の機能をフル活用して，システムにログインして行う操作を制限する方法について解説します．</p>
-
-<p>本連載では，読者の方々が実際にTOMOYO Linuxを使ううえで参考になるような情報をご紹介したいと思っています．ご利用に際して，不明な点，難しいとお感じになった点，また今後の連載に関するご要望などあれば，お気軽にメーリングリストでご質問ください．</p>
+<p>次回からは本格的にブログのポリシーを生成します．</p>
 
 <p><a href="tutorial-8.html.ja">第８回へ戻る</a>　<a href="tutorial-10.html.ja">第１０回へ進む</a></p>
 
