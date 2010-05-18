@@ -106,11 +106,11 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図６　curl コマンドを実行したドメインのアクセス許可<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig04.jpg" alt="sd200704-fig04.jpg">
+<img src="tutorial/fig-7-6.png" alt="fig-7-6.png">
 </td></tr>
 </table>
 
-<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.10.1 53 」という部分は， UDP プロトコルを用いてＤＮＳサーバ 192.168.10.1 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
+<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
 
 <h4>(2)サーバ側の学習</h4>
 
@@ -139,11 +139,14 @@
 <table border="1" summary="fig">
 <tr><td>
 ■図９　&lt;kernel&gt; /usr/sbin/sshd ドメインに対するアクセス許可<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig07.jpg" alt="sd200704-fig07.jpg">
+<img src="tutorial/fig-7-9.png" alt="fig-7-9.png">
 </td></tr>
 </table>
 
-<p>図９では「 allow_network TCP accept 127.0.0.1 51051 」としてアクセス許可が与えられていますが，もしＩＰｖ６が有効になっている場合はＩＰｖ６のアドレスになりますので注意してください．ファイルに対するアクセス許可と同様に，ネットワークに対するアクセス許可にも条件を付与することができます．たとえば，図１０のようにプロセスのユーザＩＤと組み合わせることで，ユーザごとに接続可能なサーバを制限したりすることもできます．</p>
+<p>「 allow_network TCP accept 0:0:0:0:0:ffff:7f00:1 34561 」という部分は， 0:0:0:0:0:ffff:7f00:1 というＩＰｖ６アドレスを持つホストのポート 34561 からのＴＣＰコネクションを受け付けることを許可するという意味です．</p>
+
+<p>ファイルに対するアクセス許可と同様に，ネットワークに対するアクセス許可にも条件を付与することができます．たとえば，図１０のようにプロセスのユーザＩＤと組み合わせることで，ユーザごとに接続可能なサーバを制限したりすることもできます．</p>
+
 <table border="1" summary="fig">
 <tr><td>
 ■図１０　ユーザごとに接続可能なサーバを制限
@@ -168,7 +171,7 @@ allow_network TCP connect 66.35.250.203 80 if task.uid=501
 <table border="1" summary="fig">
 <tr><td>
 ■図１２　ping コマンドの動作するドメインに対するアクセス許可<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig09.jpg" alt="sd200704-fig09.jpg">
+<img src="tutorial/fig-7-12.png" alt="fig-7-12.png">
 </td></tr>
 </table>
 
@@ -421,7 +424,7 @@ mount: permission denied
 <table border="1" summary="fig">
 <tr><td>
 ■図３０　allow_capability SYS_MOUNT というアクセス許可が学習されている<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig18.jpg" alt="sd200704-fig18.jpg">
+<img src="tutorial/fig-7-30.png" alt="fig-7-30.png">
 </td></tr>
 </table>
 
@@ -456,13 +459,13 @@ mount: permission denied
 </td></tr>
 </table>
 
-<p>この状態で，別の画面を開いてログインしてください．説明のために，先に強制モード用のプロファイル（14）を割り当てます（図３３）．</p>
+<p>この状態で，別の画面を開いてログインしてください．説明のために，先に強制モード用のプロファイル（12）を割り当てます（図３３）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図３３　強制モード用プロファイルを使用
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 14 &lt; /proc/ccs/self_domain
+# xargs -0 /usr/sbin/ccs-setprofile -r 12 &lt; /proc/ccs/self_domain
 </pre>
 </td></tr>
 </table>
@@ -481,13 +484,13 @@ kill 4649: Operation not permitted
 </td></tr>
 </table>
 
-<p>拒否されました．これは， kill コマンドが動作するドメインに対して， sleep コマンドが動作するドメインへシグナルを送信する権限が与えられていないためです．次に，学習モード用のプロファイル（13）を割り当て（図３５），再度シグナルを送信します（図３６）．</p>
+<p>拒否されました．これは， kill コマンドが動作するドメインに対して， sleep コマンドが動作するドメインへシグナルを送信する権限が与えられていないためです．次に，学習モード用のプロファイル（11）を割り当て（図３５），再度シグナルを送信します（図３６）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図３５　学習モード用プロファイルを使用
 <pre>
-# xargs -0 /usr/sbin/ccs-setprofile -r 13 &lt; /proc/ccs/self_domain
+# xargs -0 /usr/sbin/ccs-setprofile -r 11 &lt; /proc/ccs/self_domain
 </pre>
 </td></tr>
 </table>
@@ -506,7 +509,7 @@ kill 4649: Operation not permitted
 <table border="1" summary="fig">
 <tr><td>
 ■図３７　kill コマンドを実行したドメインのアクセス許可<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-4&amp;src=sd200704-fig25.jpg" alt="sd200704-fig25.jpg">
+<img src="tutorial/fig-7-37.png" alt="fig-7-37.png">
 </td></tr>
 </table>
 
