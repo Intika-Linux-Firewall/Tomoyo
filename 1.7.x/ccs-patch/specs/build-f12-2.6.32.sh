@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32.11-99.fc12.src.rpm ]
+if [ ! -r kernel-2.6.32.12-115.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.11-99.fc12.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.12-115.fc12.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32.11-99.fc12.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32.11-99.fc12.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32.12-115.fc12.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32.12-115.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
@@ -28,16 +28,16 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -15,7 +15,7 @@
- # that the kernel isn't the stock distribution kernel, for example,
- # by setting the define to ".local" or ".bz123456"
+@@ -22,7 +22,7 @@
+ # appended to the full kernel version.
  #
+ # (Uncomment the '#' and the first two spaces below to set buildid.)
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.2
+ ###################################################################
  
- # fedora_build defines which build revision of this kernel version we're
- # building. Rather than incrementing forever, as with the prior versioning
-@@ -410,6 +410,11 @@
+ # The buildid can also be specified on the rpmbuild command line
+@@ -430,6 +430,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -445,7 +450,7 @@
+@@ -465,7 +470,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut >= 002 xorg-x11-drv-ati-firmware
  %else
-@@ -481,7 +486,7 @@
+@@ -501,7 +506,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -889,7 +894,7 @@
+@@ -932,7 +937,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -76,18 +76,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1444,6 +1449,10 @@
- 
+@@ -1513,6 +1518,10 @@
  # END OF PATCH APPLICATIONS ====================================================
+ %endif
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100412.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-fedora-12.diff
 +
- %endif
- 
  # Any further pre-build tree manipulations happen here.
-@@ -1470,6 +1479,9 @@
+ 
+ chmod +x scripts/checkpatch.pl
+@@ -1537,6 +1546,9 @@
  for i in *.config
  do
    mv $i .config
