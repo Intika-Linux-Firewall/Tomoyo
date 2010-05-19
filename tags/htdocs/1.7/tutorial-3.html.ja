@@ -22,7 +22,7 @@
 
 <h3>TOMOYO Linux におけるドメイン遷移の原則</h3>
 
-<p>第２回で説明したように， TOMOYO Linux では原則としてプログラムを実行するたびにドメイン遷移が発生します（図１）．</p>
+<p>第１回で説明したように， TOMOYO Linux では原則としてプログラムを実行するたびにドメイン遷移が発生します（図１）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -57,7 +57,7 @@
 
 <h4>●条件付きでドメイン遷移を初期化させる</h4>
 
-<p>前述したように，「 initialize_domain プログラム名」と指定しておくと， 「プログラム名」で指定されたプログラムが実行された場合，「 &lt;kernel&gt; プログラム名」というドメインへ遷移します．（図４） ．</p>
+<p>前述したように，「 initialize_domain プログラム名」と指定しておくと， 「プログラム名」で指定されたプログラムが実行された場合，「 &lt;kernel&gt; プログラム名」というドメインへ遷移します．（図４）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -66,7 +66,7 @@
 </td></tr>
 </table>
 
-<p>しかし，「 initialize_domain プログラム名 from ドメイン名」のように「ドメイン名」と一緒に指定しておくと，「プログラム名」で指定されたプログラムが「ドメイン名」で指定されたドメインから実行された場合に限り「 &lt;kernel&gt; プログラム名」というドメインへ遷移します（図５） ．</p>
+<p>しかし，「 initialize_domain プログラム名 from ドメイン名」のように「ドメイン名」と一緒に指定しておくと，「プログラム名」で指定されたプログラムが「ドメイン名」で指定されたドメインから実行された場合に限り「 &lt;kernel&gt; プログラム名」というドメインへ遷移します（図５）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -102,7 +102,7 @@
 </td></tr>
 </table>
 
-<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけを指定することも可能です．たとえば， 「ドメイン名」として /bin/bash を指定した場合，ドメイン名が /bin/bash で終わるすべてのドメインに対してkeep_domainが指定されたものとして扱われます（図８） ．</p>
+<p>「ドメイン名」の部分は &lt;kernel&gt; で始まる完全なドメイン名ではなく，ドメイン名の最後のパス名だけを指定することも可能です．たとえば， 「ドメイン名」として /bin/bash を指定した場合，ドメイン名が /bin/bash で終わるすべてのドメインに対してkeep_domainが指定されたものとして扱われます（図８）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -122,7 +122,7 @@
 </td></tr>
 </table>
 
-<p>しかし，「 keep_domain プログラム名 from ドメイン名」のように指定した場合， 「ドメイン名」で指定されたドメインから「プログラム名」で指定されたプログラムが実行された場合に限り，ドメイン遷移が発生しなくなります（図１０） ．</p>
+<p>しかし，「 keep_domain プログラム名 from ドメイン名」のように指定した場合， 「ドメイン名」で指定されたドメインから「プログラム名」で指定されたプログラムが実行された場合に限り，ドメイン遷移が発生しなくなります（図１０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -137,7 +137,7 @@
 
 <p>「 no_keep_domain プログラム名 from ドメイン名」と指定しておくと， 「ドメイン名」で指定されたドメインから「プログラム名」が実行される場合には keep_domain キーワードによる指定を無視します．</p>
 
-<p>たとえば，「 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定がされている場合に「 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことで，デフォルトではドメイン遷移をさせないようにしながら「 /bin/cat 」を実行する場合には「 &lt;kernel&gt;/usr/sbin/sshd /bin/bash /bin/cat 」ドメインへ遷移させるようにすることができます（図１１） ．</p>
+<p>たとえば，「 keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定がされている場合に「 no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」という指定を行うことで，デフォルトではドメイン遷移をさせないようにしながら「 /bin/cat 」を実行する場合には「 &lt;kernel&gt;/usr/sbin/sshd /bin/bash /bin/cat 」ドメインへ遷移させるようにすることができます（図１１）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
