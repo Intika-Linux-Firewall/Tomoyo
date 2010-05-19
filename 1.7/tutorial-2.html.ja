@@ -49,20 +49,21 @@ PROFILE_VERSION=20090903
 
 <p>前回は learning を指定したので，学習モードとして動作していました．その結果，発生したすべてのファイルに関するアクセス要求が許可され，その内容がシステム起動時に読み込まれたポリシーに追加されていったわけです．</p>
 
-<p>ポリシーを策定する基本的な流れについて図３に示します．この流れに沿って，今回は確認モードと強制モードを使用してみます．</p>
+<p>ポリシーを策定する基本的な流れは以下のようになります．</p>
+
+<ol>
+<li>学習モードにする・・・アクセスを制限したい対象を決めて，許可したい操作を行うことでポリシーを生成する．</li>
+<li>確認モードにする・・・操作に必要な許可がポリシーに与えられているかどうかを確認する．必要に応じてポリシーをチューニングする．</li>
+<li>強制モードにする・・・運用を開始する．</li>
+</ol>
+
+<p>この流れに沿って，今回は確認モードと強制モードを使用してみます．</p>
+
+<p>起動時に制御モードを切り替えたい場合は， /etc/ccs/profile.conf の内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevel または ccs-editpolicy コマンドを使用します．たとえば，図３のコマンドを実行すると確認モードに，図４を実行すると強制モードになります（ TOMOYO Linux の確認モードが SELinux の permissive モードに，強制モードが SELinux の enforcing モードに相当します）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図３　ポリシー作成の流れ<br>
-<img src="tutorial/fig-2-3.png" alt="fig-2-3.png">
-</td></tr>
-</table>
-
-<p>起動時に制御モードを切り替えたい場合は， /etc/ccs/profile.conf の内容を編集します．起動後に制御モードを切り替えたい場合は ccs-setlevel または ccs-editpolicy コマンドを使用します．たとえば，図４のコマンドを実行すると確認モードに，図５を実行すると強制モードになります（ TOMOYO Linux の確認モードが SELinux の permissive モードに，強制モードが SELinux の enforcing モードに相当します）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図４　確認モードに変更
+■図３　確認モードに変更
 <pre>
 # /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=permissive }'
 0-CONFIG::file={ mode=permissive grant_log=yes reject_log=yes }
@@ -72,7 +73,7 @@ PROFILE_VERSION=20090903
 
 <table border="1" summary="fig">
 <tr><td>
-■図５　強制モードに変更
+■図４　強制モードに変更
 <pre>
 # /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=enforcing }'
 0-CONFIG::file={ mode=enforcing grant_log=yes reject_log=yes }
@@ -84,11 +85,18 @@ PROFILE_VERSION=20090903
 
 <h3>プロファイルについて</h3>
 
-<p>TOMOYO Linux では，強制アクセス制御のモードについてドメイン単位で指定することが可能です．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義を複数作成し， ccs-setprofile または ccs-editpolicy コマンドを用いてプロファイルをドメインに割り当てて使用します（図６）． ccs-setprofile コマンドの使い方は後述します．</p>
+<p>TOMOYO Linux では，強制アクセス制御のモードについてドメイン単位で指定することが可能です．任意のドメインについて他のドメインとは独立に制御モードを変更することができます．そのために，プロファイルと呼ばれる制御モードの定義を複数作成し（図５）， ccs-setprofile または ccs-editpolicy コマンドを用いてプロファイルをドメインに割り当てて使用します（図６）． ccs-setprofile コマンドの使い方は後述します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図６　プロファイルを作成してドメインに割り当てる<br>
+■図５　プロファイルを作成する<br>
+<img src="tutorial/fig-2-5.png" alt="fig-2-5.png">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図６　プロファイルをドメインに割り当てる<br>
 <img src="tutorial/fig-2-6.png" alt="fig-2-6.png">
 </td></tr>
 </table>
