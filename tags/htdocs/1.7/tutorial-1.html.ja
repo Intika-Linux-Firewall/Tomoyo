@@ -240,41 +240,52 @@ PROFILE_VERSION=20090903
 
 <h3>ポリシーエディタで確認</h3>
 
-<p>それでは，実際に TOMOYO Linux が学習した内容を確認してみましょう． TOMOYO Linux には，ＣＵＩのポリシーエディタが付属しています（図１５）． root でログインして，コマンド ccs-editpolicy を実行してください（ ccs-editpolicy は /usr/sbin/ の下にあります． TOMOYO Linux カーネルで起動した場合でなければ実行できませんので注意ください）．</p>
+<p>それでは，実際に TOMOYO Linux が学習した内容を確認してみましょう． TOMOYO Linux には，ＣＵＩのポリシーエディタが付属しています． root でログインして， ccs-editpolicy コマンドを実行してください（図１５．図１２で TOMOYO Linux カーネルを選択しなかった場合はエラーメッセージが表示されます）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１５　ポリシーエディタ起動直後の画面<br>
-<img src="tutorial/fig-1-15.png" alt="fig-1-15.png">
+■図１５　ポリシーエディタを実行する
+<pre>
+# /usr/sbin/ccs-savepolicy
+</pre>
 </td></tr>
 </table>
 
-<p>ポリシーエディタには複数の機能がありますが，起動直後は「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」（ドメイン遷移エディタ）となっています．「↑」あるいは「↓」により， TOMOYO Linux が「学習」したドメインの遷移内容を一覧してみましょう．図１６は， /sbin/init からのドメイン遷移で，画面最上部より全部で 342 のドメインが学習されていることがわかります（この数値は同じディストリビューションであっても，学習内容，設定により変わりますので一致しなくても問題ではありません）．</p>
+<p>ポリシーエディタには複数の機能がありますが，起動直後は「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」（ドメイン遷移エディタ）となっています（図１６）．画面の１行目はタイトルを表示する領域，２行目はメッセージを表示する領域，３行目は現在カーソルのある行のドメイン名を表示する領域です．４行目以降について，先頭の数字が行番号，２番目の数字がプロファイル番号です（プロファイル番号については次回説明します）．図１６では全部で 342 のドメイン遷移が学習されていることがわかります（プロファイル番号やドメイン遷移の数は操作内容や設定により変化します）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１６　/sbin/initのドメイン<br>
+■図１６　ポリシーエディタ起動直後の画面<br>
 <img src="tutorial/fig-1-16.png" alt="fig-1-16.png">
 </td></tr>
 </table>
 
-<p>ここでは具体例として，実行しているポリシーエディタ自体のドメインの学習内容について調べてみましょう．「 F 」を入力すると，カーソルが最下行に移り入力待ちとなるので， ccs-editpolicy と入力して「 ENTER 」を押すと，現在操作を行っているポリシーエディタのドメインにカーソルが移動します（図１７）．</p>
+<p>矢印キーを用いてスクロールしながら TOMOYO Linux が「学習」したドメインの遷移内容を一覧してみましょう．図１７は /sbin/init からのドメイン遷移です． /sbin/init から /etc/rc.d/rc が実行され， /etc/rc.d/rc から /etc/rc.d/init.d/ ディレクトリにあるプログラムを実行していることがわかります．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１７　/usr/sbin/ccs-editpolicyのドメイン<br>
+■図１７　/sbin/initのドメイン<br>
 <img src="tutorial/fig-1-17.png" alt="fig-1-17.png">
 </td></tr>
 </table>
 
-<p>この場合では，ポリシーエディタはコンソールから起動された bash から起動されていることがわかります（ sshd からログインして起動した場合には /usr/sbin/sshd を含むドメインになっているはずです）．画面３行目には現在選択されているドメイン名が表示され， TOMOYO Linux はポリシーエディタのドメインを「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」として認識していることがわかります．</p>
-
-<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「 ENTER 」を入力します．すると図１８のような画面になるはずです．画面の最上部の行が「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」になりました．この画面は，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」ドメインのアクセス制御内容で，画面では現在７つの内容が登録されています．各行の先頭の数字は行番号です． allow_read/write は「読み書きモードでのオープンを許可」， allow_read は「読み込みモードでのオープンを許可」， allow_ioctl は「指定された番号での ioctl 要求を許可」を意味します．</p>
+<p>ここでは具体例として，実行しているポリシーエディタ自体のドメインのアクセス制御の内容について調べてみましょう．「 F 」を入力すると，カーソルが最下行に移り入力待ちとなるので， ccs-editpolicy と入力して「 ENTER 」を押すと，現在操作を行っているポリシーエディタのドメインにカーソルが移動します（図１８）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１８　/usr/sbin/ccs-editpolicyのドメインに対するアクセス許可<br>
+■図１８　/usr/sbin/ccs-editpolicyのドメイン<br>
 <img src="tutorial/fig-1-18.png" alt="fig-1-18.png">
+</td></tr>
+</table>
+
+<p>図１８では， TOMOYO Linux はポリシーエディタのドメインを「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」（ mingetty から起動された login から起動された bash から起動された ccs-editpolicy ）として認識していることがわかります（ sshd から起動された bash から起動された ccs-editpolicy の場合には「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/sbin/ccs-editpolicy 」として認識します）．</p>
+
+<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「 ENTER 」を入力します．すると図１９のような画面になるはずです．画面の最上部の行が「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」になりました．この画面は，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」ドメインのアクセス制御内容で，画面では現在７つの内容が登録されています．４行目以降について，各行の先頭の数字は行番号です． allow_read/write は「読み書きモードでのオープンを許可」， allow_read は「読み込みモードでのオープンを許可」， allow_ioctl は「指定された番号での ioctl 要求を許可」を意味します．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１９　/usr/sbin/ccs-editpolicyのドメインに対するアクセス許可<br>
+<img src="tutorial/fig-1-19.png" alt="fig-1-19.png">
 </td></tr>
 </table>
 
@@ -288,33 +299,33 @@ PROFILE_VERSION=20090903
 
 <h3>プロセスとドメインの関係を確認</h3>
 
-<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccs-pstree というコマンドを実行してください．プロファイル番号，プロセス名，プロセスＩＤ，ドメイン名の順番で pstree のように出力されます（図１９）．</p>
+<p>現在実行中のプロセスが属しているドメインとそのドメインに割り当てられているプロファイルを確認するには ccs-pstree コマンドを実行してください．プロファイル番号，プロセス名，プロセスＩＤ，ドメイン名の順番で pstree のように出力されます（図２０）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１９　実行中のプロセスに割り当てられているドメインを表示<br>
-<img src="tutorial/fig-1-19.png" alt="fig-1-19.png">
+■図２０　実行中のプロセスに割り当てられているドメインを表示<br>
+<img src="tutorial/fig-1-20.png" alt="fig-1-20.png">
 </td></tr>
 </table>
 
 <h3>ポリシーファイルの保存と読み込み</h3>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを使います． ccs-savepolicy を実行する（図２０）ことで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．
+<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを実行してください（図２１）． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．
 
 <table border="1" summary="fig">
 <tr><td>
-■図２０　カーネル内のポリシーをディスク上のファイルに保存する
+■図２１　カーネル内のポリシーをディスク上のファイルに保存する
 <pre>
 # /usr/sbin/ccs-savepolicy
 </pre>
 </td></tr>
 </table>
 
-<p>TOMOYO Linux のポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには， ccs-loadpolicy コマンドを使用します（図２１）．</p>
+<p>TOMOYO Linux のポリシーはファイル名，ディレクトリ名をそのまま用いたテキストファイルとなっています．ディスク上に保存されているポリシーをカーネル内部に読み込むには， ccs-loadpolicy コマンドを実行してください（図２２）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２１　ディスク上のポリシーファイルをカーネルに読み込ませる
+■図２２　ディスク上のポリシーファイルをカーネルに読み込ませる
 <pre>
 # /usr/sbin/ccs-loadpolicy af
 </pre>
