@@ -77,7 +77,7 @@ echo 'Incorrect password.'
 
 <h4>●準備</h4>
 
-<p>「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」（ sshd からログインした場合のログインシェルのドメイン）に対してアクセス制御を有効にし，ポリシーで許可されたプログラムしか実行できない状態にします（「 &lt;kernel&gt; /usr/sbin/sshd 」（ sshd のドメイン）にもアクセス制御を適用しないと， sshd から /bin/tcsh などを実行することで回避されてしまうので注意してください．）．</p>
+<p>「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」（ /usr/sbin/sshd からログインした場合のログインシェルのドメイン）に対してアクセス制御を有効にし，ポリシーで許可されたプログラムしか実行できない状態にします（「 &lt;kernel&gt; /usr/sbin/sshd 」（ /usr/sbin/sshd のドメイン）にもアクセス制御を適用しないと， /usr/sbin/sshd から /bin/tcsh などを実行することで回避されてしまうので注意してください．）．</p>
 
 <p>まず，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインが keep_domain に指定されていないことを確認してください（ keep_domain については連載第３回で紹介しました）．もし， keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash という指定がされていた場合はポリシーエディタを使用して削除してください．</p>
 
@@ -92,7 +92,7 @@ echo 'Incorrect password.'
 
 <h4>●学習</h4>
 
-<p>この連載の２回目で図３のプロファイルを定義しましたので，今回も同じプロファイルを使用します． sshd からログインしたドメインを学習モードにします．コンソールから図４のコマンドを実行してください．</p>
+<p>この連載の２回目で図３のプロファイルを定義しましたので，今回も同じプロファイルを使用します． /usr/sbin/sshd からログインしたドメインを学習モードにします．コンソールから図４のコマンドを実行してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -119,7 +119,7 @@ PREFERENCE::enforcing={ verbose=yes }
 </td></tr>
 </table>
 
-<p>sshd からログインして， /bin/auth1 を実行します．パスワードを尋ねられるので SAKURA と入力して Enter を押します．認証が成功し， $SHELL に指定されている /bin/bash が起動されます（図５）．</p>
+<p>/usr/sbin/sshd からログインして， /bin/auth1 を実行します．パスワードを尋ねられるので SAKURA と入力して Enter を押します．認証が成功し， $SHELL に指定されている /bin/bash が起動されます（図５）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -132,7 +132,7 @@ Password: SAKURA
 </td></tr>
 </table>
 
-<p>以上で追加の認証を行うのに必要なアクセス許可が学習されました． exit コマンドを２回実行して sshd からログアウトしてください．</p>
+<p>以上で追加の認証を行うのに必要なアクセス許可が学習されました． exit コマンドを２回実行して /usr/sbin/sshd からログアウトしてください．</p>
 
 <h4>●確認と強制</h4>
 
@@ -148,7 +148,7 @@ Password: SAKURA
 </td></tr>
 </table>
 
-<p>この状態で sshd からログインして， /bin/auth1 を実行します．エラーメッセージが表示されないことを確認してください．確認したら，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにします．コンソールから図７のコマンドを実行してください．</p>
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth1 を実行します．エラーメッセージが表示されないことを確認してください．確認したら，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにします．コンソールから図７のコマンドを実行してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -186,7 +186,7 @@ Incorrect password.
 </td></tr>
 </table>
 
-<p>せっかく sshd からログインしましたが，侵入者には何が許可されているかはわかりません（ポリシーを参照するためのポリシーが定義されていないからです）．思いつくままにさまざまなコマンドを実行しても，もちろん auth1 以外のコマンドは拒否されます．もし侵入者がセキュアＯＳのことを知らなかったらさぞや驚くことでしょう．</p>
+<p>せっかく /usr/sbin/sshd からログインしましたが，侵入者には何が許可されているかはわかりません（ポリシーを参照するためのポリシーが定義されていないからです）．思いつくままにさまざまなコマンドを実行しても，もちろん auth1 以外のコマンドは拒否されます．もし侵入者がセキュアＯＳのことを知らなかったらさぞや驚くことでしょう．</p>
 
 <p>侵入者は結局ログアウトするしかありません．仮に侵入者が /bin/auth1 というプログラムを実行できるということに気が付いたとしても，そのスクリプトの処理内容を読めませんからその処理の内容を知ることはできません（ただし，シェルスクリプトの場合，環境変数 SHELLOPTS に verbose:noexec が定義されていると /bin/auth1 を実行することでプログラムの内容が丸見えになってしまいますので，実際のシステムに適用する場合には環境変数の影響を受けない言語で作成することを推奨します．）．やはりログアウトするしかありません．</p>
 
@@ -220,7 +220,7 @@ echo 'Incorrect password.'
 
 <h3>本方法が適用できない場合</h3>
 
-<p>上で紹介した追加認証による防御は，ＳＳＨや Telnet やコンソールログインのようにプロセスとユーザの対応付けを維持でき，任意のコマンドを実行できるシェルが提供されている場合にのみ利用可能です．毎回ＴＣＰコネクションを切断してしまうＨＴＴＰによるログインや，シェルが提供されないＦＴＰによるログインなどには適用できません．</p>
+<p>上で紹介した追加認証による防御は，ＳＳＨやＴｅｌｎｅｔやコンソールログインのようにプロセスとユーザの対応付けを維持でき，任意のコマンドを実行できるシェルが提供されている場合にのみ利用可能です．毎回ＴＣＰコネクションを切断してしまうＨＴＴＰによるログインや，シェルが提供されないＦＴＰによるログインなどには適用できません．</p>
 
 <p>scp や sftp などのようにログインシェルから直接起動されるプログラムに対してこの手法を使うには， TOMOYO Linux が提供する execute_handler 機能を利用します．（ execute_handler 機能については後述します．）さらに，セキュアＯＳの持つ強制アクセス制御によりアクセス可能な資源を限定することもできます．たとえばホームディレクトリ直下の scp というディレクトリ以下だけアクセスできるようにすることができます． scp や sftp はログインシェルから直接起動されるため，それらの動作するドメインは「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp 」や「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/libexec/openssh/sftp-server 」のようになりますので，ポリシーのイメージとしては図１０のようになります（ライブラリファイルなどは省略しています）．</p>
 
@@ -330,7 +330,7 @@ allow_read/write @SCP_FILE
 </td></tr>
 </table>
 
-<p>この状態で sshd からログインして， /bin/auth1 と /bin/auth2 を実行します．認証に成功すると，それぞれ「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメインと「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインが作成され，必要なアクセス許可が学習されます．</p>
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth1 と /bin/auth2 を実行します．認証に成功すると，それぞれ「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメインと「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインが作成され，必要なアクセス許可が学習されます．</p>
 
 <p>確認したら，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメイン以下を学習モードにします．コンソールから図１６のコマンドを実行してください．</p>
 
@@ -345,7 +345,7 @@ allow_read/write @SCP_FILE
 </td></tr>
 </table>
 
-<p>この状態で sshd からログインして， /bin/auth2 を実行します．認証に成功すると「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインに遷移します．このドメインは keep_domain に指定されているので，これ以上遷移することはありません．</p>
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth2 を実行します．認証に成功すると「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインに遷移します．このドメインは keep_domain に指定されているので，これ以上遷移することはありません．</p>
 
 <p>ここで， Web サーバを再起動させるのに必要なアクセス許可を学習させてみましょう（図１７）．</p>
 
@@ -441,15 +441,15 @@ allow_read/write @SCP_FILE
 
 <h3>サーバ自身のネットワークの制限</h3>
 
-<p>sshd にはポート転送など TCP コネクションを中継する機能があります． sshd のドメイン（ &lt;kernel&gt; /usr/sbin/sshd ドメイン）に対して次回紹介する CONFIG::network による制限を行うことで，より強固な防御を行うことができるようになります．</p>
+<p>/usr/sbin/sshd にはポート転送などＴＣＰコネクションを中継する機能があります． /usr/sbin/sshd のドメイン（ &lt;kernel&gt; /usr/sbin/sshd ドメイン）に対して次回紹介する CONFIG::network による制限を行うことで，より強固な防御を行うことができるようになります．</p>
 
-<p>サーバからクライアントへ向けて TCP コネクションを確立する必要のないサーバの場合， CONFIG::network による制限をしておくことで，ワームやウィルスなどにより他のサーバへ攻撃するための踏み台として利用されてしまうのを防ぐ効果もあります．</p>
+<p>サーバからクライアントへ向けてＴＣＰコネクションを確立する必要のないサーバの場合， CONFIG::network による制限をしておくことで，ワームやウィルスなどにより他のサーバへ攻撃するための踏み台として利用されてしまうのを防ぐ効果もあります．</p>
 
 <p>使う必要がないことがわかっている機能であれば，強制アクセス制御により明示的に使わせないようにしておく価値があります．</p>
 
 <h3>公開鍵認証によるバッチ処理</h3>
 
-<p>公開鍵認証を用いて sshd から自動ログインしてバッチ処理を行う場合があります．そのような場合にも今回紹介した手法が役に立ちます．</p>
+<p>公開鍵認証を用いて /usr/sbin/sshd から自動ログインしてバッチ処理を行う場合があります．そのような場合にも今回紹介した手法が役に立ちます．</p>
 
 <p>バッチ処理のためのアカウントで使うログインシェルを，対話的処理のためのアカウントで使うログインシェル（この連載では /bin/bash を使用しています）とは異なるシェル（たとえば /bin/tcsh ）にするだけで，「 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh 」のようにドメインを分離することができるようになります（図２４）．</p>
 
