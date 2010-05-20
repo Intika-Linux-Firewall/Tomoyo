@@ -289,7 +289,7 @@ allow_read/write @SCP_FILE
 
 <h3>構築してみよう</h3>
 
-<p>例として， Web サーバの管理（ Web サーバの再起動やコンテンツの更新）だけを別の人に委託したい場合で説明します．ログインシェルとして /bin/bash が指定されているものと仮定します．</p>
+<p>例として，Ｗｅｂサーバの管理（Ｗｅｂサーバの再起動やＷｅｂコンテンツの更新）だけを別の人に委託したい場合で説明します．ログインシェルとして /bin/bash が指定されているものと仮定します．</p>
 
 <p>実際に構築するのに必要な手法はすでに説明済みです．不正ログイン対策では認証を直列に配置したのに対し，管理者権限の分割では認証を並列に配置すれば実現できます（図１３，図１４）．</p>
 
@@ -313,7 +313,7 @@ allow_read/write @SCP_FILE
 
 <p>まず，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインが keep_domain に指定されていないことを確認してください．また，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン（ /bin/auth1 を通過後のドメイン）と「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメイン（ /bin/auth2 を通過後のドメイン）をそれぞれ keep_domain に指定してください．</p>
 
-<p>全権を持つ自分を認証するためのプログラムとして /bin/auth1 を， Web サーバの管理権限だけを持つ別の人を認証するためのプログラムとして /bin/auth2 を使うものとします．</p>
+<p>全権を持つ自分を認証するためのプログラムとして /bin/auth1 を，Ｗｅｂサーバの管理権限だけを持つ別の人を認証するためのプログラムとして /bin/auth2 を使うものとします．</p>
 
 <h4>●学習</h4>
 
@@ -347,11 +347,11 @@ allow_read/write @SCP_FILE
 
 <p>この状態で /usr/sbin/sshd からログインして， /bin/auth2 を実行します．認証に成功すると「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインに遷移します．このドメインは keep_domain に指定されているので，これ以上遷移することはありません．</p>
 
-<p>ここで， Web サーバを再起動させるのに必要なアクセス許可を学習させてみましょう（図１７）．</p>
+<p>ここで，Ｗｅｂサーバを再起動させるのに必要なアクセス許可を学習させてみましょう（図１７）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１７　Web サーバの再起動に必要なアクセス許可を学習させる
+■図１７　Ｗｅｂサーバの再起動に必要なアクセス許可を学習させる
 <pre>
 # service httpd start
 # service httpd stop
@@ -372,7 +372,7 @@ allow_read/write @SCP_FILE
 </td></tr>
 </table>
 
-<p>Web コンテンツの更新のためにエディタを必要とするかもしれません．エディタに必要なアクセス許可も学習させてみましょう（図１９）．</p>
+<p>Ｗｅｂコンテンツの更新のためにエディタを必要とするかもしれません．エディタに必要なアクセス許可も学習させてみましょう（図１９）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
