@@ -33,16 +33,16 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -15,7 +15,7 @@
- # that the kernel isn't the stock distribution kernel, for example,
- # by setting the define to ".local" or ".bz123456"
+@@ -23,7 +23,7 @@
+ #
+ # (Uncomment the '#' and both spaces below to set the buildid.)
  #
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.2
+ ###################################################################
  
- # fedora_build defines which build revision of this kernel version we're
- # building. Rather than incrementing forever, as with the prior versioning
-@@ -410,6 +410,11 @@
+ # buildid can also be specified on the rpmbuild command line
+@@ -431,6 +431,11 @@
  # to versions below the minimum
  #
  
@@ -54,16 +54,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -445,7 +450,7 @@
- # Packages that need to be installed before the kernel is, because the %post
- # scripts use them.
- #
--%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, kernel-firmware >= %{rpmversion}-%{pkg_release}, grubby >= 7.0.4-1
-+%define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, grubby >= 7.0.4-1
- %if %{with_dracut}
- %define initrd_prereq  dracut >= 002 xorg-x11-drv-ati-firmware
- %else
-@@ -481,7 +486,7 @@
+@@ -507,7 +512,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -72,7 +63,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -889,7 +894,7 @@
+@@ -945,7 +950,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -81,18 +72,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1444,6 +1449,10 @@
+@@ -1538,6 +1543,10 @@
  
- # END OF PATCH APPLICATIONS ====================================================
+ # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100412.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-2.6.33-fedora13.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100521.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1470,6 +1479,9 @@
+@@ -1564,6 +1573,9 @@
  for i in *.config
  do
    mv $i .config
@@ -115,7 +106,7 @@ sleep 30
 patch << "EOF" || die "Can't patch spec file."
 --- /root/rpmbuild/SPECS/ccs-kernel.spec
 +++ /root/rpmbuild/SPECS/ccs-kernel.spec
-@@ -205,7 +205,7 @@
+@@ -226,7 +226,7 @@
  
  # kernel-PAE is only built on i686.
  %ifarch i686
