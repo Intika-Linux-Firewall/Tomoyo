@@ -86,6 +86,25 @@ int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
 	return CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
 }
 
+/**
+ * ccs_print_ipv4 - Print an IPv4 address.
+ *
+ * @buffer:     Buffer to write to.
+ * @buffer_len: Size of @buffer.
+ * @min_ip:     Min address in host byte order.
+ * @max_ip:     Max address in host byte order.
+ *
+ * Returns nothing.
+ */
+void ccs_print_ipv4(char *buffer, const int buffer_len,
+		    const u32 min_ip, const u32 max_ip)
+{
+	memset(buffer, 0, buffer_len);
+	snprintf(buffer, buffer_len - 1, "%u.%u.%u.%u%c%u.%u.%u.%u",
+		 HIPQUAD(min_ip), min_ip == max_ip ? '\0' : '-',
+		 HIPQUAD(max_ip));
+}
+
 #if !defined(NIP6)
 #define NIP6(addr)							\
 	ntohs((addr).s6_addr16[0]), ntohs((addr).s6_addr16[1]),		\
@@ -99,15 +118,20 @@ int ccs_parse_ip_address(char *address, u16 *min, u16 *max)
  *
  * @buffer:     Buffer to write to.
  * @buffer_len: Size of @buffer.
- * @ip:         Pointer to "struct in6_addr".
+ * @min_ip:     Pointer to "struct in6_addr".
+ * @max_ip:     Pointer to "struct in6_addr".
  *
  * Returns nothing.
  */
 void ccs_print_ipv6(char *buffer, const int buffer_len,
-		    const struct in6_addr *ip)
+		    const struct in6_addr *min_ip,
+		    const struct in6_addr *max_ip)
 {
 	memset(buffer, 0, buffer_len);
-	snprintf(buffer, buffer_len - 1, "%x:%x:%x:%x:%x:%x:%x:%x", NIP6(*ip));
+	snprintf(buffer, buffer_len - 1,
+		 "%x:%x:%x:%x:%x:%x:%x:%x%c%x:%x:%x:%x:%x:%x:%x:%x",
+		 NIP6(*min_ip), min_ip == max_ip ? '\0' : '-',
+		 NIP6(*max_ip));
 }
 
 /**
@@ -171,17 +195,16 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 	/* using host byte order to allow u32 comparison than memcmp().*/
 	const u32 ip = ntohl(*address);
 	int error;
-	char buf[64];
+	char buf[128];
 	const struct ccs_domain_info * const domain = ccs_current_domain();
 	if (ccs_init_request_info(&r, CCS_MAC_NETWORK_UDP_BIND + operation)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
-	memset(buf, 0, sizeof(buf));
 	if (is_ipv6)
 		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
-			       address);
+			       address, (const struct in6_addr *) address);
 	else
-		snprintf(buf, sizeof(buf) - 1, "%u.%u.%u.%u", HIPQUAD(ip));
+		ccs_print_ipv4(buf, sizeof(buf), ip, ip);
 	do {
 		error = -EPERM;
 		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {

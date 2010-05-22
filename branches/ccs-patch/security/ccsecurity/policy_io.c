@@ -1018,6 +1018,40 @@ static bool ccs_print_name_union_quoted(struct ccs_io_buffer *head,
 	return ccs_io_printf(head, "\"%s\"", ptr->filename->name);
 }
 
+static void ccs_print_number(char *buffer, int buffer_len,
+			     const struct ccs_number_union *ptr)
+{
+	int i;
+	unsigned long min = ptr->values[0];
+	const unsigned long max = ptr->values[1];
+	u8 min_type = ptr->value_type[0];
+	const u8 max_type = ptr->value_type[1];
+	memset(buffer, 0, buffer_len);
+	buffer_len -= 2;
+	for (i = 0; i < 2; i++) {
+		int len;
+		switch (min_type) {
+		case CCS_VALUE_TYPE_HEXADECIMAL:
+			snprintf(buffer, buffer_len, "0x%lX", min);
+			break;
+		case CCS_VALUE_TYPE_OCTAL:
+			snprintf(buffer, buffer_len, "0%lo", min);
+			break;
+		default:
+			snprintf(buffer, buffer_len, "%lu", min);
+			break;
+		}
+		if (min == max && min_type == max_type)
+			break;
+		len = strlen(buffer);
+		buffer[len++] = '-';
+		buffer += len;
+		buffer_len -= len;
+		min_type = max_type;
+		min = max;
+	}
+}
+
 /**
  * ccs_print_number_union_common - Print a ccs_number_union.
  *
@@ -1031,43 +1065,14 @@ static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
 					  const struct ccs_number_union *ptr,
 					  const bool need_space)
 {
-	unsigned long min;
-	unsigned long max;
-	u8 min_type;
-	u8 max_type;
+	char buffer[128];
 	if (need_space && !ccs_io_printf(head, " "))
 		return false;
 	if (ptr->is_group)
 		return ccs_io_printf(head, "@%s",
 				     ptr->group->group_name->name);
-	min_type = ptr->min_type;
-	max_type = ptr->max_type;
-	min = ptr->values[0];
-	max = ptr->values[1];
-	switch (min_type) {
-	case CCS_VALUE_TYPE_HEXADECIMAL:
-		if (!ccs_io_printf(head, "0x%lX", min))
-			return false;
-		break;
-	case CCS_VALUE_TYPE_OCTAL:
-		if (!ccs_io_printf(head, "0%lo", min))
-			return false;
-		break;
-	default:
-		if (!ccs_io_printf(head, "%lu", min))
-			return false;
-		break;
-	}
-	if (min == max && min_type == max_type)
-		return true;
-	switch (max_type) {
-	case CCS_VALUE_TYPE_HEXADECIMAL:
-		return ccs_io_printf(head, "-0x%lX", max);
-	case CCS_VALUE_TYPE_OCTAL:
-		return ccs_io_printf(head, "-0%lo", max);
-	default:
-		return ccs_io_printf(head, "-%lu", max);
-	}
+	ccs_print_number(buffer, sizeof(buffer), ptr);
+	return ccs_io_printf(head, "%s", buffer);
 }
 
 /**
@@ -1400,52 +1405,6 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_ipv4_entry - Print IPv4 address of a network ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_ipv4_entry(struct ccs_io_buffer *head,
-				 struct ccs_ip_network_acl *ptr)
-{
-	const u32 min_address = ptr->address.ipv4.min;
-	const u32 max_address = ptr->address.ipv4.max;
-	if (!ccs_io_printf(head, "%u.%u.%u.%u", HIPQUAD(min_address)))
-		return false;
-	if (min_address != max_address
-	    && !ccs_io_printf(head, "-%u.%u.%u.%u", HIPQUAD(max_address)))
-		return false;
-	return true;
-}
-
-/**
- * ccs_print_ipv6_entry - Print IPv6 address of a network ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_ipv6_entry(struct ccs_io_buffer *head,
-				 struct ccs_ip_network_acl *ptr)
-{
-	char buf[64];
-	const struct in6_addr *min_address = ptr->address.ipv6.min;
-	const struct in6_addr *max_address = ptr->address.ipv6.max;
-	ccs_print_ipv6(buf, sizeof(buf), min_address);
-	if (!ccs_io_printf(head, "%s", buf))
-		return false;
-	if (min_address != max_address) {
-		ccs_print_ipv6(buf, sizeof(buf), max_address);
-		if (!ccs_io_printf(head, "-%s", buf))
-			return false;
-	}
-	return true;
-}
-
-/**
  * ccs_print_network_acl - Print a network ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -1461,29 +1420,31 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
+	char buf[128];
 	for (bit = head->read_bit; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
+		const char *w[2] = { "", "" };
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
-				   ccs_net2keyword(bit)))
-			goto out;
 		switch (ptr->address_type) {
 		case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
-			if (!ccs_io_printf(head, "@%s", ptr->address.group->
-					   group_name->name))
-				goto out;
+			w[0] = "@";
+			w[1] = ptr->address.group->group_name->name;
 			break;
 		case CCS_IP_ADDRESS_TYPE_IPv4:
-			if (!ccs_print_ipv4_entry(head, ptr))
-				goto out;
+			ccs_print_ipv4(buf, sizeof(buf), ptr->address.ipv4.min,
+				       ptr->address.ipv4.max);
+			w[0] = buf;
 			break;
 		case CCS_IP_ADDRESS_TYPE_IPv6:
-			if (!ccs_print_ipv6_entry(head, ptr))
-				goto out;
+			ccs_print_ipv6(buf, sizeof(buf), ptr->address.ipv6.min,
+				       ptr->address.ipv6.max);
+			w[0] = buf;
 			break;
 		}
-		if (!ccs_print_number_union(head, &ptr->port) ||
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s %s%s",
+				   ccs_net2keyword(bit), w[0], w[1]) ||
+		    !ccs_print_number_union(head, &ptr->port) ||
 		    !ccs_print_condition(head, cond))
 			goto out;
 	}
@@ -1904,81 +1865,50 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 {
 	struct list_head *gpos;
 	struct list_head *mpos;
+	const char *w[3] = { "", "", "" };
+	if (idx == CCS_PATH_GROUP)
+		w[0] = CCS_KEYWORD_PATH_GROUP;
+	else if (idx == CCS_NUMBER_GROUP)
+		w[0] = CCS_KEYWORD_NUMBER_GROUP;
+	else if (idx == CCS_ADDRESS_GROUP)
+		w[0] = CCS_KEYWORD_ADDRESS_GROUP;
 	list_for_each_cookie(gpos, head->read_var1, &ccs_group_list[idx]) {
 		struct ccs_group *group =
 			list_entry(gpos, struct ccs_group, head.list);
-		const char *name = group->group_name->name;
+		w[1] = group->group_name->name;
 		list_for_each_cookie(mpos, head->read_var2,
 				     &group->member_list) {
+			char buffer[128];
 			struct ccs_acl_head *ptr =
 				list_entry(mpos, struct ccs_acl_head, list);
 			if (ptr->is_deleted)
 				continue;
 			if (idx == CCS_PATH_GROUP) {
-				struct ccs_path_group *member =
-					container_of(ptr, typeof(*member),
-						     head);
-				if (!ccs_io_printf(head, CCS_KEYWORD_PATH_GROUP
-						   "%s %s\n", name,
-						   member->member_name->name))
-					return false;
+				w[2] = container_of(ptr, struct ccs_path_group,
+						    head)->member_name->name;
 			} else if (idx == CCS_NUMBER_GROUP) {
-				const int pos = head->read_avail;
-				const struct ccs_number_group *member =
-					container_of(ptr, typeof(*member),
-						     head);
-				if (!ccs_io_printf(head,
-						   CCS_KEYWORD_NUMBER_GROUP
-						   "%s", name) ||
-				    !ccs_print_number_union(head,
-							    &member->number) ||
-				    !ccs_io_printf(head, "\n")) {
-					head->read_avail = pos;
-					return false;
-				}
+				w[2] = buffer;
+				ccs_print_number(buffer, sizeof(buffer),
+						 &container_of
+						 (ptr, struct ccs_number_group,
+						  head)->number);
 			} else if (idx == CCS_ADDRESS_GROUP) {
-				char buf[128];
 				struct ccs_address_group *member =
 					container_of(ptr, typeof(*member),
 						     head);
-				if (member->is_ipv6) {
-					const struct in6_addr *min_address
-						= member->min.ipv6;
-					const struct in6_addr *max_address
-						= member->max.ipv6;
-					ccs_print_ipv6(buf, sizeof(buf),
-						       min_address);
-					if (min_address != max_address) {
-						int len;
-						char *cp = buf + strlen(buf);
-						*cp++ = '-';
-						len = strlen(buf);
-						ccs_print_ipv6(cp, sizeof(buf)
-							       - len,
-							       max_address);
-					}
-				} else {
-					const u32 min_address
-						= member->min.ipv4;
-					const u32 max_address
-						= member->max.ipv4;
-					memset(buf, 0, sizeof(buf));
-					snprintf(buf, sizeof(buf) - 1,
-						 "%u.%u.%u.%u",
-						 HIPQUAD(min_address));
-					if (min_address != max_address) {
-						const int len = strlen(buf);
-						snprintf(buf + len,
-							 sizeof(buf) - 1 - len,
-							 "-%u.%u.%u.%u",
-							 HIPQUAD(max_address));
-					}
-				}
-				if (!ccs_io_printf(head,
-						   CCS_KEYWORD_ADDRESS_GROUP
-						   "%s %s\n", name, buf))
-					return false;
+				w[2] = buffer;
+				if (member->is_ipv6)
+					ccs_print_ipv6(buffer, sizeof(buffer),
+						       member->min.ipv6,
+						       member->max.ipv6);
+				else
+					ccs_print_ipv4(buffer, sizeof(buffer),
+						       member->min.ipv4,
+						       member->max.ipv4);
 			}
+			if (!ccs_io_printf(head, "%s%s %s\n", w[0], w[1],
+					   w[2]))
+				return false;
 		}
 	}
 	return true;

@@ -676,16 +676,21 @@ static void ccs_collect_entry(void)
 		}
 	}
 	for (i = 0; i < CCS_MAX_LIST + CCS_MAX_HASH; i++) {
-		struct list_head *list = i < 2 ? &ccs_shared_list[i] :
-			&ccs_name_list[i];
+		struct list_head *list = i < CCS_MAX_LIST ?
+			&ccs_shared_list[i] : &ccs_name_list[i - CCS_MAX_LIST];
 		int id;
 		struct ccs_shared_acl_head *ptr;
-		if (i == 0)
-			id = CCS_ID_IPV6_ADDRESS;
-		else if (i == 1)
+		switch (i) {
+		case 0:
 			id = CCS_ID_CONDITION;
-		else
+			break;
+		case 1:
+			id = CCS_ID_IPV6_ADDRESS;
+			break;
+		default:
 			id = CCS_ID_NAME;
+			break;
+		}
 		list_for_each_entry_rcu(ptr, list, list) {
 			if (atomic_read(&ptr->users))
 				continue;

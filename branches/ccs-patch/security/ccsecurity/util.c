@@ -231,10 +231,10 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	if (!type)
 		return false;
 	num->values[0] = v;
-	num->min_type = type;
+	num->value_type[0] = type;
 	if (!*data) {
 		num->values[1] = v;
-		num->max_type = type;
+		num->value_type[1] = type;
 		return true;
 	}
 	if (*data++ != '-')
@@ -243,7 +243,7 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	if (!type || *data)
 		return false;
 	num->values[1] = v;
-	num->max_type = type;
+	num->value_type[1] = type;
 	return true;
 }
 

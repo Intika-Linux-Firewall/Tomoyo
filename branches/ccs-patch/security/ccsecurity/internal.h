@@ -365,23 +365,28 @@ struct in6_addr;
 	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
 #endif
 
-enum ccs_shared_acl_id {
-	CCS_NAME_LIST,
-	CCS_CONDITION_LIST,
-	CCS_IPV6ADDRESS_LIST,
-	CCS_MAX_LIST
-};
+/* Common header for holding ACL entries. */
+struct ccs_acl_head {
+	struct list_head list;
+	bool is_deleted;
+} __attribute__((__packed__));
 
 struct ccs_shared_acl_head {
 	struct list_head list;
 	atomic_t users;
 } __attribute__((__packed__));
 
-/* Structure for "path_group"/"number_group"/"address_group" directive. */
-struct ccs_group {
-	struct ccs_shared_acl_head head;
-	const struct ccs_path_info *group_name;
-	struct list_head member_list;
+struct ccs_acl_info {
+	struct list_head list;
+	struct ccs_condition *cond;
+	bool is_deleted;
+	u8 type; /* = one of values in "enum ccs_acl_entry_type_index" */
+} __attribute__((__packed__));
+
+enum ccs_shared_acl_id {
+	CCS_CONDITION_LIST,
+	CCS_IPV6ADDRESS_LIST,
+	CCS_MAX_LIST
 };
 
 struct ccs_name_union {
@@ -393,8 +398,7 @@ struct ccs_name_union {
 struct ccs_number_union {
 	unsigned long values[2];
 	struct ccs_group *group;
-	u8 min_type;
-	u8 max_type;
+	u8 value_type[2];
 	u8 is_group;
 };
 
@@ -405,11 +409,12 @@ enum ccs_group_id {
 	CCS_MAX_GROUP
 };
 
-/* Common header for holding ACL entries. */
-struct ccs_acl_head {
-	struct list_head list;
-	bool is_deleted;
-} __attribute__((__packed__));
+/* Structure for "path_group"/"number_group"/"address_group" directive. */
+struct ccs_group {
+	struct ccs_shared_acl_head head;
+	const struct ccs_path_info *group_name;
+	struct list_head member_list;
+};
 
 /* Structure for "path_group" directive. */
 struct ccs_path_group {
@@ -576,14 +581,6 @@ struct ccs_execve_entry {
 	/* For temporary use. */
 	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
 };
-
-/* Common header for holding ACL entries. */
-struct ccs_acl_info {
-	struct list_head list;
-	struct ccs_condition *cond;
-	bool is_deleted;
-	u8 type; /* = one of values in "enum ccs_acl_entry_type_index" */
-} __attribute__((__packed__));
 
 /* Structure for domain information. */
 struct ccs_domain_info {
@@ -1028,8 +1025,11 @@ void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_memory_free(const void *ptr, size_t size);
 void ccs_normalize_line(unsigned char *buffer);
+void ccs_print_ipv4(char *buffer, const int buffer_len, const u32 min_ip,
+		    const u32 max_ip);
 void ccs_print_ipv6(char *buffer, const int buffer_len,
-		    const struct in6_addr *ip);
+		    const struct in6_addr *min_ip,
+		    const struct in6_addr *max_ip);
 void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type);
 void ccs_put_name_union(struct ccs_name_union *ptr);
@@ -1067,8 +1067,10 @@ static inline bool ccs_is_same_number_union(const struct ccs_number_union *p1,
 					    const struct ccs_number_union *p2)
 {
 	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
-		&& p1->group == p2->group && p1->min_type == p2->min_type &&
-		p1->max_type == p2->max_type && p1->is_group == p2->is_group;
+		&& p1->group == p2->group &&
+		p1->value_type[0] == p2->value_type[0] &&
+		p1->value_type[1] == p2->value_type[1] &&
+		p1->is_group == p2->is_group;
 }
 
 #define CCS_HASH_BITS 8
