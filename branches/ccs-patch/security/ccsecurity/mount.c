@@ -242,10 +242,10 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
 		break;
 	default:
 		printk(KERN_WARNING "ERROR: "
-		       "%s%s%sare given for single mount operation.\n",
+		       "%s%s%s%sare given for single mount operation.\n",
 		       flags & MS_REMOUNT ? "'remount' " : "",
 		       flags & MS_MOVE    ? "'move' " : "",
-		       flags & MS_BIND    ? "'bind' " : "");
+		       flags & MS_BIND    ? "'bind' " : "", "");
 		return -EINVAL;
 	}
 	switch (flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {

@@ -367,7 +367,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		value = 0;
 	else
 		value = -1;
-	if (!strcmp(data, "PREFERENCE::audit")) {
+	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_AUDIT)) {
 #ifdef CONFIG_CCSECURITY_AUDIT
 		char *cp2;
 #endif
@@ -396,7 +396,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			profile->preference.audit_path_info = false;
 		return 0;
 	}
-	if (!strcmp(data, "PREFERENCE::enforcing")) {
+	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_ENFORCING)) {
 		char *cp2;
 		if (use_default) {
 			profile->enforcing = &ccs_default_profile.preference;
@@ -411,7 +411,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			       &profile->preference.enforcing_penalty);
 		return 0;
 	}
-	if (!strcmp(data, "PREFERENCE::permissive")) {
+	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_PERMISSIVE)) {
 		if (use_default) {
 			profile->permissive = &ccs_default_profile.preference;
 			return 0;
@@ -421,7 +421,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 			profile->preference.permissive_verbose = value;
 		return 0;
 	}
-	if (!strcmp(data, "PREFERENCE::learning")) {
+	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_LEARNING)) {
 		char *cp2;
 		if (use_default) {
 			profile->learning = &ccs_default_profile.preference;
@@ -506,6 +506,69 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	return 0;
 }
 
+static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
+{
+	struct ccs_preference *pref = &ccs_default_profile.preference;
+	const struct ccs_profile *profile = idx >= 0 ?
+		ccs_profile_ptr[idx] : NULL;
+	char buffer[16] = "";
+	if (profile) {
+		buffer[sizeof(buffer) - 1] = '\0';
+		snprintf(buffer, sizeof(buffer) - 1, "%u-", idx);
+	}
+	if (profile) {
+		pref = profile->audit;
+		if (pref == &ccs_default_profile.preference)
+			pref = NULL;
+	}
+	if (pref && !ccs_io_printf(head, "%s%s={ "
+#ifdef CONFIG_CCSECURITY_AUDIT
+				   "max_grant_log=%u max_reject_log=%u "
+#endif
+				   "task_info=%s path_info=%s }\n", buffer,
+				   CCS_KEYWORD_PREFERENCE_AUDIT,
+#ifdef CONFIG_CCSECURITY_AUDIT
+				   pref->audit_max_grant_log,
+				   pref->audit_max_reject_log,
+#endif
+				   ccs_yesno(pref->audit_task_info),
+				   ccs_yesno(pref->audit_path_info)))
+		return false;
+	if (profile) {
+		pref = profile->learning;
+		if (pref == &ccs_default_profile.preference)
+			pref = NULL;
+	}
+	if (pref && !ccs_io_printf(head, "%s%s={ "
+				   "verbose=%s max_entry=%u exec.realpath=%s "
+				   "exec.argv0=%s symlink.target=%s }\n",
+				   buffer, CCS_KEYWORD_PREFERENCE_LEARNING,
+				   ccs_yesno(pref->learning_verbose),
+				   pref->learning_max_entry,
+				   ccs_yesno(pref->learning_exec_realpath),
+				   ccs_yesno(pref->learning_exec_argv0),
+				   ccs_yesno(pref->learning_symlink_target)))
+		return false;
+	if (profile) {
+		pref = profile->permissive;
+		if (pref == &ccs_default_profile.preference)
+			pref = NULL;
+	}
+	if (pref && !ccs_io_printf(head, "%s%s={ verbose=%s }\n", buffer,
+				   CCS_KEYWORD_PREFERENCE_PERMISSIVE,
+				   ccs_yesno(pref->permissive_verbose)))
+		return false;
+	if (profile) {
+		pref = profile->enforcing;
+		if (pref == &ccs_default_profile.preference)
+			pref = NULL;
+	}
+	return !pref || ccs_io_printf(head, "%s%s={ verbose=%s penalty=%u }\n",
+				      buffer, CCS_KEYWORD_PREFERENCE_ENFORCING,
+				      ccs_yesno(pref->enforcing_verbose),
+				      pref->enforcing_penalty);
+}
+
 /**
  * ccs_read_profile - Read profile table.
  *
@@ -519,38 +582,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	if (head->read_bit)
 		goto body;
 	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
-	ccs_io_printf(head, "PREFERENCE::audit={ "
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      "max_grant_log=%u max_reject_log=%u "
-#endif
-		      "task_info=%s path_info=%s }\n",
-#ifdef CONFIG_CCSECURITY_AUDIT
-		      ccs_default_profile.preference.audit_max_grant_log,
-		      ccs_default_profile.preference.audit_max_reject_log,
-#endif
-		      ccs_yesno(ccs_default_profile.preference.
-				audit_task_info),
-		      ccs_yesno(ccs_default_profile.preference.
-				audit_path_info));
-	ccs_io_printf(head, "PREFERENCE::learning={ verbose=%s max_entry=%u "
-		      "exec.realpath=%s exec.argv0=%s symlink.target=%s }\n",
-		      ccs_yesno(ccs_default_profile.preference.
-				learning_verbose),
-		      ccs_default_profile.preference.learning_max_entry,
-		      ccs_yesno(ccs_default_profile.preference.
-				learning_exec_realpath),
-		      ccs_yesno(ccs_default_profile.preference.
-				learning_exec_argv0),
-		      ccs_yesno(ccs_default_profile.preference.
-				learning_symlink_target));
-	ccs_io_printf(head, "PREFERENCE::permissive={ verbose=%s }\n",
-		      ccs_yesno(ccs_default_profile.preference.
-				permissive_verbose));
-	ccs_io_printf(head, "PREFERENCE::enforcing={ verbose=%s penalty=%u "
-		      "}\n",
-		      ccs_yesno(ccs_default_profile.preference.
-				enforcing_verbose),
-		      ccs_default_profile.preference.enforcing_penalty);
+	ccs_print_preference(head, -1);
 	head->read_bit = 1;
  body:
 	for (index = head->read_step; index < CCS_MAX_PROFILES; index++) {
@@ -571,17 +603,17 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 			goto out;
 		config = profile->default_config;
 #ifdef CONFIG_CCSECURITY_AUDIT
-		if (!ccs_io_printf(head, "%u-CONFIG={ mode=%s grant_log=%s "
-				   "reject_log=%s }\n", index,
-				   ccs_mode_4[config & 3],
+		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s "
+				   "grant_log=%s reject_log=%s }\n", index,
+				   "CONFIG", "", ccs_mode_4[config & 3],
 				   ccs_yesno(config &
 					     CCS_CONFIG_WANT_GRANT_LOG),
 				   ccs_yesno(config &
 					     CCS_CONFIG_WANT_REJECT_LOG)))
 			goto out;
 #else
-		if (!ccs_io_printf(head, "%u-CONFIG={ mode=%s }\n", index,
-				   ccs_mode_4[config & 3]))
+		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n", index,
+				   "CONFIG", "", ccs_mode_4[config & 3]))
 			goto out;
 #endif
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
@@ -596,60 +628,21 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 #ifdef CONFIG_CCSECURITY_AUDIT
 			g = ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG);
 			r = ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG);
-			if (!ccs_io_printf(head, "%u-CONFIG::%s={ mode=%s "
+			if (!ccs_io_printf(head, "%u-%s%s={ mode=%s "
 					   "grant_log=%s reject_log=%s }\n",
-					   index, ccs_mac_keywords[i],
+					   index, "CONFIG::",
+					   ccs_mac_keywords[i],
 					   ccs_mode_4[config & 3], g, r))
 				goto out;
 #else
-			if (!ccs_io_printf(head, "%u-CONFIG::%s={ mode=%s }\n",
-					   index, ccs_mac_keywords[i],
+			if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n",
+					   index, "CONFIG::",
+					   ccs_mac_keywords[i],
 					   ccs_mode_4[config & 3]))
 				goto out;
 #endif
 		}
-		if (profile->audit != &ccs_default_profile.preference &&
-		    !ccs_io_printf(head, "%u-PREFERENCE::audit={ "
-#ifdef CONFIG_CCSECURITY_AUDIT
-				   "max_grant_log=%u max_reject_log=%u "
-#endif
-				   "task_info=%s path_info=%s }\n", index,
-#ifdef CONFIG_CCSECURITY_AUDIT
-				   profile->preference.audit_max_grant_log,
-				   profile->preference.audit_max_reject_log,
-#endif
-				   ccs_yesno(profile->preference.
-					     audit_task_info),
-				   ccs_yesno(profile->preference.
-					     audit_path_info)))
-			goto out;
-		if (profile->learning != &ccs_default_profile.preference &&
-		    !ccs_io_printf(head, "%u-PREFERENCE::learning={ "
-				   "verbose=%s max_entry=%u exec.realpath=%s "
-				   "exec.argv0=%s symlink.target=%s }\n",
-				   index,
-				   ccs_yesno(profile->preference.
-					     learning_verbose),
-				   profile->preference.learning_max_entry,
-				   ccs_yesno(profile->preference.
-					     learning_exec_realpath),
-				   ccs_yesno(profile->preference.
-					     learning_exec_argv0),
-				   ccs_yesno(profile->preference.
-					     learning_symlink_target)))
-			goto out;
-		if (profile->permissive != &ccs_default_profile.preference &&
-		    !ccs_io_printf(head, "%u-PREFERENCE::permissive={ "
-				   "verbose=%s }\n", index,
-				   ccs_yesno(profile->preference.
-					     permissive_verbose)))
-			goto out;
-		if (profile->enforcing != &ccs_default_profile.preference &&
-		    !ccs_io_printf(head, "%u-PREFERENCE::enforcing={ "
-				   "verbose=%s penalty=%u }\n", index,
-				   ccs_yesno(profile->preference.
-					     enforcing_verbose),
-				   profile->preference.enforcing_penalty))
+		if (!ccs_print_preference(head, index))
 			goto out;
 		continue;
  out:
@@ -1819,35 +1812,33 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
-	bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
-	if (ccs_str_starts(&data, CCS_KEYWORD_KEEP_DOMAIN))
-		return ccs_write_domain_keeper_policy(data, false, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_NO_KEEP_DOMAIN))
-		return ccs_write_domain_keeper_policy(data, true, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_INITIALIZE_DOMAIN))
-		return ccs_write_domain_initializer_policy(data, false,
-							   is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
-		return ccs_write_domain_initializer_policy(data, true,
-							   is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_AGGREGATOR))
-		return ccs_write_aggregator_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_READ))
-		return ccs_write_globally_readable_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
-		return ccs_write_globally_usable_env_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_FILE_PATTERN))
-		return ccs_write_pattern_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_PATH_GROUP))
-		return ccs_write_path_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_NUMBER_GROUP))
-		return ccs_write_number_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_DENY_REWRITE))
-		return ccs_write_no_rewrite_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ADDRESS_GROUP))
-		return ccs_write_address_group_policy(data, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_DENY_AUTOBIND))
-		return ccs_write_reserved_port_policy(data, is_delete);
+	const bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
+	u8 i;
+	static const struct {
+		const char *keyword;
+		int (*write) (char *, const bool, const u8);
+	} ccs_callback[13] = {
+		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper_policy },
+		{ CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
+		  ccs_write_domain_initializer_policy },
+		{ CCS_KEYWORD_KEEP_DOMAIN, ccs_write_domain_keeper_policy },
+		{ CCS_KEYWORD_INITIALIZE_DOMAIN,
+		  ccs_write_domain_initializer_policy },
+		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator_policy },
+		{ CCS_KEYWORD_ALLOW_READ, ccs_write_globally_readable_policy },
+		{ CCS_KEYWORD_ALLOW_ENV,
+		  ccs_write_globally_usable_env_policy },
+		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern_policy },
+		{ CCS_KEYWORD_PATH_GROUP, ccs_write_path_group_policy },
+		{ CCS_KEYWORD_NUMBER_GROUP, ccs_write_number_group_policy },
+		{ CCS_KEYWORD_ADDRESS_GROUP, ccs_write_address_group_policy },
+		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite_policy },
+		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port_policy }
+	};
+	for (i = 0; i < 13; i++) {
+		if (ccs_str_starts(&data, ccs_callback[i].keyword))
+			return ccs_callback[i].write(data, is_delete, i < 2);
+	}
 	return -EINVAL;
 }
 
@@ -1940,7 +1931,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				struct ccs_domain_keeper_entry *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = ptr->is_not ?
-					"no_" CCS_KEYWORD_KEEP_DOMAIN :
+					CCS_KEYWORD_NO_KEEP_DOMAIN :
 					CCS_KEYWORD_KEEP_DOMAIN;
 				if (ptr->program) {
 					w[1] = ptr->program->name;
@@ -1954,7 +1945,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				struct ccs_domain_initializer_entry *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = ptr->is_not ?
-					"no_" CCS_KEYWORD_INITIALIZE_DOMAIN :
+					CCS_KEYWORD_NO_INITIALIZE_DOMAIN :
 					CCS_KEYWORD_INITIALIZE_DOMAIN;
 				w[1] = ptr->program->name;
 				if (ptr->domainname) {

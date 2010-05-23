@@ -199,8 +199,8 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		dev = obj->path1_stat.dev;
 		mode = obj->path1_stat.mode;
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path1={ uid=%u gid=%u ino=%lu major=%u"
-				" minor=%u perm=0%o type=%s",
+				" path%u={ uid=%u gid=%u ino=%lu major=%u"
+				" minor=%u perm=0%o type=%s", 1,
 				obj->path1_stat.uid, obj->path1_stat.gid,
 				(unsigned long) obj->path1_stat.ino,
 				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
@@ -215,8 +215,8 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	}
 	if (obj->path1_parent_valid) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path1.parent={ uid=%u gid=%u ino=%lu"
-				" perm=0%o }", obj->path1_parent_stat.uid,
+				" path%u.parent={ uid=%u gid=%u ino=%lu"
+				" perm=0%o }", 1, obj->path1_parent_stat.uid,
 				obj->path1_parent_stat.gid,
 				obj->path1_parent_stat.ino,
 				obj->path1_parent_stat.mode & S_IALLUGO);
@@ -225,8 +225,8 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		dev = obj->path2_stat.dev;
 		mode = obj->path2_stat.mode;
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path2={ uid=%u gid=%u ino=%lu major=%u"
-				" minor=%u perm=0%o type=%s",
+				" path%u={ uid=%u gid=%u ino=%lu major=%u"
+				" minor=%u perm=0%o type=%s", 2,
 				obj->path2_stat.uid, obj->path2_stat.gid,
 				(unsigned long) obj->path2_stat.ino,
 				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
@@ -241,8 +241,8 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	}
 	if (obj->path2_parent_valid) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path2.parent={ uid=%u gid=%u ino=%lu"
-				" perm=0%o }", obj->path2_parent_stat.uid,
+				" path%u.parent={ uid=%u gid=%u ino=%lu"
+				" perm=0%o }", 2, obj->path2_parent_stat.uid,
 				obj->path2_parent_stat.gid,
 				obj->path2_parent_stat.ino,
 				obj->path2_parent_stat.mode & S_IALLUGO);

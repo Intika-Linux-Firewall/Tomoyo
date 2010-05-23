@@ -522,6 +522,14 @@ static inline bool ccs_is_same_condition(const struct ccs_condition *p1,
 		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
 }
 
+/* #define DEBUG_CONDITION */
+
+#ifdef DEBUG_CONDITION
+#define dprintk printk
+#else
+#define dprintk(...) do { } while (0)
+#endif
+
 /**
  * ccs_get_condition - Parse condition part.
  *
@@ -531,7 +539,6 @@ static inline bool ccs_is_same_condition(const struct ccs_condition *p1,
  */
 struct ccs_condition *ccs_get_condition(char * const condition)
 {
-	static const bool debug;
 	char *start = condition;
 	struct ccs_condition *entry = NULL;
 	struct ccs_condition *ptr;
@@ -574,8 +581,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		} else {
 			start = "";
 		}
-		if (debug)
-			printk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
 		if (!strncmp(word, "exec.argv[", 10)) {
 			argc++;
 			condc++;
@@ -598,9 +604,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				continue;
 			break;
 		}
-		if (debug)
-			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
-			       word, left);
+		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
+			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD)
 			numbers_count++;
 		*eq = is_not ? '!' : '=';
@@ -608,9 +613,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		if (is_not)
 			word++;
 		condc++;
-		if (debug)
-			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
-			       word, left);
+		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
+			left);
 		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
 			names_count++;
 			continue;
@@ -620,16 +624,13 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				continue;
 			break;
 		}
-		if (debug)
-			printk(KERN_WARNING "%u: <%s> right=%u\n", __LINE__,
-			       word, right);
+		dprintk(KERN_WARNING "%u: <%s> right=%u\n", __LINE__, word,
+			right);
 		if (right == CCS_MAX_CONDITION_KEYWORD)
 			numbers_count++;
 	}
-	if (debug)
-		printk(KERN_DEBUG "%u: cond=%u numbers=%u names=%u ac=%u "
-		       "ec=%u\n", __LINE__, condc, numbers_count, names_count,
-		       argc, envc);
+	dprintk(KERN_DEBUG "%u: cond=%u numbers=%u names=%u ac=%u ec=%u\n",
+		__LINE__, condc, numbers_count, names_count, argc, envc);
 	size = sizeof(*entry)
 		+ condc * sizeof(struct ccs_condition_element)
 		+ numbers_count * sizeof(struct ccs_number_union)
@@ -676,8 +677,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		} else {
 			start = "";
 		}
-		if (debug)
-			printk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
 		if (!strncmp(word, "exec.argv[", 10)) {
 			if (!ccs_parse_argv(word + 10, argv))
 				goto out;
@@ -699,9 +699,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		}
 		eq = strchr(word, '=');
 		if (!eq) {
-			if (debug)
-				printk(KERN_WARNING "%u: No operator.\n",
-				       __LINE__);
+			dprintk(KERN_WARNING "%u: No operator.\n", __LINE__);
 			goto out;
 		}
 		if (eq > word && *(eq - 1) == '!') {
@@ -714,9 +712,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 				continue;
 			break;
 		}
-		if (debug)
-			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
-			       word, left);
+		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
+			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
 			left = CCS_NUMBER_UNION;
 			if (!ccs_parse_number_union(word, numbers_p))
@@ -731,9 +728,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		if (is_not)
 			word++;
 		condc--;
-		if (debug)
-			printk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__,
-			       word, left);
+		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
+			left);
 		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
 			right = CCS_NAME_UNION;
 			if (!ccs_parse_name_union_quoted(word, names_p++))
@@ -756,25 +752,25 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		condp->left = left;
 		condp->right = right;
 		condp->equals = !is_not;
-		if (debug)
-			printk(KERN_WARNING "%u: left=%u right=%u match=%u\n",
-			       __LINE__, condp->left, condp->right,
-			       condp->equals);
+		dprintk(KERN_WARNING "%u: left=%u right=%u match=%u\n",
+			__LINE__, condp->left, condp->right,
+			condp->equals);
 		condp++;
 	}
-	if (debug) {
-		for (start = condition; start < end_of_string; start++)
-			if (!*start)
-				*start = ' ';
-		printk(KERN_DEBUG "%u: <%s> cond=%u numbers=%u names=%u ac=%u "
-		       "ec=%u\n", __LINE__, condition, condc, numbers_count,
-		       names_count, argc, envc);
-	}
+#ifdef DEBUG_CONDITION
+	for (start = condition; start < end_of_string; start++)
+		if (!*start)
+			*start = ' ';
+	dprintk(KERN_DEBUG "%u: <%s> cond=%u numbers=%u names=%u ac=%u "
+		"ec=%u\n", __LINE__, condition, condc, numbers_count,
+		names_count, argc, envc);
 	BUG_ON(names_count);
 	BUG_ON(numbers_count);
 	BUG_ON(argc);
 	BUG_ON(envc);
 	BUG_ON(condc);
+#endif
+	BUG_ON(names_count | numbers_count | argc | envc | condc);
 	entry->size = size;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
@@ -805,8 +801,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	}
 	return entry;
  out:
-	if (debug)
-		printk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
+	dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
 	if (entry) {
 		ccs_del_condition(&entry->head.list);
 		kfree(entry);

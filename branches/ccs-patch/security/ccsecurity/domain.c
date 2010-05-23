@@ -211,21 +211,18 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
  * ccs_write_domain_initializer_policy - Write "struct ccs_domain_initializer_entry" list.
  *
  * @data:      String to parse.
- * @is_not:    True if it is "no_initialize_domain" entry.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_domain_initializer_policy(char *data, const bool is_not,
-					const bool is_delete)
+int ccs_write_domain_initializer_policy(char *data, const bool is_delete, const u8 flags)
 {
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		return ccs_update_domain_initializer_entry(cp + 6, data,
-							   is_not, is_delete);
+	char *domainname = strstr(data, " from ");
+	if (domainname) {
+		*domainname = '\0';
+		domainname += 6;
 	}
-	return ccs_update_domain_initializer_entry(NULL, data, is_not,
+	return ccs_update_domain_initializer_entry(domainname, data, flags,
 						   is_delete);
 }
 
@@ -328,20 +325,23 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
  * ccs_write_domain_keeper_policy - Write "struct ccs_domain_keeper_entry" list.
  *
  * @data:      String to parse.
- * @is_not:    True if it is "no_keep_domain" entry.
  * @is_delete: True if it is a delete request.
  *
+ * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_domain_keeper_policy(char *data, const bool is_not,
-				   const bool is_delete)
+int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
+				   const u8 flags)
 {
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		return ccs_update_domain_keeper_entry(cp + 6, data,
-						      is_not, is_delete);
+	char *domainname = strstr(data, " from ");
+	if (domainname) {
+		*domainname = '\0';
+		domainname += 6;
+	} else {
+		domainname = data;
+		data = NULL;
 	}
-	return ccs_update_domain_keeper_entry(data, NULL, is_not, is_delete);
+	return ccs_update_domain_keeper_entry(domainname, data, flags,
+					      is_delete);
 }
 
 /**
@@ -434,7 +434,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_aggregator_policy(char *data, const bool is_delete)
+int ccs_write_aggregator_policy(char *data, const bool is_delete, const u8 flags)
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])

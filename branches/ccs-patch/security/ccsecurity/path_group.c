@@ -27,7 +27,7 @@ static bool ccs_is_same_path_group(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, nagative value otherwise.
  */
-int ccs_write_path_group_policy(char *data, const bool is_delete)
+int ccs_write_path_group_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_group *group;
 	struct ccs_path_group e = { };
@@ -35,7 +35,7 @@ int ccs_write_path_group_policy(char *data, const bool is_delete)
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	group = ccs_get_path_group(w[0]);
+	group = ccs_get_group(w[0], CCS_PATH_GROUP);
 	if (!group)
 		return -ENOMEM;
 	e.member_name = ccs_get_name(w[1]);

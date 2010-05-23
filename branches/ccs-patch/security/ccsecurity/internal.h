@@ -272,10 +272,6 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
 #define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
 #define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
-#define CCS_KEYWORD_ALLOW_IOCTL               "allow_ioctl "
-#define CCS_KEYWORD_ALLOW_CHMOD               "allow_chmod "
-#define CCS_KEYWORD_ALLOW_CHOWN               "allow_chown "
-#define CCS_KEYWORD_ALLOW_CHGRP               "allow_chgrp "
 #define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
 #define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
 #define CCS_KEYWORD_ALLOW_READ                "allow_read "
@@ -289,6 +285,10 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
 #define CCS_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
 #define CCS_KEYWORD_PATH_GROUP                "path_group "
+#define CCS_KEYWORD_PREFERENCE_AUDIT          "PREFERENCE::audit"
+#define CCS_KEYWORD_PREFERENCE_ENFORCING      "PREFERENCE::enforcing"
+#define CCS_KEYWORD_PREFERENCE_LEARNING       "PREFERENCE::learning"
+#define CCS_KEYWORD_PREFERENCE_PERMISSIVE     "PREFERENCE::permissive"
 #define CCS_KEYWORD_NUMBER_GROUP              "number_group "
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
@@ -976,8 +976,10 @@ int ccs_read_control(struct file *file, char __user *buffer,
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-int ccs_write_address_group_policy(char *data, const bool is_delete);
-int ccs_write_aggregator_policy(char *data, const bool is_delete);
+int ccs_write_address_group_policy(char *data, const bool is_delete,
+				   const u8 flags);
+int ccs_write_aggregator_policy(char *data, const bool is_delete,
+				const u8 flags);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
@@ -986,18 +988,20 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 				const bool is_delete);
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
-int ccs_write_domain_initializer_policy(char *data, const bool is_not,
-					const bool is_delete);
-int ccs_write_domain_keeper_policy(char *data, const bool is_not,
-				   const bool is_delete);
+int ccs_write_domain_initializer_policy(char *data, const bool is_delete,
+					const u8 flags);
+int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
+				   const u8 flags);
 int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete);
 int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
 			  struct ccs_condition *condition,
 			  const bool is_delete);
-int ccs_write_globally_readable_policy(char *data, const bool is_delete);
-int ccs_write_globally_usable_env_policy(char *data, const bool is_delete);
+int ccs_write_globally_readable_policy(char *data, const bool is_delete,
+				       const u8 flags);
+int ccs_write_globally_usable_env_policy(char *data, const bool is_delete,
+					 const u8 flags);
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
@@ -1005,11 +1009,15 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     struct ccs_condition *condition,
 			     const bool is_delete);
-int ccs_write_no_rewrite_policy(char *data, const bool is_delete);
-int ccs_write_number_group_policy(char *data, const bool is_delete);
-int ccs_write_path_group_policy(char *data, const bool is_delete);
-int ccs_write_pattern_policy(char *data, const bool is_delete);
-int ccs_write_reserved_port_policy(char *data, const bool is_delete);
+int ccs_write_no_rewrite_policy(char *data, const bool is_delete,
+				const u8 flags);
+int ccs_write_number_group_policy(char *data, const bool is_delete,
+				  const u8 flags);
+int ccs_write_path_group_policy(char *data, const bool is_delete,
+				const u8 flags);
+int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags);
+int ccs_write_reserved_port_policy(char *data, const bool is_delete,
+				   const u8 flags);
 int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 			    struct ccs_condition *condition,
 			    const bool is_delete);
@@ -1246,21 +1254,6 @@ static inline int ccs_round2(size_t size)
 }
 #endif
 
-static inline struct ccs_group *ccs_get_path_group(const char *group_name)
-{
-	return ccs_get_group(group_name, CCS_PATH_GROUP);
-}
-
-static inline struct ccs_group *ccs_get_number_group(const char *group_name)
-{
-	return ccs_get_group(group_name, CCS_NUMBER_GROUP);
-}
-
-static inline struct ccs_group *ccs_get_address_group(const char *group_name)
-{
-	return ccs_get_group(group_name, CCS_ADDRESS_GROUP);
-}
-
 static inline void ccs_put_group(struct ccs_group *group)
 {
 	if (group)
@@ -1269,11 +1262,9 @@ static inline void ccs_put_group(struct ccs_group *group)
 
 static inline void ccs_put_ipv6_address(const struct in6_addr *addr)
 {
-	if (addr) {
-		struct ccs_ipv6addr_entry *ptr =
-			container_of(addr, struct ccs_ipv6addr_entry, addr);
-		atomic_dec(&ptr->head.users);
-	}
+	if (addr)
+		atomic_dec(&container_of(addr, struct ccs_ipv6addr_entry,
+					 addr)->head.users);
 }
 
 static inline void ccs_put_condition(struct ccs_condition *cond)
@@ -1284,11 +1275,9 @@ static inline void ccs_put_condition(struct ccs_condition *cond)
 
 static inline void ccs_put_name(const struct ccs_path_info *name)
 {
-	if (name) {
-		struct ccs_name_entry *ptr =
-			container_of(name, struct ccs_name_entry, entry);
-		atomic_dec(&ptr->head.users);
-	}
+	if (name)
+		atomic_dec(&container_of(name, struct ccs_name_entry, entry)->
+			   head.users);
 }
 
 #ifndef __GFP_HIGHIO

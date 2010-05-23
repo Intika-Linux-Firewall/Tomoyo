@@ -33,7 +33,7 @@ static bool ccs_is_same_address_group(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_address_group_policy(char *data, const bool is_delete)
+int ccs_write_address_group_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_group *group;
 	struct ccs_address_group e = { };
@@ -43,7 +43,7 @@ int ccs_write_address_group_policy(char *data, const bool is_delete)
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	group = ccs_get_address_group(w[0]);
+	group = ccs_get_group(w[0], CCS_ADDRESS_GROUP);
 	if (!group)
 		return -ENOMEM;
 	switch (ccs_parse_ip_address(w[1], min_address, max_address)) {

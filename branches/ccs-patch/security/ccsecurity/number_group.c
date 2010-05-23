@@ -30,7 +30,7 @@ static bool ccs_is_same_number_group(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, nagative value otherwise.
  */
-int ccs_write_number_group_policy(char *data, const bool is_delete)
+int ccs_write_number_group_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_group *group;
 	struct ccs_number_group e = { };
@@ -44,7 +44,7 @@ int ccs_write_number_group_policy(char *data, const bool is_delete)
 		ccs_put_number_union(&e.number);
 		return -EINVAL;
 	}
-	group = ccs_get_number_group(w[0]);
+	group = ccs_get_group(w[0], CCS_NUMBER_GROUP);
 	if (!group)
 		return -ENOMEM;
 	error = ccs_update_group(&e.head, sizeof(e), is_delete, group,

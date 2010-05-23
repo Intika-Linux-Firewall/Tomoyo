@@ -71,7 +71,8 @@ static bool ccs_is_same_global_env(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_globally_usable_env_policy(char *data, const bool is_delete)
+int ccs_write_globally_usable_env_policy(char *data, const bool is_delete,
+					 const u8 flags)
 {
 	struct ccs_globally_usable_env_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;

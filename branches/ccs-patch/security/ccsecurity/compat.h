@@ -42,10 +42,6 @@
 #define current_fsgid()         (current->fsgid)
 #endif
 
-#ifndef WARN_ON
-#define WARN_ON(x) do { } while (0)
-#endif
-
 #ifndef DEFINE_SPINLOCK
 #define DEFINE_SPINLOCK(x) spinlock_t x = SPIN_LOCK_UNLOCKED
 #endif

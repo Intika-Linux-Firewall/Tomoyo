@@ -392,7 +392,7 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 		if (w[2][0] != '@')
 			return -EINVAL;
 		e.address_type = CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP;
-		e.address.group = ccs_get_address_group(w[2] + 1);
+		e.address.group = ccs_get_group(w[2] + 1, CCS_ADDRESS_GROUP);
 		if (!e.address.group)
 			return -ENOMEM;
 		break;

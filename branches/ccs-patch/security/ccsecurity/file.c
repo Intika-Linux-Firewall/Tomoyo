@@ -734,15 +734,15 @@ static bool ccs_is_same_globally_readable_entry(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_globally_readable_policy(char *data, const bool is_delete)
+int ccs_write_globally_readable_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_globally_readable_file_entry e = { };
-	int error = is_delete ? -ENOENT : -ENOMEM;
+	int error;
 	if (!ccs_is_correct_path(data, 1, 0, -1))
 		return -EINVAL;
 	e.filename = ccs_get_name(data);
 	if (!e.filename)
-		return error;
+		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_GLOBALLY_READABLE,
 				  ccs_is_same_globally_readable_entry);
@@ -795,15 +795,15 @@ static bool ccs_is_same_pattern_entry(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_pattern_policy(char *data, const bool is_delete)
+int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_pattern_entry e = { };
-	int error = is_delete ? -ENOENT : -ENOMEM;
+	int error;
 	if (!ccs_is_correct_path(data, 0, 1, 0))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
-		return error;
+		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_PATTERN, ccs_is_same_pattern_entry);
 	ccs_put_name(e.pattern);
@@ -851,15 +851,15 @@ static bool ccs_is_same_rewrite_entry(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_no_rewrite_policy(char *data, const bool is_delete)
+int ccs_write_no_rewrite_policy(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_no_rewrite_entry e = { };
-	int error = is_delete ? -ENOENT : -ENOMEM;
+	int error;
 	if (!ccs_is_correct_path(data, 0, 0, 0))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
-		return error;
+		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_NO_REWRITE,
 				  ccs_is_same_rewrite_entry);

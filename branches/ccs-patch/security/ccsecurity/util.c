@@ -198,7 +198,7 @@ bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
 	if (!ccs_is_correct_path(filename, 0, 0, 0))
 		return false;
 	if (filename[0] == '@') {
-		ptr->group = ccs_get_path_group(filename + 1);
+		ptr->group = ccs_get_group(filename + 1, CCS_PATH_GROUP);
 		ptr->is_group = true;
 		return ptr->group != NULL;
 	}
@@ -223,7 +223,7 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	if (data[0] == '@') {
 		if (!ccs_is_correct_path(data, 0, 0, 0))
 			return false;
-		num->group = ccs_get_number_group(data + 1);
+		num->group = ccs_get_group(data + 1, CCS_NUMBER_GROUP);
 		num->is_group = true;
 		return num->group != NULL;
 	}

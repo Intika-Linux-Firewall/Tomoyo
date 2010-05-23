@@ -90,7 +90,8 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_reserved_port_policy(char *data, const bool is_delete)
+int ccs_write_reserved_port_policy(char *data, const bool is_delete,
+				   const u8 flags)
 {
 	unsigned int from;
 	unsigned int to;
