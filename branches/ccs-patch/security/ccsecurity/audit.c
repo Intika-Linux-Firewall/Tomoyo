@@ -255,7 +255,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 }
 
 /**
- * ccs_init_audit_log - Allocate buffer for audit logs.
+ * ccs_init_log - Allocate buffer for audit logs.
  *
  * @len: Required size.
  * @r:   Pointer to "struct ccs_request_info".
@@ -267,7 +267,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-char *ccs_init_audit_log(int *len, struct ccs_request_info *r)
+char *ccs_init_log(int *len, struct ccs_request_info *r)
 {
 	char *buf = NULL;
 	char *bprm_info = NULL;
@@ -353,7 +353,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 #ifndef CONFIG_CCSECURITY_AUDIT
 
 /**
- * ccs_write_audit_log - Write audit log.
+ * ccs_write_log - Write audit log.
  *
  * @is_granted: True if this is a granted log.
  * @r:          Pointer to "struct ccs_request_info".
@@ -361,8 +361,8 @@ static void ccs_update_task_state(struct ccs_request_info *r)
  *
  * Returns 0 on success, -ENOMEM otherwise.
  */
-int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
-			const char *fmt, ...)
+int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
+		  const char *fmt, ...)
 {
 	ccs_update_task_state(r);
 	return 0;
@@ -370,30 +370,29 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 
 #else
 
-static wait_queue_head_t ccs_audit_log_wait[2] = {
-	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_audit_log_wait[0]),
-	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_audit_log_wait[1]),
+static wait_queue_head_t ccs_log_wait[2] = {
+	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[0]),
+	__WAIT_QUEUE_HEAD_INITIALIZER(ccs_log_wait[1]),
 };
 
-static DEFINE_SPINLOCK(ccs_audit_log_lock);
+static DEFINE_SPINLOCK(ccs_log_lock);
 
 /* Structure for audit log. */
-struct ccs_audit_log_entry {
+struct ccs_log_entry {
 	struct list_head list;
 	char *log;
 	int size;
 };
 
-/* The list for "struct ccs_audit_log_entry". */
-static struct list_head ccs_audit_log[2] = {
-	LIST_HEAD_INIT(ccs_audit_log[0]),
-	LIST_HEAD_INIT(ccs_audit_log[1]),
+/* The list for "struct ccs_log_entry". */
+static struct list_head ccs_log[2] = {
+	LIST_HEAD_INIT(ccs_log[0]), LIST_HEAD_INIT(ccs_log[1]),
 };
 
-static unsigned int ccs_audit_log_count[2];
+static unsigned int ccs_log_count[2];
 
 /**
- * ccs_write_audit_log - Write audit log.
+ * ccs_write_log - Write audit log.
  *
  * @is_granted: True if this is a granted log.
  * @r:          Pointer to "struct ccs_request_info".
@@ -401,7 +400,7 @@ static unsigned int ccs_audit_log_count[2];
  *
  * Returns 0 on success, -ENOMEM otherwise.
  */
-int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
+int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
 {
 	va_list args;
@@ -409,7 +408,7 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	int pos;
 	int len;
 	char *buf;
-	struct ccs_audit_log_entry *new_entry;
+	struct ccs_log_entry *new_entry;
 	bool quota_exceeded = false;
 	struct ccs_preference *pref =
 		ccs_profile(ccs_current_domain()->profile)->audit;
@@ -417,13 +416,13 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 		len = pref->audit_max_grant_log;
 	else
 		len = pref->audit_max_reject_log;
-	if (ccs_audit_log_count[is_granted] >= len ||
+	if (ccs_log_count[is_granted] >= len ||
 	    !ccs_get_audit(r->profile, r->type, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
-	buf = ccs_init_audit_log(&len, r);
+	buf = ccs_init_log(&len, r);
 	if (!buf)
 		goto out;
 	pos = strlen(buf);
@@ -441,22 +440,22 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 	 * Don't go beyond strlen(new_entry->log).
 	 */
 	new_entry->size = ccs_round2(len) + ccs_round2(sizeof(*new_entry));
-	spin_lock(&ccs_audit_log_lock);
-	if (ccs_quota_for_audit_log && ccs_audit_log_memory_size
-	    + new_entry->size >= ccs_quota_for_audit_log) {
+	spin_lock(&ccs_log_lock);
+	if (ccs_quota_for_log && ccs_log_memory_size
+	    + new_entry->size >= ccs_quota_for_log) {
 		quota_exceeded = true;
 	} else {
-		ccs_audit_log_memory_size += new_entry->size;
-		list_add_tail(&new_entry->list, &ccs_audit_log[is_granted]);
-		ccs_audit_log_count[is_granted]++;
+		ccs_log_memory_size += new_entry->size;
+		list_add_tail(&new_entry->list, &ccs_log[is_granted]);
+		ccs_log_count[is_granted]++;
 	}
-	spin_unlock(&ccs_audit_log_lock);
+	spin_unlock(&ccs_log_lock);
 	if (quota_exceeded) {
 		kfree(buf);
 		kfree(new_entry);
 		goto out;
 	}
-	wake_up(&ccs_audit_log_wait[is_granted]);
+	wake_up(&ccs_log_wait[is_granted]);
 	error = 0;
  out:
 	ccs_update_task_state(r);
@@ -464,13 +463,13 @@ int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 }
 
 /**
- * ccs_read_audit_log - Read an audit log.
+ * ccs_read_log - Read an audit log.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  */
-void ccs_read_audit_log(struct ccs_io_buffer *head)
+void ccs_read_log(struct ccs_io_buffer *head)
 {
-	struct ccs_audit_log_entry *ptr = NULL;
+	struct ccs_log_entry *ptr = NULL;
 	const bool is_granted = head->type == CCS_GRANTLOG;
 	if (head->read_avail)
 		return;
@@ -479,15 +478,15 @@ void ccs_read_audit_log(struct ccs_io_buffer *head)
 		head->read_buf = NULL;
 		head->readbuf_size = 0;
 	}
-	spin_lock(&ccs_audit_log_lock);
-	if (!list_empty(&ccs_audit_log[is_granted])) {
-		ptr = list_entry(ccs_audit_log[is_granted].next,
-				 struct ccs_audit_log_entry, list);
+	spin_lock(&ccs_log_lock);
+	if (!list_empty(&ccs_log[is_granted])) {
+		ptr = list_entry(ccs_log[is_granted].next,
+				 struct ccs_log_entry, list);
 		list_del(&ptr->list);
-		ccs_audit_log_count[is_granted]--;
-		ccs_audit_log_memory_size -= ptr->size;
+		ccs_log_count[is_granted]--;
+		ccs_log_memory_size -= ptr->size;
 	}
-	spin_unlock(&ccs_audit_log_lock);
+	spin_unlock(&ccs_log_lock);
 	if (ptr) {
 		head->read_buf = ptr->log;
 		head->read_avail = strlen(ptr->log) + 1;
@@ -497,21 +496,21 @@ void ccs_read_audit_log(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_poll_audit_log - Wait for an audit log.
+ * ccs_poll_log - Wait for an audit log.
  *
  * @file: Pointer to "struct file".
  * @wait: Pointer to "poll_table".
  *
  * Returns POLLIN | POLLRDNORM when ready to read a grant log.
  */
-int ccs_poll_audit_log(struct file *file, poll_table *wait)
+int ccs_poll_log(struct file *file, poll_table *wait)
 {
 	struct ccs_io_buffer *head = file->private_data;
 	const bool is_granted = head->type == CCS_GRANTLOG;
-	if (ccs_audit_log_count[is_granted])
+	if (ccs_log_count[is_granted])
 		return POLLIN | POLLRDNORM;
-	poll_wait(file, &ccs_audit_log_wait[is_granted], wait);
-	if (ccs_audit_log_count[is_granted])
+	poll_wait(file, &ccs_log_wait[is_granted], wait);
+	if (ccs_log_count[is_granted])
 		return POLLIN | POLLRDNORM;
 	return 0;
 }

@@ -47,10 +47,10 @@ static int ccs_audit_execute_handler_log(struct ccs_execve *ee)
 	const char *handler = ee->handler->name;
 	r->type = CCS_MAC_FILE_EXECUTE;
 	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
-	return ccs_write_audit_log(true, r, "%s" CCS_KEYWORD_EXECUTE_HANDLER
-				   " %s\n", ee->handler_type ==
-				   CCS_TYPE_DENIED_EXECUTE_HANDLER ?
-				   "denied_" : "", handler);
+	return ccs_write_log(true, r, "%s %s\n", ee->handler_type ==
+			     CCS_TYPE_DENIED_EXECUTE_HANDLER ?
+			     CCS_KEYWORD_DENIED_EXECUTE_HANDLER :
+			     CCS_KEYWORD_EXECUTE_HANDLER, handler);
 }
 
 /**
@@ -62,7 +62,7 @@ static int ccs_audit_domain_creation_log(void)
 {
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-	return ccs_write_audit_log(false, &r, "use_profile %u\n", r.profile);
+	return ccs_write_log(false, &r, "use_profile %u\n", r.profile);
 }
 
 int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
@@ -473,15 +473,15 @@ int ccs_delete_domain(char *domainname)
 }
 
 /**
- * ccs_find_or_assign_new_domain - Create a domain.
+ * ccs_assign_domain - Create a domain.
  *
  * @domainname: The name of domain.
  * @profile:    Profile number to assign if the domain was newly created.
  *
  * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  */
-struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
-						      const u8 profile)
+struct ccs_domain_info *ccs_assign_domain(const char *domainname,
+					  const u8 profile)
 {
 	struct ccs_domain_info *entry;
 	struct ccs_domain_info *domain = NULL;
@@ -628,7 +628,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		if (error < 0)
 			goto done;
 	}
-	domain = ccs_find_or_assign_new_domain(ee->tmp, r->profile);
+	domain = ccs_assign_domain(ee->tmp, r->profile);
 	if (domain)
 		domain_created = true;
  done:
@@ -636,11 +636,10 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
 		if (!old_domain->domain_transition_failed) {
 			old_domain->domain_transition_failed = true;
-			ccs_write_audit_log(false, r,
-					    CCS_KEYWORD_TRANSITION_FAILED
-					    "\n");
-			printk(KERN_WARNING "ERROR: Domain '%s' not defined.\n",
-			       ee->tmp);
+			ccs_write_log(false, r, CCS_KEYWORD_TRANSITION_FAILED
+				      "\n");
+			printk(KERN_WARNING
+			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
 		}
 	} else {
 		retval = 0;
@@ -1270,7 +1269,7 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 	domain = ccs_find_domain(domainname);
 	if (!domain && r.mode != CCS_CONFIG_ENFORCING &&
 	    strlen(domainname) < CCS_EXEC_TMPSIZE - 10) {
-		domain = ccs_find_or_assign_new_domain(domainname, r.profile);
+		domain = ccs_assign_domain(domainname, r.profile);
 		if (domain)
 			domain_created = true;
 	}

@@ -618,7 +618,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "%s %s", operation, filename);
-	return ccs_write_audit_log(is_granted, r, "allow_%s %s\n", operation,
+	return ccs_write_log(is_granted, r, "allow_%s %s\n", operation,
 				   filename);
 }
 
@@ -639,7 +639,7 @@ static int ccs_audit_path2_log(struct ccs_request_info *r,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "%s %s %s", operation, filename1, filename2);
-	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
+	return ccs_write_log(is_granted, r, "allow_%s %s %s\n",
 				   operation, filename1, filename2);
 }
 
@@ -667,7 +667,7 @@ static int ccs_audit_path_number3_log(struct ccs_request_info *r,
 	if (!is_granted)
 		ccs_warn_log(r, "%s %s 0%o %u %u", operation, filename, mode,
 			     major, minor);
-	return ccs_write_audit_log(is_granted, r, "allow_%s %s 0%o %u %u\n",
+	return ccs_write_log(is_granted, r, "allow_%s %s 0%o %u %u\n",
 				   operation, filename, mode, major, minor);
 }
 
@@ -689,7 +689,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "%s %s %s", operation, filename, value);
-	return ccs_write_audit_log(is_granted, r, "allow_%s %s %s\n",
+	return ccs_write_log(is_granted, r, "allow_%s %s %s\n",
 				   operation, filename, value);
 }
 

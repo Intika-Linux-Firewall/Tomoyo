@@ -246,14 +246,13 @@ bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
 }
 
 /**
- * ccs_find_or_assign_new_profile - Create a new profile.
+ * ccs_assign_profile - Create a new profile.
  *
  * @profile: Profile number to create.
  *
  * Returns pointer to "struct ccs_profile" on success, NULL otherwise.
  */
-static struct ccs_profile *ccs_find_or_assign_new_profile(const unsigned int
-							  profile)
+static struct ccs_profile *ccs_assign_profile(const unsigned int profile)
 {
 	struct ccs_profile *ptr;
 	struct ccs_profile *entry;
@@ -351,7 +350,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		if (*cp != '-')
 			return -EINVAL;
 		data = cp + 1;
-		profile = ccs_find_or_assign_new_profile(i);
+		profile = ccs_assign_profile(i);
 		if (!profile)
 			return -EINVAL;
 	}
@@ -939,7 +938,7 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 		else if (is_select)
 			domain = ccs_find_domain(data);
 		else
-			domain = ccs_find_or_assign_new_domain(data, 0);
+			domain = ccs_assign_domain(data, 0);
 		head->write_var1 = domain;
 		return 0;
 	}
@@ -2292,7 +2291,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
 	va_end(args);
-	header = ccs_init_audit_log(&len, r);
+	header = ccs_init_log(&len, r);
 	if (!header)
 		goto out;
 	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), CCS_GFP_FLAGS);
@@ -2556,8 +2555,8 @@ int ccs_open_control(const u8 type, struct file *file)
 #ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
 	case CCS_REJECTLOG: /* /proc/ccs/reject_log */
-		head->poll = ccs_poll_audit_log;
-		head->read = ccs_read_audit_log;
+		head->poll = ccs_poll_log;
+		head->read = ccs_read_log;
 		break;
 #endif
 	case CCS_SELFDOMAIN: /* /proc/ccs/self_domain */

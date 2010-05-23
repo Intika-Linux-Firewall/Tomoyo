@@ -272,9 +272,9 @@ void __init ccs_mm_init(void)
 }
 
 /* Memory allocated for audit logs. */
-unsigned int ccs_audit_log_memory_size;
+unsigned int ccs_log_memory_size;
 /* Quota for holding audit logs. */
-unsigned int ccs_quota_for_audit_log;
+unsigned int ccs_quota_for_log;
 
 /* Memory allocated for query lists. */
 unsigned int ccs_query_memory_size;
@@ -290,12 +290,12 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head)
 {
 	const unsigned int usage[3] = {
 		atomic_read(&ccs_policy_memory_size),
-		ccs_audit_log_memory_size,
+		ccs_log_memory_size,
 		ccs_query_memory_size
 	};
 	const unsigned int quota[3] = {
 		ccs_quota_for_policy,
-		ccs_quota_for_audit_log,
+		ccs_quota_for_log,
 		ccs_quota_for_query
 	};
 	static const char *header[4] = {
@@ -333,7 +333,7 @@ int ccs_write_memory_quota(struct ccs_io_buffer *head)
 	if (sscanf(data, "Policy: %u", &size) == 1)
 		ccs_quota_for_policy = size;
 	else if (sscanf(data, "Audit logs: %u", &size) == 1)
-		ccs_quota_for_audit_log = size;
+		ccs_quota_for_log = size;
 	else if (sscanf(data, "Query lists: %u", &size) == 1)
 		ccs_quota_for_query = size;
 	return 0;

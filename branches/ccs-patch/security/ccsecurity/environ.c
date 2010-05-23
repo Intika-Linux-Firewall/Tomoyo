@@ -26,7 +26,7 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "environ %s", env);
-	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",
+	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",
 				   env);
 }
 

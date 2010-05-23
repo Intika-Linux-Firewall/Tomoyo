@@ -179,10 +179,8 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		snprintf(buffer, buffer_len, "%lu", value);
 	else if (type == CCS_VALUE_TYPE_OCTAL)
 		snprintf(buffer, buffer_len, "0%lo", value);
-	else if (type == CCS_VALUE_TYPE_HEXADECIMAL)
-		snprintf(buffer, buffer_len, "0x%lX", value);
 	else
-		snprintf(buffer, buffer_len, "type(%u)", type);
+		snprintf(buffer, buffer_len, "0x%lX", value);
 }
 
 /**
@@ -1046,7 +1044,6 @@ const char *ccs_last_word(const char *name)
  */
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 {
-	int len = PAGE_SIZE;
 	va_list args;
 	char *buffer;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
@@ -1065,21 +1062,13 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 			return;
 		break;
 	}
-	while (1) {
-		int len2;
-		buffer = kmalloc(len, CCS_GFP_FLAGS);
-		if (!buffer)
-			return;
-		va_start(args, fmt);
-		len2 = vsnprintf(buffer, len - 1, fmt, args);
-		va_end(args);
-		if (len2 <= len - 1) {
-			buffer[len2] = '\0';
-			break;
-		}
-		len = len2 + 1;
-		kfree(buffer);
-	}
+	buffer = kmalloc(4096, CCS_GFP_FLAGS);
+	if (!buffer)
+		return;
+	va_start(args, fmt);
+	vsnprintf(buffer, 4095, fmt, args);
+	va_end(args);
+	buffer[4095] = '\0';
 	printk(KERN_WARNING "%s: Access %s denied for %s\n",
 	       r->mode == CCS_CONFIG_ENFORCING ? "ERROR" : "WARNING", buffer,
 	       ccs_last_word(domain->domainname->name));
@@ -1158,7 +1147,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		return true;
 	if (!domain->quota_warned) {
 		domain->quota_warned = true;
-		ccs_write_audit_log(false, r, CCS_KEYWORD_QUOTA_EXCEEDED "\n");
+		ccs_write_log(false, r, CCS_KEYWORD_QUOTA_EXCEEDED "\n");
 		printk(KERN_WARNING "WARNING: "
 		       "Domain '%s' has so many ACLs to hold. "
 		       "Stopped learning mode.\n", domain->domainname->name);

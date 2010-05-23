@@ -33,7 +33,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
 	if (!is_granted)
 		ccs_warn_log(r, "signal %d to %s", signal,
 			     ccs_last_word(dest_domain));
-	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_SIGNAL
+	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_SIGNAL
 				   "%d %s\n", signal, dest_domain);
 }
 
@@ -124,21 +124,42 @@ static int ccs_signal_acl2(const int sig, const int pid)
 /**
  * ccs_signal_acl - Check permission for signal.
  *
- * @sig: Signal number.
  * @pid: Target's PID.
+ * @sig: Signal number.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_signal_acl(const int sig, const int pid)
+static int ccs_signal_acl(const int pid, const int sig)
 {
-	const int idx = ccs_read_lock();
-	const int error = ccs_signal_acl2(sig, pid);
-	ccs_read_unlock(idx);
+	int error;
+	if (!sig)
+		error = 0;
+	else if (!ccs_capable(CCS_SYS_KILL))
+		error = -EPERM;
+	else {
+		const int idx = ccs_read_lock();
+		error = ccs_signal_acl2(sig, pid);
+		ccs_read_unlock(idx);
+	}
 	return error;
 }
 
+/**
+ * ccs_signal_acl0 - Permission check for signal().
+ *
+ * @tgid: Unused.
+ * @pid:  PID
+ * @sig:  Signal number.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_signal_acl0(pid_t tgid, pid_t pid, int sig)
+{
+	return ccs_signal_acl(pid, sig);
+}
+
 static bool ccs_same_signal_entry(const struct ccs_acl_info *a,
-				     const struct ccs_acl_info *b)
+				  const struct ccs_acl_info *b)
 {
 	const struct ccs_signal_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_signal_acl *p2 = container_of(b, typeof(*p2), head);
@@ -178,76 +199,11 @@ int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 	return error;
 }
 
-/**
- * ccs_kill_permission - Permission check for kill().
- *
- * @pid: PID
- * @sig: Signal number.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_kill_permission(pid_t pid, int sig)
-{
-	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_signal_acl(sig, pid)))
-		return -EPERM;
-	return 0;
-}
-
-/**
- * ccs_tgkill_permission - Permission check for tgkill().
- *
- * @tgid: TGID
- * @pid:  PID
- * @sig:  Signal number.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
-{
-	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_signal_acl(sig, pid)))
-		return -EPERM;
-	return 0;
-}
-
-/**
- * ccs_tkill_permission - Permission check for tkill().
- *
- * @pid: PID
- * @sig: Signal number.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_tkill_permission(pid_t pid, int sig)
-{
-	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_signal_acl(sig, pid)))
-		return -EPERM;
-	return 0;
-}
-
-static int __ccs_sigqueue_permission(pid_t pid, int sig)
-{
-	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_signal_acl(sig, pid)))
-		return -EPERM;
-	return 0;
-}
-
-static int __ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
-{
-	if (sig && (!ccs_capable(CCS_SYS_KILL) ||
-		    ccs_signal_acl(sig, pid)))
-		return -EPERM;
-	return 0;
-}
-
 void __init ccs_signal_init(void)
 {
-	ccsecurity_ops.kill_permission = __ccs_kill_permission;
-	ccsecurity_ops.tgkill_permission = __ccs_tgkill_permission;
-	ccsecurity_ops.tkill_permission = __ccs_tkill_permission;
-	ccsecurity_ops.sigqueue_permission = __ccs_sigqueue_permission;
-	ccsecurity_ops.tgsigqueue_permission = __ccs_tgsigqueue_permission;
+	ccsecurity_ops.kill_permission = ccs_signal_acl;
+	ccsecurity_ops.tgkill_permission = ccs_signal_acl0;
+	ccsecurity_ops.tkill_permission = ccs_signal_acl;
+	ccsecurity_ops.sigqueue_permission = ccs_signal_acl;
+	ccsecurity_ops.tgsigqueue_permission = ccs_signal_acl0;
 }

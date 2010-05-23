@@ -26,7 +26,7 @@ static int ccs_audit_capability_log(struct ccs_request_info *r,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "capability %s", ccs_cap2keyword(operation));
-	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY
+	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY
 				   "%s\n", ccs_cap2keyword(operation));
 }
 

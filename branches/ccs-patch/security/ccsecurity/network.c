@@ -36,7 +36,7 @@ static int ccs_audit_network_log(struct ccs_request_info *r,
 {
 	if (!is_granted)
 		ccs_warn_log(r, "%s %s %u", operation, address, port);
-	return ccs_write_audit_log(is_granted, r, CCS_KEYWORD_ALLOW_NETWORK
+	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_NETWORK
 				   "%s %s %u\n", operation, address, port);
 }
 

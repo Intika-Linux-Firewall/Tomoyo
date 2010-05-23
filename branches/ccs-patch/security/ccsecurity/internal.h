@@ -549,7 +549,7 @@ struct ccs_request_info {
 	/*
 	 * For holding operation index used for this request.
 	 * Used by ccs_init_request_info() / ccs_get_mode() / 
-	 * ccs_write_audit_log(). One of values in "enum ccs_mac_index".
+	 * ccs_write_log(). One of values in "enum ccs_mac_index".
 	 */
 	u8 type;
 };
@@ -941,7 +941,7 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 		      (const struct ccs_acl_head *,
 		       const struct ccs_acl_head *));
 char *ccs_encode(const char *str);
-char *ccs_init_audit_log(int *len, struct ccs_request_info *r);
+char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_file_pattern(const struct ccs_path_info *filename);
@@ -969,7 +969,7 @@ int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 			const struct ccs_path_info *filename);
 int ccs_poll_control(struct file *file, poll_table *wait);
-int ccs_poll_audit_log(struct file *file, poll_table *wait);
+int ccs_poll_log(struct file *file, poll_table *wait);
 int ccs_read_control(struct file *file, char __user *buffer,
 		     const int buffer_len);
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
@@ -977,8 +977,8 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_write_aggregator(char *data, const bool is_delete,
 				const u8 flags);
-int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
-			const char *fmt, ...)
+int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
+		  const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
 int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
@@ -1007,9 +1007,9 @@ int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 		     struct ccs_condition *condition, const bool is_delete);
 size_t ccs_del_condition(struct list_head *element);
 struct ccs_condition *ccs_get_condition(char * const condition);
+struct ccs_domain_info *ccs_assign_domain(const char *domainname,
+					  const u8 profile);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
-struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
-						      const u8 profile);
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
@@ -1026,7 +1026,7 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
 		     const unsigned long value, const u8 type);
 void ccs_put_name_union(struct ccs_name_union *ptr);
 void ccs_put_number_union(struct ccs_number_union *ptr);
-void ccs_read_audit_log(struct ccs_io_buffer *head);
+void ccs_read_log(struct ccs_io_buffer *head);
 void ccs_read_memory_counter(struct ccs_io_buffer *head);
 void ccs_run_gc(void);
 void ccs_unlock(const int idx);
@@ -1125,8 +1125,8 @@ static inline void ccs_read_unlock(const int idx)
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 
-extern unsigned int ccs_audit_log_memory_size;
-extern unsigned int ccs_quota_for_audit_log;
+extern unsigned int ccs_log_memory_size;
+extern unsigned int ccs_quota_for_log;
 extern unsigned int ccs_query_memory_size;
 extern unsigned int ccs_quota_for_query;
 
