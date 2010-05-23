@@ -108,7 +108,7 @@ struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
 	struct ccs_group *group = NULL;
 	const struct ccs_path_info *saved_group_name;
 	int error = -ENOMEM;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
+	if (!ccs_correct_path(group_name, 0, 0, 0) ||
 	    !group_name[0] || idx >= CCS_MAX_GROUP)
 		return NULL;
 	saved_group_name = ccs_get_name(group_name);
@@ -152,8 +152,8 @@ struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
  */
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 {
-	struct ccs_ipv6addr_entry *entry;
-	struct ccs_ipv6addr_entry *ptr = NULL;
+	struct ccs_ipv6addr *entry;
+	struct ccs_ipv6addr *ptr = NULL;
 	int error = -ENOMEM;
 	if (!addr)
 		return NULL;
@@ -183,7 +183,7 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr)
 	return !error ? &ptr->addr : NULL;
 }
 
-/* The list for "struct ccs_name_entry". */
+/* The list for "struct ccs_name". */
 struct list_head ccs_name_list[CCS_MAX_HASH];
 
 /**
@@ -195,7 +195,7 @@ struct list_head ccs_name_list[CCS_MAX_HASH];
  */
 const struct ccs_path_info *ccs_get_name(const char *name)
 {
-	struct ccs_name_entry *ptr;
+	struct ccs_name *ptr;
 	unsigned int hash;
 	int len;
 	int allocated_len;
@@ -264,7 +264,7 @@ void __init ccs_mm_init(void)
 			char *cp2 = strchr(cp, ' ');
 			if (cp2)
 				*cp2++ = '\0';
-			ccs_write_domain_initializer_policy(cp, false, false);
+			ccs_write_domain_initializer(cp, false, false);
 			cp = cp2;
 		}
 	}

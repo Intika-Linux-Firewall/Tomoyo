@@ -332,20 +332,20 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	return error;
 }
 
-static bool ccs_is_same_mount_acl(const struct ccs_acl_info *a,
+static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
 				  const struct ccs_acl_info *b)
 {
 	const struct ccs_mount_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_mount_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head) &&
-		ccs_is_same_name_union(&p1->dev_name, &p2->dev_name) &&
-		ccs_is_same_name_union(&p1->dir_name, &p2->dir_name) &&
-		ccs_is_same_name_union(&p1->fs_type, &p2->fs_type) &&
-		ccs_is_same_number_union(&p1->flags, &p2->flags);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		ccs_same_name_union(&p1->dev_name, &p2->dev_name) &&
+		ccs_same_name_union(&p1->dir_name, &p2->dir_name) &&
+		ccs_same_name_union(&p1->fs_type, &p2->fs_type) &&
+		ccs_same_number_union(&p1->flags, &p2->flags);
 }
 
 /**
- * ccs_write_mount_policy - Write "struct ccs_mount_acl" list.
+ * ccs_write_mount - Write "struct ccs_mount_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -354,9 +354,8 @@ static bool ccs_is_same_mount_acl(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete)
+int ccs_write_mount(char *data, struct ccs_domain_info *domain,
+		    struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
 				   .head.cond = condition };
@@ -369,8 +368,8 @@ int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 	    !ccs_parse_name_union(w[2], &e.fs_type) ||
 	    !ccs_parse_number_union(w[3], &e.flags))
 		goto out;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_mount_acl, NULL);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_mount_acl, NULL);
  out:
 	ccs_put_name_union(&e.dev_name);
 	ccs_put_name_union(&e.dir_name);

@@ -12,14 +12,14 @@
 
 #include "internal.h"
 
-static bool ccs_is_same_path_group(const struct ccs_acl_head *a,
+static bool ccs_same_path_group(const struct ccs_acl_head *a,
 				   const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_path_group, head)->member_name ==
 		container_of(b, struct ccs_path_group, head)->member_name;
 }
 
-static bool ccs_is_same_number_group(const struct ccs_acl_head *a,
+static bool ccs_same_number_group(const struct ccs_acl_head *a,
 				     const struct ccs_acl_head *b)
 {
 	return !memcmp(&container_of(a, struct ccs_number_group, head)->number,
@@ -28,7 +28,7 @@ static bool ccs_is_same_number_group(const struct ccs_acl_head *a,
 			      ->number));
 }
 
-static bool ccs_is_same_address_group(const struct ccs_acl_head *a,
+static bool ccs_same_address_group(const struct ccs_acl_head *a,
 				      const struct ccs_acl_head *b)
 {
 	const struct ccs_address_group *p1 = container_of(a, typeof(*p1),
@@ -41,7 +41,7 @@ static bool ccs_is_same_address_group(const struct ccs_acl_head *a,
 }
 
 /**
- * ccs_write_group_policy - Write "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
+ * ccs_write_group - Write "struct ccs_path_group"/"struct ccs_number_group"/"struct ccs_address_group" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
@@ -49,7 +49,7 @@ static bool ccs_is_same_address_group(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_group_policy(char *data, const bool is_delete, const u8 type)
+int ccs_write_group(char *data, const bool is_delete, const u8 type)
 {
 	struct ccs_group *group;
 	char *w[2];
@@ -67,7 +67,7 @@ int ccs_write_group_policy(char *data, const bool is_delete, const u8 type)
 			goto out;
 		}
 		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_is_same_path_group);
+					 ccs_same_path_group);
 		ccs_put_name(e.member_name);
 	} else if (type == CCS_NUMBER_GROUP) {
 		struct ccs_number_group e = { };
@@ -75,7 +75,7 @@ int ccs_write_group_policy(char *data, const bool is_delete, const u8 type)
 		    || e.number.values[0] > e.number.values[1])
 			goto out;
 		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_is_same_number_group);
+					 ccs_same_number_group);
 		/*
 		 * ccs_put_number_union() is not needed because w[1][0] != '@'.
 		 */
@@ -101,7 +101,7 @@ int ccs_write_group_policy(char *data, const bool is_delete, const u8 type)
 			goto out_address;
 		}
 		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_is_same_address_group);
+					 ccs_same_address_group);
  out_address:
 		if (e.is_ipv6) {
 			ccs_put_ipv6_address(e.min.ipv6);

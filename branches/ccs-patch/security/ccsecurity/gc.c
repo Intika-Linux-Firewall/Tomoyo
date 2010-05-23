@@ -58,7 +58,7 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
 }
 
 /**
- * ccs_del_allow_read - Delete members in "struct ccs_globally_readable_file_entry".
+ * ccs_del_allow_read - Delete members in "struct ccs_global_read".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -66,14 +66,14 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
  */
 static size_t ccs_del_allow_read(struct list_head *element)
 {
-	struct ccs_globally_readable_file_entry *ptr =
+	struct ccs_global_read *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->filename);
 	return sizeof(*ptr);
 }
 
 /**
- * ccsdel_allow_env - Delete members in "struct ccs_globally_usable_env_entry".
+ * ccsdel_allow_env - Delete members in "struct ccs_global_env".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -81,14 +81,14 @@ static size_t ccs_del_allow_read(struct list_head *element)
  */
 static size_t ccs_del_allow_env(struct list_head *element)
 {
-	struct ccs_globally_usable_env_entry *ptr =
+	struct ccs_global_env *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->env);
 	return sizeof(*ptr);
 }
 
 /**
- * ccs_del_file_pattern - Delete members in "struct ccs_pattern_entry".
+ * ccs_del_file_pattern - Delete members in "struct ccs_pattern".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -96,14 +96,14 @@ static size_t ccs_del_allow_env(struct list_head *element)
  */
 static size_t ccs_del_file_pattern(struct list_head *element)
 {
-	struct ccs_pattern_entry *ptr =
+	struct ccs_pattern *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->pattern);
 	return sizeof(*ptr);
 }
 
 /**
- * ccs_del_no_rewrite - Delete members in "struct ccs_no_rewrite_entry".
+ * ccs_del_no_rewrite - Delete members in "struct ccs_no_rewrite".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -111,14 +111,14 @@ static size_t ccs_del_file_pattern(struct list_head *element)
  */
 static size_t ccs_del_no_rewrite(struct list_head *element)
 {
-	struct ccs_no_rewrite_entry *ptr =
+	struct ccs_no_rewrite *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->pattern);
 	return sizeof(*ptr);
 }
 
 /**
- * ccs_del_domain_initializer - Delete members in "struct ccs_domain_initializer_entry".
+ * ccs_del_domain_initializer - Delete members in "struct ccs_domain_initializer".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -126,7 +126,7 @@ static size_t ccs_del_no_rewrite(struct list_head *element)
  */
 static size_t ccs_del_domain_initializer(struct list_head *element)
 {
-	struct ccs_domain_initializer_entry *ptr =
+	struct ccs_domain_initializer *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
@@ -134,7 +134,7 @@ static size_t ccs_del_domain_initializer(struct list_head *element)
 }
 
 /**
- * ccs_del_domain_keeper - Delete members in "struct ccs_domain_keeper_entry".
+ * ccs_del_domain_keeper - Delete members in "struct ccs_domain_keeper".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -142,7 +142,7 @@ static size_t ccs_del_domain_initializer(struct list_head *element)
  */
 static size_t ccs_del_domain_keeper(struct list_head *element)
 {
-	struct ccs_domain_keeper_entry *ptr =
+	struct ccs_domain_keeper *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->domainname);
 	ccs_put_name(ptr->program);
@@ -150,7 +150,7 @@ static size_t ccs_del_domain_keeper(struct list_head *element)
 }
 
 /**
- * ccs_del_aggregator - Delete members in "struct ccs_aggregator_entry".
+ * ccs_del_aggregator - Delete members in "struct ccs_aggregator".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -158,7 +158,7 @@ static size_t ccs_del_domain_keeper(struct list_head *element)
  */
 static size_t ccs_del_aggregator(struct list_head *element)
 {
-	struct ccs_aggregator_entry *ptr =
+	struct ccs_aggregator *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->original_name);
 	ccs_put_name(ptr->aggregated_name);
@@ -166,7 +166,7 @@ static size_t ccs_del_aggregator(struct list_head *element)
 }
 
 /**
- * ccs_del_manager - Delete members in "struct ccs_policy_manager_entry".
+ * ccs_del_manager - Delete members in "struct ccs_manager".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -174,7 +174,7 @@ static size_t ccs_del_aggregator(struct list_head *element)
  */
 static size_t ccs_del_manager(struct list_head *element)
 {
-	struct ccs_policy_manager_entry *ptr =
+	struct ccs_manager *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	ccs_put_name(ptr->manager);
 	return sizeof(*ptr);
@@ -454,7 +454,7 @@ static size_t ccs_del_number_group(struct list_head *element)
 }
 
 /**
- * ccs_del_reservedport - Delete members in "struct ccs_reserved_entry".
+ * ccs_del_reservedport - Delete members in "struct ccs_reserved".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -462,13 +462,13 @@ static size_t ccs_del_number_group(struct list_head *element)
  */
 static size_t ccs_del_reservedport(struct list_head *element)
 {
-	struct ccs_reserved_entry *ptr =
+	struct ccs_reserved *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	return sizeof(*ptr);
 }
 
 /**
- * ccs_del_ipv6_address - Delete members in "struct ccs_ipv6addr_entry".
+ * ccs_del_ipv6_address - Delete members in "struct ccs_ipv6addr".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -476,7 +476,7 @@ static size_t ccs_del_reservedport(struct list_head *element)
  */
 static size_t ccs_del_ipv6_address(struct list_head *element)
 {
-	struct ccs_ipv6addr_entry *ptr =
+	struct ccs_ipv6addr *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	return sizeof(*ptr);
 }
@@ -504,10 +504,10 @@ size_t ccs_del_condition(struct list_head *element)
 		= (struct ccs_number_union *) (condp + condc);
 	struct ccs_name_union *names_p
 		= (struct ccs_name_union *) (numbers_p + numbers_count);
-	const struct ccs_argv_entry *argv
-		= (const struct ccs_argv_entry *) (names_p + names_count);
-	const struct ccs_envp_entry *envp
-		= (const struct ccs_envp_entry *) (argv + argc);
+	const struct ccs_argv *argv
+		= (const struct ccs_argv *) (names_p + names_count);
+	const struct ccs_envp *envp
+		= (const struct ccs_envp *) (argv + argc);
 	for (i = 0; i < numbers_count; i++)
 		ccs_put_number_union(numbers_p++);
 	for (i = 0; i < names_count; i++)
@@ -522,7 +522,7 @@ size_t ccs_del_condition(struct list_head *element)
 }
 
 /**
- * ccs_del_name - Delete members in "struct ccs_name_entry".
+ * ccs_del_name - Delete members in "struct ccs_name".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -530,7 +530,7 @@ size_t ccs_del_condition(struct list_head *element)
  */
 static size_t ccs_del_name(struct list_head *element)
 {
-	const struct ccs_name_entry *ptr =
+	const struct ccs_name *ptr =
 		container_of(element, typeof(*ptr), head.list);
 	return ptr->size;
 }
@@ -722,7 +722,7 @@ static bool ccs_kfree_entry(void)
 		case CCS_ID_DOMAIN_KEEPER:
 			size = ccs_del_domain_keeper(p->element);
 			break;
-		case CCS_ID_GLOBALLY_READABLE:
+		case CCS_ID_GLOBAL_READ:
 			size = ccs_del_allow_read(p->element);
 			break;
 		case CCS_ID_PATTERN:

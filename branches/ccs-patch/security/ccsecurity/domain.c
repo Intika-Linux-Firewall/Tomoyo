@@ -37,11 +37,11 @@ struct list_head ccs_shared_list[CCS_MAX_LIST];
 /**
  * ccs_audit_execute_handler_log - Audit execute_handler log.
  *
- * @ee:         Pointer to "struct ccs_execve_entry".
+ * @ee:         Pointer to "struct ccs_execve".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_execute_handler_log(struct ccs_execve_entry *ee)
+static int ccs_audit_execute_handler_log(struct ccs_execve *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	const char *handler = ee->handler->name;
@@ -119,14 +119,13 @@ int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
 	return error;
 }
 
-int ccs_update_domain_policy(struct ccs_acl_info *new_entry, const int size,
-			     bool is_delete, struct ccs_domain_info *domain,
-			     bool (*check_duplicate)
-			     (const struct ccs_acl_info *,
-			      const struct ccs_acl_info *),
-			     bool (*merge_duplicate) (struct ccs_acl_info *,
-						      struct ccs_acl_info *,
-						      const bool))
+int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
+		      bool is_delete, struct ccs_domain_info *domain,
+		      bool (*check_duplicate) (const struct ccs_acl_info *,
+					       const struct ccs_acl_info *),
+		      bool (*merge_duplicate) (struct ccs_acl_info *,
+					       struct ccs_acl_info *,
+					       const bool))
 {
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	struct ccs_acl_info *entry;
@@ -154,12 +153,12 @@ int ccs_update_domain_policy(struct ccs_acl_info *new_entry, const int size,
 	return error;
 }
 
-static bool ccs_is_same_domain_initializer_entry(const struct ccs_acl_head *a,
+static bool ccs_same_domain_initializer_entry(const struct ccs_acl_head *a,
 						 const struct ccs_acl_head *b)
 {
-	const struct ccs_domain_initializer_entry *p1 =
+	const struct ccs_domain_initializer *p1 =
 		container_of(a, typeof(*p1), head);
-	const struct ccs_domain_initializer_entry *p2 =
+	const struct ccs_domain_initializer *p2 =
 		container_of(b, typeof(*p2), head);
 	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
@@ -167,7 +166,7 @@ static bool ccs_is_same_domain_initializer_entry(const struct ccs_acl_head *a,
 }
 
 /**
- * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer_entry" list.
+ * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer" list.
  *
  * @domainname: The name of domain. May be NULL.
  * @program:    The name of program.
@@ -181,15 +180,15 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 					       const bool is_not,
 					       const bool is_delete)
 {
-	struct ccs_domain_initializer_entry e = { .is_not = is_not };
+	struct ccs_domain_initializer e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(program, 1, -1, -1))
+	if (!ccs_correct_path(program, 1, -1, -1))
 		return -EINVAL; /* No patterns allowed. */
 	if (domainname) {
-		if (!ccs_is_domain_def(domainname) &&
-		    ccs_is_correct_path(domainname, 1, -1, -1))
+		if (!ccs_domain_def(domainname) &&
+		    ccs_correct_path(domainname, 1, -1, -1))
 			e.is_last_name = true;
-		else if (!ccs_is_correct_domain(domainname))
+		else if (!ccs_correct_domain(domainname))
 			return -EINVAL;
 		e.domainname = ccs_get_name(domainname);
 		if (!e.domainname)
@@ -200,7 +199,7 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_DOMAIN_INITIALIZER,
-				  ccs_is_same_domain_initializer_entry);
+				  ccs_same_domain_initializer_entry);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
@@ -208,14 +207,14 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 }
 
 /**
- * ccs_write_domain_initializer_policy - Write "struct ccs_domain_initializer_entry" list.
+ * ccs_write_domain_initializer - Write "struct ccs_domain_initializer" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_domain_initializer_policy(char *data, const bool is_delete, const u8 flags)
+int ccs_write_domain_initializer(char *data, const bool is_delete, const u8 flags)
 {
 	char *domainname = strstr(data, " from ");
 	if (domainname) {
@@ -227,7 +226,7 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_delete, const 
 }
 
 /**
- * ccs_is_domain_initializer - Check whether the given program causes domainname reinitialization.
+ * ccs_domain_initializer - Check whether the given program causes domainname reinitialization.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -238,11 +237,11 @@ int ccs_write_domain_initializer_policy(char *data, const bool is_delete, const 
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
+static bool ccs_domain_initializer(const struct ccs_path_info *domainname,
 				      const struct ccs_path_info *program,
 				      const struct ccs_path_info *last_name)
 {
-	struct ccs_domain_initializer_entry *ptr;
+	struct ccs_domain_initializer *ptr;
 	bool flag = false;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list
 				[CCS_ID_DOMAIN_INITIALIZER], head.list) {
@@ -268,12 +267,12 @@ static bool ccs_is_domain_initializer(const struct ccs_path_info *domainname,
 	return flag;
 }
 
-static bool ccs_is_same_domain_keeper_entry(const struct ccs_acl_head *a,
+static bool ccs_same_domain_keeper_entry(const struct ccs_acl_head *a,
 					    const struct ccs_acl_head *b)
 {
-	const struct ccs_domain_keeper_entry *p1 =
+	const struct ccs_domain_keeper *p1 =
 		container_of(a, typeof(*p1), head);
-	const struct ccs_domain_keeper_entry *p2 =
+	const struct ccs_domain_keeper *p2 =
 		container_of(b, typeof(*p2), head);
 	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
@@ -281,7 +280,7 @@ static bool ccs_is_same_domain_keeper_entry(const struct ccs_acl_head *a,
 }
 
 /**
- * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper_entry" list.
+ * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper" list.
  *
  * @domainname: The name of domain.
  * @program:    The name of program. May be NULL.
@@ -295,15 +294,15 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 					  const bool is_not,
 					  const bool is_delete)
 {
-	struct ccs_domain_keeper_entry e = { .is_not = is_not };
+	struct ccs_domain_keeper e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_domain_def(domainname) &&
-	    ccs_is_correct_path(domainname, 1, -1, -1))
+	if (!ccs_domain_def(domainname) &&
+	    ccs_correct_path(domainname, 1, -1, -1))
 		e.is_last_name = true;
-	else if (!ccs_is_correct_domain(domainname))
+	else if (!ccs_correct_domain(domainname))
 		return -EINVAL;
 	if (program) {
-		if (!ccs_is_correct_path(program, 1, -1, -1))
+		if (!ccs_correct_path(program, 1, -1, -1))
 			return -EINVAL;
 		e.program = ccs_get_name(program);
 		if (!e.program)
@@ -314,7 +313,7 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_DOMAIN_KEEPER,
-				  ccs_is_same_domain_keeper_entry);
+				  ccs_same_domain_keeper_entry);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
@@ -322,15 +321,14 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 }
 
 /**
- * ccs_write_domain_keeper_policy - Write "struct ccs_domain_keeper_entry" list.
+ * ccs_write_domain_keeper - Write "struct ccs_domain_keeper" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
-				   const u8 flags)
+int ccs_write_domain_keeper(char *data, const bool is_delete, const u8 flags)
 {
 	char *domainname = strstr(data, " from ");
 	if (domainname) {
@@ -345,7 +343,7 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
 }
 
 /**
- * ccs_is_domain_keeper - Check whether the given program causes domain transition suppression.
+ * ccs_domain_keeper - Check whether the given program causes domain transition suppression.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
@@ -356,11 +354,11 @@ int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
+static bool ccs_domain_keeper(const struct ccs_path_info *domainname,
 				 const struct ccs_path_info *program,
 				 const struct ccs_path_info *last_name)
 {
-	struct ccs_domain_keeper_entry *ptr;
+	struct ccs_domain_keeper *ptr;
 	bool flag = false;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_DOMAIN_KEEPER],
 				head.list) {
@@ -384,19 +382,19 @@ static bool ccs_is_domain_keeper(const struct ccs_path_info *domainname,
 	return flag;
 }
 
-static bool ccs_is_same_aggregator_entry(const struct ccs_acl_head *a,
+static bool ccs_same_aggregator_entry(const struct ccs_acl_head *a,
 					 const struct ccs_acl_head *b)
 {
-	const struct ccs_aggregator_entry *p1 =
+	const struct ccs_aggregator *p1 =
 		container_of(a, typeof(*p1), head);
-	const struct ccs_aggregator_entry *p2 =
+	const struct ccs_aggregator *p2 =
 		container_of(b, typeof(*p2), head);
 	return p1->original_name == p2->original_name &&
 		p1->aggregated_name == p2->aggregated_name;
 }
 
 /**
- * ccs_update_aggregator_entry - Update "struct ccs_aggregator_entry" list.
+ * ccs_update_aggregator_entry - Update "struct ccs_aggregator" list.
  *
  * @original_name:   The original program's name.
  * @aggregated_name: The aggregated program's name.
@@ -408,10 +406,10 @@ static int ccs_update_aggregator_entry(const char *original_name,
 				       const char *aggregated_name,
 				       const bool is_delete)
 {
-	struct ccs_aggregator_entry e = { };
+	struct ccs_aggregator e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(original_name, 1, 0, -1) ||
-	    !ccs_is_correct_path(aggregated_name, 1, -1, -1))
+	if (!ccs_correct_path(original_name, 1, 0, -1) ||
+	    !ccs_correct_path(aggregated_name, 1, -1, -1))
 		return -EINVAL;
 	e.original_name = ccs_get_name(original_name);
 	e.aggregated_name = ccs_get_name(aggregated_name);
@@ -419,7 +417,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_AGGREGATOR,
-				  ccs_is_same_aggregator_entry);
+				  ccs_same_aggregator_entry);
  out:
 	ccs_put_name(e.original_name);
 	ccs_put_name(e.aggregated_name);
@@ -427,14 +425,14 @@ static int ccs_update_aggregator_entry(const char *original_name,
 }
 
 /**
- * ccs_write_aggregator_policy - Write "struct ccs_aggregator_entry" list.
+ * ccs_write_aggregator - Write "struct ccs_aggregator" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_aggregator_policy(char *data, const bool is_delete, const u8 flags)
+int ccs_write_aggregator(char *data, const bool is_delete, const u8 flags)
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
@@ -490,7 +488,7 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 	const struct ccs_path_info *saved_domainname;
 	bool found = false;
 
-	if (!ccs_is_correct_domain(domainname))
+	if (!ccs_correct_domain(domainname))
 		return NULL;
 	saved_domainname = ccs_get_name(domainname);
 	if (!saved_domainname)
@@ -525,13 +523,13 @@ struct ccs_domain_info *ccs_find_or_assign_new_domain(const char *domainname,
 /**
  * ccs_find_next_domain - Find a domain.
  *
- * @ee: Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve".
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_find_next_domain(struct ccs_execve_entry *ee)
+static int ccs_find_next_domain(struct ccs_execve *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_path_info *handler = ee->handler;
@@ -574,7 +572,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 			goto out;
 		}
 	} else {
-		struct ccs_aggregator_entry *ptr;
+		struct ccs_aggregator *ptr;
 		/* Check 'aggregator' directive. */
 		list_for_each_entry_rcu(ptr,
 					&ccs_policy_list[CCS_ID_AGGREGATOR],
@@ -598,7 +596,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 	}
 
 	/* Calculate domain to transit to. */
-	if (ccs_is_domain_initializer(old_domain->domainname, &rn, &ln)) {
+	if (ccs_domain_initializer(old_domain->domainname, &rn, &ln)) {
 		/* Transit to the child of ccs_kernel_domain domain. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
 			 rn.name);
@@ -609,7 +607,7 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 		 * initializers because they might start before /sbin/init.
 		 */
 		domain = old_domain;
-	} else if (ccs_is_domain_keeper(old_domain->domainname, &rn, &ln)) {
+	} else if (ccs_domain_keeper(old_domain->domainname, &rn, &ln)) {
 		/* Keep current domain. */
 		domain = old_domain;
 	} else {
@@ -678,11 +676,11 @@ static int ccs_find_next_domain(struct ccs_execve_entry *ee)
 /**
  * ccs_environ - Check permission for environment variable names.
  *
- * @ee: Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_environ(struct ccs_execve_entry *ee)
+static int ccs_environ(struct ccs_execve *ee)
 {
 	struct ccs_request_info *r = &ee->r;
 	struct linux_binprm *bprm = ee->bprm;
@@ -863,11 +861,11 @@ static int ccs_get_root_depth(void)
 /**
  * ccs_try_alt_exec - Try to start execute handler.
  *
- * @ee: Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
+static int ccs_try_alt_exec(struct ccs_execve *ee)
 {
 	/*
 	 * Contents of modified bprm.
@@ -1065,14 +1063,14 @@ static int ccs_try_alt_exec(struct ccs_execve_entry *ee)
 /**
  * ccs_find_execute_handler - Find an execute handler.
  *
- * @ee:   Pointer to "struct ccs_execve_entry".
+ * @ee:   Pointer to "struct ccs_execve".
  * @type: Type of execute handler.
  *
  * Returns true if found, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
+static bool ccs_find_execute_handler(struct ccs_execve *ee,
 				     const u8 type)
 {
 	struct task_struct *task = current;
@@ -1159,16 +1157,16 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  * ccs_start_execve - Prepare for execve() operation.
  *
  * @bprm: Pointer to "struct linux_binprm".
- * @eep:  Pointer to "struct ccs_execve_entry *".
+ * @eep:  Pointer to "struct ccs_execve *".
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_start_execve(struct linux_binprm *bprm,
-			    struct ccs_execve_entry **eep)
+			    struct ccs_execve **eep)
 {
 	int retval;
 	struct task_struct *task = current;
-	struct ccs_execve_entry *ee;
+	struct ccs_execve *ee;
 	*eep = NULL;
 	ee = kzalloc(sizeof(*ee), CCS_GFP_FLAGS);
 	if (!ee)
@@ -1182,7 +1180,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	/* ee->dump->data is allocated by ccs_dump_page(). */
 	ee->previous_domain = task->ccs_domain_info;
 	/* Clear manager flag. */
-	task->ccs_flags &= ~CCS_TASK_IS_POLICY_MANAGER;
+	task->ccs_flags &= ~CCS_TASK_IS_MANAGER;
 	*eep = ee;
 	ccs_init_request_info(&ee->r, CCS_MAC_FILE_EXECUTE);
 	ee->r.ee = ee;
@@ -1211,11 +1209,11 @@ static int ccs_start_execve(struct linux_binprm *bprm,
  * ccs_finish_execve - Clean up execve() operation.
  *
  * @retval: Return code of an execve() operation.
- * @ee:     Pointer to "struct ccs_execve_entry".
+ * @ee:     Pointer to "struct ccs_execve".
  *
  * Caller holds ccs_read_lock().
  */
-static void ccs_finish_execve(int retval, struct ccs_execve_entry *ee)
+static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 {
 	struct task_struct *task = current;
 	if (!ee)
@@ -1290,7 +1288,7 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 static int __ccs_search_binary_handler(struct linux_binprm *bprm,
 				       struct pt_regs *regs)
 {
-	struct ccs_execve_entry *ee;
+	struct ccs_execve *ee;
 	int retval;
 	if (!ccs_policy_loaded)
 		ccsecurity_exports.load_policy(bprm->filename);

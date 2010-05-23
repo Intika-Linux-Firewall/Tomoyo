@@ -137,7 +137,7 @@ static int ccs_signal_acl(const int sig, const int pid)
 	return error;
 }
 
-static bool ccs_is_same_signal_entry(const struct ccs_acl_info *a,
+static bool ccs_same_signal_entry(const struct ccs_acl_info *a,
 				     const struct ccs_acl_info *b)
 {
 	const struct ccs_signal_acl *p1 = container_of(a, typeof(*p1), head);
@@ -148,7 +148,7 @@ static bool ccs_is_same_signal_entry(const struct ccs_acl_info *a,
 }
 
 /**
- * ccs_write_signal_policy - Write "struct ccs_signal_acl" list.
+ * ccs_write_signal - Write "struct ccs_signal_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -157,9 +157,8 @@ static bool ccs_is_same_signal_entry(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete)
+int ccs_write_signal(char *data, struct ccs_domain_info *domain,
+		     struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
 				    .head.cond = condition };
@@ -167,14 +166,14 @@ int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
 	int sig;
 	char *domainname = strchr(data, ' ');
 	if (sscanf(data, "%d", &sig) != 1 || !domainname ||
-	    !ccs_is_correct_domain(domainname + 1))
+	    !ccs_correct_domain(domainname + 1))
 		return -EINVAL;
 	e.sig = sig;
 	e.domainname = ccs_get_name(domainname + 1);
 	if (!e.domainname)
 		return -ENOMEM;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_signal_entry, NULL);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_signal_entry, NULL);
 	ccs_put_name(e.domainname);
 	return error;
 }

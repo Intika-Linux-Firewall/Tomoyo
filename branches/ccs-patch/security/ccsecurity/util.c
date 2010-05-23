@@ -195,7 +195,7 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
  */
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
 {
-	if (!ccs_is_correct_path(filename, 0, 0, 0))
+	if (!ccs_correct_path(filename, 0, 0, 0))
 		return false;
 	if (filename[0] == '@') {
 		ptr->group = ccs_get_group(filename + 1, CCS_PATH_GROUP);
@@ -221,7 +221,7 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	unsigned long v;
 	memset(num, 0, sizeof(*num));
 	if (data[0] == '@') {
-		if (!ccs_is_correct_path(data, 0, 0, 0))
+		if (!ccs_correct_path(data, 0, 0, 0))
 			return false;
 		num->group = ccs_get_group(data + 1, CCS_NUMBER_GROUP);
 		num->is_group = true;
@@ -248,13 +248,13 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 }
 
 /**
- * ccs_is_byte_range - Check whether the string is a \ooo style octal value.
+ * ccs_byte_range - Check whether the string is a \ooo style octal value.
  *
  * @str: Pointer to the string.
  *
  * Returns true if @str is a \ooo style octal value, false otherwise.
  */
-static bool ccs_is_byte_range(const char *str)
+static bool ccs_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
@@ -262,25 +262,25 @@ static bool ccs_is_byte_range(const char *str)
 }
 
 /**
- * ccs_is_decimal - Check whether the character is a decimal character.
+ * ccs_decimal - Check whether the character is a decimal character.
  *
  * @c: The character to check.
  *
  * Returns true if @c is a decimal character, false otherwise.
  */
-static bool ccs_is_decimal(const char c)
+static bool ccs_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
 /**
- * ccs_is_hexadecimal - Check whether the character is a hexadecimal character.
+ * ccs_hexadecimal - Check whether the character is a hexadecimal character.
  *
  * @c: The character to check.
  *
  * Returns true if @c is a hexadecimal character, false otherwise.
  */
-static bool ccs_is_hexadecimal(const char c)
+static bool ccs_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
@@ -288,13 +288,13 @@ static bool ccs_is_hexadecimal(const char c)
 }
 
 /**
- * ccs_is_alphabet_char - Check whether the character is an alphabet.
+ * ccs_alphabet_char - Check whether the character is an alphabet.
  *
  * @c: The character to check.
  *
  * Returns true if @c is an alphabet character, false otherwise.
  */
-static bool ccs_is_alphabet_char(const char c)
+static bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
@@ -392,7 +392,7 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
 }
 
 /**
- * ccs_is_correct_path - Validate a pathname.
+ * ccs_correct_path - Validate a pathname.
  *
  * @filename:     The pathname to check.
  * @start_type:   Should the pathname start with '/'?
@@ -405,7 +405,7 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
  * Check whether the given filename follows the naming rules.
  * Returns true if @filename follows the naming rules, false otherwise.
  */
-bool ccs_is_correct_path(const char *filename, const s8 start_type,
+bool ccs_correct_path(const char *filename, const s8 start_type,
 			 const s8 pattern_type, const s8 end_type)
 {
 	const char *const start = filename;
@@ -505,13 +505,13 @@ bool ccs_is_correct_path(const char *filename, const s8 start_type,
 }
 
 /**
- * ccs_is_correct_domain - Check whether the given domainname follows the naming rules.
+ * ccs_correct_domain - Check whether the given domainname follows the naming rules.
  *
  * @domainname:   The domainname to check.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
-bool ccs_is_correct_domain(const unsigned char *domainname)
+bool ccs_correct_domain(const unsigned char *domainname)
 {
 	unsigned char c;
 	unsigned char d;
@@ -563,13 +563,13 @@ bool ccs_is_correct_domain(const unsigned char *domainname)
 }
 
 /**
- * ccs_is_domain_def - Check whether the given token can be a domainname.
+ * ccs_domain_def - Check whether the given token can be a domainname.
  *
  * @buffer: The token to check.
  *
  * Returns true if @buffer possibly be a domainname, false otherwise.
  */
-bool ccs_is_domain_def(const unsigned char *buffer)
+bool ccs_domain_def(const unsigned char *buffer)
 {
 	return !strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN);
 }
@@ -692,7 +692,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 			} else if (c == '\\') {
 				if (filename[1] == '\\')
 					filename++;
-				else if (ccs_is_byte_range(filename + 1))
+				else if (ccs_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
@@ -705,22 +705,22 @@ static bool ccs_file_matches_pattern2(const char *filename,
 				return false;
 			break;
 		case '+':
-			if (!ccs_is_decimal(c))
+			if (!ccs_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!ccs_is_hexadecimal(c))
+			if (!ccs_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!ccs_is_alphabet_char(c))
+			if (!ccs_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && ccs_is_byte_range(filename + 1)
+			if (c == '\\' && ccs_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -742,7 +742,7 @@ static bool ccs_file_matches_pattern2(const char *filename,
 					continue;
 				if (filename[i + 1] == '\\')
 					i++;
-				else if (ccs_is_byte_range(filename + i + 1))
+				else if (ccs_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -752,13 +752,13 @@ static bool ccs_file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (ccs_is_decimal(filename[j]))
+				while (ccs_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (ccs_is_hexadecimal(filename[j]))
+				while (ccs_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (ccs_is_alphabet_char(filename[j]))
+				while (ccs_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {

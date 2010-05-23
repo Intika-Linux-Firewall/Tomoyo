@@ -694,7 +694,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 }
 
 /**
- * ccs_is_globally_readable_file - Check if the file is unconditionnaly permitted to be open()ed for reading.
+ * ccs_global_read - Check if the file is unconditionnaly permitted to be open()ed for reading.
  *
  * @filename: The filename to check.
  *
@@ -702,12 +702,12 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
+static bool ccs_global_read(const struct ccs_path_info *filename)
 {
-	struct ccs_globally_readable_file_entry *ptr;
+	struct ccs_global_read *ptr;
 	bool found = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list
-				[CCS_ID_GLOBALLY_READABLE], head.list) {
+	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_GLOBAL_READ],
+				head.list) {
 		if (ptr->head.is_deleted ||
 		    !ccs_path_matches_pattern(filename, ptr->filename))
 			continue;
@@ -717,35 +717,33 @@ static bool ccs_is_globally_readable_file(const struct ccs_path_info *filename)
 	return found;
 }
 
-static bool ccs_is_same_globally_readable_entry(const struct ccs_acl_head *a,
-						const struct ccs_acl_head *b)
+static bool ccs_same_global_read_entry(const struct ccs_acl_head *a,
+					  const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_globally_readable_file_entry, head)
-		->filename ==
-		container_of(b, struct ccs_globally_readable_file_entry, head)
-		->filename;
+	return container_of(a, struct ccs_global_read, head)->filename ==
+		container_of(b, struct ccs_global_read, head)->filename;
 }
 
 /**
- * ccs_write_globally_readable_policy - Write "struct ccs_globally_readable_file_entry" list.
+ * ccs_write_global_read - Write "struct ccs_global_read" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_globally_readable_policy(char *data, const bool is_delete, const u8 flags)
+int ccs_write_global_read(char *data, const bool is_delete, const u8 flags)
 {
-	struct ccs_globally_readable_file_entry e = { };
+	struct ccs_global_read e = { };
 	int error;
-	if (!ccs_is_correct_path(data, 1, 0, -1))
+	if (!ccs_correct_path(data, 1, 0, -1))
 		return -EINVAL;
 	e.filename = ccs_get_name(data);
 	if (!e.filename)
 		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_GLOBALLY_READABLE,
-				  ccs_is_same_globally_readable_entry);
+				  CCS_ID_GLOBAL_READ,
+				  ccs_same_global_read_entry);
 	ccs_put_name(e.filename);
 	return error;
 }
@@ -761,7 +759,7 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete, const u
  */
 const char *ccs_file_pattern(const struct ccs_path_info *filename)
 {
-	struct ccs_pattern_entry *ptr;
+	struct ccs_pattern *ptr;
 	const struct ccs_path_info *pattern = NULL;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_PATTERN],
 				head.list) {
@@ -780,38 +778,38 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 	return pattern ? pattern->name : filename->name;
 }
 
-static bool ccs_is_same_pattern_entry(const struct ccs_acl_head *a,
+static bool ccs_same_pattern_entry(const struct ccs_acl_head *a,
 				      const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_pattern_entry, head)->pattern ==
-		container_of(b, struct ccs_pattern_entry, head)->pattern;
+	return container_of(a, struct ccs_pattern, head)->pattern ==
+		container_of(b, struct ccs_pattern, head)->pattern;
 }
 
 /**
- * ccs_write_pattern_policy - Write "struct ccs_pattern_entry" list.
+ * ccs_write_pattern - Write "struct ccs_pattern" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags)
+int ccs_write_pattern(char *data, const bool is_delete, const u8 flags)
 {
-	struct ccs_pattern_entry e = { };
+	struct ccs_pattern e = { };
 	int error;
-	if (!ccs_is_correct_path(data, 0, 1, 0))
+	if (!ccs_correct_path(data, 0, 1, 0))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_PATTERN, ccs_is_same_pattern_entry);
+				  CCS_ID_PATTERN, ccs_same_pattern_entry);
 	ccs_put_name(e.pattern);
 	return error;
 }
 
 /**
- * ccs_is_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
+ * ccs_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
  *
  * @filename: Filename to check.
  *
@@ -820,9 +818,9 @@ int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags)
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
+static bool ccs_no_rewrite_file(const struct ccs_path_info *filename)
 {
-	struct ccs_no_rewrite_entry *ptr;
+	struct ccs_no_rewrite *ptr;
 	bool matched = false;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_NO_REWRITE],
 				head.list) {
@@ -836,33 +834,33 @@ static bool ccs_is_no_rewrite_file(const struct ccs_path_info *filename)
 	return matched;
 }
 
-static bool ccs_is_same_rewrite_entry(const struct ccs_acl_head *a,
+static bool ccs_same_rewrite_entry(const struct ccs_acl_head *a,
 				      const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_no_rewrite_entry, head)->pattern ==
-		container_of(b, struct ccs_no_rewrite_entry, head)->pattern;
+	return container_of(a, struct ccs_no_rewrite, head)->pattern ==
+		container_of(b, struct ccs_no_rewrite, head)->pattern;
 }
 
 /**
- * ccs_write_no_rewrite_policy - Write "struct ccs_no_rewrite_entry" list.
+ * ccs_write_no_rewrite - Write "struct ccs_no_rewrite" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_no_rewrite_policy(char *data, const bool is_delete, const u8 flags)
+int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags)
 {
-	struct ccs_no_rewrite_entry e = { };
+	struct ccs_no_rewrite e = { };
 	int error;
-	if (!ccs_is_correct_path(data, 0, 0, 0))
+	if (!ccs_correct_path(data, 0, 0, 0))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_NO_REWRITE,
-				  ccs_is_same_rewrite_entry);
+				  ccs_same_rewrite_entry);
 	ccs_put_name(e.pattern);
 	return error;
 }
@@ -1025,7 +1023,7 @@ static int ccs_file_perm(struct ccs_request_info *r,
 	do {
 		error = ccs_path_acl(r, filename, perm, mode != 1);
 		if (error && mode == 4 && !domain->ignore_global_allow_read
-		    && ccs_is_globally_readable_file(filename))
+		    && ccs_global_read(filename))
 			error = 0;
 		ccs_audit_path_log(r, msg, filename->name, !error);
 		if (!error)
@@ -1062,7 +1060,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!domain)
 		return -EINVAL;
-	if (!ccs_is_correct_path(filename, 1, -1, -1))
+	if (!ccs_correct_path(filename, 1, -1, -1))
 		return -EINVAL;
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
@@ -1111,13 +1109,13 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	return error;
 }
 
-static bool ccs_is_same_path_acl(const struct ccs_acl_info *a,
+static bool ccs_same_path_acl(const struct ccs_acl_info *a,
 				 const struct ccs_acl_info *b)
 {
 	const struct ccs_path_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head) &&
-		ccs_is_same_name_union(&p1->name, &p2->name);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		ccs_same_name_union(&p1->name, &p2->name);
 }
 
 static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
@@ -1173,25 +1171,24 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 		e.perm |= ccs_rw_mask;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_path_acl,
-					 ccs_merge_path_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_path_acl, ccs_merge_path_acl);
 	ccs_put_name_union(&e.name);
 	return error;
 }
 
-static bool ccs_is_same_path_number3_acl(const struct ccs_acl_info *a,
+static bool ccs_same_path_number3_acl(const struct ccs_acl_info *a,
 					 const struct ccs_acl_info *b)
 {
 	const struct ccs_path_number3_acl *p1 = container_of(a, typeof(*p1),
 							     head);
 	const struct ccs_path_number3_acl *p2 = container_of(b, typeof(*p2),
 							     head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head)
-		&& ccs_is_same_name_union(&p1->name, &p2->name)
-		&& ccs_is_same_number_union(&p1->mode, &p2->mode)
-		&& ccs_is_same_number_union(&p1->major, &p2->major)
-		&& ccs_is_same_number_union(&p1->minor, &p2->minor);
+	return ccs_same_acl_head(&p1->head, &p2->head)
+		&& ccs_same_name_union(&p1->name, &p2->name)
+		&& ccs_same_number_union(&p1->mode, &p2->mode)
+		&& ccs_same_number_union(&p1->major, &p2->major)
+		&& ccs_same_number_union(&p1->minor, &p2->minor);
 }
 
 static bool ccs_merge_path_number3_acl(struct ccs_acl_info *a,
@@ -1241,9 +1238,9 @@ static int ccs_update_path_number3_acl(const u8 type, const char *filename,
 	    !ccs_parse_number_union(major, &e.major) ||
 	    !ccs_parse_number_union(minor, &e.minor))
 		goto out;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_path_number3_acl,
-					 ccs_merge_path_number3_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_path_number3_acl,
+				  ccs_merge_path_number3_acl);
  out:
 	ccs_put_name_union(&e.name);
 	ccs_put_number_union(&e.mode);
@@ -1252,14 +1249,14 @@ static int ccs_update_path_number3_acl(const u8 type, const char *filename,
 	return error;
 }
 
-static bool ccs_is_same_path2_acl(const struct ccs_acl_info *a,
+static bool ccs_same_path2_acl(const struct ccs_acl_info *a,
 				  const struct ccs_acl_info *b)
 {
 	const struct ccs_path2_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path2_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head)
-		&& ccs_is_same_name_union(&p1->name1, &p2->name1)
-		&& ccs_is_same_name_union(&p1->name2, &p2->name2);
+	return ccs_same_acl_head(&p1->head, &p2->head)
+		&& ccs_same_name_union(&p1->name1, &p2->name1)
+		&& ccs_same_name_union(&p1->name2, &p2->name2);
 }
 
 static bool ccs_merge_path2_acl(struct ccs_acl_info *a,
@@ -1304,9 +1301,8 @@ static int ccs_update_path2_acl(const u8 type, const char *filename1,
 	if (!ccs_parse_name_union(filename1, &e.name1) ||
 	    !ccs_parse_name_union(filename2, &e.name2))
 		goto out;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_path2_acl,
-					 ccs_merge_path2_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_path2_acl, ccs_merge_path2_acl);
  out:
 	ccs_put_name_union(&e.name1);
 	ccs_put_name_union(&e.name2);
@@ -1388,7 +1384,7 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 	 * specified by "deny_rewrite" keyword.
 	 */
 	if (!error && operation == CCS_TYPE_TRUNCATE &&
-	    ccs_is_no_rewrite_file(filename)) {
+	    ccs_no_rewrite_file(filename)) {
 		operation = CCS_TYPE_REWRITE;
 		goto repeat;
 	}
@@ -1536,7 +1532,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 			error = -ENOMEM;
 			goto out;
 		}
-		if (ccs_is_no_rewrite_file(&buf)) {
+		if (ccs_no_rewrite_file(&buf)) {
 			r.obj = &obj;
 			error = ccs_path_permission(&r, CCS_TYPE_REWRITE,
 						    &buf);
@@ -1735,7 +1731,7 @@ static int __ccs_rewrite_permission(struct file *filp)
 	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
 		goto out;
 	error = 0;
-	if (ccs_is_no_rewrite_file(&buf))
+	if (ccs_no_rewrite_file(&buf))
 		error = ccs_path_permission(&r, CCS_TYPE_REWRITE, &buf);
  out:
 	kfree(buf.name);
@@ -1828,16 +1824,16 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 	return error;
 }
 
-static bool ccs_is_same_path_number_acl(const struct ccs_acl_info *a,
+static bool ccs_same_path_number_acl(const struct ccs_acl_info *a,
 					const struct ccs_acl_info *b)
 {
 	const struct ccs_path_number_acl *p1 = container_of(a, typeof(*p1),
 							    head);
 	const struct ccs_path_number_acl *p2 = container_of(b, typeof(*p2),
 							    head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head)
-		&& ccs_is_same_name_union(&p1->name, &p2->name)
-		&& ccs_is_same_number_union(&p1->number, &p2->number);
+	return ccs_same_acl_head(&p1->head, &p2->head)
+		&& ccs_same_name_union(&p1->name, &p2->name)
+		&& ccs_same_number_union(&p1->number, &p2->number);
 }
 
 static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
@@ -1886,9 +1882,9 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 		return -EINVAL;
 	if (!ccs_parse_number_union(number, &e.number))
 		goto out;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_path_number_acl,
-					 ccs_merge_path_number_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_path_number_acl,
+				  ccs_merge_path_number_acl);
  out:
 	ccs_put_name_union(&e.name);
 	ccs_put_number_union(&e.number);
@@ -2166,7 +2162,7 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 }
 
 /**
- * ccs_write_file_policy - Update file related list.
+ * ccs_write_file - Update file related list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -2175,9 +2171,8 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition *condition,
-			  const bool is_delete)
+int ccs_write_file(char *data, struct ccs_domain_info *domain,
+		   struct ccs_condition *condition, const bool is_delete)
 {
 	char *w[5];
 	u8 type;

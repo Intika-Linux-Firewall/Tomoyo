@@ -27,18 +27,18 @@ static bool __ccs_lport_reserved(const u16 port)
 		? true : false;
 }
 
-static bool ccs_is_same_reserved_entry(const struct ccs_acl_head *a,
+static bool ccs_same_reserved_entry(const struct ccs_acl_head *a,
 				       const struct ccs_acl_head *b)
 {
-	const struct ccs_reserved_entry *p1 = container_of(a, typeof(*p1),
+	const struct ccs_reserved *p1 = container_of(a, typeof(*p1),
 							   head);
-	const struct ccs_reserved_entry *p2 = container_of(b, typeof(*p2),
+	const struct ccs_reserved *p2 = container_of(b, typeof(*p2),
 							   head);
 	return p1->min_port == p2->min_port && p1->max_port == p2->max_port;
 }
 
 /**
- * ccs_update_reserved_entry - Update "struct ccs_reserved_entry" list.
+ * ccs_update_reserved_entry - Update "struct ccs_reserved" list.
  *
  * @min_port: Start of port number range.
  * @max_port: End of port number range.
@@ -49,14 +49,14 @@ static bool ccs_is_same_reserved_entry(const struct ccs_acl_head *a,
 static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 				     const bool is_delete)
 {
-	struct ccs_reserved_entry *ptr;
-	struct ccs_reserved_entry e = {
+	struct ccs_reserved *ptr;
+	struct ccs_reserved e = {
 		.min_port = min_port,
 		.max_port = max_port
 	};
 	const int error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 					    CCS_ID_RESERVEDPORT,
-					    ccs_is_same_reserved_entry);
+					    ccs_same_reserved_entry);
 	u8 *ccs_tmp_map;
 	if (error)
 		return error;
@@ -83,15 +83,14 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 }
 
 /**
- * ccs_write_reserved_port_policy - Write "struct ccs_reserved_entry" list.
+ * ccs_write_reserved_port - Write "struct ccs_reserved" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_reserved_port_policy(char *data, const bool is_delete,
-				   const u8 flags)
+int ccs_write_reserved_port(char *data, const bool is_delete, const u8 flags)
 {
 	unsigned int from;
 	unsigned int to;

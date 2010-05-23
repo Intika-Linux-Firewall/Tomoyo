@@ -276,21 +276,21 @@ static int ccs_network_entry(const bool is_ipv6, const u8 operation,
 	return error;
 }
 
-static bool ccs_is_same_ip_network_acl(const struct ccs_acl_info *a,
+static bool ccs_same_ip_network_acl(const struct ccs_acl_info *a,
 				       const struct ccs_acl_info *b)
 {
 	const struct ccs_ip_network_acl *p1 = container_of(a, typeof(*p1),
 							   head);
 	const struct ccs_ip_network_acl *p2 = container_of(b, typeof(*p2),
 							   head);
-	return ccs_is_same_acl_head(&p1->head, &p2->head)
+	return ccs_same_acl_head(&p1->head, &p2->head)
 		&& p1->address_type == p2->address_type &&
 		p1->address.ipv4.min == p2->address.ipv4.min &&
 		p1->address.ipv6.min == p2->address.ipv6.min &&
 		p1->address.ipv4.max == p2->address.ipv4.max &&
 		p1->address.ipv6.max == p2->address.ipv6.max &&
 		p1->address.group == p2->address.group &&
-		ccs_is_same_number_union(&p1->port, &p2->port);
+		ccs_same_number_union(&p1->port, &p2->port);
 }
 
 static bool ccs_merge_ip_network_acl(struct ccs_acl_info *a,
@@ -310,7 +310,7 @@ static bool ccs_merge_ip_network_acl(struct ccs_acl_info *a,
 }
 
 /**
- * ccs_write_network_policy - Write "struct ccs_ip_network_acl" list.
+ * ccs_write_network - Write "struct ccs_ip_network_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -319,9 +319,8 @@ static bool ccs_merge_ip_network_acl(struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     struct ccs_condition *condition,
-			     const bool is_delete)
+int ccs_write_network(char *data, struct ccs_domain_info *domain,
+		      struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_ip_network_acl e = {
 		.head.type = CCS_TYPE_IP_NETWORK_ACL,
@@ -399,9 +398,9 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 	}
 	if (!ccs_parse_number_union(w[3], &e.port))
 		goto out;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_ip_network_acl,
-					 ccs_merge_ip_network_acl);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_ip_network_acl,
+				  ccs_merge_ip_network_acl);
  out:
 	if (w[2][0] == '@')
 		ccs_put_group(e.address.group);

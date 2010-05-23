@@ -19,13 +19,13 @@
  * @index:   Index number of @arg_ptr.
  * @arg_ptr: Contents of argv[@index].
  * @argc:    Length of @argv.
- * @argv:    Pointer to "struct ccs_argv_entry".
+ * @argv:    Pointer to "struct ccs_argv".
  * @checked: Set to true if @argv[@index] was found.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_argv(const unsigned int index, const char *arg_ptr,
-		     const int argc, const struct ccs_argv_entry *argv,
+		     const int argc, const struct ccs_argv *argv,
 		     u8 *checked)
 {
 	int i;
@@ -52,13 +52,13 @@ static bool ccs_argv(const unsigned int index, const char *arg_ptr,
  * @env_name:  The name of environment variable.
  * @env_value: The value of environment variable.
  * @envc:      Length of @envp.
- * @envp:      Pointer to "struct ccs_envp_entry".
+ * @envp:      Pointer to "struct ccs_envp".
  * @checked:   Set to true if @envp[@env_name] was found.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_envp(const char *env_name, const char *env_value,
-		     const int envc, const struct ccs_envp_entry *envp,
+		     const int envc, const struct ccs_envp *envp,
 		     u8 *checked)
 {
 	int i;
@@ -91,17 +91,17 @@ static bool ccs_envp(const char *env_name, const char *env_value,
 /**
  * ccs_scan_bprm - Scan "struct linux_binprm".
  *
- * @ee:   Pointer to "struct ccs_execve_entry".
+ * @ee:   Pointer to "struct ccs_execve".
  * @argc: Length of @argc.
- * @argv: Pointer to "struct ccs_argv_entry".
+ * @argv: Pointer to "struct ccs_argv".
  * @envc: Length of @envp.
- * @envp: Poiner to "struct ccs_envp_entry".
+ * @envp: Poiner to "struct ccs_envp".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_scan_bprm(struct ccs_execve_entry *ee,
-			  const u16 argc, const struct ccs_argv_entry *argv,
-			  const u16 envc, const struct ccs_envp_entry *envp)
+static bool ccs_scan_bprm(struct ccs_execve *ee,
+			  const u16 argc, const struct ccs_argv *argv,
+			  const u16 envc, const struct ccs_envp *envp)
 {
 	/*
 	  if exec.argc=3
@@ -303,7 +303,7 @@ static const struct ccs_path_info *ccs_get_dqword(char *start)
 		*(cp - 1) = '\0';
 		break;
 	}
-	if (!ccs_is_correct_path(start, 0, 0, 0))
+	if (!ccs_correct_path(start, 0, 0, 0))
 		return NULL;
 	return ccs_get_name(start);
 }
@@ -312,11 +312,11 @@ static const struct ccs_path_info *ccs_get_dqword(char *start)
  * ccs_parse_argv - Parse an argv[] condition part.
  *
  * @start: String to parse.
- * @argv:  Pointer to "struct ccs_argv_entry".
+ * @argv:  Pointer to "struct ccs_argv".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
+static bool ccs_parse_argv(char *start, struct ccs_argv *argv)
 {
 	unsigned long index;
 	const struct ccs_path_info *value;
@@ -348,11 +348,11 @@ static bool ccs_parse_argv(char *start, struct ccs_argv_entry *argv)
  * ccs_parse_envp - Parse an envp[] condition part.
  *
  * @start: String to parse.
- * @envp:  Pointer to "struct ccs_envp_entry".
+ * @envp:  Pointer to "struct ccs_envp".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
+static bool ccs_parse_envp(char *start, struct ccs_envp *envp)
 {
 	const struct ccs_path_info *name;
 	const struct ccs_path_info *value;
@@ -378,7 +378,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 			goto out;
 		}
 	}
-	if (!*cp || !ccs_is_correct_path(cp, 0, 0, 0))
+	if (!*cp || !ccs_correct_path(cp, 0, 0, 0))
 		goto out;
 	name = ccs_get_name(cp);
 	if (!name)
@@ -508,7 +508,7 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 	return false;
 }
 
-static inline bool ccs_is_same_condition(const struct ccs_condition *p1,
+static inline bool ccs_same_condition(const struct ccs_condition *p1,
 					 const struct ccs_condition *p2)
 {
 	return p1->size == p2->size && p1->condc == p2->condc &&
@@ -545,8 +545,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	struct ccs_condition_element *condp;
 	struct ccs_number_union *numbers_p;
 	struct ccs_name_union *names_p;
-	struct ccs_argv_entry *argv;
-	struct ccs_envp_entry *envp;
+	struct ccs_argv *argv;
+	struct ccs_envp *envp;
 	u32 size;
 	u8 i;
 	bool found = false;
@@ -635,8 +635,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		+ condc * sizeof(struct ccs_condition_element)
 		+ numbers_count * sizeof(struct ccs_number_union)
 		+ names_count * sizeof(struct ccs_name_union)
-		+ argc * sizeof(struct ccs_argv_entry)
-		+ envc * sizeof(struct ccs_envp_entry);
+		+ argc * sizeof(struct ccs_argv)
+		+ envc * sizeof(struct ccs_envp);
 	entry = kzalloc(size, CCS_GFP_FLAGS);
 	if (!entry)
 		return NULL;
@@ -651,8 +651,8 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	condp = (struct ccs_condition_element *) (entry + 1);
 	numbers_p = (struct ccs_number_union *) (condp + condc);
 	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
-	argv = (struct ccs_argv_entry *) (names_p + names_count);
-	envp = (struct ccs_envp_entry *) (argv + argc);
+	argv = (struct ccs_argv *) (names_p + names_count);
+	envp = (struct ccs_envp *) (argv + argc);
 	for (start = condition; start < end_of_string; start++)
 		if (!*start)
 			*start = ' ';
@@ -776,7 +776,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_shared_list[CCS_CONDITION_LIST],
 				head.list) {
-		if (!ccs_is_same_condition(ptr, entry))
+		if (!ccs_same_condition(ptr, entry))
 			continue;
 		/* Same entry found. Share this entry. */
 		atomic_inc(&ptr->head.users);
@@ -1018,8 +1018,8 @@ bool ccs_condition(struct ccs_request_info *r,
 	const struct ccs_condition_element *condp;
 	const struct ccs_number_union *numbers_p;
 	const struct ccs_name_union *names_p;
-	const struct ccs_argv_entry *argv;
-	const struct ccs_envp_entry *envp;
+	const struct ccs_argv *argv;
+	const struct ccs_envp *envp;
 	struct ccs_obj_info *obj;
 	u16 condc;
 	u16 argc;
@@ -1040,8 +1040,8 @@ bool ccs_condition(struct ccs_request_info *r,
 	numbers_p = (const struct ccs_number_union *) (condp + condc);
 	names_p = (const struct ccs_name_union *)
 		(numbers_p + cond->numbers_count);
-	argv = (const struct ccs_argv_entry *) (names_p + cond->names_count);
-	envp = (const struct ccs_envp_entry *) (argv + argc);
+	argv = (const struct ccs_argv *) (names_p + cond->names_count);
+	envp = (const struct ccs_envp *) (argv + argc);
 	for (i = 0; i < condc; i++) {
 		const bool match = condp->equals;
 		const u8 left = condp->left;
@@ -1058,7 +1058,7 @@ bool ccs_condition(struct ccs_request_info *r,
 			const struct ccs_name_union *ptr = names_p++;
 			switch (left) {
 				struct ccs_path_info *symlink;
-				struct ccs_execve_entry *ee;
+				struct ccs_execve *ee;
 				struct file *file;
 			case CCS_SYMLINK_TARGET:
 				symlink = obj->symlink_target;

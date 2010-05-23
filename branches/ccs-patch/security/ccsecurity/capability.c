@@ -93,7 +93,7 @@ static int __ccs_ptrace_permission(long request, long pid)
 	return !__ccs_capable(CCS_SYS_PTRACE);
 }
 
-static bool ccs_is_same_capability_entry(const struct ccs_acl_info *a,
+static bool ccs_same_capability_entry(const struct ccs_acl_info *a,
 					 const struct ccs_acl_info *b)
 {
 	const struct ccs_capability_acl *p1 = container_of(a, typeof(*p1),
@@ -106,7 +106,7 @@ static bool ccs_is_same_capability_entry(const struct ccs_acl_info *a,
 }
 
 /**
- * ccs_write_capability_policy - Write "struct ccs_capability_acl" list.
+ * ccs_write_capability - Write "struct ccs_capability_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -115,9 +115,8 @@ static bool ccs_is_same_capability_entry(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+int ccs_write_capability(char *data, struct ccs_domain_info *domain,
+			 struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_capability_acl e = {
 		.head.type = CCS_TYPE_CAPABILITY_ACL,
@@ -133,8 +132,8 @@ int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
 	if (capability == CCS_MAX_CAPABILITY_INDEX)
 		return -EINVAL;
 	e.operation = capability;
-	return ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					ccs_is_same_capability_entry, NULL);
+	return ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				 ccs_same_capability_entry, NULL);
 }
 
 void __init ccs_capability_init(void)

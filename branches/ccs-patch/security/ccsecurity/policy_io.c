@@ -653,12 +653,11 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		head->read_eof = true;
 }
 
-static bool ccs_is_same_manager_entry(const struct ccs_acl_head *a,
+static bool ccs_same_manager_entry(const struct ccs_acl_head *a,
 				      const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_policy_manager_entry, head)->manager
-		== container_of(b, struct ccs_policy_manager_entry, head)
-		->manager;
+	return container_of(a, struct ccs_manager, head)->manager
+		== container_of(b, struct ccs_manager, head)->manager;
 }
 
 /**
@@ -671,33 +670,33 @@ static bool ccs_is_same_manager_entry(const struct ccs_acl_head *a,
  */
 static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 {
-	struct ccs_policy_manager_entry e = { };
+	struct ccs_manager e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (ccs_is_domain_def(manager)) {
-		if (!ccs_is_correct_domain(manager))
+	if (ccs_domain_def(manager)) {
+		if (!ccs_correct_domain(manager))
 			return -EINVAL;
 		e.is_domain = true;
 	} else {
-		if (!ccs_is_correct_path(manager, 1, -1, -1))
+		if (!ccs_correct_path(manager, 1, -1, -1))
 			return -EINVAL;
 	}
 	e.manager = ccs_get_name(manager);
 	if (!e.manager)
 		return error;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_MANAGER, ccs_is_same_manager_entry);
+				  CCS_ID_MANAGER, ccs_same_manager_entry);
 	ccs_put_name(e.manager);
 	return error;
 }
 
 /**
- * ccs_write_manager_policy - Write manager policy.
+ * ccs_write_manager - Write manager policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_manager_policy(struct ccs_io_buffer *head)
+static int ccs_write_manager(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
@@ -709,22 +708,21 @@ static int ccs_write_manager_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_read_manager_policy - Read manager policy.
+ * ccs_read_manager - Read manager policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Caller holds ccs_read_lock().
  */
-static void ccs_read_manager_policy(struct ccs_io_buffer *head)
+static void ccs_read_manager(struct ccs_io_buffer *head)
 {
 	struct list_head *pos;
 	if (head->read_eof)
 		return;
 	list_for_each_cookie(pos, head->read_var2,
 			     &ccs_policy_list[CCS_ID_MANAGER]) {
-		struct ccs_policy_manager_entry *ptr;
-		ptr = list_entry(pos, struct ccs_policy_manager_entry,
-				 head.list);
+		struct ccs_manager *ptr
+			= list_entry(pos, typeof(*ptr), head.list);
 		if (ptr->head.is_deleted)
 			continue;
 		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
@@ -734,16 +732,16 @@ static void ccs_read_manager_policy(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_is_policy_manager - Check whether the current process is a policy manager.
+ * ccs_manager - Check whether the current process is a policy manager.
  *
  * Returns true if the current process is permitted to modify policy
  * via /proc/ccs/ interface.
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_policy_manager(void)
+static bool ccs_manager(void)
 {
-	struct ccs_policy_manager_entry *ptr;
+	struct ccs_manager *ptr;
 	const char *exe;
 	struct task_struct *task = current;
 	const struct ccs_path_info *domainname
@@ -751,7 +749,7 @@ static bool ccs_is_policy_manager(void)
 	bool found = false;
 	if (!ccs_policy_loaded)
 		return true;
-	if (task->ccs_flags & CCS_TASK_IS_POLICY_MANAGER)
+	if (task->ccs_flags & CCS_TASK_IS_MANAGER)
 		return true;
 	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
 		return false;
@@ -760,7 +758,7 @@ static bool ccs_is_policy_manager(void)
 		if (!ptr->head.is_deleted && ptr->is_domain
 		    && !ccs_pathcmp(domainname, ptr->manager)) {
 			/* Set manager flag. */
-			task->ccs_flags |= CCS_TASK_IS_POLICY_MANAGER;
+			task->ccs_flags |= CCS_TASK_IS_MANAGER;
 			return true;
 		}
 	}
@@ -773,7 +771,7 @@ static bool ccs_is_policy_manager(void)
 		    && !strcmp(exe, ptr->manager->name)) {
 			found = true;
 			/* Set manager flag. */
-			task->ccs_flags |= CCS_TASK_IS_POLICY_MANAGER;
+			task->ccs_flags |= CCS_TASK_IS_MANAGER;
 			break;
 		}
 	}
@@ -818,7 +816,7 @@ static char *ccs_find_condition_part(char *data)
 }
 
 /**
- * ccs_is_select_one - Parse select command.
+ * ccs_select_one - Parse select command.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @data: String to parse.
@@ -827,7 +825,7 @@ static char *ccs_find_condition_part(char *data)
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
+static bool ccs_select_one(struct ccs_io_buffer *head, const char *data)
 {
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
@@ -853,7 +851,7 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 			domain = ccs_task_domain(p);
 		ccs_tasklist_unlock();
 	} else if (!strncmp(data, "domain=", 7)) {
-		if (ccs_is_domain_def(data + 7))
+		if (ccs_domain_def(data + 7))
 			domain = ccs_find_domain(data + 7);
 	} else
 		return false;
@@ -882,9 +880,8 @@ static bool ccs_is_select_one(struct ccs_io_buffer *head, const char *data)
 	return true;
 }
 
-static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
-				    struct ccs_condition *cond,
-				    const bool is_delete)
+static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
+			     struct ccs_condition *cond, const bool is_delete)
 {
 	u8 i;
 	static const struct {
@@ -892,15 +889,14 @@ static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
 		int (*write) (char *, struct ccs_domain_info *,
 			      struct ccs_condition *, const bool);
 	} ccs_callback[5] = {
-		{ CCS_KEYWORD_ALLOW_NETWORK, ccs_write_network_policy },
-		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env_policy },
-		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability_policy },
-		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal_policy },
-		{ CCS_KEYWORD_ALLOW_MOUNT, ccs_write_mount_policy }
+		{ CCS_KEYWORD_ALLOW_NETWORK, ccs_write_network },
+		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env },
+		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability },
+		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal },
+		{ CCS_KEYWORD_ALLOW_MOUNT, ccs_write_mount }
 	};
-	int (*write) (char *, struct ccs_domain_info *,
-		     struct ccs_condition *, const bool) =
-		ccs_write_file_policy;
+	int (*write) (char *, struct ccs_domain_info *, struct ccs_condition *,
+		      const bool) = ccs_write_file;
 	for (i = 0; i < 5; i++) {
 		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
 			continue;
@@ -911,13 +907,13 @@ static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
 }
 
 /**
- * ccs_write_domain_policy - Write domain policy.
+ * ccs_write_domain - Write domain policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_domain_policy(struct ccs_io_buffer *head)
+static int ccs_write_domain(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	struct ccs_domain_info *domain = head->write_var1;
@@ -931,12 +927,12 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		is_delete = true;
 	else if (ccs_str_starts(&data, CCS_KEYWORD_SELECT))
 		is_select = true;
-	if (is_select && ccs_is_select_one(head, data))
+	if (is_select && ccs_select_one(head, data))
 		return 0;
 	/* Don't allow updating policies by non manager programs. */
-	if (!ccs_is_policy_manager())
+	if (!ccs_manager())
 		return -EPERM;
-	if (ccs_is_domain_def(data)) {
+	if (ccs_domain_def(data)) {
 		domain = NULL;
 		if (is_delete)
 			ccs_delete_domain(data);
@@ -978,7 +974,7 @@ static int ccs_write_domain_policy(struct ccs_io_buffer *head)
 		if (!cond)
 			return -EINVAL;
 	}
-	error = ccs_write_domain_policy2(data, domain, cond, is_delete);
+	error = ccs_write_domain2(data, domain, cond, is_delete);
 	if (cond)
 		ccs_put_condition(cond);
 	return error;
@@ -1120,8 +1116,8 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 	const struct ccs_condition_element *condp;
 	const struct ccs_number_union *numbers_p;
 	const struct ccs_name_union *names_p;
-	const struct ccs_argv_entry *argv;
-	const struct ccs_envp_entry *envp;
+	const struct ccs_argv *argv;
+	const struct ccs_envp *envp;
 	u16 condc;
 	u16 i;
 	u16 j;
@@ -1133,8 +1129,8 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 	numbers_p = (const struct ccs_number_union *) (condp + condc);
 	names_p = (const struct ccs_name_union *)
 		(numbers_p + cond->numbers_count);
-	argv = (const struct ccs_argv_entry *) (names_p + cond->names_count);
-	envp = (const struct ccs_envp_entry *) (argv + cond->argc);
+	argv = (const struct ccs_argv *) (names_p + cond->names_count);
+	envp = (const struct ccs_envp *) (argv + cond->argc);
 	memset(buffer, 0, sizeof(buffer));
 	if (condc && !ccs_io_printf(head, "%s", " if"))
 		goto out;
@@ -1606,13 +1602,13 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_read_domain_policy - Read domain policy.
+ * ccs_read_domain - Read domain policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Caller holds ccs_read_lock().
  */
-static void ccs_read_domain_policy(struct ccs_io_buffer *head)
+static void ccs_read_domain(struct ccs_io_buffer *head)
 {
 	struct list_head *dpos;
 	struct list_head *apos;
@@ -1804,7 +1800,7 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
 			      "state[0]=%u state[1]=%u state[2]=%u", pid,
 			      ccs_yesno(ccs_flags &
-					CCS_TASK_IS_POLICY_MANAGER),
+					CCS_TASK_IS_MANAGER),
 			      ccs_yesno(ccs_flags &
 					CCS_TASK_IS_EXECUTE_HANDLER),
 			      (u8) (ccs_flags >> 24),
@@ -1813,13 +1809,13 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 }
 
 /**
- * ccs_write_exception_policy - Write exception policy.
+ * ccs_write_exception - Write exception policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_write_exception_policy(struct ccs_io_buffer *head)
+static int ccs_write_exception(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	const bool is_delete = ccs_str_starts(&data, CCS_KEYWORD_DELETE);
@@ -1828,19 +1824,18 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 		const char *keyword;
 		int (*write) (char *, const bool, const u8);
 	} ccs_callback[10] = {
-		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper_policy },
+		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper },
 		{ CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
-		  ccs_write_domain_initializer_policy },
-		{ CCS_KEYWORD_KEEP_DOMAIN, ccs_write_domain_keeper_policy },
+		  ccs_write_domain_initializer },
+		{ CCS_KEYWORD_KEEP_DOMAIN, ccs_write_domain_keeper },
 		{ CCS_KEYWORD_INITIALIZE_DOMAIN,
-		  ccs_write_domain_initializer_policy },
-		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator_policy },
-		{ CCS_KEYWORD_ALLOW_READ, ccs_write_globally_readable_policy },
-		{ CCS_KEYWORD_ALLOW_ENV,
-		  ccs_write_globally_usable_env_policy },
-		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern_policy },
-		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite_policy },
-		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port_policy }
+		  ccs_write_domain_initializer },
+		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator },
+		{ CCS_KEYWORD_ALLOW_READ, ccs_write_global_read },
+		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_global_env },
+		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern },
+		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite },
+		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
 	};
 	static const char *ccs_name[CCS_MAX_GROUP] = {
 		[CCS_PATH_GROUP] = CCS_KEYWORD_PATH_GROUP,
@@ -1853,7 +1848,7 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 	}
 	for (i = 0; i < CCS_MAX_GROUP; i++) {
 		if (ccs_str_starts(&data, ccs_name[i]))
-			return ccs_write_group_policy(data, is_delete, i);
+			return ccs_write_group(data, is_delete, i);
 	}
 	return -EINVAL;
 }
@@ -1944,7 +1939,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 		switch (idx) {
 		case CCS_ID_DOMAIN_KEEPER:
 			{
-				struct ccs_domain_keeper_entry *ptr =
+				struct ccs_domain_keeper *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = ptr->is_not ?
 					CCS_KEYWORD_NO_KEEP_DOMAIN :
@@ -1958,7 +1953,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_DOMAIN_INITIALIZER:
 			{
-				struct ccs_domain_initializer_entry *ptr =
+				struct ccs_domain_initializer *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = ptr->is_not ?
 					CCS_KEYWORD_NO_INITIALIZE_DOMAIN :
@@ -1972,7 +1967,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_AGGREGATOR:
 			{
-				struct ccs_aggregator_entry *ptr =
+				struct ccs_aggregator *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_AGGREGATOR;
 				w[1] = ptr->original_name->name;
@@ -1980,9 +1975,9 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				w[3] = ptr->aggregated_name->name;
 			}
 			break;
-		case CCS_ID_GLOBALLY_READABLE:
+		case CCS_ID_GLOBAL_READ:
 			{
-				struct ccs_globally_readable_file_entry *ptr =
+				struct ccs_global_read *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_ALLOW_READ;
 				w[1] = ptr->filename->name;
@@ -1990,7 +1985,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_PATTERN:
 			{
-				struct ccs_pattern_entry *ptr =
+				struct ccs_pattern *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_FILE_PATTERN;
 				w[1] = ptr->pattern->name;
@@ -1998,7 +1993,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_NO_REWRITE:
 			{
-				struct ccs_no_rewrite_entry *ptr =
+				struct ccs_no_rewrite *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_DENY_REWRITE;
 				w[1] = ptr->pattern->name;
@@ -2006,7 +2001,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_GLOBAL_ENV:
 			{
-				struct ccs_globally_usable_env_entry *ptr =
+				struct ccs_global_env *ptr =
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_ALLOW_ENV;
 				w[1] = ptr->env->name;
@@ -2014,7 +2009,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 			break;
 		case CCS_ID_RESERVEDPORT:
 			{
-				struct ccs_reserved_entry *ptr =
+				struct ccs_reserved *ptr =
 					container_of(acl, typeof(*ptr), head);
 				const u16 min_port = ptr->min_port;
 				const u16 max_port = ptr->max_port;
@@ -2034,13 +2029,13 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 }
 
 /**
- * ccs_read_exception_policy - Read exception policy.
+ * ccs_read_exception - Read exception policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
  *
  * Caller holds ccs_read_lock().
  */
-static void ccs_read_exception_policy(struct ccs_io_buffer *head)
+static void ccs_read_exception(struct ccs_io_buffer *head)
 {
 	if (head->read_eof)
 		return;
@@ -2058,11 +2053,11 @@ static void ccs_read_exception_policy(struct ccs_io_buffer *head)
 /**
  * ccs_get_argv0 - Get argv[0].
  *
- * @ee: Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_get_argv0(struct ccs_execve_entry *ee)
+static bool ccs_get_argv0(struct ccs_execve *ee)
 {
 	struct linux_binprm *bprm = ee->bprm;
 	char *arg_ptr = ee->tmp;
@@ -2111,11 +2106,11 @@ static bool ccs_get_argv0(struct ccs_execve_entry *ee)
 /**
  * ccs_get_execute_condition - Get condition part for execute requests.
  *
- * @ee: Pointer to "struct ccs_execve_entry".
+ * @ee: Pointer to "struct ccs_execve".
  *
  * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
  */
-static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve_entry
+static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve
 						       *ee)
 {
 	struct ccs_condition *cond;
@@ -2276,7 +2271,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 			cond = ccs_get_condition(str);
 		} else
 			cond = NULL;
-		ccs_write_domain_policy2(buffer, domain, cond, false);
+		ccs_write_domain2(buffer, domain, cond, false);
 		ccs_put_condition(cond);
 		kfree(buffer);
 		/* fall through */
@@ -2551,12 +2546,12 @@ int ccs_open_control(const u8 type, struct file *file)
 	head->type = type;
 	switch (type) {
 	case CCS_DOMAINPOLICY: /* /proc/ccs/domain_policy */
-		head->write = ccs_write_domain_policy;
-		head->read = ccs_read_domain_policy;
+		head->write = ccs_write_domain;
+		head->read = ccs_read_domain;
 		break;
 	case CCS_EXCEPTIONPOLICY: /* /proc/ccs/exception_policy */
-		head->write = ccs_write_exception_policy;
-		head->read = ccs_read_exception_policy;
+		head->write = ccs_write_exception;
+		head->read = ccs_read_exception;
 		break;
 #ifdef CONFIG_CCSECURITY_AUDIT
 	case CCS_GRANTLOG: /* /proc/ccs/grant_log */
@@ -2602,8 +2597,8 @@ int ccs_open_control(const u8 type, struct file *file)
 		head->read = ccs_read_query;
 		break;
 	case CCS_MANAGER: /* /proc/ccs/manager */
-		head->write = ccs_write_manager_policy;
-		head->read = ccs_read_manager_policy;
+		head->write = ccs_write_manager;
+		head->read = ccs_read_manager;
 		break;
 	}
 	if (!(file->f_mode & FMODE_READ)) {
@@ -2761,9 +2756,8 @@ int ccs_write_control(struct file *file, const char __user *buffer,
 		return -EINTR;
 	idx = ccs_read_lock();
 	/* Don't allow updating policies by non manager programs. */
-	if (head->write != ccs_write_pid &&
-	    head->write != ccs_write_domain_policy &&
-	    !ccs_is_policy_manager()) {
+	if (head->write != ccs_write_pid && head->write != ccs_write_domain &&
+	    !ccs_manager()) {
 		ccs_read_unlock(idx);
 		mutex_unlock(&head->io_sem);
 		return -EPERM;

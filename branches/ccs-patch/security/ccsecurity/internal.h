@@ -331,7 +331,7 @@ enum ccs_mode_value {
 #define CCS_TASK_IS_IN_EXECVE            16
 #define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
 #define CCS_TASK_IS_EXECUTE_HANDLER      64
-#define CCS_TASK_IS_POLICY_MANAGER      128
+#define CCS_TASK_IS_MANAGER             128
 /* Highest 24 bits are reserved for task.state[] conditions. */
 
 struct dentry;
@@ -474,8 +474,8 @@ struct ccs_obj_info {
 
 struct ccs_condition_element {
 	/*
-	 * Left hand operand. A "struct ccs_argv_entry" for CCS_ARGV_ENTRY, a
-	 * "struct ccs_envp_entry" for CCS_ENVP_ENTRY is attached to the tail
+	 * Left hand operand. A "struct ccs_argv" for CCS_ARGV_ENTRY, a
+	 * "struct ccs_envp" for CCS_ENVP_ENTRY is attached to the tail
 	 * of the array of this struct.
 	 */
 	u8 left;
@@ -503,12 +503,12 @@ struct ccs_condition {
 	 * struct ccs_condition_element condition[condc];
 	 * struct ccs_number_union values[numbers_count];
 	 * struct ccs_name_union names[names_count];
-	 * struct ccs_argv_entry argv[argc];
-	 * struct ccs_envp_entry envp[envc];
+	 * struct ccs_argv argv[argc];
+	 * struct ccs_envp envp[envc];
 	 */
 };
 
-struct ccs_execve_entry;
+struct ccs_execve;
 
 #define CCS_RETRY_REQUEST 1 /* Retry this request. */
 
@@ -521,7 +521,7 @@ struct ccs_request_info {
 	/*
 	 * For holding parameters specific to execve() request.
 	 */
-	struct ccs_execve_entry *ee;
+	struct ccs_execve *ee;
 	/*
 	 * For updating current->ccs_flags at ccs_update_task_state().
 	 * Initialized to NULL at ccs_init_request_info().
@@ -565,7 +565,7 @@ struct ccs_path_info {
 };
 
 /* Structure for execve() operation. */
-struct ccs_execve_entry {
+struct ccs_execve {
 	struct ccs_request_info r;
 	struct ccs_obj_info obj;
 	struct linux_binprm *bprm;
@@ -605,31 +605,31 @@ struct ccs_domain_info {
 };
 
 /* Structure for "allow_read" keyword. */
-struct ccs_globally_readable_file_entry {
+struct ccs_global_read {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *filename;
 };
 
 /* Structure for "file_pattern" keyword. */
-struct ccs_pattern_entry {
+struct ccs_pattern {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *pattern;
 };
 
 /* Structure for "deny_rewrite" keyword. */
-struct ccs_no_rewrite_entry {
+struct ccs_no_rewrite {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *pattern;
 };
 
 /* Structure for "allow_env" keyword. */
-struct ccs_globally_usable_env_entry {
+struct ccs_global_env {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *env;
 };
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
-struct ccs_domain_initializer_entry {
+struct ccs_domain_initializer {
 	struct ccs_acl_head head;
 	bool is_not;       /* True if this entry is "no_initialize_domain". */
 	bool is_last_name; /* True if the domainname is ccs_last_word(). */
@@ -638,7 +638,7 @@ struct ccs_domain_initializer_entry {
 };
 
 /* Structure for "keep_domain" and "no_keep_domain" keyword. */
-struct ccs_domain_keeper_entry {
+struct ccs_domain_keeper {
 	struct ccs_acl_head head;
 	bool is_not;       /* True if this entry is "no_keep_domain". */
 	bool is_last_name; /* True if the domainname is ccs_last_word(). */
@@ -647,7 +647,7 @@ struct ccs_domain_keeper_entry {
 };
 
 /* Structure for "aggregator" keyword. */
-struct ccs_aggregator_entry {
+struct ccs_aggregator {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *original_name;
 	const struct ccs_path_info *aggregated_name;
@@ -663,14 +663,14 @@ struct ccs_mount_acl {
 };
 
 /* Structure for "deny_autobind" keyword. */
-struct ccs_reserved_entry {
+struct ccs_reserved {
 	struct ccs_acl_head head;
 	u16 min_port;                /* Start of port number range.          */
 	u16 max_port;                /* End of port number range.            */
 };
 
 /* Structure for policy manager. */
-struct ccs_policy_manager_entry {
+struct ccs_manager {
 	struct ccs_acl_head head;
 	bool is_domain;  /* True if manager is a domainname. */
 	/* A path to program or a domainname. */
@@ -678,14 +678,14 @@ struct ccs_policy_manager_entry {
 };
 
 /* Structure for argv[]. */
-struct ccs_argv_entry {
+struct ccs_argv {
 	unsigned int index;
 	const struct ccs_path_info *value;
 	bool is_not;
 };
 
 /* Structure for envp[]. */
-struct ccs_envp_entry {
+struct ccs_envp {
 	const struct ccs_path_info *name;
 	const struct ccs_path_info *value;
 	bool is_not;
@@ -777,7 +777,7 @@ struct ccs_signal_acl {
 	const struct ccs_path_info *domainname;
 };
 
-struct ccs_ipv6addr_entry {
+struct ccs_ipv6addr {
 	struct ccs_shared_acl_head head;
 	struct in6_addr addr;
 };
@@ -816,7 +816,7 @@ struct ccs_ip_network_acl {
 };
 
 /* Structure for string data. */
-struct ccs_name_entry {
+struct ccs_name {
 	struct ccs_shared_acl_head head;
 	int size;
 	struct ccs_path_info entry;
@@ -907,10 +907,10 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted);
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
-bool ccs_is_correct_domain(const unsigned char *domainname);
-bool ccs_is_correct_path(const char *filename, const s8 start_type,
+bool ccs_correct_domain(const unsigned char *domainname);
+bool ccs_correct_path(const char *filename, const s8 start_type,
 			 const s8 pattern_type, const s8 end_type);
-bool ccs_is_domain_def(const unsigned char *buffer);
+bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 			      const struct ccs_group *group);
@@ -925,14 +925,13 @@ bool ccs_print_number_union(struct ccs_io_buffer *head,
 			    const struct ccs_number_union *ptr);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
-int ccs_update_domain_policy(struct ccs_acl_info *new_entry, const int size,
-			     bool is_delete, struct ccs_domain_info *domain,
-			     bool (*check_duplicate)
-			     (const struct ccs_acl_info *,
-			      const struct ccs_acl_info *),
-			     bool (*merge_duplicate) (struct ccs_acl_info *,
-						      struct ccs_acl_info *,
-						      const bool));
+int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
+		      bool is_delete, struct ccs_domain_info *domain,
+		      bool (*check_duplicate) (const struct ccs_acl_info *,
+					       const struct ccs_acl_info *),
+		      bool (*merge_duplicate) (struct ccs_acl_info *,
+					       struct ccs_acl_info *,
+					       const bool));
 int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
 		     bool is_delete, struct ccs_group *group,
 		     bool (*check_duplicate) (const struct ccs_acl_head *,
@@ -976,46 +975,36 @@ int ccs_read_control(struct file *file, char __user *buffer,
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-int ccs_write_aggregator_policy(char *data, const bool is_delete,
+int ccs_write_aggregator(char *data, const bool is_delete,
 				const u8 flags);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
 			const char *fmt, ...)
      __attribute__ ((format(printf, 3, 4)));
-int ccs_write_capability_policy(char *data, struct ccs_domain_info *domain,
-				struct ccs_condition *condition,
-				const bool is_delete);
-int ccs_write_control(struct file *file, const char __user *buffer,
-		      const int buffer_len);
-int ccs_write_domain_initializer_policy(char *data, const bool is_delete,
-					const u8 flags);
-int ccs_write_domain_keeper_policy(char *data, const bool is_delete,
-				   const u8 flags);
-int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
+int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete);
-int ccs_write_file_policy(char *data, struct ccs_domain_info *domain,
-			  struct ccs_condition *condition,
-			  const bool is_delete);
-int ccs_write_globally_readable_policy(char *data, const bool is_delete,
-				       const u8 flags);
-int ccs_write_globally_usable_env_policy(char *data, const bool is_delete,
-					 const u8 flags);
-int ccs_write_group_policy(char *data, const bool is_delete, const u8 type);
+int ccs_write_control(struct file *file, const char __user *buffer,
+		      const int buffer_len);
+int ccs_write_domain_initializer(char *data, const bool is_delete,
+				 const u8 flags);
+int ccs_write_domain_keeper(char *data, const bool is_delete, const u8 flags);
+int ccs_write_env(char *data, struct ccs_domain_info *domain,
+		  struct ccs_condition *condition, const bool is_delete);
+int ccs_write_file(char *data, struct ccs_domain_info *domain,
+		   struct ccs_condition *condition, const bool is_delete);
+int ccs_write_global_env(char *data, const bool is_delete, const u8 flags);
+int ccs_write_global_read(char *data, const bool is_delete, const u8 flags);
+int ccs_write_group(char *data, const bool is_delete, const u8 type);
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
-int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
-			   struct ccs_condition *condition,
-			   const bool is_delete);
-int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
-			     struct ccs_condition *condition,
-			     const bool is_delete);
-int ccs_write_no_rewrite_policy(char *data, const bool is_delete,
-				const u8 flags);
-int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags);
-int ccs_write_reserved_port_policy(char *data, const bool is_delete,
-				   const u8 flags);
-int ccs_write_signal_policy(char *data, struct ccs_domain_info *domain,
-			    struct ccs_condition *condition,
-			    const bool is_delete);
+int ccs_write_mount(char *data, struct ccs_domain_info *domain,
+		    struct ccs_condition *condition, const bool is_delete);
+int ccs_write_network(char *data, struct ccs_domain_info *domain,
+		      struct ccs_condition *condition, const bool is_delete);
+int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags);
+int ccs_write_pattern(char *data, const bool is_delete, const u8 flags);
+int ccs_write_reserved_port(char *data, const bool is_delete, const u8 flags);
+int ccs_write_signal(char *data, struct ccs_domain_info *domain,
+		     struct ccs_condition *condition, const bool is_delete);
 size_t ccs_del_condition(struct list_head *element);
 struct ccs_condition *ccs_get_condition(char * const condition);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
@@ -1053,20 +1042,20 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-static inline bool ccs_is_same_acl_head(const struct ccs_acl_info *p1,
+static inline bool ccs_same_acl_head(const struct ccs_acl_info *p1,
 					const struct ccs_acl_info *p2)
 {
 	return p1->type == p2->type && p1->cond == p2->cond;
 }
 
-static inline bool ccs_is_same_name_union(const struct ccs_name_union *p1,
+static inline bool ccs_same_name_union(const struct ccs_name_union *p1,
 					  const struct ccs_name_union *p2)
 {
 	return p1->filename == p2->filename && p1->group == p2->group &&
 		p1->is_group == p2->is_group;
 }
 
-static inline bool ccs_is_same_number_union(const struct ccs_number_union *p1,
+static inline bool ccs_same_number_union(const struct ccs_number_union *p1,
 					    const struct ccs_number_union *p2)
 {
 	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
@@ -1090,7 +1079,7 @@ enum ccs_gc_id {
 	CCS_ID_AGGREGATOR,
 	CCS_ID_DOMAIN_INITIALIZER,
 	CCS_ID_DOMAIN_KEEPER,
-	CCS_ID_GLOBALLY_READABLE,
+	CCS_ID_GLOBAL_READ,
 	CCS_ID_PATTERN,
 	CCS_ID_NO_REWRITE,
 	CCS_ID_MANAGER,
@@ -1258,7 +1247,7 @@ static inline void ccs_put_group(struct ccs_group *group)
 static inline void ccs_put_ipv6_address(const struct in6_addr *addr)
 {
 	if (addr)
-		atomic_dec(&container_of(addr, struct ccs_ipv6addr_entry,
+		atomic_dec(&container_of(addr, struct ccs_ipv6addr,
 					 addr)->head.users);
 }
 
@@ -1271,7 +1260,7 @@ static inline void ccs_put_condition(struct ccs_condition *cond)
 static inline void ccs_put_name(const struct ccs_path_info *name)
 {
 	if (name)
-		atomic_dec(&container_of(name, struct ccs_name_entry, entry)->
+		atomic_dec(&container_of(name, struct ccs_name, entry)->
 			   head.users);
 }
 

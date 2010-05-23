@@ -31,7 +31,7 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 }
 
 /**
- * ccs_is_globally_usable_env - Check whether the given environment variable is acceptable for all domains.
+ * ccs_global_env - Check whether the given environment variable is acceptable for all domains.
  *
  * @env: The name of environment variable.
  *
@@ -40,9 +40,9 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
+static bool ccs_global_env(const struct ccs_path_info *env)
 {
-	struct ccs_globally_usable_env_entry *ptr;
+	struct ccs_global_env *ptr;
 	bool found = false;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_GLOBAL_ENV],
 				head.list) {
@@ -55,34 +55,33 @@ static bool ccs_is_globally_usable_env(const struct ccs_path_info *env)
 	return found;
 }
 
-static bool ccs_is_same_global_env(const struct ccs_acl_head *a,
+static bool ccs_same_global_env(const struct ccs_acl_head *a,
 				   const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_globally_usable_env_entry, head)->env
-		== container_of(b, struct ccs_globally_usable_env_entry, head)
+	return container_of(a, struct ccs_global_env, head)->env
+		== container_of(b, struct ccs_global_env, head)
 		->env;
 }
 
 /**
- * ccs_write_globally_usable_env_policy - Write "struct ccs_globally_usable_env_entry" list.
+ * ccs_write_global_env - Write "struct ccs_global_env" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_globally_usable_env_policy(char *data, const bool is_delete,
-					 const u8 flags)
+int ccs_write_global_env(char *data, const bool is_delete, const u8 flags)
 {
-	struct ccs_globally_usable_env_entry e = { };
+	struct ccs_global_env e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
+	if (!ccs_correct_path(data, 0, 0, 0) || strchr(data, '='))
 		return -EINVAL;
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_GLOBAL_ENV, ccs_is_same_global_env);
+				  CCS_ID_GLOBAL_ENV, ccs_same_global_env);
 	ccs_put_name(e.env);
 	return error;
 }
@@ -118,7 +117,7 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 		break;
 	}
 	if (error && !domain->ignore_global_allow_env &&
-	    ccs_is_globally_usable_env(&env))
+	    ccs_global_env(&env))
 		error = 0;
 	return error;
 }
@@ -148,7 +147,7 @@ int ccs_env_perm(struct ccs_request_info *r, const char *env)
 	return error;
 }
 
-static bool ccs_is_same_env_entry(const struct ccs_acl_info *a,
+static bool ccs_same_env_entry(const struct ccs_acl_info *a,
 				  const struct ccs_acl_info *b)
 {
 	const struct ccs_env_acl *p1 = container_of(a, typeof(*p1), head);
@@ -158,7 +157,7 @@ static bool ccs_is_same_env_entry(const struct ccs_acl_info *a,
 }
 
 /**
- * ccs_write_env_policy - Write "struct ccs_env_acl" list.
+ * ccs_write_env - Write "struct ccs_env_acl" list.
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -167,22 +166,21 @@ static bool ccs_is_same_env_entry(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_env_policy(char *data, struct ccs_domain_info *domain,
-			 struct ccs_condition *condition,
-			 const bool is_delete)
+int ccs_write_env(char *data, struct ccs_domain_info *domain,
+		  struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_env_acl e = {
 		.head.type = CCS_TYPE_ENV_ACL,
 		.head.cond = condition
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_is_correct_path(data, 0, 0, 0) || strchr(data, '='))
+	if (!ccs_correct_path(data, 0, 0, 0) || strchr(data, '='))
 		return -EINVAL;
 	e.env = ccs_get_name(data);
 	if (!e.env)
 		return error;
-	error = ccs_update_domain_policy(&e.head, sizeof(e), is_delete, domain,
-					 ccs_is_same_env_entry, NULL);
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_env_entry, NULL);
 	ccs_put_name(e.env);
 	return error;
 }
