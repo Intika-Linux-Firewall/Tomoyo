@@ -1,4 +1,4 @@
-ccsecurity-objs := address_group.o audit.o autobind.o capability.o condition.o domain.o environ.o file.o gc.o maymount.o memory.o mount.o network.o number_group.o path_group.o policy_io.o proc_if.o realpath.o signal.o util.o
+ccsecurity-objs := audit.o autobind.o capability.o condition.o domain.o environ.o file.o gc.o group.o maymount.o memory.o mount.o network.o policy_io.o proc_if.o realpath.o signal.o util.o
 
 ifeq ($(PATCHLEVEL),4)
 

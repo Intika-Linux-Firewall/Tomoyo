@@ -886,18 +886,28 @@ static int ccs_write_domain_policy2(char *data, struct ccs_domain_info *domain,
 				    struct ccs_condition *cond,
 				    const bool is_delete)
 {
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_CAPABILITY))
-		return ccs_write_capability_policy(data, domain, cond,
-						   is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_NETWORK))
-		return ccs_write_network_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_SIGNAL))
-		return ccs_write_signal_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_ENV))
-		return ccs_write_env_policy(data, domain, cond, is_delete);
-	if (ccs_str_starts(&data, CCS_KEYWORD_ALLOW_MOUNT))
-		return ccs_write_mount_policy(data, domain, cond, is_delete);
-	return ccs_write_file_policy(data, domain, cond, is_delete);
+	u8 i;
+	static const struct {
+		const char *keyword;
+		int (*write) (char *, struct ccs_domain_info *,
+			      struct ccs_condition *, const bool);
+	} ccs_callback[5] = {
+		{ CCS_KEYWORD_ALLOW_NETWORK, ccs_write_network_policy },
+		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env_policy },
+		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability_policy },
+		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal_policy },
+		{ CCS_KEYWORD_ALLOW_MOUNT, ccs_write_mount_policy }
+	};
+	int (*write) (char *, struct ccs_domain_info *,
+		     struct ccs_condition *, const bool) =
+		ccs_write_file_policy;
+	for (i = 0; i < 5; i++) {
+		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
+			continue;
+		write = ccs_callback[i].write;
+		break;
+	}
+	return write(data, domain, cond, is_delete);
 }
 
 /**
@@ -1817,7 +1827,7 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool, const u8);
-	} ccs_callback[13] = {
+	} ccs_callback[10] = {
 		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper_policy },
 		{ CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
 		  ccs_write_domain_initializer_policy },
@@ -1829,15 +1839,21 @@ static int ccs_write_exception_policy(struct ccs_io_buffer *head)
 		{ CCS_KEYWORD_ALLOW_ENV,
 		  ccs_write_globally_usable_env_policy },
 		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern_policy },
-		{ CCS_KEYWORD_PATH_GROUP, ccs_write_path_group_policy },
-		{ CCS_KEYWORD_NUMBER_GROUP, ccs_write_number_group_policy },
-		{ CCS_KEYWORD_ADDRESS_GROUP, ccs_write_address_group_policy },
 		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite_policy },
 		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port_policy }
 	};
-	for (i = 0; i < 13; i++) {
+	static const char *ccs_name[CCS_MAX_GROUP] = {
+		[CCS_PATH_GROUP] = CCS_KEYWORD_PATH_GROUP,
+		[CCS_NUMBER_GROUP] = CCS_KEYWORD_NUMBER_GROUP,
+		[CCS_ADDRESS_GROUP] = CCS_KEYWORD_ADDRESS_GROUP
+	};
+	for (i = 0; i < 10; i++) {
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete, i < 2);
+	}
+	for (i = 0; i < CCS_MAX_GROUP; i++) {
+		if (ccs_str_starts(&data, ccs_name[i]))
+			return ccs_write_group_policy(data, is_delete, i);
 	}
 	return -EINVAL;
 }

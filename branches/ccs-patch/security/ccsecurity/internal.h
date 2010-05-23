@@ -976,8 +976,6 @@ int ccs_read_control(struct file *file, char __user *buffer,
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-int ccs_write_address_group_policy(char *data, const bool is_delete,
-				   const u8 flags);
 int ccs_write_aggregator_policy(char *data, const bool is_delete,
 				const u8 flags);
 int ccs_write_audit_log(const bool is_granted, struct ccs_request_info *r,
@@ -1002,6 +1000,7 @@ int ccs_write_globally_readable_policy(char *data, const bool is_delete,
 				       const u8 flags);
 int ccs_write_globally_usable_env_policy(char *data, const bool is_delete,
 					 const u8 flags);
+int ccs_write_group_policy(char *data, const bool is_delete, const u8 type);
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount_policy(char *data, struct ccs_domain_info *domain,
 			   struct ccs_condition *condition,
@@ -1010,10 +1009,6 @@ int ccs_write_network_policy(char *data, struct ccs_domain_info *domain,
 			     struct ccs_condition *condition,
 			     const bool is_delete);
 int ccs_write_no_rewrite_policy(char *data, const bool is_delete,
-				const u8 flags);
-int ccs_write_number_group_policy(char *data, const bool is_delete,
-				  const u8 flags);
-int ccs_write_path_group_policy(char *data, const bool is_delete,
 				const u8 flags);
 int ccs_write_pattern_policy(char *data, const bool is_delete, const u8 flags);
 int ccs_write_reserved_port_policy(char *data, const bool is_delete,
