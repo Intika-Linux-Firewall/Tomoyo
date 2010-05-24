@@ -13,14 +13,14 @@
 #include "internal.h"
 
 static bool ccs_same_path_group(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
+				const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_path_group, head)->member_name ==
 		container_of(b, struct ccs_path_group, head)->member_name;
 }
 
 static bool ccs_same_number_group(const struct ccs_acl_head *a,
-				     const struct ccs_acl_head *b)
+				  const struct ccs_acl_head *b)
 {
 	return !memcmp(&container_of(a, struct ccs_number_group, head)->number,
 		       &container_of(b, struct ccs_number_group, head)->number,
@@ -29,7 +29,7 @@ static bool ccs_same_number_group(const struct ccs_acl_head *a,
 }
 
 static bool ccs_same_address_group(const struct ccs_acl_head *a,
-				      const struct ccs_acl_head *b)
+				   const struct ccs_acl_head *b)
 {
 	const struct ccs_address_group *p1 = container_of(a, typeof(*p1),
 							  head);

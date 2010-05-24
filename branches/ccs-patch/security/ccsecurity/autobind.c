@@ -28,7 +28,7 @@ static bool __ccs_lport_reserved(const u16 port)
 }
 
 static bool ccs_same_reserved_entry(const struct ccs_acl_head *a,
-				       const struct ccs_acl_head *b)
+				    const struct ccs_acl_head *b)
 {
 	const struct ccs_reserved *p1 = container_of(a, typeof(*p1),
 							   head);

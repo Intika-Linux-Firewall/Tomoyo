@@ -718,7 +718,7 @@ static bool ccs_global_read(const struct ccs_path_info *filename)
 }
 
 static bool ccs_same_global_read_entry(const struct ccs_acl_head *a,
-					  const struct ccs_acl_head *b)
+				       const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_global_read, head)->filename ==
 		container_of(b, struct ccs_global_read, head)->filename;
@@ -779,7 +779,7 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 }
 
 static bool ccs_same_pattern_entry(const struct ccs_acl_head *a,
-				      const struct ccs_acl_head *b)
+				   const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_pattern, head)->pattern ==
 		container_of(b, struct ccs_pattern, head)->pattern;
@@ -835,7 +835,7 @@ static bool ccs_no_rewrite_file(const struct ccs_path_info *filename)
 }
 
 static bool ccs_same_rewrite_entry(const struct ccs_acl_head *a,
-				      const struct ccs_acl_head *b)
+				   const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_no_rewrite, head)->pattern ==
 		container_of(b, struct ccs_no_rewrite, head)->pattern;
@@ -1110,7 +1110,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 }
 
 static bool ccs_same_path_acl(const struct ccs_acl_info *a,
-				 const struct ccs_acl_info *b)
+			      const struct ccs_acl_info *b)
 {
 	const struct ccs_path_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path_acl *p2 = container_of(b, typeof(*p2), head);
@@ -1121,26 +1121,24 @@ static bool ccs_same_path_acl(const struct ccs_acl_info *a,
 static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 			       const bool is_delete)
 {
-	static const u16 ccs_rw_mask =
-		(1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE);
-	struct ccs_path_acl *p1 = container_of(a, typeof(*p1), head);
-	const u16 perm = container_of(b, typeof(*p1), head)->perm;
+	u16 * const a_perm = &container_of(a, struct ccs_path_acl, head)->perm;
+	u16 perm = *a_perm;
+	const u16 b_perm = container_of(b, struct ccs_path_acl, head)->perm;
 	if (is_delete) {
-		p1->perm &= ~perm;
-		if ((p1->perm & ccs_rw_mask) != ccs_rw_mask)
-			p1->perm &= ~(1 << CCS_TYPE_READ_WRITE);
-		else if (!(p1->perm & (1 << CCS_TYPE_READ_WRITE)))
-			p1->perm &= ~ccs_rw_mask;
+		perm &= ~b_perm;
+		if ((perm & CCS_RW_MASK) != CCS_RW_MASK)
+			perm &= ~(1 << CCS_TYPE_READ_WRITE);
+		else if (!(perm & (1 << CCS_TYPE_READ_WRITE)))
+			perm &= ~CCS_RW_MASK;
 	} else {
-		if (p1->head.is_deleted)
-			p1->perm = 0;
-		p1->perm |= perm;
-		if ((p1->perm & ccs_rw_mask) == ccs_rw_mask)
-			p1->perm |= 1 << CCS_TYPE_READ_WRITE;
-		else if (p1->perm & (1 << CCS_TYPE_READ_WRITE))
-			p1->perm |= ccs_rw_mask;
+		perm |= b_perm;
+		if ((perm & CCS_RW_MASK) == CCS_RW_MASK)
+			perm |= (1 << CCS_TYPE_READ_WRITE);
+		else if (perm & (1 << CCS_TYPE_READ_WRITE))
+			perm |= CCS_RW_MASK;
 	}
-	return !p1->perm;
+	*a_perm = perm;
+	return !perm;
 }
 
 /**
@@ -1159,16 +1157,14 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 			       struct ccs_condition *condition,
 			       const bool is_delete)
 {
-	static const u16 ccs_rw_mask =
-		(1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE);
 	struct ccs_path_acl e = {
 		.head.type = CCS_TYPE_PATH_ACL,
 		.head.cond = condition,
 		.perm = 1 << type
 	};
 	int error;
-	if (type == CCS_TYPE_READ_WRITE)
-		e.perm |= ccs_rw_mask;
+	if (e.perm == (1 << CCS_TYPE_READ_WRITE))
+		e.perm |= CCS_RW_MASK;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
 	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
@@ -1178,7 +1174,7 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 }
 
 static bool ccs_same_path_number3_acl(const struct ccs_acl_info *a,
-					 const struct ccs_acl_info *b)
+				      const struct ccs_acl_info *b)
 {
 	const struct ccs_path_number3_acl *p1 = container_of(a, typeof(*p1),
 							     head);
@@ -1195,16 +1191,17 @@ static bool ccs_merge_path_number3_acl(struct ccs_acl_info *a,
 				       struct ccs_acl_info *b,
 				       const bool is_delete)
 {
-	struct ccs_path_number3_acl *p1 = container_of(a, typeof(*p1), head);
-	const u8 perm = container_of(b, typeof(*p1), head)->perm;
-	if (is_delete) {
-		p1->perm &= ~perm;
-	} else {
-		if (p1->head.is_deleted)
-			p1->perm = 0;
-		p1->perm |= perm;
-	}
-	return !p1->perm;
+	u8 *const a_perm = &container_of(a, struct ccs_path_number3_acl, head)
+		->perm;
+	u8 perm = *a_perm;
+	const u8 b_perm = container_of(b, struct ccs_path_number3_acl, head)
+		->perm;
+	if (is_delete)
+		perm &= ~b_perm;
+	else
+		perm |= b_perm;
+	*a_perm = perm;
+	return !perm;
 }
 
 /**
@@ -1250,7 +1247,7 @@ static int ccs_update_path_number3_acl(const u8 type, const char *filename,
 }
 
 static bool ccs_same_path2_acl(const struct ccs_acl_info *a,
-				  const struct ccs_acl_info *b)
+			       const struct ccs_acl_info *b)
 {
 	const struct ccs_path2_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_path2_acl *p2 = container_of(b, typeof(*p2), head);
@@ -1259,19 +1256,18 @@ static bool ccs_same_path2_acl(const struct ccs_acl_info *a,
 		&& ccs_same_name_union(&p1->name2, &p2->name2);
 }
 
-static bool ccs_merge_path2_acl(struct ccs_acl_info *a,
-				struct ccs_acl_info *b, const bool is_delete)
+static bool ccs_merge_path2_acl(struct ccs_acl_info *a,	struct ccs_acl_info *b,
+				const bool is_delete)
 {
-	struct ccs_path2_acl *p1 = container_of(a, typeof(*p1), head);
-	const u8 perm = container_of(b, typeof(*p1), head)->perm;
-	if (is_delete) {
-		p1->perm &= ~perm;
-	} else {
-		if (p1->head.is_deleted)
-			p1->perm = 0;
-		p1->perm |= perm;
-	}
-	return !p1->perm;
+	u8 * const a_perm = &container_of(a, struct ccs_path2_acl, head)->perm;
+	u8 perm = *a_perm;
+	const u8 b_perm = container_of(b, struct ccs_path2_acl, head)->perm;
+	if (is_delete)
+		perm &= ~b_perm;
+	else
+		perm |= b_perm;
+	*a_perm = perm;
+	return !perm;
 }
 
 /**
@@ -1825,7 +1821,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 }
 
 static bool ccs_same_path_number_acl(const struct ccs_acl_info *a,
-					const struct ccs_acl_info *b)
+				     const struct ccs_acl_info *b)
 {
 	const struct ccs_path_number_acl *p1 = container_of(a, typeof(*p1),
 							    head);
@@ -1840,16 +1836,17 @@ static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
 				      struct ccs_acl_info *b,
 				      const bool is_delete)
 {
-	struct ccs_path_number_acl *p1 = container_of(a, typeof(*p1), head);
-	const u8 perm = container_of(b, typeof(*p1), head)->perm;
-	if (is_delete) {
-		p1->perm &= ~perm;
-	} else {
-		if (p1->head.is_deleted)
-			p1->perm = 0;
-		p1->perm |= perm;
-	}
-	return !p1->perm;
+	u8 * const a_perm = &container_of(a, struct ccs_path_number_acl, head)
+		->perm;
+	u8 perm = *a_perm;
+	const u8 b_perm = container_of(b, struct ccs_path_number_acl, head)
+		->perm;
+	if (is_delete)
+		perm &= ~b_perm;
+	else
+		perm |= b_perm;
+	*a_perm = perm;
+	return !perm;
 }
 
 /**

@@ -277,7 +277,7 @@ static int ccs_network_entry(const bool is_ipv6, const u8 operation,
 }
 
 static bool ccs_same_ip_network_acl(const struct ccs_acl_info *a,
-				       const struct ccs_acl_info *b)
+				    const struct ccs_acl_info *b)
 {
 	const struct ccs_ip_network_acl *p1 = container_of(a, typeof(*p1),
 							   head);
@@ -297,16 +297,17 @@ static bool ccs_merge_ip_network_acl(struct ccs_acl_info *a,
 				     struct ccs_acl_info *b,
 				     const bool is_delete)
 {
-	struct ccs_ip_network_acl *p1 = container_of(a, typeof(*p1), head);
-	const u16 perm = container_of(b, typeof(*p1), head)->perm;
-	if (is_delete) {
-		p1->perm &= ~perm;
-	} else {
-		if (p1->head.is_deleted)
-			p1->perm = 0;
-		p1->perm |= perm;
-	}
-	return !p1->perm;
+	u8 * const a_perm = &container_of(a, struct ccs_ip_network_acl, head)
+		->perm;
+	u8 perm = *a_perm;
+	const u8 b_perm = container_of(b, struct ccs_ip_network_acl, head)
+		->perm;
+	if (is_delete)
+		perm &= ~b_perm;
+	else
+		perm |= b_perm;
+	*a_perm = perm;
+	return !perm;
 }
 
 /**

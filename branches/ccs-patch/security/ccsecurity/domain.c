@@ -154,12 +154,12 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 }
 
 static bool ccs_same_domain_initializer_entry(const struct ccs_acl_head *a,
-						 const struct ccs_acl_head *b)
+					      const struct ccs_acl_head *b)
 {
-	const struct ccs_domain_initializer *p1 =
-		container_of(a, typeof(*p1), head);
-	const struct ccs_domain_initializer *p2 =
-		container_of(b, typeof(*p2), head);
+	const struct ccs_domain_initializer *p1 = container_of(a, typeof(*p1),
+							       head);
+	const struct ccs_domain_initializer *p2 = container_of(b, typeof(*p2),
+							       head);
 	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
 		&& p1->program == p2->program;
@@ -268,12 +268,12 @@ static bool ccs_domain_initializer(const struct ccs_path_info *domainname,
 }
 
 static bool ccs_same_domain_keeper_entry(const struct ccs_acl_head *a,
-					    const struct ccs_acl_head *b)
+					 const struct ccs_acl_head *b)
 {
-	const struct ccs_domain_keeper *p1 =
-		container_of(a, typeof(*p1), head);
-	const struct ccs_domain_keeper *p2 =
-		container_of(b, typeof(*p2), head);
+	const struct ccs_domain_keeper *p1 = container_of(a, typeof(*p1),
+							  head);
+	const struct ccs_domain_keeper *p2 = container_of(b, typeof(*p2),
+							  head);
 	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
 		&& p1->program == p2->program;
@@ -383,12 +383,10 @@ static bool ccs_domain_keeper(const struct ccs_path_info *domainname,
 }
 
 static bool ccs_same_aggregator_entry(const struct ccs_acl_head *a,
-					 const struct ccs_acl_head *b)
+				      const struct ccs_acl_head *b)
 {
-	const struct ccs_aggregator *p1 =
-		container_of(a, typeof(*p1), head);
-	const struct ccs_aggregator *p2 =
-		container_of(b, typeof(*p2), head);
+	const struct ccs_aggregator *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_aggregator *p2 = container_of(b, typeof(*p2), head);
 	return p1->original_name == p2->original_name &&
 		p1->aggregated_name == p2->aggregated_name;
 }

@@ -87,6 +87,8 @@ enum ccs_path_acl_index {
 	CCS_MAX_PATH_OPERATION
 };
 
+#define CCS_RW_MASK ((1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE))
+
 enum ccs_path_number3_acl_index {
 	CCS_TYPE_MKBLOCK,
 	CCS_TYPE_MKCHAR,
@@ -722,14 +724,14 @@ struct ccs_execute_handler_record {
  */
 struct ccs_path_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
-	u16 perm;
+	u16 perm; /* Bitmask of values in "enum ccs_path_acl_index" */
 	struct ccs_name_union name;
 };
 
 /* Structure for "allow_mkblock" and "allow_mkchar" directive. */
 struct ccs_path_number3_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER3_ACL */
-	u8 perm;
+	u8 perm; /* Bitmask of values in "enum ccs_path_number3_acl_index" */
 	struct ccs_name_union name;
 	struct ccs_number_union mode;
 	struct ccs_number_union major;
@@ -741,7 +743,7 @@ struct ccs_path_number3_acl {
  */
 struct ccs_path2_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
-	u8 perm;
+	u8 perm; /* Bitmask of values in "enum ccs_path2_acl_index" */
 	struct ccs_name_union name1;
 	struct ccs_name_union name2;
 };
@@ -752,7 +754,7 @@ struct ccs_path2_acl {
  */
 struct ccs_path_number_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
-	u8 perm;
+	u8 perm; /* Bitmask of values in "enum ccs_path_number_acl_index" */
 	struct ccs_name_union name;
 	struct ccs_number_union number;
 };
@@ -785,7 +787,7 @@ struct ccs_ipv6addr {
 /* Structure for "allow_network" directive. */
 struct ccs_ip_network_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
-	u16 perm;
+	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	/*
 	 * address_type takes one of the following constants.
 	 *   CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP
@@ -921,8 +923,6 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 			    const bool may_use_pattern);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
-bool ccs_print_number_union(struct ccs_io_buffer *head,
-			    const struct ccs_number_union *ptr);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,

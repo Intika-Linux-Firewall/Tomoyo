@@ -333,7 +333,7 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 }
 
 static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
-				  const struct ccs_acl_info *b)
+			       const struct ccs_acl_info *b)
 {
 	const struct ccs_mount_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_mount_acl *p2 = container_of(b, typeof(*p2), head);

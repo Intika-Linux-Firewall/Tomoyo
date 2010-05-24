@@ -56,11 +56,10 @@ static bool ccs_global_env(const struct ccs_path_info *env)
 }
 
 static bool ccs_same_global_env(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
+				const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_global_env, head)->env
-		== container_of(b, struct ccs_global_env, head)
-		->env;
+		== container_of(b, struct ccs_global_env, head)->env;
 }
 
 /**
@@ -148,7 +147,7 @@ int ccs_env_perm(struct ccs_request_info *r, const char *env)
 }
 
 static bool ccs_same_env_entry(const struct ccs_acl_info *a,
-				  const struct ccs_acl_info *b)
+			       const struct ccs_acl_info *b)
 {
 	const struct ccs_env_acl *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_env_acl *p2 = container_of(b, typeof(*p2), head);

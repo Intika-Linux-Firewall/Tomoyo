@@ -94,7 +94,7 @@ static int __ccs_ptrace_permission(long request, long pid)
 }
 
 static bool ccs_same_capability_entry(const struct ccs_acl_info *a,
-					 const struct ccs_acl_info *b)
+				      const struct ccs_acl_info *b)
 {
 	const struct ccs_capability_acl *p1 = container_of(a, typeof(*p1),
 							   head);

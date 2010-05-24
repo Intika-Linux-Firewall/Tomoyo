@@ -653,7 +653,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 }
 
 static bool ccs_same_manager_entry(const struct ccs_acl_head *a,
-				      const struct ccs_acl_head *b)
+				   const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_manager, head)->manager
 		== container_of(b, struct ccs_manager, head)->manager;
@@ -1081,8 +1081,8 @@ static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
  *
  * Returns true on success, false otherwise.
  */
-bool ccs_print_number_union(struct ccs_io_buffer *head,
-			    const struct ccs_number_union *ptr)
+static bool ccs_print_number_union(struct ccs_io_buffer *head,
+				   const struct ccs_number_union *ptr)
 {
 	return ccs_print_number_union_common(head, ptr, true);
 }
@@ -1417,7 +1417,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 {
 	int pos;
 	u8 bit;
-	const u16 perm = ptr->perm;
+	const u8 perm = ptr->perm;
 	char buf[128];
 	for (bit = head->read_bit; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
 		const char *w[2] = { "", "" };
