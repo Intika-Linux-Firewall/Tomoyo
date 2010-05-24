@@ -330,22 +330,24 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 	 */
 	const struct ccs_condition *ptr = r->cond;
 	if (ptr) {
-		struct task_struct *task = current;
 		const u8 flags = ptr->post_state[3];
-		u32 ccs_flags = task->ccs_flags;
-		if (flags & 1) {
-			ccs_flags &= ~0xFF000000;
-			ccs_flags |= ptr->post_state[0] << 24;
+		if (flags & 7) {
+			struct task_struct *task = current;
+			u32 ccs_flags = task->ccs_flags;
+			if (flags & 1) {
+				ccs_flags &= ~0xFF000000;
+				ccs_flags |= ptr->post_state[0] << 24;
+			}
+			if (flags & 2) {
+				ccs_flags &= ~0x00FF0000;
+				ccs_flags |= ptr->post_state[1] << 16;
+			}
+			if (flags & 4) {
+				ccs_flags &= ~0x0000FF00;
+				ccs_flags |= ptr->post_state[2] << 8;
+			}
+			task->ccs_flags = ccs_flags;
 		}
-		if (flags & 2) {
-			ccs_flags &= ~0x00FF0000;
-			ccs_flags |= ptr->post_state[1] << 16;
-		}
-		if (flags & 4) {
-			ccs_flags &= ~0x0000FF00;
-			ccs_flags |= ptr->post_state[2] << 8;
-		}
-		task->ccs_flags = ccs_flags;
 		r->cond = NULL;
 	}
 }
@@ -392,6 +394,37 @@ static struct list_head ccs_log[2] = {
 static unsigned int ccs_log_count[2];
 
 /**
+ * ccs_get_audit - Get audit mode.
+ *
+ * @profile:    Profile number.
+ * @index:      Index number of functionality.
+ * @cond:       Pointer to "struct ccs_condition". May be NULL.
+ * @is_granted: True if granted log, false otherwise.
+ *
+ * Returns mode.
+ */
+static bool ccs_get_audit(const u8 profile, const u8 index,
+			  const struct ccs_condition *cond,
+			  const bool is_granted)
+{
+	u8 mode;
+	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
+		+ CCS_MAX_CAPABILITY_INDEX;
+	if (!ccs_policy_loaded)
+		return false;
+	if (is_granted && cond && (cond->post_state[3] & (1 << 4)))
+		return cond->post_state[4];
+	mode = ccs_profile(profile)->config[index];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->config[category];
+	if (mode == CCS_CONFIG_USE_DEFAULT)
+		mode = ccs_profile(profile)->default_config;
+	if (is_granted)
+		return mode & CCS_CONFIG_WANT_GRANT_LOG;
+	return mode & CCS_CONFIG_WANT_REJECT_LOG;
+}
+
+/**
  * ccs_write_log - Write audit log.
  *
  * @is_granted: True if this is a granted log.
@@ -417,7 +450,7 @@ int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
 	else
 		len = pref->audit_max_reject_log;
 	if (ccs_log_count[is_granted] >= len ||
-	    !ccs_get_audit(r->profile, r->type, is_granted))
+	    !ccs_get_audit(r->profile, r->type, r->cond, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;

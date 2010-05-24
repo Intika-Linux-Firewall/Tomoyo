@@ -795,22 +795,13 @@ static bool ccs_manager(void)
  * Returns pointer to the condition part if it was found in the statement,
  * NULL otherwise.
  */
-static char *ccs_find_condition_part(char *data)
+char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
-	if (cp) {
-		while (1) {
-			char *cp2 = strstr(cp + 3, " if ");
-			if (!cp2)
-				break;
-			cp = cp2;
-		}
-		*cp++ = '\0';
-	} else {
+	if (!cp)
 		cp = strstr(data, " ; set ");
-		if (cp)
-			*cp++ = '\0';
-	}
+	if (cp)
+		*cp++ = '\0';
 	return cp;
 }
 
@@ -1203,6 +1194,11 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 			continue;
 		if (!ccs_io_printf(head, " task.state[%u]=%u", j,
 				   cond->post_state[j]))
+			goto out;
+	}
+	if (i & (1 << 4)) {
+		if (!ccs_io_printf(head, " audit=%s",
+				   ccs_yesno(cond->post_state[4])))
 			goto out;
 	}
  no_condition:
@@ -1931,6 +1927,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_list[idx]) {
 		const char *w[4] = { "", "", "", "" };
 		char buffer[16];
+		struct ccs_condition *cond = NULL;
 		struct ccs_acl_head *acl = container_of(pos, typeof(*acl),
 							list);
 		if (acl->is_deleted)
@@ -1980,6 +1977,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_ALLOW_READ;
 				w[1] = ptr->filename->name;
+				cond = ptr->cond;
 			}
 			break;
 		case CCS_ID_PATTERN:
@@ -2004,6 +2002,7 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_ALLOW_ENV;
 				w[1] = ptr->env->name;
+				cond = ptr->cond;
 			}
 			break;
 		case CCS_ID_RESERVEDPORT:
@@ -2020,9 +2019,18 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				w[1] = buffer;
 			}
 			break;
+		default:
+			continue;
 		}
-		if (!ccs_io_printf(head, "%s%s%s%s\n", w[0], w[1], w[2], w[3]))
-			return false;
+		{
+			const int pos = head->read_avail;
+			if (!ccs_io_printf(head, "%s%s%s%s", w[0], w[1],
+					   w[2], w[3])
+			    || !ccs_print_condition(head, cond)) {
+				head->read_avail = pos;
+				return false;
+			}
+		}
 	}
 	return true;
 }

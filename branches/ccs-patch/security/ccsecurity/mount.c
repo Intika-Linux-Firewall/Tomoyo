@@ -188,7 +188,7 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 		    !ccs_compare_name_union(&rdir, &acl->dir_name) ||
 		    (need_dev &&
 		     !ccs_compare_name_union(&rdev, &acl->dev_name)) ||
-		    !ccs_condition(r, ptr))
+		    !ccs_condition(r, ptr->cond))
 			continue;
 		r->cond = ptr->cond;
 		error = 0;

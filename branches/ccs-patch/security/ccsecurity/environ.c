@@ -30,36 +30,12 @@ static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
 				   env);
 }
 
-/**
- * ccs_global_env - Check whether the given environment variable is acceptable for all domains.
- *
- * @env: The name of environment variable.
- *
- * Returns true if @env is globally permitted environment variable's name,
- * false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_global_env(const struct ccs_path_info *env)
-{
-	struct ccs_global_env *ptr;
-	bool found = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_GLOBAL_ENV],
-				head.list) {
-		if (ptr->head.is_deleted ||
-		    !ccs_path_matches_pattern(env, ptr->env))
-			continue;
-		found = true;
-		break;
-	}
-	return found;
-}
-
 static bool ccs_same_global_env(const struct ccs_acl_head *a,
 				const struct ccs_acl_head *b)
 {
-	return container_of(a, struct ccs_global_env, head)->env
-		== container_of(b, struct ccs_global_env, head)->env;
+	const struct ccs_global_env *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_global_env *p2 = container_of(b, typeof(*p2), head);
+	return p1->env == p2->env && p1->cond == p2->cond;
 }
 
 /**
@@ -73,15 +49,27 @@ static bool ccs_same_global_env(const struct ccs_acl_head *a,
 int ccs_write_global_env(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_global_env e = { };
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(data, 0, 0, 0) || strchr(data, '='))
-		return -EINVAL;
+	int error;
+	char *cp = ccs_find_condition_part(data);
+	if (cp) {
+		e.cond = ccs_get_condition(cp);
+		if (!e.cond)
+			return -EINVAL;
+	}
+	if (!ccs_correct_path(data, 0, 0, 0) || strchr(data, '=')) {
+		error = -EINVAL;
+		goto out;
+	}
 	e.env = ccs_get_name(data);
-	if (!e.env)
-		return error;
+	if (!e.env) {
+		error = -ENOMEM;
+		goto out;
+	}
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_GLOBAL_ENV, ccs_same_global_env);
 	ccs_put_name(e.env);
+ out:
+	ccs_put_condition(e.cond);
 	return error;
 }
 
@@ -99,25 +87,38 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
 {
 	const struct ccs_domain_info * const domain = ccs_current_domain();
 	int error = -EPERM;
-	struct ccs_acl_info *ptr;
 	struct ccs_path_info env;
 	env.name = environ;
 	ccs_fill_path_info(&env);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_env_acl, head);
-		if (!ccs_condition(r, ptr) ||
-		    !ccs_path_matches_pattern(&env, acl->env))
-			continue;
-		r->cond = ptr->cond;
-		error = 0;
-		break;
+	{
+		struct ccs_acl_info *ptr;
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+			struct ccs_env_acl *acl;
+			if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
+				continue;
+			acl = container_of(ptr, struct ccs_env_acl, head);
+			if (!ccs_condition(r, ptr->cond) ||
+			    !ccs_path_matches_pattern(&env, acl->env))
+				continue;
+			r->cond = ptr->cond;
+			error = 0;
+			break;
+		}
 	}
-	if (error && !domain->ignore_global_allow_env &&
-	    ccs_global_env(&env))
-		error = 0;
+	if (error && !domain->ignore_global_allow_env) {
+		struct ccs_global_env *ptr;
+		list_for_each_entry_rcu(ptr,
+					&ccs_policy_list[CCS_ID_GLOBAL_ENV],
+					head.list) {
+			if (ptr->head.is_deleted ||
+			    !ccs_condition(r, ptr->cond) ||
+			    !ccs_path_matches_pattern(&env, ptr->env))
+				continue;
+			r->cond = ptr->cond;
+			error = 0;
+			break;
+		}
+	}
 	return error;
 }
 

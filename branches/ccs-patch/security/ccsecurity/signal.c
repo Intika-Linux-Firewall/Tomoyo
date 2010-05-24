@@ -95,7 +95,7 @@ static int ccs_signal_acl2(const int sig, const int pid)
 			    ptr->type != CCS_TYPE_SIGNAL_ACL)
 				continue;
 			acl = container_of(ptr, struct ccs_signal_acl, head);
-			if (acl->sig == hash && ccs_condition(&r, ptr)) {
+			if (acl->sig == hash && ccs_condition(&r, ptr->cond)) {
 				const int len = acl->domainname->total_len;
 				if (strncmp(acl->domainname->name,
 					    dest_pattern, len))

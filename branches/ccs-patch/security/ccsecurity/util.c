@@ -19,8 +19,7 @@ DEFINE_MUTEX(ccs_policy_lock);
 bool ccs_policy_loaded;
 
 /* Index table for searching parent category. */
-static const u8 ccs_index2category[CCS_MAX_MAC_INDEX +
-				   CCS_MAX_CAPABILITY_INDEX] = {
+const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_MAC_FILE_EXECUTE]    = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_OPEN]       = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CREATE]     = CCS_MAC_CATEGORY_FILE,
@@ -952,32 +951,6 @@ const char *ccs_get_exe(void)
 	}
 	up_read(&mm->mmap_sem);
 	return cp;
-}
-
-/**
- * ccs_get_audit - Get audit mode.
- *
- * @profile:    Profile number.
- * @index:      Index number of functionality.
- * @is_granted: True if granted log, false otherwise.
- *
- * Returns mode.
- */
-bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted)
-{
-	u8 mode;
-	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
-		+ CCS_MAX_CAPABILITY_INDEX;
-	if (!ccs_policy_loaded)
-		return false;
-	mode = ccs_profile(profile)->config[index];
-	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->config[category];
-	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->default_config;
-	if (is_granted)
-		return mode & CCS_CONFIG_WANT_GRANT_LOG;
-	return mode & CCS_CONFIG_WANT_REJECT_LOG;
 }
 
 /**

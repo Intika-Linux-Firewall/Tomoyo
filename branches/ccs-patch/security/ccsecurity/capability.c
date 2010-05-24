@@ -58,7 +58,7 @@ static bool ccs_capable2(const u8 operation)
 			acl = container_of(ptr, struct ccs_capability_acl,
 					   head);
 			if (acl->operation != operation ||
-			    !ccs_condition(&r, ptr))
+			    !ccs_condition(&r, ptr->cond))
 				continue;
 			r.cond = ptr->cond;
 			error = 0;

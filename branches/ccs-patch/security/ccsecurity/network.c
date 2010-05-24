@@ -217,7 +217,7 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 			if (!(acl->perm & perm))
 				continue;
 			if (!ccs_compare_number_union(port, &acl->port) ||
-			    !ccs_condition(&r, ptr))
+			    !ccs_condition(&r, ptr->cond))
 				continue;
 			switch (acl->address_type) {
 			case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:

@@ -473,7 +473,7 @@ const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
+static bool ccs_parse_post_condition(char * const condition, u8 post_state[5])
 {
 	char *start = strstr(condition, "; set ");
 	if (!start)
@@ -482,7 +482,6 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 	start += 6;
 	while (1) {
 		int i;
-		unsigned long value;
 		while (*start == ' ')
 			start++;
 		if (!*start)
@@ -493,15 +492,30 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[4])
 			i = 1;
 		else if (!strncmp(start, "task.state[2]=", 14))
 			i = 2;
+		else if (!strncmp(start, "audit=", 6))
+			i = 4;
 		else
 			goto out;
-		start += 14;
 		if (post_state[3] & (1 << i))
 			goto out;
 		post_state[3] |= 1 << i;
-		if (!ccs_parse_ulong(&value, &start) || value > 255)
-			goto out;
-		post_state[i] = (u8) value;
+		if (i < 3) {
+			unsigned long value;
+			start += 14;
+			if (!ccs_parse_ulong(&value, &start) || value > 255)
+				goto out;
+			post_state[i] = (u8) value;
+		} else {
+			start += 6;
+			if (!strncmp(start, "yes", 3)) {
+				start += 3;
+				post_state[4] = 1;
+			} else if (!strncmp(start, "no", 2)) {
+				start += 2;
+				post_state[4] = 0;
+			} else
+				goto out;
+		}
 	}
 	return true;
  out:
@@ -519,6 +533,7 @@ static inline bool ccs_same_condition(const struct ccs_condition *p1,
 		p1->post_state[1] == p2->post_state[1] &&
 		p1->post_state[2] == p2->post_state[2] &&
 		p1->post_state[3] == p2->post_state[3] &&
+		p1->post_state[4] == p2->post_state[4] &&
 		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
 }
 
@@ -555,7 +570,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	u16 names_count = 0;
 	u16 argc = 0;
 	u16 envc = 0;
-	u8 post_state[4] = { 0, 0, 0, 0 };
+	u8 post_state[5] = { 0, 0, 0, 0, 0 };
 	char *end_of_string;
 	if (!ccs_parse_post_condition(start, post_state))
 		goto out;
@@ -641,7 +656,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 	if (!entry)
 		return NULL;
 	INIT_LIST_HEAD(&entry->head.list);
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 5; i++)
 		entry->post_state[i] = post_state[i];
 	entry->condc = condc;
 	entry->numbers_count = numbers_count;
@@ -1000,14 +1015,14 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
  * ccs_condition - Check condition part.
  *
  * @r:    Pointer to "struct ccs_request_info".
- * @acl: Pointer to "struct ccs_acl_info".
+ * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 bool ccs_condition(struct ccs_request_info *r,
-		   const struct ccs_acl_info *acl)
+		   const struct ccs_condition *cond)
 {
 	const struct task_struct *task = current;
 	u32 i;
@@ -1025,7 +1040,6 @@ bool ccs_condition(struct ccs_request_info *r,
 	u16 argc;
 	u16 envc;
 	struct linux_binprm *bprm = NULL;
-	const struct ccs_condition *cond = acl->cond;
 	if (!cond)
 		return true;
 	condc = cond->condc;

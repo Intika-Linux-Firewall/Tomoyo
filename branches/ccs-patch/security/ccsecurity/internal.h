@@ -500,7 +500,7 @@ struct ccs_condition {
 	u16 names_count;
 	u16 argc;
 	u16 envc;
-	u8 post_state[4];
+	u8 post_state[5];
 	/*
 	 * struct ccs_condition_element condition[condc];
 	 * struct ccs_number_union values[numbers_count];
@@ -610,6 +610,7 @@ struct ccs_domain_info {
 struct ccs_global_read {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *filename;
+	struct ccs_condition *cond;
 };
 
 /* Structure for "file_pattern" keyword. */
@@ -628,6 +629,7 @@ struct ccs_no_rewrite {
 struct ccs_global_env {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *env;
+	struct ccs_condition *cond;
 };
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
@@ -902,11 +904,11 @@ bool ccs_compare_name_union(const struct ccs_path_info *name,
 			    const struct ccs_name_union *ptr);
 bool ccs_compare_number_union(const unsigned long value,
 			      const struct ccs_number_union *ptr);
-bool ccs_condition(struct ccs_request_info *r, const struct ccs_acl_info *acl);
+bool ccs_condition(struct ccs_request_info *r,
+		   const struct ccs_condition *cond);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
-bool ccs_get_audit(const u8 profile, const u8 index, const bool is_granted);
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 bool ccs_correct_domain(const unsigned char *domainname);
@@ -941,6 +943,7 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 		      (const struct ccs_acl_head *,
 		       const struct ccs_acl_head *));
 char *ccs_encode(const char *str);
+char *ccs_find_condition_part(char *data);
 char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
@@ -1124,6 +1127,8 @@ static inline void ccs_read_unlock(const int idx)
 #endif
 
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
+extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX
+				   + CCS_MAX_CAPABILITY_INDEX];
 
 extern unsigned int ccs_log_memory_size;
 extern unsigned int ccs_quota_for_log;

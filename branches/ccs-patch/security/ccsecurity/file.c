@@ -693,35 +693,12 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 				   operation, filename, value);
 }
 
-/**
- * ccs_global_read - Check if the file is unconditionnaly permitted to be open()ed for reading.
- *
- * @filename: The filename to check.
- *
- * Returns true if any domain can open @filename for reading, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_global_read(const struct ccs_path_info *filename)
+static bool ccs_same_global_read(const struct ccs_acl_head *a,
+				 const struct ccs_acl_head *b)
 {
-	struct ccs_global_read *ptr;
-	bool found = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_GLOBAL_READ],
-				head.list) {
-		if (ptr->head.is_deleted ||
-		    !ccs_path_matches_pattern(filename, ptr->filename))
-			continue;
-		found = true;
-		break;
-	}
-	return found;
-}
-
-static bool ccs_same_global_read_entry(const struct ccs_acl_head *a,
-				       const struct ccs_acl_head *b)
-{
-	return container_of(a, struct ccs_global_read, head)->filename ==
-		container_of(b, struct ccs_global_read, head)->filename;
+	const struct ccs_global_read *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_global_read *p2 = container_of(b, typeof(*p2), head);
+	return p1->filename == p2->filename && p1->cond == p2->cond;
 }
 
 /**
@@ -736,15 +713,26 @@ int ccs_write_global_read(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_global_read e = { };
 	int error;
-	if (!ccs_correct_path(data, 1, 0, -1))
-		return -EINVAL;
+	char *cp = ccs_find_condition_part(data);
+	if (cp) {
+		e.cond = ccs_get_condition(cp);
+		if (!e.cond)
+			return -EINVAL;
+	}
+	if (!ccs_correct_path(data, 1, 0, -1)) {
+		error = -EINVAL;
+		goto out;
+	}
 	e.filename = ccs_get_name(data);
-	if (!e.filename)
-		return -ENOMEM;
+	if (!e.filename) {
+		error = -ENOMEM;
+		goto out;
+	}
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_GLOBAL_READ,
-				  ccs_same_global_read_entry);
+				  CCS_ID_GLOBAL_READ, ccs_same_global_read);
 	ccs_put_name(e.filename);
+ out:
+	ccs_put_condition(e.cond);
 	return error;
 }
 
@@ -778,8 +766,8 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 	return pattern ? pattern->name : filename->name;
 }
 
-static bool ccs_same_pattern_entry(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
+static bool ccs_same_pattern(const struct ccs_acl_head *a,
+			     const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_pattern, head)->pattern ==
 		container_of(b, struct ccs_pattern, head)->pattern;
@@ -803,7 +791,7 @@ int ccs_write_pattern(char *data, const bool is_delete, const u8 flags)
 	if (!e.pattern)
 		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_PATTERN, ccs_same_pattern_entry);
+				  CCS_ID_PATTERN, ccs_same_pattern);
 	ccs_put_name(e.pattern);
 	return error;
 }
@@ -834,8 +822,8 @@ static bool ccs_no_rewrite_file(const struct ccs_path_info *filename)
 	return matched;
 }
 
-static bool ccs_same_rewrite_entry(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
+static bool ccs_same_no_rewrite(const struct ccs_acl_head *a,
+				const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_no_rewrite, head)->pattern ==
 		container_of(b, struct ccs_no_rewrite, head)->pattern;
@@ -859,8 +847,7 @@ int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags)
 	if (!e.pattern)
 		return -ENOMEM;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_NO_REWRITE,
-				  ccs_same_rewrite_entry);
+				  CCS_ID_NO_REWRITE, ccs_same_no_rewrite);
 	ccs_put_name(e.pattern);
 	return error;
 }
@@ -923,20 +910,40 @@ static int ccs_path_acl(struct ccs_request_info *r,
 			const u16 perm, const bool may_use_pattern)
 {
 	const struct ccs_domain_info * const domain = ccs_current_domain();
-	struct ccs_acl_info *ptr;
 	int error = -EPERM;
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_path_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_path_acl, head);
-		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
-		    !ccs_compare_name_union_pattern(filename, &acl->name,
-						    may_use_pattern))
-			continue;
-		r->cond = ptr->cond;
-		error = 0;
-		break;
+	{
+		struct ccs_acl_info *ptr;
+		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+			struct ccs_path_acl *acl;
+			if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
+				continue;
+			acl = container_of(ptr, struct ccs_path_acl, head);
+			if (!(acl->perm & perm) ||
+			    !ccs_condition(r, ptr->cond) ||
+			    !ccs_compare_name_union_pattern(filename,
+							    &acl->name,
+							    may_use_pattern))
+				continue;
+			r->cond = ptr->cond;
+			error = 0;
+			break;
+		}
+	}
+	if (error && perm == 1 << CCS_TYPE_READ &&
+	    !domain->ignore_global_allow_read) {
+		struct ccs_global_read *ptr;
+		list_for_each_entry_rcu(ptr,
+					&ccs_policy_list[CCS_ID_GLOBAL_READ],
+					head.list) {
+			if (ptr->head.is_deleted ||
+			    !ccs_condition(r, ptr->cond) ||
+			    !ccs_path_matches_pattern(filename,
+						      ptr->filename))
+				continue;
+			r->cond = ptr->cond;
+			error = 0;
+			break;
+		}
 	}
 	return error;
 }
@@ -975,7 +982,7 @@ static int ccs_path_number3_acl(struct ccs_request_info *r,
 			continue;
 		if (!ccs_compare_number_union(minor, &acl->minor))
 			continue;
-		if (!(acl->perm & perm) || !ccs_condition(r, ptr))
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr->cond))
 			continue;
 		if (!ccs_compare_name_union(filename, &acl->name))
 			continue;
@@ -1003,7 +1010,6 @@ static int ccs_file_perm(struct ccs_request_info *r,
 	const char *msg = "<unknown>";
 	int error = 0;
 	u16 perm = 0;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
 	if (!filename)
 		return 0;
 	if (mode == 6) {
@@ -1022,9 +1028,6 @@ static int ccs_file_perm(struct ccs_request_info *r,
 		BUG();
 	do {
 		error = ccs_path_acl(r, filename, perm, mode != 1);
-		if (error && mode == 4 && !domain->ignore_global_allow_read
-		    && ccs_global_read(filename))
-			error = 0;
 		ccs_audit_path_log(r, msg, filename->name, !error);
 		if (!error)
 			break;
@@ -1330,7 +1333,7 @@ static int ccs_path2_acl(struct ccs_request_info *r, const u8 type,
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH2_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_path2_acl, head);
-		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr->cond) ||
 		    !ccs_compare_name_union(filename1, &acl->name1) ||
 		    !ccs_compare_name_union(filename2, &acl->name2))
 			continue;
@@ -1913,7 +1916,7 @@ static int ccs_path_number_acl(struct ccs_request_info *r, const u8 type,
 		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_NUMBER_ACL)
 			continue;
 		acl = container_of(ptr, struct ccs_path_number_acl, head);
-		if (!(acl->perm & perm) || !ccs_condition(r, ptr) ||
+		if (!(acl->perm & perm) || !ccs_condition(r, ptr->cond) ||
 		    !ccs_compare_number_union(number, &acl->number) ||
 		    !ccs_compare_name_union(filename, &acl->name))
 			continue;
