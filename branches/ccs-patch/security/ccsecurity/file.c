@@ -119,7 +119,7 @@ static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
 /* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -143,7 +143,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -155,7 +155,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (!error && (!dir->i_op || !dir->i_op->rmdir))
@@ -164,7 +164,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	int error;
@@ -193,7 +193,7 @@ static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -208,8 +208,9 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	struct inode *inode;
@@ -262,10 +263,10 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks from vfs_rename_dir(). */
-static int ccs_pre_vfs_rename_dir(struct inode *old_dir,
-				  struct dentry *old_dentry,
-				  struct inode *new_dir,
-				  struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
+					 struct dentry *old_dentry,
+					 struct inode *new_dir,
+					 struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -289,10 +290,10 @@ static int ccs_pre_vfs_rename_dir(struct inode *old_dir,
 }
 
 /* Permission checks from vfs_rename_other(). */
-static int ccs_pre_vfs_rename_other(struct inode *old_dir,
-				    struct dentry *old_dentry,
-				    struct inode *new_dir,
-				    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
+					   struct dentry *old_dentry,
+					   struct inode *new_dir,
+					   struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -314,8 +315,10 @@ static int ccs_pre_vfs_rename_other(struct inode *old_dir,
 }
 
 /* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
 {
 	int error;
 	lock_kernel(); /* From do_rename(). */
@@ -332,7 +335,7 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 #else
 
 /* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
@@ -343,7 +346,7 @@ static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_mknod(). */
-static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
@@ -354,7 +357,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 1);
 	if (error)
@@ -365,7 +368,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (error)
@@ -376,7 +379,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 0);
 	if (error)
@@ -387,8 +390,9 @@ static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
 	int error;
@@ -409,7 +413,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
@@ -420,8 +424,10 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
 {
 	int error;
 	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
@@ -693,49 +699,6 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r,
 				   operation, filename, value);
 }
 
-static bool ccs_same_global_read(const struct ccs_acl_head *a,
-				 const struct ccs_acl_head *b)
-{
-	const struct ccs_global_read *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_global_read *p2 = container_of(b, typeof(*p2), head);
-	return p1->filename == p2->filename && p1->cond == p2->cond;
-}
-
-/**
- * ccs_write_global_read - Write "struct ccs_global_read" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_global_read(char *data, const bool is_delete, const u8 flags)
-{
-	struct ccs_global_read e = { };
-	int error;
-	char *cp = ccs_find_condition_part(data);
-	if (cp) {
-		e.cond = ccs_get_condition(cp);
-		if (!e.cond)
-			return -EINVAL;
-	}
-	if (!ccs_correct_path(data, 1, 0, -1)) {
-		error = -EINVAL;
-		goto out;
-	}
-	e.filename = ccs_get_name(data);
-	if (!e.filename) {
-		error = -ENOMEM;
-		goto out;
-	}
-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_GLOBAL_READ, ccs_same_global_read);
-	ccs_put_name(e.filename);
- out:
-	ccs_put_condition(e.cond);
-	return error;
-}
-
 /**
  * ccs_file_pattern - Get patterned pathname.
  *
@@ -909,41 +872,30 @@ static int ccs_path_acl(struct ccs_request_info *r,
 			const struct ccs_path_info *filename,
 			const u16 perm, const bool may_use_pattern)
 {
-	const struct ccs_domain_info * const domain = ccs_current_domain();
+	const struct ccs_domain_info *domain = ccs_current_domain();
 	int error = -EPERM;
-	{
-		struct ccs_acl_info *ptr;
-		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-			struct ccs_path_acl *acl;
-			if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
-				continue;
-			acl = container_of(ptr, struct ccs_path_acl, head);
-			if (!(acl->perm & perm) ||
-			    !ccs_condition(r, ptr->cond) ||
-			    !ccs_compare_name_union_pattern(filename,
-							    &acl->name,
-							    may_use_pattern))
-				continue;
-			r->cond = ptr->cond;
-			error = 0;
-			break;
-		}
+	struct ccs_acl_info *ptr;
+ retry:
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_path_acl *acl;
+		if (ptr->is_deleted || ptr->type != CCS_TYPE_PATH_ACL)
+			continue;
+		acl = container_of(ptr, struct ccs_path_acl, head);
+		if (!(acl->perm & perm) ||
+		    !ccs_condition(r, ptr->cond) ||
+		    !ccs_compare_name_union_pattern(filename,
+						    &acl->name,
+						    may_use_pattern))
+			continue;
+		r->cond = ptr->cond;
+		error = 0;
+		break;
 	}
 	if (error && perm == 1 << CCS_TYPE_READ &&
-	    !domain->ignore_global_allow_read) {
-		struct ccs_global_read *ptr;
-		list_for_each_entry_rcu(ptr,
-					&ccs_policy_list[CCS_ID_GLOBAL_READ],
-					head.list) {
-			if (ptr->head.is_deleted ||
-			    !ccs_condition(r, ptr->cond) ||
-			    !ccs_path_matches_pattern(filename,
-						      ptr->filename))
-				continue;
-			r->cond = ptr->cond;
-			error = 0;
-			break;
-		}
+	    !domain->ignore_global_allow_read &&
+	    domain != &ccs_global_domain) {
+		domain = &ccs_global_domain;
+		goto retry;
 	}
 	return error;
 }
@@ -1044,8 +996,19 @@ static int ccs_file_perm(struct ccs_request_info *r,
 	return error;
 }
 
+static bool ccs_same_execute_handler(const struct ccs_acl_info *a,
+				     const struct ccs_acl_info *b)
+{
+	const struct ccs_execute_handler *p1 = container_of(a, typeof(*p1),
+							    head);
+	const struct ccs_execute_handler *p2 = container_of(b, typeof(*p2),
+							    head);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		p1->handler == p2->handler;
+}
+
 /**
- * ccs_update_execute_handler - Update "struct ccs_execute_handler_record" list.
+ * ccs_update_execute_handler - Update "struct ccs_execute_handler" list.
  *
  * @type:      Type of execute handler.
  * @filename:  Pathname to the execute handler.
@@ -1058,56 +1021,15 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 				      struct ccs_domain_info * const domain,
 				      const bool is_delete)
 {
-	struct ccs_acl_info *ptr;
-	struct ccs_execute_handler_record e = { .head.type = type };
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!domain)
-		return -EINVAL;
+	struct ccs_execute_handler e = { .head.type = type };
+	int error;
 	if (!ccs_correct_path(filename, 1, -1, -1))
 		return -EINVAL;
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
 		return -ENOMEM;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_execute_handler_record *acl;
-		if (ptr->type != type)
-			continue;
-		/* Condition not supported. */
-		acl = container_of(ptr, struct ccs_execute_handler_record,
-				   head);
-		if (acl->handler != e.handler)
-			continue;
-		if (!is_delete) {
-			/* Only one entry can exist in a domain. */
-			struct ccs_acl_info *ptr2;
-			list_for_each_entry_rcu(ptr2, &domain->acl_info_list,
-						list) {
-				if (ptr2->type == type)
-					ptr2->is_deleted = true;
-			}
-		}
-		ptr->is_deleted = is_delete;
-		error = 0;
-		break;
-	}
-	if (!is_delete && error) {
-		struct ccs_execute_handler_record *entry =
-			ccs_commit_ok(&e, sizeof(e));
-		if (entry) {
-			/* Only one entry can exist in a domain. */
-			list_for_each_entry_rcu(ptr, &domain->acl_info_list,
-						list) {
-				if (ptr->type == type)
-					ptr->is_deleted = true;
-			}
-			ccs_add_domain_acl(domain, &entry->head);
-			error = 0;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
- out:
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_execute_handler, NULL);
 	ccs_put_name(e.handler);
 	return error;
 }
@@ -1876,8 +1798,6 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 		.perm = 1 << type
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!domain)
-		return -EINVAL;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
 	if (!ccs_parse_number_union(number, &e.number))

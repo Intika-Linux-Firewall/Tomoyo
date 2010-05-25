@@ -752,27 +752,22 @@ static bool ccs_manager(void)
 		return true;
 	if (!ccs_manage_by_non_root && (current_uid() || current_euid()))
 		return false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_MANAGER],
-				head.list) {
-		if (!ptr->head.is_deleted && ptr->is_domain
-		    && !ccs_pathcmp(domainname, ptr->manager)) {
-			/* Set manager flag. */
-			task->ccs_flags |= CCS_TASK_IS_MANAGER;
-			return true;
-		}
-	}
 	exe = ccs_get_exe();
-	if (!exe)
-		return false;
 	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_MANAGER],
 				head.list) {
-		if (!ptr->head.is_deleted && !ptr->is_domain
-		    && !strcmp(exe, ptr->manager->name)) {
-			found = true;
-			/* Set manager flag. */
-			task->ccs_flags |= CCS_TASK_IS_MANAGER;
-			break;
+		if (ptr->head.is_deleted)
+			continue;
+		if (ptr->is_domain) {
+			if (ccs_pathcmp(domainname, ptr->manager))
+				continue;
+		} else {
+			if (!exe || strcmp(exe, ptr->manager->name))
+				continue;
 		}
+		/* Set manager flag. */
+		task->ccs_flags |= CCS_TASK_IS_MANAGER;
+		found = true;
+		break;
 	}
 	if (!found) { /* Reduce error messages. */
 		static pid_t ccs_last_pid;
@@ -795,7 +790,7 @@ static bool ccs_manager(void)
  * Returns pointer to the condition part if it was found in the statement,
  * NULL otherwise.
  */
-char *ccs_find_condition_part(char *data)
+static char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
 	if (!cp)
@@ -1474,18 +1469,17 @@ static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_execute_handler_record - Print an execute handler ACL entry.
+ * ccs_print_execute_handler - Print an execute handler ACL entry.
  *
  * @head:    Pointer to "struct ccs_io_buffer".
  * @keyword: Name of the keyword.
- * @ptr:     Pointer to "struct ccs_execute_handler_record".
+ * @ptr:     Pointer to "struct ccs_execute_handler".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_execute_handler_record(struct ccs_io_buffer *head,
-					     const char *keyword,
-					     struct ccs_execute_handler_record
-					     *ptr)
+static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
+				      const char *keyword,
+				      struct ccs_execute_handler *ptr)
 {
 	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
 }
@@ -1536,19 +1530,14 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			= container_of(ptr, struct ccs_path_acl, head);
 		return ccs_print_path_acl(head, acl, cond);
 	}
-	if (acl_type == CCS_TYPE_EXECUTE_HANDLER) {
-		struct ccs_execute_handler_record *acl
-			= container_of(ptr, struct ccs_execute_handler_record,
-				       head);
-		const char *keyword = CCS_KEYWORD_EXECUTE_HANDLER;
-		return ccs_print_execute_handler_record(head, keyword, acl);
-	}
-	if (acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
-		struct ccs_execute_handler_record *acl
-			= container_of(ptr, struct ccs_execute_handler_record,
-				       head);
-		const char *keyword = CCS_KEYWORD_DENIED_EXECUTE_HANDLER;
-		return ccs_print_execute_handler_record(head, keyword, acl);
+	if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
+	    acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
+		struct ccs_execute_handler *acl
+			= container_of(ptr, struct ccs_execute_handler, head);
+		const char *keyword = acl_type == CCS_TYPE_EXECUTE_HANDLER ?
+			CCS_KEYWORD_EXECUTE_HANDLER :
+			CCS_KEYWORD_DENIED_EXECUTE_HANDLER;
+		return ccs_print_execute_handler(head, keyword, acl);
 	}
 	if (head->read_execute_only)
 		return true;
@@ -1597,6 +1586,30 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 }
 
 /**
+ * ccs_read_domain2 - Read domain policy.
+ *
+ * @head:   Pointer to "struct ccs_io_buffer".
+ * @domain: Pointer to "struct ccs_domain_info".
+ *
+ * Caller holds ccs_read_lock().
+ *
+ * Returns true on success, false otherwise.
+ */
+static bool ccs_read_domain2(struct ccs_io_buffer *head,
+			     struct ccs_domain_info *domain)
+{
+	struct list_head *pos;
+	/* Print ACL entries in the domain. */
+	list_for_each_cookie(pos, head->read_var2, &domain->acl_info_list) {
+		struct ccs_acl_info *ptr
+			= list_entry(pos, struct ccs_acl_info, list);
+		if (!ccs_print_entry(head, ptr))
+			return false;
+	}
+	return true;
+}
+
+/**
  * ccs_read_domain - Read domain policy.
  *
  * @head: Pointer to "struct ccs_io_buffer".
@@ -1605,61 +1618,50 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
  */
 static void ccs_read_domain(struct ccs_io_buffer *head)
 {
-	struct list_head *dpos;
-	struct list_head *apos;
+	struct list_head *pos;
 	if (head->read_eof)
 		return;
-	if (head->read_step == 0)
-		head->read_step = 1;
-	list_for_each_cookie(dpos, head->read_var1, &ccs_domain_list) {
-		struct ccs_domain_info *domain;
-		const char *quota_exceeded = "";
-		const char *transition_failed = "";
-		const char *ignore_global_allow_read = "";
-		const char *ignore_global_allow_env = "";
-		domain = list_entry(dpos, struct ccs_domain_info, list);
-		if (head->read_step != 1)
-			goto acl_loop;
-		if (domain->is_deleted && !head->read_single_domain)
-			continue;
-		/* Print domainname and flags. */
-		if (domain->quota_warned)
-			quota_exceeded = CCS_KEYWORD_QUOTA_EXCEEDED "\n";
-		if (domain->domain_transition_failed)
-			transition_failed = CCS_KEYWORD_TRANSITION_FAILED "\n";
-		if (domain->ignore_global_allow_read)
-			ignore_global_allow_read
-				= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n";
-		if (domain->ignore_global_allow_env)
-			ignore_global_allow_env
-				= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n";
-		if (!ccs_io_printf(head, "%s\n" CCS_KEYWORD_USE_PROFILE "%u\n"
-				   "%s%s%s%s\n", domain->domainname->name,
-				   domain->profile, quota_exceeded,
-				   transition_failed,
-				   ignore_global_allow_read,
-				   ignore_global_allow_env))
-			return;
-		head->read_step = 2;
- acl_loop:
-		if (head->read_step == 3)
-			goto tail_mark;
-		/* Print ACL entries in the domain. */
-		list_for_each_cookie(apos, head->read_var2,
-				     &domain->acl_info_list) {
-			struct ccs_acl_info *ptr
-				= list_entry(apos, struct ccs_acl_info, list);
-			if (!ccs_print_entry(head, ptr))
+	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
+		struct ccs_domain_info *domain =
+			list_entry(pos, struct ccs_domain_info, list);
+		const char *w[4] = { "", "", "", "" };
+		switch (head->read_step) {
+		case 0:
+			if (domain->is_deleted && !head->read_single_domain)
+				continue;
+			/* Print domainname and flags. */
+			if (domain->quota_warned)
+				w[0] = CCS_KEYWORD_QUOTA_EXCEEDED "\n";
+			if (domain->domain_transition_failed)
+				w[1] = CCS_KEYWORD_TRANSITION_FAILED "\n";
+			if (domain->ignore_global_allow_read)
+				w[2] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ
+					"\n";
+			if (domain->ignore_global_allow_env)
+				w[3] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV
+					"\n";
+			if (!ccs_io_printf(head, "%s\n" CCS_KEYWORD_USE_PROFILE
+					   "%u\n%s%s%s%s\n",
+					   domain->domainname->name,
+					   domain->profile, w[0], w[1], w[2],
+					   w[3]))
 				return;
+			head->read_step++;
+			/* fall through */
+		case 1:
+			if (!ccs_read_domain2(head, domain))
+				return;
+			head->read_step++;
+			/* fall through */
+		case 2:
+			if (!ccs_io_printf(head, "\n"))
+				return;
+			head->read_step = 0;
+			if (head->read_single_domain)
+				goto out;
 		}
-		head->read_step = 3;
- tail_mark:
-		if (!ccs_io_printf(head, "\n"))
-			return;
-		head->read_step = 1;
-		if (head->read_single_domain)
-			break;
 	}
+ out:
 	head->read_eof = true;
 }
 
@@ -1818,7 +1820,7 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool, const u8);
-	} ccs_callback[10] = {
+	} ccs_callback[8] = {
 		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper },
 		{ CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
 		  ccs_write_domain_initializer },
@@ -1826,8 +1828,6 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 		{ CCS_KEYWORD_INITIALIZE_DOMAIN,
 		  ccs_write_domain_initializer },
 		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator },
-		{ CCS_KEYWORD_ALLOW_READ, ccs_write_global_read },
-		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_global_env },
 		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern },
 		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite },
 		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
@@ -1845,7 +1845,21 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 		if (ccs_str_starts(&data, ccs_name[i]))
 			return ccs_write_group(data, is_delete, i);
 	}
-	return -EINVAL;
+	{
+		int error;
+		struct ccs_condition *cond = NULL;
+		char *cp = ccs_find_condition_part(data);
+		if (cp) {
+			cond = ccs_get_condition(cp);
+			if (!cond)
+				return -EINVAL;
+		}
+		error = ccs_write_domain2(data, &ccs_global_domain, cond,
+					  is_delete);
+		if (cond)
+			ccs_put_condition(cond);
+		return error;
+	}
 }
 
 /**
@@ -1927,7 +1941,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 	list_for_each_cookie(pos, head->read_var2, &ccs_policy_list[idx]) {
 		const char *w[4] = { "", "", "", "" };
 		char buffer[16];
-		struct ccs_condition *cond = NULL;
 		struct ccs_acl_head *acl = container_of(pos, typeof(*acl),
 							list);
 		if (acl->is_deleted)
@@ -1971,15 +1984,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				w[3] = ptr->aggregated_name->name;
 			}
 			break;
-		case CCS_ID_GLOBAL_READ:
-			{
-				struct ccs_global_read *ptr =
-					container_of(acl, typeof(*ptr), head);
-				w[0] = CCS_KEYWORD_ALLOW_READ;
-				w[1] = ptr->filename->name;
-				cond = ptr->cond;
-			}
-			break;
 		case CCS_ID_PATTERN:
 			{
 				struct ccs_pattern *ptr =
@@ -1994,15 +1998,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 					container_of(acl, typeof(*ptr), head);
 				w[0] = CCS_KEYWORD_DENY_REWRITE;
 				w[1] = ptr->pattern->name;
-			}
-			break;
-		case CCS_ID_GLOBAL_ENV:
-			{
-				struct ccs_global_env *ptr =
-					container_of(acl, typeof(*ptr), head);
-				w[0] = CCS_KEYWORD_ALLOW_ENV;
-				w[1] = ptr->env->name;
-				cond = ptr->cond;
 			}
 			break;
 		case CCS_ID_RESERVEDPORT:
@@ -2022,17 +2017,16 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 		default:
 			continue;
 		}
-		{
-			const int pos = head->read_avail;
-			if (!ccs_io_printf(head, "%s%s%s%s", w[0], w[1],
-					   w[2], w[3])
-			    || !ccs_print_condition(head, cond)) {
-				head->read_avail = pos;
-				return false;
-			}
-		}
+		if (!ccs_io_printf(head, "%s%s%s%s\n", w[0], w[1], w[2], w[3]))
+			return false;
 	}
 	return true;
+}
+
+static void ccs_read_global_domain(struct ccs_io_buffer *head)
+{
+	if (!head->read_eof)
+		head->read_eof = ccs_read_domain2(head, &ccs_global_domain);
 }
 
 /**
@@ -2054,7 +2048,9 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 	while (head->read_step < CCS_MAX_POLICY + CCS_MAX_GROUP &&
 	       ccs_read_group(head, head->read_step - CCS_MAX_POLICY))
 		head->read_step++;
-	head->read_eof = head->read_step == CCS_MAX_POLICY + CCS_MAX_GROUP;
+	if (head->read_step < CCS_MAX_POLICY + CCS_MAX_GROUP)
+		return;
+	head->read = ccs_read_global_domain;
 }
 
 /**

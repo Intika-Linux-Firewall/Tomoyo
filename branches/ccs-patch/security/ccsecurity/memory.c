@@ -81,7 +81,6 @@ void *ccs_commit_ok(void *data, const unsigned int size)
 	return NULL;
 }
 
-
 /**
  * ccs_memory_free - Free memory for elements.
  *
@@ -104,41 +103,39 @@ void ccs_memory_free(const void *ptr, size_t size)
  */
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
 {
-	struct ccs_group *entry = NULL;
+	struct ccs_group e = { };
 	struct ccs_group *group = NULL;
-	const struct ccs_path_info *saved_group_name;
-	int error = -ENOMEM;
+	bool found = false;
 	if (!ccs_correct_path(group_name, 0, 0, 0) ||
 	    !group_name[0] || idx >= CCS_MAX_GROUP)
 		return NULL;
-	saved_group_name = ccs_get_name(group_name);
-	if (!saved_group_name)
+	e.group_name = ccs_get_name(group_name);
+	if (!e.group_name)
 		return NULL;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
-	list_for_each_entry_rcu(group, &ccs_group_list[idx], head.list) {
-		if (saved_group_name != group->group_name)
+	list_for_each_entry(group, &ccs_group_list[idx], head.list) {
+		if (e.group_name != group->group_name)
 			continue;
 		atomic_inc(&group->head.users);
-		error = 0;
+		found = true;
 		break;
 	}
-	if (error && ccs_memory_ok(entry, sizeof(*entry))) {
-		INIT_LIST_HEAD(&entry->member_list);
-		entry->group_name = saved_group_name;
-		saved_group_name = NULL;
-		atomic_set(&entry->head.users, 1);
-		list_add_tail_rcu(&entry->head.list, &ccs_group_list[idx]);
-		group = entry;
-		entry = NULL;
-		error = 0;
+	if (!found) {
+		struct ccs_group *entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			INIT_LIST_HEAD(&entry->member_list);
+			atomic_set(&entry->head.users, 1);
+			list_add_tail_rcu(&entry->head.list,
+					  &ccs_group_list[idx]);
+			group = entry;
+			found = true;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	ccs_put_name(saved_group_name);
-	kfree(entry);
-	return !error ? group : NULL;
+	ccs_put_name(e.group_name);
+	return found ? group : NULL;
 }
 
 /**
@@ -218,23 +215,20 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 		atomic_inc(&ptr->head.users);
 		goto out;
 	}
-	allocated_len = ccs_round2(sizeof(*ptr) + len);
+	allocated_len = sizeof(*ptr) + len;
 	ptr = kzalloc(allocated_len, CCS_GFP_FLAGS);
-	if (!ptr || (ccs_quota_for_policy &&
-		     atomic_read(&ccs_policy_memory_size) + allocated_len
-		     > ccs_quota_for_policy)) {
+	if (ccs_memory_ok(ptr, allocated_len)) {
+		atomic_add(allocated_len, &ccs_policy_memory_size);
+		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
+		memmove((char *) ptr->entry.name, name, len);
+		atomic_set(&ptr->head.users, 1);
+		ccs_fill_path_info(&ptr->entry);
+		ptr->size = allocated_len;
+		list_add_tail(&ptr->head.list, head);
+	} else {
 		kfree(ptr);
 		ptr = NULL;
-		ccs_warn_oom(__func__);
-		goto out;
 	}
-	atomic_add(allocated_len, &ccs_policy_memory_size);
-	ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
-	memmove((char *) ptr->entry.name, name, len);
-	atomic_set(&ptr->head.users, 1);
-	ccs_fill_path_info(&ptr->entry);
-	ptr->size = allocated_len;
-	list_add_tail(&ptr->head.list, head);
  out:
 	mutex_unlock(&ccs_policy_lock);
 	return ptr ? &ptr->entry : NULL;
@@ -248,6 +242,7 @@ void __init ccs_mm_init(void)
 	int idx;
 	for (idx = 0; idx < CCS_MAX_HASH; idx++)
 		INIT_LIST_HEAD(&ccs_name_list[idx]);
+	INIT_LIST_HEAD(&ccs_global_domain.acl_info_list);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
 	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);

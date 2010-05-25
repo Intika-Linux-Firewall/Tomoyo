@@ -24,6 +24,9 @@
 
 /* Variables definitions.*/
 
+/* The global domain. */
+struct ccs_domain_info ccs_global_domain;
+
 /* The initial domain. */
 struct ccs_domain_info ccs_kernel_domain;
 
@@ -119,6 +122,15 @@ int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
 	return error;
 }
 
+static void ccs_delete_type(struct ccs_domain_info *domain, u8 type)
+{
+	struct ccs_acl_info *ptr;
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		if (ptr->type == type)
+			ptr->is_deleted = true;
+	}
+}
+
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      bool is_delete, struct ccs_domain_info *domain,
 		      bool (*check_duplicate) (const struct ccs_acl_info *,
@@ -129,11 +141,21 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 {
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	struct ccs_acl_info *entry;
+	/*
+	 * Only one "execute_handler" and "denied_execute_handler" can exist
+	 * in a domain.
+	 */
+	const u8 type = new_entry->type;
+	const bool exclusive = !is_delete &&
+		(type == CCS_TYPE_EXECUTE_HANDLER ||
+		 type == CCS_TYPE_DENIED_EXECUTE_HANDLER);
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return error;
 	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
 		if (!check_duplicate(entry, new_entry))
 			continue;
+		if (exclusive)
+			ccs_delete_type(domain, type);
 		if (merge_duplicate)
 			entry->is_deleted = merge_duplicate(entry, new_entry,
 							    is_delete);
@@ -145,6 +167,8 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	if (error && !is_delete) {
 		entry = ccs_commit_ok(new_entry, size);
 		if (entry) {
+			if (exclusive)
+				ccs_delete_type(domain, type);
 			ccs_add_domain_acl(domain, entry);
 			error = 0;
 		}
@@ -481,41 +505,37 @@ int ccs_delete_domain(char *domainname)
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const u8 profile)
 {
-	struct ccs_domain_info *entry;
-	struct ccs_domain_info *domain = NULL;
-	const struct ccs_path_info *saved_domainname;
+	struct ccs_domain_info e = { };
+	struct ccs_domain_info *entry = NULL;
 	bool found = false;
 
 	if (!ccs_correct_domain(domainname))
 		return NULL;
-	saved_domainname = ccs_get_name(domainname);
-	if (!saved_domainname)
+	e.profile = profile;
+	e.domainname = ccs_get_name(domainname);
+	if (!e.domainname)
 		return NULL;
-	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
-	list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
-		if (domain->is_deleted ||
-		    ccs_pathcmp(saved_domainname, domain->domainname))
+	list_for_each_entry_rcu(entry, &ccs_domain_list, list) {
+		if (entry->is_deleted ||
+		    ccs_pathcmp(e.domainname, entry->domainname))
 			continue;
 		found = true;
 		break;
 	}
-	if (!found && ccs_memory_ok(entry, sizeof(*entry))) {
-		INIT_LIST_HEAD(&entry->acl_info_list);
-		entry->domainname = saved_domainname;
-		saved_domainname = NULL;
-		entry->profile = profile;
-		list_add_tail_rcu(&entry->list, &ccs_domain_list);
-		domain = entry;
-		entry = NULL;
-		found = true;
+	if (!found) {
+		entry = ccs_commit_ok(&e, sizeof(e));
+		if (entry) {
+			INIT_LIST_HEAD(&entry->acl_info_list);
+			list_add_tail_rcu(&entry->list, &ccs_domain_list);
+			found = true;
+		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
-	ccs_put_name(saved_domainname);
-	kfree(entry);
-	return found ? domain : NULL;
+	ccs_put_name(e.domainname);
+	return found ? entry : NULL;
 }
 
 /**
@@ -1067,8 +1087,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_find_execute_handler(struct ccs_execve *ee,
-				     const u8 type)
+static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 {
 	struct task_struct *task = current;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
@@ -1080,12 +1099,11 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee,
 	 */
 	if (task->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
-		struct ccs_execute_handler_record *acl;
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		struct ccs_execute_handler *acl;
 		if (ptr->type != type)
 			continue;
-		acl = container_of(ptr, struct ccs_execute_handler_record,
-				   head);
+		acl = container_of(ptr, struct ccs_execute_handler, head);
 		ee->handler = acl->handler;
 		ee->handler_type = type;
 		found = true;

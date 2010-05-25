@@ -606,13 +606,6 @@ struct ccs_domain_info {
 	bool domain_transition_failed;
 };
 
-/* Structure for "allow_read" keyword. */
-struct ccs_global_read {
-	struct ccs_acl_head head;
-	const struct ccs_path_info *filename;
-	struct ccs_condition *cond;
-};
-
 /* Structure for "file_pattern" keyword. */
 struct ccs_pattern {
 	struct ccs_acl_head head;
@@ -623,13 +616,6 @@ struct ccs_pattern {
 struct ccs_no_rewrite {
 	struct ccs_acl_head head;
 	const struct ccs_path_info *pattern;
-};
-
-/* Structure for "allow_env" keyword. */
-struct ccs_global_env {
-	struct ccs_acl_head head;
-	const struct ccs_path_info *env;
-	struct ccs_condition *cond;
 };
 
 /* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
@@ -713,7 +699,7 @@ struct ccs_envp {
  * to do (e.g. silently terminate, change firewall settings,
  * redirect the user to honey pot etc.).
  */
-struct ccs_execute_handler_record {
+struct ccs_execute_handler {
 	struct ccs_acl_info head;        /* type = CCS_TYPE_*EXECUTE_HANDLER */
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
 };
@@ -943,7 +929,6 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 		      (const struct ccs_acl_head *,
 		       const struct ccs_acl_head *));
 char *ccs_encode(const char *str);
-char *ccs_find_condition_part(char *data);
 char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
@@ -995,8 +980,6 @@ int ccs_write_env(char *data, struct ccs_domain_info *domain,
 		  struct ccs_condition *condition, const bool is_delete);
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete);
-int ccs_write_global_env(char *data, const bool is_delete, const u8 flags);
-int ccs_write_global_read(char *data, const bool is_delete, const u8 flags);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount(char *data, struct ccs_domain_info *domain,
@@ -1078,11 +1061,9 @@ enum ccs_gc_id {
 	CCS_ID_ADDRESS_GROUP,
 	CCS_ID_PATH_GROUP,
 	CCS_ID_NUMBER_GROUP,
-	CCS_ID_GLOBAL_ENV,
 	CCS_ID_AGGREGATOR,
 	CCS_ID_DOMAIN_INITIALIZER,
 	CCS_ID_DOMAIN_KEEPER,
-	CCS_ID_GLOBAL_READ,
 	CCS_ID_PATTERN,
 	CCS_ID_NO_REWRITE,
 	CCS_ID_MANAGER,
@@ -1101,6 +1082,7 @@ extern struct list_head ccs_group_list[CCS_MAX_GROUP];
 extern struct list_head ccs_shared_list[CCS_MAX_LIST];
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern bool ccs_policy_loaded;
+extern struct ccs_domain_info ccs_global_domain;
 extern struct ccs_domain_info ccs_kernel_domain;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)

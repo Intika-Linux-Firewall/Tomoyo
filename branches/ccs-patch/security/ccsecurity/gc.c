@@ -58,43 +58,13 @@ static bool ccs_add_to_gc(const int type, struct list_head *element)
 }
 
 /**
- * ccs_del_allow_read - Delete members in "struct ccs_global_read".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns size of @element (for later kfree()).
- */
-static size_t ccs_del_allow_read(struct list_head *element)
-{
-	struct ccs_global_read *ptr =
-		container_of(element, typeof(*ptr), head.list);
-	ccs_put_name(ptr->filename);
-	return sizeof(*ptr);
-}
-
-/**
- * ccsdel_allow_env - Delete members in "struct ccs_global_env".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns size of @element (for later kfree()).
- */
-static size_t ccs_del_allow_env(struct list_head *element)
-{
-	struct ccs_global_env *ptr =
-		container_of(element, typeof(*ptr), head.list);
-	ccs_put_name(ptr->env);
-	return sizeof(*ptr);
-}
-
-/**
  * ccs_del_file_pattern - Delete members in "struct ccs_pattern".
  *
  * @element: Pointer to "struct list_head".
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_file_pattern(struct list_head *element)
+static inline size_t ccs_del_file_pattern(struct list_head *element)
 {
 	struct ccs_pattern *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -109,7 +79,7 @@ static size_t ccs_del_file_pattern(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_no_rewrite(struct list_head *element)
+static inline size_t ccs_del_no_rewrite(struct list_head *element)
 {
 	struct ccs_no_rewrite *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -124,7 +94,7 @@ static size_t ccs_del_no_rewrite(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_domain_initializer(struct list_head *element)
+static inline size_t ccs_del_domain_initializer(struct list_head *element)
 {
 	struct ccs_domain_initializer *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -140,7 +110,7 @@ static size_t ccs_del_domain_initializer(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_domain_keeper(struct list_head *element)
+static inline size_t ccs_del_domain_keeper(struct list_head *element)
 {
 	struct ccs_domain_keeper *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -156,7 +126,7 @@ static size_t ccs_del_domain_keeper(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_aggregator(struct list_head *element)
+static inline size_t ccs_del_aggregator(struct list_head *element)
 {
 	struct ccs_aggregator *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -172,7 +142,7 @@ static size_t ccs_del_aggregator(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_manager(struct list_head *element)
+static inline size_t ccs_del_manager(struct list_head *element)
 {
 	struct ccs_manager *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -327,7 +297,7 @@ static size_t ccs_del_acl(struct list_head *element)
 	case CCS_TYPE_EXECUTE_HANDLER:
 	case CCS_TYPE_DENIED_EXECUTE_HANDLER:
 		{
-			struct ccs_execute_handler_record *entry;
+			struct ccs_execute_handler *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name(entry->handler);
@@ -358,7 +328,7 @@ static size_t ccs_del_acl(struct list_head *element)
  *
  * Returns size of @element (for later kfree()) on success, 0 otherwise.
  */
-static size_t ccs_del_domain(struct list_head *element)
+static inline size_t ccs_del_domain(struct list_head *element)
 {
 	struct ccs_acl_info *acl;
 	struct ccs_acl_info *tmp;
@@ -398,7 +368,7 @@ static size_t ccs_del_domain(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_path_group(struct list_head *element)
+static inline size_t ccs_del_path_group(struct list_head *element)
 {
 	struct ccs_path_group *member =
 		container_of(element, typeof(*member), head.list);
@@ -413,7 +383,7 @@ static size_t ccs_del_path_group(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_group(struct list_head *element)
+static inline size_t ccs_del_group(struct list_head *element)
 {
 	struct ccs_group *group =
 		container_of(element, typeof(*group), head.list);
@@ -428,7 +398,7 @@ static size_t ccs_del_group(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_address_group(struct list_head *element)
+static inline size_t ccs_del_address_group(struct list_head *element)
 {
 	struct ccs_address_group *member =
 		container_of(element, typeof(*member), head.list);
@@ -446,7 +416,7 @@ static size_t ccs_del_address_group(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_number_group(struct list_head *element)
+static inline size_t ccs_del_number_group(struct list_head *element)
 {
 	struct ccs_number_group *member =
 		container_of(element, typeof(*member), head.list);
@@ -460,7 +430,7 @@ static size_t ccs_del_number_group(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_reservedport(struct list_head *element)
+static inline size_t ccs_del_reservedport(struct list_head *element)
 {
 	struct ccs_reserved *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -474,7 +444,7 @@ static size_t ccs_del_reservedport(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_ipv6_address(struct list_head *element)
+static inline size_t ccs_del_ipv6_address(struct list_head *element)
 {
 	struct ccs_ipv6addr *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -528,7 +498,7 @@ size_t ccs_del_condition(struct list_head *element)
  *
  * Returns size of @element (for later kfree()).
  */
-static size_t ccs_del_name(struct list_head *element)
+static inline size_t ccs_del_name(struct list_head *element)
 {
 	const struct ccs_name *ptr =
 		container_of(element, typeof(*ptr), head.list);
@@ -609,10 +579,22 @@ static void ccs_synchronize_counter(void)
 static bool ccs_collect_member(struct list_head *member_list, int id)
 {
 	struct ccs_acl_head *member;
-	list_for_each_entry_rcu(member, member_list, list) {
+	list_for_each_entry(member, member_list, list) {
 		if (!member->is_deleted)
 			continue;
 		if (!ccs_add_to_gc(id, &member->list))
+			return false;
+	}
+	return true;
+}
+
+static bool ccs_collect_acl(struct ccs_domain_info *domain)
+{
+	struct ccs_acl_info *acl;
+	list_for_each_entry(acl, &domain->acl_info_list, list) {
+		if (!acl->is_deleted)
+			continue;
+		if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
 			return false;
 	}
 	return true;
@@ -632,17 +614,13 @@ static void ccs_collect_entry(void)
 		if (!ccs_collect_member(&ccs_policy_list[i], i))
 			goto unlock;
 	}
+	if (!ccs_collect_acl(&ccs_global_domain))
+		goto unlock;
 	{
 		struct ccs_domain_info *domain;
-		list_for_each_entry_rcu(domain, &ccs_domain_list, list) {
-			struct ccs_acl_info *acl;
-			list_for_each_entry_rcu(acl, &domain->acl_info_list,
-						list) {
-				if (!acl->is_deleted)
-					continue;
-				if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
-					goto unlock;
-			}
+		list_for_each_entry(domain, &ccs_domain_list, list) {
+			if (!ccs_collect_acl(domain))
+				goto unlock;
 			if (!domain->is_deleted ||
 			    ccs_used_by_task(domain))
 				continue;
@@ -665,7 +643,7 @@ static void ccs_collect_entry(void)
 			id = CCS_ID_ADDRESS_GROUP;
 			break;
 		}
-		list_for_each_entry_rcu(group, list, head.list) {
+		list_for_each_entry(group, list, head.list) {
 			if (!ccs_collect_member(&group->member_list, id))
 				goto unlock;
 			if (!list_empty(&group->member_list) ||
@@ -691,7 +669,7 @@ static void ccs_collect_entry(void)
 			id = CCS_ID_NAME;
 			break;
 		}
-		list_for_each_entry_rcu(ptr, list, list) {
+		list_for_each_entry(ptr, list, list) {
 			if (atomic_read(&ptr->users))
 				continue;
 			if (!ccs_add_to_gc(id, &ptr->list))
@@ -712,71 +690,63 @@ static bool ccs_kfree_entry(void)
 {
 	struct ccs_gc_entry *p;
 	struct ccs_gc_entry *tmp;
-	size_t size = 0;
 	bool result = false;
 	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
+		size_t size = 0;
+		struct list_head * const element = p->element;
 		switch (p->type) {
 		case CCS_ID_DOMAIN_INITIALIZER:
-			size = ccs_del_domain_initializer(p->element);
+			size = ccs_del_domain_initializer(element);
 			break;
 		case CCS_ID_DOMAIN_KEEPER:
-			size = ccs_del_domain_keeper(p->element);
-			break;
-		case CCS_ID_GLOBAL_READ:
-			size = ccs_del_allow_read(p->element);
+			size = ccs_del_domain_keeper(element);
 			break;
 		case CCS_ID_PATTERN:
-			size = ccs_del_file_pattern(p->element);
+			size = ccs_del_file_pattern(element);
 			break;
 		case CCS_ID_NO_REWRITE:
-			size = ccs_del_no_rewrite(p->element);
+			size = ccs_del_no_rewrite(element);
 			break;
 		case CCS_ID_MANAGER:
-			size = ccs_del_manager(p->element);
-			break;
-		case CCS_ID_GLOBAL_ENV:
-			size = ccs_del_allow_env(p->element);
+			size = ccs_del_manager(element);
 			break;
 		case CCS_ID_AGGREGATOR:
-			size = ccs_del_aggregator(p->element);
+			size = ccs_del_aggregator(element);
 			break;
 		case CCS_ID_GROUP:
-			size = ccs_del_group(p->element);
+			size = ccs_del_group(element);
 			break;
 		case CCS_ID_PATH_GROUP:
-			size = ccs_del_path_group(p->element);
+			size = ccs_del_path_group(element);
 			break;
 		case CCS_ID_ADDRESS_GROUP:
-			size = ccs_del_address_group(p->element);
+			size = ccs_del_address_group(element);
 			break;
 		case CCS_ID_NUMBER_GROUP:
-			size = ccs_del_number_group(p->element);
+			size = ccs_del_number_group(element);
 			break;
 		case CCS_ID_RESERVEDPORT:
-			size = ccs_del_reservedport(p->element);
+			size = ccs_del_reservedport(element);
 			break;
 		case CCS_ID_IPV6_ADDRESS:
-			size = ccs_del_ipv6_address(p->element);
+			size = ccs_del_ipv6_address(element);
 			break;
 		case CCS_ID_CONDITION:
-			size = ccs_del_condition(p->element);
+			size = ccs_del_condition(element);
 			break;
 		case CCS_ID_NAME:
-			size = ccs_del_name(p->element);
+			size = ccs_del_name(element);
 			break;
 		case CCS_ID_ACL:
-			size = ccs_del_acl(p->element);
+			size = ccs_del_acl(element);
 			break;
 		case CCS_ID_DOMAIN:
-			size = ccs_del_domain(p->element);
+			size = ccs_del_domain(element);
 			if (!size)
 				continue;
 			break;
-		default:
-			size = 0;
-			break;
 		}
-		ccs_memory_free(p->element, size);
+		ccs_memory_free(element, size);
 		list_del(&p->list);
 		kfree(p);
 		ccs_gc_list_len--;
