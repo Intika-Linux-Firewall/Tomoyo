@@ -1837,7 +1837,7 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 		[CCS_NUMBER_GROUP] = CCS_KEYWORD_NUMBER_GROUP,
 		[CCS_ADDRESS_GROUP] = CCS_KEYWORD_ADDRESS_GROUP
 	};
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < 8; i++) {
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete, i < 2);
 	}

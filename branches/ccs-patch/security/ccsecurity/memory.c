@@ -218,7 +218,6 @@ const struct ccs_path_info *ccs_get_name(const char *name)
 	allocated_len = sizeof(*ptr) + len;
 	ptr = kzalloc(allocated_len, CCS_GFP_FLAGS);
 	if (ccs_memory_ok(ptr, allocated_len)) {
-		atomic_add(allocated_len, &ccs_policy_memory_size);
 		ptr->entry.name = ((char *) ptr) + sizeof(*ptr);
 		memmove((char *) ptr->entry.name, name, len);
 		atomic_set(&ptr->head.users, 1);
