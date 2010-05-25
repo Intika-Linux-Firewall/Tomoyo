@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-2.6.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=snapshot;h=7a9b149212f3716c598afe973b6261fd58453b7a;sf=tgz
+Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=snapshot;h=7e125f7b9cbfce4101191b8076d606c517a73066;sf=tgz
 ---
  fs/compat.c               |    2 
  fs/compat_ioctl.c         |    4 +
@@ -80,7 +80,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
 --- linux-2.6.orig/fs/namei.c
 +++ linux-2.6/fs/namei.c
-@@ -1466,6 +1466,11 @@ int may_open(struct path *path, int acc_
+@@ -1467,6 +1467,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -92,7 +92,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1521,6 +1526,7 @@ out_unlock:
+@@ -1522,6 +1527,7 @@ out_unlock:
  	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
  }
  
@@ -134,7 +134,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  	if ((err = graft_tree(newmnt, path)))
 --- linux-2.6.orig/fs/open.c
 +++ linux-2.6/fs/open.c
-@@ -1173,6 +1173,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1007,6 +1007,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -152,7 +152,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: linux-2.6-7a9b149212f3716c598afe973b6261fd58453b7a 2010/05/21\n");
++	printk(KERN_INFO "Hook version: linux-2.6-7e125f7b9cbfce4101191b8076d606c517a73066 2010/05/25\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -447,7 +447,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -719,6 +720,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -716,6 +717,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -456,7 +456,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2496,6 +2499,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2515,6 +2518,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
