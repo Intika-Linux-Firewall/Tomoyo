@@ -2411,3 +2411,11 @@ Fix 2010/05/10
     @ Fix incorrect out of memory warning.
 
       Out of memory warnings were not printed in some cases by error.
+
+Fix 2010/05/27
+
+    @ Add missing rcu_dereference() for ccs_find_execute_handler().
+
+      Since 1.7.0 , ccs_find_execute_handler() was by error using
+      list_for_each_entry() rather than list_for_each_entry_rcu().
+      This bug affects only Alpha architecture.
