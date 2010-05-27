@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/05/05
+ * Version: 1.7.2+   2010/05/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -1112,7 +1112,7 @@ static bool ccs_find_execute_handler(struct ccs_execve_entry *ee,
 	 */
 	if (task->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
-	list_for_each_entry(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler_record *acl;
 		if (ptr->type != type)
 			continue;
