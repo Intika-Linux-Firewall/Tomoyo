@@ -101,10 +101,10 @@ static void stage_policy_io_test(void)
 	for (i = 0; i < 3; i++) {
 		try_io("allow_read /tmp/abc", 1);
 		try_io("allow_read /tmp/abc\\*", 1);
-		try_io("allow_read abc", 0);
-		try_io("allow_read /tmp/abc/", 0);
+		try_io("allow_read abc", 1);
+		try_io("allow_read /tmp/abc/", 1);
 		try_io("allow_read", 0);
-		try_io("allow_read *", 0);
+		try_io("allow_read *", 1);
 		try_io("allow_env FOO", 1);
 		try_io("allow_env FOO=", 0);
 		try_io("allow_env FOO=BAR", 0);

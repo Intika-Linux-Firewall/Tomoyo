@@ -15,64 +15,30 @@
 /**
  * ccs_audit_capability_log - Audit capability log.
  *
- * @r:          Pointer to "struct ccs_request_info".
- * @operation:  Type of operation.
- * @is_granted: True if this is a granted log.
+ * @r:     Pointer to "struct ccs_request_info".
+ * @error: Error code.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_capability_log(struct ccs_request_info *r,
-				    const u8 operation, const bool is_granted)
+static int ccs_audit_capability_log(struct ccs_request_info *r)
 {
-	if (!is_granted)
-		ccs_warn_log(r, "capability %s", ccs_cap2keyword(operation));
-	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_CAPABILITY
-				   "%s\n", ccs_cap2keyword(operation));
+	const char *operation = ccs_cap2keyword(r->param.capability.operation);
+	ccs_write_log(r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n", operation);
+	if (r->granted)
+		return 0;
+	ccs_warn_log(r, "capability %s", operation);
+	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n",
+			      operation);
 }
 
-/**
- * ccs_capable - Check permission for capability.
- *
- * @operation: Type of operation.
- *
- * Returns true on success, false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_capable2(const u8 operation)
+static bool ccs_check_capability_acl(const struct ccs_request_info *r,
+				     const struct ccs_acl_info *ptr)
 {
-	struct ccs_request_info r;
-	struct ccs_acl_info *ptr;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
-	int error;
-	if (ccs_init_request_info(&r, CCS_MAX_MAC_INDEX + operation)
-	    == CCS_CONFIG_DISABLED)
-		return true;
-	do {
-		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-			struct ccs_capability_acl *acl;
-			if (ptr->is_deleted ||
-			    ptr->type != CCS_TYPE_CAPABILITY_ACL)
-				continue;
-			acl = container_of(ptr, struct ccs_capability_acl,
-					   head);
-			if (acl->operation != operation ||
-			    !ccs_condition(&r, ptr->cond))
-				continue;
-			r.cond = ptr->cond;
-			error = 0;
-			break;
-		}
-		ccs_audit_capability_log(&r, operation, !error);
-		if (!error)
-			break;
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n",
-				       ccs_cap2keyword(operation));
-	} while (error == CCS_RETRY_REQUEST);
-	return !error;
+	const struct ccs_capability_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return acl->operation == r->param.capability.operation;
 }
-
+			
 /**
  * ccs_capable - Check permission for capability.
  *
@@ -82,10 +48,20 @@ static bool ccs_capable2(const u8 operation)
  */
 static bool __ccs_capable(const u8 operation)
 {
+	struct ccs_request_info r;
+	int error = 0;
 	const int idx = ccs_read_lock();
-	const int error = ccs_capable2(operation);
+	if (ccs_init_request_info(&r, CCS_MAX_MAC_INDEX + operation)
+	    != CCS_CONFIG_DISABLED) {
+		r.param_type = CCS_TYPE_CAPABILITY_ACL;
+		r.param.capability.operation = operation;
+		do {
+			ccs_check_acl(&r, ccs_check_capability_acl);
+			error = ccs_audit_capability_log(&r);
+		} while (error == CCS_RETRY_REQUEST);
+	}
 	ccs_read_unlock(idx);
-	return error;
+	return !error;
 }
 
 static int __ccs_ptrace_permission(long request, long pid)

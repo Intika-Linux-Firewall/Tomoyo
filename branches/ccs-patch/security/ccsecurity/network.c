@@ -22,22 +22,29 @@
 /**
  * ccs_audit_network_log - Audit network log.
  *
- * @r:          Pointer to "struct ccs_request_info".
- * @operation:  The name of operation.
- * @address:    An IPv4 or IPv6 address.
- * @port:       Port number.
- * @is_granted: True if this is a granted log.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_network_log(struct ccs_request_info *r,
-				 const char *operation, const char *address,
-				 const u16 port, const bool is_granted)
+static int ccs_audit_network_log(struct ccs_request_info *r)
 {
-	if (!is_granted)
-		ccs_warn_log(r, "%s %s %u", operation, address, port);
-	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_NETWORK
-				   "%s %s %u\n", operation, address, port);
+	char buf[128];
+	const char *operation = ccs_net2keyword(r->param.network.operation);
+	const u32 *address = r->param.network.address;
+	const u16 port = r->param.network.port;
+	if (r->param.network.is_ipv6)
+		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
+			       address, (const struct in6_addr *) address);
+	else
+		ccs_print_ipv4(buf, sizeof(buf), r->param.network.ip,
+			       r->param.network.ip);
+	ccs_write_log(r, CCS_KEYWORD_ALLOW_NETWORK "%s %s %u\n", operation,
+		      buf, port);
+	if (r->granted)
+		return 0;
+	ccs_warn_log(r, "%s %s %u", operation, buf, port);
+	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_NETWORK "%s %s %u\n",
+			      operation, buf, port);
 }
 
 /**
@@ -173,6 +180,37 @@ const char *ccs_net2keyword(const u8 operation)
 	return keyword;
 }
 
+static bool ccs_check_network_acl(const struct ccs_request_info *r,
+				  const struct ccs_acl_info *ptr)
+{
+	const struct ccs_ip_network_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	bool ret;
+	if (!(acl->perm & (1 << r->param.network.operation)) ||
+	    !ccs_compare_number_union(r->param.network.port, &acl->port))
+		return false;
+	switch (acl->address_type) {
+	case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
+		ret = ccs_address_matches_group(r->param.network.is_ipv6,
+						r->param.network.address,
+						acl->address.group);
+		break;
+	case CCS_IP_ADDRESS_TYPE_IPv4:
+		ret = !r->param.network.is_ipv6 &&
+			acl->address.ipv4.min <= r->param.network.ip &&
+			r->param.network.ip <= acl->address.ipv4.max;
+		break;
+	default:
+		ret = r->param.network.is_ipv6 &&
+			memcmp(acl->address.ipv6.min, r->param.network.address,
+			       16) <= 0 &&
+			memcmp(r->param.network.address, acl->address.ipv6.max,
+			       16) <= 0;
+		break;
+	}
+	return ret;
+}
+
 /**
  * ccs_network_entry2 - Check permission for network operation.
  *
@@ -189,67 +227,20 @@ static int ccs_network_entry2(const bool is_ipv6, const u8 operation,
 			      const u32 *address, const u16 port)
 {
 	struct ccs_request_info r;
-	struct ccs_acl_info *ptr;
-	const char *keyword = ccs_net2keyword(operation);
-	const u16 perm = 1 << operation;
-	/* using host byte order to allow u32 comparison than memcmp().*/
-	const u32 ip = ntohl(*address);
 	int error;
-	char buf[128];
-	const struct ccs_domain_info * const domain = ccs_current_domain();
 	if (ccs_init_request_info(&r, CCS_MAC_NETWORK_UDP_BIND + operation)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
-	if (is_ipv6)
-		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
-			       address, (const struct in6_addr *) address);
-	else
-		ccs_print_ipv4(buf, sizeof(buf), ip, ip);
+	r.param_type = CCS_TYPE_IP_NETWORK_ACL;
+	r.param.network.operation = operation;
+	r.param.network.is_ipv6 = is_ipv6;
+	r.param.network.address = address;
+	r.param.network.port = port;
+	/* using host byte order to allow u32 comparison than memcmp().*/
+	r.param.network.ip = ntohl(*address);
 	do {
-		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-			struct ccs_ip_network_acl *acl;
-			if (ptr->is_deleted ||
-			    ptr->type != CCS_TYPE_IP_NETWORK_ACL)
-				continue;
-			acl = container_of(ptr, struct ccs_ip_network_acl,
-					   head);
-			if (!(acl->perm & perm))
-				continue;
-			if (!ccs_compare_number_union(port, &acl->port) ||
-			    !ccs_condition(&r, ptr->cond))
-				continue;
-			switch (acl->address_type) {
-			case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
-				if (!ccs_address_matches_group(is_ipv6,
-							       address,
-							       acl->address.
-							       group))
-					continue;
-				break;
-			case CCS_IP_ADDRESS_TYPE_IPv4:
-				if (is_ipv6 || ip < acl->address.ipv4.min ||
-				    acl->address.ipv4.max < ip)
-					continue;
-				break;
-			default:
-				if (!is_ipv6 ||
-				    memcmp(acl->address.ipv6.min, address, 16)
-				    > 0 ||
-				    memcmp(address, acl->address.ipv6.max, 16)
-				    > 0)
-					continue;
-				break;
-			}
-			r.cond = ptr->cond;
-			error = 0;
-			break;
-		}
-		ccs_audit_network_log(&r, keyword, buf, port, !error);
-		if (!error)
-			break;
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_NETWORK
-				       "%s %s %u\n", keyword, buf, port);
+		ccs_check_acl(&r, ccs_check_network_acl);
+		error = ccs_audit_network_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
 	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;

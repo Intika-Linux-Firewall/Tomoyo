@@ -524,6 +524,57 @@ struct ccs_request_info {
 	 * For holding parameters specific to execve() request.
 	 */
 	struct ccs_execve *ee;
+	/* For holding parameters. */
+	union {
+		struct {
+			const struct ccs_path_info *filename;
+			u8 operation;
+			bool may_use_pattern;
+		} path;
+		struct {
+			const struct ccs_path_info *filename1;
+			const struct ccs_path_info *filename2;
+			u8 operation;
+		} path2;
+		struct {
+			const struct ccs_path_info *filename;
+			unsigned int mode;
+			unsigned int major;
+			unsigned int minor;
+			u8 operation;
+		} path_number3;
+		struct {
+			const struct ccs_path_info *filename;
+			unsigned long number;
+			u8 operation;
+		} path_number;
+		struct {
+			const u32 *address;
+			u32 ip;
+			u16 port;
+			u8 operation;
+			bool is_ipv6;
+		} network;
+		struct {
+			const struct ccs_path_info *name;
+		} environ;
+		struct {
+			u8 operation;
+		} capability;
+		struct {
+			const char *dest_pattern;
+			int sig;
+		} signal;
+		struct {
+			const struct ccs_path_info *type;
+			const struct ccs_path_info *dir;
+			const struct ccs_path_info *dev;
+			unsigned long flags;
+			int need_dev;
+		} mount;
+	} param;
+	u8 param_type;
+	bool granted;
 	/*
 	 * For updating current->ccs_flags at ccs_update_task_state().
 	 * Initialized to NULL at ccs_init_request_info().
@@ -593,9 +644,11 @@ struct ccs_domain_info {
 	u8 profile;        /* Profile number to use. */
 	bool is_deleted;   /* Delete flag.           */
 	bool quota_warned; /* Quota warnning flag.   */
-	/* Ignore "allow_read" directive in exception policy. */
+	/* Ignore "allow_*" directives in ccs_global_domain . */
+	bool ignore_global;
+	/* Ignore "allow_read" directive in ccs_global_domain . */
 	bool ignore_global_allow_read;
-	/* Ignore "allow_env" directive in exception policy.  */
+	/* Ignore "allow_env" directive in ccs_global_domain .  */
 	bool ignore_global_allow_env;
 	/*
 	 * This domain was unable to create a new domain at
@@ -913,6 +966,9 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
+void ccs_check_acl(struct ccs_request_info *r,
+		   bool (*check_entry) (const struct ccs_request_info *,
+					const struct ccs_acl_info *));
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      bool is_delete, struct ccs_domain_info *domain,
 		      bool (*check_duplicate) (const struct ccs_acl_info *,
@@ -945,8 +1001,6 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_close_control(struct file *file);
 int ccs_delete_domain(char *data);
 int ccs_env_perm(struct ccs_request_info *r, const char *env);
-int ccs_exec_perm(struct ccs_request_info *r,
-		  const struct ccs_path_info *filename);
 int ccs_get_mode(const u8 profile, const u8 index);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
@@ -965,9 +1019,8 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
 int ccs_write_aggregator(char *data, const bool is_delete,
 				const u8 flags);
-int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
-		  const char *fmt, ...)
-     __attribute__ ((format(printf, 3, 4)));
+int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+     __attribute__ ((format(printf, 2, 3)));
 int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete);

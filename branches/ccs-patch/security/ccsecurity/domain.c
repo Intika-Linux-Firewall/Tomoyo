@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/05/05
+ * Version: 1.7.2+   2010/05/27
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -50,7 +50,8 @@ static int ccs_audit_execute_handler_log(struct ccs_execve *ee)
 	const char *handler = ee->handler->name;
 	r->type = CCS_MAC_FILE_EXECUTE;
 	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
-	return ccs_write_log(true, r, "%s %s\n", ee->handler_type ==
+	r->granted = true;
+	return ccs_write_log(r, "%s %s\n", ee->handler_type ==
 			     CCS_TYPE_DENIED_EXECUTE_HANDLER ?
 			     CCS_KEYWORD_DENIED_EXECUTE_HANDLER :
 			     CCS_KEYWORD_EXECUTE_HANDLER, handler);
@@ -65,7 +66,8 @@ static int ccs_audit_domain_creation_log(void)
 {
 	struct ccs_request_info r;
 	ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-	return ccs_write_log(false, &r, "use_profile %u\n", r.profile);
+	r.granted = false;
+	return ccs_write_log(&r, "use_profile %u\n", r.profile);
 }
 
 int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
@@ -175,6 +177,34 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	}
 	mutex_unlock(&ccs_policy_lock);
 	return error;
+}
+
+void ccs_check_acl(struct ccs_request_info *r,
+		   bool (*check_entry) (const struct ccs_request_info *,
+					const struct ccs_acl_info *))
+{
+	const struct ccs_domain_info *domain = ccs_current_domain();
+	struct ccs_acl_info *ptr;
+ retry:
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		if (ptr->is_deleted || ptr->type != r->param_type)
+			continue;
+		if (check_entry(r, ptr) && ccs_condition(r, ptr->cond)) {
+			r->cond = ptr->cond;
+			r->granted = true;
+			return;
+		}
+	}
+	if (domain != &ccs_global_domain && !domain->ignore_global &&
+	    (r->param_type != CCS_TYPE_PATH_ACL ||
+	     r->param.path.operation != CCS_TYPE_READ ||
+	     !domain->ignore_global_allow_read) &&
+	    (r->param_type != CCS_TYPE_ENV_ACL ||
+	     !domain->ignore_global_allow_env)) {
+		domain = &ccs_global_domain;
+		goto retry;
+	}
+	r->granted = false;
 }
 
 static bool ccs_same_domain_initializer_entry(const struct ccs_acl_head *a,
@@ -606,7 +636,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		}
 
 		/* Check execute permission. */
-		retval = ccs_exec_perm(r, &rn);
+		retval = ccs_path_permission(r, CCS_TYPE_EXECUTE, &rn);
 		if (retval == CCS_RETRY_REQUEST)
 			goto retry;
 		if (retval < 0)
@@ -654,8 +684,8 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
 		if (!old_domain->domain_transition_failed) {
 			old_domain->domain_transition_failed = true;
-			ccs_write_log(false, r, CCS_KEYWORD_TRANSITION_FAILED
-				      "\n");
+			r->granted = false;
+			ccs_write_log(r, CCS_KEYWORD_TRANSITION_FAILED "\n");
 			printk(KERN_WARNING
 			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
 		}

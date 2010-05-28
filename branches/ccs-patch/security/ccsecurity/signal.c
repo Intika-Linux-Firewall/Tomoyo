@@ -20,21 +20,39 @@
 /**
  * ccs_audit_signal_log - Audit signal log.
  *
- * @r:           Pointer to "struct ccs_request_info".
- * @signal:      Signal number.
- * @dest_domain: Destination domainname.
- * @is_granted:  True if this is a granted log.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_signal_log(struct ccs_request_info *r, const int signal,
-				const char *dest_domain, const bool is_granted)
+static int ccs_audit_signal_log(struct ccs_request_info *r)
 {
-	if (!is_granted)
-		ccs_warn_log(r, "signal %d to %s", signal,
-			     ccs_last_word(dest_domain));
-	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_SIGNAL
-				   "%d %s\n", signal, dest_domain);
+	const int sig = r->param.signal.sig;
+	const char *dest_domain = r->param.signal.dest_pattern;
+	ccs_write_log(r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n", sig, dest_domain);
+	if (r->granted)
+		return 0;
+	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
+	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n", sig,
+			      dest_domain);
+}
+
+static bool ccs_check_signal_acl(const struct ccs_request_info *r,
+				 const struct ccs_acl_info *ptr)
+{
+	const struct ccs_signal_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	if (acl->sig == r->param.signal.sig) {
+		const int len = acl->domainname->total_len;
+		if (!strncmp(acl->domainname->name,
+			     r->param.signal.dest_pattern, len)) {
+			switch (r->param.signal.dest_pattern[len]) {
+			case ' ':
+			case '\0':
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 /**
@@ -51,18 +69,18 @@ static int ccs_signal_acl2(const int sig, const int pid)
 {
 	struct ccs_request_info r;
 	struct ccs_domain_info *dest = NULL;
-	const char *dest_pattern;
-	struct ccs_acl_info *ptr;
-	const u16 hash = sig;
 	int error;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
 	if (ccs_init_request_info(&r, CCS_MAC_SIGNAL) == CCS_CONFIG_DISABLED)
 		return 0;
 	if (!sig)
 		return 0;                /* No check for NULL signal. */
+	r.param_type = CCS_TYPE_SIGNAL_ACL;
+	r.param.signal.sig = sig;
+	r.param.signal.dest_pattern = domain->domainname->name;
+	r.granted = true;
 	if (ccsecurity_exports.sys_getpid() == pid) {
-		ccs_audit_signal_log(&r, sig, domain->domainname->name,
-				     true);
+		ccs_audit_signal_log(&r);
 		return 0;                /* No check for self process. */
 	}
 	{ /* Simplified checking. */
@@ -83,40 +101,13 @@ static int ccs_signal_acl2(const int sig, const int pid)
 	if (!dest)
 		return 0; /* I can't find destinatioin. */
 	if (domain == dest) {
-		ccs_audit_signal_log(&r, sig, domain->domainname->name, true);
+		ccs_audit_signal_log(&r);
 		return 0;                /* No check for self domain. */
 	}
-	dest_pattern = dest->domainname->name;
+	r.param.signal.dest_pattern = dest->domainname->name;
 	do {
-		error = -EPERM;
-		list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-			struct ccs_signal_acl *acl;
-			if (ptr->is_deleted ||
-			    ptr->type != CCS_TYPE_SIGNAL_ACL)
-				continue;
-			acl = container_of(ptr, struct ccs_signal_acl, head);
-			if (acl->sig == hash && ccs_condition(&r, ptr->cond)) {
-				const int len = acl->domainname->total_len;
-				if (strncmp(acl->domainname->name,
-					    dest_pattern, len))
-					continue;
-				switch (dest_pattern[len]) {
-				case ' ':
-				case '\0':
-					break;
-				default:
-					continue;
-				}
-				r.cond = ptr->cond;
-				error = 0;
-				break;
-			}
-		}
-		ccs_audit_signal_log(&r, sig, dest_pattern, !error);
-		if (!error)
-			break;
-		error = ccs_supervisor(&r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n",
-				       sig, dest_pattern);
+		ccs_check_acl(&r, ccs_check_signal_acl);
+		error = ccs_audit_signal_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
 	return error;
 }

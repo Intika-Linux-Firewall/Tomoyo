@@ -12,61 +12,29 @@
 
 #include "internal.h"
 
-/**
- * ccs_audit_env_log - Audit environment variable name log.
- *
- * @r:          Pointer to "struct ccs_request_info".
- * @env:        The name of environment variable.
- * @is_granted: True if this is a granted log.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_audit_env_log(struct ccs_request_info *r, const char *env,
-			     const bool is_granted)
+
+static bool ccs_check_env_acl(const struct ccs_request_info *r,
+			      const struct ccs_acl_info *ptr)
 {
-	if (!is_granted)
-		ccs_warn_log(r, "environ %s", env);
-	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_ENV "%s\n",
-				   env);
+	const struct ccs_env_acl *acl = container_of(ptr, typeof(*acl), head);
+	return ccs_path_matches_pattern(r->param.environ.name, acl->env);
 }
 
 /**
- * ccs_env_acl - Check permission for environment variable's name.
+ * ccs_audit_env_log - Audit environment variable name log.
  *
- * @r:       Pointer to "struct ccs_request_info".
- * @environ: The name of environment variable.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
- *
- * Caller holds ccs_read_lock().
  */
-static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
+static int ccs_audit_env_log(struct ccs_request_info *r)
 {
-	const struct ccs_domain_info *domain = ccs_current_domain();
-	int error = -EPERM;
-	struct ccs_acl_info *ptr;
-	struct ccs_path_info env;
-	env.name = environ;
-	ccs_fill_path_info(&env);
- retry:
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_env_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_ENV_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_env_acl, head);
-		if (!ccs_condition(r, ptr->cond) ||
-		    !ccs_path_matches_pattern(&env, acl->env))
-			continue;
-		r->cond = ptr->cond;
-		error = 0;
-		break;
-	}
-	if (error && !domain->ignore_global_allow_env &&
-	    domain != &ccs_global_domain) {
-		domain = &ccs_global_domain;
-		goto retry;
-	}
-	return error;
+	const char *env = r->param.environ.name->name;
+	ccs_write_log(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
+	if (r->granted)
+		return 0;
+	ccs_warn_log(r, "environ %s", env);
+	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
 }
 
 /**
@@ -81,15 +49,17 @@ static int ccs_env_acl(struct ccs_request_info *r, const char *environ)
  */
 int ccs_env_perm(struct ccs_request_info *r, const char *env)
 {
+	struct ccs_path_info environ;
 	int error;
 	if (!env || !*env)
 		return 0;
+	environ.name = env;
+	ccs_fill_path_info(&environ);
+	r->param_type = CCS_TYPE_ENV_ACL;
+	r->param.environ.name = &environ;
 	do {
-		error = ccs_env_acl(r, env);
-		ccs_audit_env_log(r, env, !error);
-		if (!error)
-			break;
-		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
+		ccs_check_acl(r, ccs_check_env_acl);
+		error = ccs_audit_env_log(r);
 	} while (error == CCS_RETRY_REQUEST);
 	return error;
 }

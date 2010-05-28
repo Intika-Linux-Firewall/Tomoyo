@@ -2113,8 +2113,7 @@ static bool ccs_get_argv0(struct ccs_execve *ee)
  *
  * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
  */
-static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve
-						       *ee)
+static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve *ee)
 {
 	struct ccs_condition *cond;
 	char *buf;
@@ -2174,8 +2173,8 @@ static struct ccs_condition *ccs_get_execute_condition(struct ccs_execve
  *
  * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
  */
-static struct ccs_condition *ccs_get_symlink_condition(struct ccs_request_info
-						       *r)
+static struct ccs_condition *ccs_get_symlink_condition
+(const struct ccs_request_info *r)
 {
 	struct ccs_condition *cond;
 	char *buf;
@@ -2230,8 +2229,8 @@ static atomic_t ccs_query_observers = ATOMIC_INIT(0);
 /**
  * ccs_supervisor - Ask for the supervisor's decision.
  *
- * @r:       Pointer to "struct ccs_request_info".
- * @fmt:     The printf()'s format string, followed by parameters.
+ * @r:   Pointer to "struct ccs_request_info".
+ * @fmt: The printf()'s format string, followed by parameters.
  *
  * Returns 0 if the supervisor decided to permit the access request which
  * violated the policy in enforcing mode, CCS_RETRY_REQUEST if the supervisor
@@ -2265,9 +2264,11 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		vsnprintf(buffer, len - 1, fmt, args);
 		va_end(args);
 		ccs_normalize_line(buffer);
-		if (r->ee && !strncmp(buffer, "allow_execute ", 14))
+		if (r->param_type == CCS_TYPE_PATH_ACL &&
+		    r->param.path.operation == CCS_TYPE_EXECUTE)
 			cond = ccs_get_execute_condition(r->ee);
-		else if (r->obj && r->obj->symlink_target)
+		else if (r->param_type == CCS_TYPE_PATH_ACL &&
+			 r->param.path.operation == CCS_TYPE_SYMLINK)
 			cond = ccs_get_symlink_condition(r);
 		else if ((current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)) {
 			char str[] = "if task.type=execute_handler";

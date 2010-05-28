@@ -48,45 +48,53 @@
 /**
  * ccs_audit_mount_log - Audit mount log.
  *
- * @r:          Pointer to "struct ccs_request_info".
- * @dev_name:   Device file.
- * @dir_name:   Mount point.
- * @type:       Filesystem type.
- * @flags:      Mount flags.
- * @is_granted: True if this is a granted log.
+ * @r: Pointer to "struct ccs_request_info".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_audit_mount_log(struct ccs_request_info *r,
-			       const char *dev_name, const char *dir_name,
-			       const char *type, const unsigned long flags,
-			       const bool is_granted)
+static int ccs_audit_mount_log(struct ccs_request_info *r)
 {
-	if (!is_granted) {
-		if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
-			ccs_warn_log(r, "mount -o remount %s 0x%lX", dir_name,
-				     flags);
-		else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
-			 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
-			ccs_warn_log(r, "mount %s %s %s 0x%lX", type, dev_name,
-				     dir_name, flags);
-		else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
-			 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
-			 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
-			 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-			ccs_warn_log(r, "mount %s %s 0x%lX", type, dir_name,
-				     flags);
-		else
-			ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type,
-				     dev_name, dir_name, flags);
-	}
-	return ccs_write_log(is_granted, r, CCS_KEYWORD_ALLOW_MOUNT
-				   "%s %s %s 0x%lX\n", dev_name, dir_name,
-				   type, flags);
+	const char *dev = r->param.mount.dev->name;
+	const char *dir = r->param.mount.dir->name;
+	const char *type = r->param.mount.type->name;
+	const unsigned long flags = r->param.mount.flags;
+	ccs_write_log(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+		      dev, dir, type, flags);
+	if (r->granted)
+		return 0;
+	if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
+		ccs_warn_log(r, "mount -o remount %s 0x%lX", dir, flags);
+	else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
+		 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
+		ccs_warn_log(r, "mount %s %s %s 0x%lX", type, dev, dir, flags);
+	else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
+		 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
+		 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
+		 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
+		ccs_warn_log(r, "mount %s %s 0x%lX", type, dir, flags);
+	else
+		ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type, dev, dir,
+			     flags);
+	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+			      ccs_file_pattern(r->param.mount.dev),
+			      ccs_file_pattern(r->param.mount.dir), type,
+			      flags);
+}
+
+static bool ccs_check_mount_acl(const struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr)
+{
+	const struct ccs_mount_acl *acl =
+		container_of(ptr, typeof(*acl), head);
+	return ccs_compare_number_union(r->param.mount.flags, &acl->flags) &&
+		ccs_compare_name_union(r->param.mount.type, &acl->fs_type) &&
+		ccs_compare_name_union(r->param.mount.dir, &acl->dir_name) &&
+		(!r->param.mount.need_dev ||
+		 ccs_compare_name_union(r->param.mount.dev, &acl->dev_name));
 }
 
 /**
- * ccs_mount_acl2 - Check permission for mount() operation.
+ * ccs_mount_acl - Check permission for mount() operation.
  *
  * @r:        Pointer to "struct ccs_request_info".
  * @dev_name: Name of device file.
@@ -98,12 +106,11 @@ static int ccs_audit_mount_log(struct ccs_request_info *r,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
-			  struct path *dir, char *type, unsigned long flags)
+static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
+			 struct path *dir, char *type, unsigned long flags)
 {
 	struct ccs_obj_info obj = { };
 	struct path path;
-	struct ccs_acl_info *ptr;
 	struct file_system_type *fstype = NULL;
 	const char *requested_type = NULL;
 	const char *requested_dir_name = NULL;
@@ -113,7 +120,6 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	struct ccs_path_info rdir;
 	int need_dev = 0;
 	int error = -ENOMEM;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
 	r->obj = &obj;
 
 	/* Get fstype. */
@@ -178,30 +184,16 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	}
 	rdev.name = requested_dev_name;
 	ccs_fill_path_info(&rdev);
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_mount_acl *acl;
-		if (ptr->is_deleted || ptr->type != CCS_TYPE_MOUNT_ACL)
-			continue;
-		acl = container_of(ptr, struct ccs_mount_acl, head);
-		if (!ccs_compare_number_union(flags, &acl->flags) ||
-		    !ccs_compare_name_union(&rtype, &acl->fs_type) ||
-		    !ccs_compare_name_union(&rdir, &acl->dir_name) ||
-		    (need_dev &&
-		     !ccs_compare_name_union(&rdev, &acl->dev_name)) ||
-		    !ccs_condition(r, ptr->cond))
-			continue;
-		r->cond = ptr->cond;
-		error = 0;
-		break;
-	}
-	ccs_audit_mount_log(r, requested_dev_name, requested_dir_name,
-			    requested_type, flags, !error);
-	if (error)
-		error = ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT
-				       "%s %s %s 0x%lX\n",
-				       ccs_file_pattern(&rdev),
-				       ccs_file_pattern(&rdir),
-				       requested_type, flags);
+	r->param_type = CCS_TYPE_MOUNT_ACL;
+	r->param.mount.need_dev = need_dev;
+	r->param.mount.dev = &rdev;
+	r->param.mount.dir = &rdir;
+	r->param.mount.type = &rtype;
+	r->param.mount.flags = flags;
+	do {
+		ccs_check_acl(r, ccs_check_mount_acl);
+		error = ccs_audit_mount_log(r);
+	} while (error == CCS_RETRY_REQUEST);
  out:
 	kfree(requested_dev_name);
 	kfree(requested_dir_name);
@@ -211,93 +203,6 @@ static int ccs_mount_acl2(struct ccs_request_info *r, char *dev_name,
 	/* Drop refcount obtained by ccs_get_path(). */
 	if (obj.path1.dentry)
 		path_put(&obj.path1);
-	return error;
-}
-
-/**
- * ccs_mount_acl - Check permission for mount() operation.
- *
- * @r:        Pointer to "struct ccs_request_info".
- * @dev_name: Name of device file.
- * @dir:      Pointer to "struct path".
- * @type:     Name of filesystem type.
- * @flags:    Mount options.
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
-			 struct path *dir, char *type, unsigned long flags)
-{
-	int error;
-	error = -EPERM;
-	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
-		flags &= ~MS_MGC_MSK;
-	switch (flags & (MS_REMOUNT | MS_MOVE | MS_BIND)) {
-	case MS_REMOUNT:
-	case MS_MOVE:
-	case MS_BIND:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "ERROR: "
-		       "%s%s%s%sare given for single mount operation.\n",
-		       flags & MS_REMOUNT ? "'remount' " : "",
-		       flags & MS_MOVE    ? "'move' " : "",
-		       flags & MS_BIND    ? "'bind' " : "", "");
-		return -EINVAL;
-	}
-	switch (flags & (MS_UNBINDABLE | MS_PRIVATE | MS_SLAVE | MS_SHARED)) {
-	case MS_UNBINDABLE:
-	case MS_PRIVATE:
-	case MS_SLAVE:
-	case MS_SHARED:
-	case 0:
-		break;
-	default:
-		printk(KERN_WARNING "ERROR: "
-		       "%s%s%s%sare given for single mount operation.\n",
-		       flags & MS_UNBINDABLE ? "'unbindable' " : "",
-		       flags & MS_PRIVATE    ? "'private' " : "",
-		       flags & MS_SLAVE      ? "'slave' " : "",
-		       flags & MS_SHARED     ? "'shared' " : "");
-		return -EINVAL;
-	}
-	if (flags & MS_REMOUNT)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_REMOUNT_KEYWORD,
-				      flags & ~MS_REMOUNT);
-	else if (flags & MS_MOVE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MOVE_KEYWORD,
-				      flags & ~MS_MOVE);
-	else if (flags & MS_BIND)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_BIND_KEYWORD,
-				      flags & ~MS_BIND);
-	else if (flags & MS_UNBINDABLE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD,
-				      flags & ~MS_UNBINDABLE);
-	else if (flags & MS_PRIVATE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_PRIVATE_KEYWORD,
-				      flags & ~MS_PRIVATE);
-	else if (flags & MS_SLAVE)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_SLAVE_KEYWORD,
-				      flags & ~MS_SLAVE);
-	else if (flags & MS_SHARED)
-		error = ccs_mount_acl(r, dev_name, dir,
-				      CCS_MOUNT_MAKE_SHARED_KEYWORD,
-				      flags & ~MS_SHARED);
-	else
-		do {
-			error = ccs_mount_acl2(r, dev_name, dir, type, flags);
-		} while (error == CCS_RETRY_REQUEST);
-	if (r->mode != CCS_CONFIG_ENFORCING)
-		error = 0;
 	return error;
 }
 
@@ -324,6 +229,36 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
 	    == CCS_CONFIG_DISABLED)
 		return 0;
+	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
+		flags &= ~MS_MGC_MSK;
+	if (flags & MS_REMOUNT) {
+		type = CCS_MOUNT_REMOUNT_KEYWORD;
+		flags &= ~MS_REMOUNT;
+	}
+	if (flags & MS_MOVE) {
+		type = CCS_MOUNT_MOVE_KEYWORD;
+		flags &= ~MS_MOVE;
+	}
+	if (flags & MS_BIND) {
+		type = CCS_MOUNT_BIND_KEYWORD;
+		flags &= ~MS_BIND;
+	}
+	if (flags & MS_UNBINDABLE) {
+		type = CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD;
+		flags &= ~MS_UNBINDABLE;
+	}
+	if (flags & MS_PRIVATE) {
+		type = CCS_MOUNT_MAKE_PRIVATE_KEYWORD;
+		flags &= ~MS_PRIVATE;
+	}
+	if (flags & MS_SLAVE) {
+		type = CCS_MOUNT_MAKE_SLAVE_KEYWORD;
+		flags &= ~MS_SLAVE;
+	}
+	if (flags & MS_SHARED) {
+		type = CCS_MOUNT_MAKE_SHARED_KEYWORD;
+		flags &= ~MS_SHARED;
+	}
 	if (!type)
 		type = "<NULL>";
 	idx = ccs_read_lock();

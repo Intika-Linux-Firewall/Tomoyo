@@ -357,14 +357,12 @@ static void ccs_update_task_state(struct ccs_request_info *r)
 /**
  * ccs_write_log - Write audit log.
  *
- * @is_granted: True if this is a granted log.
- * @r:          Pointer to "struct ccs_request_info".
- * @fmt:        The printf()'s format string, followed by parameters.
+ * @r:   Pointer to "struct ccs_request_info".
+ * @fmt: The printf()'s format string, followed by parameters.
  *
  * Returns 0 on success, -ENOMEM otherwise.
  */
-int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
-		  const char *fmt, ...)
+int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 {
 	ccs_update_task_state(r);
 	return 0;
@@ -427,14 +425,12 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
 /**
  * ccs_write_log - Write audit log.
  *
- * @is_granted: True if this is a granted log.
- * @r:          Pointer to "struct ccs_request_info".
- * @fmt:        The printf()'s format string, followed by parameters.
+ * @r:   Pointer to "struct ccs_request_info".
+ * @fmt: The printf()'s format string, followed by parameters.
  *
  * Returns 0 on success, -ENOMEM otherwise.
  */
-int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
-			const char *fmt, ...)
+int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 {
 	va_list args;
 	int error = -ENOMEM;
@@ -445,6 +441,7 @@ int ccs_write_log(const bool is_granted, struct ccs_request_info *r,
 	bool quota_exceeded = false;
 	struct ccs_preference *pref =
 		ccs_profile(ccs_current_domain()->profile)->audit;
+	const bool is_granted = r->granted;
 	if (is_granted)
 		len = pref->audit_max_grant_log;
 	else
