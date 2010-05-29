@@ -912,15 +912,24 @@ static int __ccs_socket_recvmsg_permission(struct sock *sk,
 	 * prevent the caller from picking up next message from wanted source
 	 * when the caller is using MSG_PEEK flag for picking up.
 	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	if (type == SOCK_DGRAM)
-		lock_sock(sk);
+	{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
+		bool slow;
+		if (type == SOCK_DGRAM)
+			slow = lock_sock_fast(sk);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (type == SOCK_DGRAM)
+			lock_sock(sk);
 #endif
-	skb_kill_datagram(sk, skb, flags);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-	if (type == SOCK_DGRAM)
-		release_sock(sk);
+		skb_kill_datagram(sk, skb, flags);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
+		if (type == SOCK_DGRAM)
+			unlock_sock_fast(sk, slow);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+		if (type == SOCK_DGRAM)
+			release_sock(sk);
 #endif
+	}
 	/* Hope less harmful than -EPERM. */
 	return -ENOMEM;
 }

@@ -937,6 +937,10 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 			domain->profile = (u8) profile;
 		return 0;
 	}
+	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL)) {
+		domain->ignore_global = !is_delete;
+		return 0;
+	}
 	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
 		domain->ignore_global_allow_read = !is_delete;
 		return 0;
@@ -1624,7 +1628,7 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
 		struct ccs_domain_info *domain =
 			list_entry(pos, struct ccs_domain_info, list);
-		const char *w[4] = { "", "", "", "" };
+		const char *w[5] = { "", "", "", "", "" };
 		switch (head->read_step) {
 		case 0:
 			if (domain->is_deleted && !head->read_single_domain)
@@ -1634,17 +1638,19 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 				w[0] = CCS_KEYWORD_QUOTA_EXCEEDED "\n";
 			if (domain->domain_transition_failed)
 				w[1] = CCS_KEYWORD_TRANSITION_FAILED "\n";
+			if (domain->ignore_global)
+				w[2] = CCS_KEYWORD_IGNORE_GLOBAL "\n";
 			if (domain->ignore_global_allow_read)
-				w[2] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ
+				w[3] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ
 					"\n";
 			if (domain->ignore_global_allow_env)
-				w[3] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV
+				w[4] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV
 					"\n";
 			if (!ccs_io_printf(head, "%s\n" CCS_KEYWORD_USE_PROFILE
-					   "%u\n%s%s%s%s\n",
+					   "%u\n%s%s%s%s%s\n",
 					   domain->domainname->name,
 					   domain->profile, w[0], w[1], w[2],
-					   w[3]))
+					   w[3], w[4]))
 				return;
 			head->read_step++;
 			/* fall through */

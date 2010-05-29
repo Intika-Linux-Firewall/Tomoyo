@@ -831,185 +831,76 @@ struct ccs_condition *ccs_get_condition(char * const condition)
  *
  * Returns nothing.
  */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 void ccs_get_attributes(struct ccs_obj_info *obj)
 {
-	struct dentry *dentry;
-	struct inode *inode;
+	u8 i;
+	struct vfsmount *mnt = NULL;
+	struct dentry *dentry = NULL;
 
-	if (!obj->path1.mnt)
-		goto no_path1;
-
-	/* Get information on "path1". */
-	dentry = obj->path1.dentry;
-	inode = dentry->d_inode;
-	if (inode) {
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
-			obj->path1_stat.uid = inode->i_uid;
-			obj->path1_stat.gid = inode->i_gid;
-			obj->path1_stat.ino = inode->i_ino;
-			obj->path1_stat.mode = inode->i_mode;
-			obj->path1_stat.dev = inode->i_dev;
-			obj->path1_stat.rdev = inode->i_rdev;
-			obj->path1_valid = true;
-		}
-	}
-
-	/* Get information on "path1.parent". */
-	spin_lock(&dcache_lock);
-	dentry = dget(obj->path1.dentry->d_parent);
-	spin_unlock(&dcache_lock);
-	inode = dentry->d_inode;
-	if (inode) {
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
-			obj->path1_parent_stat.uid = inode->i_uid;
-			obj->path1_parent_stat.gid = inode->i_gid;
-			obj->path1_parent_stat.ino = inode->i_ino;
-			obj->path1_parent_stat.mode = inode->i_mode;
-			obj->path1_parent_stat.dev = inode->i_dev;
-			obj->path1_parent_stat.rdev = inode->i_rdev;
-			obj->path1_parent_valid = true;
-		}
-	}
-	dput(dentry);
-
- no_path1:
-	if (!obj->path2.mnt)
-		return;
-
-	/* Get information on "path2". */
-	dentry = obj->path2.dentry;
-	inode = dentry->d_inode;
-	if (inode) {
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
-			obj->path2_stat.uid = inode->i_uid;
-			obj->path2_stat.gid = inode->i_gid;
-			obj->path2_stat.ino = inode->i_ino;
-			obj->path2_stat.mode = inode->i_mode;
-			obj->path2_stat.dev = inode->i_dev;
-			obj->path2_stat.rdev = inode->i_rdev;
-			obj->path2_valid = true;
-		}
-	}
-
-	/* Get information on "path2.parent". */
-	spin_lock(&dcache_lock);
-	dentry = dget(obj->path2.dentry->d_parent);
-	spin_unlock(&dcache_lock);
-	inode = dentry->d_inode;
-	if (inode) {
-		if (inode->i_op && inode->i_op->revalidate &&
-		    inode->i_op->revalidate(dentry)) {
-			/* Nothing to do. */
-		} else {
-			obj->path2_parent_stat.uid = inode->i_uid;
-			obj->path2_parent_stat.gid = inode->i_gid;
-			obj->path2_parent_stat.ino = inode->i_ino;
-			obj->path2_parent_stat.mode = inode->i_mode;
-			obj->path2_parent_stat.dev = inode->i_dev;
-			obj->path2_parent_stat.rdev = inode->i_rdev;
-			obj->path2_parent_valid = true;
-		}
-	}
-	dput(dentry);
-}
-#else
-void ccs_get_attributes(struct ccs_obj_info *obj)
-{
-	struct vfsmount *mnt;
-	struct dentry *dentry;
-	struct inode *inode;
-	struct kstat stat;
-
-	if (!obj->path1.mnt)
-		goto no_path1;
-
-	/* Get information on "path1". */
-	mnt = obj->path1.mnt;
-	dentry = obj->path1.dentry;
-	inode = dentry->d_inode;
-	if (inode) {
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			/* Nothing to do. */
-		} else {
-			obj->path1_stat.uid = stat.uid;
-			obj->path1_stat.gid = stat.gid;
-			obj->path1_stat.ino = stat.ino;
-			obj->path1_stat.mode = stat.mode;
-			obj->path1_stat.dev = stat.dev;
-			obj->path1_stat.rdev = stat.rdev;
-			obj->path1_valid = true;
-		}
-	}
-
-	/* Get information on "path1.parent". */
-	dentry = dget_parent(obj->path1.dentry);
-	inode = dentry->d_inode;
-	if (inode) {
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			/* Nothing to do. */
-		} else {
-			obj->path1_parent_stat.uid = stat.uid;
-			obj->path1_parent_stat.gid = stat.gid;
-			obj->path1_parent_stat.ino = stat.ino;
-			obj->path1_parent_stat.mode = stat.mode;
-			obj->path1_parent_stat.dev = stat.dev;
-			obj->path1_parent_stat.rdev = stat.rdev;
-			obj->path1_parent_valid = true;
-		}
-	}
-	dput(dentry);
-
- no_path1:
-	mnt = obj->path2.mnt;
-	if (!mnt)
-		return;
-
-	/* Get information on "path2". */
-	dentry = obj->path2.dentry;
-	inode = dentry->d_inode;
-	if (inode) {
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			/* Nothing to do. */
-		} else {
-			obj->path2_stat.uid = stat.uid;
-			obj->path2_stat.gid = stat.gid;
-			obj->path2_stat.ino = stat.ino;
-			obj->path2_stat.mode = stat.mode;
-			obj->path2_stat.dev = stat.dev;
-			obj->path2_stat.rdev = stat.rdev;
-			obj->path2_valid = true;
-		}
-	}
-
-	/* Get information on "path2.parent". */
-	dentry = dget_parent(obj->path2.dentry);
-	inode = dentry->d_inode;
-	if (inode) {
-		if (!inode->i_op || vfs_getattr(mnt, dentry, &stat)) {
-			/* Nothing to do. */
-		} else {
-			obj->path2_parent_stat.uid = stat.uid;
-			obj->path2_parent_stat.gid = stat.gid;
-			obj->path2_parent_stat.ino = stat.ino;
-			obj->path2_parent_stat.mode = stat.mode;
-			obj->path2_parent_stat.dev = stat.dev;
-			obj->path2_parent_stat.rdev = stat.rdev;
-			obj->path2_parent_valid = true;
-		}
-	}
-	dput(dentry);
-}
+	for (i = 0; i < CCS_MAX_STAT; i++) {
+		struct inode *inode;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+		struct kstat kstat;
 #endif
+		switch (i) {
+		case CCS_PATH1:
+			mnt = obj->path1.mnt;
+			dentry = obj->path1.dentry;
+			break;
+		case CCS_PATH2:
+			mnt = obj->path2.mnt;
+			dentry = obj->path2.dentry;
+			break;
+		default:
+			if (!dentry)
+				continue;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+			spin_lock(&dcache_lock);
+			dentry = dget(dentry->d_parent);
+			spin_unlock(&dcache_lock);
+#else
+			dentry = dget_parent(dentry);
+#endif
+			break;
+		}
+		if (!mnt)
+			goto out;
+		inode = dentry->d_inode;
+		if (!inode)
+			goto out;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
+		if (inode->i_op && inode->i_op->revalidate &&
+		    inode->i_op->revalidate(dentry)) {
+			/* Nothing to do. */
+		} else {
+			struct ccs_mini_stat *stat = &obj->stat[i];
+			stat->uid = inode->i_uid;
+			stat->gid = inode->i_gid;
+			stat->ino = inode->i_ino;
+			stat->mode = inode->i_mode;
+			stat->dev = inode->i_dev;
+			stat->rdev = inode->i_rdev;
+			obj->stat_valid[i] = true;
+		}
+#else
+		if (!inode->i_op || vfs_getattr(mnt, dentry, &kstat)) {
+			/* Nothing to do. */
+		} else {
+			struct ccs_mini_stat *stat = &obj->stat[i];
+			stat->uid = kstat.uid;
+			stat->gid = kstat.gid;
+			stat->ino = kstat.ino;
+			stat->mode = kstat.mode;
+			stat->dev = kstat.dev;
+			stat->rdev = kstat.rdev;
+			obj->stat_valid[i] = true;
+		}
+#endif
+	out:
+		if (i & 1) /* i == CCS_PATH1_PARENT || i == CCS_PATH2_PARENT */
+			dput(dentry);
+	}
+}
 
 /**
  * ccs_condition - Check condition part.
@@ -1025,11 +916,10 @@ bool ccs_condition(struct ccs_request_info *r,
 		   const struct ccs_condition *cond)
 {
 	const struct task_struct *task = current;
+	const u32 ccs_flags = task->ccs_flags;
 	u32 i;
-	unsigned long left_min = 0;
-	unsigned long left_max = 0;
-	unsigned long right_min = 0;
-	unsigned long right_max = 0;
+	unsigned long min_v[2] = { 0, 0 };
+	unsigned long max_v[2] = { 0, 0 };
 	const struct ccs_condition_element *condp;
 	const struct ccs_number_union *numbers_p;
 	const struct ccs_name_union *names_p;
@@ -1060,8 +950,7 @@ bool ccs_condition(struct ccs_request_info *r,
 		const bool match = condp->equals;
 		const u8 left = condp->left;
 		const u8 right = condp->right;
-		bool left_is_bitop = false;
-		bool right_is_bitop = false;
+		bool is_bitop[2] = { false, false };
 		u8 j;
 		condp++;
 		/* Check argv[] and envp[] later. */
@@ -1094,7 +983,6 @@ bool ccs_condition(struct ccs_request_info *r,
 		for (j = 0; j < 2; j++) {
 			const u8 index = j ? right : left;
 			unsigned long value = 0;
-			bool is_bitop = false;
 			switch (index) {
 			case CCS_TASK_UID:
 				value = current_uid();
@@ -1149,51 +1037,39 @@ bool ccs_condition(struct ccs_request_info *r,
 				break;
 			case CCS_MODE_SETUID:
 				value = S_ISUID;
-				is_bitop = true;
 				break;
 			case CCS_MODE_SETGID:
 				value = S_ISGID;
-				is_bitop = true;
 				break;
 			case CCS_MODE_STICKY:
 				value = S_ISVTX;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_READ:
 				value = S_IRUSR;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_WRITE:
 				value = S_IWUSR;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OWNER_EXECUTE:
 				value = S_IXUSR;
-				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_READ:
 				value = S_IRGRP;
-				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_WRITE:
 				value = S_IWGRP;
-				is_bitop = true;
 				break;
 			case CCS_MODE_GROUP_EXECUTE:
 				value = S_IXGRP;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_READ:
 				value = S_IROTH;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_WRITE:
 				value = S_IWOTH;
-				is_bitop = true;
 				break;
 			case CCS_MODE_OTHERS_EXECUTE:
 				value = S_IXOTH;
-				is_bitop = true;
 				break;
 			case CCS_EXEC_ARGC:
 				if (!bprm)
@@ -1206,16 +1082,16 @@ bool ccs_condition(struct ccs_request_info *r,
 				value = bprm->envc;
 				break;
 			case CCS_TASK_STATE_0:
-				value = (u8) (task->ccs_flags >> 24);
+				value = (u8) (ccs_flags >> 24);
 				break;
 			case CCS_TASK_STATE_1:
-				value = (u8) (task->ccs_flags >> 16);
+				value = (u8) (ccs_flags >> 16);
 				break;
 			case CCS_TASK_STATE_2:
-				value = (u8) (task->ccs_flags >> 8);
+				value = (u8) (ccs_flags >> 8);
 				break;
 			case CCS_TASK_TYPE:
-				value = ((u8) task->ccs_flags)
+				value = ((u8) ccs_flags)
 					& CCS_TASK_IS_EXECUTE_HANDLER;
 				break;
 			case CCS_TASK_EXECUTE_HANDLER:
@@ -1231,173 +1107,135 @@ bool ccs_condition(struct ccs_request_info *r,
 					ccs_get_attributes(obj);
 					obj->validate_done = true;
 				}
-				switch (index) {
-				case CCS_PATH1_UID:
-					if (!obj->path1_valid)
+				{
+					u8 stat_index;
+					struct ccs_mini_stat *stat;
+					switch (index) {
+					case CCS_PATH1_UID:
+					case CCS_PATH1_GID:
+					case CCS_PATH1_INO:
+					case CCS_PATH1_MAJOR:
+					case CCS_PATH1_MINOR:
+					case CCS_PATH1_TYPE:
+					case CCS_PATH1_DEV_MAJOR:
+					case CCS_PATH1_DEV_MINOR:
+					case CCS_PATH1_PERM:
+						stat_index = CCS_PATH1;
+						break;
+					case CCS_PATH2_UID:
+					case CCS_PATH2_GID:
+					case CCS_PATH2_INO:
+					case CCS_PATH2_MAJOR:
+					case CCS_PATH2_MINOR:
+					case CCS_PATH2_TYPE:
+					case CCS_PATH2_DEV_MAJOR:
+					case CCS_PATH2_DEV_MINOR:
+					case CCS_PATH2_PERM:
+						stat_index = CCS_PATH2;
+						break;
+					case CCS_PATH1_PARENT_UID:
+					case CCS_PATH1_PARENT_GID:
+					case CCS_PATH1_PARENT_INO:
+					case CCS_PATH1_PARENT_PERM:
+						stat_index = CCS_PATH1_PARENT;
+						break;
+					case CCS_PATH2_PARENT_UID:
+					case CCS_PATH2_PARENT_GID:
+					case CCS_PATH2_PARENT_INO:
+					case CCS_PATH2_PARENT_PERM:
+						stat_index = CCS_PATH2_PARENT;
+						break;
+					default:
 						goto out;
-					value = obj->path1_stat.uid;
-					break;
-				case CCS_PATH1_GID:
-					if (!obj->path1_valid)
+					}
+					if (!obj->stat_valid[stat_index])
 						goto out;
-					value = obj->path1_stat.gid;
-					break;
-				case CCS_PATH1_INO:
-					if (!obj->path1_valid)
-						goto out;
-					value = obj->path1_stat.ino;
-					break;
-				case CCS_PATH1_MAJOR:
-					if (!obj->path1_valid)
-						goto out;
-					value = MAJOR(obj->path1_stat.dev);
-					break;
-				case CCS_PATH1_MINOR:
-					if (!obj->path1_valid)
-						goto out;
-					value = MINOR(obj->path1_stat.dev);
-					break;
-				case CCS_PATH1_TYPE:
-					if (!obj->path1_valid)
-						goto out;
-					value = obj->path1_stat.mode & S_IFMT;
-					break;
-				case CCS_PATH1_DEV_MAJOR:
-					if (!obj->path1_valid)
-						goto out;
-					value = MAJOR(obj->path1_stat.rdev);
-					break;
-				case CCS_PATH1_DEV_MINOR:
-					if (!obj->path1_valid)
-						goto out;
-					value = MINOR(obj->path1_stat.rdev);
-					break;
-				case CCS_PATH1_PERM:
-					if (!obj->path1_valid)
-						goto out;
-					value = obj->path1_stat.mode
-						& S_IALLUGO;
-					break;
-				case CCS_PATH2_UID:
-					if (!obj->path2_valid)
-						goto out;
-					value = obj->path2_stat.uid;
-					break;
-				case CCS_PATH2_GID:
-					if (!obj->path2_valid)
-						goto out;
-					value = obj->path2_stat.gid;
-					break;
-				case CCS_PATH2_INO:
-					if (!obj->path2_valid)
-						goto out;
-					value = obj->path2_stat.ino;
-					break;
-				case CCS_PATH2_MAJOR:
-					if (!obj->path2_valid)
-						goto out;
-					value = MAJOR(obj->path2_stat.dev);
-					break;
-				case CCS_PATH2_MINOR:
-					if (!obj->path2_valid)
-						goto out;
-					value = MINOR(obj->path2_stat.dev);
-					break;
-				case CCS_PATH2_TYPE:
-					if (!obj->path2_valid)
-						goto out;
-					value = obj->path2_stat.mode & S_IFMT;
-					break;
-				case CCS_PATH2_DEV_MAJOR:
-					if (!obj->path2_valid)
-						goto out;
-					value = MAJOR(obj->path2_stat.rdev);
-					break;
-				case CCS_PATH2_DEV_MINOR:
-					if (!obj->path2_valid)
-						goto out;
-					value = MINOR(obj->path2_stat.rdev);
-					break;
-				case CCS_PATH2_PERM:
-					if (!obj->path2_valid)
-						goto out;
-					value = obj->path2_stat.mode
-						& S_IALLUGO;
-					break;
-				case CCS_PATH1_PARENT_UID:
-					if (!obj->path1_parent_valid)
-						goto out;
-					value = obj->path1_parent_stat.uid;
-					break;
-				case CCS_PATH1_PARENT_GID:
-					if (!obj->path1_parent_valid)
-						goto out;
-					value = obj->path1_parent_stat.gid;
-					break;
-				case CCS_PATH1_PARENT_INO:
-					if (!obj->path1_parent_valid)
-						goto out;
-					value = obj->path1_parent_stat.ino;
-					break;
-				case CCS_PATH1_PARENT_PERM:
-					if (!obj->path1_parent_valid)
-						goto out;
-					value = obj->path1_parent_stat.mode
-						& S_IALLUGO;
-					break;
-				case CCS_PATH2_PARENT_UID:
-					if (!obj->path2_parent_valid)
-						goto out;
-					value = obj->path2_parent_stat.uid;
-					break;
-				case CCS_PATH2_PARENT_GID:
-					if (!obj->path2_parent_valid)
-						goto out;
-					value = obj->path2_parent_stat.gid;
-					break;
-				case CCS_PATH2_PARENT_INO:
-					if (!obj->path2_parent_valid)
-						goto out;
-					value = obj->path2_parent_stat.ino;
-					break;
-				case CCS_PATH2_PARENT_PERM:
-					if (!obj->path2_parent_valid)
-						goto out;
-					value = obj->path2_parent_stat.mode
-						& S_IALLUGO;
-					break;
+					stat = &obj->stat[stat_index];
+					switch (index) {
+					case CCS_PATH1_UID:
+					case CCS_PATH2_UID:
+					case CCS_PATH1_PARENT_UID:
+					case CCS_PATH2_PARENT_UID:
+						value = stat->uid;
+						break;
+					case CCS_PATH1_GID:
+					case CCS_PATH2_GID:
+					case CCS_PATH1_PARENT_GID:
+					case CCS_PATH2_PARENT_GID:
+						value = stat->gid;
+						break;
+					case CCS_PATH1_INO:
+					case CCS_PATH2_INO:
+					case CCS_PATH1_PARENT_INO:
+					case CCS_PATH2_PARENT_INO:
+						value = stat->ino;
+						break;
+					case CCS_PATH1_MAJOR:
+					case CCS_PATH2_MAJOR:
+						value = MAJOR(stat->dev);
+						break;
+					case CCS_PATH1_MINOR:
+					case CCS_PATH2_MINOR:
+						value = MINOR(stat->dev);
+						break;
+					case CCS_PATH1_TYPE:
+					case CCS_PATH2_TYPE:
+						value = stat->mode & S_IFMT;
+						break;
+					case CCS_PATH1_DEV_MAJOR:
+					case CCS_PATH2_DEV_MAJOR:
+						value = MAJOR(stat->rdev);
+						break;
+					case CCS_PATH1_DEV_MINOR:
+					case CCS_PATH2_DEV_MINOR:
+						value = MINOR(stat->rdev);
+						break;
+					case CCS_PATH1_PERM:
+					case CCS_PATH2_PERM:
+					case CCS_PATH1_PARENT_PERM:
+					case CCS_PATH2_PARENT_PERM:
+						value = stat->mode & S_IALLUGO;
+						break;
+					}
 				}
 				break;
 			}
-			value = value;
-			if (j) {
-				right_max = value;
-				right_min = value;
-				right_is_bitop = is_bitop;
-			} else {
-				left_max = value;
-				left_min = value;
-				left_is_bitop = is_bitop;
+			max_v[j] = value;
+			min_v[j] = value;
+			switch (index) {
+			case CCS_MODE_SETUID:
+			case CCS_MODE_SETGID:
+			case CCS_MODE_STICKY:
+			case CCS_MODE_OWNER_READ:
+			case CCS_MODE_OWNER_WRITE:
+			case CCS_MODE_OWNER_EXECUTE:
+			case CCS_MODE_GROUP_READ:
+			case CCS_MODE_GROUP_WRITE:
+			case CCS_MODE_GROUP_EXECUTE:
+			case CCS_MODE_OTHERS_READ:
+			case CCS_MODE_OTHERS_WRITE:
+			case CCS_MODE_OTHERS_EXECUTE:
+				is_bitop[j] = true;
 			}
 		}
 		if (left == CCS_NUMBER_UNION) {
 			/* Fetch values now. */
 			const struct ccs_number_union *ptr = numbers_p++;
-			left_min = ptr->values[0];
-			left_max = ptr->values[1];
+			min_v[0] = ptr->values[0];
+			max_v[0] = ptr->values[1];
 		}
 		if (right == CCS_NUMBER_UNION) {
 			/* Fetch values now. */
 			const struct ccs_number_union *ptr = numbers_p++;
 			if (ptr->is_group) {
-				if (ccs_number_matches_group(left_min,
-							     left_max,
+				if (ccs_number_matches_group(min_v[0],
+							     max_v[0],
 							     ptr->group)
 				    == match)
 					continue;
 			} else {
-				if ((left_min <= ptr->values[1] &&
-				     left_max >= ptr->values[0]) == match)
+				if ((min_v[0] <= ptr->values[1] &&
+				     max_v[0] >= ptr->values[0]) == match)
 					continue;
 			}
 			goto out;
@@ -1406,49 +1244,33 @@ bool ccs_condition(struct ccs_request_info *r,
 		 * Bit operation is valid only when counterpart value
 		 * represents permission.
 		 */
-		if (left_is_bitop && right_is_bitop)
+		if (is_bitop[0] && is_bitop[1]) {
 			goto out;
-		if (left_is_bitop) {
+		} else if (is_bitop[0]) {
 			switch (right) {
 			case CCS_PATH1_PERM:
 			case CCS_PATH1_PARENT_PERM:
 			case CCS_PATH2_PERM:
 			case CCS_PATH2_PARENT_PERM:
-				if (match) {
-					if ((right_max & left_max))
-						continue;
-				} else {
-					if (!(right_max & left_max))
-						continue;
-				}
+				if (!(max_v[0] & max_v[1]) == !match)
+					continue;
 			}
 			goto out;
-		}
-		if (right_is_bitop) {
+		} else if (is_bitop[1]) {
 			switch (left) {
 			case CCS_PATH1_PERM:
 			case CCS_PATH1_PARENT_PERM:
 			case CCS_PATH2_PERM:
 			case CCS_PATH2_PARENT_PERM:
-				if (match) {
-					if ((left_max & right_max))
-						continue;
-				} else {
-					if (!(left_max & right_max))
-						continue;
-				}
+				if (!(max_v[0] & max_v[1]) == !match)
+					continue;
 			}
 			goto out;
 		}
 		/* Normal value range comparison. */
-		if (match) {
-			if (left_min <= right_max && left_max >= right_min)
-				continue;
-		} else {
-			if (left_min > right_max || left_max < right_min)
-				continue;
-		}
- out:
+		if ((min_v[0] <= max_v[1] && max_v[0] >= min_v[1]) == match)
+			continue;
+out:
 		return false;
 	}
 	/* Check argv[] and envp[] now. */

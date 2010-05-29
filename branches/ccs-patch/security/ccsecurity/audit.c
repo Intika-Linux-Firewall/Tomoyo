@@ -117,7 +117,7 @@ static char *ccs_print_bprm(struct linux_binprm *bprm,
  *
  * Returns file type string.
  */
-static const char *ccs_filetype(const mode_t mode)
+static inline const char *ccs_filetype(const mode_t mode)
 {
 	switch (mode & S_IFMT) {
 	case S_IFREG:
@@ -155,8 +155,6 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		"disabled", "learning", "permissive", "enforcing"
 	};
 	struct timeval tv;
-	unsigned int dev;
-	mode_t mode;
 	struct ccs_obj_info *obj = r->obj;
 	const u32 ccs_flags = current->ccs_flags;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
@@ -167,6 +165,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	static const int ccs_buffer_len = 4096;
 	char *buffer = kmalloc(ccs_buffer_len, CCS_GFP_FLAGS);
 	int pos;
+	u8 i;
 	if (!buffer)
 		return NULL;
 	do_gettimeofday(&tv);
@@ -195,57 +194,36 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		ccs_get_attributes(obj);
 		obj->validate_done = true;
 	}
-	if (obj->path1_valid) {
-		dev = obj->path1_stat.dev;
-		mode = obj->path1_stat.mode;
+	for (i = 0; i < CCS_MAX_STAT; i++) {
+		struct ccs_mini_stat *stat;
+		unsigned int dev;
+		mode_t mode;
+		if (!obj->stat_valid[i])
+			continue;
+		stat = &obj->stat[i];
+		dev = stat->dev;
+		mode = stat->mode;
+		if (i & 1) {
+			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
+					" path%u.parent={ uid=%u gid=%u "
+					"ino=%lu perm=0%o }", (i >> 1) + 1,
+					stat->uid, stat->gid, stat->ino,
+					stat->mode & S_IALLUGO);
+			continue;
+		}
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
 				" path%u={ uid=%u gid=%u ino=%lu major=%u"
-				" minor=%u perm=0%o type=%s", 1,
-				obj->path1_stat.uid, obj->path1_stat.gid,
-				(unsigned long) obj->path1_stat.ino,
+				" minor=%u perm=0%o type=%s", (i >> 1) + 1,
+				stat->uid, stat->gid, stat->ino,
 				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
 				ccs_filetype(mode));
 		if (S_ISCHR(mode) || S_ISBLK(mode)) {
-			dev = obj->path1_stat.rdev;
+			dev = stat->rdev;
 			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
 					" dev_major=%u dev_minor=%u",
 					MAJOR(dev), MINOR(dev));
 		}
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos, " }");
-	}
-	if (obj->path1_parent_valid) {
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path%u.parent={ uid=%u gid=%u ino=%lu"
-				" perm=0%o }", 1, obj->path1_parent_stat.uid,
-				obj->path1_parent_stat.gid,
-				obj->path1_parent_stat.ino,
-				obj->path1_parent_stat.mode & S_IALLUGO);
-	}
-	if (obj->path2_valid) {
-		dev = obj->path2_stat.dev;
-		mode = obj->path2_stat.mode;
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path%u={ uid=%u gid=%u ino=%lu major=%u"
-				" minor=%u perm=0%o type=%s", 2,
-				obj->path2_stat.uid, obj->path2_stat.gid,
-				(unsigned long) obj->path2_stat.ino,
-				MAJOR(dev), MINOR(dev), mode & S_IALLUGO,
-				ccs_filetype(mode));
-		if (S_ISCHR(mode) || S_ISBLK(mode)) {
-			dev = obj->path2_stat.rdev;
-			pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-					" dev_major=%u dev_minor=%u",
-					MAJOR(dev), MINOR(dev));
-		}
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos, " }");
-	}
-	if (obj->path2_parent_valid) {
-		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
-				" path%u.parent={ uid=%u gid=%u ino=%lu"
-				" perm=0%o }", 2, obj->path2_parent_stat.uid,
-				obj->path2_parent_stat.gid,
-				obj->path2_parent_stat.ino,
-				obj->path2_parent_stat.mode & S_IALLUGO);
 	}
  no_obj_info:
 	if (pos < ccs_buffer_len - 1)

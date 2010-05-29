@@ -269,6 +269,14 @@ enum ccs_conditions_index {
 	CCS_ENVP_ENTRY
 };
 
+enum ccs_stat_index {
+	CCS_PATH1,
+	CCS_PATH1_PARENT,
+	CCS_PATH2,
+	CCS_PATH2_PARENT,
+	CCS_MAX_STAT
+};
+
 /* Keywords for ACLs. */
 #define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
@@ -294,6 +302,7 @@ enum ccs_conditions_index {
 #define CCS_KEYWORD_NUMBER_GROUP              "number_group "
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
+#define CCS_KEYWORD_IGNORE_GLOBAL             "ignore_global"
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
 #define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
 #define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
@@ -459,17 +468,10 @@ struct ccs_page_dump {
 /* Structure for attribute checks in addition to pathname checks. */
 struct ccs_obj_info {
 	bool validate_done;
-	bool path1_valid;
-	bool path1_parent_valid;
-	bool path2_valid;
-	bool path2_parent_valid;
+	bool stat_valid[CCS_MAX_STAT];
 	struct path path1;
 	struct path path2;
-	struct ccs_mini_stat path1_stat;
-	/* I don't handle path2_stat for rename operation. */
-	struct ccs_mini_stat path2_stat;
-	struct ccs_mini_stat path1_parent_stat;
-	struct ccs_mini_stat path2_parent_stat;
+	struct ccs_mini_stat stat[CCS_MAX_STAT];
 	struct ccs_path_info *symlink_target;
 	unsigned int dev;
 };
