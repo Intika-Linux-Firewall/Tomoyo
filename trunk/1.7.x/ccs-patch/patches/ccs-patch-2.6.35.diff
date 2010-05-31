@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for linux-2.6.
+This is TOMOYO Linux patch for 2.6.35-rc1.
 
-Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=snapshot;h=24010e460454ec0d2f4f0213b667b4349cbdb8e1;sf=tgz
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.35-rc1.tar.bz2
 ---
  fs/compat.c               |    2 
  fs/compat_ioctl.c         |    4 +
@@ -152,7 +152,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: linux-2.6-24010e460454ec0d2f4f0213b667b4349cbdb8e1 2010/05/29\n");
++	printk(KERN_INFO "Hook version: 2.6.35-rc1 2010/05/31\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -487,7 +487,7 @@ Source code for this patch is http://git.kernel.org/?p=linux/kernel/git/torvalds
  		ret = ptrace_traceme();
 --- linux-2.6.orig/kernel/sched.c
 +++ linux-2.6/kernel/sched.c
-@@ -4271,6 +4271,8 @@ int can_nice(const struct task_struct *p
+@@ -4288,6 +4288,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
