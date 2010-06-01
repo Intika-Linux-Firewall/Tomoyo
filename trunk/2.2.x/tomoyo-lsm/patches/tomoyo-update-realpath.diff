@@ -1,0 +1,828 @@
+[PATCH] TOMOYO: Support longer string.
+
+Allow pathnames longer than 4000 bytes.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.h   |   37 -------
+ security/tomoyo/domain.c   |   68 ++++++--------
+ security/tomoyo/file.c     |  136 ++++++++++++----------------
+ security/tomoyo/memory.c   |    1 
+ security/tomoyo/mount.c    |   55 -----------
+ security/tomoyo/realpath.c |  214 +++++++++++++++++++++++----------------------
+ 6 files changed, 206 insertions(+), 305 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -33,15 +33,6 @@ struct linux_binprm;
+ #define TOMOYO_HASH_BITS  8
+ #define TOMOYO_MAX_HASH (1u<<TOMOYO_HASH_BITS)
+ 
+-/*
+- * This is the max length of a token.
+- *
+- * A token consists of only ASCII printable characters.
+- * Non printable characters in a token is represented in \ooo style
+- * octal string. Thus, \ itself is represented as \\.
+- */
+-#define TOMOYO_MAX_PATHNAME_LEN 4000
+-
+ /* Profile number is an integer between 0 and 255. */
+ #define TOMOYO_MAX_PROFILES 256
+ 
+@@ -229,28 +220,6 @@ struct tomoyo_name_entry {
+ 	struct tomoyo_path_info entry;
+ };
+ 
+-/*
+- * tomoyo_path_info_with_data is a structure which is used for holding a
+- * pathname obtained from "struct dentry" and "struct vfsmount" pair.
+- *
+- * "struct tomoyo_path_info_with_data" consists of "struct tomoyo_path_info"
+- * and buffer for the pathname, while "struct tomoyo_page_buffer" consists of
+- * buffer for the pathname only.
+- *
+- * "struct tomoyo_path_info_with_data" is intended to allow TOMOYO to release
+- * both "struct tomoyo_path_info" and buffer for the pathname by single kfree()
+- * so that we don't need to return two pointers to the caller. If the caller
+- * puts "struct tomoyo_path_info" on stack memory, we will be able to remove
+- * "struct tomoyo_path_info_with_data".
+- */
+-struct tomoyo_path_info_with_data {
+-	/* Keep "head" first, for this pointer is passed to kfree(). */
+-	struct tomoyo_path_info head;
+-	char barrier1[16]; /* Safeguard for overrun. */
+-	char body[TOMOYO_MAX_PATHNAME_LEN];
+-	char barrier2[16]; /* Safeguard for overrun. */
+-};
+-
+ struct tomoyo_name_union {
+ 	const struct tomoyo_path_info *filename;
+ 	struct tomoyo_path_group *group;
+@@ -824,11 +793,7 @@ void tomoyo_load_policy(const char *file
+ void tomoyo_put_number_union(struct tomoyo_number_union *ptr);
+ 
+ /* Convert binary string to ascii string. */
+-int tomoyo_encode(char *buffer, int buflen, const char *str);
+-
+-/* Returns realpath(3) of the given pathname but ignores chroot'ed root. */
+-int tomoyo_realpath_from_path2(struct path *path, char *newname,
+-			       int newname_len);
++char *tomoyo_encode(const char *str);
+ 
+ /*
+  * Returns realpath(3) of the given pathname but ignores chroot'ed root.
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -676,47 +676,43 @@ struct tomoyo_domain_info *tomoyo_find_o
+ int tomoyo_find_next_domain(struct linux_binprm *bprm)
+ {
+ 	struct tomoyo_request_info r;
+-	/*
+-	 * This function assumes that the size of buffer returned by
+-	 * tomoyo_realpath() = TOMOYO_MAX_PATHNAME_LEN.
+-	 */
+ 	struct tomoyo_page_buffer *tmp = kzalloc(sizeof(*tmp), GFP_NOFS);
+ 	struct tomoyo_domain_info *old_domain = tomoyo_domain();
+ 	struct tomoyo_domain_info *domain = NULL;
+ 	const char *old_domain_name = old_domain->domainname->name;
+ 	const char *original_name = bprm->filename;
+-	char *new_domain_name = NULL;
+-	char *real_program_name = NULL;
+-	char *symlink_program_name = NULL;
+ 	const u8 mode = tomoyo_check_flags(old_domain, TOMOYO_MAC_FOR_FILE);
+ 	const bool is_enforce = (mode == TOMOYO_CONFIG_ENFORCING);
+ 	int retval = -ENOMEM;
+-	struct tomoyo_path_info rn; /* real name */
+-	struct tomoyo_path_info sn; /* symlink name */
++	bool need_kfree = false;
++	struct tomoyo_path_info rn = { }; /* real name */
++	struct tomoyo_path_info sn = { }; /* symlink name */
+ 	struct tomoyo_path_info ln; /* last name */
+ 
++	ln.name = tomoyo_get_last_name(old_domain);
++	tomoyo_fill_path_info(&ln);
+ 	tomoyo_init_request_info(&r, NULL);
+ 	if (!tmp)
+ 		goto out;
+ 
+  retry:
++	if (need_kfree) {
++		kfree(rn.name);
++		need_kfree = false;
++	}
+ 	/* Get tomoyo_realpath of program. */
+ 	retval = -ENOENT;
+-	/* I hope tomoyo_realpath() won't fail with -ENOMEM. */
+-	real_program_name = tomoyo_realpath(original_name);
+-	if (!real_program_name)
++	rn.name = tomoyo_realpath(original_name);
++	if (!rn.name)
+ 		goto out;
++	tomoyo_fill_path_info(&rn);
++	need_kfree = true;
++
+ 	/* Get tomoyo_realpath of symbolic link. */
+-	symlink_program_name = tomoyo_realpath_nofollow(original_name);
+-	if (!symlink_program_name)
++	sn.name = tomoyo_realpath_nofollow(original_name);
++	if (!sn.name)
+ 		goto out;
+-
+-	rn.name = real_program_name;
+-	tomoyo_fill_path_info(&rn);
+-	sn.name = symlink_program_name;
+ 	tomoyo_fill_path_info(&sn);
+-	ln.name = tomoyo_get_last_name(old_domain);
+-	tomoyo_fill_path_info(&ln);
+ 
+ 	/* Check 'alias' directive. */
+ 	if (tomoyo_pathcmp(&rn, &sn)) {
+@@ -727,10 +723,10 @@ int tomoyo_find_next_domain(struct linux
+ 			    tomoyo_pathcmp(&rn, ptr->original_name) ||
+ 			    tomoyo_pathcmp(&sn, ptr->aliased_name))
+ 				continue;
+-			memset(real_program_name, 0, TOMOYO_MAX_PATHNAME_LEN);
+-			strncpy(real_program_name, ptr->aliased_name->name,
+-				TOMOYO_MAX_PATHNAME_LEN - 1);
+-			tomoyo_fill_path_info(&rn);
++			kfree(rn.name);
++			need_kfree = false;
++			/* This is OK because it is read only. */
++			rn = *ptr->aliased_name;
+ 			break;
+ 		}
+ 	}
+@@ -742,11 +738,10 @@ int tomoyo_find_next_domain(struct linux
+ 	if (retval < 0)
+ 		goto out;
+ 
+-	new_domain_name = tmp->buffer;
+ 	if (tomoyo_is_domain_initializer(old_domain->domainname, &rn, &ln)) {
+ 		/* Transit to the child of tomoyo_kernel_domain domain. */
+-		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
+-			 TOMOYO_ROOT_NAME " " "%s", real_program_name);
++		snprintf(tmp->buffer, sizeof(tmp->buffer) - 1,
++			 TOMOYO_ROOT_NAME " " "%s", rn.name);
+ 	} else if (old_domain == &tomoyo_kernel_domain &&
+ 		   !tomoyo_policy_loaded) {
+ 		/*
+@@ -760,29 +755,29 @@ int tomoyo_find_next_domain(struct linux
+ 		domain = old_domain;
+ 	} else {
+ 		/* Normal domain transition. */
+-		snprintf(new_domain_name, TOMOYO_MAX_PATHNAME_LEN + 1,
+-			 "%s %s", old_domain_name, real_program_name);
++		snprintf(tmp->buffer, sizeof(tmp->buffer) - 1,
++			 "%s %s", old_domain_name, rn.name);
+ 	}
+-	if (domain || strlen(new_domain_name) >= TOMOYO_MAX_PATHNAME_LEN)
++	if (domain || strlen(tmp->buffer) >= sizeof(tmp->buffer) - 10)
+ 		goto done;
+-	domain = tomoyo_find_domain(new_domain_name);
++	domain = tomoyo_find_domain(tmp->buffer);
+ 	if (domain)
+ 		goto done;
+ 	if (is_enforce) {
+ 		int error = tomoyo_supervisor(&r, "# wants to create domain\n"
+-					      "%s\n", new_domain_name);
++					      "%s\n", tmp->buffer);
+ 		if (error == TOMOYO_RETRY_REQUEST)
+ 			goto retry;
+ 		if (error < 0)
+ 			goto done;
+ 	}
+-	domain = tomoyo_find_or_assign_new_domain(new_domain_name,
++	domain = tomoyo_find_or_assign_new_domain(tmp->buffer,
+ 						  old_domain->profile);
+  done:
+ 	if (domain)
+ 		goto out;
+ 	printk(KERN_WARNING "TOMOYO-ERROR: Domain '%s' not defined.\n",
+-	       new_domain_name);
++	       tmp->buffer);
+ 	if (is_enforce)
+ 		retval = -EPERM;
+ 	else
+@@ -793,8 +788,9 @@ int tomoyo_find_next_domain(struct linux
+ 	/* Update reference count on "struct tomoyo_domain_info". */
+ 	atomic_inc(&domain->users);
+ 	bprm->cred->security = domain;
+-	kfree(real_program_name);
+-	kfree(symlink_program_name);
++	if (need_kfree)
++		kfree(rn.name);
++	kfree(sn.name);
+ 	kfree(tmp);
+ 	return retval;
+ }
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -135,6 +135,17 @@ const char *tomoyo_path_number2keyword(c
+ 		? tomoyo_path_number_keyword[operation] : NULL;
+ }
+ 
++static void tomoyo_add_slash(struct tomoyo_path_info *buf)
++{
++	if (buf->is_dir)
++		return;
++	/*
++	 * This is OK because tomoyo_encode() reserves space for appending "/".
++	 */
++	strcat((char *) buf->name, "/");
++	tomoyo_fill_path_info(buf);
++}
++
+ /**
+  * tomoyo_strendswith - Check whether the token ends with the given token.
+  *
+@@ -154,30 +165,21 @@ static bool tomoyo_strendswith(const cha
+ }
+ 
+ /**
+- * tomoyo_get_path - Get realpath.
++ * tomoyo_get_realpath - Get realpath.
+  *
++ * @buf:  Pointer to "struct tomoyo_path_info".
+  * @path: Pointer to "struct path".
+  *
+- * Returns pointer to "struct tomoyo_path_info" on success, NULL otherwise.
++ * Returns true on success, false otherwise.
+  */
+-static struct tomoyo_path_info *tomoyo_get_path(struct path *path)
++static bool tomoyo_get_realpath(struct tomoyo_path_info *buf, struct path *path)
+ {
+-	int error;
+-	struct tomoyo_path_info_with_data *buf = kzalloc(sizeof(*buf),
+-							 GFP_NOFS);
+-
+-	if (!buf)
+-		return NULL;
+-	/* Reserve one byte for appending "/". */
+-	error = tomoyo_realpath_from_path2(path, buf->body,
+-					   sizeof(buf->body) - 2);
+-	if (!error) {
+-		buf->head.name = buf->body;
+-		tomoyo_fill_path_info(&buf->head);
+-		return &buf->head;
++	buf->name = tomoyo_realpath_from_path(path);
++	if (buf->name) {
++		tomoyo_fill_path_info(buf);
++		return true;
+ 	}
+-	kfree(buf);
+-	return NULL;
++        return false;
+ }
+ 
+ static int tomoyo_update_path2_acl(const u8 type, const char *filename1,
+@@ -1243,26 +1245,20 @@ int tomoyo_path_number_perm(const u8 typ
+ {
+ 	struct tomoyo_request_info r;
+ 	int error = -ENOMEM;
+-	struct tomoyo_path_info *buf;
++	struct tomoyo_path_info buf;
+ 	int idx;
+ 
+ 	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
+ 	    !path->mnt || !path->dentry)
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+-	buf = tomoyo_get_path(path);
+-	if (!buf)
++	if (!tomoyo_get_realpath(&buf, path))
+ 		goto out;
+-	if (type == TOMOYO_TYPE_MKDIR && !buf->is_dir) {
+-		/*
+-		 * tomoyo_get_path() reserves space for appending "/."
+-		 */
+-		strcat((char *) buf->name, "/");
+-		tomoyo_fill_path_info(buf);
+-	}
+-	error = tomoyo_path_number_perm2(&r, type, buf, number);
++	if (type == TOMOYO_TYPE_MKDIR)
++		tomoyo_add_slash(&buf);
++	error = tomoyo_path_number_perm2(&r, type, &buf, number);
+  out:
+-	kfree(buf);
++	kfree(buf.name);
+ 	tomoyo_read_unlock(idx);
+ 	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+@@ -1303,7 +1299,7 @@ int tomoyo_check_open_permission(struct 
+ {
+ 	const u8 acc_mode = ACC_MODE(flag);
+ 	int error = -ENOMEM;
+-	struct tomoyo_path_info *buf;
++	struct tomoyo_path_info buf;
+ 	struct tomoyo_request_info r;
+ 	int idx;
+ 
+@@ -1319,8 +1315,7 @@ int tomoyo_check_open_permission(struct 
+ 		 */
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+-	buf = tomoyo_get_path(path);
+-	if (!buf)
++	if (!tomoyo_get_realpath(&buf, path))
+ 		goto out;
+ 	error = 0;
+ 	/*
+@@ -1330,15 +1325,15 @@ int tomoyo_check_open_permission(struct 
+ 	 */
+ 	if ((acc_mode & MAY_WRITE) &&
+ 	    ((flag & O_TRUNC) || !(flag & O_APPEND)) &&
+-	    (tomoyo_is_no_rewrite_file(buf))) {
+-		error = tomoyo_path_permission(&r, TOMOYO_TYPE_REWRITE, buf);
++	    (tomoyo_is_no_rewrite_file(&buf))) {
++		error = tomoyo_path_permission(&r, TOMOYO_TYPE_REWRITE, &buf);
+ 	}
+ 	if (!error)
+-		error = tomoyo_file_perm(&r, buf, acc_mode);
++		error = tomoyo_file_perm(&r, &buf, acc_mode);
+ 	if (!error && (flag & O_TRUNC))
+-		error = tomoyo_path_permission(&r, TOMOYO_TYPE_TRUNCATE, buf);
++		error = tomoyo_path_permission(&r, TOMOYO_TYPE_TRUNCATE, &buf);
+  out:
+-	kfree(buf);
++	kfree(buf.name);
+ 	tomoyo_read_unlock(idx);
+ 	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+@@ -1356,7 +1351,7 @@ int tomoyo_check_open_permission(struct 
+ int tomoyo_path_perm(const u8 operation, struct path *path)
+ {
+ 	int error = -ENOMEM;
+-	struct tomoyo_path_info *buf;
++	struct tomoyo_path_info buf;
+ 	struct tomoyo_request_info r;
+ 	int idx;
+ 
+@@ -1364,29 +1359,23 @@ int tomoyo_path_perm(const u8 operation,
+ 	    !path->mnt)
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+-	buf = tomoyo_get_path(path);
+-	if (!buf)
++	if (!tomoyo_get_realpath(&buf, path))
+ 		goto out;
+ 	switch (operation) {
+ 	case TOMOYO_TYPE_REWRITE:
+-		if (!tomoyo_is_no_rewrite_file(buf)) {
++		if (!tomoyo_is_no_rewrite_file(&buf)) {
+ 			error = 0;
+ 			goto out;
+ 		}
+ 		break;
+ 	case TOMOYO_TYPE_RMDIR:
+ 	case TOMOYO_TYPE_CHROOT:
+-		if (!buf->is_dir) {
+-			/*
+-			 * tomoyo_get_path() reserves space for appending "/."
+-			 */
+-			strcat((char *) buf->name, "/");
+-			tomoyo_fill_path_info(buf);
+-		}
++		tomoyo_add_slash(&buf);
++		break;
+ 	}
+-	error = tomoyo_path_permission(&r, operation, buf);
++	error = tomoyo_path_permission(&r, operation, &buf);
+  out:
+-	kfree(buf);
++	kfree(buf.name);
+ 	tomoyo_read_unlock(idx);
+ 	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+@@ -1449,7 +1438,7 @@ int tomoyo_path_number3_perm(const u8 op
+ {
+ 	struct tomoyo_request_info r;
+ 	int error = -ENOMEM;
+-	struct tomoyo_path_info *buf;
++	struct tomoyo_path_info buf;
+ 	int idx;
+ 
+ 	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
+@@ -1457,11 +1446,10 @@ int tomoyo_path_number3_perm(const u8 op
+ 		return 0;
+ 	idx = tomoyo_read_lock();
+ 	error = -ENOMEM;
+-	buf = tomoyo_get_path(path);
+-	if (buf) {
+-		error = tomoyo_path_number3_perm2(&r, operation, buf, mode,
++	if (tomoyo_get_realpath(&buf, path)) {
++		error = tomoyo_path_number3_perm2(&r, operation, &buf, mode,
+ 						  new_decode_dev(dev));
+-		kfree(buf);
++		kfree(buf.name);
+ 	}
+ 	tomoyo_read_unlock(idx);
+ 	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+@@ -1483,48 +1471,40 @@ int tomoyo_path2_perm(const u8 operation
+ {
+ 	int error = -ENOMEM;
+ 	const char *msg;
+-	struct tomoyo_path_info *buf1;
+-	struct tomoyo_path_info *buf2;
++	struct tomoyo_path_info buf1;
++	struct tomoyo_path_info buf2;
+ 	struct tomoyo_request_info r;
+ 	int idx;
+ 
+ 	if (tomoyo_init_request_info(&r, NULL) == TOMOYO_CONFIG_DISABLED ||
+ 	    !path1->mnt || !path2->mnt)
+ 		return 0;
++	buf1.name = NULL;
++	buf2.name = NULL;
+ 	idx = tomoyo_read_lock();
+-	buf1 = tomoyo_get_path(path1);
+-	buf2 = tomoyo_get_path(path2);
+-	if (!buf1 || !buf2)
++	if (!tomoyo_get_realpath(&buf1, path1) ||
++	    !tomoyo_get_realpath(&buf2, path2))
+ 		goto out;
+ 	{
+ 		struct dentry *dentry = path1->dentry;
+ 		if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)) {
+-			/*
+-			 * tomoyo_get_path() reserves space for appending "/."
+-			 */
+-			if (!buf1->is_dir) {
+-				strcat((char *) buf1->name, "/");
+-				tomoyo_fill_path_info(buf1);
+-			}
+-			if (!buf2->is_dir) {
+-				strcat((char *) buf2->name, "/");
+-				tomoyo_fill_path_info(buf2);
+-			}
++			tomoyo_add_slash(&buf1);
++			tomoyo_add_slash(&buf2);
+ 		}
+ 	}
+ 	do {
+-		error = tomoyo_path2_acl(&r, operation, buf1, buf2);
++		error = tomoyo_path2_acl(&r, operation, &buf1, &buf2);
+ 		if (!error)
+ 			break;
+ 		msg = tomoyo_path22keyword(operation);
+-		tomoyo_warn_log(&r, "%s %s %s", msg, buf1->name, buf2->name);
++		tomoyo_warn_log(&r, "%s %s %s", msg, buf1.name, buf2.name);
+ 		error = tomoyo_supervisor(&r, "allow_%s %s %s\n", msg,
+-					  tomoyo_file_pattern(buf1),
+-					  tomoyo_file_pattern(buf2));
++					  tomoyo_file_pattern(&buf1),
++					  tomoyo_file_pattern(&buf2));
+         } while (error == TOMOYO_RETRY_REQUEST);
+  out:
+-	kfree(buf1);
+-	kfree(buf2);
++	kfree(buf1.name);
++	kfree(buf2.name);
+ 	tomoyo_read_unlock(idx);
+ 	if (r.mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
+--- security-testing-2.6.orig/security/tomoyo/memory.c
++++ security-testing-2.6/security/tomoyo/memory.c
+@@ -153,7 +153,6 @@ void __init tomoyo_mm_init(void)
+ {
+ 	int idx;
+ 
+-	BUILD_BUG_ON(TOMOYO_MAX_PATHNAME_LEN > PATH_MAX);
+ 	for (idx = 0; idx < TOMOYO_MAX_HASH; idx++)
+ 		INIT_LIST_HEAD(&tomoyo_name_list[idx]);
+ 	INIT_LIST_HEAD(&tomoyo_kernel_domain.acl_info_list);
+--- security-testing-2.6.orig/security/tomoyo/mount.c
++++ security-testing-2.6/security/tomoyo/mount.c
+@@ -25,57 +25,6 @@
+ #define TOMOYO_MOUNT_MAKE_SHARED_KEYWORD                 "--make-shared"
+ 
+ /**
+- * tomoyo_encode2: Encode binary string to ascii string.
+- *
+- * @str: String in binary format.
+- *
+- * Returns pointer to @str in ascii format on success, NULL otherwise.
+- *
+- * This function uses kzalloc(), so caller must kfree() if this function
+- * didn't return NULL.
+- */
+-static char *tomoyo_encode2(const char *str)
+-{
+-	int len = 0;
+-	const char *p = str;
+-	char *cp;
+-	char *cp0;
+-	if (!p)
+-		return NULL;
+-	while (*p) {
+-		const unsigned char c = *p++;
+-		if (c == '\\')
+-			len += 2;
+-		else if (c > ' ' && c < 127)
+-			len++;
+-		else
+-			len += 4;
+-	}
+-	len++;
+-	/* Reserve space for appending "/". */
+-	cp = kzalloc(len + 10, GFP_NOFS);
+-	if (!cp)
+-		return NULL;
+-	cp0 = cp;
+-	p = str;
+-	while (*p) {
+-		const unsigned char c = *p++;
+-		if (c == '\\') {
+-			*cp++ = '\\';
+-			*cp++ = '\\';
+-		} else if (c > ' ' && c < 127) {
+-			*cp++ = c;
+-		} else {
+-			*cp++ = '\\';
+-			*cp++ = (c >> 6) + '0';
+-			*cp++ = ((c >> 3) & 7) + '0';
+-			*cp++ = (c & 7) + '0';
+-		}
+-	}
+-	return cp0;
+-}
+-
+-/**
+  * tomoyo_mount_acl2 - Check permission for mount() operation.
+  *
+  * @r:        Pointer to "struct tomoyo_request_info".
+@@ -104,7 +53,7 @@ static int tomoyo_mount_acl2(struct tomo
+ 	int error = -ENOMEM;
+ 
+ 	/* Get fstype. */
+-	requested_type = tomoyo_encode2(type);
++	requested_type = tomoyo_encode(type);
+ 	if (!requested_type)
+ 		goto out;
+ 	rtype.name = requested_type;
+@@ -155,7 +104,7 @@ static int tomoyo_mount_acl2(struct tomo
+ 		/* Map dev_name to "<NULL>" if no dev_name given. */
+ 		if (!dev_name)
+ 			dev_name = "<NULL>";
+-		requested_dev_name = tomoyo_encode2(dev_name);
++		requested_dev_name = tomoyo_encode(dev_name);
+ 		if (!requested_dev_name) {
+ 			error = -ENOMEM;
+ 			goto out;
+--- security-testing-2.6.orig/security/tomoyo/realpath.c
++++ security-testing-2.6/security/tomoyo/realpath.c
+@@ -12,141 +12,153 @@
+ #include <linux/fs_struct.h>
+ #include <linux/magic.h>
+ #include <linux/slab.h>
++#include <net/sock.h>
+ #include "common.h"
+ 
+ /**
+  * tomoyo_encode: Convert binary string to ascii string.
+  *
+- * @buffer:  Buffer for ASCII string.
+- * @buflen:  Size of @buffer.
+- * @str:     Binary string.
++ * @str: String in binary format.
+  *
+- * Returns 0 on success, -ENOMEM otherwise.
++ * Returns pointer to @str in ascii format on success, NULL otherwise.
++ *
++ * This function uses kzalloc(), so caller must kfree() if this function
++ * didn't return NULL.
+  */
+-int tomoyo_encode(char *buffer, int buflen, const char *str)
++char *tomoyo_encode(const char *str)
+ {
+-	while (1) {
+-		const unsigned char c = *(unsigned char *) str++;
++	int len = 0;
++	const char *p = str;
++	char *cp;
++	char *cp0;
+ 
+-		if (tomoyo_is_valid(c)) {
+-			if (--buflen <= 0)
+-				break;
+-			*buffer++ = (char) c;
+-			if (c != '\\')
+-				continue;
+-			if (--buflen <= 0)
+-				break;
+-			*buffer++ = (char) c;
+-			continue;
+-		}
+-		if (!c) {
+-			if (--buflen <= 0)
+-				break;
+-			*buffer = '\0';
+-			return 0;
++	if (!p)
++		return NULL;
++	while (*p) {
++		const unsigned char c = *p++;
++		if (c == '\\')
++			len += 2;
++		else if (c > ' ' && c < 127)
++			len++;
++		else
++			len += 4;
++	}
++	len++;
++	/* Reserve space for appending "/". */
++	cp = kzalloc(len + 10, GFP_NOFS);
++	if (!cp)
++		return NULL;
++	cp0 = cp;
++	p = str;
++	while (*p) {
++		const unsigned char c = *p++;
++
++		if (c == '\\') {
++			*cp++ = '\\';
++			*cp++ = '\\';
++		} else if (c > ' ' && c < 127) {
++			*cp++ = c;
++		} else {
++			*cp++ = '\\';
++			*cp++ = (c >> 6) + '0';
++			*cp++ = ((c >> 3) & 7) + '0';
++			*cp++ = (c & 7) + '0';
+ 		}
+-		buflen -= 4;
+-		if (buflen <= 0)
+-			break;
+-		*buffer++ = '\\';
+-		*buffer++ = (c >> 6) + '0';
+-		*buffer++ = ((c >> 3) & 7) + '0';
+-		*buffer++ = (c & 7) + '0';
+ 	}
+-	return -ENOMEM;
++	return cp0;
+ }
+ 
+ /**
+- * tomoyo_realpath_from_path2 - Returns realpath(3) of the given dentry but ignores chroot'ed root.
++ * tomoyo_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+  *
+- * @path:        Pointer to "struct path".
+- * @newname:     Pointer to buffer to return value in.
+- * @newname_len: Size of @newname.
++ * @path: Pointer to "struct path".
+  *
+- * Returns 0 on success, negative value otherwise.
++ * Returns the realpath of the given @path on success, NULL otherwise.
+  *
+  * If dentry is a directory, trailing '/' is appended.
+  * Characters out of 0x20 < c < 0x7F range are converted to
+  * \ooo style octal string.
+  * Character \ is converted to \\ string.
++ *
++ * These functions use kzalloc(), so the caller must call kfree()
++ * if these functions didn't return NULL.
+  */
+-int tomoyo_realpath_from_path2(struct path *path, char *newname,
+-			       int newname_len)
++char *tomoyo_realpath_from_path(struct path *path)
+ {
+-	int error = -ENOMEM;
++	char *buf = NULL;
++	char *name = NULL;
++	unsigned int buf_len = PAGE_SIZE / 2;
+ 	struct dentry *dentry = path->dentry;
+-	char *sp;
+-
+-	if (!dentry || !path->mnt || !newname || newname_len <= 2048)
+-		return -EINVAL;
+-	if (dentry->d_op && dentry->d_op->d_dname) {
++	bool is_dir;
++	if (!dentry)
++		return NULL;
++	is_dir = dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode);
++	while (1) {
++		struct path ns_root = { .mnt = NULL, .dentry = NULL };
++		char *pos;
++		buf_len <<= 1;
++		kfree(buf);
++		buf = kmalloc(buf_len, GFP_NOFS);
++		if (!buf)
++			break;
++		/* Get better name for socket. */
++		if (dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
++			struct inode *inode = dentry->d_inode;
++			struct socket *sock = inode ? SOCKET_I(inode) : NULL;
++			struct sock *sk = sock ? sock->sk : NULL;
++			if (sk) {
++				snprintf(buf, buf_len - 1, "socket:[family=%u:"
++					 "type=%u:protocol=%u]", sk->sk_family,
++					 sk->sk_type, sk->sk_protocol);
++			} else {
++				snprintf(buf, buf_len - 1, "socket:[unknown]");
++			}
++			name = tomoyo_encode(buf);
++			break;
++		}
+ 		/* For "socket:[\$]" and "pipe:[\$]". */
+-		static const int offset = 1536;
+-		sp = dentry->d_op->d_dname(dentry, newname + offset,
+-					   newname_len - offset);
+-	} else {
+-		struct path ns_root = {.mnt = NULL, .dentry = NULL};
+-
++		if (dentry->d_op && dentry->d_op->d_dname) {
++			pos = dentry->d_op->d_dname(dentry, buf, buf_len - 1);
++			if (IS_ERR(pos))
++				continue;
++			name = tomoyo_encode(pos);
++			break;
++		}
++		/* If we don't have a vfsmount, we can't calculate. */
++		if (!path->mnt)
++			break;
+ 		spin_lock(&dcache_lock);
+ 		/* go to whatever namespace root we are under */
+-		sp = __d_path(path, &ns_root, newname, newname_len);
++		pos = __d_path(path, &ns_root, buf, buf_len);
+ 		spin_unlock(&dcache_lock);
+ 		/* Prepend "/proc" prefix if using internal proc vfs mount. */
+-		if (!IS_ERR(sp) && (path->mnt->mnt_flags & MNT_INTERNAL) &&
++		if (!IS_ERR(pos) && (path->mnt->mnt_flags & MNT_INTERNAL) &&
+ 		    (path->mnt->mnt_sb->s_magic == PROC_SUPER_MAGIC)) {
+-			sp -= 5;
+-			if (sp >= newname)
+-				memcpy(sp, "/proc", 5);
++			pos -= 5;
++			if (pos >= buf)
++				memcpy(pos, "/proc", 5);
+ 			else
+-				sp = ERR_PTR(-ENOMEM);
+-		}
+-	}
+-	if (IS_ERR(sp))
+-		error = PTR_ERR(sp);
+-	else
+-		error = tomoyo_encode(newname, sp - newname, sp);
+-	/* Append trailing '/' if dentry is a directory. */
+-	if (!error && dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)
+-	    && *newname) {
+-		sp = newname + strlen(newname);
+-		if (*(sp - 1) != '/') {
+-			if (sp < newname + newname_len - 4) {
+-				*sp++ = '/';
+-				*sp = '\0';
+-			} else {
+-				error = -ENOMEM;
+-			}
++				pos = ERR_PTR(-ENOMEM);
+ 		}
++		if (IS_ERR(pos))
++			continue;
++		name = tomoyo_encode(pos);
++		break;
+ 	}
+-	if (error)
+-		tomoyo_warn_oom(__func__);
+-	return error;
+-}
+-
+-/**
+- * tomoyo_realpath_from_path - Returns realpath(3) of the given pathname but ignores chroot'ed root.
+- *
+- * @path: Pointer to "struct path".
+- *
+- * Returns the realpath of the given @path on success, NULL otherwise.
+- *
+- * These functions use kzalloc(), so the caller must call kfree()
+- * if these functions didn't return NULL.
+- */
+-char *tomoyo_realpath_from_path(struct path *path)
+-{
+-	char *buf = kzalloc(sizeof(struct tomoyo_page_buffer), GFP_NOFS);
+-
+-	BUILD_BUG_ON(TOMOYO_MAX_PATHNAME_LEN > PATH_MAX);
+-	BUILD_BUG_ON(sizeof(struct tomoyo_page_buffer)
+-		     <= TOMOYO_MAX_PATHNAME_LEN - 1);
+-	if (!buf)
+-		return NULL;
+-	if (tomoyo_realpath_from_path2(path, buf,
+-				       TOMOYO_MAX_PATHNAME_LEN - 1) == 0)
+-		return buf;
+ 	kfree(buf);
+-	return NULL;
++	if (!name)
++		tomoyo_warn_oom(__func__);
++	else if (is_dir && *name) {
++		/* Append trailing '/' if dentry is a directory. */
++		char *pos = name + strlen(name) - 1;
++		if (*pos != '/')
++			/*
++			 * This is OK because tomoyo_encode() reserves space
++			 * for appending "/".
++			 */
++			*++pos = '/';
++	}
++	return name;
+ }
+ 
+ /**
