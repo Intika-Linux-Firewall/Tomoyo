@@ -303,7 +303,7 @@ static const struct ccs_path_info *ccs_get_dqword(char *start)
 		*(cp - 1) = '\0';
 		break;
 	}
-	if (!ccs_correct_path(start, 0, 0, 0))
+	if (*start && !ccs_correct_word(start))
 		return NULL;
 	return ccs_get_name(start);
 }
@@ -378,7 +378,7 @@ static bool ccs_parse_envp(char *start, struct ccs_envp *envp)
 			goto out;
 		}
 	}
-	if (!*cp || !ccs_correct_path(cp, 0, 0, 0))
+	if (!ccs_correct_word(cp))
 		goto out;
 	name = ccs_get_name(cp);
 	if (!name)

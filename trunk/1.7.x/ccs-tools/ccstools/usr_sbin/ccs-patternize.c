@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 			if (ccs_str_starts(line, "file_pattern ") ||
 			    ccs_str_starts(line, "path_group") ||
 			    ccs_str_starts(line, "number_group") ||
-			    ccs_is_correct_path(line, 0, 1, 0)) {
+			    ccs_correct_word(line)) {
 				char *cp = strdup(line);
 				argv = realloc(argv,
 					       (argc + 1) * sizeof(char *));
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 	for (i = 0; i < argc; i++) {
 		ccs_normalize_line(argv[i]);
 		if (ccs_str_starts(argv[i], "file_pattern ")) {
-			if (!ccs_is_correct_path(argv[i], 0, 1, 0))
+			if (!ccs_correct_word(argv[i]))
 				continue;
 			ccs_pattern_list[i].path.name = argv[i];
 			ccs_pattern_list[i].type = 1;
@@ -164,8 +164,8 @@ int main(int argc, char *argv[])
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
-			    !ccs_is_correct_path(cp + 1, 0, 0, 0))
+			    !ccs_correct_word(argv[i] + 1) ||
+			    !ccs_correct_word(cp + 1))
 				continue;
 			argv[i][0] = '@';
 			ccs_pattern_list[i].group_name = argv[i];
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
+			    !ccs_correct_word(argv[i] + 1) ||
 			    ccs_parse_number(cp + 1, &ccs_pattern_list[i].number))
 				continue;
 			argv[i][0] = '@';
@@ -189,13 +189,13 @@ int main(int argc, char *argv[])
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_is_correct_path(argv[i] + 1, 0, 0, 0) ||
+			    !ccs_correct_word(argv[i] + 1) ||
 			    ccs_parse_ip(cp + 1, &ccs_pattern_list[i].ip))
 				continue;
 			argv[i][0] = '@';
 			ccs_pattern_list[i].group_name = argv[i];
 			ccs_pattern_list[i].type = 4;
-		} else if (ccs_is_correct_path(argv[i], 0, 1, 0)) {
+		} else if (ccs_correct_word(argv[i])) {
 			ccs_pattern_list[i].path.name = argv[i];
 			ccs_pattern_list[i].type = 1;
 		}

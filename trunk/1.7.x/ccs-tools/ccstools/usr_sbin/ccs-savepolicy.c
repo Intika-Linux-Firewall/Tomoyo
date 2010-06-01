@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
-			    ccs_is_identical_file("exception_policy.conf",
+			    ccs_identical_file("exception_policy.conf",
 					      filename)) {
 				unlink(filename);
 			} else {
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
-			    ccs_is_identical_file("domain_policy.conf", filename)) {
+			    ccs_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
 				unlink("domain_policy.conf");

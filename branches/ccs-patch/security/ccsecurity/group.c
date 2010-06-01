@@ -118,29 +118,20 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
  *
  * @pathname:        The name of pathname.
  * @group:           Pointer to "struct ccs_path_group".
- * @may_use_pattern: True if wild card is permitted.
  *
  * Returns true if @pathname matches pathnames in @group, false otherwise.
  *
  * Caller holds ccs_read_lock().
  */
 bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_group *group,
-			    const bool may_use_pattern)
+			    const struct ccs_group *group)
 {
 	struct ccs_path_group *member;
 	bool matched = false;
 	list_for_each_entry_rcu(member, &group->member_list, head.list) {
 		if (member->head.is_deleted)
 			continue;
-		if (!member->member_name->is_patterned) {
-			if (ccs_pathcmp(pathname, member->member_name))
-				continue;
-		} else if (may_use_pattern) {
-			if (!ccs_path_matches_pattern(pathname,
-						      member->member_name))
-				continue;
-		} else
+		if (!ccs_path_matches_pattern(pathname, member->member_name))
 			continue;
 		matched = true;
 		break;

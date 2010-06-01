@@ -106,7 +106,7 @@ static void ccs_do_pathmatch_main(char *find)
 {
 	if (!strcmp(find, "/"))
 		putchar('/');
-	else if (ccs_is_correct_path(find, 1, 0, 0)) {
+	else if (ccs_correct_path(find)) {
 		ccs_target.name = find;
 		ccs_fill_path_info(&ccs_target);
 		ccs_print_path_needs_separator = false;

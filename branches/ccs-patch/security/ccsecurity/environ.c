@@ -91,7 +91,7 @@ int ccs_write_env(char *data, struct ccs_domain_info *domain,
 		.head.cond = condition
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(data, 0, 0, 0) || strchr(data, '='))
+	if (!ccs_correct_word(data) || strchr(data, '='))
 		return -EINVAL;
 	e.env = ccs_get_name(data);
 	if (!e.env)

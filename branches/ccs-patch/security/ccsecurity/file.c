@@ -488,20 +488,8 @@ bool ccs_compare_name_union(const struct ccs_path_info *name,
 			    const struct ccs_name_union *ptr)
 {
 	if (ptr->is_group)
-		return ccs_path_matches_group(name, ptr->group, 1);
+		return ccs_path_matches_group(name, ptr->group);
 	return ccs_path_matches_pattern(name, ptr->filename);
-}
-
-static bool ccs_compare_name_union_pattern(const struct ccs_path_info *name,
-					   const struct ccs_name_union *ptr,
-					   const bool may_use_pattern)
-{
-	if (ptr->is_group)
-		return ccs_path_matches_group(name, ptr->group,
-					      may_use_pattern);
-	if (may_use_pattern || !ptr->filename->is_patterned)
-		return ccs_path_matches_pattern(name, ptr->filename);
-	return false;
 }
 
 /**
@@ -624,8 +612,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
 		return 0;
 	ccs_warn_log(r, "%s %s", operation, filename->name);
 	return ccs_supervisor(r, "allow_%s %s\n", operation,
-			      r->param.path.may_use_pattern ?
-			      ccs_file_pattern(filename) : filename->name);
+			      ccs_file_pattern(filename));
 }
 
 /**
@@ -766,7 +753,7 @@ int ccs_write_pattern(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_pattern e = { };
 	int error;
-	if (!ccs_correct_path(data, 0, 1, 0))
+	if (!ccs_correct_word(data))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
@@ -822,7 +809,7 @@ int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags)
 {
 	struct ccs_no_rewrite e = { };
 	int error;
-	if (!ccs_correct_path(data, 0, 0, 0))
+	if (!ccs_correct_word(data))
 		return -EINVAL;
 	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
@@ -879,9 +866,7 @@ static bool ccs_check_path_acl(const struct ccs_request_info *r,
 {
 	const struct ccs_path_acl *acl = container_of(ptr, typeof(*acl), head);
 	return (acl->perm & (1 << r->param.path.operation)) &&
-		ccs_compare_name_union_pattern(r->param.path.filename,
-					       &acl->name,
-					       r->param.path.may_use_pattern);
+		ccs_compare_name_union(r->param.path.filename, &acl->name);
 }
 
 static bool ccs_check_path_number_acl(const struct ccs_request_info *r,
@@ -950,7 +935,7 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 {
 	struct ccs_execute_handler e = { .head.type = type };
 	int error;
-	if (!ccs_correct_path(filename, 1, -1, -1))
+	if (!ccs_correct_path(filename))
 		return -EINVAL;
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
@@ -1180,8 +1165,6 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 	r->param_type = CCS_TYPE_PATH_ACL;
 	r->param.path.filename = filename;
 	r->param.path.operation = operation;
-	r->param.path.may_use_pattern = operation != CCS_TYPE_EXECUTE &&
-		operation != CCS_TYPE_TRANSIT;
 	do {
 		ccs_check_acl(r, ccs_check_path_acl);
 		error = ccs_audit_path_log(r);

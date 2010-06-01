@@ -192,7 +192,7 @@ void ccs_print_ulong(char *buffer, const int buffer_len,
  */
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr)
 {
-	if (!ccs_correct_path(filename, 0, 0, 0))
+	if (!ccs_correct_word(filename))
 		return false;
 	if (filename[0] == '@') {
 		ptr->group = ccs_get_group(filename + 1, CCS_PATH_GROUP);
@@ -218,7 +218,7 @@ bool ccs_parse_number_union(char *data, struct ccs_number_union *num)
 	unsigned long v;
 	memset(num, 0, sizeof(*num));
 	if (data[0] == '@') {
-		if (!ccs_correct_path(data, 0, 0, 0))
+		if (!ccs_correct_word(data))
 			return false;
 		num->group = ccs_get_group(data + 1, CCS_NUMBER_GROUP);
 		num->is_group = true;
@@ -389,53 +389,29 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
 }
 
 /**
- * ccs_correct_path - Validate a pathname.
+ * ccs_correct_word2 - Validate a string.
  *
- * @filename:     The pathname to check.
- * @start_type:   Should the pathname start with '/'?
- *                1 = must / -1 = must not / 0 = don't care
- * @pattern_type: Can the pathname contain a wildcard?
- *                1 = must / -1 = must not / 0 = don't care
- * @end_type:     Should the pathname end with '/'?
- *                1 = must / -1 = must not / 0 = don't care
+ * @string: The string to check. May be non-'\0'-terminated.
+ * @len:    Length of @string.
  *
- * Check whether the given filename follows the naming rules.
- * Returns true if @filename follows the naming rules, false otherwise.
+ * Check whether the given string follows the naming rules.
+ * Returns true if @string follows the naming rules, false otherwise.
  */
-bool ccs_correct_path(const char *filename, const s8 start_type,
-			 const s8 pattern_type, const s8 end_type)
+static bool ccs_correct_word2(const char *string, size_t len)
 {
-	const char *const start = filename;
+	const char *const start = string;
 	bool in_repetition = false;
-	bool contains_pattern = false;
 	unsigned char c;
 	unsigned char d;
 	unsigned char e;
-	if (!filename)
+	if (!len)
 		goto out;
-	c = *filename;
-	if (start_type == 1) { /* Must start with '/' */
-		if (c != '/')
-			goto out;
-	} else if (start_type == -1) { /* Must not start with '/' */
-		if (c == '/')
-			goto out;
-	}
-	if (c)
-		c = *(filename + strlen(filename) - 1);
-	if (end_type == 1) { /* Must end with '/' */
-		if (c != '/')
-			goto out;
-	} else if (end_type == -1) { /* Must not end with '/' */
-		if (c == '/')
-			goto out;
-	}
-	while (1) {
-		c = *filename++;
-		if (!c)
-			break;
+	while (len--) {
+		c = *string++;
 		if (c == '\\') {
-			c = *filename++;
+			if (!len--)
+				goto out;
+			c = *string++;
 			switch (c) {
 			case '\\':  /* "\\" */
 				continue;
@@ -449,21 +425,14 @@ bool ccs_correct_path(const char *filename, const s8 start_type,
 			case 'a':   /* "\a" */
 			case 'A':   /* "\A" */
 			case '-':   /* "\-" */
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				continue;
 			case '{':   /* "/\{" */
-				if (filename - 3 < start ||
-				    *(filename - 3) != '/')
+				if (string - 3 < start || *(string - 3) != '/')
 					break;
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				in_repetition = true;
 				continue;
 			case '}':   /* "\}/" */
-				if (*filename != '/')
+				if (*string != '/')
 					break;
 				if (!in_repetition)
 					break;
@@ -473,11 +442,11 @@ bool ccs_correct_path(const char *filename, const s8 start_type,
 			case '1':
 			case '2':
 			case '3':
-				d = *filename++;
-				if (d < '0' || d > '7')
+				if (!len-- || !len--)
 					break;
-				e = *filename++;
-				if (e < '0' || e > '7')
+				d = *string++;
+				e = *string++;
+				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
 				c = ccs_make_byte(c, d, e);
 				if (c && (c <= ' ' || c >= 127))
@@ -490,10 +459,6 @@ bool ccs_correct_path(const char *filename, const s8 start_type,
 			goto out;
 		}
 	}
-	if (pattern_type == 1) { /* Must contain pattern */
-		if (!contains_pattern)
-			goto out;
-	}
 	if (in_repetition)
 		goto out;
 	return true;
@@ -502,59 +467,58 @@ bool ccs_correct_path(const char *filename, const s8 start_type,
 }
 
 /**
+ * ccs_correct_word - Validate a string.
+ *
+ * @string: The string to check.
+ *
+ * Check whether the given string follows the naming rules.
+ * Returns true if @string follows the naming rules, false otherwise.
+ */
+bool ccs_correct_word(const char *string)
+{
+	return ccs_correct_word2(string, strlen(string));
+}
+
+/**
+ * ccs_correct_path - Validate a pathname.
+ *
+ * @filename: The pathname to check.
+ *
+ * Check whether the given pathname follows the naming rules.
+ * Returns true if @filename follows the naming rules, false otherwise.
+ */
+bool ccs_correct_path(const char *filename)
+{
+	return *filename == '/' && ccs_correct_word(filename);
+}
+
+/**
  * ccs_correct_domain - Check whether the given domainname follows the naming rules.
  *
- * @domainname:   The domainname to check.
+ * @domainname: The domainname to check.
  *
  * Returns true if @domainname follows the naming rules, false otherwise.
  */
 bool ccs_correct_domain(const unsigned char *domainname)
 {
-	unsigned char c;
-	unsigned char d;
-	unsigned char e;
-	if (!domainname || strncmp(domainname, ROOT_NAME, ROOT_NAME_LEN))
+	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
+				   CCS_ROOT_NAME_LEN))
 		goto out;
-	domainname += ROOT_NAME_LEN;
+	domainname += CCS_ROOT_NAME_LEN;
 	if (!*domainname)
 		return true;
-	do {
-		if (*domainname++ != ' ')
+	if (*domainname++ != ' ')
+		goto out;
+	while (1) {
+		const unsigned char *cp = strchr(domainname, ' ');
+		if (!cp)
+			break;
+		if (*domainname != '/' ||
+		    !ccs_correct_word2(domainname, cp - domainname - 1))
 			goto out;
-		if (*domainname++ != '/')
-			goto out;
-		while (1) {
-			c = *domainname;
-			if (!c || c == ' ')
-				break;
-			domainname++;
-			if (c == '\\') {
-				c = *domainname++;
-				switch ((c)) {
-				case '\\':  /* "\\" */
-					continue;
-				case '0':   /* "\ooo" */
-				case '1':
-				case '2':
-				case '3':
-					d = *domainname++;
-					if (d < '0' || d > '7')
-						break;
-					e = *domainname++;
-					if (e < '0' || e > '7')
-						break;
-					c = ccs_make_byte(c, d, e);
-					if (c && (c <= ' ' || c >= 127))
-						/* pattern is not \000 */
-						continue;
-				}
-				goto out;
-			} else if (c < ' ' || c >= 127) {
-				goto out;
-			}
-		}
-	} while (*domainname);
-	return true;
+		domainname = cp + 1;
+	}
+	return ccs_correct_path(domainname);
  out:
 	return false;
 }
@@ -568,7 +532,7 @@ bool ccs_correct_domain(const unsigned char *domainname)
  */
 bool ccs_domain_def(const unsigned char *buffer)
 {
-	return !strncmp(buffer, ROOT_NAME, ROOT_NAME_LEN);
+	return !strncmp(buffer, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN);
 }
 
 /**

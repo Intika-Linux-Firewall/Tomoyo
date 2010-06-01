@@ -106,8 +106,7 @@ struct ccs_group *ccs_get_group(const char *group_name, const u8 idx)
 	struct ccs_group e = { };
 	struct ccs_group *group = NULL;
 	bool found = false;
-	if (!ccs_correct_path(group_name, 0, 0, 0) ||
-	    !group_name[0] || idx >= CCS_MAX_GROUP)
+	if (!ccs_correct_word(group_name) || idx >= CCS_MAX_GROUP)
 		return NULL;
 	e.group_name = ccs_get_name(group_name);
 	if (!e.group_name)
@@ -243,10 +242,10 @@ void __init ccs_mm_init(void)
 		INIT_LIST_HEAD(&ccs_name_list[idx]);
 	INIT_LIST_HEAD(&ccs_global_domain.acl_info_list);
 	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
-	ccs_kernel_domain.domainname = ccs_get_name(ROOT_NAME);
+	ccs_kernel_domain.domainname = ccs_get_name(CCS_ROOT_NAME);
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	idx = ccs_read_lock();
-	if (ccs_find_domain(ROOT_NAME) != &ccs_kernel_domain)
+	if (ccs_find_domain(CCS_ROOT_NAME) != &ccs_kernel_domain)
 		panic("Can't register ccs_kernel_domain");
 	{
 		/* Load built-in policy. */

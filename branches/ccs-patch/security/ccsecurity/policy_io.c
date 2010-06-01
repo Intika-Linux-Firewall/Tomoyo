@@ -676,7 +676,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 			return -EINVAL;
 		e.is_domain = true;
 	} else {
-		if (!ccs_correct_path(manager, 1, -1, -1))
+		if (!ccs_correct_path(manager))
 			return -EINVAL;
 	}
 	e.manager = ccs_get_name(manager);

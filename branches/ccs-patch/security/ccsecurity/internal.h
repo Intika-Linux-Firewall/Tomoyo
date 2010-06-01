@@ -311,8 +311,8 @@ enum ccs_stat_index {
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
 
 /* A domain definition starts with <kernel>. */
-#define ROOT_NAME                         "<kernel>"
-#define ROOT_NAME_LEN                     (sizeof(ROOT_NAME) - 1)
+#define CCS_ROOT_NAME                         "<kernel>"
+#define CCS_ROOT_NAME_LEN                     (sizeof(CCS_ROOT_NAME) - 1)
 
 /* Value type definition. */
 enum ccs_value_type {
@@ -531,7 +531,6 @@ struct ccs_request_info {
 		struct {
 			const struct ccs_path_info *filename;
 			u8 operation;
-			bool may_use_pattern;
 		} path;
 		struct {
 			const struct ccs_path_info *filename1;
@@ -953,8 +952,8 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 bool ccs_correct_domain(const unsigned char *domainname);
-bool ccs_correct_path(const char *filename, const s8 start_type,
-			 const s8 pattern_type, const s8 end_type);
+bool ccs_correct_path(const char *filename);
+bool ccs_correct_word(const char *string);
 bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
@@ -962,8 +961,7 @@ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
 bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
 bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_group *group,
-			    const bool may_use_pattern);
+			    const struct ccs_group *group);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 bool ccs_str_starts(char **src, const char *find);

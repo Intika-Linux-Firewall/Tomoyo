@@ -1,0 +1,464 @@
+[PATCH] TOMOYO: Allow wildcard for execute permission and domainname.
+
+Some applications create and execute programs dynamically.
+We need to accept wildcard for execute permission and domainname
+because such programs contain random suffix in their filenames.
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+---
+ security/tomoyo/common.c       |    2 
+ security/tomoyo/common.h       |    7 -
+ security/tomoyo/domain.c       |   16 ++--
+ security/tomoyo/file.c         |   24 +-----
+ security/tomoyo/number_group.c |    3 
+ security/tomoyo/path_group.c   |   17 +---
+ security/tomoyo/util.c         |  157 +++++++++++++++--------------------------
+ 7 files changed, 81 insertions(+), 145 deletions(-)
+
+--- security-testing-2.6.orig/security/tomoyo/common.c
++++ security-testing-2.6/security/tomoyo/common.c
+@@ -407,7 +407,7 @@ static int tomoyo_update_manager_entry(c
+ 			return -EINVAL;
+ 		e.is_domain = true;
+ 	} else {
+-		if (!tomoyo_is_correct_path(manager, 1, -1, -1))
++		if (!tomoyo_is_correct_path(manager))
+ 			return -EINVAL;
+ 	}
+ 	e.manager = tomoyo_get_name(manager);
+--- security-testing-2.6.orig/security/tomoyo/common.h
++++ security-testing-2.6/security/tomoyo/common.h
+@@ -710,16 +710,15 @@ bool tomoyo_io_printf(struct tomoyo_io_b
+ /* Check whether the domainname is correct. */
+ bool tomoyo_is_correct_domain(const unsigned char *domainname);
+ /* Check whether the token is correct. */
+-bool tomoyo_is_correct_path(const char *filename, const s8 start_type,
+-			    const s8 pattern_type, const s8 end_type);
++bool tomoyo_is_correct_path(const char *filename);
++bool tomoyo_is_correct_word(const char *string);
+ /* Check whether the token can be a domainname. */
+ bool tomoyo_is_domain_def(const unsigned char *buffer);
+ bool tomoyo_parse_name_union(const char *filename,
+ 			     struct tomoyo_name_union *ptr);
+ /* Check whether the given filename matches the given path_group. */
+ bool tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
+-			       const struct tomoyo_path_group *group,
+-			       const bool may_use_pattern);
++			       const struct tomoyo_path_group *group);
+ /* Check whether the given value matches the given number_group. */
+ bool tomoyo_number_matches_group(const unsigned long min,
+ 				 const unsigned long max,
+--- security-testing-2.6.orig/security/tomoyo/domain.c
++++ security-testing-2.6/security/tomoyo/domain.c
+@@ -131,11 +131,11 @@ static int tomoyo_update_domain_initiali
+ 	struct tomoyo_domain_initializer_entry e = { .is_not = is_not };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+-	if (!tomoyo_is_correct_path(program, 1, -1, -1))
+-		return -EINVAL; /* No patterns allowed. */
++	if (!tomoyo_is_correct_path(program))
++		return -EINVAL;
+ 	if (domainname) {
+ 		if (!tomoyo_is_domain_def(domainname) &&
+-		    tomoyo_is_correct_path(domainname, 1, -1, -1))
++		    tomoyo_is_correct_path(domainname))
+ 			e.is_last_name = true;
+ 		else if (!tomoyo_is_correct_domain(domainname))
+ 			return -EINVAL;
+@@ -342,12 +342,12 @@ static int tomoyo_update_domain_keeper_e
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+ 	if (!tomoyo_is_domain_def(domainname) &&
+-	    tomoyo_is_correct_path(domainname, 1, -1, -1))
++	    tomoyo_is_correct_path(domainname))
+ 		e.is_last_name = true;
+ 	else if (!tomoyo_is_correct_domain(domainname))
+ 		return -EINVAL;
+ 	if (program) {
+-		if (!tomoyo_is_correct_path(program, 1, -1, -1))
++		if (!tomoyo_is_correct_path(program))
+ 			return -EINVAL;
+ 		e.program = tomoyo_get_name(program);
+ 		if (!e.program)
+@@ -533,9 +533,9 @@ static int tomoyo_update_alias_entry(con
+ 	struct tomoyo_alias_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+-	if (!tomoyo_is_correct_path(original_name, 1, -1, -1) ||
+-	    !tomoyo_is_correct_path(aliased_name, 1, -1, -1))
+-		return -EINVAL; /* No patterns allowed. */
++	if (!tomoyo_is_correct_path(original_name) ||
++	    !tomoyo_is_correct_path(aliased_name))
++		return -EINVAL;
+ 	e.original_name = tomoyo_get_name(original_name);
+ 	e.aliased_name = tomoyo_get_name(aliased_name);
+ 	if (!e.original_name || !e.aliased_name)
+--- security-testing-2.6.orig/security/tomoyo/file.c
++++ security-testing-2.6/security/tomoyo/file.c
+@@ -69,19 +69,6 @@ bool tomoyo_compare_name_union(const str
+ 	return tomoyo_path_matches_pattern(name, ptr->filename);
+ }
+ 
+-static bool tomoyo_compare_name_union_pattern(const struct tomoyo_path_info
+-					      *name,
+-					      const struct tomoyo_name_union
+-					      *ptr, const bool may_use_pattern)
+-{
+-	if (ptr->is_group)
+-		return tomoyo_path_matches_group(name, ptr->group,
+-						 may_use_pattern);
+-	if (may_use_pattern || !ptr->filename->is_patterned)
+-		return tomoyo_path_matches_pattern(name, ptr->filename);
+-	return false;
+-}
+-
+ void tomoyo_put_number_union(struct tomoyo_number_union *ptr)
+ {
+ 	if (ptr && ptr->is_group)
+@@ -245,7 +232,7 @@ static int tomoyo_update_globally_readab
+ 	struct tomoyo_globally_readable_file_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+-	if (!tomoyo_is_correct_path(filename, 1, 0, -1))
++	if (!tomoyo_is_correct_path(filename))
+ 		return -EINVAL;
+ 	e.filename = tomoyo_get_name(filename);
+ 	if (!e.filename)
+@@ -541,7 +528,7 @@ static int tomoyo_update_no_rewrite_entr
+ 	struct tomoyo_no_rewrite_entry e = { };
+ 	int error = is_delete ? -ENOENT : -ENOMEM;
+ 
+-	if (!tomoyo_is_correct_path(pattern, 0, 0, 0))
++	if (!tomoyo_is_correct_word(pattern))
+ 		return -EINVAL;
+ 	e.pattern = tomoyo_get_name(pattern);
+ 	if (!e.pattern)
+@@ -688,7 +675,6 @@ static int tomoyo_update_file_acl(u8 per
+  * @r:               Pointer to "struct tomoyo_request_info".
+  * @filename:        Filename to check.
+  * @perm:            Permission.
+- * @may_use_pattern: True if patterned ACL is permitted.
+  *
+  * Returns 0 on success, -EPERM otherwise.
+  *
+@@ -696,7 +682,7 @@ static int tomoyo_update_file_acl(u8 per
+  */
+ static int tomoyo_path_acl(const struct tomoyo_request_info *r,
+ 			   const struct tomoyo_path_info *filename,
+-			   const u32 perm, const bool may_use_pattern)
++			   const u32 perm)
+ {
+ 	struct tomoyo_domain_info *domain = r->domain;
+ 	struct tomoyo_acl_info *ptr;
+@@ -708,8 +694,7 @@ static int tomoyo_path_acl(const struct 
+ 			continue;
+ 		acl = container_of(ptr, struct tomoyo_path_acl, head);
+ 		if (!(acl->perm & perm) ||
+-		    !tomoyo_compare_name_union_pattern(filename, &acl->name,
+-                                                       may_use_pattern))
++		    !tomoyo_compare_name_union(filename, &acl->name))
+ 			continue;
+ 		error = 0;
+ 		break;
+@@ -762,7 +747,6 @@ static int tomoyo_file_perm(struct tomoy
+ 			break;
+ 		tomoyo_warn_log(r, "%s %s", msg, filename->name);
+ 		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
+-					  mode == 1 ? filename->name :
+ 					  tomoyo_file_pattern(filename));
+ 		/*
+                  * Do not retry for execute request, for alias may have
+--- security-testing-2.6.orig/security/tomoyo/number_group.c
++++ security-testing-2.6/security/tomoyo/number_group.c
+@@ -24,8 +24,7 @@ struct tomoyo_number_group *tomoyo_get_n
+ 	struct tomoyo_number_group *group = NULL;
+ 	const struct tomoyo_path_info *saved_group_name;
+ 	int error = -ENOMEM;
+-	if (!tomoyo_is_correct_path(group_name, 0, 0, 0) ||
+-	    !group_name[0])
++	if (!tomoyo_is_correct_word(group_name))
+ 		return NULL;
+ 	saved_group_name = tomoyo_get_name(group_name);
+ 	if (!saved_group_name)
+--- security-testing-2.6.orig/security/tomoyo/path_group.c
++++ security-testing-2.6/security/tomoyo/path_group.c
+@@ -22,8 +22,7 @@ struct tomoyo_path_group *tomoyo_get_pat
+ 	struct tomoyo_path_group *group = NULL;
+ 	const struct tomoyo_path_info *saved_group_name;
+ 	int error = -ENOMEM;
+-	if (!tomoyo_is_correct_path(group_name, 0, 0, 0) ||
+-	    !group_name[0])
++	if (!tomoyo_is_correct_word(group_name))
+ 		return NULL;
+ 	saved_group_name = tomoyo_get_name(group_name);
+ 	if (!saved_group_name)
+@@ -141,29 +140,21 @@ bool tomoyo_read_path_group_policy(struc
+  *
+  * @pathname:        The name of pathname.
+  * @group:           Pointer to "struct tomoyo_path_group".
+- * @may_use_pattern: True if wild card is permitted.
+  *
+  * Returns true if @pathname matches pathnames in @group, false otherwise.
+  *
+  * Caller holds tomoyo_read_lock().
+  */
+ bool tomoyo_path_matches_group(const struct tomoyo_path_info *pathname,
+-			       const struct tomoyo_path_group *group,
+-			       const bool may_use_pattern)
++			       const struct tomoyo_path_group *group)
+ {
+ 	struct tomoyo_path_group_member *member;
+ 	bool matched = false;
+ 	list_for_each_entry_rcu(member, &group->member_list, list) {
+ 		if (member->is_deleted)
+ 			continue;
+-		if (!member->member_name->is_patterned) {
+-			if (tomoyo_pathcmp(pathname, member->member_name))
+-				continue;
+-		} else if (may_use_pattern) {
+-			if (!tomoyo_path_matches_pattern(pathname,
+-							 member->member_name))
+-				continue;
+-		} else
++		if (!tomoyo_path_matches_pattern(pathname,
++						 member->member_name))
+ 			continue;
+ 		matched = true;
+ 		break;
+--- security-testing-2.6.orig/security/tomoyo/util.c
++++ security-testing-2.6/security/tomoyo/util.c
+@@ -89,7 +89,7 @@ void tomoyo_print_ulong(char *buffer, co
+ bool tomoyo_parse_name_union(const char *filename,
+ 			     struct tomoyo_name_union *ptr)
+ {
+-	if (!tomoyo_is_correct_path(filename, 0, 0, 0))
++	if (!tomoyo_is_correct_word(filename))
+ 		return false;
+ 	if (filename[0] == '@') {
+ 		ptr->group = tomoyo_get_path_group(filename + 1);
+@@ -115,7 +115,7 @@ bool tomoyo_parse_number_union(char *dat
+ 	unsigned long v;
+ 	memset(num, 0, sizeof(*num));
+ 	if (data[0] == '@') {
+-		if (!tomoyo_is_correct_path(data, 0, 0, 0))
++		if (!tomoyo_is_correct_word(data))
+ 			return false;
+ 		num->group = tomoyo_get_number_group(data + 1);
+ 		num->is_group = true;
+@@ -265,54 +265,29 @@ bool tomoyo_tokenize(char *buffer, char 
+ }
+ 
+ /**
+- * tomoyo_is_correct_path - Validate a pathname.
++ * tomoyo_is_correct_word2 - Validate a string.
+  *
+- * @filename:     The pathname to check.
+- * @start_type:   Should the pathname start with '/'?
+- *                1 = must / -1 = must not / 0 = don't care
+- * @pattern_type: Can the pathname contain a wildcard?
+- *                1 = must / -1 = must not / 0 = don't care
+- * @end_type:     Should the pathname end with '/'?
+- *                1 = must / -1 = must not / 0 = don't care
++ * @string: The string to check. May be non-'\0'-terminated.
++ * @len:    Length of @string.
+  *
+- * Check whether the given filename follows the naming rules.
+- * Returns true if @filename follows the naming rules, false otherwise.
++ * Check whether the given string follows the naming rules.
++ * Returns true if @string follows the naming rules, false otherwise.
+  */
+-bool tomoyo_is_correct_path(const char *filename, const s8 start_type,
+-			    const s8 pattern_type, const s8 end_type)
++static bool tomoyo_is_correct_word2(const char *string, size_t len)
+ {
+-	const char *const start = filename;
++	const char *const start = string;
+ 	bool in_repetition = false;
+-	bool contains_pattern = false;
+ 	unsigned char c;
+ 	unsigned char d;
+ 	unsigned char e;
+-
+-	if (!filename)
++	if (!len)
+ 		goto out;
+-	c = *filename;
+-	if (start_type == 1) { /* Must start with '/' */
+-		if (c != '/')
+-			goto out;
+-	} else if (start_type == -1) { /* Must not start with '/' */
+-		if (c == '/')
+-			goto out;
+-	}
+-	if (c)
+-		c = *(filename + strlen(filename) - 1);
+-	if (end_type == 1) { /* Must end with '/' */
+-		if (c != '/')
+-			goto out;
+-	} else if (end_type == -1) { /* Must not end with '/' */
+-		if (c == '/')
+-			goto out;
+-	}
+-	while (1) {
+-		c = *filename++;
+-		if (!c)
+-			break;
++	while (len--) {
++		c = *string++;
+ 		if (c == '\\') {
+-			c = *filename++;
++			if (!len--)
++				goto out;
++			c = *string++;
+ 			switch (c) {
+ 			case '\\':  /* "\\" */
+ 				continue;
+@@ -326,21 +301,14 @@ bool tomoyo_is_correct_path(const char *
+ 			case 'a':   /* "\a" */
+ 			case 'A':   /* "\A" */
+ 			case '-':   /* "\-" */
+-				if (pattern_type == -1)
+-					break; /* Must not contain pattern */
+-				contains_pattern = true;
+ 				continue;
+ 			case '{':   /* "/\{" */
+-				if (filename - 3 < start ||
+-				    *(filename - 3) != '/')
++				if (string - 3 < start || *(string - 3) != '/')
+ 					break;
+-				if (pattern_type == -1)
+-					break; /* Must not contain pattern */
+-				contains_pattern = true;
+ 				in_repetition = true;
+ 				continue;
+ 			case '}':   /* "\}/" */
+-				if (*filename != '/')
++				if (*string != '/')
+ 					break;
+ 				if (!in_repetition)
+ 					break;
+@@ -350,11 +318,11 @@ bool tomoyo_is_correct_path(const char *
+ 			case '1':
+ 			case '2':
+ 			case '3':
+-				d = *filename++;
+-				if (d < '0' || d > '7')
++				if (!len-- || !len--)
+ 					break;
+-				e = *filename++;
+-				if (e < '0' || e > '7')
++				d = *string++;
++				e = *string++;
++				if (d < '0' || d > '7' || e < '0' || e > '7')
+ 					break;
+ 				c = tomoyo_make_byte(c, d, e);
+ 				if (tomoyo_is_invalid(c))
+@@ -367,10 +335,6 @@ bool tomoyo_is_correct_path(const char *
+ 			goto out;
+ 		}
+ 	}
+-	if (pattern_type == 1) { /* Must contain pattern */
+-		if (!contains_pattern)
+-			goto out;
+-	}
+ 	if (in_repetition)
+ 		goto out;
+ 	return true;
+@@ -379,58 +343,57 @@ bool tomoyo_is_correct_path(const char *
+ }
+ 
+ /**
++ * tomoyo_is_correct_word - Validate a string.
++ *
++ * @string: The string to check.
++ *
++ * Check whether the given string follows the naming rules.
++ * Returns true if @string follows the naming rules, false otherwise.
++ */
++bool tomoyo_is_correct_word(const char *string)
++{
++	return tomoyo_is_correct_word2(string, strlen(string));
++}
++
++/**
++ * tomoyo_is_correct_path - Validate a pathname.
++ *
++ * @filename: The pathname to check.
++ *
++ * Check whether the given pathname follows the naming rules.
++ * Returns true if @filename follows the naming rules, false otherwise.
++ */
++bool tomoyo_is_correct_path(const char *filename)
++{
++	return *filename == '/' && tomoyo_is_correct_word(filename);
++}
++
++/**
+  * tomoyo_is_correct_domain - Check whether the given domainname follows the naming rules.
+  *
+- * @domainname:   The domainname to check.
++ * @domainname: The domainname to check.
+  *
+  * Returns true if @domainname follows the naming rules, false otherwise.
+  */
+ bool tomoyo_is_correct_domain(const unsigned char *domainname)
+ {
+-	unsigned char c;
+-	unsigned char d;
+-	unsigned char e;
+-
+-	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME,
+-				   TOMOYO_ROOT_NAME_LEN))
++	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME, TOMOYO_ROOT_NAME_LEN))
+ 		goto out;
+ 	domainname += TOMOYO_ROOT_NAME_LEN;
+ 	if (!*domainname)
+ 		return true;
+-	do {
+-		if (*domainname++ != ' ')
+-			goto out;
+-		if (*domainname++ != '/')
++	if (*domainname++ != ' ')
++		goto out;
++	while (1) {
++		const unsigned char *cp = strchr(domainname, ' ');
++		if (!cp)
++			break;
++		if (*domainname != '/' ||
++		    !tomoyo_is_correct_word2(domainname, cp - domainname - 1))
+ 			goto out;
+-		while ((c = *domainname) != '\0' && c != ' ') {
+-			domainname++;
+-			if (c == '\\') {
+-				c = *domainname++;
+-				switch ((c)) {
+-				case '\\':  /* "\\" */
+-					continue;
+-				case '0':   /* "\ooo" */
+-				case '1':
+-				case '2':
+-				case '3':
+-					d = *domainname++;
+-					if (d < '0' || d > '7')
+-						break;
+-					e = *domainname++;
+-					if (e < '0' || e > '7')
+-						break;
+-					c = tomoyo_make_byte(c, d, e);
+-					if (tomoyo_is_invalid(c))
+-						/* pattern is not \000 */
+-						continue;
+-				}
+-				goto out;
+-			} else if (tomoyo_is_invalid(c)) {
+-				goto out;
+-			}
+-		}
+-	} while (*domainname);
+-	return true;
++		domainname = cp + 1;
++	}
++	return tomoyo_is_correct_path(domainname);
+  out:
+ 	return false;
+ }

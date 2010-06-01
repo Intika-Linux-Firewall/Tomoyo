@@ -236,11 +236,11 @@ static int ccs_update_domain_initializer_entry(const char *domainname,
 {
 	struct ccs_domain_initializer e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(program, 1, -1, -1))
-		return -EINVAL; /* No patterns allowed. */
+	if (!ccs_correct_path(program))
+		return -EINVAL;
 	if (domainname) {
 		if (!ccs_domain_def(domainname) &&
-		    ccs_correct_path(domainname, 1, -1, -1))
+		    ccs_correct_path(domainname))
 			e.is_last_name = true;
 		else if (!ccs_correct_domain(domainname))
 			return -EINVAL;
@@ -350,13 +350,12 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 {
 	struct ccs_domain_keeper e = { .is_not = is_not };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_domain_def(domainname) &&
-	    ccs_correct_path(domainname, 1, -1, -1))
+	if (!ccs_domain_def(domainname) && ccs_correct_path(domainname))
 		e.is_last_name = true;
 	else if (!ccs_correct_domain(domainname))
 		return -EINVAL;
 	if (program) {
-		if (!ccs_correct_path(program, 1, -1, -1))
+		if (!ccs_correct_path(program))
 			return -EINVAL;
 		e.program = ccs_get_name(program);
 		if (!e.program)
@@ -460,8 +459,8 @@ static int ccs_update_aggregator_entry(const char *original_name,
 {
 	struct ccs_aggregator e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(original_name, 1, 0, -1) ||
-	    !ccs_correct_path(aggregated_name, 1, -1, -1))
+	if (!ccs_correct_path(original_name) ||
+	    !ccs_correct_path(aggregated_name))
 		return -EINVAL;
 	e.original_name = ccs_get_name(original_name);
 	e.aggregated_name = ccs_get_name(aggregated_name);
@@ -646,7 +645,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	/* Calculate domain to transit to. */
 	if (ccs_domain_initializer(old_domain->domainname, &rn, &ln)) {
 		/* Transit to the child of ccs_kernel_domain domain. */
-		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, ROOT_NAME " " "%s",
+		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, CCS_ROOT_NAME " " "%s",
 			 rn.name);
 	} else if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
 		/*
