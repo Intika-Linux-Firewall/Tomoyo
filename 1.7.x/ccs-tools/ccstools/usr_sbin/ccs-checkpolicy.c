@@ -283,7 +283,7 @@ static _Bool ccs_check_condition(char *condition)
 		int r_len;
 		if (next)
 			*next++ = '\0';
-		if (!ccs_is_correct_path(pos, 0, 0, 0))
+		if (!ccs_correct_word(pos))
 			goto out;
 		eq = strchr(pos, '=');
 		if (!eq)
@@ -407,7 +407,7 @@ static void ccs_check_signal_policy(char *data)
 		printf("%u: ERROR: '%s' is a bad signal number.\n", ccs_line, data);
 		ccs_errors++;
 	}
-	if (!ccs_is_correct_domain(cp)) {
+	if (!ccs_correct_domain(cp)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n", ccs_line, cp);
 		ccs_errors++;
 	}
@@ -415,7 +415,7 @@ static void ccs_check_signal_policy(char *data)
 
 static void ccs_check_env_policy(char *data)
 {
-	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+	if (!ccs_correct_word(data)) {
 		printf("%u: ERROR: '%s' is a bad variable name.\n", ccs_line, data);
 		ccs_errors++;
 	}
@@ -576,7 +576,7 @@ static void ccs_check_file_policy(char *data)
 				       ccs_line);
 				break;
 			}
-			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_correct_word(cp + 1)) {
 				printf("%u: ERROR: '%s' is a bad argument\n",
 				       ccs_line, cp + 1);
 				break;
@@ -588,7 +588,7 @@ static void ccs_check_file_policy(char *data)
 				       ccs_line);
 				break;
 			}
-			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_correct_word(cp + 1)) {
 				printf("%u: ERROR: '%s' is a bad argument.\n",
 				       ccs_line, cp + 1);
 				break;
@@ -602,23 +602,16 @@ static void ccs_check_file_policy(char *data)
 				       ccs_line);
 				break;
 			}
-			if (!ccs_is_correct_path(cp + 1, 0, 0, 0)) {
+			if (!ccs_correct_word(cp + 1)) {
 				printf("%u: ERROR: '%s' is a bad argument.\n",
 				       ccs_line, cp + 1);
 				break;
 			}
 			*cp = '\0';
 		}
-		if (!ccs_is_correct_path(filename, 0, 0, 0)) {
+		if (!ccs_correct_word(filename)) {
 			printf("%u: ERROR: '%s' is a bad argument.\n", ccs_line,
 			       filename);
-			break;
-		}
-		/* "allow_execute"/"allow_transit" don't accept patterns. */
-		if (type <= 1 && filename[0] != '@' &&
-		    !ccs_is_correct_path(filename, 1, -1, -1)) {
-			printf("%u: ERROR: Patterns not allowed for "
-			       "execute/transit permission.\n", ccs_line);
 			break;
 		}
 		return;
@@ -657,12 +650,12 @@ out:
 static void ccs_check_domain_initializer_entry(const char *domainname,
 					       const char *program)
 {
-	if (!ccs_is_correct_path(program, 1, 0, -1)) {
+	if (!ccs_correct_path(program)) {
 		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
 		ccs_errors++;
 	}
-	if (domainname && !ccs_is_correct_path(domainname, 1, -1, -1) &&
-	    !ccs_is_correct_domain(domainname)) {
+	if (domainname && !ccs_correct_path(domainname) &&
+	    !ccs_correct_domain(domainname)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n",
 		       ccs_line, domainname);
 		ccs_errors++;
@@ -683,13 +676,12 @@ static void ccs_check_domain_initializer_policy(char *data)
 static void ccs_check_domain_keeper_entry(const char *domainname,
 					  const char *program)
 {
-	if (!ccs_is_correct_path(domainname, 1, -1, -1) &&
-	    !ccs_is_correct_domain(domainname)) {
+	if (!ccs_correct_path(domainname) && !ccs_correct_domain(domainname)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n",
 		       ccs_line, domainname);
 		ccs_errors++;
 	}
-	if (program && !ccs_is_correct_path(program, 1, 0, -1)) {
+	if (program && !ccs_correct_path(program)) {
 		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
 		ccs_errors++;
 	}
@@ -715,11 +707,11 @@ static void ccs_check_path_group_policy(char *data)
 		return;
 	}
 	*cp++ = '\0';
-	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+	if (!ccs_correct_word(data)) {
 		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
 		ccs_errors++;
 	}
-	if (!ccs_is_correct_path(cp, 0, 0, 0)) {
+	if (!ccs_correct_word(cp)) {
 		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, cp);
 		ccs_errors++;
 	}
@@ -735,7 +727,7 @@ static void ccs_check_number_group_policy(char *data)
 		return;
 	}
 	*cp++ = '\0';
-	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+	if (!ccs_correct_word(data)) {
 		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
 		ccs_errors++;
 	}
@@ -765,7 +757,7 @@ static void ccs_check_address_group_policy(char *data)
 		return;
 	}
 	*cp++ = '\0';
-	if (!ccs_is_correct_path(data, 0, 0, 0)) {
+	if (!ccs_correct_word(data)) {
 		printf("%u: ERROR: '%s' is a bad group name.\n", ccs_line, data);
 		ccs_errors++;
 	}
@@ -799,7 +791,7 @@ static void ccs_check_domain_policy(char *policy)
 	else if (ccs_str_starts(policy, CCS_KEYWORD_SELECT))
 		is_select = true;
 	if (!strncmp(policy, "<kernel>", 8)) {
-		if (!ccs_is_correct_domain(policy) ||
+		if (!ccs_correct_domain(policy) ||
 		    strlen(policy) >= CCS_MAX_PATHNAME_LEN) {
 			printf("%u: ERROR: '%s' is a bad domainname.\n",
 			       ccs_line, policy);
@@ -832,7 +824,7 @@ static void ccs_check_domain_policy(char *policy)
 		/* Nothing to do. */
 	} else if (ccs_str_starts(policy, "execute_handler ") ||
 		   ccs_str_starts(policy, "denied_execute_handler")) {
-		if (!ccs_is_correct_path(policy, 1, -1, -1)) {
+		if (!ccs_correct_path(policy)) {
 			printf("%u: ERROR: '%s' is a bad pathname.\n",
 			       ccs_line, policy);
 			ccs_errors++;
@@ -862,7 +854,7 @@ static void ccs_check_exception_policy(char *policy)
 {
 	ccs_str_starts(policy, CCS_KEYWORD_DELETE);
 	if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_READ)) {
-		if (!ccs_is_correct_path(policy, 1, 0, -1)) {
+		if (!ccs_correct_path(policy)) {
 			printf("%u: ERROR: '%s' is a bad pathname.\n",
 			       ccs_line, policy);
 			ccs_errors++;
@@ -888,31 +880,31 @@ static void ccs_check_exception_policy(char *policy)
 			ccs_errors++;
 		} else {
 			*cp++ = '\0';
-			if (!ccs_is_correct_path(policy, 1, 0, -1)) {
+			if (!ccs_correct_path(policy)) {
 				printf("%u: ERROR: '%s' is a bad pattern.\n",
 				       ccs_line, policy);
 				ccs_errors++;
 			}
-			if (!ccs_is_correct_path(cp, 1, -1, -1)) {
+			if (!ccs_correct_path(cp)) {
 				printf("%u: ERROR: '%s' is a bad pathname.\n",
 				       ccs_line, cp);
 				ccs_errors++;
 			}
 		}
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_FILE_PATTERN)) {
-		if (!ccs_is_correct_path(policy, 0, 1, 0)) {
+		if (!ccs_correct_word(policy)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
 			       ccs_line, policy);
 			ccs_errors++;
 		}
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_REWRITE)) {
-		if (!ccs_is_correct_path(policy, 0, 0, 0)) {
+		if (!ccs_correct_word(policy)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
 			       ccs_line, policy);
 			ccs_errors++;
 		}
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_ENV)) {
-		if (!ccs_is_correct_path(policy, 0, 0, 0)) {
+		if (!ccs_correct_word(policy)) {
 			printf("%u: ERROR: '%s' is a bad variable name.\n",
 			       ccs_line, policy);
 			ccs_errors++;

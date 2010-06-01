@@ -32,10 +32,10 @@ int ccs_task_list_len = 0;
 
 /* Prototypes */
 
-static _Bool ccs_is_byte_range(const char *str);
-static _Bool ccs_is_decimal(const char c);
-static _Bool ccs_is_hexadecimal(const char c);
-static _Bool ccs_is_alphabet_char(const char c);
+static _Bool ccs_byte_range(const char *str);
+static _Bool ccs_decimal(const char c);
+static _Bool ccs_hexadecimal(const char c);
+static _Bool ccs_alphabet_char(const char c);
 static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
 static inline unsigned long ccs_partial_name_hash(unsigned long c, unsigned long prevhash);
 static inline unsigned int ccs_full_name_hash(const unsigned char *name, unsigned int len);
@@ -62,26 +62,26 @@ _Bool ccs_str_starts(char *str, const char *begin)
 	return true;
 }
 
-static _Bool ccs_is_byte_range(const char *str)
+static _Bool ccs_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
 		*str >= '0' && *str <= '7';
 }
 
-static _Bool ccs_is_decimal(const char c)
+static _Bool ccs_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
-static _Bool ccs_is_hexadecimal(const char c)
+static _Bool ccs_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
 		(c >= 'a' && c <= 'f');
 }
 
-static _Bool ccs_is_alphabet_char(const char c)
+static _Bool ccs_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
@@ -201,64 +201,11 @@ static int ccs_const_part_length(const char *filename)
 	return len;
 }
 
-_Bool ccs_is_domain_def(const unsigned char *domainname)
+_Bool ccs_domain_def(const unsigned char *domainname)
 {
 	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
 		(domainname[CCS_ROOT_NAME_LEN] == '\0'
 		 || domainname[CCS_ROOT_NAME_LEN] == ' ');
-}
-
-_Bool ccs_is_correct_domain(const unsigned char *domainname)
-{
-	if (!domainname || strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN))
-		goto out;
-	domainname += CCS_ROOT_NAME_LEN;
-	if (!*domainname)
-		return true;
-	do {
-		if (*domainname++ != ' ')
-			goto out;
-		if (*domainname++ != '/')
-			goto out;
-		while (true) {
-			unsigned char c = *domainname;
-			if (!c || c == ' ')
-				break;
-			domainname++;
-			if (c == '\\') {
-				unsigned char d;
-				unsigned char e;
-				u8 f;
-				c = *domainname++;
-				switch (c) {
-				case '\\':  /* "\\" */
-					continue;
-				case '0':   /* "\ooo" */
-				case '1':
-				case '2':
-				case '3':
-					d = *domainname++;
-					if (d < '0' || d > '7')
-						break;
-					e = *domainname++;
-					if (e < '0' || e > '7')
-						break;
-					f = (((u8) (c - '0')) << 6) +
-						(((u8) (d - '0')) << 3) +
-						(((u8) (e - '0')));
-					/* pattern is not \000 */
-					if (f && (f <= ' ' || f >= 127))
-						continue;
-				}
-				goto out;
-			} else if (c < ' ' || c >= 127) {
-				goto out;
-			}
-		}
-	} while (*domainname);
-	return true;
-out:
-	return false;
 }
 
 void ccs_fprintf_encoded(FILE *fp, const char *pathname)
@@ -320,40 +267,21 @@ _Bool ccs_decode(const char *ascii, char *bin)
 	return true;
 }
 
-_Bool ccs_is_correct_path(const char *filename, const s8 start_type,
-			  const s8 pattern_type, const s8 end_type)
+static _Bool ccs_correct_word2(const char *string, size_t len)
 {
-	const char *const start = filename;
+	const char *const start = string;
 	_Bool in_repetition = false;
-	_Bool contains_pattern = false;
 	unsigned char c;
-	if (!filename)
+	unsigned char d;
+	unsigned char e;
+	if (!len)
 		goto out;
-	c = *filename;
-	if (start_type == 1) { /* Must start with '/' */
-		if (c != '/')
-			goto out;
-	} else if (start_type == -1) { /* Must not start with '/' */
-		if (c == '/')
-			goto out;
-	}
-	if (c)
-		c = *(filename + strlen(filename) - 1);
-	if (end_type == 1) { /* Must end with '/' */
-		if (c != '/')
-			goto out;
-	} else if (end_type == -1) { /* Must not end with '/' */
-		if (c == '/')
-			goto out;
-	}
-	while (true) {
-		c = *filename++;
-		if (!c)
-			break;
+	while (len--) {
+		c = *string++;
 		if (c == '\\') {
-			unsigned char d;
-			unsigned char e;
-			c = *filename++;
+			if (!len--)
+				goto out;
+			c = *string++;
 			switch (c) {
 			case '\\':  /* "\\" */
 				continue;
@@ -367,21 +295,14 @@ _Bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			case 'a':   /* "\a" */
 			case 'A':   /* "\A" */
 			case '-':   /* "\-" */
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				continue;
 			case '{':   /* "/\{" */
-				if (filename - 3 < start ||
-				    *(filename - 3) != '/')
+				if (string - 3 < start || *(string - 3) != '/')
 					break;
-				if (pattern_type == -1)
-					break; /* Must not contain pattern */
-				contains_pattern = true;
 				in_repetition = true;
 				continue;
 			case '}':   /* "\}/" */
-				if (*filename != '/')
+				if (*string != '/')
 					break;
 				if (!in_repetition)
 					break;
@@ -391,11 +312,11 @@ _Bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			case '1':
 			case '2':
 			case '3':
-				d = *filename++;
-				if (d < '0' || d > '7')
+				if (!len-- || !len--)
 					break;
-				e = *filename++;
-				if (e < '0' || e > '7')
+				d = *string++;
+				e = *string++;
+				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
 				c = ccs_make_byte(c, d, e);
 				if (c && (c <= ' ' || c >= 127))
@@ -408,14 +329,44 @@ _Bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			goto out;
 		}
 	}
-	if (pattern_type == 1) { /* Must contain pattern */
-		if (!contains_pattern)
-			goto out;
-	}
 	if (in_repetition)
 		goto out;
 	return true;
-out:
+ out:
+	return false;
+}
+
+_Bool ccs_correct_word(const char *string)
+{
+	return ccs_correct_word2(string, strlen(string));
+}
+
+_Bool ccs_correct_path(const char *filename)
+{
+	return *filename == '/' && ccs_correct_word(filename);
+}
+
+_Bool ccs_correct_domain(const unsigned char *domainname)
+{
+	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
+				   CCS_ROOT_NAME_LEN))
+		goto out;
+	domainname += CCS_ROOT_NAME_LEN;
+	if (!*domainname)
+		return true;
+	if (*domainname++ != ' ')
+		goto out;
+	while (1) {
+		const unsigned char *cp = strchr(domainname, ' ');
+		if (!cp)
+			break;
+		if (*domainname != '/' ||
+		    !ccs_correct_word2(domainname, cp - domainname - 1))
+			goto out;
+		domainname = cp + 1;
+	}
+	return ccs_correct_path(domainname);
+ out:
 	return false;
 }
 
@@ -441,7 +392,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 			} else if (c == '\\') {
 				if (filename[1] == '\\')
 					filename++;
-				else if (ccs_is_byte_range(filename + 1))
+				else if (ccs_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
@@ -454,22 +405,22 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 				return false;
 			break;
 		case '+':
-			if (!ccs_is_decimal(c))
+			if (!ccs_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!ccs_is_hexadecimal(c))
+			if (!ccs_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!ccs_is_alphabet_char(c))
+			if (!ccs_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && ccs_is_byte_range(filename + 1)
+			if (c == '\\' && ccs_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -491,7 +442,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 					continue;
 				if (filename[i + 1] == '\\')
 					i++;
-				else if (ccs_is_byte_range(filename + i + 1))
+				else if (ccs_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -501,13 +452,13 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (ccs_is_decimal(filename[j]))
+				while (ccs_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (ccs_is_hexadecimal(filename[j]))
+				while (ccs_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (ccs_is_alphabet_char(filename[j]))
+				while (ccs_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
@@ -840,7 +791,7 @@ int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *doma
 	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
 		goto found;
-	if (!ccs_is_correct_domain(domainname)) {
+	if (!ccs_correct_domain(domainname)) {
 		fprintf(stderr, "Invalid domainname '%s'\n",
 			domainname);
 		return EOF;
@@ -1183,7 +1134,7 @@ _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 	return true;
 }
 
-_Bool ccs_is_identical_file(const char *file1, const char *file2)
+_Bool ccs_identical_file(const char *file1, const char *file2)
 {
 	char buffer1[4096];
 	char buffer2[4096];
@@ -1410,7 +1361,7 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_w
 		else if (ccs_str_starts(line, "select "))
 			is_select = true;
 		ccs_str_starts(line, "domain=");
-		if (ccs_is_domain_def(line)) {
+		if (ccs_domain_def(line)) {
 			if (is_delete) {
 				index = ccs_find_domain(dp, line, false, false);
 				if (index >= 0)

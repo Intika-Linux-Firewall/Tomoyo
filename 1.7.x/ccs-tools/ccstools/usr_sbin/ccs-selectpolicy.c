@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 		char *line = ccs_freadline(stdin);
 		if (!line)
 			break;
-		if (ccs_is_domain_def(line)) {
+		if (ccs_domain_def(line)) {
 			matched = false;
 			for (i = start; i < argc; i++) {
 				const int len = strlen(argv[i]);

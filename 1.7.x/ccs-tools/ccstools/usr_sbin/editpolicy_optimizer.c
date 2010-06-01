@@ -60,21 +60,17 @@ static _Bool ccs_compare_path(const char *sarg, const char *darg,
 	struct ccs_path_group_entry *group;
 	struct ccs_path_info s;
 	struct ccs_path_info d;
-	_Bool may_use_pattern;
 	s.name = sarg;
 	d.name = darg;
 	ccs_fill_path_info(&s);
 	ccs_fill_path_info(&d);
-	may_use_pattern = !d.is_patterned
-		&& (directive != CCS_DIRECTIVE_ALLOW_EXECUTE);
 	if (!ccs_pathcmp(&s, &d))
 		return true;
 	if (d.name[0] == '@')
 		return false;
-	if (s.name[0] != '@') {
+	if (s.name[0] != '@')
 		/* Pathname component. */
-		return may_use_pattern && ccs_path_matches_pattern(&d, &s);
-	}
+		return ccs_path_matches_pattern(&d, &s);
 	/* path_group component. */
 	group = ccs_find_path_group(s.name + 1);
 	if (!group)
@@ -84,7 +80,7 @@ static _Bool ccs_compare_path(const char *sarg, const char *darg,
 		member_name = group->member_name[i];
 		if (!ccs_pathcmp(member_name, &d))
 			return true;
-		if (may_use_pattern && ccs_path_matches_pattern(&d, member_name))
+		if (ccs_path_matches_pattern(&d, member_name))
 			return true;
 	}
 	return false;
@@ -364,7 +360,7 @@ static int ccs_add_address_group_entry(const char *group_name,
 	struct ccs_address_group_entry *group = NULL;
 	if (ccs_parse_ip(member_name, &entry))
 		return -EINVAL;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0))
+	if (!ccs_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = ccs_savename(group_name);
 	if (!saved_group_name)
@@ -434,7 +430,7 @@ static int ccs_add_number_group_entry(const char *group_name,
 	struct ccs_number_group_entry *group = NULL;
 	if (ccs_parse_number(member_name, &entry))
 		return -EINVAL;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0))
+	if (!ccs_correct_word(group_name))
 		return -EINVAL;
 	saved_group_name = ccs_savename(group_name);
 	if (!saved_group_name)

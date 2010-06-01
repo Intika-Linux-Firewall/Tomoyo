@@ -54,13 +54,13 @@ static char *ccs_last_error = NULL;
 
 static void ccs_sigalrm_handler(int sig);
 static const char *ccs_get_last_name(const struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_is_keeper_domain(struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_is_initializer_source(struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_is_initializer_target(struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_is_domain_unreachable(struct ccs_domain_policy *dp, const int index);
-static _Bool ccs_is_deleted_domain(struct ccs_domain_policy *dp, const int index);
-static const struct ccs_domain_keeper_entry *ccs_is_domain_keeper(const struct ccs_path_info *domainname, const char *program);
-static const struct ccs_domain_initializer_entry *ccs_is_domain_initializer(const struct ccs_path_info *domainname, const char *program);
+static _Bool ccs_keeper_domain(struct ccs_domain_policy *dp, const int index);
+static _Bool ccs_initializer_source(struct ccs_domain_policy *dp, const int index);
+static _Bool ccs_initializer_target(struct ccs_domain_policy *dp, const int index);
+static _Bool ccs_domain_unreachable(struct ccs_domain_policy *dp, const int index);
+static _Bool ccs_deleted_domain(struct ccs_domain_policy *dp, const int index);
+static const struct ccs_domain_keeper_entry *ccs_domain_keeper(const struct ccs_path_info *domainname, const char *program);
+static const struct ccs_domain_initializer_entry *ccs_domain_initializer(const struct ccs_path_info *domainname, const char *program);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
@@ -164,27 +164,27 @@ static int ccs_count3(const struct ccs_task_entry *array, int len)
 	return c;
 }
 
-static _Bool ccs_is_keeper_domain(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_keeper_domain(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_dk;
 }
 
-static _Bool ccs_is_initializer_source(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_initializer_source(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_dis;
 }
 
-static _Bool ccs_is_initializer_target(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_initializer_target(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_dit;
 }
 
-static _Bool ccs_is_domain_unreachable(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_domain_unreachable(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_du;
 }
 
-static _Bool ccs_is_deleted_domain(struct ccs_domain_policy *dp, const int index)
+static _Bool ccs_deleted_domain(struct ccs_domain_policy *dp, const int index)
 {
 	return dp->list[index].is_dd;
 }
@@ -247,7 +247,7 @@ static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp,
 						 const struct ccs_path_info *domainname,
 						 const char *program)
 {
-	if (ccs_is_domain_initializer(domainname, program)) {
+	if (ccs_domain_initializer(domainname, program)) {
 		char *line;
 		ccs_get();
 		line = ccs_shprintf("%s %s", domainname->name, program);
@@ -284,9 +284,9 @@ static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index)
 			printw("%3u", dp->list[index].profile);
 		else
 			printw("???");
-		printw(" %c%c%c ", ccs_is_keeper_domain(dp, index) ? '#' : ' ',
-		       ccs_is_initializer_target(dp, index) ? '*' : ' ',
-		       ccs_is_domain_unreachable(dp, index) ? '!' : ' ');
+		printw(" %c%c%c ", ccs_keeper_domain(dp, index) ? '#' : ' ',
+		       ccs_initializer_target(dp, index) ? '*' : ' ',
+		       ccs_domain_unreachable(dp, index) ? '!' : ' ');
 	} else
 		printw("              ");
 	tmp_col += 14;
@@ -299,13 +299,13 @@ static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index)
 		tmp_col += 4;
 		sp = cp + 1;
 	}
-	if (ccs_is_deleted_domain(dp, index)) {
+	if (ccs_deleted_domain(dp, index)) {
 		printw("%s", ccs_eat("( "));
 		tmp_col += 2;
 	}
 	printw("%s", ccs_eat(sp));
 	tmp_col += strlen(sp);
-	if (ccs_is_deleted_domain(dp, index)) {
+	if (ccs_deleted_domain(dp, index)) {
 		printw("%s", ccs_eat(" )"));
 		tmp_col += 2;
 	}
@@ -341,7 +341,7 @@ not_domain_initializer:
 	ccs_put();
 	goto done;
 not_domain_keeper:
-	if (!ccs_is_initializer_source(dp, index))
+	if (!ccs_initializer_source(dp, index))
 		goto done;
 	ccs_get();
 	line = ccs_shprintf(CCS_ROOT_NAME "%s", strrchr(ccs_domain_name(dp, index), ' '));
@@ -646,7 +646,7 @@ static const char *ccs_eat(const char *str)
 }
 
 static const struct ccs_domain_keeper_entry *
-ccs_is_domain_keeper(const struct ccs_path_info *domainname, const char *program)
+ccs_domain_keeper(const struct ccs_path_info *domainname, const char *program)
 {
 	int i;
 	const struct ccs_domain_keeper_entry *flag = NULL;
@@ -676,7 +676,7 @@ ccs_is_domain_keeper(const struct ccs_path_info *domainname, const char *program
 }
 
 static const struct ccs_domain_initializer_entry *
-ccs_is_domain_initializer(const struct ccs_path_info *domainname, const char *program)
+ccs_domain_initializer(const struct ccs_path_info *domainname, const char *program)
 {
 	int i;
 	const struct ccs_domain_initializer_entry *flag = NULL;
@@ -789,7 +789,7 @@ static void ccs_read_generic_policy(void)
 		if (!line)
 			break;
 		if (ccs_current_screen == CCS_SCREEN_ACL_LIST) {
-			if (ccs_is_domain_def(line)) {
+			if (ccs_domain_def(line)) {
 				flag = !strcmp(line, ccs_current_domain);
 				continue;
 			}
@@ -860,12 +860,12 @@ static int ccs_add_domain_initializer_entry(const char *domainname,
 	void *vp;
 	struct ccs_domain_initializer_entry *ptr;
 	_Bool is_last_name = false;
-	if (!ccs_is_correct_path(program, 1, 0, -1))
+	if (!ccs_correct_path(program))
 		return -EINVAL;
 	if (domainname) {
-		if (ccs_is_correct_path(domainname, 1, -1, -1))
+		if (ccs_correct_path(domainname))
 			is_last_name = true;
-		else if (!ccs_is_correct_domain(domainname))
+		else if (!ccs_correct_domain(domainname))
 			return -EINVAL;
 	}
 	vp = realloc(ccs_domain_initializer_list,
@@ -894,11 +894,11 @@ static int ccs_add_domain_keeper_entry(const char *domainname, const char *progr
 {
 	struct ccs_domain_keeper_entry *ptr;
 	_Bool is_last_name = false;
-	if (ccs_is_correct_path(domainname, 1, -1, -1))
+	if (ccs_correct_path(domainname))
 		is_last_name = true;
-	else if (!ccs_is_correct_domain(domainname))
+	else if (!ccs_correct_domain(domainname))
 		return -EINVAL;
-	if (program && !ccs_is_correct_path(program, 1, 0, -1))
+	if (program && !ccs_correct_path(program))
 		return -EINVAL;
 	ccs_domain_keeper_list = realloc(ccs_domain_keeper_list,
 					 (ccs_domain_keeper_list_len + 1) *
@@ -928,8 +928,7 @@ static int ccs_add_path_group_entry(const char *group_name, const char *member_n
 	int i;
 	int j;
 	struct ccs_path_group_entry *group = NULL;
-	if (!ccs_is_correct_path(group_name, 0, 0, 0) ||
-	    !ccs_is_correct_path(member_name, 0, 0, 0))
+	if (!ccs_correct_word(group_name) || !ccs_correct_word(member_name))
 		return -EINVAL;
 	saved_group_name = ccs_savename(group_name);
 	saved_member_name = ccs_savename(member_name);
@@ -993,36 +992,6 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	ccs_number_group_list_len = 0;
 	ccs_find_or_assign_new_domain(dp, CCS_ROOT_NAME, false, false);
 
-	/* Load domain_initializer list, domain_keeper list. */
-	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
-	if (!fp) {
-		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
-		goto no_exception;
-	}
-	ccs_get();
-	while (true) {
-		char *line = ccs_freadline(fp);
-		if (!line)
-			break;
-		if (ccs_str_starts(line, CCS_KEYWORD_INITIALIZE_DOMAIN))
-			ccs_add_domain_initializer_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
-			ccs_add_domain_initializer_policy(line, true);
-		else if (ccs_str_starts(line, CCS_KEYWORD_KEEP_DOMAIN))
-			ccs_add_domain_keeper_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NO_KEEP_DOMAIN))
-			ccs_add_domain_keeper_policy(line, true);
-		else if (ccs_str_starts(line, CCS_KEYWORD_PATH_GROUP))
-			ccs_add_path_group_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_ADDRESS_GROUP))
-			ccs_add_address_group_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NUMBER_GROUP))
-			ccs_add_number_group_policy(line, false);
-	}
-	ccs_put();
-	fclose(fp);
-no_exception:
-
 	/* Load all domain list. */
 	fp = NULL;
 	if (ccs_network_mode)
@@ -1050,7 +1019,7 @@ no_exception:
 		unsigned int profile;
 		if (!line)
 			break;
-		if (ccs_is_domain_def(line)) {
+		if (ccs_domain_def(line)) {
 			index = ccs_find_or_assign_new_domain(dp, line, false,
 							      false);
 			continue;
@@ -1065,7 +1034,7 @@ no_exception:
 			char *cp = strchr(line, ' ');
 			if (cp)
 				*cp = '\0';
-			if (*line == '@' || ccs_is_correct_path(line, 1, 0, -1))
+			if (*line == '@' || ccs_correct_path(line))
 				ccs_add_string_entry(dp, line, index);
 		} else if (sscanf(line, CCS_KEYWORD_USE_PROFILE "%u", &profile)
 			   == 1) {
@@ -1076,6 +1045,51 @@ no_exception:
 	ccs_put();
 	fclose(fp);
 no_domain:
+
+	/* Load domain_initializer list, domain_keeper list. */
+	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
+	if (!fp) {
+		ccs_set_error(CCS_PROC_POLICY_EXCEPTION_POLICY);
+		goto no_exception;
+	}
+	ccs_get();
+	while (true) {
+		char *line = ccs_freadline(fp);
+		if (!line)
+			break;
+		if (ccs_str_starts(line, CCS_KEYWORD_INITIALIZE_DOMAIN))
+			ccs_add_domain_initializer_policy(line, false);
+		else if (ccs_str_starts(line, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
+			ccs_add_domain_initializer_policy(line, true);
+		else if (ccs_str_starts(line, CCS_KEYWORD_KEEP_DOMAIN))
+			ccs_add_domain_keeper_policy(line, false);
+		else if (ccs_str_starts(line, CCS_KEYWORD_NO_KEEP_DOMAIN))
+			ccs_add_domain_keeper_policy(line, true);
+		else if (ccs_str_starts(line, CCS_KEYWORD_PATH_GROUP))
+			ccs_add_path_group_policy(line, false);
+		else if (ccs_str_starts(line, CCS_KEYWORD_ADDRESS_GROUP))
+			ccs_add_address_group_policy(line, false);
+		else if (ccs_str_starts(line, CCS_KEYWORD_NUMBER_GROUP))
+			ccs_add_number_group_policy(line, false);
+		else if (ccs_str_starts(line, CCS_KEYWORD_EXECUTE_HANDLER))
+			for (index = 0; index < max_index; index++)
+				ccs_add_string_entry(dp, line, index);
+		else if (ccs_str_starts(line, CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
+			for (index = 0; index < max_index; index++)
+				ccs_add_string_entry(dp, line, index);
+		else if (ccs_str_starts(line, CCS_KEYWORD_ALLOW_EXECUTE)) {
+			char *cp = strchr(line, ' ');
+			if (cp)
+				*cp = '\0';
+			if (*line == '@' || ccs_correct_path(line))
+				for (index = 0; index < max_index; index++)
+					ccs_add_string_entry(dp, line, index);
+		}
+	}
+	ccs_put();
+	fclose(fp);
+no_exception:
+
 
 	max_index = dp->list_len;
 
@@ -1094,7 +1108,7 @@ no_domain:
 			*cp++ = '\0';
 			parent.name = line;
 			ccs_fill_path_info(&parent);
-			d_i = ccs_is_domain_initializer(&parent, cp);
+			d_i = ccs_domain_initializer(&parent, cp);
 			if (d_i) {
 				/* Initializer under <kernel> is reachable. */
 				if (parent.total_len == CCS_ROOT_NAME_LEN)
@@ -1103,7 +1117,7 @@ no_domain:
 				dp->list[index].d_k = NULL;
 				continue;
 			}
-			d_k = ccs_is_domain_keeper(&parent, cp);
+			d_k = ccs_domain_keeper(&parent, cp);
 			if (d_k) {
 				dp->list[index].d_i = NULL;
 				dp->list[index].d_k = d_k;
@@ -1212,8 +1226,8 @@ no_domain:
 		int index;
 		ccs_unnumbered_domain_count = 0;
 		for (index = 0; index < dp->list_len; index++) {
-			if (ccs_is_deleted_domain(dp, index) ||
-			    ccs_is_initializer_source(dp, index)) {
+			if (ccs_deleted_domain(dp, index) ||
+			    ccs_initializer_source(dp, index)) {
 				dp->list[index].number = -1;
 				ccs_unnumbered_domain_count++;
 			} else {
@@ -1517,8 +1531,8 @@ static _Bool ccs_select_item(struct ccs_domain_policy *dp, const int index)
 		return false;
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST) {
 		if (!ccs_domain_sort_type) {
-			if (ccs_is_deleted_domain(dp, index) ||
-			    ccs_is_initializer_source(dp, index))
+			if (ccs_deleted_domain(dp, index) ||
+			    ccs_initializer_source(dp, index))
 				return false;
 			dp->list_selected[index] ^= 1;
 		} else {
@@ -1646,7 +1660,7 @@ static void ccs_add_entry(struct ccs_readline_data *rl)
 	switch (ccs_current_screen) {
 		u8 directive;
 	case CCS_SCREEN_DOMAIN_LIST:
-		if (!ccs_is_correct_domain(line)) {
+		if (!ccs_correct_domain(line)) {
 			const int len = strlen(line) + 128;
 			ccs_last_error = realloc(ccs_last_error, len);
 			if (!ccs_last_error)
@@ -1881,7 +1895,7 @@ static _Bool ccs_select_acl_window(struct ccs_domain_policy *dp, const int curre
 	ccs_current_pid = 0;
 	if (ccs_domain_sort_type) {
 		ccs_current_pid = ccs_task_list[current].pid;
-	} else if (ccs_is_initializer_source(dp, current)) {
+	} else if (ccs_initializer_source(dp, current)) {
 		char *buf;
 		int redirect_index;
 		if (!may_refresh)
@@ -1901,7 +1915,7 @@ static _Bool ccs_select_acl_window(struct ccs_domain_policy *dp, const int curre
 		}
 		ccs_show_list(dp);
 		return false;
-	} else if (ccs_is_deleted_domain(dp, current)) {
+	} else if (ccs_deleted_domain(dp, current)) {
 		return false;
 	}
 	free(ccs_current_domain);
@@ -1921,8 +1935,8 @@ static int ccs_select_window(struct ccs_domain_policy *dp, const int current)
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
 	if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST && current != EOF &&
-	    !ccs_is_initializer_source(dp, current) &&
-	    !ccs_is_deleted_domain(dp, current))
+	    !ccs_initializer_source(dp, current) &&
+	    !ccs_deleted_domain(dp, current))
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -1971,13 +1985,13 @@ static void ccs_copy_mark_state(struct ccs_domain_policy *dp, const int current)
 				ccs_task_list[index].selected = selected;
 		} else {
 			const u8 selected = dp->list_selected[current];
-			if (ccs_is_deleted_domain(dp, current) ||
-			    ccs_is_initializer_source(dp, current))
+			if (ccs_deleted_domain(dp, current) ||
+			    ccs_initializer_source(dp, current))
 				return;
 			for (index = current;
 			     index < dp->list_len; index++) {
-				if (ccs_is_deleted_domain(dp, index) ||
-				    ccs_is_initializer_source(dp, index))
+				if (ccs_deleted_domain(dp, index) ||
+				    ccs_initializer_source(dp, index))
 					continue;
 				dp->list_selected[index] = selected;
 			}
@@ -2386,7 +2400,7 @@ usage:
 		time_t now = time(NULL);
 		const char *filename = ccs_make_filename("exception_policy", now);
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)) {
-			if (ccs_is_identical_file("exception_policy.conf",
+			if (ccs_identical_file("exception_policy.conf",
 						  filename)) {
 				unlink(filename);
 			} else {
@@ -2397,7 +2411,7 @@ usage:
 		ccs_clear_domain_policy(&dp);
 		filename = ccs_make_filename("domain_policy", now);
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)) {
-			if (ccs_is_identical_file("domain_policy.conf", filename)) {
+			if (ccs_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
 				unlink("domain_policy.conf");
@@ -2406,7 +2420,7 @@ usage:
 		}
 		filename = ccs_make_filename("profile", now);
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, filename)) {
-			if (ccs_is_identical_file("profile.conf", filename)) {
+			if (ccs_identical_file("profile.conf", filename)) {
 				unlink(filename);
 			} else {
 				unlink("profile.conf");
@@ -2415,7 +2429,7 @@ usage:
 		}
 		filename = ccs_make_filename("manager", now);
 		if (ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, filename)) {
-			if (ccs_is_identical_file("manager.conf", filename)) {
+			if (ccs_identical_file("manager.conf", filename)) {
 				unlink(filename);
 			} else {
 				unlink("manager.conf");
