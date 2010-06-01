@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.33.4-95.fc13.src.rpm ]
+if [ ! -r kernel-2.6.33.5-112.fc13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.4-95.fc13.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.5-112.fc13.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.33.4-95.fc13.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.33.4-95.fc13.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.33.5-112.fc13.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.33.5-112.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
