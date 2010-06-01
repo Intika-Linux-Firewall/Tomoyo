@@ -9,11 +9,11 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c       |    2 
  security/tomoyo/common.h       |    7 -
  security/tomoyo/domain.c       |   16 ++--
- security/tomoyo/file.c         |   24 +-----
+ security/tomoyo/file.c         |   30 +------
  security/tomoyo/number_group.c |    3 
  security/tomoyo/path_group.c   |   17 +---
  security/tomoyo/util.c         |  157 +++++++++++++++--------------------------
- 7 files changed, 81 insertions(+), 145 deletions(-)
+ 7 files changed, 84 insertions(+), 148 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -95,7 +95,12 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (!e.original_name || !e.aliased_name)
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -69,19 +69,6 @@ bool tomoyo_compare_name_union(const str
+@@ -65,23 +65,10 @@ bool tomoyo_compare_name_union(const str
+ 			       const struct tomoyo_name_union *ptr)
+ {
+ 	if (ptr->is_group)
+-		return tomoyo_path_matches_group(name, ptr->group, 1);
++		return tomoyo_path_matches_group(name, ptr->group);
  	return tomoyo_path_matches_pattern(name, ptr->filename);
  }
  
@@ -160,6 +165,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		error = 0;
  		break;
+@@ -754,7 +739,7 @@ static int tomoyo_file_perm(struct tomoy
+ 	} else
+ 		BUG();
+ 	do {
+-		error = tomoyo_path_acl(r, filename, perm, mode != 1);
++		error = tomoyo_path_acl(r, filename, perm);
+ 		if (error && mode == 4 && !r->domain->ignore_global_allow_read
+ 		    && tomoyo_is_globally_readable_file(filename))
+ 			error = 0;
 @@ -762,7 +747,6 @@ static int tomoyo_file_perm(struct tomoy
  			break;
  		tomoyo_warn_log(r, "%s %s", msg, filename->name);
@@ -168,6 +182,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					  tomoyo_file_pattern(filename));
  		/*
                   * Do not retry for execute request, for alias may have
+@@ -1071,7 +1055,7 @@ static int tomoyo_path_permission(struct
+ 
+  next:
+ 	do {
+-		error = tomoyo_path_acl(r, filename, 1 << operation, 1);
++		error = tomoyo_path_acl(r, filename, 1 << operation);
+ 		if (!error)
+ 			break;
+ 		msg = tomoyo_path2keyword(operation);
 --- security-testing-2.6.orig/security/tomoyo/number_group.c
 +++ security-testing-2.6/security/tomoyo/number_group.c
 @@ -24,8 +24,7 @@ struct tomoyo_number_group *tomoyo_get_n
