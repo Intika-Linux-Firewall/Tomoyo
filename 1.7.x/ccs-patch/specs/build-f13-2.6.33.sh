@@ -63,7 +63,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -945,7 +950,7 @@
+@@ -953,7 +958,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1538,6 +1543,10 @@
+@@ -1544,6 +1549,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -83,7 +83,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1564,6 +1573,9 @@
+@@ -1570,6 +1579,9 @@
  for i in *.config
  do
    mv $i .config
