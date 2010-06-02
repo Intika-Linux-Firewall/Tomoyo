@@ -1,19 +1,19 @@
-[PATCH] TOMOYO: Allow wildcard for execute permission and domainname.
+[PATCH] TOMOYO: Allow wildcard for execute permission.
 
-Some applications create and execute programs dynamically.
-We need to accept wildcard for execute permission and domainname
-because such programs contain random suffix in their filenames.
+Some applications create and execute programs dynamically. We need to accept
+wildcard for execute permission because such programs contain random suffix
+in their filenames. This patch loosens up regulation of string parameters.
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c       |    2 
  security/tomoyo/common.h       |    7 -
- security/tomoyo/domain.c       |   16 ++--
+ security/tomoyo/domain.c       |   21 ++---
  security/tomoyo/file.c         |   30 +------
  security/tomoyo/number_group.c |    3 
  security/tomoyo/path_group.c   |   17 +---
- security/tomoyo/util.c         |  157 +++++++++++++++--------------------------
- 7 files changed, 84 insertions(+), 148 deletions(-)
+ security/tomoyo/util.c         |  154 +++++++++++++++--------------------------
+ 7 files changed, 86 insertions(+), 148 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -28,7 +28,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	e.manager = tomoyo_get_name(manager);
 --- security-testing-2.6.orig/security/tomoyo/common.h
 +++ security-testing-2.6/security/tomoyo/common.h
-@@ -710,16 +710,15 @@ bool tomoyo_io_printf(struct tomoyo_io_b
+@@ -670,16 +670,15 @@ bool tomoyo_io_printf(struct tomoyo_io_b
  /* Check whether the domainname is correct. */
  bool tomoyo_is_correct_domain(const unsigned char *domainname);
  /* Check whether the token is correct. */
@@ -80,7 +80,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			return -EINVAL;
  		e.program = tomoyo_get_name(program);
  		if (!e.program)
-@@ -533,9 +533,9 @@ static int tomoyo_update_alias_entry(con
+@@ -533,13 +533,14 @@ static int tomoyo_update_alias_entry(con
  	struct tomoyo_alias_entry e = { };
  	int error = is_delete ? -ENOENT : -ENOMEM;
  
@@ -92,7 +92,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		return -EINVAL;
  	e.original_name = tomoyo_get_name(original_name);
  	e.aliased_name = tomoyo_get_name(aliased_name);
- 	if (!e.original_name || !e.aliased_name)
+-	if (!e.original_name || !e.aliased_name)
+-		goto out;
++	if (!e.original_name || !e.aliased_name ||
++	    e.original_name->is_patterned || e.aliased_name->is_patterned)
++		goto out; /* No patterns allowed. */
+ 	if (mutex_lock_interruptible(&tomoyo_policy_lock))
+ 		goto out;
+ 	list_for_each_entry_rcu(ptr, &tomoyo_alias_list, list) {
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
 @@ -65,23 +65,10 @@ bool tomoyo_compare_name_union(const str
@@ -120,7 +127,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_put_number_union(struct tomoyo_number_union *ptr)
  {
  	if (ptr && ptr->is_group)
-@@ -245,7 +232,7 @@ static int tomoyo_update_globally_readab
+@@ -247,7 +234,7 @@ static int tomoyo_update_globally_readab
  	struct tomoyo_globally_readable_file_entry e = { };
  	int error = is_delete ? -ENOENT : -ENOMEM;
  
@@ -129,7 +136,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -EINVAL;
  	e.filename = tomoyo_get_name(filename);
  	if (!e.filename)
-@@ -541,7 +528,7 @@ static int tomoyo_update_no_rewrite_entr
+@@ -543,7 +530,7 @@ static int tomoyo_update_no_rewrite_entr
  	struct tomoyo_no_rewrite_entry e = { };
  	int error = is_delete ? -ENOENT : -ENOMEM;
  
@@ -138,7 +145,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return -EINVAL;
  	e.pattern = tomoyo_get_name(pattern);
  	if (!e.pattern)
-@@ -688,7 +675,6 @@ static int tomoyo_update_file_acl(u8 per
+@@ -690,7 +677,6 @@ static int tomoyo_update_file_acl(u8 per
   * @r:               Pointer to "struct tomoyo_request_info".
   * @filename:        Filename to check.
   * @perm:            Permission.
@@ -146,7 +153,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   *
   * Returns 0 on success, -EPERM otherwise.
   *
-@@ -696,7 +682,7 @@ static int tomoyo_update_file_acl(u8 per
+@@ -698,7 +684,7 @@ static int tomoyo_update_file_acl(u8 per
   */
  static int tomoyo_path_acl(const struct tomoyo_request_info *r,
  			   const struct tomoyo_path_info *filename,
@@ -155,7 +162,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  {
  	struct tomoyo_domain_info *domain = r->domain;
  	struct tomoyo_acl_info *ptr;
-@@ -708,8 +694,7 @@ static int tomoyo_path_acl(const struct 
+@@ -710,8 +696,7 @@ static int tomoyo_path_acl(const struct 
  			continue;
  		acl = container_of(ptr, struct tomoyo_path_acl, head);
  		if (!(acl->perm & perm) ||
@@ -165,7 +172,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  			continue;
  		error = 0;
  		break;
-@@ -754,7 +739,7 @@ static int tomoyo_file_perm(struct tomoy
+@@ -756,7 +741,7 @@ static int tomoyo_file_perm(struct tomoy
  	} else
  		BUG();
  	do {
@@ -174,7 +181,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		if (error && mode == 4 && !r->domain->ignore_global_allow_read
  		    && tomoyo_is_globally_readable_file(filename))
  			error = 0;
-@@ -762,7 +747,6 @@ static int tomoyo_file_perm(struct tomoy
+@@ -764,7 +749,6 @@ static int tomoyo_file_perm(struct tomoy
  			break;
  		tomoyo_warn_log(r, "%s %s", msg, filename->name);
  		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
@@ -182,7 +189,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  					  tomoyo_file_pattern(filename));
  		/*
                   * Do not retry for execute request, for alias may have
-@@ -1071,7 +1055,7 @@ static int tomoyo_path_permission(struct
+@@ -1073,7 +1057,7 @@ static int tomoyo_path_permission(struct
  
   next:
  	do {
@@ -387,7 +394,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (in_repetition)
  		goto out;
  	return true;
-@@ -379,58 +343,57 @@ bool tomoyo_is_correct_path(const char *
+@@ -379,58 +343,58 @@ bool tomoyo_is_correct_path(const char *
  }
  
  /**
@@ -430,9 +437,8 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 -	unsigned char d;
 -	unsigned char e;
 -
--	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME,
--				   TOMOYO_ROOT_NAME_LEN))
-+	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME, TOMOYO_ROOT_NAME_LEN))
+ 	if (!domainname || strncmp(domainname, TOMOYO_ROOT_NAME,
+ 				   TOMOYO_ROOT_NAME_LEN))
  		goto out;
  	domainname += TOMOYO_ROOT_NAME_LEN;
  	if (!*domainname)

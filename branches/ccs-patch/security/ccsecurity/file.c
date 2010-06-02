@@ -940,8 +940,12 @@ static int ccs_update_execute_handler(const u8 type, const char *filename,
 	e.handler = ccs_get_name(filename);
 	if (!e.handler)
 		return -ENOMEM;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_execute_handler, NULL);
+	if (e.handler->is_patterned)
+		error = -EINVAL; /* No patterns allowed. */
+	else
+		error = ccs_update_domain(&e.head, sizeof(e), is_delete,
+					  domain, ccs_same_execute_handler,
+					  NULL);
 	ccs_put_name(e.handler);
 	return error;
 }

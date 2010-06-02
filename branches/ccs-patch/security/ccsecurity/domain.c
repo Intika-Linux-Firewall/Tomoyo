@@ -464,7 +464,8 @@ static int ccs_update_aggregator_entry(const char *original_name,
 		return -EINVAL;
 	e.original_name = ccs_get_name(original_name);
 	e.aggregated_name = ccs_get_name(aggregated_name);
-	if (!e.original_name || !e.aggregated_name)
+	if (!e.original_name || !e.aggregated_name ||
+	    e.aggregated_name->is_patterned) /* No patterns allowed. */
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  CCS_ID_AGGREGATOR,
