@@ -833,7 +833,8 @@ static void ccs_unescape(unsigned char *dest)
  *
  * Returns number of directories to strip.
  */
-static int ccs_root_depth(struct dentry *dentry, struct vfsmount *vfsmnt)
+static inline int ccs_root_depth(struct dentry *dentry,
+				 struct vfsmount *vfsmnt)
 {
 	int depth = 0;
 	ccs_realpath_lock();
