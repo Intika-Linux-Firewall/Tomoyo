@@ -108,8 +108,7 @@ struct ccsecurity_operations {
 	int (*symlink_permission) (struct inode *dir, struct dentry *dentry,
 				   struct vfsmount *mnt, const char *from);
 	int (*truncate_permission) (struct dentry *dentry,
-				    struct vfsmount *mnt, loff_t length,
-				    unsigned int time_attrs);
+				    struct vfsmount *mnt);
 	int (*rename_permission) (struct inode *old_dir,
 				  struct dentry *old_dentry,
 				  struct inode *new_dir,
@@ -342,8 +341,7 @@ static inline int ccs_truncate_permission(struct dentry *dentry,
 					  unsigned int time_attrs)
 {
 	return ccsecurity_ops.truncate_permission ?
-		ccsecurity_ops.truncate_permission(dentry, mnt, length,
-						   time_attrs) : 0;
+		ccsecurity_ops.truncate_permission(dentry, mnt) : 0;
 }
 
 static inline int ccs_rename_permission(struct inode *old_dir,

@@ -452,7 +452,7 @@ static inline size_t ccs_del_ipv6_address(struct list_head *element)
 }
 
 /**
- * ccs_del_conditiopn - Delete members in "struct ccs_condition".
+ * ccs_del_condition - Delete members in "struct ccs_condition".
  *
  * @element: Pointer to "struct list_head".
  *

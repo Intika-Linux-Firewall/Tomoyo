@@ -97,7 +97,7 @@ static size_t ccs_del_allow_read(struct list_head *element)
 }
 
 /**
- * ccsdel_allow_env - Delete members in "struct ccs_globally_usable_env_entry".
+ * ccs_del_allow_env - Delete members in "struct ccs_globally_usable_env_entry".
  *
  * @element: Pointer to "struct list_head".
  *
@@ -536,7 +536,7 @@ static size_t ccs_del_ipv6_address(struct list_head *element)
 }
 
 /**
- * ccs_del_conditiopn - Delete members in "struct ccs_condition".
+ * ccs_del_condition - Delete members in "struct ccs_condition".
  *
  * @cond: Pointer to "struct ccs_condition".
  *

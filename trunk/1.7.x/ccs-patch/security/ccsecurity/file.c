@@ -119,7 +119,7 @@ static const u8 ccs_pn2mac[CCS_MAX_PATH_NUMBER_OPERATION] = {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 
 /* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -143,7 +143,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -155,7 +155,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (!error && (!dir->i_op || !dir->i_op->rmdir))
@@ -164,7 +164,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	int error;
@@ -193,7 +193,7 @@ static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error;
 	down(&dir->i_zombie);
@@ -208,8 +208,9 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 4, 33)
 	struct inode *inode;
@@ -262,10 +263,10 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks from vfs_rename_dir(). */
-static int ccs_pre_vfs_rename_dir(struct inode *old_dir,
-				  struct dentry *old_dentry,
-				  struct inode *new_dir,
-				  struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_dir(struct inode *old_dir,
+					 struct dentry *old_dentry,
+					 struct inode *new_dir,
+					 struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -289,10 +290,10 @@ static int ccs_pre_vfs_rename_dir(struct inode *old_dir,
 }
 
 /* Permission checks from vfs_rename_other(). */
-static int ccs_pre_vfs_rename_other(struct inode *old_dir,
-				    struct dentry *old_dentry,
-				    struct inode *new_dir,
-				    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename_other(struct inode *old_dir,
+					   struct dentry *old_dentry,
+					   struct inode *new_dir,
+					   struct dentry *new_dentry)
 {
 	int error;
 	if (old_dentry->d_inode == new_dentry->d_inode)
@@ -314,8 +315,10 @@ static int ccs_pre_vfs_rename_other(struct inode *old_dir,
 }
 
 /* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
 {
 	int error;
 	lock_kernel(); /* From do_rename(). */
@@ -332,7 +335,7 @@ static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 #else
 
 /* Permission checks from vfs_create(). */
-static int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_create(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
@@ -354,7 +357,7 @@ static int ccs_pre_vfs_mknod(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_mkdir(). */
-static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 1);
 	if (error)
@@ -365,7 +368,7 @@ static int ccs_pre_vfs_mkdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rmdir(). */
-static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 1);
 	if (error)
@@ -376,7 +379,7 @@ static int ccs_pre_vfs_rmdir(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_unlink(). */
-static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_delete(dir, dentry, 0);
 	if (error)
@@ -387,8 +390,9 @@ static int ccs_pre_vfs_unlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_link(). */
-static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
-			    struct dentry *new_dentry)
+static inline int ccs_pre_vfs_link(struct dentry *old_dentry,
+				   struct inode *dir,
+				   struct dentry *new_dentry)
 {
 	struct inode *inode = old_dentry->d_inode;
 	int error;
@@ -409,7 +413,7 @@ static int ccs_pre_vfs_link(struct dentry *old_dentry, struct inode *dir,
 }
 
 /* Permission checks from vfs_symlink(). */
-static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
+static inline int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 {
 	int error = ccsecurity_exports.may_create(dir, dentry, 0);
 	if (error)
@@ -420,8 +424,10 @@ static int ccs_pre_vfs_symlink(struct inode *dir, struct dentry *dentry)
 }
 
 /* Permission checks from vfs_rename(). */
-static int ccs_pre_vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
-			      struct inode *new_dir, struct dentry *new_dentry)
+static inline int ccs_pre_vfs_rename(struct inode *old_dir,
+				     struct dentry *old_dentry,
+				     struct inode *new_dir,
+				     struct dentry *new_dentry)
 {
 	int error;
 	const int is_dir = S_ISDIR(old_dentry->d_inode->i_mode);
@@ -997,10 +1003,10 @@ bool ccs_read_no_rewrite_policy(struct ccs_io_buffer *head)
  * "allow_read" instead of "4", "allow_write" instead of "2",
  * "allow_execute" instead of "1".
  */
-static int ccs_update_file_acl(u8 perm, const char *filename,
-			       struct ccs_domain_info * const domain,
-			       struct ccs_condition *condition,
-			       const bool is_delete)
+static inline int ccs_update_file_acl(u8 perm, const char *filename,
+				      struct ccs_domain_info * const domain,
+				      struct ccs_condition *condition,
+				      const bool is_delete)
 {
 	if (perm > 7 || !perm)
 		return -EINVAL;
@@ -1167,9 +1173,10 @@ static int ccs_file_perm(struct ccs_request_info *r,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_execute_handler(const u8 type, const char *filename,
-				      struct ccs_domain_info * const domain,
-				      const bool is_delete)
+static inline int ccs_update_execute_handler(const u8 type,
+					     const char *filename,
+					     struct ccs_domain_info * const
+					     domain, const bool is_delete)
 {
 	struct ccs_acl_info *ptr;
 	struct ccs_execute_handler_record e = { .head.type = type };
@@ -1310,11 +1317,13 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_path_number3_acl(const u8 type, const char *filename,
-				       char *mode, char *major, char *minor,
-				       struct ccs_domain_info * const domain,
-				       struct ccs_condition *condition,
-				       const bool is_delete)
+static inline int ccs_update_path_number3_acl(const u8 type,
+					      const char *filename, char *mode,
+					      char *major, char *minor,
+					      struct ccs_domain_info * const
+					      domain,
+					      struct ccs_condition *condition,
+					      const bool is_delete)
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
@@ -1378,11 +1387,11 @@ static int ccs_update_path_number3_acl(const u8 type, const char *filename,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_path2_acl(const u8 type, const char *filename1,
-				const char *filename2,
-				struct ccs_domain_info * const domain,
-				struct ccs_condition *condition,
-				const bool is_delete)
+static inline int ccs_update_path2_acl(const u8 type, const char *filename1,
+				       const char *filename2,
+				       struct ccs_domain_info * const domain,
+				       struct ccs_condition *condition,
+				       const bool is_delete)
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
@@ -1956,11 +1965,13 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_path_number_acl(const u8 type, const char *filename,
-				      char *number,
-				      struct ccs_domain_info * const domain,
-				      struct ccs_condition *condition,
-				      const bool is_delete)
+static inline int ccs_update_path_number_acl(const u8 type,
+					     const char *filename,
+					     char *number,
+					     struct ccs_domain_info * const
+					     domain,
+					     struct ccs_condition *condition,
+					     const bool is_delete)
 {
 	const u8 perm = 1 << type;
 	struct ccs_acl_info *ptr;
@@ -2431,8 +2442,7 @@ static int __ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 
 /* Permission checks for notify_change(). */
 static int __ccs_truncate_permission(struct dentry *dentry,
-				     struct vfsmount *mnt, loff_t length,
-				     unsigned int time_attrs)
+				     struct vfsmount *mnt)
 {
 	return ccs_path_perm(CCS_TYPE_TRUNCATE, NULL, dentry, mnt, NULL);
 }

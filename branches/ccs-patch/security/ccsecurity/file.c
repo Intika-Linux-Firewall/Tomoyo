@@ -1993,8 +1993,7 @@ static int __ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 
 /* Permission checks for notify_change(). */
 static int __ccs_truncate_permission(struct dentry *dentry,
-				     struct vfsmount *mnt, loff_t length,
-				     unsigned int time_attrs)
+				     struct vfsmount *mnt)
 {
 	return ccs_path_perm(CCS_TYPE_TRUNCATE, NULL, dentry, mnt, NULL);
 }

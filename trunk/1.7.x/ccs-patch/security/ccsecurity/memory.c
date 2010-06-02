@@ -94,7 +94,7 @@ void ccs_memory_free(const void *ptr, size_t size)
 	kfree(ptr);
 }
 
-/* Lis of IPv6 address. */
+/* List of IPv6 address. */
 LIST_HEAD(ccs_address_list);
 
 /**
