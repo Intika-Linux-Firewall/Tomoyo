@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-128.17.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-128.18.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-128.17.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-128.17.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-128.17.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100412.tar.gz ]
@@ -32,8 +32,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define sublevel 18
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 128.17%{?dist}
-+%define release 128.17%{?dist}_tomoyo_1.7.2
+-%define release 128.18%{?dist}
++%define release 128.18%{?dist}_tomoyo_1.7.2
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -7375,6 +7378,10 @@
+@@ -7386,6 +7389,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -7434,6 +7441,9 @@
+@@ -7445,6 +7452,9 @@
  for i in *.config
  do
    mv $i .config
