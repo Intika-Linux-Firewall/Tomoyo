@@ -91,17 +91,17 @@ int reboot(int cmd);
 int init_module(const char *name, struct module *image);
 int delete_module(const char *name);
 
-#define proc_policy_dir              "/sys/kernel/security/tomoyo/"
-#define proc_policy_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
-#define proc_policy_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
-#define proc_policy_profile          "/sys/kernel/security/tomoyo/profile"
-#define proc_policy_manager          "/sys/kernel/security/tomoyo/manager"
-#define proc_policy_query            "/sys/kernel/security/tomoyo/query"
-#define proc_policy_grant_log        "/sys/kernel/security/tomoyo/grant_log"
-#define proc_policy_reject_log       "/sys/kernel/security/tomoyo/reject_log"
-#define proc_policy_domain_status    "/sys/kernel/security/tomoyo/.domain_status"
-#define proc_policy_process_status   "/sys/kernel/security/tomoyo/.process_status"
-#define proc_policy_self_domain      "/sys/kernel/security/tomoyo/self_domain"
+#define proc_policy_dir              "/proc/ccs/"
+#define proc_policy_domain_policy    "/proc/ccs/domain_policy"
+#define proc_policy_exception_policy "/proc/ccs/exception_policy"
+#define proc_policy_profile          "/proc/ccs/profile"
+#define proc_policy_manager          "/proc/ccs/manager"
+#define proc_policy_query            "/proc/ccs/query"
+#define proc_policy_grant_log        "/proc/ccs/grant_log"
+#define proc_policy_reject_log       "/proc/ccs/reject_log"
+#define proc_policy_domain_status    "/proc/ccs/.domain_status"
+#define proc_policy_process_status   "/proc/ccs/.process_status"
+#define proc_policy_self_domain      "/proc/ccs/self_domain"
 
 static FILE *profile_fp = NULL;
 static FILE *domain_fp = NULL;
@@ -189,7 +189,7 @@ static void clear_status(void)
 	}
 	for (i = 0; keywords[i]; i++)
 		fprintf(profile_fp,
-			"255-CONFIG::%s={ mode=disabled }\n",
+			"255-CONFIG::%s=disabled grant_log=no reject_log=no\n",
 			keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
@@ -209,7 +209,8 @@ static void clear_status(void)
 		if (!strcmp(cp, "COMMENT"))
 			mode = "Profile for kernel test\n";
 		else
-			mode = "{ mode=disabled verbose=no }\n";
+			mode = "disabled verbose=no grant_log=no reject_log=no"
+				"\n";
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
 	/* fprintf(profile_fp, "255-PREFERENCE::enforcing= penalty=1\n"); */
@@ -285,12 +286,12 @@ static void ccs_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/profile\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/profile\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/domain_policy\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/domain_policy\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/exception_policy\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/exception_policy\n");
+	fprintf(domain_fp, "allow_read/write /proc/ccs/profile\n");
+	fprintf(domain_fp, "allow_truncate /proc/ccs/profile\n");
 }
 
 static void BUG(const char *fmt, ...)

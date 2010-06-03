@@ -917,7 +917,7 @@ static int __ccs_socket_recvmsg_permission(struct sock *sk,
 	 */
 	{
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
-		bool slow;
+		bool slow = false;
 		if (type == SOCK_DGRAM)
 			slow = lock_sock_fast(sk);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)

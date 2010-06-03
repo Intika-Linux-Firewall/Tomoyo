@@ -150,31 +150,35 @@ static void stage_file_test(void)
 	set_profile(3, "file::umount");
 	set_profile(3, "file::pivot_root");
 
-	policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range "
+		"if task.uid=0 task.gid=0";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 0);
 
-	policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range "
+		"if task.euid=0 0=0 1-100=10-1000";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 0);
 
-	policy = "allow_read/write /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_read/write /proc/sys/net/ipv4/ip_local_port_range "
+		"if 1!=10-100";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 0);
 
-	policy = "allow_read /bin/true";
+	policy = "allow_read /bin/true "
+		"if path1.uid=0 path1.parent.uid=0 10=10-100";
 	write_domain_policy(policy, 0);
 	show_result(uselib("/bin/true"), 1);
 	write_domain_policy(policy, 1);
 	show_result(uselib("/bin/true"), 0);
 
-	policy = "allow_execute /bin/true";
+	policy = "allow_execute /bin/true if task.uid!=10 path1.parent.uid=0";
 	write_domain_policy(policy, 0);
 	fflush(stdout);
 	fflush(stderr);
@@ -208,7 +212,8 @@ static void stage_file_test(void)
 	errno = err;
 	show_result(err ? EOF : 0, 0);
 
-	policy = "allow_read /dev/null";
+	policy = "allow_read /dev/null if path1.type=char path1.dev_major=1 "
+		"path1.dev_minor=3";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
 	show_result(fd, 1);
@@ -220,7 +225,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read /dev/null";
+	policy = "allow_read /dev/null if path1.perm=0666";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
 	show_result(fd, 1);
@@ -232,7 +237,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read /dev/null";
+	policy = "allow_read /dev/null if path1.perm!=0777";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
 	show_result(fd, 1);
@@ -244,7 +249,12 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read /dev/null";
+	policy = "allow_read /dev/null if path1.perm=owner_read "
+		"path1.perm=owner_write path1.perm!=owner_execute "
+		"path1.perm=group_read path1.perm=group_write "
+		"path1.perm!=group_execute path1.perm=others_read "
+		"path1.perm=others_write path1.perm!=others_execute "
+		"path1.perm!=setuid path1.perm!=setgid path1.perm!=sticky";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
 	show_result(fd, 1);
@@ -257,7 +267,9 @@ static void stage_file_test(void)
 		close(fd);
 
 	set_profile(3, "file::mkfifo");
-	policy = "allow_mkfifo /tmp/mknod_fifo_test 0644";
+	policy = "allow_mkfifo /tmp/mknod_fifo_test 0644 "
+		"if path1.parent.perm=01777 path1.parent.perm=sticky "
+		"path1.parent.uid=0 path1.parent.gid=0";
 	write_domain_policy(policy, 0);
 	filename = "/tmp/mknod_fifo_test";
 	show_result(mknod(filename, S_IFIFO | 0644, 0), 1);
@@ -270,7 +282,9 @@ static void stage_file_test(void)
 	filename = "/dev/null";
 	stat(filename, &sbuf);
 	snprintf(pbuffer, sizeof(pbuffer) - 1,
-		 "allow_write %s", filename);
+		 "allow_write %s if path1.major=%u path1.minor=%u",
+		 filename, (unsigned int) MAJOR(sbuf.st_dev),
+		 (unsigned int) MINOR(sbuf.st_dev));
 	policy = pbuffer;
 	write_domain_policy(policy, 0);
 	fd = open(filename, O_WRONLY);
@@ -283,7 +297,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read/write /tmp/fifo";
+	policy = "allow_read/write /tmp/fifo if path1.type=fifo";
 	mkfifo2("/tmp/fifo");
 	write_domain_policy(policy, 0);
 	fd = open("/tmp/fifo", O_RDWR);
@@ -296,7 +310,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read /dev/null";
+	policy = "allow_read /dev/null if path1.parent.ino=path1.parent.ino";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDONLY);
 	show_result(fd, 1);
@@ -308,7 +322,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_write /dev/null";
+	policy = "allow_write /dev/null if path1.uid=path1.gid";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_WRONLY);
 	show_result(fd, 1);
@@ -320,7 +334,7 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_read/write /dev/null";
+	policy = "allow_read/write /dev/null if task.uid=path1.parent.uid";
 	write_domain_policy(policy, 0);
 	fd = open("/dev/null", O_RDWR);
 	show_result(fd, 1);
@@ -332,9 +346,10 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 
-	policy = "allow_create /tmp/open_test 0644";
+	policy = "allow_create /tmp/open_test 0644 "
+		"if path1.parent.uid=task.uid";
 	write_domain_policy(policy, 0);
-	policy = "allow_write /tmp/open_test";
+	policy = "allow_write /tmp/open_test if path1.parent.uid=0";
 	write_domain_policy(policy, 0);
 	fd = open("/tmp/open_test", O_WRONLY | O_CREAT | O_EXCL, 0644);
 	show_result(fd, 1);
@@ -348,12 +363,13 @@ static void stage_file_test(void)
 		close(fd);
 	unlink2("/tmp/open_test");
 
-	policy = "allow_create /tmp/open_test 0644";
+	policy = "allow_create /tmp/open_test 0644 "
+		"if path1.parent.uid=task.uid";
 	write_domain_policy(policy, 1);
 
-	policy = "allow_write /tmp/open_test";
+	policy = "allow_write /tmp/open_test if task.uid=0 path1.ino!=0";
 	write_domain_policy(policy, 0);
-	policy = "allow_create /tmp/open_test 0644";
+	policy = "allow_create /tmp/open_test 0644 if 0=0";
 	write_domain_policy(policy, 0);
 	fd = open("/tmp/open_test", O_WRONLY | O_CREAT | O_EXCL, 0644);
 	show_result(fd, 1);
@@ -366,15 +382,15 @@ static void stage_file_test(void)
 	if (fd != EOF)
 		close(fd);
 	unlink2("/tmp/open_test");
-	policy = "allow_write /tmp/open_test";
+	policy = "allow_write /tmp/open_test if task.uid=0 path1.ino!=0";
 	write_domain_policy(policy, 1);
 
 	filename = "/tmp/truncate_test";
 	create2(filename);
 
-	policy = "allow_truncate /tmp/truncate_test";
+	policy = "allow_truncate /tmp/truncate_test if task.uid=path1.uid";
 	write_domain_policy(policy, 0);
-	policy = "allow_write /tmp/truncate_test";
+	policy = "allow_write /tmp/truncate_test if 1!=100-1000000";
 	write_domain_policy(policy, 0);
 	fd = open(filename, O_WRONLY | O_TRUNC);
 	show_result(fd, 1);
@@ -385,7 +401,8 @@ static void stage_file_test(void)
 	show_result(fd, 0);
 	if (fd != EOF)
 		close(fd);
-	policy = "allow_truncate /tmp/truncate_test";
+	policy = "allow_truncate /tmp/truncate_test "
+		"if task.uid=path1.uid";
 	write_domain_policy(policy, 1);
 
 	policy = "allow_write /tmp/truncate_test";
@@ -499,7 +516,8 @@ static void stage_file_test(void)
 	unlink2(filename);
 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 
-	policy = "allow_symlink /tmp/symlink_source_test";
+	policy = "allow_symlink /tmp/symlink_source_test "
+		"if symlink.target=\"/tmp/symlink_\\*_test\"";
 	write_domain_policy(policy, 0);
 	filename = "/tmp/symlink_source_test";
 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
@@ -507,7 +525,8 @@ static void stage_file_test(void)
 	unlink2(filename);
 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 
-	policy = "allow_symlink /tmp/symlink_source_test";
+	policy = "allow_symlink /tmp/symlink_source_test "
+		"if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"";
 	write_domain_policy(policy, 0);
 	filename = "/tmp/symlink_source_test";
 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
@@ -515,7 +534,8 @@ static void stage_file_test(void)
 	unlink2(filename);
 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 
-	policy = "allow_symlink /tmp/symlink_source_test";
+	policy = "allow_symlink /tmp/symlink_source_test "
+		"if symlink.target!=\"\\*\"";
 	write_domain_policy(policy, 0);
 	filename = "/tmp/symlink_source_test";
 	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
@@ -523,10 +543,11 @@ static void stage_file_test(void)
 	unlink2(filename);
 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 
-	policy = "allow_symlink /tmp/symlink_source_test";
+	policy = "allow_symlink /tmp/symlink_source_test "
+		"if symlink.target!=\"/tmp/symlink_\\*_test\"";
 	write_domain_policy(policy, 0);
 	filename = "/tmp/symlink_source_test";
-	show_result(symlink("/tmp/symlink_dest_test", filename), 1);
+	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
 	write_domain_policy(policy, 1);
 	unlink2(filename);
 	show_result(symlink("/tmp/symlink_dest_test", filename), 0);
@@ -625,7 +646,7 @@ static void stage_file_test(void)
 	unlink2(filename);
 
 	policy = "allow_ioctl socket:[family=2:type=2:protocol=17] "
-		"35122-35124";
+		"35122-35124 if task.uid=0";
 	write_domain_policy(policy, 0);
 	fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
 	memset(&ifreq, 0, sizeof(ifreq));
