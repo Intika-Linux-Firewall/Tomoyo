@@ -2,13 +2,13 @@
 
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
- security/tomoyo/common.c |  435 ++++++++++++++++++++++++++++-------------------
+ security/tomoyo/common.c |  433 ++++++++++++++++++++++++++++-------------------
  security/tomoyo/common.h |   68 ++++++-
  security/tomoyo/domain.c |    9 
  security/tomoyo/file.c   |  133 ++++++++++----
  security/tomoyo/mount.c  |    3 
  security/tomoyo/util.c   |   92 +++++++--
- 6 files changed, 490 insertions(+), 250 deletions(-)
+ 6 files changed, 488 insertions(+), 250 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -521,16 +521,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->read_eof = true;
  	return 0;
  }
-@@ -853,6 +937,8 @@ static bool tomoyo_print_mount_acl(struc
- 				   struct tomoyo_mount_acl *ptr)
- {
- 	const int pos = head->read_avail;
-+	if (ptr->is_deleted)
-+		return true;
- 	if (!tomoyo_io_printf(head, TOMOYO_KEYWORD_ALLOW_MOUNT) ||
- 	    !tomoyo_print_name_union(head, &ptr->dev_name) ||
- 	    !tomoyo_print_name_union(head, &ptr->dir_name) ||
-@@ -1580,7 +1666,7 @@ static int tomoyo_write_answer(struct to
+@@ -1580,7 +1664,7 @@ static int tomoyo_write_answer(struct to
  static int tomoyo_read_version(struct tomoyo_io_buffer *head)
  {
  	if (!head->read_eof) {
@@ -539,7 +530,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		head->read_eof = true;
  	}
  	return 0;
-@@ -1900,6 +1986,9 @@ void tomoyo_check_profile(void)
+@@ -1900,6 +1984,9 @@ void tomoyo_check_profile(void)
  		      profile, domain->domainname->name);
  	}
  	tomoyo_read_unlock(idx);
