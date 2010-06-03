@@ -1046,6 +1046,8 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	fclose(fp);
 no_domain:
 
+	max_index = dp->list_len;
+
 	/* Load domain_initializer list, domain_keeper list. */
 	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	if (!fp) {
@@ -1089,9 +1091,6 @@ no_domain:
 	ccs_put();
 	fclose(fp);
 no_exception:
-
-
-	max_index = dp->list_len;
 
 	/* Find unreachable domains. */
 	for (index = 0; index < max_index; index++) {
