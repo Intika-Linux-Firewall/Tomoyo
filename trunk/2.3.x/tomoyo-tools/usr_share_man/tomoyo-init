@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-init 1.7.2
+tomoyo-init 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,35 +13,35 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-init
+Usage: tomoyo-init
 
 This program is automatically called to load policy from files into kernel when /sbin/init starts.
 
 This program copies the following files.
 
-   /etc/ccs/exception_policy.conf => /proc/ccs/exception_policy
+   /etc/tomoyo/exception_policy.conf => /sys/kernel/security/tomoyo/exception_policy
 
-   /etc/ccs/domain_policy.conf => /proc/ccs/domain_policy
+   /etc/tomoyo/domain_policy.conf => /sys/kernel/security/tomoyo/domain_policy
 
-   /etc/ccs/profile.conf => /proc/ccs/profile
+   /etc/tomoyo/profile.conf => /sys/kernel/security/tomoyo/profile
 
-   /etc/ccs/manager.conf => /proc/ccs/manager
+   /etc/tomoyo/manager.conf => /sys/kernel/security/tomoyo/manager
 
-   /etc/ccs/meminfo.conf => /proc/ccs/meminfo
+   /etc/tomoyo/meminfo.conf => /sys/kernel/security/tomoyo/meminfo
 
-If /etc/ccs/ccs-post-init is an executable file, /etc/ccs/ccs-post-init is also executed.
-You can use /etc/ccs/ccs-post-init for additional initialization purpose.
+If /etc/tomoyo/tomoyo-post-init is an executable file, /etc/tomoyo/tomoyo-post-init is also executed.
+You can use /etc/tomoyo/tomoyo-post-init for additional initialization purpose.
 For example, you can write
 
   #! /bin/sh
 
-  echo manage_by_non_root > /proc/ccs/manager
+  echo manage_by_non_root > /sys/kernel/security/tomoyo/manager
 
-  chown -R demo /proc/ccs/
+  chown -R demo /sys/kernel/security/tomoyo/
 
-in the /etc/ccs/ccs-post-init and chown/chmod like
+in the /etc/tomoyo/tomoyo-post-init and chown/chmod like
 
-  chown -R demo /etc/ccs/
+  chown -R demo /etc/tomoyo/
 
 to allow policy management by user "demo" as well as user "root".
 
@@ -51,10 +51,10 @@ None.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Load TOMOYO Linux's policy automatically" $0 | gzip -9 > man8/ccs-init.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Load TOMOYO Linux's policy automatically" $0 | gzip -9 > man8/tomoyo-init.8.gz
 [SEE ALSO]
 
- ccs-loadpolicy (8)
+ tomoyo-loadpolicy (8)
 
 [NOTES]
 
@@ -62,7 +62,7 @@ cat << EOF | help2man -i - -N -s 8 -n "Load TOMOYO Linux's policy automatically"
 
  You don't need to invoke this program manually.
 
- To load policy after /sbin/init starts, use ccs-loadpolicy instead.
+ To load policy after /sbin/init starts, use tomoyo-loadpolicy instead.
 
 [AUTHORS]
 

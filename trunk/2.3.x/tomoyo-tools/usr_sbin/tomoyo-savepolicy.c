@@ -1,5 +1,5 @@
 /*
- * ccs-savepolicy.c
+ * tomoyo-savepolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,18 +8,18 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-static _Bool ccs_cat_file(const char *path)
+static _Bool tomoyo_cat_file(const char *path)
 {
-	FILE *fp = ccs_open_read(path);
+	FILE *fp = tomoyo_open_read(path);
 	if (!fp) {
 		fprintf(stderr, "Can't open %s\n", path);
 		return false;
 	}
 	while (true) {
 		int c = fgetc(fp);
-		if (ccs_network_mode && !c)
+		if (tomoyo_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -41,34 +41,34 @@ int main(int argc, char *argv[])
 	_Bool force_save = false;
 	time_t now = time(NULL);
 	int i;
-	const char *ccs_policy_dir = NULL;
+	const char *tomoyo_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir)
+			if (tomoyo_policy_dir)
 				goto usage;
-			ccs_policy_dir = ptr;
+			tomoyo_policy_dir = ptr;
 			argv[i] = "";
 		} else if (cp) {
 			*cp++ = '\0';
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode)
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			if (tomoyo_network_mode)
 				goto usage;
-			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
+			tomoyo_network_mode = true;
+			if (!tomoyo_check_remote_host())
 				return 1;
 			argv[i] = "";
 		}
 	}
-	if (!ccs_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
+	if (!tomoyo_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
 		return 0;
 	}
-	if (!ccs_network_mode && !ccs_policy_dir)
-		ccs_policy_dir = CCS_DISK_POLICY_DIR;
+	if (!tomoyo_network_mode && !tomoyo_policy_dir)
+		tomoyo_policy_dir = CCS_DISK_POLICY_DIR;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *e = strchr(ptr, 'e');
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
-	if (!write_to_stdout && !ccs_policy_dir)
+	if (!write_to_stdout && !tomoyo_policy_dir)
 		goto usage;
 	if (write_to_stdout &&
 	    save_exception_policy + save_domain_policy +
@@ -111,12 +111,12 @@ int main(int argc, char *argv[])
 		save_exception_policy = 1;
 		save_domain_policy = 1;
 	}
-	if (!write_to_stdout && chdir(ccs_policy_dir)) {
-		printf("Directory %s doesn't exist.\n", ccs_policy_dir);
+	if (!write_to_stdout && chdir(tomoyo_policy_dir)) {
+		printf("Directory %s doesn't exist.\n", tomoyo_policy_dir);
 		return 1;
 	}
 
-	if (!ccs_network_mode) {
+	if (!tomoyo_network_mode) {
 		/* Exclude nonexistent policy. */
 		if (access(CCS_PROC_POLICY_EXCEPTION_POLICY, R_OK))
 			save_exception_policy = 0;
@@ -132,28 +132,28 @@ int main(int argc, char *argv[])
 
 	if (write_to_stdout) {
 		if (save_profile)
-			ccs_cat_file(CCS_PROC_POLICY_PROFILE);
+			tomoyo_cat_file(CCS_PROC_POLICY_PROFILE);
 		else if (save_manager)
-			ccs_cat_file(CCS_PROC_POLICY_MANAGER);
+			tomoyo_cat_file(CCS_PROC_POLICY_MANAGER);
 		else if (save_exception_policy)
-			ccs_cat_file(CCS_PROC_POLICY_EXCEPTION_POLICY);
+			tomoyo_cat_file(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		else if (save_domain_policy)
-			ccs_cat_file(CCS_PROC_POLICY_DOMAIN_POLICY);
+			tomoyo_cat_file(CCS_PROC_POLICY_DOMAIN_POLICY);
 		else if (save_meminfo)
-			ccs_cat_file(CCS_PROC_POLICY_MEMINFO);
+			tomoyo_cat_file(CCS_PROC_POLICY_MEMINFO);
 		goto done;
 	}
 	if (save_profile)
-		ccs_move_proc_to_file(CCS_PROC_POLICY_PROFILE, CCS_DISK_POLICY_PROFILE);
+		tomoyo_move_proc_to_file(CCS_PROC_POLICY_PROFILE, CCS_DISK_POLICY_PROFILE);
 	if (save_manager)
-		ccs_move_proc_to_file(CCS_PROC_POLICY_MANAGER, CCS_DISK_POLICY_MANAGER);
+		tomoyo_move_proc_to_file(CCS_PROC_POLICY_MANAGER, CCS_DISK_POLICY_MANAGER);
 
 	if (save_exception_policy) {
-		filename = ccs_make_filename("exception_policy", now);
-		if (ccs_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)
+		filename = tomoyo_make_filename("exception_policy", now);
+		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
-			    ccs_identical_file("exception_policy.conf",
+			    tomoyo_identical_file("exception_policy.conf",
 					      filename)) {
 				unlink(filename);
 			} else {
@@ -164,11 +164,11 @@ int main(int argc, char *argv[])
 	}
 
 	if (save_domain_policy) {
-		filename = ccs_make_filename("domain_policy", now);
-		if (ccs_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)
+		filename = tomoyo_make_filename("domain_policy", now);
+		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)
 		    && !write_to_stdout) {
 			if (!force_save &&
-			    ccs_identical_file("domain_policy.conf", filename)) {
+			    tomoyo_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
 				unlink("domain_policy.conf");

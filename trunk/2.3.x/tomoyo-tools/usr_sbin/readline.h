@@ -10,7 +10,7 @@
  */
 #include <ncurses.h>
 
-static int ccs_getch0(void)
+static int tomoyo_getch0(void)
 {
 	static int enter_key = EOF;
 	int c;
@@ -18,7 +18,7 @@ again:
 	c = getch();
 	if (c == 127 || c == 8)
 		c = KEY_BACKSPACE;
-	/* syslog(LOG_INFO, "ccs_getch0='%c' (%d)\n", c, c); */
+	/* syslog(LOG_INFO, "tomoyo_getch0='%c' (%d)\n", c, c); */
 	if (c == '\r' || c == '\n') {
 		if (enter_key == EOF)
 			enter_key = c;
@@ -28,7 +28,7 @@ again:
 	return c;
 }
 
-static int ccs_getch2(void)
+static int tomoyo_getch2(void)
 {
 	static int c0 = 0;
 	static int c1 = 0;
@@ -42,25 +42,25 @@ static int ccs_getch2(void)
 		len--;
 		return c0;
 	}
-	c0 = ccs_getch0();
+	c0 = tomoyo_getch0();
 	if (c0 != 0x1B)
 		return c0;
-	c1 = ccs_getch0();
+	c1 = tomoyo_getch0();
 	if (c1 != '[') {
 		len = 1;
 		return c0;
 	}
-	c2 = ccs_getch0();
+	c2 = tomoyo_getch0();
 	if (c2 < '1' || c2 > '6') {
 		len = 2;
 		return c0;
 	}
-	c3 = ccs_getch0();
+	c3 = tomoyo_getch0();
 	if (c3 != '~') {
 		len = 3;
 		return c0;
 	}
-	/* syslog(LOG_INFO, "ccs_getch2='%c'\n", c2); */
+	/* syslog(LOG_INFO, "tomoyo_getch2='%c'\n", c2); */
 	switch (c2) {
 	case '1':
 		return KEY_HOME;
@@ -78,7 +78,7 @@ static int ccs_getch2(void)
 	return 0;
 }
 
-static int ccs_add_history(const char *buffer, const char **history,
+static int tomoyo_add_history(const char *buffer, const char **history,
 			   const int history_count, const int max_history)
 {
 	char *cp = buffer ? strdup(buffer) : NULL;
@@ -102,10 +102,10 @@ static int ccs_add_history(const char *buffer, const char **history,
 	return 0;
 }
 
-static int ccs_query_fd = EOF;
-static char *ccs_initial_readline_data = NULL;
+static int tomoyo_query_fd = EOF;
+static char *tomoyo_initial_readline_data = NULL;
 
-static char *ccs_readline(const int start_y, const int start_x, const char *prompt,
+static char *tomoyo_readline(const int start_y, const int start_x, const char *prompt,
 			  const char *history[], const int history_count,
 			  const int max_length, const int scroll_width)
 {
@@ -138,8 +138,8 @@ static char *ccs_readline(const int start_y, const int start_x, const char *prom
 	}
 	move(start_y, start_x);
 	history_pos = history_count;
-	if (ccs_initial_readline_data) {
-		strncpy(buffer, ccs_initial_readline_data, max_length);
+	if (tomoyo_initial_readline_data) {
+		strncpy(buffer, tomoyo_initial_readline_data, max_length);
 		buffer_len = strlen(buffer);
 		ungetch(KEY_END);
 	}
@@ -169,9 +169,9 @@ static char *ccs_readline(const int start_y, const int start_x, const char *prom
 		clrtoeol();
 		move(y, cur_pos + prompt_len);
 		refresh();
-		c = ccs_getch2();
-		if (ccs_query_fd != EOF)
-			write(ccs_query_fd, "\n", 1);
+		c = tomoyo_getch2();
+		if (tomoyo_query_fd != EOF)
+			write(tomoyo_query_fd, "\n", 1);
 		if (c == 4) { /* Ctrl-D */
 			if (!buffer_len)
 				buffer_len = -1;
@@ -283,6 +283,6 @@ end_key:
 	}
 	if (buffer_len == -1)
 		return NULL;
-	ccs_normalize_line(buffer);
+	tomoyo_normalize_line(buffer);
 	return strdup(buffer);
 }

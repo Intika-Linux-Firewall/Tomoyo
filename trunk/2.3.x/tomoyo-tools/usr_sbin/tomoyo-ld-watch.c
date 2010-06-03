@@ -1,5 +1,5 @@
 /*
- * ccs-ld-watch.c
+ * tomoyo-ld-watch.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,17 +8,17 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-struct ccs_dll_pathname_entry {
+struct tomoyo_dll_pathname_entry {
 	char *pathname;
 	char *real_pathname;
 };
 
-static struct ccs_dll_pathname_entry *ccs_entry_list = NULL;
-static int ccs_entry_list_count = 0;
+static struct tomoyo_dll_pathname_entry *tomoyo_entry_list = NULL;
+static int tomoyo_entry_list_count = 0;
 
-static void ccs_update_ld_list(int argc, char *argv[], FILE *fp_policy)
+static void tomoyo_update_ld_list(int argc, char *argv[], FILE *fp_policy)
 {
 	struct stat64 buf;
 	static time_t last_modified = 0;
@@ -47,11 +47,11 @@ static void ccs_update_ld_list(int argc, char *argv[], FILE *fp_policy)
 		real_pathname = realpath(cp, NULL);
 		if (!real_pathname)
 			continue;
-		for (i = 0; i < ccs_entry_list_count; i++) {
-			if (!strcmp(ccs_entry_list[i].real_pathname, real_pathname))
+		for (i = 0; i < tomoyo_entry_list_count; i++) {
+			if (!strcmp(tomoyo_entry_list[i].real_pathname, real_pathname))
 				break;
 		}
-		if (i < ccs_entry_list_count) {
+		if (i < tomoyo_entry_list_count) {
 			free(real_pathname);
 			continue;
 		}
@@ -69,22 +69,22 @@ static void ccs_update_ld_list(int argc, char *argv[], FILE *fp_policy)
 		/* Add an entry. */
 		pathname = strdup(cp);
 		if (!pathname)
-			ccs_out_of_memory();
-		ccs_entry_list = realloc(ccs_entry_list, (ccs_entry_list_count + 1) *
-				     sizeof(struct ccs_dll_pathname_entry));
-		if (!ccs_entry_list)
-			ccs_out_of_memory();
-		ccs_entry_list[ccs_entry_list_count].pathname = pathname;
-		ccs_entry_list[ccs_entry_list_count++].real_pathname = real_pathname;
+			tomoyo_out_of_memory();
+		tomoyo_entry_list = realloc(tomoyo_entry_list, (tomoyo_entry_list_count + 1) *
+				     sizeof(struct tomoyo_dll_pathname_entry));
+		if (!tomoyo_entry_list)
+			tomoyo_out_of_memory();
+		tomoyo_entry_list[tomoyo_entry_list_count].pathname = pathname;
+		tomoyo_entry_list[tomoyo_entry_list_count++].real_pathname = real_pathname;
 		printf("Added %s : %s\n", pathname, real_pathname);
 		fprintf(fp_policy, CCS_KEYWORD_ALLOW_READ);
-		ccs_fprintf_encoded(fp_policy, real_pathname);
+		tomoyo_fprintf_encoded(fp_policy, real_pathname);
 		fprintf(fp_policy, "\n");
 		fflush(fp_policy);
 	}
 	pclose(fp_ldconfig);
 out:
-	printf("Monitoring %d files.\n", ccs_entry_list_count);
+	printf("Monitoring %d files.\n", tomoyo_entry_list_count);
 }
 
 int main(int argc, char *argv[])
@@ -113,10 +113,10 @@ int main(int argc, char *argv[])
 	}
 	while (true) {
 		int i;
-		ccs_update_ld_list(argc, argv, fp_policy);
+		tomoyo_update_ld_list(argc, argv, fp_policy);
 		/* Check entries for update. */
-		for (i = 0; i < ccs_entry_list_count; i++) {
-			struct ccs_dll_pathname_entry *ptr = &ccs_entry_list[i];
+		for (i = 0; i < tomoyo_entry_list_count; i++) {
+			struct tomoyo_dll_pathname_entry *ptr = &tomoyo_entry_list[i];
 			char *real_pathname = realpath(ptr->pathname, NULL);
 			if (real_pathname &&
 			    strcmp(ptr->real_pathname, real_pathname)) {
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 				       ptr->pathname, ptr->real_pathname,
 				       real_pathname);
 				fprintf(fp_policy, CCS_KEYWORD_ALLOW_READ);
-				ccs_fprintf_encoded(fp_policy, real_pathname);
+				tomoyo_fprintf_encoded(fp_policy, real_pathname);
 				fprintf(fp_policy, "\n");
 				fflush(fp_policy);
 				free(ptr->real_pathname);

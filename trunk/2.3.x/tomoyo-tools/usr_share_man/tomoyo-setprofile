@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-setprofile 1.7.2
+tomoyo-setprofile 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-setprofile [-r] profile_index domainname [domainname ...]
+Usage: tomoyo-setprofile [-r] profile_index domainname [domainname ...]
 
 This program assigns TOMOYO Linux's profile to domains.
 
@@ -21,26 +21,26 @@ This program assigns TOMOYO Linux's profile to domains.
 
   profile_index   Profile index to assign. Profile index is an integer between 0 and 255.
 
-You can see list of profiles currently assigned via /proc/ccs/.domain_status .
+You can see list of profiles currently assigned via /sys/kernel/security/tomoyo/.domain_status .
 
 Examples:
 
-# ccs-setprofile -r 0 '<kernel>'
+# tomoyo-setprofile -r 0 '<kernel>'
  Assign profile 0 to all domains.
 
-# ccs-setprofile 1 '<kernel> /usr/sbin/sshd' '<kernel> /usr/sbin/httpd'
+# tomoyo-setprofile 1 '<kernel> /usr/sbin/sshd' '<kernel> /usr/sbin/httpd'
  Assign profile 1 to sshd and httpd domains.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Assign TOMOYO Linux's profile to domains" $0 | gzip -9 > man8/ccs-setprofile.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Assign TOMOYO Linux's profile to domains" $0 | gzip -9 > man8/tomoyo-setprofile.8.gz
 [SEE ALSO]
 
- ccs-ccstree (8)
+ tomoyo-tomoyotree (8)
 
 [NOTES]
 
- You need to register either path to this program ( /usr/sbin/ccs-setprofile ) or a domain for this program in /proc/ccs/manager before invoking this program.
+ You need to register either path to this program ( /usr/sbin/tomoyo-setprofile ) or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program.
 
  Be sure to quote or escape appropriately when specifying domainnames.
 

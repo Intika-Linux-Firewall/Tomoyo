@@ -1,5 +1,5 @@
 /*
- * ccs-sortpolicy.c
+ * tomoyo-sortpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,13 +8,13 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
-	struct ccs_domain_policy dp = { NULL, 0, NULL };
-	ccs_read_domain_policy(&dp, NULL);
-	ccs_write_domain_policy(&dp, 1);
-	ccs_clear_domain_policy(&dp);
+	struct tomoyo_domain_policy dp = { NULL, 0, NULL };
+	tomoyo_read_domain_policy(&dp, NULL);
+	tomoyo_write_domain_policy(&dp, 1);
+	tomoyo_clear_domain_policy(&dp);
 	return 0;
 }

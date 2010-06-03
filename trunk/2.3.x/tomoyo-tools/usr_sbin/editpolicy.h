@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <curses.h>
 
-enum ccs_screen_type {
+enum tomoyo_screen_type {
 	CCS_SCREEN_EXCEPTION_LIST,
 	CCS_SCREEN_DOMAIN_LIST,
 	CCS_SCREEN_ACL_LIST,
@@ -22,52 +22,52 @@ enum ccs_screen_type {
 	CCS_MAXSCREEN
 };
 
-struct ccs_domain_initializer_entry {
-	const struct ccs_path_info *domainname;    /* This may be NULL */
-	const struct ccs_path_info *program;
+struct tomoyo_domain_initializer_entry {
+	const struct tomoyo_path_info *domainname;    /* This may be NULL */
+	const struct tomoyo_path_info *program;
 	_Bool is_not;
 	_Bool is_last_name;
 };
 
-struct ccs_domain_keeper_entry {
-	const struct ccs_path_info *domainname;
-	const struct ccs_path_info *program;       /* This may be NULL */
+struct tomoyo_domain_keeper_entry {
+	const struct tomoyo_path_info *domainname;
+	const struct tomoyo_path_info *program;       /* This may be NULL */
 	_Bool is_not;
 	_Bool is_last_name;
 };
 
-struct ccs_generic_acl {
+struct tomoyo_generic_acl {
 	u16 directive;
 	u8 selected;
 	const char *operand;
 };
 
-struct ccs_editpolicy_directive {
+struct tomoyo_editpolicy_directive {
 	const char *original;
 	const char *alias;
 	int original_len;
 	int alias_len;
 };
 
-struct ccs_misc_policy {
-	const struct ccs_path_info **list;
+struct tomoyo_misc_policy {
+	const struct tomoyo_path_info **list;
 	int list_len;
 };
 
-struct ccs_path_group_entry {
-	const struct ccs_path_info *group_name;
-	const struct ccs_path_info **member_name;
+struct tomoyo_path_group_entry {
+	const struct tomoyo_path_info *group_name;
+	const struct tomoyo_path_info **member_name;
 	int member_name_len;
 };
 
-struct ccs_readline_data {
+struct tomoyo_readline_data {
 	const char **history;
 	int count;
 	int max;
 	char *search_buffer[CCS_MAXSCREEN];
 };
 
-enum ccs_editpolicy_directives {
+enum tomoyo_editpolicy_directives {
 	CCS_DIRECTIVE_NONE,
 	CCS_DIRECTIVE_ALLOW_EXECUTE,
 	CCS_DIRECTIVE_ALLOW_READ,
@@ -120,7 +120,7 @@ enum ccs_editpolicy_directives {
 	CCS_MAX_DIRECTIVE_INDEX
 };
 
-enum ccs_color_pair {
+enum tomoyo_color_pair {
 	CCS_NORMAL,
 	CCS_DOMAIN_HEAD,
 	CCS_DOMAIN_CURSOR,
@@ -139,31 +139,31 @@ enum ccs_color_pair {
 
 #define CCS_HEADER_LINES 3
 
-#define CCS_CONFIG_FILE "/usr/lib/ccs/ccstools.conf"
+#define CCS_CONFIG_FILE "/usr/lib/tomoyo/tomoyotools.conf"
 
-int ccs_add_address_group_policy(char *data, const _Bool is_delete);
-int ccs_add_number_group_policy(char *data, const _Bool is_delete);
-int ccs_editpolicy_color_cursor(const int screen);
-int ccs_editpolicy_color_head(const int screen);
-int ccs_editpolicy_get_current(void);
-void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
-void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
-void ccs_editpolicy_color_init(void);
-void ccs_editpolicy_init_keyword_map(void);
-void ccs_editpolicy_line_draw(const int screen);
-void ccs_editpolicy_offline_daemon(void);
-void ccs_editpolicy_sttr_restore(void);
-void ccs_editpolicy_sttr_save(void);
-void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current, const int screen);
-void ccs_send_fd(char *data, int *fd);
+int tomoyo_add_address_group_policy(char *data, const _Bool is_delete);
+int tomoyo_add_number_group_policy(char *data, const _Bool is_delete);
+int tomoyo_editpolicy_color_cursor(const int screen);
+int tomoyo_editpolicy_color_head(const int screen);
+int tomoyo_editpolicy_get_current(void);
+void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg);
+void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg);
+void tomoyo_editpolicy_color_init(void);
+void tomoyo_editpolicy_init_keyword_map(void);
+void tomoyo_editpolicy_line_draw(const int screen);
+void tomoyo_editpolicy_offline_daemon(void);
+void tomoyo_editpolicy_sttr_restore(void);
+void tomoyo_editpolicy_sttr_save(void);
+void tomoyo_editpolicy_try_optimize(struct tomoyo_domain_policy *dp, const int current, const int screen);
+void tomoyo_send_fd(char *data, int *fd);
 
-extern int ccs_address_group_list_len;
-extern int ccs_current_y[CCS_MAXSCREEN];
-extern int ccs_generic_acl_list_count;
-extern int ccs_list_item_count[CCS_MAXSCREEN];
-extern int ccs_number_group_list_len;
-extern int ccs_path_group_list_len;
-extern int ccs_persistent_fd;
-extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
-extern struct ccs_generic_acl *ccs_generic_acl_list;
-extern struct ccs_path_group_entry *ccs_path_group_list;
+extern int tomoyo_address_group_list_len;
+extern int tomoyo_current_y[CCS_MAXSCREEN];
+extern int tomoyo_generic_acl_list_count;
+extern int tomoyo_list_item_count[CCS_MAXSCREEN];
+extern int tomoyo_number_group_list_len;
+extern int tomoyo_path_group_list_len;
+extern int tomoyo_persistent_fd;
+extern struct tomoyo_editpolicy_directive tomoyo_directives[CCS_MAX_DIRECTIVE_INDEX];
+extern struct tomoyo_generic_acl *tomoyo_generic_acl_list;
+extern struct tomoyo_path_group_entry *tomoyo_path_group_list;

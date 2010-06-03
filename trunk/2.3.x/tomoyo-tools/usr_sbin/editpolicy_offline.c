@@ -8,30 +8,30 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include "editpolicy.h"
 
-static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp, _Bool is_write)
+static void tomoyo_handle_misc_policy(struct tomoyo_misc_policy *mp, FILE *fp, _Bool is_write)
 {
 	int i;
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = ccs_freadline(fp);
-		const struct ccs_path_info *cp;
+		char *line = tomoyo_freadline(fp);
+		const struct tomoyo_path_info *cp;
 		_Bool is_delete;
 		if (!line)
 			break;
 		if (!line[0])
 			continue;
-		is_delete = ccs_str_starts(line, "delete ");
-		cp = ccs_savename(line);
+		is_delete = tomoyo_str_starts(line, "delete ");
+		cp = tomoyo_savename(line);
 		if (!cp)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		if (!is_delete)
 			goto append_policy;
 		for (i = 0; i < mp->list_len; i++)
-			/* Faster comparison, for they are ccs_savename'd. */
+			/* Faster comparison, for they are tomoyo_savename'd. */
 			if (mp->list[i] == cp)
 				break;
 		if (i < mp->list_len)
@@ -40,15 +40,15 @@ static void ccs_handle_misc_policy(struct ccs_misc_policy *mp, FILE *fp, _Bool i
 		continue;
 append_policy:
 		for (i = 0; i < mp->list_len; i++)
-			/* Faster comparison, for they are ccs_savename'd. */
+			/* Faster comparison, for they are tomoyo_savename'd. */
 			if (mp->list[i] == cp)
 				break;
 		if (i < mp->list_len)
 			continue;
 		mp->list = realloc(mp->list, (mp->list_len + 1)
-				   * sizeof(const struct ccs_path_info *));
+				   * sizeof(const struct tomoyo_path_info *));
 		if (!mp->list)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		mp->list[mp->list_len++] = cp;
 	}
 	return;
@@ -59,11 +59,11 @@ read_policy:
 
 /* Variables */
 
-int ccs_persistent_fd = EOF;
+int tomoyo_persistent_fd = EOF;
 
 /* Main functions */
 
-void ccs_send_fd(char *data, int *fd)
+void tomoyo_send_fd(char *data, int *fd)
 {
 	struct msghdr msg;
 	struct iovec iov = { data, strlen(data) };
@@ -79,22 +79,22 @@ void ccs_send_fd(char *data, int *fd)
 	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
 	msg.msg_controllen = cmsg->cmsg_len;
 	memmove(CMSG_DATA(cmsg), fd, sizeof(int));
-	sendmsg(ccs_persistent_fd, &msg, 0);
+	sendmsg(tomoyo_persistent_fd, &msg, 0);
 	close(*fd);
 }
 
-void ccs_editpolicy_offline_daemon(void)
+void tomoyo_editpolicy_offline_daemon(void)
 {
-	struct ccs_misc_policy mp[3];
-	struct ccs_domain_policy dp;
+	struct tomoyo_misc_policy mp[3];
+	struct tomoyo_domain_policy dp;
 	static const int buffer_len = 8192;
 	char *buffer = malloc(buffer_len);
 	if (!buffer)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	memset(&dp, 0, sizeof(dp));
 	memset(&mp, 0, sizeof(mp));
-	ccs_get();
-	ccs_find_or_assign_new_domain(&dp, CCS_ROOT_NAME, false, false);
+	tomoyo_get();
+	tomoyo_find_or_assign_new_domain(&dp, CCS_ROOT_NAME, false, false);
 	while (true) {
 		FILE *fp;
 		struct msghdr msg;
@@ -108,7 +108,7 @@ void ccs_editpolicy_offline_daemon(void)
 		msg.msg_controllen = sizeof(cmsg_buf);
 		memset(buffer, 0, buffer_len);
 		errno = 0;
-		if (recvmsg(ccs_persistent_fd, &msg, 0) <= 0)
+		if (recvmsg(tomoyo_persistent_fd, &msg, 0) <= 0)
 			break;
 		cmsg = CMSG_FIRSTHDR(&msg);
 		if (!cmsg)
@@ -126,29 +126,29 @@ void ccs_editpolicy_offline_daemon(void)
 		} else {
 			break;
 		}
-		if (ccs_str_starts(buffer, "POST ")) {
+		if (tomoyo_str_starts(buffer, "POST ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
-				ccs_handle_domain_policy(&dp, fp, true);
+				tomoyo_handle_domain_policy(&dp, fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
-				ccs_handle_misc_policy(&mp[0], fp, true);
+				tomoyo_handle_misc_policy(&mp[0], fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
-				ccs_handle_misc_policy(&mp[1], fp, true);
+				tomoyo_handle_misc_policy(&mp[1], fp, true);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
-				ccs_handle_misc_policy(&mp[2], fp, true);
-		} else if (ccs_str_starts(buffer, "GET ")) {
+				tomoyo_handle_misc_policy(&mp[2], fp, true);
+		} else if (tomoyo_str_starts(buffer, "GET ")) {
 			if (!strcmp(buffer, CCS_PROC_POLICY_DOMAIN_POLICY))
-				ccs_handle_domain_policy(&dp, fp, false);
+				tomoyo_handle_domain_policy(&dp, fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_EXCEPTION_POLICY))
-				ccs_handle_misc_policy(&mp[0], fp, false);
+				tomoyo_handle_misc_policy(&mp[0], fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_PROFILE))
-				ccs_handle_misc_policy(&mp[1], fp, false);
+				tomoyo_handle_misc_policy(&mp[1], fp, false);
 			else if (!strcmp(buffer, CCS_PROC_POLICY_MANAGER))
-				ccs_handle_misc_policy(&mp[2], fp, false);
+				tomoyo_handle_misc_policy(&mp[2], fp, false);
 		}
 		fclose(fp);
 	}
-	ccs_put();
-	ccs_clear_domain_policy(&dp);
+	tomoyo_put();
+	tomoyo_clear_domain_policy(&dp);
 	{
 		int i;
 		for (i = 0; i < 3; i++) {

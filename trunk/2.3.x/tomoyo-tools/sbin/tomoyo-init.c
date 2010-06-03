@@ -1,5 +1,5 @@
 /*
- * ccs-init.c
+ * tomoyo-init.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -34,15 +34,15 @@ static void panic(void)
 		sleep(100);
 }
 
-#define policy_dir            "/etc/ccs/"
-#define proc_manager          "/proc/ccs/manager"
-#define proc_exception_policy "/proc/ccs/exception_policy"
-#define proc_domain_policy    "/proc/ccs/domain_policy"
-#define proc_profile          "/proc/ccs/profile"
-#define proc_meminfo          "/proc/ccs/meminfo"
+#define policy_dir            "/etc/tomoyo/"
+#define proc_manager          "/sys/kernel/security/tomoyo/manager"
+#define proc_exception_policy "/sys/kernel/security/tomoyo/exception_policy"
+#define proc_domain_policy    "/sys/kernel/security/tomoyo/domain_policy"
+#define proc_profile          "/sys/kernel/security/tomoyo/profile"
+#define proc_meminfo          "/sys/kernel/security/tomoyo/meminfo"
 static const char *profile_name = "default";
-static _Bool ccs_noload = 0;
-static _Bool ccs_quiet = 0;
+static _Bool tomoyo_noload = 0;
+static _Bool tomoyo_quiet = 0;
 static _Bool proc_unmount = 0;
 static _Bool chdir_ok = 0;
 
@@ -66,9 +66,9 @@ static void check_arg(const char *arg)
 		if (!profile_name)
 			panic();
 	} else if (!strcmp(arg, "CCS_NOLOAD"))
-		ccs_noload = 1;
+		tomoyo_noload = 1;
 	else if (!strcmp(arg, "CCS_QUIET"))
-		ccs_quiet = 1;
+		tomoyo_quiet = 1;
 }
 
 static void ask_profile(void)
@@ -138,9 +138,9 @@ static void ask_profile(void)
 			break;
 		}
 		if (!strcmp(input, "CCS_NOLOAD"))
-			ccs_noload = 1;
+			tomoyo_noload = 1;
 		if (!strcmp(input, "CCS_QUIET"))
-			ccs_quiet = 1;
+			tomoyo_quiet = 1;
 	}
 }
 
@@ -292,12 +292,12 @@ int main(int argc, char *argv[])
 		proc_unmount = !mount("/proc", "/proc/", "proc", 0, NULL);
 
 	/* Load kernel module if needed. */
-	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
-		if (!access("/etc/ccs/ccs-load-module", X_OK)) {
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
+		if (!access("/etc/tomoyo/tomoyo-load-module", X_OK)) {
 			switch (fork()) {
 			case 0:
-				execl("/etc/ccs/ccs-load-module",
-				      "/etc/ccs/ccs-load-module", NULL);
+				execl("/etc/tomoyo/tomoyo-load-module",
+				      "/etc/tomoyo/tomoyo-load-module", NULL);
 				_exit(0);
 			case -1:
 				panic();
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Unmount /proc and exit if policy interface doesn't exist. */
-	if (lstat("/proc/ccs/", &buf) || !S_ISDIR(buf.st_mode)) {
+	if (lstat("/sys/kernel/security/tomoyo/", &buf) || !S_ISDIR(buf.st_mode)) {
 		if (proc_unmount)
 			umount("/proc/");
 		return 1;
@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
 	if (chdir_ok) {
 		copy_files("manager.conf", proc_manager);
 		copy_files("exception_policy.conf", proc_exception_policy);
-		if (!ccs_noload)
+		if (!tomoyo_noload)
 			copy_files("domain_policy.conf", proc_domain_policy);
 		if (!strcmp(profile_name, "default"))
 			copy_files("profile.conf", proc_profile);
@@ -401,15 +401,15 @@ int main(int argc, char *argv[])
 		disable_profile();
 
 	/* Disable verbose mode? */
-	if (ccs_quiet)
+	if (tomoyo_quiet)
 		disable_verbose();
 
 	/* Do additional initialization. */
-	if (!access("/etc/ccs/ccs-post-init", X_OK)) {
+	if (!access("/etc/tomoyo/tomoyo-post-init", X_OK)) {
 		switch (fork()) {
 		case 0:
-			execl("/etc/ccs/ccs-post-init",
-			      "/etc/ccs/ccs-post-init", NULL);
+			execl("/etc/tomoyo/tomoyo-post-init",
+			      "/etc/tomoyo/tomoyo-post-init", NULL);
 			_exit(0);
 		case -1:
 			panic();

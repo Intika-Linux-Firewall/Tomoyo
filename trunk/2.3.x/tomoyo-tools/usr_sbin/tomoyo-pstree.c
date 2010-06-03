@@ -1,5 +1,5 @@
 /*
- * ccs-pstree.c
+ * tomoyo-pstree.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,28 +8,28 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-static void ccs_dump(const pid_t pid, const int depth)
+static void tomoyo_dump(const pid_t pid, const int depth)
 {
 	int i;
-	for (i = 0; i < ccs_task_list_len; i++) {
+	for (i = 0; i < tomoyo_task_list_len; i++) {
 		int j;
-		if (pid != ccs_task_list[i].pid)
+		if (pid != tomoyo_task_list[i].pid)
 			continue;
-		printf("%3d", ccs_task_list[i].profile);
+		printf("%3d", tomoyo_task_list[i].profile);
 		for (j = 0; j < depth - 1; j++)
 			printf("    ");
 		for (; j < depth; j++)
 			printf("  +-");
-		printf(" %s (%u) %s\n", ccs_task_list[i].name,
-		       ccs_task_list[i].pid, ccs_task_list[i].domain);
-		ccs_task_list[i].selected = true;
+		printf(" %s (%u) %s\n", tomoyo_task_list[i].name,
+		       tomoyo_task_list[i].pid, tomoyo_task_list[i].domain);
+		tomoyo_task_list[i].selected = true;
 	}
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (pid != ccs_task_list[i].ppid)
+	for (i = 0; i < tomoyo_task_list_len; i++) {
+		if (pid != tomoyo_task_list[i].ppid)
 			continue;
-		ccs_dump(ccs_task_list[i].pid, depth + 1);
+		tomoyo_dump(tomoyo_task_list[i].pid, depth + 1);
 	}
 }
 
@@ -42,12 +42,12 @@ int main(int argc, char *argv[])
 		char *cp = strchr(ptr, ':');
 		if (cp) {
 			*cp++ = '\0';
-			if (ccs_network_mode)
+			if (tomoyo_network_mode)
 				goto usage;
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			tomoyo_network_mode = true;
+			if (!tomoyo_check_remote_host())
 				return 1;
 		} else if (!strcmp(ptr, "-a")) {
 			show_all = true;
@@ -58,9 +58,9 @@ usage:
 			return 0;
 		}
 	}
-	ccs_read_process_list(show_all);
-	if (!ccs_task_list_len) {
-		if (ccs_network_mode) {
+	tomoyo_read_process_list(show_all);
+	if (!tomoyo_task_list_len) {
+		if (tomoyo_network_mode) {
 			fprintf(stderr, "Can't connect.\n");
 			return 1;
 		} else {
@@ -69,21 +69,21 @@ usage:
 			return 1;
 		}
 	}
-	ccs_dump(1, 0);
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (ccs_task_list[i].selected)
+	tomoyo_dump(1, 0);
+	for (i = 0; i < tomoyo_task_list_len; i++) {
+		if (tomoyo_task_list[i].selected)
 			continue;
 		printf("%3d %s (%u) %s\n",
-		       ccs_task_list[i].profile, ccs_task_list[i].name,
-		       ccs_task_list[i].pid, ccs_task_list[i].domain);
-		ccs_task_list[i].selected = true;
+		       tomoyo_task_list[i].profile, tomoyo_task_list[i].name,
+		       tomoyo_task_list[i].pid, tomoyo_task_list[i].domain);
+		tomoyo_task_list[i].selected = true;
 	}
-	while (ccs_task_list_len) {
-		ccs_task_list_len--;
-		free((void *) ccs_task_list[ccs_task_list_len].name);
-		free((void *) ccs_task_list[ccs_task_list_len].domain);
+	while (tomoyo_task_list_len) {
+		tomoyo_task_list_len--;
+		free((void *) tomoyo_task_list[tomoyo_task_list_len].name);
+		free((void *) tomoyo_task_list[tomoyo_task_list_len].domain);
 	}
-	free(ccs_task_list);
-	ccs_task_list = NULL;
+	free(tomoyo_task_list);
+	tomoyo_task_list = NULL;
 	return 0;
 }

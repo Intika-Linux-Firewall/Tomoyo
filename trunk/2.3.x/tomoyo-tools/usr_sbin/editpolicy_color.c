@@ -8,15 +8,15 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include "editpolicy.h"
 
 #ifdef COLOR_ON
 
-void ccs_editpolicy_color_init(void)
+void tomoyo_editpolicy_color_init(void)
 {
-	static struct ccs_color_env_t {
-		enum ccs_color_pair tag;
+	static struct tomoyo_color_env_t {
+		enum tomoyo_color_pair tag;
 		short int fore;
 		short int back;
 		const char *name;
@@ -52,20 +52,20 @@ void ccs_editpolicy_color_init(void)
 	int i;
 	if (!fp)
 		goto use_default;
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = tomoyo_freadline(fp);
 		char *cp;
 		if (!line)
 			break;
-		if (!ccs_str_starts(line, "editpolicy.line_color "))
+		if (!tomoyo_str_starts(line, "editpolicy.line_color "))
 			continue;
 		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		ccs_normalize_line(line);
-		ccs_normalize_line(cp);
+		tomoyo_normalize_line(line);
+		tomoyo_normalize_line(cp);
 		if (!*line || !*cp)
 			continue;
 		for (i = 0; color_env[i].name; i++) {
@@ -84,18 +84,18 @@ void ccs_editpolicy_color_init(void)
 			break;
 		}
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp);
 use_default:
 	start_color();
 	for (i = 0; color_env[i].name; i++) {
-		struct ccs_color_env_t *colorp = &color_env[i];
+		struct tomoyo_color_env_t *colorp = &color_env[i];
 		init_pair(colorp->tag, colorp->fore, colorp->back);
 	}
 	init_pair(CCS_DISP_ERR, COLOR_RED, COLOR_BLACK); /* error message */
 }
 
-static void ccs_editpolicy_color_save(const _Bool flg)
+static void tomoyo_editpolicy_color_save(const _Bool flg)
 {
 	static attr_t save_color = CCS_NORMAL;
 	if (flg)
@@ -104,7 +104,7 @@ static void ccs_editpolicy_color_save(const _Bool flg)
 		attrset(save_color);
 }
 
-void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
+void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(COLOR_PAIR(attr));
@@ -112,7 +112,7 @@ void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
 		attroff(COLOR_PAIR(attr));
 }
 
-void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 	if (flg)
 		attron(attr);
@@ -120,17 +120,17 @@ void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 		attroff(attr);
 }
 
-void ccs_editpolicy_sttr_save(void)
+void tomoyo_editpolicy_sttr_save(void)
 {
-	ccs_editpolicy_color_save(true);
+	tomoyo_editpolicy_color_save(true);
 }
 
-void ccs_editpolicy_sttr_restore(void)
+void tomoyo_editpolicy_sttr_restore(void)
 {
-	ccs_editpolicy_color_save(false);
+	tomoyo_editpolicy_color_save(false);
 }
 
-int ccs_editpolicy_color_head(const int screen)
+int tomoyo_editpolicy_color_head(const int screen)
 {
 	switch (screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
@@ -148,7 +148,7 @@ int ccs_editpolicy_color_head(const int screen)
 	}
 }
 
-int ccs_editpolicy_color_cursor(const int screen)
+int tomoyo_editpolicy_color_cursor(const int screen)
 {
 	switch (screen) {
 	case CCS_SCREEN_DOMAIN_LIST:
@@ -166,13 +166,13 @@ int ccs_editpolicy_color_cursor(const int screen)
 	}
 }
 
-void ccs_editpolicy_line_draw(const int screen)
+void tomoyo_editpolicy_line_draw(const int screen)
 {
-	static int ccs_before_current[CCS_MAXSCREEN] = { -1, -1, -1, -1,
+	static int tomoyo_before_current[CCS_MAXSCREEN] = { -1, -1, -1, -1,
 							 -1, -1, -1 };
-	static int ccs_before_y[CCS_MAXSCREEN]       = { -1, -1, -1, -1,
+	static int tomoyo_before_y[CCS_MAXSCREEN]       = { -1, -1, -1, -1,
 							 -1, -1, -1 };
-	int current = ccs_editpolicy_get_current();
+	int current = tomoyo_editpolicy_get_current();
 	int y;
 	int x;
 
@@ -180,44 +180,44 @@ void ccs_editpolicy_line_draw(const int screen)
 		return;
 
 	getyx(stdscr, y, x);
-	if (-1 < ccs_before_current[screen] &&
-	    current != ccs_before_current[screen]){
-		move(CCS_HEADER_LINES + ccs_before_y[screen], 0);
+	if (-1 < tomoyo_before_current[screen] &&
+	    current != tomoyo_before_current[screen]){
+		move(CCS_HEADER_LINES + tomoyo_before_y[screen], 0);
 		chgat(-1, A_NORMAL, CCS_NORMAL, NULL);
 	}
 
 	move(y, x);
-	chgat(-1, A_NORMAL, ccs_editpolicy_color_cursor(screen), NULL);
+	chgat(-1, A_NORMAL, tomoyo_editpolicy_color_cursor(screen), NULL);
 	touchwin(stdscr);
 
-	ccs_before_current[screen] = current;
-	ccs_before_y[screen] = ccs_current_y[screen];
+	tomoyo_before_current[screen] = current;
+	tomoyo_before_y[screen] = tomoyo_current_y[screen];
 }
 
 #else
 
-void ccs_editpolicy_color_init(void)
+void tomoyo_editpolicy_color_init(void)
 {
 }
-void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg)
+void tomoyo_editpolicy_color_change(const attr_t attr, const _Bool flg)
 {
 }
-void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg)
+void tomoyo_editpolicy_attr_change(const attr_t attr, const _Bool flg)
 {
 }
-void ccs_editpolicy_sttr_save(void)
+void tomoyo_editpolicy_sttr_save(void)
 {
 }
-void ccs_editpolicy_sttr_restore(void)
+void tomoyo_editpolicy_sttr_restore(void)
 {
 }
-int ccs_editpolicy_color_head(const int screen)
+int tomoyo_editpolicy_color_head(const int screen)
 {
 }
-int ccs_editpolicy_color_cursor(const int screen)
+int tomoyo_editpolicy_color_cursor(const int screen)
 {
 }
-void ccs_editpolicy_line_draw(const int screen)
+void tomoyo_editpolicy_line_draw(const int screen)
 {
 }
 

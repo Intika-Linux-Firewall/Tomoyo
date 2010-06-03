@@ -17,8 +17,8 @@ int main(int argc, char *argv[])
 	int line = 0;
 	memset(buffer, 0, sizeof(buffer));
 	if (argc > 1) {
-		fprintf(stderr, "Usage: %s < /proc/ccs/grant_log or "
-			"/proc/ccs/reject_log\n", argv[0]);
+		fprintf(stderr, "Usage: %s < /sys/kernel/security/tomoyo/grant_log or "
+			"/sys/kernel/security/tomoyo/reject_log\n", argv[0]);
 		return 0;
 	}
 	while (1) {

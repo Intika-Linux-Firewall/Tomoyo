@@ -1,5 +1,5 @@
 /*
- * ccs-patternize.c
+ * tomoyo-patternize.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,13 +8,13 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 /*
  * Check whether the given filename is patterened.
  * Returns nonzero if patterned, zero otherwise.
  */
-static _Bool ccs_path_contains_pattern(const char *filename)
+static _Bool tomoyo_path_contains_pattern(const char *filename)
 {
 	if (filename) {
 		char c;
@@ -49,69 +49,69 @@ static _Bool ccs_path_contains_pattern(const char *filename)
 	return false;
 }
 
-struct ccs_path_pattern_entry {
+struct tomoyo_path_pattern_entry {
 	const char *group_name;
-	struct ccs_path_info path;
-	struct ccs_number_entry number;
-	struct ccs_ip_address_entry ip;
+	struct tomoyo_path_info path;
+	struct tomoyo_number_entry number;
+	struct tomoyo_ip_address_entry ip;
 	int type;
 };
 
-static struct ccs_path_pattern_entry *ccs_pattern_list = NULL;
-static int ccs_pattern_list_len = 0;
+static struct tomoyo_path_pattern_entry *tomoyo_pattern_list = NULL;
+static int tomoyo_pattern_list_len = 0;
 
-static const char *ccs_path_patternize(const char *cp)
+static const char *tomoyo_path_patternize(const char *cp)
 {
 	int i;
-	struct ccs_path_info cp2;
+	struct tomoyo_path_info cp2;
 	cp2.name = cp;
-	ccs_fill_path_info(&cp2);
-	for (i = 1; i < ccs_pattern_list_len; i++) {
-		const int type = ccs_pattern_list[i].type;
+	tomoyo_fill_path_info(&cp2);
+	for (i = 1; i < tomoyo_pattern_list_len; i++) {
+		const int type = tomoyo_pattern_list[i].type;
 		if (type != 1 && type != 2)
 			continue;
-		if (!ccs_path_matches_pattern(&cp2, &ccs_pattern_list[i].path))
+		if (!tomoyo_path_matches_pattern(&cp2, &tomoyo_pattern_list[i].path))
 			continue;
 		if (type == 2)
-			return ccs_pattern_list[i].group_name;
-		return ccs_pattern_list[i].path.name;
+			return tomoyo_pattern_list[i].group_name;
+		return tomoyo_pattern_list[i].path.name;
 	}
 	return cp;
 }
 
-static const char *ccs_number_patternize(const char *cp)
+static const char *tomoyo_number_patternize(const char *cp)
 {
 	int i;
-	struct ccs_number_entry entry;
-	if (ccs_parse_number(cp, &entry))
+	struct tomoyo_number_entry entry;
+	if (tomoyo_parse_number(cp, &entry))
 		return cp;
-	for (i = 1; i < ccs_pattern_list_len; i++) {
-		const int type = ccs_pattern_list[i].type;
+	for (i = 1; i < tomoyo_pattern_list_len; i++) {
+		const int type = tomoyo_pattern_list[i].type;
 		if (type != 3)
 			continue;
-		if (ccs_pattern_list[i].number.min > entry.min ||
-		    ccs_pattern_list[i].number.max < entry.max)
+		if (tomoyo_pattern_list[i].number.min > entry.min ||
+		    tomoyo_pattern_list[i].number.max < entry.max)
 			continue;
-		return ccs_pattern_list[i].group_name;
+		return tomoyo_pattern_list[i].group_name;
 	}
 	return cp;
 }
 
-static const char *ccs_address_patternize(const char *cp)
+static const char *tomoyo_address_patternize(const char *cp)
 {
 	int i;
-	struct ccs_ip_address_entry entry;
-	if (ccs_parse_ip(cp, &entry))
+	struct tomoyo_ip_address_entry entry;
+	if (tomoyo_parse_ip(cp, &entry))
 		return cp;
-	for (i = 1; i < ccs_pattern_list_len; i++) {
-		const int type = ccs_pattern_list[i].type;
+	for (i = 1; i < tomoyo_pattern_list_len; i++) {
+		const int type = tomoyo_pattern_list[i].type;
 		if (type != 4)
 			continue;
-		if (ccs_pattern_list[i].ip.is_ipv6 != entry.is_ipv6 ||
-		    memcmp(entry.min, ccs_pattern_list[i].ip.min, 16) < 0 ||
-		    memcmp(ccs_pattern_list[i].ip.max, entry.max, 16) < 0)
+		if (tomoyo_pattern_list[i].ip.is_ipv6 != entry.is_ipv6 ||
+		    memcmp(entry.min, tomoyo_pattern_list[i].ip.min, 16) < 0 ||
+		    memcmp(tomoyo_pattern_list[i].ip.max, entry.max, 16) < 0)
 			continue;
-		return ccs_pattern_list[i].group_name;
+		return tomoyo_pattern_list[i].group_name;
 	}
 	return cp;
 }
@@ -124,87 +124,87 @@ int main(int argc, char *argv[])
 		FILE *fp = fopen(argv[2], "r");
 		argv = NULL;
 		argc = 0;
-		ccs_get();
+		tomoyo_get();
 		while (fp) {
-			char *line = ccs_freadline(fp);
+			char *line = tomoyo_freadline(fp);
 			if (!line)
 				break;
-			ccs_normalize_line(line);
-			if (ccs_str_starts(line, "file_pattern ") ||
-			    ccs_str_starts(line, "path_group") ||
-			    ccs_str_starts(line, "number_group") ||
-			    ccs_correct_word(line)) {
+			tomoyo_normalize_line(line);
+			if (tomoyo_str_starts(line, "file_pattern ") ||
+			    tomoyo_str_starts(line, "path_group") ||
+			    tomoyo_str_starts(line, "number_group") ||
+			    tomoyo_correct_word(line)) {
 				char *cp = strdup(line);
 				argv = realloc(argv,
 					       (argc + 1) * sizeof(char *));
 				if (!argv || !cp)
-					ccs_out_of_memory();
+					tomoyo_out_of_memory();
 				argv[argc++] = cp;
 			}
 		}
-		ccs_put();
+		tomoyo_put();
 		if (fp)
 			fclose(fp);
 		need_free = 1;
 	}
-	ccs_pattern_list_len = argc;
-	ccs_pattern_list = calloc(argc, sizeof(struct ccs_path_pattern_entry));
-	if (!ccs_pattern_list)
-		ccs_out_of_memory();
+	tomoyo_pattern_list_len = argc;
+	tomoyo_pattern_list = calloc(argc, sizeof(struct tomoyo_path_pattern_entry));
+	if (!tomoyo_pattern_list)
+		tomoyo_out_of_memory();
 	for (i = 0; i < argc; i++) {
-		ccs_normalize_line(argv[i]);
-		if (ccs_str_starts(argv[i], "file_pattern ")) {
-			if (!ccs_correct_word(argv[i]))
+		tomoyo_normalize_line(argv[i]);
+		if (tomoyo_str_starts(argv[i], "file_pattern ")) {
+			if (!tomoyo_correct_word(argv[i]))
 				continue;
-			ccs_pattern_list[i].path.name = argv[i];
-			ccs_pattern_list[i].type = 1;
-		} else if (ccs_str_starts(argv[i], "path_group")) {
+			tomoyo_pattern_list[i].path.name = argv[i];
+			tomoyo_pattern_list[i].type = 1;
+		} else if (tomoyo_str_starts(argv[i], "path_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_correct_word(argv[i] + 1) ||
-			    !ccs_correct_word(cp + 1))
+			    !tomoyo_correct_word(argv[i] + 1) ||
+			    !tomoyo_correct_word(cp + 1))
 				continue;
 			argv[i][0] = '@';
-			ccs_pattern_list[i].group_name = argv[i];
-			ccs_pattern_list[i].path.name = cp + 1;
-			ccs_pattern_list[i].type = 2;
-		} else if (ccs_str_starts(argv[i], "number_group")) {
+			tomoyo_pattern_list[i].group_name = argv[i];
+			tomoyo_pattern_list[i].path.name = cp + 1;
+			tomoyo_pattern_list[i].type = 2;
+		} else if (tomoyo_str_starts(argv[i], "number_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_correct_word(argv[i] + 1) ||
-			    ccs_parse_number(cp + 1, &ccs_pattern_list[i].number))
+			    !tomoyo_correct_word(argv[i] + 1) ||
+			    tomoyo_parse_number(cp + 1, &tomoyo_pattern_list[i].number))
 				continue;
 			argv[i][0] = '@';
-			ccs_pattern_list[i].group_name = argv[i];
-			ccs_pattern_list[i].type = 3;
-		} else if (ccs_str_starts(argv[i], "address_group")) {
+			tomoyo_pattern_list[i].group_name = argv[i];
+			tomoyo_pattern_list[i].type = 3;
+		} else if (tomoyo_str_starts(argv[i], "address_group")) {
 			char *cp = strchr(argv[i] + 1, ' ');
 			if (!cp)
 				continue;
 			*cp = '\0';
 			if (argv[i][0] != ' ' ||
-			    !ccs_correct_word(argv[i] + 1) ||
-			    ccs_parse_ip(cp + 1, &ccs_pattern_list[i].ip))
+			    !tomoyo_correct_word(argv[i] + 1) ||
+			    tomoyo_parse_ip(cp + 1, &tomoyo_pattern_list[i].ip))
 				continue;
 			argv[i][0] = '@';
-			ccs_pattern_list[i].group_name = argv[i];
-			ccs_pattern_list[i].type = 4;
-		} else if (ccs_correct_word(argv[i])) {
-			ccs_pattern_list[i].path.name = argv[i];
-			ccs_pattern_list[i].type = 1;
+			tomoyo_pattern_list[i].group_name = argv[i];
+			tomoyo_pattern_list[i].type = 4;
+		} else if (tomoyo_correct_word(argv[i])) {
+			tomoyo_pattern_list[i].path.name = argv[i];
+			tomoyo_pattern_list[i].type = 1;
 		}
-		if (ccs_pattern_list[i].path.name)
-			ccs_fill_path_info(&ccs_pattern_list[i].path);
+		if (tomoyo_pattern_list[i].path.name)
+			tomoyo_fill_path_info(&tomoyo_pattern_list[i].path);
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *sp = ccs_freadline(stdin);
+		char *sp = tomoyo_freadline(stdin);
 		const char *cp;
 		_Bool first = true;
 		u8 path_count = 0;
@@ -259,14 +259,14 @@ int main(int argc, char *argv[])
 				skip_count--;
 			} else if (path_count) {
 				if (path_count-- && *cp != '@' &&
-				    !ccs_path_contains_pattern(cp))
-					cp = ccs_path_patternize(cp);
+				    !tomoyo_path_contains_pattern(cp))
+					cp = tomoyo_path_patternize(cp);
 			} else if (address_count) {
 				if (address_count-- && *cp != '@')
-					cp = ccs_address_patternize(cp);
+					cp = tomoyo_address_patternize(cp);
 			} else if (number_count) {
 				if (number_count-- && *cp != '@')
-					cp = ccs_number_patternize(cp);
+					cp = tomoyo_number_patternize(cp);
 			}
 			if (!first)
 				putchar(' ');
@@ -275,8 +275,8 @@ int main(int argc, char *argv[])
 		}
 		putchar('\n');
 	}
-	ccs_put();
-	free(ccs_pattern_list);
+	tomoyo_put();
+	free(tomoyo_pattern_list);
 	if (need_free) {
 		while (argc)
 			free(argv[--argc]);

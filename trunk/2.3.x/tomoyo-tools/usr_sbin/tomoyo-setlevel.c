@@ -1,5 +1,5 @@
 /*
- * ccs-setlevel.c
+ * tomoyo-setlevel.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,7 +8,7 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -48,9 +48,9 @@ int main(int argc, char *argv[])
 				*(cp + 1) = '\0';
 		}
 		fflush(fp);
-		ccs_get();
+		tomoyo_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = tomoyo_freadline(fp);
 			if (!line)
 				break;
 			for (i = 1; i < argc; i++) {
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-		ccs_put();
+		tomoyo_put();
 		fclose(fp);
 	}
 	close(fd);

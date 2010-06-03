@@ -1,5 +1,5 @@
 /*
- * ccs-setprofile.c
+ * tomoyo-setprofile.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,7 +8,7 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	for (i = start; i < argc; i++)
-		ccs_normalize_line(argv[i]);
+		tomoyo_normalize_line(argv[i]);
 	{
 		const int fd = open(CCS_PROC_POLICY_DOMAIN_STATUS, O_RDWR);
 		if (fd == EOF) {
@@ -50,9 +50,9 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Can't open policy file.\n");
 			exit(1);
 		}
-		ccs_get();
+		tomoyo_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = tomoyo_freadline(fp);
 			if (!line)
 				break;
 			if (atoi(line) != profile)
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 			profile_found = true;
 			break;
 		}
-		ccs_put();
+		tomoyo_put();
 		fclose(fp);
 		if (!profile_found) {
 			fprintf(stderr, "Profile %u not defined.\n", profile);
@@ -73,10 +73,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Can't open policy file.\n");
 		exit(1);
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
 		char *cp;
-		char *line = ccs_freadline(fp_in);
+		char *line = tomoyo_freadline(fp_in);
 		if (!line)
 			break;
 		cp = strchr(line, ' ');
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 			printf("%u %s\n", profile, cp);
 		}
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp_in);
 	fclose(fp_out);
 	return 0;

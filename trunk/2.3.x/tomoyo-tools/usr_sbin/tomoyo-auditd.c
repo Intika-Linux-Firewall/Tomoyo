@@ -1,5 +1,5 @@
 /*
- * ccs-auditd.c
+ * tomoyo-auditd.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,7 +8,7 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include <syslog.h>
 
 #define CCS_AUDITD_MAX_FILES 2
@@ -36,12 +36,12 @@ int main(int argc, char *argv[])
 				goto usage;
 		} else if (cp) {
 			*cp++ = '\0';
-			if (ccs_network_mode)
+			if (tomoyo_network_mode)
 				goto usage;
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			tomoyo_network_mode = true;
+			if (!tomoyo_check_remote_host())
 				return 1;
 			procfile_path[0] = "proc:grant_log";
 			procfile_path[1] = "proc:reject_log";
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 	}
 	if (!logfile_path[1])
 		goto usage;
-	if (ccs_network_mode)
+	if (tomoyo_network_mode)
 		goto start;
 	if (access(procfile_path[0], R_OK) || access(procfile_path[1], R_OK)) {
 		fprintf(stderr, "You can't run this daemon for this kernel.\n");
@@ -100,10 +100,10 @@ int main(int argc, char *argv[])
 	close(0);
 	close(1);
 	close(2);
-	openlog("ccs-auditd", 0,  LOG_USER);
+	openlog("tomoyo-auditd", 0,  LOG_USER);
 	for (i = 0; i < CCS_AUDITD_MAX_FILES; i++) {
-		if (ccs_network_mode)
-			fd_in[i] = ccs_open_stream(procfile_path[i]);
+		if (tomoyo_network_mode)
+			fd_in[i] = tomoyo_open_stream(procfile_path[i]);
 		else
 			fd_in[i] = open(procfile_path[i], O_RDONLY);
 		if (fd_in[i] == EOF) {
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 			if (!FD_ISSET(fd_in[i], &rfds))
 				continue;
 			memset(buffer, 0, sizeof(buffer));
-			if (ccs_network_mode) {
+			if (tomoyo_network_mode) {
 				int j;
 				for (j = 0; j < sizeof(buffer) - 1; j++) {
 					if (read(fd_in[i], buffer + j, 1) != 1)

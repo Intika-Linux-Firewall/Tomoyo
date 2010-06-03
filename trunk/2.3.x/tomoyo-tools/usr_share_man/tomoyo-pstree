@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-pstree 1.7.2
+tomoyo-pstree 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-pstree [-a] [remote_ip:remote_port]
+Usage: tomoyo-pstree [-a] [remote_ip:remote_port]
 
 This program shows profile index and domainname of currently running process like "pstree" command.
 
@@ -23,15 +23,15 @@ This program shows profile index and domainname of currently running process lik
 
 Examples:
 
-# ccs-pstree
+# tomoyo-pstree
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "View TOMOYO Linux's process information" $0 | gzip -9 > man8/ccs-pstree.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "View TOMOYO Linux's process information" $0 | gzip -9 > man8/tomoyo-pstree.8.gz
 [SEE ALSO]
 
- ccs-setprofile (8)
- ccs-editpolicy-agent (8)
+ tomoyo-setprofile (8)
+ tomoyo-editpolicy-agent (8)
 
 [AUTHORS]
 
