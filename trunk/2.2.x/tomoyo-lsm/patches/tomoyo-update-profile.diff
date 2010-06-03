@@ -1,5 +1,18 @@
 [PATCH] TOMOYO: Update profile structure.
 
+This patch allows users to change access control mode for per-operation basis.
+This feature comes from non LSM version of TOMOYO which is designed for
+permitting users to use SELinux and TOMOYO at the same time.
+
+SELinux does not care filename in a directory whereas TOMOYO does. Change of
+filename can change how the file is used. For example, renaming index.txt to
+.htaccess will change how the file is used. Thus, letting SELinux to enforce
+read()/write()/mmap() etc. restriction and letting TOMOYO to enforce rename()
+restriction is an example usage of this feature.
+
+What is unfortunate for me is that currently LSM does not allow users to use
+SELinux and LSM version of TOMOYO at the same time...
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |  433 ++++++++++++++++++++++++++++-------------------
