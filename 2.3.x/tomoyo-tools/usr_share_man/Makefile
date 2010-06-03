@@ -1,7 +1,7 @@
 all:
 	mkdir -p man8
-	chmod 755 ccs-* init_policy
-	for i in ccs-* init_policy; do ./$$i; done
+	chmod 755 tomoyo-* init_policy
+	for i in tomoyo-* init_policy; do ./$$i; done
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8

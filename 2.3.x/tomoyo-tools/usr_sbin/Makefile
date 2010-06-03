@@ -1,32 +1,32 @@
-BUILD_FILES = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
+BUILD_FILES = tomoyo-auditd tomoyo-queryd tomoyo-pstree tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch tomoyo-loadpolicy tomoyo-pathmatch tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy tomoyo-diffpolicy tomoyo-selectpolicy
 
-all: libccstools.so $(BUILD_FILES)
+all: libtomoyotools.so $(BUILD_FILES)
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
 	@echo "Run 'yum install ncurses-devel' or 'apt-get install libncurses5-dev'"
 	sleep 10
 
-ccs-editpolicy: ccstools.h editpolicy*.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-editpolicy editpolicy*.c -lncurses -lccstools -L. -DCOLOR_ON || ln -f dummy ccs-editpolicy
+tomoyo-editpolicy: tomoyotools.h editpolicy*.c readline.h /usr/include/curses.h
+	$(CC) $(CFLAGS) -o tomoyo-editpolicy editpolicy*.c -lncurses -ltomoyotools -L. -DCOLOR_ON || ln -f dummy tomoyo-editpolicy
 
-ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h
-	$(CC) $(CFLAGS) -o ccs-queryd ccs-queryd.c -lncurses -lccstools -L. || ln -f dummy ccs-queryd
+tomoyo-queryd: tomoyotools.h tomoyo-queryd.c readline.h /usr/include/curses.h
+	$(CC) $(CFLAGS) -o tomoyo-queryd tomoyo-queryd.c -lncurses -ltomoyotools -L. || ln -f dummy tomoyo-queryd
 
-libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CFLAGS) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.1 -o libccstools.so.1.0.0
-	ln -sf libccstools.so.1.0.0 libccstools.so
+libtomoyotools.so: tomoyotools.c tomoyotools.h
+	$(CC) $(CFLAGS) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.1 -o libtomoyotools.so.1.0.0
+	ln -sf libtomoyotools.so.1.0.0 libtomoyotools.so
 
 .c:
-	$(CC) $(CFLAGS) -o $@ -lccstools -L. $<
+	$(CC) $(CFLAGS) -o $@ -ltomoyotools -L. $<
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
-	cp -af --remove-destination $(BUILD_FILES) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
-	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/
-	ln -sf libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/libccstools.so.1
+	cp -af --remove-destination $(BUILD_FILES) tomoyo-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -ad --remove-destination libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/
+	ln -sf libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/libtomoyotools.so.1
 
 clean:
-	rm -f -- $(BUILD_FILES) libccstools.so*
+	rm -f -- $(BUILD_FILES) libtomoyotools.so*
 
 .PHONY: clean install
