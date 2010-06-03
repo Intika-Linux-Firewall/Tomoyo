@@ -1,5 +1,5 @@
 /*
- * ccs_file_test.c
+ * tomoyo_file_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -267,7 +267,7 @@ static void set_file_enforce(int enforce)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 
 	printf("***** Testing file hooks in enforce mode. *****\n");
 	create_files();

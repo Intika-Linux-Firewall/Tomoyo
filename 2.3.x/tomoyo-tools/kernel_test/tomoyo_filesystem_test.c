@@ -1,5 +1,5 @@
 /*
- * ccs_filesystem_test.c
+ * tomoyo_filesystem_test.c
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
@@ -157,7 +157,7 @@ static const unsigned char compressed_ext2_image_sample[1350] = {
 int main(int argc, char *argv[])
 {
 	char c = 0;
-	ccs_test_init();
+	tomoyo_test_init();
 
 	/* Test mount(). */
 	{

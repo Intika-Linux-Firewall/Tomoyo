@@ -228,7 +228,7 @@ static void clear_status(void)
 	fclose(fp);
 }
 
-static void ccs_test_init(void)
+static void tomoyo_test_init(void)
 {
 	pid = getpid();
 	if (access(proc_policy_dir, F_OK)) {

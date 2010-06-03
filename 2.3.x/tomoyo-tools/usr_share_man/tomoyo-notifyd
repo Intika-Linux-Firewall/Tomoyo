@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-notifyd 1.7.2
+tomoyo-notifyd 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,28 +13,28 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-notifyd timeout action
+Usage: tomoyo-notifyd timeout action
 
-This program detects policy violation in enforcing mode and notify users (e.g. send a mail). You can know the first occurence of policy violation in enforcing mode as soon as possible. You may use this program for holding your judgement of the request that violates policy in enforcing mode provided that you can login to the system and start "ccs-queryd" command for responding within timeout seconds.
+This program detects policy violation in enforcing mode and notify users (e.g. send a mail). You can know the first occurence of policy violation in enforcing mode as soon as possible. You may use this program for holding your judgement of the request that violates policy in enforcing mode provided that you can login to the system and start "tomoyo-queryd" command for responding within timeout seconds.
 
 Examples:
 
-# ccs-notifyd 180 'mail admin@example.com'
+# tomoyo-notifyd 180 'mail admin@example.com'
         Wait for 180 seconds before rejecting the request. The occurrence is notified by sending mail to admin@example.com (if SMTP service is available).
 
-# ccs-notifyd 0 'curl --data-binary @- https://your.server/path_to_cgi'
+# tomoyo-notifyd 0 'curl --data-binary @- https://your.server/path_to_cgi'
         Reject the request immediately. The occurrence is notified by executing curl command.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Notify TOMOYO Linux's policy violation" $0 | gzip -9 > man8/ccs-notifyd.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Notify TOMOYO Linux's policy violation" $0 | gzip -9 > man8/tomoyo-notifyd.8.gz
 [SEE ALSO]
 
- ccs-queryd (8)
+ tomoyo-queryd (8)
 
 [NOTES]
 
- You need to register either path to this program ( /usr/lib/ccs/ccs-notifyd ) or a domain for this program in /proc/ccs/manager before invoking this program if you set non-zero value for timeout.
+ You need to register either path to this program ( /usr/lib/tomoyo/tomoyo-notifyd ) or a domain for this program in /sys/kernel/security/tomoyo/manager before invoking this program if you set non-zero value for timeout.
 
 [AUTHORS]
 

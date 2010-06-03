@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-selectpolicy 1.7.2
+tomoyo-selectpolicy 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,7 +13,7 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-selectpolicy [-r] domainname [domainname ...]
+Usage: tomoyo-selectpolicy [-r] domainname [domainname ...]
 
 This program picks up specified domain's policy from domain policy file.
 
@@ -21,15 +21,15 @@ This program picks up specified domain's policy from domain policy file.
 
 Examples:
 
-# ccs-selectpolicy -r '<kernel> /usr/sbin/sshd' < /proc/ccs/domain_policy
+# tomoyo-selectpolicy -r '<kernel> /usr/sbin/sshd' < /sys/kernel/security/tomoyo/domain_policy
  Pick up domain policy for sshd and its descendent.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Pick up TOMOYO Linux's specific domain's policy" $0 | gzip -9 > man8/ccs-selectpolicy.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Pick up TOMOYO Linux's specific domain's policy" $0 | gzip -9 > man8/tomoyo-selectpolicy.8.gz
 [SEE ALSO]
 
- ccs-sortpolicy (8)
+ tomoyo-sortpolicy (8)
 
 [NOTES]
 

@@ -1,5 +1,5 @@
 /*
- * ccs_rewrite_test.c
+ * tomoyo_rewrite_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -147,7 +147,7 @@ static void stage_rewrite_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	stage_rewrite_test();
 	clear_status();
 	return 0;

@@ -479,9 +479,9 @@ static void make_patterns_for_policy_directory(void)
 {
 	/* Make patterns for policy directory. */
 	echo("file_pattern "
-	     "/etc/ccs/exception_policy.\\$-\\$-\\$.\\$:\\$:\\$.conf");
+	     "/etc/tomoyo/exception_policy.\\$-\\$-\\$.\\$:\\$:\\$.conf");
 	echo("file_pattern "
-	     "/etc/ccs/domain_policy.\\$-\\$-\\$.\\$:\\$:\\$.conf");
+	     "/etc/tomoyo/domain_policy.\\$-\\$-\\$.\\$:\\$:\\$.conf");
 }
 
 static void make_patterns_for_man_directory(void)
@@ -1330,12 +1330,12 @@ static void make_manager(void)
 	}
 	fprintf(stderr, "Creating manager policy... ");
 	tools_dir = get_realpath("/usr/sbin");
-	fprintf(fp, "%s/ccs-loadpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-editpolicy\n", tools_dir);
-	fprintf(fp, "%s/ccs-setlevel\n", tools_dir);
-	fprintf(fp, "%s/ccs-setprofile\n", tools_dir);
-	fprintf(fp, "%s/ccs-ld-watch\n", tools_dir);
-	fprintf(fp, "%s/ccs-queryd\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-loadpolicy\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-editpolicy\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-setlevel\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-setprofile\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-ld-watch\n", tools_dir);
+	fprintf(fp, "%s/tomoyo-queryd\n", tools_dir);
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !rename("manager.tmp", "manager.conf"))
@@ -1432,20 +1432,20 @@ static void make_meminfo(void)
 static void make_module_loader(void)
 {
 	FILE *fp;
-	if (chdir(policy_dir) || !access("ccs-load-module", X_OK))
+	if (chdir(policy_dir) || !access("tomoyo-load-module", X_OK))
 		return;
-	fp = fopen("ccs-load-module.tmp", "w");
+	fp = fopen("tomoyo-load-module.tmp", "w");
 	if (!fp) {
 		fprintf(stderr, "ERROR: Can't create module loader.\n");
 		return;
 	}
 	fprintf(stderr, "Creating module loader... ");
 	fprintf(fp, "#! /bin/sh\n");
-	fprintf(fp, "exec modprobe ccsecurity\n");
+	fprintf(fp, "exec modprobe tomoyoecurity\n");
 	fclose(fp);
 	if (!chdir(policy_dir) &&
-	    !chmod("ccs-load-module.tmp", 0700) &&
-	    !rename("ccs-load-module.tmp", "ccs-load-module"))
+	    !chmod("tomoyo-load-module.tmp", 0700) &&
+	    !rename("tomoyo-load-module.tmp", "tomoyo-load-module"))
 		fprintf(stderr, "OK\n");
 	else
 		fprintf(stderr, "failed.\n");
@@ -1475,7 +1475,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	if (!dir)
-		dir = "/etc/ccs";
+		dir = "/etc/tomoyo";
 	policy_dir = strdup(dir);
 	memset(path, 0, sizeof(path));
 	make_policy_dir();

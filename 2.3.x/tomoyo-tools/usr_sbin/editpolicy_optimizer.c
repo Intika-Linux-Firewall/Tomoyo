@@ -8,95 +8,95 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include "editpolicy.h"
 
-struct ccs_address_group_entry {
-	const struct ccs_path_info *group_name;
-	struct ccs_ip_address_entry *member_name;
+struct tomoyo_address_group_entry {
+	const struct tomoyo_path_info *group_name;
+	struct tomoyo_ip_address_entry *member_name;
 	int member_name_len;
 };
 
-struct ccs_number_group_entry {
-	const struct ccs_path_info *group_name;
-	struct ccs_number_entry *member_name;
+struct tomoyo_number_group_entry {
+	const struct tomoyo_path_info *group_name;
+	struct tomoyo_number_entry *member_name;
 	int member_name_len;
 };
 
 /* Prototypes */
-static int ccs_add_address_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
-static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name);
-static int ccs_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
-static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name);
-static _Bool ccs_compare_path(const char *sarg, const char *darg, const u8 directive);
-static _Bool ccs_compare_number(const char *sarg, const char *darg);
-static _Bool ccs_compare_address(const char *sarg, const char *darg);
+static int tomoyo_add_address_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
+static struct tomoyo_address_group_entry *tomoyo_find_address_group(const char *group_name);
+static int tomoyo_add_number_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
+static struct tomoyo_number_group_entry *tomoyo_find_number_group(const char *group_name);
+static _Bool tomoyo_compare_path(const char *sarg, const char *darg, const u8 directive);
+static _Bool tomoyo_compare_number(const char *sarg, const char *darg);
+static _Bool tomoyo_compare_address(const char *sarg, const char *darg);
 
 /* Utility functions */
 
-struct ccs_path_group_entry *ccs_find_path_group(const char *group_name)
+struct tomoyo_path_group_entry *tomoyo_find_path_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < ccs_path_group_list_len; i++) {
-		if (!strcmp(group_name, ccs_path_group_list[i].group_name->name))
-			return &ccs_path_group_list[i];
+	for (i = 0; i < tomoyo_path_group_list_len; i++) {
+		if (!strcmp(group_name, tomoyo_path_group_list[i].group_name->name))
+			return &tomoyo_path_group_list[i];
 	}
 	return NULL;
 }
 
-int ccs_add_address_group_policy(char *data, const _Bool is_delete)
+int tomoyo_add_address_group_policy(char *data, const _Bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return ccs_add_address_group_entry(data, cp, is_delete);
+	return tomoyo_add_address_group_entry(data, cp, is_delete);
 }
 
-static _Bool ccs_compare_path(const char *sarg, const char *darg,
+static _Bool tomoyo_compare_path(const char *sarg, const char *darg,
 			      const u8 directive)
 {
 	int i;
-	struct ccs_path_group_entry *group;
-	struct ccs_path_info s;
-	struct ccs_path_info d;
+	struct tomoyo_path_group_entry *group;
+	struct tomoyo_path_info s;
+	struct tomoyo_path_info d;
 	s.name = sarg;
 	d.name = darg;
-	ccs_fill_path_info(&s);
-	ccs_fill_path_info(&d);
-	if (!ccs_pathcmp(&s, &d))
+	tomoyo_fill_path_info(&s);
+	tomoyo_fill_path_info(&d);
+	if (!tomoyo_pathcmp(&s, &d))
 		return true;
 	if (d.name[0] == '@')
 		return false;
 	if (s.name[0] != '@')
 		/* Pathname component. */
-		return ccs_path_matches_pattern(&d, &s);
+		return tomoyo_path_matches_pattern(&d, &s);
 	/* path_group component. */
-	group = ccs_find_path_group(s.name + 1);
+	group = tomoyo_find_path_group(s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		const struct ccs_path_info *member_name;
+		const struct tomoyo_path_info *member_name;
 		member_name = group->member_name[i];
-		if (!ccs_pathcmp(member_name, &d))
+		if (!tomoyo_pathcmp(member_name, &d))
 			return true;
-		if (ccs_path_matches_pattern(&d, member_name))
+		if (tomoyo_path_matches_pattern(&d, member_name))
 			return true;
 	}
 	return false;
 }
 
-static _Bool ccs_compare_address(const char *sarg, const char *darg)
+static _Bool tomoyo_compare_address(const char *sarg, const char *darg)
 {
 	int i;
-	struct ccs_ip_address_entry sentry;
-	struct ccs_ip_address_entry dentry;
-	struct ccs_address_group_entry *group;
-	if (ccs_parse_ip(darg, &dentry))
+	struct tomoyo_ip_address_entry sentry;
+	struct tomoyo_ip_address_entry dentry;
+	struct tomoyo_address_group_entry *group;
+	if (tomoyo_parse_ip(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
 		/* IP address component. */
-		if (ccs_parse_ip(sarg, &sentry))
+		if (tomoyo_parse_ip(sarg, &sentry))
 			return false;
 		if (sentry.is_ipv6 != dentry.is_ipv6 ||
 		    memcmp(dentry.min, sentry.min, 16) < 0 ||
@@ -105,11 +105,11 @@ static _Bool ccs_compare_address(const char *sarg, const char *darg)
 		return true;
 	}
 	/* IP address group component. */
-	group = ccs_find_address_group(sarg + 1);
+	group = tomoyo_find_address_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		struct ccs_ip_address_entry *sentry = &group->member_name[i];
+		struct tomoyo_ip_address_entry *sentry = &group->member_name[i];
 		if (sentry->is_ipv6 == dentry.is_ipv6
 		    && memcmp(sentry->min, dentry.min, 16) <= 0
 		    && memcmp(dentry.max, sentry->max, 16) <= 0)
@@ -118,7 +118,7 @@ static _Bool ccs_compare_address(const char *sarg, const char *darg)
 	return false;
 }
 
-static char *ccs_tokenize(char *buffer, char *w[], size_t size)
+static char *tomoyo_tokenize(char *buffer, char *w[], size_t size)
 {
 	int count = size / sizeof(char *);
 	int i;
@@ -144,37 +144,37 @@ static char *ccs_tokenize(char *buffer, char *w[], size_t size)
 	return i < count || !*buffer ? cp : NULL;
 }
 
-int ccs_add_number_group_policy(char *data, const _Bool is_delete)
+int tomoyo_add_number_group_policy(char *data, const _Bool is_delete)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return ccs_add_number_group_entry(data, cp, is_delete);
+	return tomoyo_add_number_group_entry(data, cp, is_delete);
 }
 
-static _Bool ccs_compare_number(const char *sarg, const char *darg)
+static _Bool tomoyo_compare_number(const char *sarg, const char *darg)
 {
 	int i;
-	struct ccs_number_entry sentry;
-	struct ccs_number_entry dentry;
-	struct ccs_number_group_entry *group;
-	if (ccs_parse_number(darg, &dentry))
+	struct tomoyo_number_entry sentry;
+	struct tomoyo_number_entry dentry;
+	struct tomoyo_number_group_entry *group;
+	if (tomoyo_parse_number(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
 		/* Number component. */
-		if (ccs_parse_number(sarg, &sentry))
+		if (tomoyo_parse_number(sarg, &sentry))
 			return false;
 		if (sentry.min > dentry.min || sentry.max < dentry.max)
 			return false;
 		return true;
 	}
 	/* Number group component. */
-	group = ccs_find_number_group(sarg + 1);
+	group = tomoyo_find_number_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
-		struct ccs_number_entry *entry = &group->member_name[i];
+		struct tomoyo_number_entry *entry = &group->member_name[i];
 		if (entry->min > dentry.min || entry->max < dentry.max)
 			continue;
 		return true;
@@ -182,7 +182,7 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 	return false;
 }
 
-void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current,
+void tomoyo_editpolicy_try_optimize(struct tomoyo_domain_policy *dp, const int current,
 				 const int screen)
 {
 	char *cp;
@@ -194,26 +194,26 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 	char *d[5];
 	if (current < 0)
 		return;
-	s_index = ccs_generic_acl_list[current].directive;
+	s_index = tomoyo_generic_acl_list[current].directive;
 	if (s_index == CCS_DIRECTIVE_NONE)
 		return;
-	cp = strdup(ccs_generic_acl_list[current].operand);
+	cp = strdup(tomoyo_generic_acl_list[current].operand);
 	if (!cp)
 		return;
 
-	s_cond = ccs_tokenize(cp, s, sizeof(s));
+	s_cond = tomoyo_tokenize(cp, s, sizeof(s));
 	if (!s_cond) {
 		free(cp);
 		return;
 	}
 
-	ccs_get();
-	for (index = 0; index < ccs_list_item_count[screen]; index++) {
+	tomoyo_get();
+	for (index = 0; index < tomoyo_list_item_count[screen]; index++) {
 		char *line;
-		const u8 d_index = ccs_generic_acl_list[index].directive;
+		const u8 d_index = tomoyo_generic_acl_list[index].directive;
 		if (index == current)
 			continue;
-		if (ccs_generic_acl_list[index].selected)
+		if (tomoyo_generic_acl_list[index].selected)
 			continue;
 		if (s_index == CCS_DIRECTIVE_ALLOW_READ_WRITE) {
 			/* Source starts with "allow_read/write " */
@@ -236,8 +236,8 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			/* Source and dest start with different directive. */
 			continue;
 		}
-		line = ccs_shprintf("%s", ccs_generic_acl_list[index].operand);
-		d_cond = ccs_tokenize(line, d, sizeof(d));
+		line = tomoyo_shprintf("%s", tomoyo_generic_acl_list[index].operand);
+		d_cond = tomoyo_tokenize(line, d, sizeof(d));
 
 		/* Compare condition part. */
 		if (!d_cond || strcmp(s_cond, d_cond))
@@ -254,14 +254,14 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			fclose(fp);
 		}
 		switch (d_index) {
-			struct ccs_path_info sarg;
-			struct ccs_path_info darg;
+			struct tomoyo_path_info sarg;
+			struct tomoyo_path_info darg;
 			char c;
 			int len;
 		case CCS_DIRECTIVE_ALLOW_MKBLOCK:
 		case CCS_DIRECTIVE_ALLOW_MKCHAR:
-			if (!ccs_compare_number(s[3], d[3]) ||
-			    !ccs_compare_number(s[2], d[2]))
+			if (!tomoyo_compare_number(s[3], d[3]) ||
+			    !tomoyo_compare_number(s[2], d[2]))
 				continue;
 			/* fall through */
 		case CCS_DIRECTIVE_ALLOW_CREATE:
@@ -272,7 +272,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 		case CCS_DIRECTIVE_ALLOW_CHMOD:
 		case CCS_DIRECTIVE_ALLOW_CHOWN:
 		case CCS_DIRECTIVE_ALLOW_CHGRP:
-			if (!ccs_compare_number(s[1], d[1]))
+			if (!tomoyo_compare_number(s[1], d[1]))
 				continue;
 			/* fall through */
 		case CCS_DIRECTIVE_ALLOW_EXECUTE:
@@ -286,19 +286,19 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 		case CCS_DIRECTIVE_ALLOW_UNMOUNT:
 		case CCS_DIRECTIVE_ALLOW_CHROOT:
 		case CCS_DIRECTIVE_ALLOW_SYMLINK:
-			if (!ccs_compare_path(s[0], d[0], d_index))
+			if (!tomoyo_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
 		case CCS_DIRECTIVE_ALLOW_MOUNT:
-			if (!ccs_compare_number(s[3], d[3]) ||
-			    !ccs_compare_path(s[2], d[2], d_index))
+			if (!tomoyo_compare_number(s[3], d[3]) ||
+			    !tomoyo_compare_path(s[2], d[2], d_index))
 				continue;
 			/* fall through */
 		case CCS_DIRECTIVE_ALLOW_LINK:
 		case CCS_DIRECTIVE_ALLOW_RENAME:
 		case CCS_DIRECTIVE_ALLOW_PIVOT_ROOT:
-			if (!ccs_compare_path(s[1], d[1], d_index) ||
-			    !ccs_compare_path(s[0], d[0], d_index))
+			if (!tomoyo_compare_path(s[1], d[1], d_index) ||
+			    !tomoyo_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
 		case CCS_DIRECTIVE_ALLOW_SIGNAL:
@@ -315,58 +315,58 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			break;
 		case CCS_DIRECTIVE_ALLOW_NETWORK:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
-			    !ccs_compare_address(s[2], d[2]) ||
-			    !ccs_compare_number(s[3], d[3]))
+			    !tomoyo_compare_address(s[2], d[2]) ||
+			    !tomoyo_compare_number(s[3], d[3]))
 				continue;
 			break;
 		case CCS_DIRECTIVE_ALLOW_ENV:
 			/* An environemnt variable name component. */
 			sarg.name = s[0];
-			ccs_fill_path_info(&sarg);
+			tomoyo_fill_path_info(&sarg);
 			darg.name = d[0];
-			ccs_fill_path_info(&darg);
-			if (!ccs_pathcmp(&sarg, &darg))
+			tomoyo_fill_path_info(&darg);
+			if (!tomoyo_pathcmp(&sarg, &darg))
 				break;
 			/* allow_env doesn't interpret leading @ as
 			   path_group. */
 			if (darg.is_patterned ||
-			    !ccs_path_matches_pattern(&darg, &sarg))
+			    !tomoyo_path_matches_pattern(&darg, &sarg))
 				continue;
 			break;
 		default:
 			continue;
 		}
-		ccs_generic_acl_list[index].selected = 1;
+		tomoyo_generic_acl_list[index].selected = 1;
 	}
-	ccs_put();
+	tomoyo_put();
 	free(cp);
 }
 
 /* Variables */
 
-static struct ccs_address_group_entry *ccs_address_group_list = NULL;
-int ccs_address_group_list_len = 0;
+static struct tomoyo_address_group_entry *tomoyo_address_group_list = NULL;
+int tomoyo_address_group_list_len = 0;
 
 /* Main functions */
 
-static int ccs_add_address_group_entry(const char *group_name,
+static int tomoyo_add_address_group_entry(const char *group_name,
 				       const char *member_name,
 				       const _Bool is_delete)
 {
-	const struct ccs_path_info *saved_group_name;
+	const struct tomoyo_path_info *saved_group_name;
 	int i;
 	int j;
-	struct ccs_ip_address_entry entry;
-	struct ccs_address_group_entry *group = NULL;
-	if (ccs_parse_ip(member_name, &entry))
+	struct tomoyo_ip_address_entry entry;
+	struct tomoyo_address_group_entry *group = NULL;
+	if (tomoyo_parse_ip(member_name, &entry))
 		return -EINVAL;
-	if (!ccs_correct_word(group_name))
+	if (!tomoyo_correct_word(group_name))
 		return -EINVAL;
-	saved_group_name = ccs_savename(group_name);
+	saved_group_name = tomoyo_savename(group_name);
 	if (!saved_group_name)
 		return -ENOMEM;
-	for (i = 0; i < ccs_address_group_list_len; i++) {
-		group = &ccs_address_group_list[i];
+	for (i = 0; i < tomoyo_address_group_list_len; i++) {
+		group = &tomoyo_address_group_list[i];
 		if (saved_group_name != group->group_name)
 			continue;
 		for (j = 0; j < group->member_name_len; j++) {
@@ -385,58 +385,58 @@ static int ccs_add_address_group_entry(const char *group_name,
 	}
 	if (is_delete)
 		return -ENOENT;
-	if (i == ccs_address_group_list_len) {
+	if (i == tomoyo_address_group_list_len) {
 		void *vp;
-		vp = realloc(ccs_address_group_list,
-			     (ccs_address_group_list_len + 1) *
-			     sizeof(struct ccs_address_group_entry));
+		vp = realloc(tomoyo_address_group_list,
+			     (tomoyo_address_group_list_len + 1) *
+			     sizeof(struct tomoyo_address_group_entry));
 		if (!vp)
-			ccs_out_of_memory();
-		ccs_address_group_list = vp;
-		group = &ccs_address_group_list[ccs_address_group_list_len++];
-		memset(group, 0, sizeof(struct ccs_address_group_entry));
+			tomoyo_out_of_memory();
+		tomoyo_address_group_list = vp;
+		group = &tomoyo_address_group_list[tomoyo_address_group_list_len++];
+		memset(group, 0, sizeof(struct tomoyo_address_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name = realloc(group->member_name,
 				     (group->member_name_len + 1) *
-				     sizeof(const struct ccs_ip_address_entry));
+				     sizeof(const struct tomoyo_ip_address_entry));
 	if (!group->member_name)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
 
-static struct ccs_address_group_entry *ccs_find_address_group(const char *group_name)
+static struct tomoyo_address_group_entry *tomoyo_find_address_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < ccs_address_group_list_len; i++) {
-		if (!strcmp(group_name, ccs_address_group_list[i].group_name->name))
-			return &ccs_address_group_list[i];
+	for (i = 0; i < tomoyo_address_group_list_len; i++) {
+		if (!strcmp(group_name, tomoyo_address_group_list[i].group_name->name))
+			return &tomoyo_address_group_list[i];
 	}
 	return NULL;
 }
 
-static struct ccs_number_group_entry *ccs_number_group_list = NULL;
-int ccs_number_group_list_len = 0;
+static struct tomoyo_number_group_entry *tomoyo_number_group_list = NULL;
+int tomoyo_number_group_list_len = 0;
 
-static int ccs_add_number_group_entry(const char *group_name,
+static int tomoyo_add_number_group_entry(const char *group_name,
 				      const char *member_name,
 				      const _Bool is_delete)
 {
-	const struct ccs_path_info *saved_group_name;
+	const struct tomoyo_path_info *saved_group_name;
 	int i;
 	int j;
-	struct ccs_number_entry entry;
-	struct ccs_number_group_entry *group = NULL;
-	if (ccs_parse_number(member_name, &entry))
+	struct tomoyo_number_entry entry;
+	struct tomoyo_number_group_entry *group = NULL;
+	if (tomoyo_parse_number(member_name, &entry))
 		return -EINVAL;
-	if (!ccs_correct_word(group_name))
+	if (!tomoyo_correct_word(group_name))
 		return -EINVAL;
-	saved_group_name = ccs_savename(group_name);
+	saved_group_name = tomoyo_savename(group_name);
 	if (!saved_group_name)
 		return -ENOMEM;
-	for (i = 0; i < ccs_number_group_list_len; i++) {
-		group = &ccs_number_group_list[i];
+	for (i = 0; i < tomoyo_number_group_list_len; i++) {
+		group = &tomoyo_number_group_list[i];
 		if (saved_group_name != group->group_name)
 			continue;
 		for (j = 0; j < group->member_name_len; j++) {
@@ -455,33 +455,33 @@ static int ccs_add_number_group_entry(const char *group_name,
 	}
 	if (is_delete)
 		return -ENOENT;
-	if (i == ccs_number_group_list_len) {
+	if (i == tomoyo_number_group_list_len) {
 		void *vp;
-		vp = realloc(ccs_number_group_list,
-			     (ccs_number_group_list_len + 1) *
-			     sizeof(struct ccs_number_group_entry));
+		vp = realloc(tomoyo_number_group_list,
+			     (tomoyo_number_group_list_len + 1) *
+			     sizeof(struct tomoyo_number_group_entry));
 		if (!vp)
-			ccs_out_of_memory();
-		ccs_number_group_list = vp;
-		group = &ccs_number_group_list[ccs_number_group_list_len++];
-		memset(group, 0, sizeof(struct ccs_number_group_entry));
+			tomoyo_out_of_memory();
+		tomoyo_number_group_list = vp;
+		group = &tomoyo_number_group_list[tomoyo_number_group_list_len++];
+		memset(group, 0, sizeof(struct tomoyo_number_group_entry));
 		group->group_name = saved_group_name;
 	}
 	group->member_name = realloc(group->member_name,
 				     (group->member_name_len + 1) *
-				     sizeof(const struct ccs_number_entry));
+				     sizeof(const struct tomoyo_number_entry));
 	if (!group->member_name)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	group->member_name[group->member_name_len++] = entry;
 	return 0;
 }
 
-static struct ccs_number_group_entry *ccs_find_number_group(const char *group_name)
+static struct tomoyo_number_group_entry *tomoyo_find_number_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < ccs_number_group_list_len; i++) {
-		if (!strcmp(group_name, ccs_number_group_list[i].group_name->name))
-			return &ccs_number_group_list[i];
+	for (i = 0; i < tomoyo_number_group_list_len; i++) {
+		if (!strcmp(group_name, tomoyo_number_group_list[i].group_name->name))
+			return &tomoyo_number_group_list[i];
 	}
 	return NULL;
 }

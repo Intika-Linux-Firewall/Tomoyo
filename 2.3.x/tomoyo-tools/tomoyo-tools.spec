@@ -1,6 +1,6 @@
 Summary: TOMOYO Linux tools
 
-Name: ccs-tools
+Name: tomoyo-tools
 Version: 1.7.2
 Release: 1
 License: GPL
@@ -8,16 +8,16 @@ Group: System Environment/Kernel
 ExclusiveOS: Linux
 Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Conflicts: ccs-tools < 1.7.2-1
+Conflicts: tomoyo-tools < 1.7.2-1
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/ccs-tools-1.7.2-20100401.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/43376/tomoyo-tools-1.7.2-20100401.tar.gz
 
 %description
 This is TOMOYO Linux tools.
 
 %prep
 
-%setup -q -n ccstools
+%setup -q -n tomoyotools
 
 %build
 
@@ -33,47 +33,47 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/sbin/ccs-init
+/sbin/tomoyo-init
 /usr/lib/
 /usr/sbin/
 /usr/share/man/
-%attr(4755,root,root) /usr/lib/ccs/force-logout
-%config(noreplace) /usr/lib/ccs/ccstools.conf
+%attr(4755,root,root) /usr/lib/tomoyo/force-logout
+%config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
 * Thu Apr 01 2010 1.7.2-1
-- ccs-sortpolicy should not remove use_profile lines.
-- ccs-init calls /etc/ccs/ccs-load-module for loading TOMOYO which was built as a loadable kernel module.
+- tomoyo-sortpolicy should not remove use_profile lines.
+- tomoyo-init calls /etc/tomoyo/tomoyo-load-module for loading TOMOYO which was built as a loadable kernel module.
 - Updated to handle TOMOYO 1.7.2's syntax.
 
 * Sun Jan 10 2010 1.7.1-2
-- ccs-auditd should call fflush() immediately after fprintf().
-- ccs-queryd was not able to handle /etc/ld.so.cache updates.
-- ccs-checkpolicy was not able to handle some of TOMOYO 1.7.1's syntax.
+- tomoyo-auditd should call fflush() immediately after fprintf().
+- tomoyo-queryd was not able to handle /etc/ld.so.cache updates.
+- tomoyo-checkpolicy was not able to handle some of TOMOYO 1.7.1's syntax.
 - Use dynamic buffer allocation for supporting longer lines.
 - Ignore /proc/0 which is an invalid proc entry.
 
 * Wed Nov 11 2009 1.7.1-1
 - Fourth anniversary release.
-- Added network mode support to ccs-queryd and ccs-auditd.
-- Removed policy diff support from ccs-savepolicy, ccs-loadpolicy, ccs-init .
-- Added ccs-diffpolicy for generating policy diff file.
+- Added network mode support to tomoyo-queryd and tomoyo-auditd.
+- Removed policy diff support from tomoyo-savepolicy, tomoyo-loadpolicy, tomoyo-init .
+- Added tomoyo-diffpolicy for generating policy diff file.
 - Updated to handle TOMOYO 1.7.x's syntax.
-- Added ccs-selectpolicy for picking up specific domain's policy.
+- Added tomoyo-selectpolicy for picking up specific domain's policy.
 - Added convert-audit-log for generating policy from audit logs.
-- Added "--file" option to ccs-patternize.
+- Added "--file" option to tomoyo-patternize.
 
 * Thu Sep 03 2009 1.7.0-1
 - Removed programs for TOMOYO 2.2.0 from this package.
   Please use tomoyo-tools-2.2.0 package for TOMOYO 2.2.0 .
-- Converted /sbin/ccs-init and /usr/lib/ccs/init_policy to binary programs.
+- Converted /sbin/tomoyo-init and /usr/lib/tomoyo/init_policy to binary programs.
 - Removed "realpath", "make_alias", "makesyaoranconf".
-- Added "--with-domainname" option to ccs-findtemp program.
-- Changed installation directory from /usr/lib/ccs/ to /usr/sbin/ .
-- Changed installation directory from /usr/lib/ccs/misc/ to /usr/lib/ccs/ .
+- Added "--with-domainname" option to tomoyo-findtemp program.
+- Changed installation directory from /usr/lib/tomoyo/ to /usr/sbin/ .
+- Changed installation directory from /usr/lib/tomoyo/misc/ to /usr/lib/tomoyo/ .
 
 * Tue Jun 23 2009 1.6.8-2
-- ccs-auditd: Print error message if auditing interface is not available.
+- tomoyo-auditd: Print error message if auditing interface is not available.
 
 * Thu May 28 2009 1.6.8-1
 - Minor update release.
@@ -93,11 +93,11 @@ rm -rf $RPM_BUILD_ROOT
 
 * Tue Jul 15 2008 1.6.3-1
 - Bug fix release.
-- Dropped suid-root from /usr/lib/ccs/misc/proxy because /usr/lib/ccs/ is 0755.
+- Dropped suid-root from /usr/lib/tomoyo/misc/proxy because /usr/lib/tomoyo/ is 0755.
 
 * Wed Jun 25 2008 1.6.2-1
 - Minor update release.
-- Change permission of /usr/lib/ccs/ to 0755
+- Change permission of /usr/lib/tomoyo/ to 0755
 
 * Sat May 10 2008 1.6.1-1
 - Minor update release.

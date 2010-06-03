@@ -1,5 +1,5 @@
 /*
- * ccs-notifyd.c
+ * tomoyo-notifyd.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[])
 {
-	const char *proc_policy_query = "/proc/ccs/query";
+	const char *proc_policy_query = "/sys/kernel/security/tomoyo/query";
 	int time_to_wait;
 	const char *action_to_take;
 	char buffer[32768];
@@ -91,13 +91,13 @@ int main(int argc, char *argv[])
 		return 1;
 	} else if (time_to_wait && write(query_fd, "", 0) != 0) {
 		fprintf(stderr, "You need to register this program to %s to "
-			"run this program.\n", "/proc/ccs/manager");
+			"run this program.\n", "/sys/kernel/security/tomoyo/manager");
 		return 1;
 	}
 	close(0);
 	close(1);
 	close(2);
-	openlog("ccs-notifyd", 0,  LOG_USER);
+	openlog("tomoyo-notifyd", 0,  LOG_USER);
 	syslog(LOG_WARNING, "Started. (%d, %s)\n", time_to_wait,
 	       action_to_take);
 	while (1) {

@@ -1,5 +1,5 @@
 /*
- * ccs-findtemp.c
+ * tomoyo-findtemp.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,7 +8,7 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 					free(domain);
 					domain = strdup(buffer);
 					if (!domain)
-						ccs_out_of_memory();
+						tomoyo_out_of_memory();
 					flag = 0;
 					continue;
 				}
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 					char *cp2 = strchr(cp, ' ');
 					if (cp2)
 						*cp2 = '\0';
-					if (*cp == '/' && ccs_decode(cp, buffer2)
+					if (*cp == '/' && tomoyo_decode(cp, buffer2)
 					    && lstat64(buffer2, &buf)) {
 						if (!flag)
 							printf("\n%s\n",
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 			continue;
 		{
 			struct stat64 buf;
-			if (!ccs_decode(buffer, buffer2))
+			if (!tomoyo_decode(buffer, buffer2))
 				continue;
 			if (!lstat64(buffer2, &buf))
 				continue;
@@ -85,14 +85,14 @@ int main(int argc, char *argv[])
 		pattern_list = realloc(pattern_list, sizeof(const char *) *
 				       (pattern_list_count + 1));
 		if (!pattern_list)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		cp = strdup(buffer);
 		if (!cp)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		pattern_list[pattern_list_count++] = cp;
 	}
 	qsort(pattern_list, pattern_list_count, sizeof(const char *),
-	      ccs_string_compare);
+	      tomoyo_string_compare);
 	for (i = 0; i < pattern_list_count; i++)
 		printf("%s\n", pattern_list[i]);
 	for (i = 0; i < pattern_list_count; i++)

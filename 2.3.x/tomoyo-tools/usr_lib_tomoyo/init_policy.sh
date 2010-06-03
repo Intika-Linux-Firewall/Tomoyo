@@ -1,3 +1,3 @@
 #! /bin/sh
 cd ${0%/*}
-exec ./init_policy policy_dir=/etc/ccs "$@"
+exec ./init_policy policy_dir=/etc/tomoyo "$@"

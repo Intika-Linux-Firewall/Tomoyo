@@ -1,5 +1,5 @@
 /*
- * ccstools.c
+ * tomoyotools.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,15 +8,15 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-struct ccs_savename_entry {
-	struct ccs_savename_entry *next;
-	struct ccs_path_info entry;
+struct tomoyo_savename_entry {
+	struct tomoyo_savename_entry *next;
+	struct tomoyo_path_info entry;
 };
 
-struct ccs_free_memory_block_list {
-	struct ccs_free_memory_block_list *next;
+struct tomoyo_free_memory_block_list {
+	struct tomoyo_free_memory_block_list *next;
 	char *ptr;
 	int len;
 };
@@ -24,36 +24,36 @@ struct ccs_free_memory_block_list {
 #define CCS_SAVENAME_MAX_HASH            256
 #define CCS_PAGE_SIZE                    4096
 
-_Bool ccs_network_mode = false;
-u32 ccs_network_ip = INADDR_NONE;
-u16 ccs_network_port = 0;
-struct ccs_task_entry *ccs_task_list = NULL;
-int ccs_task_list_len = 0;
+_Bool tomoyo_network_mode = false;
+u32 tomoyo_network_ip = INADDR_NONE;
+u16 tomoyo_network_port = 0;
+struct tomoyo_task_entry *tomoyo_task_list = NULL;
+int tomoyo_task_list_len = 0;
 
 /* Prototypes */
 
-static _Bool ccs_byte_range(const char *str);
-static _Bool ccs_decimal(const char c);
-static _Bool ccs_hexadecimal(const char c);
-static _Bool ccs_alphabet_char(const char c);
-static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3);
-static inline unsigned long ccs_partial_name_hash(unsigned long c, unsigned long prevhash);
-static inline unsigned int ccs_full_name_hash(const unsigned char *name, unsigned int len);
-static void *ccs_alloc_element(const unsigned int size);
-static int ccs_const_part_length(const char *filename);
-static int ccs_domainname_compare(const void *a, const void *b);
-static int ccs_path_info_compare(const void *a, const void *b);
-static void ccs_sort_domain_policy(struct ccs_domain_policy *dp);
+static _Bool tomoyo_byte_range(const char *str);
+static _Bool tomoyo_decimal(const char c);
+static _Bool tomoyo_hexadecimal(const char c);
+static _Bool tomoyo_alphabet_char(const char c);
+static u8 tomoyo_make_byte(const u8 c1, const u8 c2, const u8 c3);
+static inline unsigned long tomoyo_partial_name_hash(unsigned long c, unsigned long prevhash);
+static inline unsigned int tomoyo_full_name_hash(const unsigned char *name, unsigned int len);
+static void *tomoyo_alloc_element(const unsigned int size);
+static int tomoyo_const_part_length(const char *filename);
+static int tomoyo_domainname_compare(const void *a, const void *b);
+static int tomoyo_path_info_compare(const void *a, const void *b);
+static void tomoyo_sort_domain_policy(struct tomoyo_domain_policy *dp);
 
 /* Utility functions */
 
-void ccs_out_of_memory(void)
+void tomoyo_out_of_memory(void)
 {
 	fprintf(stderr, "Out of memory. Aborted.\n");
 	exit(1);
 }
 
-_Bool ccs_str_starts(char *str, const char *begin)
+_Bool tomoyo_str_starts(char *str, const char *begin)
 {
 	const int len = strlen(begin);
 	if (strncmp(str, begin, len))
@@ -62,36 +62,36 @@ _Bool ccs_str_starts(char *str, const char *begin)
 	return true;
 }
 
-static _Bool ccs_byte_range(const char *str)
+static _Bool tomoyo_byte_range(const char *str)
 {
 	return *str >= '0' && *str++ <= '3' &&
 		*str >= '0' && *str++ <= '7' &&
 		*str >= '0' && *str <= '7';
 }
 
-static _Bool ccs_decimal(const char c)
+static _Bool tomoyo_decimal(const char c)
 {
 	return c >= '0' && c <= '9';
 }
 
-static _Bool ccs_hexadecimal(const char c)
+static _Bool tomoyo_hexadecimal(const char c)
 {
 	return (c >= '0' && c <= '9') ||
 		(c >= 'A' && c <= 'F') ||
 		(c >= 'a' && c <= 'f');
 }
 
-static _Bool ccs_alphabet_char(const char c)
+static _Bool tomoyo_alphabet_char(const char c)
 {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
 }
 
-static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
+static u8 tomoyo_make_byte(const u8 c1, const u8 c2, const u8 c3)
 {
 	return ((c1 - '0') << 6) + ((c2 - '0') << 3) + (c3 - '0');
 }
 
-void ccs_normalize_line(unsigned char *line)
+void tomoyo_normalize_line(unsigned char *line)
 {
 	unsigned char *sp = line;
 	unsigned char *dp = line;
@@ -110,7 +110,7 @@ void ccs_normalize_line(unsigned char *line)
 	*dp = '\0';
 }
 
-char *ccs_make_filename(const char *prefix, const time_t time)
+char *tomoyo_make_filename(const char *prefix, const time_t time)
 {
 	struct tm *tm = localtime(&time);
 	static char filename[1024];
@@ -123,23 +123,23 @@ char *ccs_make_filename(const char *prefix, const time_t time)
 }
 
 /* Copied from kernel source. */
-static inline unsigned long ccs_partial_name_hash(unsigned long c,
+static inline unsigned long tomoyo_partial_name_hash(unsigned long c,
 						  unsigned long prevhash)
 {
 	return (prevhash + (c << 4) + (c >> 4)) * 11;
 }
 
 /* Copied from kernel source. */
-static inline unsigned int ccs_full_name_hash(const unsigned char *name,
+static inline unsigned int tomoyo_full_name_hash(const unsigned char *name,
 					      unsigned int len)
 {
 	unsigned long hash = 0;
 	while (len--)
-		hash = ccs_partial_name_hash(*name++, hash);
+		hash = tomoyo_partial_name_hash(*name++, hash);
 	return (unsigned int) hash;
 }
 
-static void *ccs_alloc_element(const unsigned int size)
+static void *tomoyo_alloc_element(const unsigned int size)
 {
 	static char *buf = NULL;
 	static unsigned int buf_used_len = CCS_PAGE_SIZE;
@@ -149,7 +149,7 @@ static void *ccs_alloc_element(const unsigned int size)
 	if (buf_used_len + size > CCS_PAGE_SIZE) {
 		ptr = malloc(CCS_PAGE_SIZE);
 		if (!ptr)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		buf = ptr;
 		memset(buf, 0, CCS_PAGE_SIZE);
 		buf_used_len = size;
@@ -160,12 +160,12 @@ static void *ccs_alloc_element(const unsigned int size)
 		buf_used_len += size;
 		for (i = 0; i < size; i++)
 			if (ptr[i])
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 	}
 	return ptr;
 }
 
-static int ccs_const_part_length(const char *filename)
+static int tomoyo_const_part_length(const char *filename)
 {
 	int len = 0;
 	if (filename) {
@@ -201,14 +201,14 @@ static int ccs_const_part_length(const char *filename)
 	return len;
 }
 
-_Bool ccs_domain_def(const unsigned char *domainname)
+_Bool tomoyo_domain_def(const unsigned char *domainname)
 {
 	return !strncmp(domainname, CCS_ROOT_NAME, CCS_ROOT_NAME_LEN) &&
 		(domainname[CCS_ROOT_NAME_LEN] == '\0'
 		 || domainname[CCS_ROOT_NAME_LEN] == ' ');
 }
 
-void ccs_fprintf_encoded(FILE *fp, const char *pathname)
+void tomoyo_fprintf_encoded(FILE *fp, const char *pathname)
 {
 	while (true) {
 		unsigned char c = *(const unsigned char *) pathname++;
@@ -226,7 +226,7 @@ void ccs_fprintf_encoded(FILE *fp, const char *pathname)
 	}
 }
 
-_Bool ccs_decode(const char *ascii, char *bin)
+_Bool tomoyo_decode(const char *ascii, char *bin)
 {
 	while (true) {
 		char c = *ascii++;
@@ -267,7 +267,7 @@ _Bool ccs_decode(const char *ascii, char *bin)
 	return true;
 }
 
-static _Bool ccs_correct_word2(const char *string, size_t len)
+static _Bool tomoyo_correct_word2(const char *string, size_t len)
 {
 	const char *const start = string;
 	_Bool in_repetition = false;
@@ -318,7 +318,7 @@ static _Bool ccs_correct_word2(const char *string, size_t len)
 				e = *string++;
 				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
-				c = ccs_make_byte(c, d, e);
+				c = tomoyo_make_byte(c, d, e);
 				if (c && (c <= ' ' || c >= 127))
 					continue; /* pattern is not \000 */
 			}
@@ -336,17 +336,17 @@ static _Bool ccs_correct_word2(const char *string, size_t len)
 	return false;
 }
 
-_Bool ccs_correct_word(const char *string)
+_Bool tomoyo_correct_word(const char *string)
 {
-	return ccs_correct_word2(string, strlen(string));
+	return tomoyo_correct_word2(string, strlen(string));
 }
 
-_Bool ccs_correct_path(const char *filename)
+_Bool tomoyo_correct_path(const char *filename)
 {
-	return *filename == '/' && ccs_correct_word(filename);
+	return *filename == '/' && tomoyo_correct_word(filename);
 }
 
-_Bool ccs_correct_domain(const unsigned char *domainname)
+_Bool tomoyo_correct_domain(const unsigned char *domainname)
 {
 	if (!domainname || strncmp(domainname, CCS_ROOT_NAME,
 				   CCS_ROOT_NAME_LEN))
@@ -361,16 +361,16 @@ _Bool ccs_correct_domain(const unsigned char *domainname)
 		if (!cp)
 			break;
 		if (*domainname != '/' ||
-		    !ccs_correct_word2(domainname, cp - domainname - 1))
+		    !tomoyo_correct_word2(domainname, cp - domainname - 1))
 			goto out;
 		domainname = cp + 1;
 	}
-	return ccs_correct_path(domainname);
+	return tomoyo_correct_path(domainname);
  out:
 	return false;
 }
 
-static _Bool ccs_file_matches_pattern2(const char *filename,
+static _Bool tomoyo_file_matches_pattern2(const char *filename,
 				       const char *filename_end,
 				       const char *pattern, const char *pattern_end)
 {
@@ -392,7 +392,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 			} else if (c == '\\') {
 				if (filename[1] == '\\')
 					filename++;
-				else if (ccs_byte_range(filename + 1))
+				else if (tomoyo_byte_range(filename + 1))
 					filename += 3;
 				else
 					return false;
@@ -405,22 +405,22 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 				return false;
 			break;
 		case '+':
-			if (!ccs_decimal(c))
+			if (!tomoyo_decimal(c))
 				return false;
 			break;
 		case 'x':
-			if (!ccs_hexadecimal(c))
+			if (!tomoyo_hexadecimal(c))
 				return false;
 			break;
 		case 'a':
-			if (!ccs_alphabet_char(c))
+			if (!tomoyo_alphabet_char(c))
 				return false;
 			break;
 		case '0':
 		case '1':
 		case '2':
 		case '3':
-			if (c == '\\' && ccs_byte_range(filename + 1)
+			if (c == '\\' && tomoyo_byte_range(filename + 1)
 			    && !strncmp(filename + 1, pattern, 3)) {
 				filename += 3;
 				pattern += 2;
@@ -430,7 +430,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 		case '*':
 		case '@':
 			for (i = 0; i <= filename_end - filename; i++) {
-				if (ccs_file_matches_pattern2(filename + i,
+				if (tomoyo_file_matches_pattern2(filename + i,
 							      filename_end,
 							      pattern + 1,
 							      pattern_end))
@@ -442,7 +442,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 					continue;
 				if (filename[i + 1] == '\\')
 					i++;
-				else if (ccs_byte_range(filename + i + 1))
+				else if (tomoyo_byte_range(filename + i + 1))
 					i += 3;
 				else
 					break; /* Bad pattern. */
@@ -452,17 +452,17 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 			j = 0;
 			c = *pattern;
 			if (c == '$') {
-				while (ccs_decimal(filename[j]))
+				while (tomoyo_decimal(filename[j]))
 					j++;
 			} else if (c == 'X') {
-				while (ccs_hexadecimal(filename[j]))
+				while (tomoyo_hexadecimal(filename[j]))
 					j++;
 			} else if (c == 'A') {
-				while (ccs_alphabet_char(filename[j]))
+				while (tomoyo_alphabet_char(filename[j]))
 					j++;
 			}
 			for (i = 1; i <= j; i++) {
-				if (ccs_file_matches_pattern2(filename + i,
+				if (tomoyo_file_matches_pattern2(filename + i,
 							      filename_end,
 							      pattern + 1,
 							      pattern_end))
@@ -479,7 +479,7 @@ static _Bool ccs_file_matches_pattern2(const char *filename,
 	return filename == filename_end && pattern == pattern_end;
 }
 
-static _Bool ccs_file_matches_pattern(const char *filename,
+static _Bool tomoyo_file_matches_pattern(const char *filename,
 				      const char *filename_end,
 				      const char *pattern, const char *pattern_end)
 {
@@ -490,7 +490,7 @@ static _Bool ccs_file_matches_pattern(const char *filename,
 		/* Split at "\-" pattern. */
 		if (*pattern++ != '\\' || *pattern++ != '-')
 			continue;
-		result = ccs_file_matches_pattern2(filename, filename_end,
+		result = tomoyo_file_matches_pattern2(filename, filename_end,
 						   pattern_start, pattern - 2);
 		if (first)
 			result = !result;
@@ -499,12 +499,12 @@ static _Bool ccs_file_matches_pattern(const char *filename,
 		first = false;
 		pattern_start = pattern;
 	}
-	result = ccs_file_matches_pattern2(filename, filename_end,
+	result = tomoyo_file_matches_pattern2(filename, filename_end,
 					   pattern_start, pattern_end);
 	return first ? result : !result;
 }
 
-static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
+static _Bool tomoyo_path_matches_pattern2(const char *f, const char *p)
 {
 	const char *f_delimiter;
 	const char *p_delimiter;
@@ -517,7 +517,7 @@ static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 			p_delimiter = p + strlen(p);
 		if (*p == '\\' && *(p + 1) == '{')
 			goto recursive;
-		if (!ccs_file_matches_pattern(f, f_delimiter, p, p_delimiter))
+		if (!tomoyo_file_matches_pattern(f, f_delimiter, p, p_delimiter))
 			return false;
 		f = f_delimiter;
 		if (*f)
@@ -543,7 +543,7 @@ static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 		return false; /* Bad pattern. */
 	do {
 		/* Compare current component with pattern. */
-		if (!ccs_file_matches_pattern(f, f_delimiter, p + 2,
+		if (!tomoyo_file_matches_pattern(f, f_delimiter, p + 2,
 					      p_delimiter - 2))
 			break;
 		/* Proceed to next component. */
@@ -552,15 +552,15 @@ static _Bool ccs_path_matches_pattern2(const char *f, const char *p)
 			break;
 		f++;
 		/* Continue comparison. */
-		if (ccs_path_matches_pattern2(f, p_delimiter + 1))
+		if (tomoyo_path_matches_pattern2(f, p_delimiter + 1))
 			return true;
 		f_delimiter = strchr(f, '/');
 	} while (f_delimiter);
 	return false; /* Not matched. */
 }
 
-_Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
-			       const struct ccs_path_info *pattern)
+_Bool tomoyo_path_matches_pattern(const struct tomoyo_path_info *filename,
+			       const struct tomoyo_path_info *pattern)
 {
 	/*
 	if (!filename || !pattern)
@@ -571,7 +571,7 @@ _Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 	const int len = pattern->const_len;
 	/* If @pattern doesn't contain pattern, I can use strcmp(). */
 	if (!pattern->is_patterned)
-		return !ccs_pathcmp(filename, pattern);
+		return !tomoyo_pathcmp(filename, pattern);
 	/* Don't compare directory and non-directory. */
 	if (filename->is_dir != pattern->is_dir)
 		return false;
@@ -580,59 +580,59 @@ _Bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 		return false;
 	f += len;
 	p += len;
-	return ccs_path_matches_pattern2(f, p);
+	return tomoyo_path_matches_pattern2(f, p);
 }
 
-int ccs_string_compare(const void *a, const void *b)
+int tomoyo_string_compare(const void *a, const void *b)
 {
 	return strcmp(*(char **) a, *(char **) b);
 }
 
-_Bool ccs_pathcmp(const struct ccs_path_info *a, const struct ccs_path_info *b)
+_Bool tomoyo_pathcmp(const struct tomoyo_path_info *a, const struct tomoyo_path_info *b)
 {
 	return a->hash != b->hash || strcmp(a->name, b->name);
 }
 
-void ccs_fill_path_info(struct ccs_path_info *ptr)
+void tomoyo_fill_path_info(struct tomoyo_path_info *ptr)
 {
 	const char *name = ptr->name;
 	const int len = strlen(name);
 	ptr->total_len = len;
-	ptr->const_len = ccs_const_part_length(name);
+	ptr->const_len = tomoyo_const_part_length(name);
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
-	ptr->hash = ccs_full_name_hash(name, len);
+	ptr->hash = tomoyo_full_name_hash(name, len);
 }
 
-static unsigned int ccs_memsize(const unsigned int size)
+static unsigned int tomoyo_memsize(const unsigned int size)
 {
 	if (size <= 1048576)
 		return ((size / CCS_PAGE_SIZE) + 1) * CCS_PAGE_SIZE;
 	return 0;
 }
 
-const struct ccs_path_info *ccs_savename(const char *name)
+const struct tomoyo_path_info *tomoyo_savename(const char *name)
 {
-	static struct ccs_free_memory_block_list fmb_list = { NULL, NULL, 0 };
+	static struct tomoyo_free_memory_block_list fmb_list = { NULL, NULL, 0 };
 	/* The list of names. */
-	static struct ccs_savename_entry name_list[CCS_SAVENAME_MAX_HASH];
-	struct ccs_savename_entry *ptr;
-	struct ccs_savename_entry *prev = NULL;
+	static struct tomoyo_savename_entry name_list[CCS_SAVENAME_MAX_HASH];
+	struct tomoyo_savename_entry *ptr;
+	struct tomoyo_savename_entry *prev = NULL;
 	unsigned int hash;
-	struct ccs_free_memory_block_list *fmb = &fmb_list;
+	struct tomoyo_free_memory_block_list *fmb = &fmb_list;
 	int len;
 	static _Bool first_call = true;
 	if (!name)
 		return NULL;
 	len = strlen(name) + 1;
-	hash = ccs_full_name_hash((const unsigned char *) name, len - 1);
+	hash = tomoyo_full_name_hash((const unsigned char *) name, len - 1);
 	if (first_call) {
 		int i;
 		first_call = false;
 		memset(&name_list, 0, sizeof(name_list));
 		for (i = 0; i < CCS_SAVENAME_MAX_HASH; i++) {
 			name_list[i].entry.name = "/";
-			ccs_fill_path_info(&name_list[i].entry);
+			tomoyo_fill_path_info(&name_list[i].entry);
 		}
 	}
 	ptr = &name_list[hash % CCS_SAVENAME_MAX_HASH];
@@ -648,29 +648,29 @@ const struct ccs_path_info *ccs_savename(const char *name)
 			fmb = fmb->next;
 			continue;
 		}
-		cp = malloc(ccs_memsize(len));
+		cp = malloc(tomoyo_memsize(len));
 		if (!cp)
-			ccs_out_of_memory();
-		fmb->next = ccs_alloc_element(sizeof(*fmb->next));
+			tomoyo_out_of_memory();
+		fmb->next = tomoyo_alloc_element(sizeof(*fmb->next));
 		if (!fmb->next)
-			ccs_out_of_memory();
-		memset(cp, 0, ccs_memsize(len));
+			tomoyo_out_of_memory();
+		memset(cp, 0, tomoyo_memsize(len));
 		fmb = fmb->next;
 		fmb->ptr = cp;
-		fmb->len = ccs_memsize(len);
+		fmb->len = tomoyo_memsize(len);
 	}
-	ptr = ccs_alloc_element(sizeof(*ptr));
+	ptr = tomoyo_alloc_element(sizeof(*ptr));
 	if (!ptr)
-		ccs_out_of_memory();
-	memset(ptr, 0, sizeof(struct ccs_savename_entry));
+		tomoyo_out_of_memory();
+	memset(ptr, 0, sizeof(struct tomoyo_savename_entry));
 	ptr->entry.name = fmb->ptr;
 	memmove(fmb->ptr, name, len);
-	ccs_fill_path_info(&ptr->entry);
+	tomoyo_fill_path_info(&ptr->entry);
 	fmb->ptr += len;
 	fmb->len -= len;
 	prev->next = ptr; /* prev != NULL because name_list is not empty. */
 	if (!fmb->len) {
-		struct ccs_free_memory_block_list *ptr = &fmb_list;
+		struct tomoyo_free_memory_block_list *ptr = &fmb_list;
 		while (ptr->next != fmb)
 			ptr = ptr->next;
 		ptr->next = fmb->next;
@@ -679,7 +679,7 @@ out:
 	return ptr ? &ptr->entry : NULL;
 }
 
-int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
+int tomoyo_parse_number(const char *number, struct tomoyo_number_entry *entry)
 {
 	unsigned long min;
 	unsigned long max;
@@ -709,7 +709,7 @@ int ccs_parse_number(const char *number, struct ccs_number_entry *entry)
 	return 0;
 }
 
-int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
+int tomoyo_parse_ip(const char *address, struct tomoyo_ip_address_entry *entry)
 {
 	unsigned int min[8];
 	unsigned int max[8];
@@ -750,7 +750,7 @@ int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry)
 	return -EINVAL;
 }
 
-int ccs_open_stream(const char *filename)
+int tomoyo_open_stream(const char *filename)
 {
 	const int fd = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -758,8 +758,8 @@ int ccs_open_stream(const char *filename)
 	int len = strlen(filename) + 1;
 	memset(&addr, 0, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = ccs_network_ip;
-	addr.sin_port = ccs_network_port;
+	addr.sin_addr.s_addr = tomoyo_network_ip;
+	addr.sin_port = tomoyo_network_port;
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) ||
 	    write(fd, filename, len) != len || read(fd, &c, 1) != 1 || c) {
 		close(fd);
@@ -768,43 +768,43 @@ int ccs_open_stream(const char *filename)
 	return fd;
 }
 
-int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
+int tomoyo_find_domain(struct tomoyo_domain_policy *dp, const char *domainname0,
 		    const _Bool is_dis, const _Bool is_dd)
 {
 	int i;
-	struct ccs_path_info domainname;
+	struct tomoyo_path_info domainname;
 	domainname.name = domainname0;
-	ccs_fill_path_info(&domainname);
+	tomoyo_fill_path_info(&domainname);
 	for (i = 0; i < dp->list_len; i++) {
 		if (dp->list[i].is_dis == is_dis &&
 		    dp->list[i].is_dd == is_dd &&
-		    !ccs_pathcmp(&domainname, dp->list[i].domainname))
+		    !tomoyo_pathcmp(&domainname, dp->list[i].domainname))
 			return i;
 	}
 	return EOF;
 }
 
-int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *domainname,
+int tomoyo_find_or_assign_new_domain(struct tomoyo_domain_policy *dp, const char *domainname,
 				  const _Bool is_dis, const _Bool is_dd)
 {
-	const struct ccs_path_info *saved_domainname;
-	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
+	const struct tomoyo_path_info *saved_domainname;
+	int index = tomoyo_find_domain(dp, domainname, is_dis, is_dd);
 	if (index >= 0)
 		goto found;
-	if (!ccs_correct_domain(domainname)) {
+	if (!tomoyo_correct_domain(domainname)) {
 		fprintf(stderr, "Invalid domainname '%s'\n",
 			domainname);
 		return EOF;
 	}
 	dp->list = realloc(dp->list, (dp->list_len + 1) *
-			   sizeof(struct ccs_domain_info));
+			   sizeof(struct tomoyo_domain_info));
 	if (!dp->list)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	memset(&dp->list[dp->list_len], 0,
-	       sizeof(struct ccs_domain_info));
-	saved_domainname = ccs_savename(domainname);
+	       sizeof(struct tomoyo_domain_info));
+	saved_domainname = tomoyo_savename(domainname);
 	if (!saved_domainname)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	dp->list[dp->list_len].domainname = saved_domainname;
 	dp->list[dp->list_len].is_dis = is_dis;
 	dp->list[dp->list_len].is_dd = is_dd;
@@ -813,7 +813,7 @@ found:
 	return index;
 }
 
-static pid_t ccs_get_ppid(const pid_t pid)
+static pid_t tomoyo_get_ppid(const pid_t pid)
 {
 	char buffer[1024];
 	FILE *fp;
@@ -832,7 +832,7 @@ static pid_t ccs_get_ppid(const pid_t pid)
 	return ppid;
 }
 
-static char *ccs_get_name(const pid_t pid)
+static char *tomoyo_get_name(const pid_t pid)
 {
 	char buffer[1024];
 	FILE *fp;
@@ -888,49 +888,49 @@ static char *ccs_get_name(const pid_t pid)
 	return NULL;
 }
 
-static int ccs_dump_index = 0;
+static int tomoyo_dump_index = 0;
 
-static void ccs_sort_process_entry(const pid_t pid, const int depth)
+static void tomoyo_sort_process_entry(const pid_t pid, const int depth)
 {
 	int i;
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (pid != ccs_task_list[i].pid)
+	for (i = 0; i < tomoyo_task_list_len; i++) {
+		if (pid != tomoyo_task_list[i].pid)
 			continue;
-		ccs_task_list[i].index = ccs_dump_index++;
-		ccs_task_list[i].depth = depth;
-		ccs_task_list[i].selected = true;
+		tomoyo_task_list[i].index = tomoyo_dump_index++;
+		tomoyo_task_list[i].depth = depth;
+		tomoyo_task_list[i].selected = true;
 	}
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (pid != ccs_task_list[i].ppid)
+	for (i = 0; i < tomoyo_task_list_len; i++) {
+		if (pid != tomoyo_task_list[i].ppid)
 			continue;
-		ccs_sort_process_entry(ccs_task_list[i].pid, depth + 1);
+		tomoyo_sort_process_entry(tomoyo_task_list[i].pid, depth + 1);
 	}
 }
 
-static int ccs_task_entry_compare(const void *a, const void *b)
+static int tomoyo_task_entry_compare(const void *a, const void *b)
 {
-	const struct ccs_task_entry *a0 = (struct ccs_task_entry *) a;
-	const struct ccs_task_entry *b0 = (struct ccs_task_entry *) b;
+	const struct tomoyo_task_entry *a0 = (struct tomoyo_task_entry *) a;
+	const struct tomoyo_task_entry *b0 = (struct tomoyo_task_entry *) b;
 	return a0->index - b0->index;
 }
 
-void ccs_read_process_list(_Bool show_all)
+void tomoyo_read_process_list(_Bool show_all)
 {
 	int i;
-	while (ccs_task_list_len) {
-		ccs_task_list_len--;
-		free((void *) ccs_task_list[ccs_task_list_len].name);
-		free((void *) ccs_task_list[ccs_task_list_len].domain);
+	while (tomoyo_task_list_len) {
+		tomoyo_task_list_len--;
+		free((void *) tomoyo_task_list[tomoyo_task_list_len].name);
+		free((void *) tomoyo_task_list[tomoyo_task_list_len].domain);
 	}
-	ccs_dump_index = 0;
-	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(show_all ? "proc:all_process_status" :
+	tomoyo_dump_index = 0;
+	if (tomoyo_network_mode) {
+		FILE *fp = tomoyo_open_write(show_all ? "proc:all_process_status" :
 					  "proc:process_status");
 		if (!fp)
 			return;
-		ccs_get();
+		tomoyo_get();
 		while (true) {
-			char *line = ccs_freadline(fp);
+			char *line = tomoyo_freadline(fp);
 			unsigned int pid = 0;
 			unsigned int ppid = 0;
 			int profile = -1;
@@ -945,8 +945,8 @@ void ccs_read_process_list(_Bool show_all)
 			if (!name)
 				name = strdup("<UNKNOWN>");
 			if (!name)
-				ccs_out_of_memory();
-			line = ccs_freadline(fp);
+				tomoyo_out_of_memory();
+			line = tomoyo_freadline(fp);
 			if (!line ||
 			    sscanf(line, "%u %u", &pid, &profile) != 2) {
 				free(name);
@@ -958,22 +958,22 @@ void ccs_read_process_list(_Bool show_all)
 			if (!domain)
 				domain = strdup("<UNKNOWN>");
 			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list,
-						(ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ppid;
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
+				tomoyo_out_of_memory();
+			tomoyo_task_list = realloc(tomoyo_task_list,
+						(tomoyo_task_list_len + 1) *
+						sizeof(struct tomoyo_task_entry));
+			if (!tomoyo_task_list)
+				tomoyo_out_of_memory();
+			memset(&tomoyo_task_list[tomoyo_task_list_len], 0,
+			       sizeof(tomoyo_task_list[0]));
+			tomoyo_task_list[tomoyo_task_list_len].pid = pid;
+			tomoyo_task_list[tomoyo_task_list_len].ppid = ppid;
+			tomoyo_task_list[tomoyo_task_list_len].profile = profile;
+			tomoyo_task_list[tomoyo_task_list_len].name = name;
+			tomoyo_task_list[tomoyo_task_list_len].domain = domain;
+			tomoyo_task_list_len++;
 		}
-		ccs_put();
+		tomoyo_put();
 		fclose(fp);
 	} else {
 		static const int line_len = 8192;
@@ -989,7 +989,7 @@ void ccs_read_process_list(_Bool show_all)
 		}
 		line = malloc(line_len);
 		if (!line)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		while (1) {
 			char *name;
 			char *domain;
@@ -1010,11 +1010,11 @@ void ccs_read_process_list(_Bool show_all)
 				if (readlink(buffer, test, sizeof(test)) <= 0)
 					continue;
 			}
-			name = ccs_get_name(pid);
+			name = tomoyo_get_name(pid);
 			if (!name)
 				name = strdup("<UNKNOWN>");
 			if (!name)
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 			snprintf(buffer, sizeof(buffer) - 1, "%u\n", pid);
 			write(status_fd, buffer, strlen(buffer));
 			memset(line, 0, line_len);
@@ -1029,47 +1029,47 @@ void ccs_read_process_list(_Bool show_all)
 			if (!domain)
 				domain = strdup("<UNKNOWN>");
 			if (!domain)
-				ccs_out_of_memory();
-			ccs_task_list = realloc(ccs_task_list, (ccs_task_list_len + 1) *
-						sizeof(struct ccs_task_entry));
-			if (!ccs_task_list)
-				ccs_out_of_memory();
-			memset(&ccs_task_list[ccs_task_list_len], 0,
-			       sizeof(ccs_task_list[0]));
-			ccs_task_list[ccs_task_list_len].pid = pid;
-			ccs_task_list[ccs_task_list_len].ppid = ccs_get_ppid(pid);
-			ccs_task_list[ccs_task_list_len].profile = profile;
-			ccs_task_list[ccs_task_list_len].name = name;
-			ccs_task_list[ccs_task_list_len].domain = domain;
-			ccs_task_list_len++;
+				tomoyo_out_of_memory();
+			tomoyo_task_list = realloc(tomoyo_task_list, (tomoyo_task_list_len + 1) *
+						sizeof(struct tomoyo_task_entry));
+			if (!tomoyo_task_list)
+				tomoyo_out_of_memory();
+			memset(&tomoyo_task_list[tomoyo_task_list_len], 0,
+			       sizeof(tomoyo_task_list[0]));
+			tomoyo_task_list[tomoyo_task_list_len].pid = pid;
+			tomoyo_task_list[tomoyo_task_list_len].ppid = tomoyo_get_ppid(pid);
+			tomoyo_task_list[tomoyo_task_list_len].profile = profile;
+			tomoyo_task_list[tomoyo_task_list_len].name = name;
+			tomoyo_task_list[tomoyo_task_list_len].domain = domain;
+			tomoyo_task_list_len++;
 		}
 		free(line);
 		closedir(dir);
 		close(status_fd);
 	}
-	ccs_sort_process_entry(1, 0);
-	for (i = 0; i < ccs_task_list_len; i++) {
-		if (ccs_task_list[i].selected) {
-			ccs_task_list[i].selected = false;
+	tomoyo_sort_process_entry(1, 0);
+	for (i = 0; i < tomoyo_task_list_len; i++) {
+		if (tomoyo_task_list[i].selected) {
+			tomoyo_task_list[i].selected = false;
 			continue;
 		}
-		ccs_task_list[i].index = ccs_dump_index++;
-		ccs_task_list[i].depth = 0;
+		tomoyo_task_list[i].index = tomoyo_dump_index++;
+		tomoyo_task_list[i].depth = 0;
 	}
-	qsort(ccs_task_list, ccs_task_list_len, sizeof(struct ccs_task_entry),
-	      ccs_task_entry_compare);
+	qsort(tomoyo_task_list, tomoyo_task_list_len, sizeof(struct tomoyo_task_entry),
+	      tomoyo_task_entry_compare);
 }
 
-FILE *ccs_open_write(const char *filename)
+FILE *tomoyo_open_write(const char *filename)
 {
-	if (ccs_network_mode) {
+	if (tomoyo_network_mode) {
 		const int fd = socket(AF_INET, SOCK_STREAM, 0);
 		struct sockaddr_in addr;
 		FILE *fp;
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
-		addr.sin_addr.s_addr = ccs_network_ip;
-		addr.sin_port = ccs_network_port;
+		addr.sin_addr.s_addr = tomoyo_network_ip;
+		addr.sin_port = tomoyo_network_port;
 		if (connect(fd, (struct sockaddr *) &addr, sizeof(addr))) {
 			close(fd);
 			return NULL;
@@ -1089,10 +1089,10 @@ FILE *ccs_open_write(const char *filename)
 	}
 }
 
-FILE *ccs_open_read(const char *filename)
+FILE *tomoyo_open_read(const char *filename)
 {
-	if (ccs_network_mode) {
-		FILE *fp = ccs_open_write(filename);
+	if (tomoyo_network_mode) {
+		FILE *fp = tomoyo_open_write(filename);
 		if (fp) {
 			fputc(0, fp);
 			fflush(fp);
@@ -1103,11 +1103,11 @@ FILE *ccs_open_read(const char *filename)
 	}
 }
 
-_Bool ccs_move_proc_to_file(const char *src, const char *dest)
+_Bool tomoyo_move_proc_to_file(const char *src, const char *dest)
 {
 	FILE *proc_fp;
 	FILE *file_fp = stdout;
-	proc_fp = ccs_open_read(src);
+	proc_fp = tomoyo_open_read(src);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s\n", src);
 		return false;
@@ -1122,7 +1122,7 @@ _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 	}
 	while (true) {
 		int c = fgetc(proc_fp);
-		if (ccs_network_mode && !c)
+		if (tomoyo_network_mode && !c)
 			break;
 		if (c == EOF)
 			break;
@@ -1134,7 +1134,7 @@ _Bool ccs_move_proc_to_file(const char *src, const char *dest)
 	return true;
 }
 
-_Bool ccs_identical_file(const char *file1, const char *file2)
+_Bool tomoyo_identical_file(const char *file1, const char *file2)
 {
 	char buffer1[4096];
 	char buffer2[4096];
@@ -1164,7 +1164,7 @@ out:
 	return false;
 }
 
-void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
+void tomoyo_clear_domain_policy(struct tomoyo_domain_policy *dp)
 {
 	int index;
 	for (index = 0; index < dp->list_len; index++) {
@@ -1177,8 +1177,8 @@ void ccs_clear_domain_policy(struct ccs_domain_policy *dp)
 	dp->list_len = 0;
 }
 
-int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
-			   const struct ccs_path_info *domainname)
+int tomoyo_find_domain_by_ptr(struct tomoyo_domain_policy *dp,
+			   const struct tomoyo_path_info *domainname)
 {
 	int i;
 	for (i = 0; i < dp->list_len; i++) {
@@ -1188,58 +1188,58 @@ int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp,
 	return EOF;
 }
 
-const char *ccs_domain_name(const struct ccs_domain_policy *dp, const int index)
+const char *tomoyo_domain_name(const struct tomoyo_domain_policy *dp, const int index)
 {
 	return dp->list[index].domainname->name;
 }
 
-static int ccs_domainname_compare(const void *a, const void *b)
+static int tomoyo_domainname_compare(const void *a, const void *b)
 {
-	return strcmp(((struct ccs_domain_info *) a)->domainname->name,
-		      ((struct ccs_domain_info *) b)->domainname->name);
+	return strcmp(((struct tomoyo_domain_info *) a)->domainname->name,
+		      ((struct tomoyo_domain_info *) b)->domainname->name);
 }
 
-static int ccs_path_info_compare(const void *a, const void *b)
+static int tomoyo_path_info_compare(const void *a, const void *b)
 {
-	const char *a0 = (*(struct ccs_path_info **) a)->name;
-	const char *b0 = (*(struct ccs_path_info **) b)->name;
+	const char *a0 = (*(struct tomoyo_path_info **) a)->name;
+	const char *b0 = (*(struct tomoyo_path_info **) b)->name;
 	return strcmp(a0, b0);
 }
 
-static void ccs_sort_domain_policy(struct ccs_domain_policy *dp)
+static void tomoyo_sort_domain_policy(struct tomoyo_domain_policy *dp)
 {
 	int i;
-	qsort(dp->list, dp->list_len, sizeof(struct ccs_domain_info),
-	      ccs_domainname_compare);
+	qsort(dp->list, dp->list_len, sizeof(struct tomoyo_domain_info),
+	      tomoyo_domainname_compare);
 	for (i = 0; i < dp->list_len; i++)
 		qsort(dp->list[i].string_ptr, dp->list[i].string_count,
-		      sizeof(struct ccs_path_info *), ccs_path_info_compare);
+		      sizeof(struct tomoyo_path_info *), tomoyo_path_info_compare);
 }
 
-void ccs_read_domain_policy(struct ccs_domain_policy *dp, const char *filename)
+void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp, const char *filename)
 {
 	FILE *fp = stdin;
 	if (filename) {
-		fp = ccs_open_read(filename);
+		fp = tomoyo_open_read(filename);
 		if (!fp) {
 			fprintf(stderr, "Can't open %s\n", filename);
 			return;
 		}
 	}
-	ccs_get();
-	ccs_handle_domain_policy(dp, fp, true);
-	ccs_put();
+	tomoyo_get();
+	tomoyo_handle_domain_policy(dp, fp, true);
+	tomoyo_put();
 	if (fp != stdin)
 		fclose(fp);
-	ccs_sort_domain_policy(dp);
+	tomoyo_sort_domain_policy(dp);
 }
 
-int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
+int tomoyo_write_domain_policy(struct tomoyo_domain_policy *dp, const int fd)
 {
 	int i;
 	int j;
 	for (i = 0; i < dp->list_len; i++) {
-		const struct ccs_path_info **string_ptr
+		const struct tomoyo_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
 		write(fd, dp->list[i].domainname->name,
@@ -1263,7 +1263,7 @@ int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 	return 0;
 }
 
-void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
+void tomoyo_delete_domain(struct tomoyo_domain_policy *dp, const int index)
 {
 	if (index >= 0 && index < dp->list_len) {
 		int i;
@@ -1274,12 +1274,12 @@ void ccs_delete_domain(struct ccs_domain_policy *dp, const int index)
 	}
 }
 
-int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
+int tomoyo_add_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 			 const int index)
 {
-	const struct ccs_path_info **acl_ptr;
+	const struct tomoyo_path_info **acl_ptr;
 	int acl_count;
-	const struct ccs_path_info *cp;
+	const struct tomoyo_path_info *cp;
 	int i;
 	if (index < 0 || index >= dp->list_len) {
 		fprintf(stderr, "ERROR: domain is out of range.\n");
@@ -1287,36 +1287,36 @@ int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	}
 	if (!entry || !*entry)
 		return -EINVAL;
-	cp = ccs_savename(entry);
+	cp = tomoyo_savename(entry);
 	if (!cp)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	/* Check for the same entry. */
 	for (i = 0; i < acl_count; i++) {
-		/* Faster comparison, for they are ccs_savename'd. */
+		/* Faster comparison, for they are tomoyo_savename'd. */
 		if (cp == acl_ptr[i])
 			return 0;
 	}
 
 	acl_ptr = realloc(acl_ptr, (acl_count + 1)
-			  * sizeof(const struct ccs_path_info *));
+			  * sizeof(const struct tomoyo_path_info *));
 	if (!acl_ptr)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 	acl_ptr[acl_count++] = cp;
 	dp->list[index].string_ptr = acl_ptr;
 	dp->list[index].string_count = acl_count;
 	return 0;
 }
 
-int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
+int tomoyo_del_string_entry(struct tomoyo_domain_policy *dp, const char *entry,
 			 const int index)
 {
-	const struct ccs_path_info **acl_ptr;
+	const struct tomoyo_path_info **acl_ptr;
 	int acl_count;
-	const struct ccs_path_info *cp;
+	const struct tomoyo_path_info *cp;
 	int i;
 	if (index < 0 || index >= dp->list_len) {
 		fprintf(stderr, "ERROR: domain is out of range.\n");
@@ -1324,15 +1324,15 @@ int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	}
 	if (!entry || !*entry)
 		return -EINVAL;
-	cp = ccs_savename(entry);
+	cp = tomoyo_savename(entry);
 	if (!cp)
-		ccs_out_of_memory();
+		tomoyo_out_of_memory();
 
 	acl_ptr = dp->list[index].string_ptr;
 	acl_count = dp->list[index].string_count;
 
 	for (i = 0; i < acl_count; i++) {
-		/* Faster comparison, for they are ccs_savename'd. */
+		/* Faster comparison, for they are tomoyo_savename'd. */
 		if (cp != acl_ptr[i])
 			continue;
 		dp->list[index].string_count--;
@@ -1343,37 +1343,37 @@ int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry,
 	return -ENOENT;
 }
 
-void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_write)
+void tomoyo_handle_domain_policy(struct tomoyo_domain_policy *dp, FILE *fp, _Bool is_write)
 {
 	int i;
 	int index = EOF;
 	if (!is_write)
 		goto read_policy;
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = tomoyo_freadline(fp);
 		_Bool is_delete = false;
 		_Bool is_select = false;
 		unsigned int profile;
 		if (!line)
 			break;
-		if (ccs_str_starts(line, "delete "))
+		if (tomoyo_str_starts(line, "delete "))
 			is_delete = true;
-		else if (ccs_str_starts(line, "select "))
+		else if (tomoyo_str_starts(line, "select "))
 			is_select = true;
-		ccs_str_starts(line, "domain=");
-		if (ccs_domain_def(line)) {
+		tomoyo_str_starts(line, "domain=");
+		if (tomoyo_domain_def(line)) {
 			if (is_delete) {
-				index = ccs_find_domain(dp, line, false, false);
+				index = tomoyo_find_domain(dp, line, false, false);
 				if (index >= 0)
-					ccs_delete_domain(dp, index);
+					tomoyo_delete_domain(dp, index);
 				index = EOF;
 				continue;
 			}
 			if (is_select) {
-				index = ccs_find_domain(dp, line, false, false);
+				index = tomoyo_find_domain(dp, line, false, false);
 				continue;
 			}
-			index = ccs_find_or_assign_new_domain(dp, line, false,
+			index = tomoyo_find_or_assign_new_domain(dp, line, false,
 							      false);
 			continue;
 		}
@@ -1383,18 +1383,18 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_w
 			dp->list[index].profile = (u8) profile;
 			dp->list[index].profile_assigned = 1;
 		} else if (is_delete)
-			ccs_del_string_entry(dp, line, index);
+			tomoyo_del_string_entry(dp, line, index);
 		else
-			ccs_add_string_entry(dp, line, index);
+			tomoyo_add_string_entry(dp, line, index);
 	}
 	return;
 read_policy:
 	for (i = 0; i < dp->list_len; i++) {
 		int j;
-		const struct ccs_path_info **string_ptr
+		const struct tomoyo_path_info **string_ptr
 			= dp->list[i].string_ptr;
 		const int string_count = dp->list[i].string_count;
-		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
+		fprintf(fp, "%s\n", tomoyo_domain_name(dp, i));
 		if (dp->list[i].profile_assigned)
 			fprintf(fp, CCS_KEYWORD_USE_PROFILE "%u\n",
 				dp->list[i].profile);
@@ -1407,26 +1407,26 @@ read_policy:
 
 /* Variables */
 
-static _Bool ccs_buffer_locked = false;
+static _Bool tomoyo_buffer_locked = false;
 
-void ccs_get(void)
+void tomoyo_get(void)
 {
-	if (ccs_buffer_locked)
-		ccs_out_of_memory();
-	ccs_buffer_locked = true;
+	if (tomoyo_buffer_locked)
+		tomoyo_out_of_memory();
+	tomoyo_buffer_locked = true;
 }
 
-void ccs_put(void)
+void tomoyo_put(void)
 {
-	if (!ccs_buffer_locked)
-		ccs_out_of_memory();
-	ccs_buffer_locked = false;
+	if (!tomoyo_buffer_locked)
+		tomoyo_out_of_memory();
+	tomoyo_buffer_locked = false;
 }
 
-char *ccs_shprintf(const char *fmt, ...)
+char *tomoyo_shprintf(const char *fmt, ...)
 {
-	if (!ccs_buffer_locked)
-		ccs_out_of_memory();
+	if (!tomoyo_buffer_locked)
+		tomoyo_out_of_memory();
 	while (true) {
 		static char *policy = NULL;
 		static int max_policy_len = 0;
@@ -1436,38 +1436,38 @@ char *ccs_shprintf(const char *fmt, ...)
 		len = vsnprintf(policy, max_policy_len, fmt, args);
 		va_end(args);
 		if (len < 0)
-			ccs_out_of_memory();
+			tomoyo_out_of_memory();
 		if (len >= max_policy_len) {
 			char *cp;
 			max_policy_len = len + 1;
 			cp = realloc(policy, max_policy_len);
 			if (!cp)
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 			policy = cp;
 		} else
 			return policy;
 	}
 }
 
-char *ccs_freadline(FILE *fp)
+char *tomoyo_freadline(FILE *fp)
 {
 	static char *policy = NULL;
 	int pos = 0;
-	if (!ccs_buffer_locked)
-		ccs_out_of_memory();
+	if (!tomoyo_buffer_locked)
+		tomoyo_out_of_memory();
 	while (true) {
 		static int max_policy_len = 0;
 		const int c = fgetc(fp);
 		if (c == EOF)
 			return NULL;
-		if (ccs_network_mode && !c)
+		if (tomoyo_network_mode && !c)
 			return NULL;
 		if (pos == max_policy_len) {
 			char *cp;
 			max_policy_len += 4096;
 			cp = realloc(policy, max_policy_len);
 			if (!cp)
-				ccs_out_of_memory();
+				tomoyo_out_of_memory();
 			policy = cp;
 		}
 		policy[pos++] = (char) c;
@@ -1476,23 +1476,23 @@ char *ccs_freadline(FILE *fp)
 			break;
 		}
 	}
-	ccs_normalize_line(policy);
+	tomoyo_normalize_line(policy);
 	return policy;
 }
 
-_Bool ccs_check_remote_host(void)
+_Bool tomoyo_check_remote_host(void)
 {
 	int major = 0;
 	int minor = 0;
 	int rev = 0;
-	FILE *fp = ccs_open_read("version");
+	FILE *fp = tomoyo_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
 	    major != 1 || minor != 7) {
-		const u32 ip = ntohl(ccs_network_ip);
+		const u32 ip = ntohl(tomoyo_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
-			(u8) (ip >> 8), (u8) ip, ntohs(ccs_network_port));
+			(u8) (ip >> 8), (u8) ip, ntohs(tomoyo_network_port));
 		if (fp)
 			fclose(fp);
 		return false;

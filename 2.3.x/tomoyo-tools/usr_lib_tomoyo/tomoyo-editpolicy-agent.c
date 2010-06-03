@@ -1,5 +1,5 @@
 /*
- * ccs-editpolicy-agent.c
+ * tomoyo-editpolicy-agent.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in addr;
 	socklen_t size = sizeof(addr);
 	char *port;
-	if (chdir("/proc/ccs/"))
+	if (chdir("/sys/kernel/security/tomoyo/"))
 		return 1;
 	{
 		int i;

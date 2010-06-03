@@ -8,12 +8,12 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 #include "editpolicy.h"
 
 /* Variables */
 
-struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
+struct tomoyo_editpolicy_directive tomoyo_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_NONE] = { "", NULL, 0, 0 },
 	[CCS_DIRECTIVE_ALLOW_EXECUTE]    = { "allow_execute", NULL, 0, 0 },
 	[CCS_DIRECTIVE_ALLOW_READ]       = { "allow_read", NULL, 0, 0 },
@@ -71,13 +71,13 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 
 /* Main functions */
 
-u8 ccs_find_directive(const _Bool forward, char *line)
+u8 tomoyo_find_directive(const _Bool forward, char *line)
 {
 	u8 i;
 	for (i = 1; i < CCS_MAX_DIRECTIVE_INDEX; i++) {
 		if (forward) {
-			const int len = ccs_directives[i].original_len;
-			if (strncmp(line, ccs_directives[i].original, len) ||
+			const int len = tomoyo_directives[i].original_len;
+			if (strncmp(line, tomoyo_directives[i].original, len) ||
 			    (line[len] != ' ' && line[len]))
 				continue;
 			if (line[len])
@@ -87,8 +87,8 @@ u8 ccs_find_directive(const _Bool forward, char *line)
 				line[0] = '\0';
 			return i;
 		} else {
-			const int len = ccs_directives[i].alias_len;
-			if (strncmp(line, ccs_directives[i].alias, len) ||
+			const int len = tomoyo_directives[i].alias_len;
+			if (strncmp(line, tomoyo_directives[i].alias, len) ||
 			    (line[len] != ' ' && line[len]))
 				continue;
 			if (line[len])
@@ -102,47 +102,47 @@ u8 ccs_find_directive(const _Bool forward, char *line)
 	return CCS_DIRECTIVE_NONE;
 }
 
-void ccs_editpolicy_init_keyword_map(void)
+void tomoyo_editpolicy_init_keyword_map(void)
 {
 	FILE *fp = fopen(CCS_CONFIG_FILE, "r");
 	int i;
 	if (!fp)
 		goto use_default;
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(fp);
+		char *line = tomoyo_freadline(fp);
 		char *cp;
 		if (!line)
 			break;
-		if (!ccs_str_starts(line, "editpolicy.keyword_alias "))
+		if (!tomoyo_str_starts(line, "editpolicy.keyword_alias "))
 			continue;
 		cp = strchr(line, '=');
 		if (!cp)
 			continue;
 		*cp++ = '\0';
-		ccs_normalize_line(line);
-		ccs_normalize_line(cp);
+		tomoyo_normalize_line(line);
+		tomoyo_normalize_line(cp);
 		if (!*line || !*cp)
 			continue;
 		for (i = 1; i < CCS_MAX_DIRECTIVE_INDEX; i++) {
-			if (strcmp(line, ccs_directives[i].original))
+			if (strcmp(line, tomoyo_directives[i].original))
 				continue;
-			free((void *) ccs_directives[i].alias);
+			free((void *) tomoyo_directives[i].alias);
 			cp = strdup(cp);
 			if (!cp)
-				ccs_out_of_memory();
-			ccs_directives[i].alias = cp;
-			ccs_directives[i].alias_len = strlen(cp);
+				tomoyo_out_of_memory();
+			tomoyo_directives[i].alias = cp;
+			tomoyo_directives[i].alias_len = strlen(cp);
 			break;
 		}
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp);
 use_default:
 	for (i = 1; i < CCS_MAX_DIRECTIVE_INDEX; i++) {
-		if (!ccs_directives[i].alias)
-			ccs_directives[i].alias = ccs_directives[i].original;
-		ccs_directives[i].original_len = strlen(ccs_directives[i].original);
-		ccs_directives[i].alias_len = strlen(ccs_directives[i].alias);
+		if (!tomoyo_directives[i].alias)
+			tomoyo_directives[i].alias = tomoyo_directives[i].original;
+		tomoyo_directives[i].original_len = strlen(tomoyo_directives[i].original);
+		tomoyo_directives[i].alias_len = strlen(tomoyo_directives[i].alias);
 	}
 }

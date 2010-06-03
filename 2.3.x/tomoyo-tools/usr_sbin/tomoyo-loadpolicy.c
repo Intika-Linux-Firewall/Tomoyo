@@ -1,5 +1,5 @@
 /*
- * ccs-loadpolicy.c
+ * tomoyo-loadpolicy.c
  *
  * TOMOYO Linux's utilities.
  *
@@ -8,11 +8,11 @@
  * Version: 1.7.2+   2010/04/06
  *
  */
-#include "ccstools.h"
+#include "tomoyotools.h"
 
-static void ccs_close_write(FILE *fp)
+static void tomoyo_close_write(FILE *fp)
 {
-	if (ccs_network_mode) {
+	if (tomoyo_network_mode) {
 		fputc(0, fp);
 		fflush(fp);
 		fgetc(fp);
@@ -20,10 +20,10 @@ static void ccs_close_write(FILE *fp)
 	fclose(fp);
 }
 
-static void ccs_move_file_to_proc(const char *src, const char *dest)
+static void tomoyo_move_file_to_proc(const char *src, const char *dest)
 {
 	FILE *file_fp = stdin;
-	FILE *proc_fp = ccs_open_write(dest);
+	FILE *proc_fp = tomoyo_open_write(dest);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
 		return;
@@ -36,27 +36,27 @@ static void ccs_move_file_to_proc(const char *src, const char *dest)
 			return;
 		}
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(file_fp);
+		char *line = tomoyo_freadline(file_fp);
 		if (!line)
 			break;
 		if (line[0])
 			fprintf(proc_fp, "%s\n", line);
 	}
-	ccs_put();
-	ccs_close_write(proc_fp);
+	tomoyo_put();
+	tomoyo_close_write(proc_fp);
 	if (file_fp != stdin)
 		fclose(file_fp);
 }
 
-static void ccs_delete_proc_policy(const char *name)
+static void tomoyo_delete_proc_policy(const char *name)
 {
 	FILE *fp_in;
 	FILE *fp_out;
-	if (ccs_network_mode) {
-		fp_in = ccs_open_read(name);
-		fp_out = ccs_open_write(name);
+	if (tomoyo_network_mode) {
+		fp_in = tomoyo_open_read(name);
+		fp_out = tomoyo_open_write(name);
 	} else {
 		fp_in = fopen(name, "r");
 		fp_out = fopen(name, "w");
@@ -69,33 +69,33 @@ static void ccs_delete_proc_policy(const char *name)
 			fclose(fp_out);
 		return;
 	}
-	ccs_get();
+	tomoyo_get();
 	while (true) {
-		char *line = ccs_freadline(fp_in);
+		char *line = tomoyo_freadline(fp_in);
 		if (!line)
 			break;
 		fprintf(fp_out, "delete %s\n", line);
 	}
-	ccs_put();
+	tomoyo_put();
 	fclose(fp_in);
-	ccs_close_write(fp_out);
+	tomoyo_close_write(fp_out);
 }
 
-static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
-				     struct ccs_domain_policy *file_policy,
+static void tomoyo_update_domain_policy(struct tomoyo_domain_policy *proc_policy,
+				     struct tomoyo_domain_policy *file_policy,
 				     const char *src, const char *dest)
 {
 	int file_index;
 	int proc_index;
 	FILE *proc_fp;
-	_Bool nm = ccs_network_mode;
+	_Bool nm = tomoyo_network_mode;
 	/* Load disk policy to file_policy->list. */
-	ccs_network_mode = false;
-	ccs_read_domain_policy(file_policy, src);
-	ccs_network_mode = nm;
+	tomoyo_network_mode = false;
+	tomoyo_read_domain_policy(file_policy, src);
+	tomoyo_network_mode = nm;
 	/* Load proc policy to proc_policy->list. */
-	ccs_read_domain_policy(proc_policy, dest);
-	proc_fp = ccs_open_write(dest);
+	tomoyo_read_domain_policy(proc_policy, dest);
+	proc_fp = tomoyo_open_write(dest);
 	if (!proc_fp) {
 		fprintf(stderr, "Can't open %s\n", dest);
 		return;
@@ -103,15 +103,15 @@ static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 	for (file_index = 0; file_index < file_policy->list_len; file_index++) {
 		int i;
 		int j;
-		const struct ccs_path_info *domainname
+		const struct tomoyo_path_info *domainname
 			= file_policy->list[file_index].domainname;
-		const struct ccs_path_info **file_string_ptr
+		const struct tomoyo_path_info **file_string_ptr
 			= file_policy->list[file_index].string_ptr;
 		const int file_string_count
 			= file_policy->list[file_index].string_count;
-		const struct ccs_path_info **proc_string_ptr;
+		const struct tomoyo_path_info **proc_string_ptr;
 		int proc_string_count;
-		proc_index = ccs_find_domain_by_ptr(proc_policy, domainname);
+		proc_index = tomoyo_find_domain_by_ptr(proc_policy, domainname);
 		fprintf(proc_fp, "%s\n", domainname->name);
 		if (proc_index == EOF)
 			goto not_found;
@@ -130,7 +130,7 @@ static void ccs_update_domain_policy(struct ccs_domain_policy *proc_policy,
 				fprintf(proc_fp, "delete %s\n",
 					proc_string_ptr[j]->name);
 		}
-		ccs_delete_domain(proc_policy, proc_index);
+		tomoyo_delete_domain(proc_policy, proc_index);
 not_found:
 		/* Append entries defined in disk policy. */
 		for (i = 0; i < file_string_count; i++)
@@ -144,13 +144,13 @@ not_found:
 		fprintf(proc_fp, "delete %s\n",
 			proc_policy->list[proc_index].domainname->name);
 	}
-	ccs_close_write(proc_fp);
+	tomoyo_close_write(proc_fp);
 }
 
 int main(int argc, char *argv[])
 {
-	struct ccs_domain_policy proc_policy = { NULL, 0, NULL };
-	struct ccs_domain_policy file_policy = { NULL, 0, NULL };
+	struct tomoyo_domain_policy proc_policy = { NULL, 0, NULL };
+	struct tomoyo_domain_policy file_policy = { NULL, 0, NULL };
 	_Bool read_from_stdin = false;
 	int load_profile = 0;
 	int load_manager = 0;
@@ -159,29 +159,29 @@ int main(int argc, char *argv[])
 	int load_meminfo = 0;
 	_Bool refresh_policy = false;
 	int i;
-	const char *ccs_policy_dir = NULL;
+	const char *tomoyo_policy_dir = NULL;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *cp = strchr(ptr, ':');
 		if (*ptr == '/') {
-			if (ccs_policy_dir)
+			if (tomoyo_policy_dir)
 				goto usage;
-			ccs_policy_dir = ptr;
+			tomoyo_policy_dir = ptr;
 			argv[i] = "";
 		} else if (cp) {
 			*cp++ = '\0';
-			ccs_network_ip = inet_addr(ptr);
-			ccs_network_port = htons(atoi(cp));
-			if (ccs_network_mode)
+			tomoyo_network_ip = inet_addr(ptr);
+			tomoyo_network_port = htons(atoi(cp));
+			if (tomoyo_network_mode)
 				goto usage;
-			ccs_network_mode = true;
-			if (!ccs_check_remote_host())
+			tomoyo_network_mode = true;
+			if (!tomoyo_check_remote_host())
 				return 1;
 			argv[i] = "";
 		}
 	}
-	if (!ccs_network_mode && !ccs_policy_dir)
-		ccs_policy_dir = CCS_DISK_POLICY_DIR;
+	if (!tomoyo_network_mode && !tomoyo_policy_dir)
+		tomoyo_policy_dir = CCS_DISK_POLICY_DIR;
 	for (i = 1; i < argc; i++) {
 		char *ptr = argv[i];
 		char *e = strchr(ptr, 'e');
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 		if (strcspn(ptr, "edafpmu-"))
 			goto usage;
 	}
-	if (!read_from_stdin && !ccs_policy_dir)
+	if (!read_from_stdin && !tomoyo_policy_dir)
 		goto usage;
 	if (read_from_stdin &&
 	    load_exception_policy + load_domain_policy +
@@ -219,63 +219,63 @@ int main(int argc, char *argv[])
 	    load_domain_policy + load_profile + load_manager +
 	    load_meminfo == 0)
 		goto usage;
-	if (!read_from_stdin && chdir(ccs_policy_dir)) {
-		printf("Directory %s doesn't exist.\n", ccs_policy_dir);
+	if (!read_from_stdin && chdir(tomoyo_policy_dir)) {
+		printf("Directory %s doesn't exist.\n", tomoyo_policy_dir);
 		return 1;
 	}
 
 	if (load_profile) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_PROFILE);
+			tomoyo_move_file_to_proc(NULL, CCS_PROC_POLICY_PROFILE);
 		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_PROFILE,
+			tomoyo_move_file_to_proc(CCS_DISK_POLICY_PROFILE,
 					      CCS_PROC_POLICY_PROFILE);
 	}
 	
 	if (load_manager) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MANAGER);
+			tomoyo_move_file_to_proc(NULL, CCS_PROC_POLICY_MANAGER);
 		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_MANAGER,
+			tomoyo_move_file_to_proc(CCS_DISK_POLICY_MANAGER,
 					      CCS_PROC_POLICY_MANAGER);
 	}
 	
 	if (load_meminfo) {
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_MEMINFO);
+			tomoyo_move_file_to_proc(NULL, CCS_PROC_POLICY_MEMINFO);
 		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_MEMINFO,
+			tomoyo_move_file_to_proc(CCS_DISK_POLICY_MEMINFO,
 					      CCS_PROC_POLICY_MEMINFO);
 	}
 
 	if (load_exception_policy) {
 		if (refresh_policy)
-			ccs_delete_proc_policy(CCS_PROC_POLICY_EXCEPTION_POLICY);
+			tomoyo_delete_proc_policy(CCS_PROC_POLICY_EXCEPTION_POLICY);
 		if (read_from_stdin)
-			ccs_move_file_to_proc(NULL, CCS_PROC_POLICY_EXCEPTION_POLICY);
+			tomoyo_move_file_to_proc(NULL, CCS_PROC_POLICY_EXCEPTION_POLICY);
 		else
-			ccs_move_file_to_proc(CCS_DISK_POLICY_EXCEPTION_POLICY,
+			tomoyo_move_file_to_proc(CCS_DISK_POLICY_EXCEPTION_POLICY,
 					      CCS_PROC_POLICY_EXCEPTION_POLICY);
 	}
 	
 	if (load_domain_policy) {
 		if (refresh_policy) {
 			if (read_from_stdin)
-				ccs_update_domain_policy(&proc_policy, &file_policy,
+				tomoyo_update_domain_policy(&proc_policy, &file_policy,
 							 NULL,
 							 CCS_PROC_POLICY_DOMAIN_POLICY);
 			else
-				ccs_update_domain_policy(&proc_policy, &file_policy,
+				tomoyo_update_domain_policy(&proc_policy, &file_policy,
 							 CCS_DISK_POLICY_DOMAIN_POLICY,
 							 CCS_PROC_POLICY_DOMAIN_POLICY);
-			ccs_clear_domain_policy(&proc_policy);
-			ccs_clear_domain_policy(&file_policy);
+			tomoyo_clear_domain_policy(&proc_policy);
+			tomoyo_clear_domain_policy(&file_policy);
 		} else {
 			if (read_from_stdin)
-				ccs_move_file_to_proc(NULL,
+				tomoyo_move_file_to_proc(NULL,
 						      CCS_PROC_POLICY_DOMAIN_POLICY);
 			else
-				ccs_move_file_to_proc(CCS_DISK_POLICY_DOMAIN_POLICY,
+				tomoyo_move_file_to_proc(CCS_DISK_POLICY_DOMAIN_POLICY,
 						      CCS_PROC_POLICY_DOMAIN_POLICY);
 		}
 	}

@@ -3,7 +3,7 @@
 if [ "$1" = "--version" ]
 then
 cat << EOF
-ccs-diffpolicy 1.7.2
+tomoyo-diffpolicy 1.7.2
 
 Copyright (C) 2005-2010 NTT DATA CORPORATION.
 
@@ -13,26 +13,26 @@ EOF
 elif [ "$1" = "--help" ]
 then
 cat << EOF
-Usage: ccs-diffpolicy old_domain_policy new_domain_policy
+Usage: tomoyo-diffpolicy old_domain_policy new_domain_policy
 
 Examples:
 
-# ccs-diffpolicy /etc/ccs/domain_policy.old /etc/ccs/domain_policy.new
+# tomoyo-diffpolicy /etc/tomoyo/domain_policy.old /etc/tomoyo/domain_policy.new
  Make policy diff for domain policy .
 
-# ccs-diffpolicy - /proc/ccs/domain_policy
+# tomoyo-diffpolicy - /sys/kernel/security/tomoyo/domain_policy
  Make policy diff for domain policy . Use stdin for old_domain_policy.
 
-# ccs-diffpolicy /proc/ccs/domain_policy -
+# tomoyo-diffpolicy /sys/kernel/security/tomoyo/domain_policy -
  Make policy diff for domain policy . Use stdin for new_domain_policy.
 
 EOF
 else
-cat << EOF | help2man -i - -N -s 8 -n "Diff TOMOYO Linux's domain policy" $0 | gzip -9 > man8/ccs-diffpolicy.8.gz
+cat << EOF | help2man -i - -N -s 8 -n "Diff TOMOYO Linux's domain policy" $0 | gzip -9 > man8/tomoyo-diffpolicy.8.gz
 [SEE ALSO]
 
- ccs-loadpolicy (8)
- ccs-patternize (8)
+ tomoyo-loadpolicy (8)
+ tomoyo-patternize (8)
 
 [AUTHORS]
 

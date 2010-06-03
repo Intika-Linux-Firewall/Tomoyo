@@ -1,5 +1,5 @@
 /*
- * ccs_accept_test.c
+ * tomoyo_accept_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -98,7 +98,7 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	fprintf(profile_fp, "255-PREFERENCE::learning={ verbose=no }\n");
 	fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=no }\n");
 	fprintf(profile_fp, "255-PREFERENCE::permissive={ verbose=no }\n");
