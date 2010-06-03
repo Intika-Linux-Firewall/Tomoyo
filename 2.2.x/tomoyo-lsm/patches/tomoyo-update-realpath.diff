@@ -30,7 +30,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
  /* Profile number is an integer between 0 and 255. */
  #define TOMOYO_MAX_PROFILES 256
-@@ -166,17 +159,6 @@ enum tomoyo_securityfs_interface_index {
+@@ -168,17 +161,6 @@ enum tomoyo_securityfs_interface_index {
  /********** Structure definitions. **********/
  
  /*
@@ -48,7 +48,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_request_info is a structure which is used for holding
   *
   * (1) Domain information of current process.
-@@ -229,28 +211,6 @@ struct tomoyo_name_entry {
+@@ -231,28 +213,6 @@ struct tomoyo_name_entry {
  	struct tomoyo_path_info entry;
  };
  
@@ -77,7 +77,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  struct tomoyo_name_union {
  	const struct tomoyo_path_info *filename;
  	struct tomoyo_path_group *group;
-@@ -825,11 +785,7 @@ void tomoyo_load_policy(const char *file
+@@ -827,11 +787,7 @@ void tomoyo_load_policy(const char *file
  void tomoyo_put_number_union(struct tomoyo_number_union *ptr);
  
  /* Convert binary string to ascii string. */
