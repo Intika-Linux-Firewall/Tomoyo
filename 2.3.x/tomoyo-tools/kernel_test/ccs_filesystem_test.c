@@ -20,7 +20,7 @@ static void show_prompt(const char *str, const int should_fail)
 #define MS_MOVE         8192
 #endif
 
-static const char *pivot_root_dir = "/sys/kernel/security/";
+static const char *pivot_root_dir = "/proc/";
 
 static int child(void *arg)
 {
@@ -447,6 +447,49 @@ int main(int argc, char *argv[])
 		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
 			"/tmp/mount_move/ --move 0\n");
 
+		while (umount("/tmp/mount/") == 0)
+			c++; /* Dummy. */
+	}
+
+	/* Test mount(). */
+	{
+		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 0);
+		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+		set_profile(3, "capability::conceal_mount");
+
+		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 1);
+		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == EOF &&
+		    errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		show_prompt("mount('none', '/tmp/', 'tmpfs')", 1);
+		if (mount("none", "/tmp/", "tmpfs", 0, NULL) == EOF &&
+		    errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		show_prompt("mount('none', '/', 'tmpfs')", 1);
+		if (mount("none", "/", "tmpfs", 0, NULL) == EOF &&
+		    errno == EPERM)
+			printf("OK: Permission denied.\n");
+		else
+			printf("BUG: %s\n", strerror(errno));
+
+		set_profile(2, "capability::conceal_mount");
+
+		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 0);
+		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
+			printf("OK\n");
+		else
+			printf("FAILED: %s\n", strerror(errno));
+
+		set_profile(0, "capability::conceal_mount");
 		while (umount("/tmp/mount/") == 0)
 			c++; /* Dummy. */
 	}
