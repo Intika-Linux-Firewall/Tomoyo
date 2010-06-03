@@ -3,12 +3,12 @@
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |  431 ++++++++++++++++++++++++++++-------------------
- security/tomoyo/common.h |   67 ++++++-
+ security/tomoyo/common.h |   68 ++++++-
  security/tomoyo/domain.c |    9 
- security/tomoyo/file.c   |  129 +++++++++-----
+ security/tomoyo/file.c   |  133 ++++++++++----
  security/tomoyo/mount.c  |    3 
  security/tomoyo/util.c   |   92 +++++++---
- 6 files changed, 482 insertions(+), 249 deletions(-)
+ 6 files changed, 487 insertions(+), 249 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
@@ -630,7 +630,15 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /********** Function prototypes. **********/
  
  extern asmlinkage long sys_getpid(void);
-@@ -745,7 +788,8 @@ const char *tomoyo_get_last_name(const s
+@@ -683,6 +726,7 @@ bool tomoyo_compare_name_union(const str
+ /* Check whether the given number matches the given number_union. */
+ bool tomoyo_compare_number_union(const unsigned long value,
+ 				 const struct tomoyo_number_union *ptr);
++int tomoyo_get_mode(const u8 profile, const u8 index);
+ /* Transactional sprintf() for policy dump. */
+ bool tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
+ 	__attribute__ ((format(printf, 2, 3)));
+@@ -745,7 +789,8 @@ const char *tomoyo_get_last_name(const s
  const char *tomoyo_path2keyword(const u8 operation);
  /* Fill "struct tomoyo_request_info". */
  int tomoyo_init_request_info(struct tomoyo_request_info *r,
@@ -640,7 +648,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Check permission for mount operation. */
  int tomoyo_mount_permission(char *dev_name, struct path *path, char *type,
  			    unsigned long flags, void *data_page);
-@@ -792,6 +836,7 @@ struct tomoyo_domain_info *tomoyo_find_d
+@@ -792,6 +837,7 @@ struct tomoyo_domain_info *tomoyo_find_d
  struct tomoyo_domain_info *tomoyo_find_or_assign_new_domain(const char *
  							    domainname,
  							    const u8 profile);
@@ -648,7 +656,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /* Allocate memory for "struct tomoyo_path_group". */
  struct tomoyo_path_group *tomoyo_get_path_group(const char *group_name);
  struct tomoyo_number_group *tomoyo_get_number_group(const char *group_name);
-@@ -842,7 +887,7 @@ int tomoyo_write_memory_quota(struct tom
+@@ -842,7 +888,7 @@ int tomoyo_write_memory_quota(struct tom
  
  /* Initialize mm related code. */
  void __init tomoyo_mm_init(void);
@@ -734,7 +742,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  void tomoyo_put_name_union(struct tomoyo_name_union *ptr)
  {
  	if (!ptr)
-@@ -1248,8 +1284,8 @@ int tomoyo_path_number_perm(const u8 typ
+@@ -1057,6 +1093,10 @@ static int tomoyo_path_permission(struct
+ 	int error;
+ 
+  next:
++	r->type = tomoyo_p2mac[operation];
++	r->mode = tomoyo_get_mode(r->profile, r->type);
++	if (r->mode == TOMOYO_CONFIG_DISABLED)
++		return 0;
+ 	do {
+ 		error = tomoyo_path_acl(r, filename, 1 << operation);
+ 		if (!error)
+@@ -1249,8 +1289,8 @@ int tomoyo_path_number_perm(const u8 typ
  	struct tomoyo_path_info buf;
  	int idx;
  
@@ -745,7 +764,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	idx = tomoyo_read_lock();
  	if (!tomoyo_get_realpath(&buf, path))
-@@ -1268,21 +1304,19 @@ int tomoyo_path_number_perm(const u8 typ
+@@ -1269,21 +1309,19 @@ int tomoyo_path_number_perm(const u8 typ
  /**
   * tomoyo_check_exec_perm - Check permission for "execute".
   *
@@ -771,7 +790,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  }
  
  /**
-@@ -1303,17 +1337,11 @@ int tomoyo_check_open_permission(struct 
+@@ -1304,17 +1342,11 @@ int tomoyo_check_open_permission(struct 
  	struct tomoyo_request_info r;
  	int idx;
  
@@ -793,7 +812,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	idx = tomoyo_read_lock();
  	if (!tomoyo_get_realpath(&buf, path))
  		goto out;
-@@ -1323,15 +1351,26 @@ int tomoyo_check_open_permission(struct 
+@@ -1324,15 +1356,26 @@ int tomoyo_check_open_permission(struct 
  	 * we need to check "allow_rewrite" permission when the filename is not
  	 * opened for append mode or the filename is truncated at open time.
  	 */
@@ -828,7 +847,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   out:
  	kfree(buf.name);
  	tomoyo_read_unlock(idx);
-@@ -1355,9 +1394,12 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1356,9 +1399,12 @@ int tomoyo_path_perm(const u8 operation,
  	struct tomoyo_request_info r;
  	int idx;
  
@@ -843,7 +862,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	idx = tomoyo_read_lock();
  	if (!tomoyo_get_realpath(&buf, path))
  		goto out;
-@@ -1370,6 +1412,7 @@ int tomoyo_path_perm(const u8 operation,
+@@ -1371,6 +1417,7 @@ int tomoyo_path_perm(const u8 operation,
  		break;
  	case TOMOYO_TYPE_RMDIR:
  	case TOMOYO_TYPE_CHROOT:
@@ -851,7 +870,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		tomoyo_add_slash(&buf);
  		break;
  	}
-@@ -1441,8 +1484,9 @@ int tomoyo_path_number3_perm(const u8 op
+@@ -1442,8 +1489,9 @@ int tomoyo_path_number3_perm(const u8 op
  	struct tomoyo_path_info buf;
  	int idx;
  
@@ -863,7 +882,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	idx = tomoyo_read_lock();
  	error = -ENOMEM;
-@@ -1476,8 +1520,9 @@ int tomoyo_path2_perm(const u8 operation
+@@ -1477,8 +1525,9 @@ int tomoyo_path2_perm(const u8 operation
  	struct tomoyo_request_info r;
  	int idx;
  
@@ -875,7 +894,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		return 0;
  	buf1.name = NULL;
  	buf2.name = NULL;
-@@ -1485,13 +1530,19 @@ int tomoyo_path2_perm(const u8 operation
+@@ -1486,13 +1535,19 @@ int tomoyo_path2_perm(const u8 operation
  	if (!tomoyo_get_realpath(&buf1, path1) ||
  	    !tomoyo_get_realpath(&buf2, path2))
  		goto out;

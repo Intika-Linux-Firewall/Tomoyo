@@ -2419,3 +2419,10 @@ Fix 2010/05/27
       Since 1.7.0 , ccs_find_execute_handler() was by error using
       list_for_each_entry() rather than list_for_each_entry_rcu().
       This bug affects only Alpha architecture.
+
+Fix 2010/06/03
+
+    @ Fix missing sanity check for "file_pattern".
+
+      Since 1.7.0 , ccs_write_pattern_policy() was by error accepting
+      invalid pathname.

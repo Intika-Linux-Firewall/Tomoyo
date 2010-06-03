@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/05/05
+ * Version: 1.7.2+   2010/06/03
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -838,12 +838,13 @@ const char *ccs_file_pattern(const struct ccs_path_info *filename)
 int ccs_write_pattern_policy(char *data, const bool is_delete)
 {
 	struct ccs_pattern_entry *ptr;
-	struct ccs_pattern_entry e = { .pattern = ccs_get_name(data) };
+	struct ccs_pattern_entry e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_is_correct_path(data, 0, 1, 0))
+		return -EINVAL;
+	e.pattern = ccs_get_name(data);
 	if (!e.pattern)
 		return error;
-	if (!e.pattern->is_patterned)
-		goto out;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
 	list_for_each_entry_rcu(ptr, &ccs_pattern_list, list) {
