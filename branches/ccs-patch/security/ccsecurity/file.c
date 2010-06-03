@@ -1275,7 +1275,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	if (!mnt || (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode)))
 		return 0;
 	buf.name = NULL;
-	r.mode = 0;
+	r.mode = CCS_CONFIG_DISABLED;
 	idx = ccs_read_lock();
 	/*
 	 * If the filename is specified by "deny_rewrite" keyword,
@@ -1569,6 +1569,7 @@ static int ccs_path2_perm(const u8 operation, struct inode *dir1,
 	case CCS_TYPE_PIVOT_ROOT:
 		ccs_add_slash(&buf1);
 		ccs_add_slash(&buf2);
+		break;
 	}
 	r.obj = &obj;
 	r.param_type = CCS_TYPE_PATH2_ACL;
