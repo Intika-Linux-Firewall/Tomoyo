@@ -20,7 +20,7 @@ static const char *policy = NULL;
 
 static void get_meminfo(unsigned int *policy_memory)
 {
-	FILE *fp = fopen("/proc/ccs/meminfo", "r");
+	FILE *fp = fopen("/sys/kernel/security/tomoyo/meminfo", "r");
 	if (!fp || fscanf(fp, "Policy: %u", policy_memory) != 1 || fclose(fp))
 		BUG("BUG: Policy read error\n");
 }
@@ -64,107 +64,93 @@ static inline void check_policy_deleted(FILE *fp, const int id)
 
 static const char *domain_testcases[] = {
 	"allow_create /tmp/mknod_reg_test 0600",
-	"allow_create /tmp/open_test 0600 if path1.parent.uid=task.uid",
-	"allow_create /tmp/open_test 0600 if 0=0",
 	"allow_create /tmp/open_test 0600",
-	"allow_execute /bin/true if task.uid!=10 path1.parent.uid=0",
+	"allow_create /tmp/open_test 0600",
+	"allow_create /tmp/open_test 0600",
 	"allow_execute /bin/true",
-	"allow_execute /bin/true0 if task.uid=0",
-	"allow_execute /bin/true1 if task.uid=task.gid",
-	"allow_execute /bin/true2 if 0=0",
-	"allow_execute /bin/true3 if 0!=0",
-	"allow_execute /bin/true4 if 123-456=789",
-	"allow_execute /bin/true5 if exec.realpath=\"/bin/true5\"",
-	"allow_execute /bin/true6 if exec.argv[0]=\"true6\"",
-	"allow_execute /bin/true7 if 1-2=@bar",
-	"allow_execute /bin/true7 if exec.realpath!=@foo",
-	"allow_execute /bin/true7 if exec.realpath=@foo",
-	"allow_execute /bin/true8 "
-	"if exec.argv[0]=\"test8\" exec.realpath=\"/bin/true8\"",
+	"allow_execute /bin/true",
+	"allow_execute /bin/true0",
+	"allow_execute /bin/true1",
+	"allow_execute /bin/true2",
+	"allow_execute /bin/true3",
+	"allow_execute /bin/true4",
+	"allow_execute /bin/true5",
+	"allow_execute /bin/true6",
+	"allow_execute /bin/true7",
+	"allow_execute /bin/true7",
+	"allow_execute /bin/true7",
+	"allow_execute /bin/true8",
 	"allow_ioctl socket:[family=2:type=2:protocol=17] 0-35122",
-	"allow_ioctl socket:[family=2:type=2:protocol=17] 35122-35124 "
-	"if task.uid=0",
+	"allow_ioctl socket:[family=2:type=2:protocol=17] 35122-35124",
 	"allow_link /tmp/link_source_test /tmp/link_dest_test",
 	"allow_mkblock /tmp/mknod_blk_test 0600 1 0",
 	"allow_mkchar /tmp/mknod_chr_test 0600 1 3",
 	"allow_mkdir /tmp/mkdir_test/ 0755",
-	"allow_mkfifo /tmp/mknod_fifo_test 0600 if path1.parent.perm=01777 "
-	"path1.parent.perm=sticky path1.parent.uid=0 path1.parent.gid=0",
+	"allow_mkfifo /tmp/mknod_fifo_test 0600",
 	"allow_mkfifo /tmp/mknod_fifo_test 0600",
 	"allow_mksock /tmp/mknod_sock_test 0600",
 	"allow_mksock /tmp/socket_test 0600",
-	"allow_read /bin/true if path1.uid=0 path1.parent.uid=0 10=10-100",
 	"allow_read /bin/true",
-	"allow_read /dev/null if path1.parent.ino=path1.parent.ino",
-	"allow_read /dev/null if path1.perm!=0777",
-	"allow_read /dev/null if path1.perm=0666",
-	"allow_read /dev/null if path1.perm=owner_read path1.perm=owner_write "
-	"path1.perm!=owner_execute path1.perm=group_read "
-	"path1.perm=group_write path1.perm!=group_execute "
-	"path1.perm=others_read path1.perm=others_write "
-	"path1.perm!=others_execute path1.perm!=setuid path1.perm!=setgid "
-	"path1.perm!=sticky",
-	"allow_read /dev/null "
-	"if path1.type=char path1.dev_major=1 path1.dev_minor=3",
+	"allow_read /bin/true",
+	"allow_read /dev/null",
+	"allow_read /dev/null",
+	"allow_read /dev/null",
+	"allow_read /dev/null",
+	"allow_read /dev/null",
 	"allow_read /dev/null",
 	"allow_read /foo",
-	"allow_read /proc/sys/net/ipv4/ip_local_port_range "
-	"if task.uid=0 task.gid=0",
+	"allow_read /proc/sys/net/ipv4/ip_local_port_range",
 	"allow_read /proc/sys/net/ipv4/ip_local_port_range",
 	"allow_read/write /bar",
-	"allow_read/write /dev/null if task.uid=path1.parent.uid",
 	"allow_read/write /dev/null",
-	"allow_read/write /proc/sys/net/ipv4/ip_local_port_range if 1!=10-100",
+	"allow_read/write /dev/null",
 	"allow_read/write /proc/sys/net/ipv4/ip_local_port_range",
-	"allow_read/write /tmp/fifo if path1.type=fifo",
+	"allow_read/write /proc/sys/net/ipv4/ip_local_port_range",
+	"allow_read/write /tmp/fifo",
 	"allow_read/write /tmp/fifo",
 	"allow_read/write /tmp/rewrite_test",
 	"allow_rename /tmp/rename_source_test /tmp/rename_dest_test",
 	"allow_rmdir /tmp/rmdir_test/",
-	"allow_symlink /symlink if symlink.target!=@target",
-	"allow_symlink /symlink if symlink.target!=\"target\"",
-	"allow_symlink /symlink if symlink.target=@symlink_target",
-	"allow_symlink /symlink if symlink.target=\"target\"",
-	"allow_symlink /tmp/symlink_source_test "
-	"if symlink.target!=\"/tmp/symlink_\\*_test\"",
-	"allow_symlink /tmp/symlink_source_test if symlink.target!=\"\\*\"",
-	"allow_symlink /tmp/symlink_source_test "
-	"if symlink.target=\"/tmp/symlink_\\*_test\"",
-	"allow_symlink /tmp/symlink_source_test "
-	"if task.uid=0 symlink.target=\"/tmp/symlink_\\*_test\"",
+	"allow_symlink /symlink",
+	"allow_symlink /symlink",
+	"allow_symlink /symlink",
+	"allow_symlink /symlink",
+	"allow_symlink /tmp/symlink_source_test",
+	"allow_symlink /tmp/symlink_source_test",
+	"allow_symlink /tmp/symlink_source_test",
+	"allow_symlink /tmp/symlink_source_test",
 	"allow_symlink /tmp/symlink_source_test",
 	"allow_truncate /tmp/rewrite_test",
-	"allow_truncate /tmp/truncate_test if task.uid=path1.uid",
+	"allow_truncate /tmp/truncate_test",
 	"allow_truncate /tmp/truncate_test",
 	"allow_unlink /tmp/unlink_test",
 	"allow_write /123",
-	"allow_write /dev/null if path1.uid=path1.gid",
 	"allow_write /dev/null",
-	"allow_write /devfile if path1.major=1024 path1.minor=1048576",
+	"allow_write /dev/null",
 	"allow_write /devfile",
-	"allow_write /proc/sys/net/ipv4/ip_local_port_range "
-	"if task.euid=0 0=0 1-100=10-1000",
+	"allow_write /devfile",
 	"allow_write /proc/sys/net/ipv4/ip_local_port_range",
-	"allow_write /tmp/open_test if path1.parent.uid=0",
-	"allow_write /tmp/open_test if task.uid=0 path1.ino!=0",
+	"allow_write /proc/sys/net/ipv4/ip_local_port_range",
 	"allow_write /tmp/open_test",
-	"allow_write /tmp/truncate_test if 1!=100-1000000",
+	"allow_write /tmp/open_test",
+	"allow_write /tmp/open_test",
 	"allow_write /tmp/truncate_test",
-	"allow_rewrite /tmp/rewrite_test if path1.uid!=path1.parent.uid",
+	"allow_write /tmp/truncate_test",
+	"allow_rewrite /tmp/rewrite_test",
 	"allow_rewrite /tmp/rewrite_test",
 	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0x123",
 	"allow_mount /dev/sda1 /mnt/sda1/ ext3 123",
 	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0123",
-	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0x123 if path1.uid=path2.uid",
-	"allow_mount /dev/sda1 /mnt/sda1/ ext3 123 if path1.uid=task.uid",
-	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0123 if path1.uid=@uid",
+	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0x123",
+	"allow_mount /dev/sda1 /mnt/sda1/ ext3 123",
+	"allow_mount /dev/sda1 /mnt/sda1/ ext3 0123",
 	"allow_chroot /",
-	"allow_chroot / if task.uid=123-456",
-	"allow_chroot /mnt/ if task.uid=123-456 path1.gid=0",
-	"allow_pivot_root / /proc/ if path1.uid!=0",
-	"allow_pivot_root /mnt/ /proc/mnt/ if path1.uid!=0 path2.gid=150",
-	"allow_unmount / if path1.uid!=0",
-	"allow_unmount /proc/ if path1.uid!=0",
+	"allow_chroot /",
+	"allow_chroot /mnt/",
+	"allow_pivot_root / /proc/",
+	"allow_pivot_root /mnt/ /proc/mnt/",
+	"allow_unmount /",
+	"allow_unmount /proc/",
 	NULL
 };
 
@@ -172,7 +158,7 @@ static void domain_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
-	policy_file = "/proc/ccs/domain_policy";
+	policy_file = "/sys/kernel/security/tomoyo/domain_policy";
 	for (j = 0; domain_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");
@@ -282,7 +268,7 @@ static void exception_policy_test(const unsigned int before)
 {
 	unsigned int after;
 	int j;
-	policy_file = "/proc/ccs/exception_policy";
+	policy_file = "/sys/kernel/security/tomoyo/exception_policy";
 	for (j = 0; exception_testcases[j]; j++) {
 		int i;
 		FILE *fp = fopen(policy_file, "w");

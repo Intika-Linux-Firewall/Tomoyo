@@ -152,7 +152,7 @@ static void stage_policy_io_test(void)
 		try_io("deny_rewrite / /", 0);
 		try_io("deny_rewrite @/TEST", 1);
 		try_io("aggregator /boo/\\* /BOO", 1);
-		try_io("aggregator /boo/\\* /BOO\\*", 1);
+		try_io("aggregator /boo/\\* /BOO\\*", 0);
 		try_io("aggregator /boo/\\*/ /BOO", 1);
 		try_io("aggregator /boo/\\* /BOO/", 1);
 		try_io("keep_domain <kernel>", 1);
