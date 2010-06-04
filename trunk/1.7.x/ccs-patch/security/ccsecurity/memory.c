@@ -81,7 +81,6 @@ void *ccs_commit_ok(void *data, const unsigned int size)
 	return NULL;
 }
 
-
 /**
  * ccs_memory_free - Free memory for elements.
  *
