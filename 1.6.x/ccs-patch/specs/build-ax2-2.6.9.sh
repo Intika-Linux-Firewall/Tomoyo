@@ -17,14 +17,9 @@ fi
 rpm -ivh kernel-2.6.9-89.11.AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
-if [ ! -r ccs-patch-1.6.8-20100120.tar.gz ]
+if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100120.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.6.8-20100122.diff ]
-then
-    wget -O ccs-patch-1.6.8-20100122.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.9-asianux-2.diff?revision=3390&root=tomoyo' || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -65,8 +60,8 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100120.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100122.diff
++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.9-asianux-2.diff
 +
  cp %{SOURCE10} Documentation/
  
