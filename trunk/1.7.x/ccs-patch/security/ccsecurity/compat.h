@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.7.2+   2010/06/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -40,10 +40,6 @@
 #endif
 #ifndef current_fsgid
 #define current_fsgid()         (current->fsgid)
-#endif
-
-#ifndef WARN_ON
-#define WARN_ON(x) do { } while (0)
 #endif
 
 #ifndef DEFINE_SPINLOCK
