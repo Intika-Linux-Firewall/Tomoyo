@@ -91,7 +91,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel
  Version:        2.6.27.45
 -Release:        0.1.1
-+Release:        0.1.1_tomoyo_1.7.2
++Release:        0.1.1_tomoyo_1.7.2p1
  License:        GPL v2 only
  Group:          System/Kernel
  Url:            http://www.kernel.org/

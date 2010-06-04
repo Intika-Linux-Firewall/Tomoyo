@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.7.2
++%define buildid _tomoyo_1.7.2p1
  
  %define rhel 1
  %if %{rhel}

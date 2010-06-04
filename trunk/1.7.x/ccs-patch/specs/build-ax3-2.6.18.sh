@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
 -%define release 128.18%{?dist}
-+%define release 128.18%{?dist}_tomoyo_1.7.2
++%define release 128.18%{?dist}_tomoyo_1.7.2p1
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
