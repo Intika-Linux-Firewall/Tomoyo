@@ -65,7 +65,7 @@ static void stage_file_test(void)
 		static int name[] = { CTL_NET, NET_IPV4,
 				      NET_IPV4_LOCAL_PORT_RANGE };
 		int buffer[2] = { 32768, 61000 };
-		int size = sizeof(buffer);
+		size_t size = sizeof(buffer);
 		show_prompt("sysctl(READ)");
 		show_result(sysctl(name, 3, buffer, &size, 0, 0));
 		show_prompt("sysctl(WRITE)");
