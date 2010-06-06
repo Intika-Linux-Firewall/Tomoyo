@@ -1488,7 +1488,7 @@ _Bool tomoyo_check_remote_host(void)
 	FILE *fp = tomoyo_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
-	    major != 1 || minor != 7) {
+	    major != 2 || minor != 3) {
 		const u32 ip = ntohl(tomoyo_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),
