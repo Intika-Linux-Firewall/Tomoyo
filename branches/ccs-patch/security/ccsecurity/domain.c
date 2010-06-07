@@ -1119,28 +1119,42 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
  */
 static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 {
-	struct task_struct *task = current;
-	const struct ccs_domain_info * const domain = ccs_current_domain();
+	struct ccs_request_info *r = &ee->r;
+	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
-	bool found = false;
 	/*
 	 * Don't use execute handler if the current process is
 	 * marked as execute handler to avoid infinite execute handler loop.
 	 */
-	if (task->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
+	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
+ retry:
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		struct ccs_execute_handler *acl;
-		if (ptr->type != type)
+		if (ptr->type != type || !ccs_condition(r, ptr->cond))
 			continue;
 		acl = container_of(ptr, struct ccs_execute_handler, head);
 		ee->handler = acl->handler;
 		ee->handler_type = type;
-		found = true;
-		break;
+		r->cond = ptr->cond;
+		return true;
 	}
-	return found;
+	if (domain != &ccs_global_domain && !domain->ignore_global) {
+		domain = &ccs_global_domain;
+		goto retry;
+	}
+	return false;
 }
+
+#ifdef CONFIG_MMU
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
+#define CCS_BPRM_MMU
+#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3
+#define CCS_BPRM_MMU
+#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2
+#define CCS_BPRM_MMU
+#endif
+#endif
 
 /**
  * ccs_dump_page - Dump a page to buffer.
@@ -1162,13 +1176,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 			return false;
 	}
 	/* Same with get_arg_page(bprm, pos, 0) in fs/exec.c */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
-		return false;
-#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
-	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
-		return false;
-#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
+#ifdef CCS_BPRM_MMU
 	if (get_user_pages(current, bprm->mm, pos, 1, 0, 1, &page, NULL) <= 0)
 		return false;
 #else
@@ -1188,11 +1196,7 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		kunmap_atomic(kaddr, KM_USER0);
 	}
 	/* Same with put_arg_page(page) in fs/exec.c */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23) && defined(CONFIG_MMU)
-	put_page(page);
-#elif defined(RHEL_MAJOR) && RHEL_MAJOR == 5 && defined(RHEL_MINOR) && RHEL_MINOR >= 3 && defined(CONFIG_MMU)
-	put_page(page);
-#elif defined(AX_MAJOR) && AX_MAJOR == 3 && defined(AX_MINOR) && AX_MINOR >= 2 && defined(CONFIG_MMU)
+#ifdef CCS_BPRM_MMU
 	put_page(page);
 #endif
 	return true;
