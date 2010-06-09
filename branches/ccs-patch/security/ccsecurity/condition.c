@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/06/04
+ * Version: 1.7.2+   2010/06/09
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -964,7 +964,7 @@ bool ccs_condition(struct ccs_request_info *r,
 				struct ccs_execve *ee;
 				struct file *file;
 			case CCS_SYMLINK_TARGET:
-				symlink = obj->symlink_target;
+				symlink = obj ? obj->symlink_target : NULL;
 				if (!symlink ||
 				    ccs_compare_name_union(symlink, ptr)
 				    != match)

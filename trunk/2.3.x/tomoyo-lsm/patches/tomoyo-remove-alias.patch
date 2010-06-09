@@ -10,14 +10,14 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  security/tomoyo/common.c   |    4 -
  security/tomoyo/common.h   |   30 --------
  security/tomoyo/domain.c   |  164 ---------------------------------------------
- security/tomoyo/file.c     |    2 
+ security/tomoyo/file.c     |    4 -
  security/tomoyo/gc.c       |   21 -----
  security/tomoyo/realpath.c |   19 -----
- 6 files changed, 4 insertions(+), 236 deletions(-)
+ 6 files changed, 5 insertions(+), 237 deletions(-)
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1423,8 +1423,6 @@ static int tomoyo_write_exception_policy
+@@ -1453,8 +1453,6 @@ static int tomoyo_write_exception_policy
  							      is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_AGGREGATOR))
  		return tomoyo_write_aggregator_policy(data, is_delete);
@@ -26,7 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_READ))
  		return tomoyo_write_globally_readable_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_FILE_PATTERN))
-@@ -1473,8 +1471,6 @@ static int tomoyo_read_exception_policy(
+@@ -1503,8 +1501,6 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 5;
  		case 5:
@@ -45,7 +45,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  #define TOMOYO_KEYWORD_ALLOW_MOUNT               "allow_mount "
  #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
  #define TOMOYO_KEYWORD_DELETE                    "delete "
-@@ -733,23 +732,6 @@ struct tomoyo_aggregator_entry {
+@@ -740,23 +739,6 @@ struct tomoyo_aggregator_entry {
  };
  
  /*
@@ -69,7 +69,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
   * tomoyo_policy_manager_entry is a structure which is used for holding list of
   * domainnames or programs which are permitted to modify configuration via
   * /sys/kernel/security/tomoyo/ interface.
-@@ -858,8 +840,6 @@ bool tomoyo_parse_number_union(char *dat
+@@ -870,8 +852,6 @@ bool tomoyo_parse_number_union(char *dat
  
  /* Read "aggregator" entry in exception policy. */
  bool tomoyo_read_aggregator_policy(struct tomoyo_io_buffer *head);
@@ -78,7 +78,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * Read "initialize_domain" and "no_initialize_domain" entry
   * in exception policy.
-@@ -898,8 +878,6 @@ int tomoyo_mount_permission(char *dev_na
+@@ -910,8 +890,6 @@ int tomoyo_mount_permission(char *dev_na
  			    unsigned long flags, void *data_page);
  /* Create "aggregator" entry in exception policy. */
  int tomoyo_write_aggregator_policy(char *data, const bool is_delete);
@@ -87,7 +87,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  /*
   * Create "initialize_domain" and "no_initialize_domain" entry
   * in exception policy.
-@@ -1029,7 +1007,6 @@ extern struct list_head tomoyo_number_gr
+@@ -1041,7 +1019,6 @@ extern struct list_head tomoyo_number_gr
  extern struct list_head tomoyo_domain_initializer_list;
  extern struct list_head tomoyo_domain_keeper_list;
  extern struct list_head tomoyo_aggregator_list;
@@ -95,7 +95,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  extern struct list_head tomoyo_globally_readable_list;
  extern struct list_head tomoyo_pattern_list;
  extern struct list_head tomoyo_no_rewrite_list;
-@@ -1242,13 +1219,6 @@ static inline bool tomoyo_is_same_condit
+@@ -1254,13 +1231,6 @@ static inline bool tomoyo_is_same_condit
  		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
  }
  
@@ -318,15 +318,18 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  
 --- security-testing-2.6.orig/security/tomoyo/file.c
 +++ security-testing-2.6/security/tomoyo/file.c
-@@ -792,7 +792,7 @@ static int tomoyo_file_perm(struct tomoy
+@@ -793,9 +793,9 @@ static int tomoyo_file_perm(struct tomoy
  		error = tomoyo_supervisor(r, "allow_%s %s\n", msg,
  					  tomoyo_file_pattern(filename));
  		/*
 -                 * Do not retry for execute request, for alias may have
-+                 * Do not retry for execute request, for agrgegator may have
++		 * Do not retry for execute request, for agrgegator may have
  		 * changed.
-                  */
+-                 */
++		 */
  	} while (error == TOMOYO_RETRY_REQUEST && mode != 1);
+ 	if (r->mode != TOMOYO_CONFIG_ENFORCING)
+ 		error = 0;
 --- security-testing-2.6.orig/security/tomoyo/gc.c
 +++ security-testing-2.6/security/tomoyo/gc.c
 @@ -19,7 +19,6 @@ enum tomoyo_gc_id {
@@ -368,7 +371,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  		struct tomoyo_policy_manager_entry *ptr;
  		list_for_each_entry_rcu(ptr, &tomoyo_policy_manager_list,
  					list) {
-@@ -485,9 +467,6 @@ static void tomoyo_kfree_entry(void)
+@@ -491,9 +473,6 @@ static void tomoyo_kfree_entry(void)
  		case TOMOYO_ID_AGGREGATOR:
  			tomoyo_del_aggregator(p->element);
  			break;
