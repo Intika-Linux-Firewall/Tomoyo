@@ -180,7 +180,7 @@ static void domain_policy_test(const unsigned int before)
 		fprintf(fp, "delete %s\n", policy);
 		check_policy_deleted(fp, 2);
 		fclose(fp);
-		for (i = 0; i < 30; i++) {
+		for (i = 0; i < 300; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -201,7 +201,7 @@ static void domain_policy_test(const unsigned int before)
 			fprintf(fp, "%s\n", domain_testcases[i]);
 		fprintf(fp, "delete <kernel> /sbin/init\n");
 		fclose(fp);
-		for (i = 0; i < 50; i++) {
+		for (i = 0; i < 500; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -216,19 +216,11 @@ static void domain_policy_test(const unsigned int before)
 
 static const char *exception_testcases[] = {
 	"allow_read /tmp/mknod_reg_test",
-	"allow_env HOME",
 	"path_group PG1 /",
 	"path_group PG2 /",
-	"address_group AG3 0.0.0.0",
-	"address_group AG3 1.2.3.4-5.6.7.8",
-	"address_group AG3 f:ee:ddd:cccc:b:aa:999:8888",
-	"address_group AG4 0:1:2:3:4:5:6:7-8:90:a00:b000:c00:d0:e:f000",
 	"number_group NG1 1000",
 	"number_group NG2 10-0x100000",
 	"number_group NG3 01234567-0xABCDEF89",
-	"deny_autobind 1024",
-	"deny_autobind 32668-65535",
-	"deny_autobind 0-1023",
 	"initialize_domain /usr/sbin/sshd",
 	"no_initialize_domain /usr/sbin/sshd",
 	"initialize_domain /usr/sbin/sshd from /bin/bash",
@@ -289,7 +281,7 @@ static void exception_policy_test(const unsigned int before)
 		fprintf(fp, "delete %s\n", policy);
 		check_policy_deleted(fp, 2);
 		fclose(fp);
-		for (i = 0; i < 30; i++) {
+		for (i = 0; i < 300; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -310,7 +302,7 @@ static void exception_policy_test(const unsigned int before)
 		for (i = 0; exception_testcases[i]; i++)
 			fprintf(fp, "delete %s\n", exception_testcases[i]);
 		fclose(fp);
-		for (i = 0; i < 50; i++) {
+		for (i = 0; i < 500; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)

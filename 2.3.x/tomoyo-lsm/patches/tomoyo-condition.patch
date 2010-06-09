@@ -1097,7 +1097,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +		*(cp - 1) = '\0';
 +		break;
 +	}
-+	if (!tomoyo_is_correct_path(start))
++	if (!tomoyo_is_correct_word(start))
 +		return NULL;
 +	return tomoyo_get_name(start);
 +}
@@ -1172,7 +1172,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 +			goto out;
 +		}
 +	}
-+	if (!*cp || !tomoyo_is_correct_path(cp))
++	if (!*cp || !tomoyo_is_correct_word(cp))
 +		goto out;
 +	name = tomoyo_get_name(cp);
 +	if (!name)

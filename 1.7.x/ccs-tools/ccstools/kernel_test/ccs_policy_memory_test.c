@@ -194,7 +194,7 @@ static void domain_policy_test(const unsigned int before)
 		fprintf(fp, "delete %s\n", policy);
 		check_policy_deleted(fp, 2);
 		fclose(fp);
-		for (i = 0; i < 30; i++) {
+		for (i = 0; i < 300; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -215,7 +215,7 @@ static void domain_policy_test(const unsigned int before)
 			fprintf(fp, "%s\n", domain_testcases[i]);
 		fprintf(fp, "delete <kernel> /sbin/init\n");
 		fclose(fp);
-		for (i = 0; i < 50; i++) {
+		for (i = 0; i < 500; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -303,7 +303,7 @@ static void exception_policy_test(const unsigned int before)
 		fprintf(fp, "delete %s\n", policy);
 		check_policy_deleted(fp, 2);
 		fclose(fp);
-		for (i = 0; i < 30; i++) {
+		for (i = 0; i < 300; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
@@ -324,7 +324,7 @@ static void exception_policy_test(const unsigned int before)
 		for (i = 0; exception_testcases[i]; i++)
 			fprintf(fp, "delete %s\n", exception_testcases[i]);
 		fclose(fp);
-		for (i = 0; i < 50; i++) {
+		for (i = 0; i < 500; i++) {
 			usleep(100000);
 			get_meminfo(&after);
 			if (before == after)
