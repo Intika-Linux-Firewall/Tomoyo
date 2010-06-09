@@ -324,137 +324,111 @@ struct ccs_profile *ccs_profile(const u8 profile)
 	return ptr;
 }
 
-/**
- * ccs_write_profile - Write profile table.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_write_profile(struct ccs_io_buffer *head)
+static s8 ccs_find_yesno(const char *string, const char *find)
 {
-	char *data = head->write_buf;
-	unsigned int i;
-	int value;
-	int mode;
-	u8 config;
-	bool use_default = false;
-	char *cp;
-	struct ccs_profile *profile;
-	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
-		return 0;
-	i = simple_strtoul(data, &cp, 10);
-	if (data == cp) {
-		profile = &ccs_default_profile;
-	} else {
-		if (*cp != '-')
-			return -EINVAL;
-		data = cp + 1;
-		profile = ccs_assign_profile(i);
-		if (!profile)
-			return -EINVAL;
-	}
-	cp = strchr(data, '=');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	if (profile != &ccs_default_profile)
-		use_default = strstr(cp, "use_default") != NULL;
-	if (strstr(cp, "verbose=yes"))
-		value = 1;
-	else if (strstr(cp, "verbose=no"))
-		value = 0;
-	else
-		value = -1;
-	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_AUDIT)) {
-#ifdef CONFIG_CCSECURITY_AUDIT
-		char *cp2;
-#endif
-		if (use_default) {
-			profile->audit = &ccs_default_profile.preference;
+	const char *cp = strstr(string, find);
+	if (cp) {
+		cp += strlen(find);
+		if (strncmp(cp, "=yes", 4))
+			return 1;
+		else if (strncmp(cp, "=no", 3))
 			return 0;
+	}
+	return -1;
+}
+
+static void ccs_set_bool(bool *b, const char *string, const char *find)
+{
+	switch (ccs_find_yesno(string, find)) {
+	case 1:
+		*b = true;
+		break;
+	case 0:
+		*b = false;
+		break;
+	}
+}
+
+static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
+{
+	const char *cp = strstr(string, find);
+	if (cp)
+		sscanf(cp + strlen(find), "=%u", i);
+}
+
+static void ccs_set_pref(const char *cp, const char *data,
+			 struct ccs_profile *profile, const bool use_default)
+{
+	struct ccs_preference **pref;
+	bool *verbose;
+	if (!strcmp(data, "audit")) {
+		if (use_default) {
+			pref = &profile->audit;
+			goto set_default;
 		}
 		profile->audit = &profile->preference;
 #ifdef CONFIG_CCSECURITY_AUDIT
-		cp2 = strstr(cp, "max_grant_log=");
-		if (cp2)
-			sscanf(cp2 + 14, "%u",
-			       &profile->preference.audit_max_grant_log);
-		cp2 = strstr(cp, "max_reject_log=");
-		if (cp2)
-			sscanf(cp2 + 15, "%u",
-			       &profile->preference.audit_max_reject_log);
+		ccs_set_uint(&profile->preference.audit_max_grant_log, cp,
+			     "max_grant_log");
+		ccs_set_uint(&profile->preference.audit_max_reject_log, cp,
+			     "max_reject_log");
 #endif
-		if (strstr(cp, "task_info=yes"))
-			profile->preference.audit_task_info = true;
-		else if (strstr(cp, "task_info=no"))
-			profile->preference.audit_task_info = false;
-		if (strstr(cp, "path_info=yes"))
-			profile->preference.audit_path_info = true;
-		else if (strstr(cp, "path_info=no"))
-			profile->preference.audit_path_info = false;
-		return 0;
+		ccs_set_bool(&profile->preference.audit_task_info, cp,
+			     "task_info");
+		ccs_set_bool(&profile->preference.audit_path_info, cp, 
+			     "path_info");
+		return;
 	}
-	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_ENFORCING)) {
-		char *cp2;
+	if (!strcmp(data, "enforcing")) {
 		if (use_default) {
-			profile->enforcing = &ccs_default_profile.preference;
-			return 0;
+			pref = &profile->enforcing;
+			goto set_default;
 		}
 		profile->enforcing = &profile->preference;
-		if (value >= 0)
-			profile->preference.enforcing_verbose = value;
-		cp2 = strstr(cp, "penalty=");
-		if (cp2)
-			sscanf(cp2 + 8, "%u",
-			       &profile->preference.enforcing_penalty);
-		return 0;
+		ccs_set_uint(&profile->preference.enforcing_penalty, cp,
+			     "penalty");
+		verbose = &profile->preference.enforcing_verbose;
+		goto set_verbose;
 	}
-	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_PERMISSIVE)) {
+	if (!strcmp(data, "permissive")) {
 		if (use_default) {
-			profile->permissive = &ccs_default_profile.preference;
-			return 0;
+			pref = &profile->permissive;
+			goto set_default;
 		}
 		profile->permissive = &profile->preference;
-		if (value >= 0)
-			profile->preference.permissive_verbose = value;
-		return 0;
+		verbose = &profile->preference.permissive_verbose;
+		goto set_verbose;
 	}
-	if (!strcmp(data, CCS_KEYWORD_PREFERENCE_LEARNING)) {
-		char *cp2;
+	if (!strcmp(data, "learning")) {
 		if (use_default) {
-			profile->learning = &ccs_default_profile.preference;
-			return 0;
+			pref = &profile->learning;
+			goto set_default;
 		}
 		profile->learning = &profile->preference;
-		if (value >= 0)
-			profile->preference.learning_verbose = value;
-		cp2 = strstr(cp, "max_entry=");
-		if (cp2)
-			sscanf(cp2 + 10, "%u",
-			       &profile->preference.learning_max_entry);
-		if (strstr(cp, "exec.realpath=yes"))
-			profile->preference.learning_exec_realpath = true;
-		else if (strstr(cp, "exec.realpath=no"))
-			profile->preference.learning_exec_realpath = false;
-		if (strstr(cp, "exec.argv0=yes"))
-			profile->preference.learning_exec_argv0 = true;
-		else if (strstr(cp, "exec.argv0=no"))
-			profile->preference.learning_exec_argv0 = false;
-		if (strstr(cp, "symlink.target=yes"))
-			profile->preference.learning_symlink_target = true;
-		else if (strstr(cp, "symlink.target=no"))
-			profile->preference.learning_symlink_target = false;
-		return 0;
+		ccs_set_uint(&profile->preference.learning_max_entry, cp,
+			     "max_entry");
+		ccs_set_bool(&profile->preference.learning_exec_realpath, cp,
+			     "exec.realpath");
+		ccs_set_bool(&profile->preference.learning_exec_argv0, cp,
+			     "exec.argv0");
+		ccs_set_bool(&profile->preference.learning_symlink_target, cp,
+			     "symlink.target");
+		verbose = &profile->preference.learning_verbose;
+		goto set_verbose;
 	}
-	if (profile == &ccs_default_profile)
-		return -EINVAL;
-	if (!strcmp(data, "COMMENT")) {
-		const struct ccs_path_info *old_comment = profile->comment;
-		profile->comment = ccs_get_name(cp);
-		ccs_put_name(old_comment);
-		return 0;
-	}
+	return;
+ set_default:
+	*pref = &ccs_default_profile.preference;
+	return;
+ set_verbose:
+	ccs_set_bool(verbose, cp, "verbose");
+}
+
+static int ccs_set_mode(const char *cp, char *data,
+			struct ccs_profile *profile, const bool use_default)
+{
+	u8 i;
+	u8 config;
 	if (!strcmp(data, "CONFIG")) {
 		i = CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 			+ CCS_MAX_MAC_CATEGORY_INDEX;
@@ -477,7 +451,8 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	if (use_default) {
 		config = CCS_CONFIG_USE_DEFAULT;
 	} else {
-		for (mode = 3; mode >= 0; mode--)
+		u8 mode;
+		for (mode = 0; mode <= 3; mode--)
 			if (strstr(cp, ccs_mode_4[mode]))
 				/*
 				 * Update lower 3 bits in order to distinguish
@@ -486,14 +461,22 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 				config = (config & ~7) | mode;
 #ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
-			if (strstr(cp, "grant_log=yes"))
+			switch (ccs_find_yesno(cp, "grant_log")) {
+			case 1:
 				config |= CCS_CONFIG_WANT_GRANT_LOG;
-			else if (strstr(cp, "grant_log=no"))
+				break;
+			case 0:
 				config &= ~CCS_CONFIG_WANT_GRANT_LOG;
-			if (strstr(cp, "reject_log=yes"))
+				break;
+			}
+			switch (ccs_find_yesno(cp, "reject_log")) {
+			case 1:
 				config |= CCS_CONFIG_WANT_REJECT_LOG;
-			else if (strstr(cp, "reject_log=no"))
+				break;
+			case 0:
 				config &= ~CCS_CONFIG_WANT_REJECT_LOG;
+				break;
+			}
 		}
 #endif
 	}
@@ -503,6 +486,54 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	else if (config != CCS_CONFIG_USE_DEFAULT)
 		profile->default_config = config;
 	return 0;
+}
+
+/**
+ * ccs_write_profile - Write profile table.
+ *
+ * @head: Pointer to "struct ccs_io_buffer".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_write_profile(struct ccs_io_buffer *head)
+{
+	char *data = head->write_buf;
+	bool use_default = false;
+	char *cp;
+	int i;
+	struct ccs_profile *profile;
+	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
+		return 0;
+	i = simple_strtoul(data, &cp, 10);
+	if (data == cp) {
+		profile = &ccs_default_profile;
+	} else {
+		if (*cp != '-')
+			return -EINVAL;
+		data = cp + 1;
+		profile = ccs_assign_profile(i);
+		if (!profile)
+			return -EINVAL;
+	}
+	cp = strchr(data, '=');
+	if (!cp)
+		return -EINVAL;
+	*cp++ = '\0';
+	if (profile != &ccs_default_profile)
+		use_default = strstr(cp, "use_default") != NULL;
+	if (ccs_str_starts(&data, "PREFERENCE::")) {
+		ccs_set_pref(cp, data, profile, use_default);
+		return 0;
+	}
+	if (profile == &ccs_default_profile)
+		return -EINVAL;
+	if (!strcmp(data, "COMMENT")) {
+		const struct ccs_path_info *old_comment = profile->comment;
+		profile->comment = ccs_get_name(cp);
+		ccs_put_name(old_comment);
+		return 0;
+	}
+	return ccs_set_mode(cp, data, profile, use_default);
 }
 
 static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
@@ -520,12 +551,12 @@ static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
 		if (pref == &ccs_default_profile.preference)
 			pref = NULL;
 	}
-	if (pref && !ccs_io_printf(head, "%s%s={ "
+	if (pref && !ccs_io_printf(head, "%sPREFERENCE::%s={ "
 #ifdef CONFIG_CCSECURITY_AUDIT
 				   "max_grant_log=%u max_reject_log=%u "
 #endif
 				   "task_info=%s path_info=%s }\n", buffer,
-				   CCS_KEYWORD_PREFERENCE_AUDIT,
+				   "audit",
 #ifdef CONFIG_CCSECURITY_AUDIT
 				   pref->audit_max_grant_log,
 				   pref->audit_max_reject_log,
@@ -538,10 +569,10 @@ static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
 		if (pref == &ccs_default_profile.preference)
 			pref = NULL;
 	}
-	if (pref && !ccs_io_printf(head, "%s%s={ "
+	if (pref && !ccs_io_printf(head, "%sPREFERENCE::%s={ "
 				   "verbose=%s max_entry=%u exec.realpath=%s "
 				   "exec.argv0=%s symlink.target=%s }\n",
-				   buffer, CCS_KEYWORD_PREFERENCE_LEARNING,
+				   buffer, "learning",
 				   ccs_yesno(pref->learning_verbose),
 				   pref->learning_max_entry,
 				   ccs_yesno(pref->learning_exec_realpath),
@@ -553,8 +584,8 @@ static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
 		if (pref == &ccs_default_profile.preference)
 			pref = NULL;
 	}
-	if (pref && !ccs_io_printf(head, "%s%s={ verbose=%s }\n", buffer,
-				   CCS_KEYWORD_PREFERENCE_PERMISSIVE,
+	if (pref && !ccs_io_printf(head, "%sPREFERENCE::%s={ verbose=%s }\n",
+				   buffer, "permissive",
 				   ccs_yesno(pref->permissive_verbose)))
 		return false;
 	if (profile) {
@@ -562,8 +593,8 @@ static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
 		if (pref == &ccs_default_profile.preference)
 			pref = NULL;
 	}
-	return !pref || ccs_io_printf(head, "%s%s={ verbose=%s penalty=%u }\n",
-				      buffer, CCS_KEYWORD_PREFERENCE_ENFORCING,
+	return !pref || ccs_io_printf(head, "%sPREFERENCE::%s={ verbose=%s "
+				      "penalty=%u }\n", buffer, "enforcing",
 				      ccs_yesno(pref->enforcing_verbose),
 				      pref->enforcing_penalty);
 }
@@ -902,6 +933,16 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 	return error;
 }
 
+static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
+	[CCS_DIF_QUOTA_WARNED] = CCS_KEYWORD_QUOTA_EXCEEDED "\n",
+	[CCS_DIF_IGNORE_GLOBAL] = CCS_KEYWORD_IGNORE_GLOBAL "\n",
+	[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ]
+	= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n",
+	[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV]
+	= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n",
+	[CCS_DIF_TRANSITION_FAILED] = CCS_KEYWORD_TRANSITION_FAILED "\n"
+};
+	
 /**
  * ccs_write_domain - Write domain policy.
  *
@@ -945,24 +986,11 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 			domain->profile = (u8) profile;
 		return 0;
 	}
-	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL)) {
-		domain->ignore_global = !is_delete;
-		return 0;
-	}
-	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ)) {
-		domain->ignore_global_allow_read = !is_delete;
-		return 0;
-	}
-	if (!strcmp(data, CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV)) {
-		domain->ignore_global_allow_env = !is_delete;
-		return 0;
-	}
-	if (!strcmp(data, CCS_KEYWORD_QUOTA_EXCEEDED)) {
-		domain->quota_warned = !is_delete;
-		return 0;
-	}
-	if (!strcmp(data, CCS_KEYWORD_TRANSITION_FAILED)) {
-		domain->domain_transition_failed = !is_delete;
+	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
+		const char *cp = ccs_dif[profile];
+		if (strncmp(data, cp, strlen(cp) - 1))
+			continue;
+		domain->flags[profile] = !is_delete;
 		return 0;
 	}
 	return ccs_write_domain2(data, domain, is_delete);
@@ -1094,7 +1122,7 @@ static bool ccs_print_number_union_nospace(struct ccs_io_buffer *head,
  * ccs_print_condition - Print condition part.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". Maybe NULL.
  *
  * Returns true on success, false otherwise.
  */
@@ -1211,13 +1239,11 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_acl(struct ccs_io_buffer *head,
-			       struct ccs_path_acl *ptr,
-			       const struct ccs_condition *cond)
+			       struct ccs_path_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1235,7 +1261,7 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s", ccs_path2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
-		    !ccs_print_condition(head, cond)) {
+		    !ccs_print_condition(head, ptr->head.cond)) {
 			head->read_bit = bit;
 			head->read_avail = pos;
 			return false;
@@ -1250,13 +1276,11 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path_number3_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
-				       struct ccs_path_number3_acl *ptr,
-				       const struct ccs_condition *cond)
+				       struct ccs_path_number3_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1272,7 +1296,7 @@ static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
 		    !ccs_print_number_union(head, &ptr->mode) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
 		    !ccs_print_number_union(head, &ptr->minor) ||
-		    !ccs_print_condition(head, cond)) {
+		    !ccs_print_condition(head, ptr->head.cond)) {
 			head->read_bit = bit;
 			head->read_avail = pos;
 			return false;
@@ -1287,13 +1311,11 @@ static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path2_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
-				struct ccs_path2_acl *ptr,
-				const struct ccs_condition *cond)
+				struct ccs_path2_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1306,7 +1328,7 @@ static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
 				   ccs_path22keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
 		    !ccs_print_name_union(head, &ptr->name2) ||
-		    !ccs_print_condition(head, cond)) {
+		    !ccs_print_condition(head, ptr->head.cond)) {
 			head->read_bit = bit;
 			head->read_avail = pos;
 			return false;
@@ -1321,13 +1343,11 @@ static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_path_number_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
-				      struct ccs_path_number_acl *ptr,
-				      const struct ccs_condition *cond)
+				      struct ccs_path_number_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1341,7 +1361,7 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 				   ccs_path_number2keyword(bit)) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->number) ||
-		    !ccs_print_condition(head, cond)) {
+		    !ccs_print_condition(head, ptr->head.cond)) {
 			head->read_bit = bit;
 			head->read_avail = pos;
 			return false;
@@ -1356,17 +1376,15 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_env_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_env_acl(struct ccs_io_buffer *head,
-			      struct ccs_env_acl *ptr,
-			      const struct ccs_condition *cond)
+			      struct ccs_env_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name) ||
-	    !ccs_print_condition(head, cond)) {
+	    !ccs_print_condition(head, ptr->head.cond)) {
 		head->read_avail = pos;
 		return false;
 	}
@@ -1378,18 +1396,16 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_capability_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
-				     struct ccs_capability_acl *ptr,
-				     const struct ccs_condition *cond)
+				     struct ccs_capability_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
 			   ccs_cap2keyword(ptr->operation)) ||
-	    !ccs_print_condition(head, cond)) {
+	    !ccs_print_condition(head, ptr->head.cond)) {
 		head->read_avail = pos;
 		return false;
 	}
@@ -1401,13 +1417,11 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_ip_network_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_network_acl(struct ccs_io_buffer *head,
-				  struct ccs_ip_network_acl *ptr,
-				  const struct ccs_condition *cond)
+				  struct ccs_ip_network_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1437,7 +1451,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s %s%s",
 				   ccs_net2keyword(bit), w[0], w[1]) ||
 		    !ccs_print_number_union(head, &ptr->port) ||
-		    !ccs_print_condition(head, cond))
+		    !ccs_print_condition(head, ptr->head.cond))
 			goto out;
 	}
 	head->read_bit = 0;
@@ -1453,18 +1467,16 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct signale_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
-				 struct ccs_signal_acl *ptr,
-				 const struct ccs_condition *cond)
+				 struct ccs_signal_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
 			   ptr->sig, ptr->domainname->name) ||
-	    !ccs_print_condition(head, cond)) {
+	    !ccs_print_condition(head, ptr->head.cond)) {
 		head->read_avail = pos;
 		return false;
 	}
@@ -1484,7 +1496,13 @@ static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
 				      const char *keyword,
 				      struct ccs_execute_handler *ptr)
 {
-	return ccs_io_printf(head, "%s %s\n", keyword, ptr->handler->name);
+	const int pos = head->read_avail;
+	if (!ccs_io_printf(head, "%s %s", keyword, ptr->handler->name) ||
+	    !ccs_print_condition(head, ptr->head.cond)) {
+		head->read_avail = pos;
+		return false;
+	}
+	return true;
 }
 
 /**
@@ -1492,13 +1510,11 @@ static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
  *
  * @head: Pointer to "struct ccs_io_buffer".
  * @ptr:  Pointer to "struct ccs_mount_acl".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
-				struct ccs_mount_acl *ptr,
-				const struct ccs_condition *cond)
+				struct ccs_mount_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT) ||
@@ -1506,7 +1522,7 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
 	    !ccs_print_name_union(head, &ptr->dir_name) ||
 	    !ccs_print_name_union(head, &ptr->fs_type) ||
 	    !ccs_print_number_union(head, &ptr->flags) ||
-	    !ccs_print_condition(head, cond)) {
+	    !ccs_print_condition(head, ptr->head.cond)) {
 		head->read_avail = pos;
 		return false;
 	}
@@ -1524,19 +1540,18 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
 static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    struct ccs_acl_info *ptr)
 {
-	const struct ccs_condition *cond = ptr->cond;
 	const u8 acl_type = ptr->type;
 	if (ptr->is_deleted)
 		return true;
 	if (acl_type == CCS_TYPE_PATH_ACL) {
 		struct ccs_path_acl *acl
-			= container_of(ptr, struct ccs_path_acl, head);
-		return ccs_print_path_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_path_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
 	    acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
 		struct ccs_execute_handler *acl
-			= container_of(ptr, struct ccs_execute_handler, head);
+			= container_of(ptr, typeof(*acl), head);
 		const char *keyword = acl_type == CCS_TYPE_EXECUTE_HANDLER ?
 			CCS_KEYWORD_EXECUTE_HANDLER :
 			CCS_KEYWORD_DENIED_EXECUTE_HANDLER;
@@ -1546,43 +1561,43 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		return true;
 	if (acl_type == CCS_TYPE_PATH_NUMBER3_ACL) {
 		struct ccs_path_number3_acl *acl
-			= container_of(ptr, struct ccs_path_number3_acl, head);
-		return ccs_print_path_number3_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_path_number3_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_PATH2_ACL) {
 		struct ccs_path2_acl *acl
-			= container_of(ptr, struct ccs_path2_acl, head);
-		return ccs_print_path2_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_path2_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
 		struct ccs_path_number_acl *acl
-			= container_of(ptr, struct ccs_path_number_acl, head);
-		return ccs_print_path_number_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_path_number_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_ENV_ACL) {
 		struct ccs_env_acl *acl
-			= container_of(ptr, struct ccs_env_acl, head);
-		return ccs_print_env_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_env_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl *acl
-			= container_of(ptr, struct ccs_capability_acl, head);
-		return ccs_print_capability_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_capability_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
 		struct ccs_ip_network_acl *acl
-			= container_of(ptr, struct ccs_ip_network_acl, head);
-		return ccs_print_network_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_network_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *acl
-			= container_of(ptr, struct ccs_signal_acl, head);
-		return ccs_print_signal_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_signal_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl *acl
-			= container_of(ptr, struct ccs_mount_acl, head);
-		return ccs_print_mount_acl(head, acl, cond);
+			= container_of(ptr, typeof(*acl), head);
+		return ccs_print_mount_acl(head, acl);
 	}
 	BUG(); /* This must not happen. */
 	return false;
@@ -1627,29 +1642,24 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
 		struct ccs_domain_info *domain =
 			list_entry(pos, struct ccs_domain_info, list);
-		const char *w[5] = { "", "", "", "", "" };
 		switch (head->read_step) {
+			u8 i;
+			const char *w[CCS_MAX_DOMAIN_INFO_FLAGS];
 		case 0:
 			if (domain->is_deleted && !head->read_single_domain)
 				continue;
 			/* Print domainname and flags. */
-			if (domain->quota_warned)
-				w[0] = CCS_KEYWORD_QUOTA_EXCEEDED "\n";
-			if (domain->domain_transition_failed)
-				w[1] = CCS_KEYWORD_TRANSITION_FAILED "\n";
-			if (domain->ignore_global)
-				w[2] = CCS_KEYWORD_IGNORE_GLOBAL "\n";
-			if (domain->ignore_global_allow_read)
-				w[3] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ
-					"\n";
-			if (domain->ignore_global_allow_env)
-				w[4] = CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV
-					"\n";
+			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
+				w[i] = domain->flags[i] ? ccs_dif[i] : "";
 			if (!ccs_io_printf(head, "%s\n" CCS_KEYWORD_USE_PROFILE
 					   "%u\n%s%s%s%s%s\n",
 					   domain->domainname->name,
-					   domain->profile, w[0], w[1], w[2],
-					   w[3], w[4]))
+					   domain->profile,
+					   w[CCS_DIF_QUOTA_WARNED],
+					   w[CCS_DIF_IGNORE_GLOBAL],
+					   w[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ],
+					   w[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV],
+					   w[CCS_DIF_TRANSITION_FAILED]))
 				return;
 			head->read_step++;
 			/* fall through */

@@ -1082,8 +1082,8 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	}
 	if (count < ccs_profile(domain->profile)->learning->learning_max_entry)
 		return true;
-	if (!domain->quota_warned) {
-		domain->quota_warned = true;
+	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
+		domain->flags[CCS_DIF_QUOTA_WARNED] = true;
 		/* r->granted = false; */
 		ccs_write_log(r, CCS_KEYWORD_QUOTA_EXCEEDED "\n");
 		printk(KERN_WARNING "WARNING: "

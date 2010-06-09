@@ -195,12 +195,12 @@ void ccs_check_acl(struct ccs_request_info *r,
 			return;
 		}
 	}
-	if (domain != &ccs_global_domain && !domain->ignore_global &&
+	if (domain != &ccs_global_domain && !domain->flags[CCS_DIF_IGNORE_GLOBAL] &&
 	    (r->param_type != CCS_TYPE_PATH_ACL ||
 	     r->param.path.operation != CCS_TYPE_READ ||
-	     !domain->ignore_global_allow_read) &&
+	     !domain->flags[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ]) &&
 	    (r->param_type != CCS_TYPE_ENV_ACL ||
-	     !domain->ignore_global_allow_env)) {
+	     !domain->flags[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV])) {
 		domain = &ccs_global_domain;
 		goto retry;
 	}
@@ -682,8 +682,8 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
  done:
 	if (!domain) {
 		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
-		if (!old_domain->domain_transition_failed) {
-			old_domain->domain_transition_failed = true;
+		if (!old_domain->flags[CCS_DIF_TRANSITION_FAILED]) {
+			old_domain->flags[CCS_DIF_TRANSITION_FAILED] = true;
 			r->granted = false;
 			ccs_write_log(r, CCS_KEYWORD_TRANSITION_FAILED "\n");
 			printk(KERN_WARNING
@@ -1139,7 +1139,7 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 		r->cond = ptr->cond;
 		return true;
 	}
-	if (domain != &ccs_global_domain && !domain->ignore_global) {
+	if (domain != &ccs_global_domain && !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
 		domain = &ccs_global_domain;
 		goto retry;
 	}

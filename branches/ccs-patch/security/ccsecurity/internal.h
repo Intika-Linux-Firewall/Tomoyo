@@ -635,6 +635,25 @@ struct ccs_execve {
 	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
 };
 
+enum ccs_domain_info_flags_index {
+	/* Quota warnning flag.   */
+	CCS_DIF_QUOTA_WARNED,
+	/* Ignore "allow_*" directives in ccs_global_domain . */
+	CCS_DIF_IGNORE_GLOBAL,
+	/* Ignore "allow_read" directive in ccs_global_domain . */
+	CCS_DIF_IGNORE_GLOBAL_ALLOW_READ,
+	/* Ignore "allow_env" directive in ccs_global_domain .  */
+	CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV,
+	/*
+	 * This domain was unable to create a new domain at
+	 * ccs_find_next_domain() because the name of the domain to be created
+	 * was too long or it could not allocate memory.
+	 * More than one process continued execve() without domain transition.
+	 */
+	CCS_DIF_TRANSITION_FAILED,
+	CCS_MAX_DOMAIN_INFO_FLAGS
+};
+
 /* Structure for domain information. */
 struct ccs_domain_info {
 	struct list_head list;
@@ -643,20 +662,7 @@ struct ccs_domain_info {
 	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
 	bool is_deleted;   /* Delete flag.           */
-	bool quota_warned; /* Quota warnning flag.   */
-	/* Ignore "allow_*" directives in ccs_global_domain . */
-	bool ignore_global;
-	/* Ignore "allow_read" directive in ccs_global_domain . */
-	bool ignore_global_allow_read;
-	/* Ignore "allow_env" directive in ccs_global_domain .  */
-	bool ignore_global_allow_env;
-	/*
-	 * This domain was unable to create a new domain at
-	 * ccs_find_next_domain() because the name of the domain to be created
-	 * was too long or it could not allocate memory.
-	 * More than one process continued execve() without domain transition.
-	 */
-	bool domain_transition_failed;
+	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
 };
 
 /* Structure for "file_pattern" keyword. */
