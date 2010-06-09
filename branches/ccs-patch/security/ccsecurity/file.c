@@ -1420,8 +1420,7 @@ static int ccs_path_number3_perm(const u8 operation, struct inode *dir,
 	struct ccs_request_info r;
 	struct ccs_obj_info obj = {
 		.path1.dentry = dentry,
-		.path1.mnt = mnt,
-		.dev = dev
+		.path1.mnt = mnt
 	};
 	int error = 0;
 	struct ccs_path_info buf;

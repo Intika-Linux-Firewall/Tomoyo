@@ -473,7 +473,6 @@ struct ccs_obj_info {
 	struct path path2;
 	struct ccs_mini_stat stat[CCS_MAX_STAT];
 	struct ccs_path_info *symlink_target;
-	unsigned int dev;
 };
 
 struct ccs_condition_element {
