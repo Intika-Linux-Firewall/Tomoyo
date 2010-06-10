@@ -40,8 +40,11 @@ static unsigned int ccs_profile_version;
 static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 /* String table for functionality that takes 4 modes. */
-static const char *ccs_mode_4[4] = {
-	"disabled", "learning", "permissive", "enforcing"
+static const char *ccs_mode[CCS_CONFIG_MAX_MODE] = {
+	[CCS_CONFIG_DISABLED] = "disabled",
+	[CCS_CONFIG_LEARNING] = "learning",
+	[CCS_CONFIG_PERMISSIVE] = "permissive",
+	[CCS_CONFIG_ENFORCING] = "enforcing"
 };
 
 /* String table for /proc/ccs/profile */
@@ -452,8 +455,8 @@ static int ccs_set_mode(const char *cp, char *data,
 		config = CCS_CONFIG_USE_DEFAULT;
 	} else {
 		u8 mode;
-		for (mode = 0; mode <= 3; mode--)
-			if (strstr(cp, ccs_mode_4[mode]))
+		for (mode = 0; mode < CCS_CONFIG_MAX_MODE; mode--)
+			if (strstr(cp, ccs_mode[mode]))
 				/*
 				 * Update lower 3 bits in order to distinguish
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
@@ -635,7 +638,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 #ifdef CONFIG_CCSECURITY_AUDIT
 		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s "
 				   "grant_log=%s reject_log=%s }\n", index,
-				   "CONFIG", "", ccs_mode_4[config & 3],
+				   "CONFIG", "", ccs_mode[config & 3],
 				   ccs_yesno(config &
 					     CCS_CONFIG_WANT_GRANT_LOG),
 				   ccs_yesno(config &
@@ -643,7 +646,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 			goto out;
 #else
 		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n", index,
-				   "CONFIG", "", ccs_mode_4[config & 3]))
+				   "CONFIG", "", ccs_mode[config & 3]))
 			goto out;
 #endif
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
@@ -662,13 +665,13 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 					   "grant_log=%s reject_log=%s }\n",
 					   index, "CONFIG::",
 					   ccs_mac_keywords[i],
-					   ccs_mode_4[config & 3], g, r))
+					   ccs_mode[config & 3], g, r))
 				goto out;
 #else
 			if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n",
 					   index, "CONFIG::",
 					   ccs_mac_keywords[i],
-					   ccs_mode_4[config & 3]))
+					   ccs_mode[config & 3]))
 				goto out;
 #endif
 		}

@@ -19,7 +19,7 @@
 /* Structure for garbage collection. */
 struct ccs_gc_entry {
 	struct list_head list;
-	int type; /* = one of values in "enum ccs_gc_id" */
+	int type; /* = one of values in "enum ccs_policy_id" */
 	struct list_head *element;
 };
 /* List of entries to be deleted. */

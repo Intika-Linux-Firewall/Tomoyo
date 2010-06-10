@@ -391,7 +391,7 @@ bool ccs_tokenize(char *buffer, char *w[], size_t size)
 /**
  * ccs_correct_word2 - Validate a string.
  *
- * @string: The string to check. May be non-'\0'-terminated.
+ * @string: The string to check. Maybe non-'\0'-terminated.
  * @len:    Length of @string.
  *
  * Check whether the given string follows the naming rules.

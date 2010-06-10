@@ -374,7 +374,7 @@ static unsigned int ccs_log_count[2];
  *
  * @profile:    Profile number.
  * @index:      Index number of functionality.
- * @cond:       Pointer to "struct ccs_condition". May be NULL.
+ * @cond:       Pointer to "struct ccs_condition". Maybe NULL.
  * @is_granted: True if granted log, false otherwise.
  *
  * Returns mode.

@@ -33,19 +33,39 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #include <linux/fs.h>
 #endif
+#include <linux/dcache.h>
 #include "compat.h"
 
-/* Prototype definition for "struct ccsecurity_operations". */
+struct dentry;
+struct vfsmount;
+struct in6_addr;
 
-void __init ccs_policy_io_init(void);
-void __init ccs_mm_init(void);
-void __init ccs_domain_init(void);
-void __init ccs_file_init(void);
-void __init ccs_network_init(void);
-void __init ccs_signal_init(void);
-void __init ccs_capability_init(void);
-void __init ccs_mount_init(void);
-void __init ccs_maymount_init(void);
+/**
+ * list_for_each_cookie - iterate over a list with cookie.
+ * @pos:        the &struct list_head to use as a loop cursor.
+ * @cookie:     the &struct list_head to use as a cookie.
+ * @head:       the head for your list.
+ *
+ * Same with list_for_each_rcu() except that this primitive uses @cookie
+ * so that we can continue iteration.
+ * @cookie must be NULL when iteration starts, and @cookie will become
+ * NULL when iteration finishes.
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+#define list_for_each_cookie(pos, cookie, head)				\
+	for (({ if (!cookie)						\
+				     cookie = head; }),			\
+		     pos = rcu_dereference((cookie)->next);		\
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
+	     (cookie) = pos, pos = rcu_dereference(pos->next))
+#else
+#define list_for_each_cookie(pos, cookie, head)				\
+	for (({ if (!cookie)						\
+				     cookie = head; }),			\
+		     pos = srcu_dereference((cookie)->next, &ccs_ss);	\
+	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
+	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
+#endif
 
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
@@ -70,7 +90,6 @@ enum ccs_acl_entry_type_index {
  * CCS_TYPE_WRITE is cleared. Both CCS_TYPE_READ and CCS_TYPE_WRITE are
  * automatically cleared if CCS_TYPE_READ_WRITE is cleared.
  */
-
 enum ccs_path_acl_index {
 	CCS_TYPE_READ_WRITE,
 	CCS_TYPE_EXECUTE,
@@ -277,6 +296,62 @@ enum ccs_stat_index {
 	CCS_MAX_STAT
 };
 
+#define CCS_HASH_BITS 8
+#define CCS_MAX_HASH (1 << CCS_HASH_BITS)
+
+enum ccs_shared_acl_id {
+	CCS_CONDITION_LIST,
+	CCS_IPV6ADDRESS_LIST,
+	CCS_MAX_LIST
+};
+
+enum ccs_group_id {
+	CCS_PATH_GROUP,
+	CCS_NUMBER_GROUP,
+	CCS_ADDRESS_GROUP,
+	CCS_MAX_GROUP
+};
+
+enum ccs_domain_info_flags_index {
+	/* Quota warnning flag.   */
+	CCS_DIF_QUOTA_WARNED,
+	/* Ignore "allow_*" directives in ccs_global_domain . */
+	CCS_DIF_IGNORE_GLOBAL,
+	/* Ignore "allow_read" directive in ccs_global_domain . */
+	CCS_DIF_IGNORE_GLOBAL_ALLOW_READ,
+	/* Ignore "allow_env" directive in ccs_global_domain .  */
+	CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV,
+	/*
+	 * This domain was unable to create a new domain at
+	 * ccs_find_next_domain() because the name of the domain to be created
+	 * was too long or it could not allocate memory.
+	 * More than one process continued execve() without domain transition.
+	 */
+	CCS_DIF_TRANSITION_FAILED,
+	CCS_MAX_DOMAIN_INFO_FLAGS
+};
+
+/* Index numbers for garbage collection. */
+enum ccs_policy_id {
+	CCS_ID_RESERVEDPORT,
+	CCS_ID_GROUP,
+	CCS_ID_ADDRESS_GROUP,
+	CCS_ID_PATH_GROUP,
+	CCS_ID_NUMBER_GROUP,
+	CCS_ID_AGGREGATOR,
+	CCS_ID_DOMAIN_INITIALIZER,
+	CCS_ID_DOMAIN_KEEPER,
+	CCS_ID_PATTERN,
+	CCS_ID_NO_REWRITE,
+	CCS_ID_MANAGER,
+	CCS_ID_IPV6_ADDRESS,
+	CCS_ID_CONDITION,
+	CCS_ID_NAME,
+	CCS_ID_ACL,
+	CCS_ID_DOMAIN,
+	CCS_MAX_POLICY
+};
+
 /* Keywords for ACLs. */
 #define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
@@ -332,6 +407,7 @@ enum ccs_mode_value {
 	CCS_CONFIG_LEARNING,
 	CCS_CONFIG_PERMISSIVE,
 	CCS_CONFIG_ENFORCING,
+	CCS_CONFIG_MAX_MODE,
 	CCS_CONFIG_WANT_REJECT_LOG =  64,
 	CCS_CONFIG_WANT_GRANT_LOG  = 128,
 	CCS_CONFIG_USE_DEFAULT     = 255
@@ -345,36 +421,23 @@ enum ccs_mode_value {
 #define CCS_TASK_IS_MANAGER             128
 /* Highest 24 bits are reserved for task.state[] conditions. */
 
-struct dentry;
-struct vfsmount;
-struct in6_addr;
+#define CCS_RETRY_REQUEST 1 /* Retry this request. */
 
-/**
- * list_for_each_cookie - iterate over a list with cookie.
- * @pos:        the &struct list_head to use as a loop cursor.
- * @cookie:     the &struct list_head to use as a cookie.
- * @head:       the head for your list.
- *
- * Same with list_for_each_rcu() except that this primitive uses @cookie
- * so that we can continue iteration.
- * @cookie must be NULL when iteration starts, and @cookie will become
- * NULL when iteration finishes.
- */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-#define list_for_each_cookie(pos, cookie, head)				\
-	for (({ if (!cookie)						\
-				     cookie = head; }),			\
-		     pos = rcu_dereference((cookie)->next);		\
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
-	     (cookie) = pos, pos = rcu_dereference(pos->next))
-#else
-#define list_for_each_cookie(pos, cookie, head)				\
-	for (({ if (!cookie)						\
-				     cookie = head; }),			\
-		     pos = srcu_dereference((cookie)->next, &ccs_ss);	\
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
-	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
+#ifndef __GFP_HIGHIO
+#define __GFP_HIGHIO 0
 #endif
+#ifndef __GFP_NOWARN
+#define __GFP_NOWARN 0
+#endif
+#ifndef __GFP_NORETRY
+#define __GFP_NORETRY 0
+#endif
+#ifndef __GFP_NOMEMALLOC
+#define __GFP_NOMEMALLOC 0
+#endif
+
+#define CCS_GFP_FLAGS (__GFP_WAIT | __GFP_IO | __GFP_HIGHIO | __GFP_NOWARN | \
+		       __GFP_NORETRY | __GFP_NOMEMALLOC)
 
 /* Common header for holding ACL entries. */
 struct ccs_acl_head {
@@ -394,12 +457,6 @@ struct ccs_acl_info {
 	u8 type; /* = one of values in "enum ccs_acl_entry_type_index" */
 } __attribute__((__packed__));
 
-enum ccs_shared_acl_id {
-	CCS_CONDITION_LIST,
-	CCS_IPV6ADDRESS_LIST,
-	CCS_MAX_LIST
-};
-
 struct ccs_name_union {
 	const struct ccs_path_info *filename;
 	struct ccs_group *group;
@@ -411,13 +468,6 @@ struct ccs_number_union {
 	struct ccs_group *group;
 	u8 value_type[2];
 	u8 is_group;
-};
-
-enum ccs_group_id {
-	CCS_PATH_GROUP,
-	CCS_NUMBER_GROUP,
-	CCS_ADDRESS_GROUP,
-	CCS_MAX_GROUP
 };
 
 /* Structure for "path_group"/"number_group"/"address_group" directive. */
@@ -512,8 +562,6 @@ struct ccs_condition {
 };
 
 struct ccs_execve;
-
-#define CCS_RETRY_REQUEST 1 /* Retry this request. */
 
 /* Structure for request info. */
 struct ccs_request_info {
@@ -635,25 +683,6 @@ struct ccs_execve {
 	char *tmp; /* Size is CCS_EXEC_TMPSIZE bytes */
 };
 
-enum ccs_domain_info_flags_index {
-	/* Quota warnning flag.   */
-	CCS_DIF_QUOTA_WARNED,
-	/* Ignore "allow_*" directives in ccs_global_domain . */
-	CCS_DIF_IGNORE_GLOBAL,
-	/* Ignore "allow_read" directive in ccs_global_domain . */
-	CCS_DIF_IGNORE_GLOBAL_ALLOW_READ,
-	/* Ignore "allow_env" directive in ccs_global_domain .  */
-	CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV,
-	/*
-	 * This domain was unable to create a new domain at
-	 * ccs_find_next_domain() because the name of the domain to be created
-	 * was too long or it could not allocate memory.
-	 * More than one process continued execve() without domain transition.
-	 */
-	CCS_DIF_TRANSITION_FAILED,
-	CCS_MAX_DOMAIN_INFO_FLAGS
-};
-
 /* Structure for domain information. */
 struct ccs_domain_info {
 	struct list_head list;
@@ -682,7 +711,7 @@ struct ccs_domain_initializer {
 	struct ccs_acl_head head;
 	bool is_not;       /* True if this entry is "no_initialize_domain". */
 	bool is_last_name; /* True if the domainname is ccs_last_word(). */
-	const struct ccs_path_info *domainname;    /* This may be NULL */
+	const struct ccs_path_info *domainname;    /* Maybe NULL */
 	const struct ccs_path_info *program;
 };
 
@@ -692,7 +721,7 @@ struct ccs_domain_keeper {
 	bool is_not;       /* True if this entry is "no_keep_domain". */
 	bool is_last_name; /* True if the domainname is ccs_last_word(). */
 	const struct ccs_path_info *domainname;
-	const struct ccs_path_info *program;       /* This may be NULL */
+	const struct ccs_path_info *program;       /* Maybe NULL */
 };
 
 /* Structure for "aggregator" keyword. */
@@ -941,6 +970,18 @@ struct ccs_profile {
 		  + CCS_MAX_MAC_CATEGORY_INDEX];
 };
 
+/* Prototype definition for "struct ccsecurity_operations". */
+
+void __init ccs_capability_init(void);
+void __init ccs_domain_init(void);
+void __init ccs_file_init(void);
+void __init ccs_maymount_init(void);
+void __init ccs_mm_init(void);
+void __init ccs_mount_init(void);
+void __init ccs_network_init(void);
+void __init ccs_policy_io_init(void);
+void __init ccs_signal_init(void);
+
 /* Prototype definition for internal use. */
 
 bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
@@ -951,15 +992,15 @@ bool ccs_compare_number_union(const unsigned long value,
 			      const struct ccs_number_union *ptr);
 bool ccs_condition(struct ccs_request_info *r,
 		   const struct ccs_condition *cond);
+bool ccs_correct_domain(const unsigned char *domainname);
+bool ccs_correct_path(const char *filename);
+bool ccs_correct_word(const char *string);
+bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
 bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
-bool ccs_correct_domain(const unsigned char *domainname);
-bool ccs_correct_path(const char *filename);
-bool ccs_correct_word(const char *string);
-bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 			      const struct ccs_group *group);
@@ -971,24 +1012,6 @@ bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
-void ccs_check_acl(struct ccs_request_info *r,
-		   bool (*check_entry) (const struct ccs_request_info *,
-					const struct ccs_acl_info *));
-int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
-		      bool is_delete, struct ccs_domain_info *domain,
-		      bool (*check_duplicate) (const struct ccs_acl_info *,
-					       const struct ccs_acl_info *),
-		      bool (*merge_duplicate) (struct ccs_acl_info *,
-					       struct ccs_acl_info *,
-					       const bool));
-int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
-		     bool is_delete, struct ccs_group *group,
-		     bool (*check_duplicate) (const struct ccs_acl_head *,
-					      const struct ccs_acl_head *));
-int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
-		      bool is_delete, const int idx, bool (*check_duplicate)
-		      (const struct ccs_acl_head *,
-		       const struct ccs_acl_head *));
 char *ccs_encode(const char *str);
 char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
@@ -1022,10 +1045,22 @@ int ccs_read_control(struct file *file, char __user *buffer,
 int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_symlink_path(const char *pathname, struct ccs_path_info *name);
-int ccs_write_aggregator(char *data, const bool is_delete,
-				const u8 flags);
-int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
-     __attribute__ ((format(printf, 2, 3)));
+int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
+		      bool is_delete, struct ccs_domain_info *domain,
+		      bool (*check_duplicate) (const struct ccs_acl_info *,
+					       const struct ccs_acl_info *),
+		      bool (*merge_duplicate) (struct ccs_acl_info *,
+					       struct ccs_acl_info *,
+					       const bool));
+int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
+		     bool is_delete, struct ccs_group *group,
+		     bool (*check_duplicate) (const struct ccs_acl_head *,
+					      const struct ccs_acl_head *));
+int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
+		      bool is_delete, const int idx,
+		      bool (*check_duplicate) (const struct ccs_acl_head *,
+					       const struct ccs_acl_head *));
+int ccs_write_aggregator(char *data, const bool is_delete, const u8 flags);
 int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete);
@@ -1039,6 +1074,8 @@ int ccs_write_env(char *data, struct ccs_domain_info *domain,
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
+int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
+     __attribute__ ((format(printf, 2, 3)));
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_mount(char *data, struct ccs_domain_info *domain,
 		    struct ccs_condition *condition, const bool is_delete);
@@ -1057,6 +1094,10 @@ struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
 struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
+void *ccs_commit_ok(void *data, const unsigned int size);
+void ccs_check_acl(struct ccs_request_info *r,
+		   bool (*check_entry) (const struct ccs_request_info *,
+					const struct ccs_acl_info *));
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);
 void ccs_memory_free(const void *ptr, size_t size);
@@ -1077,7 +1118,6 @@ void ccs_unlock(const int idx);
 void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 void ccs_warn_oom(const char *function);
-void *ccs_commit_ok(void *data, const unsigned int size);
 
 /* strcmp() for "struct ccs_path_info" structure. */
 static inline bool ccs_pathcmp(const struct ccs_path_info *a,
@@ -1087,20 +1127,20 @@ static inline bool ccs_pathcmp(const struct ccs_path_info *a,
 }
 
 static inline bool ccs_same_acl_head(const struct ccs_acl_info *p1,
-					const struct ccs_acl_info *p2)
+				     const struct ccs_acl_info *p2)
 {
 	return p1->type == p2->type && p1->cond == p2->cond;
 }
 
 static inline bool ccs_same_name_union(const struct ccs_name_union *p1,
-					  const struct ccs_name_union *p2)
+				       const struct ccs_name_union *p2)
 {
 	return p1->filename == p2->filename && p1->group == p2->group &&
 		p1->is_group == p2->is_group;
 }
 
 static inline bool ccs_same_number_union(const struct ccs_number_union *p1,
-					    const struct ccs_number_union *p2)
+					 const struct ccs_number_union *p2)
 {
 	return p1->values[0] == p2->values[0] && p1->values[1] == p2->values[1]
 		&& p1->group == p2->group &&
@@ -1108,30 +1148,6 @@ static inline bool ccs_same_number_union(const struct ccs_number_union *p1,
 		p1->value_type[1] == p2->value_type[1] &&
 		p1->is_group == p2->is_group;
 }
-
-#define CCS_HASH_BITS 8
-#define CCS_MAX_HASH (1 << CCS_HASH_BITS)
-
-/* Index numbers for garbage collection. */
-enum ccs_gc_id {
-	CCS_ID_RESERVEDPORT,
-	CCS_ID_GROUP,
-	CCS_ID_ADDRESS_GROUP,
-	CCS_ID_PATH_GROUP,
-	CCS_ID_NUMBER_GROUP,
-	CCS_ID_AGGREGATOR,
-	CCS_ID_DOMAIN_INITIALIZER,
-	CCS_ID_DOMAIN_KEEPER,
-	CCS_ID_PATTERN,
-	CCS_ID_NO_REWRITE,
-	CCS_ID_MANAGER,
-	CCS_ID_IPV6_ADDRESS,
-	CCS_ID_CONDITION,
-	CCS_ID_NAME,
-	CCS_ID_ACL,
-	CCS_ID_DOMAIN,
-	CCS_MAX_POLICY
-};
 
 extern struct mutex ccs_policy_lock;
 extern struct list_head ccs_domain_list;
@@ -1142,15 +1158,21 @@ extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_global_domain;
 extern struct ccs_domain_info ccs_kernel_domain;
-
+extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
+extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
+extern unsigned int ccs_log_memory_size;
+extern unsigned int ccs_quota_for_log;
+extern unsigned int ccs_query_memory_size;
+extern unsigned int ccs_quota_for_query;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 extern struct srcu_struct ccs_ss;
+#endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 static inline int ccs_read_lock(void)
 {
 	return srcu_read_lock(&ccs_ss);
 }
-
 static inline void ccs_read_unlock(const int idx)
 {
 	srcu_read_unlock(&ccs_ss, idx);
@@ -1165,17 +1187,6 @@ static inline void ccs_read_unlock(const int idx)
 	ccs_unlock(idx);
 }
 #endif
-
-extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
-extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX
-				   + CCS_MAX_CAPABILITY_INDEX];
-
-extern unsigned int ccs_log_memory_size;
-extern unsigned int ccs_quota_for_log;
-extern unsigned int ccs_query_memory_size;
-extern unsigned int ccs_quota_for_query;
-
-#include <linux/dcache.h>
 
 #ifdef D_PATH_DISCONNECT
 
@@ -1283,6 +1294,12 @@ static inline int ccs_round2(size_t size)
 }
 #endif
 
+static inline void ccs_put_condition(struct ccs_condition *cond)
+{
+	if (cond)
+		atomic_dec(&cond->head.users);
+}
+
 static inline void ccs_put_group(struct ccs_group *group)
 {
 	if (group)
@@ -1296,33 +1313,11 @@ static inline void ccs_put_ipv6_address(const struct in6_addr *addr)
 					 addr)->head.users);
 }
 
-static inline void ccs_put_condition(struct ccs_condition *cond)
-{
-	if (cond)
-		atomic_dec(&cond->head.users);
-}
-
 static inline void ccs_put_name(const struct ccs_path_info *name)
 {
 	if (name)
 		atomic_dec(&container_of(name, struct ccs_name, entry)->
 			   head.users);
 }
-
-#ifndef __GFP_HIGHIO
-#define __GFP_HIGHIO 0
-#endif
-#ifndef __GFP_NOWARN
-#define __GFP_NOWARN 0
-#endif
-#ifndef __GFP_NORETRY
-#define __GFP_NORETRY 0
-#endif
-#ifndef __GFP_NOMEMALLOC
-#define __GFP_NOMEMALLOC 0
-#endif
-
-#define CCS_GFP_FLAGS (__GFP_WAIT | __GFP_IO | __GFP_HIGHIO | __GFP_NOWARN | \
-		       __GFP_NORETRY | __GFP_NOMEMALLOC)
 
 #endif

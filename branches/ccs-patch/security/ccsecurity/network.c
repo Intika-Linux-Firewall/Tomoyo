@@ -284,7 +284,7 @@ static bool ccs_merge_ip_network_acl(struct ccs_acl_info *a,
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.

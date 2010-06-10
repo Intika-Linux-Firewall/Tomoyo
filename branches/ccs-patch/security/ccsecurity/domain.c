@@ -222,7 +222,7 @@ static bool ccs_same_domain_initializer_entry(const struct ccs_acl_head *a,
 /**
  * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer" list.
  *
- * @domainname: The name of domain. May be NULL.
+ * @domainname: The name of domain. Maybe NULL.
  * @program:    The name of program.
  * @is_not:     True if it is "no_initialize_domain" entry.
  * @is_delete:  True if it is a delete request.
@@ -337,7 +337,7 @@ static bool ccs_same_domain_keeper_entry(const struct ccs_acl_head *a,
  * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper" list.
  *
  * @domainname: The name of domain.
- * @program:    The name of program. May be NULL.
+ * @program:    The name of program. Maybe NULL.
  * @is_not:     True if it is "no_keep_domain" entry.
  * @is_delete:  True if it is a delete request.
  *

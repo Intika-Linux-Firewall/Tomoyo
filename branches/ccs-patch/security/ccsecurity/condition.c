@@ -906,7 +906,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
  * ccs_condition - Check condition part.
  *
  * @r:    Pointer to "struct ccs_request_info".
- * @cond: Pointer to "struct ccs_condition". May be NULL.
+ * @cond: Pointer to "struct ccs_condition". Maybe NULL.
  *
  * Returns true on success, false otherwise.
  *

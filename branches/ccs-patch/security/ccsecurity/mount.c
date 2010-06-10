@@ -211,9 +211,9 @@ static int ccs_mount_acl(struct ccs_request_info *r, char *dev_name,
  *
  * @dev_name:  Name of device file.
  * @path:      Pointer to "struct path".
- * @type:      Name of filesystem type. May be NULL.
+ * @type:      Name of filesystem type. Maybe NULL.
  * @flags:     Mount options.
- * @data_page: Optional data. May be NULL.
+ * @data_page: Optional data. Maybe NULL.
  *
  * Returns 0 on success, negative value otherwise.
  */
@@ -284,7 +284,7 @@ static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.

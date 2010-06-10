@@ -826,7 +826,7 @@ int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags)
  * @perm:      Permission (between 1 to 7).
  * @filename:  Filename.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -988,7 +988,7 @@ static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
  * @type:      Type of operation.
  * @filename:  Filename.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1054,7 +1054,7 @@ static bool ccs_merge_path_number3_acl(struct ccs_acl_info *a,
  * @major:     Device major number.
  * @minor:     Device minor number.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1118,7 +1118,7 @@ static bool ccs_merge_path2_acl(struct ccs_acl_info *a,	struct ccs_acl_info *b,
  * @filename1: First filename.
  * @filename2: Second filename.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1329,7 +1329,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
  * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "chroot" and "unmount".
  *
  * @operation: Type of operation.
- * @dir:       Pointer to "struct inode". May be NULL.
+ * @dir:       Pointer to "struct inode". Maybe NULL.
  * @dentry:    Pointer to "struct dentry".
  * @mnt:       Pointer to "struct vfsmount".
  * @target:    Symlink's target if @operation is CCS_TYPE_SYMLINK.
@@ -1510,10 +1510,10 @@ static int __ccs_rewrite_permission(struct file *filp)
  * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
  *
  * @operation: Type of operation.
- * @dir1:      Pointer to "struct inode". May be NULL.
+ * @dir1:      Pointer to "struct inode". Maybe NULL.
  * @dentry1:   Pointer to "struct dentry".
  * @mnt1:      Pointer to "struct vfsmount".
- * @dir2:      Pointer to "struct inode". May be NULL.
+ * @dir2:      Pointer to "struct inode". Maybe NULL.
  * @dentry2:   Pointer to "struct dentry".
  * @mnt2:      Pointer to "struct vfsmount".
  *
@@ -1624,7 +1624,7 @@ static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
  * @filename:  Filename.
  * @number:    Number.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
@@ -1658,7 +1658,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
  * ccs_path_number_perm - Check permission for "create", "mkdir", "mkfifo", "mksock", "ioctl", "chmod", "chown", "chgrp".
  *
  * @type:   Type of operation.
- * @dir:    Pointer to "struct inode". May be NULL.
+ * @dir:    Pointer to "struct inode". Maybe NULL.
  * @dentry: Pointer to "struct dentry".
  * @vfsmnt: Pointer to "struct vfsmount".
  * @number: Number.
@@ -1849,7 +1849,7 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
  *
  * @data:      String to parse.
  * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". May be NULL.
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
