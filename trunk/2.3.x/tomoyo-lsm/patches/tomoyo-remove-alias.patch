@@ -1,4 +1,4 @@
-[PATCH] TOMOYO: Remove alias support.
+[PATCH 4/4] TOMOYO: Remove alias support.
 
 Now "allow_execute" checks symlink's pathname and "if exec.realpath" checks
 dereferenced pathname, "alias" is no longer needed. Removing "alias" shortens
@@ -17,7 +17,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 
 --- security-testing-2.6.orig/security/tomoyo/common.c
 +++ security-testing-2.6/security/tomoyo/common.c
-@@ -1453,8 +1453,6 @@ static int tomoyo_write_exception_policy
+@@ -1455,8 +1455,6 @@ static int tomoyo_write_exception_policy
  							      is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_AGGREGATOR))
  		return tomoyo_write_aggregator_policy(data, is_delete);
@@ -26,7 +26,7 @@ Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_ALLOW_READ))
  		return tomoyo_write_globally_readable_policy(data, is_delete);
  	if (tomoyo_str_starts(&data, TOMOYO_KEYWORD_FILE_PATTERN))
-@@ -1503,8 +1501,6 @@ static int tomoyo_read_exception_policy(
+@@ -1505,8 +1503,6 @@ static int tomoyo_read_exception_policy(
  			head->read_var2 = NULL;
  			head->read_step = 5;
  		case 5:
