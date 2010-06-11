@@ -103,8 +103,7 @@ struct ccs_number_entry {
 
 struct ccs_domain_info {
 	const struct ccs_path_info *domainname;
-	const struct ccs_domain_initializer_entry *d_i; /* This may be NULL */
-	const struct ccs_domain_keeper_entry *d_k; /* This may be NULL */
+	const struct ccs_transition_control_entry *d_t; /* This may be NULL */
 	const struct ccs_path_info **string_ptr;
 	int string_count;
 	int number;   /* domain number (-1 if is_dis or is_dd) */

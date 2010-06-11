@@ -31,10 +31,8 @@ static const char *ccs_list_caption = NULL;
 static char *ccs_current_domain = NULL;
 static unsigned int ccs_current_pid = 0;
 static int ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
-static struct ccs_domain_keeper_entry *ccs_domain_keeper_list = NULL;
-static int ccs_domain_keeper_list_len = 0;
-static struct ccs_domain_initializer_entry *ccs_domain_initializer_list = NULL;
-static int ccs_domain_initializer_list_len = 0;
+static struct ccs_transition_control_entry *ccs_transition_control_list = NULL;
+static int ccs_transition_control_list_len = 0;
 static int ccs_profile_sort_type = 0;
 static int ccs_unnumbered_domain_count = 0;
 static int ccs_window_width = 0;
@@ -59,17 +57,14 @@ static _Bool ccs_initializer_source(struct ccs_domain_policy *dp, const int inde
 static _Bool ccs_initializer_target(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_domain_unreachable(struct ccs_domain_policy *dp, const int index);
 static _Bool ccs_deleted_domain(struct ccs_domain_policy *dp, const int index);
-static const struct ccs_domain_keeper_entry *ccs_domain_keeper(const struct ccs_path_info *domainname, const char *program);
-static const struct ccs_domain_initializer_entry *ccs_domain_initializer(const struct ccs_path_info *domainname, const char *program);
+static const struct ccs_transition_control_entry *ccs_transition_control(const struct ccs_path_info *domainname, const char *program);
 static int ccs_generic_acl_compare(const void *a, const void *b);
 static int ccs_generic_acl_compare0(const void *a, const void *b);
 static int ccs_string_acl_compare(const void *a, const void *b);
 static int ccs_profile_entry_compare(const void *a, const void *b);
 static void ccs_read_generic_policy(void);
-static int ccs_add_domain_initializer_entry(const char *domainname, const char *program, const _Bool is_not);
-static int ccs_add_domain_initializer_policy(char *data, const _Bool is_not);
-static int ccs_add_domain_keeper_entry(const char *domainname, const char *program, const _Bool is_not);
-static int ccs_add_domain_keeper_policy(char *data, const _Bool is_not);
+static int ccs_add_transition_control_entry(const char *domainname, const char *program, const u8 type);
+static int ccs_add_transition_control_policy(char *data, const u8 type);
 static int ccs_add_path_group_entry(const char *group_name, const char *member_name, const _Bool is_delete);
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete);
 static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname, const char *program);
@@ -212,26 +207,18 @@ static int ccs_string_acl_compare(const void *a, const void *b)
 	return strcmp(a1, b1);
 }
 
-static int ccs_add_domain_initializer_policy(char *data, const _Bool is_not)
+static int ccs_add_transition_control_policy(char *data, const u8 type)
 {
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		return ccs_add_domain_initializer_entry(cp + 6, data, is_not);
-	} else {
-		return ccs_add_domain_initializer_entry(NULL, data, is_not);
+	char *domainname = strstr(data, " from ");
+	if (domainname) {
+		*domainname = '\0';
+		domainname += 6;
+	} else if (type == CCS_TRANSITION_CONTROL_NO_KEEP ||
+		   type == CCS_TRANSITION_CONTROL_KEEP) {
+		domainname = data;
+		data = NULL;
 	}
-}
-
-static int ccs_add_domain_keeper_policy(char *data, const _Bool is_not)
-{
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		return ccs_add_domain_keeper_entry(cp + 6, data, is_not);
-	} else {
-		return ccs_add_domain_keeper_entry(data, NULL, is_not);
-	}
+	return ccs_add_transition_control_entry(domainname, data, type);
 }
 
 static int ccs_add_path_group_policy(char *data, const _Bool is_delete)
@@ -247,7 +234,9 @@ static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp,
 						 const struct ccs_path_info *domainname,
 						 const char *program)
 {
-	if (ccs_domain_initializer(domainname, program)) {
+	const struct ccs_transition_control_entry *d_t =
+		ccs_transition_control(domainname, program);
+	if (d_t && d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE) {
 		char *line;
 		ccs_get();
 		line = ccs_shprintf("%s %s", domainname->name, program);
@@ -268,12 +257,18 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 	return k;
 }
 
+static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
+	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
+	[CCS_TRANSITION_CONTROL_NO_INITIALIZE]
+	= CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
+	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN,
+	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN
+};
 
 static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index)
 {
 	int tmp_col = 0;
-	const struct ccs_domain_initializer_entry *domain_initializer;
-	const struct ccs_domain_keeper_entry *domain_keeper;
+	const struct ccs_transition_control_entry *transition_control;
 	char *line;
 	const char *sp;
 	const int number = dp->list[index].number;
@@ -309,38 +304,21 @@ static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index)
 		printw("%s", ccs_eat(" )"));
 		tmp_col += 2;
 	}
-	domain_initializer = dp->list[index].d_i;
-	if (!domain_initializer)
-		goto not_domain_initializer;
+	transition_control = dp->list[index].d_t;
+	if (!transition_control)
+		goto no_transition_control;
 	ccs_get();
-	if (domain_initializer->domainname)
-		line = ccs_shprintf(" ( " CCS_KEYWORD_INITIALIZE_DOMAIN "%s from %s )",
-				    domain_initializer->program->name,
-				    domain_initializer->domainname->name);
-	else
-		line = ccs_shprintf(" ( " CCS_KEYWORD_INITIALIZE_DOMAIN "%s )",
-				    domain_initializer->program->name);
+	line = ccs_shprintf(" ( %s %s from %s )",
+			    ccs_transition_type[transition_control->type],
+			    transition_control->program ?
+			    transition_control->program->name : "any",
+			    transition_control->domainname ?
+			    transition_control->domainname->name : "any");
 	printw("%s", ccs_eat(line));
 	tmp_col += strlen(line);
 	ccs_put();
 	goto done;
-not_domain_initializer:
-	domain_keeper = dp->list[index].d_k;
-	if (!domain_keeper)
-		goto not_domain_keeper;
-	ccs_get();
-	if (domain_keeper->program)
-		line = ccs_shprintf(" ( " CCS_KEYWORD_KEEP_DOMAIN "%s from %s )",
-				    domain_keeper->program->name,
-				    domain_keeper->domainname->name);
-	else
-		line = ccs_shprintf(" ( " CCS_KEYWORD_KEEP_DOMAIN "%s )",
-				    domain_keeper->domainname->name);
-	printw("%s", ccs_eat(line));
-	tmp_col += strlen(line);
-	ccs_put();
-	goto done;
-not_domain_keeper:
+no_transition_control:
 	if (!ccs_initializer_source(dp, index))
 		goto done;
 	ccs_get();
@@ -645,11 +623,11 @@ static const char *ccs_eat(const char *str)
 	return str;
 }
 
-static const struct ccs_domain_keeper_entry *
-ccs_domain_keeper(const struct ccs_path_info *domainname, const char *program)
+static const struct ccs_transition_control_entry *ccs_transition_control
+(const struct ccs_path_info *domainname, const char *program)
 {
 	int i;
-	const struct ccs_domain_keeper_entry *flag = NULL;
+	u8 type;
 	struct ccs_path_info last_name;
 	last_name.name = strrchr(domainname->name, ' ');
 	if (last_name.name)
@@ -657,55 +635,40 @@ ccs_domain_keeper(const struct ccs_path_info *domainname, const char *program)
 	else
 		last_name.name = domainname->name;
 	ccs_fill_path_info(&last_name);
-	for (i = 0; i < ccs_domain_keeper_list_len; i++) {
-		struct ccs_domain_keeper_entry *ptr = &ccs_domain_keeper_list[i];
-		if (!ptr->is_last_name) {
-			if (ccs_pathcmp(ptr->domainname, domainname))
-				continue;
-		} else {
-			if (ccs_pathcmp(ptr->domainname, &last_name))
-				continue;
-		}
-		if (ptr->program && strcmp(ptr->program->name, program))
-			continue;
-		if (ptr->is_not)
-			return NULL;
-		flag = ptr;
-	}
-	return flag;
-}
-
-static const struct ccs_domain_initializer_entry *
-ccs_domain_initializer(const struct ccs_path_info *domainname, const char *program)
-{
-	int i;
-	const struct ccs_domain_initializer_entry *flag = NULL;
-	struct ccs_path_info last_name;
-	last_name.name = strrchr(domainname->name, ' ');
-	if (last_name.name)
-		last_name.name++;
-	else
-		last_name.name = domainname->name;
-	ccs_fill_path_info(&last_name);
-	for (i = 0; i < ccs_domain_initializer_list_len; i++) {
-		struct ccs_domain_initializer_entry *ptr
-			= &ccs_domain_initializer_list[i];
-		if (ptr->domainname) {
-			if (!ptr->is_last_name) {
-				if (ccs_pathcmp(ptr->domainname, domainname))
-					continue;
-			} else {
-				if (ccs_pathcmp(ptr->domainname, &last_name))
-					continue;
+	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
+ next:
+		for (i = 0; i < ccs_transition_control_list_len; i++) {
+			struct ccs_transition_control_entry *ptr
+				= &ccs_transition_control_list[i];
+			if (ptr->domainname) {
+				if (!ptr->is_last_name) {
+					if (ccs_pathcmp(ptr->domainname,
+							domainname))
+						continue;
+				} else {
+					if (ccs_pathcmp(ptr->domainname,
+							&last_name))
+						continue;
+				}
 			}
+			if (ptr->program && strcmp(ptr->program->name, program))
+				continue;
+			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
+				/*
+				 * Do not check for initialize_domain if
+				 * no_initialize_domain matched.
+				 */
+				type = CCS_TRANSITION_CONTROL_NO_KEEP;
+				goto next;
+			}
+			if (type == CCS_TRANSITION_CONTROL_INITIALIZE ||
+			    type == CCS_TRANSITION_CONTROL_KEEP)
+				return ptr;
+			else
+				return NULL;
 		}
-		if (strcmp(ptr->program->name, program))
-			continue;
-		if (ptr->is_not)
-			return NULL;
-		flag = ptr;
 	}
-	return flag;
+	return NULL;
 }
 
 static int ccs_profile_entry_compare(const void *a, const void *b)
@@ -854,68 +817,43 @@ static void ccs_read_generic_policy(void)
 	}
 }
 
-static int ccs_add_domain_initializer_entry(const char *domainname,
-					    const char *program, const _Bool is_not)
+static int ccs_add_transition_control_entry(const char *domainname,
+					    const char *program,
+					    const u8 type)
 {
 	void *vp;
-	struct ccs_domain_initializer_entry *ptr;
+	struct ccs_transition_control_entry *ptr;
 	_Bool is_last_name = false;
-	if (!ccs_correct_path(program))
-		return -EINVAL;
-	if (domainname) {
-		if (ccs_correct_path(domainname))
-			is_last_name = true;
-		else if (!ccs_correct_domain(domainname))
+	if (program && strcmp(program, "any")) {
+		if (!ccs_correct_path(program))
 			return -EINVAL;
 	}
-	vp = realloc(ccs_domain_initializer_list,
-		     (ccs_domain_initializer_list_len + 1) *
-		     sizeof(struct ccs_domain_initializer_entry));
+	if (domainname && strcmp(domainname, "any")) {
+		if (!ccs_correct_domain(domainname)) {
+			if (!ccs_correct_path(domainname))
+				return -EINVAL;
+			is_last_name = true;
+		}
+	}
+	vp = realloc(ccs_transition_control_list,
+		     (ccs_transition_control_list_len + 1) *
+		     sizeof(struct ccs_transition_control_entry));
 	if (!vp)
 		ccs_out_of_memory();
-	ccs_domain_initializer_list = vp;
-	ptr = &ccs_domain_initializer_list[ccs_domain_initializer_list_len++];
-	memset(ptr, 0, sizeof(struct ccs_domain_initializer_entry));
-	ptr->program = ccs_savename(program);
-	if (!ptr->program)
-		ccs_out_of_memory();
+	ccs_transition_control_list = vp;
+	ptr = &ccs_transition_control_list[ccs_transition_control_list_len++];
+	memset(ptr, 0, sizeof(struct ccs_transition_control_entry));
+	if (program && strcmp(program, "any")) {
+		ptr->program = ccs_savename(program);
+		if (!ptr->program)
+			ccs_out_of_memory();
+	}
 	if (domainname) {
 		ptr->domainname = ccs_savename(domainname);
 		if (!ptr->domainname)
 			ccs_out_of_memory();
 	}
-	ptr->is_not = is_not;
-	ptr->is_last_name = is_last_name;
-	return 0;
-}
-
-static int ccs_add_domain_keeper_entry(const char *domainname, const char *program,
-				       const _Bool is_not)
-{
-	struct ccs_domain_keeper_entry *ptr;
-	_Bool is_last_name = false;
-	if (ccs_correct_path(domainname))
-		is_last_name = true;
-	else if (!ccs_correct_domain(domainname))
-		return -EINVAL;
-	if (program && !ccs_correct_path(program))
-		return -EINVAL;
-	ccs_domain_keeper_list = realloc(ccs_domain_keeper_list,
-					 (ccs_domain_keeper_list_len + 1) *
-					 sizeof(struct ccs_domain_keeper_entry));
-	if (!ccs_domain_keeper_list)
-		ccs_out_of_memory();
-	ptr = &ccs_domain_keeper_list[ccs_domain_keeper_list_len++];
-	memset(ptr, 0, sizeof(struct ccs_domain_keeper_entry));
-	ptr->domainname = ccs_savename(domainname);
-	if (!ptr->domainname)
-		ccs_out_of_memory();
-	if (program) {
-		ptr->program = ccs_savename(program);
-		if (!ptr->program)
-			ccs_out_of_memory();
-	}
-	ptr->is_not = is_not;
+	ptr->type = type;
 	ptr->is_last_name = is_last_name;
 	return 0;
 }
@@ -980,8 +918,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	int index;
 	int max_index;
 	ccs_clear_domain_policy(dp);
-	ccs_domain_keeper_list_len = 0;
-	ccs_domain_initializer_list_len = 0;
+	ccs_transition_control_list_len = 0;
 	while (ccs_path_group_list_len)
 		free(ccs_path_group_list[--ccs_path_group_list_len].member_name);
 	/*
@@ -1060,13 +997,13 @@ no_domain:
 		if (!line)
 			break;
 		if (ccs_str_starts(line, CCS_KEYWORD_INITIALIZE_DOMAIN))
-			ccs_add_domain_initializer_policy(line, false);
+			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_INITIALIZE);
 		else if (ccs_str_starts(line, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
-			ccs_add_domain_initializer_policy(line, true);
+			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
 		else if (ccs_str_starts(line, CCS_KEYWORD_KEEP_DOMAIN))
-			ccs_add_domain_keeper_policy(line, false);
+			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_KEEP);
 		else if (ccs_str_starts(line, CCS_KEYWORD_NO_KEEP_DOMAIN))
-			ccs_add_domain_keeper_policy(line, true);
+			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_KEEP);
 		else if (ccs_str_starts(line, CCS_KEYWORD_PATH_GROUP))
 			ccs_add_path_group_policy(line, false);
 		else if (ccs_str_starts(line, CCS_KEYWORD_ADDRESS_GROUP))
@@ -1098,8 +1035,7 @@ no_exception:
 		ccs_get();
 		line = ccs_shprintf("%s", ccs_domain_name(dp, index));
 		while (true) {
-			const struct ccs_domain_initializer_entry *d_i;
-			const struct ccs_domain_keeper_entry *d_k;
+			const struct ccs_transition_control_entry *d_t;
 			struct ccs_path_info parent;
 			char *cp = strrchr(line, ' ');
 			if (!cp)
@@ -1107,23 +1043,18 @@ no_exception:
 			*cp++ = '\0';
 			parent.name = line;
 			ccs_fill_path_info(&parent);
-			d_i = ccs_domain_initializer(&parent, cp);
-			if (d_i) {
-				/* Initializer under <kernel> is reachable. */
-				if (parent.total_len == CCS_ROOT_NAME_LEN)
-					break;
-				dp->list[index].d_i = d_i;
-				dp->list[index].d_k = NULL;
+			d_t = ccs_transition_control(&parent, cp);
+			if (!d_t)
 				continue;
-			}
-			d_k = ccs_domain_keeper(&parent, cp);
-			if (d_k) {
-				dp->list[index].d_i = NULL;
-				dp->list[index].d_k = d_k;
-			}
+			/* Initializer under <kernel> is reachable. */
+			if (d_t->type == CCS_TRANSITION_CONTROL_INITIALIZE &&
+			    parent.total_len == CCS_ROOT_NAME_LEN)
+				break;
+			dp->list[index].d_t = d_t;
+			continue;
 		}
 		ccs_put();
-		if (dp->list[index].d_i || dp->list[index].d_k)
+		if (dp->list[index].d_t)
 			dp->list[index].is_du = true;
 	}
 
@@ -1132,12 +1063,12 @@ no_exception:
 		char *cp = strchr(ccs_domain_name(dp, index), ' ');
 		if (!cp || strchr(cp + 1, ' '))
 			continue;
-		for (i = 0; i < ccs_domain_initializer_list_len; i++) {
-			struct ccs_domain_initializer_entry *ptr
-				= &ccs_domain_initializer_list[i];
-			if (ptr->is_not)
+		for (i = 0; i < ccs_transition_control_list_len; i++) {
+			struct ccs_transition_control_entry *ptr
+				= &ccs_transition_control_list[i];
+			if (ptr->type != CCS_TRANSITION_CONTROL_INITIALIZE)
 				continue;
-			if (strcmp(ptr->program->name, cp + 1))
+			if (ptr->program && strcmp(ptr->program->name, cp + 1))
 				continue;
 			dp->list[index].is_dit = true;
 		}
@@ -1145,22 +1076,24 @@ no_exception:
 
 	/* Find domain keeper domains. */
 	for (index = 0; index < max_index; index++) {
-		for (i = 0; i < ccs_domain_keeper_list_len; i++) {
-			struct ccs_domain_keeper_entry *ptr
-				= &ccs_domain_keeper_list[i];
+		for (i = 0; i < ccs_transition_control_list_len; i++) {
+			struct ccs_transition_control_entry *ptr
+				= &ccs_transition_control_list[i];
 			char *cp;
-			if (ptr->is_not)
+			if (ptr->type != CCS_TRANSITION_CONTROL_KEEP)
 				continue;
 			if (!ptr->is_last_name) {
-				if (ccs_pathcmp(ptr->domainname,
-					    dp->list[index].domainname))
+				if (ptr->domainname &&
+				    ccs_pathcmp(ptr->domainname,
+						dp->list[index].domainname))
 					continue;
 				dp->list[index].is_dk = true;
 				continue;
 			}
 			cp = strrchr(dp->list[index].domainname->name,
 				     ' ');
-			if (!cp || strcmp(ptr->domainname->name, cp + 1))
+			if (!cp || (ptr->domainname->name &&
+				    strcmp(ptr->domainname->name, cp + 1)))
 				continue;
 			dp->list[index].is_dk = true;
 		}

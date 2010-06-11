@@ -22,17 +22,19 @@ enum ccs_screen_type {
 	CCS_MAXSCREEN
 };
 
-struct ccs_domain_initializer_entry {
-	const struct ccs_path_info *domainname;    /* This may be NULL */
-	const struct ccs_path_info *program;
-	_Bool is_not;
-	_Bool is_last_name;
+enum ccs_transition_type {
+	/* Do not change this order, */
+	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
+	CCS_TRANSITION_CONTROL_INITIALIZE,
+	CCS_TRANSITION_CONTROL_NO_KEEP,
+	CCS_TRANSITION_CONTROL_KEEP,
+	CCS_MAX_TRANSITION_TYPE
 };
 
-struct ccs_domain_keeper_entry {
-	const struct ccs_path_info *domainname;
+struct ccs_transition_control_entry {
+	const struct ccs_path_info *domainname;    /* This may be NULL */
 	const struct ccs_path_info *program;       /* This may be NULL */
-	_Bool is_not;
+	u8 type;
 	_Bool is_last_name;
 };
 
