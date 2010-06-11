@@ -1823,6 +1823,20 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 			      (u8) (ccs_flags >> 8));
 }
 
+static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
+	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
+	[CCS_TRANSITION_CONTROL_NO_INITIALIZE]
+	= CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
+	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN,
+	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN
+};
+
+static const char *ccs_group_name[CCS_MAX_GROUP] = {
+	[CCS_PATH_GROUP] = CCS_KEYWORD_PATH_GROUP,
+	[CCS_NUMBER_GROUP] = CCS_KEYWORD_NUMBER_GROUP,
+	[CCS_ADDRESS_GROUP] = CCS_KEYWORD_ADDRESS_GROUP
+};
+
 /**
  * ccs_write_exception - Write exception policy.
  *
@@ -1837,30 +1851,24 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	u8 i;
 	static const struct {
 		const char *keyword;
-		int (*write) (char *, const bool, const u8);
-	} ccs_callback[8] = {
-		{ CCS_KEYWORD_NO_KEEP_DOMAIN, ccs_write_domain_keeper },
-		{ CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
-		  ccs_write_domain_initializer },
-		{ CCS_KEYWORD_KEEP_DOMAIN, ccs_write_domain_keeper },
-		{ CCS_KEYWORD_INITIALIZE_DOMAIN,
-		  ccs_write_domain_initializer },
+		int (*write) (char *, const bool);
+	} ccs_callback[4] = {
 		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator },
 		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern },
 		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite },
 		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
 	};
-	static const char *ccs_name[CCS_MAX_GROUP] = {
-		[CCS_PATH_GROUP] = CCS_KEYWORD_PATH_GROUP,
-		[CCS_NUMBER_GROUP] = CCS_KEYWORD_NUMBER_GROUP,
-		[CCS_ADDRESS_GROUP] = CCS_KEYWORD_ADDRESS_GROUP
-	};
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 4; i++) {
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
-			return ccs_callback[i].write(data, is_delete, i < 2);
+			return ccs_callback[i].write(data, is_delete);
+	}
+	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++) {
+		if (ccs_str_starts(&data, ccs_transition_type[i]))
+			return ccs_write_transition_control(data, is_delete,
+							    i);
 	}
 	for (i = 0; i < CCS_MAX_GROUP; i++) {
-		if (ccs_str_starts(&data, ccs_name[i]))
+		if (ccs_str_starts(&data, ccs_group_name[i]))
 			return ccs_write_group(data, is_delete, i);
 	}
 	return ccs_write_domain2(data, &ccs_global_domain, is_delete);
@@ -1881,12 +1889,7 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 	struct list_head *gpos;
 	struct list_head *mpos;
 	const char *w[3] = { "", "", "" };
-	if (idx == CCS_PATH_GROUP)
-		w[0] = CCS_KEYWORD_PATH_GROUP;
-	else if (idx == CCS_NUMBER_GROUP)
-		w[0] = CCS_KEYWORD_NUMBER_GROUP;
-	else if (idx == CCS_ADDRESS_GROUP)
-		w[0] = CCS_KEYWORD_ADDRESS_GROUP;
+	w[0] = ccs_group_name[idx];
 	list_for_each_cookie(gpos, head->read_var1, &ccs_group_list[idx]) {
 		struct ccs_group *group =
 			list_entry(gpos, struct ccs_group, head.list);
@@ -1950,32 +1953,16 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 		if (acl->is_deleted)
 			continue;
 		switch (idx) {
-		case CCS_ID_DOMAIN_KEEPER:
+		case CCS_ID_TRANSITION_CONTROL:
 			{
-				struct ccs_domain_keeper *ptr =
+				struct ccs_transition_control *ptr =
 					container_of(acl, typeof(*ptr), head);
-				w[0] = ptr->is_not ?
-					CCS_KEYWORD_NO_KEEP_DOMAIN :
-					CCS_KEYWORD_KEEP_DOMAIN;
-				if (ptr->program) {
-					w[1] = ptr->program->name;
-					w[2] = " from ";
-				}
-				w[3] = ptr->domainname->name;
-			}
-			break;
-		case CCS_ID_DOMAIN_INITIALIZER:
-			{
-				struct ccs_domain_initializer *ptr =
-					container_of(acl, typeof(*ptr), head);
-				w[0] = ptr->is_not ?
-					CCS_KEYWORD_NO_INITIALIZE_DOMAIN :
-					CCS_KEYWORD_INITIALIZE_DOMAIN;
-				w[1] = ptr->program->name;
-				if (ptr->domainname) {
-					w[2] = " from ";
-					w[3] = ptr->domainname->name;
-				}
+				w[0] = ccs_transition_type[ptr->type];
+				w[1] = ptr->program ? ptr->program->name
+					: "any";
+				w[2] = " from ";
+				w[3] = ptr->domainname ? ptr->domainname->name
+					: "any";
 			}
 			break;
 		case CCS_ID_AGGREGATOR:

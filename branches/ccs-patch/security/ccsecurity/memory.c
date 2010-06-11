@@ -257,7 +257,8 @@ void __init ccs_mm_init(void)
 			char *cp2 = strchr(cp, ' ');
 			if (cp2)
 				*cp2++ = '\0';
-			ccs_write_domain_initializer(cp, false, false);
+			ccs_write_transition_control(cp, false,
+				     CCS_TRANSITION_CONTROL_INITIALIZE);
 			cp = cp2;
 		}
 	}

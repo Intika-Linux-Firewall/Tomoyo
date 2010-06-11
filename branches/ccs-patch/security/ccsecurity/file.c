@@ -749,7 +749,7 @@ static bool ccs_same_pattern(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_pattern(char *data, const bool is_delete, const u8 flags)
+int ccs_write_pattern(char *data, const bool is_delete)
 {
 	struct ccs_pattern e = { };
 	int error;
@@ -805,7 +805,7 @@ static bool ccs_same_no_rewrite(const struct ccs_acl_head *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags)
+int ccs_write_no_rewrite(char *data, const bool is_delete)
 {
 	struct ccs_no_rewrite e = { };
 	int error;

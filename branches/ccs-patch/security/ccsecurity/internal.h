@@ -67,6 +67,15 @@ struct in6_addr;
 	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
 #endif
 
+enum ccs_transition_type {
+	/* Do not change this order, */
+	CCS_TRANSITION_CONTROL_NO_INITIALIZE,
+	CCS_TRANSITION_CONTROL_INITIALIZE,
+	CCS_TRANSITION_CONTROL_NO_KEEP,
+	CCS_TRANSITION_CONTROL_KEEP,
+	CCS_MAX_TRANSITION_TYPE
+};
+
 /* Index numbers for Access Controls. */
 enum ccs_acl_entry_type_index {
 	CCS_TYPE_PATH_ACL,
@@ -339,8 +348,7 @@ enum ccs_policy_id {
 	CCS_ID_PATH_GROUP,
 	CCS_ID_NUMBER_GROUP,
 	CCS_ID_AGGREGATOR,
-	CCS_ID_DOMAIN_INITIALIZER,
-	CCS_ID_DOMAIN_KEEPER,
+	CCS_ID_TRANSITION_CONTROL,
 	CCS_ID_PATTERN,
 	CCS_ID_NO_REWRITE,
 	CCS_ID_MANAGER,
@@ -706,22 +714,16 @@ struct ccs_no_rewrite {
 	const struct ccs_path_info *pattern;
 };
 
-/* Structure for "initialize_domain" and "no_initialize_domain" keyword. */
-struct ccs_domain_initializer {
+/*
+ * Structure for "initialize_domain"/"no_initialize_domain" and
+ * "keep_domain"/"no_keep_domain" keyword.
+ */
+struct ccs_transition_control {
 	struct ccs_acl_head head;
-	bool is_not;       /* True if this entry is "no_initialize_domain". */
-	bool is_last_name; /* True if the domainname is ccs_last_word(). */
-	const struct ccs_path_info *domainname;    /* Maybe NULL */
-	const struct ccs_path_info *program;
-};
-
-/* Structure for "keep_domain" and "no_keep_domain" keyword. */
-struct ccs_domain_keeper {
-	struct ccs_acl_head head;
-	bool is_not;       /* True if this entry is "no_keep_domain". */
+	u8 type; /* = one of values in "enum ccs_transition_type" */
 	bool is_last_name; /* True if the domainname is ccs_last_word(). */
 	const struct ccs_path_info *domainname;
-	const struct ccs_path_info *program;       /* Maybe NULL */
+	const struct ccs_path_info *program;
 };
 
 /* Structure for "aggregator" keyword. */
@@ -1060,15 +1062,12 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 		      bool is_delete, const int idx,
 		      bool (*check_duplicate) (const struct ccs_acl_head *,
 					       const struct ccs_acl_head *));
-int ccs_write_aggregator(char *data, const bool is_delete, const u8 flags);
+int ccs_write_aggregator(char *data, const bool is_delete);
 int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 struct ccs_condition *condition,
 			 const bool is_delete);
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
-int ccs_write_domain_initializer(char *data, const bool is_delete,
-				 const u8 flags);
-int ccs_write_domain_keeper(char *data, const bool is_delete, const u8 flags);
 int ccs_write_env(char *data, struct ccs_domain_info *domain,
 		  struct ccs_condition *condition, const bool is_delete);
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
@@ -1081,11 +1080,13 @@ int ccs_write_mount(char *data, struct ccs_domain_info *domain,
 		    struct ccs_condition *condition, const bool is_delete);
 int ccs_write_network(char *data, struct ccs_domain_info *domain,
 		      struct ccs_condition *condition, const bool is_delete);
-int ccs_write_no_rewrite(char *data, const bool is_delete, const u8 flags);
-int ccs_write_pattern(char *data, const bool is_delete, const u8 flags);
-int ccs_write_reserved_port(char *data, const bool is_delete, const u8 flags);
+int ccs_write_no_rewrite(char *data, const bool is_delete);
+int ccs_write_pattern(char *data, const bool is_delete);
+int ccs_write_reserved_port(char *data, const bool is_delete);
 int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 		     struct ccs_condition *condition, const bool is_delete);
+int ccs_write_transition_control(char *data, const bool is_delete,
+				 const u8 type);
 size_t ccs_del_condition(struct list_head *element);
 struct ccs_condition *ccs_get_condition(char * const condition);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,

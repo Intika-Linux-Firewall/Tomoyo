@@ -195,7 +195,8 @@ void ccs_check_acl(struct ccs_request_info *r,
 			return;
 		}
 	}
-	if (domain != &ccs_global_domain && !domain->flags[CCS_DIF_IGNORE_GLOBAL] &&
+	if (domain != &ccs_global_domain &&
+	    !domain->flags[CCS_DIF_IGNORE_GLOBAL] &&
 	    (r->param_type != CCS_TYPE_PATH_ACL ||
 	     r->param.path.operation != CCS_TYPE_READ ||
 	     !domain->flags[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ]) &&
@@ -207,166 +208,55 @@ void ccs_check_acl(struct ccs_request_info *r,
 	r->granted = false;
 }
 
-static bool ccs_same_domain_initializer_entry(const struct ccs_acl_head *a,
+static bool ccs_same_transition_control_entry(const struct ccs_acl_head *a,
 					      const struct ccs_acl_head *b)
 {
-	const struct ccs_domain_initializer *p1 = container_of(a, typeof(*p1),
+	const struct ccs_transition_control *p1 = container_of(a, typeof(*p1),
 							       head);
-	const struct ccs_domain_initializer *p2 = container_of(b, typeof(*p2),
+	const struct ccs_transition_control *p2 = container_of(b, typeof(*p2),
 							       head);
-	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
+	return p1->type == p2->type && p1->is_last_name == p2->is_last_name
 		&& p1->domainname == p2->domainname
 		&& p1->program == p2->program;
 }
 
 /**
- * ccs_update_domain_initializer_entry - Update "struct ccs_domain_initializer" list.
+ * ccs_update_transition_control_entry - Update "struct ccs_transition_control" list.
  *
  * @domainname: The name of domain. Maybe NULL.
- * @program:    The name of program.
- * @is_not:     True if it is "no_initialize_domain" entry.
+ * @program:    The name of program. Maybe NULL.
+ * @type:       Type of transition.
  * @is_delete:  True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_domain_initializer_entry(const char *domainname,
+static int ccs_update_transition_control_entry(const char *domainname,
 					       const char *program,
-					       const bool is_not,
+					       const u8 type,
 					       const bool is_delete)
 {
-	struct ccs_domain_initializer e = { .is_not = is_not };
+	struct ccs_transition_control e = { .type = type };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(program))
-		return -EINVAL;
-	if (domainname) {
-		if (!ccs_domain_def(domainname) &&
-		    ccs_correct_path(domainname))
-			e.is_last_name = true;
-		else if (!ccs_correct_domain(domainname))
-			return -EINVAL;
-		e.domainname = ccs_get_name(domainname);
-		if (!e.domainname)
-			goto out;
-	}
-	e.program = ccs_get_name(program);
-	if (!e.program)
-		goto out;
-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_DOMAIN_INITIALIZER,
-				  ccs_same_domain_initializer_entry);
- out:
-	ccs_put_name(e.domainname);
-	ccs_put_name(e.program);
-	return error;
-}
-
-/**
- * ccs_write_domain_initializer - Write "struct ccs_domain_initializer" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_write_domain_initializer(char *data, const bool is_delete, const u8 flags)
-{
-	char *domainname = strstr(data, " from ");
-	if (domainname) {
-		*domainname = '\0';
-		domainname += 6;
-	}
-	return ccs_update_domain_initializer_entry(domainname, data, flags,
-						   is_delete);
-}
-
-/**
- * ccs_domain_initializer - Check whether the given program causes domainname reinitialization.
- *
- * @domainname: The name of domain.
- * @program:    The name of program.
- * @last_name:  The last component of @domainname.
- *
- * Returns true if executing @program reinitializes domain transition,
- * false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_domain_initializer(const struct ccs_path_info *domainname,
-				      const struct ccs_path_info *program,
-				      const struct ccs_path_info *last_name)
-{
-	struct ccs_domain_initializer *ptr;
-	bool flag = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list
-				[CCS_ID_DOMAIN_INITIALIZER], head.list) {
-		if (ptr->head.is_deleted)
-			continue;
-		if (ptr->domainname) {
-			if (!ptr->is_last_name) {
-				if (ptr->domainname != domainname)
-					continue;
-			} else {
-				if (ccs_pathcmp(ptr->domainname, last_name))
-					continue;
-			}
-		}
-		if (ccs_pathcmp(ptr->program, program))
-			continue;
-		if (ptr->is_not) {
-			flag = false;
-			break;
-		}
-		flag = true;
-	}
-	return flag;
-}
-
-static bool ccs_same_domain_keeper_entry(const struct ccs_acl_head *a,
-					 const struct ccs_acl_head *b)
-{
-	const struct ccs_domain_keeper *p1 = container_of(a, typeof(*p1),
-							  head);
-	const struct ccs_domain_keeper *p2 = container_of(b, typeof(*p2),
-							  head);
-	return p1->is_not == p2->is_not && p1->is_last_name == p2->is_last_name
-		&& p1->domainname == p2->domainname
-		&& p1->program == p2->program;
-}
-
-/**
- * ccs_update_domain_keeper_entry - Update "struct ccs_domain_keeper" list.
- *
- * @domainname: The name of domain.
- * @program:    The name of program. Maybe NULL.
- * @is_not:     True if it is "no_keep_domain" entry.
- * @is_delete:  True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_domain_keeper_entry(const char *domainname,
-					  const char *program,
-					  const bool is_not,
-					  const bool is_delete)
-{
-	struct ccs_domain_keeper e = { .is_not = is_not };
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_domain_def(domainname) && ccs_correct_path(domainname))
-		e.is_last_name = true;
-	else if (!ccs_correct_domain(domainname))
-		return -EINVAL;
-	if (program) {
+	if (program && strcmp(program, "any")) {
 		if (!ccs_correct_path(program))
 			return -EINVAL;
 		e.program = ccs_get_name(program);
 		if (!e.program)
 			goto out;
 	}
-	e.domainname = ccs_get_name(domainname);
-	if (!e.domainname)
-		goto out;
+	if (domainname && strcmp(domainname, "any")) {
+		if (!ccs_correct_domain(domainname)) {
+			if (!ccs_correct_path(domainname))
+				goto out;
+			e.is_last_name = true;
+		}
+		e.domainname = ccs_get_name(domainname);
+		if (!e.domainname)
+			goto out;
+	}
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_DOMAIN_KEEPER,
-				  ccs_same_domain_keeper_entry);
+				  CCS_ID_TRANSITION_CONTROL,
+				  ccs_same_transition_control_entry);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
@@ -374,65 +264,84 @@ static int ccs_update_domain_keeper_entry(const char *domainname,
 }
 
 /**
- * ccs_write_domain_keeper - Write "struct ccs_domain_keeper" list.
+ * ccs_write_transition_control - Write "struct ccs_transition_control" list.
  *
  * @data:      String to parse.
  * @is_delete: True if it is a delete request.
+ * @type:      Type of this entry.
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_domain_keeper(char *data, const bool is_delete, const u8 flags)
+int ccs_write_transition_control(char *data, const bool is_delete,
+				 const u8 type)
 {
 	char *domainname = strstr(data, " from ");
 	if (domainname) {
 		*domainname = '\0';
 		domainname += 6;
-	} else {
+	} else if (type == CCS_TRANSITION_CONTROL_NO_KEEP ||
+		   type == CCS_TRANSITION_CONTROL_KEEP) {
 		domainname = data;
 		data = NULL;
 	}
-	return ccs_update_domain_keeper_entry(domainname, data, flags,
-					      is_delete);
+	return ccs_update_transition_control_entry(domainname, data, type,
+						   is_delete);
 }
 
 /**
- * ccs_domain_keeper - Check whether the given program causes domain transition suppression.
+ * ccs_transition_type - Get domain transition type.
  *
  * @domainname: The name of domain.
  * @program:    The name of program.
- * @last_name:  The last component of @domainname.
  *
- * Returns true if executing @program supresses domain transition,
- * false otherwise.
+ * Returns CCS_TRANSITION_CONTROL_INITIALIZE if executing @program
+ * reinitializes domain transition, CCS_TRANSITION_CONTROL_KEEP if executing
+ * @program suppresses domain transition, others otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static bool ccs_domain_keeper(const struct ccs_path_info *domainname,
-				 const struct ccs_path_info *program,
-				 const struct ccs_path_info *last_name)
+static u8 ccs_transition_type(const struct ccs_path_info *domainname,
+			      const struct ccs_path_info *program)
 {
-	struct ccs_domain_keeper *ptr;
-	bool flag = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_DOMAIN_KEEPER],
-				head.list) {
-		if (ptr->head.is_deleted)
-			continue;
-		if (!ptr->is_last_name) {
-			if (ptr->domainname != domainname)
+	const struct ccs_transition_control *ptr;
+	const char *last_name = ccs_last_word(domainname->name);
+	u8 type;
+	for (type = 0; type < CCS_MAX_TRANSITION_TYPE; type++) {
+ next:
+		list_for_each_entry_rcu(ptr, &ccs_policy_list
+					[CCS_ID_TRANSITION_CONTROL],
+					head.list) {
+			if (ptr->head.is_deleted || ptr->type != type)
 				continue;
-		} else {
-			if (ccs_pathcmp(ptr->domainname, last_name))
+			if (ptr->domainname) {
+				if (!ptr->is_last_name) {
+					if (ptr->domainname != domainname)
+						continue;
+				} else {
+					/*
+					 * Use direct strcmp() since this is
+					 * unlikely used.
+					 */
+					if (strcmp(ptr->domainname->name,
+						   last_name))
+						continue;
+				}
+			}
+			if (ptr->program && ccs_pathcmp(ptr->program, program))
 				continue;
+			if (type == CCS_TRANSITION_CONTROL_NO_INITIALIZE) {
+				/*
+				 * Do not check for initialize_domain if
+				 * no_initialize_domain matched.
+				 */
+				type = CCS_TRANSITION_CONTROL_NO_KEEP;
+				goto next;
+			}
+			goto done;
 		}
-		if (ptr->program && ccs_pathcmp(ptr->program, program))
-			continue;
-		if (ptr->is_not) {
-			flag = false;
-			break;
-		}
-		flag = true;
 	}
-	return flag;
+ done:
+	return type;
 }
 
 static bool ccs_same_aggregator_entry(const struct ccs_acl_head *a,
@@ -484,7 +393,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_aggregator(char *data, const bool is_delete, const u8 flags)
+int ccs_write_aggregator(char *data, const bool is_delete)
 {
 	char *w[2];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
@@ -583,17 +492,13 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	const struct ccs_path_info *handler = ee->handler;
 	struct ccs_domain_info *domain = NULL;
 	struct ccs_domain_info * const old_domain = ccs_current_domain();
-	const char *old_domain_name = old_domain->domainname->name;
 	struct linux_binprm *bprm = ee->bprm;
 	struct task_struct *task = current;
 	const u32 ccs_flags = task->ccs_flags;
 	struct ccs_path_info rn = { }; /* real name */
-	struct ccs_path_info ln; /* last name */
 	int retval;
 	bool need_kfree = false;
 	bool domain_created = false;
-	ln.name = ccs_last_word(old_domain_name);
-	ccs_fill_path_info(&ln);
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
@@ -644,24 +549,31 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	}
 
 	/* Calculate domain to transit to. */
-	if (ccs_domain_initializer(old_domain->domainname, &rn, &ln)) {
+	switch (ccs_transition_type(old_domain->domainname, &rn)) {
+	case CCS_TRANSITION_CONTROL_INITIALIZE:
 		/* Transit to the child of ccs_kernel_domain domain. */
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, CCS_ROOT_NAME " " "%s",
 			 rn.name);
-	} else if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
-		/*
-		 * Needn't to transit from kernel domain before starting
-		 * /sbin/init. But transit from kernel domain if executing
-		 * initializers because they might start before /sbin/init.
-		 */
-		domain = old_domain;
-	} else if (ccs_domain_keeper(old_domain->domainname, &rn, &ln)) {
+		break;
+	case CCS_TRANSITION_CONTROL_KEEP:
 		/* Keep current domain. */
 		domain = old_domain;
-	} else {
-		/* Normal domain transition. */
-		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
-			 old_domain_name, rn.name);
+		break;
+	default:
+		if (old_domain == &ccs_kernel_domain && !ccs_policy_loaded) {
+			/*
+			 * Needn't to transit from kernel domain before
+			 * starting /sbin/init. But transit from kernel domain
+			 * if executing initializers because they might start
+			 * before /sbin/init.
+			 */
+			domain = old_domain;
+		} else {
+			/* Normal domain transition. */
+			snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1, "%s %s",
+				 old_domain->domainname->name, rn.name);
+		}
+		break;
 	}
 	if (domain || strlen(ee->tmp) >= CCS_EXEC_TMPSIZE - 10)
 		goto done;
@@ -1123,8 +1035,8 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	/*
-	 * Don't use execute handler if the current process is
-	 * marked as execute handler to avoid infinite execute handler loop.
+	 * To avoid infinite execute handler loop, don't use execute handler
+	 * if the current process is marked as execute handler .
 	 */
 	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
@@ -1139,7 +1051,8 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 		r->cond = ptr->cond;
 		return true;
 	}
-	if (domain != &ccs_global_domain && !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
+	if (domain != &ccs_global_domain &&
+	    !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
 		domain = &ccs_global_domain;
 		goto retry;
 	}
