@@ -54,8 +54,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 	fprintf(exception_fp, "deny_rewrite %s\n", buffer);
 	flags = rw_flags[rw_loop] | truncate_flags[truncate_loop] |
 		append_flags[append_loop] | create_flags[create_loop];
-	for (i = 1; i < 8; i++)
-		fprintf(domain_fp, "delete %d %s\n", i, buffer);
+	fprintf(domain_fp, "delete allow_read %s\n", buffer);
+	fprintf(domain_fp, "delete allow_write %s\n", buffer);
+	fprintf(domain_fp, "delete allow_execute %s\n", buffer);
 	for (level = 0; level < 4; level++) {
 		set_level(0);
 		if (create_loop == 1)
@@ -84,8 +85,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		  fprintf(stderr, "%d: open(%04o) failed\n", level, flags);
 		*/
 	}
-	for (i = 1; i < 8; i++)
-		fprintf(domain_fp, "delete %d %s\n", i, buffer);
+	fprintf(domain_fp, "delete allow_read %s\n", buffer);
+	fprintf(domain_fp, "delete allow_write %s\n", buffer);
+	fprintf(domain_fp, "delete allow_execute %s\n", buffer);
 	fprintf(domain_fp, "delete allow_truncate %s\n", buffer);
 	fprintf(domain_fp, "delete allow_create %s 0644\n", buffer);
 	fprintf(domain_fp, "delete allow_rewrite %s\n", buffer);
