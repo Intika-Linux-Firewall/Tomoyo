@@ -717,7 +717,8 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 	if (!e.manager)
 		return error;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_MANAGER, ccs_same_manager_entry);
+				  &ccs_policy_list[CCS_ID_MANAGER],
+				  ccs_same_manager_entry);
 	ccs_put_name(e.manager);
 	return error;
 }
@@ -1262,7 +1263,7 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 		    && (perm & (1 << CCS_TYPE_READ_WRITE)))
 			continue;
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", ccs_path2keyword(bit)) ||
+		if (!ccs_io_printf(head, "allow_%s", ccs_path_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_condition(head, ptr->head.cond)) {
 			head->read_bit = bit;
@@ -1275,26 +1276,25 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_number3_acl - Print a path_number3 ACL entry.
+ * ccs_print_mkdev_acl - Print a mkdev ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_number3_acl".
+ * @ptr:  Pointer to "struct ccs_mkdev_acl".
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_path_number3_acl(struct ccs_io_buffer *head,
-				       struct ccs_path_number3_acl *ptr)
+static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
+				struct ccs_mkdev_acl *ptr)
 {
 	int pos;
 	u8 bit;
 	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER3_OPERATION;
+	for (bit = head->read_bit; bit < CCS_MAX_MKDEV_OPERATION;
 	     bit++) {
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s",
-				   ccs_path_number32keyword(bit)) ||
+		if (!ccs_io_printf(head, "allow_%s", ccs_mkdev_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->mode) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
@@ -1327,8 +1327,7 @@ static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s",
-				   ccs_path22keyword(bit)) ||
+		if (!ccs_io_printf(head, "allow_%s", ccs_path2_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
 		    !ccs_print_name_union(head, &ptr->name2) ||
 		    !ccs_print_condition(head, ptr->head.cond)) {
@@ -1361,7 +1360,7 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
 			continue;
 		pos = head->read_avail;
 		if (!ccs_io_printf(head, "allow_%s",
-				   ccs_path_number2keyword(bit)) ||
+				   ccs_path_number_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->number) ||
 		    !ccs_print_condition(head, ptr->head.cond)) {
@@ -1452,7 +1451,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 			break;
 		}
 		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s %s%s",
-				   ccs_net2keyword(bit), w[0], w[1]) ||
+				   ccs_net_keyword[bit], w[0], w[1]) ||
 		    !ccs_print_number_union(head, &ptr->port) ||
 		    !ccs_print_condition(head, ptr->head.cond))
 			goto out;
@@ -1562,10 +1561,10 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	}
 	if (head->read_execute_only)
 		return true;
-	if (acl_type == CCS_TYPE_PATH_NUMBER3_ACL) {
-		struct ccs_path_number3_acl *acl
+	if (acl_type == CCS_TYPE_MKDEV_ACL) {
+		struct ccs_mkdev_acl *acl
 			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_path_number3_acl(head, acl);
+		return ccs_print_mkdev_acl(head, acl);
 	}
 	if (acl_type == CCS_TYPE_PATH2_ACL) {
 		struct ccs_path2_acl *acl
@@ -1824,11 +1823,11 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 }
 
 static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
 	[CCS_TRANSITION_CONTROL_NO_INITIALIZE]
 	= CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
-	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN,
-	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN
+	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
+	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN,
+	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN
 };
 
 static const char *ccs_group_name[CCS_MAX_GROUP] = {

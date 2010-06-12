@@ -52,6 +52,7 @@ static bool ccs_same_address_group(const struct ccs_acl_head *a,
 int ccs_write_group(char *data, const bool is_delete, const u8 type)
 {
 	struct ccs_group *group;
+	struct list_head *member;
 	char *w[2];
 	int error = -EINVAL;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
@@ -59,6 +60,7 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
 	group = ccs_get_group(w[0], type);
 	if (!group)
 		return -ENOMEM;
+	member = &group->member_list;
 	if (type == CCS_PATH_GROUP) {
 		struct ccs_path_group e = { };
 		e.member_name = ccs_get_name(w[1]);
@@ -66,16 +68,16 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
 			error = -ENOMEM;
 			goto out;
 		}
-		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_same_path_group);
+		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
+					  member, ccs_same_path_group);
 		ccs_put_name(e.member_name);
 	} else if (type == CCS_NUMBER_GROUP) {
 		struct ccs_number_group e = { };
 		if (w[1][0] == '@' || !ccs_parse_number_union(w[1], &e.number)
 		    || e.number.values[0] > e.number.values[1])
 			goto out;
-		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_same_number_group);
+		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
+					  member, ccs_same_number_group);
 		/*
 		 * ccs_put_number_union() is not needed because w[1][0] != '@'.
 		 */
@@ -100,8 +102,8 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
 		default:
 			goto out_address;
 		}
-		error = ccs_update_group(&e.head, sizeof(e), is_delete, group,
-					 ccs_same_address_group);
+		error = ccs_update_policy(&e.head, sizeof(e), is_delete,
+					  member, ccs_same_address_group);
  out_address:
 		if (e.is_ipv6) {
 			ccs_put_ipv6_address(e.min.ipv6);

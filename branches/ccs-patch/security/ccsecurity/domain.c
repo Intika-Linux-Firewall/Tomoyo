@@ -70,16 +70,29 @@ static int ccs_audit_domain_creation_log(void)
 	return ccs_write_log(&r, "use_profile %u\n", r.profile);
 }
 
+/**
+ * ccs_update_policy - Update an entry for exception policy.
+ *
+ * @new_entry:       Pointer to "struct ccs_acl_info".
+ * @size:            Size of @new_entry in bytes.
+ * @is_delete:       True if it is a delete request.
+ * @list:            Pointer to "struct list_head".
+ * @check_duplicate: Callback function to find duplicated entry.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
 int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
-		      bool is_delete, const int idx, bool (*check_duplicate)
-		      (const struct ccs_acl_head *,
-		       const struct ccs_acl_head *))
+		      bool is_delete, struct list_head *list,
+		      bool (*check_duplicate) (const struct ccs_acl_head *,
+					       const struct ccs_acl_head *))
 {
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	struct ccs_acl_head *entry;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return -ENOMEM;
-	list_for_each_entry_rcu(entry, &ccs_policy_list[idx], list) {
+	list_for_each_entry_rcu(entry, list, list) {
 		if (!check_duplicate(entry, new_entry))
 			continue;
 		entry->is_deleted = is_delete;
@@ -89,34 +102,7 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 	if (error && !is_delete) {
 		entry = ccs_commit_ok(new_entry, size);
 		if (entry) {
-			list_add_tail_rcu(&entry->list, &ccs_policy_list[idx]);
-			error = 0;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	return error;
-}
-
-int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
-		     bool is_delete, struct ccs_group *group,
-		     bool (*check_duplicate) (const struct ccs_acl_head *,
-					      const struct ccs_acl_head *))
-{
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	struct ccs_acl_head *entry;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		return -ENOMEM;
-	list_for_each_entry_rcu(entry, &group->member_list, list) {
-		if (!check_duplicate(entry, new_entry))
-			continue;
-		entry->is_deleted = is_delete;
-		error = 0;
-		break;
-	}
-	if (!is_delete && error) {
-		entry = ccs_commit_ok(new_entry, size);
-		if (entry) {
-			list_add_tail_rcu(&entry->list, &group->member_list);
+			list_add_tail_rcu(&entry->list, list);
 			error = 0;
 		}
 	}
@@ -133,6 +119,20 @@ static void ccs_delete_type(struct ccs_domain_info *domain, u8 type)
 	}
 }
 
+/**
+ * ccs_update_domain - Update an entry for domain policy.
+ *
+ * @new_entry:       Pointer to "struct ccs_acl_info".
+ * @size:            Size of @new_entry in bytes.
+ * @is_delete:       True if it is a delete request.
+ * @domain:          Pointer to "struct ccs_domain_info".
+ * @check_duplicate: Callback function to find duplicated entry.
+ * @merge_duplicate: Callback function to merge duplicated entry.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
 int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      bool is_delete, struct ccs_domain_info *domain,
 		      bool (*check_duplicate) (const struct ccs_acl_info *,
@@ -171,7 +171,10 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		if (entry) {
 			if (exclusive)
 				ccs_delete_type(domain, type);
-			ccs_add_domain_acl(domain, entry);
+			if (entry->cond)
+				atomic_inc(&entry->cond->head.users);
+			list_add_tail_rcu(&entry->list,
+					  &domain->acl_info_list);
 			error = 0;
 		}
 	}
@@ -255,7 +258,7 @@ static int ccs_update_transition_control_entry(const char *domainname,
 			goto out;
 	}
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_TRANSITION_CONTROL,
+				  &ccs_policy_list[CCS_ID_TRANSITION_CONTROL],
 				  ccs_same_transition_control_entry);
  out:
 	ccs_put_name(e.domainname);
@@ -377,7 +380,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 	    e.aggregated_name->is_patterned) /* No patterns allowed. */
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  CCS_ID_AGGREGATOR,
+				  &ccs_policy_list[CCS_ID_AGGREGATOR],
 				  ccs_same_aggregator_entry);
  out:
 	ccs_put_name(e.original_name);

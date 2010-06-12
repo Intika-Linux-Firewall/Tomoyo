@@ -209,9 +209,27 @@ static size_t ccs_del_acl(struct list_head *element)
 			ccs_put_name_union(&entry->name);
 		}
 		break;
-	case CCS_TYPE_PATH_NUMBER3_ACL:
+	case CCS_TYPE_PATH2_ACL:
 		{
-			struct ccs_path_number3_acl *entry;
+			struct ccs_path2_acl *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name_union(&entry->name1);
+			ccs_put_name_union(&entry->name2);
+		}
+		break;
+	case CCS_TYPE_PATH_NUMBER_ACL:
+		{
+			struct ccs_path_number_acl *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name_union(&entry->name);
+			ccs_put_number_union(&entry->number);
+		}
+		break;
+	case CCS_TYPE_MKDEV_ACL:
+		{
+			struct ccs_mkdev_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name_union(&entry->name);
@@ -220,13 +238,15 @@ static size_t ccs_del_acl(struct list_head *element)
 			ccs_put_number_union(&entry->minor);
 		}
 		break;
-	case CCS_TYPE_PATH2_ACL:
+	case CCS_TYPE_MOUNT_ACL:
 		{
-			struct ccs_path2_acl *entry;
+			struct ccs_mount_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name1);
-			ccs_put_name_union(&entry->name2);
+			ccs_put_name_union(&entry->dev_name);
+			ccs_put_name_union(&entry->dir_name);
+			ccs_put_name_union(&entry->fs_type);
+			ccs_put_number_union(&entry->flags);
 		}
 		break;
 	case CCS_TYPE_IP_NETWORK_ACL:
@@ -244,15 +264,6 @@ static size_t ccs_del_acl(struct list_head *element)
 				break;
 			}
 			ccs_put_number_union(&entry->port);
-		}
-		break;
-	case CCS_TYPE_PATH_NUMBER_ACL:
-		{
-			struct ccs_path_number_acl *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->name);
-			ccs_put_number_union(&entry->number);
 		}
 		break;
 	case CCS_TYPE_ENV_ACL:
@@ -285,17 +296,6 @@ static size_t ccs_del_acl(struct list_head *element)
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name(entry->handler);
-		}
-		break;
-	case CCS_TYPE_MOUNT_ACL:
-		{
-			struct ccs_mount_acl *entry;
-			size = sizeof(*entry);
-			entry = container_of(acl, typeof(*entry), head);
-			ccs_put_name_union(&entry->dev_name);
-			ccs_put_name_union(&entry->dir_name);
-			ccs_put_name_union(&entry->fs_type);
-			ccs_put_number_union(&entry->flags);
 		}
 		break;
 	default:

@@ -81,12 +81,12 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_PATH_ACL,
 	CCS_TYPE_PATH2_ACL,
 	CCS_TYPE_PATH_NUMBER_ACL,
-	CCS_TYPE_PATH_NUMBER3_ACL,
+	CCS_TYPE_MKDEV_ACL,
+	CCS_TYPE_MOUNT_ACL,
 	CCS_TYPE_ENV_ACL,
 	CCS_TYPE_CAPABILITY_ACL,
 	CCS_TYPE_IP_NETWORK_ACL,
 	CCS_TYPE_SIGNAL_ACL,
-	CCS_TYPE_MOUNT_ACL,
 	CCS_TYPE_EXECUTE_HANDLER,
 	CCS_TYPE_DENIED_EXECUTE_HANDLER
 };
@@ -117,10 +117,10 @@ enum ccs_path_acl_index {
 
 #define CCS_RW_MASK ((1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE))
 
-enum ccs_path_number3_acl_index {
+enum ccs_mkdev_acl_index {
 	CCS_TYPE_MKBLOCK,
 	CCS_TYPE_MKCHAR,
-	CCS_MAX_PATH_NUMBER3_OPERATION
+	CCS_MAX_MKDEV_OPERATION
 };
 
 enum ccs_path2_acl_index {
@@ -598,7 +598,7 @@ struct ccs_request_info {
 			unsigned int major;
 			unsigned int minor;
 			u8 operation;
-		} path_number3;
+		} mkdev;
 		struct {
 			const struct ccs_path_info *filename;
 			unsigned long number;
@@ -733,15 +733,6 @@ struct ccs_aggregator {
 	const struct ccs_path_info *aggregated_name;
 };
 
-/* Structure for "allow_mount" keyword. */
-struct ccs_mount_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
-	struct ccs_name_union dev_name;
-	struct ccs_name_union dir_name;
-	struct ccs_name_union fs_type;
-	struct ccs_number_union flags;
-};
-
 /* Structure for "deny_autobind" keyword. */
 struct ccs_reserved {
 	struct ccs_acl_head head;
@@ -806,16 +797,6 @@ struct ccs_path_acl {
 	struct ccs_name_union name;
 };
 
-/* Structure for "allow_mkblock" and "allow_mkchar" directive. */
-struct ccs_path_number3_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER3_ACL */
-	u8 perm; /* Bitmask of values in "enum ccs_path_number3_acl_index" */
-	struct ccs_name_union name;
-	struct ccs_number_union mode;
-	struct ccs_number_union major;
-	struct ccs_number_union minor;
-};
-
 /*
  * Structure for "allow_rename", "allow_link" and "allow_pivot_root" directive.
  */
@@ -835,6 +816,25 @@ struct ccs_path_number_acl {
 	u8 perm; /* Bitmask of values in "enum ccs_path_number_acl_index" */
 	struct ccs_name_union name;
 	struct ccs_number_union number;
+};
+
+/* Structure for "allow_mkblock" and "allow_mkchar" directive. */
+struct ccs_mkdev_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_MKDEV_ACL */
+	u8 perm; /* Bitmask of values in "enum ccs_mkdev_acl_index" */
+	struct ccs_name_union name;
+	struct ccs_number_union mode;
+	struct ccs_number_union major;
+	struct ccs_number_union minor;
+};
+
+/* Structure for "allow_mount" keyword. */
+struct ccs_mount_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
+	struct ccs_name_union dev_name;
+	struct ccs_name_union dir_name;
+	struct ccs_name_union fs_type;
+	struct ccs_number_union flags;
 };
 
 /* Structure for "allow_env" directive in domain policy. */
@@ -1021,11 +1021,6 @@ const char *ccs_cap2keyword(const u8 operation);
 const char *ccs_file_pattern(const struct ccs_path_info *filename);
 const char *ccs_get_exe(void);
 const char *ccs_last_word(const char *name);
-const char *ccs_net2keyword(const u8 operation);
-const char *ccs_path22keyword(const u8 operation);
-const char *ccs_path2keyword(const u8 operation);
-const char *ccs_path_number2keyword(const u8 operation);
-const char *ccs_path_number32keyword(const u8 operation);
 const struct ccs_path_info *ccs_get_name(const char *name);
 const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_close_control(struct file *file);
@@ -1054,12 +1049,8 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		      bool (*merge_duplicate) (struct ccs_acl_info *,
 					       struct ccs_acl_info *,
 					       const bool));
-int ccs_update_group(struct ccs_acl_head *new_entry, const int size,
-		     bool is_delete, struct ccs_group *group,
-		     bool (*check_duplicate) (const struct ccs_acl_head *,
-					      const struct ccs_acl_head *));
 int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
-		      bool is_delete, const int idx,
+		      bool is_delete, struct list_head *list,
 		      bool (*check_duplicate) (const struct ccs_acl_head *,
 					       const struct ccs_acl_head *));
 int ccs_write_aggregator(char *data, const bool is_delete);
@@ -1160,6 +1151,11 @@ extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_global_domain;
 extern struct ccs_domain_info ccs_kernel_domain;
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
+extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
+extern const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION];
+extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
+extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
+extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];
 extern const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX];
 extern unsigned int ccs_log_memory_size;
 extern unsigned int ccs_quota_for_log;
@@ -1264,14 +1260,6 @@ static inline struct ccs_domain_info *ccs_current_domain(void)
 	if (!task->ccs_domain_info)
 		task->ccs_domain_info = &ccs_kernel_domain;
 	return task->ccs_domain_info;
-}
-
-static inline void ccs_add_domain_acl(struct ccs_domain_info *domain,
-				      struct ccs_acl_info *acl)
-{
-	if (acl->cond)
-		atomic_inc(&acl->cond->head.users);
-	list_add_tail_rcu(&acl->list, &domain->acl_info_list);
 }
 
 #if defined(CONFIG_SLOB)

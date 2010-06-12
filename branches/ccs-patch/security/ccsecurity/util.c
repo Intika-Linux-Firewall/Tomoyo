@@ -1062,10 +1062,10 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 				if (perm & (1 << i))
 					count++;
 			break;
-		case CCS_TYPE_PATH_NUMBER3_ACL:
-			perm = container_of(ptr, struct ccs_path_number3_acl,
+		case CCS_TYPE_MKDEV_ACL:
+			perm = container_of(ptr, struct ccs_mkdev_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_PATH_NUMBER3_OPERATION; i++)
+			for (i = 0; i < CCS_MAX_MKDEV_OPERATION; i++)
 				if (perm & (1 << i))
 					count++;
 			break;

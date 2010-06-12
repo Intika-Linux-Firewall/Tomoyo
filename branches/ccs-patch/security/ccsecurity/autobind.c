@@ -54,9 +54,10 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 		.min_port = min_port,
 		.max_port = max_port
 	};
-	const int error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-					    CCS_ID_RESERVEDPORT,
-					    ccs_same_reserved_entry);
+	const int error =
+		ccs_update_policy(&e.head, sizeof(e), is_delete,
+				  &ccs_policy_list[CCS_ID_RESERVEDPORT],
+				  ccs_same_reserved_entry);
 	u8 *ccs_tmp_map;
 	if (error)
 		return error;

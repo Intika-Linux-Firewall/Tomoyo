@@ -19,6 +19,17 @@
 #include <net/udp.h>
 #include "internal.h"
 
+const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
+	[CCS_NETWORK_UDP_BIND] = "UDP bind",
+	[CCS_NETWORK_UDP_CONNECT] = "UDP connect",
+	[CCS_NETWORK_TCP_BIND] = "TCP bind",
+	[CCS_NETWORK_TCP_LISTEN] = "TCP listen",
+	[CCS_NETWORK_TCP_CONNECT] = "TCP connect",
+	[CCS_NETWORK_TCP_ACCEPT] = "TCP accept",
+	[CCS_NETWORK_RAW_BIND] = "RAW bind",
+	[CCS_NETWORK_RAW_CONNECT] = "RAW connect"
+};
+
 /**
  * ccs_audit_network_log - Audit network log.
  *
@@ -29,7 +40,7 @@
 static int ccs_audit_network_log(struct ccs_request_info *r)
 {
 	char buf[128];
-	const char *operation = ccs_net2keyword(r->param.network.operation);
+	const char *operation = ccs_net_keyword[r->param.network.operation];
 	const u32 *address = r->param.network.address;
 	const u16 port = r->param.network.port;
 	if (r->param.network.is_ipv6)
@@ -139,45 +150,6 @@ void ccs_print_ipv6(char *buffer, const int buffer_len,
 		 "%x:%x:%x:%x:%x:%x:%x:%x%c%x:%x:%x:%x:%x:%x:%x:%x",
 		 NIP6(*min_ip), min_ip == max_ip ? '\0' : '-',
 		 NIP6(*max_ip));
-}
-
-/**
- * ccs_net2keyword - Convert network operation index to network operation name.
- *
- * @operation: Type of operation.
- *
- * Returns the name of operation.
- */
-const char *ccs_net2keyword(const u8 operation)
-{
-	const char *keyword = "unknown";
-	switch (operation) {
-	case CCS_NETWORK_UDP_BIND:
-		keyword = "UDP bind";
-		break;
-	case CCS_NETWORK_UDP_CONNECT:
-		keyword = "UDP connect";
-		break;
-	case CCS_NETWORK_TCP_BIND:
-		keyword = "TCP bind";
-		break;
-	case CCS_NETWORK_TCP_LISTEN:
-		keyword = "TCP listen";
-		break;
-	case CCS_NETWORK_TCP_CONNECT:
-		keyword = "TCP connect";
-		break;
-	case CCS_NETWORK_TCP_ACCEPT:
-		keyword = "TCP accept";
-		break;
-	case CCS_NETWORK_RAW_BIND:
-		keyword = "RAW bind";
-		break;
-	case CCS_NETWORK_RAW_CONNECT:
-		keyword = "RAW connect";
-		break;
-	}
-	return keyword;
 }
 
 static bool ccs_check_network_acl(const struct ccs_request_info *r,

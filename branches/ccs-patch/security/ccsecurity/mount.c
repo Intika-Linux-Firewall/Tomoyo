@@ -288,6 +288,8 @@ static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
  * @is_delete: True if it is a delete request.
  *
  * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
  */
 int ccs_write_mount(char *data, struct ccs_domain_info *domain,
 		    struct ccs_condition *condition, const bool is_delete)
