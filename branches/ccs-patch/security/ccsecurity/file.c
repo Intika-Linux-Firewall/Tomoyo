@@ -567,7 +567,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
  */
 static int ccs_audit_path2_log(struct ccs_request_info *r)
 {
-	const char *operation = ccs_path_keyword[r->param.path2.operation];
+	const char *operation = ccs_path2_keyword[r->param.path2.operation];
 	const struct ccs_path_info *filename1 = r->param.path2.filename1;
 	const struct ccs_path_info *filename2 = r->param.path2.filename2;
 	ccs_write_log(r, "allow_%s %s %s\n", operation, filename1->name,
