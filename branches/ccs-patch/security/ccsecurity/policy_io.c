@@ -332,9 +332,9 @@ static s8 ccs_find_yesno(const char *string, const char *find)
 	const char *cp = strstr(string, find);
 	if (cp) {
 		cp += strlen(find);
-		if (strncmp(cp, "=yes", 4))
+		if (!strncmp(cp, "=yes", 4))
 			return 1;
-		else if (strncmp(cp, "=no", 3))
+		else if (!strncmp(cp, "=no", 3))
 			return 0;
 	}
 	return -1;
@@ -359,41 +359,41 @@ static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 		sscanf(cp + strlen(find), "=%u", i);
 }
 
-static void ccs_set_pref(const char *cp, const char *data,
-			 struct ccs_profile *profile, const bool use_default)
+static void ccs_set_pref(const char *name, const char *value,
+			 const bool use_default, struct ccs_profile *profile)
 {
 	struct ccs_preference **pref;
 	bool *verbose;
-	if (!strcmp(data, "audit")) {
+	if (!strcmp(name, "audit")) {
 		if (use_default) {
 			pref = &profile->audit;
 			goto set_default;
 		}
 		profile->audit = &profile->preference;
 #ifdef CONFIG_CCSECURITY_AUDIT
-		ccs_set_uint(&profile->preference.audit_max_grant_log, cp,
+		ccs_set_uint(&profile->preference.audit_max_grant_log, value,
 			     "max_grant_log");
-		ccs_set_uint(&profile->preference.audit_max_reject_log, cp,
+		ccs_set_uint(&profile->preference.audit_max_reject_log, value,
 			     "max_reject_log");
 #endif
-		ccs_set_bool(&profile->preference.audit_task_info, cp,
+		ccs_set_bool(&profile->preference.audit_task_info, value,
 			     "task_info");
-		ccs_set_bool(&profile->preference.audit_path_info, cp, 
+		ccs_set_bool(&profile->preference.audit_path_info, value,
 			     "path_info");
 		return;
 	}
-	if (!strcmp(data, "enforcing")) {
+	if (!strcmp(name, "enforcing")) {
 		if (use_default) {
 			pref = &profile->enforcing;
 			goto set_default;
 		}
 		profile->enforcing = &profile->preference;
-		ccs_set_uint(&profile->preference.enforcing_penalty, cp,
+		ccs_set_uint(&profile->preference.enforcing_penalty, value,
 			     "penalty");
 		verbose = &profile->preference.enforcing_verbose;
 		goto set_verbose;
 	}
-	if (!strcmp(data, "permissive")) {
+	if (!strcmp(name, "permissive")) {
 		if (use_default) {
 			pref = &profile->permissive;
 			goto set_default;
@@ -402,20 +402,20 @@ static void ccs_set_pref(const char *cp, const char *data,
 		verbose = &profile->preference.permissive_verbose;
 		goto set_verbose;
 	}
-	if (!strcmp(data, "learning")) {
+	if (!strcmp(name, "learning")) {
 		if (use_default) {
 			pref = &profile->learning;
 			goto set_default;
 		}
 		profile->learning = &profile->preference;
-		ccs_set_uint(&profile->preference.learning_max_entry, cp,
+		ccs_set_uint(&profile->preference.learning_max_entry, value,
 			     "max_entry");
-		ccs_set_bool(&profile->preference.learning_exec_realpath, cp,
-			     "exec.realpath");
-		ccs_set_bool(&profile->preference.learning_exec_argv0, cp,
+		ccs_set_bool(&profile->preference.learning_exec_realpath,
+			     value, "exec.realpath");
+		ccs_set_bool(&profile->preference.learning_exec_argv0, value,
 			     "exec.argv0");
-		ccs_set_bool(&profile->preference.learning_symlink_target, cp,
-			     "symlink.target");
+		ccs_set_bool(&profile->preference.learning_symlink_target,
+			     value, "symlink.target");
 		verbose = &profile->preference.learning_verbose;
 		goto set_verbose;
 	}
@@ -424,23 +424,23 @@ static void ccs_set_pref(const char *cp, const char *data,
 	*pref = &ccs_default_profile.preference;
 	return;
  set_verbose:
-	ccs_set_bool(verbose, cp, "verbose");
+	ccs_set_bool(verbose, value, "verbose");
 }
 
-static int ccs_set_mode(const char *cp, char *data,
-			struct ccs_profile *profile, const bool use_default)
+static int ccs_set_mode(char *name, const char *value, const bool use_default,
+			struct ccs_profile *profile)
 {
 	u8 i;
 	u8 config;
-	if (!strcmp(data, "CONFIG")) {
+	if (!strcmp(name, "CONFIG")) {
 		i = CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 			+ CCS_MAX_MAC_CATEGORY_INDEX;
 		config = profile->default_config;
-	} else if (ccs_str_starts(&data, "CONFIG::")) {
+	} else if (ccs_str_starts(&name, "CONFIG::")) {
 		config = 0;
 		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
-			if (strcmp(data, ccs_mac_keywords[i]))
+			if (strcmp(name, ccs_mac_keywords[i]))
 				continue;
 			config = profile->config[i];
 			break;
@@ -455,8 +455,8 @@ static int ccs_set_mode(const char *cp, char *data,
 		config = CCS_CONFIG_USE_DEFAULT;
 	} else {
 		u8 mode;
-		for (mode = 0; mode < CCS_CONFIG_MAX_MODE; mode--)
-			if (strstr(cp, ccs_mode[mode]))
+		for (mode = 0; mode < CCS_CONFIG_MAX_MODE; mode++)
+			if (strstr(value, ccs_mode[mode]))
 				/*
 				 * Update lower 3 bits in order to distinguish
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
@@ -464,7 +464,7 @@ static int ccs_set_mode(const char *cp, char *data,
 				config = (config & ~7) | mode;
 #ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
-			switch (ccs_find_yesno(cp, "grant_log")) {
+			switch (ccs_find_yesno(value, "grant_log")) {
 			case 1:
 				config |= CCS_CONFIG_WANT_GRANT_LOG;
 				break;
@@ -472,7 +472,7 @@ static int ccs_set_mode(const char *cp, char *data,
 				config &= ~CCS_CONFIG_WANT_GRANT_LOG;
 				break;
 			}
-			switch (ccs_find_yesno(cp, "reject_log")) {
+			switch (ccs_find_yesno(value, "reject_log")) {
 			case 1:
 				config |= CCS_CONFIG_WANT_REJECT_LOG;
 				break;
@@ -525,7 +525,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 	if (profile != &ccs_default_profile)
 		use_default = strstr(cp, "use_default") != NULL;
 	if (ccs_str_starts(&data, "PREFERENCE::")) {
-		ccs_set_pref(cp, data, profile, use_default);
+		ccs_set_pref(data, cp, use_default, profile);
 		return 0;
 	}
 	if (profile == &ccs_default_profile)
@@ -536,7 +536,7 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 		ccs_put_name(old_comment);
 		return 0;
 	}
-	return ccs_set_mode(cp, data, profile, use_default);
+	return ccs_set_mode(data, cp, use_default, profile);
 }
 
 static bool ccs_print_preference(struct ccs_io_buffer *head, const int idx)
