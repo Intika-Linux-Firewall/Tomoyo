@@ -387,8 +387,10 @@ static bool ccs_parse_envp(char *start, struct ccs_envp_entry *envp)
 		value = NULL;
 	} else {
 		value = ccs_get_dqword(start);
-		if (!value)
+		if (!value) {
+			ccs_put_name(name);
 			goto out;
+		}
 	}
 	envp->name = name;
 	envp->is_not = is_not;
