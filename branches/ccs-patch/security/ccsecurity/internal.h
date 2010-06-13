@@ -1079,7 +1079,7 @@ int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 int ccs_write_transition_control(char *data, const bool is_delete,
 				 const u8 type);
 size_t ccs_del_condition(struct list_head *element);
-struct ccs_condition *ccs_get_condition(char * const condition);
+struct ccs_condition *ccs_get_condition(char *condition);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 					  const u8 profile);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);

@@ -1247,7 +1247,7 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_acl(struct ccs_io_buffer *head,
-			       struct ccs_path_acl *ptr)
+			       const struct ccs_path_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1284,7 +1284,7 @@ static bool ccs_print_path_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
-				struct ccs_mkdev_acl *ptr)
+				const struct ccs_mkdev_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1318,7 +1318,7 @@ static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
-				struct ccs_path2_acl *ptr)
+				const struct ccs_path2_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1349,7 +1349,7 @@ static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
-				      struct ccs_path_number_acl *ptr)
+				      const struct ccs_path_number_acl *ptr)
 {
 	int pos;
 	u8 bit;
@@ -1382,7 +1382,7 @@ static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_env_acl(struct ccs_io_buffer *head,
-			      struct ccs_env_acl *ptr)
+			      const struct ccs_env_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name) ||
@@ -1402,7 +1402,7 @@ static bool ccs_print_env_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
-				     struct ccs_capability_acl *ptr)
+				     const struct ccs_capability_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
@@ -1423,14 +1423,14 @@ static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_network_acl(struct ccs_io_buffer *head,
-				  struct ccs_ip_network_acl *ptr)
+				  const struct ccs_ip_network_acl *ptr)
 {
 	int pos;
 	u8 bit;
 	const u8 perm = ptr->perm;
 	char buf[128];
 	for (bit = head->read_bit; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
-		const char *w[2] = { "", "" };
+		const char *w[2] = { buf, "" };
 		if (!(perm & (1 << bit)))
 			continue;
 		pos = head->read_avail;
@@ -1442,12 +1442,10 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 		case CCS_IP_ADDRESS_TYPE_IPv4:
 			ccs_print_ipv4(buf, sizeof(buf), ptr->address.ipv4.min,
 				       ptr->address.ipv4.max);
-			w[0] = buf;
 			break;
 		case CCS_IP_ADDRESS_TYPE_IPv6:
 			ccs_print_ipv6(buf, sizeof(buf), ptr->address.ipv6.min,
 				       ptr->address.ipv6.max);
-			w[0] = buf;
 			break;
 		}
 		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s %s%s",
@@ -1473,7 +1471,7 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
-				 struct ccs_signal_acl *ptr)
+				 const struct ccs_signal_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
@@ -1496,7 +1494,7 @@ static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
  */
 static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
 				      const char *keyword,
-				      struct ccs_execute_handler *ptr)
+				      const struct ccs_execute_handler *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, "%s %s", keyword, ptr->handler->name) ||
@@ -1516,7 +1514,7 @@ static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
-				struct ccs_mount_acl *ptr)
+				const struct ccs_mount_acl *ptr)
 {
 	const int pos = head->read_avail;
 	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT) ||
@@ -1540,7 +1538,7 @@ static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
  * Returns true on success, false otherwise.
  */
 static bool ccs_print_entry(struct ccs_io_buffer *head,
-			    struct ccs_acl_info *ptr)
+			    const struct ccs_acl_info *ptr)
 {
 	const u8 acl_type = ptr->type;
 	if (ptr->is_deleted)
@@ -1900,11 +1898,11 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 				list_entry(mpos, struct ccs_acl_head, list);
 			if (ptr->is_deleted)
 				continue;
+			w[2] = buffer;
 			if (idx == CCS_PATH_GROUP) {
 				w[2] = container_of(ptr, struct ccs_path_group,
 						    head)->member_name->name;
 			} else if (idx == CCS_NUMBER_GROUP) {
-				w[2] = buffer;
 				ccs_print_number(buffer, sizeof(buffer),
 						 &container_of
 						 (ptr, struct ccs_number_group,
@@ -1913,7 +1911,6 @@ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
 				struct ccs_address_group *member =
 					container_of(ptr, typeof(*member),
 						     head);
-				w[2] = buffer;
 				if (member->is_ipv6)
 					ccs_print_ipv6(buffer, sizeof(buffer),
 						       member->min.ipv6,
@@ -2043,59 +2040,6 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 	head->read = ccs_read_global_domain;
 }
 
-/**
- * ccs_get_argv0 - Get argv[0].
- *
- * @ee: Pointer to "struct ccs_execve".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_get_argv0(struct ccs_execve *ee)
-{
-	struct linux_binprm *bprm = ee->bprm;
-	char *arg_ptr = ee->tmp;
-	int arg_len = 0;
-	unsigned long pos = bprm->p;
-	int offset = pos % PAGE_SIZE;
-	bool done = false;
-	if (!bprm->argc)
-		goto out;
-	while (1) {
-		if (!ccs_dump_page(bprm, pos, &ee->dump))
-			goto out;
-		pos += PAGE_SIZE - offset;
-		/* Read. */
-		while (offset < PAGE_SIZE) {
-			const char *kaddr = ee->dump.data;
-			const unsigned char c = kaddr[offset++];
-			if (c && arg_len < CCS_EXEC_TMPSIZE - 10) {
-				if (c == '\\') {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = '\\';
-				} else if (c > ' ' && c < 127) {
-					arg_ptr[arg_len++] = c;
-				} else {
-					arg_ptr[arg_len++] = '\\';
-					arg_ptr[arg_len++] = (c >> 6) + '0';
-					arg_ptr[arg_len++]
-						= ((c >> 3) & 7) + '0';
-					arg_ptr[arg_len++] = (c & 7) + '0';
-				}
-			} else {
-				arg_ptr[arg_len] = '\0';
-				done = true;
-				break;
-			}
-		}
-		offset = 0;
-		if (done)
-			break;
-	}
-	return true;
- out:
-	return false;
-}
-
 /* Wait queue for ccs_query_list. */
 static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
 
@@ -2126,7 +2070,14 @@ static void ccs_addprintf(char *buffer, int len, const char *fmt, ...)
 	vsnprintf(buffer + pos, len - pos - 1, fmt, args);
 	va_end(args);
 }
-			
+
+static void ccs_truncate(char *str)
+{
+	while (* (unsigned char *) str > (unsigned char) ' ')
+		str++;
+	*str = '\0';
+}
+
 /**
  * ccs_supervisor - Ask for the supervisor's decision.
  *
@@ -2156,70 +2107,69 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		char *buffer;
 		char *realpath = NULL;
 		char *argv0 = NULL;
-		const char *symlink = NULL;
+		char *symlink = NULL;
+		char *handler = NULL;
 		const struct ccs_preference *pref;
 		if (!ccs_domain_quota_ok(r))
 			return 0;
+		header = ccs_init_log(&len, r);
+		if (!header)
+			return 0;
 		pref = ccs_profile(r->profile)->learning;
+		/* strstr() will return NULL if ordering is wrong. */
 		if (r->param_type == CCS_TYPE_PATH_ACL &&
 		    r->param.path.operation == CCS_TYPE_EXECUTE) {
-			if (pref->learning_exec_realpath) {
-				struct file *file = r->ee->bprm->file;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-				struct path path = { file->f_vfsmnt,
-						     file->f_dentry };
-				realpath = ccs_realpath_from_path(&path);
-#else
-				realpath = ccs_realpath_from_path(&file->
-								  f_path);
-#endif
-				if (realpath)
-					len += strlen(realpath);
-			}
 			if (pref->learning_exec_argv0) {
-				if (ccs_get_argv0(r->ee)) {
-					argv0 = r->ee->tmp;
-					len += strlen(argv0);
+				argv0 = strstr(header, " argv[]={ \"");
+				if (argv0) {
+					argv0 += 10;
+					ccs_truncate(argv0);
 				}
 			}
+			if (pref->learning_exec_realpath) {
+				realpath = strstr(header,
+						  " exec={ realpath=\"");
+				if (realpath) {
+					realpath += 8;
+					ccs_truncate(realpath);
+				}
+			}
+		} else if (r->param_type == CCS_TYPE_PATH_ACL &&
+			   r->param.path.operation == CCS_TYPE_SYMLINK &&
+			   pref->learning_symlink_target) {
+			symlink = strstr(header, " symlink.target=\"");
+			if (symlink)
+				ccs_truncate(symlink + 1);
 		}
-		if (r->param_type == CCS_TYPE_PATH_ACL &&
-		    r->param.path.operation == CCS_TYPE_SYMLINK &&
-		    pref->learning_symlink_target) {
-			symlink = r->obj->symlink_target->name;
-			len += strlen(symlink);
-		}
+		handler = strstr(header, "type=execute_handler");
+		if (handler)
+			ccs_truncate(handler);
 		buffer = kmalloc(len, CCS_GFP_FLAGS);
 		if (buffer) {
-			const bool handler = (current->ccs_flags &
-					      CCS_TASK_IS_EXECUTE_HANDLER)
-				!= 0;
 			va_start(args, fmt);
 			vsnprintf(buffer, len - 1, fmt, args);
 			va_end(args);
 			if (handler || realpath || argv0 || symlink) {
 				ccs_addprintf(buffer, len, " if");
 				if (handler)
-					ccs_addprintf(buffer, len, " task.type"
-						      "=execute_handler");
+					ccs_addprintf(buffer, len, " task.%s",
+						      handler);
 				if (realpath)
-					ccs_addprintf(buffer, len,
-						      " exec.realpath=\"%s\"",
+					ccs_addprintf(buffer, len, " exec.%s",
 						      realpath);
 				if (argv0)
 					ccs_addprintf(buffer, len,
-						      " exec.argv[0]=\"%s\"",
+						      " exec.argv[0]=%s",
 						      argv0);
 				if (symlink)
-					ccs_addprintf(buffer, len,
-						      " symlink.target=\"%s\"",
+					ccs_addprintf(buffer, len, "%s",
 						      symlink);
 			}
 			ccs_normalize_line(buffer);
 			ccs_write_domain2(buffer, domain, false);
 			kfree(buffer);
 		}
-		kfree(realpath);
+		kfree(header);
 		return 0;
 	}
 	if (r->mode != CCS_CONFIG_ENFORCING)

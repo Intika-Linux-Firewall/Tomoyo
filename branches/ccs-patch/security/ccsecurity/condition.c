@@ -463,39 +463,36 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[5])
 	*start = '\0';
 	start += 6;
 	while (1) {
-		int i;
+		static const char *ccs_state[4] = {
+			"task.state[0]=",
+			"task.state[1]=",
+			"task.state[2]=",
+			"audit="
+		};
+		unsigned int i;
 		while (*start == ' ')
 			start++;
 		if (!*start)
 			break;
-		if (!strncmp(start, "task.state[0]=", 14))
-			i = 0;
-		else if (!strncmp(start, "task.state[1]=", 14))
-			i = 1;
-		else if (!strncmp(start, "task.state[2]=", 14))
-			i = 2;
-		else if (!strncmp(start, "audit=", 6))
-			i = 4;
-		else
+		for (i = 0; i < 4; i++)
+			if (ccs_str_starts(&start, ccs_state[i]))
+				break;
+		if (i == 4)
 			goto out;
 		if (post_state[3] & (1 << i))
 			goto out;
 		post_state[3] |= 1 << i;
 		if (i < 3) {
 			unsigned long value;
-			start += 14;
 			if (!ccs_parse_ulong(&value, &start) || value > 255)
 				goto out;
 			post_state[i] = (u8) value;
 		} else {
-			start += 6;
-			if (!strncmp(start, "yes", 3)) {
-				start += 3;
+			if (ccs_str_starts(&start, "yes"))
 				post_state[4] = 1;
-			} else if (!strncmp(start, "no", 2)) {
-				start += 2;
+			else if (ccs_str_starts(&start, "no"))
 				post_state[4] = 0;
-			} else
+			else
 				goto out;
 		}
 	}
@@ -537,6 +534,45 @@ static u8 ccs_condition_type(const char *word)
 #define dprintk(...) do { } while (0)
 #endif
 
+static struct ccs_condition *ccs_commit_condition(struct ccs_condition *entry)
+{
+	struct ccs_condition *ptr;
+	bool found = false;
+	if (mutex_lock_interruptible(&ccs_policy_lock)) {
+		dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
+		ptr = NULL;
+		found = true;
+		goto out;
+	}
+	list_for_each_entry_rcu(ptr, &ccs_shared_list[CCS_CONDITION_LIST],
+				head.list) {
+		if (!ccs_same_condition(ptr, entry))
+			continue;
+		/* Same entry found. Share this entry. */
+		atomic_inc(&ptr->head.users);
+		found = true;
+		break;
+	}
+	if (!found) {
+		if (ccs_memory_ok(entry, entry->size)) {
+			atomic_set(&entry->head.users, 1);
+			list_add_rcu(&entry->head.list,
+				     &ccs_shared_list[CCS_CONDITION_LIST]);
+		} else {
+			found = true;
+			ptr = NULL;
+		}
+	}
+	mutex_unlock(&ccs_policy_lock);
+ out:
+	if (found) {
+		ccs_del_condition(&entry->head.list);
+		kfree(entry);
+		entry = ptr;
+	}
+	return entry;
+}
+
 /**
  * ccs_get_condition - Parse condition part.
  *
@@ -544,37 +580,27 @@ static u8 ccs_condition_type(const char *word)
  *
  * Returns pointer to "struct ccs_condition" on success, NULL otherwise.
  */
-struct ccs_condition *ccs_get_condition(char * const condition)
+struct ccs_condition *ccs_get_condition(char *condition)
 {
-	char *start = condition;
+	char *start;
 	struct ccs_condition *entry = NULL;
-	struct ccs_condition *ptr;
-	struct ccs_condition_element *condp;
-	struct ccs_number_union *numbers_p;
-	struct ccs_name_union *names_p;
-	struct ccs_argv *argv;
-	struct ccs_envp *envp;
-	u32 size;
-	u8 i;
-	bool found = false;
-	u16 condc = 0;
-	u16 numbers_count = 0;
-	u16 names_count = 0;
-	u16 argc = 0;
-	u16 envc = 0;
-	u8 post_state[5] = { 0, 0, 0, 0, 0 };
+	struct ccs_condition_element *condp = NULL;
+	struct ccs_number_union *numbers_p = NULL;
+	struct ccs_name_union *names_p = NULL;
+	struct ccs_argv *argv = NULL;
+	struct ccs_envp *envp = NULL;
+	struct ccs_condition e = { };
+	bool dry_run = true;
 	char *end_of_string;
-	if (!ccs_parse_post_condition(start, post_state))
-		goto out;
-	start = condition;
-	if (!strncmp(start, "if ", 3))
-		start += 3;
-	else if (*start)
+	if (!ccs_parse_post_condition(condition, e.post_state) ||
+	    (*condition && !ccs_str_starts(&condition, "if ")))
 		return NULL;
-	end_of_string = start + strlen(start);
+	end_of_string = condition + strlen(condition);
+ rerun:
+	start = condition;
 	while (1) {
 		u8 left;
-		u8 right;
+		u8 right = -1;
 		char *word = start;
 		char *cp;
 		char *eq;
@@ -590,13 +616,29 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		}
 		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
 		if (!strncmp(word, "exec.argv[", 10)) {
-			argc++;
-			condc++;
-			continue;
+			if (dry_run) {
+				e.argc++;
+				e.condc++;
+			} else {
+				e.argc--;
+				e.condc--;
+				left = CCS_ARGV_ENTRY;
+				if (!ccs_parse_argv(word + 10, argv++))
+					goto out;
+			}
+			goto store_value;
 		} else if (!strncmp(word, "exec.envp[\"", 11)) {
-			envc++;
-			condc++;
-			continue;
+			if (dry_run) {
+				e.envc++;
+				e.condc++;
+			} else {
+				e.envc--;
+				e.condc--;
+				left = CCS_ENVP_ENTRY;
+				if (!ccs_parse_envp(word + 11, envp++))
+					goto out;
+			}
+			goto store_value;
 		}
 		eq = strchr(word, '=');
 		if (!eq)
@@ -609,137 +651,53 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 		left = ccs_condition_type(word);
 		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
 			left);
-		if (left == CCS_MAX_CONDITION_KEYWORD)
-			numbers_count++;
-		*eq = is_not ? '!' : '=';
-		word = eq + 1;
-		if (is_not)
-			word++;
-		condc++;
-		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
-			left);
-		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
-			names_count++;
-			continue;
-		}
-		right = ccs_condition_type(word);
-		dprintk(KERN_WARNING "%u: <%s> right=%u\n", __LINE__, word,
-			right);
-		if (right == CCS_MAX_CONDITION_KEYWORD)
-			numbers_count++;
-	}
-	dprintk(KERN_DEBUG "%u: cond=%u numbers=%u names=%u ac=%u ec=%u\n",
-		__LINE__, condc, numbers_count, names_count, argc, envc);
-	size = sizeof(*entry)
-		+ condc * sizeof(struct ccs_condition_element)
-		+ numbers_count * sizeof(struct ccs_number_union)
-		+ names_count * sizeof(struct ccs_name_union)
-		+ argc * sizeof(struct ccs_argv)
-		+ envc * sizeof(struct ccs_envp);
-	entry = kzalloc(size, CCS_GFP_FLAGS);
-	if (!entry)
-		return NULL;
-	INIT_LIST_HEAD(&entry->head.list);
-	for (i = 0; i < 5; i++)
-		entry->post_state[i] = post_state[i];
-	entry->condc = condc;
-	entry->numbers_count = numbers_count;
-	entry->names_count = names_count;
-	entry->argc = argc;
-	entry->envc = envc;
-	condp = (struct ccs_condition_element *) (entry + 1);
-	numbers_p = (struct ccs_number_union *) (condp + condc);
-	names_p = (struct ccs_name_union *) (numbers_p + numbers_count);
-	argv = (struct ccs_argv *) (names_p + names_count);
-	envp = (struct ccs_envp *) (argv + argc);
-	for (start = condition; start < end_of_string; start++)
-		if (!*start)
-			*start = ' ';
-	start = condition;
-	if (!strncmp(start, "if ", 3))
-		start += 3;
-	else if (*start)
-		goto out;
-	while (1) {
-		u8 left;
-		u8 right;
-		char *word = start;
-		char *cp;
-		char *eq;
-		bool is_not = false;
-		if (!*word)
-			break;
-		cp = strchr(start, ' ');
-		if (cp) {
-			*cp = '\0';
-			start = cp + 1;
-		} else {
-			start = "";
-		}
-		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
-		if (!strncmp(word, "exec.argv[", 10)) {
-			if (!ccs_parse_argv(word + 10, argv))
-				goto out;
-			argv++;
-			argc--;
-			condc--;
-			left = CCS_ARGV_ENTRY;
-			right = -1;
-			goto store_value;
-		} else if (!strncmp(word, "exec.envp[\"", 11)) {
-			if (!ccs_parse_envp(word + 11, envp))
-				goto out;
-			envp++;
-			envc--;
-			condc--;
-			left = CCS_ENVP_ENTRY;
-			right = -1;
-			goto store_value;
-		}
-		eq = strchr(word, '=');
-		if (!eq) {
-			dprintk(KERN_WARNING "%u: No operator.\n", __LINE__);
-			goto out;
-		}
-		if (eq > word && *(eq - 1) == '!') {
-			is_not = true;
-			eq--;
-		}
-		*eq = '\0';
-		left = ccs_condition_type(word);
-		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
-			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
-			left = CCS_NUMBER_UNION;
-			if (!ccs_parse_number_union(word, numbers_p))
-				goto out;
-			if (numbers_p->is_group)
-				goto out;
-			numbers_p++;
-			numbers_count--;
+			if (dry_run) {
+				e.numbers_count++;
+			} else {
+				e.numbers_count--;
+				left = CCS_NUMBER_UNION;
+				if (!ccs_parse_number_union(word, numbers_p))
+					goto out;
+				if (numbers_p->is_group)
+					goto out;
+				numbers_p++;
+			}
 		}
 		*eq = is_not ? '!' : '=';
 		word = eq + 1;
 		if (is_not)
 			word++;
-		condc--;
-		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
-			left);
+		if (dry_run)
+			e.condc++;
+		else
+			e.condc--;
 		if (left == CCS_EXEC_REALPATH || left == CCS_SYMLINK_TARGET) {
-			right = CCS_NAME_UNION;
-			if (!ccs_parse_name_union_quoted(word, names_p++))
-				goto out;
-			names_count--;
+			if (dry_run) {
+				e.names_count++;
+			} else {
+				e.names_count--;
+				right = CCS_NAME_UNION;
+				if (!ccs_parse_name_union_quoted(word,
+								 names_p++))
+					goto out;
+			}
 			goto store_value;
 		}
 		right = ccs_condition_type(word);
 		if (right == CCS_MAX_CONDITION_KEYWORD) {
-			right = CCS_NUMBER_UNION;
-			if (!ccs_parse_number_union(word, numbers_p++))
-				goto out;
-			numbers_count--;
+			if (dry_run) {
+				e.numbers_count++;
+			} else {
+				e.numbers_count--;
+				right = CCS_NUMBER_UNION;
+				if (!ccs_parse_number_union(word, numbers_p++))
+					goto out;
+			}
 		}
  store_value:
+		if (dry_run)
+			continue;
 		condp->left = left;
 		condp->right = right;
 		condp->equals = !is_not;
@@ -748,49 +706,34 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			condp->equals);
 		condp++;
 	}
-#ifdef DEBUG_CONDITION
+	dprintk(KERN_INFO "%u: cond=%u numbers=%u names=%u ac=%u ec=%u\n",
+		__LINE__, e.condc, e.numbers_count, e.names_count, e.argc,
+		e.envc);
+	if (!dry_run) {
+		BUG_ON(e.names_count | e.numbers_count | e.argc | e.envc |
+		       e.condc);
+		return ccs_commit_condition(entry);
+	}
+	e.size = sizeof(*entry)
+		+ e.condc * sizeof(struct ccs_condition_element)
+		+ e.numbers_count * sizeof(struct ccs_number_union)
+		+ e.names_count * sizeof(struct ccs_name_union)
+		+ e.argc * sizeof(struct ccs_argv)
+		+ e.envc * sizeof(struct ccs_envp);
+	entry = kzalloc(e.size, CCS_GFP_FLAGS);
+	if (!entry)
+		return NULL;
+	*entry = e;
+	condp = (struct ccs_condition_element *) (entry + 1);
+	numbers_p = (struct ccs_number_union *) (condp + e.condc);
+	names_p = (struct ccs_name_union *) (numbers_p + e.numbers_count);
+	argv = (struct ccs_argv *) (names_p + e.names_count);
+	envp = (struct ccs_envp *) (argv + e.argc);
 	for (start = condition; start < end_of_string; start++)
 		if (!*start)
 			*start = ' ';
-	dprintk(KERN_DEBUG "%u: <%s> cond=%u numbers=%u names=%u ac=%u "
-		"ec=%u\n", __LINE__, condition, condc, numbers_count,
-		names_count, argc, envc);
-	BUG_ON(names_count);
-	BUG_ON(numbers_count);
-	BUG_ON(argc);
-	BUG_ON(envc);
-	BUG_ON(condc);
-#endif
-	BUG_ON(names_count | numbers_count | argc | envc | condc);
-	entry->size = size;
-	if (mutex_lock_interruptible(&ccs_policy_lock))
-		goto out;
-	list_for_each_entry_rcu(ptr, &ccs_shared_list[CCS_CONDITION_LIST],
-				head.list) {
-		if (!ccs_same_condition(ptr, entry))
-			continue;
-		/* Same entry found. Share this entry. */
-		atomic_inc(&ptr->head.users);
-		found = true;
-		break;
-	}
-	if (!found) {
-		if (ccs_memory_ok(entry, size)) {
-			atomic_set(&entry->head.users, 1);
-			list_add_rcu(&entry->head.list,
-				     &ccs_shared_list[CCS_CONDITION_LIST]);
-		} else {
-			found = true;
-			ptr = NULL;
-		}
-	}
-	mutex_unlock(&ccs_policy_lock);
-	if (found) {
-		ccs_del_condition(&entry->head.list);
-		kfree(entry);
-		entry = ptr;
-	}
-	return entry;
+	dry_run = false;
+	goto rerun;
  out:
 	dprintk(KERN_WARNING "%u: %s failed\n", __LINE__, __func__);
 	if (entry) {
