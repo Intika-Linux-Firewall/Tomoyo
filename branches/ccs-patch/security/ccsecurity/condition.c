@@ -103,26 +103,6 @@ static bool ccs_scan_bprm(struct ccs_execve *ee,
 			  const u16 argc, const struct ccs_argv *argv,
 			  const u16 envc, const struct ccs_envp *envp)
 {
-	/*
-	  if exec.argc=3
-	  if (argc == 3)
-	  if exec.argv[1]="-c"
-	  if (argc >= 2 && !strcmp(argv[1], "-c"))
-	  if exec.argv[1]!="-c"
-	  if (argc < 2 || strcmp(argv[1], "-c"))
-	  if exec.envc=10-20
-	  if (envc >= 10 && envc <= 20)
-	  if exec.envc!=10-20
-	  if (envc < 10 || envc > 20)
-	  if exec.envp["HOME"]!=NULL
-	  if (getenv("HOME"))
-	  if exec.envp["HOME"]=NULL
-	  if (!getenv("HOME"))
-	  if exec.envp["HOME"]="/"
-	  if (getenv("HOME") && !strcmp(getenv("HOME"), "/"))
-	  if exec.envp["HOME"]!="/"
-	  if (!getenv("HOME") || strcmp(getenv("HOME", "/"))
-	*/
 	struct linux_binprm *bprm = ee->bprm;
 	struct ccs_page_dump *dump = &ee->dump;
 	char *arg_ptr = ee->tmp;
@@ -387,8 +367,10 @@ static bool ccs_parse_envp(char *start, struct ccs_envp *envp)
 		value = NULL;
 	} else {
 		value = ccs_get_dqword(start);
-		if (!value)
+		if (!value) {
+			ccs_put_name(name);
 			goto out;
+		}
 	}
 	envp->name = name;
 	envp->is_not = is_not;
@@ -523,7 +505,7 @@ static bool ccs_parse_post_condition(char * const condition, u8 post_state[5])
 }
 
 static inline bool ccs_same_condition(const struct ccs_condition *p1,
-					 const struct ccs_condition *p2)
+				      const struct ccs_condition *p2)
 {
 	return p1->size == p2->size && p1->condc == p2->condc &&
 		p1->numbers_count == p2->numbers_count &&
@@ -535,6 +517,16 @@ static inline bool ccs_same_condition(const struct ccs_condition *p1,
 		p1->post_state[3] == p2->post_state[3] &&
 		p1->post_state[4] == p2->post_state[4] &&
 		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
+}
+
+static u8 ccs_condition_type(const char *word)
+{
+	u8 i;
+	for (i = 0; i < CCS_MAX_CONDITION_KEYWORD; i++) {
+		if (!strcmp(word, ccs_condition_keyword[i]))
+			break;
+	}
+	return i;
 }
 
 /* #define DEBUG_CONDITION */
@@ -614,11 +606,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			eq--;
 		}
 		*eq = '\0';
-		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
-			if (strcmp(word, ccs_condition_keyword[left]))
-				continue;
-			break;
-		}
+		left = ccs_condition_type(word);
 		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
 			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD)
@@ -634,11 +622,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			names_count++;
 			continue;
 		}
-		for (right = 0; right < CCS_MAX_CONDITION_KEYWORD; right++) {
-			if (strcmp(word, ccs_condition_keyword[right]))
-				continue;
-			break;
-		}
+		right = ccs_condition_type(word);
 		dprintk(KERN_WARNING "%u: <%s> right=%u\n", __LINE__, word,
 			right);
 		if (right == CCS_MAX_CONDITION_KEYWORD)
@@ -722,11 +706,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			eq--;
 		}
 		*eq = '\0';
-		for (left = 0; left < CCS_MAX_CONDITION_KEYWORD; left++) {
-			if (strcmp(word, ccs_condition_keyword[left]))
-				continue;
-			break;
-		}
+		left = ccs_condition_type(word);
 		dprintk(KERN_WARNING "%u: <%s> left=%u\n", __LINE__, word,
 			left);
 		if (left == CCS_MAX_CONDITION_KEYWORD) {
@@ -752,11 +732,7 @@ struct ccs_condition *ccs_get_condition(char * const condition)
 			names_count--;
 			goto store_value;
 		}
-		for (right = 0; right < CCS_MAX_CONDITION_KEYWORD; right++) {
-			if (strcmp(word, ccs_condition_keyword[right]))
-				continue;
-			break;
-		}
+		right = ccs_condition_type(word);
 		if (right == CCS_MAX_CONDITION_KEYWORD) {
 			right = CCS_NUMBER_UNION;
 			if (!ccs_parse_number_union(word, numbers_p++))
