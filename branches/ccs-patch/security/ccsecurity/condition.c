@@ -599,7 +599,7 @@ struct ccs_condition *ccs_get_condition(char *condition)
  rerun:
 	start = condition;
 	while (1) {
-		u8 left;
+		u8 left = -1;
 		u8 right = -1;
 		char *word = start;
 		char *cp;

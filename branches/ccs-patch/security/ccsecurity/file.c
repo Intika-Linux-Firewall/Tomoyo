@@ -1334,7 +1334,6 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 	int idx;
 	if (!mnt)
 		return 0;
-	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pnnn2mac[operation])
 	    == CCS_CONFIG_DISABLED)
@@ -1363,8 +1362,8 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 		ccs_check_acl(&r, ccs_check_mkdev_acl);
 		error = ccs_audit_mkdev_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
- out:
 	kfree(buf.name);
+ out:
 	ccs_read_unlock(idx);
 	if (!is_enforce)
 		error = 0;
@@ -1585,7 +1584,6 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 	int idx;
 	if (!vfsmnt || !dentry)
 		return 0;
-	buf.name = NULL;
 	idx = ccs_read_lock();
 	if (ccs_init_request_info(&r, ccs_pn2mac[type]) == CCS_CONFIG_DISABLED)
 		goto out;
@@ -1617,8 +1615,8 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 		ccs_check_acl(&r, ccs_check_path_number_acl);
 		error = ccs_audit_path_number_log(&r);
 	} while (error == CCS_RETRY_REQUEST);
- out:
 	kfree(buf.name);
+ out:
 	ccs_read_unlock(idx);
 	if (r.mode != CCS_CONFIG_ENFORCING)
 		error = 0;

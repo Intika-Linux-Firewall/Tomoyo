@@ -314,10 +314,10 @@ static size_t ccs_del_acl(struct list_head *element)
  */
 static inline size_t ccs_del_domain(struct list_head *element)
 {
-	struct ccs_acl_info *acl;
-	struct ccs_acl_info *tmp;
 	struct ccs_domain_info *domain =
 		container_of(element, typeof(*domain), list);
+	struct ccs_acl_info *acl;
+	struct ccs_acl_info *tmp;
 	/*
 	 * We need to recheck domain at this point.
 	 *

@@ -1,5 +1,8 @@
 [PATCH] TOMOYO: Use common code for open and mkdir etc.
 
+tomoyo_file_perm() and tomoyo_path_permission() are similar.
+We can embed tomoyo_file_perm() into tomoyo_path_permission().
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.h |    2 
