@@ -1,5 +1,8 @@
 [PATCH] TOMOYO: Pass "struct list_head" rather than "void *".
 
+Pass "struct list_head" to tomoyo_add_to_gc() and bring
+list_del_rcu() to tomoyo_add_to_gc().
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/gc.c |  130 ++++++++++++++++++++++++++++-----------------------

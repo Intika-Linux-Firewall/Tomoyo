@@ -1,5 +1,7 @@
 [PATCH] TOMOYO: Remove wrapper function for reading keyword.
 
+Keyword strings are read-only. We can directly access them to reduce code size.
+
 Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
 ---
  security/tomoyo/common.c |    8 ++---
