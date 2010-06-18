@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.33.5-112.fc13.src.rpm ]
+if [ ! -r kernel-2.6.33.5-124.fc13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.5-112.fc13.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.5-124.fc13.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.33.5-112.fc13.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.33.5-112.fc13.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.33.5-124.fc13.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.33.5-124.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # buildid can also be specified on the rpmbuild command line
-@@ -431,6 +431,11 @@
+@@ -426,6 +426,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -507,7 +512,7 @@
+@@ -502,7 +507,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1544,6 +1549,10 @@
+@@ -1549,6 +1554,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1570,6 +1579,9 @@
+@@ -1575,6 +1584,9 @@
  for i in *.config
  do
    mv $i .config
