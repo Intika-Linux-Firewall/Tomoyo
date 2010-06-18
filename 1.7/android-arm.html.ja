@@ -107,6 +107,8 @@ sudo make install
 
 <p>Android エミュレータ側にインストールするためのエージェントをコンパイルします。</p>
 
+<p>Android エミュレータで使用するＲＡＭディスクに含まれている /init.rc が  /etc という名前で /system/etc/ ディレクトリへのシンボリックリンクを作成するため、（ステップ１３で追加する TOMOYO Linux のポリシーローダである） /sbin/ccs-init が /etc/ccs/ ディレクトリを起動時に読み込むポリシーを保存しておくためのディレクトリとして使用することができません。そのため、 /etc/ccs/ の代わりに /ccs/ をポリシー用ディレクトリとして使用します。</p>
+
 <table border="1">
 <tr><td>
 cd $ANDROID_HOME/tmp/<br>
@@ -114,7 +116,8 @@ wget -O agcc http://plausible.org/andy/agcc<br>
 chmod 755 agcc<br>
 ./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/init_policy.c<br>
 ./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/ccs-editpolicy-agent.c<br>
-./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init.c<br>
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
 chmod 700 init_policy ccs-editpolicy-agent ccs-init
 </td></tr>
 </table>
@@ -147,7 +150,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h2>ステップ１０：必要なファイルのコピー</h2>
 
-<p>TOMOYO Linux のポリシーローダである ccs-init の動作に必要なライブラリをＲＡＭディスクにコピーします。なお、ステップ７で ccs-init をスタティックリンクした場合には、ステップ１０は不要です。</p>
+<p>/sbin/ccs-init の動作に必要なライブラリをＲＡＭディスクにコピーします。なお、ステップ７で ccs-init をスタティックリンクした場合には、ステップ１０は不要です。</p>
 
 <table border="1">
 <tr><td>
@@ -162,13 +165,13 @@ chmod 755 system/bin/linker lib/libc.so lib/libm.so<br>
 
 <h2>ステップ１１：ポリシーの初期化</h2>
 
-<p>TOMOYO Linux が使用するための初期状態のポリシーを作成します。初期状態のポリシーファイルをＲＡＭディスクの中の /etc/ccs/ ディレクトリにコピーします。</p>
+<p>TOMOYO Linux が使用するための初期状態のポリシーを作成します。初期状態のポリシーファイルをＲＡＭディスクの中の /ccs/ ディレクトリにコピーします。</p>
 
 <table border="1">
 <tr><td>
-mkdir -p $ANDROID_IMG/tmp/etc/ccs/<br>
+mkdir -p $ANDROID_IMG/tmp/ccs/<br>
 adb shell /sbin/init_policy policy_dir=/data/ccs/<br>
-adb pull /data/ccs/ $ANDROID_IMG/tmp/etc/ccs/<br>
+adb pull /data/ccs/ $ANDROID_IMG/tmp/ccs/<br>
 adb shell rm /data/ccs/\*<br>
 adb shell rmdir /data/ccs/<br>
 adb emu kill
@@ -232,12 +235,12 @@ echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
 #App. specific data files<br>
 echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>
 echo 'file_pattern /data/data/com.android.browser/app_thumbnails/\*'<br>
-) &gt;&gt; etc/ccs/exception_policy.conf<br>
+) &gt;&gt; ccs/exception_policy.conf<br>
 (<br>
 echo '&lt;kernel&gt;'<br>
 echo 'use_profile 1'<br>
-) &gt; etc/ccs/domain_policy.conf<br>
-echo /sbin/ccs-editpolicy-agent &gt; etc/ccs/manager.conf
+) &gt; ccs/domain_policy.conf<br>
+echo /sbin/ccs-editpolicy-agent &gt; ccs/manager.conf
 </td></tr>
 </table>
 
@@ -284,11 +287,11 @@ adb forward tcp:10000 tcp:7000
 </td></tr>
 </table>
 
-<p>以下のように ccs-savepolicy を実行すると、エミュレータ内のエージェント経由で現在のポリシーをＲＡＭディスク内の /etc/ccs/ ディレクトリに出力できます。</p>
+<p>以下のように ccs-savepolicy を実行すると、エミュレータ内のエージェント経由で現在のポリシーをＲＡＭディスク内の /ccs/ ディレクトリに出力できます。</p>
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-savepolicy edpm $ANDROID_IMG/tmp/etc/ccs/ 127.0.0.1:10000<br>
+/usr/sbin/ccs-savepolicy edpm $ANDROID_IMG/tmp/ccs/ 127.0.0.1:10000<br>
 cd $ANDROID_IMG/tmp/<br>
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </td></tr>

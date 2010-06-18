@@ -107,6 +107,8 @@ sudo make install
 
 <p>Install TOMOYO Linux's userland tools into Android emulator environment.</p>
 
+<p>Since /init.rc in Android emulator's ramdisk creates /etc as a symlink to /system/etc/ directory, /sbin/ccs-init (TOMOYO Linux's policy loader which will be added at Step 13) can't reserve /etc/ccs/ directory for storing policy which is loaded upon boot. Thus, use /ccs/ directory rather than /etc/ccs/ directory.</p>
+
 <table border="1">
 <tr><td>
 cd $ANDROID_HOME/tmp/<br>
@@ -114,7 +116,8 @@ wget -O agcc http://plausible.org/andy/agcc<br>
 chmod 755 agcc<br>
 ./agcc -o init_policy $ANDROID_HOME/tmp/ccstools/init_policy.c<br>
 ./agcc -o ccs-editpolicy-agent $ANDROID_HOME/tmp/ccstools/ccs-editpolicy-agent.c<br>
-./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init.c<br>
+sed -e 's:etc/ccs:ccs:g' $ANDROID_HOME/tmp/ccstools/ccs-init.c &gt; $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
+./agcc -o ccs-init $ANDROID_HOME/tmp/ccstools/ccs-init2.c<br>
 chmod 700 init_policy ccs-editpolicy-agent ccs-init
 </td></tr>
 </table>
@@ -147,7 +150,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h2>Step 10: Pull files needed for policy loader.</h2>
 
-<p>Copy files needed by ccs-init (TOMOYO Linux's policy loader). If you compiled ccs-init as statically linked program at step 7, step 10 is not needed.</p>
+<p>Copy files needed by /sbin/ccs-init . If you compiled ccs-init as statically linked program at step 7, step 10 is not needed.</p>
 
 <table border="1">
 <tr><td>
@@ -162,13 +165,13 @@ chmod 755 system/bin/linker lib/libc.so lib/libm.so<br>
 
 <h2>Step 11: Initialize policy and pull.</h2>
 
-<p>Create initial policy used by TOMOYO Linux. Then, copy the initial policy to ramdisk's /etc/ccs/ directory.</p>
+<p>Create initial policy used by TOMOYO Linux. Then, copy the initial policy to ramdisk's /ccs/ directory.</p>
 
 <table border="1">
 <tr><td>
-mkdir -p $ANDROID_IMG/tmp/etc/ccs/<br>
+mkdir -p $ANDROID_IMG/tmp/ccs/<br>
 adb shell /sbin/init_policy policy_dir=/data/ccs/<br>
-adb pull /data/ccs/ $ANDROID_IMG/tmp/etc/ccs/<br>
+adb pull /data/ccs/ $ANDROID_IMG/tmp/ccs/<br>
 adb shell rm /data/ccs/\*<br>
 adb shell rmdir /data/ccs/<br>
 adb emu kill
@@ -232,12 +235,12 @@ echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
 #App. specific data files<br>
 echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>
 echo 'file_pattern /data/data/com.android.browser/app_thumbnails/\*'<br>
-) &gt;&gt; etc/ccs/exception_policy.conf<br>
+) &gt;&gt; ccs/exception_policy.conf<br>
 (<br>
 echo '&lt;kernel&gt;'<br>
 echo 'use_profile 1'<br>
-) &gt; etc/ccs/domain_policy.conf<br>
-echo /sbin/ccs-editpolicy-agent &gt; etc/ccs/manager.conf
+) &gt; ccs/domain_policy.conf<br>
+echo /sbin/ccs-editpolicy-agent &gt; ccs/manager.conf
 </td></tr>
 </table>
 
@@ -284,11 +287,11 @@ adb forward tcp:10000 tcp:7000
 </td></tr>
 </table>
 
-<p>You can save current policy into ramdisk's /etc/ccs/ directory by executing ccs-savepolicy as shown below.</p>
+<p>You can save current policy into ramdisk's /ccs/ directory by executing ccs-savepolicy as shown below.</p>
 
 <table border="1">
 <tr><td>
-/usr/sbin/ccs-savepolicy edpm $ANDROID_IMG/tmp/etc/ccs/ 127.0.0.1:10000<br>
+/usr/sbin/ccs-savepolicy edpm $ANDROID_IMG/tmp/ccs/ 127.0.0.1:10000<br>
 cd $ANDROID_IMG/tmp/<br>
 find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
 </td></tr>
