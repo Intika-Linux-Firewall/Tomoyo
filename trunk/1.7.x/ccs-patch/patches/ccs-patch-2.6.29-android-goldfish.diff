@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Android goldfish 2.6.29 kernel.
 
-Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=9d8732354c9efc9f5eb6f70a92ab436ccbfdf119;sf=tgz
+Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=b0d93fb0426911d0329f861f22c59f1c72cff815;sf=tgz
 ---
  fs/compat.c                     |    3 ++-
  fs/compat_ioctl.c               |    7 +++++++
@@ -519,7 +519,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.29.6 2010/02/19\n");
++	printk(KERN_INFO "Hook version: android-goldfish-2.6.29 2010/06/18\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -801,7 +801,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  
  #ifdef CONFIG_X86
  #include <asm/nmi.h>
-@@ -1696,6 +1697,9 @@ int do_sysctl(int __user *name, int nlen
+@@ -1694,6 +1695,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
  			head = sysctl_head_next(head)) {
@@ -1088,7 +1088,7 @@ Source code for this patch is http://android.git.kernel.org/?p=kernel/common.git
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
 --- android-goldfish-2.6.29.orig/security/Kconfig
 +++ android-goldfish-2.6.29/security/Kconfig
-@@ -135,5 +135,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR
+@@ -115,5 +115,7 @@ config SECURITY_ROOTPLUG
  source security/selinux/Kconfig
  source security/smack/Kconfig
  
