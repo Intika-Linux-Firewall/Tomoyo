@@ -880,23 +880,16 @@ static bool ccs_select_one(struct ccs_io_buffer *head, const char *data)
 	if (!head->read_buf)
 		return true; /* Do nothing if open(O_WRONLY). */
 	head->read_avail = 0;
+	head->read_cond = false;
 	ccs_io_printf(head, "# select %s\n", data);
 	head->read_single_domain = true;
 	head->read_eof = !domain;
-	if (domain) {
-		struct ccs_domain_info *d;
-		head->read_var1 = NULL;
-		list_for_each_entry_rcu(d, &ccs_domain_list, list) {
-			if (d == domain)
-				break;
-			head->read_var1 = &d->list;
-		}
-		head->read_var2 = NULL;
-		head->read_bit = 0;
-		head->read_step = 0;
-		if (domain->is_deleted)
-			ccs_io_printf(head, "# This is a deleted domain.\n");
-	}
+	head->read_var1 = domain;
+	head->read_var2 = NULL;
+	head->read_bit = 0;
+	head->read_step = 0;
+	if (domain && domain->is_deleted)
+		ccs_io_printf(head, "# This is a deleted domain.\n");
 	return true;
 }
 
@@ -1239,201 +1232,131 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 }
 
 /**
- * ccs_print_path_acl - Print a path ACL entry.
+ * ccs_print_entry - Print an ACL entry.
  *
  * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_acl".
+ * @ptr:  Pointer to an ACL entry.
  *
  * Returns true on success, false otherwise.
  */
-static bool ccs_print_path_acl(struct ccs_io_buffer *head,
-			       const struct ccs_path_acl *ptr)
+static bool ccs_print_entry(struct ccs_io_buffer *head,
+			    const struct ccs_acl_info *acl)
 {
 	int pos;
-	u8 bit;
-	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_OPERATION; bit++) {
-		if (!(perm & (1 << bit)))
-			continue;
-		if (head->read_execute_only && bit != CCS_TYPE_EXECUTE
-		    && bit != CCS_TYPE_TRANSIT)
-			continue;
-		/* Print "read/write" instead of "read" and "write". */
-		if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
-		    && (perm & (1 << CCS_TYPE_READ_WRITE)))
-			continue;
-		pos = head->read_avail;
-		if (!ccs_io_printf(head, "allow_%s", ccs_path_keyword[bit]) ||
-		    !ccs_print_name_union(head, &ptr->name) ||
-		    !ccs_print_condition(head, ptr->head.cond)) {
-			head->read_bit = bit;
-			head->read_avail = pos;
-			return false;
+	const u8 acl_type = acl->type;
+	u8 bit = head->read_bit;
+	if (head->read_cond)
+		goto print_cond;
+	if (acl->is_deleted)
+		return true;
+ next:
+	pos = head->read_avail;
+	if (acl_type == CCS_TYPE_PATH_ACL) {
+		struct ccs_path_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		const u16 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_PATH_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			if (head->read_execute_only && bit != CCS_TYPE_EXECUTE
+			    && bit != CCS_TYPE_TRANSIT)
+				continue;
+			/* Print "read/write" instead of "read" and "write". */
+			if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
+			    && (perm & (1 << CCS_TYPE_READ_WRITE)))
+				continue;
+			break;
 		}
-	}
-	head->read_bit = 0;
-	return true;
-}
-
-/**
- * ccs_print_mkdev_acl - Print a mkdev ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_mkdev_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_mkdev_acl(struct ccs_io_buffer *head,
-				const struct ccs_mkdev_acl *ptr)
-{
-	int pos;
-	u8 bit;
-	const u16 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_MKDEV_OPERATION;
-	     bit++) {
-		if (!(perm & (1 << bit)))
-			continue;
-		pos = head->read_avail;
+		if (bit == CCS_MAX_PATH_OPERATION)
+			goto done;
+		if (!ccs_io_printf(head, "allow_%s", ccs_path_keyword[bit]) ||
+		    !ccs_print_name_union(head, &ptr->name))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
+		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
+		struct ccs_execute_handler *ptr
+			= container_of(acl, typeof(*ptr), head);
+		if (!ccs_io_printf(head, "%s %s",
+				   acl_type == CCS_TYPE_EXECUTE_HANDLER ?
+				   CCS_KEYWORD_EXECUTE_HANDLER :
+				   CCS_KEYWORD_DENIED_EXECUTE_HANDLER,
+				   ptr->handler->name))
+			goto fail;
+	} if (head->read_execute_only) {
+		return true;
+	} else if (acl_type == CCS_TYPE_MKDEV_ACL) {
+		struct ccs_mkdev_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		const u8 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_MKDEV_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			break;
+		}
+		if (bit == CCS_MAX_MKDEV_OPERATION)
+			goto done;
 		if (!ccs_io_printf(head, "allow_%s", ccs_mkdev_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
 		    !ccs_print_number_union(head, &ptr->mode) ||
 		    !ccs_print_number_union(head, &ptr->major) ||
-		    !ccs_print_number_union(head, &ptr->minor) ||
-		    !ccs_print_condition(head, ptr->head.cond)) {
-			head->read_bit = bit;
-			head->read_avail = pos;
-			return false;
+		    !ccs_print_number_union(head, &ptr->minor))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_PATH2_ACL) {
+		struct ccs_path2_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		const u8 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_PATH2_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			break;
 		}
-	}
-	head->read_bit = 0;
-	return true;
-}
-
-/**
- * ccs_print_path2_acl - Print a path2 ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path2_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_path2_acl(struct ccs_io_buffer *head,
-				const struct ccs_path2_acl *ptr)
-{
-	int pos;
-	u8 bit;
-	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH2_OPERATION; bit++) {
-		if (!(perm & (1 << bit)))
-			continue;
-		pos = head->read_avail;
+		if (bit == CCS_MAX_PATH2_OPERATION)
+			goto done;
 		if (!ccs_io_printf(head, "allow_%s", ccs_path2_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name1) ||
-		    !ccs_print_name_union(head, &ptr->name2) ||
-		    !ccs_print_condition(head, ptr->head.cond)) {
-			head->read_bit = bit;
-			head->read_avail = pos;
-			return false;
+		    !ccs_print_name_union(head, &ptr->name2))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
+		struct ccs_path_number_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		const u8 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_PATH_NUMBER_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			break;
 		}
-	}
-	head->read_bit = 0;
-	return true;
-}
-
-/**
- * ccs_print_path_number_acl - Print a path_number ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_path_number_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_path_number_acl(struct ccs_io_buffer *head,
-				      const struct ccs_path_number_acl *ptr)
-{
-	int pos;
-	u8 bit;
-	const u8 perm = ptr->perm;
-	for (bit = head->read_bit; bit < CCS_MAX_PATH_NUMBER_OPERATION;
-	     bit++) {
-		if (!(perm & (1 << bit)))
-			continue;
-		pos = head->read_avail;
+		if (bit == CCS_MAX_PATH_NUMBER_OPERATION)
+			goto done;
 		if (!ccs_io_printf(head, "allow_%s",
 				   ccs_path_number_keyword[bit]) ||
 		    !ccs_print_name_union(head, &ptr->name) ||
-		    !ccs_print_number_union(head, &ptr->number) ||
-		    !ccs_print_condition(head, ptr->head.cond)) {
-			head->read_bit = bit;
-			head->read_avail = pos;
-			return false;
-		}
-	}
-	head->read_bit = 0;
-	return true;
-}
-
-/**
- * ccs_print_env_acl - Print an evironment variable name's ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_env_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_env_acl(struct ccs_io_buffer *head,
-			      const struct ccs_env_acl *ptr)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s", ptr->env->name) ||
-	    !ccs_print_condition(head, ptr->head.cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_capability_acl - Print a capability ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_capability_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_capability_acl(struct ccs_io_buffer *head,
-				     const struct ccs_capability_acl *ptr)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
-			   ccs_cap2keyword(ptr->operation)) ||
-	    !ccs_print_condition(head, ptr->head.cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_network_acl - Print a network ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_ip_network_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_network_acl(struct ccs_io_buffer *head,
-				  const struct ccs_ip_network_acl *ptr)
-{
-	int pos;
-	u8 bit;
-	const u8 perm = ptr->perm;
-	char buf[128];
-	for (bit = head->read_bit; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
+		    !ccs_print_number_union(head, &ptr->number))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_ENV_ACL) {
+		struct ccs_env_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_ENV "%s",
+				   ptr->env->name))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
+		struct ccs_capability_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_CAPABILITY "%s",
+				   ccs_cap2keyword(ptr->operation)))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
+		struct ccs_ip_network_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		char buf[128];
 		const char *w[2] = { buf, "" };
-		if (!(perm & (1 << bit)))
-			continue;
-		pos = head->read_avail;
+		const u8 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_NETWORK_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			break;
+		}
+		if (bit == CCS_MAX_NETWORK_OPERATION)
+			goto done;
 		switch (ptr->address_type) {
 		case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
 			w[0] = "@";
@@ -1450,156 +1373,48 @@ static bool ccs_print_network_acl(struct ccs_io_buffer *head,
 		}
 		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s %s%s",
 				   ccs_net_keyword[bit], w[0], w[1]) ||
-		    !ccs_print_number_union(head, &ptr->port) ||
-		    !ccs_print_condition(head, ptr->head.cond))
-			goto out;
+		    !ccs_print_number_union(head, &ptr->port))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
+		struct ccs_signal_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
+				   ptr->sig, ptr->domainname->name))
+			goto fail;
+	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
+		struct ccs_mount_acl *ptr
+			= container_of(acl, typeof(*ptr), head);
+		if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT) ||
+		    !ccs_print_name_union(head, &ptr->dev_name) ||
+		    !ccs_print_name_union(head, &ptr->dir_name) ||
+		    !ccs_print_name_union(head, &ptr->fs_type) ||
+		    !ccs_print_number_union(head, &ptr->flags))
+			goto fail;
 	}
+	head->read_bit = bit;
+	head->read_cond = true;
+ print_cond:
+	pos = head->read_avail;
+	if (!ccs_print_condition(head, acl->cond)) {
+		head->read_avail = pos;
+		return false;
+	}
+	head->read_cond = false;
+	switch (acl_type) {
+	case CCS_TYPE_PATH_ACL:
+	case CCS_TYPE_MKDEV_ACL:
+	case CCS_TYPE_PATH2_ACL:
+	case CCS_TYPE_PATH_NUMBER_ACL:
+	case CCS_TYPE_IP_NETWORK_ACL:
+		bit++;
+		goto next;
+	}
+ done:
 	head->read_bit = 0;
 	return true;
- out:
+ fail:
 	head->read_bit = bit;
-	head->read_avail = pos;
-	return false;
-}
-
-/**
- * ccs_print_signal_acl - Print a signal ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct signale_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_signal_acl(struct ccs_io_buffer *head,
-				 const struct ccs_signal_acl *ptr)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u %s",
-			   ptr->sig, ptr->domainname->name) ||
-	    !ccs_print_condition(head, ptr->head.cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_execute_handler - Print an execute handler ACL entry.
- *
- * @head:    Pointer to "struct ccs_io_buffer".
- * @keyword: Name of the keyword.
- * @ptr:     Pointer to "struct ccs_execute_handler".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_execute_handler(struct ccs_io_buffer *head,
-				      const char *keyword,
-				      const struct ccs_execute_handler *ptr)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, "%s %s", keyword, ptr->handler->name) ||
-	    !ccs_print_condition(head, ptr->head.cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_mount_acl - Print a mount ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to "struct ccs_mount_acl".
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_mount_acl(struct ccs_io_buffer *head,
-				const struct ccs_mount_acl *ptr)
-{
-	const int pos = head->read_avail;
-	if (!ccs_io_printf(head, CCS_KEYWORD_ALLOW_MOUNT) ||
-	    !ccs_print_name_union(head, &ptr->dev_name) ||
-	    !ccs_print_name_union(head, &ptr->dir_name) ||
-	    !ccs_print_name_union(head, &ptr->fs_type) ||
-	    !ccs_print_number_union(head, &ptr->flags) ||
-	    !ccs_print_condition(head, ptr->head.cond)) {
-		head->read_avail = pos;
-		return false;
-	}
-	return true;
-}
-
-/**
- * ccs_print_entry - Print an ACL entry.
- *
- * @head: Pointer to "struct ccs_io_buffer".
- * @ptr:  Pointer to an ACL entry.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_print_entry(struct ccs_io_buffer *head,
-			    const struct ccs_acl_info *ptr)
-{
-	const u8 acl_type = ptr->type;
-	if (ptr->is_deleted)
-		return true;
-	if (acl_type == CCS_TYPE_PATH_ACL) {
-		struct ccs_path_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_path_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
-	    acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
-		struct ccs_execute_handler *acl
-			= container_of(ptr, typeof(*acl), head);
-		const char *keyword = acl_type == CCS_TYPE_EXECUTE_HANDLER ?
-			CCS_KEYWORD_EXECUTE_HANDLER :
-			CCS_KEYWORD_DENIED_EXECUTE_HANDLER;
-		return ccs_print_execute_handler(head, keyword, acl);
-	}
-	if (head->read_execute_only)
-		return true;
-	if (acl_type == CCS_TYPE_MKDEV_ACL) {
-		struct ccs_mkdev_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_mkdev_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_PATH2_ACL) {
-		struct ccs_path2_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_path2_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
-		struct ccs_path_number_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_path_number_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_ENV_ACL) {
-		struct ccs_env_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_env_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
-		struct ccs_capability_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_capability_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
-		struct ccs_ip_network_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_network_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_SIGNAL_ACL) {
-		struct ccs_signal_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_signal_acl(head, acl);
-	}
-	if (acl_type == CCS_TYPE_MOUNT_ACL) {
-		struct ccs_mount_acl *acl
-			= container_of(ptr, typeof(*acl), head);
-		return ccs_print_mount_acl(head, acl);
-	}
-	BUG(); /* This must not happen. */
+ 	head->read_avail = pos;
 	return false;
 }
 

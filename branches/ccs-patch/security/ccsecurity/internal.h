@@ -53,18 +53,16 @@ struct in6_addr;
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 #define list_for_each_cookie(pos, cookie, head)				\
-	for (({ if (!cookie)						\
-				     cookie = head; }),			\
-		     pos = rcu_dereference((cookie)->next);		\
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
-	     (cookie) = pos, pos = rcu_dereference(pos->next))
+	if (!cookie)							\
+		cookie = rcu_dereference((head)->next);			\
+	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
+	     pos = rcu_dereference(pos->next), (cookie) = pos)
 #else
 #define list_for_each_cookie(pos, cookie, head)				\
-	for (({ if (!cookie)						\
-				     cookie = head; }),			\
-		     pos = srcu_dereference((cookie)->next, &ccs_ss);	\
-	     prefetch(pos->next), pos != (head) || ((cookie) = NULL);	\
-	     (cookie) = pos, pos = srcu_dereference(pos->next, &ccs_ss))
+	if (!cookie)							\
+		cookie = srcu_dereference((head)->next, &ccs_ss);	\
+	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
+	     pos = srcu_dereference(pos->next, &ccs_ss), (cookie) = pos)
 #endif
 
 enum ccs_transition_type {
@@ -939,6 +937,7 @@ struct ccs_io_buffer {
 	int write_avail;
 	/* Size of write buffer.                */
 	int writebuf_size;
+	bool read_cond;
 	/* Type of this interface.              */
 	u8 type;
 };
