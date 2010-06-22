@@ -884,7 +884,7 @@ static bool ccs_select_one(struct ccs_io_buffer *head, const char *data)
 	ccs_io_printf(head, "# select %s\n", data);
 	head->read_single_domain = true;
 	head->read_eof = !domain;
-	head->read_var1 = domain;
+	head->read_var1 = &domain->list;
 	head->read_var2 = NULL;
 	head->read_bit = 0;
 	head->read_step = 0;
