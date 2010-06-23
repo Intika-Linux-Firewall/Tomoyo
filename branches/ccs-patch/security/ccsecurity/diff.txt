@@ -1,3 +1,25 @@
+Index: mount.c
+===================================================================
+--- mount.c	(revision 3773)
++++ mount.c	(working copy)
+@@ -58,7 +58,7 @@
+ 	const char *dir = r->param.mount.dir->name;
+ 	const char *type = r->param.mount.type->name;
+ 	const unsigned long flags = r->param.mount.flags;
+-	ccs_write_log(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
++	ccs_write_log(r, CCS_KEYWORD_ALLOW_MOUNT " %s %s %s 0x%lX\n",
+ 		      dev, dir, type, flags);
+ 	if (r->granted)
+ 		return 0;
+@@ -75,7 +75,7 @@
+ 	else
+ 		ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type, dev, dir,
+ 			     flags);
+-	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
++	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT " %s %s %s 0x%lX\n",
+ 			      ccs_file_pattern(r->param.mount.dev),
+ 			      ccs_file_pattern(r->param.mount.dir), type,
+ 			      flags);
 Index: audit.c
 ===================================================================
 --- audit.c	(revision 3773)
@@ -91,7 +113,18 @@ Index: internal.h
  #endif
  
  enum ccs_transition_type {
-@@ -900,6 +894,8 @@
+@@ -363,9 +357,8 @@
+ #define CCS_KEYWORD_AGGREGATOR                "aggregator "
+ #define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
+ #define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
+-#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
++#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount"
+ #define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
+-#define CCS_KEYWORD_ALLOW_READ                "allow_read "
+ #define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
+ #define CCS_KEYWORD_DELETE                    "delete "
+ #define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
+@@ -900,6 +893,8 @@
  	struct ccs_path_info entry;
  };
  
@@ -100,7 +133,7 @@ Index: internal.h
  /* Structure for reading/writing policy via /proc interfaces. */
  struct ccs_io_buffer {
  	void (*read) (struct ccs_io_buffer *);
-@@ -909,35 +905,38 @@
+@@ -909,35 +904,38 @@
  	struct mutex io_sem;
  	/* Index returned by ccs_lock().        */
  	int reader_idx;
@@ -160,7 +193,7 @@ Index: internal.h
  	/* Type of this interface.              */
  	u8 type;
  };
-@@ -1000,7 +999,7 @@
+@@ -1000,7 +998,7 @@
  bool ccs_domain_quota_ok(struct ccs_request_info *r);
  bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  		   struct ccs_page_dump *dump);
@@ -258,7 +291,7 @@ Index: policy_io.c
 +	ccs_set_string(head, head->read_buf + pos);
  }
  
-+static inline void ccs_set_space(struct ccs_io_buffer *head)
++static void ccs_set_space(struct ccs_io_buffer *head)
 +{
 +	ccs_set_string(head, " ");
 +}
@@ -585,6 +618,15 @@ Index: policy_io.c
  	return true;
  }
  
+@@ -905,7 +954,7 @@
+ 		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env },
+ 		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability },
+ 		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal },
+-		{ CCS_KEYWORD_ALLOW_MOUNT, ccs_write_mount }
++		{ CCS_KEYWORD_ALLOW_MOUNT " ", ccs_write_mount }
+ 	};
+ 	int (*write) (char *, struct ccs_domain_info *, struct ccs_condition *,
+ 		      const bool) = ccs_write_file;
 @@ -950,7 +999,7 @@
  static int ccs_write_domain(struct ccs_io_buffer *head)
  {
@@ -603,7 +645,7 @@ Index: policy_io.c
  		return 0;
  	}
  	if (!domain)
-@@ -998,19 +1047,18 @@
+@@ -998,239 +1047,227 @@
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @ptr:  Pointer to "struct ccs_name_union".
@@ -621,27 +663,35 @@ Index: policy_io.c
 -		return ccs_io_printf(head, " @%s",
 -				     ptr->group->group_name->name);
 -	return ccs_io_printf(head, " %s", ptr->filename->name);
-+	if (!head->r.print_cond_part)
++	const bool cond = head->r.print_cond_part;
++	if (!cond)
 +		ccs_set_space(head);
 +	if (ptr->is_group) {
 +		ccs_set_string(head, "@");
 +		ccs_set_string(head, ptr->group->group_name->name);
 +	} else {
++		if (cond)
++			ccs_set_string(head, "\"");
 +		ccs_set_string(head, ptr->filename->name);
++		if (cond)
++			ccs_set_string(head, "\"");
 +	}
  }
  
  /**
-@@ -1018,104 +1066,68 @@
+- * ccs_print_name_union_quoted - Print a ccs_name_union with double quotes.
++ * ccs_print_number_union - Print a ccs_number_union.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-  * @ptr:  Pointer to "struct ccs_name_union".
+- * @ptr:  Pointer to "struct ccs_name_union".
 - *
 - * Returns true on success, false otherwise.
++ * @ptr:  Pointer to "struct ccs_number_union".
   */
 -static bool ccs_print_name_union_quoted(struct ccs_io_buffer *head,
-+static void ccs_print_name_union_quoted(struct ccs_io_buffer *head,
- 					const struct ccs_name_union *ptr)
+-					const struct ccs_name_union *ptr)
++static void ccs_print_number_union(struct ccs_io_buffer *head,
++				   const struct ccs_number_union *ptr)
  {
 -	if (ptr->is_group)
 -		return ccs_io_printf(head, "@%s",
@@ -671,63 +721,6 @@ Index: policy_io.c
 -		default:
 -			snprintf(buffer, buffer_len, "%lu", min);
 -			break;
--		}
--		if (min == max && min_type == max_type)
--			break;
--		len = strlen(buffer);
--		buffer[len++] = '-';
--		buffer += len;
--		buffer_len -= len;
--		min_type = max_type;
--		min = max;
-+	if (ptr->is_group) {
-+		ccs_set_string(head, "@");
-+		ccs_set_string(head, ptr->group->group_name->name);
-+	} else {
-+		ccs_set_string(head, "\"");
-+		ccs_set_string(head, ptr->filename->name);
-+		ccs_set_string(head, "\"");
- 	}
- }
- 
- /**
-- * ccs_print_number_union_common - Print a ccs_number_union.
-- *
-- * @head:       Pointer to "struct ccs_io_buffer".
-- * @ptr:        Pointer to "struct ccs_number_union".
-- * @need_space: True if a space character is needed.
-- *
-- * Returns true on success, false otherwise.
-- */
--static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
--					  const struct ccs_number_union *ptr,
--					  const bool need_space)
--{
--	char buffer[128];
--	if (need_space && !ccs_io_printf(head, " "))
--		return false;
--	if (ptr->is_group)
--		return ccs_io_printf(head, "@%s",
--				     ptr->group->group_name->name);
--	ccs_print_number(buffer, sizeof(buffer), ptr);
--	return ccs_io_printf(head, "%s", buffer);
--}
--
--/**
-  * ccs_print_number_union - Print a ccs_number_union.
-  *
-- * @head:       Pointer to "struct ccs_io_buffer".
-- * @ptr:        Pointer to "struct ccs_number_union".
-- *
-- * Returns true on success, false otherwise.
-+ * @head: Pointer to "struct ccs_io_buffer".
-+ * @ptr:  Pointer to "struct ccs_number_union".
-  */
--static bool ccs_print_number_union(struct ccs_io_buffer *head,
-+static void ccs_print_number_union(struct ccs_io_buffer *head,
- 				   const struct ccs_number_union *ptr)
- {
--	return ccs_print_number_union_common(head, ptr, true);
 +	if (!head->r.print_cond_part)
 +		ccs_set_space(head);
 +	if (ptr->is_group) {
@@ -761,12 +754,57 @@ Index: policy_io.c
 +			ccs_addprintf(buffer, sizeof(buffer), "-");
 +			min_type = max_type;
 +			min = max;
-+		}
+ 		}
+-		if (min == max && min_type == max_type)
+-			break;
+-		len = strlen(buffer);
+-		buffer[len++] = '-';
+-		buffer += len;
+-		buffer_len -= len;
+-		min_type = max_type;
+-		min = max;
 +		ccs_io_printf(head, "%s", buffer);
-+	}
+ 	}
  }
  
  /**
+- * ccs_print_number_union_common - Print a ccs_number_union.
+- *
+- * @head:       Pointer to "struct ccs_io_buffer".
+- * @ptr:        Pointer to "struct ccs_number_union".
+- * @need_space: True if a space character is needed.
+- *
+- * Returns true on success, false otherwise.
+- */
+-static bool ccs_print_number_union_common(struct ccs_io_buffer *head,
+-					  const struct ccs_number_union *ptr,
+-					  const bool need_space)
+-{
+-	char buffer[128];
+-	if (need_space && !ccs_io_printf(head, " "))
+-		return false;
+-	if (ptr->is_group)
+-		return ccs_io_printf(head, "@%s",
+-				     ptr->group->group_name->name);
+-	ccs_print_number(buffer, sizeof(buffer), ptr);
+-	return ccs_io_printf(head, "%s", buffer);
+-}
+-
+-/**
+- * ccs_print_number_union - Print a ccs_number_union.
+- *
+- * @head:       Pointer to "struct ccs_io_buffer".
+- * @ptr:        Pointer to "struct ccs_number_union".
+- *
+- * Returns true on success, false otherwise.
+- */
+-static bool ccs_print_number_union(struct ccs_io_buffer *head,
+-				   const struct ccs_number_union *ptr)
+-{
+-	return ccs_print_number_union_common(head, ptr, true);
+-}
+-
+-/**
 - * ccs_print_number_union_nospace - Print a ccs_number_union without a space character.
 - *
 - * @head:       Pointer to "struct ccs_io_buffer".
@@ -784,9 +822,15 @@ Index: policy_io.c
   * ccs_print_condition - Print condition part.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -1126,111 +1138,154 @@
- static bool ccs_print_condition(struct ccs_io_buffer *head,
- 				const struct ccs_condition *cond)
+- * @cond: Pointer to "struct ccs_condition". Maybe NULL.
++ * @cond: Pointer to "struct ccs_condition".
+  *
+  * Returns true on success, false otherwise.
+  */
+-static bool ccs_print_condition(struct ccs_io_buffer *head,
+-				const struct ccs_condition *cond)
++static noinline bool ccs_print_condition(struct ccs_io_buffer *head,
++					 const struct ccs_condition *cond)
  {
 -	const struct ccs_condition_element *condp;
 -	const struct ccs_number_union *numbers_p;
@@ -834,27 +878,10 @@ Index: policy_io.c
 -			} else {
 -				if (!ccs_io_printf(head, "NULL"))
 -					goto out;
-+	const struct ccs_condition_element *condp = NULL;
-+	const struct ccs_number_union *numbers_p = NULL;
-+	const struct ccs_name_union *names_p = NULL;
-+	const struct ccs_argv *argv = NULL;
-+	const struct ccs_envp *envp = NULL;
-+	u16 condc = 0;
-+	if (cond) {
-+		condc = cond->condc;
-+		condp = (const struct ccs_condition_element *) (cond + 1);
-+		numbers_p = (const struct ccs_number_union *) (condp + condc);
-+		names_p = (const struct ccs_name_union *)
-+			(numbers_p + cond->numbers_count);
-+		argv = (const struct ccs_argv *) (names_p + cond->names_count);
-+		envp = (const struct ccs_envp *) (argv + cond->argc);
-+	} else {
-+		head->r.cond_step = 4;
-+	}
 +	switch (head->r.cond_step) {
 +	case 0:
 +		{ 
-+			if (condc)
++			if (cond->condc)
 +				ccs_set_string(head, " if");
 +			head->r.cond_index = 0;
 +			head->r.cond_step++;
@@ -862,8 +889,20 @@ Index: policy_io.c
 +		/* fall through */
 +	case 1:
 +		{
-+			u16 skip = head->r.cond_index;
-+			while (skip--) {
++			const u16 condc = cond->condc;
++			const struct ccs_condition_element *condp =
++				(typeof(condp)) (cond + 1);
++			const struct ccs_number_union *numbers_p =
++				(typeof(numbers_p)) (condp + condc);
++			const struct ccs_name_union *names_p =
++				(typeof(names_p))
++				(numbers_p + cond->numbers_count);
++			const struct ccs_argv *argv =
++				(typeof(argv)) (names_p + cond->names_count);
++			const struct ccs_envp *envp =
++				(typeof(envp)) (argv + cond->argc);
++			u16 skip;
++			for (skip = 0; skip < head->r.cond_index; skip++) {
 +				const u8 left = condp->left;
 +				const u8 right = condp->right;
 +				condp++;
@@ -900,6 +939,65 @@ Index: policy_io.c
 -					   ccs_condition_keyword[left]))
 -				goto out;
 -			break;
++			while (head->r.cond_index < condc) {
++				const u8 match = condp->equals;
++				const u8 left = condp->left;
++				const u8 right = condp->right;
++				if (!ccs_flush(head))
++					return false;
++				condp++;
++				head->r.cond_index++;
++				ccs_set_space(head);
++				switch (left) {
++				case CCS_ARGV_ENTRY:
++					ccs_io_printf(head,
++						      "exec.argv[%u]%s\"%s\"",
++						      argv->index,
++						      argv->is_not ?
++						      "!=" : "=",
++						      argv->value->name);
++					argv++;
++					continue;
++				case CCS_ENVP_ENTRY:
++					ccs_io_printf(head,
++						      "exec.envp[\"%s\"]%s",
++						      envp->name->name,
++						      envp->is_not ?
++						      "!=" : "=");
++					if (envp->value) {
++						ccs_set_string(head, "\"");
++						ccs_set_string(head, envp->
++							       value->name);
++						ccs_set_string(head, "\"");
++					} else {
++						ccs_set_string(head, "NULL");
++					}
++					envp++;
++					continue;
++				case CCS_NUMBER_UNION:
++					ccs_print_number_union(head,
++							       numbers_p++);
++					break;
++				default:
++					ccs_set_string(head,
++					       ccs_condition_keyword[left]);
++					break;
++				}
++				ccs_set_string(head, match ? "=" : "!=");
++				switch (right) {
++				case CCS_NAME_UNION:
++					ccs_print_name_union(head, names_p++);
++					break;
++				case CCS_NUMBER_UNION:
++					ccs_print_number_union(head,
++							       numbers_p++);
++					break;
++				default:
++					ccs_set_string(head,
++					       ccs_condition_keyword[right]);
++					break;
++				}
++			}
  		}
 -		if (!ccs_io_printf(head, "%s", match ? "=" : "!="))
 -			goto out;
@@ -907,58 +1005,6 @@ Index: policy_io.c
 -		case CCS_NAME_UNION:
 -			if (!ccs_print_name_union_quoted(head, names_p++))
 -				goto out;
-+		while (head->r.cond_index < condc) {
-+			const u8 match = condp->equals;
-+			const u8 left = condp->left;
-+			const u8 right = condp->right;
-+			if (!ccs_flush(head))
-+				return false;
-+			condp++;
-+			head->r.cond_index++;
-+			switch (left) {
-+			case CCS_ARGV_ENTRY:
-+				ccs_io_printf(head, " exec.argv[%u]%s\"%s\"",
-+					      argv->index, argv->is_not ?
-+					      "!=" : "=", argv->value->name);
-+				argv++;
-+				continue;
-+			case CCS_ENVP_ENTRY:
-+				ccs_io_printf(head, " exec.envp[\"%s\"]%s",
-+					      envp->name->name, envp->is_not ?
-+					      "!=" : "=");
-+				if (envp->value) {
-+					ccs_set_string(head, "\"");
-+					ccs_set_string(head,
-+						       envp->value->name);
-+					ccs_set_string(head, "\"");
-+				} else {
-+					ccs_set_string(head, "NULL");
-+				}
-+				envp++;
-+				continue;
-+			case CCS_NUMBER_UNION:
-+				ccs_print_number_union(head, numbers_p++);
-+				break;
-+			default:
-+				ccs_set_space(head);
-+				ccs_set_string(head,
-+					       ccs_condition_keyword[left]);
-+				break;
-+			}
-+			ccs_set_string(head, match ? "=" : "!=");
-+			switch (right) {
-+			case CCS_NAME_UNION:
-+				ccs_print_name_union_quoted(head, names_p++);
-+				break;
-+			case CCS_NUMBER_UNION:
-+				ccs_print_number_union(head, numbers_p++);
-+				break;
-+			default:
-+				ccs_set_string(head,
-+					       ccs_condition_keyword[right]);
-+				break;
-+			}
-+		}
 +		head->r.cond_step++;
 +		/* fall through */
 +	case 2:
@@ -992,15 +1038,7 @@ Index: policy_io.c
 +				ccs_io_printf(head, " audit=%s",
 +					      ccs_yesno(cond->post_state[4]));
  		}
-+		head->r.cond_step++;
-+		/* fall through */
-+	case 4:
-+		ccs_set_lf(head);
-+		head->r.cond_step++;
-+		/* fall through */
-+	case 5:
-+		return ccs_flush(head);
- 	}
+-	}
 -	i = cond->post_state[3];
 -	if (!i)
 -		goto no_condition;
@@ -1020,8 +1058,10 @@ Index: policy_io.c
 -	}
 - no_condition:
 -	if (ccs_io_printf(head, "\n"))
--		return true;
++		ccs_set_lf(head);
+ 		return true;
 - out:
++	}
  	return false;
  }
  
@@ -1036,7 +1076,7 @@ Index: policy_io.c
  /**
   * ccs_print_entry - Print an ACL entry.
   *
-@@ -1242,15 +1297,13 @@
+@@ -1242,24 +1279,24 @@
  static bool ccs_print_entry(struct ccs_io_buffer *head,
  			    const struct ccs_acl_info *acl)
  {
@@ -1052,10 +1092,13 @@ Index: policy_io.c
  		return true;
   next:
 -	pos = head->read_avail;
- 	if (acl_type == CCS_TYPE_PATH_ACL) {
+-	if (acl_type == CCS_TYPE_PATH_ACL) {
++	if (!ccs_flush(head))
++		return false;
++	else if (acl_type == CCS_TYPE_PATH_ACL) {
  		struct ccs_path_acl *ptr
  			= container_of(acl, typeof(*ptr), head);
-@@ -1258,8 +1311,8 @@
+ 		const u16 perm = ptr->perm;
  		for ( ; bit < CCS_MAX_PATH_OPERATION; bit++) {
  			if (!(perm & (1 << bit)))
  				continue;
@@ -1066,7 +1109,7 @@ Index: policy_io.c
  				continue;
  			/* Print "read/write" instead of "read" and "write". */
  			if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
-@@ -1269,137 +1322,109 @@
+@@ -1269,137 +1306,113 @@
  		}
  		if (bit == CCS_MAX_PATH_OPERATION)
  			goto done;
@@ -1246,21 +1289,25 @@ Index: policy_io.c
 -	pos = head->read_avail;
 -	if (!ccs_print_condition(head, acl->cond)) {
 -		head->read_avail = pos;
+-		return false;
 +	head->r.bit = bit;
-+	head->r.print_cond_part = true;
-+	head->r.cond_step = 0;
-+	if (!ccs_flush(head))
- 		return false;
--	}
--	head->read_cond = false;
++	if (acl->cond) {
++		head->r.print_cond_part = true;
++		head->r.cond_step = 0;
++		if (!ccs_flush(head))
++			return false;
 + print_cond_part:
-+	if (!ccs_print_condition(head, acl->cond))
-+		return false;
-+	head->r.print_cond_part = false;
++		if (!ccs_print_condition(head, acl->cond))
++			return false;
++		head->r.print_cond_part = false;
++	} else {
++		ccs_set_lf(head);
+ 	}
+-	head->read_cond = false;
  	switch (acl_type) {
  	case CCS_TYPE_PATH_ACL:
  	case CCS_TYPE_MKDEV_ACL:
-@@ -1410,12 +1435,8 @@
+@@ -1410,12 +1423,8 @@
  		goto next;
  	}
   done:
@@ -1274,7 +1321,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1431,14 +1452,13 @@
+@@ -1431,14 +1440,13 @@
  static bool ccs_read_domain2(struct ccs_io_buffer *head,
  			     struct ccs_domain_info *domain)
  {
@@ -1292,7 +1339,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -1451,48 +1471,46 @@
+@@ -1451,48 +1459,45 @@
   */
  static void ccs_read_domain(struct ccs_io_buffer *head)
  {
@@ -1331,12 +1378,12 @@ Index: policy_io.c
 -					   w[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ],
 -					   w[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV],
 -					   w[CCS_DIF_TRANSITION_FAILED]))
+-				return;
+-			head->read_step++;
 +				if (domain->flags[i])
 +					ccs_set_string(head, ccs_dif[i]);
 +			head->r.step++;
-+			if (!ccs_set_lf(head))
- 				return;
--			head->read_step++;
++			ccs_set_lf(head);
  			/* fall through */
  		case 1:
  			if (!ccs_read_domain2(head, domain))
@@ -1363,7 +1410,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1543,19 +1561,22 @@
+@@ -1543,19 +1548,22 @@
   */
  static void ccs_read_domain_profile(struct ccs_io_buffer *head)
  {
@@ -1394,7 +1441,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1567,7 +1588,7 @@
+@@ -1567,7 +1575,7 @@
   */
  static int ccs_write_pid(struct ccs_io_buffer *head)
  {
@@ -1403,7 +1450,7 @@ Index: policy_io.c
  	return 0;
  }
  
-@@ -1593,12 +1614,12 @@
+@@ -1593,12 +1601,12 @@
  	u32 ccs_flags = 0;
  	/* Accessing write_buf is safe because head->io_sem is held. */
  	if (!buf) {
@@ -1419,7 +1466,7 @@ Index: policy_io.c
  	if (ccs_str_starts(&buf, "info "))
  		task_info = true;
  	if (ccs_str_starts(&buf, "global-pid "))
-@@ -1620,10 +1641,10 @@
+@@ -1620,10 +1628,10 @@
  	ccs_tasklist_unlock();
  	if (!domain)
  		return;
@@ -1434,7 +1481,7 @@ Index: policy_io.c
  		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
  			      "state[0]=%u state[1]=%u state[2]=%u", pid,
  			      ccs_yesno(ccs_flags &
-@@ -1633,6 +1654,7 @@
+@@ -1633,6 +1641,7 @@
  			      (u8) (ccs_flags >> 24),
  			      (u8) (ccs_flags >> 16),
  			      (u8) (ccs_flags >> 8));
@@ -1442,7 +1489,7 @@ Index: policy_io.c
  }
  
  static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-@@ -1698,31 +1720,30 @@
+@@ -1698,31 +1707,30 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
@@ -1491,7 +1538,7 @@ Index: policy_io.c
  				struct ccs_address_group *member =
  					container_of(ptr, typeof(*member),
  						     head);
-@@ -1734,12 +1755,13 @@
+@@ -1734,12 +1742,13 @@
  					ccs_print_ipv4(buffer, sizeof(buffer),
  						       member->min.ipv4,
  						       member->max.ipv4);
@@ -1508,7 +1555,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -1755,51 +1777,52 @@
+@@ -1755,51 +1764,52 @@
   */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
@@ -1581,7 +1628,7 @@ Index: policy_io.c
  			}
  			break;
  		case CCS_ID_RESERVEDPORT:
-@@ -1808,27 +1831,26 @@
+@@ -1808,29 +1818,22 @@
  					container_of(acl, typeof(*ptr), head);
  				const u16 min_port = ptr->min_port;
  				const u16 max_port = ptr->max_port;
@@ -1609,16 +1656,16 @@ Index: policy_io.c
  	return true;
  }
  
- static void ccs_read_global_domain(struct ccs_io_buffer *head)
- {
+-static void ccs_read_global_domain(struct ccs_io_buffer *head)
+-{
 -	if (!head->read_eof)
 -		head->read_eof = ccs_read_domain2(head, &ccs_global_domain);
-+	if (!head->r.eof)
-+		head->r.eof = ccs_read_domain2(head, &ccs_global_domain);
- }
- 
+-}
+-
  /**
-@@ -1840,17 +1862,17 @@
+  * ccs_read_exception - Read exception policy.
+  *
+@@ -1840,19 +1843,19 @@
   */
  static void ccs_read_exception(struct ccs_io_buffer *head)
  {
@@ -1643,9 +1690,12 @@ Index: policy_io.c
 +		head->r.step++;
 +	if (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP)
  		return;
- 	head->read = ccs_read_global_domain;
+-	head->read = ccs_read_global_domain;
++	head->r.eof = ccs_read_domain2(head, &ccs_global_domain);
  }
-@@ -1877,15 +1899,6 @@
+ 
+ /* Wait queue for ccs_query_list. */
+@@ -1877,15 +1880,6 @@
  /* Number of "struct file" referring /proc/ccs/query interface. */
  static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  
@@ -1661,7 +1711,7 @@ Index: policy_io.c
  static void ccs_truncate(char *str)
  {
  	while (* (unsigned char *) str > (unsigned char) ' ')
-@@ -2115,12 +2128,12 @@
+@@ -2115,12 +2109,12 @@
  	int pos = 0;
  	int len = 0;
  	char *buf;
@@ -1676,7 +1726,7 @@ Index: policy_io.c
  	}
  	spin_lock(&ccs_query_list_lock);
  	list_for_each(tmp, &ccs_query_list) {
-@@ -2128,14 +2141,14 @@
+@@ -2128,14 +2122,14 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1693,7 +1743,7 @@ Index: policy_io.c
  		return;
  	}
  	buf = kzalloc(len, CCS_GFP_FLAGS);
-@@ -2148,7 +2161,7 @@
+@@ -2148,7 +2142,7 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1702,7 +1752,7 @@ Index: policy_io.c
  			continue;
  		/*
  		 * Some query can be skipped because ccs_query_list
-@@ -2160,10 +2173,11 @@
+@@ -2160,10 +2154,11 @@
  	}
  	spin_unlock(&ccs_query_list_lock);
  	if (buf[0]) {
@@ -1717,7 +1767,7 @@ Index: policy_io.c
  	} else {
  		kfree(buf);
  	}
-@@ -2212,10 +2226,10 @@
+@@ -2212,10 +2207,10 @@
   */
  static void ccs_read_version(struct ccs_io_buffer *head)
  {
@@ -1731,7 +1781,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2225,14 +2239,14 @@
+@@ -2225,14 +2220,14 @@
   */
  static void ccs_read_self_domain(struct ccs_io_buffer *head)
  {
@@ -1748,7 +1798,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2391,9 +2405,8 @@
+@@ -2391,9 +2386,8 @@
  int ccs_read_control(struct file *file, char __user *buffer,
  		     const int buffer_len)
  {
@@ -1759,7 +1809,7 @@ Index: policy_io.c
  	int idx;
  	if (!head->read)
  		return -ENOSYS;
-@@ -2401,38 +2414,15 @@
+@@ -2401,38 +2395,15 @@
  		return -EFAULT;
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
@@ -1803,7 +1853,7 @@ Index: policy_io.c
  	mutex_unlock(&head->io_sem);
  	return len;
  }
-@@ -2471,14 +2461,14 @@
+@@ -2471,14 +2442,14 @@
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -1820,7 +1870,7 @@ Index: policy_io.c
  			kfree(cp0);
  			head->write_buf = cp;
  			cp0 = cp;
-@@ -2490,11 +2480,11 @@
+@@ -2490,11 +2461,11 @@
  		}
  		buffer++;
  		avail_len--;
