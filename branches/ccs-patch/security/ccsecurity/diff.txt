@@ -54,7 +54,44 @@ Index: internal.h
 ===================================================================
 --- internal.h	(revision 3773)
 +++ internal.h	(working copy)
-@@ -900,6 +900,8 @@
+@@ -43,26 +43,20 @@
+ /**
+  * list_for_each_cookie - iterate over a list with cookie.
+  * @pos:        the &struct list_head to use as a loop cursor.
+- * @cookie:     the &struct list_head to use as a cookie.
+  * @head:       the head for your list.
+- *
+- * Same with list_for_each_rcu() except that this primitive uses @cookie
+- * so that we can continue iteration.
+- * @cookie must be NULL when iteration starts, and @cookie will become
+- * NULL when iteration finishes.
+  */
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
+-#define list_for_each_cookie(pos, cookie, head)				\
+-	if (!cookie)							\
+-		cookie = rcu_dereference((head)->next);			\
+-	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
+-	     pos = rcu_dereference(pos->next), (cookie) = pos)
++#define list_for_each_cookie(pos, head)			\
++	if (!pos)					\
++		pos = rcu_dereference((head)->next);	\
++	for ( ; pos != (head);				\
++	      pos = rcu_dereference(pos->next))
+ #else
+-#define list_for_each_cookie(pos, cookie, head)				\
+-	if (!cookie)							\
+-		cookie = srcu_dereference((head)->next, &ccs_ss);	\
+-	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
+-	     pos = srcu_dereference(pos->next, &ccs_ss), (cookie) = pos)
++#define list_for_each_cookie(pos, head)				\
++	if (!pos)						\
++		pos = srcu_dereference((head)->next, &ccs_ss);	\
++	for ( ; pos != (head);					\
++	      pos = srcu_dereference(pos->next, &ccs_ss))
+ #endif
+ 
+ enum ccs_transition_type {
+@@ -900,6 +894,8 @@
  	struct ccs_path_info entry;
  };
  
@@ -63,7 +100,7 @@ Index: internal.h
  /* Structure for reading/writing policy via /proc interfaces. */
  struct ccs_io_buffer {
  	void (*read) (struct ccs_io_buffer *);
-@@ -909,26 +911,29 @@
+@@ -909,35 +905,37 @@
  	struct mutex io_sem;
  	/* Index returned by ccs_lock().        */
  	int reader_idx;
@@ -71,29 +108,33 @@ Index: internal.h
 -	struct list_head *read_var1;
 -	/* Extra variables for reading.         */
 -	struct list_head *read_var2;
+-	/* The position currently writing to.   */
+-	struct ccs_domain_info *write_var1;
+-	/* The step for reading.                */
+-	int read_step;
 +	char __user *read_user_buf;
 +	int read_user_buf_avail;
 +	struct {
-+		struct list_head *var1;
-+		struct list_head *var2;
++		struct list_head *domain;
++		struct list_head *group;
++		struct list_head *acl;
 +		int avail;
 +		int step;
-+		int step2;
-+		bool header_done;
-+		bool eof;
-+		bool single_domain;
-+		bool execute_only;
-+		bool cond;
++		u16 index;
 +		u16 cond_step;
 +		u8 cond_bit;
 +		u8 bit;
 +		u8 w_pos;
++		bool eof;
++		bool single_domain;
++		bool execute_only;
++		bool cond;
 +		const char *w[CCS_MAX_IO_READ_QUEUE];
 +	} r;
- 	/* The position currently writing to.   */
- 	struct ccs_domain_info *write_var1;
--	/* The step for reading.                */
--	int read_step;
++	struct {
++		struct ccs_domain_info *domain;
++		int avail;
++	} w;
  	/* Buffer for reading.                  */
  	char *read_buf;
 -	/* EOF flag for reading.                */
@@ -109,15 +150,16 @@ Index: internal.h
  	/* Size of read buffer.                 */
  	int readbuf_size;
  	/* Buffer for writing.                  */
-@@ -937,7 +942,6 @@
- 	int write_avail;
+ 	char *write_buf;
+-	/* Bytes available for writing.         */
+-	int write_avail;
  	/* Size of write buffer.                */
  	int writebuf_size;
 -	bool read_cond;
  	/* Type of this interface.              */
  	u8 type;
  };
-@@ -1000,7 +1004,7 @@
+@@ -1000,7 +998,7 @@
  bool ccs_domain_quota_ok(struct ccs_request_info *r);
  bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
  		   struct ccs_page_dump *dump);
@@ -238,7 +280,7 @@ Index: policy_io.c
  {
  	struct ccs_preference *pref = &ccs_default_profile.preference;
  	const struct ccs_profile *profile = idx >= 0 ?
-@@ -552,54 +605,54 @@
+@@ -552,56 +605,67 @@
  	if (profile) {
  		pref = profile->audit;
  		if (pref == &ccs_default_profile.preference)
@@ -323,20 +365,27 @@ Index: policy_io.c
 +		      pref->enforcing_penalty);
  }
  
++static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
++{
++	ccs_io_printf(head, "={ mode=%s", ccs_mode[config & 3]);
++#ifdef CONFIG_CCSECURITY_AUDIT
++	ccs_io_printf(head, " grant_log=%s reject_log=%s",
++		      ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG),
++		      ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG));
++#endif
++	ccs_set_string(head, " }\n");
++}
++
  /**
-@@ -609,81 +662,88 @@
+  * ccs_read_profile - Read profile table.
+  *
+@@ -609,81 +673,68 @@
   */
  static void ccs_read_profile(struct ccs_io_buffer *head)
  {
 -	int index;
 -	if (head->read_eof)
-+	u8 index;
-+	const struct ccs_profile *profile;
-+	if (!head->r.header_done) {
-+		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
-+		ccs_print_preference(head, -1);
-+		head->r.header_done = true;
- 		return;
+-		return;
 -	if (head->read_bit)
 -		goto body;
 -	ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
@@ -352,10 +401,7 @@ Index: policy_io.c
 -		const struct ccs_path_info *comment;
 -		head->read_step = index;
 -		if (!profile)
-+	}
-+	for ( ; head->r.step < CCS_MAX_PROFILES; head->r.step++) {
-+		if (!ccs_profile_ptr[head->r.step])
- 			continue;
+-			continue;
 -		pos = head->read_avail;
 -		comment = profile->comment;
 -		done = ccs_io_printf(head, "%u-COMMENT=%s\n", index,
@@ -363,26 +409,7 @@ Index: policy_io.c
 -		if (!done)
 -			goto out;
 -		config = profile->default_config;
-+		break;
-+	}
-+	if (head->r.step == CCS_MAX_PROFILES)
-+		return;
-+	index = head->r.step;
-+	profile = ccs_profile_ptr[index];
-+	switch (head->r.step2) {
-+	case 0:
-+		{
-+			const struct ccs_path_info *comment = profile->comment;
-+			ccs_io_printf(head, "%u-COMMENT=", index);
-+			ccs_set_string(head, comment ? comment->name : "");
-+			ccs_set_lf(head);
-+			head->r.step2++;
-+		}
-+		break;
-+	case 1:
-+		{
-+			const u8 config = profile->default_config;
- #ifdef CONFIG_CCSECURITY_AUDIT
+-#ifdef CONFIG_CCSECURITY_AUDIT
 -		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s "
 -				   "grant_log=%s reject_log=%s }\n", index,
 -				   "CONFIG", "", ccs_mode[config & 3],
@@ -391,20 +418,11 @@ Index: policy_io.c
 -				   ccs_yesno(config &
 -					     CCS_CONFIG_WANT_REJECT_LOG)))
 -			goto out;
-+			ccs_io_printf(head, "%u-%s%s={ mode=%s "
-+				      "grant_log=%s reject_log=%s }\n", index,
-+				      "CONFIG", "", ccs_mode[config & 3],
-+				      ccs_yesno(config &
-+						CCS_CONFIG_WANT_GRANT_LOG),
-+				      ccs_yesno(config &
-+						CCS_CONFIG_WANT_REJECT_LOG));
- #else
+-#else
 -		if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n", index,
 -				   "CONFIG", "", ccs_mode[config & 3]))
 -			goto out;
-+			ccs_io_printf(head, "%u-%s%s={ mode=%s }\n", index,
-+				      "CONFIG", "", ccs_mode[config & 3]);
- #endif
+-#endif
 -		for (i = 0; i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 -			     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
 -#ifdef CONFIG_CCSECURITY_AUDIT
@@ -412,20 +430,52 @@ Index: policy_io.c
 -			const char *r;
 -#endif
 -			config = profile->config[i];
-+			head->r.bit = 0;
-+			head->r.step2++;
-+		}
++	u8 index;
++	const struct ccs_profile *profile;
++ next:
++	index = head->r.index;
++	profile = ccs_profile_ptr[index];
++	switch (head->r.step) {
++	case 0:
++		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
++		ccs_print_preference(head, -1);
++		head->r.step++;
++		break;
++	case 1: 
++		for ( ; head->r.index < CCS_MAX_PROFILES;
++		      head->r.index++)
++			if (ccs_profile_ptr[head->r.index])
++				break;
++		if (head->r.index == CCS_MAX_PROFILES)
++			return;
++		head->r.step++;
 +		break;
 +	case 2:
-+		while (head->r.bit < CCS_MAX_MAC_INDEX
-+		       + CCS_MAX_CAPABILITY_INDEX
-+		       + CCS_MAX_MAC_CATEGORY_INDEX) {
++		{
++			const struct ccs_path_info *comment = profile->comment;
++			ccs_io_printf(head, "%u-COMMENT=", index);
++			ccs_set_string(head, comment ? comment->name : "");
++			ccs_set_lf(head);
++			head->r.step++;
++		}
++		break;
++	case 3:
++		{
++			ccs_io_printf(head, "%u-%s", index, "CONFIG");
++			ccs_print_config(head, profile->default_config);
++			head->r.bit = 0;
++			head->r.step++;
++		}
++		break;
++	case 4:
++		for ( ; head->r.bit < CCS_MAX_MAC_INDEX
++			      + CCS_MAX_CAPABILITY_INDEX
++			      + CCS_MAX_MAC_CATEGORY_INDEX; head->r.bit++) {
 +			const u8 i = head->r.bit;
 +			const u8 config = profile->config[i];
  			if (config == CCS_CONFIG_USE_DEFAULT)
--				continue;
-+				goto skip;
- #ifdef CONFIG_CCSECURITY_AUDIT
+ 				continue;
+-#ifdef CONFIG_CCSECURITY_AUDIT
 -			g = ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG);
 -			r = ccs_yesno(config & CCS_CONFIG_WANT_REJECT_LOG);
 -			if (!ccs_io_printf(head, "%u-%s%s={ mode=%s "
@@ -434,73 +484,69 @@ Index: policy_io.c
 -					   ccs_mac_keywords[i],
 -					   ccs_mode[config & 3], g, r))
 -				goto out;
-+			ccs_io_printf(head, "%u-%s%s={ mode=%s "
-+				      "grant_log=%s reject_log=%s }\n",
-+				      index, "CONFIG::",
-+				      ccs_mac_keywords[i],
-+				      ccs_mode[config & 3],
-+				      ccs_yesno(config &
-+						CCS_CONFIG_WANT_GRANT_LOG),
-+				      ccs_yesno(config &
-+						CCS_CONFIG_WANT_REJECT_LOG));
- #else
+-#else
 -			if (!ccs_io_printf(head, "%u-%s%s={ mode=%s }\n",
 -					   index, "CONFIG::",
 -					   ccs_mac_keywords[i],
 -					   ccs_mode[config & 3]))
 -				goto out;
-+			ccs_io_printf(head, "%u-%s%s={ mode=%s }\n",
-+				      index, "CONFIG::",
-+				      ccs_mac_keywords[i],
-+				      ccs_mode[config & 3]);
- #endif
-+ skip:
+-#endif
++			ccs_io_printf(head, "%u-%s%s", index, "CONFIG::",
++				      ccs_mac_keywords[i]);
++			ccs_print_config(head, config);
 +			head->r.bit++;
-+			if (!ccs_flush(head))
-+				return;
++			break;
  		}
 -		if (!ccs_print_preference(head, index))
 -			goto out;
 -		continue;
 - out:
 -		head->read_avail = pos;
-+		head->r.step2++;
++		if (head->r.bit == CCS_MAX_MAC_INDEX
++		    + CCS_MAX_CAPABILITY_INDEX
++		    + CCS_MAX_MAC_CATEGORY_INDEX) {
++			ccs_print_preference(head, index);
++			head->r.index++;
++			head->r.step = 1;
++		}
  		break;
-+	case 3:
-+		ccs_print_preference(head, index);
-+		head->r.step2 = 0;
-+		break;
  	}
 -	if (index == CCS_MAX_PROFILES)
 -		head->read_eof = true;
++	if (ccs_flush(head))
++		goto next;
  }
  
  static bool ccs_same_manager_entry(const struct ccs_acl_head *a,
-@@ -751,18 +811,19 @@
+@@ -750,19 +801,20 @@
+  */
  static void ccs_read_manager(struct ccs_io_buffer *head)
  {
- 	struct list_head *pos;
+-	struct list_head *pos;
 -	if (head->read_eof)
 +	if (head->r.eof)
  		return;
 -	list_for_each_cookie(pos, head->read_var2,
-+	list_for_each_cookie(pos, head->r.var2,
- 			     &ccs_policy_list[CCS_ID_MANAGER]) {
+-			     &ccs_policy_list[CCS_ID_MANAGER]) {
++	list_for_each_cookie(head->r.acl, &ccs_policy_list[CCS_ID_MANAGER]) {
  		struct ccs_manager *ptr
- 			= list_entry(pos, typeof(*ptr), head.list);
+-			= list_entry(pos, typeof(*ptr), head.list);
++			= list_entry(head->r.acl, typeof(*ptr), head.list);
  		if (ptr->head.is_deleted)
  			continue;
 -		if (!ccs_io_printf(head, "%s\n", ptr->manager->name))
-+		ccs_set_string(head, ptr->manager->name);
-+		if (!ccs_set_lf(head))
++		if (!ccs_flush(head))
  			return;
++		ccs_set_string(head, ptr->manager->name);
++		ccs_set_lf(head);
  	}
 -	head->read_eof = true;
++	head->r.acl = NULL;
 +	head->r.eof = true;
  }
  
  /**
-@@ -851,7 +912,7 @@
+@@ -851,7 +903,7 @@
  	struct ccs_domain_info *domain = NULL;
  	bool global_pid = false;
  	if (!strcmp(data, "allow_execute")) {
@@ -509,16 +555,21 @@ Index: policy_io.c
  		return true;
  	}
  	if (sscanf(data, "pid=%u", &pid) == 1 ||
-@@ -879,17 +940,13 @@
+@@ -875,21 +927,17 @@
+ 			domain = ccs_find_domain(data + 7);
+ 	} else
+ 		return false;
+-	head->write_var1 = domain;
++	head->w.domain = domain;
  	/* Accessing read_buf is safe because head->io_sem is held. */
  	if (!head->read_buf)
  		return true; /* Do nothing if open(O_WRONLY). */
 -	head->read_avail = 0;
 -	head->read_cond = false;
-+	memset(&head->read, 0, sizeof(head->read));
++	memset(&head->r, 0, sizeof(head->r));
 +	head->r.single_domain = true;
 +	head->r.eof = !domain;
-+	head->r.var1 = &domain->list;
++	head->r.domain = &domain->list;
  	ccs_io_printf(head, "# select %s\n", data);
 -	head->read_single_domain = true;
 -	head->read_eof = !domain;
@@ -532,7 +583,25 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -998,19 +1055,18 @@
+@@ -950,7 +998,7 @@
+ static int ccs_write_domain(struct ccs_io_buffer *head)
+ {
+ 	char *data = head->write_buf;
+-	struct ccs_domain_info *domain = head->write_var1;
++	struct ccs_domain_info *domain = head->w.domain;
+ 	bool is_delete = false;
+ 	bool is_select = false;
+ 	unsigned int profile;
+@@ -971,7 +1019,7 @@
+ 			domain = ccs_find_domain(data);
+ 		else
+ 			domain = ccs_assign_domain(data, 0);
+-		head->write_var1 = domain;
++		head->w.domain = domain;
+ 		return 0;
+ 	}
+ 	if (!domain)
+@@ -998,19 +1046,18 @@
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @ptr:  Pointer to "struct ccs_name_union".
@@ -561,7 +630,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1018,104 +1074,68 @@
+@@ -1018,104 +1065,68 @@
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @ptr:  Pointer to "struct ccs_name_union".
@@ -713,7 +782,7 @@ Index: policy_io.c
   * ccs_print_condition - Print condition part.
   *
   * @head: Pointer to "struct ccs_io_buffer".
-@@ -1132,9 +1152,6 @@
+@@ -1132,9 +1143,6 @@
  	const struct ccs_argv *argv;
  	const struct ccs_envp *envp;
  	u16 condc;
@@ -723,7 +792,7 @@ Index: policy_io.c
  	if (!cond)
  		goto no_condition;
  	condc = cond->condc;
-@@ -1144,93 +1161,124 @@
+@@ -1144,93 +1152,124 @@
  		(numbers_p + cond->numbers_count);
  	argv = (const struct ccs_argv *) (names_p + cond->names_count);
  	envp = (const struct ccs_envp *) (argv + cond->argc);
@@ -903,7 +972,7 @@ Index: policy_io.c
  /**
   * ccs_print_entry - Print an ACL entry.
   *
-@@ -1242,15 +1290,13 @@
+@@ -1242,15 +1281,13 @@
  static bool ccs_print_entry(struct ccs_io_buffer *head,
  			    const struct ccs_acl_info *acl)
  {
@@ -921,7 +990,7 @@ Index: policy_io.c
  	if (acl_type == CCS_TYPE_PATH_ACL) {
  		struct ccs_path_acl *ptr
  			= container_of(acl, typeof(*ptr), head);
-@@ -1258,7 +1304,7 @@
+@@ -1258,7 +1295,7 @@
  		for ( ; bit < CCS_MAX_PATH_OPERATION; bit++) {
  			if (!(perm & (1 << bit)))
  				continue;
@@ -930,7 +999,7 @@ Index: policy_io.c
  			    && bit != CCS_TYPE_TRANSIT)
  				continue;
  			/* Print "read/write" instead of "read" and "write". */
-@@ -1269,137 +1315,109 @@
+@@ -1269,137 +1306,109 @@
  		}
  		if (bit == CCS_MAX_PATH_OPERATION)
  			goto done;
@@ -1123,7 +1192,7 @@ Index: policy_io.c
  	switch (acl_type) {
  	case CCS_TYPE_PATH_ACL:
  	case CCS_TYPE_MKDEV_ACL:
-@@ -1410,12 +1428,8 @@
+@@ -1410,12 +1419,8 @@
  		goto next;
  	}
   done:
@@ -1137,27 +1206,39 @@ Index: policy_io.c
  }
  
  /**
-@@ -1433,7 +1447,7 @@
+@@ -1431,14 +1436,13 @@
+ static bool ccs_read_domain2(struct ccs_io_buffer *head,
+ 			     struct ccs_domain_info *domain)
  {
- 	struct list_head *pos;
- 	/* Print ACL entries in the domain. */
+-	struct list_head *pos;
+-	/* Print ACL entries in the domain. */
 -	list_for_each_cookie(pos, head->read_var2, &domain->acl_info_list) {
-+	list_for_each_cookie(pos, head->r.var2, &domain->acl_info_list) {
++	list_for_each_cookie(head->r.acl, &domain->acl_info_list) {
  		struct ccs_acl_info *ptr
- 			= list_entry(pos, struct ccs_acl_info, list);
+-			= list_entry(pos, struct ccs_acl_info, list);
++			= list_entry(head->r.acl, struct ccs_acl_info, list);
  		if (!ccs_print_entry(head, ptr))
-@@ -1452,47 +1466,43 @@
+ 			return false;
+ 	}
++	head->r.acl = NULL;
+ 	return true;
+ }
+ 
+@@ -1451,48 +1455,45 @@
+  */
  static void ccs_read_domain(struct ccs_io_buffer *head)
  {
- 	struct list_head *pos;
+-	struct list_head *pos;
 -	if (head->read_eof)
 +	if (head->r.eof)
  		return;
 -	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
-+	list_for_each_cookie(pos, head->r.var1, &ccs_domain_list) {
++	list_for_each_cookie(head->r.domain, &ccs_domain_list) {
  		struct ccs_domain_info *domain =
- 			list_entry(pos, struct ccs_domain_info, list);
+-			list_entry(pos, struct ccs_domain_info, list);
 -		switch (head->read_step) {
++			list_entry(head->r.domain, struct ccs_domain_info,
++				   list);
 +		switch (head->r.step) {
  			u8 i;
 -			const char *w[CCS_MAX_DOMAIN_INFO_FLAGS];
@@ -1206,39 +1287,45 @@ Index: policy_io.c
  				goto out;
  		}
  	}
++	head->r.domain = NULL;
   out:
 -	head->read_eof = true;
 +	head->r.eof = true;
  }
  
  /**
-@@ -1544,18 +1554,20 @@
+@@ -1543,19 +1544,22 @@
+  */
  static void ccs_read_domain_profile(struct ccs_io_buffer *head)
  {
- 	struct list_head *pos;
+-	struct list_head *pos;
 -	if (head->read_eof)
 +	if (head->r.eof)
  		return;
 -	list_for_each_cookie(pos, head->read_var1, &ccs_domain_list) {
-+	list_for_each_cookie(pos, head->r.var1, &ccs_domain_list) {
- 		struct ccs_domain_info *domain;
- 		domain = list_entry(pos, struct ccs_domain_info, list);
+-		struct ccs_domain_info *domain;
+-		domain = list_entry(pos, struct ccs_domain_info, list);
++	list_for_each_cookie(head->r.domain, &ccs_domain_list) {
++		struct ccs_domain_info *domain =
++			list_entry(head->r.domain, struct ccs_domain_info,
++				   list);
  		if (domain->is_deleted)
  			continue;
 -		if (!ccs_io_printf(head, "%u %s\n", domain->profile,
 -				   domain->domainname->name))
++		if (!ccs_flush(head))
+ 			return;
 +		ccs_io_printf(head, "%u ", domain->profile);
 +		ccs_set_string(head, domain->domainname->name);
 +		ccs_set_lf(head);
-+		if (!ccs_flush(head))
- 			return;
  	}
 -	head->read_eof = true;
++	head->r.domain = NULL;
 +	head->r.eof = true;
  }
  
  /**
-@@ -1567,7 +1579,7 @@
+@@ -1567,7 +1571,7 @@
   */
  static int ccs_write_pid(struct ccs_io_buffer *head)
  {
@@ -1247,7 +1334,7 @@ Index: policy_io.c
  	return 0;
  }
  
-@@ -1593,12 +1605,12 @@
+@@ -1593,12 +1597,12 @@
  	u32 ccs_flags = 0;
  	/* Accessing write_buf is safe because head->io_sem is held. */
  	if (!buf) {
@@ -1263,7 +1350,7 @@ Index: policy_io.c
  	if (ccs_str_starts(&buf, "info "))
  		task_info = true;
  	if (ccs_str_starts(&buf, "global-pid "))
-@@ -1620,10 +1632,10 @@
+@@ -1620,10 +1624,10 @@
  	ccs_tasklist_unlock();
  	if (!domain)
  		return;
@@ -1278,7 +1365,7 @@ Index: policy_io.c
  		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
  			      "state[0]=%u state[1]=%u state[2]=%u", pid,
  			      ccs_yesno(ccs_flags &
-@@ -1633,6 +1645,7 @@
+@@ -1633,6 +1637,7 @@
  			      (u8) (ccs_flags >> 24),
  			      (u8) (ccs_flags >> 16),
  			      (u8) (ccs_flags >> 8));
@@ -1286,26 +1373,33 @@ Index: policy_io.c
  }
  
  static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-@@ -1700,29 +1713,28 @@
+@@ -1698,31 +1703,30 @@
+  */
+ static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
- 	struct list_head *gpos;
- 	struct list_head *mpos;
+-	struct list_head *gpos;
+-	struct list_head *mpos;
 -	const char *w[3] = { "", "", "" };
 -	w[0] = ccs_group_name[idx];
 -	list_for_each_cookie(gpos, head->read_var1, &ccs_group_list[idx]) {
-+	list_for_each_cookie(gpos, head->r.var1, &ccs_group_list[idx]) {
++	list_for_each_cookie(head->r.group, &ccs_group_list[idx]) {
  		struct ccs_group *group =
- 			list_entry(gpos, struct ccs_group, head.list);
+-			list_entry(gpos, struct ccs_group, head.list);
 -		w[1] = group->group_name->name;
 -		list_for_each_cookie(mpos, head->read_var2,
-+		list_for_each_cookie(mpos, head->r.var2,
- 				     &group->member_list) {
+-				     &group->member_list) {
 -			char buffer[128];
++			list_entry(head->r.group, struct ccs_group, head.list);
++		list_for_each_cookie(head->r.acl, &group->member_list) {
  			struct ccs_acl_head *ptr =
- 				list_entry(mpos, struct ccs_acl_head, list);
+-				list_entry(mpos, struct ccs_acl_head, list);
++				list_entry(head->r.acl, struct ccs_acl_head,
++					   list);
  			if (ptr->is_deleted)
  				continue;
 -			w[2] = buffer;
++			if (!ccs_flush(head))
++				return false;
 +			ccs_set_string(head, ccs_group_name[idx]);
 +			ccs_set_string(head, group->group_name->name);
  			if (idx == CCS_PATH_GROUP) {
@@ -1328,7 +1422,7 @@ Index: policy_io.c
  				struct ccs_address_group *member =
  					container_of(ptr, typeof(*member),
  						     head);
-@@ -1734,9 +1746,10 @@
+@@ -1734,12 +1738,13 @@
  					ccs_print_ipv4(buffer, sizeof(buffer),
  						       member->min.ipv4,
  						       member->max.ipv4);
@@ -1336,23 +1430,34 @@ Index: policy_io.c
  			}
 -			if (!ccs_io_printf(head, "%s%s %s\n", w[0], w[1],
 -					   w[2]))
+-				return false;
 +			ccs_set_lf(head);
-+			if (!ccs_flush(head))
- 				return false;
  		}
++		head->r.acl = NULL;
  	}
-@@ -1756,9 +1769,7 @@
++	head->r.group = NULL;
+ 	return true;
+ }
+ 
+@@ -1755,51 +1760,52 @@
+  */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
- 	struct list_head *pos;
+-	struct list_head *pos;
 -	list_for_each_cookie(pos, head->read_var2, &ccs_policy_list[idx]) {
 -		const char *w[4] = { "", "", "", "" };
 -		char buffer[16];
-+	list_for_each_cookie(pos, head->r.var2, &ccs_policy_list[idx]) {
- 		struct ccs_acl_head *acl = container_of(pos, typeof(*acl),
- 							list);
+-		struct ccs_acl_head *acl = container_of(pos, typeof(*acl),
+-							list);
++	list_for_each_cookie(head->r.acl, &ccs_policy_list[idx]) {
++		struct ccs_acl_head *acl =
++			container_of(head->r.acl, typeof(*acl), list);
  		if (acl->is_deleted)
-@@ -1768,38 +1779,40 @@
+ 			continue;
++		if (!ccs_flush(head))
++			return false;
+ 		switch (idx) {
+ 		case CCS_ID_TRANSITION_CONTROL:
  			{
  				struct ccs_transition_control *ptr =
  					container_of(acl, typeof(*ptr), head);
@@ -1407,7 +1512,7 @@ Index: policy_io.c
  			}
  			break;
  		case CCS_ID_RESERVEDPORT:
-@@ -1808,18 +1821,17 @@
+@@ -1808,27 +1814,26 @@
  					container_of(acl, typeof(*ptr), head);
  				const u16 min_port = ptr->min_port;
  				const u16 max_port = ptr->max_port;
@@ -1428,11 +1533,12 @@ Index: policy_io.c
  			continue;
  		}
 -		if (!ccs_io_printf(head, "%s%s%s%s\n", w[0], w[1], w[2], w[3]))
-+		if (!ccs_set_lf(head))
- 			return false;
+-			return false;
++		ccs_set_lf(head);
  	}
++	head->r.acl = NULL;
  	return true;
-@@ -1827,8 +1839,8 @@
+ }
  
  static void ccs_read_global_domain(struct ccs_io_buffer *head)
  {
@@ -1443,7 +1549,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1840,17 +1852,17 @@
+@@ -1840,17 +1845,17 @@
   */
  static void ccs_read_exception(struct ccs_io_buffer *head)
  {
@@ -1470,7 +1576,7 @@ Index: policy_io.c
  		return;
  	head->read = ccs_read_global_domain;
  }
-@@ -1877,15 +1889,6 @@
+@@ -1877,15 +1882,6 @@
  /* Number of "struct file" referring /proc/ccs/query interface. */
  static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  
@@ -1486,7 +1592,7 @@ Index: policy_io.c
  static void ccs_truncate(char *str)
  {
  	while (* (unsigned char *) str > (unsigned char) ' ')
-@@ -2115,12 +2118,12 @@
+@@ -2115,12 +2111,12 @@
  	int pos = 0;
  	int len = 0;
  	char *buf;
@@ -1501,7 +1607,7 @@ Index: policy_io.c
  	}
  	spin_lock(&ccs_query_list_lock);
  	list_for_each(tmp, &ccs_query_list) {
-@@ -2128,14 +2131,14 @@
+@@ -2128,14 +2124,14 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1518,7 +1624,7 @@ Index: policy_io.c
  		return;
  	}
  	buf = kzalloc(len, CCS_GFP_FLAGS);
-@@ -2148,7 +2151,7 @@
+@@ -2148,7 +2144,7 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1527,7 +1633,7 @@ Index: policy_io.c
  			continue;
  		/*
  		 * Some query can be skipped because ccs_query_list
-@@ -2160,10 +2163,11 @@
+@@ -2160,10 +2156,11 @@
  	}
  	spin_unlock(&ccs_query_list_lock);
  	if (buf[0]) {
@@ -1542,7 +1648,7 @@ Index: policy_io.c
  	} else {
  		kfree(buf);
  	}
-@@ -2212,10 +2216,10 @@
+@@ -2212,10 +2209,10 @@
   */
  static void ccs_read_version(struct ccs_io_buffer *head)
  {
@@ -1556,7 +1662,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2225,14 +2229,14 @@
+@@ -2225,14 +2222,14 @@
   */
  static void ccs_read_self_domain(struct ccs_io_buffer *head)
  {
@@ -1573,7 +1679,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2391,9 +2395,8 @@
+@@ -2391,9 +2388,8 @@
  int ccs_read_control(struct file *file, char __user *buffer,
  		     const int buffer_len)
  {
@@ -1584,7 +1690,7 @@ Index: policy_io.c
  	int idx;
  	if (!head->read)
  		return -ENOSYS;
-@@ -2401,38 +2404,15 @@
+@@ -2401,38 +2397,15 @@
  		return -EFAULT;
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
@@ -1592,7 +1698,7 @@ Index: policy_io.c
 +	head->read_user_buf_avail = buffer_len;
  	idx = ccs_read_lock();
 -	while (1) {
-+	if (!head->r.w_pos)
++	if (ccs_flush(head))
  		/* Call the policy handler. */
  		head->read(head);
 -		/* Write to buffer. */
@@ -1628,3 +1734,35 @@ Index: policy_io.c
  	mutex_unlock(&head->io_sem);
  	return len;
  }
+@@ -2471,14 +2444,14 @@
+ 	/* Read a line and dispatch it to the policy handler. */
+ 	while (avail_len > 0) {
+ 		char c;
+-		if (head->write_avail >= head->writebuf_size - 1) {
++		if (head->w.avail >= head->writebuf_size - 1) {
+ 			const int len = head->writebuf_size * 2;
+ 			char *cp = kzalloc(len, CCS_GFP_FLAGS);
+ 			if (!cp) {
+ 				error = -ENOMEM;
+ 				break;
+ 			}
+-			memmove(cp, cp0, head->write_avail);
++			memmove(cp, cp0, head->w.avail);
+ 			kfree(cp0);
+ 			head->write_buf = cp;
+ 			cp0 = cp;
+@@ -2490,11 +2463,11 @@
+ 		}
+ 		buffer++;
+ 		avail_len--;
+-		cp0[head->write_avail++] = c;
++		cp0[head->w.avail++] = c;
+ 		if (c != '\n')
+ 			continue;
+-		cp0[head->write_avail - 1] = '\0';
+-		head->write_avail = 0;
++		cp0[head->w.avail - 1] = '\0';
++		head->w.avail = 0;
+ 		ccs_normalize_line(cp0);
+ 		head->write(head);
+ 	}
