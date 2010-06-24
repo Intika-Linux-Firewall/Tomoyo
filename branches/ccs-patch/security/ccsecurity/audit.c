@@ -479,12 +479,11 @@ void ccs_read_log(struct ccs_io_buffer *head)
 {
 	struct ccs_log_entry *ptr = NULL;
 	const bool is_granted = head->type == CCS_GRANTLOG;
-	if (head->read_avail)
+	if (head->r.w_pos)
 		return;
 	if (head->read_buf) {
 		kfree(head->read_buf);
 		head->read_buf = NULL;
-		head->readbuf_size = 0;
 	}
 	spin_lock(&ccs_log_lock);
 	if (!list_empty(&ccs_log[is_granted])) {
@@ -497,8 +496,7 @@ void ccs_read_log(struct ccs_io_buffer *head)
 	spin_unlock(&ccs_log_lock);
 	if (ptr) {
 		head->read_buf = ptr->log;
-		head->read_avail = strlen(ptr->log) + 1;
-		head->readbuf_size = head->read_avail;
+		head->r.w[head->r.w_pos++] = head->read_buf;
 		kfree(ptr);
 	}
 }

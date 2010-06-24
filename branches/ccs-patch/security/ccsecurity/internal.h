@@ -43,26 +43,18 @@ struct in6_addr;
 /**
  * list_for_each_cookie - iterate over a list with cookie.
  * @pos:        the &struct list_head to use as a loop cursor.
- * @cookie:     the &struct list_head to use as a cookie.
  * @head:       the head for your list.
- *
- * Same with list_for_each_rcu() except that this primitive uses @cookie
- * so that we can continue iteration.
- * @cookie must be NULL when iteration starts, and @cookie will become
- * NULL when iteration finishes.
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
-#define list_for_each_cookie(pos, cookie, head)				\
-	if (!cookie)							\
-		cookie = rcu_dereference((head)->next);			\
-	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
-	     pos = rcu_dereference(pos->next), (cookie) = pos)
+#define list_for_each_cookie(pos, head)			\
+	if (!pos)					\
+		pos = rcu_dereference((head)->next);	\
+	for ( ; pos != (head); pos = rcu_dereference(pos->next))
 #else
-#define list_for_each_cookie(pos, cookie, head)				\
-	if (!cookie)							\
-		cookie = srcu_dereference((head)->next, &ccs_ss);	\
-	for (pos = (cookie); pos != (head) || ((cookie) = NULL);	\
-	     pos = srcu_dereference(pos->next, &ccs_ss), (cookie) = pos)
+#define list_for_each_cookie(pos, head)				\
+	if (!pos)						\
+		pos = srcu_dereference((head)->next, &ccs_ss);	\
+	for ( ; pos != (head); pos = srcu_dereference(pos->next, &ccs_ss))
 #endif
 
 enum ccs_transition_type {
@@ -365,7 +357,6 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
 #define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
 #define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
-#define CCS_KEYWORD_ALLOW_READ                "allow_read "
 #define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
 #define CCS_KEYWORD_DELETE                    "delete "
 #define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
@@ -900,6 +891,8 @@ struct ccs_name {
 	struct ccs_path_info entry;
 };
 
+#define CCS_MAX_IO_READ_QUEUE 32
+
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {
 	void (*read) (struct ccs_io_buffer *);
@@ -909,35 +902,38 @@ struct ccs_io_buffer {
 	struct mutex io_sem;
 	/* Index returned by ccs_lock().        */
 	int reader_idx;
-	/* The position currently reading from. */
-	struct list_head *read_var1;
-	/* Extra variables for reading.         */
-	struct list_head *read_var2;
-	/* The position currently writing to.   */
-	struct ccs_domain_info *write_var1;
-	/* The step for reading.                */
-	int read_step;
+	char __user *read_user_buf;
+	int read_user_buf_avail;
+	struct {
+		struct list_head *domain;
+		struct list_head *group;
+		struct list_head *acl;
+		int avail;
+		int step;
+		int query_index;
+		u16 index;
+		u16 cond_index;
+		u8 cond_step;
+		u8 bit;
+		u8 w_pos;
+		bool eof;
+		bool print_this_domain_only;
+		bool print_execute_only;
+		bool print_cond_part;
+		const char *w[CCS_MAX_IO_READ_QUEUE];
+	} r;
+	struct {
+		struct ccs_domain_info *domain;
+		int avail;
+	} w;
 	/* Buffer for reading.                  */
 	char *read_buf;
-	/* EOF flag for reading.                */
-	bool read_eof;
-	/* Read domain ACL of specified PID?    */
-	bool read_single_domain;
-	/* Read allow_execute entry only?       */
-	bool read_execute_only;
-	/* Extra variable for reading.          */
-	u8 read_bit;
-	/* Bytes available for reading.         */
-	int read_avail;
 	/* Size of read buffer.                 */
 	int readbuf_size;
 	/* Buffer for writing.                  */
 	char *write_buf;
-	/* Bytes available for writing.         */
-	int write_avail;
 	/* Size of write buffer.                */
 	int writebuf_size;
-	bool read_cond;
 	/* Type of this interface.              */
 	u8 type;
 };
@@ -1000,7 +996,7 @@ bool ccs_domain_def(const unsigned char *buffer);
 bool ccs_domain_quota_ok(struct ccs_request_info *r);
 bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 		   struct ccs_page_dump *dump);
-bool ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
+void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 bool ccs_memory_ok(const void *ptr, const unsigned int size);
 bool ccs_number_matches_group(const unsigned long min, const unsigned long max,

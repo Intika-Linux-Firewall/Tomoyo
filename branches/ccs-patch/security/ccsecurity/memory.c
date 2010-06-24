@@ -300,7 +300,7 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head)
 	};
 	unsigned int total = 0;
 	int i;
-	if (head->read_eof)
+	if (head->r.eof)
 		return;
 	for (i = 0; i < 3; i++) {
 		total += usage[i];
@@ -310,7 +310,7 @@ void ccs_read_memory_counter(struct ccs_io_buffer *head)
 		ccs_io_printf(head, "\n");
 	}
 	ccs_io_printf(head, "%s %10u\n", header[3], total);
-	head->read_eof = true;
+	head->r.eof = true;
 }
 
 /**
