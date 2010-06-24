@@ -1,6 +1,6 @@
 Index: mount.c
 ===================================================================
---- mount.c	(revision 3773)
+--- mount.c	(revision 3777)
 +++ mount.c	(working copy)
 @@ -58,7 +58,7 @@
  	const char *dir = r->param.mount.dir->name;
@@ -22,9 +22,9 @@ Index: mount.c
  			      flags);
 Index: audit.c
 ===================================================================
---- audit.c	(revision 3773)
+--- audit.c	(revision 3777)
 +++ audit.c	(working copy)
-@@ -479,12 +479,12 @@
+@@ -479,12 +479,11 @@
  {
  	struct ccs_log_entry *ptr = NULL;
  	const bool is_granted = head->type == CCS_GRANTLOG;
@@ -35,24 +35,22 @@ Index: audit.c
  		kfree(head->read_buf);
  		head->read_buf = NULL;
 -		head->readbuf_size = 0;
-+		//head->readbuf_size = 0;
  	}
  	spin_lock(&ccs_log_lock);
  	if (!list_empty(&ccs_log[is_granted])) {
-@@ -497,8 +497,8 @@
+@@ -497,8 +496,7 @@
  	spin_unlock(&ccs_log_lock);
  	if (ptr) {
  		head->read_buf = ptr->log;
 -		head->read_avail = strlen(ptr->log) + 1;
 -		head->readbuf_size = head->read_avail;
 +		head->r.w[head->r.w_pos++] = head->read_buf;
-+		//head->readbuf_size = head->r.avail;
  		kfree(ptr);
  	}
  }
 Index: memory.c
 ===================================================================
---- memory.c	(revision 3773)
+--- memory.c	(revision 3777)
 +++ memory.c	(working copy)
 @@ -300,7 +300,7 @@
  	};
@@ -74,7 +72,7 @@ Index: memory.c
  /**
 Index: internal.h
 ===================================================================
---- internal.h	(revision 3773)
+--- internal.h	(revision 3777)
 +++ internal.h	(working copy)
 @@ -43,26 +43,20 @@
  /**
@@ -204,9 +202,9 @@ Index: internal.h
  bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 Index: policy_io.c
 ===================================================================
---- policy_io.c	(revision 3773)
+--- policy_io.c	(revision 3777)
 +++ policy_io.c	(working copy)
-@@ -221,33 +221,86 @@
+@@ -221,33 +221,96 @@
  	return value ? "yes" : "no";
  }
  
@@ -238,6 +236,14 @@ Index: policy_io.c
 +		if (*w) {
 +			head->r.w[0] = w;
 +			return false;
++		}
++		/* Add '\0' for audit logs and query. */
++		if (head->poll) {
++			if (!head->read_user_buf_avail ||
++			    copy_to_user(head->read_user_buf, "", 1))
++				return false;
++			head->read_user_buf_avail--;
++			head->read_user_buf++;
 +		}
 +		head->r.w_pos--;
 +		for (len = 0; len < head->r.w_pos; len++)
@@ -282,11 +288,14 @@ Index: policy_io.c
 -	len = vsnprintf(head->read_buf + pos, size, fmt, args);
 +	len = vsnprintf(head->read_buf + pos, size, fmt, args) + 1;
  	va_end(args);
- 	if (pos + len >= head->readbuf_size)
+-	if (pos + len >= head->readbuf_size)
 -		return false;
 -	head->read_avail += len;
 -	return true;
++	if (pos + len >= head->readbuf_size) {
++		WARN_ON(1);
 +		return;
++	}
 +	head->r.avail += len;
 +	ccs_set_string(head, head->read_buf + pos);
  }
@@ -305,7 +314,7 @@ Index: policy_io.c
  /**
   * ccs_assign_profile - Create a new profile.
   *
-@@ -539,7 +592,7 @@
+@@ -539,7 +602,7 @@
  	return ccs_set_mode(data, cp, use_default, profile);
  }
  
@@ -314,7 +323,7 @@ Index: policy_io.c
  {
  	struct ccs_preference *pref = &ccs_default_profile.preference;
  	const struct ccs_profile *profile = idx >= 0 ?
-@@ -552,56 +605,67 @@
+@@ -552,56 +615,67 @@
  	if (profile) {
  		pref = profile->audit;
  		if (pref == &ccs_default_profile.preference)
@@ -413,7 +422,7 @@ Index: policy_io.c
  /**
   * ccs_read_profile - Read profile table.
   *
-@@ -609,81 +673,68 @@
+@@ -609,81 +683,68 @@
   */
  static void ccs_read_profile(struct ccs_io_buffer *head)
  {
@@ -552,7 +561,7 @@ Index: policy_io.c
  }
  
  static bool ccs_same_manager_entry(const struct ccs_acl_head *a,
-@@ -750,19 +801,20 @@
+@@ -750,19 +811,20 @@
   */
  static void ccs_read_manager(struct ccs_io_buffer *head)
  {
@@ -580,17 +589,16 @@ Index: policy_io.c
  }
  
  /**
-@@ -851,7 +903,8 @@
+@@ -851,7 +913,7 @@
  	struct ccs_domain_info *domain = NULL;
  	bool global_pid = false;
  	if (!strcmp(data, "allow_execute")) {
 -		head->read_execute_only = true;
-+		//memset(&head->r, 0, sizeof(head->r));
 +		head->r.print_execute_only = true;
  		return true;
  	}
  	if (sscanf(data, "pid=%u", &pid) == 1 ||
-@@ -875,21 +928,17 @@
+@@ -875,21 +937,17 @@
  			domain = ccs_find_domain(data + 7);
  	} else
  		return false;
@@ -618,7 +626,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -905,7 +954,7 @@
+@@ -905,7 +963,7 @@
  		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env },
  		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability },
  		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal },
@@ -627,7 +635,7 @@ Index: policy_io.c
  	};
  	int (*write) (char *, struct ccs_domain_info *, struct ccs_condition *,
  		      const bool) = ccs_write_file;
-@@ -950,7 +999,7 @@
+@@ -950,7 +1008,7 @@
  static int ccs_write_domain(struct ccs_io_buffer *head)
  {
  	char *data = head->write_buf;
@@ -636,7 +644,7 @@ Index: policy_io.c
  	bool is_delete = false;
  	bool is_select = false;
  	unsigned int profile;
-@@ -971,7 +1020,7 @@
+@@ -971,7 +1029,7 @@
  			domain = ccs_find_domain(data);
  		else
  			domain = ccs_assign_domain(data, 0);
@@ -645,7 +653,7 @@ Index: policy_io.c
  		return 0;
  	}
  	if (!domain)
-@@ -998,239 +1047,227 @@
+@@ -998,239 +1056,227 @@
   *
   * @head: Pointer to "struct ccs_io_buffer".
   * @ptr:  Pointer to "struct ccs_name_union".
@@ -827,10 +835,8 @@ Index: policy_io.c
   *
   * Returns true on success, false otherwise.
   */
--static bool ccs_print_condition(struct ccs_io_buffer *head,
--				const struct ccs_condition *cond)
-+static noinline bool ccs_print_condition(struct ccs_io_buffer *head,
-+					 const struct ccs_condition *cond)
+ static bool ccs_print_condition(struct ccs_io_buffer *head,
+ 				const struct ccs_condition *cond)
  {
 -	const struct ccs_condition_element *condp;
 -	const struct ccs_number_union *numbers_p;
@@ -1076,7 +1082,7 @@ Index: policy_io.c
  /**
   * ccs_print_entry - Print an ACL entry.
   *
-@@ -1242,24 +1279,24 @@
+@@ -1242,24 +1288,24 @@
  static bool ccs_print_entry(struct ccs_io_buffer *head,
  			    const struct ccs_acl_info *acl)
  {
@@ -1109,7 +1115,7 @@ Index: policy_io.c
  				continue;
  			/* Print "read/write" instead of "read" and "write". */
  			if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
-@@ -1269,137 +1306,113 @@
+@@ -1269,137 +1315,113 @@
  		}
  		if (bit == CCS_MAX_PATH_OPERATION)
  			goto done;
@@ -1307,7 +1313,7 @@ Index: policy_io.c
  	switch (acl_type) {
  	case CCS_TYPE_PATH_ACL:
  	case CCS_TYPE_MKDEV_ACL:
-@@ -1410,12 +1423,8 @@
+@@ -1410,12 +1432,8 @@
  		goto next;
  	}
   done:
@@ -1321,7 +1327,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1431,14 +1440,13 @@
+@@ -1431,14 +1449,13 @@
  static bool ccs_read_domain2(struct ccs_io_buffer *head,
  			     struct ccs_domain_info *domain)
  {
@@ -1339,7 +1345,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -1451,48 +1459,45 @@
+@@ -1451,48 +1468,45 @@
   */
  static void ccs_read_domain(struct ccs_io_buffer *head)
  {
@@ -1410,7 +1416,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1543,19 +1548,22 @@
+@@ -1543,19 +1557,22 @@
   */
  static void ccs_read_domain_profile(struct ccs_io_buffer *head)
  {
@@ -1441,7 +1447,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -1567,7 +1575,7 @@
+@@ -1567,7 +1584,7 @@
   */
  static int ccs_write_pid(struct ccs_io_buffer *head)
  {
@@ -1450,7 +1456,7 @@ Index: policy_io.c
  	return 0;
  }
  
-@@ -1593,12 +1601,12 @@
+@@ -1593,12 +1610,12 @@
  	u32 ccs_flags = 0;
  	/* Accessing write_buf is safe because head->io_sem is held. */
  	if (!buf) {
@@ -1466,7 +1472,7 @@ Index: policy_io.c
  	if (ccs_str_starts(&buf, "info "))
  		task_info = true;
  	if (ccs_str_starts(&buf, "global-pid "))
-@@ -1620,10 +1628,10 @@
+@@ -1620,10 +1637,10 @@
  	ccs_tasklist_unlock();
  	if (!domain)
  		return;
@@ -1481,7 +1487,7 @@ Index: policy_io.c
  		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
  			      "state[0]=%u state[1]=%u state[2]=%u", pid,
  			      ccs_yesno(ccs_flags &
-@@ -1633,6 +1641,7 @@
+@@ -1633,6 +1650,7 @@
  			      (u8) (ccs_flags >> 24),
  			      (u8) (ccs_flags >> 16),
  			      (u8) (ccs_flags >> 8));
@@ -1489,7 +1495,7 @@ Index: policy_io.c
  }
  
  static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-@@ -1698,31 +1707,30 @@
+@@ -1698,31 +1716,30 @@
   */
  static bool ccs_read_group(struct ccs_io_buffer *head, const int idx)
  {
@@ -1538,7 +1544,7 @@ Index: policy_io.c
  				struct ccs_address_group *member =
  					container_of(ptr, typeof(*member),
  						     head);
-@@ -1734,12 +1742,13 @@
+@@ -1734,12 +1751,13 @@
  					ccs_print_ipv4(buffer, sizeof(buffer),
  						       member->min.ipv4,
  						       member->max.ipv4);
@@ -1555,7 +1561,7 @@ Index: policy_io.c
  	return true;
  }
  
-@@ -1755,51 +1764,52 @@
+@@ -1755,51 +1773,52 @@
   */
  static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
  {
@@ -1628,7 +1634,7 @@ Index: policy_io.c
  			}
  			break;
  		case CCS_ID_RESERVEDPORT:
-@@ -1808,29 +1818,22 @@
+@@ -1808,29 +1827,22 @@
  					container_of(acl, typeof(*ptr), head);
  				const u16 min_port = ptr->min_port;
  				const u16 max_port = ptr->max_port;
@@ -1665,7 +1671,7 @@ Index: policy_io.c
  /**
   * ccs_read_exception - Read exception policy.
   *
-@@ -1840,19 +1843,19 @@
+@@ -1840,19 +1852,19 @@
   */
  static void ccs_read_exception(struct ccs_io_buffer *head)
  {
@@ -1695,7 +1701,7 @@ Index: policy_io.c
  }
  
  /* Wait queue for ccs_query_list. */
-@@ -1877,15 +1880,6 @@
+@@ -1877,15 +1889,6 @@
  /* Number of "struct file" referring /proc/ccs/query interface. */
  static atomic_t ccs_query_observers = ATOMIC_INIT(0);
  
@@ -1711,7 +1717,24 @@ Index: policy_io.c
  static void ccs_truncate(char *str)
  {
  	while (* (unsigned char *) str > (unsigned char) ' ')
-@@ -2115,12 +2109,12 @@
+@@ -2022,11 +2025,13 @@
+ 	spin_unlock(&ccs_query_list_lock);
+ 	if (quota_exceeded)
+ 		goto out;
+-	snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
+-		 ccs_query_entry->serial, r->retry, header);
++	pos = snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
++		       ccs_query_entry->serial, r->retry, header);
+ 	kfree(header);
+ 	header = NULL;
+-	ccs_addprintf(ccs_query_entry->query, len, fmt, args);
++	va_start(args, fmt);
++	vsnprintf(ccs_query_entry->query + pos, len - 1 - pos, fmt, args);
++	va_end(args);
+ 	ccs_query_entry->query_len = strlen(ccs_query_entry->query) + 1;
+ 	spin_lock(&ccs_query_list_lock);
+ 	list_add_tail(&ccs_query_entry->list, &ccs_query_list);
+@@ -2115,12 +2120,11 @@
  	int pos = 0;
  	int len = 0;
  	char *buf;
@@ -1722,11 +1745,10 @@ Index: policy_io.c
  		kfree(head->read_buf);
  		head->read_buf = NULL;
 -		head->readbuf_size = 0;
-+		//head->readbuf_size = 0;
  	}
  	spin_lock(&ccs_query_list_lock);
  	list_for_each(tmp, &ccs_query_list) {
-@@ -2128,14 +2122,14 @@
+@@ -2128,14 +2132,14 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1743,7 +1765,7 @@ Index: policy_io.c
  		return;
  	}
  	buf = kzalloc(len, CCS_GFP_FLAGS);
-@@ -2148,7 +2142,7 @@
+@@ -2148,7 +2152,7 @@
  			= list_entry(tmp, struct ccs_query_entry, list);
  		if (ptr->answer)
  			continue;
@@ -1752,14 +1774,12 @@ Index: policy_io.c
  			continue;
  		/*
  		 * Some query can be skipped because ccs_query_list
-@@ -2160,10 +2154,11 @@
+@@ -2160,10 +2164,9 @@
  	}
  	spin_unlock(&ccs_query_list_lock);
  	if (buf[0]) {
 -		head->read_avail = len;
 -		head->readbuf_size = head->read_avail;
-+		//head->r.avail = len;
-+		//head->readbuf_size = head->r.avail;
  		head->read_buf = buf;
 -		head->read_step++;
 +		head->r.w[head->r.w_pos++] = buf;
@@ -1767,7 +1787,7 @@ Index: policy_io.c
  	} else {
  		kfree(buf);
  	}
-@@ -2212,10 +2207,10 @@
+@@ -2212,10 +2215,10 @@
   */
  static void ccs_read_version(struct ccs_io_buffer *head)
  {
@@ -1781,7 +1801,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2225,14 +2220,14 @@
+@@ -2225,14 +2228,14 @@
   */
  static void ccs_read_self_domain(struct ccs_io_buffer *head)
  {
@@ -1798,7 +1818,7 @@ Index: policy_io.c
  }
  
  /**
-@@ -2391,9 +2386,8 @@
+@@ -2391,9 +2394,8 @@
  int ccs_read_control(struct file *file, char __user *buffer,
  		     const int buffer_len)
  {
@@ -1809,7 +1829,7 @@ Index: policy_io.c
  	int idx;
  	if (!head->read)
  		return -ENOSYS;
-@@ -2401,38 +2395,15 @@
+@@ -2401,38 +2403,15 @@
  		return -EFAULT;
  	if (mutex_lock_interruptible(&head->io_sem))
  		return -EINTR;
@@ -1853,7 +1873,7 @@ Index: policy_io.c
  	mutex_unlock(&head->io_sem);
  	return len;
  }
-@@ -2471,14 +2442,14 @@
+@@ -2471,14 +2450,14 @@
  	/* Read a line and dispatch it to the policy handler. */
  	while (avail_len > 0) {
  		char c;
@@ -1870,7 +1890,7 @@ Index: policy_io.c
  			kfree(cp0);
  			head->write_buf = cp;
  			cp0 = cp;
-@@ -2490,11 +2461,11 @@
+@@ -2490,11 +2469,11 @@
  		}
  		buffer++;
  		avail_len--;
