@@ -1145,6 +1145,7 @@ extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern bool ccs_policy_loaded;
 extern struct ccs_domain_info ccs_global_domain;
 extern struct ccs_domain_info ccs_kernel_domain;
+extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
 extern const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION];

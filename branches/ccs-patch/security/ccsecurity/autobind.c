@@ -27,13 +27,11 @@ static bool __ccs_lport_reserved(const u16 port)
 		? true : false;
 }
 
-static bool ccs_same_reserved_entry(const struct ccs_acl_head *a,
-				    const struct ccs_acl_head *b)
+static bool ccs_same_reserved(const struct ccs_acl_head *a,
+			      const struct ccs_acl_head *b)
 {
-	const struct ccs_reserved *p1 = container_of(a, typeof(*p1),
-							   head);
-	const struct ccs_reserved *p2 = container_of(b, typeof(*p2),
-							   head);
+	const struct ccs_reserved *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_reserved *p2 = container_of(b, typeof(*p2), head);
 	return p1->min_port == p2->min_port && p1->max_port == p2->max_port;
 }
 
@@ -57,7 +55,7 @@ static int ccs_update_reserved_entry(const u16 min_port, const u16 max_port,
 	const int error =
 		ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_RESERVEDPORT],
-				  ccs_same_reserved_entry);
+				  ccs_same_reserved);
 	u8 *ccs_tmp_map;
 	if (error)
 		return error;

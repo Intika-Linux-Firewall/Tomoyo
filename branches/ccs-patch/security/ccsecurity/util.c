@@ -959,11 +959,11 @@ int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 }
 
 /**
- * ccs_last_word - Get last component of a line.
+ * ccs_last_word - Get last component of a domainname.
  *
- * @line: A line.
+ * @name: Domainname to check.
  *
- * Returns the last word of a line.
+ * Returns the last word of @name.
  */
 const char *ccs_last_word(const char *name)
 {

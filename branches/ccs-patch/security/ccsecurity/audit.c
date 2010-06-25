@@ -151,9 +151,6 @@ static inline const char *ccs_filetype(const mode_t mode)
  */
 static char *ccs_print_header(struct ccs_request_info *r)
 {
-	static const char *ccs_mode_4[4] = {
-		"disabled", "learning", "permissive", "enforcing"
-	};
 	struct timeval tv;
 	struct ccs_obj_info *obj = r->obj;
 	const u32 ccs_flags = current->ccs_flags;
@@ -172,7 +169,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 	pos = snprintf(buffer, ccs_buffer_len - 1,
 		       "#timestamp=%lu profile=%u mode=%s "
 		       "(global-pid=%u)", tv.tv_sec, r->profile,
-		       ccs_mode_4[r->mode], gpid);
+		       ccs_mode[r->mode], gpid);
 	if (ccs_profile(r->profile)->audit->audit_task_info) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
 				" task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
@@ -356,13 +353,13 @@ static wait_queue_head_t ccs_log_wait[2] = {
 static DEFINE_SPINLOCK(ccs_log_lock);
 
 /* Structure for audit log. */
-struct ccs_log_entry {
+struct ccs_log {
 	struct list_head list;
 	char *log;
 	int size;
 };
 
-/* The list for "struct ccs_log_entry". */
+/* The list for "struct ccs_log". */
 static struct list_head ccs_log[2] = {
 	LIST_HEAD_INIT(ccs_log[0]), LIST_HEAD_INIT(ccs_log[1]),
 };
@@ -415,7 +412,7 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	int pos;
 	int len;
 	char *buf;
-	struct ccs_log_entry *new_entry;
+	struct ccs_log *entry;
 	bool quota_exceeded = false;
 	struct ccs_preference *pref =
 		ccs_profile(ccs_current_domain()->profile)->audit;
@@ -437,30 +434,30 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(buf + pos, len - pos - 1, fmt, args);
 	va_end(args);
-	new_entry = kzalloc(sizeof(*new_entry), CCS_GFP_FLAGS);
-	if (!new_entry) {
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	if (!entry) {
 		kfree(buf);
 		goto out;
 	}
-	new_entry->log = buf;
+	entry->log = buf;
 	/*
-	 * The new_entry->size is used for memory quota checks.
-	 * Don't go beyond strlen(new_entry->log).
+	 * The entry->size is used for memory quota checks.
+	 * Don't go beyond strlen(entry->log).
 	 */
-	new_entry->size = ccs_round2(len) + ccs_round2(sizeof(*new_entry));
+	entry->size = ccs_round2(len) + ccs_round2(sizeof(*entry));
 	spin_lock(&ccs_log_lock);
 	if (ccs_quota_for_log && ccs_log_memory_size
-	    + new_entry->size >= ccs_quota_for_log) {
+	    + entry->size >= ccs_quota_for_log) {
 		quota_exceeded = true;
 	} else {
-		ccs_log_memory_size += new_entry->size;
-		list_add_tail(&new_entry->list, &ccs_log[is_granted]);
+		ccs_log_memory_size += entry->size;
+		list_add_tail(&entry->list, &ccs_log[is_granted]);
 		ccs_log_count[is_granted]++;
 	}
 	spin_unlock(&ccs_log_lock);
 	if (quota_exceeded) {
 		kfree(buf);
-		kfree(new_entry);
+		kfree(entry);
 		goto out;
 	}
 	wake_up(&ccs_log_wait[is_granted]);
@@ -477,7 +474,7 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
  */
 void ccs_read_log(struct ccs_io_buffer *head)
 {
-	struct ccs_log_entry *ptr = NULL;
+	struct ccs_log *ptr = NULL;
 	const bool is_granted = head->type == CCS_GRANTLOG;
 	if (head->r.w_pos)
 		return;
@@ -487,8 +484,7 @@ void ccs_read_log(struct ccs_io_buffer *head)
 	}
 	spin_lock(&ccs_log_lock);
 	if (!list_empty(&ccs_log[is_granted])) {
-		ptr = list_entry(ccs_log[is_granted].next,
-				 struct ccs_log_entry, list);
+		ptr = list_entry(ccs_log[is_granted].next, typeof(*ptr), list);
 		list_del(&ptr->list);
 		ccs_log_count[is_granted]--;
 		ccs_log_memory_size -= ptr->size;

@@ -211,8 +211,8 @@ void ccs_check_acl(struct ccs_request_info *r,
 	r->granted = false;
 }
 
-static bool ccs_same_transition_control_entry(const struct ccs_acl_head *a,
-					      const struct ccs_acl_head *b)
+static bool ccs_same_transition_control(const struct ccs_acl_head *a,
+					const struct ccs_acl_head *b)
 {
 	const struct ccs_transition_control *p1 = container_of(a, typeof(*p1),
 							       head);
@@ -259,7 +259,7 @@ static int ccs_update_transition_control_entry(const char *domainname,
 	}
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_TRANSITION_CONTROL],
-				  ccs_same_transition_control_entry);
+				  ccs_same_transition_control);
  out:
 	ccs_put_name(e.domainname);
 	ccs_put_name(e.program);
@@ -347,8 +347,8 @@ static u8 ccs_transition_type(const struct ccs_path_info *domainname,
 	return type;
 }
 
-static bool ccs_same_aggregator_entry(const struct ccs_acl_head *a,
-				      const struct ccs_acl_head *b)
+static bool ccs_same_aggregator(const struct ccs_acl_head *a,
+				const struct ccs_acl_head *b)
 {
 	const struct ccs_aggregator *p1 = container_of(a, typeof(*p1), head);
 	const struct ccs_aggregator *p2 = container_of(b, typeof(*p2), head);
@@ -381,7 +381,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 		goto out;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_AGGREGATOR],
-				  ccs_same_aggregator_entry);
+				  ccs_same_aggregator);
  out:
 	ccs_put_name(e.original_name);
 	ccs_put_name(e.aggregated_name);

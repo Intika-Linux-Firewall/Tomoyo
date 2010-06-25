@@ -17,7 +17,7 @@
 #endif
 
 /* Structure for garbage collection. */
-struct ccs_gc_entry {
+struct ccs_gc {
 	struct list_head list;
 	int type; /* = one of values in "enum ccs_policy_id" */
 	struct list_head *element;
@@ -47,7 +47,7 @@ static int ccs_gc_list_len;
  */
 static bool ccs_add_to_gc(const int type, struct list_head *element)
 {
-	struct ccs_gc_entry *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	struct ccs_gc *entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
 	if (!entry)
 		return false;
 	entry->type = type;
@@ -672,8 +672,8 @@ static void ccs_collect_entry(void)
  */
 static bool ccs_kfree_entry(void)
 {
-	struct ccs_gc_entry *p;
-	struct ccs_gc_entry *tmp;
+	struct ccs_gc *p;
+	struct ccs_gc *tmp;
 	bool result = false;
 	list_for_each_entry_safe(p, tmp, &ccs_gc_list, list) {
 		size_t size = 0;

@@ -40,7 +40,7 @@ static unsigned int ccs_profile_version;
 static struct ccs_profile *ccs_profile_ptr[CCS_MAX_PROFILES];
 
 /* String table for functionality that takes 4 modes. */
-static const char *ccs_mode[CCS_CONFIG_MAX_MODE] = {
+const char *ccs_mode[CCS_CONFIG_MAX_MODE] = {
 	[CCS_CONFIG_DISABLED] = "disabled",
 	[CCS_CONFIG_LEARNING] = "learning",
 	[CCS_CONFIG_PERMISSIVE] = "permissive",
@@ -581,9 +581,9 @@ static int ccs_set_mode(char *name, const char *value, const bool use_default,
 static int ccs_write_profile(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
+	unsigned int i;
 	bool use_default = false;
 	char *cp;
-	int i;
 	struct ccs_profile *profile;
 	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
 		return 0;
@@ -764,8 +764,8 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 		goto next;
 }
 
-static bool ccs_same_manager_entry(const struct ccs_acl_head *a,
-				   const struct ccs_acl_head *b)
+static bool ccs_same_manager(const struct ccs_acl_head *a,
+			     const struct ccs_acl_head *b)
 {
 	return container_of(a, struct ccs_manager, head)->manager
 		== container_of(b, struct ccs_manager, head)->manager;
@@ -796,7 +796,7 @@ static int ccs_update_manager_entry(const char *manager, const bool is_delete)
 		return error;
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_MANAGER],
-				  ccs_same_manager_entry);
+				  ccs_same_manager);
 	ccs_put_name(e.manager);
 	return error;
 }
@@ -1708,19 +1708,16 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite },
 		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
 	};
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete);
-	}
-	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++) {
+	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
 		if (ccs_str_starts(&data, ccs_transition_type[i]))
 			return ccs_write_transition_control(data, is_delete,
 							    i);
-	}
-	for (i = 0; i < CCS_MAX_GROUP; i++) {
+	for (i = 0; i < CCS_MAX_GROUP; i++)
 		if (ccs_str_starts(&data, ccs_group_name[i]))
 			return ccs_write_group(data, is_delete, i);
-	}
 	return ccs_write_domain2(data, &ccs_global_domain, is_delete);
 }
 
@@ -1893,7 +1890,7 @@ static DECLARE_WAIT_QUEUE_HEAD(ccs_query_wait);
 static DEFINE_SPINLOCK(ccs_query_list_lock);
 
 /* Structure for query. */
-struct ccs_query_entry {
+struct ccs_query {
 	struct list_head list;
 	char *query;
 	int query_len;
@@ -1902,7 +1899,7 @@ struct ccs_query_entry {
 	int answer;
 };
 
-/* The list for "struct ccs_query_entry". */
+/* The list for "struct ccs_query". */
 static LIST_HEAD(ccs_query_list);
 
 /* Number of "struct file" referring /proc/ccs/query interface. */
@@ -1933,7 +1930,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	int pos;
 	int len;
 	static unsigned int ccs_serial;
-	struct ccs_query_entry *ccs_query_entry = NULL;
+	struct ccs_query *entry = NULL;
 	bool quota_exceeded = false;
 	char *header;
 	struct ccs_domain_info * const domain = ccs_current_domain();
@@ -2025,51 +2022,50 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 	header = ccs_init_log(&len, r);
 	if (!header)
 		goto out;
-	ccs_query_entry = kzalloc(sizeof(*ccs_query_entry), CCS_GFP_FLAGS);
-	if (!ccs_query_entry)
+	entry = kzalloc(sizeof(*entry), CCS_GFP_FLAGS);
+	if (!entry)
 		goto out;
 	len = ccs_round2(len);
-	ccs_query_entry->query = kzalloc(len, CCS_GFP_FLAGS);
-	if (!ccs_query_entry->query)
+	entry->query = kzalloc(len, CCS_GFP_FLAGS);
+	if (!entry->query)
 		goto out;
-	INIT_LIST_HEAD(&ccs_query_entry->list);
 	spin_lock(&ccs_query_list_lock);
 	if (ccs_quota_for_query && ccs_query_memory_size + len +
-	    sizeof(*ccs_query_entry) >= ccs_quota_for_query) {
+	    sizeof(*entry) >= ccs_quota_for_query) {
 		quota_exceeded = true;
 	} else {
-		ccs_query_memory_size += len + sizeof(*ccs_query_entry);
-		ccs_query_entry->serial = ccs_serial++;
+		ccs_query_memory_size += len + sizeof(*entry);
+		entry->serial = ccs_serial++;
 	}
 	spin_unlock(&ccs_query_list_lock);
 	if (quota_exceeded)
 		goto out;
-	pos = snprintf(ccs_query_entry->query, len - 1, "Q%u-%hu\n%s",
-		       ccs_query_entry->serial, r->retry, header);
+	pos = snprintf(entry->query, len - 1, "Q%u-%hu\n%s",
+		       entry->serial, r->retry, header);
 	kfree(header);
 	header = NULL;
 	va_start(args, fmt);
-	vsnprintf(ccs_query_entry->query + pos, len - 1 - pos, fmt, args);
-	ccs_query_entry->query_len = strlen(ccs_query_entry->query) + 1;
+	vsnprintf(entry->query + pos, len - 1 - pos, fmt, args);
+	entry->query_len = strlen(entry->query) + 1;
 	va_end(args);
 	spin_lock(&ccs_query_list_lock);
-	list_add_tail(&ccs_query_entry->list, &ccs_query_list);
+	list_add_tail(&entry->list, &ccs_query_list);
 	spin_unlock(&ccs_query_list_lock);
 	/* Give 10 seconds for supervisor's opinion. */
-	for (ccs_query_entry->timer = 0;
-	     atomic_read(&ccs_query_observers) && ccs_query_entry->timer < 100;
-	     ccs_query_entry->timer++) {
+	for (entry->timer = 0;
+	     atomic_read(&ccs_query_observers) && entry->timer < 100;
+	     entry->timer++) {
 		wake_up(&ccs_query_wait);
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(HZ / 10);
-		if (ccs_query_entry->answer)
+		if (entry->answer)
 			break;
 	}
 	spin_lock(&ccs_query_list_lock);
-	list_del(&ccs_query_entry->list);
-	ccs_query_memory_size -= len + sizeof(*ccs_query_entry);
+	list_del(&entry->list);
+	ccs_query_memory_size -= len + sizeof(*entry);
 	spin_unlock(&ccs_query_list_lock);
-	switch (ccs_query_entry->answer) {
+	switch (entry->answer) {
 	case 3: /* Asked to retry by administrator. */
 		error = CCS_RETRY_REQUEST;
 		r->retry++;
@@ -2086,9 +2082,9 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		break;
 	}
  out:
-	if (ccs_query_entry)
-		kfree(ccs_query_entry->query);
-	kfree(ccs_query_entry);
+	if (entry)
+		kfree(entry->query);
+	kfree(entry);
 	kfree(header);
 	return error;
 }
@@ -2111,8 +2107,8 @@ static int ccs_poll_query(struct file *file, poll_table *wait)
 	for (i = 0; i < 2; i++) {
 		spin_lock(&ccs_query_list_lock);
 		list_for_each(tmp, &ccs_query_list) {
-			struct ccs_query_entry *ptr =
-				list_entry(tmp, struct ccs_query_entry, list);
+			struct ccs_query *ptr =
+				list_entry(tmp, typeof(*ptr), list);
 			if (ptr->answer)
 				continue;
 			found = true;
@@ -2147,8 +2143,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 	}
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
-		struct ccs_query_entry *ptr
-			= list_entry(tmp, struct ccs_query_entry, list);
+		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
 		if (ptr->answer)
 			continue;
 		if (pos++ != head->r.query_index)
@@ -2167,8 +2162,7 @@ static void ccs_read_query(struct ccs_io_buffer *head)
 	pos = 0;
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
-		struct ccs_query_entry *ptr
-			= list_entry(tmp, struct ccs_query_entry, list);
+		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
 		if (ptr->answer)
 			continue;
 		if (pos++ != head->r.query_index)
@@ -2206,8 +2200,7 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 	unsigned int answer;
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
-		struct ccs_query_entry *ptr
-			= list_entry(tmp, struct ccs_query_entry, list);
+		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
 		ptr->timer = 0;
 	}
 	spin_unlock(&ccs_query_list_lock);
@@ -2215,8 +2208,7 @@ static int ccs_write_answer(struct ccs_io_buffer *head)
 		return -EINVAL;
 	spin_lock(&ccs_query_list_lock);
 	list_for_each(tmp, &ccs_query_list) {
-		struct ccs_query_entry *ptr
-			= list_entry(tmp, struct ccs_query_entry, list);
+		struct ccs_query *ptr = list_entry(tmp, typeof(*ptr), list);
 		if (ptr->serial != serial)
 			continue;
 		if (!ptr->answer)

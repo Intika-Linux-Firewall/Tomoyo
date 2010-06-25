@@ -81,7 +81,7 @@ static int __ccs_may_mount(struct path *path)
 		return 0;
 	found = false;
 	list_for_each(p, &namespace->list) {
-		struct vfsmount *vfsmnt = list_entry(p, struct vfsmount,
+		struct vfsmount *vfsmnt = list_entry(p, typeof(*vfsmnt),
 						     mnt_list);
 		struct dentry *dentry = vfsmnt->mnt_root;
 		ccs_realpath_lock();
