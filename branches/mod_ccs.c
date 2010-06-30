@@ -600,6 +600,7 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 module AP_MODULE_DECLARE_DATA ccs_module;
 
 static int ccs_transition_fd = EOF;
+static int ccs_open_error = 0;
 
 struct ccs_map_entry {
 	const char *pathname;
@@ -697,6 +698,12 @@ static int ccs_handler(request_rec *r)
 	apr_status_t thread_rv;
 	if (am_worker)
 		return DECLINED;
+	if (ccs_open_error) {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, ccs_open_error, r,
+			      "mod_ccs: Unable to open /proc/ccs/.transition "
+			      "for writing.");
+		return HTTP_INTERNAL_SERVER_ERROR;
+	}
 	if (ccs_transition_fd == EOF)
 		return DECLINED;
 	apr_threadattr_create(&thread_attr, r->pool);
@@ -723,8 +730,6 @@ static void ccs_hooks(apr_pool_t *p)
 	ap_hook_handler(ccs_handler, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
-static int ccs_open_error = 0;
-
 static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 {
 	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
@@ -736,7 +741,9 @@ static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 		/*
 		 * Some access control mechanisms might reject opening
 		 * /proc/ccs/.transition for writing.
-		 * Let ccs_parse_table() report this failure.
+		 * This failure is reported by ccs_parse_table() if
+		 * CCS_TransitionMap keyword is specified, by ccs_handler()
+		 * otherwise.
 		 */
 		if (ccs_transition_fd == EOF && errno != ENOENT)
 			ccs_open_error = errno;
