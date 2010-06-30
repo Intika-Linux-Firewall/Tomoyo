@@ -723,14 +723,24 @@ static void ccs_hooks(apr_pool_t *p)
 	ap_hook_handler(ccs_handler, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
+static int ccs_open_error = 0;
+
 static void *ccs_create_server_config(apr_pool_t *p, server_rec *s)
 {
 	void *ptr = apr_palloc(p, sizeof(struct ccs_map_table));
 	if (ptr)
 		memset(ptr, 0, sizeof(struct ccs_map_table));
 	/* We can share because /proc/ccs/.transition interface has no data. */
-	if (ccs_transition_fd == EOF)
+	if (ccs_transition_fd == EOF) {
 		ccs_transition_fd = open("/proc/ccs/.transition", O_WRONLY);
+		/*
+		 * Some access control mechanisms might reject opening
+		 * /proc/ccs/.transition for writing.
+		 * Let ccs_parse_table() report this failure.
+		 */
+		if (ccs_transition_fd == EOF && errno != ENOENT)
+			ccs_open_error = errno;
+	}
 	/* Allocation failure is reported by ccs_parse_table(). */
 	return ptr;
 }
@@ -747,6 +757,8 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 				     &ccs_module);
 	if (!ptr || !buffer)
 		goto no_memory;
+	if (ccs_open_error)
+		goto no_interface;
 	fp = fopen(args, "r");
 	if (!fp)
 		goto no_file;
@@ -812,6 +824,11 @@ static const char *ccs_parse_table(cmd_parms *parms, void *mconfig,
 	if (fp)
 		fclose(fp);
 	return "mod_ccs: Out of memory.";
+ no_interface:
+	snprintf(buffer, buffer_len - 1,
+		 "mod_ccs: Unable to open /proc/ccs/.transition for writing. "
+		 "(errno = %d)", ccs_open_error);
+	return buffer;
  no_file:
 	snprintf(buffer, buffer_len - 1, "mod_ccs: %s : Can't read.", args);
 	return buffer;
