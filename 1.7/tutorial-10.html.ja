@@ -3,7 +3,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
-<title>TOMOYO Linux の世界　第１０回：「 blog のポリシーを作成してみよう（前編）」</title>
+<title>TOMOYO Linux の世界　第１０回：「 Apache の権限を分割してみよう」</title>
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
@@ -12,485 +12,271 @@
 -->
 <p style="text-align:right;">Last modified: $Date$</p>
 
-<h1>TOMOYO Linux の世界<br>第１０回：「 blog のポリシーを作成してみよう（前編）」</h1>
+<h1>TOMOYO Linux の世界<br>第１０回：「 Apache の権限を分割してみよう」</h1>
 
 <h2>今回の内容</h2>
 
-<p>今回は実際のシステムに近い形で TOMOYO Linux を用いたシステム構築手順について紹介しようと思います．環境としては， CentOS 5.5 上で MovableType 3.3 を動作させることにします．</p>
+<p>今回は Apache の VirtualHost 毎にドメインを分割する手順について紹介しようと思います．環境としては， CentOS 5.5 を使用します．</p>
 
-<h3>MovableType のインストール</h3>
+<h3>mod_ccs のインストール</h3>
 
-<p>CentOS 5.5 に MovableType をインストールするところから始めます． TOMOYO Linux の設定は含まれませんので，すでに MovableType を導入済みの方は次の項目へ飛んでください．なお， MovableType のインストールについて，本稿では最低限の内容しか触れません．詳細については，<a href="http://www.sixapart.jp/movabletype/manual/3.3/">オンラインドキュメントの「システム管理者ガイド」</a>などを参照してください．</p>
+<p>mod_ccs は Apache 2.x 向けのモジュールです． TOMOYO Linux 1.7.2 以降で利用可能な「プログラムの実行を伴わないドメイン遷移」機能を利用して，バーチャルホスト単位でドメインを分割したり， mod_perl などにより Apache プロセス内で動作するＣＧＩプログラムを別のドメインで動作させたりすることができるようになります． mod_ccs はカーネル 2.4 では動作しませんのでご注意ください．</p>
 
-<h3>Apache のインストール</h3>
-
-<p>まず， Apache をインストールします． root ユーザとしてログインし，図１のコマンドを実行してください．</p>
+<p>まず， Apache 向けのモジュールをコンパイルする準備を行います． RedHat 系の場合は httpd-devel パッケージを， Debian 系の場合は apache2-threaded-dev または apache2-prefork-dev パッケージをインストールします． root ユーザとしてログインし，図１のコマンドを実行してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１　Apache のインストール
+■図１　Apache モジュールをコンパイルするためのパッケージをインストール
 <pre>
-# yum install httpd
+# yum install httpd-devel
 </pre>
 </td></tr>
 </table>
 
-<p>iptables を有効にしている場合，設定が不適切だと Apache に接続できなくなります．図２のコマンドを実行して，［ Firewall Configuration ］→［ Customize ］から［ WWW (HTTP) ］にチェックがされていることを確認してください．</p>
+<p>次に，ソースコードをダウンロードします．図２のコマンドを実行してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２　firstboot コマンドの実行
+■図２　mod_ccs のソースをダウンロード
 <pre>
-# /usr/sbin/firstboot --reconfig
+# wget -O mod_ccs.c 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/mod_ccs.c?revision=3787&amp;root=tomoyo'
 </pre>
 </td></tr>
 </table>
 
-<h3>MovableType のインストール</h3>
-
-<p>本稿では図３のディレクトリ構成で使用します．データベースには BERKELEYDB を使用します．</p>
+<p>コンパイル／インストール／有効化を行います．図３のコマンドを実行してください． RedHat 系の場合は apxs コマンドを， Debian 系の場合は apxs2 コマンドを使います．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図３　本稿で使用するディレクトリ構成<br>
-<table border="1" summary="fig">
-<tr><td>用途</td><td>ディレクトリ</td></tr>
-<tr><td>アプリケーションディレクトリ</td><td>/var/www/cgi-bin/mt/</td></tr>
-<tr><td>スタティックディレクトリ</td><td>/var/www/html/mt-static/</td></tr>
-<tr><td>blog ディレクトリ</td><td>/var/www/html/blog/</td></tr>
-<tr><td>データベースディレクトリ</td><td>/var/www/mt-db/</td></tr>
-<tr><td>テンポラリディレクトリ</td><td>/var/www/mt-tmp/</td></tr>
-</table>
-</td></tr>
-</table>
-
-<p>MovableType 3.3 をダウンロードしてインストールします．本稿では MT-3_36-ja.zip を使用します．図４の内容を実行します．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図４　MovableType 3.3 のインストール
+■図３　mod_ccs のコンパイル
 <pre>
-# cd /var/www/cgi-bin/
-# unzip MT-3_36-ja.zip
-# mv MT-3.36-ja mt
-# cd mt/
-# mv mt-static /var/www/html/
-# mkdir /var/www/html/blog /var/www/mt-db /var/www/mt-tmp
-# chown apache:apache /var/www/html/blog/ /var/www/mt-db/ /var/www/mt-tmp/
-# cp -p mt-config.cgi-original mt-config.cgi
+# apxs -i -a -c mod_ccs.c
 </pre>
 </td></tr>
 </table>
 
-<p>次に， mt-config.cgi を編集します． /var/www/cgi-bin/mt/mt-config.cgi をエディタで開き， www.example.com となっている箇所（２ヵ所）を実際のサーバ名（本稿では yourserver と表記します）に置き換えてください（図５）．</p>
+<p>正常に終了した場合， Apache の設定ファイルの中に図４のような指定が見つかるはずです．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図５　/var/www/cgi-bin/mt/mt-config.cgi の変更箇所
+■図４　mod_ccs をロードするための指定
 <pre>
-[修正前]
-CGIPath http://www.example.com/cgi-bin/mt/
-StaticWebPath http://www.example.com/mt-static
-[修正後]
-CGIPath http://yourserver/cgi-bin/mt/
-StaticWebPath http://yourserver/mt-static
+LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 </pre>
 </td></tr>
 </table>
 
-<p>「 ##### MYSQL ##### 」「 ##### POSTGRESQL##### 」「 ##### SQLITE ##### 」のセクションは不要なので削除します．「 ##### BERKELEYDB ##### 」セクションでは DataSource という箇所を実際のパス名（ /var/www/mt-db ）に置き換えてください（図６）．</p>
+<h3>mod_ccs の設定</h3>
+
+<p>mod_ccs はデフォルトで ServerName に基づくドメイン遷移を行います．図５のように Apache の設定ファイルの中で CCS_TransitionMap キーワードを用いてパス名とドメイン名の対応表を定義してやれば，バーチャルホスト名に基づくドメイン遷移に加えて，要求されたファイルのパス名に基づくドメイン遷移も行います．図５では /etc/hosts で www.tomoyo00.com www.tomoyo01.com www.tomoyo02.com www.tomoyo03.com のＩＰアドレスが登録されているものと仮定します．</p>
+</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図６　DataSource を変更（/var/www/cgi-bin/mt/mt-config.cgi）
+■図５　CCS_TransitionMap キーワードの指定例
 <pre>
-[修正前]
-DataSource /path/to/database/directory
-[修正後]
-DataSource /var/www/mt-db
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-00
+    ServerName www.tomoyo00.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo00.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-01
+    ServerName www.tomoyo01.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo01.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-02
+    ServerName www.tomoyo02.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo02.conf
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:80&gt;
+    DocumentRoot /var/www/html-03
+    ServerName www.tomoyo03.com
+    CCS_TransitionMap /etc/ccs/httpd-tomoyo03.conf
+&lt;/VirtualHost&gt;
 </pre>
 </td></tr>
 </table>
 
-<p>また，図７の内容を追加します．</p>
+<p>CCS_TransitionMap キーワードで指定されたファイルには，図６のようにリクエストされたファイルのパス名とドメイン名の対応表を定義しておきます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図７　/var/www/cgi-bin/mt/mt-config.cgi に追加する内容
+■図６　パス名とドメイン名の対応表の記述例
 <pre>
-DBUmask 0077
-HTMLUmask 0077
-UploadUmask 0077
-DirUmask 0077
-TempDir /var/www/mt-tmp
+/var/www/cgi-bin/\*         cgi-programs
+/usr/share/horde/\{\*\}/\*  horde
+/var/www/html/\{\*\}/\*     static-files
 </pre>
 </td></tr>
 </table>
 
-<p>apache ユーザの権限で実行するのでファイル作成時には所有者のみがアクセスできるようにしておくことができます．テンポラリディレクトリは TempDir キーワードを用いて指示します．</p>
+<p>ここから先は TOMOYO Linux カーネルで起動している必要があります．</p>
 
-<h3>MovableType の初期化</h3>
+<p>TOMOYO Linux は SELinux と同時に使用することができますが， SELinux のデフォルトの設定では /proc/ccs/.transition への書き込みが拒否されてしまいます． SELinux が有効になっている場合， Apache に対して /proc/ccs/.transition への書き込みを認めるようにしてください．（ SELinux の設定を変更する手順はディストリビューションやバージョンにより異なります．図７は CentOS 5.5 では使えますが，それより古いバージョンでは使えないことがあります．）</p>
 
-<p>Apache をスタートさせます（図８）．</p>
+<table border="1" summary="fig">
+<tr><td>
+■図７　Apache に対して /proc/ccs/.transition への書き込みを認める
+<pre>
+# cd /etc/selinux/
+# echo 'type=AVC msg=audit(1277948886.369:106): avc:  denied  { write } for pid=32078 comm="httpd" name=".transition" dev=proc ino=-268435010 scontext=root:system_r:httpd_t:s0 tcontext=system_u:object_r:proc_t:s0 tclass=file' | audit2allow -M ccsecurity
+# semodule -i ccsecurity.pp
+</pre>
+</td></tr>
+</table>
+
+<p>図８を実行して Apache を再起動してください．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図８　Apache の起動
-<pre>
-# service httpd start
-</pre>
-</td></tr>
-</table>
-
-<p>Ｗｅｂブラウザを使って http://yourserver/cgi-bin/mt/mt-check.cgi を表示し， MovableType の実行に必要なプログラムが揃っていることを確認します．</p>
-
-<p>「 MovableType のシステム・チェックは，無事に完了しました．」という表示を確認したら， http://yourserver/cgi-bin/mt/mt.cgi にアクセスして mt.cgi を実行します．</p>
-
-<p>この画面で MovableType のシステム管理者を登録してから，ログインしてください．ログイン後は，［ First Weblog ］→［設定］→［サイトＵＲＬ／パス］の順に選択して，サイトＵＲＬとサイトパスを図９のように設定してください．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図９　サイトＵＲＬとサイトパスの設定<br>
-<table border="1" summary="fig">
-<tr><td>設定項目</td><td>設定内容</td></tr>
-<tr><td>サイトＵＲＬ</td><td>http://yourserver/blog/</td></tr>
-<tr><td>サイトパス</td><td>/var/www/html/blog</td></tr>
-</table>
-</td></tr>
-</table>
-
-<p>その後，［変更を保存］を選択し，［サイトを再構築］→［再構築］の順に選択してください．以上で MovableType のインストールは完了です．</p>
-
-<h2>TOMOYO Linux のインストール</h2>
-
-<p>では，いよいよ TOMOYO Linux をインストールしてみることにしましょう．</p>
-
-<h3>プログラムのインストール</h3>
-
-<p>CentOS 5.5 用のコンパイル済みパッケージをダウンロードしインストールします（図１０）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１０　TOMOYO Linux 1.7.2 のインストール
-<pre>
-# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'
-# rpm --import /tmp/key
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
-# yum install ccs-kernel
-</pre>
-</td></tr>
-</table>
-
-<p>利用可能な最新のカーネルは<a href="http://tomoyo.sourceforge.jp/1.7/install.html#install_from_repository">バイナリパッケージをインストール</a>を参照ください．</p>
-
-<p>次にツールをインストールします．（図１１）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１１　ツールをインストール
-<pre>
-# yum install ccs-tools
-</pre>
-</td></tr>
-</table>
-
-<p>TOMOYO Linux のユーティリティを保存してある場所を環境変数 PATH に追加しておきます． /bin/bash を使っている場合は ~/.bashrc に図１２の行を追加します．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１２　環境変数 PATH の設定
-<pre>
-export PATH=$PATH:/usr/sbin
-</pre>
-</td></tr>
-</table>
-
-<h3>ポリシーの初期化</h3>
-
-<p>init_policy によりポリシーファイルを初期化します（図１３）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１３　ポリシーファイルを初期化
-<pre>
-# /usr/lib/ccs/init_policy
-</pre>
-</td></tr>
-</table>
-
-<p>このプログラムはポリシーファイルが存在する場合は何もしないので，すでに /etc/ccs/ ディレクトリが存在する場合には /etc/ccs/ ディレクトリをどこかに移動してから実行してください． init_policy の実行により， /etc/ccs/ ディレクトリに図１４の６つのファイルが作成されます．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１４　init_policy によって作成されるファイル<br>
-<table border="1" summary="fig">
-<tr><td>ファイル名</td><td>役割</td></tr>
-<tr><td>exception_policy.conf</td><td>例外ポリシー</td></tr>
-<tr><td>domain_policy.conf</td><td>ドメインポリシー</td></tr>
-<tr><td>manager.conf</td><td>マネージャーポリシー</td></tr>
-<tr><td>profile.conf</td><td>プロファイル</td></tr>
-<tr><td>meminfo.conf</td><td>メモリ使用量制限</td></tr>
-<tr><td>ccs-load-policy</td><td>TOMOYO Linux のカーネルモジュールをロードするプログラム</td></tr>
-</table>
-</td></tr>
-</table>
-
-<p>exception_policy.conf は「例外ポリシー」と呼ばれ，パス名のグループを定義したりドメイン遷移を制御したりするために使われます． domain_policy.conf は「ドメインポリシー」と呼ばれ，ドメイン単位でアクセスを制御するために使われます． manager.conf は「マネージャーポリシー」と呼ばれ， /proc/ccs/ ディレクトリ経由でポリシーの更新を許可するプログラムやドメインを指定するために使われます． profile.conf は「プロファイル」と呼ばれ，アクセス制御の方法（どの機能を有効にするか）を指定するために使われます．行頭の数字はプロファイル番号で，「 0- 」で始まる行は要求された内容をチェックしないで許可する「無効モード」，「 1- 」で始まる行は要求された内容を記録に残してから許可する「学習モード」，「 2- 」で始まる行は要求された内容をチェックするが拒否はしない「確認モード」，「 3- 」で始まる行は要求された内容をチェックして許可されていない場合には拒否する「強制モード」用として使います．この連載では，すべてのアクセス制御を有効にしたプロファイルを用いますが，難しいと感じたらファイルに関するアクセス制御以外は無効（ CONFIG= という部分を CONFIG::file= に書き換える）にしてもかまいません．</p>
-
-<h2>学習の開始</h2>
-
-<h3>システムの再起動</h3>
-
-<p>ここまで準備ができたら，システムをリブートします．ＧＲＵＢのメニューでは TOMOYO Linux カーネルを選択してください．</p>
-
-<h3>学習モードに切り替える</h3>
-
-<p>Apache をスタートさせます（図１５）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１５　Apache の起動
-<pre>
-# service httpd start
-</pre>
-</td></tr>
-</table>
-
-<p>ポリシーエディタを起動してください（図１６）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１６　ポリシーエディタの起動
-<pre>
-# /usr/sbin/ccs-editpolicy
-</pre>
-</td></tr>
-</table>
-
-<p>すると「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」という画面が表示され，ドメイン遷移の一覧が表示されます．行番号の右には各ドメインのモード（プロファイル番号）が表示されています．「 &lt;kernel&gt; /usr/sbin/httpd 」というドメインにカーソルを合わせて，「 S 」を押してから学習モードに対応するプロファイルの番号「 1 」を入力して「 ENTER 」を押します（図１７）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１７　&lt;kernel&gt; /usr/sbin/httpd ドメインを学習モードにする<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig12.png" alt="sd200708-fig12.png">
-</td></tr>
-</table>
-
-<p>これにより， &lt;kernel&gt; /usr/sbin/httpd ドメインが学習モードになり，今後 &lt;kernel&gt; /usr/sbin/httpd によって新規作成されるドメインも学習モードになります．</p>
-
-<h3>アクセス許可を学習させる</h3>
-
-<p>Apache を再起動させます（図１８）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図１８　Apache の再起動
 <pre>
 # service httpd restart
 </pre>
 </td></tr>
 </table>
 
-<p>これにより， Apache の起動と終了に必要なアクセス許可が学習されます．その後， http://yourserver/cgi-bin/mt/mt.cgi にアクセスして mt.cgi を実行します．</p>
-
-<p>MovableType にログインし，エントリを投稿したりページを再構築したりトラックバックを受け付けるなどの操作を行います． TOMOYO Linux は操作に対する要求に応えながら，それに必要なアクセス許可内容を学習します．ポリシーは後から確認，追加できますが，初期の自動学習で多くの機能を実行させておくと全体の作業がスムーズに進みます． MovableType のように複雑なものでは少し難しいですが，あらかじめ試験項目を作成しておくと良いでしょう．</p>
-
-<h3>アクセス許可を確認する</h3>
-
-<p>ひととおり学習したら， ccs-editpolicy で学習結果を確認してみましょう．図１９のようなドメインが作成されているはずです（操作内容や設定内容により異なる場合があります）． Apache から Movable Type のＣＧＩが呼ばれ，そこからいくつかの外部プログラムが呼ばれていることがわかります．</p>
+<p>/proc/ccs/.transition への書き込みができなかった場合，図９（ CCS_TransitionMap キーワードを指定した場合）または図１０（ CCS_TransitionMap キーワードを指定しない場合）のようなメッセージが表示されます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図１９　ドメインの学習結果<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig14.png" alt="sd200708-fig14.png">
-</td></tr>
-</table>
-
-<h3>パス名のグループ化</h3>
-
-<p>「 &lt;kernel&gt; /usr/sbin/httpd /var/www/cgi-bin/mt.cgi 」ドメインにカーソルを合わせて「 ENTER 」を押すと， &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; という画面に移動します．その画面をスクロールしてみると，図２０のようなエントリが見つかるはずです．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２０　作成されたポリシーの内容（一部）
+■図９　Apache の起動時のエラーメッセージ
 <pre>
-allow_read /var/www/cgi-bin/mt/extlib/CGI.pm
-allow_read /var/www/cgi-bin/mt/extlib/CGI/Cookie.pm
-allow_read /var/www/cgi-bin/mt/extlib/CGI/Util.pm
-（中略）
-allow_read /var/www/cgi-bin/mt/lib/MT/Trackback.pm
-allow_read /var/www/cgi-bin/mt/lib/MT/Util.pm
-allow_read /var/www/cgi-bin/mt/lib/MT/WeblogPublisher.pm
-</pre>
-</td></tr>
-</table>
-
-<p>もちろん，ここまでの内容で作成したポリシーでも運用は可能ですが，実際のシステム運用ではポリシーを整理してから行います．今度はその手順を紹介します．さきほど確認した mt.cgi ドメインの学習結果を見ると，多数の Perl モジュールにアクセスしていることがわかります．そこでまず，これらの Perl モジュールへのパス名を MT-LIB という名前でグループ化することにします．グループ化をすると，対象となるパス名をまとめて扱えるのでポリシーがコンパクトで見通しやすくなります．</p>
-
-<p>ccs-editpolicy で，「 TAB 」を押して &lt;&lt;&lt; ExceptionPolicy Editor &gt;&gt;&gt; という画面に移動してから図２１の内容の指定を追加してください．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２１　パス名をグループ化するための設定内容
-<pre>
-path_group MT-LIB /var/www/cgi-bin/mt/\{\*\}/\@.pm
-</pre>
-</td></tr>
-</table>
-
-<p>その後，「 TAB 」を押すと &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; という画面に戻り，さらに「 ENTER 」を押すと &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; という画面に移動することができます．登録したばかりの MT-LIB を使ってグループ化してみましょう．まず ccs-editpolicy で， mt.cgi のドメインを選択し，図２２の行を追加します．図２２の行を追加後に，図２２の行にカーソルを合わせてから「 O 」キーを押すと，カーソル行のアクセス許可に包含されているアクセス許可に対して &amp; マークが付与されるので，「 D 」キーを押すことで学習結果から図２２の行のアクセス許可に包含されているエントリを削除できます．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２２　図２１でグループ化したパス名を指定
-<pre>
-allow_read @MT-LIB
-</pre>
-</td></tr>
-</table>
-
-<p>これは，「グループ名が MT-LIB である path_group に割り当てられているパス名」に対して読み込みを許可するという意味です．</p>
-
-<p>mt.cgi ドメインには MT-LIB で定義した以外にもグループ化するほうが良さそうなエントリがありそうです（図２３）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２３　グループ化できそうなパス名のエントリ
-<pre>
-allow_read/write /var/www/mt-db/__db.notification.blog_id.idx
-allow_read/write /var/www/mt-db/__db.notification.db
-（中略）
-allow_read/write /var/www/mt-db/trackback.entry_id.idx
-allow_read/write /var/www/mt-db/trackback.entry_id.idx.lock
-allow_create /var/www/mt-db/__db.notification.blog_id.idx
-allow_create /var/www/mt-db/__db.notification.db
-（中略）
-allow_create /var/www/mt-db/objecttag.db.lock
-allow_create /var/www/mt-db/plugindata.blog_id.idx.lock
-allow_rename /var/www/mt-db/__db.notification.blog_id.idx /var/www/mt-db/notification.blog_id.idx
-allow_rename /var/www/mt-db/__db.notification.db /var/www/mt-db/notification.db
-（略）
-</pre>
-</td></tr>
-</table>
-
-<p>データベースディレクトリ内のファイルは読み書き／新規作成／名称変更が行われることがわかります．これらのパス名もグループ化することにします．ここでは， /var/www/mt-db/\* を MT-DB という名前で登録することにします．</p>
-
-<p>&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; という画面において図２４の指定を登録し， &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; という画面に戻ってから，さきほどと同様に登録済みエントリの削除を行い，新たに図２５の３行を追加します．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２４　/var/www/mt-db/\* をグループ化
-<pre>
-path_group MT-DB /var/www/mt-db/\*
+mod_ccs: Unable to open /proc/ccs/.transition for writing. (errno = 13)
 </pre>
 </td></tr>
 </table>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２５　図２４でグループ化したパス名を指定
+■図１０　Apache のエラーログ（ /var/log/httpd/error_log ）
 <pre>
-allow_read/write @MT-DB
-allow_create @MT-DB
-allow_rename @MT-DB @MT-DB
+[Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_ccs: Unable to open /proc/ccs/.transition for writing.
 </pre>
 </td></tr>
 </table>
 
-<p>これは，「グループ名が MT-DB である path_group に割り当てられているパス名」に対して読み書きと新規作成と名称変更を許可するという意味です． MT-LIB と MT-DB の登録を行った後で mt.cgi を実行すると登録したパターンに一致する個別のファイルは学習結果に現れなくなります．パス名のグループ化はどこまで行わなければならないという決まりはありません．学習結果を見ながら，まとめられそうな部分があれば同様に処理を行います．ここで示した以外には， Perl のライブラリ（ /usr/lib/perl5/5.8.8/ ディレクトリ以下のファイル）や blog ディレクトリのファイル（ /var/www/html/blog/ ディレクトリ以下のファイル）などが対象になるでしょう． mt.cgi 以外のＣＧＩについても同様にグループ化を行ってください．</p>
+<p>CCS_TransitionMap キーワードで指定されたファイルに問題があった場合，図８の実行時にエラーメッセージが表示されます．</p>
 
-<h3>ポリシーを保存する</h3>
-
-<p>ポリシーエディタで表示されるポリシーはカーネル内にのみ存在しており，再起動すると失われてしまいます．ポリシーをディスク上のファイルに保存するには ccs-savepolicy というコマンドを実行してください（図２６）．</p>
+<p>ドメイン遷移が行われていることを確認するために，簡単なＣＧＩプログラムを作成します．（図１１）</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２６　ccs-savepolicy コマンドの実行
+■図１１　ドメイン遷移が行われていることを確認するためのＣＧＩプログラム
 <pre>
-# /usr/sbin/ccs-savepolicy
+# cat &gt; /var/www/cgi-bin/test.cgi &lt;&lt; EOF
+#!/usr/bin/perl
+
+print "Content-type:text/html\r\n\r\n";
+print "&lt;HTML&gt;\n";
+print "&lt;HEAD&gt;\n";
+print "&lt;TITLE&gt;test&lt;/TITLE&gt;\n";
+print "&lt;/HEAD&gt;\n";
+print "&lt;BODY&gt;\n";
+
+open(IN, "/proc/ccs/self_domain") || print "error";
+$domain = &lt;IN&gt;;
+$domain =~ s/&amp;/&amp;amp;/g;
+$domain =~ s/&lt;/&amp;lt;/g;
+$domain =~ s/&gt;/&amp;gt;/g;
+close(IN);
+print $domain;
+print "\n";
+
+print "&lt;/BODY&gt;\n";
+print "&lt;/HTML&gt;\n";
+EOF
+# chmod 755 /var/www/cgi-bin/test.cgi
 </pre>
 </td></tr>
 </table>
 
-<h3>ドメインの集約</h3>
-
-<p>パス名のグループ化を行っているときに，個々のＣＧＩに必要なアクセス許可が似ていることに気が付いたと思います． MovableType は機能ごとに別々のＣＧＩプログラムに分かれているので， TOMOYO Linux では個々のＣＧＩごとにドメインが分かれます．もちろん，個々のＣＧＩごとにアクセス許可を設定するほうが安全ですが，数が多くて手間がかかります．そこで，個々のＣＧＩ用のドメインを１個に集約してしまうという選択肢もあります．ここでは例として， MovableType のＣＧＩプログラムを， /./MovableTypeCGI という名前で集約してみることにします．ドメインを集約するには， &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; という画面に移動してから図２７の指定を追加してください．</p>
+<p>/proc/ccs/self_domain はデフォルトでは root しかアクセスできないので，図１１のプログラムからアクセスできるようにするためにパーミッションを緩めます．（図１２）</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２７　ドメインを集約するための設定
+■図１２　ＣＧＩプログラムから /proc/ccs/self_domain へのアクセスを認める
 <pre>
-aggregator /var/www/cgi-bin/mt/\@.cgi /./MovableTypeCGI
-aggregator /var/www/cgi-bin/mt/extras/examples/plugins/\*/\@.cgi /./MovableTypeCGI
-aggregator /var/www/cgi-bin/mt/plugins/\*/\@.cgi /./MovableTypeCGI
+# chmod 444 /proc/ccs/self_domain
 </pre>
 </td></tr>
 </table>
 
-<p>このように指定すると， /var/www/cgi-bin/mt/\@.cgi または /var/www/cgi-bin/mt/extras/examples/plugins/\*/\@.cgi または /var/www/cgi-bin/mt/plugins/\*/\@.cgi というパターンに一致するプログラムが実行された場合には /./MovableTypeCGI というプログラムが実行されたのかのように振舞うようになり，結果としてドメインが集約されます．その後，「 TAB 」を押して &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; という画面に戻り，図２８のドメインを削除してください．</p>
+<p>システム起動時に自動的に緩めるようにするには図１３のようにします．</p>
 
 <table border="1" summary="fig">
 <tr><td>
-■図２８　ドメインを削除する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig17.png" alt="sd200708-fig17.png">
-</td></tr>
-</table>
-
-<p>また， &lt;kernel&gt; /usr/sbin/httpd ドメインのアクセス許可からこれらのＣＧＩの実行許可を削除してください（図２９）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図２９　ＣＧＩの実行許可を削除する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig18.png" alt="sd200708-fig18.png">
-</td></tr>
-</table>
-
-<p>この状態で先ほどと同様に操作すると，図３０のようなドメインが作成されるはずです．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図３０　集約したドメインが作成される<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig19.jpg" alt="sd200708-fig19.jpg">
-</td></tr>
-</table>
-
-<h3>ドメイン遷移を抑制する</h3>
-
-<p>環境や設定によっては， Perl の Cwd モジュールによりカレントディレクトリを取得するために /bin/pwd コマンドが実行される場合があります．そのような場合には，図３１のように /bin/pwd コマンド用のドメインが作成されます．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図３１　/bin/pwd コマンド用のドメインが作成される<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig20.jpg" alt="sd200708-fig20.jpg">
-</td></tr>
-</table>
-
-<p>しかし，この /bin/pwd についてはわざわざドメイン遷移させる必要はなさそうです．そこで， /./MovableTypeCGI から /bin /pwd が実行される場合にはドメイン遷移させないようにするという選択肢もあります．ドメイン遷移を抑制するには， &lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt; という画面に移動してから図３２の指定を追加してください．その後， &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; という画面に戻ると， /bin/pwd ドメインに対して( keep_domain /bin/pwdfrom /./MovableTypeCGI )という理由と共に「!」という表示により「このドメインには到達不能である」ことを示すようになるので，そのドメインを削除します（図３３）．</p>
-
-<table border="1" summary="fig">
-<tr><td>
-■図３２　ドメインを集約するための設定
+■図１３　起動時にパーミッションを設定する
 <pre>
-keep_domain /bin/pwd from /./MovableTypeCGI
+# cat &gt; /etc/ccs/ccs-post-init &lt;&lt; EOF
+#! /bin/sh
+chmod 444 /proc/ccs/self_domain
+exit 0
+EOF
+# chmod 700 /etc/ccs/ccs-post-init
 </pre>
 </td></tr>
 </table>
 
+<p>curl コマンド（またはＷｅｂブラウザ）を使ってサンプルプログラムを表示し，ドメイン遷移が行われていることを確認します．（図１４）</p>
+
 <table border="1" summary="fig">
 <tr><td>
-■図３３　到達不能なドメインを削除する<br>
-<img src="http://tomoyo.sourceforge.jp/wiki/?plugin=ref&amp;page=WorldOfTomoyoLinux-8&amp;src=sd200708-fig21.jpg" alt="sd200708-fig21.jpg">
+■図１４　ドメイン遷移が行われていることを確認する
+<pre>
+[root@tomoyo ~]# curl http://www.tomoyo00.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo00.com //default /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo01.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo01.com //default /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo02.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo02.com //default /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]# curl http://www.tomoyo03.com/cgi-bin/test.cgi
+&lt;HTML&gt;
+&lt;HEAD&gt;
+&lt;TITLE&gt;test&lt;/TITLE&gt;
+&lt;/HEAD&gt;
+&lt;BODY&gt;
+&amp;lt;kernel&amp;gt; /usr/sbin/httpd //www.tomoyo03.com //default /var/www/cgi-bin/test.cgi
+&lt;/BODY&gt;
+&lt;/HTML&gt;
+[root@tomoyo ~]#
+</pre>
 </td></tr>
 </table>
 
-<p>なお，ドメイン遷移を抑制しているのは /bin/pwd プログラムだからであって，たとえば /bin/cat プログラムの場合にはドメイン遷移を抑制すべきではありません． /bin/cat を呼び出し元のドメイン（この例では /./MovableTypeCGI ）で実行することは，呼び出し元のドメインで読み込みが許可されているすべての資源（たとえばＣＧＩプログラムやデータベース）の内容をそっくり漏洩させてしまう危険性を高めることにつながります．</p>
+<p>あとは通常の Apache 用のポリシーを作成するのと同様です．学習モードでアクセス許可を収集し，確認モードでチューニングを行ってアクセス許可に不足が無いことを確認し，強制モードにより保護してください．</p>
 
 <h2>次回予告</h2>
 
-<p>今回は， MovableType の導入からポリシーの自動学習までの手順について紹介し，併せて応用的な使い方であるパス名のグループ化，ドメイン遷移の集約と抑制について解説しました．パス名のグループ化やドメイン遷移の調整については，最初のうちは難しいかもしれませんが，本稿を参考に少しずつ挑戦していただければと思います．次回は，確認モードを用いて必要なアクセス許可が与えられているかどうかを確認する方法と，チューニングの続きについて説明します．</p>
+<p>今回は， Apache のバーチャルホスト毎にドメインを分割する機能について紹介しました．次回は，プロファイルを使いこなす方法について説明します．</p>
 
-<p><a href="tutorial-9.html.ja">第９回へ戻る</a>　<a href="tutorial-11.html.ja">第１１回へ進む</a></p>
+<p><a href="tutorial-9.html.ja">第９回へ戻る</a><!--　<a href="tutorial-11.html.ja">第１１回へ進む</a>--></p>
 
 <hr>
 
