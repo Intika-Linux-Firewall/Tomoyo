@@ -15,7 +15,7 @@ then
     wget ftp://ftp.redhat.com/pub/redhat/rhel/beta/6Server-beta2/source/SRPMS/kernel-2.6.32-37.el6.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-2.6.32-37.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-19.el6.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.32-37.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
@@ -23,9 +23,9 @@ then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
 fi
 
-if [ ! -r ccs-patch-20100704.diff ]
+if [ ! -r ccs-patch-1.7.2-20100704.diff ]
 then
-    wget -O ccs-patch-20100704.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3792&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-1.7.2-20100704.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3792&root=tomoyo' || die "Can't download patch."
 fi
 
 
@@ -43,17 +43,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  %define rhel 1
  %if %{rhel}
-@@ -432,6 +432,9 @@
- # to versions below the minimum
- #
- 
-+# TOMOYO Linux
-+%define signmodules 0
-+
- #
- # First the general kernel 2.6 required versions as per
- # Documentation/Changes
-@@ -467,7 +470,7 @@
+@@ -454,7 +454,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -62,7 +52,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 002-18.git413bcf78
  %else
-@@ -503,7 +506,7 @@
+@@ -490,7 +490,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -71,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -1959,7 +1962,7 @@
+@@ -3332,7 +3332,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -80,18 +70,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -3468,6 +3471,10 @@
+@@ -6123,6 +6123,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-20100704.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100704.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -3492,6 +3499,9 @@
+@@ -6147,6 +6151,9 @@
  for i in *.config
  do
    mv $i .config
