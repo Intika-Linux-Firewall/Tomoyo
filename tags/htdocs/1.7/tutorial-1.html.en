@@ -1,0 +1,346 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The first installment: "Let's experience automatic policy learning."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-1.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The first installment: "Let's experience automatic policy learning."</h1>
+
+<h2>Welcome to the world of TOMOYO Linux</h2>
+
+<h3>What is TOMOYO Linux?</h3>
+
+<p>TOMOYO Linux is a secure OS developed by NTT DATA Corporation, Japan, and was released on November 2005 under the GPL. Some portion of TOMOYO Linux's functionality is integrated into Linux kernel 2.6.30 released on June 2009. Technical information is available at <a href="http://tomoyo.sourceforge.jp/">project page at SourceForge</a>. This series aims at actually experiencing and mastering TOMOYO Linux. Please stay with me.</p>
+
+<h3>Contents of this installment.</h3>
+
+<p>I will explain summary of secure OS and steps for introducing TOMOYO Linux. This page explains steps for installing prebuilt TOMOYO Linux 1.7.2 running on CentOS 5.5 installed on VMware environment. Also, this page explains steps for booting with TOMOYO Linux kernel and experiencing TOMOYO Linux's automatic policy learning mode.</p>
+
+<h2>About secure OS.</h2>
+
+<p>Generally, secure OS is explained as OS with mandatory access control and least privilege functionalities. Both functionalities are intended for restricting exercise of functionalities provided by OS. The author of this series considers secure OS as "negative technologies", for secure OS is for "reducing what you can do with OS" rather than "increasing functionality or what you can do with OS". Also, secure OS entails "works and burdens for reducing what you can do with OS" as an unhappy bonus. Why dare to spend time and effort for reducing what you can do with OS? The reason is for enhancing security. In normal OS (in other words, OS without mandatory access control and least privilege functionalities), general versatility does you an ill office if the OS once lost control by unauthorized access. For example, public WWW servers published to the web should be able to provide only WWW service and should not be able to provide other services. Secure OS is used for restricting services which was originally designed for generic services. (Fig. 1 and Fig. 2)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Access is free on normal OS<br>
+<img src="tutorial/fig-1-1.jpg" alt="fig-1-1.jpg">
+</td><td>
+&diams; Fig. 2&nbsp;&nbsp;Access is restricted according to policy on secure OS<br>
+<img src="tutorial/fig-1-2.jpg" alt="fig-1-2.jpg">
+</td></tr>
+</table>
+
+<h3>How to restrict and why secure OS remains unfamiliar?</h3>
+
+<p>The "restriction" is mainly implemented as reinforcement of access controls. This reinforced access control is so-called MAC (Mandatory Access Control) system. Computer systems itself cannot determine what operations should be permitted and what shouldn't be. Thus, to use the MAC system, you have to tell the MAC system what operations should be permitted and what shouldn't be. The definition of what operations should be permitted and what shouldn't be is called "policy". Therefore, using secure OS entails burden of managing policy. The importance of security is increasing day by day. Nonetheless, why does secure OS remain unfamiliar? There are several factors that keep secure OS away, but the largest factor would be "the concept of secure OS is difficult and management of policy is very complicated". I don't explain the difficulty in details, but writing policy is not an easy task even for experienced and skilled Linux administrators.</p>
+
+<h3>And here comes TOMOYO Linux</h3>
+
+<p>TOMOYO Linux adopted an approach "OS by itself generates policy" in order to solve the fundamental issue of secure OS's policy management and realized "secure OS with practically manageable level". Regarding TOMOYO Linux, you can start using TOMOYO Linux from the first day if you have experience of installing and administrating Linux. In the first installment of this series, I will explain from introducing TOMOYO Linux till using automatic policy learning mode for generating elementary policy. There is nothing difficult. Please actually operate and experience the new world by TOMOYO Linux.</p>
+
+<h2>Installing TOMOYO Linux</h2>
+
+<h3>Preparation</h3>
+
+<p>TOMOYO Linux supports Linux kernel 2.4.30 and later / 2.6.11 and later. Regarding distributions listed in Fig. 3, <a href="http://tomoyo.sourceforge.jp/1.7/install.html#install_from_repository">prebuilt kernel packages and tools packages for i686 architecture</a> are provided.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Distributions provided with binary packages.<br>
+<ul>
+<li>Fedora 11/12/13</li>
+<li>CentOS 3.9/4.8/5.5</li>
+<li>Debian Etch/Lenny</li>
+<li>OpenSUSE 11.0/11.1/11.2</li>
+<li>Asianux 2.0/3.0</li>
+<li>Ubuntu 6.06/8.04/8.10/9.04/9.10/10.04</li>
+<li>Vine Linux 4.2/5.0</li>
+</ul>
+</td></tr>
+</table>
+
+<p>In this series, I explain using CentOS 5.5 as an example, but you can do in a similar manner regarding distributions listed above.</p>
+
+<h4>&diams;Installing kernel</h4>
+
+<p>Download and install prebuilt kernel packages. (Fig. 4)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Installing prebuilt kernel
+<pre>
+# wget -O /tmp/key 'http://pgp.nic.ad.jp/pks/lookup?op=get&amp;search=0x4B975A98'
+# rpm --import /tmp/key
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.7/CentOS5/ccs.repo
+# yum -y install ccs-kernel
+</pre>
+</td></tr>
+</table>
+
+<p>If kernel is successfully installed, an entry like Fig. 5 should be added to /boot/grub/grub.conf .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Entry for TOMOYO Linux kernel added to grub.conf
+<pre>
+title CentOS (2.6.18-194.3.1.el5_tomoyo_1.7.2)
+        root (hd0,0)
+        kernel /boot/vmlinuz-2.6.18-194.3.1.el5_tomoyo_1.7.2 ro root=LABEL=/
+        initrd /boot/initrd-2.6.18-194.3.1.el5_tomoyo_1.7.2.img
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;Installing utility</h4>
+
+<p>Download and install utility for managing policy. (Fig. 6)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Installing prebuilt utility
+<pre>
+# yum -y install ccs-tools
+</pre>
+</td></tr>
+</table>
+
+<p>Utility programs are installed into /usr/sbin/ directory. Role of each program is described in Fig. 7. I will explain usage of these programs when each program appears for the first time in this series.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Programs for managing TOMOYO<br>
+<table border="1" summary="fig">
+<tr><td>Name of program</td><td>Role of program</td></tr>
+<tr><td>ccs-loadpolicy</td><td>Reload the policy.</td></tr>
+<tr><td>ccs-editpolicy</td><td>Policy editor.</td></tr>
+<tr><td>ccs-savepolicy</td><td>Save the current policy.</td></tr>
+<tr><td>ccs-queryd</td><td>Allow access requests interactively.</td></tr>
+<tr><td>ccs-setlevel</td><td>Change profile setting. (You can also do this from ccs-editpolicy )</td></tr>
+<tr><td>ccs-setprofile</td><td>Change profile assigned to domains0. (You can also do this from ccs-editpolicy .)</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>Initializing TOMOYO Linux</h3>
+
+<h4>&diams;Adding command search path</h4>
+
+<p>Add the location of TOMOYO Linux's utility programs to environment variable PATH. Append a line in Fig. 8 to ~/.bashrc if you are using /bin/bash .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Updating environment variable PATH
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;Initializing policy configuration</h4>
+
+<p>In TOMOYO Linux, any requests that are not granted by policy are rejected. Thus, all requests that are needed for operating the system properly have to be explicitly granted by policy. But to make the policy compact, TOMOYO Linux has a notion called "exception policy".</p>
+
+<p>You will refine the content of exception policy as you develop policy. You can generate initial exception policy by running command in Fig. 9.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Initializing policy configuration
+<pre>
+# /usr/lib/ccs/init_policy
+Creating policy directory... OK
+Creating exception policy... OK
+Creating domain policy... OK
+Creating manager policy... OK
+Creating default profile... OK
+Creating memory quota policy... OK
+Creating module loader... OK
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;Creating profiles</h4>
+
+<p>In TOMOYO Linux, to control how access is restricted, TOMOYO Linux has a notion called "profile". I will explain the details on profiles and steps for controlling profiles in future installments.</p>
+
+<p>Although /etc/ccs/profile.conf was generated by previously executed init_policy command, overwrite that file with the contents listed in Fig. 10 for this installment. The first line is profile's version, the second line is "set access control mode of files to learning mode".</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Contents of /etc/ccs/profile.conf
+<pre>
+PROFILE_VERSION=20090903
+0-CONFIG::file={ mode=learning }
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;Rebooting with TOMOYO Linux kernel</h4>
+
+<p>Now you have finished all preparation. You can't wait any more?</p>
+
+<p>Reboot the system using reboot command. (Fig. 11)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Rebooting the system
+<pre>
+# reboot
+</pre>
+</td></tr>
+</table>
+
+<p>Choose the entry with TOMOYO Linux kernel at the GRUB screen which will be displayed upon reboot. (Fig. 12)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Choosing TOMOYO Linux kernel<br>
+<img src="tutorial/fig-1-12.png" alt="fig-1-12.png">
+</td></tr>
+</table>
+
+<p>If you operated properly, TOMOYO Linux will boot in "learning mode". (Fig. 13)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Booting with TOMOYO Linux kernel<br>
+<img src="tutorial/fig-1-13.png" alt="fig-1-13.png">
+</td></tr>
+</table>
+
+<h3>How to disable TOMOYO Linux?</h3>
+
+<p>If your system cannot boot due to TOMOYO Linux, you can boot your system with TOMOYO Linux disabled by appending ccsecurity=off at the kernel's command line parameters.</p>
+
+<h3>How to uninstall TOMOYO Linux?</h3>
+
+<p>TOMOYO Linux does not require modification against existing Linux libraries and applications. Thus, uninstalling TOMOYO Linux is quite easy. If you want to uninstall TOMOYO Linux by some reason, the system will become normal Linux by removing /sbin/ccs-init (a program which loads policy when /sbin/init starts). If you want to uninstall TOMOYO Linux kernel in addition to /sbin/ccs-init , reboot with normal kernel and uninstall the TOMOYO Linux kernel package using rpm command.</p>
+
+<h2>Let's observe your system's behavior</h2>
+
+<h3>Domains and domain transitions</h3>
+
+<p>In TOMOYO Linux, access control is applied in the unit of "domain". Every process belongs to one domain, and basically transits to different domain whenever a program is executed. (Fig. 14)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Domain transition<br>
+<img src="tutorial/fig-3-1.png" alt="fig-3-1.png">
+</td></tr>
+</table>
+
+<p>The domain in TOMOYO Linux is the string representation of concatenation of process's execution history starting from &lt;kernel&gt;. For example, domain for "the kernel process" is "&lt;kernel&gt;", domain for "/sbin/init executed by the kernel process" is "&lt;kernel&gt; /sbin/init", domain for "/etc/rc.d/rc executed by /sbin/init" is "&lt;kernel&gt; /sbin/init /etc/rc.d/rc".</p>
+
+<h3>Browsing with policy editor</h3>
+
+<p>Now, let's browse the policy obtained by TOMOYO Linux's learning mode. TOMOYO Linux has CUI policy editor. Please login as root user and run ccs-editpolicy command. (Fig. 15. Error messages will be printed if you didn't choose TOMOYO Linux kernel at Fig. 12)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Executing policy editor
+<pre>
+# /usr/sbin/ccs-savepolicy
+</pre>
+</td></tr>
+</table>
+
+<p>The policy editor has several functionalities. Default initial mode is "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;". (Fig. 16) The first line of the screen is for title area, the second line is for message area, the third line is for printing domainname currently selected by cursor. Regarding the fourth and below lines, the first number is the line number, second number is the profile number (I will explain about profile numbers in next installment).  In Fig. 16, there are 342 domains defined. (The profile numbers and the number of domains vary on how you operated and how you configured.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Initial screen of policy editor<br>
+<img src="tutorial/fig-1-16.png" alt="fig-1-16.png">
+</td></tr>
+</table>
+
+<p>Let's browse the list of domains which TOMOYO Linux learned by scrolling with cursor keys. Fig. 17 shows domain transitions from /sbin/init . You can see that /etc/rc.d/rc is executed from /sbin/init and programs in /etc/rc.d/init.d/ directory are executed from /etc/rc.d/rc .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;Domain for /sbin/init<br>
+<img src="tutorial/fig-1-17.png" alt="fig-1-17.png">
+</td></tr>
+</table>
+
+<p>Now, as an example, let's browse the policy for domain for policy editor currently executing. By pressing "F" key, the cursor moves to the bottom line of screen and waits for input. Enter "ccs-editpolicy" and press "ENTER" key, and you will see the cursor jumped to the domain for policy editor currently executing. (Fig. 18)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp; Domain for /usr/sbin/ccs-editpolicy<br>
+<img src="tutorial/fig-1-18.png" alt="fig-1-18.png">
+</td></tr>
+</table>
+
+<p>In Fig. 18, TOMOYO Linux identifies the domain for policy editor as "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" ( /usr/sbin/ccs-editpolicy executed from /bin/bash executed from /bin/login executed from /sbin/mingetty ). ( TOMOYO Linux will identify the domain for policy editor as "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/sbin/ccs-editpolicy" if /usr/sbin/ccs-editpolicy is executed from /bin/bash executed from /usr/sbin/sshd .)</p>
+
+<p>To browse permissions for this domain appended by learning mode, press "ENTER" key. Then, you will see a screen like Fig. 19. The heading line changed from &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; to &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;. This screen shows permissions for "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" domain and currently 7 entries are listed in this screen. Regarding the fourth and below lines, the first number is the line number. "allow_read/write" means "allow opening file for reading and writing". "allow_read" means "allow opening file for reading". "allow_ioctl" means "allow ioctl with specified command number".</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Permissions given to domain for /usr/sbin/ccs-editpolicy<br>
+<img src="tutorial/fig-1-19.png" alt="fig-1-19.png">
+</td></tr>
+</table>
+
+<p>To return to domain transition editor's screen from this screen, press "ENTER" key. To quit the policy editor, press "Q" key. ccs-editpolicy is an editor which directly edits policy currently in kernel's memory rather than policy files on disk. Thus, modification made by ccs-editpolicy is immediately reflected. You can monitor policy changes momentarily appended by learning mode.</p>
+
+<p>Try executing various commands, and see how these commands are identified as domains by TOMOYO Linux, and see how TOMOYO Linux recorded files accessed by these commands. By repeating these operations for several times, you will be naturally able to understand TOMOYO Linux's domain management and learning mode and policy. This lucidity is the TOMOYO Linux's feature.</p>
+
+<ul>
+<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.en">How to use Policy Editor</a></li>
+</ul>
+
+<h3>Browsing binding of the domains and processes</h3>
+
+<p>To browse currently running processes and domains which these processes belong to and profile number which these domains are assigned, run ccs-pstree command. Profile number and process's name and process's ID and domainname will be printed like pstree command. (Fig. 20)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;List of domains for currently running processes<br>
+<img src="tutorial/fig-1-20.png" alt="fig-1-20.png">
+</td></tr>
+</table>
+
+<h3>Saving and loading policy files</h3>
+
+<p>To save policy currently in kernel memory onto disk, run ccs-savepolicy command. (Fig. 21) Two files named exception_policy.conf and domain_policy.conf will be created in /etc/ccs/ directory by executing ccs-savepolicy command.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Saving policy in kernel memory into files on disk
+<pre>
+# /usr/sbin/ccs-savepolicy
+</pre>
+</td></tr>
+</table>
+
+<p>Policy files in TOMOYO Linux are plain text files with filenames and directory names. To load policy files currently on disk, run ccs-loadpolicy command. (Fig. 22)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 22&nbsp;&nbsp;Loading policy files on disk into kernel memory
+<pre>
+# /usr/sbin/ccs-loadpolicy af
+</pre>
+</td></tr>
+</table>
+
+<p>The "a" option means both exception_policy.conf and domain_policy.conf explained above, and "f" option means "freshen (overwrite)". If you didn't give "f" option, policy files in /etc/ccs/ directory will be appended to current policy in the kernel memory.</p>
+
+<h3>Trailer</h3>
+
+<p>In this installment, I explained steps for installing TOMOYO Linux and steps for using automatic learning mode on files and steps for saving the learned result. In the next installment, I will explain steps for restricting access based on policy. Don't miss it!</p>
+
+<p><a href="tutorial-2.html.en">Proceed to the second installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

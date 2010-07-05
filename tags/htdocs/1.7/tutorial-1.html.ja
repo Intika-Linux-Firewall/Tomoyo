@@ -7,9 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--
-<p style="text-align:right;"><a href="tutorial-1.html.en">English Page</a></p>
--->
+<!--<p style="text-align:right;"><a href="tutorial-1.html.en">English Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 
 <h1>TOMOYO Linux の世界<br>第１回：「ポリシー自動学習を経験しよう」</h1>
@@ -45,6 +43,7 @@
 <h3>そして TOMOYO Linux</h3>
 
 <p>このセキュアＯＳの本質的な課題であるポリシーについて，「ＯＳ自体がポリシーを自分で生成する」というアプローチにより実用レベルの「使いこなせるセキュアＯＳ」を実現したのが TOMOYO Linux です． TOMOYO Linux であれば， Linux をインストール，管理した経験があれば，誰でもその日から使うことができます．連載の第１回では， TOMOYO Linux の導入から，最初のポリシーを自動学習するまでを解説します．とくに難しい部分はないので，ぜひ実際に手を動かし， TOMOYO Linux が拓く新しい世界を体験してみてください．</p>
+
 <h2>TOMOYO Linux のインストール</h2>
 
 <h3>準備</h3>
@@ -235,7 +234,6 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-
 <p>TOMOYO Linux におけるドメインは， &lt;kernel&gt; を基点としたプロセスの起動履歴を文字列として結合したものになります．たとえば，「カーネルプロセス」のドメインが「 &lt;kernel&gt; 」，「カーネルプロセスから起動される /sbin/init 」のドメインは「 &lt;kernel&gt; /sbin/init 」，「 /sbin/init から起動された /etc/rc.d/rc 」のドメインは「 &lt;kernel&gt; /sbin/init /etc/rc.d/rc 」のようになります．</p>
 
 <h3>ポリシーエディタで確認</h3>
@@ -294,7 +292,7 @@ PROFILE_VERSION=20090903
 <p>さまざまなコマンドを実行し，それがどのようにドメインとして登録され，アクセス制御内容が記録されているかを確認してみてください．何度か操作を行うことにより， TOMOYO Linux のドメイン管理，学習機能，ポリシーについて自然にご理解いただけると思います．このわかりやすさこそが TOMOYO Linux の特徴です．</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html">ポリシーエディタの使い方</a></li>
+<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a></li>
 </ul>
 
 <h3>プロセスとドメインの関係を確認</h3>
@@ -310,7 +308,7 @@ PROFILE_VERSION=20090903
 
 <h3>ポリシーファイルの保存と読み込み</h3>
 
-<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを実行してください（図２１）． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．
+<p>カーネル内部に保持されているポリシーをディスクに保存するには， ccs-savepolicy コマンドを実行してください（図２１）． ccs-savepolicy を実行することで， /etc/ccs/ ディレクトリに exception_policy.conf と domain_policy.conf という２つのファイルが作成されます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
