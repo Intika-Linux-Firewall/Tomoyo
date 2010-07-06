@@ -123,7 +123,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			mnt_drop_write(nd.path.mnt);
 --- linux-2.6.33.6.orig/fs/namespace.c
 +++ linux-2.6.33.6/fs/namespace.c
-@@ -1469,6 +1469,9 @@ static int do_loopback(struct path *path
+@@ -1476,6 +1476,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
@@ -133,7 +133,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1584,6 +1587,9 @@ static int do_move_mount(struct path *pa
+@@ -1591,6 +1594,9 @@ static int do_move_mount(struct path *pa
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
  
@@ -143,7 +143,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1691,6 +1697,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -1698,6 +1704,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -213,7 +213,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  struct sched_param {
  	int sched_priority;
  };
-@@ -1566,6 +1568,10 @@ struct task_struct {
+@@ -1568,6 +1570,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -502,7 +502,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 * This lock_kernel fixes a subtle race with suid exec
 --- linux-2.6.33.6.orig/kernel/sched.c
 +++ linux-2.6.33.6/kernel/sched.c
-@@ -6162,6 +6162,8 @@ int can_nice(const struct task_struct *p
+@@ -6184,6 +6184,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -513,7 +513,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	 * Setpriority might change our priority at the same moment.
 --- linux-2.6.33.6.orig/kernel/signal.c
 +++ linux-2.6.33.6/kernel/signal.c
-@@ -2294,6 +2294,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2296,6 +2296,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -522,7 +522,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2362,6 +2364,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2364,6 +2366,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -531,7 +531,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2374,6 +2378,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2376,6 +2380,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -540,7 +540,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2391,6 +2397,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2393,6 +2399,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -549,7 +549,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2407,6 +2415,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2409,6 +2417,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  	if (info->si_code >= 0)
  		return -EPERM;
  	info->si_signo = sig;
