@@ -1,0 +1,343 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The second installment: "Let's experience access control."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-2.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The second installment: "Let's experience access control."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In the previous installment, I explained steps for installing TOMOYO Linux and steps for using automatic learning mode on files and steps for saving the learned result. In this installment, I will explain enforcing mode and profiles in TOMOYO Linux and steps for restricting access using enforcing mode and profiles.</p>
+
+<h2>Access control modes and profiles</h2>
+
+<h3>About access control modes</h3>
+
+<p>In the previous installment, /etc/ccs/profile.conf has contents listed in Fig. 1. In Fig.1, string specified in "mode=" parameter is called access control mode. Access control mode takes one of disabled / learning / permissive / enforcing , and their meaning is described in Fig. 2.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Profile used by previous installment
+<pre>
+PROFILE_VERSION=20090903
+0-CONFIG::file={ mode=learning }
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Access control modes<br>
+<table border="1" summary="fig">
+<tr><td>Mode</td><td>Meaning</td></tr>
+<tr><td>disabled</td><td>Works as if regular kernel.</td></tr>
+<tr><td>learning</td><td>An access request is not rejected even if the request violates policy.<br>The permission to allow the request is automatically added to policy so that the same request no longer violates policy.</td></tr>
+<tr><td>permissive</td><td>An access request is not rejected even if the request violates policy.</td></tr>
+<tr><td>enforcing</td><td>An access request is rejected if the request violates policy.</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>In the previous installment, TOMOYO Linux was running in learning mode because "learning" is specified. As a result, all accesses on files were granted and permissions were automatically appended to policy which was loaded upon boot.</p>
+
+<p>The basic procedure of defining policy is shown below.</p>
+
+<ol>
+<li>Assign learning mode&sdot;&sdot;&sdot;Decide domains to restrict access. Generate policy by doing operations you want to allow.</li>
+<li>Assign permissive mode&sdot;&sdot;&sdot;Make sure that all permissions for doing operations you want to allow are included in policy. Tune policy as needed.</li>
+<li>Assign enforcing mode&sdot;&sdot;&sdot;Enable access restrictions.</li>
+</ol>
+
+<p>In this installment, let's use permissive mode and enforcing mode in accordance with this procedure.</p>
+
+<p>To change access control mode upon boot, edit /etc/ccs/profile.conf . To change access control mode after boot, use ccs-setlevel command or ccs-editpolicy command. For example, Fig. 3 changes to permissive mode, Fig. 4 changes to enforcing mode. (TOMOYO Linux's permissive mode corresponds with SELinux's permissive mode, TOMOYO Linux's enforcing mode corresponds with SELinux's enforcing mode.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Changing to permissive mode
+<pre>
+# /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=permissive }'
+0-CONFIG::file={ mode=permissive grant_log=yes reject_log=yes }
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Changing to enforcing mode
+<pre>
+# /usr/sbin/ccs-setlevel '0-CONFIG::file={ mode=enforcing }'
+0-CONFIG::file={ mode=enforcing grant_log=yes reject_log=yes }
+</pre>
+</td></tr>
+</table>
+
+<p>TOMOYO Linux can perform access control on not only files but also networks and capabilities and more. You can know current coverage from /proc/ccs/profile . But enabling many access controls from the beginning would confuse you. Thus, I will enable only access control on files in this installment. You can try enabling other access controls as you get understand how to use.</p>
+
+<h3>About profiles</h3>
+
+<p>In TOMOYO Linux, you can specify access control modes for per a domain basis. You can change access control modes of arbitrary domains independent of the rest of domains. To specify access control modes independently, TOMOYO Linux uses definition of access control modes called "profile" (Fig. 5) and assigns profiles using ccs-setprofile command or ccs-editpolicy command. (Fig. 6) I will explain usage of ccs-setprofile command later.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Create profiles<br>
+<img src="tutorial/fig-2-5.png" alt="fig-2-5.png">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Assign profiles to domains<br>
+<img src="tutorial/fig-2-6.png" alt="fig-2-6.png">
+</td></tr>
+</table>
+
+<h4>&diams;Creating profiles</h4>
+
+<p>In this series, I will use 4 profiles. Please overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Profiles used in this series
+<pre>
+PROFILE_VERSION=20090903
+PREFERENCE::learning={ verbose=no }
+PREFERENCE::permissive={ verbose=yes }
+PREFERENCE::enforcing={ verbose=yes }
+0-CONFIG::file={ mode=disabled }
+1-CONFIG::file={ mode=learning }
+2-CONFIG::file={ mode=permissive }
+3-CONFIG::file={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>The leading integer is the profile number (which can take from 0 to 255) and lines with the same profile number belong to the same profile. The assignment of profile numbers is arbitrary. But to make it easier to associate access control modes with profile numbers, this series uses profile 0 as a profile with disabled mode, profile 1 as a profile with learning mode for appending permissions, profile 2 as a profile with permissive mode for verifying permissions, profile 3 as a profile with enforcing mode for access restriction.</p>
+
+<p>Overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7 and reboot the system with TOMOYO Linux kernel or run command in Fig. 8 in order to reflect profile changes.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Reloading profiles
+<pre>
+# /usr/sbin/ccs-loadpolicy p
+</pre>
+</td></tr>
+</table>
+
+<h2>Let's protect WWW services</h2>
+
+<p>I will explain steps for creating policy for Apache as an example of mandatory access control. The pathname of Apache's main program depends on your distribution. For example, /usr/sbin/httpd for CentOS, /usr/sbin/apache2 for Debian.</p>
+
+<h3>Updating exception policy</h3>
+
+<p>Firstly, specify the pathname of Apache's main program using initialize_domain keyword. Run ccs-editpolicy with "e" option. (Fig. 9)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Executing policy editor
+<pre>
+# /usr/sbin/ccs-editpolicy e
+</pre>
+</td></tr>
+</table>
+
+<p>Then, you will see a screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You will find lines starting with initialize_domain by scrolling the screen. (Fig. 10. The contents depend on your environment.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;initialize_domain keyword in exception policy<br>
+<img src="tutorial/fig-2-10.png" alt="fig-2-10.png">
+</td></tr>
+</table>
+
+<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd". But you can't find the line, append by following steps.</p>
+
+<p>First, press "A" key on the keyboard, and a prompt "Enter new entry&gt;" is printed at the bottom line of the screen. Then, enter "initialize_domain /usr/sbin/httpd" and press "ENTER" key, and the line you entered will be added. On the contrary, to delete this entry, move the cursor to "initialize_domain /usr/sbin/httpd" line by using up-arrow and down-arrow keys. Press "D" key on the keyboard, and a prompt "Delete selected entry? ('Y'es/'N'o)" is printed. Then press "Y" key to delete the line.</p>
+
+<p>In TOMOYO Linux, different domains are assigned to the same program if the program was executed from different domains. This distinction is useful for giving different set of permissions depending on situation. But sometimes, like daemon processes, we want to give same set of permissions independent of situation. To be able to give same set of permissions independent of situation, TOMOYO Linux provides "initialize_domain" keyword.</p>
+
+<p>To let a program run in the same domain no matter how the program is executed, specify the program using "initialize_domain" keyword. Programs specified using "initialize_domain" keyword runs in the child of "&lt;kernel&gt;" domain for both automatically executed upon startup scripts and manually restarted by administrator's login session. (Fig. 11)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;The effect of initialize_domain keyword<br>
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png">
+</td></tr>
+</table>
+
+<h3>Starting the program</h3>
+
+<p>First, create a domain for running Apache. (Fig. 12)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Starting Apache server
+<pre>
+# service httpd restart
+</pre>
+</td></tr>
+</table>
+
+<p>By executing Fig. 12, /etc/rc.d/init.d/httpd is executed and /usr/sbin/httpd is executed from /etc/rc.d/init.d/httpd . But if /usr/sbin/httpd is specified using "initialize_domain" keyword, "&lt;kernel&gt; /usr/sbin/httpd" domain is created. (If "initialize_domain /usr/sbin/httpd" is not specified in the exception policy, /usr/sbin/httpd will run in a child domain of program that executed /usr/sbin/httpd .)</p>
+
+<h3>Learning mode</h3>
+
+<p>Let's assign a profile for learning mode from profiles previously created. (Fig. 13) The "-r" option means apply recursively, which results in any domain which domainname starts with "&lt;kernel&gt; /usr/sbin/httpd" are assigned the specified profile. Be sure to quote appropriately when using ccs-setprofile command, or &lt; and &gt; will be interpreted as shell's redirection characters.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Assign profile for learning mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/httpd'
+1 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
+</td></tr>
+</table>
+
+<p>Do operations you want to allow (such as browsing pages and using Wiki) after running the command in Fig. 13.</p>
+
+<h3>Permissive mode</h3>
+
+<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Since the profile for permissive mode has a line "PREFERENCE::permissive={ verbose=yes }", warning message starting with "WARNING:" are printed on the console whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if no warning messages are printed when you do operations you want to allow.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Assign profile for permissive mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/httpd'
+2 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
+</td></tr>
+</table>
+
+<p>Also, tune policy at this stage. Steps for tuning are described later in this installment.</p>
+
+<h3>Enforcing mode</h3>
+
+<p>If you consider that creating policy is completed, assign a profile for enforcing mode. (Fig. 15)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Assign profile for enforcing mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/httpd'
+3 &lt;kernel&gt; /usr/sbin/httpd
+</pre>
+</td></tr>
+</table>
+
+<p>By doing Fig.15, mandatory access control is applied to domains which domainname starts with "&lt;kernel&gt; /usr/sbin/httpd".</p>
+
+<p>To check status, you can use ccs-pstree command explained in the previous installment. The first column of each line by ccs-pstree command is the profile number. Make sure that profiles you intended are assigned to applications you want to protect using mandatory access control (in this example, /usr/sbin/httpd).</p>
+
+<p>Note that the system is protected by mandatory access control only if you assigned profile for enforcing mode.</p>
+
+<p>Since the profile for enforcing mode has a line "PREFERENCE::enforcing={ verbose=yes }", warning message starting with "ERROR:" are printed on the console whenever policy violation occurs.</p>
+
+<h2>Tuning policy</h2>
+
+<h3>Patternizing pathnames</h3>
+
+<p>You need to specify all pathnames which applications can access, but some programs create files dynamically under /tmp/ directory with random alphabets and process ID numbers in their filenames. Such programs won't work with pathnames appended by learning mode only.</p>
+
+<p>In TOMOYO Linux, some wildcards are defined for handling dynamically created files. (Fig. 16) By using wildcards appropriately, you can reduce number of entries in policy and save memory usage.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Wildcard expressions in TOMOYO Linux<br>
+<table border="1" summary="fig">
+<tr><td>Wildcard</td><td>Meaning</td></tr>
+<tr><td>\*</td><td>Zero or more repetitions of characters other than '/'.</td></tr>
+<tr><td>\@</td><td>Zero or more repetitions of characters other than '/' or '.'.</td></tr>
+<tr><td>\?</td><td>1 byte character other than '/'.</td></tr>
+<tr><td>\$</td><td>One or more repetitions of decimal digits.</td></tr>
+<tr><td>\+</td><td>1 decimal digit.</td></tr>
+<tr><td>\X</td><td>One or more repetitions of hexadecimal digits.</td></tr>
+<tr><td>\x</td><td>1 hexadecimal digit.</td></tr>
+<tr><td>\A</td><td>One or more repetitions of alphabet characters.</td></tr>
+<tr><td>\a</td><td>1 alphabet character.</td></tr>
+<tr><td>\-</td><td>Pathname subtraction operator.</td></tr>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'.</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>Since '\' is used for escape character for representing wildcard, use '\\' for representing '\' itself. Also, use '\ooo' style octal representation for non-printable characters (e.g. ASCII's control codes and Japanese characters).</p>
+
+<h3>Let's patternize pathnames</h3>
+
+<p>You can patternize pathnames from policy editor. When you start ccs-editpolicy , a screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" will appear. Then, find "&lt;kernel&gt; /usr/sbin/httpd" domain. You will see a screen titled "&lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;" (Fig. 17. The entries depends on your environment) by pressing "ENTER" key after moving cursor to "&lt;kernel&gt; /usr/sbin/httpd" domain.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;Policy for Apache<br>
+<img src="tutorial/fig-2-17.png" alt="fig-2-17.png">
+</td></tr>
+</table>
+
+<p>WWW servers access files under /var/www/ directory. Thus, specify like Fig. 18 for granting read access on files under /var/www/html/ directory. For each line in Fig. 18, press "A" key and enter the line and press "ENTER" key. (Fig. 19)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp;An example for allowing reading under /var/www/html/  directory.
+<pre>
+allow_read /var/www/html/\*
+allow_read /var/www/html/\{\*\}/\*
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Allow Apache to read under /var/www/html/ directory.<br>
+<img src="tutorial/fig-2-19.png" alt="fig-2-19.png">
+</td></tr>
+</table>
+
+<p>Some applications use temporary files. For example, if entries listed in Fig. 20 exist, these are likely temporary files created in /tmp/phpXXXXXX pattern. Therefore, you need to replace these entries using /tmp/php\?\?\?\?\?\? (this is TOMOYO Linux's wildcard representation for /tmp/phpXXXXXX pattern). Steps are shown below.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;Temporary files
+<pre>
+allow_read/write /tmp/phpAb9fD1
+allow_read/write /tmp/phpkzqf5p
+allow_read/write /tmp/php3lo7ab
+</pre>
+</td></tr>
+</table>
+
+<p>First, press "A" key on the keyboard, and enter "allow_read/write /tmp/php\?\?\?\?\?\?" (this is a patternized entry for entries in Fig. 20). Next, move the cursor to the "allow_read/write /tmp/php\?\?\?\?\?\?" line and press "O" key, and you will see entries included in "allow_read/write /tmp/php\?\?\?\?\?\?" entry are marked with "&amp;". Verify that entries listed in Fig. 20 are marked with "&amp;" and press "D" key on the keyboard, and a prompt "Delete selected entries? ('Y'es/'N'o)" is printed, and press "Y" key on the keyboard.</p>
+
+<p>Continue policy tuning until all necessary permissions are given using permissive mode.</p>
+
+<h3>How to save policy?</h3>
+
+<p>Upon boot, /sbin/ccs-init automatically loads policy from files on disk to kernel memory. But upon shutdown, nothing automatically saves policy from kernel memory to files on disk. Therefore, be sure to run ccs-savepolicy command before shutdown if you modified policy or changed profile assignment.</p>
+
+<h3>How to recreate policy from scratch?</h3>
+
+<p>The learning mode automatically appends entries to existing policy. But if you want to restart learning mode from the scratch rather than starting from existing policy, reboot the system after deleting a symbolic link named /etc/ccs/domain_policy.conf .</p>
+
+<h2>Trailer</h2>
+
+<p>In this installment, I explained steps for actually performing access control and steps for protecting WWW services. All basic operations for TOMOYO Linux were explained in previous installment and this installment. Thus, you can say "I can use TOMOYO Linux" if you understood steps written in this installment.</p>
+
+<p>In the next installment, I will explain TOMOYO Linux's domain transitions. Don't miss it!</p>
+
+<p><a href="tutorial-1.html.ja">Go back to the first installment.</a>&nbsp;&nbsp;<a href="tutorial-3.html.ja">Proceed to the third installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
