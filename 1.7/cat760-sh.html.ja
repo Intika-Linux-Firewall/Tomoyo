@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--<p style="text-align:right;"><a href="cat760-sh.html.en">English Page</a></p>-->
+<p style="text-align:right;"><a href="cat760-sh.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>TOMOYO on CAT760</h1>
 
@@ -58,7 +58,6 @@
 deb http://archive.debian.org/debian-archive/debian/ sarge main contrib non-free
 deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main contrib non-free
 </pre>
-
 
 <p>次に、 fdisk コマンドの -l オプションでデバイスの一覧が表示されるようにするために、 2.6 カーネルをインストールします。</p>
 
@@ -287,7 +286,6 @@ This filesystem will be automatically checked every 38 mounts or
  Kernel size  = 0x130000
 &gt;&gt;
 </pre>
-
 
 <p>管理者モードに移ります。パスワードは silinux です。</p>
 
@@ -520,7 +518,7 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>TOMOYO の機能の殆どはローダブルカーネルモジュールとして切り出すことが可能です。 TOMOYO の機能をローダブルカーネルモジュールとして切り出した場合、カーネル本体のサイズ増加はおよそ４キロバイトで済みます。</p>
 
-<p>手順は<a href="#basic_3">基本編のステップ３</a>と同じですが、 TOMOYO をローダブルカーネルモジュールとして切り出す場合には、「カーネルコンフィグを作成する」（ make cat760_defconfig）と「カーネルをコンパイルする」（ make ）の間に以下の手順を行います。</p>
+<p>手順は<a href="#basic_3">基本編のステップ３</a>と同じですが、 TOMOYO をローダブルカーネルモジュールとして切り出す場合には、「カーネルコンフィグを作成する」（ make cat760_defconfig ）と「カーネルをコンパイルする」（ make ）の間に以下の手順を行います。</p>
 
 <pre>
 # make menuconfig
