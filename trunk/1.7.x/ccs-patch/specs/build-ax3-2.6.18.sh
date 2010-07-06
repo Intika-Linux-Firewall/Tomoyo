@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-128.18.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-194.2.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-194.2.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-128.18.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-194.2.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-194.2.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
@@ -23,21 +23,26 @@ then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
 fi
 
+if [ ! -r ccs-patch-1.7.2-20100706.diff ]
+then
+    wget -O ccs-patch-1.7.2-20100706.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=3799&root=tomoyo' || die "Can't download patch."
+fi
+
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-2.6.spec
 +++ kernel-2.6.spec
-@@ -68,7 +68,7 @@
- %define sublevel 18
+@@ -66,7 +66,7 @@
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 128.18%{?dist}
-+%define release 128.18%{?dist}_tomoyo_1.7.2p1
+ # %dist is defined in Asianux VPBS
+-%define release 194.2%{?dist}
++%define release 194.2%{?dist}_tomoyo_1.7.2p1
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
-@@ -280,6 +280,9 @@
+@@ -288,6 +288,9 @@
  # to versions below the minimum
  #
  
@@ -47,7 +52,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -305,7 +308,7 @@
+@@ -318,7 +321,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -56,19 +61,19 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -7386,6 +7389,10 @@
+@@ -10264,6 +10267,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100706.diff
 +
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -7445,6 +7452,9 @@
- for i in *.config
+@@ -10331,6 +10338,9 @@
+ for i in `ls *86*.config *ia64*.config`
  do
    mv $i .config
 +  # TOMOYO Linux

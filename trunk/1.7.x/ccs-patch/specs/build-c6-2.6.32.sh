@@ -28,7 +28,6 @@ then
     wget -O ccs-patch-1.7.2-20100704.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3792&root=tomoyo' || die "Can't download patch."
 fi
 
-
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
