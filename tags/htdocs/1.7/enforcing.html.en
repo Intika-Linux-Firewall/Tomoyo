@@ -11,7 +11,7 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 5: Restricting your system's behavior.</h1>
 
-<p>This page describes how to use TOMOYO's enforcing mode and how to handle policy violations which arises in enforcing mode.</p>
+<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which arises in enforcing mode.</p>
 
 <hr>
 
@@ -249,7 +249,7 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 <p>indicates that a process which belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute /bin/sleep in order to process the commandline "sleep 1" but the attempt was denied by policy, and the kernel is asking for your decision.
 Validate whether or not to permit the request and tell the kernel your decision. You can press "Y" to grant the request. You can press "N" to reject the request. You can press "R" to retry the request. You can press "S" to show domain policy for the process. You can press "A" to edit and append to domain policy and then retry the request.</p>
 
-<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
+<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may be malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
 
 <p>If "ccs-queryd" is running, the access requests that violated policy are kept pending. To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) while "ccs-queryd" is running.</p>
 

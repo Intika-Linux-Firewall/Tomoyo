@@ -9,7 +9,8 @@
 <body>
 <p style="text-align:right;"><a href="cat760-sh.html.en">English Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>TOMOYO on CAT760</h1>
+
+<h1>TOMOYO Linux on CAT760</h1>
 
 <p>このページでは、 TOMOYO Linux を <a href="http://www.si-linux.co.jp/index.php?CAT/CAT760">CAT760</a> 上で動作させる手順について説明します。ホスト環境として x86 上で動作している Debian Sarge を使用します。</p>
 
@@ -299,7 +300,7 @@ admin
 setparam zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2
 </pre>
 
-<p>ポリシーの初期化が済んでいないため、 TOMOYO を無効にした状態でブートします。</p>
+<p>ポリシーの初期化が済んでいないため、 TOMOYO Linux を無効にした状態でブートします。</p>
 
 <pre>
 boot zimage=cf0:zImage console=ttySC0,115200 root=/dev/hda1 ro rootfstype=ext2 ccsecurity=off
@@ -514,11 +515,11 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>コンパクトフラッシュに保存されたカーネルから起動する場合にはカーネル本体のサイズを気にする必要はありませんが、フラッシュＲＯＭ内のカーネル用パーティションに保存されたカーネルから起動する場合にはカーネル本体のサイズに注意が必要です。 CAT760 のデフォルトのパーティション設定では、カーネル用のパーティションサイズは 1245184（0x130000）バイトです。デフォルトのカーネルコンフィグでコンパイルした場合のカーネルサイズは 1212416（0x128000）バイトですので、デフォルトでは３２キロバイトしか空き領域がありません。（なお、 CAT760 の新製品である CAT760A ではフラッシュＲＯＭのセクタサイズが６４キロバイトから１２８キロバイトに変更されたのに伴い、カーネル用のパーティションサイズが 1179648（0x120000）バイトに縮小されているため、デフォルトで空き領域が不足しますのでご注意ください。）</p>
 
-<p>TOMOYO の機能をカーネル本体に組み込んだ場合、カーネル本体のサイズがおよそ４８キロバイト増加するため、 rootfs 用のパーティションサイズを小さくしてカーネル用パーティションサイズを大きくするか、カーネルコンフィグで幾つかの機能をローダブルカーネルモジュールとしてコンパイルする必要が生じます。</p>
+<p>TOMOYO Linux の機能をカーネル本体に組み込んだ場合、カーネル本体のサイズがおよそ４８キロバイト増加するため、 rootfs 用のパーティションサイズを小さくしてカーネル用パーティションサイズを大きくするか、カーネルコンフィグで幾つかの機能をローダブルカーネルモジュールとしてコンパイルする必要が生じます。</p>
 
-<p>TOMOYO の機能の殆どはローダブルカーネルモジュールとして切り出すことが可能です。 TOMOYO の機能をローダブルカーネルモジュールとして切り出した場合、カーネル本体のサイズ増加はおよそ４キロバイトで済みます。</p>
+<p>TOMOYO Linux の機能の殆どはローダブルカーネルモジュールとして切り出すことが可能です。 TOMOYO Linux の機能をローダブルカーネルモジュールとして切り出した場合、カーネル本体のサイズ増加はおよそ４キロバイトで済みます。</p>
 
-<p>手順は<a href="#basic_3">基本編のステップ３</a>と同じですが、 TOMOYO をローダブルカーネルモジュールとして切り出す場合には、「カーネルコンフィグを作成する」（ make cat760_defconfig ）と「カーネルをコンパイルする」（ make ）の間に以下の手順を行います。</p>
+<p>手順は<a href="#basic_3">基本編のステップ３</a>と同じですが、 TOMOYO Linux をローダブルカーネルモジュールとして切り出す場合には、「カーネルコンフィグを作成する」（ make cat760_defconfig ）と「カーネルをコンパイルする」（ make ）の間に以下の手順を行います。</p>
 
 <pre>
 # make menuconfig
@@ -625,7 +626,7 @@ cp rom:rootfs cf0:rootfs-orig
 </pre>
 
 <p>必要に応じて編集します。（基本編の<a href="#basic_7">ステップ７</a>～<a href="#basic_9">ステップ９</a>に対応する作業です。）
-忘れずに /sbin/ccs-init と /etc/ccs/ccs-load-module と /lib/modules/2.6.15-sh/ 以下をコピーしてください。コピーを忘れると、 TOMOYO の機能が有効になりません。その他には、 /etc/ccs/ ディレクトリ以下にポリシーを用意することが必要です。</p>
+忘れずに /sbin/ccs-init と /etc/ccs/ccs-load-module と /lib/modules/2.6.15-sh/ 以下をコピーしてください。コピーを忘れると、 TOMOYO Linux の機能が有効になりません。その他には、 /etc/ccs/ ディレクトリ以下にポリシーを用意することが必要です。</p>
 
 <p>rootfs の内容を固めます。</p>
 
