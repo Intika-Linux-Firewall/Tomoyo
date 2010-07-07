@@ -9,7 +9,8 @@
 <body>
 <p style="text-align:right;"><a href="cat760-sh.html.ja">Japanese Page</a></p>
 <p style="text-align:right;">Last modified: $Date$</p>
-<h1>TOMOYO on CAT760</h1>
+
+<h1>TOMOYO Linux on CAT760</h1>
 
 <p>This page describes how to run TOMOYO Linux on <a href="http://www.si-linux.co.jp/index.php?CAT/CAT760">CAT760</a>. This page assumes Debian Sarge for x86 architecture as the host environment.</p>
 
@@ -518,7 +519,7 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 
 <p>You can make most part of TOMOYO Linux's functionality as a loadable kernel module. If you build TOMOYO Linux as a loadable kernel module, the size of kernel increases only about 4KB.</p>
 
-<p>Steps are same with <a href="#basic_3">Step 3 in Basic course</a> except that you need to do below operations between "Create kernel config." ( make cat760_defconfig ) and "Compile the kernel." ( make ) if you want to make TOMOYO as a loadable kernel module.</p>
+<p>Steps are same with <a href="#basic_3">Step 3 in Basic course</a> except that you need to do below operations between "Create kernel config." ( make cat760_defconfig ) and "Compile the kernel." ( make ) if you want to make TOMOYO Linux as a loadable kernel module.</p>
 
 <pre>
 # make menuconfig
@@ -625,7 +626,7 @@ cp rom:rootfs cf0:rootfs-orig
 </pre>
 
 <p>Edit as needed. (This step corresponds with Basic course's <a href="#basic_7">step 7</a> till <a href="#basic_9">step 9</a>.)
-Be sure to copy /sbin/ccs-init and /etc/ccs/ccs-load-module and files under /lib/modules/2.6.15-sh/ . If you forgot to copy, TOMOYO will not be activated. Also, you need to prepare policy under /etc/ccs/ directory.</p>
+Be sure to copy /sbin/ccs-init and /etc/ccs/ccs-load-module and files under /lib/modules/2.6.15-sh/ . If you forgot to copy, TOMOYO Linux will not be activated. Also, you need to prepare policy under /etc/ccs/ directory.</p>
 
 <p>Solidify the content of rootfs .</p>
 
