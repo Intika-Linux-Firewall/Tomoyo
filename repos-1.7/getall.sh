@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 dir=$PWD
 exec 100< dirmap.txt
 while read -u 100 release_id release_dir
