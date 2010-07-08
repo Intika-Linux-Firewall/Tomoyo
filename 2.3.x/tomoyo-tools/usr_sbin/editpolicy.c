@@ -2271,6 +2271,26 @@ start2:
 	}
 }
 
+static _Bool tomoyo_save_to_file(const char *src, const char *dest)
+{
+	FILE *proc_fp = tomoyo_editpolicy_open_read(src);
+	FILE *file_fp = fopen(dest, "w");
+	if (!file_fp) {
+		fprintf(stderr, "Can't open %s\n", dest);
+		fclose(proc_fp);
+		return false;
+	}
+	while (true) {
+		int c = fgetc(proc_fp);
+		if (c == EOF)
+			break;
+		fputc(c, file_fp);
+	}
+	fclose(proc_fp);
+	fclose(file_fp);
+	return true;
+}
+
 int main(int argc, char *argv[])
 {
 	struct tomoyo_domain_policy dp = { NULL, 0, NULL };
@@ -2398,7 +2418,7 @@ usage:
 	if (tomoyo_offline_mode && !tomoyo_readonly_mode) {
 		time_t now = time(NULL);
 		const char *filename = tomoyo_make_filename("exception_policy", now);
-		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)) {
+		if (tomoyo_save_to_file(CCS_PROC_POLICY_EXCEPTION_POLICY, filename)) {
 			if (tomoyo_identical_file("exception_policy.conf",
 						  filename)) {
 				unlink(filename);
@@ -2409,7 +2429,7 @@ usage:
 		}
 		tomoyo_clear_domain_policy(&dp);
 		filename = tomoyo_make_filename("domain_policy", now);
-		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)) {
+		if (tomoyo_save_to_file(CCS_PROC_POLICY_DOMAIN_POLICY, filename)) {
 			if (tomoyo_identical_file("domain_policy.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2418,7 +2438,7 @@ usage:
 			}
 		}
 		filename = tomoyo_make_filename("profile", now);
-		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_PROFILE, filename)) {
+		if (tomoyo_save_to_file(CCS_PROC_POLICY_PROFILE, filename)) {
 			if (tomoyo_identical_file("profile.conf", filename)) {
 				unlink(filename);
 			} else {
@@ -2427,7 +2447,7 @@ usage:
 			}
 		}
 		filename = tomoyo_make_filename("manager", now);
-		if (tomoyo_move_proc_to_file(CCS_PROC_POLICY_MANAGER, filename)) {
+		if (tomoyo_save_to_file(CCS_PROC_POLICY_MANAGER, filename)) {
 			if (tomoyo_identical_file("manager.conf", filename)) {
 				unlink(filename);
 			} else {
