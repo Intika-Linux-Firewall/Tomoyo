@@ -7,9 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--
-<p style="text-align:right;"><a href="tutorial-10.html.en">English Page</a></p>
--->
+<!--<p style="text-align:right;"><a href="tutorial-10.html.en">English Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 
 <h1>TOMOYO Linux の世界<br>第１０回：「 Apache の権限を分割してみよう」</h1>
@@ -69,7 +67,6 @@ LoadModule ccs_module /usr/lib/httpd/modules/mod_ccs.so
 <h3>mod_ccs の設定</h3>
 
 <p>mod_ccs はデフォルトで ServerName に基づくドメイン遷移を行います．図５のように Apache の設定ファイルの中で CCS_TransitionMap キーワードを用いてパス名とドメイン名の対応表を定義してやれば，バーチャルホスト名に基づくドメイン遷移に加えて，要求されたファイルのパス名に基づくドメイン遷移も行います．図５では /etc/hosts で www.tomoyo00.com www.tomoyo01.com www.tomoyo02.com www.tomoyo03.com のＩＰアドレスが登録されているものと仮定します．</p>
-</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -272,13 +269,7 @@ EOF
 
 <p>あとは通常の Apache 用のポリシーを作成するのと同様です．学習モードでアクセス許可を収集し，確認モードでチューニングを行ってアクセス許可に不足が無いことを確認し，強制モードにより保護してください．</p>
 
-<!--
-<h2>次回予告</h2>
-
-<p>今回は， Apache のバーチャルホスト毎にドメインを分割する機能について紹介しました．次回は，プロファイルを使いこなす方法について説明します．</p>
--->
-
-<p><a href="tutorial-9.html.ja">第９回へ戻る</a><!--　<a href="tutorial-11.html.ja">第１１回へ進む</a>--></p>
+<p><a href="tutorial-9.html.ja">第９回へ戻る</a></p>
 
 <hr>
 
