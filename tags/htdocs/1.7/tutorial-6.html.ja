@@ -7,9 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--
-<p style="text-align:right;"><a href="tutorial-6.html.en">English Page</a></p>
--->
+<!--<p style="text-align:right;"><a href="tutorial-6.html.en">English Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 
 <h1>TOMOYO Linux の世界<br>第６回：「不正ログインを撲滅しよう」</h1>
@@ -230,8 +228,8 @@ echo 'Incorrect password.'
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
 use_profile 3
-allow_create /home/\*/scp/\*
-allow_create /home/\*/scp/\{\*\}/\*
+allow_create /home/\*/scp/\* 0-0666
+allow_create /home/\*/scp/\{\*\}/\* 0-0666
 allow_unlink /home/\*/scp/\*
 allow_unlink /home/\*/scp/\{\*\}/\*
 allow_read/write /home/\*/scp/\*
@@ -258,7 +256,7 @@ path_group SCP_FILE /home/\*/scp/\{\*\}/\*
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
 use_profile 3
-allow_create @SCP_FILE
+allow_create @SCP_FILE 0-0666
 allow_unlink @SCP_FILE
 allow_read/write @SCP_FILE
 </pre>
@@ -481,7 +479,7 @@ allow_read/write @SCP_FILE
 
 <h2>次回予告</h2>
 
-次回は，ファイル以外のアクセス制御について紹介します．
+<p>次回は，ファイル以外のアクセス制御について紹介します．</p>
 
 <p><a href="tutorial-5.html.ja">第５回へ戻る</a>　<a href="tutorial-7.html.ja">第７回へ進む</a></p>
 
