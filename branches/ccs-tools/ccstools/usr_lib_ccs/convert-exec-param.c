@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 		    !strchr(buffer[1], '\n'))
 			goto out;
 
-		/* Get "allow_execute " line. */
+		/* Get "file execute " line. */
 		line++;
 		i = getc(stdin);
 		if (i)
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
 		*cp-- = '\0';
 		while (*cp == ' ')
 			*cp-- = '\0';
-		if (strncmp(buffer[2], "allow_execute ", 14))
+		if (strncmp(buffer[2], "file execute ", 13))
 			continue;
 
 		/* Print domainname. */

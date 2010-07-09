@@ -31,15 +31,14 @@
 #endif
 
 const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
-	[CCS_TYPE_READ_WRITE] = "read/write",
 	[CCS_TYPE_EXECUTE]    = "execute",
 	[CCS_TYPE_READ]       = "read",
 	[CCS_TYPE_WRITE]      = "write",
+	[CCS_TYPE_APPEND]     = "append",
 	[CCS_TYPE_UNLINK]     = "unlink",
 	[CCS_TYPE_RMDIR]      = "rmdir",
 	[CCS_TYPE_TRUNCATE]   = "truncate",
 	[CCS_TYPE_SYMLINK]    = "symlink",
-	[CCS_TYPE_REWRITE]    = "rewrite",
 	[CCS_TYPE_CHROOT]     = "chroot",
 	[CCS_TYPE_UMOUNT]     = "unmount",
 	[CCS_TYPE_TRANSIT]    = "transit",
@@ -68,15 +67,14 @@ const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION] = {
 };
 
 static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
-	[CCS_TYPE_READ_WRITE] = CCS_MAC_FILE_OPEN,
 	[CCS_TYPE_EXECUTE]    = CCS_MAC_FILE_EXECUTE,
 	[CCS_TYPE_READ]       = CCS_MAC_FILE_OPEN,
 	[CCS_TYPE_WRITE]      = CCS_MAC_FILE_OPEN,
+	[CCS_TYPE_APPEND]     = CCS_MAC_FILE_OPEN,
 	[CCS_TYPE_UNLINK]     = CCS_MAC_FILE_UNLINK,
 	[CCS_TYPE_RMDIR]      = CCS_MAC_FILE_RMDIR,
 	[CCS_TYPE_TRUNCATE]   = CCS_MAC_FILE_TRUNCATE,
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
-	[CCS_TYPE_REWRITE]    = CCS_MAC_FILE_REWRITE,
 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
 	[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
@@ -550,11 +548,11 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
 {
 	const char *operation = ccs_path_keyword[r->param.path.operation];
 	const struct ccs_path_info *filename = r->param.path.filename;
-	ccs_write_log(r, "allow_%s %s\n", operation, filename->name);
+	ccs_write_log(r, "file %s %s\n", operation, filename->name);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "%s %s", operation, filename->name);
-	return ccs_supervisor(r, "allow_%s %s\n", operation,
+	return ccs_supervisor(r, "file %s %s\n", operation,
 			      ccs_file_pattern(filename));
 }
 
@@ -570,13 +568,13 @@ static int ccs_audit_path2_log(struct ccs_request_info *r)
 	const char *operation = ccs_path2_keyword[r->param.path2.operation];
 	const struct ccs_path_info *filename1 = r->param.path2.filename1;
 	const struct ccs_path_info *filename2 = r->param.path2.filename2;
-	ccs_write_log(r, "allow_%s %s %s\n", operation, filename1->name,
+	ccs_write_log(r, "file %s %s %s\n", operation, filename1->name,
 		      filename2->name);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "%s %s %s", operation, filename1->name,
 		     filename2->name);
-	return ccs_supervisor(r, "allow_%s %s %s\n", operation,
+	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename1),
 			      ccs_file_pattern(filename2));
 }
@@ -595,13 +593,13 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 	const unsigned int major = r->param.mkdev.major;
 	const unsigned int minor = r->param.mkdev.minor;
 	const unsigned int mode = r->param.mkdev.mode;
-	ccs_write_log(r, "allow_%s %s 0%o %u %u\n", operation, filename->name,
+	ccs_write_log(r, "file %s %s 0%o %u %u\n", operation, filename->name,
 		      mode, major, minor);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
 		     major, minor);
-	return ccs_supervisor(r, "allow_%s %s 0%o %u %u\n", operation,
+	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
 			      ccs_file_pattern(filename), mode, major, minor);
 }
 
@@ -637,12 +635,12 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 	}
 	ccs_print_ulong(buffer, sizeof(buffer), r->param.path_number.number,
 			radix);
-	ccs_write_log(r, "allow_%s %s %s\n", operation, filename->name,
+	ccs_write_log(r, "file %s %s %s\n", operation, filename->name,
 		      buffer);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "%s %s %s", operation, filename->name, buffer);
-	return ccs_supervisor(r, "allow_%s %s %s\n", operation,
+	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename), buffer);
 }
 
@@ -703,65 +701,6 @@ int ccs_write_pattern(char *data, const bool is_delete)
 	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
 				  &ccs_policy_list[CCS_ID_PATTERN],
 				  ccs_same_pattern);
-	ccs_put_name(e.pattern);
-	return error;
-}
-
-/**
- * ccs_no_rewrite_file - Check if the given pathname is not permitted to be rewrited.
- *
- * @filename: Filename to check.
- *
- * Returns true if @filename is specified by "deny_rewrite" directive,
- * false otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-static bool ccs_no_rewrite_file(const struct ccs_path_info *filename)
-{
-	struct ccs_no_rewrite *ptr;
-	bool matched = false;
-	list_for_each_entry_rcu(ptr, &ccs_policy_list[CCS_ID_NO_REWRITE],
-				head.list) {
-		if (ptr->head.is_deleted)
-			continue;
-		if (!ccs_path_matches_pattern(filename, ptr->pattern))
-			continue;
-		matched = true;
-		break;
-	}
-	return matched;
-}
-
-static bool ccs_same_no_rewrite(const struct ccs_acl_head *a,
-				const struct ccs_acl_head *b)
-{
-	return container_of(a, struct ccs_no_rewrite, head)->pattern ==
-		container_of(b, struct ccs_no_rewrite, head)->pattern;
-}
-
-/**
- * ccs_write_no_rewrite - Write "struct ccs_no_rewrite" list.
- *
- * @data:      String to parse.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-int ccs_write_no_rewrite(char *data, const bool is_delete)
-{
-	struct ccs_no_rewrite e = { };
-	int error;
-	if (!ccs_correct_word(data))
-		return -EINVAL;
-	e.pattern = ccs_get_name(data);
-	if (!e.pattern)
-		return -ENOMEM;
-	error = ccs_update_policy(&e.head, sizeof(e), is_delete,
-				  &ccs_policy_list[CCS_ID_NO_REWRITE],
-				  ccs_same_no_rewrite);
 	ccs_put_name(e.pattern);
 	return error;
 }
@@ -870,19 +809,10 @@ static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 	u16 * const a_perm = &container_of(a, struct ccs_path_acl, head)->perm;
 	u16 perm = *a_perm;
 	const u16 b_perm = container_of(b, struct ccs_path_acl, head)->perm;
-	if (is_delete) {
+	if (is_delete)
 		perm &= ~b_perm;
-		if ((perm & CCS_RW_MASK) != CCS_RW_MASK)
-			perm &= ~(1 << CCS_TYPE_READ_WRITE);
-		else if (!(perm & (1 << CCS_TYPE_READ_WRITE)))
-			perm &= ~CCS_RW_MASK;
-	} else {
+	else
 		perm |= b_perm;
-		if ((perm & CCS_RW_MASK) == CCS_RW_MASK)
-			perm |= (1 << CCS_TYPE_READ_WRITE);
-		else if (perm & (1 << CCS_TYPE_READ_WRITE))
-			perm |= CCS_RW_MASK;
-	}
 	*a_perm = perm;
 	return !perm;
 }
@@ -890,7 +820,7 @@ static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_path_acl - Update "struct ccs_path_acl" list.
  *
- * @type:      Type of operation.
+ * @perm:      Permission.
  * @filename:  Filename.
  * @domain:    Pointer to "struct ccs_domain_info".
  * @condition: Pointer to "struct ccs_condition". Maybe NULL.
@@ -900,7 +830,7 @@ static bool ccs_merge_path_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_path_acl(const u8 type, const char *filename,
+static int ccs_update_path_acl(const u16 perm, const char *filename,
 			       struct ccs_domain_info * const domain,
 			       struct ccs_condition *condition,
 			       const bool is_delete)
@@ -908,11 +838,9 @@ static int ccs_update_path_acl(const u8 type, const char *filename,
 	struct ccs_path_acl e = {
 		.head.type = CCS_TYPE_PATH_ACL,
 		.head.cond = condition,
-		.perm = 1 << type
+		.perm = perm
 	};
 	int error;
-	if (e.perm == (1 << CCS_TYPE_READ_WRITE))
-		e.perm |= CCS_RW_MASK;
 	if (!ccs_parse_name_union(filename, &e.name))
 		return -EINVAL;
 	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
@@ -950,7 +878,7 @@ static bool ccs_merge_mkdev_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_mkdev_acl - Update "struct ccs_mkdev_acl" list.
  *
- * @type:      Type of operation.
+ * @perm:      Permission.
  * @filename:  Filename.
  * @mode:      Create mode.
  * @major:     Device major number.
@@ -963,16 +891,16 @@ static bool ccs_merge_mkdev_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_mkdev_acl(const u8 type, const char *filename,
-				       char *mode, char *major, char *minor,
-				       struct ccs_domain_info * const domain,
-				       struct ccs_condition *condition,
-				       const bool is_delete)
+static int ccs_update_mkdev_acl(const u8 perm, const char *filename,
+				char *mode, char *major, char *minor,
+				struct ccs_domain_info * const domain,
+				struct ccs_condition *condition,
+				const bool is_delete)
 {
 	struct ccs_mkdev_acl e = {
 		.head.type = CCS_TYPE_MKDEV_ACL,
 		.head.cond = condition,
-		.perm = 1 << type
+		.perm = perm
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename, &e.name) ||
@@ -1018,7 +946,7 @@ static bool ccs_merge_path2_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
 /**
  * ccs_update_path2_acl - Update "struct ccs_path2_acl" list.
  *
- * @type:      Type of operation.
+ * @perm:      Permission.
  * @filename1: First filename.
  * @filename2: Second filename.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -1029,7 +957,7 @@ static bool ccs_merge_path2_acl(struct ccs_acl_info *a, struct ccs_acl_info *b,
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_update_path2_acl(const u8 type, const char *filename1,
+static int ccs_update_path2_acl(const u8 perm, const char *filename1,
 				const char *filename2,
 				struct ccs_domain_info * const domain,
 				struct ccs_condition *condition,
@@ -1038,7 +966,7 @@ static int ccs_update_path2_acl(const u8 type, const char *filename1,
 	struct ccs_path2_acl e = {
 		.head.type = CCS_TYPE_PATH2_ACL,
 		.head.cond = condition,
-		.perm = 1 << type
+		.perm = perm
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename1, &e.name1) ||
@@ -1049,6 +977,56 @@ static int ccs_update_path2_acl(const u8 type, const char *filename1,
  out:
 	ccs_put_name_union(&e.name1);
 	ccs_put_name_union(&e.name2);
+	return error;
+}
+
+static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
+			       const struct ccs_acl_info *b)
+{
+	const struct ccs_mount_acl *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_mount_acl *p2 = container_of(b, typeof(*p2), head);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		ccs_same_name_union(&p1->dev_name, &p2->dev_name) &&
+		ccs_same_name_union(&p1->dir_name, &p2->dir_name) &&
+		ccs_same_name_union(&p1->fs_type, &p2->fs_type) &&
+		ccs_same_number_union(&p1->flags, &p2->flags);
+}
+
+/**
+ * ccs_update_mount_acl - Write "struct ccs_mount_acl" list.
+ *
+ * @dev:       Device name.
+ * @dir:       Mount point.
+ * @fs:        Filesystem type.
+ * @flags:     Mount flags.
+ * @domain:    Pointer to "struct ccs_domain_info".
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int ccs_update_mount_acl(char *dev, char *dir, char *fs, char *flags,
+				struct ccs_domain_info *domain,
+				struct ccs_condition *condition,
+				const bool is_delete)
+{
+	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
+				   .head.cond = condition };
+	int error = is_delete ? -ENOENT : -ENOMEM;
+	if (!ccs_parse_name_union(dev, &e.dev_name) ||
+	    !ccs_parse_name_union(dir, &e.dir_name) ||
+	    !ccs_parse_name_union(fs, &e.fs_type) ||
+	    !ccs_parse_number_union(flags, &e.flags))
+		goto out;
+	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
+				  ccs_same_mount_acl, NULL);
+ out:
+	ccs_put_name_union(&e.dev_name);
+	ccs_put_name_union(&e.dir_name);
+	ccs_put_name_union(&e.fs_type);
+	ccs_put_number_union(&e.flags);
 	return error;
 }
 
@@ -1067,7 +1045,6 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 			const struct ccs_path_info *filename)
 {
 	int error;
- repeat:
 	r->type = ccs_p2mac[operation];
 	r->mode = ccs_get_mode(r->profile, r->type);
 	if (r->mode == CCS_CONFIG_DISABLED)
@@ -1083,16 +1060,6 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 		 * changed.
 		 */
 	} while (error == CCS_RETRY_REQUEST && operation != CCS_TYPE_EXECUTE);
-	/*
-	 * Since "allow_truncate" doesn't imply "allow_rewrite" permission,
-	 * we need to check "allow_rewrite" permission if the filename is
-	 * specified by "deny_rewrite" keyword.
-	 */
-	if (!error && operation == CCS_TYPE_TRUNCATE &&
-	    ccs_no_rewrite_file(filename)) {
-		operation = CCS_TYPE_REWRITE;
-		goto repeat;
-	}
 	return error;
 }
 
@@ -1100,13 +1067,13 @@ int ccs_path_permission(struct ccs_request_info *r, u8 operation,
 /*
  * Save original flags passed to sys_open().
  *
- * TOMOYO does not check "allow_write" if open(path, O_TRUNC | O_RDONLY) was
+ * TOMOYO does not check "file write" if open(path, O_TRUNC | O_RDONLY) was
  * requested because write() is not permitted. Instead, TOMOYO checks
- * "allow_truncate" if O_TRUNC is passed.
+ * "file truncate" if O_TRUNC is passed.
  *
- * TOMOYO does not check "allow_read/write" if open(path, 3) was requested
- * because read()/write() are not permitted. Instead, TOMOYO checks
- * "allow_ioctl" when ioctl() is requested.
+ * TOMOYO does not check "file read" and "file write" if open(path, 3) was
+ * requested because read()/write() are not permitted. Instead, TOMOYO checks
+ * "file ioctl" when ioctl() is requested.
  */
 static void __ccs_save_open_mode(int mode)
 {
@@ -1125,23 +1092,6 @@ static void __ccs_clear_open_mode(void)
 				CCS_OPEN_FOR_READ_TRUNCATE);
 }
 #endif
-
-/**
- * ccs_rw - Convert r/w mode to CCS_TYPE_* .
- *
- * @mode: MAY_WRITE and/or MAY_READ.
- */
-static inline int ccs_rw(const u8 mode)
-{
-	u8 operation;
-	if (mode == (MAY_READ | MAY_WRITE))
-		operation = CCS_TYPE_READ_WRITE;
-	else if (mode == MAY_READ)
-		operation = CCS_TYPE_READ;
-	else
-		operation = CCS_TYPE_WRITE;
-	return operation;
-}
 
 /**
  * ccs_open_permission - Check permission for "read" and "write".
@@ -1183,33 +1133,19 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	buf.name = NULL;
 	r.mode = CCS_CONFIG_DISABLED;
 	idx = ccs_read_lock();
-	/*
-	 * If the filename is specified by "deny_rewrite" keyword,
-	 * we need to check "allow_rewrite" permission when the filename is not
-	 * opened for append mode or the filename is truncated at open time.
-	 */
-	if ((acc_mode & MAY_WRITE) && !(flag & O_APPEND)
-	    && ccs_init_request_info(&r, CCS_MAC_FILE_REWRITE)
-	    != CCS_CONFIG_DISABLED) {
-		if (!ccs_get_realpath(&buf, dentry, mnt)) {
-			error = -ENOMEM;
-			goto out;
-		}
-		if (ccs_no_rewrite_file(&buf)) {
-			r.obj = &obj;
-			error = ccs_path_permission(&r, CCS_TYPE_REWRITE,
-						    &buf);
-		}
-	}
-	if (!error && acc_mode &&
-	    ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
+	if (acc_mode && ccs_init_request_info(&r, CCS_MAC_FILE_OPEN)
 	    != CCS_CONFIG_DISABLED) {
 		if (!buf.name && !ccs_get_realpath(&buf, dentry, mnt)) {
 			error = -ENOMEM;
 			goto out;
 		}
 		r.obj = &obj;
-		error = ccs_path_permission(&r, ccs_rw(acc_mode), &buf);
+		if (acc_mode & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		if (!error && (acc_mode & MAY_WRITE))
+			error = ccs_path_permission(&r, (flag & O_APPEND) ?
+						    CCS_TYPE_APPEND :
+						    CCS_TYPE_WRITE, &buf);
 	}
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 33)
 	if (!error && (flag & O_TRUNC) &&
@@ -1371,47 +1307,6 @@ static int ccs_mkdev_perm(const u8 operation, struct inode *dir,
 }
 
 /**
- * ccs_rewrite_permission - Check permission for "rewrite".
- *
- * @filp: Pointer to "struct file".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int __ccs_rewrite_permission(struct file *filp)
-{
-	struct ccs_request_info r;
-	struct ccs_obj_info obj = {
-		.path1.dentry = filp->f_dentry,
-		.path1.mnt = filp->f_vfsmnt
-	};
-	int error = 0;
-	bool is_enforce = false;
-	struct ccs_path_info buf;
-	int idx;
-	if (!filp->f_vfsmnt)
-		return 0;
-	buf.name = NULL;
-	idx = ccs_read_lock();
-	if (ccs_init_request_info(&r, CCS_MAC_FILE_REWRITE)
-	    == CCS_CONFIG_DISABLED)
-		goto out;
-	is_enforce = (r.mode == CCS_CONFIG_ENFORCING);
-	r.obj = &obj;
-	error = -ENOMEM;
-	if (!ccs_get_realpath(&buf, filp->f_dentry, filp->f_vfsmnt))
-		goto out;
-	error = 0;
-	if (ccs_no_rewrite_file(&buf))
-		error = ccs_path_permission(&r, CCS_TYPE_REWRITE, &buf);
- out:
-	kfree(buf.name);
-	ccs_read_unlock(idx);
-	if (!is_enforce)
-		error = 0;
-	return error;
-}
-
-/**
  * ccs_path2_perm - Check permission for "rename", "link" and "pivot_root".
  *
  * @operation: Type of operation.
@@ -1525,7 +1420,7 @@ static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
 /**
  * ccs_update_path_number_acl - Update ioctl/chmod/chown/chgrp ACL.
  *
- * @type:      Type of operation.
+ * @perm:      Permission.
  * @filename:  Filename.
  * @number:    Number.
  * @domain:    Pointer to "struct ccs_domain_info".
@@ -1534,7 +1429,7 @@ static bool ccs_merge_path_number_acl(struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_update_path_number_acl(const u8 type, const char *filename,
+static int ccs_update_path_number_acl(const u8 perm, const char *filename,
 				      char *number,
 				      struct ccs_domain_info * const domain,
 				      struct ccs_condition *condition,
@@ -1543,7 +1438,7 @@ static int ccs_update_path_number_acl(const u8 type, const char *filename,
 	struct ccs_path_number_acl e = {
 		.head.type = CCS_TYPE_PATH_NUMBER_ACL,
 		.head.cond = condition,
-		.perm = 1 << type
+		.perm = perm
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	if (!ccs_parse_name_union(filename, &e.name))
@@ -1691,10 +1586,16 @@ static int __ccs_chown_permission(struct dentry *dentry,
 static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 				  unsigned long arg)
 {
-	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND) &&
-	    __ccs_rewrite_permission(file))
-		return -EPERM;
+	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
+		/* 00 means "write". */
+		return ccs_open_permission(file->f_dentry, file->f_vfsmnt, 00);
 	return 0;
+}
+#else
+static int __ccs_rewrite_permission(struct file *filp)
+{
+	/* 00 means "write". */
+	return ccs_open_permission(filp->f_dentry, filp->f_vfsmnt, 00);
 }
 #endif
 
@@ -1761,11 +1662,13 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete)
 {
-	char *w[5];
+	char *w[6];
+	u16 perm = 0;
 	u8 type;
+
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	if (strncmp(w[0], "allow_", 6)) {
+	if (strcmp(w[0], "file")) {
 		if (!strcmp(w[0], CCS_KEYWORD_EXECUTE_HANDLER))
 			type = CCS_TYPE_EXECUTE_HANDLER;
 		else if (!strcmp(w[0], CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
@@ -1775,35 +1678,37 @@ int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		return ccs_update_execute_handler(type, w[1], domain,
 						  is_delete);
 	}
-	w[0] += 6;
-	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path_keyword[type]))
-			continue;
-		return ccs_update_path_acl(type, w[1], domain, condition,
+	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
+		if (strstr(w[1], ccs_path_keyword[type]))
+			perm |= 1 << type;
+	if (perm)
+		return ccs_update_path_acl(perm, w[2], domain, condition,
 					   is_delete);
-	}
-	if (!w[2][0])
+	if (!w[3][0])
 		goto out;
-	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path2_keyword[type]))
-			continue;
-		return ccs_update_path2_acl(type, w[1], w[2], domain,
+	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
+		if (strstr(w[1], ccs_path2_keyword[type]))
+			perm |= 1 << type;
+	if (perm)
+		return ccs_update_path2_acl(perm, w[2], w[3], domain,
 					    condition, is_delete);
-	}
-	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++) {
-		if (strcmp(w[0], ccs_path_number_keyword[type]))
-			continue;
-		return ccs_update_path_number_acl(type, w[1], w[2], domain,
+	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
+		if (strstr(w[1], ccs_path_number_keyword[type]))
+			perm |= 1 << type;
+	if (perm)
+		return ccs_update_path_number_acl(perm, w[2], w[3], domain,
 						  condition, is_delete);
-	}
-	if (!w[3][0] || !w[4][0])
+	if (!w[4][0] || !w[5][0])
 		goto out;
-	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++) {
-		if (strcmp(w[0], ccs_mkdev_keyword[type]))
-			continue;
-		return ccs_update_mkdev_acl(type, w[1], w[2], w[3], w[4],
+	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
+		if (strstr(w[1], ccs_mkdev_keyword[type]))
+			perm |= 1 << type;
+	if (perm)
+		return ccs_update_mkdev_acl(perm, w[2], w[3], w[4], w[5],
 					    domain, condition, is_delete);
-	}
+	if (strstr(w[1], "mount"))
+		return ccs_update_mount_acl(w[2], w[3], w[4], w[5], domain,
+					    condition, is_delete);
  out:
 	return -EINVAL;
 }
@@ -2018,9 +1923,14 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 				buf.name = ccs_encode(buffer);
 				if (buf.name) {
 					ccs_fill_path_info(&buf);
-					error = ccs_path_permission(&r,
-								    ccs_rw(op),
-								    &buf);
+					if (op & MAY_READ)
+						error = ccs_path_permission(&r,
+									    CCS_TYPE_READ,
+									    &buf);
+					if (!error && (op & MAY_WRITE))
+						error = ccs_path_permission(&r,
+									    CCS_TYPE_WRITE,
+									    &buf);
 					kfree(buf.name);
 				}
 				if (error)
@@ -2036,7 +1946,12 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 		buf.name = ccs_encode(buffer);
 		if (buf.name) {
 			ccs_fill_path_info(&buf);
-			error = ccs_path_permission(&r, ccs_rw(op), &buf);
+			if (op & MAY_READ)
+				error = ccs_path_permission(&r, CCS_TYPE_READ,
+							    &buf);
+			if (!error && (op & MAY_WRITE))
+				error = ccs_path_permission(&r, CCS_TYPE_WRITE,
+							    &buf);
 			kfree(buf.name);
 		}
 		goto out;

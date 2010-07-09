@@ -28,12 +28,11 @@ static int ccs_audit_signal_log(struct ccs_request_info *r)
 {
 	const int sig = r->param.signal.sig;
 	const char *dest_domain = r->param.signal.dest_pattern;
-	ccs_write_log(r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n", sig, dest_domain);
+	ccs_write_log(r, "ipc signal %d %s\n", sig, dest_domain);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "signal %d to %s", sig, ccs_last_word(dest_domain));
-	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_SIGNAL "%d %s\n", sig,
-			      dest_domain);
+	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
 }
 
 static bool ccs_check_signal_acl(const struct ccs_request_info *r,
@@ -169,8 +168,9 @@ static bool ccs_same_signal_entry(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_signal(char *data, struct ccs_domain_info *domain,
-		     struct ccs_condition *condition, const bool is_delete)
+static int ccs_write_signal(char *data, struct ccs_domain_info *domain,
+			    struct ccs_condition *condition,
+			    const bool is_delete)
 {
 	struct ccs_signal_acl e = { .head.type = CCS_TYPE_SIGNAL_ACL,
 				    .head.cond = condition };
@@ -188,6 +188,14 @@ int ccs_write_signal(char *data, struct ccs_domain_info *domain,
 				  ccs_same_signal_entry, NULL);
 	ccs_put_name(e.domainname);
 	return error;
+}
+
+int ccs_write_ipc(char *data, struct ccs_domain_info *domain,
+		  struct ccs_condition *condition, const bool is_delete)
+{
+	if (ccs_str_starts(&data, "signal "))
+		return ccs_write_signal(data, domain, condition, is_delete);
+	return -EINVAL;
 }
 
 void __init ccs_signal_init(void)

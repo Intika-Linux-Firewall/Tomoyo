@@ -11,22 +11,20 @@
 #include "ccstools.h"
 
 #define CCS_KEYWORD_AGGREGATOR               "aggregator "
-#define CCS_KEYWORD_ALLOW_CAPABILITY         "allow_capability "
-#define CCS_KEYWORD_ALLOW_CHGRP              "allow_chgrp "
-#define CCS_KEYWORD_ALLOW_CHMOD              "allow_chmod "
-#define CCS_KEYWORD_ALLOW_CHOWN              "allow_chown "
-#define CCS_KEYWORD_ALLOW_CHROOT             "allow_chroot "
-#define CCS_KEYWORD_ALLOW_ENV                "allow_env "
-#define CCS_KEYWORD_ALLOW_IOCTL              "allow_ioctl "
-#define CCS_KEYWORD_ALLOW_MOUNT              "allow_mount "
-#define CCS_KEYWORD_ALLOW_NETWORK            "allow_network "
-#define CCS_KEYWORD_ALLOW_PIVOT_ROOT         "allow_pivot_root "
-#define CCS_KEYWORD_ALLOW_SIGNAL             "allow_signal "
-#define CCS_KEYWORD_ALLOW_UNMOUNT            "allow_unmount "
+#define CCS_KEYWORD_ALLOW_CAPABILITY         "capability "
+#define CCS_KEYWORD_ALLOW_CHGRP              "file chgrp "
+#define CCS_KEYWORD_ALLOW_CHMOD              "file chmod "
+#define CCS_KEYWORD_ALLOW_CHOWN              "file chown "
+#define CCS_KEYWORD_ALLOW_CHROOT             "file chroot "
+#define CCS_KEYWORD_ALLOW_ENV                "misc env "
+#define CCS_KEYWORD_ALLOW_IOCTL              "file ioctl "
+#define CCS_KEYWORD_ALLOW_MOUNT              "file mount "
+#define CCS_KEYWORD_ALLOW_NETWORK            "network "
+#define CCS_KEYWORD_ALLOW_PIVOT_ROOT         "file pivot_root "
+#define CCS_KEYWORD_ALLOW_SIGNAL             "ipc signal "
+#define CCS_KEYWORD_ALLOW_UNMOUNT            "file unmount "
 #define CCS_KEYWORD_DENY_AUTOBIND            "deny_autobind "
-#define CCS_KEYWORD_DENY_REWRITE             "deny_rewrite "
 #define CCS_KEYWORD_FILE_PATTERN             "file_pattern "
-#define CCS_KEYWORD_MAC_FOR_CAPABILITY       "MAC_FOR_CAPABILITY::"
 #define CCS_KEYWORD_SELECT                   "select "
 
 #define CCS_MAX_PATHNAME_LEN             4000
@@ -528,9 +526,9 @@ static void ccs_check_file_policy(char *data)
 	} acl_type_array[] = {
 		{ "execute",    1 },
 		{ "transit",    1 },
-		{ "read/write", 1 },
 		{ "read",       1 },
 		{ "write",      1 },
+		{ "append",     1 },
 		{ "create",     2 },
 		{ "unlink",     1 },
 		{ "mkdir",      2 },
@@ -543,7 +541,6 @@ static void ccs_check_file_policy(char *data)
 		{ "symlink",    1 },
 		{ "link",       2 },
 		{ "rename",     2 },
-		{ "rewrite",    1 },
 		{ "chmod",      2 },
 		{ "chown",      2 },
 		{ "chgrp",      2 },
@@ -563,9 +560,9 @@ static void ccs_check_file_policy(char *data)
 		return;
 	}
 	*filename++ = '\0';
-	if (strncmp(data, "allow_", 6))
+	if (strncmp(data, "file ", 5))
 		goto out;
-	data += 6;
+	data += 5;
 	for (type = 0; acl_type_array[type].keyword; type++) {
 		if (strcmp(data, acl_type_array[type].keyword))
 			continue;
@@ -818,9 +815,7 @@ static void ccs_check_domain_policy(char *policy)
 			       ccs_line, policy);
 			ccs_errors++;
 		}
-	} else if (!strcmp(policy, "ignore_global_allow_read")) {
-		/* Nothing to do. */
-	} else if (!strcmp(policy, "ignore_global_allow_env")) {
+	} else if (!strcmp(policy, "ignore_global")) {
 		/* Nothing to do. */
 	} else if (ccs_str_starts(policy, "execute_handler ") ||
 		   ccs_str_starts(policy, "denied_execute_handler")) {
@@ -892,12 +887,6 @@ static void ccs_check_exception_policy(char *policy)
 			}
 		}
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_FILE_PATTERN)) {
-		if (!ccs_correct_word(policy)) {
-			printf("%u: ERROR: '%s' is a bad pattern.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_REWRITE)) {
 		if (!ccs_correct_word(policy)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
 			       ccs_line, policy);

@@ -940,7 +940,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 		/* Don't set error message if failed. */
 		fp = fopen(ccs_policy_file, "r+");
 	if (fp) {
-		fprintf(fp, "select allow_execute\n");
+		fprintf(fp, "select execute\n");
 		if (ccs_network_mode)
 			fputc(0, fp);
 		fflush(fp);

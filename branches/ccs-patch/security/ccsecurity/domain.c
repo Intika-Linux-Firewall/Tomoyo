@@ -199,12 +199,7 @@ void ccs_check_acl(struct ccs_request_info *r,
 		}
 	}
 	if (domain != &ccs_global_domain &&
-	    !domain->flags[CCS_DIF_IGNORE_GLOBAL] &&
-	    (r->param_type != CCS_TYPE_PATH_ACL ||
-	     r->param.path.operation != CCS_TYPE_READ ||
-	     !domain->flags[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ]) &&
-	    (r->param_type != CCS_TYPE_ENV_ACL ||
-	     !domain->flags[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV])) {
+	    !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
 		domain = &ccs_global_domain;
 		goto retry;
 	}
@@ -1226,7 +1221,7 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 	bool domain_created = false;
 	name.name = pathname;
 	ccs_fill_path_info(&name);
-	/* Check allow_transit permission. */
+	/* Check "file transit" permission. */
 	ccs_init_request_info(&r, CCS_MAC_FILE_TRANSIT);
 	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
 	if (error)

@@ -215,22 +215,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			continue;
 		if (ccs_generic_acl_list[index].selected)
 			continue;
-		if (s_index == CCS_DIRECTIVE_ALLOW_READ_WRITE) {
-			/* Source starts with "allow_read/write " */
-			if (d_index == CCS_DIRECTIVE_ALLOW_READ_WRITE) {
-				/* Dest starts with "allow_read/write " */
-			} else if (d_index == CCS_DIRECTIVE_ALLOW_READ) {
-				/* Dest starts with "allow_read " */
-			} else if (d_index == CCS_DIRECTIVE_ALLOW_WRITE) {
-				/* Dest starts with "allow_write " */
-			} else {
-				/*
-				 * Source and dest start with different
-				 * directive.
-				 */
-				continue;
-			}
-		} else if (s_index == d_index) {
+		else if (s_index == d_index) {
 			/* Source and dest start with same directive. */
 		} else {
 			/* Source and dest start with different directive. */
@@ -278,11 +263,10 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 		case CCS_DIRECTIVE_ALLOW_EXECUTE:
 		case CCS_DIRECTIVE_ALLOW_READ:
 		case CCS_DIRECTIVE_ALLOW_WRITE:
-		case CCS_DIRECTIVE_ALLOW_READ_WRITE:
 		case CCS_DIRECTIVE_ALLOW_UNLINK:
 		case CCS_DIRECTIVE_ALLOW_RMDIR:
 		case CCS_DIRECTIVE_ALLOW_TRUNCATE:
-		case CCS_DIRECTIVE_ALLOW_REWRITE:
+		case CCS_DIRECTIVE_ALLOW_APPEND:
 		case CCS_DIRECTIVE_ALLOW_UNMOUNT:
 		case CCS_DIRECTIVE_ALLOW_CHROOT:
 		case CCS_DIRECTIVE_ALLOW_SYMLINK:
@@ -327,7 +311,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			ccs_fill_path_info(&darg);
 			if (!ccs_pathcmp(&sarg, &darg))
 				break;
-			/* allow_env doesn't interpret leading @ as
+			/* "misc env" doesn't interpret leading @ as
 			   path_group. */
 			if (darg.is_patterned ||
 			    !ccs_path_matches_pattern(&darg, &sarg))

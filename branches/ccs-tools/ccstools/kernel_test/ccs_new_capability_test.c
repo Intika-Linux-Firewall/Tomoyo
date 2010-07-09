@@ -24,10 +24,10 @@ static int write_policy(void)
 	int domain_found = 0;
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
-	fprintf(domain_fp, "allow_capability %s\n", capability);
+	fprintf(domain_fp, "capability %s\n", capability);
 	fflush(domain_fp);
 	if (!fp) {
-		printf("allow_capability %s : BUG: capability read failed\n",
+		printf("capability %s : BUG: capability read failed\n",
 		       capability);
 		return 0;
 	}
@@ -39,15 +39,15 @@ static int write_policy(void)
 			domain_found = !strcmp(self_domain, buffer);
 		if (!domain_found)
 			continue;
-		if (!strncmp(buffer, "allow_capability ", 17) &&
-		    !strcmp(buffer + 17, capability)) {
+		if (!strncmp(buffer, "capability ", 11) &&
+		    !strcmp(buffer + 11, capability)) {
 			policy_found = 1;
 			break;
 		}
 	}
 	fclose(fp);
 	if (!policy_found) {
-		printf("allow_capability %s : BUG: capability write failed\n",
+		printf("capability %s : BUG: capability write failed\n",
 		       capability);
 		return 0;
 	}
@@ -57,7 +57,7 @@ static int write_policy(void)
 
 static void delete_policy(void)
 {
-	fprintf(domain_fp, "delete allow_capability %s\n",
+	fprintf(domain_fp, "delete capability %s\n",
 		capability);
 	fflush(domain_fp);
 }
@@ -65,7 +65,7 @@ static void delete_policy(void)
 static void show_result(int result, char should_success)
 {
 	int err = errno;
-	printf("allow_capability %s : ", capability);
+	printf("capability %s : ", capability);
 	if (should_success) {
 		if (result != EOF)
 			printf("OK\n");

@@ -81,31 +81,20 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_DENIED_EXECUTE_HANDLER
 };
 
-/*
- * CCS_TYPE_READ_WRITE is special. CCS_TYPE_READ_WRITE is automatically set if
- * both CCS_TYPE_READ and CCS_TYPE_WRITE are set. Both CCS_TYPE_READ and
- * CCS_TYPE_WRITE are automatically set if CCS_TYPE_READ_WRITE is set.
- * CCS_TYPE_READ_WRITE is automatically cleared if either CCS_TYPE_READ or
- * CCS_TYPE_WRITE is cleared. Both CCS_TYPE_READ and CCS_TYPE_WRITE are
- * automatically cleared if CCS_TYPE_READ_WRITE is cleared.
- */
 enum ccs_path_acl_index {
-	CCS_TYPE_READ_WRITE,
 	CCS_TYPE_EXECUTE,
 	CCS_TYPE_READ,
 	CCS_TYPE_WRITE,
+	CCS_TYPE_APPEND,
 	CCS_TYPE_UNLINK,
 	CCS_TYPE_RMDIR,
 	CCS_TYPE_TRUNCATE,
 	CCS_TYPE_SYMLINK,
-	CCS_TYPE_REWRITE,
 	CCS_TYPE_CHROOT,
 	CCS_TYPE_UMOUNT,
 	CCS_TYPE_TRANSIT,
 	CCS_MAX_PATH_OPERATION
 };
-
-#define CCS_RW_MASK ((1 << CCS_TYPE_READ) | (1 << CCS_TYPE_WRITE))
 
 enum ccs_mkdev_acl_index {
 	CCS_TYPE_MKBLOCK,
@@ -178,7 +167,6 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MKSOCK,
 	CCS_MAC_FILE_TRUNCATE,
 	CCS_MAC_FILE_SYMLINK,
-	CCS_MAC_FILE_REWRITE,
 	CCS_MAC_FILE_MKBLOCK,
 	CCS_MAC_FILE_MKCHAR,
 	CCS_MAC_FILE_LINK,
@@ -314,12 +302,8 @@ enum ccs_group_id {
 enum ccs_domain_info_flags_index {
 	/* Quota warnning flag.   */
 	CCS_DIF_QUOTA_WARNED,
-	/* Ignore "allow_*" directives in ccs_global_domain . */
+	/* Ignore directives in ccs_global_domain . */
 	CCS_DIF_IGNORE_GLOBAL,
-	/* Ignore "allow_read" directive in ccs_global_domain . */
-	CCS_DIF_IGNORE_GLOBAL_ALLOW_READ,
-	/* Ignore "allow_env" directive in ccs_global_domain .  */
-	CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV,
 	/*
 	 * This domain was unable to create a new domain at
 	 * ccs_find_next_domain() because the name of the domain to be created
@@ -340,7 +324,6 @@ enum ccs_policy_id {
 	CCS_ID_AGGREGATOR,
 	CCS_ID_TRANSITION_CONTROL,
 	CCS_ID_PATTERN,
-	CCS_ID_NO_REWRITE,
 	CCS_ID_MANAGER,
 	CCS_ID_IPV6_ADDRESS,
 	CCS_ID_CONDITION,
@@ -353,14 +336,8 @@ enum ccs_policy_id {
 /* Keywords for ACLs. */
 #define CCS_KEYWORD_ADDRESS_GROUP             "address_group "
 #define CCS_KEYWORD_AGGREGATOR                "aggregator "
-#define CCS_KEYWORD_ALLOW_CAPABILITY          "allow_capability "
-#define CCS_KEYWORD_ALLOW_ENV                 "allow_env "
-#define CCS_KEYWORD_ALLOW_MOUNT               "allow_mount "
-#define CCS_KEYWORD_ALLOW_NETWORK             "allow_network "
-#define CCS_KEYWORD_ALLOW_SIGNAL              "allow_signal "
 #define CCS_KEYWORD_DELETE                    "delete "
 #define CCS_KEYWORD_DENY_AUTOBIND             "deny_autobind "
-#define CCS_KEYWORD_DENY_REWRITE              "deny_rewrite "
 #define CCS_KEYWORD_FILE_PATTERN              "file_pattern "
 #define CCS_KEYWORD_INITIALIZE_DOMAIN         "initialize_domain "
 #define CCS_KEYWORD_KEEP_DOMAIN               "keep_domain "
@@ -375,8 +352,6 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
 #define CCS_KEYWORD_IGNORE_GLOBAL             "ignore_global"
-#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ  "ignore_global_allow_read"
-#define CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV   "ignore_global_allow_env"
 #define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
 #define CCS_KEYWORD_TRANSITION_FAILED         "transition_failed"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
@@ -697,12 +672,6 @@ struct ccs_pattern {
 	const struct ccs_path_info *pattern;
 };
 
-/* Structure for "deny_rewrite" keyword. */
-struct ccs_no_rewrite {
-	struct ccs_acl_head head;
-	const struct ccs_path_info *pattern;
-};
-
 /*
  * Structure for "initialize_domain"/"no_initialize_domain" and
  * "keep_domain"/"no_keep_domain" keyword.
@@ -775,10 +744,9 @@ struct ccs_execute_handler {
 };
 
 /*
- * Structure for "allow_read/write", "allow_execute", "allow_read",
- * "allow_write", "allow_unlink", "allow_rmdir", "allow_truncate",
- * "allow_symlink", "allow_rewrite", "allow_chroot" and "allow_unmount"
- * directive.
+ * Structure for "file execute", "file read", "file write", "file append",
+ * "file unlink", "file rmdir", "file truncate", "file symlink", "file chroot"
+ * and "file unmount" directive.
  */
 struct ccs_path_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_ACL */
@@ -787,7 +755,7 @@ struct ccs_path_acl {
 };
 
 /*
- * Structure for "allow_rename", "allow_link" and "allow_pivot_root" directive.
+ * Structure for "file rename", "file link" and "file pivot_root" directive.
  */
 struct ccs_path2_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
@@ -797,8 +765,8 @@ struct ccs_path2_acl {
 };
 
 /*
- * Structure for "allow_create", "allow_mkdir", "allow_mkfifo", "allow_mksock",
- * "allow_ioctl", "allow_chmod", "allow_chown" and "allow_chgrp" directive.
+ * Structure for "file create", "file mkdir", "file mkfifo", "file mksock",
+ * "file ioctl", "file chmod", "file chown" and "file chgrp" directive.
  */
 struct ccs_path_number_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH_NUMBER_ACL */
@@ -807,7 +775,7 @@ struct ccs_path_number_acl {
 	struct ccs_number_union number;
 };
 
-/* Structure for "allow_mkblock" and "allow_mkchar" directive. */
+/* Structure for "file mkblock" and "file mkchar" directive. */
 struct ccs_mkdev_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MKDEV_ACL */
 	u8 perm; /* Bitmask of values in "enum ccs_mkdev_acl_index" */
@@ -817,7 +785,7 @@ struct ccs_mkdev_acl {
 	struct ccs_number_union minor;
 };
 
-/* Structure for "allow_mount" keyword. */
+/* Structure for "file mount" keyword. */
 struct ccs_mount_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_MOUNT_ACL */
 	struct ccs_name_union dev_name;
@@ -826,19 +794,19 @@ struct ccs_mount_acl {
 	struct ccs_number_union flags;
 };
 
-/* Structure for "allow_env" directive in domain policy. */
+/* Structure for "misc env" directive in domain policy. */
 struct ccs_env_acl {
 	struct ccs_acl_info head;        /* type = CCS_TYPE_ENV_ACL  */
 	const struct ccs_path_info *env; /* environment variable */
 };
 
-/* Structure for "allow_capability" directive. */
+/* Structure for "capability" directive. */
 struct ccs_capability_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_CAPABILITY_ACL */
 	u8 operation;
 };
 
-/* Structure for "allow_signal" directive. */
+/* Structure for "ipc signal" directive. */
 struct ccs_signal_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_SIGNAL_ACL */
 	u16 sig;
@@ -851,7 +819,7 @@ struct ccs_ipv6addr {
 	struct in6_addr addr;
 };
 
-/* Structure for "allow_network" directive. */
+/* Structure for "network" directive. */
 struct ccs_ip_network_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
@@ -1054,23 +1022,20 @@ int ccs_write_capability(char *data, struct ccs_domain_info *domain,
 			 const bool is_delete);
 int ccs_write_control(struct file *file, const char __user *buffer,
 		      const int buffer_len);
-int ccs_write_env(char *data, struct ccs_domain_info *domain,
-		  struct ccs_condition *condition, const bool is_delete);
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete);
 int ccs_write_group(char *data, const bool is_delete, const u8 type);
+int ccs_write_ipc(char *data, struct ccs_domain_info *domain,
+		  struct ccs_condition *condition, const bool is_delete);
 int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
      __attribute__ ((format(printf, 2, 3)));
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
-int ccs_write_mount(char *data, struct ccs_domain_info *domain,
-		    struct ccs_condition *condition, const bool is_delete);
+int ccs_write_misc(char *data, struct ccs_domain_info *domain,
+		   struct ccs_condition *condition, const bool is_delete);
 int ccs_write_network(char *data, struct ccs_domain_info *domain,
 		      struct ccs_condition *condition, const bool is_delete);
-int ccs_write_no_rewrite(char *data, const bool is_delete);
 int ccs_write_pattern(char *data, const bool is_delete);
 int ccs_write_reserved_port(char *data, const bool is_delete);
-int ccs_write_signal(char *data, struct ccs_domain_info *domain,
-		     struct ccs_condition *condition, const bool is_delete);
 int ccs_write_transition_control(char *data, const bool is_delete,
 				 const u8 type);
 size_t ccs_del_condition(struct list_head *element);

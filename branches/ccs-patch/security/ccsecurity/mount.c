@@ -58,8 +58,7 @@ static int ccs_audit_mount_log(struct ccs_request_info *r)
 	const char *dir = r->param.mount.dir->name;
 	const char *type = r->param.mount.type->name;
 	const unsigned long flags = r->param.mount.flags;
-	ccs_write_log(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
-		      dev, dir, type, flags);
+	ccs_write_log(r, "file mount %s %s %s 0x%lX\n", dev, dir, type, flags);
 	if (r->granted)
 		return 0;
 	if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
@@ -75,7 +74,7 @@ static int ccs_audit_mount_log(struct ccs_request_info *r)
 	else
 		ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type, dev, dir,
 			     flags);
-	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_MOUNT "%s %s %s 0x%lX\n",
+	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
 			      ccs_file_pattern(r->param.mount.dev),
 			      ccs_file_pattern(r->param.mount.dir), type,
 			      flags);
@@ -264,54 +263,6 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	idx = ccs_read_lock();
 	error = ccs_mount_acl(&r, dev_name, path, type, flags);
 	ccs_read_unlock(idx);
-	return error;
-}
-
-static bool ccs_same_mount_acl(const struct ccs_acl_info *a,
-			       const struct ccs_acl_info *b)
-{
-	const struct ccs_mount_acl *p1 = container_of(a, typeof(*p1), head);
-	const struct ccs_mount_acl *p2 = container_of(b, typeof(*p2), head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		ccs_same_name_union(&p1->dev_name, &p2->dev_name) &&
-		ccs_same_name_union(&p1->dir_name, &p2->dir_name) &&
-		ccs_same_name_union(&p1->fs_type, &p2->fs_type) &&
-		ccs_same_number_union(&p1->flags, &p2->flags);
-}
-
-/**
- * ccs_write_mount - Write "struct ccs_mount_acl" list.
- *
- * @data:      String to parse.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @condition: Pointer to "struct ccs_condition". Maybe NULL.
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-int ccs_write_mount(char *data, struct ccs_domain_info *domain,
-		    struct ccs_condition *condition, const bool is_delete)
-{
-	struct ccs_mount_acl e = { .head.type = CCS_TYPE_MOUNT_ACL,
-				   .head.cond = condition };
-	int error = is_delete ? -ENOENT : -ENOMEM;
-	char *w[4];
-	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
-		return -EINVAL;
-	if (!ccs_parse_name_union(w[0], &e.dev_name) ||
-	    !ccs_parse_name_union(w[1], &e.dir_name) ||
-	    !ccs_parse_name_union(w[2], &e.fs_type) ||
-	    !ccs_parse_number_union(w[3], &e.flags))
-		goto out;
-	error = ccs_update_domain(&e.head, sizeof(e), is_delete, domain,
-				  ccs_same_mount_acl, NULL);
- out:
-	ccs_put_name_union(&e.dev_name);
-	ccs_put_name_union(&e.dir_name);
-	ccs_put_name_union(&e.fs_type);
-	ccs_put_number_union(&e.flags);
 	return error;
 }
 

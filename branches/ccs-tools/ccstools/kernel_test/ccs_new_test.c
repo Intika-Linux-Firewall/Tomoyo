@@ -302,14 +302,14 @@ static void setup_test_file(void)
 	for (i = 0; i < 24; i += 2) {
 		snprintf(buffer, sizeof(buffer) - 1, "/tmp/testfile%u", i);
 		close(open(buffer, O_WRONLY | O_CREAT, 0600));
+		close(open(buffer, O_APPEND | O_CREAT, 0600));
 	}
-	write_exception_policy("deny_rewrite /tmp/testfile\\$", 0);
 }
 
 static void setup_test_file_truncate(void)
 {
 	setup_test_file();
-	write_domain_policy("allow_truncate /tmp/testfile\\$", 0);
+	write_domain_policy("file truncate /tmp/testfile\\$", 0);
 	set_profile(3, "file::truncate");
 }
 
@@ -321,14 +321,14 @@ static void setup_all_test_file(void)
 	for (i = 0; i < 24; i++) {
 		snprintf(buffer, sizeof(buffer) - 1, "/tmp/testfile%u", i);
 		close(open(buffer, O_WRONLY | O_CREAT, 0600));
+		close(open(buffer, O_APPEND | O_CREAT, 0600));
 	}
-	write_exception_policy("deny_rewrite /tmp/testfile\\$", 0);
 }
 
 static void setup_all_test_file_truncate(void)
 {
 	setup_all_test_file();
-	write_domain_policy("allow_truncate /tmp/testfile\\$", 0);
+	write_domain_policy("file truncate /tmp/testfile\\$", 0);
 	set_profile(3, "file::truncate");
 }
 
@@ -341,14 +341,13 @@ static void cleanup_test_file(void)
 		snprintf(buffer, sizeof(buffer) - 1, "/tmp/testfile%u", i);
 		unlink(buffer);
 	}
-	write_exception_policy("deny_rewrite /tmp/testfile\\$", 1);
 	cleanup_file_open();
 }
 
 static void cleanup_test_file_truncate(void)
 {
 	cleanup_test_file();
-	write_domain_policy("allow_truncate /tmp/testfile\\$", 1);
+	write_domain_policy("file truncate /tmp/testfile\\$", 1);
 	set_profile(0, "file::truncate");
 }
 
@@ -765,333 +764,259 @@ static struct test_struct {
 	const char *policy;
 } tests[] = {
 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
-	  "allow_read /etc/fstab" },
+	  "file read /etc/fstab" },
 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
-	  "allow_read /etc/fstab if task.uid=0" },
+	  "file read /etc/fstab if task.uid=0" },
 	{ NULL, test_read_etc_fstab, cleanup_file_open, "file::open",
-	  "allow_read /etc/fstab if path1.uid=0 path1.parent.uid=0" },
+	  "file read /etc/fstab if path1.uid=0 path1.parent.uid=0" },
 	{ setup_open_group, test_read_etc_fstab, cleanup_open_group,
-	  "file::open", "allow_read @READABLE if path1.uid=@READABLE_IDS "
+	  "file::open", "file read @READABLE if path1.uid=@READABLE_IDS "
 	  "path1.parent.uid=0" },
 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
-	  "allow_write /dev/null" },
+	  "file write /dev/null" },
 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
-	  "allow_write /dev/null if task.uid=0" },
+	  "file write /dev/null if task.uid=0" },
 	{ NULL, test_write_dev_null, cleanup_file_open, "file::open",
-	  "allow_write /dev/null if path1.type=char path1.dev_major=1 "
+	  "file write /dev/null if path1.type=char path1.dev_major=1 "
 	  "path1.dev_minor=3 path1.perm=0666" },
 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
-	  "file::mkdir", "allow_mkdir /tmp/testdir/ 0755" },
+	  "file::mkdir", "file mkdir /tmp/testdir/ 0755" },
 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
-	  "file::mkdir", "allow_mkdir /tmp/testdir/ 0755 "
+	  "file::mkdir", "file mkdir /tmp/testdir/ 0755 "
 	  "if path1.parent.uid=0 path1.parent.perm=01777" },
 	{ cleanup_mkdir_testdir, test_mkdir_testdir, cleanup_mkdir_testdir,
-	  "file::mkdir", "allow_mkdir /tmp/testdir/ 0755 "
+	  "file::mkdir", "file mkdir /tmp/testdir/ 0755 "
 	  "if task.uid=path1.parent.uid" },
 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
-	  "file::rmdir", "allow_rmdir /tmp/testdir/" },
+	  "file::rmdir", "file rmdir /tmp/testdir/" },
 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
-	  "file::rmdir", "allow_rmdir /tmp/testdir/ if path1.parent.uid=0 "
+	  "file::rmdir", "file rmdir /tmp/testdir/ if path1.parent.uid=0 "
 	  "path1.parent.perm=01777" },
 	{ setup_mkdir_testdir, test_rmdir_testdir, cleanup_mkdir_testdir,
-	  "file::rmdir", "allow_rmdir /tmp/testdir/ if task.uid=0-100 "
+	  "file::rmdir", "file rmdir /tmp/testdir/ if task.uid=0-100 "
 	  "task.gid=0x0-0xFF path1.uid=0" },
 	{ setup_execute_bin_true, test_execute_bin_true,
 	  cleanup_execute_bin_true, "file::execute",
-	  "allow_execute /bin/true" },
+	  "file execute /bin/true" },
 	{ setup_execute_bin_true, test_execute_bin_true,
-	  cleanup_execute_bin_true, "file::execute", "allow_execute /bin/true "
+	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
 	  "if exec.argc=1 exec.argv[0]=\"/bin/true\"" },
 	{ setup_execute_bin_true, test_execute_bin_true,
-	  cleanup_execute_bin_true, "file::execute", "allow_execute /bin/true "
+	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
 	  "if exec.envc=1 exec.envp[\"HOME\"]=\"/\" exec.envp[\"PATH\"]=NULL"
 	},
 	{ NULL, test_chmod_dev_null, NULL, "file::chmod",
-	  "allow_chmod /dev/null 0666 if path1.perm=00-07777 path1.type=char"
+	  "file chmod /dev/null 0666 if path1.perm=00-07777 path1.type=char"
 	},
 	{ NULL, test_chown_dev_null, NULL, "file::chown",
-	  "allow_chown /dev/null 0 if task.gid=path1.gid path1.type!=block" },
+	  "file chown /dev/null 0 if task.gid=path1.gid path1.type!=block" },
 	{ NULL, test_chgrp_dev_null, NULL, "file::chgrp",
-	  "allow_chgrp /dev/null 0 if task.uid=path1.parent.uid" },
+	  "file chgrp /dev/null 0 if task.uid=path1.parent.uid" },
 	{ NULL, test_ioctl_dev_null, NULL, "file::ioctl",
-	  "allow_ioctl /dev/null 0x5451 if 0=0-1000" },
+	  "file ioctl /dev/null 0x5451 if 0=0-1000" },
 	{ setup_chmod_group, test_chmod_dev_null, cleanup_chmod_group,
-	  "file::chmod", "allow_chmod @CHMOD_TARGET @CHMOD_MODES" },
+	  "file::chmod", "file chmod @CHMOD_TARGET @CHMOD_MODES" },
 	{ setup_chown_group, test_chown_dev_null, cleanup_chown_group,
-	  "file::chown", "allow_chown @CHOWN_TARGET @CHOWN_IDS" },
+	  "file::chown", "file chown @CHOWN_TARGET @CHOWN_IDS" },
 	{ setup_chown_group, test_chgrp_dev_null, cleanup_chown_group,
-	  "file::chgrp", "allow_chgrp @CHOWN_TARGET @CHOWN_IDS" },
+	  "file::chgrp", "file chgrp @CHOWN_TARGET @CHOWN_IDS" },
 	{ setup_ioctl_group, test_ioctl_dev_null, cleanup_ioctl_group,
-	  "file::ioctl", "allow_ioctl @IOCTL_TARGET @IOCTL_NUMBERS" },
+	  "file::ioctl", "file ioctl @IOCTL_TARGET @IOCTL_NUMBERS" },
 	{ setup_test_file, test_file_open_0, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile0 if task.uid=path1.uid" },
+	  "file read /tmp/testfile0 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_1, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile1 if task.uid=path1.uid" },
+	  "file read /tmp/testfile1 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_1, cleanup_test_file, "file::create",
-	  "allow_create /tmp/testfile1 0600 if task.uid=path1.parent.uid" },
+	  "file create /tmp/testfile1 0600 if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_2, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile2 if task.uid=path1.uid" },
+	  "file read /tmp/testfile2 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_2, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile2 "
+	  "file::truncate", "file truncate /tmp/testfile2 "
 	  "if task.uid=path1.uid" },
-	{ setup_test_file_truncate, test_file_open_2,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile2 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_3, cleanup_test_file,
-	  "file::open", "allow_read /tmp/testfile3 if task.uid=path1.uid" },
+	  "file::open", "file read /tmp/testfile3 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_3, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile3 0600 "
+	  "file::create", "file create /tmp/testfile3 0600 "
 	  "if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_4, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile4 if task.uid=path1.uid" },
+	  "file read /tmp/testfile4 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_5, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile5 if task.uid=path1.uid" },
+	  "file read /tmp/testfile5 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_5, cleanup_test_file, "file::create",
-	  "allow_create /tmp/testfile5 0600 if task.uid=path1.parent.uid" },
+	  "file create /tmp/testfile5 0600 if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_6, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile6 if task.uid=path1.uid" },
+	  "file read /tmp/testfile6 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_6, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile6 "
+	  "file::truncate", "file truncate /tmp/testfile6 "
 	  "if task.uid=path1.uid" },
-	{ setup_test_file_truncate, test_file_open_6,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile6 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_7, cleanup_test_file, "file::open",
-	  "allow_read /tmp/testfile7 if task.uid=path1.uid" },
+	  "file read /tmp/testfile7 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_7, cleanup_test_file, "file::create",
-	  "allow_create /tmp/testfile7 0600 if task.uid=path1.parent.uid" },
+	  "file create /tmp/testfile7 0600 if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_8, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile8 if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_8, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile8 if task.uid=path1.uid"
-	},
+	  "file write /tmp/testfile8 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_9, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile9 if task.uid=path1.uid" },
+	  "file write /tmp/testfile9 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_9, cleanup_test_file, "file::create",
-	  "allow_create /tmp/testfile9 0600 if task.uid=path1.parent.uid" },
-	{ setup_test_file, test_file_open_9, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile9 if task.uid=path1.uid"
-	},
+	  "file create /tmp/testfile9 0600 if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_10, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile10 if task.uid=path1.uid" },
+	  "file write /tmp/testfile10 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_10, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile10 "
-	  "if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_10, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile10 "
+	  "file::truncate", "file truncate /tmp/testfile10 "
 	  "if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_11, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile11 if task.uid=path1.uid" },
+	  "file write /tmp/testfile11 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_11, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile11 0600 "
+	  "file::create", "file create /tmp/testfile11 0600 "
 	  "if task.uid=path1.parent.uid" },
-	{ setup_test_file, test_file_open_11, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile11 "
-	  "if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_12, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile12 if task.uid=path1.uid" },
+	  "file append /tmp/testfile12 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_13, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile13 if task.uid=path1.uid" },
+	  "file append /tmp/testfile13 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_13, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile13 0600 "
+	  "file::create", "file create /tmp/testfile13 0600 "
 	  "if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_14, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile14 if task.uid=path1.uid" },
+	  "file append /tmp/testfile14 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_14, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile14 "
+	  "file::truncate", "file truncate /tmp/testfile14 "
 	  "if task.uid=path1.uid" },
-	{ setup_test_file_truncate, test_file_open_14,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile14 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_15, cleanup_test_file, "file::open",
-	  "allow_write /tmp/testfile15 if task.uid=path1.uid" },
+	  "file append /tmp/testfile15 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_15, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile15 0600 "
+	  "file::create", "file create /tmp/testfile15 0600 "
 	  "if task.uid=path1.parent.uid" },
 	{ setup_test_file, test_file_open_16, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile16 if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_16, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile16 "
-	  "if task.uid=path1.uid" },
+	  "file read/write /tmp/testfile16 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_17, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile17 if task.uid=path1.uid" },
+	  "file read/write /tmp/testfile17 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_17, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile17 0600 "
+	  "file::create", "file create /tmp/testfile17 0600 "
 	  "if task.uid=path1.parent.uid" },
-	{ setup_test_file, test_file_open_17, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile17 "
-	  "if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_18, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile18 if task.uid=path1.uid" },
+	  "file read/write /tmp/testfile18 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_18, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile18 "
-	  "if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_18, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile18 "
+	  "file::truncate", "file truncate /tmp/testfile18 "
 	  "if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_19, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile19 if task.uid=path1.uid" },
+	  "file read/write /tmp/testfile19 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_19, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile19 0600 "
+	  "file::create", "file create /tmp/testfile19 0600 "
 	  "if task.uid=path1.parent.uid" },
-	{ setup_test_file, test_file_open_19, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile19 "
-	  "if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_20, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile20 if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_21, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile21 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_21, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile21 0600 "
+	  "file::create", "file create /tmp/testfile21 0600 "
 	  "if task.uid=path1.parent.uid" },
-	{ setup_test_file, test_file_open_22, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile22 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_22, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile22 "
+	  "file::truncate", "file truncate /tmp/testfile22 "
 	  "if task.uid=path1.uid" },
-	{ setup_test_file_truncate, test_file_open_22,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile22 if task.uid=path1.uid" },
-	{ setup_test_file, test_file_open_23, cleanup_test_file, "file::open",
-	  "allow_read/write /tmp/testfile23 if task.uid=path1.uid" },
 	{ setup_test_file, test_file_open_23, cleanup_test_file,
-	  "file::create", "allow_create /tmp/testfile23 0600 "
+	  "file::create", "file create /tmp/testfile23 0600 "
 	  "if task.uid=path1.parent.uid" },
 	{ setup_all_test_file, test_file_open_0, cleanup_test_file,
-	  "file::open", "allow_read /tmp/testfile0 if task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile0 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_2, cleanup_test_file,
-	  "file::open", "allow_read /tmp/testfile2 if task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile2 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_2, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile2 "
+	  "file::truncate", "file truncate /tmp/testfile2 "
 	  "if task.uid=path1.gid" },
-	{ setup_all_test_file_truncate, test_file_open_2,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile2 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_4, cleanup_test_file,
-	  "file::open", "allow_read /tmp/testfile4 if task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile4 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_6, cleanup_test_file,
-	  "file::open", "allow_read /tmp/testfile6 if task.uid=path1.gid" },
+	  "file::open", "file read /tmp/testfile6 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_6, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile6 "
+	  "file::truncate", "file truncate /tmp/testfile6 "
 	  "if task.uid=path1.gid" },
-	{ setup_all_test_file_truncate, test_file_open_6,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile6 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_8, cleanup_test_file,
-	  "file::open", "allow_write /tmp/testfile8 if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_8, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile8 if task.uid=path1.gid"
-	},
+	  "file::open", "file write /tmp/testfile8 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_10, cleanup_test_file,
-	  "file::open", "allow_write /tmp/testfile10 if task.uid=path1.gid" },
+	  "file::open", "file write /tmp/testfile10 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_10, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile10 "
-	  "if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_10, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile10 "
+	  "file::truncate", "file truncate /tmp/testfile10 "
 	  "if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_12, cleanup_test_file,
-	  "file::open", "allow_write /tmp/testfile12 if task.uid=path1.gid" },
+	  "file::open", "file append /tmp/testfile12 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_14, cleanup_test_file,
-	  "file::open", "allow_write /tmp/testfile14 if task.uid=path1.gid" },
+	  "file::open", "file append /tmp/testfile14 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_14, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile14 "
-	  "if task.uid=path1.gid" },
-	{ setup_all_test_file_truncate, test_file_open_14,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile14 if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_16, cleanup_test_file,
-	  "file::open", "allow_read/write /tmp/testfile16 "
+	  "file::truncate", "file truncate /tmp/testfile14 "
 	  "if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_16, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile16 "
+	  "file::open", "file read/write /tmp/testfile16 "
 	  "if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
-	  "file::open", "allow_read/write /tmp/testfile18 "
+	  "file::open", "file read/write /tmp/testfile18 "
 	  "if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
-	  "file::truncate", "allow_truncate /tmp/testfile18 "
+	  "file::truncate", "file truncate /tmp/testfile18 "
 	  "if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_18, cleanup_test_file,
-	  "file::rewrite", "allow_rewrite /tmp/testfile18 "
-	  "if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_20, cleanup_test_file,
-	  "file::open",
-	  "allow_read/write /tmp/testfile20 if task.uid=path1.gid" },
-	{ setup_all_test_file, test_file_open_22, cleanup_test_file,
-	  "file::open",
-	  "allow_read/write /tmp/testfile22 if task.uid=path1.gid" },
 	{ setup_all_test_file, test_file_open_22, cleanup_test_file,
 	  "file::truncate",
-	  "allow_truncate /tmp/testfile22 if task.uid=path1.gid" },
-	{ setup_all_test_file_truncate, test_file_open_22,
-	  cleanup_test_file_truncate, "file::rewrite",
-	  "allow_rewrite /tmp/testfile22 if task.uid=path1.gid" },
+	  "file truncate /tmp/testfile22 if task.uid=path1.gid" },
 	{ NULL, test_inet_tcp_create, NULL,    "capability::inet_tcp_create",
-	  "allow_capability inet_tcp_create" },
+	  "capability inet_tcp_create" },
 	{ NULL, test_inet_tcp_listen, NULL,    "capability::inet_tcp_listen",
-	  "allow_capability inet_tcp_listen" },
+	  "capability inet_tcp_listen" },
 	{ NULL, test_inet_tcp_connect, NULL,   "capability::inet_tcp_connect",
-	  "allow_capability inet_tcp_connect" },
+	  "capability inet_tcp_connect" },
 	{ NULL, test_use_inet_udp, NULL,       "capability::use_inet_udp",
-	  "allow_capability use_inet_udp" },
+	  "capability use_inet_udp" },
 	{ NULL, test_use_inet_ip, NULL,        "capability::use_inet_ip",
-	  "allow_capability use_inet_ip" },
+	  "capability use_inet_ip" },
 	{ NULL, test_use_route, NULL,          "capability::use_route",
-	  "allow_capability use_route" },
+	  "capability use_route" },
 	{ NULL, test_use_packet, NULL,         "capability::use_packet",
-	  "allow_capability use_packet" },
+	  "capability use_packet" },
 	{ NULL, test_SYS_MOUNT, NULL,          "capability::SYS_MOUNT",
-	  "allow_capability SYS_MOUNT" },
+	  "capability SYS_MOUNT" },
 	{ NULL, test_SYS_UMOUNT, NULL,         "capability::SYS_UMOUNT",
-	  "allow_capability SYS_UMOUNT" },
+	  "capability SYS_UMOUNT" },
 	{ NULL, test_SYS_REBOOT, NULL,         "capability::SYS_REBOOT",
-	  "allow_capability SYS_REBOOT" },
+	  "capability SYS_REBOOT" },
 	{ NULL, test_SYS_CHROOT, NULL,         "capability::SYS_CHROOT",
-	  "allow_capability SYS_CHROOT" },
+	  "capability SYS_CHROOT" },
 	{ NULL, test_SYS_KILL, NULL,           "capability::SYS_KILL",
-	  "allow_capability SYS_KILL" },
+	  "capability SYS_KILL" },
 	{ NULL, test_SYS_VHANGUP, NULL,        "capability::SYS_VHANGUP",
-	  "allow_capability SYS_VHANGUP" },
+	  "capability SYS_VHANGUP" },
 	{ NULL, test_SYS_TIME, NULL,           "capability::SYS_TIME",
-	  "allow_capability SYS_TIME" },
+	  "capability SYS_TIME" },
 	{ NULL, test_SYS_NICE, NULL,           "capability::SYS_NICE",
-	  "allow_capability SYS_NICE" },
+	  "capability SYS_NICE" },
 	{ NULL, test_SYS_SETHOSTNAME, NULL,    "capability::SYS_SETHOSTNAME",
-	  "allow_capability SYS_SETHOSTNAME" },
+	  "capability SYS_SETHOSTNAME" },
 	{ NULL, test_use_kernel_module, NULL,  "capability::use_kernel_module",
-	  "allow_capability use_kernel_module" },
+	  "capability use_kernel_module" },
 	{ NULL, test_create_fifo, NULL,        "capability::create_fifo",
-	  "allow_capability create_fifo" },
+	  "capability create_fifo" },
 	{ NULL, test_create_block_dev, NULL,   "capability::create_block_dev",
-	  "allow_capability create_block_dev" },
+	  "capability create_block_dev" },
 	{ NULL, test_create_char_dev, NULL,    "capability::create_char_dev",
-	  "allow_capability create_char_dev" },
+	  "capability create_char_dev" },
 	{ NULL, test_create_unix_socket, NULL,
 	  "capability::create_unix_socket",
-	  "allow_capability create_unix_socket" },
+	  "capability create_unix_socket" },
 	{ NULL, test_SYS_LINK, NULL,           "capability::SYS_LINK",
-	  "allow_capability SYS_LINK" },
+	  "capability SYS_LINK" },
 	{ NULL, test_SYS_SYMLINK, NULL,        "capability::SYS_SYMLINK",
-	  "allow_capability SYS_SYMLINK" },
+	  "capability SYS_SYMLINK" },
 	{ NULL, test_SYS_RENAME, NULL,         "capability::SYS_RENAME",
-	  "allow_capability SYS_RENAME" },
+	  "capability SYS_RENAME" },
 	{ NULL, test_SYS_UNLINK, NULL,         "capability::SYS_UNLINK",
-	  "allow_capability SYS_UNLINK" },
+	  "capability SYS_UNLINK" },
 	{ NULL, test_SYS_CHMOD, NULL,          "capability::SYS_CHMOD",
-	  "allow_capability SYS_CHMOD" },
+	  "capability SYS_CHMOD" },
 	{ NULL, test_SYS_CHOWN, NULL,          "capability::SYS_CHOWN",
-	  "allow_capability SYS_CHOWN" },
+	  "capability SYS_CHOWN" },
 	{ NULL, test_SYS_IOCTL, NULL,          "capability::SYS_IOCTL",
-	  "allow_capability SYS_IOCTL" },
+	  "capability SYS_IOCTL" },
 	{ NULL, test_SYS_KEXEC_LOAD, NULL,     "capability::SYS_KEXEC_LOAD",
-	  "allow_capability SYS_KEXEC_LOAD" },
+	  "capability SYS_KEXEC_LOAD" },
 	{ NULL, test_SYS_PIVOT_ROOT, NULL,     "capability::SYS_PIVOT_ROOT",
-	  "allow_capability SYS_PIVOT_ROOT" },
+	  "capability SYS_PIVOT_ROOT" },
 	{ NULL, test_SYS_PTRACE, NULL,         "capability::SYS_PTRACE",
-	  "allow_capability SYS_PTRACE" },
+	  "capability SYS_PTRACE" },
 	{ NULL, test_conceal_mount, NULL,      "capability::conceal_mount",
-	  "allow_capability conceal_mount" },
+	  "capability conceal_mount" },
 	{ NULL }
 };
 

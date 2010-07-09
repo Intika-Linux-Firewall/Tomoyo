@@ -53,64 +53,64 @@ static void stage_policy_io_test(void)
 	policy_file = proc_policy_domain_policy;
 	policy_fp = domain_fp;
 	for (i = 0; i < 3; i++) {
-		try_io("allow_chroot /", 1);
-		try_io("allow_chroot ", 0);
-		try_io("allow_chroot /mnt0/", 1);
-		try_io("allow_chroot /var1/chroot2/", 1);
-		try_io("allow_chroot /mnt0/", 1);
-		try_io("allow_chroot /mnt0/", 1);
-		try_io("allow_chroot /mnt0/", 1);
-		try_io("allow_chroot /mnt\\?\\*/", 1);
-		try_io("allow_chroot /mnt\\?\\*/", 1);
-		try_io("allow_unmount /", 1);
-		try_io("allow_unmount /sys1/", 1);
-		try_io("allow_unmount /initrd2/", 1);
-		try_io("allow_unmount /initrd/dev3/", 1);
-		try_io("allow_unmount /initrd/\\*\\+/", 1);
-		try_io("allow_unmount /initrd/\\@\\*/", 1);
-		try_io("allow_unmount /initrd2/", 1);
-		try_io("allow_pivot_root / /proc3/", 1);
-		try_io("allow_pivot_root /sys5/ /proc3/", 1);
-		try_io("allow_pivot_root /sys/", 0);
-		try_io("allow_pivot_root *", 0);
-		try_io("allow_pivot_root /sys5/ /proc3/", 1);
-		try_io("allow_mount / / --bind 0xD", 1);
-		try_io("allow_mount / / --move 0xF", 1);
-		try_io("allow_mount / --remount", 0);
-		try_io("allow_mount /", 0);
-		try_io("allow_mount none /tmp/ tmpfs 0x1", 1);
-		try_io("allow_mount none /tmp/ tmpfs", 0);
-		try_io("allow_mount none /tmp/ nonexistent 0x0", 1);
-		try_io("allow_mount none /proc/ proc 0x0", 1);
-		try_io("allow_mount none /selinux/ selinuxfs 0x0", 1);
-		try_io("allow_mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
-		try_io("allow_mount none /dev/pts/ devpts 0x0", 1);
-		try_io("allow_mount any / --remount 0xC00", 1);
-		try_io("allow_mount /dev/sda1 /boot/ ext3 0xC00", 1);
-		try_io("allow_mount none /dev/shm/ tmpfs 0x0", 1);
-		try_io("allow_mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
+		try_io("file chroot /", 1);
+		try_io("file chroot ", 0);
+		try_io("file chroot /mnt0/", 1);
+		try_io("file chroot /var1/chroot2/", 1);
+		try_io("file chroot /mnt0/", 1);
+		try_io("file chroot /mnt0/", 1);
+		try_io("file chroot /mnt0/", 1);
+		try_io("file chroot /mnt\\?\\*/", 1);
+		try_io("file chroot /mnt\\?\\*/", 1);
+		try_io("file unmount /", 1);
+		try_io("file unmount /sys1/", 1);
+		try_io("file unmount /initrd2/", 1);
+		try_io("file unmount /initrd/dev3/", 1);
+		try_io("file unmount /initrd/\\*\\+/", 1);
+		try_io("file unmount /initrd/\\@\\*/", 1);
+		try_io("file unmount /initrd2/", 1);
+		try_io("file pivot_root / /proc3/", 1);
+		try_io("file pivot_root /sys5/ /proc3/", 1);
+		try_io("file pivot_root /sys/", 0);
+		try_io("file pivot_root *", 0);
+		try_io("file pivot_root /sys5/ /proc3/", 1);
+		try_io("file mount / / --bind 0xD", 1);
+		try_io("file mount / / --move 0xF", 1);
+		try_io("file mount / --remount", 0);
+		try_io("file mount /", 0);
+		try_io("file mount none /tmp/ tmpfs 0x1", 1);
+		try_io("file mount none /tmp/ tmpfs", 0);
+		try_io("file mount none /tmp/ nonexistent 0x0", 1);
+		try_io("file mount none /proc/ proc 0x0", 1);
+		try_io("file mount none /selinux/ selinuxfs 0x0", 1);
+		try_io("file mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
+		try_io("file mount none /dev/pts/ devpts 0x0", 1);
+		try_io("file mount any / --remount 0xC00", 1);
+		try_io("file mount /dev/sda1 /boot/ ext3 0xC00", 1);
+		try_io("file mount none /dev/shm/ tmpfs 0x0", 1);
+		try_io("file mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
 		       "0x0", 1);
-		try_io("allow_mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
+		try_io("file mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
 		       "0x0 0x1", 0);
-		try_io("allow_mount none /proc/sys/fs/binfmt_misc/ tmpfs "
+		try_io("file mount none /proc/sys/fs/binfmt_misc/ tmpfs "
 		       "binfmt_misc 0x0", 0);
-		try_io("allow_mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
+		try_io("file mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
 	}
 	policy_file = proc_policy_exception_policy;
 	policy_fp = exception_fp;
 	for (i = 0; i < 3; i++) {
-		try_io("allow_read /tmp/abc", 1);
-		try_io("allow_read /tmp/abc\\*", 1);
-		try_io("allow_read abc", 1);
-		try_io("allow_read /tmp/abc/", 1);
-		try_io("allow_read", 0);
-		try_io("allow_read *", 1);
-		try_io("allow_env FOO", 1);
-		try_io("allow_env FOO=", 0);
-		try_io("allow_env FOO=BAR", 0);
-		try_io("allow_env FOO BAR", 0);
-		try_io("allow_env FOO\\040BAR", 1);
-		try_io("allow_env FOO;BAR;BUZ", 1);
+		try_io("file read /tmp/abc", 1);
+		try_io("file read /tmp/abc\\*", 1);
+		try_io("file read abc", 1);
+		try_io("file read /tmp/abc/", 1);
+		try_io("file read", 0);
+		try_io("file read *", 1);
+		try_io("misc env FOO", 1);
+		try_io("misc env FOO=", 0);
+		try_io("misc env FOO=BAR", 0);
+		try_io("misc env FOO BAR", 0);
+		try_io("misc env FOO\\040BAR", 1);
+		try_io("misc env FOO;BAR;BUZ", 1);
 		try_io("file_pattern /\\*\\*\\*", 1);
 		try_io("file_pattern /abc", 1);
 		try_io("file_pattern /abc /def", 0);
@@ -145,12 +145,6 @@ static void stage_policy_io_test(void)
 		try_io("address_group TEST2 "
 		       "fff0:fff1:fff2:fff3:fff4:fff5:fff6:fff7-"
 		       "fff8:fff9:fffa:fffb:fffc:fffd:fffe:ffff", 1);
-		try_io("deny_rewrite /", 1);
-		try_io("deny_rewrite /foo", 1);
-		try_io("deny_rewrite /\\*", 1);
-		try_io("deny_rewrite /\\:", 0);
-		try_io("deny_rewrite / /", 0);
-		try_io("deny_rewrite @/TEST", 1);
 		try_io("aggregator /boo/\\* /BOO", 1);
 		try_io("aggregator /boo/\\* /BOO\\*", 0);
 		try_io("aggregator /boo/\\*/ /BOO", 1);

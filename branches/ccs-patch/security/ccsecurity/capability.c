@@ -23,12 +23,11 @@
 static int ccs_audit_capability_log(struct ccs_request_info *r)
 {
 	const char *operation = ccs_cap2keyword(r->param.capability.operation);
-	ccs_write_log(r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n", operation);
+	ccs_write_log(r, "capability %s\n", operation);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "capability %s", operation);
-	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_CAPABILITY "%s\n",
-			      operation);
+	return ccs_supervisor(r, "capability %s\n", operation);
 }
 
 static bool ccs_check_capability_acl(const struct ccs_request_info *r,

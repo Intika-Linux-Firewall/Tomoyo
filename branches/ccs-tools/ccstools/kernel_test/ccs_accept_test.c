@@ -20,7 +20,6 @@ static void set_level(const int i)
 	set_profile(i, "file::mksock");
 	set_profile(i, "file::truncate");
 	set_profile(i, "file::symlink");
-	set_profile(i, "file::rewrite");
 	set_profile(i, "file::mkblock");
 	set_profile(i, "file::mkchar");
 	set_profile(i, "file::link");
@@ -51,12 +50,11 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer) - 1, "/tmp/file:a=%d:t=%d:c=%d:m=%d",
 		 append_loop, truncate_loop, create_loop, rw_loop);
-	fprintf(exception_fp, "deny_rewrite %s\n", buffer);
 	flags = rw_flags[rw_loop] | truncate_flags[truncate_loop] |
 		append_flags[append_loop] | create_flags[create_loop];
-	fprintf(domain_fp, "delete allow_read %s\n", buffer);
-	fprintf(domain_fp, "delete allow_write %s\n", buffer);
-	fprintf(domain_fp, "delete allow_execute %s\n", buffer);
+	fprintf(domain_fp, "delete file read %s\n", buffer);
+	fprintf(domain_fp, "delete file write %s\n", buffer);
+	fprintf(domain_fp, "delete file execute %s\n", buffer);
 	for (level = 0; level < 4; level++) {
 		set_level(0);
 		if (create_loop == 1)
@@ -85,12 +83,12 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		  fprintf(stderr, "%d: open(%04o) failed\n", level, flags);
 		*/
 	}
-	fprintf(domain_fp, "delete allow_read %s\n", buffer);
-	fprintf(domain_fp, "delete allow_write %s\n", buffer);
-	fprintf(domain_fp, "delete allow_execute %s\n", buffer);
-	fprintf(domain_fp, "delete allow_truncate %s\n", buffer);
-	fprintf(domain_fp, "delete allow_create %s 0644\n", buffer);
-	fprintf(domain_fp, "delete allow_rewrite %s\n", buffer);
+	fprintf(domain_fp, "delete file read %s\n", buffer);
+	fprintf(domain_fp, "delete file write %s\n", buffer);
+	fprintf(domain_fp, "delete file append %s\n", buffer);
+	fprintf(domain_fp, "delete file execute %s\n", buffer);
+	fprintf(domain_fp, "delete file truncate %s\n", buffer);
+	fprintf(domain_fp, "delete file create %s 0644\n", buffer);
 	fd = open(buffer, flags, 0644);
 	if (fd != EOF) {
 		close(fd);

@@ -30,11 +30,11 @@ static bool ccs_check_env_acl(const struct ccs_request_info *r,
 static int ccs_audit_env_log(struct ccs_request_info *r)
 {
 	const char *env = r->param.environ.name->name;
-	ccs_write_log(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
+	ccs_write_log(r, "misc env %s\n", env);
 	if (r->granted)
 		return 0;
 	ccs_warn_log(r, "environ %s", env);
-	return ccs_supervisor(r, CCS_KEYWORD_ALLOW_ENV "%s\n", env);
+	return ccs_supervisor(r, "misc env %s\n", env);
 }
 
 /**
@@ -83,8 +83,8 @@ static bool ccs_same_env_entry(const struct ccs_acl_info *a,
  *
  * Returns 0 on success, negative value otherwise.
  */
-int ccs_write_env(char *data, struct ccs_domain_info *domain,
-		  struct ccs_condition *condition, const bool is_delete)
+static int ccs_write_env(char *data, struct ccs_domain_info *domain,
+			 struct ccs_condition *condition, const bool is_delete)
 {
 	struct ccs_env_acl e = {
 		.head.type = CCS_TYPE_ENV_ACL,
@@ -100,4 +100,12 @@ int ccs_write_env(char *data, struct ccs_domain_info *domain,
 				  ccs_same_env_entry, NULL);
 	ccs_put_name(e.env);
 	return error;
+}
+
+int ccs_write_misc(char *data, struct ccs_domain_info *domain,
+		   struct ccs_condition *condition, const bool is_delete)
+{
+	if (ccs_str_starts(&data, "env "))
+		return ccs_write_env(data, domain, condition, is_delete);
+	return -EINVAL;
 }

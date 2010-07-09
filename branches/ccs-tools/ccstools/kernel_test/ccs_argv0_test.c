@@ -71,7 +71,7 @@ static void stage_argv0_test(void)
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
 
-		write_domain_policy("allow_execute /bin/true", 0);
+		write_domain_policy("file execute /bin/true", 0);
 		is_enforce = 0;
 		fflush(stdout);
 		if (fork() == 0) {
@@ -85,7 +85,7 @@ static void stage_argv0_test(void)
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
-		write_domain_policy("allow_execute /bin/true", 1);
+		write_domain_policy("file execute /bin/true", 1);
 	}
 }
 

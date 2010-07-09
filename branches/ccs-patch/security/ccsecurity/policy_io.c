@@ -71,8 +71,6 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::truncate",
 	[CCS_MAC_FILE_SYMLINK]
 	= "file::symlink",
-	[CCS_MAC_FILE_REWRITE]
-	= "file::rewrite",
 	[CCS_MAC_FILE_MKBLOCK]
 	= "file::mkblock",
 	[CCS_MAC_FILE_MKCHAR]
@@ -928,7 +926,7 @@ static bool ccs_select_one(struct ccs_io_buffer *head, const char *data)
 	unsigned int pid;
 	struct ccs_domain_info *domain = NULL;
 	bool global_pid = false;
-	if (!strcmp(data, "allow_execute")) {
+	if (!strcmp(data, "execute")) {
 		head->r.print_execute_only = true;
 		return true;
 	}
@@ -974,12 +972,11 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		const char *keyword;
 		int (*write) (char *, struct ccs_domain_info *,
 			      struct ccs_condition *, const bool);
-	} ccs_callback[5] = {
-		{ CCS_KEYWORD_ALLOW_NETWORK, ccs_write_network },
-		{ CCS_KEYWORD_ALLOW_ENV, ccs_write_env },
-		{ CCS_KEYWORD_ALLOW_CAPABILITY, ccs_write_capability },
-		{ CCS_KEYWORD_ALLOW_SIGNAL, ccs_write_signal },
-		{ CCS_KEYWORD_ALLOW_MOUNT, ccs_write_mount }
+	} ccs_callback[4] = {
+		{ "network ", ccs_write_network },
+		{ "misc ", ccs_write_misc },
+		{ "capability ", ccs_write_capability },
+		{ "ipc ", ccs_write_ipc },
 	};
 	int (*write) (char *, struct ccs_domain_info *, struct ccs_condition *,
 		      const bool) = ccs_write_file;
@@ -992,7 +989,7 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		if (!cond)
 			return -EINVAL;
 	}
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 4; i++) {
 		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
 			continue;
 		write = ccs_callback[i].write;
@@ -1007,10 +1004,6 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
 	[CCS_DIF_QUOTA_WARNED] = CCS_KEYWORD_QUOTA_EXCEEDED "\n",
 	[CCS_DIF_IGNORE_GLOBAL] = CCS_KEYWORD_IGNORE_GLOBAL "\n",
-	[CCS_DIF_IGNORE_GLOBAL_ALLOW_READ]
-	= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_READ "\n",
-	[CCS_DIF_IGNORE_GLOBAL_ALLOW_ENV]
-	= CCS_KEYWORD_IGNORE_GLOBAL_ALLOW_ENV "\n",
 	[CCS_DIF_TRANSITION_FAILED] = CCS_KEYWORD_TRANSITION_FAILED "\n"
 };
 	
@@ -1332,15 +1325,12 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			if (head->r.print_execute_only &&
 			    bit != CCS_TYPE_EXECUTE && bit != CCS_TYPE_TRANSIT)
 				continue;
-			/* Print "read/write" instead of "read" and "write". */
-			if ((bit == CCS_TYPE_READ || bit == CCS_TYPE_WRITE)
-			    && (perm & (1 << CCS_TYPE_READ_WRITE)))
-				continue;
 			break;
 		}
 		if (bit >= CCS_MAX_PATH_OPERATION)
 			goto done;
-		ccs_io_printf(head, "allow_%s", ccs_path_keyword[bit]);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 	} else if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
 		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
@@ -1359,7 +1349,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_MKDEV_OPERATION)
 			goto done;
-		ccs_io_printf(head, "allow_%s", ccs_mkdev_keyword[bit]);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_mkdev_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->mode);
 		ccs_print_number_union(head, &ptr->major);
@@ -1370,7 +1361,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_PATH2_OPERATION)
 			goto done;
-		ccs_io_printf(head, "allow_%s", ccs_path2_keyword[bit]);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path2_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name1);
 		ccs_print_name_union(head, &ptr->name2);
 	} else if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
@@ -1379,19 +1371,19 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_PATH_NUMBER_OPERATION)
 			goto done;
-		ccs_io_printf(head, "allow_%s",
-			      ccs_path_number_keyword[bit]);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path_number_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->number);
 	} else if (acl_type == CCS_TYPE_ENV_ACL) {
 		struct ccs_env_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		ccs_set_string(head, CCS_KEYWORD_ALLOW_ENV);
+		ccs_set_string(head, "misc env ");
 		ccs_set_string(head, ptr->env->name);
 	} else if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		ccs_set_string(head, CCS_KEYWORD_ALLOW_CAPABILITY);
+		ccs_set_string(head, "capability ");
 		ccs_set_string(head, ccs_cap2keyword(ptr->operation));
 	} else if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
 		struct ccs_ip_network_acl *ptr =
@@ -1399,8 +1391,9 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_NETWORK_OPERATION)
 			goto done;
-		ccs_io_printf(head, CCS_KEYWORD_ALLOW_NETWORK "%s ",
-			      ccs_net_keyword[bit]);
+		ccs_set_string(head, "network ");
+		ccs_set_string(head, ccs_net_keyword[bit]);
+		ccs_set_space(head);
 		switch (ptr->address_type) {
 			char buf[128];
 		case CCS_IP_ADDRESS_TYPE_ADDRESS_GROUP:
@@ -1423,12 +1416,13 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		ccs_io_printf(head, CCS_KEYWORD_ALLOW_SIGNAL "%u ", ptr->sig);
+		ccs_set_string(head, "ipc signal ");
+		ccs_io_printf(head, "%u ", ptr->sig);
 		ccs_set_string(head, ptr->domainname->name);
 	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		ccs_io_printf(head, "allow_mount");
+		ccs_io_printf(head, "file mount");
 		ccs_print_name_union(head, &ptr->dev_name);
 		ccs_print_name_union(head, &ptr->dir_name);
 		ccs_print_name_union(head, &ptr->fs_type);
@@ -1702,13 +1696,12 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	static const struct {
 		const char *keyword;
 		int (*write) (char *, const bool);
-	} ccs_callback[4] = {
+	} ccs_callback[3] = {
 		{ CCS_KEYWORD_AGGREGATOR, ccs_write_aggregator },
 		{ CCS_KEYWORD_FILE_PATTERN, ccs_write_pattern },
-		{ CCS_KEYWORD_DENY_REWRITE, ccs_write_no_rewrite },
 		{ CCS_KEYWORD_DENY_AUTOBIND, ccs_write_reserved_port }
 	};
-	for (i = 0; i < 4; i++)
+	for (i = 0; i < 3; i++)
 		if (ccs_str_starts(&data, ccs_callback[i].keyword))
 			return ccs_callback[i].write(data, is_delete);
 	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
@@ -1826,14 +1819,6 @@ static bool ccs_read_policy(struct ccs_io_buffer *head, const int idx)
 				struct ccs_pattern *ptr =
 					container_of(acl, typeof(*ptr), head);
 				ccs_set_string(head, CCS_KEYWORD_FILE_PATTERN);
-				ccs_set_string(head, ptr->pattern->name);
-			}
-			break;
-		case CCS_ID_NO_REWRITE:
-			{
-				struct ccs_no_rewrite *ptr =
-					container_of(acl, typeof(*ptr), head);
-				ccs_set_string(head, CCS_KEYWORD_DENY_REWRITE);
 				ccs_set_string(head, ptr->pattern->name);
 			}
 			break;

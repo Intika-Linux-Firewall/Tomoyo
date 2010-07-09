@@ -225,7 +225,6 @@ static void set_file_enforce(int enforce)
 		set_profile(3, "file::mksock");
 		set_profile(3, "file::truncate");
 		set_profile(3, "file::symlink");
-		set_profile(3, "file::rewrite");
 		set_profile(3, "file::mkblock");
 		set_profile(3, "file::mkchar");
 		set_profile(3, "file::link");
@@ -249,7 +248,6 @@ static void set_file_enforce(int enforce)
 		set_profile(0, "file::mksock");
 		set_profile(0, "file::truncate");
 		set_profile(0, "file::symlink");
-		set_profile(0, "file::rewrite");
 		set_profile(0, "file::mkblock");
 		set_profile(0, "file::mkchar");
 		set_profile(0, "file::link");

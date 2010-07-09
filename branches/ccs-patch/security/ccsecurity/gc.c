@@ -73,21 +73,6 @@ static inline size_t ccs_del_file_pattern(struct list_head *element)
 }
 
 /**
- * ccs_del_no_rewrite - Delete members in "struct ccs_no_rewrite".
- *
- * @element: Pointer to "struct list_head".
- *
- * Returns size of @element (for later kfree()).
- */
-static inline size_t ccs_del_no_rewrite(struct list_head *element)
-{
-	struct ccs_no_rewrite *ptr =
-		container_of(element, typeof(*ptr), head.list);
-	ccs_put_name(ptr->pattern);
-	return sizeof(*ptr);
-}
-
-/**
  * ccs_del_transition_control - Delete members in "struct ccs_transition_control".
  *
  * @element: Pointer to "struct list_head".
@@ -684,9 +669,6 @@ static bool ccs_kfree_entry(void)
 			break;
 		case CCS_ID_PATTERN:
 			size = ccs_del_file_pattern(element);
-			break;
-		case CCS_ID_NO_REWRITE:
-			size = ccs_del_no_rewrite(element);
 			break;
 		case CCS_ID_MANAGER:
 			size = ccs_del_manager(element);

@@ -30,7 +30,6 @@ const u8 ccs_index2category[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX] = {
 	[CCS_MAC_FILE_MKSOCK]     = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_TRUNCATE]   = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_SYMLINK]    = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_REWRITE]    = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_MKBLOCK]    = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_MKCHAR]     = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_LINK]       = CCS_MAC_CATEGORY_FILE,
@@ -1031,54 +1030,41 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 	if (!domain)
 		return true;
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+		u16 perm;
+		u8 i;
 		if (ptr->is_deleted)
 			continue;
 		switch (ptr->type) {
-			u16 perm;
-			u8 i;
 		case CCS_TYPE_PATH_ACL:
-			perm = container_of(ptr, struct ccs_path_acl, head)->
-				perm;
-			for (i = 0; i < CCS_MAX_PATH_OPERATION; i++)
-				if (perm & (1 << i))
-					count++;
-			if (perm & (1 << CCS_TYPE_READ_WRITE))
-				count -= 2;
+			perm = container_of(ptr, struct ccs_path_acl,
+					    head)->perm;
 			break;
 		case CCS_TYPE_PATH2_ACL:
 			perm = container_of(ptr, struct ccs_path2_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_PATH2_OPERATION; i++)
-				if (perm & (1 << i))
-					count++;
 			break;
 		case CCS_TYPE_EXECUTE_HANDLER:
 		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
+			perm = 0;
 			break;
 		case CCS_TYPE_PATH_NUMBER_ACL:
 			perm = container_of(ptr, struct ccs_path_number_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_PATH_NUMBER_OPERATION; i++)
-				if (perm & (1 << i))
-					count++;
 			break;
 		case CCS_TYPE_MKDEV_ACL:
 			perm = container_of(ptr, struct ccs_mkdev_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_MKDEV_OPERATION; i++)
-				if (perm & (1 << i))
-					count++;
 			break;
 		case CCS_TYPE_IP_NETWORK_ACL:
 			perm = container_of(ptr, struct ccs_ip_network_acl,
 					    head)->perm;
-			for (i = 0; i < CCS_MAX_NETWORK_OPERATION; i++)
-				if (perm & (1 << i))
-					count++;
 			break;
 		default:
-			count++;
+			perm = 1;
 		}
+		for (i = 0; i < 16; i++)
+			if (perm & (1 << i))
+				count++;
 	}
 	if (count < ccs_profile(domain->profile)->learning->learning_max_entry)
 		return true;

@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 			printf("OK: No such device.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete allow_mount dev\\011name / "
+		fprintf(domain_fp, "delete file mount dev\\011name / "
 			"fs\\011name 0\n");
 		show_prompt("mount('dev\\011name', '/', 'fs\\011name') ", 1);
 		if (mount("dev\tname", "/", "fs\tname", 0, NULL) == EOF &&
@@ -215,14 +215,14 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success\n");
-		fprintf(domain_fp, "delete allow_mount <NULL> / tmpfs 0\n");
-		fprintf(domain_fp, "allow_mount anydev / tmpfs 0\n");
+		fprintf(domain_fp, "delete file mount <NULL> / tmpfs 0\n");
+		fprintf(domain_fp, "file mount anydev / tmpfs 0\n");
 		show_prompt("mount(NULL, '/', 'tmpfs') ", 0);
 		if (mount(NULL, "/", "tmpfs", 0, NULL))
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success\n");
-		fprintf(domain_fp, "delete allow_mount anydev / tmpfs 0\n");
+		fprintf(domain_fp, "delete file mount anydev / tmpfs 0\n");
 		set_profile(2, "file::mount");
 		show_prompt("mount(NULL, NULL, 'tmpfs') ", 1);
 		if (mount(NULL, NULL, "tmpfs", 0, NULL))
@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 
 		/* Test standard case */
-		fprintf(domain_fp, "allow_mount none /tmp/mount/ tmpfs 0\n");
+		fprintf(domain_fp, "file mount none /tmp/mount/ tmpfs 0\n");
 		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
 			    "'/tmp/mount/'", 0);
 		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
@@ -323,10 +323,10 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 		fprintf(domain_fp,
-			"delete allow_mount none /tmp/mount/ tmpfs 0\n");
+			"delete file mount none /tmp/mount/ tmpfs 0\n");
 
 		/* Test device_name with pattern */
-		fprintf(domain_fp, "allow_mount %s\\* /tmp/mount/ ext2 1\n",
+		fprintf(domain_fp, "file mount %s\\* /tmp/mount/ ext2 1\n",
 			dev_ram_path);
 		snprintf(buf, sizeof(buf) - 1, "mount('%s', '/tmp/mount/', "
 			 "'ext2') for '%s\\*'", dev_ram_path, dev_ram_path);
@@ -336,19 +336,19 @@ int main(int argc, char *argv[])
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete allow_mount %s\\* "
+		fprintf(domain_fp, "delete file mount %s\\* "
 			"/tmp/mount/ ext2 1\n", dev_ram_path);
 
 		/* Test dir_name with pattern */
 		fprintf(domain_fp,
-			"allow_mount none /tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
+			"file mount none /tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
 		show_prompt("mount('none', '/tmp/mount/', 'tmpfs') for "
 			    "'/tmp/\\?\\?\\?\\?\\?/'", 0);
 		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete allow_mount none "
+		fprintf(domain_fp, "delete file mount none "
 			"/tmp/\\?\\?\\?\\?\\?/ tmpfs 0\n");
 
 		set_profile(0, "file::mount");
@@ -374,14 +374,14 @@ int main(int argc, char *argv[])
 			printf("OK: Permission denied.\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(domain_fp, "allow_mount something /tmp/mount/ "
+		fprintf(domain_fp, "file mount something /tmp/mount/ "
 			"--remount 0\n");
 		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 0);
 		if (mount(NULL, "/tmp/mount/", NULL, MS_REMOUNT, NULL))
 			printf("BUG: %s\n", strerror(errno));
 		else
 			printf("OK: Success.\n");
-		fprintf(domain_fp, "delete allow_mount something /tmp/mount/ "
+		fprintf(domain_fp, "delete file mount something /tmp/mount/ "
 			"--remount 0\n");
 
 		/* Test bind case */
@@ -404,19 +404,19 @@ int main(int argc, char *argv[])
 
 		/* Test remount case */
 		fprintf(domain_fp,
-			"allow_mount any /tmp/mount/ --remount 0\n");
+			"file mount any /tmp/mount/ --remount 0\n");
 		show_prompt("mount('/tmp/mount/', MS_REMOUNT)", 0);
 		if (mount("none", "/tmp/mount/", "tmpfs", MS_REMOUNT, NULL)
 		    == 0)
 			printf("OK\n");
 		else
 			printf("FAILED: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete allow_mount any /tmp/mount/ "
+		fprintf(domain_fp, "delete file mount any /tmp/mount/ "
 			"--remount 0\n");
 
 		/* Test bind case */
 		fprintf(domain_fp,
-			"allow_mount /tmp/mount/ /tmp/mount_bind/ --bind 0\n");
+			"file mount /tmp/mount/ /tmp/mount_bind/ --bind 0\n");
 		show_prompt("mount('/tmp/mount/', '/tmp/mount_bind', MS_BIND)",
 			    0);
 		if (mount("/tmp/mount/", "/tmp/mount_bind/", NULL, MS_BIND,
@@ -426,13 +426,13 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 		set_profile(0, "file::mount");
 		umount("/tmp/mount_bind/");
-		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
+		fprintf(domain_fp, "delete file mount /tmp/mount/ "
 			"/tmp/mount_bind/ --bind 0\n");
 
 		/* Test move case */
 		set_profile(3, "file::mount");
-		fprintf(domain_fp, "allow_unmount /tmp/mount/\n");
-		fprintf(domain_fp, "allow_mount /tmp/mount/ /tmp/mount_move/ "
+		fprintf(domain_fp, "file unmount /tmp/mount/\n");
+		fprintf(domain_fp, "file mount /tmp/mount/ /tmp/mount_move/ "
 			"--move 0\n");
 		show_prompt("mount('/tmp/mount/', '/tmp/mount_move/', "
 			    "MS_MOVE)", 0);
@@ -443,8 +443,8 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 		set_profile(0, "file::mount");
 		umount("/tmp/mount_move/");
-		fprintf(domain_fp, "delete allow_unmount /tmp/mount/\n");
-		fprintf(domain_fp, "delete allow_mount /tmp/mount/ "
+		fprintf(domain_fp, "delete file unmount /tmp/mount/\n");
+		fprintf(domain_fp, "delete file mount /tmp/mount/ "
 			"/tmp/mount_move/ --move 0\n");
 
 		while (umount("/tmp/mount/") == 0)
@@ -497,7 +497,7 @@ int main(int argc, char *argv[])
 	/* Test umount(). */
 	{
 		/* Test standard case */
-		fprintf(domain_fp, "allow_unmount /tmp/mount/\n");
+		fprintf(domain_fp, "file unmount /tmp/mount/\n");
 
 		set_profile(0, "file::umount");
 		mount2("none", "/tmp/mount/", "tmpfs");
@@ -507,7 +507,7 @@ int main(int argc, char *argv[])
 			printf("OK\n");
 		else
 			printf("BUG: %s\n", strerror(errno));
-		fprintf(domain_fp, "delete allow_unmount /tmp/mount/\n");
+		fprintf(domain_fp, "delete file unmount /tmp/mount/\n");
 
 		set_profile(0, "file::umount");
 
@@ -520,7 +520,7 @@ int main(int argc, char *argv[])
 			printf("FAILED: %s\n", strerror(errno));
 
 		/* Test pattern */
-		fprintf(domain_fp, "allow_unmount /tmp/\\?\\?\\?\\?\\?/\n");
+		fprintf(domain_fp, "file unmount /tmp/\\?\\?\\?\\?\\?/\n");
 		set_profile(0, "file::umount");
 		mount2("none", "/tmp/mount/", "tmpfs");
 		set_profile(3, "file::umount");
@@ -531,7 +531,7 @@ int main(int argc, char *argv[])
 		else
 			printf("BUG: %s\n", strerror(errno));
 		fprintf(domain_fp,
-			"delete allow_unmount /tmp/\\?\\?\\?\\?\\?/\n");
+			"delete file unmount /tmp/\\?\\?\\?\\?\\?/\n");
 
 		set_profile(0, "file::umount");
 		while (umount("/tmp/mount/") == 0)
@@ -543,7 +543,7 @@ int main(int argc, char *argv[])
 		set_profile(3, "file::chroot");
 
 		/* Test standard case */
-		fprintf(domain_fp, "allow_chroot /tmp/mount/\n");
+		fprintf(domain_fp, "file chroot /tmp/mount/\n");
 		show_prompt("chroot('/tmp/mount/') for '/tmp/mount/'", 0);
 		fflush(stdout);
 		if (fork() == 0) {
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
 			_exit(0);
 		}
 		wait(NULL);
-		fprintf(domain_fp, "delete allow_chroot /tmp/mount/\n");
+		fprintf(domain_fp, "delete file chroot /tmp/mount/\n");
 
 		show_prompt("chroot('/tmp/mount/') for '/tmp/mount/'", 1);
 		fflush(stdout);
@@ -570,7 +570,7 @@ int main(int argc, char *argv[])
 		wait(NULL);
 
 		/* Test pattern */
-		fprintf(domain_fp, "allow_chroot /tmp/\\?\\?\\?\\?\\?/\n");
+		fprintf(domain_fp, "file chroot /tmp/\\?\\?\\?\\?\\?/\n");
 		show_prompt("chroot('/tmp/mount/') for "
 			    "'/tmp/\\?\\?\\?\\?\\?/'", 0);
 		fflush(stdout);
@@ -584,7 +584,7 @@ int main(int argc, char *argv[])
 		}
 		wait(NULL);
 		fprintf(domain_fp,
-			"delete allow_chroot /tmp/\\?\\?\\?\\?\\?/\n");
+			"delete file chroot /tmp/\\?\\?\\?\\?\\?/\n");
 
 		set_profile(0, "file::chroot");
 	}
@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
 		int error;
 		char *stack = malloc(8192);
 		set_profile(3, "file::pivot_root");
-		fprintf(domain_fp, "allow_pivot_root %s %s\n",
+		fprintf(domain_fp, "file pivot_root %s %s\n",
 			 pivot_root_dir, proc_policy_dir);
 		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
 			 proc_policy_dir);
@@ -612,7 +612,7 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		fprintf(domain_fp, "delete allow_pivot_root %s %s\n",
+		fprintf(domain_fp, "delete file pivot_root %s %s\n",
 			pivot_root_dir, proc_policy_dir);
 		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
 			 proc_policy_dir);

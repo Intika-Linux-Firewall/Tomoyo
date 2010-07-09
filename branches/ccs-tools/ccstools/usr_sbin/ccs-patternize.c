@@ -218,42 +218,48 @@ int main(int argc, char *argv[])
 			if (!cp)
 				break;
 			if (first) {
-				if (!strcmp(cp, "allow_read") ||
-				    !strcmp(cp, "allow_write") ||
-				    !strcmp(cp, "allow_read/write") ||
-				    !strcmp(cp, "allow_unlink") ||
-				    !strcmp(cp, "allow_rmdir") ||
-				    !strcmp(cp, "allow_truncate") ||
-				    !strcmp(cp, "allow_symlink") ||
-				    !strcmp(cp, "allow_rewrite") ||
-				    !strcmp(cp, "allow_chroot") ||
-				    !strcmp(cp, "allow_unmount")) {
-					path_count = 1;
-				} else if (!strcmp(cp, "allow_link") ||
-					   !strcmp(cp, "allow_rename") ||
-					   !strcmp(cp, "allow_pivot_root")) {
-					path_count = 2;
-				} else if (!strcmp(cp, "allow_create") ||
-					   !strcmp(cp, "allow_mkdir") ||
-					   !strcmp(cp, "allow_mkfifo") ||
-					   !strcmp(cp, "allow_mksock") ||
-					   !strcmp(cp, "allow_ioctl") ||
-					   !strcmp(cp, "allow_chmod") ||
-					   !strcmp(cp, "allow_chown") ||
-					   !strcmp(cp, "allow_chgrp")) {
-					path_count = 1;
-					number_count = 1;
-				} else if (!strcmp(cp, "allow_mkblock") ||
-					   !strcmp(cp, "allow_mkchar")) {
-					path_count = 1;
-					number_count = 3;
-				} else if (!strcmp(cp, "allow_mount")) {
-					path_count = 3;
-					number_count = 1;
-				} else if (!strcmp(cp, "allow_network")) {
+				if (!strcmp(cp, "network")) {
 					skip_count = 2;
 					address_count = 1;
 					number_count = 1;
+				} else if (!strcmp(cp, "file")) {
+					printf("file ");
+					cp = strsep(&sp, " ");
+					if (!cp)
+						break;
+					if (!strcmp(cp, "read") ||
+					    !strcmp(cp, "write") ||
+					    !strcmp(cp, "append") ||
+					    !strcmp(cp, "unlink") ||
+					    !strcmp(cp, "rmdir") ||
+					    !strcmp(cp, "truncate") ||
+					    !strcmp(cp, "symlink") ||
+					    !strcmp(cp, "rewrite") ||
+					    !strcmp(cp, "chroot") ||
+					    !strcmp(cp, "unmount")) {
+						path_count = 1;
+					} else if (!strcmp(cp, "link") ||
+						   !strcmp(cp, "rename") ||
+						   !strcmp(cp, "pivot_root")) {
+						path_count = 2;
+					} else if (!strcmp(cp, "create") ||
+						   !strcmp(cp, "mkdir") ||
+						   !strcmp(cp, "mkfifo") ||
+						   !strcmp(cp, "mksock") ||
+						   !strcmp(cp, "ioctl") ||
+						   !strcmp(cp, "chmod") ||
+						   !strcmp(cp, "chown") ||
+						   !strcmp(cp, "chgrp")) {
+						path_count = 1;
+						number_count = 1;
+					} else if (!strcmp(cp, "mkblock") ||
+						   !strcmp(cp, "mkchar")) {
+						path_count = 1;
+						number_count = 3;
+					} else if (!strcmp(cp, "mount")) {
+						path_count = 3;
+						number_count = 1;
+					}
 				}
 			} else if (skip_count) {
 				skip_count--;

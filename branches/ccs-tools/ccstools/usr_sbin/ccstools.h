@@ -41,8 +41,8 @@
 /***** CONSTANTS DEFINITION START *****/
 
 #define CCS_KEYWORD_ADDRESS_GROUP            "address_group "
-#define CCS_KEYWORD_ALLOW_EXECUTE            "allow_execute "
-#define CCS_KEYWORD_ALLOW_READ               "allow_read "
+#define CCS_KEYWORD_ALLOW_EXECUTE            "file execute "
+#define CCS_KEYWORD_ALLOW_READ               "file read "
 #define CCS_KEYWORD_DELETE                   "delete "
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
 #define CCS_KEYWORD_EXECUTE_HANDLER          "execute_handler "

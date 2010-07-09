@@ -59,7 +59,7 @@ static void set_capability(const char *capability)
 	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
 	set_profile(is_enforce ? 3 : 2, buffer);
 	if (should_success)
-		fprintf(domain_fp, "allow_capability %s\n", capability);
+		fprintf(domain_fp, "capability %s\n", capability);
 }
 
 static void unset_capability(const char *capability)
@@ -69,7 +69,7 @@ static void unset_capability(const char *capability)
 	snprintf(buffer, sizeof(buffer) - 1, "capability::%s", capability);
 	set_profile(0, buffer);
 	if (should_success)
-		fprintf(domain_fp, "delete allow_capability %s\n", capability);
+		fprintf(domain_fp, "delete capability %s\n", capability);
 }
 
 static void stage_capability_test(void)
