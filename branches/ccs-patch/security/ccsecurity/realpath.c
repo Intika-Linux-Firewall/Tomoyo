@@ -66,7 +66,6 @@ static int ccs_kern_path(const char *pathname, int flags, struct path *path)
  * Based on __d_path() in fs/dcache.c
  *
  * If dentry is a directory, trailing '/' is appended.
- * /proc/pid is represented as /proc/self if pid is current.
  */
 static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 				   const int buflen)
@@ -74,7 +73,6 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 	char *pos = buffer + buflen - 1;
 	struct dentry *dentry = path->dentry;
 	struct vfsmount *vfsmnt = path->mnt;
-	bool is_dir = (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode));
 	const char *name;
 	int len;
 
@@ -82,6 +80,8 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 		goto out;
 
 	*pos = '\0';
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
+		*--pos = '/';
 	for (;;) {
 		struct dentry *parent;
 		if (dentry == vfsmnt->mnt_root || IS_ROOT(dentry)) {
@@ -91,34 +91,9 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 			vfsmnt = vfsmnt->mnt_parent;
 			continue;
 		}
-		if (is_dir) {
-			is_dir = false;
-			*--pos = '/';
-		}
 		parent = dentry->d_parent;
 		name = dentry->d_name.name;
 		len = dentry->d_name.len;
-		if (IS_ROOT(parent) && *name > '0' && *name <= '9' &&
-		    parent->d_sb &&
-		    parent->d_sb->s_magic == PROC_SUPER_MAGIC) {
-			char *ep;
-			const pid_t pid = (pid_t) simple_strtoul(name, &ep,
-								 10);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-			const pid_t tgid = task_tgid_nr_ns(current,
-							   dentry->d_sb->
-							   s_fs_info);
-			if (!*ep && pid == tgid && tgid) {
-				name = "self";
-				len = 4;
-			}
-#else
-			if (!*ep && pid == ccsecurity_exports.sys_getpid()) {
-				name = "self";
-				len = 4;
-			}
-#endif
-		}
 		pos -= len;
 		if (pos <= buffer)
 			goto out;
@@ -133,6 +108,45 @@ static char *ccs_get_absolute_path(struct path *path, char * const buffer,
 	if (pos < buffer)
 		goto out;
 	memmove(pos, dentry->d_name.name, len);
+	return pos;
+ out:
+	return ERR_PTR(-ENOMEM);
+}
+
+/**
+ * ccs_get_dentry_path - Get the path of a dentry but ignores chroot'ed root.
+ *
+ * @dentry: Pointer to "struct dentry".
+ * @buffer: Pointer to buffer to return value in.
+ * @buflen: Sizeof @buffer.
+ *
+ * Returns the buffer on success, an error code otherwise.
+ *
+ * Caller holds the dcache_lock.
+ * Based on dentry_path() in fs/dcache.c
+ *
+ * If dentry is a directory, trailing '/' is appended.
+ */
+static char *ccs_get_dentry_path(struct dentry *dentry, char * const buffer,
+				 const int buflen)
+{
+	char *pos = buffer + buflen - 1;
+	if (buflen < 256)
+		goto out;
+	*pos = '\0';
+	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
+		*--pos = '/';
+	while (!IS_ROOT(dentry)) {
+		struct dentry *parent = dentry->d_parent;
+		const char *name = dentry->d_name.name;
+		const int len = dentry->d_name.len;
+		pos -= len;
+		if (pos <= buffer)
+			goto out;
+		memmove(pos, name, len);
+		*--pos = '/';
+		dentry = parent;
+	}
 	return pos;
  out:
 	return ERR_PTR(-ENOMEM);
@@ -156,8 +170,10 @@ char *ccs_realpath_from_path(struct path *path)
 	char *name = NULL;
 	unsigned int buf_len = PAGE_SIZE / 2;
 	struct dentry *dentry = path->dentry;
+	struct super_block *sb;
 	if (!dentry)
 		return NULL;
+	sb = dentry->d_sb;
 	while (1) {
 		char *pos;
 		buf_len <<= 1;
@@ -166,7 +182,7 @@ char *ccs_realpath_from_path(struct path *path)
 		if (!buf)
 			break;
 		/* Get better name for socket. */
-		if (dentry->d_sb && dentry->d_sb->s_magic == SOCKFS_MAGIC) {
+		if (sb->s_magic == SOCKFS_MAGIC) {
 			struct inode *inode = dentry->d_inode;
 			struct socket *sock = inode ? SOCKET_I(inode) : NULL;
 			struct sock *sk = sock ? sock->sk : NULL;
@@ -190,6 +206,54 @@ char *ccs_realpath_from_path(struct path *path)
 			break;
 		}
 #endif
+		/*
+		 * Get local name for filesystems without rename() operation.
+		 */
+		if (sb->s_root->d_inode && sb->s_root->d_inode->i_op &&
+		    !sb->s_root->d_inode->i_op->rename) {
+			spin_lock(&dcache_lock);
+			pos = ccs_get_dentry_path(dentry, buf, buf_len - 1);
+			spin_unlock(&dcache_lock);
+			if (IS_ERR(pos))
+				continue;
+			/*
+			 * Convert from $PID to self if $PID is current thread.
+			 */
+			if (sb->s_magic == PROC_SUPER_MAGIC && *pos == '/') {
+				char *ep;
+				const pid_t pid = (pid_t)
+					simple_strtoul(pos + 1, &ep, 10);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+				if (*ep == '/' && pid && pid ==
+				    task_tgid_nr_ns(current, sb->s_fs_info)) {
+					pos = ep - 5;
+					if (pos < buf)
+						continue;
+					memmove(pos, "/self", 5);
+				}
+#else
+				if (*ep == '/' &&
+				    pid == ccsecurity_exports.sys_getpid()) {
+					pos = ep - 5;
+					if (pos < buf)
+						continue;
+					memmove(pos, "/self", 5);
+				}
+#endif
+			}
+			/* Prepend filesystem name. */
+			{
+				const char *name = sb->s_type->name;
+				const int name_len = strlen(name);
+				pos -= name_len + 1;
+				if (pos < buf)
+					continue;
+				memmove(pos, name, name_len);
+				pos[name_len] = ':';
+			}
+			name = ccs_encode(pos);
+			break;
+		}
 		if (!path->mnt)
 			break;
 		path_get(path);
@@ -199,27 +263,6 @@ char *ccs_realpath_from_path(struct path *path)
 		path_put(path);
 		if (IS_ERR(pos))
 			continue;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
-		/* Prepend "/proc" prefix if using internal proc vfs mount. */
-		if (path->mnt->mnt_flags & MNT_INTERNAL &&
-		    path->mnt->mnt_sb->s_magic == PROC_SUPER_MAGIC) {
-			pos -= 5;
-			if (pos >= buf)
-				memmove(pos, "/proc", 5);
-			else
-				continue;
-		}
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 33)
-		/* Prepend "/proc" prefix if using internal proc vfs mount. */
-		if (path->mnt->mnt_parent == path->mnt &&
-		    path->mnt->mnt_sb->s_magic == PROC_SUPER_MAGIC) {
-			pos -= 5;
-			if (pos >= buf)
-				memmove(pos, "/proc", 5);
-			else
-				continue;
-		}
-#endif
 		name = ccs_encode(pos);
 		break;
 	}
