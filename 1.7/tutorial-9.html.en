@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The ninth installment: "Let's restrict login sessions. (Last part)"</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-9.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The ninth installment: "Let's restrict login sessions. (Last part)"</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In the previous installment, I explained domain transitions and access control on files from steps for restricting operations in login sessions. In this installment, I explain access control on networks from steps for restricting operations in login sessions and actual operation procedure. </p>
+
+<h2>Step 3: Determine networks you want to allow communication</h2>
+
+<h3>Restricting network access</h3>
+
+<p>Users who logged into the system can access networks as well as files. Thus, you design what servers does user can access. The permission for allowing network access is "allow_network PROTOCOL IPADDDRESS PORTNUMBER". PROTOCOL is one of TCP or UDP or RAW, IPADDRESS is IPv4 or IPv6 address. You can use group for IPADDRESS like grouping pathnames. In this section, I explain about HTTP, DNS, FTP and SSH services as examples.</p>
+
+<h4>&diams;HTTP</h4>
+
+<p>Firstly, group IP addresses of HTTP servers using HTTP_SERVERS group. By grouping, the policy configuration becomes more readable and you need to modify only one place when server's IP address is added or changed or deleted. To group IP addresses, you can use "address_group" keyword. If HTTP server's IP addresses are 192.168.1.100 and 192.168.1.200, you can define like Fig. 1 in exception policy and give permissions listed in Fig. 2 to the domain for login shell (i.e. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash"). (Define DNS_SERVERS, FTP_SERVERS and SSH_SERVERS in the same manner.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Grouping IP address
+<pre>
+address_group HTTP_SERVERS 192.168.1.100
+address_group HTTP_SERVERS 192.168.1.20
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Permissions for communicating with HTTP server
+<pre>
+allow_network TCP connect @HTTP_SERVERS 80
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;DNS</h4>
+
+<p>You want permissions like Fig. 3 to the domain for login shell because UDP protocol on port 53 is used for communicating with DNS service.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Permissions for communicating with DNS server
+<pre>
+allow_network UDP connect @DNS_SERVERS 53
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;FTP</h4>
+
+<p>You want permissions like Fig. 4 to the domain for login shell because TCP protocol on port 21 is used for communicating with FTP server.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Permission for FTP's control channel
+<pre>
+allow_network TCP connect @FTP_SERVERS 21
+</pre>
+</td></tr>
+</table>
+
+<p>You may want permissions like Fig. 5 as well because FTP protocol may need to establish TCP connections from server to client.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Permission for FTP's data channel (for active mode)
+<pre>
+allow_network TCP accept @FTP_SERVERS 20
+</pre>
+</td></tr>
+</table>
+
+<p>If server cannot establish TCP connection from server to client (e.g. client is inside firewalls), FTP's passive mode is used. Thus, you may want permissions like Fig. 6 rather than Fig. 5.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Permission for FTP's data channel (for passive mode)
+<pre>
+allow_network TCP connect @FTP_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<h4>&diams;SSH</h4>
+
+<p>You want permissions like Fig. 7 because SSH protocol on port 22 is used for communicating with SSH server.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Permissions for communicating with SSH server
+<pre>
+allow_network TCP connect @SSH_SERVERS 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<p>But note that you will give this permission to the domain for /usr/bin/ssh command (Fig. 9) rather than the domain for login shell because you designed to run in a different domain than the login shell's domain because it needs to grant access to SSH's secret keys. (Fig. 8) Run the policy editor and press "A" key and enter the line in Fig. 9 and press "ENTER" key to create domain for /usr/bin/ssh command.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Execute in a different domain than login shell
+<pre>
+no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/bin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Domain for /usr/bin/ssh command
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh
+</pre>
+</td></tr>
+</table>
+
+<h2>Step 4: Start learning mode</h2>
+
+<p>By now, you have finished basic policy configuration. But some of permissions are missing. Thus, let's start learning mode in order to append missing permissions. Run the policy editor and assign profile 1 to the domain for login shell and its descendent domains.  (You may run command listed in Fig. 10 as "root" user instead of running policy editor.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Assign a profile for learning mode
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>Then, do operations you want to allow (e.g. executing commands in COMMANDS_FOR_LOGIN_SESSION group, editing files in HOME_FILE group, accessing networks). Fig. 11 to Fig. 15 are operation examples.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Creating SSH key pair
+<pre>
+$ ssh-keygen
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/example/.ssh/id_rsa):
+Created directory '/home/example/.ssh'.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/example/.ssh/id_rsa.
+Your public key has been saved in /home/example/.ssh/id_rsa.pub.
+The key fingerprint is:
+c7:4f:53:39:6f:7e:17:fb:ec:94:0d:02:09:84:d5:67 example@tomoyo
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Connecting via SSH
+<pre>
+$ ssh 192.168.99.138 id
+example@192.168.99.138's password:
+uid=500(example) gid=500(example) groups=500(example)
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Changing password
+<pre>
+$ passwd
+Changing password for user example.
+Changing password for example
+(current) UNIX password:
+New UNIX password:
+Retype new UNIX password:
+passwd: all authentication tokens updated successfully.
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Accessing HTTP server
+<pre>
+$ wget http://192.168.1.100/
+Length: unspecified [text/html]
+Saving to: `index.html'
+[ &lt;=&gt;     ] 2,997       --.-K/s   in 0s
+14:22:14 (286 MB/s) - `index.html' saved [2997]
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Accessing files under user's home directory
+<pre>
+$ ls .bashrc | xargs /bin/cat &gt; /dev/null
+</pre>
+</td></tr>
+</table>
+
+<p>In this installment, I'm using "example" user as a non "root" user. Since you gave permissions for reading and/or writing files under user's home directory (Fig. 16) in the previous installment, permissions included in Fig. 16 will not be appended to policy configuration by learning mode.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Permissions given beforehand
+<pre>
+allow_execute @COMMANDS_FOR_LOGIN
+allow_read/write @HOME_FILE if task.uid=path1.uid
+allow_create @HOME_FILE if task.uid=path1.parent.uid
+allow_unlink @HOME_FILE if task.uid=path1.uid
+allow_symlink @HOME_FILE if task.uid=path1.parent.uid
+allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_truncate @HOME_FILE if task.uid=path1.uid
+allow_rewrite @HOME_FILE if task.uid=path1.uid
+allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
+allow_rmdir @HOME_DIR if task.uid=path1.uid
+allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+</pre>
+</td></tr>
+</table>
+
+<p>But since the directory for storing SSH's secret keys is excluded from HOME_FILE group (Fig. 17), individual permissions for /home/example/.ssh/id_rsa are appended by doing operations in Fig. 11.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;Pathnames included in user's home directory
+<pre>
+path_group HOME_FILE /home/\{\*\-.ssh\}/\*
+path_group HOME_DIR /home/\{\*\-.ssh\}/
+</pre>
+</td></tr>
+</table>
+
+<h2>Tune policy</h2>
+
+<h3>Change to permissive mode</h3>
+
+<p>Assign profile 2 to the domain for login shell and its descendent domains using the policy editor. From now on, toggle learning mode (i.e. profile 1) and permissive mode (i.e. profile 2) as needed. Run the policy editor and browse permissions given to the domain for login shell. To be honest, I suggested you incomplete exception policy in the previous installment on purpose in order to explain how to adjust exception policy. Hereafter, you correct policy configuration. Thus, think together while reading on.</p>
+
+<h3>Review domain transition tree</h3>
+
+<p>In the previous installment, I specified /usr/bin/ssh to run in a different domain than login shell. But on second thought, you have to allow accessing SSH's secret keys to /usr/bin/ssh-keygen as well as /usr/bin/ssh . Although you specified /usr/bin/ssh to run in a different domain so that the programs which run in the domain for login shell (e.g. /bin/cat command) cannot access SSH's secret keys, the programs which run in the domain for login shell will be able to access SSH's secret keys if /usr/bin/ssh-keygen runs in a domain for login shell. Thus, you let /usr/bin/ssh-keygen run in a different domain than a domain for login shell as well as /usr/bin/ssh . You may simply add a line in Fig. 18 to exception policy, but you may also regard /usr/bin/ssh and /usr/bin/ssh-keygen are identical because these programs need to access SSH's secret keys.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp;Execute in a different domain than the domain for login shell
+<pre>
+no_keep_domain /usr/bin/ssh-keygen from &lt;kernel&gt; /usr/sbin/sshd /bin/bash
+</pre>
+</td></tr>
+</table>
+
+<p>For such purpose, TOMOYO Linux provides "aggregator" keyword. The syntax is "aggregator ORIGINALNAME AGGREGATEDNAME", where ORIGINALNAME is the original pathname of the program and AGGREGATEDNAME is the pathname to be rewritten. By specifying like Fig. 19, when execution of /usr/bin/ssh-keygen is requested, /usr/bin/ssh is used for checking execute permission and domain transition.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Treat /usr/bin/ssh-keygen command as /usr/bin/ssh command
+<pre>
+aggregator /usr/bin/ssh-keygen /usr/bin/ssh
+</pre>
+</td></tr>
+</table>
+
+<p>Therefore, you don't need to create domain like Fig. 20 or add a line like Fig. 18 if you specify Fig. 19.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;Domain for /usr/bin/ssh-keygen command
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/ssh-keygen
+</pre>
+</td></tr>
+</table>
+
+<p>This time, I use "aggregator". Thus, append a line in Fig. 19 to exception policy. Then, remove permissions for SSH related files from the domain for login shell.</p>
+
+<h3>Updating path_group</h3>
+
+<p>When you browse execute permissions given to the domain for login shell, you will notice that a line in Fig. 21 is appended by learning mode. This command is not expected to be executed when I determined commands to allow execution in the previous installment. /usr/bin/xargs command is a useful command when doing the same operation for multiple files. Thus, I allow execution of this command in the login session. You may leave the line in Fig. 21 , but since xargs command does not care argv[0], let's add this command to COMMANDS_FOR_LOGIN_SESSION group.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Permission for executing unexpected command
+<pre>
+allow_execute /usr/bin/xargs
+</pre>
+</td></tr>
+</table>
+
+<p>Go to exception policy editor window in the policy editor and append an entry in Fig. 22 and then go to the domain for login shell and delete the line in Fig. 21.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 22&nbsp;&nbsp;Add unexpected command to group
+<pre>
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
+</pre>
+</td></tr>
+</table>
+
+<h3>About capabilities</h3>
+
+<p>When you did operations in learning mode, you will find lines starting with "allow_capability" like Fig. 23 in the domain for login shell. Capabilities specify only type of operations and thus no need to specify target of operations. Capabilities needed in learning mode will be needed in enforcing mode. Thus, keep the capabilities unmodified.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 23&nbsp;&nbsp;Example of capabilities appended by learning mode
+<pre>
+allow_capability SYS_CHMOD
+allow_capability SYS_IOCTL
+allow_capability SYS_KILL
+allow_capability SYS_LINK
+allow_capability SYS_RENAME
+allow_capability SYS_SYMLINK
+allow_capability SYS_UNLINK
+</pre>
+</td></tr>
+</table>
+
+<p>Note that capabilities in TOMOYO Linux is different from POSIX capabilities which normal Linux deals.</p>
+
+<h3>About signals</h3>
+
+<p>Some lines starting with "allow_signal" might be appended while you operated using learning mode. TOMOYO Linux can restrict destination of signal transmission. To send a signal, you can use /bin/kill command. But since shell programs like /bin/bash provides "kill" as a built-in command, you can send signals without executing /bin/kill command. Thus, if you don't enable access control on signals, "root" user can login to the system and terminate arbitrary processes by using "kill" built-in command even though /bin/kill command is not included in COMMANDS_FOR_LOGIN_SESSION group. To enable access control on signals, enable CONFIG::ipc::signal in the profile. Since the profile which you are using in this installment has CONFIG::ipc::signal enabled, you can restrict signal transmission requests. The permission for sending signals is "allow_signal SIGNALNUMBER DESTINATIONDOMAIN". When the destination process to be signaled belongs to a domain which domainname starts with DESTINATIONDOMAIN, the process which belongs to a domain with this permission can send signal SIGNALNUMBER. (There are some exceptions, but generally you don't need to care exceptions. See policy specification on the project web page for more information.)</p>
+
+<h2>Finishing up</h2>
+
+<h3>Repeat learning mode and permissive mode</h3>
+
+<p>Redo operations you want to allow using learning mode and redo operations you want to allow using permissive mode. The learning is over if no warning messages are printed when you operate using permissive mode. Run the policy editor in permissive mode and verify that inappropriate permissions (e.g. permissions to access /etc/shadow or permission to access SSH's secret keys) are not given to the domain for login shell.</p>
+
+<h3>Change to enforcing mode</h3>
+
+<p>Assign profile 3 to the domain for login shell and its descendent domains using the policy editor. By default, only "root" user can modify policy configuration. (You can configure to allow non "root" user to modify policy configuration.) If you don't mean to restrict operations by "root" user, you have nothing more to do. But if you want to delegate some of "root" user's operations, it is annoying that the delegated "root" user logs in via SSH and execute the policy editor from the domain for login shell and disable access control. Thus, if you want to allow somebody to login via SSH as "root" user, be sure to delete permissions for executing the policy editor (e.g. ccs-editpolicy and ccs-setprofile ) and permissions for accessing /proc/ccs/\* from the domain for login shell (i.e. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
+
+<p>With that, I finish steps for restricting login sessions using TOMOYO Linux.</p>
+
+<h2>Trailer</h2>
+
+<p>In the next installment, I will explain how to split Apache's permissions for more detail.</p>
+
+<p><a href="tutorial-8.html.en">Go back to the eighth installment.</a>&nbsp;&nbsp;<a href="tutorial-10.html.en">Proceed to the tenth installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
