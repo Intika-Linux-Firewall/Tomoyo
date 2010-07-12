@@ -7,9 +7,7 @@
 <link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
-<!--
-<p style="text-align:right;"><a href="tutorial-9.html.en">English Page</a></p>
--->
+<!--<p style="text-align:right;"><a href="tutorial-9.html.en">English Page</a></p>-->
 <p style="text-align:right;">Last modified: $Date$</p>
 
 <h1>TOMOYO Linux の世界<br>第９回：「ログインセッションを制限してみよう（後編）」</h1>
@@ -55,7 +53,7 @@ allow_network TCP connect @HTTP_SERVERS 80
 <tr><td>
 ■図３　ＤＮＳサーバと通信するためのアクセス許可
 <pre>
-allow_network TCP connect @HTTP_SERVERS 80
+allow_network UDP connect @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
@@ -68,7 +66,7 @@ allow_network TCP connect @HTTP_SERVERS 80
 <tr><td>
 ■図４　ＦＴＰ制御用のアクセス許可
 <pre>
-allow_network TCP connect @HTTP_SERVERS 80
+allow_network TCP connect @FTP_SERVERS 21
 </pre>
 </td></tr>
 </table>
@@ -103,7 +101,7 @@ allow_network TCP connect @FTP_SERVERS 1024-65535
 <tr><td>
 ■図７　ＳＳＨサーバと通信するためのアクセス許可
 <pre>
-allow_network TCP connect @FTP_SERVERS 1024-65535
+allow_network TCP connect @SSH_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
