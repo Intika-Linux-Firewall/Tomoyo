@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.9-89.11.AXS2.src.rpm ]
+if [ ! -r kernel-2.6.9-89.12.AXS2.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.11.AXS2.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Miracle/ia32/standard/4.0/updates/SRPMS/kernel-2.6.9-89.12.AXS2.src.rpm || die "Can't download source package."
 fi
-rpm -ivh kernel-2.6.9-89.11.AXS2.src.rpm || die "Can't install source package."
+rpm -ivh kernel-2.6.9-89.12.AXS2.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
@@ -31,8 +31,8 @@ patch << "EOF" || die "Can't patch spec file."
  # that the kernel isn't the stock distribution kernel, for example by
  # adding some text to the end of the version number.
  #
--%define release 89.11%{?dist}
-+%define release 89.11%{?dist}_tomoyo_1.6.8p3
+-%define release 89.12%{?dist}
++%define release 89.12%{?dist}_tomoyo_1.6.8p3
  %define sublevel 9
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -6198,6 +6201,10 @@
+@@ -6230,6 +6233,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -6209,6 +6216,9 @@
+@@ -6241,6 +6248,9 @@
  for i in *.config 
  do 
  	mv $i .config 
