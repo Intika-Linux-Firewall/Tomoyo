@@ -160,7 +160,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <p>連載第１回の手順を実行していれば，その中に「 initialize_domain /usr/sbin/httpd 」という行が存在しているはずです．もし存在していない場合は，次の手順により追加してください．</p>
 
-<p>まず最初に，キーボードの「 A 」を押してください．「 Enter new entry&gt; 」というプロンプトが画面の最下行に表示されます．続けて「 initialize_domain /usr/sbin/httpd 」と入力して，「 ENTER 」を押してください．入力した内容が追加されるはずです．反対に削除する場合は，まず「↑」「↓」を使って「 initialize_domain /usr/sbin/httpd 」という行にカーソルを合わせてください．そこでキーボードの「 D 」を押すと「 Delete selected entry? ('Y'es/'N'o) 」と尋ねられるので，「 Y 」を押すとその行の内容が削除されます．</p>
+<p>まず最初に，キーボードの「 A 」を押してください．「 Enter new entry&gt; 」というプロンプトが画面の最下行に表示されます．続けて「 initialize_domain /usr/sbin/httpd 」と入力して，「 Enter 」を押してください．入力した内容が追加されるはずです．反対に削除する場合は，まず「↑」「↓」を使って「 initialize_domain /usr/sbin/httpd 」という行にカーソルを合わせてください．そこでキーボードの「 D 」を押すと「 Delete selected entry? ('Y'es/'N'o) 」と尋ねられるので，「 Y 」を押すとその行の内容が削除されます．</p>
 
 <p>TOMOYO Linux では，同一のプログラムであったとしてもそれを起動した経緯によって異なるドメインが割り当てられます．これは状況に応じて異なるアクセス許可を与えたい場合には便利ですが，デーモンプロセスのように状況に依らず同じアクセス許可を与えたいという場合もあります．それを解決するために TOMOYO Linux では initialize_domain と呼ばれる機能を実現しています．</p>
 
@@ -274,7 +274,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>パス名をパターン化してみよう</h3>
 
-<p>パス名をパターン化する操作は，ポリシーエディタを用いて行うことができます． ccs-editpolicy を起動すると，「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」という画面が表示されます．そこから，「 &lt;kernel&gt; /usr/sbin/httpd 」というドメインを探してください．「 &lt;kernel&gt; /usr/sbin/httpd 」という行にカーソルを合わせてから「 ENTER 」を押すと，「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」という画面が表示されるはずです（図１７．表示される内容は環境により異なります）．</p>
+<p>パス名をパターン化する操作は，ポリシーエディタを用いて行うことができます． ccs-editpolicy を起動すると，「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」という画面が表示されます．そこから，「 &lt;kernel&gt; /usr/sbin/httpd 」というドメインを探してください．「 &lt;kernel&gt; /usr/sbin/httpd 」という行にカーソルを合わせてから「 Enter 」を押すと，「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」という画面が表示されるはずです（図１７．表示される内容は環境により異なります）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
