@@ -268,7 +268,7 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-<p>Now, as an example, let's browse the policy for domain for policy editor currently executing. By pressing "F" key, the cursor moves to the bottom line of screen and waits for input. Enter "ccs-editpolicy" and press "ENTER" key, and you will see the cursor jumped to the domain for policy editor currently executing. (Fig. 18)</p>
+<p>Now, as an example, let's browse the policy for domain for policy editor currently executing. By pressing "F" key, the cursor moves to the bottom line of screen and waits for input. Enter "ccs-editpolicy" and press "Enter" key, and you will see the cursor jumped to the domain for policy editor currently executing. (Fig. 18)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -279,7 +279,7 @@ PROFILE_VERSION=20090903
 
 <p>In Fig. 18, TOMOYO Linux identifies the domain for policy editor as "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" ( /usr/sbin/ccs-editpolicy executed from /bin/bash executed from /bin/login executed from /sbin/mingetty ). ( TOMOYO Linux will identify the domain for policy editor as "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/sbin/ccs-editpolicy" if /usr/sbin/ccs-editpolicy is executed from /bin/bash executed from /usr/sbin/sshd .)</p>
 
-<p>To browse permissions for this domain appended by learning mode, press "ENTER" key. Then, you will see a screen like Fig. 19. The heading line changed from &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; to &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;. This screen shows permissions for "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" domain and currently 7 entries are listed in this screen. Regarding the fourth and below lines, the first number is the line number. "allow_read/write" means "allow opening file for reading and writing". "allow_read" means "allow opening file for reading". "allow_ioctl" means "allow ioctl with specified command number".</p>
+<p>To browse permissions for this domain appended by learning mode, press "Enter" key. Then, you will see a screen like Fig. 19. The heading line changed from &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; to &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;. This screen shows permissions for "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" domain and currently 7 entries are listed in this screen. Regarding the fourth and below lines, the first number is the line number. "allow_read/write" means "allow opening file for reading and writing". "allow_read" means "allow opening file for reading". "allow_ioctl" means "allow ioctl with specified command number".</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -288,7 +288,7 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-<p>To return to domain transition editor's screen from this screen, press "ENTER" key. To quit the policy editor, press "Q" key. ccs-editpolicy is an editor which directly edits policy currently in kernel's memory rather than policy files on disk. Thus, modification made by ccs-editpolicy is immediately reflected. You can monitor policy changes momentarily appended by learning mode.</p>
+<p>To return to domain transition editor's screen from this screen, press "Enter" key. To quit the policy editor, press "Q" key. ccs-editpolicy is an editor which directly edits policy currently in kernel's memory rather than policy files on disk. Thus, modification made by ccs-editpolicy is immediately reflected. You can monitor policy changes momentarily appended by learning mode.</p>
 
 <p>Try executing various commands, and see how these commands are identified as domains by TOMOYO Linux, and see how TOMOYO Linux recorded files accessed by these commands. By repeating these operations for several times, you will be naturally able to understand TOMOYO Linux's domain management and learning mode and policy. This lucidity is the TOMOYO Linux's feature.</p>
 
