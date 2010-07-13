@@ -1649,6 +1649,14 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 	return ccs_path_perm(CCS_TYPE_UMOUNT, NULL, mnt->mnt_root, mnt, NULL);
 }
 
+static bool ccs_permstr(const char *string, const char *keyword)
+{
+	const char *cp = strstr(string, keyword);
+	if (cp)
+		return cp == string || *(cp - 1) == '/';
+	return false;
+}
+
 /**
  * ccs_write_file - Update file related list.
  *
@@ -1679,7 +1687,7 @@ int ccs_write_file(char *data, struct ccs_domain_info *domain,
 						  is_delete);
 	}
 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
-		if (strstr(w[1], ccs_path_keyword[type]))
+		if (ccs_permstr(w[1], ccs_path_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path_acl(perm, w[2], domain, condition,
@@ -1687,13 +1695,13 @@ int ccs_write_file(char *data, struct ccs_domain_info *domain,
 	if (!w[3][0])
 		goto out;
 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
-		if (strstr(w[1], ccs_path2_keyword[type]))
+		if (ccs_permstr(w[1], ccs_path2_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path2_acl(perm, w[2], w[3], domain,
 					    condition, is_delete);
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
-		if (strstr(w[1], ccs_path_number_keyword[type]))
+		if (ccs_permstr(w[1], ccs_path_number_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_path_number_acl(perm, w[2], w[3], domain,
@@ -1701,12 +1709,12 @@ int ccs_write_file(char *data, struct ccs_domain_info *domain,
 	if (!w[4][0] || !w[5][0])
 		goto out;
 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
-		if (strstr(w[1], ccs_mkdev_keyword[type]))
+		if (ccs_permstr(w[1], ccs_mkdev_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
 		return ccs_update_mkdev_acl(perm, w[2], w[3], w[4], w[5],
 					    domain, condition, is_delete);
-	if (strstr(w[1], "mount"))
+	if (ccs_permstr(w[1], "mount"))
 		return ccs_update_mount_acl(w[2], w[3], w[4], w[5], domain,
 					    condition, is_delete);
  out:

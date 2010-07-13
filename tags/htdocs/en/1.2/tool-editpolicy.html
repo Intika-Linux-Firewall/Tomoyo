@@ -19,7 +19,7 @@
 <h2>Invocation</h2>
 <p>You can start this editor by typing /root/ccstools/editpolicy at the prompt.</p>
 
-<p><img src="editpolicy-1.png" alt="Accept Mode" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-1.png" alt="Accept Mode" width="733" height="458"></p>
 
 <ul>
 <li>Log in as root.</li>
@@ -34,14 +34,14 @@
 <p>The screenshot below is the policy after booting Red Hat Linux 9 with "accept mode" and doing the operations listed above.<br>
 This screen shows the list of domains and domain transitions. You can analyze how Linux operates on bootup.</p>
 
-<p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-2.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>Let's browse the policy recorded by the kernel for startup script of anacron.<br>
 The policy editor has two modes. One is to show domains and domain transitions, the other is to edit ACLs within the selected domain. The former mode is default.<br>
 You can switch to the mode to edit ACLs within the selected domain after choosing the domain you want to know the ACLs.<br>
 You can use arrow keys to move cursor. Select the line for anacron and press Enter, and the screenshot below (ACLs for executing startup script for anacron) will appear.</p>
 
-<p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-3.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>The integer next to the line number is an octal representation of Linux's permission(rwx). For example, 4 is r--(read), 6 is rw-(read/write), 1 is --x(execute).<br>
 You will see the ACLs needed for executing the startup script for anacron is automatically recorded by the kernel.</p>
@@ -50,9 +50,9 @@ You will see the ACLs needed for executing the startup script for anacron is aut
 Also, you will find that commands you have invoked before invoking this policy editor such as head and date are recorded.<br>
 Now move the cursor to the domain for head and press Enter.</p>
 
-<p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-4.png" alt="Policy Editor" width="733" height="458"></p>
 
-<p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-5.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>The /usr/bin/head invoked by /bin/bash invoked by /bin/login invoked by /sbin/mingetty is granted to read /etc/passwd .<br>
 You will find that "domains are distinguished and ACLs are granted independently for the same program if the process's invocation histories differ" and "ACLs are granted with fine-grained objects".<br>

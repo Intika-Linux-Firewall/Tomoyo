@@ -14,7 +14,7 @@
 
 <p>You can start this editor by typing editpolicy at the prompt.</p>
 
-<p><img src="editpolicy-1.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-1.png" alt="Policy Editor" width="733" height="458"></p>
 
 <ul>
 <li>Log in as root.</li>
@@ -30,7 +30,7 @@
 This screen shows the list of domains and domain transitions. You can analyze how Linux operates on bootup.</p>
 
 <p>&lt;Screen for editing domain policy (1)&gt;</p>
-<p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-2.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>Let's browse the policy recorded by the kernel for startup script of anacron.<br>
 The policy editor has two modes. One is to show domains and domain transitions, the other is to edit ACLs within the selected domain. The former mode is default.<br>
@@ -38,7 +38,7 @@ You can switch to the mode to edit ACLs within the selected domain after choosin
 You can use arrow keys to move cursor. Select the line for anacron and press Enter, and the screenshot below (ACLs for executing startup script for anacron) will appear.</p>
 
 <p>&lt;Screen for editing domain policy (2)&gt;</p>
-<p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-3.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>The integer next to the line number is an octal representation of Linux's permission(rwx). For example, 4 is r--(read), 6 is rw-(read/write), 1 is --x(execute).<br>
 You will see the ACLs needed for executing the startup script for anacron are automatically recorded by the kernel.</p>
@@ -49,9 +49,9 @@ and /bin/sh which is a symbolic link to /bin/bash is treated as /bin/sh because 
 Also, you will find that commands you have invoked before invoking this policy editor such as head and date are recorded.<br>
 Now move the cursor to the domain for head and press Enter.</p>
 
-<p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-4.png" alt="Policy Editor" width="733" height="458"></p>
 
-<p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-5.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>The /usr/bin/head invoked by /bin/bash invoked by /bin/login invoked by /sbin/mingetty is granted to read /etc/passwd .<br>
 You will find that "domains are distinguished and ACLs are granted independently for the same program if the process's invocation histories differ" and "ACLs are granted with fine-grained objects".<br>
@@ -60,12 +60,12 @@ Moreover, since these distinctions are made automatically by the kernel, it is p
 <p>You can switch to the screen for editing system policy and exception policy by pressing Tab key.</p>
 
 <p>&lt;Screen for editing system policy&gt;</p>
-<p><img src="editpolicy-6.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-6.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>&lt;Screen for editing exception policy&gt;</p>
-<p><img src="editpolicy-7.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
-<p><img src="editpolicy-8.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
-<p><img src="editpolicy-9.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-7.png" alt="Policy Editor" width="733" height="458"></p>
+<p><img src="editpolicy-8.png" alt="Policy Editor" width="733" height="458"></p>
+<p><img src="editpolicy-9.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>The editpolicy is for editing policy in the kernel directly when the system is running with the TOMOYO Linux's kernel. To edit policy stored in the /etc/ccs/ directory, use editpolicy_offline .</p>
 <p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>

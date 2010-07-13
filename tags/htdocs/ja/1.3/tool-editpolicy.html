@@ -18,7 +18,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 
 <p>プロンプトから editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
-<p><img src="editpolicy-1.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-1.png" alt="Policy Editor" width="733" height="458"></p>
 
 <ul>
 <li>rootでログイン</li>
@@ -34,7 +34,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 この画面には、ドメイン遷移の一覧が表示されており、Linuxが起動時にどのような動作を行っているかを解析することができます。</p>
 
 <p>＜ドメインポリシーの編集画面（１）＞</p>
-<p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-2.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>上の図からanacronを起動するスクリプトのに対して学習されたポリシーを確認してみましょう。<br>
 ポリシーエディタは「ドメイン遷移の表示」モードと「個別のドメインにおけるアクセス許可の表示」モードの2つのモードを持ちます。<br>
@@ -44,7 +44,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 次のような画面（anacronを起動するスクリプトに対するアクセス許可内容）が表示されます。</p>
 
 <p>＜ドメインポリシーの編集画面（２）＞</p>
-<p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-3.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>行番号の右隣の数字は、Linuxのパーミッション(rwx)を8進数にしたものです。<br>
 つまり4はr--(読み込み)、6はrw-(読み書き)、1は--x(実行)を意味します。<br>
@@ -57,9 +57,9 @@ anacronを起動するスクリプトの実行に必要なアクセス許可が�
 また、先ほど実行したheadコマンドやdateコマンドが記録されていることもわかります。<br>
 では、カーソルを動かしてheadコマンドのドメインを選択して Enter キーを押してみましょう。</p>
 
-<p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-4.png" alt="Policy Editor" width="733" height="458"></p>
 
-<p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-5.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>/sbin/mingettyから起動された/bin/loginから起動された/bin/bashから起動された/usr/bin/headが<br>
 /etc/passwdに対して読み込みアクセス許可を与えられていることがわかります。<br>
@@ -70,13 +70,13 @@ anacronを起動するスクリプトの実行に必要なアクセス許可が�
 <p>また、 Tab キーを押すことで「ドメインポリシー」→「システムポリシー」→「例外ポリシー」→「ドメインポリシー」の順番で画面が切り替わります。</p>
 
 <p>＜システムポリシーの編集画面＞</p>
-<p><img src="editpolicy-6.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-6.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>＜例外ポリシーの編集画面＞</p>
 
-<p><img src="editpolicy-7.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
-<p><img src="editpolicy-8.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
-<p><img src="editpolicy-9.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-7.png" alt="Policy Editor" width="733" height="458"></p>
+<p><img src="editpolicy-8.png" alt="Policy Editor" width="733" height="458"></p>
+<p><img src="editpolicy-9.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>上記で説明したポリシーエディタの editpolicy は TOMOYO Linux カーネルで動作中に、カーネル内のポリシーを直接編集するためのエディタです。 /etc/ccs/ ディレクトリに保存されているポリシーを編集する場合は editpolicy_offline を利用します。</p><p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
 </body>

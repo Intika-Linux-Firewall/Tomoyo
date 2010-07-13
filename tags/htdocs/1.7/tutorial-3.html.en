@@ -25,7 +25,7 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 1&nbsp;&nbsp;Domain transitions in TOMOYO Linux<br>(Transits to new domain by program execution)<br>
-<img src="tutorial/fig-3-1.png" alt="fig-3-1.png">
+<img src="tutorial/fig-3-1.png" alt="fig-3-1.png" width="800" height="600">
 </td></tr>
 </table>
 
@@ -34,7 +34,7 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 2&nbsp;&nbsp;Domain transitions in SELinux<br>
-<img src="tutorial/fig-3-2.png" alt="fig-3-2.png">
+<img src="tutorial/fig-3-2.png" alt="fig-3-2.png" width="720" height="270">
 </td></tr>
 </table>
 
@@ -49,7 +49,7 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 3&nbsp;&nbsp;Effect of initialize_domain keyword<br>(Unconditionally transits to "&lt;kernel&gt; /some/where/baz" domain when /some/where/baz is executed.)<br>
-<img src="tutorial/fig-3-3.png" alt="fig-3-3.png">
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png" width="800" height="500">
 </td></tr>
 </table>
 
@@ -60,87 +60,87 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 4&nbsp;&nbsp;Unconditionally reinitialize domain transition<br>
-<img src="tutorial/fig-3-4.png" alt="fig-3-4.png">
+<img src="tutorial/fig-3-4.png" alt="fig-3-4.png" width="800" height="420">
 </td></tr>
 </table>
 
-<p>But if a "program" is specified with a "domainname" as "initialize_domain program from domainname" is executed, the process transits to "&lt;kernel&gt; program" domain only when "program" is executed from "domainname" domain. (Fig. 5)</p>
+<p>But if a "program" specified with a "domainname" as "initialize_domain program from domainname" is executed, the process transits to "&lt;kernel&gt; program" domain only when "program" is executed from "domainname" domain. (Fig. 5)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 5&nbsp;&nbsp;Reinitialize domain transition only when executed from specific domain<br>
 ( The process transits to "&lt;kernel&gt; /usr/sbin/sshd" domain only when /usr/sbin/sshd is executed from "&lt;kernel&gt; /etc/rc.d/init.d/sshd" domain because of "initialize_domain /usr/sbin/sshd from &lt;kernel&gt; /etc/rc.d/init.d/sshd".)<br>
-<img src="tutorial/fig-3-5.png" alt="fig-3-5.png">
+<img src="tutorial/fig-3-5.png" alt="fig-3-5.png" width="800" height="480">
 </td></tr>
 </table>
 
-<p>You may specify only the last part of domainname (e.g. /bin/bash) instead of a complete domainname (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash).</p>
+<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash").</p>
 
 <h4>&diams;Conditionally not reinitialize domain transition</h4>
 
-<p>If a "program" is specified with a "domainname" as "no_initialize_domain program from domainname" is executed, the process ignores "initialize_domain" keyword when "program" is executed from "domainname" domain.</p>
+<p>If a "program" specified with a "domainname" as "no_initialize_domain program from domainname" is executed, the process ignores "initialize_domain" keyword when "program" is executed from "domainname" domain.</p>
 
-<p>For example, /bin/mail (which is used for sending mails) executes /usr/sbin/sendmail.sendmail for sending mails. But if you want to give different permissions /usr/sbin/sendmail.sendmail for sending mails and /usr/sbin/sendmail.sendmail for receiving mails, you can specify "no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail" so that /usr/sbin/sendmail.sendmail executed by /bin/mail won't transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain. (Fig. 6) (Note that this works for only domains which domainname ends with /bin/mail . If /bin/mail is executed from a shell domain specified with keep_domain keyword, you need to specify domain of the shell rather than /bin/mail .)</p>
+<p>For example, /bin/mail (which is used for sending mails) executes /usr/sbin/sendmail.sendmail for sending mails. But if you want to give different permissions to "/usr/sbin/sendmail.sendmail for sending mails" and "/usr/sbin/sendmail.sendmail for receiving mails", you can specify "no_initialize_domain /usr/sbin/sendmail.sendmail from /bin/mail" so that /usr/sbin/sendmail.sendmail executed by /bin/mail won't transit to "&lt;kernel&gt; /usr/sbin/sendmail.sendmail" domain. (Fig. 6) (Note that this works for only domains which domainname ends with /bin/mail . If /bin/mail is executed from a shell domain specified with "keep_domain" keyword, you need to specify domain of the shell rather than /bin/mail .)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 6&nbsp;&nbsp;Combination with no_initialize_domain keyword<br>
-<img src="tutorial/fig-3-6.png" alt="fig-3-6.png">
+<img src="tutorial/fig-3-6.png" alt="fig-3-6.png" width="800" height="500">
 </td></tr>
 </table>
 
 <h4>&diams;Unconditionally suppress domain transition</h4>
 
-<p>Any processes which belong to "domainname" specified by "keep_domain domainname" remains to the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
+<p>Any processes which belong to "domainname" specified by "keep_domain domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 7) This resembles SELinux's domain because multiple programs belong to the same domain.</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 7&nbsp;&nbsp;Effect of keep_domain keyword<br>(Since "&lt;kernel&gt; /sbin/init &sdot;&sdot;&sdot; foo bar" domain is specified using "keep_domain" keyword, domain transition does not occur when programs are executed. Domain transition to "&lt;kernel&gt; /some/where/baz" occurs when /some/where/baz (which is specified using "initialize_domain" keyword) is executed.)<br>
-<img src="tutorial/fig-3-7.png" alt="fig-3-7.png">
+<img src="tutorial/fig-3-7.png" alt="fig-3-7.png" width="800" height="600">
 </td></tr>
 </table>
 
-<p>You may specify only the last part of domainname (e.g. /bin/bash) instead of a complete domainname (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash). For example, if you specify /bin/bash as a "domainname", keep_domain is applied to all domains which domainname ends with /bin/bash . (Fig. 8)</p>
+<p>You may specify only the last part of domainname (e.g. /bin/bash ) instead of a complete domainname (e.g. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash"). For example, if you specify /bin/bash as a "domainname", "keep_domain" is applied to all domains which domainname ends with /bin/bash . (Fig. 8)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 8&nbsp;&nbsp;Effect of keep_domain keyword<br>
-<img src="tutorial/fig-3-8.png" alt="fig-3-8.png">
+<img src="tutorial/fig-3-8.png" alt="fig-3-8.png" width="800" height="420">
 </td></tr>
 </table>
 
 <h4>&diams;Conditionally suppress domain transition</h4>
 
-<p>As I noted above, if a "domainname" is specified as "keep_domain domainname" , the process once reached to "domainname" remains to the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
+<p>As I noted above, if a "domainname" is specified as "keep_domain domainname" , the process once reached to "domainname" remains in the same domain unless programs specified by "initialize_domain" keyword is executed. (Fig. 9)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 9&nbsp;&nbsp;Unconditionally suppress domain transition<br>
-<img src="tutorial/fig-3-9.png" alt="fig-3-9.png">
+<img src="tutorial/fig-3-9.png" alt="fig-3-9.png" width="800" height="350">
 </td></tr>
 </table>
 
-<p>But if a "domainname" is specified with a "program" as "keep_domain program from domainname", the process remains to the same domain only when "program" is executed from "domainname" domain. (Fig. 10)</p>
+<p>But if a "domainname" is specified with a "program" as "keep_domain program from domainname", the process remains in the same domain only when "program" is executed from "domainname" domain. (Fig. 10)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 10&nbsp;&nbsp;Suppress domain transition only when specific programs are executed<br>
-<img src="tutorial/fig-3-10.png" alt="fig-3-10.png">
+<img src="tutorial/fig-3-10.png" alt="fig-3-10.png" width="800" height="430">
 </td></tr>
 </table>
 
 <h4>&diams;Conditionally resume domain transition</h4>
 
-<p>You can suppress domain transition for login session using keep_domain keyword because it is unlikely possible to understand what commands in what order users will execute from login session beforehand. But there are cases you want to resume domain transition, such as allowing access to password files for changing passwords and restarting applications that run as daemon processes.</p>
+<p>You can suppress domain transition for login session using "keep_domain" keyword because it is unlikely possible to understand what commands in what order users will execute from login session beforehand. But there are cases you want to resume domain transition, such as allowing access to password files for changing passwords and restarting applications that run as daemon processes.</p>
 
-<p>By specifying "no_keep_domain program from domainname", keep_domain keyword is ignored when "program" is executed from "domainname" domain.</p>
+<p>By specifying "no_keep_domain program from domainname", "keep_domain" keyword is ignored when "program" is executed from "domainname" domain.</p>
 
-<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt;/usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "/usr/sbin/sshd /bin/bash" domain while the process remains to the same domain when other programs are executed from "/usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
+<p>For example, by specifying "no_keep_domain /bin/cat from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" when "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is specified, the process transits to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat" domain when /bin/cat is executed from "/usr/sbin/sshd /bin/bash" domain while the process remains in the same domain when other programs are executed from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain. (Fig. 11)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 11&nbsp;&nbsp;Combination with no_keep_domain keyword<br>
-<img src="tutorial/fig-3-11.png" alt="fig-3-11.png">
+<img src="tutorial/fig-3-11.png" alt="fig-3-11.png" width="800" height="400">
 </td></tr>
 </table>
 
@@ -148,25 +148,25 @@
 
 <p>As a rule, domain transition is performed when a program is executed. But by calling procedure for domain transition from programs, you can perform domain transition without executing a program.</p>
 
-<p>For example, Apache supports CGI programs. Some CGI programs are processed outside Apache (i.e. needs program execution) and others are processed inside Apache (i.e. doesn't need program execution). By performing domain transition based on virtual host's name and requested CGI's pathnames before Apache processes the request, you can give different permissions for CGI programs which are processed inside Apache. Steps for doing this are explained in the 10th installment.</p>
+<p>For example, Apache supports CGI programs. Some CGI programs are processed outside Apache (i.e. need program execution) and others are processed inside Apache (i.e. don't need program execution). By performing domain transition based on virtual host's name and requested CGI's pathnames before Apache processes the request, you can give different permissions for CGI programs which are processed inside Apache. Steps for doing this are explained in the tenth installment.</p>
 
 <h3>Grouping a series of operations</h3>
 
-<p>You can flexibly specify access control using "initialize_domain" keyword and "keep_domain" keyword. I explain how to use them using an example. Login as root user and run ccs-editpolicy command. Then, find the domain for /etc/rc.d/init.d/network ( &lt;kernel&gt; /etc/rc.d/init.d/network ). You will see that many programs such as /etc/sysconfig/network-scripts/ifup and /bin/touch are executed from /etc/rc.d/init.d/network . (Fig. 12)</p>
+<p>You can flexibly specify access control using "initialize_domain" keyword and "keep_domain" keyword. I explain how to use them using an example. Login as root user and run ccs-editpolicy command. Then, find the domain for /etc/rc.d/init.d/network (i.e. "&lt;kernel&gt; /etc/rc.d/init.d/network" domain). You will see that many programs such as /etc/sysconfig/network-scripts/ifup and /bin/touch are executed from /etc/rc.d/init.d/network . (Fig. 12)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 12&nbsp;&nbsp;Domain transition before specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-12.png" alt="fig-3-12.png">
+<img src="tutorial/fig-3-12.png" alt="fig-3-12.png" width="931" height="1636">
 </td></tr>
 </table>
 
-<p>Press "TAB" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network" and press "ENTER" key. Then, you will see what you entered. (Fig. 13)</p>
+<p>Press "TAB" key. You will see that the screen titled "&lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt;" changed to the screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You can find lines starting with "initialize_domain" keyword by scrolling the screen. Scroll down to the bottom, and press "A" key and enter "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network" and press "ENTER" key. Then, you will see what you entered. (Fig. 13)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 13&nbsp;&nbsp;Specify keep_domain keyword<br>
-<img src="tutorial/fig-3-13.png" alt="fig-3-13.png">
+<img src="tutorial/fig-3-13.png" alt="fig-3-13.png" width="548" height="370">
 </td></tr>
 </table>
 
@@ -175,25 +175,25 @@
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 14&nbsp;&nbsp;Domain transition after specifying keep_domain keyword<br>
-<img src="tutorial/fig-3-14.png" alt="fig-3-14.png">
+<img src="tutorial/fig-3-14.png" alt="fig-3-14.png" width="931" height="1636">
 </td></tr>
 </table>
 
-<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using keep_domain keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 86 to 189 in Fig. 14) indicates that these domains became unreachable due to "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "SPACE" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
+<p>The mark changed from "*" to "#*". The "#" mark indicates that "multiple programs may belong to this domain because this domain is specified by keep_domain keyword". The "*" mark indicates that "multiple domains may transit to this domain because this domain is specified by initialize_domain keyword". Now, since you specified /etc/rc.d/init.d/network domain using "keep_domain" keyword, you need to re-learn policy for this domain. Lines with the "!" mark (from 86 to 189 in Fig. 14) indicates that these domains became unreachable due to "keep_domain &lt;kernel&gt; /etc/rc.d/init.d/network", thus delete these lines. Move the cursor and press "SPACE" key, and you will see that "&amp;" mark appeared. Then, press "D" key and a prompt like Fig. 15 will appear, thus press "Y" key.</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 15&nbsp;&nbsp;Confirmation message for deleting domains<br>
-<img src="tutorial/fig-3-15.png" alt="fig-3-15.png">
+<img src="tutorial/fig-3-15.png" alt="fig-3-15.png" width="931" height="1636">
 </td></tr>
 </table>
 
-<p>Then, domains marked with "&amp;" are deleted. Press "Q" key to quit ccs-editpolicy command. Execute "/etc/rc.d/init.d/network restart" to re-learn. Execute ccs-editpolicy again and find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain. This time, you won't see programs like /etc/sysconfig/network-scripts/ifup and  /bin/touch . (Fig. 16)</p>
+<p>Then, domains marked with "&amp;" are deleted. Press "Q" key to quit ccs-editpolicy command. Execute "/etc/rc.d/init.d/network restart" to re-learn. Execute ccs-editpolicy command again and find "&lt;kernel&gt; /etc/rc.d/init.d/network" domain. This time, you won't see programs like /etc/sysconfig/network-scripts/ifup and  /bin/touch . (Fig. 16)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 16&nbsp;&nbsp;Domain transition after re-learning<br>
-<img src="tutorial/fig-3-16.png" alt="fig-3-16.png">
+<img src="tutorial/fig-3-16.png" alt="fig-3-16.png" width="556" height="338">
 </td></tr>
 </table>
 
