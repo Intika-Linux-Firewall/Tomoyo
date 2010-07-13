@@ -88,14 +88,14 @@ PROFILE_VERSION=20090903
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 5&nbsp;&nbsp;Create profiles<br>
-<img src="tutorial/fig-2-5-en.png" alt="fig-2-5-en.png">
+<img src="tutorial/fig-2-5-en.png" alt="fig-2-5-en.png" width="640" height="320">
 </td></tr>
 </table>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 6&nbsp;&nbsp;Assign profiles to domains<br>
-<img src="tutorial/fig-2-6.png" alt="fig-2-6.png">
+<img src="tutorial/fig-2-6.png" alt="fig-2-6.png" width="800" height="600">
 </td></tr>
 </table>
 
@@ -138,7 +138,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>Updating exception policy</h3>
 
-<p>Firstly, specify the pathname of Apache's main program using initialize_domain keyword. Run ccs-editpolicy with "e" option. (Fig. 9)</p>
+<p>Firstly, specify the pathname of Apache's main program using "initialize_domain" keyword. Run ccs-editpolicy with "e" option. (Fig. 9)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -149,16 +149,16 @@ PREFERENCE::enforcing={ verbose=yes }
 </td></tr>
 </table>
 
-<p>Then, you will see a screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You will find lines starting with initialize_domain by scrolling the screen. (Fig. 10. The contents depend on your environment.)</p>
+<p>Then, you will see a screen titled "&lt;&lt;&lt; Exception Policy Editor &gt;&gt;&gt;". You will find lines starting with "initialize_domain" keyword by scrolling the screen. (Fig. 10. The contents depend on your environment.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 10&nbsp;&nbsp;initialize_domain keyword in exception policy<br>
-<img src="tutorial/fig-2-10.png" alt="fig-2-10.png">
+<img src="tutorial/fig-2-10.png" alt="fig-2-10.png" width="720" height="400">
 </td></tr>
 </table>
 
-<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd". But you can't find the line, append by following steps.</p>
+<p>If you have followed steps in the first installment, there should already be a line "initialize_domain /usr/sbin/httpd". But if you can't find the line, append by following steps.</p>
 
 <p>First, press "A" key on the keyboard, and a prompt "Enter new entry&gt;" is printed at the bottom line of the screen. Then, enter "initialize_domain /usr/sbin/httpd" and press "ENTER" key, and the line you entered will be added. On the contrary, to delete this entry, move the cursor to "initialize_domain /usr/sbin/httpd" line by using up-arrow and down-arrow keys. Press "D" key on the keyboard, and a prompt "Delete selected entry? ('Y'es/'N'o)" is printed. Then press "Y" key to delete the line.</p>
 
@@ -169,7 +169,7 @@ PREFERENCE::enforcing={ verbose=yes }
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 11&nbsp;&nbsp;The effect of initialize_domain keyword<br>
-<img src="tutorial/fig-3-3.png" alt="fig-3-3.png">
+<img src="tutorial/fig-3-3.png" alt="fig-3-3.png" width="800" height="500">
 </td></tr>
 </table>
 
@@ -206,7 +206,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h3>Permissive mode</h3>
 
-<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Since the profile for permissive mode has a line "PREFERENCE::permissive={ verbose=yes }", warning message starting with "WARNING:" are printed on the console whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if no warning messages are printed when you do operations you want to allow.</p>
+<p>When you have finished doing a series of operations you want to allow, assign a profile for permissive mode. (Fig. 14) Since the profile for permissive mode has a line "PREFERENCE::permissive={ verbose=yes }", warning messages starting with "WARNING:" are printed on the console whenever policy violation occurs. You can consider that all necessary permissions are appended into the policy if no warning messages are printed when you do operations you want to allow.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -218,7 +218,7 @@ PREFERENCE::enforcing={ verbose=yes }
 </td></tr>
 </table>
 
-<p>Also, tune policy at this stage. Steps for tuning are described later in this installment.</p>
+<p>Also, tune policy at this stage. Steps for tuning policy are described later in this installment.</p>
 
 <h3>Enforcing mode</h3>
 
@@ -236,11 +236,11 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <p>By doing Fig.15, mandatory access control is applied to domains which domainname starts with "&lt;kernel&gt; /usr/sbin/httpd".</p>
 
-<p>To check status, you can use ccs-pstree command explained in the previous installment. The first column of each line by ccs-pstree command is the profile number. Make sure that profiles you intended are assigned to applications you want to protect using mandatory access control (in this example, /usr/sbin/httpd).</p>
+<p>To check status, you can use ccs-pstree command explained in the previous installment. The first column of each line by ccs-pstree command is the profile number. Make sure that profiles you intended are assigned to applications you want to protect using mandatory access control (in this example, /usr/sbin/httpd ).</p>
 
 <p>Note that the system is protected by mandatory access control only if you assigned profile for enforcing mode.</p>
 
-<p>Since the profile for enforcing mode has a line "PREFERENCE::enforcing={ verbose=yes }", warning message starting with "ERROR:" are printed on the console whenever policy violation occurs.</p>
+<p>Since the profile for enforcing mode has a line "PREFERENCE::enforcing={ verbose=yes }", warning messages starting with "ERROR:" are printed on the console whenever policy violation occurs.</p>
 
 <h2>Tuning policy</h2>
 
@@ -279,7 +279,7 @@ PREFERENCE::enforcing={ verbose=yes }
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 17&nbsp;&nbsp;Policy for Apache<br>
-<img src="tutorial/fig-2-17.png" alt="fig-2-17.png">
+<img src="tutorial/fig-2-17.png" alt="fig-2-17.png" width="720" height="400">
 </td></tr>
 </table>
 
@@ -298,7 +298,7 @@ allow_read /var/www/html/\{\*\}/\*
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 19&nbsp;&nbsp;Allow Apache to read under /var/www/html/ directory.<br>
-<img src="tutorial/fig-2-19.png" alt="fig-2-19.png">
+<img src="tutorial/fig-2-19.png" alt="fig-2-19.png" width="720" height="400">
 </td></tr>
 </table>
 

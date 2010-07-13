@@ -23,7 +23,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 <h2>起動方法</h2>
 <p>プロンプトから /root/ccstools/editpolicy と入力すると、ポリシーエディタを実行することができます。</p>
 
-<p><img src="editpolicy-1.png" alt="Accept Mode" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-1.png" alt="Accept Mode" width="733" height="458"></p>
 
 <ul>
 <li>rootでログイン</li>
@@ -38,7 +38,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 <p>以下の画面は、RedHat Linux 9 を学習モードで起動した後、上記の操作を行った場合のポリシーです。<br>
 この画面には、ドメイン遷移の一覧が表示されており、Linuxが起動時にどのような動作を行っているかを解析することができます。</p>
 
-<p><img src="editpolicy-2.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-2.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>上の図からanacronを起動するスクリプトのに対して学習されたポリシーを確認してみましょう。<br>
 ポリシーエディタは「ドメイン遷移の表示」モードと「個別のドメインにおけるアクセス許可の表示」モードの2つのモードを持ちます。<br>
@@ -47,7 +47,7 @@ TOMOYO Linux のポリシーはテキストファイルなので、 vi や emacs
 矢印キーでカーソルを動かしてanacronの行を選択してから Enterキーを押すと、<br>
 次のような画面（anacronを起動するスクリプトに対するアクセス許可内容）が表示されます。</p>
 
-<p><img src="editpolicy-3.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-3.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>行番号の右隣の数字は、Linuxのパーミッション(rwx)を8進数にしたものです。<br>
 つまり4はr--(読み込み)、6はrw-(読み書き)、1は--x(実行)を意味します。<br>
@@ -58,9 +58,9 @@ anacronを起動するスクリプトの実行に必要なアクセス許可が�
 また、先ほど実行したheadコマンドやdateコマンドが記録されていることもわかります。<br>
 では、カーソルを動かしてheadコマンドのドメインを選択して Enter キーを押してみましょう。</p>
 
-<p><img src="editpolicy-4.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-4.png" alt="Policy Editor" width="733" height="458"></p>
 
-<p><img src="editpolicy-5.png" alt="Policy Editor" WIDTH="733" HEIGHT="458"></p>
+<p><img src="editpolicy-5.png" alt="Policy Editor" width="733" height="458"></p>
 
 <p>/sbin/mingettyから起動された/bin/loginから起動された/bin/bashから起動された/usr/bin/headが<br>
 /etc/passwdに対して読み込みアクセス許可を与えられていることがわかります。<br>
