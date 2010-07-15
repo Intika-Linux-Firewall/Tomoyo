@@ -54,6 +54,7 @@
 #define CCS_KEYWORD_PATH_GROUP               "path_group "
 #define CCS_KEYWORD_USE_PROFILE              "use_profile "
 #define CCS_KEYWORD_USE_PROFILE_LEN          (sizeof(CCS_KEYWORD_USE_PROFILE) - 1)
+#define CCS_KEYWORD_USE_GROUP                "use_group "
 
 #define CCS_ROOT_NAME                    "<kernel>"
 #define CCS_ROOT_NAME_LEN                (sizeof(CCS_ROOT_NAME) - 1)
@@ -114,6 +115,7 @@ struct ccs_domain_info {
 	_Bool is_du;  /* unreachable domain */
 	_Bool is_dd;  /* deleted domain */
 	_Bool profile_assigned;
+	u8 group;
 };
 
 struct ccs_domain_policy {
@@ -159,7 +161,7 @@ int ccs_add_string_entry(struct ccs_domain_policy *dp, const char *entry, const 
 int ccs_del_string_entry(struct ccs_domain_policy *dp, const char *entry, const int index);
 int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0, const _Bool is_dis, const _Bool is_dd);
 int ccs_find_domain_by_ptr(struct ccs_domain_policy *dp, const struct ccs_path_info *domainname);
-int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *domainname, const _Bool is_dis, const _Bool is_dd);
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname, const _Bool is_dis, const _Bool is_dd);
 int ccs_open_stream(const char *filename);
 int ccs_parse_ip(const char *address, struct ccs_ip_address_entry *entry);
 int ccs_parse_number(const char *number, struct ccs_number_entry *entry);

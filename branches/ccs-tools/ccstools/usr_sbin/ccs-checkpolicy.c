@@ -848,13 +848,7 @@ static void ccs_check_domain_policy(char *policy)
 static void ccs_check_exception_policy(char *policy)
 {
 	ccs_str_starts(policy, CCS_KEYWORD_DELETE);
-	if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_READ)) {
-		if (!ccs_correct_path(policy)) {
-			printf("%u: ERROR: '%s' is a bad pathname.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_INITIALIZE_DOMAIN)) {
+	if (ccs_str_starts(policy, CCS_KEYWORD_INITIALIZE_DOMAIN)) {
 		ccs_check_domain_initializer_policy(policy);
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_NO_INITIALIZE_DOMAIN)) {
 		ccs_check_domain_initializer_policy(policy);
@@ -875,7 +869,7 @@ static void ccs_check_exception_policy(char *policy)
 			ccs_errors++;
 		} else {
 			*cp++ = '\0';
-			if (!ccs_correct_path(policy)) {
+			if (!ccs_correct_word(policy)) {
 				printf("%u: ERROR: '%s' is a bad pattern.\n",
 				       ccs_line, policy);
 				ccs_errors++;
@@ -892,17 +886,19 @@ static void ccs_check_exception_policy(char *policy)
 			       ccs_line, policy);
 			ccs_errors++;
 		}
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_ENV)) {
-		if (!ccs_correct_word(policy)) {
-			printf("%u: ERROR: '%s' is a bad variable name.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
 	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_AUTOBIND)) {
 		ccs_check_reserved_port_policy(policy);
+	} else if (ccs_str_starts(policy, "acl_group ")) {
+		unsigned int group;
+		char *cp = strchr(policy, ' ');
+		if (cp && sscanf(policy, "%u", &group) == 1 && group < 256) {
+			ccs_check_domain_policy(cp + 1 + 1);
+		} else {
+			printf("%u: ERROR: Bad group '%s'.\n", ccs_line, policy);
+			ccs_errors++;
+		}
 	} else {
-		printf("%u: ERROR: Unknown command '%s'.\n",
-		       ccs_line, policy);
+		printf("%u: ERROR: Unknown command '%s'.\n", ccs_line, policy);
 		ccs_errors++;
 	}
 }

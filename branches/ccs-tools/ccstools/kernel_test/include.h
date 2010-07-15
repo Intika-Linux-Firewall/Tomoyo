@@ -285,12 +285,11 @@ static void ccs_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
-	fprintf(domain_fp, "file read/write /proc/ccs/domain_policy\n");
-	fprintf(domain_fp, "file truncate /proc/ccs/domain_policy\n");
-	fprintf(domain_fp, "file read/write /proc/ccs/exception_policy\n");
-	fprintf(domain_fp, "file truncate /proc/ccs/exception_policy\n");
-	fprintf(domain_fp, "file read/write /proc/ccs/profile\n");
-	fprintf(domain_fp, "file truncate /proc/ccs/profile\n");
+	fprintf(domain_fp, "file read/write/truncate "
+		"proc:/ccs/domain_policy\n");
+	fprintf(domain_fp, "file read/write/truncate "
+		"proc:/ccs/exception_policy\n");
+	fprintf(domain_fp, "file read/write/truncate proc:/ccs/profile\n");
 }
 
 static void BUG(const char *fmt, ...)

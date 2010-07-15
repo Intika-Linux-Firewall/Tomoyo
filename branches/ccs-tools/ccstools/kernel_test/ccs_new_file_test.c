@@ -149,31 +149,31 @@ static void stage_file_test(void)
 	set_profile(3, "file::umount");
 	set_profile(3, "file::pivot_root");
 
-	policy = "file read /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
 		"if task.uid=0 task.gid=0";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 0);
 
-	policy = "file write /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
 		"if task.euid=0 0=0 1-100=10-1000";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 0);
 
-	policy = "file read /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
 	write_domain_policy(policy, 0);
-	policy = "file write /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 1);
-	policy = "file read /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file read proc:/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
 	write_domain_policy(policy, 1);
-	policy = "file write /proc/sys/net/ipv4/ip_local_port_range "
+	policy = "file write proc:/sys/net/ipv4/ip_local_port_range "
 		"if 1!=10-100";
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 0);

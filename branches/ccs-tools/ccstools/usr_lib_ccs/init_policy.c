@@ -295,7 +295,7 @@ static void scan_dir_for_pattern(const char *dir)
 
 static void scan_dir_for_read(const char *dir)
 {
-	keyword = "file read";
+	keyword = "acl_group 0 file read";
 	memset(path, 0, sizeof(path));
 	strncpy(path, dir, sizeof(path) - 1);
 	return scan_dir_for_pattern2(SCANDIR_MAY_CONTAIN_NUMBER_WILDCARD);
@@ -589,7 +589,7 @@ static void make_globally_readable_files(void)
 		"/usr/share/locale/locale.alias"
 	};
 	int i;
-	keyword = "file read";
+	keyword = "acl_group 0 file read";
 	for (i = 0; i < elementof(files); i++) {
 		char *cp = get_realpath(files[i]);
 		if (!cp)
@@ -613,7 +613,7 @@ static void make_ldconfig_readable_files(void)
 		? popen("ldconfig -NXp", "r") : NULL;
 	if (!fp)
 		return;
-	keyword = "file read";
+	keyword = "acl_group 0 file read";
 	while (memset(path, 0, sizeof(path)),
 	       fgets(path, sizeof(path) - 1, fp)) {
 		char *cp = strchr(path, '\n');

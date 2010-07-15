@@ -25,7 +25,7 @@
 /* Variables definitions.*/
 
 /* The global domain. */
-struct ccs_domain_info ccs_global_domain;
+struct ccs_domain_info ccs_acl_group[CCS_MAX_ACL_GROUPS];
 
 /* The initial domain. */
 struct ccs_domain_info ccs_kernel_domain;
@@ -188,6 +188,7 @@ void ccs_check_acl(struct ccs_request_info *r,
 {
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
+	bool retried = false;
  retry:
 	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
 		if (ptr->is_deleted || ptr->type != r->param_type)
@@ -198,9 +199,9 @@ void ccs_check_acl(struct ccs_request_info *r,
 			return;
 		}
 	}
-	if (domain != &ccs_global_domain &&
-	    !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
-		domain = &ccs_global_domain;
+	if (!retried) {
+		retried = true;
+		domain = &ccs_acl_group[domain->group];
 		goto retry;
 	}
 	r->granted = false;
@@ -366,7 +367,7 @@ static int ccs_update_aggregator_entry(const char *original_name,
 {
 	struct ccs_aggregator e = { };
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	if (!ccs_correct_path(original_name) ||
+	if (!ccs_correct_word(original_name) ||
 	    !ccs_correct_path(aggregated_name))
 		return -EINVAL;
 	e.original_name = ccs_get_name(original_name);
@@ -436,11 +437,12 @@ int ccs_delete_domain(char *domainname)
  *
  * @domainname: The name of domain.
  * @profile:    Profile number to assign if the domain was newly created.
+ * @group:      Group number to assign if the domain was newly created.
  *
  * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
  */
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const u8 profile)
+					  const u8 profile, const u8 group)
 {
 	struct ccs_domain_info e = { };
 	struct ccs_domain_info *entry = NULL;
@@ -449,6 +451,7 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 	if (!ccs_correct_domain(domainname))
 		return NULL;
 	e.profile = profile;
+	e.group = group;
 	e.domainname = ccs_get_name(domainname);
 	if (!e.domainname)
 		return NULL;
@@ -586,7 +589,7 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		if (error < 0)
 			goto done;
 	}
-	domain = ccs_assign_domain(ee->tmp, r->profile);
+	domain = ccs_assign_domain(ee->tmp, r->profile, old_domain->group);
 	if (domain)
 		domain_created = true;
  done:
@@ -1032,6 +1035,7 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 	struct ccs_request_info *r = &ee->r;
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
+	bool retried = false;
 	/*
 	 * To avoid infinite execute handler loop, don't use execute handler
 	 * if the current process is marked as execute handler .
@@ -1049,9 +1053,9 @@ static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 		r->cond = ptr->cond;
 		return true;
 	}
-	if (domain != &ccs_global_domain &&
-	    !domain->flags[CCS_DIF_IGNORE_GLOBAL]) {
-		domain = &ccs_global_domain;
+	if (!retried) {
+		retried = true;
+		domain = &ccs_acl_group[domain->group];
 		goto retry;
 	}
 	return false;
@@ -1230,7 +1234,8 @@ int ccs_may_transit(const char *domainname, const char *pathname)
 	domain = ccs_find_domain(domainname);
 	if (!domain && r.mode != CCS_CONFIG_ENFORCING &&
 	    strlen(domainname) < CCS_EXEC_TMPSIZE - 10) {
-		domain = ccs_assign_domain(domainname, r.profile);
+		domain = ccs_assign_domain(domainname, r.profile,
+					   ccs_current_domain()->group);
 		if (domain)
 			domain_created = true;
 	}

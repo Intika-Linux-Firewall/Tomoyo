@@ -149,7 +149,13 @@ static void ccs_do_check_update(const int fd)
 		if (!cp)
 			break;
 		*cp = '\0';
-		if (!ccs_str_starts(buffer, CCS_KEYWORD_ALLOW_READ))
+		if (!ccs_str_starts(buffer, "acl_group "))
+			continue;
+		cp = strchr(buffer, ' ');
+		if (!cp)
+			continue;
+		memmove(buffer, cp + 1, strlen(cp + 1) + 1);
+		if (!ccs_str_starts(buffer, "file read "))
 			continue;
 		if (!ccs_decode(buffer, buffer))
 			continue;
@@ -292,7 +298,7 @@ static void ccs_handle_update(const int check_update, const int fd)
 	if (check_update == CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO) {
 		if (pathname[0] == '-')
 			fprintf(fp, CCS_KEYWORD_DELETE);
-		fprintf(fp, CCS_KEYWORD_ALLOW_READ "%s\n", pathname + 1);
+		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
 		fflush(fp);
 		ccs_printw("The pathname %s was %s globally readable file.\n\n",
 		       pathname + 1, (pathname[0] == '-') ?
@@ -312,7 +318,7 @@ static void ccs_handle_update(const int check_update, const int fd)
 	if (c == 'Y' || c == 'y') {
 		if (pathname[0] == '-')
 			fprintf(fp, CCS_KEYWORD_DELETE);
-		fprintf(fp, CCS_KEYWORD_ALLOW_READ "%s\n", pathname + 1);
+		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
 		fflush(fp);
 	}
 	ccs_printw("\n");

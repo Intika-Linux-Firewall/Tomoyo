@@ -241,7 +241,7 @@ static void ccs_assign_domain_initializer_source(struct ccs_domain_policy *dp,
 		ccs_get();
 		line = ccs_shprintf("%s %s", domainname->name, program);
 		ccs_normalize_line(line);
-		if (ccs_find_or_assign_new_domain(dp, line, true, false) == EOF)
+		if (ccs_assign_domain(dp, line, true, false) == EOF)
 			ccs_out_of_memory();
 		ccs_put();
 	}
@@ -929,7 +929,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 	*/
 	ccs_address_group_list_len = 0;
 	ccs_number_group_list_len = 0;
-	ccs_find_or_assign_new_domain(dp, CCS_ROOT_NAME, false, false);
+	ccs_assign_domain(dp, CCS_ROOT_NAME, false, false);
 
 	/* Load all domain list. */
 	fp = NULL;
@@ -959,26 +959,24 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 		if (!line)
 			break;
 		if (ccs_domain_def(line)) {
-			index = ccs_find_or_assign_new_domain(dp, line, false,
-							      false);
+			index = ccs_assign_domain(dp, line, false, false);
 			continue;
 		} else if (index == EOF) {
 			continue;
 		}
-		if (ccs_str_starts(line, CCS_KEYWORD_EXECUTE_HANDLER)) {
-			ccs_add_string_entry(dp, line, index);
-		} else if (ccs_str_starts(line, CCS_KEYWORD_DENIED_EXECUTE_HANDLER)) {
-			ccs_add_string_entry(dp, line, index);
-		} else if (ccs_str_starts(line, CCS_KEYWORD_ALLOW_EXECUTE)) {
+		if (ccs_str_starts(line, "execute_handler ") ||
+		    ccs_str_starts(line, "denied_execute_handler ") ||
+		    ccs_str_starts(line, "file execute ")) {
 			char *cp = strchr(line, ' ');
 			if (cp)
 				*cp = '\0';
 			if (*line == '@' || ccs_correct_path(line))
 				ccs_add_string_entry(dp, line, index);
-		} else if (sscanf(line, CCS_KEYWORD_USE_PROFILE "%u", &profile)
-			   == 1) {
+		} else if (sscanf(line, "use_profile %u", &profile) == 1) {
 			dp->list[index].profile = (u8) profile;
 			dp->list[index].profile_assigned = 1;
+		} else if (sscanf(line, "use_group %u", &profile) == 1) {
+			dp->list[index].group = (u8) profile;
 		}
 	}
 	ccs_put();
@@ -995,6 +993,7 @@ no_domain:
 	}
 	ccs_get();
 	while (true) {
+		unsigned int group;
 		char *line = ccs_freadline(fp);
 		if (!line)
 			break;
@@ -1012,19 +1011,25 @@ no_domain:
 			ccs_add_address_group_policy(line, false);
 		else if (ccs_str_starts(line, CCS_KEYWORD_NUMBER_GROUP))
 			ccs_add_number_group_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_EXECUTE_HANDLER))
-			for (index = 0; index < max_index; index++)
-				ccs_add_string_entry(dp, line, index);
-		else if (ccs_str_starts(line, CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
-			for (index = 0; index < max_index; index++)
-				ccs_add_string_entry(dp, line, index);
-		else if (ccs_str_starts(line, CCS_KEYWORD_ALLOW_EXECUTE)) {
-			char *cp = strchr(line, ' ');
+		else if (sscanf(line, "acl_group %u", &group) == 1
+			 && group < 256) {
+			char *cp = strchr(line + 10, ' ');
 			if (cp)
-				*cp = '\0';
-			if (*line == '@' || ccs_correct_path(line))
-				for (index = 0; index < max_index; index++)
-					ccs_add_string_entry(dp, line, index);
+				line = cp + 1;
+			if (ccs_str_starts(line, "execute_handler ") ||
+			    ccs_str_starts(line, "denied_execute_handler ") ||
+			    ccs_str_starts(line, "file execute ")) {
+				cp = strchr(line, ' ');
+				if (cp)
+					*cp = '\0';
+				if (*line == '@' || ccs_correct_path(line)) {
+					for (index = 0; index < max_index;
+					     index++)
+						if (dp->list[index].group
+						    == group)
+							ccs_add_string_entry(dp, line, index);
+				}
+			}
 		}
 	}
 	ccs_put();
@@ -1143,8 +1148,7 @@ no_exception:
 			*cp = '\0';
 			if (ccs_find_domain(dp, line, false, false) != EOF)
 				continue;
-			if (ccs_find_or_assign_new_domain(dp, line, false, true)
-			    == EOF)
+			if (ccs_assign_domain(dp, line, false, true) == EOF)
 				ccs_out_of_memory();
 		}
 		ccs_put();

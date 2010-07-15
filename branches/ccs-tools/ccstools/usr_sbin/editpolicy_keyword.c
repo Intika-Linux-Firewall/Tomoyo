@@ -51,7 +51,8 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_EXECUTE_HANDLER]  = { "execute_handler", NULL, 0, 0 },
 	[CCS_DIRECTIVE_DENIED_EXECUTE_HANDLER] = {
 		"denied_execute_handler", NULL, 0, 0 },
-	[CCS_DIRECTIVE_IGNORE_GLOBAL]    = { "ignore_global", NULL, 0, 0 },
+	[CCS_DIRECTIVE_USE_GROUP]        = { "use_group", NULL, 0, 0 },
+	[CCS_DIRECTIVE_ACL_GROUP]        = { "acl_group", NULL, 0, 0 },
 	[CCS_DIRECTIVE_INITIALIZE_DOMAIN] = {
 		"initialize_domain", NULL, 0, 0 },
 	[CCS_DIRECTIVE_KEEP_DOMAIN]          = { "keep_domain", NULL, 0, 0 },

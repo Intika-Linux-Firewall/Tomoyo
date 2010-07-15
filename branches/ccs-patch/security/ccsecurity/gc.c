@@ -579,12 +579,12 @@ static void ccs_collect_entry(void)
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return;
 	idx = ccs_read_lock();
-	for (i = 0; i < CCS_MAX_POLICY; i++) {
+	for (i = 0; i < CCS_MAX_POLICY; i++)
 		if (!ccs_collect_member(&ccs_policy_list[i], i))
 			goto unlock;
-	}
-	if (!ccs_collect_acl(&ccs_global_domain))
-		goto unlock;
+	for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
+		if (!ccs_collect_acl(&ccs_acl_group[i]))
+			goto unlock;
 	{
 		struct ccs_domain_info *domain;
 		list_for_each_entry(domain, &ccs_domain_list, list) {

@@ -784,8 +784,8 @@ int ccs_find_domain(struct ccs_domain_policy *dp, const char *domainname0,
 	return EOF;
 }
 
-int ccs_find_or_assign_new_domain(struct ccs_domain_policy *dp, const char *domainname,
-				  const _Bool is_dis, const _Bool is_dd)
+int ccs_assign_domain(struct ccs_domain_policy *dp, const char *domainname,
+		      const _Bool is_dis, const _Bool is_dd)
 {
 	const struct ccs_path_info *saved_domainname;
 	int index = ccs_find_domain(dp, domainname, is_dis, is_dd);
@@ -1373,8 +1373,7 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_w
 				index = ccs_find_domain(dp, line, false, false);
 				continue;
 			}
-			index = ccs_find_or_assign_new_domain(dp, line, false,
-							      false);
+			index = ccs_assign_domain(dp, line, false, false);
 			continue;
 		}
 		if (index == EOF || !line[0])

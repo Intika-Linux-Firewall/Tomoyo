@@ -83,34 +83,34 @@ static void stage_policy_io_test(void)
 		try_io("file mount none /tmp/ nonexistent 0x0", 1);
 		try_io("file mount none /proc/ proc 0x0", 1);
 		try_io("file mount none /selinux/ selinuxfs 0x0", 1);
-		try_io("file mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
+		try_io("file mount /proc/bus/usb proc:/bus/usb/ usbfs 0x0", 1);
 		try_io("file mount none /dev/pts/ devpts 0x0", 1);
 		try_io("file mount any / --remount 0xC00", 1);
 		try_io("file mount /dev/sda1 /boot/ ext3 0xC00", 1);
 		try_io("file mount none /dev/shm/ tmpfs 0x0", 1);
-		try_io("file mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
+		try_io("file mount none proc:/sys/fs/binfmt_misc/ binfmt_misc "
 		       "0x0", 1);
-		try_io("file mount none /proc/sys/fs/binfmt_misc/ binfmt_misc "
+		try_io("file mount none proc:/sys/fs/binfmt_misc/ binfmt_misc "
 		       "0x0 0x1", 0);
-		try_io("file mount none /proc/sys/fs/binfmt_misc/ tmpfs "
+		try_io("file mount none proc:/sys/fs/binfmt_misc/ tmpfs "
 		       "binfmt_misc 0x0", 0);
-		try_io("file mount /proc/bus/usb /proc/bus/usb/ usbfs 0x0", 1);
+		try_io("file mount /proc/bus/usb proc:/bus/usb/ usbfs 0x0", 1);
 	}
 	policy_file = proc_policy_exception_policy;
 	policy_fp = exception_fp;
 	for (i = 0; i < 3; i++) {
-		try_io("file read /tmp/abc", 1);
-		try_io("file read /tmp/abc\\*", 1);
-		try_io("file read abc", 1);
-		try_io("file read /tmp/abc/", 1);
-		try_io("file read", 0);
-		try_io("file read *", 1);
-		try_io("misc env FOO", 1);
-		try_io("misc env FOO=", 0);
-		try_io("misc env FOO=BAR", 0);
-		try_io("misc env FOO BAR", 0);
-		try_io("misc env FOO\\040BAR", 1);
-		try_io("misc env FOO;BAR;BUZ", 1);
+		try_io("acl_group 0 file read /tmp/abc", 1);
+		try_io("acl_group 0 file read /tmp/abc\\*", 1);
+		try_io("acl_group 0 file read abc", 1);
+		try_io("acl_group 0 file read /tmp/abc/", 1);
+		try_io("acl_group 0 file read", 0);
+		try_io("acl_group 0 file read *", 1);
+		try_io("acl_group 0 misc env FOO", 1);
+		try_io("acl_group 0 misc env FOO=", 0);
+		try_io("acl_group 0 misc env FOO=BAR", 0);
+		try_io("acl_group 0 misc env FOO BAR", 0);
+		try_io("acl_group 0 misc env FOO\\040BAR", 1);
+		try_io("acl_group 0 misc env FOO;BAR;BUZ", 1);
 		try_io("file_pattern /\\*\\*\\*", 1);
 		try_io("file_pattern /abc", 1);
 		try_io("file_pattern /abc /def", 0);

@@ -302,8 +302,6 @@ enum ccs_group_id {
 enum ccs_domain_info_flags_index {
 	/* Quota warnning flag.   */
 	CCS_DIF_QUOTA_WARNED,
-	/* Ignore directives in ccs_global_domain . */
-	CCS_DIF_IGNORE_GLOBAL,
 	/*
 	 * This domain was unable to create a new domain at
 	 * ccs_find_next_domain() because the name of the domain to be created
@@ -351,7 +349,7 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_NUMBER_GROUP              "number_group "
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
-#define CCS_KEYWORD_IGNORE_GLOBAL             "ignore_global"
+#define CCS_KEYWORD_USE_GROUP                 "use_group "
 #define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
 #define CCS_KEYWORD_TRANSITION_FAILED         "transition_failed"
 #define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
@@ -373,6 +371,8 @@ enum ccs_value_type {
 
 /* Profile number is an integer between 0 and 255. */
 #define CCS_MAX_PROFILES 256
+
+#define CCS_MAX_ACL_GROUPS 256
 
 enum ccs_mode_value {
 	CCS_CONFIG_DISABLED,
@@ -662,6 +662,7 @@ struct ccs_domain_info {
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
+	u8 group;
 	bool is_deleted;   /* Delete flag.           */
 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
 };
@@ -881,6 +882,7 @@ struct ccs_io_buffer {
 		int query_index;
 		u16 index;
 		u16 cond_index;
+		u8 group_index;
 		u8 cond_step;
 		u8 bit;
 		u8 w_pos;
@@ -1041,7 +1043,7 @@ int ccs_write_transition_control(char *data, const bool is_delete,
 size_t ccs_del_condition(struct list_head *element);
 struct ccs_condition *ccs_get_condition(char *condition);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const u8 profile);
+					  const u8 profile, const u8 group);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
 struct ccs_profile *ccs_profile(const u8 profile);
@@ -1108,7 +1110,7 @@ extern struct list_head ccs_group_list[CCS_MAX_GROUP];
 extern struct list_head ccs_shared_list[CCS_MAX_LIST];
 extern struct list_head ccs_name_list[CCS_MAX_HASH];
 extern bool ccs_policy_loaded;
-extern struct ccs_domain_info ccs_global_domain;
+extern struct ccs_domain_info ccs_acl_group[CCS_MAX_ACL_GROUPS];
 extern struct ccs_domain_info ccs_kernel_domain;
 extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];

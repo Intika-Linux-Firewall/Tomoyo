@@ -1003,7 +1003,6 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 
 static const char *ccs_dif[CCS_MAX_DOMAIN_INFO_FLAGS] = {
 	[CCS_DIF_QUOTA_WARNED] = CCS_KEYWORD_QUOTA_EXCEEDED "\n",
-	[CCS_DIF_IGNORE_GLOBAL] = CCS_KEYWORD_IGNORE_GLOBAL "\n",
 	[CCS_DIF_TRANSITION_FAILED] = CCS_KEYWORD_TRANSITION_FAILED "\n"
 };
 	
@@ -1037,7 +1036,7 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 		else if (is_select)
 			domain = ccs_find_domain(data);
 		else
-			domain = ccs_assign_domain(data, 0);
+			domain = ccs_assign_domain(data, 0, 0);
 		head->w.domain = domain;
 		return 0;
 	}
@@ -1048,6 +1047,11 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 	    && profile < CCS_MAX_PROFILES) {
 		if (!ccs_policy_loaded || ccs_profile_ptr[(u8) profile])
 			domain->profile = (u8) profile;
+		return 0;
+	}
+	if (sscanf(data, CCS_KEYWORD_USE_GROUP "%u", &profile) == 1
+	    && profile < CCS_MAX_ACL_GROUPS) {
+		domain->group = (u8) profile;
 		return 0;
 	}
 	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
@@ -1294,6 +1298,12 @@ static u8 ccs_fns(const u8 perm, u8 bit)
 	return bit;
 }
 
+static void ccs_set_group(struct ccs_io_buffer *head)
+{
+	if (head->type == CCS_EXCEPTIONPOLICY)
+		ccs_io_printf(head, "acl_group %u ", head->r.group_index);
+}
+
 /**
  * ccs_print_entry - Print an ACL entry.
  *
@@ -1329,6 +1339,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		}
 		if (bit >= CCS_MAX_PATH_OPERATION)
 			goto done;
+		ccs_set_group(head);
 		ccs_set_string(head, "file ");
 		ccs_set_string(head, ccs_path_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
@@ -1336,6 +1347,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
 		struct ccs_execute_handler *ptr
 			= container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
 		ccs_io_printf(head, "%s ",
 			      acl_type == CCS_TYPE_EXECUTE_HANDLER ?
 			      CCS_KEYWORD_EXECUTE_HANDLER :
@@ -1349,6 +1361,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_MKDEV_OPERATION)
 			goto done;
+		ccs_set_group(head);
 		ccs_set_string(head, "file ");
 		ccs_set_string(head, ccs_mkdev_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
@@ -1361,6 +1374,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_PATH2_OPERATION)
 			goto done;
+		ccs_set_group(head);
 		ccs_set_string(head, "file ");
 		ccs_set_string(head, ccs_path2_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name1);
@@ -1371,6 +1385,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_PATH_NUMBER_OPERATION)
 			goto done;
+		ccs_set_group(head);
 		ccs_set_string(head, "file ");
 		ccs_set_string(head, ccs_path_number_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
@@ -1378,11 +1393,13 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_ENV_ACL) {
 		struct ccs_env_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
 		ccs_set_string(head, "misc env ");
 		ccs_set_string(head, ptr->env->name);
 	} else if (acl_type == CCS_TYPE_CAPABILITY_ACL) {
 		struct ccs_capability_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
 		ccs_set_string(head, "capability ");
 		ccs_set_string(head, ccs_cap2keyword(ptr->operation));
 	} else if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
@@ -1391,6 +1408,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_NETWORK_OPERATION)
 			goto done;
+		ccs_set_group(head);
 		ccs_set_string(head, "network ");
 		ccs_set_string(head, ccs_net_keyword[bit]);
 		ccs_set_space(head);
@@ -1416,12 +1434,14 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
 		ccs_set_string(head, "ipc signal ");
 		ccs_io_printf(head, "%u ", ptr->sig);
 		ccs_set_string(head, ptr->domainname->name);
 	} else if (acl_type == CCS_TYPE_MOUNT_ACL) {
 		struct ccs_mount_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
 		ccs_io_printf(head, "file mount");
 		ccs_print_name_union(head, &ptr->dev_name);
 		ccs_print_name_union(head, &ptr->dir_name);
@@ -1502,6 +1522,8 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 			ccs_set_lf(head);
 			ccs_io_printf(head, CCS_KEYWORD_USE_PROFILE "%u\n",
 				      domain->profile);
+			ccs_io_printf(head, CCS_KEYWORD_USE_GROUP "%u\n",
+				      domain->group);
 			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
 				if (domain->flags[i])
 					ccs_set_string(head, ccs_dif[i]);
@@ -1711,7 +1733,18 @@ static int ccs_write_exception(struct ccs_io_buffer *head)
 	for (i = 0; i < CCS_MAX_GROUP; i++)
 		if (ccs_str_starts(&data, ccs_group_name[i]))
 			return ccs_write_group(data, is_delete, i);
-	return ccs_write_domain2(data, &ccs_global_domain, is_delete);
+	if (ccs_str_starts(&data, "acl_group ")) {
+		unsigned int group;
+		if (sscanf(data, "%u", &group) == 1 &&
+		    group < CCS_MAX_ACL_GROUPS) {
+			data = strchr(data, ' ');
+			if (data)
+				return ccs_write_domain2(data + 1,
+							 &ccs_acl_group[group],
+							 is_delete);
+		}
+	}
+	return -EINVAL;
 }
 
 /**
@@ -1865,7 +1898,16 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 		head->r.step++;
 	if (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP)
 		return;
-	head->r.eof = ccs_read_domain2(head, &ccs_global_domain);
+	while (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP
+	       + CCS_MAX_ACL_GROUPS) {
+		head->r.group_index = head->r.step - CCS_MAX_POLICY
+			- CCS_MAX_GROUP;
+		if (!ccs_read_domain2(head,
+				      &ccs_acl_group[head->r.group_index]))
+			return;
+		head->r.step++;
+	}
+	head->r.eof = true;
 }
 
 /* Wait queue for ccs_query_list. */

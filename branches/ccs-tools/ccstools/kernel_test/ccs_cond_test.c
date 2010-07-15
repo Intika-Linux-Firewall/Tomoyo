@@ -115,105 +115,105 @@ static void stage_open_test(void)
 		try_open("file read /etc/fstab if exec.envp[\"HOME\"]!=NULL",
 			 "/etc/fstab", O_RDONLY, 0);
 
-		try_open("file read /proc/\\*/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\@/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\$/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\X/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\+/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\*/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\@/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\$/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\X/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\+/mounts", buffer, O_RDONLY,
 			 pid >= 0 && pid < 10);
-		try_open("file read /proc/\\+\\+/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\+\\+/mounts", buffer, O_RDONLY,
 			 pid >= 10 && pid < 100);
-		try_open("file read /proc/\\+\\+\\+/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\+\\+\\+/mounts", buffer, O_RDONLY,
 			 pid >= 100 && pid < 1000);
-		try_open("file read /proc/\\+\\+\\+\\+/mounts", buffer,
+		try_open("file read proc:/\\+\\+\\+\\+/mounts", buffer,
 			 O_RDONLY, pid >= 1000 && pid < 10000);
-		try_open("file read /proc/\\+\\+\\+\\+\\+/mounts", buffer,
+		try_open("file read proc:/\\+\\+\\+\\+\\+/mounts", buffer,
 			 O_RDONLY, pid >= 10000 && pid < 100000);
-		try_open("file read /proc/\\+\\+\\+\\+\\+\\+/mounts", buffer,
+		try_open("file read proc:/\\+\\+\\+\\+\\+\\+/mounts", buffer,
 			 O_RDONLY, pid >= 100000 && pid < 1000000);
 
-		try_open("file read /proc/\\x/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\x/mounts", buffer, O_RDONLY,
 			 pid < 10);
-		try_open("file read /proc/\\x\\x/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\x\\x/mounts", buffer, O_RDONLY,
 			 pid >= 10 && pid < 100);
-		try_open("file read /proc/\\x\\x\\x/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\x\\x\\x/mounts", buffer, O_RDONLY,
 			 pid >= 100 && pid < 1000);
-		try_open("file read /proc/\\x\\x\\x\\x/mounts", buffer,
+		try_open("file read proc:/\\x\\x\\x\\x/mounts", buffer,
 			 O_RDONLY, pid >= 1000 && pid < 10000);
-		try_open("file read /proc/\\x\\x\\x\\x\\x/mounts", buffer,
+		try_open("file read proc:/\\x\\x\\x\\x\\x/mounts", buffer,
 			 O_RDONLY, pid >= 10000 && pid < 100000);
-		try_open("file read /proc/\\x\\x\\x\\x\\x\\x/mounts", buffer,
+		try_open("file read proc:/\\x\\x\\x\\x\\x\\x/mounts", buffer,
 			 O_RDONLY, pid >= 100000 && pid < 1000000);
 
-		try_open("file read /proc/\\$\\*/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\$\\@/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\$\\*\\*/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\*/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\$\\@/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\$\\*\\*/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\@\\@/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\@\\@/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\*\\@/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\*\\@/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\@\\*/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\@\\*/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\*/mounts\\*", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\*/mounts\\*", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\@/mounts\\@", buffer, O_RDONLY,
+		try_open("file read proc:/\\$\\@/mounts\\@", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\$\\*\\*/mounts\\*\\*", buffer,
+		try_open("file read proc:/\\$\\*\\*/mounts\\*\\*", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\$\\@\\@/mounts\\@\\@", buffer,
+		try_open("file read proc:/\\$\\@\\@/mounts\\@\\@", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\$\\*\\@/mounts\\*\\@", buffer,
+		try_open("file read proc:/\\$\\*\\@/mounts\\*\\@", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\$\\@\\*/mounts\\@\\*", buffer,
-			 O_RDONLY, 1);
-
-		try_open("file read /proc/\\*\\$/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\@\\$/mounts", buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\*\\*\\$/mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\@\\@\\$/mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\*\\@\\$/mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\@\\*\\$/mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\*\\$/\\*mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\@\\$/\\@mounts", buffer, O_RDONLY,
-			 1);
-		try_open("file read /proc/\\*\\*\\$/\\*\\*mounts", buffer,
-			 O_RDONLY, 1);
-		try_open("file read /proc/\\@\\@\\$/\\@\\@mounts", buffer,
-			 O_RDONLY, 1);
-		try_open("file read /proc/\\*\\@\\$/\\*\\@mounts", buffer,
-			 O_RDONLY, 1);
-		try_open("file read /proc/\\@\\*\\$/\\@\\*mounts", buffer,
+		try_open("file read proc:/\\$\\@\\*/mounts\\@\\*", buffer,
 			 O_RDONLY, 1);
 
-		try_open("file read /proc/\\*\\$\\*/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\*\\$/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\@\\$/mounts", buffer, O_RDONLY, 1);
+		try_open("file read proc:/\\*\\*\\$/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\@\\$\\@/mounts", buffer, O_RDONLY,
+		try_open("file read proc:/\\@\\@\\$/mounts", buffer, O_RDONLY,
 			 1);
-		try_open("file read /proc/\\*\\*\\$\\*\\*/mounts", buffer,
+		try_open("file read proc:/\\*\\@\\$/mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\@\\*\\$/mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\*\\$/\\*mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\@\\$/\\@mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\*\\*\\$/\\*\\*mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\@\\@\\$\\@\\@/mounts", buffer,
+		try_open("file read proc:/\\@\\@\\$/\\@\\@mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\*\\@\\$\\*\\@/mounts", buffer,
+		try_open("file read proc:/\\*\\@\\$/\\*\\@mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\@\\*\\$\\@\\*/mounts", buffer,
+		try_open("file read proc:/\\@\\*\\$/\\@\\*mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\*\\$\\*/\\*mounts\\*", buffer,
+
+		try_open("file read proc:/\\*\\$\\*/mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\@\\$\\@/mounts", buffer, O_RDONLY,
+			 1);
+		try_open("file read proc:/\\*\\*\\$\\*\\*/mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\@\\$\\@/\\@mounts\\@", buffer,
+		try_open("file read proc:/\\@\\@\\$\\@\\@/mounts", buffer,
 			 O_RDONLY, 1);
-		try_open("file read /proc/\\*\\*\\$\\*\\*/\\*\\*mounts\\*\\*",
+		try_open("file read proc:/\\*\\@\\$\\*\\@/mounts", buffer,
+			 O_RDONLY, 1);
+		try_open("file read proc:/\\@\\*\\$\\@\\*/mounts", buffer,
+			 O_RDONLY, 1);
+		try_open("file read proc:/\\*\\$\\*/\\*mounts\\*", buffer,
+			 O_RDONLY, 1);
+		try_open("file read proc:/\\@\\$\\@/\\@mounts\\@", buffer,
+			 O_RDONLY, 1);
+		try_open("file read proc:/\\*\\*\\$\\*\\*/\\*\\*mounts\\*\\*",
 			 buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\@\\@\\$\\@\\@/\\@\\@mounts\\@\\@",
+		try_open("file read proc:/\\@\\@\\$\\@\\@/\\@\\@mounts\\@\\@",
 			 buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\*\\@\\$\\*\\@/\\*\\@mounts\\*\\@",
+		try_open("file read proc:/\\*\\@\\$\\*\\@/\\*\\@mounts\\*\\@",
 			 buffer, O_RDONLY, 1);
-		try_open("file read /proc/\\@\\*\\$\\@\\*/\\@\\*mounts\\@\\*",
+		try_open("file read proc:/\\@\\*\\$\\@\\*/\\@\\*mounts\\@\\*",
 			 buffer, O_RDONLY, 1);
 
 		snprintf(buffer, sizeof(buffer) - 1, "/etc/fstab");
