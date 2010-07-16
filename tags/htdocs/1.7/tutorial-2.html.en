@@ -14,7 +14,7 @@
 
 <h2>Contents of this installment.</h2>
 
-<p>In the previous installment, I explained steps for installing TOMOYO Linux and steps for using automatic learning mode on files and steps for saving the learned result. In this installment, I will explain enforcing mode and profiles in TOMOYO Linux and steps for restricting access using enforcing mode and profiles.</p>
+<p>In the previous installment, I explained steps for installing TOMOYO Linux and steps for using automatic learning mode on files and steps for saving the learned result. In this installment, I explain enforcing mode and profiles in TOMOYO Linux and steps for restricting access using enforcing mode and profiles.</p>
 
 <h2>Access control modes and profiles</h2>
 
@@ -79,11 +79,11 @@ PROFILE_VERSION=20090903
 </td></tr>
 </table>
 
-<p>TOMOYO Linux can perform access control on not only files but also networks and capabilities and more. You can know current coverage from /proc/ccs/profile . But enabling many access controls from the beginning would confuse you. Thus, I will enable only access control on files in this installment. You can try enabling other access controls as you get understand how to use.</p>
+<p>TOMOYO Linux can perform access control on not only files but also networks and capabilities and more. You can know current coverage from /proc/ccs/profile . But enabling many access controls from the beginning would confuse you. Thus, I enable only access control on files in this installment. You can try enabling other access controls as you get understand how to use.</p>
 
 <h3>About profiles</h3>
 
-<p>In TOMOYO Linux, you can specify access control modes for per a domain basis. You can change access control modes of arbitrary domains independent of the rest of domains. To specify access control modes independently, TOMOYO Linux uses definition of access control modes called "profile" (Fig. 5) and assigns profiles using ccs-setprofile command or ccs-editpolicy command. (Fig. 6) I will explain usage of ccs-setprofile command later.</p>
+<p>In TOMOYO Linux, you can specify access control modes for per a domain basis. You can change access control modes of arbitrary domains independent of the rest of domains. To specify access control modes independently, TOMOYO Linux uses definition of access control modes called "profile" (Fig. 5) and assigns profiles using ccs-setprofile command or ccs-editpolicy command. (Fig. 6) I explain usage of ccs-setprofile command later.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -101,7 +101,7 @@ PROFILE_VERSION=20090903
 
 <h4>&diams;Creating profiles</h4>
 
-<p>In this series, I will use 4 profiles. Please overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7.</p>
+<p>In this series, I use 4 profiles. Please overwrite /etc/ccs/profile.conf with the contents listed in Fig. 7.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -134,7 +134,7 @@ PREFERENCE::enforcing={ verbose=yes }
 
 <h2>Let's protect WWW services</h2>
 
-<p>I will explain steps for creating policy for Apache as an example of mandatory access control. The pathname of Apache's main program depends on your distribution. For example, /usr/sbin/httpd for CentOS, /usr/sbin/apache2 for Debian.</p>
+<p>I explain steps for creating policy for Apache as an example of mandatory access control. The pathname of Apache's main program depends on your distribution. For example, /usr/sbin/httpd for CentOS, /usr/sbin/apache2 for Debian.</p>
 
 <h3>Updating exception policy</h3>
 
@@ -317,7 +317,7 @@ allow_read/write /tmp/php3lo7ab
 
 <p>First, press "A" key on the keyboard, and enter "allow_read/write /tmp/php\?\?\?\?\?\?" (this is a patternized entry for entries in Fig. 20). Next, move the cursor to the "allow_read/write /tmp/php\?\?\?\?\?\?" line and press "O" key, and you will see entries included in "allow_read/write /tmp/php\?\?\?\?\?\?" entry are marked with "&amp;". Verify that entries listed in Fig. 20 are marked with "&amp;" and press "D" key on the keyboard, and a prompt "Delete selected entries? ('Y'es/'N'o)" is printed, and press "Y" key on the keyboard.</p>
 
-<p>Continue policy tuning until all necessary permissions are given using permissive mode.</p>
+<p>Continue policy tuning using permissive mode until all necessary permissions are given.</p>
 
 <h3>How to save policy?</h3>
 
@@ -331,7 +331,7 @@ allow_read/write /tmp/php3lo7ab
 
 <p>In this installment, I explained steps for actually performing access control and steps for protecting WWW services. All basic operations for TOMOYO Linux were explained in previous installment and this installment. Thus, you can say "I can use TOMOYO Linux" if you understood steps written in this installment.</p>
 
-<p>In the next installment, I will explain TOMOYO Linux's domain transitions. Don't miss it!</p>
+<p>In the next installment, I explain TOMOYO Linux's domain transitions. Don't miss it!</p>
 
 <p><a href="tutorial-1.html.en">Go back to the first installment.</a>&nbsp;&nbsp;<a href="tutorial-3.html.en">Proceed to the third installment.</a></p>
 

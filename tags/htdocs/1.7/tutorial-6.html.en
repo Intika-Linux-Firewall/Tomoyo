@@ -220,7 +220,7 @@ echo 'Incorrect password.'
 
 <p>The protection I explained above are applicable for cases like SSH login or Telnet login (where mapping of process and user is persistent and a shell program which allows execution of arbitrary commands are provided). The protection is not applicable for cases like HTTP login (where TCP connections are disconnected every time) or FTP login (where a shell program is not provided).</p>
 
-<p>To apply this approach to the programs which are directly executed from login shell (e.g. scp command and sftp command), you can use execute_handler feature which TOMOYO Linux provides. (I'll explain about execute_handler at the bottom of this installment.) Also, you can restrict accessible resources by these programs by using mandatory access control which secure OS provides. For example, you can allow these programs to access files under "scp" directory of user's home directory. Since scp command and sftp command are directly executed from login shells, domains for these programs will be "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp" and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/libexec/openssh/sftp-server". The roughly written policy configuration for these domains will look like Fig. 10. (Files like library files are omitted in Fig. 10.)</p>
+<p>To apply this approach to the programs which are directly executed from login shell (e.g. scp command and sftp command), you can use execute_handler feature which TOMOYO Linux provides. (I explain about execute_handler at the bottom of this installment.) Also, you can restrict accessible resources by these programs by using mandatory access control which secure OS provides. For example, you can allow these programs to access files under "scp" directory of user's home directory. Since scp command and sftp command are directly executed from login shells, domains for these programs will be "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp" and "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/libexec/openssh/sftp-server". The roughly written policy configuration for these domains will look like Fig. 10. (Files like library files are omitted in Fig. 10.)</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -413,7 +413,7 @@ allow_read/write @SCP_FILE
 
 <h3>Login shell</h3>
 
-<p>Shell programs which are used as login shell (e.g. /bin/bash ) have a plenty set of built-in commands. For example, administrator can do evil things like forcibly terminating arbitrary processes using built-in "kill" command (if you don't enable restriction by CONFIG::ipc::signal , I will explain CONFIG::ipc::signal in the next installment).</p>
+<p>Shell programs which are used as login shell (e.g. /bin/bash ) have a plenty set of built-in commands. For example, administrator can do evil things like forcibly terminating arbitrary processes using built-in "kill" command (if you don't enable restriction by CONFIG::ipc::signal , I explain CONFIG::ipc::signal in the next installment).</p>
 
 <p>To prevent administrator from doing evil things, you can use falsh command which in included in TOMOYO Linux's tools package for login shells. (Fig. 22)</p>
 
@@ -439,7 +439,7 @@ allow_read/write @SCP_FILE
 
 <h3>Restricting networking for server process</h3>
 
-<p>/usr/sbin/sshd has an ability to relay TCP connections (e.g. port forwarding). By enabling restriction by CONFIG::network (which I will explain CONFIG::network in the next installment) to "&lt;kernel&gt; /usr/sbin/sshd" domain (a domain for /usr/sbin/sshd program), you can do stronger protection.</p>
+<p>/usr/sbin/sshd has an ability to relay TCP connections (e.g. port forwarding). By enabling restriction by CONFIG::network (which I explain in the next installment) to "&lt;kernel&gt; /usr/sbin/sshd" domain (a domain for /usr/sbin/sshd program), you can do stronger protection.</p>
 
 <p>If a server program need not to establish TCP connections from server to client, by enabling restriction by CONFIG::network , you can prevent such program from being abused by worms and viruses as steppingstone for attacking other servers.</p>
 
@@ -475,7 +475,7 @@ allow_read/write @SCP_FILE
 
 <h2>Trailer</h2>
 
-<p>In the next installment, I'll explain access control other than files.</p>
+<p>In the next installment, I explain access control other than files.</p>
 
 <p><a href="tutorial-5.html.en">Go back to the fifth installment.</a>&nbsp;&nbsp;<a href="tutorial-7.html.en">Proceed to the seventh installment.</a></p>
 
