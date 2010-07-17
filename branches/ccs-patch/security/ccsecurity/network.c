@@ -52,7 +52,7 @@ static int ccs_audit_network_log(struct ccs_request_info *r)
 	ccs_write_log(r, "network %s %s %u\n", operation, buf, port);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "%s %s %u", operation, buf, port);
+	ccs_warn_log(r, "network %s %s %u", operation, buf, port);
 	return ccs_supervisor(r, "network %s %s %u\n", operation, buf, port);
 }
 

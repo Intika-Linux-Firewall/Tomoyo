@@ -62,17 +62,17 @@ static int ccs_audit_mount_log(struct ccs_request_info *r)
 	if (r->granted)
 		return 0;
 	if (!strcmp(type, CCS_MOUNT_REMOUNT_KEYWORD))
-		ccs_warn_log(r, "mount -o remount %s 0x%lX", dir, flags);
+		ccs_warn_log(r, "file mount -o remount %s 0x%lX", dir, flags);
 	else if (!strcmp(type, CCS_MOUNT_BIND_KEYWORD)
 		 || !strcmp(type, CCS_MOUNT_MOVE_KEYWORD))
-		ccs_warn_log(r, "mount %s %s %s 0x%lX", type, dev, dir, flags);
+		ccs_warn_log(r, "file mount %s %s %s 0x%lX", type, dev, dir, flags);
 	else if (!strcmp(type, CCS_MOUNT_MAKE_UNBINDABLE_KEYWORD) ||
 		 !strcmp(type, CCS_MOUNT_MAKE_PRIVATE_KEYWORD) ||
 		 !strcmp(type, CCS_MOUNT_MAKE_SLAVE_KEYWORD) ||
 		 !strcmp(type, CCS_MOUNT_MAKE_SHARED_KEYWORD))
-		ccs_warn_log(r, "mount %s %s 0x%lX", type, dir, flags);
+		ccs_warn_log(r, "file mount %s %s 0x%lX", type, dir, flags);
 	else
-		ccs_warn_log(r, "mount -t %s %s %s 0x%lX", type, dev, dir,
+		ccs_warn_log(r, "file mount -t %s %s %s 0x%lX", type, dev, dir,
 			     flags);
 	return ccs_supervisor(r, "file mount %s %s %s 0x%lX\n",
 			      ccs_file_pattern(r->param.mount.dev),

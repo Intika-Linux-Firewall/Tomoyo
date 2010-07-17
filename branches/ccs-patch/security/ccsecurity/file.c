@@ -551,7 +551,7 @@ static int ccs_audit_path_log(struct ccs_request_info *r)
 	ccs_write_log(r, "file %s %s\n", operation, filename->name);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "%s %s", operation, filename->name);
+	ccs_warn_log(r, "file %s %s", operation, filename->name);
 	return ccs_supervisor(r, "file %s %s\n", operation,
 			      ccs_file_pattern(filename));
 }
@@ -572,7 +572,7 @@ static int ccs_audit_path2_log(struct ccs_request_info *r)
 		      filename2->name);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "%s %s %s", operation, filename1->name,
+	ccs_warn_log(r, "file %s %s %s", operation, filename1->name,
 		     filename2->name);
 	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename1),
@@ -597,7 +597,7 @@ static int ccs_audit_mkdev_log(struct ccs_request_info *r)
 		      mode, major, minor);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "%s %s 0%o %u %u", operation, filename->name, mode,
+	ccs_warn_log(r, "file %s %s 0%o %u %u", operation, filename->name, mode,
 		     major, minor);
 	return ccs_supervisor(r, "file %s %s 0%o %u %u\n", operation,
 			      ccs_file_pattern(filename), mode, major, minor);
@@ -639,7 +639,7 @@ static int ccs_audit_path_number_log(struct ccs_request_info *r)
 		      buffer);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "%s %s %s", operation, filename->name, buffer);
+	ccs_warn_log(r, "file %s %s %s", operation, filename->name, buffer);
 	return ccs_supervisor(r, "file %s %s %s\n", operation,
 			      ccs_file_pattern(filename), buffer);
 }
