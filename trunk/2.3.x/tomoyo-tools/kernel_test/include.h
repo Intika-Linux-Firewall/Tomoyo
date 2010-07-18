@@ -213,17 +213,18 @@ static void clear_status(void)
 		fprintf(profile_fp, "255-%s=%s", cp, mode);
 	}
 	/* fprintf(profile_fp, "255-PREFERENCE::enforcing= penalty=1\n"); */
-	/*
+	
 	  fprintf(profile_fp, "255-PREFERENCE::learning= verbose=yes\n");
 	  fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=yes\n");
 	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=yes\n");
 	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=yes\n");
-	*/
+	  /*
 	fprintf(profile_fp, "255-PREFERENCE::learning= verbose=no\n");
 	fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=no\n");
 	fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=no\n");
 	fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=no\n");
 	fprintf(profile_fp, "255-PREFERENCE::learning= max_entry=2048\n");
+	  */
 	fflush(profile_fp);
 	fclose(fp);
 }
@@ -285,12 +286,12 @@ static void tomoyo_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/profile\n");
-	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/profile\n");
+	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/domain_policy\n");
+	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/domain_policy\n");
+	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/exception_policy\n");
+	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/exception_policy\n");
+	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/profile\n");
+	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/profile\n");
 }
 
 static void BUG(const char *fmt, ...)

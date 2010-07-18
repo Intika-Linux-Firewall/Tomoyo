@@ -626,7 +626,7 @@ static void stage_network_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	if (access(proc_policy_domain_policy, F_OK)) {
 		fprintf(stderr, "You can't use this program for this kernel."
 			"\n");

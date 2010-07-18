@@ -1,5 +1,5 @@
 /*
- * ccs_new_network_test.c
+ * tomoyo_new_network_test.c
  *
  * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
@@ -104,7 +104,7 @@ static void stage_network_test(void)
 		saddr.sin_port = htons(0);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind 127.0.0.1 0-1");
+			 "allow_network TCP bind 127.0.0.1 0-1");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -116,7 +116,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP listen 127.0.0.0-127.255.255.255 "
+			 "allow_network TCP listen 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(saddr.sin_port) - 1,
 			 ntohs(saddr.sin_port) + 1);
 		errno = 0;
@@ -127,7 +127,7 @@ static void stage_network_test(void)
 		}
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP connect 127.0.0.1 %u-%u",
+			 "allow_network TCP connect 127.0.0.1 %u-%u",
 			 ntohs(saddr.sin_port) - 1, ntohs(saddr.sin_port) + 1);
 		errno = 0;
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
@@ -140,7 +140,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP accept 127.0.0.1 %u-%u",
+			 "allow_network TCP accept 127.0.0.1 %u-%u",
 			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		errno = 0;
@@ -153,7 +153,7 @@ static void stage_network_test(void)
 		close(fd2);
 		fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP connect 127.0.0.0-127.255.255.255 "
+			 "allow_network TCP connect 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(saddr.sin_port) - 1,
 			 ntohs(saddr.sin_port) + 1);
 		if (write_policy()) {
@@ -163,7 +163,7 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP accept 127.0.0.0-127.255.255.255 "
+			 "allow_network TCP accept 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(caddr.sin_port) - 1,
 			 ntohs(caddr.sin_port) + 1);
 		if (write_policy()) {
@@ -195,7 +195,7 @@ static void stage_network_test(void)
 		saddr.sin_port = htons(10001);
 		fprintf(exception_fp, "address_group TESTADDRESS 127.0.0.1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind @TESTADDRESS 10001");
+			 "allow_network TCP bind @TESTADDRESS 10001");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -210,7 +210,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"127.0.0.0-127.0.0.2\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind @TESTADDRESS 20002");
+			 "allow_network TCP bind @TESTADDRESS 20002");
 		errno = 0;
 		show_result(bind(fd2, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -250,7 +250,7 @@ static void stage_network_test(void)
 		saddr.sin6_port = htons(0);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind 0:0:0:0:0:0:0:1 0-1");
+			 "allow_network TCP bind 0:0:0:0:0:0:0:1 0-1");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -262,7 +262,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP listen "
+			 "allow_network TCP listen "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
@@ -274,7 +274,7 @@ static void stage_network_test(void)
 		}
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP connect 0:0:0:0:0:0:0:1 %u-%u",
+			 "allow_network TCP connect 0:0:0:0:0:0:0:1 %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		errno = 0;
@@ -288,7 +288,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP accept 0:0:0:0:0:0:0:1 %u-%u",
+			 "allow_network TCP accept 0:0:0:0:0:0:0:1 %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -301,7 +301,7 @@ static void stage_network_test(void)
 
 		close(fd2);
 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
-		snprintf(buffer, sizeof(buffer) - 1, "network TCP "
+		snprintf(buffer, sizeof(buffer) - 1, "allow_network TCP "
 			 "connect 0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
@@ -312,7 +312,7 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP accept "
+			 "allow_network TCP accept "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
@@ -348,7 +348,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind @TESTADDRESS 30003");
+			 "allow_network TCP bind @TESTADDRESS 30003");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -363,7 +363,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network TCP bind @TESTADDRESS 40004");
+			 "allow_network TCP bind @TESTADDRESS 40004");
 		errno = 0;
 		show_result(bind(fd2, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -386,7 +386,7 @@ static void stage_network_test(void)
 
 int main(int argc, char *argv[])
 {
-	ccs_test_init();
+	tomoyo_test_init();
 	set_profile(3, "network::inet_udp_bind");
 	set_profile(3, "network::inet_udp_connect");
 	set_profile(3, "network::inet_tcp_bind");
@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
 	set_profile(3, "network::inet_tcp_accept");
 	set_profile(3, "network::inet_raw_bind");
 	set_profile(3, "network::inet_raw_connect");
-	fprintf(profile_fp, "255-PREFERENCE::audit={ max_reject_log=1024 }\n");
+	//fprintf(profile_fp, "255-PREFERENCE::audit={ max_reject_log=1024 }\n");
 	stage_network_test();
 	clear_status();
 	return 0;

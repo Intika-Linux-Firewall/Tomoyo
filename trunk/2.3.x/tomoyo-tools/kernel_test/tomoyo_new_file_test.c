@@ -150,19 +150,19 @@ static void stage_file_test(void)
 	set_profile(3, "file::umount");
 	set_profile(3, "file::pivot_root");
 
-	policy = "allow_read /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_read proc:/sys/net/ipv4/ip_local_port_range";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, buffer, &size, 0, 0), 0);
 
-	policy = "allow_write /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_write proc:/sys/net/ipv4/ip_local_port_range";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 1);
 	write_domain_policy(policy, 1);
 	show_result(sysctl(name, 3, 0, 0, buffer, size), 0);
 
-	policy = "allow_read/write /proc/sys/net/ipv4/ip_local_port_range";
+	policy = "allow_read/write proc:/sys/net/ipv4/ip_local_port_range";
 	write_domain_policy(policy, 0);
 	show_result(sysctl(name, 3, buffer, &size, buffer, size), 1);
 	write_domain_policy(policy, 1);
@@ -648,7 +648,7 @@ int main(int argc, char *argv[])
 	fprintf(domain_fp, "%s /bin/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
-	fprintf(profile_fp, "255-PREFERENCE::audit={ max_reject_log=1024 }\n");
+	//fprintf(profile_fp, "255-PREFERENCE::audit={ max_reject_log=1024 }\n");
 	stage_file_test();
 	fprintf(domain_fp, "use_profile 0\n");
 	clear_status();

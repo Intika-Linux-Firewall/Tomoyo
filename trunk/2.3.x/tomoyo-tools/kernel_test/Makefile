@@ -1,4 +1,4 @@
-ALL_FILES = tomoyo_filesystem_test tomoyo_file_test tomoyo_rewrite_test newns tomoyo_accept_test tomoyo_policy_io_test tomoyo_new_file_test tomoyo_new_test tomoyo_policy_memory_test
+ALL_FILES = tomoyo_filesystem_test tomoyo_file_test tomoyo_rewrite_test newns tomoyo_accept_test tomoyo_policy_io_test tomoyo_new_file_test tomoyo_new_test tomoyo_policy_memory_test tomoyo_network_test tomoyo_new_network_test
 
 all: $(ALL_FILES)
 	chmod 755 testall.sh
