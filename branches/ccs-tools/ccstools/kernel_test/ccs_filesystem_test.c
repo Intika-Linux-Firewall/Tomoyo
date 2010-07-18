@@ -20,12 +20,10 @@ static void show_prompt(const char *str, const int should_fail)
 #define MS_MOVE         8192
 #endif
 
-static const char *pivot_root_dir = "/proc/";
-
 static int child(void *arg)
 {
 	errno = 0;
-	pivot_root(pivot_root_dir, proc_policy_dir);
+	pivot_root("/proc/", "/proc/ccs/");
 	return errno;
 }
 
@@ -594,10 +592,8 @@ int main(int argc, char *argv[])
 		int error;
 		char *stack = malloc(8192);
 		set_profile(3, "file::pivot_root");
-		fprintf(domain_fp, "file pivot_root %s %s\n",
-			 pivot_root_dir, proc_policy_dir);
-		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
-			 proc_policy_dir);
+		fprintf(domain_fp, "file pivot_root proc:/ proc:/ccs/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -612,10 +608,8 @@ int main(int argc, char *argv[])
 		else
 			printf("FAILED: %s\n", strerror(errno));
 
-		fprintf(domain_fp, "delete file pivot_root %s %s\n",
-			pivot_root_dir, proc_policy_dir);
-		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
-			 proc_policy_dir);
+		fprintf(domain_fp, "delete file pivot_root proc:/ proc:/ccs/\n");
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 1);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),
@@ -631,8 +625,7 @@ int main(int argc, char *argv[])
 			printf("BUG: %s\n", strerror(errno));
 
 		set_profile(2, "file::pivot_root");
-		snprintf(stack, 8191, "pivot_root('%s', '%s')", pivot_root_dir,
-			 proc_policy_dir);
+		snprintf(stack, 8191, "pivot_root('proc:/', 'proc:/ccs/')");
 		show_prompt(stack, 0);
 		{
 			const pid_t pid = clone(child, stack + (8192 / 2),

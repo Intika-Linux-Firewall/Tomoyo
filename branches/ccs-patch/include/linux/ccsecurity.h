@@ -138,12 +138,12 @@ struct ccsecurity_operations {
 					  struct sockaddr *addr, int addr_len);
 	int (*socket_bind_permission) (struct socket *sock,
 				       struct sockaddr *addr, int addr_len);
-	int (*socket_accept_permission) (struct socket *sock,
-					 struct sockaddr *addr);
+	int (*socket_post_accept_permission) (struct socket *sock,
+					      struct socket *newsock);
 	int (*socket_sendmsg_permission) (struct socket *sock,
 					  struct msghdr *msg, int size);
-	int (*socket_recvmsg_permission) (struct sock *sk, struct sk_buff *skb,
-					  const unsigned int flags);
+	int (*socket_post_recvmsg_permission) (struct sock *sk,
+					       struct sk_buff *skb);
 	int (*chown_permission) (struct dentry *dentry, struct vfsmount *mnt,
 				 uid_t user, gid_t group);
 	int (*chmod_permission) (struct dentry *dentry, struct vfsmount *mnt,
@@ -450,12 +450,12 @@ static inline int ccs_socket_bind_permission(struct socket *sock,
 	return func ? func(sock, addr, addr_len) : 0;
 }
 
-static inline int ccs_socket_accept_permission(struct socket *sock,
-					       struct sockaddr *addr)
+static inline int ccs_socket_post_accept_permission(struct socket *sock,
+						    struct socket *newsock)
 {
-	int (*func) (struct socket *, struct sockaddr *)
-		= ccsecurity_ops.socket_accept_permission;
-	return func ? func(sock, addr) : 0;
+	int (*func) (struct socket *, struct socket *)
+		= ccsecurity_ops.socket_post_accept_permission;
+	return func ? func(sock, newsock) : 0;
 }
 
 static inline int ccs_socket_sendmsg_permission(struct socket *sock,
@@ -467,13 +467,12 @@ static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 	return func ? func(sock, msg, size) : 0;
 }
 
-static inline int ccs_socket_recvmsg_permission(struct sock *sk,
-						struct sk_buff *skb,
-						const unsigned int flags)
+static inline int ccs_socket_post_recvmsg_permission(struct sock *sk,
+						     struct sk_buff *skb)
 {
-	int (*func) (struct sock *, struct sk_buff *, const unsigned)
-		= ccsecurity_ops.socket_recvmsg_permission;
-	return func ? func(sk, skb, flags) : 0;
+	int (*func) (struct sock *, struct sk_buff *)
+		= ccsecurity_ops.socket_post_recvmsg_permission;
+	return func ? func(sk, skb) : 0;
 }
 
 static inline int ccs_chown_permission(struct dentry *dentry,
@@ -736,8 +735,8 @@ static inline int ccs_socket_bind_permission(struct socket *sock,
 	return 0;
 }
 
-static inline int ccs_socket_accept_permission(struct socket *sock,
-					       struct sockaddr *addr)
+static inline int ccs_socket_post_accept_permission(struct socket *sock,
+						    struct socket *newsock)
 {
 	return 0;
 }
@@ -748,9 +747,8 @@ static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 	return 0;
 }
 
-static inline int ccs_socket_recvmsg_permission(struct sock *sk,
-						struct sk_buff *skb,
-						const unsigned int flags)
+static inline int ccs_socket_post_recvmsg_permission(struct sock *sk,
+						     struct sk_buff *skb)
 {
 	return 0;
 }
