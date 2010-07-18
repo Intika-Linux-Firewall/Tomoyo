@@ -21,7 +21,7 @@ index 91640e9..da6a9d5 100644
 -obj-y = common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o realpath.o securityfs_if.o tomoyo.o util.o
 +obj-y = common.o domain.o file.o gc.o group.o load_policy.o memory.o mount.o network.o realpath.o securityfs_if.o tomoyo.o util.o
 diff --git a/security/tomoyo/common.c b/security/tomoyo/common.c
-index bff6392..9574949 100644
+index bff6392..270d2c1 100644
 --- a/security/tomoyo/common.c
 +++ b/security/tomoyo/common.c
 @@ -58,7 +58,16 @@ static const char *tomoyo_mac_keywords[TOMOYO_MAX_MAC_INDEX
@@ -95,7 +95,7 @@ index bff6392..9574949 100644
  };
  
  /**
-@@ -1280,7 +1320,22 @@ static bool tomoyo_read_group(struct tomoyo_io_buffer *head, const int idx)
+@@ -1280,6 +1320,20 @@ static bool tomoyo_read_group(struct tomoyo_io_buffer *head, const int idx)
  							  (ptr,
  						   struct tomoyo_number_group,
  							   head)->number);
@@ -114,29 +114,22 @@ index bff6392..9574949 100644
 +							  member->max.ipv4);
 +				tomoyo_io_printf(head, " %s", buffer);
  			}
-+
  			tomoyo_set_lf(head);
  		}
- 		head->r.acl = NULL;
 diff --git a/security/tomoyo/common.h b/security/tomoyo/common.h
-index 2ffad61..c864f6d 100644
+index 2ffad61..a4c84bc 100644
 --- a/security/tomoyo/common.h
 +++ b/security/tomoyo/common.h
-@@ -21,6 +21,13 @@
+@@ -21,6 +21,8 @@
  #include <linux/list.h>
  #include <linux/cred.h>
  #include <linux/poll.h>
-+#include <linux/net.h>
-+#include <linux/inet.h>
-+#include <linux/in.h>
-+#include <linux/in6.h>
 +#include <net/ip.h>
 +#include <net/ipv6.h>
-+#include <net/udp.h>
  struct linux_binprm;
  
  /********** Constants definitions. **********/
-@@ -50,6 +57,7 @@ enum tomoyo_policy_id {
+@@ -50,6 +52,7 @@ enum tomoyo_policy_id {
  	TOMOYO_ID_GROUP,
  	TOMOYO_ID_PATH_GROUP,
  	TOMOYO_ID_NUMBER_GROUP,
@@ -144,7 +137,7 @@ index 2ffad61..c864f6d 100644
  	TOMOYO_ID_TRANSITION_CONTROL,
  	TOMOYO_ID_AGGREGATOR,
  	TOMOYO_ID_GLOBALLY_READABLE,
-@@ -62,15 +70,22 @@ enum tomoyo_policy_id {
+@@ -62,15 +65,22 @@ enum tomoyo_policy_id {
  	TOMOYO_MAX_POLICY
  };
  
@@ -167,7 +160,7 @@ index 2ffad61..c864f6d 100644
  #define TOMOYO_KEYWORD_ALLOW_READ                "allow_read "
  #define TOMOYO_KEYWORD_DELETE                    "delete "
  #define TOMOYO_KEYWORD_DENY_REWRITE              "deny_rewrite "
-@@ -79,6 +94,7 @@ enum tomoyo_group_id {
+@@ -79,6 +89,7 @@ enum tomoyo_group_id {
  #define TOMOYO_KEYWORD_KEEP_DOMAIN               "keep_domain "
  #define TOMOYO_KEYWORD_NO_INITIALIZE_DOMAIN      "no_initialize_domain "
  #define TOMOYO_KEYWORD_NO_KEEP_DOMAIN            "no_keep_domain "
@@ -175,7 +168,7 @@ index 2ffad61..c864f6d 100644
  #define TOMOYO_KEYWORD_PATH_GROUP                "path_group "
  #define TOMOYO_KEYWORD_NUMBER_GROUP              "number_group "
  #define TOMOYO_KEYWORD_SELECT                    "select "
-@@ -112,6 +128,7 @@ enum tomoyo_acl_entry_type_index {
+@@ -112,6 +123,7 @@ enum tomoyo_acl_entry_type_index {
  	TOMOYO_TYPE_PATH_NUMBER_ACL,
  	TOMOYO_TYPE_MKDEV_ACL,
  	TOMOYO_TYPE_MOUNT_ACL,
@@ -183,7 +176,7 @@ index 2ffad61..c864f6d 100644
  };
  
  /* Index numbers for File Controls. */
-@@ -169,6 +186,32 @@ enum tomoyo_path_number_acl_index {
+@@ -169,6 +181,32 @@ enum tomoyo_path_number_acl_index {
  	TOMOYO_MAX_PATH_NUMBER_OPERATION
  };
  
@@ -216,7 +209,7 @@ index 2ffad61..c864f6d 100644
  enum tomoyo_securityfs_interface_index {
  	TOMOYO_DOMAINPOLICY,
  	TOMOYO_EXCEPTIONPOLICY,
-@@ -206,11 +249,20 @@ enum tomoyo_mac_index {
+@@ -206,11 +244,20 @@ enum tomoyo_mac_index {
  	TOMOYO_MAC_FILE_MOUNT,
  	TOMOYO_MAC_FILE_UMOUNT,
  	TOMOYO_MAC_FILE_PIVOT_ROOT,
@@ -237,7 +230,7 @@ index 2ffad61..c864f6d 100644
  	TOMOYO_MAX_MAC_CATEGORY_INDEX
  };
  
-@@ -232,6 +284,11 @@ struct tomoyo_acl_head {
+@@ -232,6 +279,11 @@ struct tomoyo_acl_head {
  	bool is_deleted;
  } __packed;
  
@@ -249,7 +242,7 @@ index 2ffad61..c864f6d 100644
  /*
   * tomoyo_request_info is a structure which is used for holding
   *
-@@ -272,6 +329,13 @@ struct tomoyo_request_info {
+@@ -272,6 +324,13 @@ struct tomoyo_request_info {
  			unsigned long flags;
  			int need_dev;
  		} mount;
@@ -263,7 +256,7 @@ index 2ffad61..c864f6d 100644
  	} param;
  	u8 param_type;
  	bool granted;
-@@ -353,6 +417,16 @@ struct tomoyo_number_group {
+@@ -353,6 +412,16 @@ struct tomoyo_number_group {
  	struct tomoyo_number_union number;
  };
  
@@ -280,7 +273,7 @@ index 2ffad61..c864f6d 100644
  /*
   * tomoyo_acl_info is a structure which is used for holding
   *
-@@ -524,6 +598,44 @@ struct tomoyo_mount_acl {
+@@ -524,6 +593,44 @@ struct tomoyo_mount_acl {
  	struct tomoyo_number_union flags;
  };
  
@@ -289,7 +282,7 @@ index 2ffad61..c864f6d 100644
 +	struct in6_addr addr;
 +};
 +
-+/* Structure for "network" directive. */
++/* Structure for "allow_network" directive. */
 +struct tomoyo_ip_network_acl {
 +	struct tomoyo_acl_info head; /* type = TOMOYO_TYPE_IP_NETWORK_ACL */
 +	u8 perm; /* Bitmask of values in "enum tomoyo_network_acl_index" */
@@ -325,7 +318,7 @@ index 2ffad61..c864f6d 100644
  #define TOMOYO_MAX_IO_READ_QUEUE 32
  
  /*
-@@ -694,6 +806,7 @@ extern asmlinkage long sys_getppid(void);
+@@ -694,6 +801,7 @@ extern asmlinkage long sys_getppid(void);
  bool tomoyo_str_starts(char **src, const char *find);
  /* Get tomoyo_realpath() of current process. */
  const char *tomoyo_get_exe(void);
@@ -333,7 +326,7 @@ index 2ffad61..c864f6d 100644
  /* Format string. */
  void tomoyo_normalize_line(unsigned char *buffer);
  /* Print warning or error message on console. */
-@@ -703,6 +816,7 @@ void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
+@@ -703,6 +811,7 @@ void tomoyo_warn_log(struct tomoyo_request_info *r, const char *fmt, ...)
  void tomoyo_check_profile(void);
  /* Open operation for /sys/kernel/security/tomoyo/ interface. */
  int tomoyo_open_control(const u8 type, struct file *file);
@@ -341,7 +334,7 @@ index 2ffad61..c864f6d 100644
  /* Close /sys/kernel/security/tomoyo/ interface. */
  int tomoyo_close_control(struct file *file);
  /* Poll operation for /sys/kernel/security/tomoyo/ interface. */
-@@ -726,6 +840,8 @@ bool tomoyo_compare_number_union(const unsigned long value,
+@@ -726,6 +835,8 @@ bool tomoyo_compare_number_union(const unsigned long value,
  int tomoyo_get_mode(const u8 profile, const u8 index);
  void tomoyo_io_printf(struct tomoyo_io_buffer *head, const char *fmt, ...)
  	__attribute__ ((format(printf, 2, 3)));
@@ -350,7 +343,7 @@ index 2ffad61..c864f6d 100644
  /* Check whether the domainname is correct. */
  bool tomoyo_correct_domain(const unsigned char *domainname);
  /* Check whether the token is correct. */
-@@ -776,6 +892,8 @@ int tomoyo_write_globally_readable(char *data, const bool is_delete);
+@@ -776,6 +887,8 @@ int tomoyo_write_globally_readable(char *data, const bool is_delete);
  /* Create "allow_mount" entry in domain policy. */
  int tomoyo_write_mount(char *data, struct tomoyo_domain_info *domain,
  		       const bool is_delete);
@@ -359,7 +352,7 @@ index 2ffad61..c864f6d 100644
  /* Create "deny_rewrite" entry in exception policy. */
  int tomoyo_write_no_rewrite(char *data, const bool is_delete);
  /* Create "file_pattern" entry in exception policy. */
-@@ -852,6 +970,21 @@ int tomoyo_path2_perm(const u8 operation, struct path *path1,
+@@ -852,6 +965,21 @@ int tomoyo_path2_perm(const u8 operation, struct path *path1,
  		      struct path *path2);
  int tomoyo_find_next_domain(struct linux_binprm *bprm);
  
@@ -381,16 +374,15 @@ index 2ffad61..c864f6d 100644
  void tomoyo_print_ulong(char *buffer, const int buffer_len,
  			const unsigned long value, const u8 type);
  
-@@ -893,6 +1026,8 @@ extern struct list_head tomoyo_domain_list;
+@@ -893,6 +1021,7 @@ extern struct list_head tomoyo_domain_list;
  extern struct list_head tomoyo_policy_list[TOMOYO_MAX_POLICY];
  extern struct list_head tomoyo_group_list[TOMOYO_MAX_GROUP];
  extern struct list_head tomoyo_name_list[TOMOYO_MAX_HASH];
 +extern struct list_head tomoyo_shared_list[TOMOYO_MAX_LIST];
-+
  
  /* Lock for protecting policy. */
  extern struct mutex tomoyo_policy_lock;
-@@ -905,6 +1040,7 @@ extern struct tomoyo_domain_info tomoyo_kernel_domain;
+@@ -905,6 +1034,7 @@ extern struct tomoyo_domain_info tomoyo_kernel_domain;
  
  extern const char *tomoyo_path_keyword[TOMOYO_MAX_PATH_OPERATION];
  extern const char *tomoyo_mkdev_keyword[TOMOYO_MAX_MKDEV_OPERATION];
@@ -398,7 +390,7 @@ index 2ffad61..c864f6d 100644
  extern const char *tomoyo_path2_keyword[TOMOYO_MAX_PATH2_OPERATION];
  extern const char *tomoyo_path_number_keyword[TOMOYO_MAX_PATH_NUMBER_OPERATION];
  
-@@ -969,6 +1105,13 @@ static inline void tomoyo_put_group(struct tomoyo_group *group)
+@@ -969,6 +1099,13 @@ static inline void tomoyo_put_group(struct tomoyo_group *group)
  		atomic_dec(&group->users);
  }
  
