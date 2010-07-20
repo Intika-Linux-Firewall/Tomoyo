@@ -362,8 +362,6 @@ void __init ccs_network_init(void)
 
 #else
 
-#define MAX_SOCK_ADDR 128 /* net/socket.c */
-
 /* Check permission for creating a socket. */
 static int __ccs_socket_create_permission(int family, int type, int protocol)
 {
@@ -397,8 +395,8 @@ static int __ccs_socket_create_permission(int family, int type, int protocol)
 /* Check permission for listening a TCP socket. */
 static int __ccs_socket_listen_permission(struct socket *sock)
 {
+	struct sockaddr_storage addr;
 	int error = 0;
-	char addr[MAX_SOCK_ADDR];
 	int addr_len;
 	u32 *address;
 	u16 port;
@@ -417,19 +415,19 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 	}
 	if (!ccs_capable(CCS_INET_STREAM_SOCKET_LISTEN))
 		return -EPERM;
-	if (sock->ops->getname(sock, (struct sockaddr *) addr, &addr_len, 0))
+	if (sock->ops->getname(sock, (struct sockaddr *) &addr, &addr_len, 0))
 		return -EPERM;
-	switch (((struct sockaddr *) addr)->sa_family) {
+	switch (((struct sockaddr *) &addr)->sa_family) {
 	case AF_INET6:
 		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) addr)->sin6_addr
+		address = (u32 *) ((struct sockaddr_in6 *) &addr)->sin6_addr
 			.s6_addr;
-		port = ((struct sockaddr_in6 *) addr)->sin6_port;
+		port = ((struct sockaddr_in6 *) &addr)->sin6_port;
 		break;
 	case AF_INET:
 		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) addr)->sin_addr;
-		port = ((struct sockaddr_in *) addr)->sin_port;
+		address = (u32 *) &((struct sockaddr_in *) &addr)->sin_addr;
+		port = ((struct sockaddr_in *) &addr)->sin_port;
 		break;
 	default:
 		goto skip;

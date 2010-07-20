@@ -287,7 +287,7 @@ static void ccs_set_string(struct ccs_io_buffer *head, const char *string)
 		head->r.w[head->r.w_pos++] = string;
 		ccs_flush(head);
 	} else
-		WARN_ON(1);
+		printk(KERN_WARNING "Too many words in a line.\n");
 }
 
 /**
@@ -308,7 +308,7 @@ void ccs_io_printf(struct ccs_io_buffer *head, const char *fmt, ...)
 	len = vsnprintf(head->read_buf + pos, size, fmt, args) + 1;
 	va_end(args);
 	if (pos + len >= head->readbuf_size) {
-		WARN_ON(1);
+		printk(KERN_WARNING "Too many words in a line.\n");
 		return;
 	}
 	head->r.avail += len;

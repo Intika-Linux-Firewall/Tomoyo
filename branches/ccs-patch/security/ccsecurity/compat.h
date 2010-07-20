@@ -180,7 +180,6 @@ static inline void list_del_rcu(struct list_head *entry)
 #define sk_family family
 #define sk_protocol protocol
 #define sk_type type
-#define sk_receive_queue receive_queue
 static inline struct socket *SOCKET_I(struct inode *inode)
 {
 	return inode->i_sock ? &inode->u.socket_i : NULL;
