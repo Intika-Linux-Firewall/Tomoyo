@@ -2022,3 +2022,13 @@ Fix 2010/01/20
       preemptive RCU ( CONFIG_PREEMPT_RCU or CONFIG_TREE_PREEMPT_RCU ) is
       enabled.
 
+Fix 2010/07/21
+
+    @ Wait for next connection/datagram if current connection/datagram was
+      discarded.
+
+      I was misunderstanding the discussion of post accept()/recvmsg() hook.
+      The kernel is allowed to wait for next connection/datagram unless
+      MSG_DONTWAIT or O_NONBLOCK is set. The kernel is allowed to return
+      -EAGAIN if MSG_DONTWAIT or O_NONBLOCK is set.
+      The change I made on 2009/05/08 was wrong.
