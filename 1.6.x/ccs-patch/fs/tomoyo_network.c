@@ -1253,4 +1253,4 @@ int ccs_socket_post_recvmsg_permission(struct sock *sk, struct sk_buff *skb)
 	}
 	return error;
 }
-EXPORT_SYMBOL(ccs_socket_recvmsg_permission);
+EXPORT_SYMBOL(ccs_socket_post_recvmsg_permission);
