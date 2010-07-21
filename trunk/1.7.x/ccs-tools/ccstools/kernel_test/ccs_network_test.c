@@ -1,9 +1,9 @@
 /*
  * ccs_network_test.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 1.7.2+   2010/07/21
  *
  */
 #include "include.h"
@@ -40,7 +40,7 @@ static void show_result2(int result)
 {
 	if (is_enforce) {
 		if (result == EOF) {
-			if (errno == ENOMEM)
+			if (errno == EAGAIN)
 				printf("OK: Permission denied.\n");
 			else
 				printf("FAILED: %s\n", strerror(errno));
@@ -56,29 +56,6 @@ static void show_result2(int result)
 }
 
 static void show_result3(int result)
-{
-	if (is_enforce) {
-		if (result == EOF) {
-			if (errno == ECONNABORTED)
-				printf("OK: Permission denied.\n");
-			else
-				printf("FAILED: %s\n", strerror(errno));
-		} else {
-			if (write(result, "", 1) == EOF && errno == EPERM)
-				printf("OK: Permission denied after accept()."
-				       "\n");
-			else
-				printf("BUG!(%d)\n", result);
-		}
-	} else {
-		if (result != EOF)
-			printf("OK\n");
-		else
-			printf("%s\n", strerror(errno));
-	}
-}
-
-static void show_result4(int result)
 {
 	if (result == EOF) {
 		if (errno == EDESTADDRREQ)
@@ -145,11 +122,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
@@ -170,20 +147,22 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
 			 "Server: Accepting TCP 127.0.0.1 %d",
 			 ntohs(caddr.sin_port));
 		set_enforce(1);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result3(fd3);
+		show_result2(fd3);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		set_enforce(0);
 		close(fd2);
@@ -195,9 +174,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP 127.0.0.1 %d",
 			 ntohs(caddr.sin_port));
 		set_enforce(0);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result3(fd3);
+		show_result2(fd3);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		close(fd3);
 		close(fd2);
@@ -222,11 +203,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		fd2 = socket(PF_INET, SOCK_DGRAM, 0);
@@ -238,10 +219,10 @@ static void stage_network_test(void)
 			 ntohs(saddr.sin_port));
 		set_enforce(1);
 		show_prompt(cbuffer);
-		show_result4(send(fd2, "", 1, 0));
+		show_result3(send(fd2, "", 1, 0));
 		set_enforce(0);
 		show_prompt(cbuffer);
-		show_result4(send(fd2, "", 1, 0));
+		show_result3(send(fd2, "", 1, 0));
 
 		/* write() -> read() */
 
@@ -250,10 +231,10 @@ static void stage_network_test(void)
 			 ntohs(saddr.sin_port));
 		set_enforce(1);
 		show_prompt(cbuffer);
-		show_result4(write(fd2, "", 1));
+		show_result3(write(fd2, "", 1));
 		set_enforce(0);
 		show_prompt(cbuffer);
-		show_result4(write(fd2, "", 1));
+		show_result3(write(fd2, "", 1));
 
 		/* connect() */
 
@@ -263,11 +244,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		/* sendto() -> recvfrom() */
@@ -282,22 +263,22 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-				  sizeof(saddr)));
+				   sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-				  sizeof(saddr)));
+				   sizeof(saddr)));
 		set_enforce(1);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 		set_enforce(0);
 		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
 		       sizeof(saddr));
 		set_enforce(0);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 
 		/* send() -> recv() */
 
@@ -319,12 +300,12 @@ static void stage_network_test(void)
 		show_result(send(fd2, "", 1, 0));
 		set_enforce(1);
 		show_prompt(sbuffer);
-		show_result2(recv(fd1, buf, sizeof(buf) - 1, 0));
+		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
 		set_enforce(0);
 		send(fd2, "", 1, 0);
 		set_enforce(0);
 		show_prompt(sbuffer);
-		show_result2(recv(fd1, buf, sizeof(buf) - 1, 0));
+		show_result2(recv(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT));
 
 		/* write() -> read() */
 
@@ -345,8 +326,10 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(write(fd2, "", 1));
 		set_enforce(1);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		show_prompt(sbuffer);
 		show_result2(read(fd1, buf, sizeof(buf) - 1));
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 		set_enforce(0);
 		write(fd2, "", 1);
 		set_enforce(0);
@@ -385,12 +368,12 @@ static void stage_network_test(void)
 			show_result(sendmsg(fd1, &msg1, 0));
 			set_enforce(1);
 			show_prompt(sbuffer);
-			show_result2(recvmsg(fd1, &msg2, 0));
+			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
 			set_enforce(0);
 			sendmsg(fd1, &msg1, 0);
 			set_enforce(0);
 			show_prompt(sbuffer);
-			show_result2(recvmsg(fd1, &msg2, 0));
+			show_result2(recvmsg(fd1, &msg2, MSG_DONTWAIT));
 		}
 
 		close(fd2);
@@ -417,11 +400,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 
 		fd2 = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
 
@@ -432,11 +415,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 
 		memset(&ip, 0, sizeof(ip));
 		ip.version = 4;
@@ -451,11 +434,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, &ip, sizeof(ip), 0,
-				  (struct sockaddr *) &saddr, sizeof(saddr)));
+				   (struct sockaddr *) &saddr, sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, &ip, sizeof(ip), 0,
-				  (struct sockaddr *) &saddr, sizeof(saddr)));
+				   (struct sockaddr *) &saddr, sizeof(saddr)));
 
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
@@ -463,15 +446,15 @@ static void stage_network_test(void)
 			 ntohs(caddr.sin_port));
 		set_enforce(1);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 		set_enforce(0);
 		sendto(fd2, &ip, sizeof(ip), 0, (struct sockaddr *) &saddr,
 		       sizeof(saddr));
 		set_enforce(0);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 
 		close(fd2);
 		close(fd1);
@@ -502,11 +485,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
@@ -527,20 +510,22 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(sbuffer, sizeof(sbuffer) - 1,
 			 "Server: Accepting TCP 0:0:0:0:0:0:0:1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(1);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result3(fd3);
+		show_result2(fd3);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		set_enforce(0);
 		close(fd2);
@@ -552,9 +537,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP 0:0:0:0:0:0:0:1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(0);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
-		show_result3(fd3);
+		show_result2(fd3);
+		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		close(fd3);
 		close(fd2);
@@ -579,11 +566,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(sbuffer);
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
-				sizeof(saddr)));
+				 sizeof(saddr)));
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		fd2 = socket(PF_INET6, SOCK_DGRAM, 0);
@@ -594,11 +581,11 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
-				   sizeof(saddr)));
+				    sizeof(saddr)));
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(cbuffer, sizeof(cbuffer) - 1,
@@ -611,22 +598,22 @@ static void stage_network_test(void)
 		set_enforce(1);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-				  sizeof(saddr)));
+				   sizeof(saddr)));
 		set_enforce(0);
 		show_prompt(cbuffer);
 		show_result(sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
-				  sizeof(saddr)));
+				   sizeof(saddr)));
 		set_enforce(1);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 		set_enforce(0);
 		sendto(fd2, "", 1, 0, (struct sockaddr *) &saddr,
 		       sizeof(saddr));
 		set_enforce(0);
 		show_prompt(sbuffer);
-		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, 0,
-				     (struct sockaddr *) &caddr, &size));
+		show_result2(recvfrom(fd1, buf, sizeof(buf) - 1, MSG_DONTWAIT,
+				      (struct sockaddr *) &caddr, &size));
 
 		close(fd2);
 		close(fd1);
