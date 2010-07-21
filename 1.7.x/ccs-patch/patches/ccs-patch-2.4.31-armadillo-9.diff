@@ -48,15 +48,15 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  kernel/sys.c                    |    9 +++++++++
  kernel/sysctl.c                 |   16 ++++++++++++++--
  kernel/time.c                   |    7 +++++++
- net/ipv4/raw.c                  |    4 ++++
+ net/ipv4/raw.c                  |   12 +++++++++---
  net/ipv4/tcp_ipv4.c             |    5 +++++
- net/ipv4/udp.c                  |   10 +++++++++-
- net/ipv6/raw.c                  |    4 ++++
+ net/ipv4/udp.c                  |   16 ++++++++++++++--
+ net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/tcp_ipv6.c             |    3 +++
- net/ipv6/udp.c                  |   13 ++++++++++++-
+ net/ipv6/udp.c                  |   19 +++++++++++++++++--
  net/socket.c                    |   23 +++++++++++++++++++++--
  net/unix/af_unix.c              |    4 ++++
- 54 files changed, 356 insertions(+), 8 deletions(-)
+ 54 files changed, 376 insertions(+), 16 deletions(-)
 
 --- linux-2.4.31-a9-3.orig/Makefile
 +++ linux-2.4.31-a9-3/Makefile
@@ -1100,7 +1100,7 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2010/04/12\n");
++	printk(KERN_INFO "Hook version: 2.4.31-a9-3 2010/07/21\n");
  }
 --- linux-2.4.31-a9-3.orig/include/linux/sched.h
 +++ linux-2.4.31-a9-3/include/linux/sched.h
@@ -1385,13 +1385,21 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  struct sock *raw_v4_htable[RAWV4_HTABLE_SIZE];
  rwlock_t raw_v4_lock = RW_LOCK_UNLOCKED;
-@@ -505,6 +506,9 @@ int raw_recvmsg(struct sock *sk, struct 
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb)
+@@ -502,9 +503,14 @@ int raw_recvmsg(struct sock *sk, struct 
  		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
+ 	}
+ 
+-	skb = skb_recv_datagram(sk, flags, noblock, &err);
+-	if (!skb)
+-		goto out;
++	for (;;) {
++		skb = skb_recv_datagram(sk, flags, noblock, &err);
++		if (!skb)
++			goto out;
++		if (!ccs_socket_post_recvmsg_permission(sk, skb))
++			break;
++		skb_kill_datagram(sk, skb, flags);
++	}
  
  	copied = skb->len;
  	if (len < copied) {
@@ -1451,18 +1459,38 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -857,7 +862,10 @@ try_again:
+@@ -843,6 +848,7 @@ int udp_recvmsg(struct sock *sk, struct 
+   	struct sockaddr_in *sin = (struct sockaddr_in *)msg->msg_name;
+   	struct sk_buff *skb;
+   	int copied, err;
++	_Bool update_stat;
+ 
+ 	/*
+ 	 *	Check any passed addresses
+@@ -857,7 +863,12 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
 -  
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		update_stat = 0;
++		goto csum_copy_err;
++	}
++	update_stat = 1;
 +
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
  		copied = len;
+@@ -905,7 +916,8 @@ out:
+   	return err;
+ 
+ csum_copy_err:
+-	UDP_INC_STATS_BH(UdpInErrors);
++	if (update_stat)
++		UDP_INC_STATS_BH(UdpInErrors);
+ 
+ 	/* Clear queue. */
+ 	if (flags&MSG_PEEK) {
 --- linux-2.4.31-a9-3.orig/net/ipv6/raw.c
 +++ linux-2.4.31-a9-3/net/ipv6/raw.c
 @@ -48,6 +48,7 @@
@@ -1473,13 +1501,21 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  
  struct sock *raw_v6_htable[RAWV6_HTABLE_SIZE];
  rwlock_t raw_v6_lock = RW_LOCK_UNLOCKED;
-@@ -396,6 +397,9 @@ int rawv6_recvmsg(struct sock *sk, struc
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb)
- 		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
+@@ -393,9 +394,14 @@ int rawv6_recvmsg(struct sock *sk, struc
+ 	if (flags & MSG_ERRQUEUE)
+ 		return ipv6_recv_error(sk, msg, len);
+ 
+-	skb = skb_recv_datagram(sk, flags, noblock, &err);
+-	if (!skb)
+-		goto out;
++	for (;;) {
++		skb = skb_recv_datagram(sk, flags, noblock, &err);
++		if (!skb)
++			goto out;
++		if (!ccs_socket_post_recvmsg_permission(sk, skb))
++			break;
++		skb_kill_datagram(sk, skb, flags);
++	}
  
  	copied = skb->len;
    	if (copied > len) {
@@ -1542,16 +1578,36 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  gotit:
  		udp_port_rover = snum = result;
  	} else {
-@@ -538,6 +546,9 @@ try_again:
+@@ -527,6 +535,7 @@ int udpv6_recvmsg(struct sock *sk, struc
+ {
+   	struct sk_buff *skb;
+   	int copied, err;
++	_Bool update_stat;
+ 
+   	if (addr_len)
+   		*addr_len=sizeof(struct sockaddr_in6);
+@@ -538,6 +547,11 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		update_stat = 0;
++		goto csum_copy_err;
++	}
++	update_stat = 1;
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
+@@ -616,7 +630,8 @@ csum_copy_err:
+ 	skb_free_datagram(sk, skb);
+ 
+ 	if (flags & MSG_DONTWAIT) {
+-		UDP6_INC_STATS_USER(UdpInErrors);
++		if (update_stat)
++			UDP6_INC_STATS_USER(UdpInErrors);
+ 		return -EAGAIN;
+ 	}
+ 	goto try_again;
 --- linux-2.4.31-a9-3.orig/net/socket.c
 +++ linux-2.4.31-a9-3/net/socket.c
 @@ -84,6 +84,7 @@
@@ -1603,14 +1659,21 @@ Source code for this patch is http://download.atmark-techno.com/armadillo-9/sour
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1066,6 +1076,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1055,6 +1065,7 @@ asmlinkage long sys_accept(int fd, struc
+ 	if (!sock)
+ 		goto out;
+ 
++retry:
+ 	err = -ENFILE;
+ 	if (!(newsock = sock_alloc())) 
+ 		goto out_put;
+@@ -1066,6 +1077,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
-+	if (ccs_socket_accept_permission(newsock,
-+					 (struct sockaddr *) address)) {
-+		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
-+		goto out_release;
++	if (ccs_socket_post_accept_permission(sock, newsock)) {
++		sock_release(newsock);
++		goto retry;
 +	}
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {
