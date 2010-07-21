@@ -2427,6 +2427,20 @@ Fix 2010/06/03
       Since 1.7.0 , ccs_write_pattern_policy() was by error accepting
       invalid pathname.
 
+Fix 2010/06/09
+
+    @ Add missing ccs_put_name() in ccs_parse_envp().
+
+      Since 1.7.0 , ccs_parse_envp() was not calling ccs_put_name() if
+      environment variable's value ('if exec.envp["name"]="value"' condition)
+      was invalid.
+
+    @ Add missing NULL check in ccs_condition().
+
+      Since 1.7.0 , if 'if symlink.target=' part was given against non-file
+      permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
+      NULL pointer dereference.
+
 Fix 2010/07/21
 
     @ Wait for next connection/datagram if current connection/datagram was
