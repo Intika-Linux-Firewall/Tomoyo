@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/06/04
+ * Version: 1.7.2+   2010/07/21
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -385,7 +385,7 @@ static void ccs_check_profile(void)
 	if (ccs_profile_version != 20090903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
-	printk(KERN_INFO "CCSecurity: 1.7.2+   2010/06/04\n");
+	printk(KERN_INFO "CCSecurity: 1.7.2+   2010/07/21\n");
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
