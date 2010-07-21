@@ -47,17 +47,17 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  kernel/sys.c                       |   11 +++++++++++
  kernel/sysctl.c                    |   16 ++++++++++++++--
  kernel/time.c                      |    7 +++++++
- net/ipv4/raw.c                     |    4 ++++
+ net/ipv4/raw.c                     |   12 +++++++++---
  net/ipv4/tcp_ipv4.c                |    5 +++++
- net/ipv4/udp.c                     |    8 ++++++++
- net/ipv6/raw.c                     |    4 ++++
+ net/ipv4/udp.c                     |   14 +++++++++++++-
+ net/ipv6/raw.c                     |   12 +++++++++---
  net/ipv6/tcp_ipv6.c                |    3 +++
- net/ipv6/udp.c                     |   13 ++++++++++++-
+ net/ipv6/udp.c                     |   19 +++++++++++++++++--
  net/socket.c                       |   23 ++++++++++++++++++++---
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 55 files changed, 330 insertions(+), 12 deletions(-)
+ 55 files changed, 350 insertions(+), 20 deletions(-)
 
 --- linux-2.6.11.12.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.11.12/arch/alpha/kernel/ptrace.c
@@ -1023,7 +1023,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.11.12 2010/04/12\n");
++	printk(KERN_INFO "Hook version: 2.6.11.12 2010/07/21\n");
  }
 --- linux-2.6.11.12.orig/include/linux/init_task.h
 +++ linux-2.6.11.12/include/linux/init_task.h
@@ -1341,13 +1341,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  struct hlist_head raw_v4_htable[RAWV4_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v4_lock);
-@@ -585,6 +586,9 @@ static int raw_recvmsg(struct kiocb *ioc
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb)
+@@ -582,9 +583,14 @@ static int raw_recvmsg(struct kiocb *ioc
  		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
+ 	}
+ 
+-	skb = skb_recv_datagram(sk, flags, noblock, &err);
+-	if (!skb)
+-		goto out;
++	for (;;) {
++		skb = skb_recv_datagram(sk, flags, noblock, &err);
++		if (!skb)
++			goto out;
++		if (!ccs_socket_post_recvmsg_permission(sk, skb))
++			break;
++		skb_kill_datagram(sk, skb, flags);
++	}
  
  	copied = skb->len;
  	if (len < copied) {
@@ -1407,16 +1415,36 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			if (!udp_lport_inuse(result))
  				break;
  		}
-@@ -794,6 +799,9 @@ try_again:
+@@ -780,6 +785,7 @@ static int udp_recvmsg(struct kiocb *ioc
+   	struct sockaddr_in *sin = (struct sockaddr_in *)msg->msg_name;
+   	struct sk_buff *skb;
+   	int copied, err;
++	_Bool update_stat;
+ 
+ 	/*
+ 	 *	Check any passed addresses
+@@ -794,6 +800,11 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		update_stat = 0;
++		goto csum_copy_err;
++	}
++	update_stat = 1;
    
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
+@@ -842,7 +853,8 @@ out:
+   	return err;
+ 
+ csum_copy_err:
+-	UDP_INC_STATS_BH(UDP_MIB_INERRORS);
++	if (update_stat)
++		UDP_INC_STATS_BH(UDP_MIB_INERRORS);
+ 
+ 	/* Clear queue. */
+ 	if (flags&MSG_PEEK) {
 --- linux-2.6.11.12.orig/net/ipv6/raw.c
 +++ linux-2.6.11.12/net/ipv6/raw.c
 @@ -54,6 +54,7 @@
@@ -1427,13 +1455,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  struct hlist_head raw_v6_htable[RAWV6_HTABLE_SIZE];
  DEFINE_RWLOCK(raw_v6_lock);
-@@ -384,6 +385,9 @@ static int rawv6_recvmsg(struct kiocb *i
- 	skb = skb_recv_datagram(sk, flags, noblock, &err);
- 	if (!skb)
- 		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
+@@ -381,9 +382,14 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	if (flags & MSG_ERRQUEUE)
+ 		return ipv6_recv_error(sk, msg, len);
+ 
+-	skb = skb_recv_datagram(sk, flags, noblock, &err);
+-	if (!skb)
+-		goto out;
++	for (;;) {
++		skb = skb_recv_datagram(sk, flags, noblock, &err);
++		if (!skb)
++			goto out;
++		if (!ccs_socket_post_recvmsg_permission(sk, skb))
++			break;
++		skb_kill_datagram(sk, skb, flags);
++	}
  
  	copied = skb->len;
    	if (copied > len) {
@@ -1496,16 +1532,36 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  gotit:
  		udp_port_rover = snum = result;
  	} else {
-@@ -234,6 +242,9 @@ try_again:
+@@ -223,6 +231,7 @@ static int udpv6_recvmsg(struct kiocb *i
+   	struct sk_buff *skb;
+ 	size_t copied;
+   	int err;
++	_Bool update_stat;
+ 
+   	if (addr_len)
+   		*addr_len=sizeof(struct sockaddr_in6);
+@@ -234,6 +243,11 @@ try_again:
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
-+	err = ccs_socket_recvmsg_permission(sk, skb, flags);
-+	if (err)
-+		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		update_stat = 0;
++		goto csum_copy_err;
++	}
++	update_stat = 1;
  
   	copied = skb->len - sizeof(struct udphdr);
    	if (copied > len) {
+@@ -313,7 +327,8 @@ csum_copy_err:
+ 	skb_free_datagram(sk, skb);
+ 
+ 	if (flags & MSG_DONTWAIT) {
+-		UDP6_INC_STATS_USER(UDP_MIB_INERRORS);
++		if (update_stat)
++			UDP6_INC_STATS_USER(UDP_MIB_INERRORS);
+ 		return -EAGAIN;
+ 	}
+ 	goto try_again;
 --- linux-2.6.11.12.orig/net/socket.c
 +++ linux-2.6.11.12/net/socket.c
 @@ -94,6 +94,8 @@
@@ -1559,14 +1615,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err=sock->ops->listen(sock, backlog);
  		sockfd_put(sock);
  	}
-@@ -1370,6 +1380,11 @@ asmlinkage long sys_accept(int fd, struc
+@@ -1349,6 +1359,7 @@ asmlinkage long sys_accept(int fd, struc
+ 	if (!sock)
+ 		goto out;
+ 
++retry:
+ 	err = -ENFILE;
+ 	if (!(newsock = sock_alloc())) 
+ 		goto out_put;
+@@ -1370,6 +1381,10 @@ asmlinkage long sys_accept(int fd, struc
  	if (err < 0)
  		goto out_release;
  
-+	if (ccs_socket_accept_permission(newsock,
-+					 (struct sockaddr *) address)) {
-+		err = -ECONNABORTED; /* Hope less harmful than -EPERM. */
-+		goto out_release;
++	if (ccs_socket_post_accept_permission(sock, newsock)) {
++		sock_release(newsock);
++		goto retry;
 +	}
  	if (upeer_sockaddr) {
  		if(newsock->ops->getname(newsock, (struct sockaddr *)address, &len, 2)<0) {

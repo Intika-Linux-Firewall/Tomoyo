@@ -531,8 +531,6 @@ void __init ccs_network_init(void)
 
 #else
 
-#define MAX_SOCK_ADDR 128 /* net/socket.c */
-
 /* Check permission for creating a socket. */
 static int __ccs_socket_create_permission(int family, int type, int protocol)
 {
@@ -566,8 +564,8 @@ static int __ccs_socket_create_permission(int family, int type, int protocol)
 /* Check permission for listening a TCP socket. */
 static int __ccs_socket_listen_permission(struct socket *sock)
 {
+	struct sockaddr_storage addr;
 	int error = 0;
-	char addr[MAX_SOCK_ADDR];
 	int addr_len;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
@@ -583,19 +581,19 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 	}
 	if (!ccs_capable(CCS_INET_STREAM_SOCKET_LISTEN))
 		return -EPERM;
-	if (sock->ops->getname(sock, (struct sockaddr *) addr, &addr_len, 0))
+	if (sock->ops->getname(sock, (struct sockaddr *) &addr, &addr_len, 0))
 		return -EPERM;
-	switch (((struct sockaddr *) addr)->sa_family) {
+	switch (((struct sockaddr *) &addr)->sa_family) {
 		struct sockaddr_in6 *addr6;
 		struct sockaddr_in *addr4;
 	case AF_INET6:
-		addr6 = (struct sockaddr_in6 *) addr;
+		addr6 = (struct sockaddr_in6 *) &addr;
 		error = ccs_network_listen_acl(true,
 					       addr6->sin6_addr.s6_addr,
 					       addr6->sin6_port);
 		break;
 	case AF_INET:
-		addr4 = (struct sockaddr_in *) addr;
+		addr4 = (struct sockaddr_in *) &addr;
 		error = ccs_network_listen_acl(false,
 					       (u8 *) &addr4->sin_addr,
 					       addr4->sin_port);
@@ -711,40 +709,38 @@ static int __ccs_socket_bind_permission(struct socket *sock,
 	return error;
 }
 
-/*
- * Check permission for accepting a TCP socket.
- *
- * Currently, the LSM hook for this purpose is not provided.
- */
-static int __ccs_socket_accept_permission(struct socket *sock,
-					  struct sockaddr *addr)
+/* Check permission for accepting a TCP socket. */
+static int __ccs_socket_post_accept_permission(struct socket *sock,
+					       struct socket *newsock)
 {
+	struct sockaddr_storage addr;
 	int error = 0;
 	int addr_len;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
-	switch (sock->sk->sk_family) {
+	switch (newsock->sk->sk_family) {
 	case PF_INET:
 	case PF_INET6:
 		break;
 	default:
 		return 0;
 	}
-	error = sock->ops->getname(sock, addr, &addr_len, 2);
+	error = newsock->ops->getname(newsock, (struct sockaddr *) &addr,
+				      &addr_len, 2);
 	if (error)
 		return error;
-	switch (addr->sa_family) {
+	switch (((struct sockaddr *) &addr)->sa_family) {
 		struct sockaddr_in6 *addr6;
 		struct sockaddr_in *addr4;
 	case AF_INET6:
-		addr6 = (struct sockaddr_in6 *) addr;
+		addr6 = (struct sockaddr_in6 *) &addr;
 		error = ccs_network_accept_acl(true,
 					       addr6->sin6_addr.s6_addr,
 					       addr6->sin6_port);
 		break;
 	case AF_INET:
-		addr4 = (struct sockaddr_in *) addr;
+		addr4 = (struct sockaddr_in *) &addr;
 		error = ccs_network_accept_acl(false,
 					       (u8 *) &addr4->sin_addr,
 					       addr4->sin_port);
@@ -820,52 +816,9 @@ static inline struct ipv6hdr *ipv6_hdr(const struct sk_buff *skb)
 #endif
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
-static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-			      unsigned int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-static void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-			      unsigned int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_bh(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_bh(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-#endif
-
-/*
- * Check permission for receiving a datagram via a UDP or RAW socket.
- *
- * Currently, the LSM hook for this purpose is not provided.
- */
-static int __ccs_socket_recvmsg_permission(struct sock *sk,
-					   struct sk_buff *skb,
-					   const unsigned int flags)
+/* Check permission for receiving a datagram via a UDP or RAW socket. */
+static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb)
 {
 	int error = 0;
 	const unsigned int type = sk->sk_type;
@@ -907,34 +860,7 @@ static int __ccs_socket_recvmsg_permission(struct sock *sk,
 						(u8 *) &sin4, port);
 		break;
 	}
-	if (!error)
-		return 0;
-	/*
-	 * Remove from queue if MSG_PEEK is used so that
-	 * the head message from unwanted source in receive queue will not
-	 * prevent the caller from picking up next message from wanted source
-	 * when the caller is using MSG_PEEK flag for picking up.
-	 */
-	{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
-		bool slow = false;
-		if (type == SOCK_DGRAM)
-			slow = lock_sock_fast(sk);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		if (type == SOCK_DGRAM)
-			lock_sock(sk);
-#endif
-		skb_kill_datagram(sk, skb, flags);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35)
-		if (type == SOCK_DGRAM)
-			unlock_sock_fast(sk, slow);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-		if (type == SOCK_DGRAM)
-			release_sock(sk);
-#endif
-	}
-	/* Hope less harmful than -EPERM. */
-	return -ENOMEM;
+	return error;
 }
 
 void __init ccs_network_init(void)
@@ -946,12 +872,12 @@ void __init ccs_network_init(void)
 	ccsecurity_ops.socket_connect_permission =
 		__ccs_socket_connect_permission;
 	ccsecurity_ops.socket_bind_permission = __ccs_socket_bind_permission;
-	ccsecurity_ops.socket_accept_permission =
-		__ccs_socket_accept_permission;
+	ccsecurity_ops.socket_post_accept_permission =
+		__ccs_socket_post_accept_permission;
 	ccsecurity_ops.socket_sendmsg_permission =
 		__ccs_socket_sendmsg_permission;
-	ccsecurity_ops.socket_recvmsg_permission =
-		__ccs_socket_recvmsg_permission;
+	ccsecurity_ops.socket_post_recvmsg_permission =
+		__ccs_socket_post_recvmsg_permission;
 }
 
 #endif
