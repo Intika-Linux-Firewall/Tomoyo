@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/07/21
+ * Version: 1.7.2+   2010/06/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -180,6 +180,7 @@ static inline void list_del_rcu(struct list_head *entry)
 #define sk_family family
 #define sk_protocol protocol
 #define sk_type type
+#define sk_receive_queue receive_queue
 static inline struct socket *SOCKET_I(struct inode *inode)
 {
 	return inode->i_sock ? &inode->u.socket_i : NULL;
