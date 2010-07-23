@@ -1,9 +1,9 @@
 /*
  * ccs_new_network_test.c
  *
- * Copyright (C) 2005-2010  NTT DATA CORPORATION
+ * Copyright (C) 2005-2009  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/07/21
+ * Version: 1.7.1   2009/11/11
  *
  */
 #include "include.h"
@@ -74,12 +74,15 @@ static void show_result2(int result)
 {
 	printf("%s : ", policy);
 	if (result == EOF) {
-		if (errno == EAGAIN)
-			printf("OK: Not ready.\n");
+		if (errno == ECONNABORTED)
+			printf("OK: Software caused connection abort.\n");
 		else
-			printf("FAILED: %s\n", strerror(errno));
+			printf("BUG: %s\n", strerror(errno));
 	} else {
-		printf("BUG\n");
+		if (write(result, "", 1) == EOF && errno == EPERM)
+			printf("OK: Permission denied after accept().\n");
+		else
+			printf("BUG\n");
 	}
 }
 
@@ -142,11 +145,9 @@ static void stage_network_test(void)
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "allow_network TCP accept 127.0.0.1 %u-%u",
 			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		errno = 0;
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 		if (fd3 != EOF)
 			close(fd3);
 
@@ -291,11 +292,9 @@ static void stage_network_test(void)
 			 "allow_network TCP accept 0:0:0:0:0:0:0:1 %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		errno = 0;
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 		if (fd3 != EOF)
 			close(fd3);
 
@@ -316,7 +315,6 @@ static void stage_network_test(void)
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		if (write_policy()) {
 			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 			show_result(fd3, 1);
@@ -324,7 +322,6 @@ static void stage_network_test(void)
 			if (fd3 != EOF)
 				close(fd3);
 		}
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
 
 		if (fd2 != EOF)
 			close(fd2);

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/07/21
+ * Version: 1.7.2+   2010/06/04
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -138,12 +138,12 @@ struct ccsecurity_operations {
 					  struct sockaddr *addr, int addr_len);
 	int (*socket_bind_permission) (struct socket *sock,
 				       struct sockaddr *addr, int addr_len);
-	int (*socket_post_accept_permission) (struct socket *sock,
-					      struct socket *newsock);
+	int (*socket_accept_permission) (struct socket *sock,
+					 struct sockaddr *addr);
 	int (*socket_sendmsg_permission) (struct socket *sock,
 					  struct msghdr *msg, int size);
-	int (*socket_post_recvmsg_permission) (struct sock *sk,
-					       struct sk_buff *skb);
+	int (*socket_recvmsg_permission) (struct sock *sk, struct sk_buff *skb,
+					  const unsigned int flags);
 	int (*chown_permission) (struct dentry *dentry, struct vfsmount *mnt,
 				 uid_t user, gid_t group);
 	int (*chmod_permission) (struct dentry *dentry, struct vfsmount *mnt,
@@ -162,145 +162,135 @@ extern struct ccsecurity_operations ccsecurity_ops;
 
 static inline int ccs_chroot_permission(struct path *path)
 {
-	int (*func) (struct path *) = ccsecurity_ops.chroot_permission;
-	return func ? func(path) : 0;
+	return ccsecurity_ops.chroot_permission ?
+		ccsecurity_ops.chroot_permission(path) : 0;
 }
 
 static inline int ccs_pivot_root_permission(struct path *old_path,
 					    struct path *new_path)
 {
-	int (*func) (struct path *, struct path *)
-		= ccsecurity_ops.pivot_root_permission;
-	return func ? func(old_path, new_path) : 0;
+	return ccsecurity_ops.pivot_root_permission ?
+		ccsecurity_ops.pivot_root_permission(old_path, new_path) : 0;
 }
 
 static inline int ccs_may_mount(struct path *path)
 {
-	int (*func) (struct path *) = ccsecurity_ops.may_mount;
-	return func ? func(path) : 0;
+	return ccsecurity_ops.may_mount ?
+		ccsecurity_ops.may_mount(path) : 0;
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct path *path,
 				       char *type, unsigned long flags,
 				       void *data_page)
 {
-	int (*func) (char *, struct path *, char *, unsigned long, void *)
-		= ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, path, type, flags, data_page) : 0;
+	return ccsecurity_ops.mount_permission ?
+		ccsecurity_ops.mount_permission(dev_name, path, type, flags,
+						data_page) : 0;
 }
 
 #else
 
 static inline int ccs_chroot_permission(struct nameidata *nd)
 {
-	int (*func) (struct nameidata *) = ccsecurity_ops.chroot_permission;
-	return func ? func(nd) : 0;
+	return ccsecurity_ops.chroot_permission ?
+		ccsecurity_ops.chroot_permission(nd) : 0;
 }
 
 static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
 					    struct nameidata *new_nd)
 {
-	int (*func) (struct nameidata *, struct nameidata *)
-		= ccsecurity_ops.pivot_root_permission;
-	return func ? func(old_nd, new_nd) : 0;
+	return ccsecurity_ops.pivot_root_permission ?
+		ccsecurity_ops.pivot_root_permission(old_nd, new_nd) : 0;
 }
 
 static inline int ccs_may_mount(struct nameidata *nd)
 {
-	int (*func) (struct nameidata *) = ccsecurity_ops.may_mount;
-	return func ? func(nd) : 0;
+	return ccsecurity_ops.may_mount ? ccsecurity_ops.may_mount(nd) : 0;
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
 				       char *type, unsigned long flags,
 				       void *data_page)
 {
-	int (*func) (char *, struct nameidata *, char *, unsigned long, void *)
-		= ccsecurity_ops.mount_permission;
-	return func ? func(dev_name, nd, type, flags, data_page) : 0;
+	return ccsecurity_ops.mount_permission ?
+		ccsecurity_ops.mount_permission(dev_name, nd, type, flags,
+						data_page) : 0;
 }
 #endif
 
 static inline int ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
-	int (*func) (struct vfsmount *, int)
-		= ccsecurity_ops.umount_permission;
-	return func ? func(mnt, flags) : 0;
+	return ccsecurity_ops.umount_permission ?
+		ccsecurity_ops.umount_permission(mnt, flags) : 0;
 }
 
 static inline _Bool ccs_lport_reserved(const u16 port)
 {
-	_Bool (*func) (const u16) = ccsecurity_ops.lport_reserved;
-	return func ? func(port) : 0;
+	return ccsecurity_ops.lport_reserved ?
+		ccsecurity_ops.lport_reserved(port) : 0;
 }
 
 static inline int ccs_ptrace_permission(long request, long pid)
 {
-	int (*func) (long, long) = ccsecurity_ops.ptrace_permission;
-	return func ? func(request, pid) : 0;
+	return ccsecurity_ops.ptrace_permission ?
+		ccsecurity_ops.ptrace_permission(request, pid) : 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 static inline void ccs_save_open_mode(int mode)
 {
-	void (*func) (int) = ccsecurity_ops.save_open_mode;
-	if (func)
-		func(mode);
+	if (ccsecurity_ops.save_open_mode)
+		ccsecurity_ops.save_open_mode(mode);
 }
 
 static inline void ccs_clear_open_mode(void)
 {
-	void (*func) (void) = ccsecurity_ops.clear_open_mode;
-	if (func)
-		func();
+	if (ccsecurity_ops.clear_open_mode)
+		ccsecurity_ops.clear_open_mode();
 }
 #endif
 
 static inline int ccs_open_permission(struct dentry *dentry,
 				      struct vfsmount *mnt, const int flag)
 {
-	int (*func) (struct dentry *, struct vfsmount *, const int)
-		= ccsecurity_ops.open_permission;
-	return func ? func(dentry, mnt, flag) : 0;
+	return ccsecurity_ops.open_permission ?
+		ccsecurity_ops.open_permission(dentry, mnt, flag) : 0;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 static inline int ccs_fcntl_permission(struct file *file, unsigned int cmd,
 				       unsigned long arg)
 {
-	int (*func) (struct file *, unsigned int, unsigned long)
-		= ccsecurity_ops.fcntl_permission;
-	return func ? func(file, cmd, arg) : 0;
+	return ccsecurity_ops.fcntl_permission ?
+		ccsecurity_ops.fcntl_permission(file, cmd, arg) : 0;
 }
 #else
 static inline int ccs_rewrite_permission(struct file *filp)
 {
-	int (*func) (struct file *) = ccsecurity_ops.rewrite_permission;
-	return func ? func(filp) : 0;
+	return ccsecurity_ops.rewrite_permission ?
+		ccsecurity_ops.rewrite_permission(filp) : 0;
 }
 #endif
 
 static inline int ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				       unsigned long arg)
 {
-	int (*func) (struct file *, unsigned int, unsigned long)
-		= ccsecurity_ops.ioctl_permission;
-	return func ? func(filp, cmd, arg) : 0;
+	return ccsecurity_ops.ioctl_permission ?
+		ccsecurity_ops.ioctl_permission(filp, cmd, arg) : 0;
 }
 
 static inline int ccs_parse_table(int __user *name, int nlen,
 				  void __user *oldval, void __user *newval,
 				  struct ctl_table *table)
 {
-	int (*func) (int __user *, int, void __user *, void __user *,
-		     struct ctl_table *) = ccsecurity_ops.parse_table;
-	return func ? func(name, nlen, oldval, newval, table) : 0;
+	return ccsecurity_ops.parse_table ?
+		ccsecurity_ops.parse_table(name, nlen, oldval, newval, table) :
+		0;
 }
 
 static inline _Bool ccs_capable(const u8 operation)
 {
-	_Bool (*func) (const u8) = ccsecurity_ops.capable;
-	return func ? func(operation) : 1;
+	return ccsecurity_ops.capable ? ccsecurity_ops.capable(operation) : 1;
 }
 
 static inline int ccs_mknod_permission(struct inode *dir,
@@ -308,37 +298,33 @@ static inline int ccs_mknod_permission(struct inode *dir,
 				       struct vfsmount *mnt, unsigned int mode,
 				       unsigned int dev)
 {
-	int (*func) (struct inode *, struct dentry *, struct vfsmount *,
-		     unsigned int, unsigned int)
-		= ccsecurity_ops.mknod_permission;
-	return func ? func(dir, dentry, mnt, mode, dev) : 0;
+	return ccsecurity_ops.mknod_permission ?
+		ccsecurity_ops.mknod_permission(dir, dentry, mnt, mode, dev) :
+		0;
 }
 
 static inline int ccs_mkdir_permission(struct inode *dir,
 				       struct dentry *dentry,
 				       struct vfsmount *mnt, unsigned int mode)
 {
-	int (*func) (struct inode *, struct dentry *, struct vfsmount *,
-		     unsigned int) = ccsecurity_ops.mkdir_permission;
-	return func ? func(dir, dentry, mnt, mode) : 0;
+	return ccsecurity_ops.mkdir_permission ?
+		ccsecurity_ops.mkdir_permission(dir, dentry, mnt, mode) : 0;
 }
 
 static inline int ccs_rmdir_permission(struct inode *dir,
 				       struct dentry *dentry,
 				       struct vfsmount *mnt)
 {
-	int (*func) (struct inode *, struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.rmdir_permission;
-	return func ? func(dir, dentry, mnt) : 0;
+	return ccsecurity_ops.rmdir_permission ?
+		ccsecurity_ops.rmdir_permission(dir, dentry, mnt) : 0;
 }
 
 static inline int ccs_unlink_permission(struct inode *dir,
 					struct dentry *dentry,
 					struct vfsmount *mnt)
 {
-	int (*func) (struct inode *, struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.unlink_permission;
-	return func ? func(dir, dentry, mnt) : 0;
+	return ccsecurity_ops.unlink_permission ?
+		ccsecurity_ops.unlink_permission(dir, dentry, mnt) : 0;
 }
 
 static inline int ccs_symlink_permission(struct inode *dir,
@@ -346,18 +332,16 @@ static inline int ccs_symlink_permission(struct inode *dir,
 					 struct vfsmount *mnt,
 					 const char *from)
 {
-	int (*func) (struct inode *, struct dentry *, struct vfsmount *,
-		     const char *) = ccsecurity_ops.symlink_permission;
-	return func ? func(dir, dentry, mnt, from) : 0;
+	return ccsecurity_ops.symlink_permission ?
+		ccsecurity_ops.symlink_permission(dir, dentry, mnt, from) : 0;
 }
 
 static inline int ccs_truncate_permission(struct dentry *dentry,
 					  struct vfsmount *mnt, loff_t length,
 					  unsigned int time_attrs)
 {
-	int (*func) (struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.truncate_permission;
-	return func ? func(dentry, mnt) : 0;
+	return ccsecurity_ops.truncate_permission ?
+		ccsecurity_ops.truncate_permission(dentry, mnt) : 0;
 }
 
 static inline int ccs_rename_permission(struct inode *old_dir,
@@ -366,10 +350,9 @@ static inline int ccs_rename_permission(struct inode *old_dir,
 					struct dentry *new_dentry,
 					struct vfsmount *mnt)
 {
-	int (*func) (struct inode *, struct dentry *, struct inode *,
-		     struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.rename_permission;
-	return func ? func(old_dir, old_dentry, new_dir, new_dentry, mnt) : 0;
+	return ccsecurity_ops.rename_permission ?
+		ccsecurity_ops.rename_permission(old_dir, old_dentry, new_dir,
+						 new_dentry, mnt) : 0;
 }
 
 static inline int ccs_link_permission(struct dentry *old_dentry,
@@ -377,131 +360,125 @@ static inline int ccs_link_permission(struct dentry *old_dentry,
 				      struct dentry *new_dentry,
 				      struct vfsmount *mnt)
 {
-	int (*func) (struct dentry *, struct inode *, struct dentry *,
-		     struct vfsmount *) = ccsecurity_ops.link_permission;
-	return func ? func(old_dentry, new_dir, new_dentry, mnt) : 0;
+	return ccsecurity_ops.link_permission ?
+		ccsecurity_ops.link_permission(old_dentry, new_dir, new_dentry,
+					       mnt) : 0;
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 30)
 static inline int ccs_open_exec_permission(struct dentry *dentry,
 					   struct vfsmount *mnt)
 {
-	int (*func) (struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.open_exec_permission;
-	return func ? func(dentry, mnt) : 0;
+	return ccsecurity_ops.open_exec_permission ?
+		ccsecurity_ops.open_exec_permission(dentry, mnt) : 0;
 }
 
 static inline int ccs_uselib_permission(struct dentry *dentry,
 					struct vfsmount *mnt)
 {
-	int (*func) (struct dentry *, struct vfsmount *)
-		= ccsecurity_ops.uselib_permission;
-	return func ? func(dentry, mnt) : 0;
+	return ccsecurity_ops.uselib_permission ?
+		ccsecurity_ops.uselib_permission(dentry, mnt) : 0;
 }
 #endif
 
 static inline int ccs_kill_permission(pid_t pid, int sig)
 {
-	int (*func) (pid_t, int) = ccsecurity_ops.kill_permission;
-	return func ? func(pid, sig) : 0;
+	return ccsecurity_ops.kill_permission ?
+		ccsecurity_ops.kill_permission(pid, sig) : 0;
 }
 
 static inline int ccs_tgkill_permission(pid_t tgid, pid_t pid, int sig)
 {
-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgkill_permission;
-	return func ? func(tgid, pid, sig) : 0;
+	return ccsecurity_ops.tgkill_permission ?
+		ccsecurity_ops.tgkill_permission(tgid, pid, sig) : 0;
 }
 
 static inline int ccs_tkill_permission(pid_t pid, int sig)
 {
-	int (*func) (pid_t, int) = ccsecurity_ops.tkill_permission;
-	return func ? func(pid, sig) : 0;
+	return ccsecurity_ops.tkill_permission ?
+		ccsecurity_ops.tkill_permission(pid, sig) : 0;
 }
 
 static inline int ccs_socket_create_permission(int family, int type,
 					       int protocol)
 {
-	int (*func) (int, int, int) = ccsecurity_ops.socket_create_permission;
-	return func ? func(family, type, protocol) : 0;
+	return ccsecurity_ops.socket_create_permission ?
+		ccsecurity_ops.socket_create_permission(family, type, protocol)
+		: 0;
 }
 
 static inline int ccs_socket_listen_permission(struct socket *sock)
 {
-	int (*func) (struct socket *)
-		= ccsecurity_ops.socket_listen_permission;
-	return func ? func(sock) : 0;
+	return ccsecurity_ops.socket_listen_permission ?
+		ccsecurity_ops.socket_listen_permission(sock) : 0;
 }
 
 static inline int ccs_socket_connect_permission(struct socket *sock,
 						struct sockaddr *addr,
 						int addr_len)
 {
-	int (*func) (struct socket *, struct sockaddr *, int)
-		= ccsecurity_ops.socket_connect_permission;
-	return func ? func(sock, addr, addr_len) : 0;
+	return ccsecurity_ops.socket_connect_permission ?
+		ccsecurity_ops.socket_connect_permission(sock, addr, addr_len)
+		: 0;
 }
 
 static inline int ccs_socket_bind_permission(struct socket *sock,
 					     struct sockaddr *addr,
 					     int addr_len)
 {
-	int (*func) (struct socket *, struct sockaddr *, int)
-		= ccsecurity_ops.socket_bind_permission;
-	return func ? func(sock, addr, addr_len) : 0;
+	return ccsecurity_ops.socket_bind_permission ?
+		ccsecurity_ops.socket_bind_permission(sock, addr, addr_len) :
+		0;
 }
 
-static inline int ccs_socket_post_accept_permission(struct socket *sock,
-						    struct socket *newsock)
+static inline int ccs_socket_accept_permission(struct socket *sock,
+					       struct sockaddr *addr)
 {
-	int (*func) (struct socket *, struct socket *)
-		= ccsecurity_ops.socket_post_accept_permission;
-	return func ? func(sock, newsock) : 0;
+	return ccsecurity_ops.socket_accept_permission ?
+		ccsecurity_ops.socket_accept_permission(sock, addr) : 0;
 }
 
 static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 						struct msghdr *msg,
 						int size)
 {
-	int (*func) (struct socket *, struct msghdr *, int)
-		= ccsecurity_ops.socket_sendmsg_permission;
-	return func ? func(sock, msg, size) : 0;
+	return ccsecurity_ops.socket_sendmsg_permission ?
+		ccsecurity_ops.socket_sendmsg_permission(sock, msg, size) : 0;
 }
 
-static inline int ccs_socket_post_recvmsg_permission(struct sock *sk,
-						     struct sk_buff *skb)
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
 {
-	int (*func) (struct sock *, struct sk_buff *)
-		= ccsecurity_ops.socket_post_recvmsg_permission;
-	return func ? func(sk, skb) : 0;
+	return ccsecurity_ops.socket_recvmsg_permission ?
+		ccsecurity_ops.socket_recvmsg_permission(sk, skb, flags) : 0;
 }
 
 static inline int ccs_chown_permission(struct dentry *dentry,
 				       struct vfsmount *mnt, uid_t user,
 				       gid_t group)
 {
-	int (*func) (struct dentry *, struct vfsmount *, uid_t, gid_t)
-		= ccsecurity_ops.chown_permission;
-	return func ? func(dentry, mnt, user, group) : 0;
+	return ccsecurity_ops.chown_permission ?
+		ccsecurity_ops.chown_permission(dentry, mnt, user, group) : 0;
 }
 
 static inline int ccs_chmod_permission(struct dentry *dentry,
 				       struct vfsmount *mnt, mode_t mode)
 {
-	int (*func) (struct dentry *, struct vfsmount *, mode_t)
-		= ccsecurity_ops.chmod_permission;
-	return func ? func(dentry, mnt, mode) : 0;
+	return ccsecurity_ops.chmod_permission ?
+		ccsecurity_ops.chmod_permission(dentry, mnt, mode) : 0;
 }
 
 static inline int ccs_sigqueue_permission(pid_t pid, int sig)
 {
-	int (*func) (pid_t, int) = ccsecurity_ops.sigqueue_permission;
-	return func ? func(pid, sig) : 0;
+	return ccsecurity_ops.sigqueue_permission ?
+		ccsecurity_ops.sigqueue_permission(pid, sig) : 0;
 }
 
 static inline int ccs_tgsigqueue_permission(pid_t tgid, pid_t pid, int sig)
 {
-	int (*func) (pid_t, pid_t, int) = ccsecurity_ops.tgsigqueue_permission;
-	return func ? func(tgid, pid, sig) : 0;
+	return ccsecurity_ops.tgsigqueue_permission ?
+		ccsecurity_ops.tgsigqueue_permission(tgid, pid, sig) : 0;
 }
 
 static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
@@ -509,65 +486,6 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 {
 	return ccsecurity_ops.search_binary_handler(bprm, regs);
 }
-
-/* for net/ipv4/raw.c and net/ipv6/raw.c */
-#if defined(_RAW_H) || defined(_NET_RAWV6_H)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     unsigned int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->receive_queue.lock);
-		if (skb == skb_peek(&sk->receive_queue)) {
-			__skb_unlink(skb, &sk->receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 12)
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     unsigned int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_irq(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_irq(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     unsigned int flags)
-{
-	/* Clear queue. */
-	if (flags & MSG_PEEK) {
-		int clear = 0;
-		spin_lock_bh(&sk->sk_receive_queue.lock);
-		if (skb == skb_peek(&sk->sk_receive_queue)) {
-			__skb_unlink(skb, &sk->sk_receive_queue);
-			clear = 1;
-		}
-		spin_unlock_bh(&sk->sk_receive_queue.lock);
-		if (clear)
-			kfree_skb(skb);
-	}
-	skb_free_datagram(sk, skb);
-}
-#endif
-#endif
 
 #else
 
@@ -794,8 +712,8 @@ static inline int ccs_socket_bind_permission(struct socket *sock,
 	return 0;
 }
 
-static inline int ccs_socket_post_accept_permission(struct socket *sock,
-						    struct socket *newsock)
+static inline int ccs_socket_accept_permission(struct socket *sock,
+					       struct sockaddr *addr)
 {
 	return 0;
 }
@@ -806,8 +724,9 @@ static inline int ccs_socket_sendmsg_permission(struct socket *sock,
 	return 0;
 }
 
-static inline int ccs_socket_post_recvmsg_permission(struct sock *sk,
-						     struct sk_buff *skb)
+static inline int ccs_socket_recvmsg_permission(struct sock *sk,
+						struct sk_buff *skb,
+						const unsigned int flags)
 {
 	return 0;
 }
@@ -840,12 +759,6 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 {
 	return search_binary_handler(bprm, regs);
 }
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
-static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
-				     unsigned int flags) {
-}
-#endif
 
 #endif
 
