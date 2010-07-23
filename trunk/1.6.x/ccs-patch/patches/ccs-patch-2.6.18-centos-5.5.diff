@@ -34,13 +34,13 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  net/ipv4/inet_connection_sock.c |    3 +++
  net/ipv4/inet_hashtables.c      |    3 +++
  net/ipv4/raw.c                  |   12 +++++++++---
- net/ipv4/udp.c                  |   17 +++++++++++++++--
+ net/ipv4/udp.c                  |   15 ++++++++++++++-
  net/ipv6/inet6_hashtables.c     |    3 +++
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   22 ++++++++++++++++++----
  net/socket.c                    |   29 ++++++++++++++++++++++++++++-
  net/unix/af_unix.c              |    4 ++++
- 38 files changed, 310 insertions(+), 18 deletions(-)
+ 38 files changed, 309 insertions(+), 17 deletions(-)
 
 --- linux-2.6.18-194.8.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.8.1.el5/arch/alpha/kernel/ptrace.c
@@ -1032,20 +1032,18 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  
  	/*
  	 *	Check any passed addresses
-@@ -821,7 +828,12 @@ try_again:
+@@ -821,6 +828,11 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
--  
 +	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
 +		update_stat = 0;
 +		goto csum_copy_err;
 +	}
 +	update_stat = 1;
-+
+   
    	copied = skb->len - sizeof(struct udphdr);
  	if (copied > len) {
- 		copied = len;
 @@ -874,7 +886,8 @@ out:
    	return err;
  
