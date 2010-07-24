@@ -263,8 +263,6 @@ static void put_filesystem(struct file_system_type *fs)
 /* Jump table for loadable kernel module. */
 const struct ccsecurity_exports ccsecurity_exports = {
 	.load_policy = ccs_load_policy,
-	.may_create = ccs_may_create,
-	.may_delete = ccs_may_delete,
 	.put_filesystem = put_filesystem,
 	.sys_getppid = sys_getppid,
 	.sys_getpid = sys_getpid,
