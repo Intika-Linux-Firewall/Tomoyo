@@ -73,23 +73,27 @@ static void set_enforce(int flag)
 {
 	is_enforce = flag;
 	if (flag) {
-		set_profile(3, "network::inet_udp_bind");
-		set_profile(3, "network::inet_udp_connect");
 		set_profile(3, "network::inet_tcp_bind");
 		set_profile(3, "network::inet_tcp_listen");
 		set_profile(3, "network::inet_tcp_connect");
 		set_profile(3, "network::inet_tcp_accept");
+		set_profile(3, "network::inet_udp_bind");
+		set_profile(3, "network::inet_udp_send");
+		set_profile(3, "network::inet_udp_recv");
 		set_profile(3, "network::inet_raw_bind");
-		set_profile(3, "network::inet_raw_connect");
+		set_profile(3, "network::inet_raw_send");
+		set_profile(3, "network::inet_raw_recv");
 	} else {
-		set_profile(2, "network::inet_udp_bind");
-		set_profile(2, "network::inet_udp_connect");
 		set_profile(2, "network::inet_tcp_bind");
 		set_profile(2, "network::inet_tcp_listen");
 		set_profile(2, "network::inet_tcp_connect");
 		set_profile(2, "network::inet_tcp_accept");
+		set_profile(2, "network::inet_udp_bind");
+		set_profile(2, "network::inet_udp_send");
+		set_profile(2, "network::inet_udp_recv");
 		set_profile(2, "network::inet_raw_bind");
-		set_profile(2, "network::inet_raw_connect");
+		set_profile(2, "network::inet_raw_send");
+		set_profile(2, "network::inet_raw_recv");
 	}
 }
 

@@ -387,14 +387,16 @@ static void stage_network_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	set_profile(3, "network::inet_udp_bind");
-	set_profile(3, "network::inet_udp_connect");
 	set_profile(3, "network::inet_tcp_bind");
 	set_profile(3, "network::inet_tcp_listen");
 	set_profile(3, "network::inet_tcp_connect");
 	set_profile(3, "network::inet_tcp_accept");
+	set_profile(3, "network::inet_udp_bind");
+	set_profile(3, "network::inet_udp_send");
+	set_profile(3, "network::inet_udp_recv");
 	set_profile(3, "network::inet_raw_bind");
-	set_profile(3, "network::inet_raw_connect");
+	set_profile(3, "network::inet_raw_send");
+	set_profile(3, "network::inet_raw_recv");
 	fprintf(profile_fp, "255-PREFERENCE::audit={ max_reject_log=1024 }\n");
 	stage_network_test();
 	clear_status();

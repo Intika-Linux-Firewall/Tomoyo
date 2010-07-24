@@ -19,15 +19,27 @@
 #include <net/udp.h>
 #include "internal.h"
 
+struct ccs_addr_info {
+	u8 protocol;
+	u8 operation;
+	u16 port;           /* In network byte order. */
+	const u32 *address; /* In network byte order. */
+	bool is_ipv6;
+};
+
+const char *ccs_net_protocol_keyword[CCS_MAX_NETWORK_PROTOCOL] = {
+	[CCS_NETWORK_TCP_PROTOCOL] = "TCP",
+	[CCS_NETWORK_UDP_PROTOCOL] = "UDP",
+	[CCS_NETWORK_RAW_PROTOCOL] = "RAW",
+};
+
 const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
-	[CCS_NETWORK_UDP_BIND] = "UDP bind",
-	[CCS_NETWORK_UDP_CONNECT] = "UDP connect",
-	[CCS_NETWORK_TCP_BIND] = "TCP bind",
-	[CCS_NETWORK_TCP_LISTEN] = "TCP listen",
-	[CCS_NETWORK_TCP_CONNECT] = "TCP connect",
-	[CCS_NETWORK_TCP_ACCEPT] = "TCP accept",
-	[CCS_NETWORK_RAW_BIND] = "RAW bind",
-	[CCS_NETWORK_RAW_CONNECT] = "RAW connect"
+	[CCS_NETWORK_BIND]    = "bind",
+	[CCS_NETWORK_LISTEN]  = "listen",
+	[CCS_NETWORK_CONNECT] = "connect",
+	[CCS_NETWORK_ACCEPT]  = "accept",
+	[CCS_NETWORK_SEND]    = "send",
+	[CCS_NETWORK_RECV]    = "recv",
 };
 
 /**
@@ -40,6 +52,8 @@ const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
 static int ccs_audit_network_log(struct ccs_request_info *r)
 {
 	char buf[128];
+	const char *protocol =
+		ccs_net_protocol_keyword[r->param.network.protocol];
 	const char *operation = ccs_net_keyword[r->param.network.operation];
 	const u32 *address = r->param.network.address;
 	const u16 port = r->param.network.port;
@@ -49,11 +63,13 @@ static int ccs_audit_network_log(struct ccs_request_info *r)
 	else
 		ccs_print_ipv4(buf, sizeof(buf), r->param.network.ip,
 			       r->param.network.ip);
-	ccs_write_log(r, "network %s %s %u\n", operation, buf, port);
+	ccs_write_log(r, "network %s %s %s %u\n", protocol, operation, buf,
+		      port);
 	if (r->granted)
 		return 0;
-	ccs_warn_log(r, "network %s %s %u", operation, buf, port);
-	return ccs_supervisor(r, "network %s %s %u\n", operation, buf, port);
+	ccs_warn_log(r, "network %s %s %s %u", protocol, operation, buf, port);
+	return ccs_supervisor(r, "network %s %s %s %u\n", protocol, operation,
+			      buf, port);
 }
 
 /**
@@ -181,31 +197,50 @@ static bool ccs_check_network_acl(const struct ccs_request_info *r,
 	return ret;
 }
 
+static const u8
+ccs_net2mac[CCS_MAX_NETWORK_PROTOCOL][CCS_MAX_NETWORK_OPERATION] = {
+	[CCS_NETWORK_TCP_PROTOCOL] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_TCP_BIND,
+		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_TCP_LISTEN,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_TCP_CONNECT,
+		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_TCP_ACCEPT,
+	},
+	[CCS_NETWORK_UDP_PROTOCOL] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UDP_BIND,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UDP_SEND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_UDP_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_UDP_RECV,
+	},
+	[CCS_NETWORK_RAW_PROTOCOL]    = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_RAW_BIND,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_RAW_SEND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_RAW_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_RAW_RECV,
+	},
+};
+
 /**
  * ccs_network_entry - Check permission for network operation.
  *
- * @is_ipv6:   True if @address is an IPv6 address.
- * @operation: Type of operation.
- * @address:   An IPv4 or IPv6 address in network byte order.
- * @port:      Port number in network byte order.
+ * @address: Pointer to "struct ccs_ip_address".
  *
  * Returns 0 on success, negative value otherwise.
  */
-static int ccs_network_entry(const bool is_ipv6, const u8 operation,
-			     const u32 *address, const u16 port)
+static int ccs_network_entry(const struct ccs_addr_info *address)
 {
 	const int idx = ccs_read_lock();
 	struct ccs_request_info r;
 	int error = 0;
-	if (ccs_init_request_info(&r, CCS_MAC_NETWORK_UDP_BIND + operation)
-	    != CCS_CONFIG_DISABLED) {
+	const u8 type = ccs_net2mac[address->protocol][address->operation];
+	if (!type || ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
 		r.param_type = CCS_TYPE_IP_NETWORK_ACL;
-		r.param.network.operation = operation;
-		r.param.network.is_ipv6 = is_ipv6;
-		r.param.network.address = address;
-		r.param.network.port = ntohs(port);
+		r.param.network.protocol = address->protocol;
+		r.param.network.operation = address->operation;
+		r.param.network.is_ipv6 = address->is_ipv6;
+		r.param.network.address = address->address;
+		r.param.network.port = ntohs(address->port);
 		/* use host byte order to allow u32 comparison than memcmp().*/
-		r.param.network.ip = ntohl(*address);
+		r.param.network.ip = ntohl(*address->address);
 		do {
 			ccs_check_acl(&r, ccs_check_network_acl);
 			error = ccs_audit_network_log(&r);
@@ -269,50 +304,19 @@ int ccs_write_network(char *data, struct ccs_domain_info *domain,
 	u16 min_address[8];
 	u16 max_address[8];
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	u8 sock_type;
-	u8 operation;
+	u8 type;
 	char *w[4];
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
 		return -EINVAL;
-	if (!strcmp(w[0], "TCP"))
-		sock_type = SOCK_STREAM;
-	else if (!strcmp(w[0], "UDP"))
-		sock_type = SOCK_DGRAM;
-	else if (!strcmp(w[0], "RAW"))
-		sock_type = SOCK_RAW;
-	else
+	for (e.protocol = 0; e.protocol < CCS_MAX_NETWORK_PROTOCOL;
+	     e.protocol++)
+		if (!strcmp(w[0], ccs_net_protocol_keyword[e.protocol]))
+			break;
+	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
+		if (ccs_permstr(w[1], ccs_net_keyword[type]))
+			e.perm |= 1 << type;
+	if (e.protocol == CCS_MAX_NETWORK_PROTOCOL || !e.perm)
 		return -EINVAL;
-	if (!strcmp(w[1], "bind"))
-		switch (sock_type) {
-		case SOCK_STREAM:
-			operation = CCS_NETWORK_TCP_BIND;
-			break;
-		case SOCK_DGRAM:
-			operation = CCS_NETWORK_UDP_BIND;
-			break;
-		default:
-			operation = CCS_NETWORK_RAW_BIND;
-			break;
-		}
-	else if (!strcmp(w[1], "connect"))
-		switch (sock_type) {
-		case SOCK_STREAM:
-			operation = CCS_NETWORK_TCP_CONNECT;
-			break;
-		case SOCK_DGRAM:
-			operation = CCS_NETWORK_UDP_CONNECT;
-			break;
-		default:
-			operation = CCS_NETWORK_RAW_CONNECT;
-			break;
-		}
-	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "listen"))
-		operation = CCS_NETWORK_TCP_LISTEN;
-	else if (sock_type == SOCK_STREAM && !strcmp(w[1], "accept"))
-		operation = CCS_NETWORK_TCP_ACCEPT;
-	else
-		return -EINVAL;
-	e.perm = 1 << operation;			
 	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
 	case CCS_IP_ADDRESS_TYPE_IPv6:
 		e.address_type = CCS_IP_ADDRESS_TYPE_IPv6;
@@ -362,6 +366,35 @@ void __init ccs_network_init(void)
 
 #else
 
+static bool ccs_check_address(const struct sockaddr *addr,
+			      const unsigned int addr_len,
+			      struct ccs_addr_info *address)
+{
+	switch (addr->sa_family) {
+	case AF_INET6:
+		if (addr_len < SIN6_LEN_RFC2133)
+			goto skip;
+		address->is_ipv6 = true;
+		address->address = (u32 *)
+			((struct sockaddr_in6 *) addr)->sin6_addr.s6_addr;
+		address->port = ((struct sockaddr_in6 *) addr)->sin6_port;
+		break;
+	case AF_INET:
+		if (addr_len < sizeof(struct sockaddr_in))
+			goto skip;
+		address->is_ipv6 = false;
+		address->address = (u32 *)
+			&((struct sockaddr_in *) addr)->sin_addr;
+		address->port = ((struct sockaddr_in *) addr)->sin_port;
+		break;
+	default:
+		goto skip;
+	}
+	return true;
+ skip:
+	return false;
+}
+
 /* Check permission for creating a socket. */
 static int __ccs_socket_create_permission(int family, int type, int protocol)
 {
@@ -398,9 +431,7 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 	struct sockaddr_storage addr;
 	int error = 0;
 	int addr_len;
-	u32 *address;
-	u16 port;
-	bool is_ipv6;
+	struct ccs_addr_info address;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
@@ -417,25 +448,11 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 		return -EPERM;
 	if (sock->ops->getname(sock, (struct sockaddr *) &addr, &addr_len, 0))
 		return -EPERM;
-	switch (((struct sockaddr *) &addr)->sa_family) {
-	case AF_INET6:
-		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) &addr)->sin6_addr
-			.s6_addr;
-		port = ((struct sockaddr_in6 *) &addr)->sin6_port;
-		break;
-	case AF_INET:
-		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) &addr)->sin_addr;
-		port = ((struct sockaddr_in *) &addr)->sin_port;
-		break;
-	default:
-		goto skip;
-	}
-	error = ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_LISTEN, address,
-				  port);
- skip:
-	return error;
+	address.protocol = CCS_NETWORK_TCP_PROTOCOL;
+	address.operation = CCS_NETWORK_LISTEN;
+	if (ccs_check_address((struct sockaddr *) &addr, addr_len, &address))
+		error = ccs_network_entry(&address);
+ 	return error;
 }
 
 /* Check permission for setting the remote IP address/port pair of a socket. */
@@ -444,48 +461,29 @@ static int __ccs_socket_connect_permission(struct socket *sock,
 {
 	int error = 0;
 	const unsigned int type = sock->type;
-	u32 *address;
-	u16 port;
-	u8 operation;
-	bool is_ipv6; 
+	struct ccs_addr_info address;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
 	switch (type) {
 	case SOCK_STREAM:
-		operation = CCS_NETWORK_TCP_CONNECT;
+		address.protocol = CCS_NETWORK_TCP_PROTOCOL;
 		break;
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_UDP_CONNECT;
+		address.protocol = CCS_NETWORK_UDP_PROTOCOL;
 		break;
 	case SOCK_RAW:
-		operation = CCS_NETWORK_RAW_CONNECT;
+		address.protocol = CCS_NETWORK_RAW_PROTOCOL;
 		break;
 	default:
 		return 0;
 	}
-	switch (addr->sa_family) {
-	case AF_INET6:
-		if (addr_len < SIN6_LEN_RFC2133)
-			goto skip;
-		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) addr)->sin6_addr
-			.s6_addr;
-		port = ((struct sockaddr_in6 *) addr)->sin6_port;
-		break;
-	case AF_INET:
-		if (addr_len < sizeof(struct sockaddr_in))
-			goto skip;
-		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) addr)->sin_addr;
-		port = ((struct sockaddr_in *) addr)->sin_port;
-		break;
-	default:
+	address.operation = CCS_NETWORK_CONNECT;
+	if (!ccs_check_address(addr, addr_len, &address))
 		goto skip;
-	}
 	if (type == SOCK_RAW)
-		port = htons(sock->sk->sk_protocol);
-	error = ccs_network_entry(is_ipv6, operation, address, port);
+		address.port = htons(sock->sk->sk_protocol);
+	error = ccs_network_entry(&address);
  skip:
 	if (type != SOCK_STREAM)
 		return error;
@@ -505,48 +503,29 @@ static int __ccs_socket_bind_permission(struct socket *sock,
 {
 	int error = 0;
 	const unsigned int type = sock->type;
-	const u32 *address;
-	u16 port;
-	u8 operation;
-	bool is_ipv6;
+	struct ccs_addr_info address;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
 	switch (type) {
 	case SOCK_STREAM:
-		operation = CCS_NETWORK_TCP_BIND;
+		address.protocol = CCS_NETWORK_TCP_PROTOCOL;
 		break;
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_UDP_BIND;
+		address.protocol = CCS_NETWORK_UDP_PROTOCOL;
 		break;
 	case SOCK_RAW:
-		operation = CCS_NETWORK_RAW_BIND;
+		address.protocol = CCS_NETWORK_RAW_PROTOCOL;
 		break;
 	default:
 		return 0;
 	}
-	switch (addr->sa_family) {
-	case AF_INET6:
-		if (addr_len < SIN6_LEN_RFC2133)
-			goto skip;
-		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) addr)->sin6_addr
-			.s6_addr;
-		port = ((struct sockaddr_in6 *) addr)->sin6_port;
-		break;
-	case AF_INET:
-		if (addr_len < sizeof(struct sockaddr_in))
-			goto skip;
-		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) addr)->sin_addr;
-		port = ((struct sockaddr_in *) addr)->sin_port;
-		break;
-	default:
+	address.operation = CCS_NETWORK_BIND;
+	if (!ccs_check_address(addr, addr_len, &address))
 		goto skip;
-	}
 	if (type == SOCK_RAW)
-		port = htons(sock->sk->sk_protocol);
-	error = ccs_network_entry(is_ipv6, operation, address, port);
+		address.port = htons(sock->sk->sk_protocol);
+	error = ccs_network_entry(&address);
  skip:
 	return error;
 }
@@ -559,9 +538,7 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 	struct task_struct * const task = current;
 	int error = 0;
 	int addr_len;
-	u32 *address;
-	u16 port;
-	bool is_ipv6;
+	struct ccs_addr_info address;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
@@ -576,24 +553,13 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 				      &addr_len, 2);
 	if (error)
 		return error;
-	switch (((struct sockaddr *) &addr)->sa_family) {
-	case AF_INET6:
-		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) &addr)->sin6_addr
-			.s6_addr;
-		port = ((struct sockaddr_in6 *) &addr)->sin6_port;
-		break;
-	case AF_INET:
-		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) &addr)->sin_addr;
-		port = ((struct sockaddr_in *) &addr)->sin_port;
-		break;
-	default:
+	if (!ccs_check_address((struct sockaddr *) &addr, addr_len,
+			       &address))
 		goto skip;
-	}
+	address.protocol = CCS_NETWORK_TCP_PROTOCOL;
+	address.operation = CCS_NETWORK_ACCEPT;
 	task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	error = ccs_network_entry(is_ipv6, CCS_NETWORK_TCP_ACCEPT, address,
-				  port);
+	error = ccs_network_entry(&address);
 	task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  skip:
 	return error;
@@ -603,51 +569,31 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 static int __ccs_socket_sendmsg_permission(struct socket *sock,
 					   struct msghdr *msg, int size)
 {
-	struct sockaddr *addr = (struct sockaddr *) msg->msg_name;
-	const int addr_len = msg->msg_namelen;
 	int error = 0;
 	const int type = sock->type;
-	u32 *address;
-	u16 port;
-	bool is_ipv6;
-	u8 operation;
-	if (!addr)
+	struct ccs_addr_info address;
+	if (!msg->msg_name)
 		return 0;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
 	switch (type) {
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_UDP_CONNECT;
+		address.protocol = CCS_NETWORK_UDP_PROTOCOL;
 		break;
 	case SOCK_RAW:
-		operation = CCS_NETWORK_RAW_CONNECT;
+		address.protocol = CCS_NETWORK_RAW_PROTOCOL;
 		break;
 	default:
 		return 0;
 	}
-	switch (addr->sa_family) {
-	case AF_INET6:
-		if (addr_len < SIN6_LEN_RFC2133)
-			goto skip;
-		is_ipv6 = true;
-		address = (u32 *) ((struct sockaddr_in6 *) addr)->sin6_addr
-			.s6_addr;
-		port = ((struct sockaddr_in6 *) addr)->sin6_port;
-		break;
-	case AF_INET:
-		if (addr_len < sizeof(struct sockaddr_in))
-			goto skip;
-		is_ipv6 = false;
-		address = (u32 *) &((struct sockaddr_in *) addr)->sin_addr;
-		port = ((struct sockaddr_in *) addr)->sin_port;
-		break;
-	default:
+	address.operation = CCS_NETWORK_SEND;
+	if (!ccs_check_address((struct sockaddr *) msg->msg_name,
+			       msg->msg_namelen, &address))
 		goto skip;
-	}
 	if (type == SOCK_RAW)
-		port = htons(sock->sk->sk_protocol);
-	error = ccs_network_entry(is_ipv6, operation, address, port);
+		address.port = htons(sock->sk->sk_protocol);
+	error = ccs_network_entry(&address);
  skip:
 	return error;
 }
@@ -682,19 +628,17 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 	struct task_struct * const task = current;
 	int error = 0;
 	const unsigned int type = sk->sk_type;
-	u16 port;
-	bool is_ipv6;
-	u8 operation;
+	struct ccs_addr_info address;
 	union {
 		struct in6_addr sin6;
 		struct in_addr sin4;
-	} address;
+	} ip_address;
 	switch (type) {
 	case SOCK_DGRAM:
-		operation = CCS_NETWORK_UDP_CONNECT;
+		address.protocol = CCS_NETWORK_UDP_PROTOCOL;
 		break;
 	case SOCK_RAW:
-		operation = CCS_NETWORK_RAW_CONNECT;
+		address.protocol = CCS_NETWORK_RAW_PROTOCOL;
 		break;
 	default:
 		return 0;
@@ -704,26 +648,28 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 		return 0;
 	switch (sk->sk_family) {
 	case PF_INET6:
-		is_ipv6 = true;
+		address.is_ipv6 = true;
 		if (type == SOCK_DGRAM && skb->protocol == htons(ETH_P_IP))
-			ipv6_addr_set(&address.sin6, 0, 0, htonl(0xffff),
+			ipv6_addr_set(&ip_address.sin6, 0, 0, htonl(0xffff),
 				      ip_hdr(skb)->saddr);
 		else
-			ipv6_addr_copy(&address.sin6, &ipv6_hdr(skb)->saddr);
+			ipv6_addr_copy(&ip_address.sin6, &ipv6_hdr(skb)->saddr);
 		break;
 	case PF_INET:
-		is_ipv6 = false; 
-		address.sin4.s_addr = ip_hdr(skb)->saddr;
+		address.is_ipv6 = false; 
+		ip_address.sin4.s_addr = ip_hdr(skb)->saddr;
 		break;
 	default:
 		goto skip;
 	}
+	address.address = (u32 *) &ip_address;
 	if (type == SOCK_DGRAM)
-		port = udp_hdr(skb)->source;
+		address.port = udp_hdr(skb)->source;
 	else
-		port = htons(sk->sk_protocol);
+		address.port = htons(sk->sk_protocol);
+	address.operation = CCS_NETWORK_RECV;
 	task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	error = ccs_network_entry(is_ipv6, operation, (u32 *) &address, port);
+	error = ccs_network_entry(&address);
 	task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
  skip:
 	return error;

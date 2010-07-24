@@ -99,10 +99,6 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::transit",
 	[CCS_MAC_ENVIRON]
 	= "misc::env",
-	[CCS_MAC_NETWORK_UDP_BIND]
-	= "network::inet_udp_bind",
-	[CCS_MAC_NETWORK_UDP_CONNECT]
-	= "network::inet_udp_connect",
 	[CCS_MAC_NETWORK_TCP_BIND]
 	= "network::inet_tcp_bind",
 	[CCS_MAC_NETWORK_TCP_LISTEN]
@@ -111,10 +107,18 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "network::inet_tcp_connect",
 	[CCS_MAC_NETWORK_TCP_ACCEPT]
 	= "network::inet_tcp_accept",
+	[CCS_MAC_NETWORK_UDP_BIND]
+	= "network::inet_udp_bind",
+	[CCS_MAC_NETWORK_UDP_SEND]
+	= "network::inet_udp_send",
+	[CCS_MAC_NETWORK_UDP_RECV]
+	= "network::inet_udp_recv",
 	[CCS_MAC_NETWORK_RAW_BIND]
 	= "network::inet_raw_bind",
-	[CCS_MAC_NETWORK_RAW_CONNECT]
-	= "network::inet_raw_connect",
+	[CCS_MAC_NETWORK_RAW_SEND]
+	= "network::inet_raw_send",
+	[CCS_MAC_NETWORK_RAW_RECV]
+	= "network::inet_raw_recv",
 	[CCS_MAC_SIGNAL]
 	= "ipc::signal",
 	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CREATE]
@@ -1410,6 +1414,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "network ");
+		ccs_set_string(head, ccs_net_protocol_keyword[ptr->protocol]);
+		ccs_set_space(head);
 		ccs_set_string(head, ccs_net_keyword[bit]);
 		ccs_set_space(head);
 		switch (ptr->address_type) {

@@ -1649,14 +1649,6 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 	return ccs_path_perm(CCS_TYPE_UMOUNT, NULL, mnt->mnt_root, mnt, NULL);
 }
 
-static bool ccs_permstr(const char *string, const char *keyword)
-{
-	const char *cp = strstr(string, keyword);
-	if (cp)
-		return cp == string || *(cp - 1) == '/';
-	return false;
-}
-
 /**
  * ccs_write_file - Update file related list.
  *

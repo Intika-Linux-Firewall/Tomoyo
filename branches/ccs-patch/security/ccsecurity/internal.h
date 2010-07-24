@@ -121,15 +121,20 @@ enum ccs_path_number_acl_index {
 	CCS_MAX_PATH_NUMBER_OPERATION
 };
 
+enum ccs_network_protocol_index {
+	CCS_NETWORK_TCP_PROTOCOL,
+	CCS_NETWORK_UDP_PROTOCOL,
+	CCS_NETWORK_RAW_PROTOCOL,
+	CCS_MAX_NETWORK_PROTOCOL
+};
+
 enum ccs_network_acl_index {
-	CCS_NETWORK_UDP_BIND,    /* UDP's bind() operation. */
-	CCS_NETWORK_UDP_CONNECT, /* UDP's connect()/send()/recv() operation. */
-	CCS_NETWORK_TCP_BIND,    /* TCP's bind() operation. */
-	CCS_NETWORK_TCP_LISTEN,  /* TCP's listen() operation. */
-	CCS_NETWORK_TCP_CONNECT, /* TCP's connect() operation. */
-	CCS_NETWORK_TCP_ACCEPT,  /* TCP's accept() operation. */
-	CCS_NETWORK_RAW_BIND,    /* IP's bind() operation. */
-	CCS_NETWORK_RAW_CONNECT, /* IP's connect()/send()/recv() operation. */
+	CCS_NETWORK_BIND,    /* TCP/UDP/IP's bind() operation. */
+	CCS_NETWORK_LISTEN,  /* TCP's listen() operation. */
+	CCS_NETWORK_CONNECT, /* TCP/UDP/IP's connect() operation. */
+	CCS_NETWORK_ACCEPT,  /* TCP's accept() operation. */
+	CCS_NETWORK_SEND,    /* UDP/IP's send() operation. */
+	CCS_NETWORK_RECV,    /* UDP/IP's recv() operation. */
 	CCS_MAX_NETWORK_OPERATION
 };
 
@@ -180,14 +185,16 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
 	CCS_MAC_FILE_TRANSIT,
-	CCS_MAC_NETWORK_UDP_BIND,
-	CCS_MAC_NETWORK_UDP_CONNECT,
 	CCS_MAC_NETWORK_TCP_BIND,
 	CCS_MAC_NETWORK_TCP_LISTEN,
 	CCS_MAC_NETWORK_TCP_CONNECT,
 	CCS_MAC_NETWORK_TCP_ACCEPT,
+	CCS_MAC_NETWORK_UDP_BIND,
+	CCS_MAC_NETWORK_UDP_SEND,
+	CCS_MAC_NETWORK_UDP_RECV,
 	CCS_MAC_NETWORK_RAW_BIND,
-	CCS_MAC_NETWORK_RAW_CONNECT,
+	CCS_MAC_NETWORK_RAW_SEND,
+	CCS_MAC_NETWORK_RAW_RECV,
 	CCS_MAC_ENVIRON,
 	CCS_MAC_SIGNAL,
 	CCS_MAX_MAC_INDEX
@@ -572,6 +579,7 @@ struct ccs_request_info {
 			const u32 *address;
 			u32 ip;
 			u16 port;
+			u8 protocol;
 			u8 operation;
 			bool is_ipv6;
 		} network;
@@ -823,6 +831,7 @@ struct ccs_ipv6addr {
 /* Structure for "network" directive. */
 struct ccs_ip_network_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
+	u8 protocol; /* One of values in "enum_ccs_network_protocol_index" "*/
 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	/*
 	 * address_type takes one of the following constants.
@@ -977,6 +986,7 @@ bool ccs_path_matches_group(const struct ccs_path_info *pathname,
 			    const struct ccs_group *group);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
+bool ccs_permstr(const char *string, const char *keyword);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
 char *ccs_encode(const char *str);
@@ -1116,6 +1126,7 @@ extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
 extern const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION];
+extern const char *ccs_net_protocol_keyword[CCS_MAX_NETWORK_PROTOCOL];
 extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];
