@@ -258,6 +258,7 @@ static bool ccs_same_ip_network_acl(const struct ccs_acl_info *a,
 	const struct ccs_ip_network_acl *p2 = container_of(b, typeof(*p2),
 							   head);
 	return ccs_same_acl_head(&p1->head, &p2->head)
+		&& p1->protocol == p2->protocol
 		&& p1->address_type == p2->address_type &&
 		p1->address.ipv4.min == p2->address.ipv4.min &&
 		p1->address.ipv6.min == p2->address.ipv6.min &&
