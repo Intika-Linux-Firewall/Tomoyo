@@ -41,7 +41,7 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 # Apply patches and create kernel config.
 cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
 tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
-patch -p1 < /root/rpmbuild/SOURCES/patches/ccs-patch-1.7.2-20100725.diff || die "Can't apply patch."
+patch -p1 < /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100725.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic-pae*'`; do cp -p $i `echo $i | sed -e 's/generic-pae/ccs/g'`; done
 for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
