@@ -60,17 +60,22 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-2.6.27.45-0.1.1.src.rpm ]
+if [ ! -r kernel-source-2.6.27.48-0.1.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.45-0.1.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/11.1/rpm/src/kernel-source-2.6.27.48-0.1.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-2.6.27.45-0.1.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-2.6.27.45-0.1.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-2.6.27.48-0.1.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-2.6.27.48-0.1.1.src.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
 then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
+fi
+
+if [ ! -r ccs-patch-1.7.2-20100726.diff ]
+then
+    wget -O ccs-patch-1.7.2-20100726.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?revision=3850&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -89,7 +94,7 @@ patch << "EOF" || die "Can't patch spec file."
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
- Version:        2.6.27.45
+ Version:        2.6.27.48
 -Release:        0.1.1
 +Release:        0.1.1_tomoyo_1.7.2p1
  License:        GPL v2 only
@@ -110,7 +115,7 @@ patch << "EOF" || die "Can't patch spec file."
  cd linux-2.6.27
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100726.diff
 +cat config.ccs >> .config
  cp .config .config.orig
  %if %{tolerate_unknown_new_config_options}
