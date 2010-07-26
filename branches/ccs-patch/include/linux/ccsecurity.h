@@ -77,14 +77,12 @@ struct ccsecurity_operations {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 	void (*save_open_mode) (int mode);
 	void (*clear_open_mode) (void);
-#endif
-	int (*ptrace_permission) (long request, long pid);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
 	int (*open_permission) (struct dentry *dentry, struct vfsmount *mnt,
 				const int flag);
 #else
 	int (*open_permission) (struct file *file);
 #endif
+	int (*ptrace_permission) (long request, long pid);
 	int (*ioctl_permission) (struct file *filp, unsigned int cmd,
 				 unsigned long arg);
 	int (*parse_table) (int __user *name, int nlen, void __user *oldval,
@@ -834,16 +832,6 @@ static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 
 /* Index numbers for Capability Controls. */
 enum ccs_capability_acl_index {
-	/* socket(PF_INET or PF_INET6, SOCK_STREAM, *)                 */
-	CCS_INET_STREAM_SOCKET_CREATE,
-	/* listen() for PF_INET or PF_INET6, SOCK_STREAM               */
-	CCS_INET_STREAM_SOCKET_LISTEN,
-	/* connect() for PF_INET or PF_INET6, SOCK_STREAM              */
-	CCS_INET_STREAM_SOCKET_CONNECT,
-	/* socket(PF_INET or PF_INET6, SOCK_DGRAM, *)                  */
-	CCS_USE_INET_DGRAM_SOCKET,
-	/* socket(PF_INET or PF_INET6, SOCK_RAW, *)                    */
-	CCS_USE_INET_RAW_SOCKET,
 	/* socket(PF_ROUTE, *, *)                                      */
 	CCS_USE_ROUTE_SOCKET,
 	/* socket(PF_PACKET, *, *)                                     */
@@ -860,14 +848,6 @@ enum ccs_capability_acl_index {
 	CCS_SYS_SETHOSTNAME,
 	/* sys_create_module(), sys_init_module(), sys_delete_module() */
 	CCS_USE_KERNEL_MODULE,
-	/* sys_mknod(S_IFIFO)                                          */
-	CCS_CREATE_FIFO,
-	/* sys_mknod(S_IFBLK)                                          */
-	CCS_CREATE_BLOCK_DEV,
-	/* sys_mknod(S_IFCHR)                                          */
-	CCS_CREATE_CHAR_DEV,
-	/* sys_mknod(S_IFSOCK)                                         */
-	CCS_CREATE_UNIX_SOCKET,
 	/* sys_kexec_load()                                            */
 	CCS_SYS_KEXEC_LOAD,
 	/* sys_ptrace()                                                */

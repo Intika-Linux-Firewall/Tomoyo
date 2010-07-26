@@ -1329,32 +1329,20 @@ static int __ccs_mknod_permission(struct inode *dir, struct dentry *dentry,
 	const unsigned int perm = mode & S_IALLUGO;
 	switch (mode & S_IFMT) {
 	case S_IFCHR:
-		if (!ccs_capable(CCS_CREATE_CHAR_DEV))
-			error = -EPERM;
-		else
-			error = ccs_mkdev_perm(CCS_TYPE_MKCHAR, dir, dentry,
-					       mnt, perm, dev);
+		error = ccs_mkdev_perm(CCS_TYPE_MKCHAR, dir, dentry, mnt, perm,
+				       dev);
 		break;
 	case S_IFBLK:
-		if (!ccs_capable(CCS_CREATE_BLOCK_DEV))
-			error = -EPERM;
-		else
-			error = ccs_mkdev_perm(CCS_TYPE_MKBLOCK, dir, dentry,
-					       mnt, perm, dev);
+		error = ccs_mkdev_perm(CCS_TYPE_MKBLOCK, dir, dentry, mnt,
+				       perm, dev);
 		break;
 	case S_IFIFO:
-		if (!ccs_capable(CCS_CREATE_FIFO))
-			error = -EPERM;
-		else
-			error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dir,
-						     dentry, mnt, perm);
+		error = ccs_path_number_perm(CCS_TYPE_MKFIFO, dir, dentry, mnt,
+					     perm);
 		break;
 	case S_IFSOCK:
-		if (!ccs_capable(CCS_CREATE_UNIX_SOCKET))
-			error = -EPERM;
-		else
-			error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dir,
-						     dentry, mnt, perm);
+		error = ccs_path_number_perm(CCS_TYPE_MKSOCK, dir, dentry, mnt,
+					     perm);
 		break;
 	case 0:
 	case S_IFREG:

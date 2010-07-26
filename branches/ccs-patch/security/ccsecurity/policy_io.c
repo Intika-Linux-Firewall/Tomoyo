@@ -121,16 +121,6 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "network::inet_raw_recv",
 	[CCS_MAC_SIGNAL]
 	= "ipc::signal",
-	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CREATE]
-	= "capability::inet_tcp_create",
-	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_LISTEN]
-	= "capability::inet_tcp_listen",
-	[CCS_MAX_MAC_INDEX + CCS_INET_STREAM_SOCKET_CONNECT]
-	= "capability::inet_tcp_connect",
-	[CCS_MAX_MAC_INDEX + CCS_USE_INET_DGRAM_SOCKET]
-	= "capability::use_inet_udp",
-	[CCS_MAX_MAC_INDEX + CCS_USE_INET_RAW_SOCKET]
-	= "capability::use_inet_ip",
 	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
 	= "capability::use_route",
 	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
@@ -147,14 +137,6 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "capability::SYS_SETHOSTNAME",
 	[CCS_MAX_MAC_INDEX + CCS_USE_KERNEL_MODULE]
 	= "capability::use_kernel_module",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_FIFO]
-	= "capability::create_fifo",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_BLOCK_DEV]
-	= "capability::create_block_dev",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_CHAR_DEV]
-	= "capability::create_char_dev",
-	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]
-	= "capability::create_unix_socket",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
 	= "capability::SYS_KEXEC_LOAD",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]

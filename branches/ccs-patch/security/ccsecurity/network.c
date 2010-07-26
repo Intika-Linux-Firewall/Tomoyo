@@ -399,7 +399,6 @@ static bool ccs_check_address(const struct sockaddr *addr,
 /* Check permission for creating a socket. */
 static int __ccs_socket_create_permission(int family, int type, int protocol)
 {
-	int error = 0;
 	/* Nothing to do if I am a kernel service. */
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return 0;
@@ -407,23 +406,7 @@ static int __ccs_socket_create_permission(int family, int type, int protocol)
 		return -EPERM;
 	if (family == PF_ROUTE && !ccs_capable(CCS_USE_ROUTE_SOCKET))
 		return -EPERM;
-	if (family != PF_INET && family != PF_INET6)
-		return 0;
-	switch (type) {
-	case SOCK_STREAM:
-		if (!ccs_capable(CCS_INET_STREAM_SOCKET_CREATE))
-			error = -EPERM;
-		break;
-	case SOCK_DGRAM:
-		if (!ccs_capable(CCS_USE_INET_DGRAM_SOCKET))
-			error = -EPERM;
-		break;
-	case SOCK_RAW:
-		if (!ccs_capable(CCS_USE_INET_RAW_SOCKET))
-			error = -EPERM;
-		break;
-	}
-	return error;
+	return 0;
 }
 
 /* Check permission for listening a TCP socket. */
@@ -445,8 +428,6 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 	default:
 		return 0;
 	}
-	if (!ccs_capable(CCS_INET_STREAM_SOCKET_LISTEN))
-		return -EPERM;
 	if (sock->ops->getname(sock, (struct sockaddr *) &addr, &addr_len, 0))
 		return -EPERM;
 	address.protocol = CCS_NETWORK_TCP_PROTOCOL;
@@ -486,15 +467,6 @@ static int __ccs_socket_connect_permission(struct socket *sock,
 		address.port = htons(sock->sk->sk_protocol);
 	error = ccs_network_entry(&address);
  skip:
-	if (type != SOCK_STREAM)
-		return error;
-	switch (sock->sk->sk_family) {
-	case PF_INET:
-	case PF_INET6:
-		if (!ccs_capable(CCS_INET_STREAM_SOCKET_CONNECT))
-			error = -EPERM;
-		break;
-	}
 	return error;
 }
 
