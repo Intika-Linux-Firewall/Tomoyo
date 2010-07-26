@@ -5,13 +5,13 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  arch/ia64/ia32/sys_ia32.c       |    3 +++
  arch/mips/kernel/ptrace32.c     |    3 +++
  fs/compat.c                     |    3 ++-
- fs/compat_ioctl.c               |    7 +++++++
+ fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
- fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   20 ++++++++++++++++++++
- fs/open.c                       |   26 ++++++++++++++++++++++++++
+ fs/ioctl.c                      |    3 +++
+ fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |    9 +++++++++
+ fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -36,7 +36,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 265 insertions(+), 10 deletions(-)
+ 34 files changed, 246 insertions(+), 10 deletions(-)
 
 --- linux-2.6.26.8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.26.8/arch/ia64/ia32/sys_ia32.c
@@ -114,17 +114,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_fput;
  
-@@ -2910,6 +2913,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (!ccs_capable(CCS_SYS_IOCTL)) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
 --- linux-2.6.26.8.orig/fs/exec.c
 +++ linux-2.6.26.8/fs/exec.c
 @@ -65,6 +65,8 @@
@@ -197,16 +186,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /**
   * vfs_ioctl - call filesystem specific ioctl methods
-@@ -35,6 +36,8 @@ static long vfs_ioctl(struct file *filp,
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -202,6 +205,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -202,6 +203,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -248,15 +228,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
  	mutex_unlock(&dir->d_inode->i_mutex);
  	dput(nd->path.dentry);
-@@ -1718,6 +1728,7 @@ static int __open_namei_create(struct na
- 	return may_open(nd, 0, flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
-@@ -1839,7 +1850,9 @@ do_last:
+@@ -1839,7 +1849,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -266,7 +238,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1892,7 +1905,9 @@ ok:
+@@ -1892,7 +1904,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -276,7 +248,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2113,6 +2128,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -2113,6 +2127,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -286,7 +258,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.path.dentry->d_inode,dentry,mode,&nd);
-@@ -2189,6 +2207,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -2189,6 +2206,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -296,7 +268,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2301,6 +2322,9 @@ static long do_rmdir(int dfd, const char
+@@ -2301,6 +2321,9 @@ static long do_rmdir(int dfd, const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto exit3;
@@ -306,7 +278,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
  	mnt_drop_write(nd.path.mnt);
  exit3:
-@@ -2387,6 +2411,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2387,6 +2410,9 @@ static long do_unlinkat(int dfd, const c
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit2;
@@ -316,7 +288,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
  		mnt_drop_write(nd.path.mnt);
  	exit2:
-@@ -2472,6 +2499,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2472,6 +2498,9 @@ asmlinkage long sys_symlinkat(const char
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -326,7 +298,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from, S_IALLUGO);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2572,6 +2602,10 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2572,6 +2601,10 @@ asmlinkage long sys_linkat(int olddfd, c
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_dput;
@@ -337,7 +309,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = vfs_link(old_nd.path.dentry, nd.path.dentry->d_inode, new_dentry);
  	mnt_drop_write(nd.path.mnt);
  out_dput:
-@@ -2803,6 +2837,10 @@ static int do_rename(int olddfd, const c
+@@ -2803,6 +2836,10 @@ static int do_rename(int olddfd, const c
  	error = mnt_want_write(oldnd.path.mnt);
  	if (error)
  		goto exit5;
@@ -367,46 +339,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -1123,6 +1126,8 @@ asmlinkage long sys_umount(char __user *
- {
- 	struct nameidata nd;
- 	int retval;
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
- 
- 	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
- 	if (retval)
-@@ -1470,6 +1475,9 @@ static noinline int do_loopback(struct n
- 	err = -EINVAL;
- 	if (IS_MNT_UNBINDABLE(old_nd.path.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(&nd->path))
-+		goto out;
- 
- 	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
- 		goto out;
-@@ -1584,6 +1592,9 @@ static noinline int do_move_mount(struct
- 	if (!check_mnt(nd->path.mnt) || !check_mnt(old_nd.path.mnt))
- 		goto out;
- 
-+	err = -EPERM;
-+	if (ccs_may_mount(&nd->path))
-+		goto out;
- 	err = -ENOENT;
- 	mutex_lock(&nd->path.dentry->d_inode->i_mutex);
- 	if (IS_DEADDIR(nd->path.dentry->d_inode))
-@@ -1688,6 +1699,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(&nd->path))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, &nd->path)))
-@@ -1893,6 +1907,7 @@ int copy_mount_options(const void __user
+@@ -1893,6 +1896,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -414,7 +347,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1937,6 +1952,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1937,6 +1941,9 @@ long do_mount(char *dev_name, char *dir_
  
  	retval = security_sb_mount(dev_name, &nd.path,
  				   type_page, flags, data_page);
@@ -424,7 +357,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -2196,6 +2214,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -2196,6 +2203,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd.path, &new_nd.path);
@@ -443,28 +376,27 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -270,6 +271,10 @@ static long do_sys_truncate(const char _
+@@ -270,6 +271,9 @@ static long do_sys_truncate(const char _
  	if (error)
  		goto put_write_and_out;
  
-+	error = ccs_truncate_permission(nd.path.dentry, nd.path.mnt, length,
-+					0);
++	error = ccs_truncate_permission(nd.path.dentry, nd.path.mnt);
 +	if (error)
 +		goto put_write_and_out;
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
  		DQUOT_INIT(inode);
-@@ -326,6 +331,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -326,6 +330,9 @@ static long do_sys_ftruncate(unsigned in
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
  	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
-@@ -559,6 +567,8 @@ asmlinkage long sys_chroot(const char __
+@@ -559,6 +566,8 @@ asmlinkage long sys_chroot(const char __
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -473,7 +405,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, &nd.path);
  	set_fs_altroot();
-@@ -592,6 +602,9 @@ asmlinkage long sys_fchmod(unsigned int 
+@@ -592,6 +601,9 @@ asmlinkage long sys_fchmod(unsigned int 
  	err = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_drop_write;
@@ -483,7 +415,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -628,6 +641,9 @@ asmlinkage long sys_fchmodat(int dfd, co
+@@ -628,6 +640,9 @@ asmlinkage long sys_fchmodat(int dfd, co
  	error = -EPERM;
  	if (IS_IMMUTABLE(inode) || IS_APPEND(inode))
  		goto out_drop_write;
@@ -493,7 +425,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
-@@ -694,6 +710,8 @@ asmlinkage long sys_chown(const char __u
+@@ -694,6 +709,8 @@ asmlinkage long sys_chown(const char __u
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -502,7 +434,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -719,6 +737,8 @@ asmlinkage long sys_fchownat(int dfd, co
+@@ -719,6 +736,8 @@ asmlinkage long sys_fchownat(int dfd, co
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -511,7 +443,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -738,6 +758,8 @@ asmlinkage long sys_lchown(const char __
+@@ -738,6 +757,8 @@ asmlinkage long sys_lchown(const char __
  	error = mnt_want_write(nd.path.mnt);
  	if (error)
  		goto out_release;
@@ -520,7 +452,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(nd.path.dentry, user, group);
  	mnt_drop_write(nd.path.mnt);
  out_release:
-@@ -762,6 +784,8 @@ asmlinkage long sys_fchown(unsigned int 
+@@ -762,6 +783,8 @@ asmlinkage long sys_fchown(unsigned int 
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -529,7 +461,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1214,6 +1238,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1214,6 +1237,8 @@ EXPORT_SYMBOL(sys_close);
   */
  asmlinkage long sys_vhangup(void)
  {
@@ -544,7 +476,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.26.8 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.26.8 2010/07/26\n");
  }
 --- linux-2.6.26.8.orig/include/linux/init_task.h
 +++ linux-2.6.26.8/include/linux/init_task.h

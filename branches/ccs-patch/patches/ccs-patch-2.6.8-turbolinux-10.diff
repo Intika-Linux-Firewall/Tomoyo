@@ -31,9 +31,9 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/compat.c                        |   13 ++--
  fs/exec.c                          |   58 ++-----------------
  fs/fcntl.c                         |    9 +--
- fs/ioctl.c                         |   13 ++--
- fs/namei.c                         |  109 ++++++++++---------------------------
- fs/namespace.c                     |   57 +++++--------------
+ fs/ioctl.c                         |    9 +--
+ fs/namei.c                         |  108 ++++++++++---------------------------
+ fs/namespace.c                     |   52 +++--------------
  fs/open.c                          |   68 ++++++++---------------
  fs/proc/Makefile                   |    3 -
  fs/proc/proc_misc.c                |   10 ---
@@ -56,7 +56,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   18 +-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 56 files changed, 321 insertions(+), 516 deletions(-)
+ 56 files changed, 308 insertions(+), 519 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -778,17 +778,6 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (error) {
                  fput(filp);
                  goto out;
-@@ -129,6 +126,10 @@ asmlinkage long sys_ioctl(unsigned int f
- 				error = -ENOTTY;
- 			break;
- 		default:
-+			if (!ccs_capable(CCS_SYS_IOCTL)) {
-+				error = -EPERM;
-+				break;
-+			}
- 			error = -ENOTTY;
- 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
- 				error = file_ioctl(filp, cmd, arg);
 --- linux-2.6.8-20.orig/fs/namei.c
 +++ linux-2.6.8-20/fs/namei.c
 @@ -32,12 +32,7 @@
@@ -853,18 +842,17 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	/*
  	 * Ensure there are no outstanding leases on the file.
-@@ -1341,9 +1326,7 @@ int may_open(struct nameidata *nd, int a
+@@ -1341,9 +1326,6 @@ int may_open(struct nameidata *nd, int a
  	return 0;
  }
  
 -/***** TOMOYO Linux start. *****/
 -#include <linux/tomoyo_vfs.h>
 -/***** TOMOYO Linux end. *****/
-+#include <linux/ccsecurity_vfs.h>
  /*
   *	open_namei()
   *
-@@ -1418,6 +1401,9 @@ do_last:
+@@ -1418,6 +1400,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -874,7 +862,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1465,7 +1451,6 @@ ok:
+@@ -1465,7 +1450,6 @@ ok:
  exit_dput:
  	dput(dentry);
  exit:
@@ -882,7 +870,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	path_release(nd);
  	return error;
  
-@@ -1589,12 +1574,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1589,12 +1573,6 @@ asmlinkage long sys_mknod(const char __u
  
  	if (S_ISDIR(mode))
  		return -EPERM;
@@ -895,7 +883,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	tmp = getname(filename);
  	if (IS_ERR(tmp))
  		return PTR_ERR(tmp);
-@@ -1608,21 +1587,18 @@ asmlinkage long sys_mknod(const char __u
+@@ -1608,21 +1586,18 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -920,7 +908,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			error = vfs_mknod(nd.dentry->d_inode,dentry,mode,0);
  			break;
  		case S_IFDIR:
-@@ -1631,7 +1607,6 @@ asmlinkage long sys_mknod(const char __u
+@@ -1631,7 +1606,6 @@ asmlinkage long sys_mknod(const char __u
  		default:
  			error = -EINVAL;
  		}
@@ -928,7 +916,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1685,11 +1660,10 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1685,11 +1659,10 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -943,7 +931,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -1797,11 +1771,10 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1797,11 +1770,10 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -958,7 +946,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -1855,9 +1828,6 @@ asmlinkage long sys_unlink(const char __
+@@ -1855,9 +1827,6 @@ asmlinkage long sys_unlink(const char __
  	struct dentry *dentry;
  	struct nameidata nd;
  	struct inode *inode = NULL;
@@ -968,7 +956,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	name = getname(pathname);
  	if(IS_ERR(name))
-@@ -1879,11 +1849,10 @@ asmlinkage long sys_unlink(const char __
+@@ -1879,11 +1848,10 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -983,7 +971,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	exit2:
  		dput(dentry);
  	}
-@@ -1931,9 +1900,6 @@ asmlinkage long sys_symlink(const char _
+@@ -1931,9 +1899,6 @@ asmlinkage long sys_symlink(const char _
  	int error = 0;
  	char * from;
  	char * to;
@@ -993,7 +981,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	from = getname(oldname);
  	if(IS_ERR(from))
-@@ -1950,11 +1916,10 @@ asmlinkage long sys_symlink(const char _
+@@ -1950,11 +1915,10 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -1008,7 +996,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  			dput(dentry);
  		}
  		up(&nd.dentry->d_inode->i_sem);
-@@ -2021,9 +1986,6 @@ asmlinkage long sys_link(const char __us
+@@ -2021,9 +1985,6 @@ asmlinkage long sys_link(const char __us
  	struct nameidata nd, old_nd;
  	int error;
  	char * to;
@@ -1018,7 +1006,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	to = getname(newname);
  	if (IS_ERR(to))
-@@ -2041,11 +2003,10 @@ asmlinkage long sys_link(const char __us
+@@ -2041,11 +2002,10 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -1033,7 +1021,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		dput(new_dentry);
  	}
  	up(&nd.dentry->d_inode->i_sem);
-@@ -2267,13 +2228,9 @@ static inline int do_rename(const char *
+@@ -2267,13 +2227,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -1050,7 +1038,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	error = vfs_rename(old_dir->d_inode, old_dentry,
  				   new_dir->d_inode, new_dentry);
  exit5:
-@@ -2287,7 +2244,6 @@ exit2:
+@@ -2287,7 +2243,6 @@ exit2:
  exit1:
  	path_release(&oldnd);
  exit:
@@ -1058,7 +1046,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	return error;
  }
  
-@@ -2296,9 +2252,6 @@ asmlinkage long sys_rename(const char __
+@@ -2296,9 +2251,6 @@ asmlinkage long sys_rename(const char __
  	int error;
  	char * from;
  	char * to;
@@ -1100,32 +1088,28 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	/*
  	 * Allow userspace to request a mountpoint be expired rather than
  	 * unmounting unconditionally. Unmount only happens if:
-@@ -479,9 +472,8 @@ asmlinkage long sys_umount(char __user *
+@@ -479,9 +472,6 @@ asmlinkage long sys_umount(char __user *
  {
  	struct nameidata nd;
  	int retval;
 -	/***** TOMOYO Linux start. *****/
 -	if (CheckCapabilityACL(TOMOYO_SYS_UMOUNT)) return -EPERM;
 -	/***** TOMOYO Linux end. *****/
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
  
  	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
  	if (retval)
-@@ -647,10 +639,9 @@ static int do_loopback(struct nameidata 
+@@ -647,10 +637,6 @@ static int do_loopback(struct nameidata 
  	down_write(&current->namespace->sem);
  	err = -EINVAL;
  	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
 -		/***** SAKURA Linux start. *****/
- 		err = -EPERM;
+-		err = -EPERM;
 -		if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
 -		/***** SAKURA Linux end. *****/
-+		if (ccs_may_mount(nd))
-+			goto out;
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -672,9 +663,7 @@ static int do_loopback(struct nameidata 
+@@ -672,9 +658,7 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
@@ -1135,33 +1119,29 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -730,10 +719,9 @@ static int do_move_mount(struct nameidat
+@@ -730,10 +714,6 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 -	/***** SAKURA Linux start. *****/
- 	err = -EPERM;
+-	err = -EPERM;
 -	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
 -	/***** SAKURA Linux end. *****/
-+	if (ccs_may_mount(nd))
-+		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -827,10 +815,9 @@ int do_add_mount(struct vfsmount *newmnt
+@@ -827,10 +807,6 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
 -	/***** SAKURA Linux start. *****/
- 	err = -EPERM;
+-	err = -EPERM;
 -	if (SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto unlock;
 -	/***** SAKURA Linux end. *****/
-+	if (ccs_may_mount(nd))
-+		goto unlock;
  
  	newmnt->mnt_flags = mnt_flags;
  	err = graft_tree(newmnt, nd);
-@@ -1034,6 +1021,7 @@ int copy_mount_options(const void __user
+@@ -1034,6 +1010,7 @@ int copy_mount_options(const void __user
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -1169,7 +1149,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1067,6 +1055,9 @@ long do_mount(char * dev_name, char * di
+@@ -1067,6 +1044,9 @@ long do_mount(char * dev_name, char * di
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -1179,7 +1159,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	if (retval)
  		goto dput_out;
  
-@@ -1189,9 +1180,6 @@ asmlinkage long sys_mount(char __user * 
+@@ -1189,9 +1169,6 @@ asmlinkage long sys_mount(char __user * 
  	unsigned long type_page;
  	unsigned long dev_page;
  	char *dir_page;
@@ -1189,7 +1169,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  
  	retval = copy_mount_options (type, &type_page);
  	if (retval < 0)
-@@ -1210,15 +1198,6 @@ asmlinkage long sys_mount(char __user * 
+@@ -1210,15 +1187,6 @@ asmlinkage long sys_mount(char __user * 
  	if (retval < 0)
  		goto out3;
  
@@ -1205,7 +1185,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	lock_kernel();
  	retval = do_mount((char*)dev_page, dir_page, (char*)type_page,
  			  flags, (void*)data_page);
-@@ -1327,10 +1306,6 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1327,10 +1295,6 @@ asmlinkage long sys_pivot_root(const cha
  	if (!capable(CAP_SYS_ADMIN))
  		return -EPERM;
  
@@ -1216,7 +1196,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  	lock_kernel();
  
  	error = __user_walk(new_root, LOOKUP_FOLLOW|LOOKUP_DIRECTORY, &new_nd);
-@@ -1345,6 +1320,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1345,6 +1309,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -1248,7 +1228,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	/***** TOMOYO Linux start. *****/
 -	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, nd.dentry, nd.mnt)) == 0)
 -	/***** TOMOYO Linux end. *****/
-+	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -1268,7 +1248,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	/***** TOMOYO Linux start. *****/
 -	if ((error = CheckSingleWritePermission(TYPE_TRUNCATE_ACL, dentry, file->f_vfsmnt)) == 0)
 -	/***** TOMOYO Linux end. *****/
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
@@ -1453,7 +1433,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	}
 -#endif
 -	/***** CCS end. *****/
-+	printk(KERN_INFO "Hook version: 2.6.8-20 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.8-20 2010/07/26\n");
  }
 --- linux-2.6.8-20.orig/include/linux/init_task.h
 +++ linux-2.6.8-20/include/linux/init_task.h

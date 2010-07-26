@@ -37,8 +37,6 @@ struct file_system_type;
 struct pid_namespace;
 int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 
-#define ccs_may_mount(path) 0
-
 #ifdef CONFIG_CCSECURITY
 
 /* For exporting variables and functions. */
@@ -238,9 +236,7 @@ static inline void ccs_clear_open_mode(void)
 	if (func)
 		func();
 }
-#endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
 static inline int ccs_open_permission(struct dentry *dentry,
 				      struct vfsmount *mnt, const int flag)
 {
@@ -344,8 +340,7 @@ static inline int ccs_symlink_permission(struct inode *dir,
 }
 
 static inline int ccs_truncate_permission(struct dentry *dentry,
-					  struct vfsmount *mnt, loff_t length,
-					  unsigned int time_attrs)
+					  struct vfsmount *mnt)
 {
 	int (*func) (struct dentry *, struct vfsmount *)
 		= ccsecurity_ops.truncate_permission;
@@ -628,7 +623,7 @@ static inline void ccs_clear_open_mode(void)
 {
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 34)
 static inline int ccs_open_permission(struct dentry *dentry,
 				      struct vfsmount *mnt, const int flag)
 {
@@ -702,8 +697,7 @@ static inline int ccs_symlink_permission(struct inode *dir,
 }
 
 static inline int ccs_truncate_permission(struct dentry *dentry,
-					  struct vfsmount *mnt, loff_t length,
-					  unsigned int time_attrs)
+					  struct vfsmount *mnt)
 {
 	return 0;
 }

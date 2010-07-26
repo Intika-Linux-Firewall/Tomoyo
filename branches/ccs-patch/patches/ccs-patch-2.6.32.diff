@@ -3,13 +3,13 @@ This is TOMOYO Linux patch for kernel 2.6.32.16.
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.32.16.tar.bz2
 ---
  fs/compat.c                     |    3 ++-
- fs/compat_ioctl.c               |    7 +++++++
+ fs/compat_ioctl.c               |    3 +++
  fs/exec.c                       |    3 ++-
  fs/fcntl.c                      |    4 ++++
- fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   38 ++++++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   20 ++++++++++++++++++++
- fs/open.c                       |   27 +++++++++++++++++++++++++++
+ fs/ioctl.c                      |    3 +++
+ fs/namei.c                      |   37 +++++++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |    9 +++++++++
+ fs/open.c                       |   25 +++++++++++++++++++++++++
  fs/proc/version.c               |    7 +++++++
  include/linux/init_task.h       |    9 +++++++++
  include/linux/sched.h           |    6 ++++++
@@ -34,7 +34,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    5 +++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 262 insertions(+), 11 deletions(-)
+ 32 files changed, 242 insertions(+), 11 deletions(-)
 
 --- linux-2.6.32.16.orig/fs/compat.c
 +++ linux-2.6.32.16/fs/compat.c
@@ -74,17 +74,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_fput;
  
-@@ -2814,6 +2817,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (!ccs_capable(CCS_SYS_IOCTL)) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
 --- linux-2.6.32.16.orig/fs/exec.c
 +++ linux-2.6.32.16/fs/exec.c
 @@ -61,6 +61,7 @@
@@ -134,16 +123,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  /* So that the fiemap access checks can't overflow on 32 bit machines. */
  #define FIEMAP_MAX_EXTENTS	(UINT_MAX / sizeof(struct fiemap_extent))
-@@ -41,6 +42,8 @@ static long vfs_ioctl(struct file *filp,
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -618,6 +621,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
+@@ -618,6 +619,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -185,15 +165,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1637,6 +1647,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
-@@ -1776,7 +1787,9 @@ do_last:
+@@ -1776,7 +1786,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -203,7 +175,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1835,7 +1848,9 @@ ok:
+@@ -1835,7 +1847,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -213,7 +185,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error) {
  		if (will_write)
  			mnt_drop_write(nd.path.mnt);
-@@ -2065,6 +2080,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2065,6 +2079,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -223,7 +195,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2140,6 +2158,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2140,6 +2157,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -233,7 +205,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2254,6 +2275,9 @@ static long do_rmdir(int dfd, const char
+@@ -2254,6 +2274,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -243,7 +215,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2343,6 +2367,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2343,6 +2366,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -253,7 +225,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2428,6 +2455,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2428,6 +2454,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -263,7 +235,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2528,6 +2558,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2528,6 +2557,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -274,7 +246,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2769,6 +2803,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2769,6 +2802,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -304,46 +276,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -1127,6 +1130,8 @@ SYSCALL_DEFINE2(umount, char __user *, n
- 	if (!(flags & UMOUNT_NOFOLLOW))
- 		lookup_flags |= LOOKUP_FOLLOW;
- 
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
- 	retval = user_path_at(AT_FDCWD, name, lookup_flags, &path);
- 	if (retval)
- 		goto out;
-@@ -1474,6 +1479,9 @@ static int do_loopback(struct path *path
- 
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -1585,6 +1593,9 @@ static int do_move_mount(struct path *pa
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
- 
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 	err = -ENOENT;
- 	mutex_lock(&path->dentry->d_inode->i_mutex);
- 	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1690,6 +1701,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, path)))
-@@ -1912,6 +1926,7 @@ int copy_mount_string(const void __user 
+@@ -1912,6 +1915,7 @@ int copy_mount_string(const void __user 
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -351,7 +284,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct path path;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1959,6 +1974,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1959,6 +1963,9 @@ long do_mount(char *dev_name, char *dir_
  
  	retval = security_sb_mount(dev_name, &path,
  				   type_page, flags, data_page);
@@ -361,7 +294,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -2177,6 +2195,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
+@@ -2177,6 +2184,8 @@ SYSCALL_DEFINE2(pivot_root, const char _
  		goto out1;
  
  	error = security_sb_pivotroot(&old, &new);
@@ -380,27 +313,25 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
  {
-@@ -275,6 +276,9 @@ static long do_sys_truncate(const char _
+@@ -275,6 +276,8 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
  		error = security_path_truncate(&path, length, 0);
 +	if (!error)
-+		error = ccs_truncate_permission(path.dentry, path.mnt, length,
-+						0);
++		error = ccs_truncate_permission(path.dentry, path.mnt);
  	if (!error) {
  		vfs_dq_init(inode);
  		error = do_truncate(path.dentry, length, 0, NULL);
-@@ -334,6 +338,9 @@ static long do_sys_ftruncate(unsigned in
+@@ -334,6 +337,8 @@ static long do_sys_ftruncate(unsigned in
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
  	if (!error)
-+		error = ccs_truncate_permission(dentry, file->f_vfsmnt, length,
-+						ATTR_MTIME|ATTR_CTIME);
++		error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (!error)
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -587,6 +594,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -587,6 +592,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -409,7 +340,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -616,6 +625,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -616,6 +623,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
  		goto out_putf;
@@ -419,7 +350,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -623,6 +635,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -623,6 +633,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -427,7 +358,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -645,6 +658,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -645,6 +656,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -437,7 +368,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -652,6 +668,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -652,6 +666,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -445,7 +376,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -700,6 +717,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -700,6 +715,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -454,7 +385,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -725,6 +744,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -725,6 +742,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -463,7 +394,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -744,6 +765,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -744,6 +763,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -472,7 +403,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -767,6 +790,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -767,6 +788,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -481,7 +412,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1160,6 +1185,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1160,6 +1183,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -499,7 +430,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32.16 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.32.16 2010/07/26\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);

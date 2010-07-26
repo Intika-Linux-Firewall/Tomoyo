@@ -15,9 +15,9 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  fs/compat.c                     |    9 ++++++++-
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
- fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   21 ++++++++++++++++++++-
+ fs/ioctl.c                      |    3 +++
+ fs/namei.c                      |   31 +++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   10 +++++++++-
  fs/open.c                       |   27 ++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -43,7 +43,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 300 insertions(+), 17 deletions(-)
+ 41 files changed, 286 insertions(+), 17 deletions(-)
 
 --- linux-2.6.15-cat.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.15-cat/arch/alpha/kernel/ptrace.c
@@ -350,16 +350,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  
  static long do_ioctl(struct file *filp, unsigned int cmd,
  		unsigned long arg)
-@@ -23,6 +24,8 @@ static long do_ioctl(struct file *filp, 
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -167,6 +170,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -167,6 +168,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -391,15 +382,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1503,6 +1510,7 @@ int may_open(struct nameidata *nd, int a
- 	return 0;
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1578,6 +1586,9 @@ do_last:
+@@ -1578,6 +1585,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -409,7 +392,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1765,6 +1776,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1765,6 +1775,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -419,7 +402,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1833,6 +1847,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1833,6 +1846,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -429,7 +412,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1936,6 +1953,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1936,6 +1952,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -439,7 +422,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2011,6 +2031,9 @@ asmlinkage long sys_unlink(const char __
+@@ -2011,6 +2030,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -449,7 +432,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2072,6 +2095,9 @@ asmlinkage long sys_symlink(const char _
+@@ -2072,6 +2094,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -459,7 +442,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2154,6 +2180,9 @@ asmlinkage long sys_link(const char __us
+@@ -2154,6 +2179,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -469,7 +452,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2374,6 +2403,9 @@ static inline int do_rename(const char *
+@@ -2374,6 +2402,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -498,47 +481,15 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	if (retval)
  		return retval;
  
-@@ -592,6 +595,8 @@ asmlinkage long sys_umount(char __user *
- {
- 	struct nameidata nd;
- 	int retval;
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
- 
- 	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
- 	if (retval)
-@@ -876,6 +881,9 @@ static int do_loopback(struct nameidata 
- 
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -960,7 +968,9 @@ static int do_move_mount(struct nameidat
+@@ -960,7 +963,6 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 -
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1062,6 +1072,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, nd)))
-@@ -1261,6 +1274,7 @@ int copy_mount_options(const void __user
+@@ -1261,6 +1263,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -546,7 +497,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1294,6 +1308,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1294,6 +1297,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -556,7 +507,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	if (retval)
  		goto dput_out;
  
-@@ -1559,6 +1576,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1559,6 +1565,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -580,7 +531,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -590,7 +541,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	if (IS_APPEND(inode))
  		goto out_putf;
 -
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
@@ -678,7 +629,7 @@ Source code for this patch is linux-2.6.15-cat_20080502.tgz
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.15-cat_20080502 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.15-cat_20080502 2010/07/26\n");
  }
 --- linux-2.6.15-cat.orig/include/linux/init_task.h
 +++ linux-2.6.15-cat/include/linux/init_task.h

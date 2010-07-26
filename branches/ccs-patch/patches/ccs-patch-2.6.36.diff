@@ -266,7 +266,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  static inline int security_path_truncate(struct path *path)
  {
 -	return 0;
-+	return ccs_truncate_permission(path->dentry, path->mnt, 0, 0);
++	return ccs_truncate_permission(path->dentry, path->mnt);
  }
  
  static inline int security_path_symlink(struct path *dir, struct dentry *dentry,
@@ -833,7 +833,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 -	return security_ops->path_truncate(path);
 +	error = security_ops->path_truncate(path);
 +	if (!error)
-+		error = ccs_truncate_permission(path->dentry, path->mnt, 0, 0);
++		error = ccs_truncate_permission(path->dentry, path->mnt);
 +	return error;
  }
  

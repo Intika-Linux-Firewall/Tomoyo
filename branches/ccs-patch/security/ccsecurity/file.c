@@ -813,7 +813,7 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	return error;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 static int ccs_new_open_permission(struct file *filp)
 {
 	return __ccs_open_permission(filp->f_path.dentry, filp->f_path.mnt,
@@ -1581,7 +1581,7 @@ void __init ccs_file_init(void)
 	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
 	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 34)
 	ccsecurity_ops.open_permission = ccs_new_open_permission;
 #else
 	ccsecurity_ops.open_permission = __ccs_open_permission;

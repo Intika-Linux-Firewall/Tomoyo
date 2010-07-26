@@ -15,9 +15,9 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  fs/compat.c                     |    9 ++++++++-
  fs/exec.c                       |   12 +++++++++++-
  fs/fcntl.c                      |    4 ++++
- fs/ioctl.c                      |    5 +++++
- fs/namei.c                      |   34 ++++++++++++++++++++++++++++++++++
- fs/namespace.c                  |   21 ++++++++++++++++++++-
+ fs/ioctl.c                      |    3 +++
+ fs/namei.c                      |   33 +++++++++++++++++++++++++++++++++
+ fs/namespace.c                  |   10 +++++++++-
  fs/open.c                       |   29 ++++++++++++++++++++++++++++-
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -43,7 +43,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 304 insertions(+), 19 deletions(-)
+ 41 files changed, 290 insertions(+), 19 deletions(-)
 
 --- linux-2.6.16-76.55vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/arch/alpha/kernel/ptrace.c
@@ -350,16 +350,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  
  static long do_ioctl(struct file *filp, unsigned int cmd,
  		unsigned long arg)
-@@ -24,6 +25,8 @@ static long do_ioctl(struct file *filp, 
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
-@@ -168,6 +171,8 @@ asmlinkage long sys_ioctl(unsigned int f
+@@ -168,6 +169,8 @@ asmlinkage long sys_ioctl(unsigned int f
  		goto out;
  
  	error = security_file_ioctl(filp, cmd, arg);
@@ -391,15 +382,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1570,6 +1577,7 @@ int may_open(struct nameidata *nd, int a
- 	return 0;
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1653,6 +1661,9 @@ do_last:
+@@ -1653,6 +1660,9 @@ do_last:
  	if (!path.dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -409,7 +392,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_create(dir->d_inode, path.dentry, mode, nd);
  		mutex_unlock(&dir->d_inode->i_mutex);
  		dput(nd->dentry);
-@@ -1847,6 +1858,9 @@ asmlinkage long sys_mknodat(int dfd, con
+@@ -1847,6 +1857,9 @@ asmlinkage long sys_mknodat(int dfd, con
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -419,7 +402,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1920,6 +1934,9 @@ asmlinkage long sys_mkdirat(int dfd, con
+@@ -1920,6 +1933,9 @@ asmlinkage long sys_mkdirat(int dfd, con
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -429,7 +412,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -2028,6 +2045,9 @@ static long do_rmdir(int dfd, const char
+@@ -2028,6 +2044,9 @@ static long do_rmdir(int dfd, const char
  	dentry = lookup_hash(&nd);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -439,7 +422,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -2108,6 +2128,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2108,6 +2127,9 @@ static long do_unlinkat(int dfd, const c
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -449,7 +432,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2186,6 +2209,9 @@ asmlinkage long sys_symlinkat(const char
+@@ -2186,6 +2208,9 @@ asmlinkage long sys_symlinkat(const char
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -459,7 +442,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2278,6 +2304,9 @@ asmlinkage long sys_linkat(int olddfd, c
+@@ -2278,6 +2303,9 @@ asmlinkage long sys_linkat(int olddfd, c
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -469,7 +452,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2504,6 +2533,11 @@ static int do_rename(int olddfd, const c
+@@ -2504,6 +2532,11 @@ static int do_rename(int olddfd, const c
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -500,47 +483,15 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (retval)
  		return retval;
  
-@@ -597,6 +600,8 @@ asmlinkage long sys_umount(char __user *
- {
- 	struct nameidata nd;
- 	int retval;
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
- 
- 	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
- 	if (retval)
-@@ -884,6 +889,9 @@ static int do_loopback(struct nameidata 
- 
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -968,7 +976,9 @@ static int do_move_mount(struct nameidat
+@@ -968,7 +971,6 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 -
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
  	err = -ENOENT;
  	mutex_lock(&nd->dentry->d_inode->i_mutex);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1070,6 +1080,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, nd)))
-@@ -1269,6 +1282,7 @@ int copy_mount_options(const void __user
+@@ -1269,6 +1271,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -548,7 +499,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1308,6 +1322,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1308,6 +1311,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -558,7 +509,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (retval)
  		goto dput_out;
  
-@@ -1601,6 +1618,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1601,6 +1607,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -582,7 +533,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -592,7 +543,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (IS_APPEND(inode))
  		goto out_putf;
 -
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
@@ -689,7 +640,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/07/26\n");
  }
 --- linux-2.6.16-76.55vl4.orig/include/linux/init_task.h
 +++ linux-2.6.16-76.55vl4/include/linux/init_task.h

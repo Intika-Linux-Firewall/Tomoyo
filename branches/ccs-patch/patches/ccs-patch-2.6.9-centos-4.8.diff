@@ -31,9 +31,9 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  fs/compat.c                        |   12 ++++++++++--
  fs/exec.c                          |   17 +++++++++++++++--
  fs/fcntl.c                         |    4 ++++
- fs/ioctl.c                         |    7 +++++++
- fs/namei.c                         |   32 ++++++++++++++++++++++++++++++++
- fs/namespace.c                     |   22 +++++++++++++++++++++-
+ fs/ioctl.c                         |    3 +++
+ fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
+ fs/namespace.c                     |   11 ++++++++++-
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 350 insertions(+), 20 deletions(-)
+ 54 files changed, 334 insertions(+), 20 deletions(-)
 
 --- linux-2.6.9-89.0.25.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.0.25.EL/arch/alpha/kernel/ptrace.c
@@ -693,17 +693,6 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (error) {
                  fput(filp);
                  goto out;
-@@ -123,6 +126,10 @@ asmlinkage long sys_ioctl(unsigned int f
- 				error = -ENOTTY;
- 			break;
- 		default:
-+			if (!ccs_capable(CCS_SYS_IOCTL)) {
-+				error = -EPERM;
-+				break;
-+			}
- 			error = -ENOTTY;
- 			if (S_ISREG(filp->f_dentry->d_inode->i_mode))
- 				error = file_ioctl(filp, cmd, arg);
 --- linux-2.6.9-89.0.25.EL.orig/fs/namei.c
 +++ linux-2.6.9-89.0.25.EL/fs/namei.c
 @@ -32,6 +32,8 @@
@@ -727,15 +716,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1426,6 +1433,7 @@ do_lookup_undo(struct nameidata *nd)
- 	}
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  *	open_namei()
-  *
-@@ -1505,6 +1513,9 @@ do_last:
+@@ -1505,6 +1512,9 @@ do_last:
  	if (!dentry->d_inode) {
  		if (!IS_POSIXACL(dir->d_inode))
  			mode &= ~current->fs->umask;
@@ -745,7 +726,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_create(dir->d_inode, dentry, mode, nd);
  		up(&dir->d_inode->i_sem);
  		dput(nd->dentry);
-@@ -1695,6 +1706,9 @@ asmlinkage long sys_mknod(const char __u
+@@ -1695,6 +1705,9 @@ asmlinkage long sys_mknod(const char __u
  	if (!IS_POSIXACL(nd.dentry->d_inode))
  		mode &= ~current->fs->umask;
  	if (!IS_ERR(dentry)) {
@@ -755,7 +736,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		switch (mode & S_IFMT) {
  		case 0: case S_IFREG:
  			error = vfs_create(nd.dentry->d_inode,dentry,mode,&nd);
-@@ -1766,6 +1780,9 @@ asmlinkage long sys_mkdir(const char __u
+@@ -1766,6 +1779,9 @@ asmlinkage long sys_mkdir(const char __u
  		if (!IS_ERR(dentry)) {
  			if (!IS_POSIXACL(nd.dentry->d_inode))
  				mode &= ~current->fs->umask;
@@ -765,7 +746,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			error = vfs_mkdir(nd.dentry->d_inode, dentry, mode);
  			dput(dentry);
  		}
-@@ -1874,6 +1891,9 @@ asmlinkage long sys_rmdir(const char __u
+@@ -1874,6 +1890,9 @@ asmlinkage long sys_rmdir(const char __u
  	dentry = lookup_hash(&nd.last, nd.dentry);
  	error = PTR_ERR(dentry);
  	if (!IS_ERR(dentry)) {
@@ -775,7 +756,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_rmdir(nd.dentry->d_inode, dentry);
  		dput(dentry);
  	}
-@@ -1949,6 +1969,9 @@ asmlinkage long sys_unlink(const char __
+@@ -1949,6 +1968,9 @@ asmlinkage long sys_unlink(const char __
  		inode = dentry->d_inode;
  		if (inode)
  			atomic_inc(&inode->i_count);
@@ -785,7 +766,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_unlink(nd.dentry->d_inode, dentry);
  	exit2:
  		dput(dentry);
-@@ -2013,6 +2036,9 @@ asmlinkage long sys_symlink(const char _
+@@ -2013,6 +2035,9 @@ asmlinkage long sys_symlink(const char _
  		dentry = lookup_create(&nd, 0);
  		error = PTR_ERR(dentry);
  		if (!IS_ERR(dentry)) {
@@ -795,7 +776,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			error = vfs_symlink(nd.dentry->d_inode, dentry, from, S_IALLUGO);
  			dput(dentry);
  		}
-@@ -2098,6 +2124,9 @@ asmlinkage long sys_link(const char __us
+@@ -2098,6 +2123,9 @@ asmlinkage long sys_link(const char __us
  	new_dentry = lookup_create(&nd, 0);
  	error = PTR_ERR(new_dentry);
  	if (!IS_ERR(new_dentry)) {
@@ -805,7 +786,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  		error = vfs_link(old_nd.dentry, nd.dentry->d_inode, new_dentry);
  		dput(new_dentry);
  	}
-@@ -2322,6 +2351,9 @@ static inline int do_rename(const char *
+@@ -2322,6 +2350,9 @@ static inline int do_rename(const char *
  	if (new_dentry == trap)
  		goto exit5;
  
@@ -834,26 +815,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (retval)
  		return retval;
  
-@@ -507,6 +510,8 @@ asmlinkage long sys_umount(char __user *
- {
- 	struct nameidata nd;
- 	int retval;
-+	if (!ccs_capable(CCS_SYS_UMOUNT))
-+		return -EPERM;
- 
- 	retval = __user_walk(name, LOOKUP_FOLLOW, &nd);
- 	if (retval)
-@@ -672,6 +677,9 @@ static int do_loopback(struct nameidata 
- 	down_write(&current->namespace->sem);
- 	err = -EINVAL;
- 	if (check_mnt(nd->mnt) && (!recurse || check_mnt(old_nd.mnt))) {
-+		err = -EPERM;
-+		if (ccs_may_mount(nd))
-+			goto out;
- 		err = -ENOMEM;
- 		if (recurse)
- 			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -694,6 +702,7 @@ static int do_loopback(struct nameidata 
+@@ -694,6 +697,7 @@ static int do_loopback(struct nameidata 
  			mntput(mnt);
  	}
  
@@ -861,28 +823,15 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -749,7 +758,9 @@ static int do_move_mount(struct nameidat
+@@ -749,7 +753,6 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
 -
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto out;
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -843,6 +854,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(nd))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	err = graft_tree(newmnt, nd);
-@@ -1046,6 +1060,7 @@ int copy_mount_options(const void __user
+@@ -1046,6 +1049,7 @@ int copy_mount_options(const void __user
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -890,7 +839,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1079,6 +1094,9 @@ long do_mount(char * dev_name, char * di
+@@ -1079,6 +1083,9 @@ long do_mount(char * dev_name, char * di
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -900,7 +849,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (retval)
  		goto dput_out;
  
-@@ -1329,6 +1347,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1329,6 +1336,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);
@@ -924,7 +873,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (error)
  		goto dput_and_out;
  
-+	error = ccs_truncate_permission(nd.dentry, nd.mnt, length, 0);
++	error = ccs_truncate_permission(nd.dentry, nd.mnt);
 +	if (!error)
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error) {
@@ -933,7 +882,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (IS_APPEND(inode))
  		goto out_putf;
  
-+	error = ccs_truncate_permission(dentry, file->f_vfsmnt, length, 0);
++	error = ccs_truncate_permission(dentry, file->f_vfsmnt);
 +	if (error)
 +		goto out_putf;
  	error = locks_verify_truncate(inode, file, length);
@@ -1021,7 +970,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  			entry->proc_fops = &ppc_htab_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.9-89.0.25.EL 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.9-89.0.25.EL 2010/07/26\n");
  }
 --- linux-2.6.9-89.0.25.EL.orig/include/linux/init_task.h
 +++ linux-2.6.9-89.0.25.EL/include/linux/init_task.h

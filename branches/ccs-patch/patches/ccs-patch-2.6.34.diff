@@ -3,16 +3,12 @@ This is TOMOYO Linux patch for linux-2.6.34.1.
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.34.1.tar.bz2
 ---
  fs/compat.c                     |    2 
- fs/compat_ioctl.c               |    4 +
  fs/exec.c                       |    2 
- fs/ioctl.c                      |    2 
- fs/namei.c                      |    6 +
- fs/namespace.c                  |    9 ++
  fs/open.c                       |    2 
  fs/proc/version.c               |    7 ++
  include/linux/init_task.h       |    9 ++
  include/linux/sched.h           |    6 +
- include/linux/security.h        |   55 +++++++++-------
+ include/linux/security.h        |   56 +++++++++-------
  kernel/kexec.c                  |    3 
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |    5 +
@@ -30,8 +26,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/socket.c                    |    6 +
  security/Kconfig                |    2 
  security/Makefile               |    3 
- security/security.c             |  135 +++++++++++++++++++++++++++++++++-------
- 29 files changed, 283 insertions(+), 55 deletions(-)
+ security/security.c             |  139 +++++++++++++++++++++++++++++++++-------
+ 25 files changed, 265 insertions(+), 57 deletions(-)
 
 --- linux-2.6.34.1.orig/fs/compat.c
 +++ linux-2.6.34.1/fs/compat.c
@@ -44,19 +40,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.34.1.orig/fs/compat_ioctl.c
-+++ linux-2.6.34.1/fs/compat_ioctl.c
-@@ -1723,6 +1723,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (!ccs_capable(CCS_SYS_IOCTL)) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
 --- linux-2.6.34.1.orig/fs/exec.c
 +++ linux-2.6.34.1/fs/exec.c
 @@ -1383,7 +1383,7 @@ int do_execve(char * filename,
@@ -68,71 +51,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.34.1.orig/fs/ioctl.c
-+++ linux-2.6.34.1/fs/ioctl.c
-@@ -41,6 +41,8 @@ static long vfs_ioctl(struct file *filp,
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.34.1.orig/fs/namei.c
-+++ linux-2.6.34.1/fs/namei.c
-@@ -1466,6 +1466,11 @@ int may_open(struct path *path, int acc_
- 	if (flag & O_NOATIME && !is_owner_or_cap(inode))
- 		return -EPERM;
- 
-+	/* includes O_APPEND check */
-+	error = ccs_open_permission(dentry, path->mnt, flag);
-+	if (error)
-+		return error;
-+
- 	/*
- 	 * Ensure there are no outstanding leases on the file.
- 	 */
-@@ -1521,6 +1526,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
---- linux-2.6.34.1.orig/fs/namespace.c
-+++ linux-2.6.34.1/fs/namespace.c
-@@ -1506,6 +1506,9 @@ static int do_loopback(struct path *path
- 
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -1621,6 +1624,9 @@ static int do_move_mount(struct path *pa
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
- 
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 	err = -ENOENT;
- 	mutex_lock(&path->dentry->d_inode->i_mutex);
- 	if (cant_mount(path->dentry))
-@@ -1728,6 +1734,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, path)))
 --- linux-2.6.34.1.orig/fs/open.c
 +++ linux-2.6.34.1/fs/open.c
 @@ -1173,6 +1173,8 @@ EXPORT_SYMBOL(sys_close);
@@ -153,7 +71,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.34.1 2010/07/21\n");
++	printk(KERN_INFO "Hook version: 2.6.34.1 2010/07/26\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -271,6 +189,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_file_set_fowner(struct file *file)
+@@ -2375,7 +2379,7 @@ static inline int security_file_receive(
+ static inline int security_dentry_open(struct file *file,
+ 				       const struct cred *cred)
+ {
+-	return 0;
++	return ccs_open_permission(file);
+ }
+ 
+ static inline int security_task_create(unsigned long clone_flags)
 @@ -2741,7 +2745,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
@@ -312,7 +239,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2991,43 +2995,48 @@ int security_path_chroot(struct path *pa
+@@ -2991,43 +2995,47 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -346,8 +273,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  					 unsigned int time_attrs)
  {
 -	return 0;
-+	return ccs_truncate_permission(path->dentry, path->mnt, length,
-+				       time_attrs);
++	return ccs_truncate_permission(path->dentry, path->mnt);
  }
  
  static inline int security_path_symlink(struct path *dir, struct dentry *dentry,
@@ -368,7 +294,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -3035,24 +3044,26 @@ static inline int security_path_rename(s
+@@ -3035,24 +3043,26 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -828,7 +754,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  void security_sb_post_pivotroot(struct path *old_path, struct path *new_path)
-@@ -399,85 +412,140 @@ EXPORT_SYMBOL(security_inode_init_securi
+@@ -399,85 +412,139 @@ EXPORT_SYMBOL(security_inode_init_securi
  int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
  			unsigned int dev)
  {
@@ -940,8 +866,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 -	return security_ops->path_truncate(path, length, time_attrs);
 +	error = security_ops->path_truncate(path, length, time_attrs);
 +	if (!error)
-+		error = ccs_truncate_permission(path->dentry, path->mnt,
-+						length, time_attrs);
++		error = ccs_truncate_permission(path->dentry, path->mnt);
 +	return error;
  }
  
@@ -981,7 +906,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  #endif
  
-@@ -677,7 +745,10 @@ void security_file_free(struct file *fil
+@@ -677,7 +744,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -993,7 +918,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -705,7 +776,10 @@ int security_file_lock(struct file *file
+@@ -705,7 +775,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -1005,7 +930,19 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -1059,7 +1133,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -726,7 +799,10 @@ int security_file_receive(struct file *f
+ 
+ int security_dentry_open(struct file *file, const struct cred *cred)
+ {
+-	return security_ops->dentry_open(file, cred);
++	int error = security_ops->dentry_open(file, cred);
++	if (!error)
++		error = ccs_open_permission(file);
++	return error;
+ }
+ 
+ int security_task_create(unsigned long clone_flags)
+@@ -1059,7 +1135,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -1017,7 +954,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1071,17 +1148,26 @@ int security_socket_post_create(struct s
+@@ -1071,17 +1150,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -1047,7 +984,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1091,7 +1177,10 @@ int security_socket_accept(struct socket
+@@ -1091,7 +1179,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
