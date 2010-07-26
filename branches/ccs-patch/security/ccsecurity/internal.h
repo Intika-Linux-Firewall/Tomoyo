@@ -951,7 +951,6 @@ struct ccs_profile {
 void __init ccs_capability_init(void);
 void __init ccs_domain_init(void);
 void __init ccs_file_init(void);
-void __init ccs_maymount_init(void);
 void __init ccs_mm_init(void);
 void __init ccs_mount_init(void);
 void __init ccs_network_init(void);

@@ -328,7 +328,6 @@ static int __init ccs_init_module(void)
 	ccs_network_init();
 	ccs_signal_init();
 	ccs_mount_init();
-	ccs_maymount_init();
 	ccs_policy_io_init();
 	ccs_domain_init();
 	return 0;

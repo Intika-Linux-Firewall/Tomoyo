@@ -223,8 +223,6 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	struct ccs_request_info r;
 	int error;
 	int idx;
-	if (!ccs_capable(CCS_SYS_MOUNT))
-		return -EPERM;
 	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
 	    == CCS_CONFIG_DISABLED)
 		return 0;

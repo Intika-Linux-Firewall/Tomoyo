@@ -124,8 +124,6 @@ static int ccs_signal_acl(const int pid, const int sig)
 	int error;
 	if (!sig)
 		error = 0;
-	else if (!ccs_capable(CCS_SYS_KILL))
-		error = -EPERM;
 	else {
 		const int idx = ccs_read_lock();
 		error = ccs_signal_acl2(sig, pid);

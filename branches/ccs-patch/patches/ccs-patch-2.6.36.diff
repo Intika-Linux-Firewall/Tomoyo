@@ -3,16 +3,12 @@ This is TOMOYO Linux patch for linux-next.
 Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.35-rc6.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.35-rc6-next-20100723.bz2
 ---
  fs/compat.c               |    2 
- fs/compat_ioctl.c         |    4 +
  fs/exec.c                 |    2 
- fs/ioctl.c                |    2 
- fs/namei.c                |    6 ++
- fs/namespace.c            |    9 +++
  fs/open.c                 |    2 
  fs/proc/version.c         |    7 ++
  include/linux/init_task.h |    9 +++
  include/linux/sched.h     |    6 ++
- include/linux/security.h  |   54 ++++++++++--------
+ include/linux/security.h  |   56 +++++++++++-------
  include/net/ip.h          |    2 
  kernel/kexec.c            |    3 +
  kernel/kmod.c             |    5 +
@@ -29,8 +25,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/socket.c              |    6 ++
  security/Kconfig          |    2 
  security/Makefile         |    3 +
- security/security.c       |  134 ++++++++++++++++++++++++++++++++++++++--------
- 28 files changed, 278 insertions(+), 55 deletions(-)
+ security/security.c       |  136 ++++++++++++++++++++++++++++++++++++++--------
+ 24 files changed, 260 insertions(+), 56 deletions(-)
 
 --- linux-2.6.36.orig/fs/compat.c
 +++ linux-2.6.36/fs/compat.c
@@ -43,19 +39,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.36.orig/fs/compat_ioctl.c
-+++ linux-2.6.36/fs/compat_ioctl.c
-@@ -1729,6 +1729,10 @@ asmlinkage long compat_sys_ioctl(unsigne
- 		/*FALL THROUGH*/
- 
- 	default:
-+		if (!ccs_capable(CCS_SYS_IOCTL)) {
-+			error = -EPERM;
-+			goto out_fput;
-+		}
- 		if (filp->f_op && filp->f_op->compat_ioctl) {
- 			error = filp->f_op->compat_ioctl(filp, cmd, arg);
- 			if (error != -ENOIOCTLCMD)
 --- linux-2.6.36.orig/fs/exec.c
 +++ linux-2.6.36/fs/exec.c
 @@ -1387,7 +1387,7 @@ int do_execve(char * filename,
@@ -67,71 +50,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.36.orig/fs/ioctl.c
-+++ linux-2.6.36/fs/ioctl.c
-@@ -41,6 +41,8 @@ static long vfs_ioctl(struct file *filp,
- 
- 	if (!filp->f_op)
- 		goto out;
-+	if (!ccs_capable(CCS_SYS_IOCTL))
-+		return -EPERM;
- 
- 	if (filp->f_op->unlocked_ioctl) {
- 		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.36.orig/fs/namei.c
-+++ linux-2.6.36/fs/namei.c
-@@ -1467,6 +1467,11 @@ int may_open(struct path *path, int acc_
- 	if (flag & O_NOATIME && !is_owner_or_cap(inode))
- 		return -EPERM;
- 
-+	/* includes O_APPEND check */
-+	error = ccs_open_permission(dentry, path->mnt, flag);
-+	if (error)
-+		return error;
-+
- 	/*
- 	 * Ensure there are no outstanding leases on the file.
- 	 */
-@@ -1521,6 +1526,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
- }
- 
-+#include <linux/ccsecurity_vfs.h>
- /*
-  * Note that while the flag value (low two bits) for sys_open means:
-  *	00 - read-only
---- linux-2.6.36.orig/fs/namespace.c
-+++ linux-2.6.36/fs/namespace.c
-@@ -1501,6 +1501,9 @@ static int do_loopback(struct path *path
- 
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 
- 	err = -ENOMEM;
- 	if (recurse)
-@@ -1614,6 +1617,9 @@ static int do_move_mount(struct path *pa
- 	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
- 		goto out;
- 
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto out;
- 	err = -ENOENT;
- 	mutex_lock(&path->dentry->d_inode->i_mutex);
- 	if (cant_mount(path->dentry))
-@@ -1721,6 +1727,9 @@ int do_add_mount(struct vfsmount *newmnt
- 	err = -EINVAL;
- 	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
- 		goto unlock;
-+	err = -EPERM;
-+	if (ccs_may_mount(path))
-+		goto unlock;
- 
- 	newmnt->mnt_flags = mnt_flags;
- 	if ((err = graft_tree(newmnt, path)))
 --- linux-2.6.36.orig/fs/open.c
 +++ linux-2.6.36/fs/open.c
 @@ -1007,6 +1007,8 @@ EXPORT_SYMBOL(sys_close);
@@ -265,6 +183,15 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  static inline int security_file_set_fowner(struct file *file)
+@@ -2227,7 +2231,7 @@ static inline int security_file_receive(
+ static inline int security_dentry_open(struct file *file,
+ 				       const struct cred *cred)
+ {
+-	return 0;
++	return ccs_open_permission(file);
+ }
+ 
+ static inline int security_task_create(unsigned long clone_flags)
 @@ -2572,7 +2576,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
@@ -970,7 +897,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -1009,7 +1082,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -692,6 +765,8 @@ int security_dentry_open(struct file *fi
+ 	int ret;
+ 
+ 	ret = security_ops->dentry_open(file, cred);
++	if (!ret)
++		ret = ccs_open_permission(file);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -1009,7 +1084,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -982,7 +918,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1021,17 +1097,26 @@ int security_socket_post_create(struct s
+@@ -1021,17 +1099,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -1012,7 +948,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1041,7 +1126,10 @@ int security_socket_accept(struct socket
+@@ -1041,7 +1128,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {

@@ -37,6 +37,8 @@ struct file_system_type;
 struct pid_namespace;
 int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 
+#define ccs_may_mount(path) 0
+
 #ifdef CONFIG_CCSECURITY
 
 /* For exporting variables and functions. */
@@ -62,14 +64,12 @@ struct ccsecurity_operations {
 	int (*chroot_permission) (struct path *path);
 	int (*pivot_root_permission) (struct path *old_path,
 				      struct path *new_path);
-	int (*may_mount) (struct path *path);
 	int (*mount_permission) (char *dev_name, struct path *path, char *type,
 				 unsigned long flags, void *data_page);
 #else
 	int (*chroot_permission) (struct nameidata *nd);
 	int (*pivot_root_permission) (struct nameidata *old_nd,
 				      struct nameidata *new_nd);
-	int (*may_mount) (struct nameidata *nd);
 	int (*mount_permission) (char *dev_name, struct nameidata *nd,
 				 char *type, unsigned long flags,
 				 void *data_page);
@@ -170,12 +170,6 @@ static inline int ccs_pivot_root_permission(struct path *old_path,
 	return func ? func(old_path, new_path) : 0;
 }
 
-static inline int ccs_may_mount(struct path *path)
-{
-	int (*func) (struct path *) = ccsecurity_ops.may_mount;
-	return func ? func(path) : 0;
-}
-
 static inline int ccs_mount_permission(char *dev_name, struct path *path,
 				       char *type, unsigned long flags,
 				       void *data_page)
@@ -199,12 +193,6 @@ static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
 	int (*func) (struct nameidata *, struct nameidata *)
 		= ccsecurity_ops.pivot_root_permission;
 	return func ? func(old_nd, new_nd) : 0;
-}
-
-static inline int ccs_may_mount(struct nameidata *nd)
-{
-	int (*func) (struct nameidata *) = ccsecurity_ops.may_mount;
-	return func ? func(nd) : 0;
 }
 
 static inline int ccs_mount_permission(char *dev_name, struct nameidata *nd,
@@ -588,11 +576,6 @@ static inline int ccs_pivot_root_permission(struct path *old_path,
 	return 0;
 }
 
-static inline int ccs_may_mount(struct path *path)
-{
-	return 0;
-}
-
 static inline int ccs_mount_permission(char *dev_name, struct path *path,
 				       char *type, unsigned long flags,
 				       void *data_page)
@@ -609,11 +592,6 @@ static inline int ccs_chroot_permission(struct nameidata *nd)
 
 static inline int ccs_pivot_root_permission(struct nameidata *old_nd,
 					    struct nameidata *new_nd)
-{
-	return 0;
-}
-
-static inline int ccs_may_mount(struct nameidata *nd)
 {
 	return 0;
 }
@@ -876,16 +854,8 @@ enum ccs_capability_acl_index {
 	CCS_USE_ROUTE_SOCKET,
 	/* socket(PF_PACKET, *, *)                                     */
 	CCS_USE_PACKET_SOCKET,
-	/* sys_mount()                                                 */
-	CCS_SYS_MOUNT,
-	/* sys_umount()                                                */
-	CCS_SYS_UMOUNT,
 	/* sys_reboot()                                                */
 	CCS_SYS_REBOOT,
-	/* sys_chroot()                                                */
-	CCS_SYS_CHROOT,
-	/* sys_kill(), sys_tkill(), sys_tgkill()                       */
-	CCS_SYS_KILL,
 	/* sys_vhangup()                                               */
 	CCS_SYS_VHANGUP,
 	/* do_settimeofday(), sys_adjtimex()                           */
@@ -904,28 +874,10 @@ enum ccs_capability_acl_index {
 	CCS_CREATE_CHAR_DEV,
 	/* sys_mknod(S_IFSOCK)                                         */
 	CCS_CREATE_UNIX_SOCKET,
-	/* sys_link()                                                  */
-	CCS_SYS_LINK,
-	/* sys_symlink()                                               */
-	CCS_SYS_SYMLINK,
-	/* sys_rename()                                                */
-	CCS_SYS_RENAME,
-	/* sys_unlink()                                                */
-	CCS_SYS_UNLINK,
-	/* sys_chmod(), sys_fchmod()                                   */
-	CCS_SYS_CHMOD,
-	/* sys_chown(), sys_fchown(), sys_lchown()                     */
-	CCS_SYS_CHOWN,
-	/* sys_ioctl(), compat_sys_ioctl()                             */
-	CCS_SYS_IOCTL,
 	/* sys_kexec_load()                                            */
 	CCS_SYS_KEXEC_LOAD,
-	/* sys_pivot_root()                                            */
-	CCS_SYS_PIVOT_ROOT,
 	/* sys_ptrace()                                                */
 	CCS_SYS_PTRACE,
-	/* conceal mount                                               */
-	CCS_CONCEAL_MOUNT,
 	CCS_MAX_CAPABILITY_INDEX
 };
 

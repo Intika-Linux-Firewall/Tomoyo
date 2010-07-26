@@ -1144,10 +1144,6 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				  unsigned long arg)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
-	if (!ccs_capable(CCS_SYS_IOCTL))
-		return -EPERM;
-#endif
 	return ccs_path_number_perm(CCS_TYPE_IOCTL, NULL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
 }
@@ -1166,8 +1162,6 @@ static int __ccs_chmod_permission(struct dentry *dentry,
 {
 	if (mode == (mode_t) -1)
 		return 0;
-	if (!ccs_capable(CCS_SYS_CHMOD))
-		return -EPERM;
 	return ccs_path_number_perm(CCS_TYPE_CHMOD, NULL, dentry, vfsmnt,
 				    mode & S_IALLUGO);
 }
@@ -1189,8 +1183,6 @@ static int __ccs_chown_permission(struct dentry *dentry,
 	int error = 0;
 	if (user == (uid_t) -1 && group == (gid_t) -1)
 		return 0;
-	if (!ccs_capable(CCS_SYS_CHOWN))
-		return -EPERM;
 	if (user != (uid_t) -1)
 		error = ccs_path_number_perm(CCS_TYPE_CHOWN, NULL, dentry,
 					     vfsmnt, user);
@@ -1228,8 +1220,6 @@ static int __ccs_rewrite_permission(struct file *filp)
 static int __ccs_pivot_root_permission(struct path *old_path,
 				       struct path *new_path)
 {
-	if (!ccs_capable(CCS_SYS_PIVOT_ROOT))
-		return -EPERM;
 	return ccs_path2_perm(CCS_TYPE_PIVOT_ROOT, NULL, new_path->dentry,
 			      new_path->mnt, NULL, old_path->dentry,
 			      old_path->mnt);
@@ -1244,8 +1234,6 @@ static int __ccs_pivot_root_permission(struct path *old_path,
  */
 static int __ccs_chroot_permission(struct path *path)
 {
-	if (!ccs_capable(CCS_SYS_CHROOT))
-		return -EPERM;
 	return ccs_path_perm(CCS_TYPE_CHROOT, NULL, path->dentry, path->mnt,
 			     NULL);
 }
@@ -1260,10 +1248,6 @@ static int __ccs_chroot_permission(struct path *path)
  */
 static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-	if (!ccs_capable(CCS_SYS_UMOUNT))
-		return -EPERM;
-#endif
 	return ccs_path_perm(CCS_TYPE_UMOUNT, NULL, mnt->mnt_root, mnt, NULL);
 }
 
@@ -1399,8 +1383,6 @@ static int __ccs_rmdir_permission(struct inode *dir, struct dentry *dentry,
 static int __ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 				   struct vfsmount *mnt)
 {
-	if (!ccs_capable(CCS_SYS_UNLINK))
-		return -EPERM;
 	return ccs_path_perm(CCS_TYPE_UNLINK, dir, dentry, mnt, NULL);
 }
 
@@ -1408,8 +1390,6 @@ static int __ccs_unlink_permission(struct inode *dir, struct dentry *dentry,
 static int __ccs_symlink_permission(struct inode *dir, struct dentry *dentry,
 				    struct vfsmount *mnt, const char *from)
 {
-	if (!ccs_capable(CCS_SYS_SYMLINK))
-		return -EPERM;
 	return ccs_path_perm(CCS_TYPE_SYMLINK, dir, dentry, mnt, from);
 }
 
@@ -1427,8 +1407,6 @@ static int __ccs_rename_permission(struct inode *old_dir,
 				   struct dentry *new_dentry,
 				   struct vfsmount *mnt)
 {
-	if (!ccs_capable(CCS_SYS_RENAME))
-		return -EPERM;
 	return ccs_path2_perm(CCS_TYPE_RENAME, old_dir, old_dentry, mnt,
 			      new_dir, new_dentry, mnt);
 }
@@ -1439,8 +1417,6 @@ static int __ccs_link_permission(struct dentry *old_dentry,
 				 struct dentry *new_dentry,
 				 struct vfsmount *mnt)
 {
-	if (!ccs_capable(CCS_SYS_LINK))
-		return -EPERM;
 	return ccs_path2_perm(CCS_TYPE_LINK, NULL, old_dentry, mnt,
 			      new_dir, new_dentry, mnt);
 }

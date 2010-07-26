@@ -135,16 +135,8 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "capability::use_route",
 	[CCS_MAX_MAC_INDEX + CCS_USE_PACKET_SOCKET]
 	= "capability::use_packet",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_MOUNT]
-	= "capability::SYS_MOUNT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_UMOUNT]
-	= "capability::SYS_UMOUNT",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_REBOOT]
 	= "capability::SYS_REBOOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHROOT]
-	= "capability::SYS_CHROOT",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_KILL]
-	= "capability::SYS_KILL",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_VHANGUP]
 	= "capability::SYS_VHANGUP",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_SETTIME]
@@ -163,28 +155,10 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "capability::create_char_dev",
 	[CCS_MAX_MAC_INDEX + CCS_CREATE_UNIX_SOCKET]
 	= "capability::create_unix_socket",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_LINK]
-	= "capability::SYS_LINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_SYMLINK]
-	= "capability::SYS_SYMLINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_RENAME]
-	= "capability::SYS_RENAME",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_UNLINK]
-	= "capability::SYS_UNLINK",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHMOD]
-	= "capability::SYS_CHMOD",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_CHOWN]
-	= "capability::SYS_CHOWN",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_IOCTL]
-	= "capability::SYS_IOCTL",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_KEXEC_LOAD]
 	= "capability::SYS_KEXEC_LOAD",
-	[CCS_MAX_MAC_INDEX + CCS_SYS_PIVOT_ROOT]
-	= "capability::SYS_PIVOT_ROOT",
 	[CCS_MAX_MAC_INDEX + CCS_SYS_PTRACE]
 	= "capability::SYS_PTRACE",
-	[CCS_MAX_MAC_INDEX + CCS_CONCEAL_MOUNT]
-	= "capability::conceal_mount",
 	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 	 + CCS_MAC_CATEGORY_FILE] = "file",
 	[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
