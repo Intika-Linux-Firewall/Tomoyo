@@ -813,6 +813,14 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 	return error;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+static int ccs_new_open_permission(struct file *filp)
+{
+	return __ccs_open_permission(filp->f_path.dentry, filp->f_path.mnt,
+				     filp->f_flags);
+}
+#endif
+
 /**
  * ccs_path_perm - Check permission for "unlink", "rmdir", "truncate", "symlink", "chroot" and "unmount".
  *
@@ -1136,6 +1144,10 @@ static int ccs_path_number_perm(const u8 type, struct inode *dir,
 static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 				  unsigned long arg)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+	if (!ccs_capable(CCS_SYS_IOCTL))
+		return -EPERM;
+#endif
 	return ccs_path_number_perm(CCS_TYPE_IOCTL, NULL, filp->f_dentry,
 				    filp->f_vfsmnt, cmd);
 }
@@ -1194,14 +1206,14 @@ static int __ccs_fcntl_permission(struct file *file, unsigned int cmd,
 {
 	if (cmd == F_SETFL && ((arg ^ file->f_flags) & O_APPEND))
 		/* 00 means "write". */
-		return ccs_open_permission(file->f_dentry, file->f_vfsmnt, 00);
+		return __ccs_open_permission(file->f_dentry, file->f_vfsmnt, 00);
 	return 0;
 }
 #else
 static int __ccs_rewrite_permission(struct file *filp)
 {
 	/* 00 means "write". */
-	return ccs_open_permission(filp->f_dentry, filp->f_vfsmnt, 00);
+	return __ccs_open_permission(filp->f_dentry, filp->f_vfsmnt, 00);
 }
 #endif
 
@@ -1440,14 +1452,14 @@ static int __ccs_open_exec_permission(struct dentry *dentry,
 {
 	return (current->ccs_flags & CCS_TASK_IS_IN_EXECVE) ?
 		/* 01 means "read". */
-		ccs_open_permission(dentry, mnt, 01) : 0;
+		__ccs_open_permission(dentry, mnt, 01) : 0;
 }
 
 /* Permission checks for sys_uselib(). */
 static int __ccs_uselib_permission(struct dentry *dentry, struct vfsmount *mnt)
 {
 	/* 01 means "read". */
-	return ccs_open_permission(dentry, mnt, 01);
+	return __ccs_open_permission(dentry, mnt, 01);
 }
 #endif
 
@@ -1593,7 +1605,11 @@ void __init ccs_file_init(void)
 	ccsecurity_ops.save_open_mode = __ccs_save_open_mode;
 	ccsecurity_ops.clear_open_mode = __ccs_clear_open_mode;
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+	ccsecurity_ops.open_permission = ccs_new_open_permission;
+#else
 	ccsecurity_ops.open_permission = __ccs_open_permission;
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
 	ccsecurity_ops.fcntl_permission = __ccs_fcntl_permission;
 #else
