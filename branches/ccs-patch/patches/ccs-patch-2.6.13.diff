@@ -36,7 +36,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    3 +++
  fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
- fs/namespace.c                     |   12 ++++++++++--
+ fs/namespace.c                     |    9 +++++++++
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
@@ -60,7 +60,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 58 files changed, 345 insertions(+), 19 deletions(-)
+ 58 files changed, 344 insertions(+), 17 deletions(-)
 
 --- linux-2.6.13.5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.13.5/arch/alpha/kernel/ptrace.c
@@ -859,24 +859,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -656,7 +659,7 @@ static int do_loopback(struct nameidata 
- 		} else
- 			mntput(mnt);
- 	}
--
-+ out:
- 	up_write(&current->namespace->sem);
- 	path_release(&old_nd);
- 	return err;
-@@ -712,7 +715,6 @@ static int do_move_mount(struct nameidat
- 	err = -EINVAL;
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
--
- 	err = -ENOENT;
- 	down(&nd->dentry->d_inode->i_sem);
- 	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1016,6 +1018,7 @@ int copy_mount_options(const void __user
+@@ -1016,6 +1019,7 @@ int copy_mount_options(const void __user
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -884,7 +867,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1049,6 +1052,9 @@ long do_mount(char * dev_name, char * di
+@@ -1049,6 +1053,9 @@ long do_mount(char * dev_name, char * di
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -894,7 +877,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -1307,6 +1313,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1307,6 +1314,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

@@ -29,7 +29,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  fs/fcntl.c                   |    4 ++++
  fs/ioctl.c                   |    6 ++++++
  fs/namei.c                   |   39 +++++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   19 ++++++++++++++++++-
+ fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
@@ -48,7 +48,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/udp.c               |   14 +++++++++++++-
  net/socket.c                 |   23 +++++++++++++++++++++--
  net/unix/af_unix.c           |    4 ++++
- 46 files changed, 327 insertions(+), 13 deletions(-)
+ 46 files changed, 326 insertions(+), 12 deletions(-)
 
 --- linux-2.4.37.9.orig/Makefile
 +++ linux-2.4.37.9/Makefile
@@ -725,15 +725,6 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -516,7 +521,7 @@ static int do_loopback(struct nameidata 
- 		} else
- 			mntput(mnt);
- 	}
--
-+ out:
- 	up_write(&current->namespace->sem);
- 	path_release(&old_nd);
- 	return err;
 @@ -700,6 +705,7 @@ static int copy_mount_options (const voi
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)

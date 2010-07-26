@@ -33,7 +33,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  fs/fcntl.c                         |    4 ++++
  fs/ioctl.c                         |    3 +++
  fs/namei.c                         |   31 +++++++++++++++++++++++++++++++
- fs/namespace.c                     |   11 ++++++++++-
+ fs/namespace.c                     |    9 +++++++++
  fs/open.c                          |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c                |    1 +
  include/linux/init_task.h          |    9 +++++++++
@@ -56,7 +56,7 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  net/unix/af_unix.c                 |    4 ++++
  security/Kconfig                   |    2 ++
  security/Makefile                  |    3 +++
- 54 files changed, 334 insertions(+), 20 deletions(-)
+ 54 files changed, 333 insertions(+), 19 deletions(-)
 
 --- linux-2.6.9-89.0.25.EL.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.9-89.0.25.EL/arch/alpha/kernel/ptrace.c
@@ -815,22 +815,6 @@ Source code for this patch is http://mirrors.kernel.org/centos/4.8/updates/SRPMS
  	if (retval)
  		return retval;
  
-@@ -694,6 +697,7 @@ static int do_loopback(struct nameidata 
- 			mntput(mnt);
- 	}
- 
-+ out:
- 	up_write(&current->namespace->sem);
- 	path_release(&old_nd);
- 	return err;
-@@ -749,7 +753,6 @@ static int do_move_mount(struct nameidat
- 	err = -EINVAL;
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
--
- 	err = -ENOENT;
- 	down(&nd->dentry->d_inode->i_sem);
- 	if (IS_DEADDIR(nd->dentry->d_inode))
 @@ -1046,6 +1049,7 @@ int copy_mount_options(const void __user
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)

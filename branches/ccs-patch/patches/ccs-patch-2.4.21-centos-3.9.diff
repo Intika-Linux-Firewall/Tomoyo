@@ -28,7 +28,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  fs/fcntl.c                   |    3 +++
  fs/ioctl.c                   |    6 ++++++
  fs/namei.c                   |   36 ++++++++++++++++++++++++++++++++++++
- fs/namespace.c               |   18 ++++++++++++++++++
+ fs/namespace.c               |   17 +++++++++++++++++
  fs/open.c                    |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c          |    1 +
  include/linux/sched.h        |   14 ++++++++++++++
@@ -47,7 +47,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  net/ipv6/udp.c               |   14 +++++++++++++-
  net/socket.c                 |   21 +++++++++++++++++++++
  net/unix/af_unix.c           |    4 ++++
- 45 files changed, 321 insertions(+), 11 deletions(-)
+ 45 files changed, 320 insertions(+), 11 deletions(-)
 
 --- linux-2.4.21-63.EL.orig/Makefile
 +++ linux-2.4.21-63.EL/Makefile
@@ -692,15 +692,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  
  	/*
  	 * If we may have to abort operations to get out of this
-@@ -517,6 +522,7 @@ static int do_loopback(struct nameidata 
- 			mntput(mnt);
- 	}
- 
-+ out:
- 	up_write(&current->namespace->sem);
- 	path_release(&old_nd);
- 	return err;
-@@ -700,6 +706,7 @@ static int copy_mount_options (const voi
+@@ -700,6 +705,7 @@ static int copy_mount_options (const voi
  long do_mount(char * dev_name, char * dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -708,7 +700,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -729,6 +736,11 @@ long do_mount(char * dev_name, char * di
+@@ -729,6 +735,11 @@ long do_mount(char * dev_name, char * di
  	if (retval)
  		return retval;
  
@@ -720,7 +712,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	if (flags & MS_REMOUNT)
  		retval = do_remount(&nd, flags & ~MS_REMOUNT, mnt_flags,
  				    data_page);
-@@ -739,6 +751,7 @@ long do_mount(char * dev_name, char * di
+@@ -739,6 +750,7 @@ long do_mount(char * dev_name, char * di
  	else
  		retval = do_add_mount(&nd, type_page, flags, mnt_flags,
  				      dev_name, data_page);
@@ -728,7 +720,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/centos/3.9/updates/SRPMS
  	path_release(&nd);
  	return retval;
  }
-@@ -922,6 +935,11 @@ asmlinkage long sys_pivot_root(const cha
+@@ -922,6 +934,11 @@ asmlinkage long sys_pivot_root(const cha
  	if (error)
  		goto out1;
  

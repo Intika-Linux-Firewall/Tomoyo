@@ -12,7 +12,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    3 +++
  fs/namei.c                      |   31 +++++++++++++++++++++++++++++++
- fs/namespace.c                  |   10 +++++++++-
+ fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   27 +++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -38,7 +38,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 276 insertions(+), 17 deletions(-)
+ 36 files changed, 276 insertions(+), 16 deletions(-)
 
 --- linux-2.6.18-194.2AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.2AXS3/arch/alpha/kernel/ptrace.c
@@ -379,15 +379,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (retval)
  		return retval;
  
-@@ -1047,7 +1050,6 @@ static int do_move_mount(struct nameidat
- 	err = -EINVAL;
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
--
- 	err = -ENOENT;
- 	mutex_lock(&nd->dentry->d_inode->i_mutex);
- 	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1422,6 +1424,7 @@ int copy_mount_options(const void __user
+@@ -1422,6 +1425,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -395,7 +387,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1461,6 +1464,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1461,6 +1465,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -405,7 +397,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (retval)
  		goto dput_out;
  
-@@ -1747,6 +1753,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1747,6 +1754,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

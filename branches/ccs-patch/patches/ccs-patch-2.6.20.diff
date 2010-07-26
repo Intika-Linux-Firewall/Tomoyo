@@ -17,7 +17,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  fs/fcntl.c                      |    4 ++++
  fs/ioctl.c                      |    3 +++
  fs/namei.c                      |   30 +++++++++++++++++++++++++++++-
- fs/namespace.c                  |   10 +++++++++-
+ fs/namespace.c                  |    9 +++++++++
  fs/open.c                       |   26 ++++++++++++++++++++++++++
  fs/proc/proc_misc.c             |    1 +
  include/linux/init_task.h       |    9 +++++++++
@@ -44,7 +44,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/unix/af_unix.c              |    4 ++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 42 files changed, 282 insertions(+), 15 deletions(-)
+ 42 files changed, 282 insertions(+), 14 deletions(-)
 
 --- linux-2.6.20.21.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.20.21/arch/alpha/kernel/ptrace.c
@@ -481,15 +481,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		return retval;
  
-@@ -1002,7 +1005,6 @@ static int do_move_mount(struct nameidat
- 	err = -EINVAL;
- 	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
- 		goto out;
--
- 	err = -ENOENT;
- 	mutex_lock(&nd->dentry->d_inode->i_mutex);
- 	if (IS_DEADDIR(nd->dentry->d_inode))
-@@ -1377,6 +1379,7 @@ int copy_mount_options(const void __user
+@@ -1377,6 +1380,7 @@ int copy_mount_options(const void __user
  long do_mount(char *dev_name, char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -497,7 +489,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	struct nameidata nd;
  	int retval = 0;
  	int mnt_flags = 0;
-@@ -1418,6 +1421,9 @@ long do_mount(char *dev_name, char *dir_
+@@ -1418,6 +1422,9 @@ long do_mount(char *dev_name, char *dir_
  		return retval;
  
  	retval = security_sb_mount(dev_name, &nd, type_page, flags, data_page);
@@ -507,7 +499,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  	if (retval)
  		goto dput_out;
  
-@@ -1703,6 +1709,8 @@ asmlinkage long sys_pivot_root(const cha
+@@ -1703,6 +1710,8 @@ asmlinkage long sys_pivot_root(const cha
  		goto out1;
  
  	error = security_sb_pivotroot(&old_nd, &new_nd);

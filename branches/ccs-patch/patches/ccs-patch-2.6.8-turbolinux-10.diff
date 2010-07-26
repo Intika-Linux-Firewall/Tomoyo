@@ -33,7 +33,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  fs/fcntl.c                         |    9 +--
  fs/ioctl.c                         |    9 +--
  fs/namei.c                         |  108 ++++++++++---------------------------
- fs/namespace.c                     |   52 +++--------------
+ fs/namespace.c                     |   54 +++---------------
  fs/open.c                          |   68 ++++++++---------------
  fs/proc/Makefile                   |    3 -
  fs/proc/proc_misc.c                |   10 ---
@@ -56,7 +56,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  net/unix/af_unix.c                 |   18 +-----
  security/Kconfig                   |    2 
  security/Makefile                  |    3 +
- 56 files changed, 308 insertions(+), 519 deletions(-)
+ 56 files changed, 309 insertions(+), 520 deletions(-)
 
 --- linux-2.6.8-20.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.8-20/arch/alpha/kernel/ptrace.c
@@ -1109,17 +1109,17 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
  		err = -ENOMEM;
  		if (recurse)
  			mnt = copy_tree(old_nd.mnt, old_nd.dentry);
-@@ -672,9 +658,7 @@ static int do_loopback(struct nameidata 
+@@ -672,9 +658,6 @@ static int do_loopback(struct nameidata 
  		} else
  			mntput(mnt);
  	}
 -	/***** SAKURA Linux start. *****/
-  out:
+- out:
 -	/***** SAKURA Linux end. *****/
  	up_write(&current->namespace->sem);
  	path_release(&old_nd);
  	return err;
-@@ -730,10 +714,6 @@ static int do_move_mount(struct nameidat
+@@ -730,10 +713,7 @@ static int do_move_mount(struct nameidat
  	err = -EINVAL;
  	if (!check_mnt(nd->mnt) || !check_mnt(old_nd.mnt))
  		goto out;
@@ -1127,6 +1127,7 @@ This is TOMOYO Linux patch for Turbolinux 10 Server.
 -	err = -EPERM;
 -	if (SAKURA_MayUmount(old_nd.mnt) < 0 || SAKURA_MayMount(nd) < 0 || CheckTaskCapability(SAKURA_DISABLE_MOUNT) < 0) goto out;
 -	/***** SAKURA Linux end. *****/
++
  	err = -ENOENT;
  	down(&nd->dentry->d_inode->i_sem);
  	if (IS_DEADDIR(nd->dentry->d_inode))
