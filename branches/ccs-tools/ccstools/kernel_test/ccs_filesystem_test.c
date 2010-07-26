@@ -449,49 +449,6 @@ int main(int argc, char *argv[])
 			c++; /* Dummy. */
 	}
 
-	/* Test mount(). */
-	{
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 0);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-		set_profile(3, "capability::conceal_mount");
-
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 1);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		show_prompt("mount('none', '/tmp/', 'tmpfs')", 1);
-		if (mount("none", "/tmp/", "tmpfs", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		show_prompt("mount('none', '/', 'tmpfs')", 1);
-		if (mount("none", "/", "tmpfs", 0, NULL) == EOF &&
-		    errno == EPERM)
-			printf("OK: Permission denied.\n");
-		else
-			printf("BUG: %s\n", strerror(errno));
-
-		set_profile(2, "capability::conceal_mount");
-
-		show_prompt("mount('none', '/tmp/mount/', 'tmpfs')", 0);
-		if (mount("none", "/tmp/mount/", "tmpfs", 0, NULL) == 0)
-			printf("OK\n");
-		else
-			printf("FAILED: %s\n", strerror(errno));
-
-		set_profile(0, "capability::conceal_mount");
-		while (umount("/tmp/mount/") == 0)
-			c++; /* Dummy. */
-	}
-
 	/* Test umount(). */
 	{
 		/* Test standard case */
