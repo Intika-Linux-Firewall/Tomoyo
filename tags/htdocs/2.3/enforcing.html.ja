@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="enforcing.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第５章：システムの振る舞いを制限</h1>
+
+<p>このページでは、 TOMOYO の強制モードの使い方について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：強制モードを有効にする</h2>
+
+<p>Apache に許可したい操作を全て行ったと判断したら、ポリシーエディタを実行してプロファイル番号を 3 に変更します。</p>
+
+<p>ポリシーエディタを実行してください。対象となるドメインを選択し、 s キーを押して 3 と入力してから Enter キーを押します。</p>
+
+<p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
+
+<p>/usr/sbin/httpd およびその子孫のプロファイル番号が 3 に変化しました。</p>
+
+<p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。その後、 tomoyo-pstree コマンドを実行して /usr/sbin/httpd プロセスとその子孫に対してプロファイル 3 が割り当てられていることを確認してください。</p>
+
+<p><img src="pstree-httpd3.png" width="1020" height="802"></p>
+
+<p>プロファイル 3 はファイルアクセスに関して強制モードを行うよう指定されているため、これにより /usr/sbin/httpd プロセスおよびその子孫は強制アクセス制御により保護された状態になりました。</p>
+
+<p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
+
+<p>ポリシーで許可されている操作をしてみましょう。</p>
+
+<p><img src="operation-permitted.png" width="636" height="613"></p>
+
+<p>メールの送信はポリシーで許可されているので、操作は正常に終了しました。</p>
+
+<p>ポリシーで許可されていない操作をしてみましょう。</p>
+
+<p><img src="unix-penguin.png" width="636" height="613"></p>
+
+<p>操作は拒否されました。（一見すると正常に終了したように見えますが、実際には /bin/mail が「入力が空っぽです」と警告しているとおり、 /bin/cat の実行が拒否されています。）</p>
+
+<p><img src="unix-penguin-rejected.png" width="636" height="613"></p>
+
+<p>もしプロファイルで TOMOYO_VERBOSE=enabled と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと TOMOYO-ERROR: というメッセージがコンソールに表示されます。</p>
+
+<p><img src="enforcing-error.png" width="720" height="400"></p>
+
+<hr>
+
+<p><a href="index.html.ja">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
