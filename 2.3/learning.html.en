@@ -11,7 +11,7 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>Phase 3: Learning your system's behavior.</h1>
 
-<p>This page describes how to use TOMOYO's learning mode.</p>
+<p>This page describes how to use TOMOYO Linux's learning mode.</p>
 
 <hr>
 
@@ -31,7 +31,7 @@
 </td></tr>
 </table>
 
-<p>Let's start TOMOYO's policy editor. Please note that this time, you don't need to pass /etc/tomoyo/ to the command line, for we directly edits TOMOYO's policy currently used by the kernel.</p>
+<p>Let's start TOMOYO Linux's policy editor. Please note that this time, you don't need to pass /etc/tomoyo/ to the command line, for we directly edits TOMOYO Linux's policy currently used by the kernel.</p>
 
 <p>In the CentOS 5.5 , Apache's program's location is /usr/sbin/httpd .<br>
 Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line /usr/sbin/httpd . In this picture, it is line 416.</p>
@@ -48,9 +48,11 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
-<p>Press 'q' key to quit the policy editor. Then, run "tomoyo-pstree" and verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
+<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
 
-<p><img src="pstree-httpd1.png" width="1020" height="802"></p>
+<p><img src="editpolicy-httpd-process1.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor.</p>
 
 <hr>
 
@@ -64,13 +66,15 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 </td></tr>
 </table>
 
-<p>Run TOMOYO's policy editor again and go to the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
+<p>Run TOMOYO Linux's policy editor again and go to the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
 
 <p>Press 'Enter' key to browse the permissions gathered by now.</p>
 
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
 <p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
+
+<p><img src="operation-learning.png" width="688" height="933"></p>
 
 <p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
 
@@ -110,9 +114,73 @@ Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find 
 
 <p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
 
-<p>If the profile is configured as "TOMOYO_VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.</p>
+<p>If the profile is configured as "PREFERENCE::permissive={ verbose=yes }" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.</p>
+
+<p><img src="operation-permissive.png" width="688" height="622"></p>
 
 <p><img src="permissive-warning.png" width="720" height="400"></p>
+
+<hr>
+
+<h2>Step 4: Handling temporary files</h2>
+
+<p>You can not handle temporary files by simply using "learning mode" and "permissive mode". You need to interactively handle temporary files according to <a href="tool-editpolicy.html.en#acl_editor">To remove redundant ACL entries</a>.<br>
+But if you want to convert temporary files into patterns non-interactively, you can do it as shown below.</p>
+
+<p>List up pathnames that can be temporary files.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /proc/tomoyo/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>We can consider that "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" are temporary files, thus we make patterns for these pathnames. First, we need to consider what patterns to use. In these examples, numeric seems decimal digits. Thus, we use \$ pattern which matches one or more repetitions of decimal digits.</p>
+
+<p>Append patterns to the exception policy.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
+</td></tr>
+</table>
+
+<p>Replace "/etc/mtab~numeric" and "/tmp/sh-thd-numeric" in the domain policy with '/etc/mtab~\$' and '/tmp/sh-thd-\$'</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/loadpolicy -d
+</td></tr>
+</table>
+
+<p>Since you are editing policy currently loaded into the kernel, changes will be lost if you shutdown the system without saving. Save exception_policy.conf and domain_poilicy.conf using "tomoyo-savepolicy" command.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/savepolicy a
+</td></tr>
+</table>
 
 <p>If the "TOMOYO-WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step.</p>
 
