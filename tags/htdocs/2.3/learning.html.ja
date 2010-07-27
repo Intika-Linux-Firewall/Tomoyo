@@ -11,7 +11,7 @@
 <p style="text-align:right;">Last modified: $Date$</p>
 <h1>第３章：システムの振る舞いを学習</h1>
 
-<p>このページでは、 TOMOYO の学習モードの使い方について説明します。</p>
+<p>このページでは、 TOMOYO Linux の学習モードの使い方について説明します。</p>
 
 <hr>
 
@@ -31,7 +31,7 @@
 </td></tr>
 </table>
 
-<p>TOMOYO のポリシーエディタを実行してください。今回は現在カーネル内に存在しているポリシーを直接編集するので、 /etc/tomoyo/ というコマンドラインオプションを指定していないことに注意してください。</p>
+<p>TOMOYO Linux のポリシーエディタを実行してください。今回は現在カーネル内に存在しているポリシーを直接編集するので、 /etc/tomoyo/ というコマンドラインオプションを指定していないことに注意してください。</p>
 
 <p>CentOS 5.5 では、 Apache プログラムパス名は /usr/sbin/httpd です。<br>
 矢印キーや Home/End/PageUp/PageDown キーを使ってカーソルをスクロールして、 /usr/sbin/httpd の行を見つけてください。この絵では 416 行目です。</p>
@@ -48,9 +48,11 @@
 
 <p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
 
-<p>q キーを押してポリシーエディタを終了してください。その後、 tomoyo-pstree コマンドを実行して /usr/sbin/httpd プロセスに対してプロファイル 1 が割り当てられていることを確認してください。</p>
+<p>@ キーを押してプロセス一覧表示に切り替えてください。そして、 /usr/sbin/httpd プロセスに対してプロファイル 1 が割り当てられていることを確認してください。</p>
 
-<p><img src="pstree-httpd1.png" width="1020" height="802"></p>
+<p><img src="editpolicy-httpd-process1.png" width="720" height="400"></p>
+
+<p>q キーを押してポリシーエディタを終了してください。</p>
 
 <hr>
 
@@ -64,13 +66,15 @@
 </td></tr>
 </table>
 
-<p>TOMOYO のポリシーエディタを実行し、 /usr/sbin/httpd の行へ移動してください。（あなたやシステムが実行したプログラムによりドメインが追加されることで、行番号が変化しているかもしれません。）</p>
+<p>TOMOYO Linux のポリシーエディタを実行し、 /usr/sbin/httpd の行へ移動してください。（あなたやシステムが実行したプログラムによりドメインが追加されることで、行番号が変化しているかもしれません。）</p>
 
 <p>Enter キーを押すと、現在までに収集されたアクセス許可が表示されます。</p>
 
 <p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
 
 <p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を全て行ってください。</p>
+
+<p><img src="operation-learning.png" width="688" height="933"></p>
 
 <p>収集されたアクセス許可はカーネル内のメモリにしか存在しないため、時々ポリシーファイルとしてディスク上に保存することを忘れないでください。システムを再起動した場合、カーネル内のメモリに存在しているアクセス許可は失われます。</p>
 
@@ -110,9 +114,73 @@
 
 <p>q キーを押してポリシーエディタを終了してください。その後、 Apache に対して許可したい操作を再度行ってください。</p>
 
-<p>もしプロファイルで TOMOYO_VERBOSE=enabled と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと TOMOYO-WARNING: というメッセージがコンソールに表示されます。</p>
+<p>もしプロファイルで PREFERENCE::permissive={ verbose=yes } と設定されている場合（デフォルトでそうなっています）、ポリシーで許可されていない操作を行うと TOMOYO-WARNING: というメッセージがコンソールに表示されます。</p>
+
+<p><img src="operation-permissive.png" width="688" height="622"></p>
 
 <p><img src="permissive-warning.png" width="720" height="400"></p>
+
+<hr>
+
+<h2>ステップ４：テンポラリファイルに対処する</h2>
+
+<p>テンポラリファイルのように毎回異なるファイル名を持つ場合や、クライアントプログラムが利用するテンポラリなポート番号については、学習モードと確認モードでは対処できません。<a href="tool-editpolicy.html.ja#acl_editor">ポリシーエディタのパターン化支援機能</a>を用いて対話的に対処する必要があります。<br>
+ただし、テンポラリファイルのパス名をパターン化する処理は、以下のように非対話的に行うこともできます。</p>
+
+<p>テンポラリファイルの可能性があるパス名を抽出します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /proc/tomoyo/domain_policy<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<p>「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」がテンポラリファイルであると考えられるので、これらのパターン化を行います。まず、どのようにパターン化するかを決めます。この例では１０進数数値であると考えられることから、１桁以上の１０進数数値一致する \$ を使います。</p>
+
+<p>例外ポリシーにパターンを追加します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' | /usr/sbin/tomoyo-loadpolicy -e<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' | /usr/sbin/tomoyo-loadpolicy -e
+</td></tr>
+</table>
+
+<p>ドメインポリシーの中の「 /etc/mtab~数値 」および「 /tmp/sh-thd-数値」を「 /etc/mtab~\$ 」および「 /tmp/sh-thd-\$ 」に置換します。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/savepolicy -d | /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' | /usr/sbin/loadpolicy -d
+</td></tr>
+</table>
+
+<p>メモリ上のポリシーを編集したため、このままではシャットダウンすると失われてしまいます。 tomoyo-savepolicy コマンドを使って exception_policy.conf と domain_poilicy.conf を保存するようにしてください。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/savepolicy a
+</td></tr>
+</table>
 
 <p>もし、 Apache に対して許可したい操作を全て行っても TOMOYO-WARNING: というメッセージが表示されなくなれば、次のステップへ進んでください。</p>
 
