@@ -1,0 +1,128 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="learning.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date: 2009-07-14 16:54:09 +0900 (Tue, 14 Jul 2009) $</p>
+<h1>Phase 3: Learning your system's behavior.</h1>
+
+<p>This page describes how to use TOMOYO's learning mode.</p>
+
+<hr>
+
+<h2>Step 1: Creating domains</h2>
+
+<p>After you rebooted the system with TOMOYO Linux kernels, login as root.</p>
+
+<p>Decide what application to analyze/protect.</p>
+
+<p>Below procedure is a case of Apache in CentOS 5.5 environment.</p>
+
+<p>Start the target application.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# service httpd start
+</td></tr>
+</table>
+
+<p>Let's start TOMOYO's policy editor. Please note that this time, you don't need to pass /etc/tomoyo/ to the command line, for we directly edits TOMOYO's policy currently used by the kernel.</p>
+
+<p>In the CentOS 5.5 , Apache's program's location is /usr/sbin/httpd .<br>
+Scroll the cursor using arrow-keys and/or Home/End/PageUp/PageDown keys to find the line /usr/sbin/httpd . In this picture, it is line 416.</p>
+
+<p><img src="editpolicy-httpd-profile0.png" width="720" height="400"></p>
+
+<p>If /usr/sbin/httpd is registered with "initialize_domain", a domain named "&lt;kernel&gt; /usr/sbin/httpd" is created by invoking /usr/sbin/httpd . If not registered, a child domain of invoker domain (for example, if you invoked from "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash", it is "&lt;kernel&gt; /usr/sbin/mingetty /bin/login /bin/bash /usr/sbin/httpd") is created. This manual assumes that /usr/sbin/httpd is registered with "initialize_domain".</p>
+
+<p>Press 's' key and enter '1' and press 'Enter' key.</p>
+
+<p><img src="editpolicy-httpd-set-profile1.png" width="720" height="400"></p>
+
+<p>Now the profile number of the /usr/sbin/httpd has changed to 1.</p>
+
+<p><img src="editpolicy-httpd-profile1.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor. Then, run "tomoyo-pstree" and verify that /usr/sbin/httpd processes are assigned profile number 1.</p>
+
+<p><img src="pstree-httpd1.png" width="1020" height="802"></p>
+
+<hr>
+
+<h2>Step 2: Gathering necessary permissions</h2>
+
+<p>Restart the Apache in order to learn necessary permissions for starting/finishing the Apache.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# service httpd restart
+</td></tr>
+</table>
+
+<p>Run TOMOYO's policy editor again and go to the /usr/sbin/httpd line. (Line number may be changed because new domains are added by programs executed by you and the system.)</p>
+
+<p>Press 'Enter' key to browse the permissions gathered by now.</p>
+
+<p><img src="editpolicy-httpd-acl1.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor. Do whatever you want to allow Apache.</p>
+
+<p>Be sure to sometimes save policy, for necessary permissions are accumulated on only kernel memory. If you reboot the system, all gathered permissions will be lost.</p>
+
+<p>To save the policy currently in the kernel onto the disk, use "tomoyo-savepolicy" command.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy
+</td></tr>
+</table>
+
+<p>By executing "tomoyo-savepolicy", two files ("exception_policy.conf", "domain_policy.conf") are created in the /etc/tomoyo/ directory. To be accurate, they are symbolic links to text files whose filenames contain the creation time.</p>
+
+<p>To load the policy currently on the disk into the kernel, use "tomoyo-loadpolicy" command.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy af
+</td></tr>
+</table>
+
+<p>The "a" option means load two files ("exception_policy.conf", "domain_policy.conf"). The "f" option means erase the policy currently in the kernel before loading the policy currently on the disk. If "f" is not given, the policy currently on the disk will be added to the policy currently in the kernel.</p>
+
+<hr>
+
+<h2>Step 3: Reviewing gathered permissions</h2>
+
+<p>After you came to think you have done roughly everything you want to allow Apache to do, run the policy editor and change the profile number to 2. Note that Apache may have executed some external programs (e.g. /bin/sh , /usr/bin/perl , /usr/lib/sendmail) and thus has descendant domains. Be sure to change the profile number for descendant domains if any as well as the /usr/sbin/httpd domain.</p>
+
+<p>Choose target domains and press 's' key and enter '2' and press 'Enter' key.</p>
+
+<p><img src="editpolicy-httpd-set-profile2.png" width="720" height="400"></p>
+
+<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 2.</p>
+
+<p><img src="editpolicy-httpd-profile2.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor. Redo whatever you want to allow Apache to do.</p>
+
+<p>If the profile is configured as "TOMOYO_VERBOSE=enabled" (this is default), the "TOMOYO-WARNING:" messages will be printed to the console when policy violation occurs.</p>
+
+<p><img src="permissive-warning.png" width="720" height="400"></p>
+
+<p>If the "TOMOYO-WARNING:" messages are no longer printed after you have likely done everything you want Apache to allow, proceed to the next step.</p>
+
+<p>If your purpose of using TOMOYO Linux is for just analysis, this point is the goal of this procedure.</p>
+
+<p>If your purpose of using TOMOYO Linux is for protection, proceed to next phase.</p>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

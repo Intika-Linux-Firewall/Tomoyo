@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tuning.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date: 2009-07-18 12:06:03 +0900 (Sat, 18 Jul 2009) $</p>
+<h1>Phase 4: Tuning policy for your system.</h1>
+
+<p>This page describes how to tune TOMOYO's policy.</p>
+
+<hr>
+
+<h2>Step 1: Patterning File Access Permissions</h2>
+
+<p>Append access permissions for files that are not necessarily accessed in the learning mode such as WWW contents for WWW service to /etc/tomoyo/domain_policy.conf .<br>
+The following example allows /usr/sbin/httpd to read files in the /var/www/html/ directory.</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+use_profile 3<br>
+allow_read /var/www/html/\*<br>
+allow_read /var/www/html/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*<br>
+allow_read /var/www/html/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>In the same way, modify access permissions for files using patterns that should be grouped.<br>
+The following example shows /usr/sbin/smbd should handle all log files equally.</p>
+
+<table border="1">
+<tr><td>Before</td><td>After</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+allow_write /var/log/samba/host1.log<br>
+allow_write /var/log/samba/host2.log<br>
+allow_write /var/log/samba/host3.log<br>
+allow_write /var/log/samba/host4.log<br>
+allow_write /var/log/samba/host5.log
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+use_profile 3<br>
+allow_write /var/log/samba/\*.log
+</td></tr>
+</table>
+
+<p>You can confirm the range of accessible files by using "tomoyo-pathmatch" command that lists pathnames matching to the given pathname patterns.
+</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-pathmatch '/var/log/samba/\*.log'<br>
+/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+</td></tr>
+</table>
+
+<h3>Operation example</h3>
+
+<p>Save the domain policy currently in the kernel onto the disk.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy d<br>
+</td></tr>
+</table>
+<p>List up pathnames that can be temporary files.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /etc/tomoyo/domain_policy.conf<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/etc/mtab~2302<br>
+/etc/mtab~2328<br>
+/etc/mtab~2329<br>
+/etc/mtab~2330<br>
+/etc/mtab~2331<br>
+/etc/mtab~2332<br>
+/etc/mtab~2339<br>
+/etc/mtab~2383<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/tmp/sh-thd-1163110572<br>
+/tmp/sh-thd-1163113704<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>Find domains that access these files.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-domainmatch /etc/mtab~2302<br>
+&lt;kernel&gt; /sbin/init /etc/rc.d/rc.sysinit /sbin/initlog /etc/rc.d/rc.sysinit /sbin/initlog /bin/mount<br>
+allow_create /etc/mtab~2302<br>
+allow_write /etc/mtab~2302<br>
+allow_link /etc/mtab~2302 /etc/mtab~<br>
+allow_unlink /etc/mtab~2302<br>
+[root@tomoyo ~]# /usr/sbin/tomoyo-domainmatch /tmp/sh-thd-1163113704<br>
+&lt;kernel&gt; /etc/rc.d/init.d/smartd /sbin/initlog /usr/sbin/smartd /bin/sh<br>
+allow_create /tmp/sh-thd-1163113704<br>
+allow_read/write /tmp/sh-thd-1163113704<br>
+allow_unlink /tmp/sh-thd-1163113704<br>
+</td></tr>
+</table>
+<p>Save the exception policy currently in the kernel onto the disk.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy e<br>
+</td></tr>
+</table>
+<p>Append patterns to the exception policy on the disk if needed.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# echo 'file_pattern /etc/mtab~\$' &gt;&gt; /etc/tomoyo/exception_policy.conf<br>
+[root@tomoyo ~]# echo 'file_pattern /tmp/sh-thd-\$' &gt;&gt; /etc/tomoyo/exception_policy.conf<br>
+</td></tr>
+</table>
+<p>Load the exception policy on the disk to the kernel.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy ef<br>
+</td></tr>
+</table>
+<p>Patternize pathnames that match '/etc/mtab~\$' and '/tmp/sh-thd-\$'.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-patternize '/etc/mtab~\$' '/tmp/sh-thd-\$' &lt; /etc/tomoyo/domain_policy.conf &gt; /etc/tomoyo/domain_policy.tmp<br>
+</td></tr>
+</table>
+<p>Confirm that these files are patternized.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-findtemp &lt; /etc/tomoyo/domain_policy.tmp<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+<p>Verify that the patterning are done as you have intended by diff'ing the domain policy before patternize and the one after the patternize.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# diff /etc/tomoyo/domain_policy.conf /etc/tomoyo/domain_policy.tmp<br>
+2326,2331c2326,2331<br>
+&lt; allow_read/write /tmp/sh-thd-1163110572<br>
+&lt; allow_read/write /tmp/sh-thd-1163113704<br>
+&lt; allow_create /tmp/sh-thd-1163110572<br>
+&lt; allow_create /tmp/sh-thd-1163113704<br>
+&lt; allow_unlink /tmp/sh-thd-1163110572<br>
+&lt; allow_unlink /tmp/sh-thd-1163113704<br>
+---<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
+&gt; allow_read/write /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_create /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+&gt; allow_unlink /tmp/sh-thd-\$<br>
+3331,3336c3331,3336<br>
+&lt; allow_write /etc/mtab~2328<br>
+&lt; allow_write /etc/mtab~2329<br>
+&lt; allow_write /etc/mtab~2330<br>
+&lt; allow_write /etc/mtab~2331<br>
+&lt; allow_write /etc/mtab~2332<br>
+&lt; allow_write /etc/mtab~2383<br>
+---<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+3338,3349c3338,3349<br>
+&lt; allow_create /etc/mtab~2328<br>
+&lt; allow_create /etc/mtab~2329<br>
+&lt; allow_create /etc/mtab~2330<br>
+&lt; allow_create /etc/mtab~2331<br>
+&lt; allow_create /etc/mtab~2332<br>
+&lt; allow_create /etc/mtab~2383<br>
+&lt; allow_link /etc/mtab~2328 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2329 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2330 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2331 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2332 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2383 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3351,3356c3351,3356<br>
+&lt; allow_unlink /etc/mtab~2328<br>
+&lt; allow_unlink /etc/mtab~2329<br>
+&lt; allow_unlink /etc/mtab~2330<br>
+&lt; allow_unlink /etc/mtab~2331<br>
+&lt; allow_unlink /etc/mtab~2332<br>
+&lt; allow_unlink /etc/mtab~2383<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+3439,3440c3439,3440<br>
+&lt; allow_write /etc/mtab~2302<br>
+&lt; allow_write /etc/mtab~2339<br>
+---<br>
+&gt; allow_write /etc/mtab~\$<br>
+&gt; allow_write /etc/mtab~\$<br>
+3443,3446c3443,3446<br>
+&lt; allow_create /etc/mtab~2302<br>
+&lt; allow_create /etc/mtab~2339<br>
+&lt; allow_link /etc/mtab~2302 /etc/mtab~<br>
+&lt; allow_link /etc/mtab~2339 /etc/mtab~<br>
+---<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_create /etc/mtab~\$<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+&gt; allow_link /etc/mtab~\$ /etc/mtab~<br>
+3449,3450c3449,3450<br>
+&lt; allow_unlink /etc/mtab~2302<br>
+&lt; allow_unlink /etc/mtab~2339<br>
+---<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+&gt; allow_unlink /etc/mtab~\$<br>
+</td></tr>
+</table>
+<p>Update the domain policy on the disk.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# cat /etc/tomoyo/domain_policy.tmp &gt; /etc/tomoyo/domain_policy.conf<br>
+</td></tr>
+</table>
+<p>Load the domain policy on the disk to the kernel.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-loadpolicy df<br>
+</td></tr>
+</table>
+<p>Confirm that the domain policy currently in the kernel is updated.</p>
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/tomoyo-savepolicy -d | /usr/sbin/tomoyo-findtemp<br>
+/etc/mtab.tmp<br>
+/etc/mtab~<br>
+/halt<br>
+/selinux/disable<br>
+/selinux/enforce<br>
+/selinux/policyvers<br>
+/var/cache/samba/browse.dat.<br>
+/var/lib/nfs/etab.tmp<br>
+/var/lib/nfs/xtab.tmp<br>
+/var/lock/mrtg/mrtg_l<br>
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
