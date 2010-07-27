@@ -8,14 +8,17 @@
 </head>
 <body>
 <p style="text-align:right;"><a href="tools-doc.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date: 2009-04-12 20:52:29 +0900 (Sun, 12 Apr 2009) $</p>
+<p style="text-align:right;">Last modified: $Date: 2009-12-19 12:37:55 +0900 (Sat, 19 Dec 2009) $</p>
 <h1>Tools Documentation</h1>
+
 <hr>
+
 <h2><a name="administration_tool">&lt;&lt;Tools for system administrators&gt;&gt;</a></h2>
 
 <h3><a name="tomoyo-editpolicy">&lt;Policy Editor "tomoyo-editpolicy"&gt;</a></h3>
 <p>Edits the current policy in /sys/kernel/security/tomoyo/ directory.</p>
 <p>You may give one of 'e' 'd' 'p' 'm' 'u' to the commandline to choose the initial screen. If not given, screen for domain listing is shown.</p>
+<p>You can use keys listed below.</p>
 
 <p>&lt;Scroll&gt;</p>
 <table border="1">
@@ -43,7 +46,9 @@
 <tr><td>Space</td><td>Invert selection state of an entry at the cursor position.</td></tr>
 <tr><td>c/C</td><td>Copy selection state of an entry at the cursor position to all entries below the cursor position.</td></tr>
 <tr><td>d/D</td><td>Delete selected entries.</td></tr>
-<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)</td></tr>
+<tr><td>s/S</td><td>Set profile number of selected entries. (Valid only for screen for domain listing.)<br>
+Set profile value for selected entries. (Valid only for screen for profile editing)<br>
+Set new quota value for selected entries. (Valid only for screen for memory usage)</td></tr>
 <tr><td>Insert</td><td>Copy an entry at the cursor position to history buffer.</td></tr>
 </table>
 
@@ -105,6 +110,15 @@
 <p>Appends shared libraries to exception policy automatically using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed.</p>
 <p>By running this program while updating packages, you can avoid errors "unable to start applications because shared libraries are unreadable" when the pathnames of shared libraries accessed by general programs has changed.</p>
 
+<h3><a name="tomoyo-queryd">&lt;Delayed Enforcing Mode Handler "tomoyo-queryd"&gt;</a></h3>
+<p>Detects policy violation and displays the access request. You can tell the system whether the access request should be granted (or granted and policy should be appended to grant the access request) or rejected after you validate the access request.</p>
+<p>By running this program while updating packages, you can avoid errors due to insufficient permissions.</p>
+<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may by malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
+
+<h3><a name="tomoyo-notifyd">&lt;Policy Violation Notifyier "tomoyo-notifyd"&gt;</a></h3>
+<p>Detects policy violation and take some actions (e.g. send a mail) to notify it to the administrator.</p>
+<p>By running this program from /etc/crontab , you can know the occurrence of policy violation in enforcing mode as soon as possible.</p>
+
 <h3><a name="tomoyo-checkpolicy">&lt;Policy Syntax Checker "tomoyo-checkpolicy"&gt;</a></h3>
 <p>Reads policy files from standard input and checks syntaxes.</p>
 <p>Prints errors with line numbers if any.</p>
@@ -119,7 +133,7 @@
 <h3><a name="tomoyo-patternize">&lt;Pathname Pattern Replacer "tomoyo-patternize"&gt;</a></h3>
 <p>Reads domain policy from standard input and replaces pathnames with patterns if the pathname matches to patterns given at commandline and writes to standard output. Pathnames that contains execute permission and domainnames won't be patterned.</p>
 
-<h3><a name="tomoyo_init_policy">&lt;Policy Template Generator "tomoyo_init_policy"&gt;</a></h3>
+<h3><a name="init_policy">&lt;Policy Template Generator "init_policy"&gt;</a></h3>
 <p>Generates templates for policy. You need to review the output because automatically generated policy may contain redundant or dangerous entries.</p>
 
 <hr>

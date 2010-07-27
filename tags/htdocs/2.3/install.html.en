@@ -17,8 +17,6 @@
 
 <h2>Step 1: Compiling the kernel.</h2>
 
-<p>NOTE: If you are using one of Ubuntu 9.10 and later, Debian Squeeze and later, Mandriva Linux 2010.0 and later, you don't need to compile kernel because TOMOYO Linux is already built into their kernels. Adding security=tomoyo to kernel's command line parameters will enable TOMOYO Linux.</p>
-
 <p>To compile kernel, the following packages are needed.</p>
 
 <ul>
@@ -27,7 +25,7 @@
 <li>ncurses</li>
 </ul>
 
-<p>Download source code from "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=summary">linux-2.6 git tree</a>" or "<a href="http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.34.1.tar.bz2">linux-2.6.34.1.tar.bz2</a>" and extract it.</p>
+<p>Download source code from "<a href="http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=summary">linux-next git tree</a>" and extract it.</p>
 
 <p>Next, create a kernel config with TOMOYO Linux enabled.</p>
 
@@ -72,17 +70,11 @@
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/41908/tomoyo-tools-2.2.0-20100225.tar.gz<br>
-[root@tomoyo ~]# tar -zxf tomoyo-tools-2.2.0-20100225.tar.gz<br>
+[root@tomoyo ~]# wget -O tomoyo-tools.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/2.3.x/tomoyo-tools.tar.gz?root=tomoyo&amp;view=tar'<br>
+[root@tomoyo ~]# tar -zxf tomoyo-tools.tar.gz<br>
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
 </table>
-
-<!--
-<p>If you are using Gentoo, you can do "emerge ccs-tools".</p>
-
-<p>If you are using Debian Sid or Ubuntu 9.10, you may be able to find the package by "apt-get install tomoyo-ccstools". But be sure to check that the version is 1.6.8 and later.</p>
--->
 
 <hr>
 

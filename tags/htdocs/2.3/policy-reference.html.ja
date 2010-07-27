@@ -15,9 +15,7 @@
 <h2>2. <a href="#Common_Rules">はじめに</a></h2>
 <p>2.1 <a href="#word_expression_rules">単語の表記規則</a></p>
 <p>2.2 <a href="#wildcard_expression_rules">パターンの表記規則</a></p>
-<p>2.3 <a href="#word_length_rules">単語の長さに関する制約</a></p>
-<p>2.4 <a href="#line_length_rules">1 行の長さに関する制約</a></p>
-<p>2.5 <a href="#memory_allocation_rules">メモリ使用量に関する制約</a></p>
+<p>2.3 <a href="#memory_usage_infomation">メモリ使用量に関する情報</a></p>
 <h2>3. <a href="#Policy_Files">ポリシーファイルに関して</a></h2>
 <p>3.1 <a href="#policy_file_locations">所在について</a></p>
 <p>3.2 <a href="#policy_file_modifiers">変更について</a></p>
@@ -27,7 +25,6 @@
 <h2>5. <a href="#Syntax_Details">キーワード詳細</a></h2>
 <h2>6. <a href="#Advanced_Features">便利な機能</a></h2>
 <p>6.1 <a href="#non_root_policy_update">root 以外のユーザによるポリシーの変更を許可</a></p>
-<p>6.2 <a href="#memory_quota">ポリシーに割り当てられるメモリ量を制限</a></p>
 <hr>
 
 <h1>1. <a name="Keyword_Index">キーワード一覧</a></h1>
@@ -35,22 +32,47 @@
 <p>/sys/kernel/security/tomoyo/profile および /etc/tomoyo/profile.conf で使われるもの</p>
 
 <ul>
-<li><a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a></li>
-<li><a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></li>
-<li><a href="#profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></li>
+<li><a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a></li>
+<li><a href="#profile_CONFIG::file::open">CONFIG::file::open</a></li>
+<li><a href="#profile_CONFIG::file::create">CONFIG::file::create</a></li>
+<li><a href="#profile_CONFIG::file::unlink">CONFIG::file::unlink</a></li>
+<li><a href="#profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></li>
+<li><a href="#profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></li>
+<li><a href="#profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></li>
+<li><a href="#profile_CONFIG::file::mksock">CONFIG::file::mksock</a></li>
+<li><a href="#profile_CONFIG::file::truncate">CONFIG::file::truncate</a></li>
+<li><a href="#profile_CONFIG::file::symlink">CONFIG::file::symlink</a></li>
+<li><a href="#profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></li>
+<li><a href="#profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></li>
+<li><a href="#profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></li>
+<li><a href="#profile_CONFIG::file::link">CONFIG::file::link</a></li>
+<li><a href="#profile_CONFIG::file::rename">CONFIG::file::rename</a></li>
+<li><a href="#profile_CONFIG::file::chmod">CONFIG::file::chmod</a></li>
+<li><a href="#profile_CONFIG::file::chown">CONFIG::file::chown</a></li>
+<li><a href="#profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></li>
+<li><a href="#profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></li>
+<li><a href="#profile_CONFIG::file::chroot">CONFIG::file::chroot</a></li>
+<li><a href="#profile_CONFIG::file::mount">CONFIG::file::mount</a></li>
+<li><a href="#profile_CONFIG::file::umount">CONFIG::file::umount</a></li>
+<li><a href="#profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></li>
+<li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
+<li><a href="#profile_PREFERENCE::permissive">PREFERENCE::permissive</a></li>
+<li><a href="#profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></li>
 </ul>
 
 <p>/sys/kernel/security/tomoyo/exception_policy および /etc/tomoyo/exception_policy.conf で使われるもの</p>
 
 <ul>
+<li><a href="#exception_policy_aggregator">aggregator</a></li>
 <li><a href="#exception_policy_initialize_domain">initialize_domain</a></li>
 <li><a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></li>
 <li><a href="#exception_policy_keep_domain">keep_domain</a></li>
 <li><a href="#exception_policy_no_keep_domain">no_keep_domain</a></li>
 <li><a href="#exception_policy_file_pattern">file_pattern</a></li>
+<li><a href="#exception_policy_path_group">path_group</a></li>
+<li><a href="#exception_policy_number_group">number_group</a></li>
 <li><a href="#exception_policy_allow_read">allow_read</a></li>
 <li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
-<li><a href="#exception_policy_alias">alias</a></li>
 </ul>
 
 <p>/sys/kernel/security/tomoyo/domain_policy および /etc/tomoyo/domain_policy.conf で使われるもの</p>
@@ -73,6 +95,11 @@
 <li><a href="#domain_policy_allow_link">allow_link</a></li>
 <li><a href="#domain_policy_allow_rename">allow_rename</a></li>
 <li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
+<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
+<li><a href="#domain_policy_allow_mount">allow_mount</a></li>
+<li><a href="#domain_policy_allow_unmount">allow_unmount</a></li>
+<li><a href="#domain_policy_allow_chroot">allow_chroot</a></li>
+<li><a href="#domain_policy_allow_pivot_root">allow_pivot_root</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
 <li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
@@ -89,7 +116,7 @@
 
 <h2>2.1 <a name="word_expression_rules">単語の表記規則</a></h2>
 
-<p>TOMOYO Linux はパス名を用いたアクセス制御を行います。パス名には英数字だけでなく空白や改行などの文字、漢字のような複数バイトで構成される文字などが含まれる可能性があります。そのため、いかなる文字でも正しく処理できるようにするために、 TOMOYO Linux に於いては以下の規則に従って単語を表記します。単語とは、パス名だけでなくコメントや環境変数の名前やプログラム実行時のパラメータなど、文字列として扱う全ての情報を指します。</p>
+<p>TOMOYO Linux はパス名を用いたアクセス制御を行います。パス名には英数字だけでなく空白や改行などの文字、漢字のような複数バイトで構成される文字などが含まれる可能性があります。そのため、いかなる文字でも正しく処理できるようにするために、 TOMOYO Linux に於いては以下の規則に従って単語を表記します。</p>
 
 <ul>
 <li>NUL 文字（ 0x00 ）は文字列の終端を示すための文字であり、 \000 という表記はできません。</li>
@@ -160,14 +187,13 @@
 <tr><td>\A</td><td>1 文字以上のアルファベット</td><td>/var/log/my-work/\$-\A-\$.log</td></tr>
 <tr><td>\a</td><td>アルファベット 1 文字</td><td>/home/users/\a/\*/public_html/\*.html</td></tr>
 <tr><td>\-</td><td>パス名を除外する演算子</td><td>
- <table border="1">
- <tr><td>使用例</td><td>意味</td></tr>
- <tr><td>/etc/\*</td><td>/etc/ 直下の全ファイル</td></tr>
- <tr><td>/etc/\*\-\*shadow\*</td><td>/etc/\*shadow\* 以外の /etc/\*</td></tr>
- <tr><td>/\*\-proc\-sys/</td><td>/proc/ と /sys/ 以外の /\*/</td></tr>
- </table>
+ <ul>
+ <li>/etc/\* ・・・ /etc/ 直下の全ファイル</li>
+ <li>/etc/\*\-\*shadow\* ・・・ /etc/\*shadow\* 以外の /etc/\*</li>
+ <li>/\*\-proc\-sys/ ・・・ /proc/ と /sys/ 以外の /\*/</li>
+ </ul>
 </td></tr>
-<tr><td>/\{dir\}/</td><td>/ ＋１回以上の dir/ の繰り返しに一致する演算子（カーネル 2.6.33 以降のみ有効）</td><td>
+<tr><td>/\{dir\}/</td><td>/ ＋１回以上の dir/ の繰り返しに一致する演算子</td><td>
  <ul>
  <li>/var/www/html/\{\*\}/\*.html ・・・ /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html など</li>
  <li>/home/\*/\{\*\-.\*\}/\* ・・・ /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* など</li>
@@ -175,43 +201,34 @@
 </td></tr>
 </table>
 
-<h2>2.3 <a name="word_length_rules">単語の長さに関する制約</a></h2>
+<h2>2.3 <a name="memory_usage_infomation">メモリ使用量に関する情報</a></h2>
 
-<p>Linux に於いてはパス名の長さに関する上限は存在しませんが、パス名を用いたアクセス制御を行うために無限の長さをサポートすることはできません。そのため、 TOMOYO Linux に於いては、単語の長さは終端の NUL 文字を含めて 4000 バイトまでに制限されています。</p>
-
-<h2>2.4 <a name="line_length_rules">1 行の長さに関する制約</a></h2>
-
-<p>TOMOYO Linux に於いては、 1 行の長さは終端の NUL 文字を含めて 8192 バイトまでに制限されています。</p>
-
-<h2>2.5 <a name="memory_allocation_rules">メモリ使用量に関する制約</a></h2>
-
-<p>カーネル 2.6.33 以前に搭載されている TOMOYO Linux に於いては、アクセス許可や単語を記憶するために一度割り当てられたメモリは解放されません。システムを再起動する以外に、不要になったメモリを解放する手段は存在しません。</p>
-
-<p>ただし、運用開始後にはアクセス許可の変更は生じにくいという傾向があること、および、運用開始前に適切にチューニングすることによりメモリ消費量を通常は 1 メガバイト以内に抑えられることから、心配する必要はありません。</p>
-
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Shared: が単語を記憶するために使用されている量、 Private: がアクセス許可を記憶するために使用されている量で、減少することはありません。 Dynamic: がアクセス許可のチェックやアクセスログの保持などのために一時的に使用されている量で、不要になると減少します。</p>
+<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。</p>
 
 <table border="1">
-<tr><td><pre>
-# cat /sys/kernel/security/tomoyo/meminfo
-
-Shared:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;65536
-Private:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;49152
-Dynamic:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5106
-Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
-</pre></td></tr>
+<tr><td>
+# cat /sys/kernel/security/tomoyo/meminfo<br>
+Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376<br>
+Query&nbsp;lists:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0<br>
+Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;377376
+</td></tr>
 </table>
 
-<p>カーネル 2.6.34 以降に搭載されている TOMOYO Linux に於いては、アクセス許可や単語を記憶するために割り当てられたメモリは自動的に解放されます。そのため、不要になったメモリを解放するためにシステムを再起動する必要はありません。</p>
+<ul>
+<li>Policy: ・・・アクセス許可を記憶するために使用されている量</li>
+<li>Query lists: ・・・強制モードでのポリシー違反を対話的に処理するために使用されている量</li>
+</ul>
 
-<p>TOMOYO Linux が現在使用中のメモリ消費量は、 /sys/kernel/security/tomoyo/meminfo から確認できます。単位はバイトです。 Policy: がポリシーを記憶するために使用されている量です。</p>
+<p>TOMOYO Linux が使用するメモリの量を制限するためにメモリクォータがサポートされています。</p>
+
+<p>/etc/tomoyo/meminfo.conf に以下のように指定しておくことで設定できます。</p>
 
 <table border="1">
-<tr><td><pre>
-# cat /sys/kernel/security/tomoyo/meminfo
-Policy:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
-Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
-</pre></td></tr>
+<tr><td>
+# cat /etc/tomoyo/meminfo.conf<br>
+Policy:     16777216<br>
+Query lists: 1048576
+</td></tr>
 </table>
 
 <h1>3. <a name="Policy_Files">ポリシーファイルに関して</a></h1>
@@ -230,14 +247,15 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <tr><td><a href="#manager">/sys/kernel/security/tomoyo/manager</a></td><td>/etc/tomoyo/manager.conf</td><td>マネージャ（ポリシーの変更ができるプログラムを定義したもの）</td></tr>
 <tr><td><a href="#exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></td><td>/etc/tomoyo/exception_policy.conf</td><td>例外ポリシー（ドメインポリシーの例外を定義したもの）</td></tr>
 <tr><td><a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></td><td>/etc/tomoyo/domain_policy.conf</td><td>ドメインポリシー（ドメイン単位で適用される設定）</td></tr>
+<tr><td><a href="#meminfo">/sys/kernel/security/tomoyo/meminfo</a></td><td>/etc/tomoyo/meminfo.conf</td><td>メモリ使用状況およびクォータ</td></tr>
 </table>
 
 <p>そのほかの情報を取得するためのインタフェースもあります。対応するポリシーファイルはありません。</p>
 
 <table border="1">
 <tr><td>カーネルとのインタフェース</td><td>内容</td></tr>
+<tr><td><a href="#query">/sys/kernel/security/tomoyo/query</a></td><td>管理者の指示待ちとなっているアクセス要求</td></tr>
 <tr><td><a href="#.domain_status">/sys/kernel/security/tomoyo/.domain_status</a></td><td>定義されているドメイン名とプロファイル番号</td></tr>
-<tr><td><a href="#meminfo">/sys/kernel/security/tomoyo/meminfo</a></td><td>メモリ使用状況</td></tr>
 <tr><td><a href="#self_domain">/sys/kernel/security/tomoyo/self_domain</a></td><td>自分が属しているドメインのドメイン名</td></tr>
 <tr><td><a href="#.process_status">/sys/kernel/security/tomoyo/.process_status</a></td><td>プロセスが属しているドメイン名とプロファイル番号</td></tr>
 <tr><td><a href="#version">/sys/kernel/security/tomoyo/version</a></td><td>TOMOYO Linux のバージョン</td></tr>
@@ -262,6 +280,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 /usr/sbin/tomoyo-setlevel<br>
 /usr/sbin/tomoyo-setprofile<br>
 /usr/sbin/tomoyo-ld-watch<br>
+/usr/sbin/tomoyo-queryd<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash
 </td></tr>
 </table>
@@ -274,7 +293,7 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.1 <a name="domain_definition">ドメインとは</a></h2>
 
-<p>TOMOYO Linux は、ドメイン単位でアクセス許可を定義します。アクセス許可はドメインポリシーと呼ばれ、 <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> を通じてアクセス許可を定義します。</p>
+<p>TOMOYO Linux では、ドメインを単位としてアクセス許可を定義します。 <a href="#domain_policy">/sys/kernel/security/tomoyo/domain_policy</a> を通じてアクセス許可を定義します。</p>
 
 <p>TOMOYO Linux においては、全てのプロセスがそれぞれ 1 つのドメインに属し、全てのプログラムがそれぞれ異なるドメインに属します。現在実行されている 2 つのプロセスが同一のプログラムであっても、それぞれのプロセスの直前のドメインが異なっていれば異なるドメインに属します。</p>
 
@@ -282,30 +301,28 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2>4.2 <a name="domain_transition">ドメイン遷移とは</a></h2>
 
-<p>実行時のプログラムの名前により異なる動作をするプログラムが存在します。例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクです。 TOMOYO Linux は正規化したパス名を使用するので、 /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。</p>
-
 <p>プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
 
 <table border="1">
 <tr><td>Step</td><td>内容</td></tr>
 <tr><td>プログラム名の取得</td><td>
-<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 1 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決したパス名を取得します。</p>
-<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補 2 」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
+<p>実行しようとするプログラムの絶対パス名を取得して「パス名候補」とします。ただし、実行しようとするプログラムがシンボリックリンクの場合は、シンボリックリンクを解決する前のパス名を取得します。</p>
 </td></tr>
-<tr><td>シンボリックリンクの識別</td><td>
-<p>「パス名候補 1 」と「パス名候補 2 」が一致しない場合、例外ポリシーから</p>
+<tr><td>類似するプログラムの集約</td><td>
+<p>例外ポリシーから</p>
 
 <ul>
-<li>alias 「パス名候補 1 」 「パス名候補 2 」
+<li>aggregator 「パス名候補」 「集約されたパス名」
 </ul>
 
-<p>というエントリを探します。見つかった場合は「パス名候補 2 」を「パス名候補 1 」とします。</p>
+<p>というエントリを探します。見つかった場合は、「集約されたパス名」を「パス名候補」とします。</p>
 </td></tr>
 <tr><td><a name="exec_stage_check_execute">権限のチェック</a></td><td>
 <p>ドメインポリシーから</p>
 
 <ul>
-<li>allow_execute 「パス名候補 1 」
+<li>allow_execute 「パス名候補」
+<li>allow_execute @「パス名候補」を含むグループ名
 </ul>
 
 <p>というエントリを探します。見つからなければプログラムの実行要求は拒否されます。</p>
@@ -315,9 +332,9 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>(1) 例外ポリシーから</p>
 
 <ul>
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>no_initialize_domain 「パス名候補 1 」
+<li>no_initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_initialize_domain 「パス名候補」
 </ul>
 
 <p>というエントリを探します。見つかった場合は (3) へ進みます。</p>
@@ -325,18 +342,18 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>(2) 例外ポリシーから</p>
 
 <ul>
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>initialize_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
-<li>initialize_domain 「パス名候補 1 」
+<li>initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>initialize_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>initialize_domain 「パス名候補」
 </ul>
 
-<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補 1 」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
+<p>というエントリを探します。見つかった場合は「カーネルが属しているドメインのドメイン名（ &lt;kernel&gt; ）」と「パス名候補」とを連結して「遷移先ドメイン」として (6) へ進みます。</p>
 
 <p>(3) 例外ポリシーから</p>
 
 <ul>
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>no_keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>no_keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>no_keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 <li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」
 <li>no_keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 </ul>
@@ -346,19 +363,22 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>(4) 例外ポリシーから</p>
 
 <ul>
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」
-<li>keep_domain 「パス名候補 1 」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
+<li>keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」
+<li>keep_domain 「パス名候補」 from 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 <li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」
 <li>keep_domain 「現在のプロセスが属しているドメインのドメイン名」の最後の要素
 </ul>
 
 <p>というエントリを探します。見つかった場合は「現在のプロセスが属しているドメインのドメイン名」を「遷移先ドメイン」とし、 (6) へ進みます。</p>
 
-<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補 1 」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
+<p>(5) 「現在のプロセスが属しているドメインのドメイン名」と「パス名候補」とを連結して「遷移先ドメイン」とし、 (6) へ進みます。</p>
 
 <p>(6) ドメインポリシーから「遷移先ドメイン」を探します。見つからなければプログラムの実行要求は拒否されます。</p>
 
-<p>(7) 通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
+</td></tr>
+<tr><td>プログラムの実行</td><td>
+
+<p>通常のプログラム実行処理を行い、正常に終了した場合は「遷移先ドメイン」に遷移します。</p>
 
 </td></tr>
 </table>
@@ -367,9 +387,11 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 
 <h2><a name="profile">/sys/kernel/security/tomoyo/profile</a></h2>
 
+<p>TOMOYO Linux では、ファイル以外にもいくつかの項目について強制アクセス制御を行うことができますが、ポリシー管理の負担を減らすために、必要の無い機能を無効化できるようになっています。</p>
+
 <p>有効にしたい機能とそのモードを「 プロファイル番号-項目=値 」という形式で定義します。プロファイル番号は 0 ～ 255 が指定可能です。プロファイルの内容を変更するには tomoyo-setlevel コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
 
-<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには tomoyo-setprofile コマンドまたは tomoyo-editpolicy コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
+<p>各ドメインには 1 個のプロファイルが割り当てられます。ドメインにプロファイルを割り当てるには setprofile コマンドまたは tomoyo-editpolicy コマンドまたは tomoyo-loadpolicy コマンドを使用します。</p>
 
 <p>現在ドメインに割り当てられているプロファイル番号は tomoyo-editpolicy コマンドで確認できます。<br>
 現在動作中のプロセスに割り当てられているプロファイル番号は tomoyo-pstree コマンドで確認できます。<br>
@@ -380,36 +402,132 @@ Total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;119794
 <p>（例）<br>
 cat /sys/kernel/security/tomoyo/profile<br>
 tomoyo-savepolicy -p<br>
-tomoyo-setlevel 1-MAC_FOR_FILE=learning<br>
-echo 1-MAC_FOR_FILE=learning | tomoyo-loadpolicy -p</p>
+tomoyo-setlevel 1-CONFIG::file::execute=learning<br>
+echo 1-CONFIG::file::execute=learning | tomoyo-loadpolicy -p</p>
 
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
-<h3><a name="profile_MAC_FOR_FILE">MAC_FOR_FILE</a></h3>
-
-<p>ファイルに対する強制アクセス制御のレベルを指定します。</p>
+<p>CONFIG で始まる項目に対しては以下の値を指定できます。</p>
 
 <table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
-<tr><td>learning</td><td>学習モード。ポリシーに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシー違反とならないようにするために、ポリシーへの自動追加を行います。</td></tr>
-<tr><td>permissive</td><td>確認モード。ポリシーに違反してもアクセス要求を拒否することはしませんが、ポリシーへの自動追加も行いません。</td></tr>
-<tr><td>enforcing</td><td>強制モード。ポリシーに違反するアクセス要求を拒否します。</td></tr>
+<tr><td>設定</td><td>内容</td></tr>
+<tr><td>mode=disabled</td><td>無効。通常のカーネルと同様に動作します。</td></tr>
+<tr><td>mode=learning</td><td>学習モード。ポリシーに違反してもアクセス要求を拒否することはせず、再度同じアクセス要求が発生した場合にポリシー違反とならないようにするために、ポリシーへの自動追加を行います。</td></tr>
+<tr><td>mode=permissive</td><td>確認モード。ポリシーに違反してもアクセス要求を拒否することはしませんが、ポリシーへの自動追加も行いません。</td></tr>
+<tr><td>mode=enforcing</td><td>強制モード。ポリシーに違反するアクセス要求を拒否します。</td></tr>
 </table>
 
-<h3><a name="profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></h3>
+<h3><a name="profile_CONFIG::file::execute">CONFIG::file::execute</a></h3>
 
-<p>学習モードに於いて自動的に追加されるアクセス許可の上限を指定します。デフォルトは 2048 件です。</p>
+<p>プログラムの実行およびドメイン遷移に対する強制アクセス制御のレベルを指定します。</p>
 
-<h3><a name="profile_TOMOYO_VERBOSE">TOMOYO_VERBOSE</a></h3>
+<h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
 
-<p>ドメインポリシーに対する違反を表示するかどうかを指定します。</p>
+<p>読み込みまたは書き込みモードでのファイルのオープンに対する強制アクセス制御のレベルを指定します。</p>
 
-<table border="1">
-<tr><td>値</td><td>内容</td></tr>
-<tr><td>disabled</td><td>ドメインポリシーに対する違反を表示しません。</td></tr>
-<tr><td>enabled</td><td>ドメインポリシーに対する違反を表示します。</td></tr>
-</table>
+<h3><a name="profile_CONFIG::file::create">CONFIG::file::create</a></h3>
+
+<p>ファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::unlink">CONFIG::file::unlink</a></h3>
+
+<p>ファイルの削除に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mkdir">CONFIG::file::mkdir</a></h3>
+
+<p>ディレクトリの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::rmdir">CONFIG::file::rmdir</a></h3>
+
+<p>ディレクトリの削除に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mkfifo">CONFIG::file::mkfifo</a></h3>
+
+<p>名前付きパイプの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mksock">CONFIG::file::mksock</a></h3>
+
+<p>ＵＮＩＸドメインソケットの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::truncate">CONFIG::file::truncate</a></h3>
+
+<p>ファイルの切り詰めに対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::symlink">CONFIG::file::symlink</a></h3>
+
+<p>シンボリックリンクの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::rewrite">CONFIG::file::rewrite</a></h3>
+
+<p>ファイルの上書きに対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mkblock">CONFIG::file::mkblock</a></h3>
+
+<p>ブロック型デバイスファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mkchar">CONFIG::file::mkchar</a></h3>
+
+<p>キャラクタ型デバイスファイルの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::link">CONFIG::file::link</a></h3>
+
+<p>ハードリンクの作成に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::rename">CONFIG::file::rename</a></h3>
+
+<p>名称変更に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::chmod">CONFIG::file::chmod</a></h3>
+
+<p>ファイルのモードの変更に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::chown">CONFIG::file::chown</a></h3>
+
+<p>ファイルの所有者の変更に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::chgrp">CONFIG::file::chgrp</a></h3>
+
+<p>ファイルのグループの変更に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::ioctl">CONFIG::file::ioctl</a></h3>
+
+<p>IOCTL に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::chroot">CONFIG::file::chroot</a></h3>
+
+<p>ルートディレクトリの変更に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::mount">CONFIG::file::mount</a></h3>
+
+<p>マウントに対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::umount">CONFIG::file::umount</a></h3>
+
+<p>アンマウントに対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></h3>
+
+<p>ルートディレクトリの交換に対する強制アクセス制御のレベルを指定します。</p>
+
+<h3><a name="profile_PREFERENCE::learning">PREFERENCE::learning</a></h3>
+
+<p>学習モードに関する設定を指定します。</p>
+
+<p>verbose= にはポリシー違反を表示するかどうかを指定します。</p>
+
+<p>max_entry= には自動的に追加されるアクセス許可の上限を指定します。</p>
+
+<h3><a name="profile_PREFERENCE::permissive">PREFERENCE::permissive</a></h3>
+
+<p>確認モードに関する設定を指定します。</p>
+
+<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
+
+<h3><a name="profile_PREFERENCE::enforcing">PREFERENCE::enforcing</a></h3>
+
+<p>強制モードに関する設定を指定します。</p>
+
+<p>verbose= にはポリシーに対する違反を表示するかどうかを指定します。</p>
 
 <h2><a name="domain_policy">/sys/kernel/security/tomoyo/domain_policy</a></h2>
 
@@ -432,74 +550,145 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 <p>関連項目：<a href="#policy_file_modifiers">変更について</a></p>
 
 <h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
-<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。</p>
+<p>指定されたパス名を実行することを許可します。パス名にワイルドカードを使用することは認められていません。ワイルドカードで指定しなければ対応できない場合には、プログラム名をグループ化してからアクセス許可を与えてください。</p>
 <p>（例） allow_execute /bin/ls</p>
-<p>関連項目：<a href="#domain_transition">ドメイン遷移</a></p>
+<p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
 <h3><a name="domain_policy_allow_write">allow_write</a></h3>
 <p>指定されたパス名を書き込みモードでオープンすることを許可します。</p>
 <p>（例） allow_write /dev/null</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read">allow_read</a></h3>
 <p>指定されたパス名を読み込みモードでオープンすることを許可します。</p>
 <p>（例） allow_read /proc/meminfo</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
 <p>指定されたパス名を読み書きモードでオープンすることを許可します。</p>
 <p>（例） allow_read/write /dev/null</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_create">allow_create</a></h3>
 <p>指定されたパス名のファイルを新規作成することを許可します。</p>
 <p>（例） allow_create /var/lock/subsys/crond</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
 <p>指定されたパス名を削除することを許可します。</p>
 <p>（例） allow_unlink /var/lock/subsys/crond</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
 <p>パス名で指定されたディレクトリを作成することを許可します。</p>
 <p>（例） allow_mkdir /tmp/logwatch.\*/</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
 <p>ディレクトリの削除を許可します。</p>
 <p>（例） allow_rmdir /tmp/logwatch.\*/</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
 <p>FIFO の作成を許可します。</p>
 <p>（例） allow_mkfifo /dev/initctl</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
 <p>UNIX ドメインソケットの作成を許可します。</p>
 <p>（例） allow_mksock /dev/log</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
 <p>ブロック型デバイスファイルの作成を許可します。</p>
 <p>（例） allow_mkblock /dev/\*</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
 <p>キャラクタ型デバイスファイルの作成を許可します。</p>
 <p>（例） allow_mkchar /dev/\*</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
 <p>ファイルの切り詰めと伸長を許可します。</p>
 <p>（例） allow_truncate /etc/mtab</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
 <p>シンボリックリンクの作成を許可します。</p>
 <p>（例） allow_symlink /dev/cdrom</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_link">allow_link</a></h3>
 <p>ハードリンクの作成を許可します。</p>
 <p>（例） allow_link /etc/mtab~\$ /etc/mtab~</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
 <p>ファイル名の変更を許可します。</p>
 <p>（例） allow_rename /etc/mtab.tmp /etc/mtab</p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a></p>
 
 <h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
 <p><a href="#exception_policy_deny_rewrite">deny_rewrite</a> によりファイルの内容の上書きが禁止されているパス名が指すファイル内容の上書きを許可します。</p>
 <p>（例） allow_rewrite /var/log/messages</p>
-<p>関連項目： <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+<p>関連項目： <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
+
+<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+
+<p>IOCTL 要求で指定可能なコマンド番号を指定するには、 allow_ioctl というキーワードに続けて、パス名とコマンド番号を指定します。パス名にはパターンおよびパス名のグループも使用できます。</p>
+
+<table border="1">
+<tr><td>指定例</td><td>許可されるアクセス</td></tr>
+<tr><td>allow_ioctl socket:[family=2:type=2:protocol=17] 35093</td><td>アドレスファミリーが 2 、種別が 2 、プロトコルが 17 のソケットに対して 35093 番の IOCTL 要求を許可</td></tr>
+<tr><td>allow_ioctl /dev/null 10000-20000</td><td>/dev/null に対して 10000 ～ 20000 番の IOCTL 要求を許可</td></tr>
+</table>
+
+<p>IOCTL 要求のコマンド番号の意味については、 IOCTL 機能を提供しているモジュールの説明を参照してください。例えば、 i386 環境において 21585 番の IOCTL 要求は close-on-exec フラグをセットするための FIOCLEX コマンドを指します。例えば、ソケットに対する 35088 番の IOCTL 要求は、ネットワークインターフェースの名前を取得する SIOCGIFNAME コマンドを指します。</p>
+
+<h3><a name="domain_policy_allow_mount">allow_mount</a></h3>
+<p>マウント許可を指定するには、 allow_mount というキーワードに続けて、「デバイスファイル マウントポイント ファイルシステム オプション」を指定します。 デバイスファイルを必要とするファイルシステムを指定する場合は、デバイスファイルは正規化されたファイル名でなければいけません。マウントポイントは正規化されたファイル名でなければいけません。オプションは 16 進数の数値で指定します。</p>
+
+<p>「 any マウントポイント --remount オプション」と指定すると、「 mount -o remount マウントポイント」が許可されます。</p>
+
+<p>「複製元 複製先 --bind オプション」と指定すると、「 mount --bind 複製元 複製先」が許可されます。<br>
+「移動元 移動先 --move オプション」と指定すると、「 mount --move 移動元 移動先」が許可されます。<br>
+複製元／複製先／移動元／移動先は正規化されたディレクトリ名でなければなりません。</p>
+
+<p>カーネル 2.6.15 以降では、 Shared Subtree という機能が利用できます。<br>
+「 any マウントポイント --make-unbindable オプション」と指定すると、「 mount --make-unbindable マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-private オプション」と指定すると、「 mount --make-private マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-slave オプション」と指定すると、「 mount --make-slave マウントポイント」が許可されます。<br>
+「 any マウントポイント --make-shared オプション」と指定すると、「 mount --make-shared マウントポイント」が許可されます。</p>
+
+<p>（例）<br>
+allow_mount none /dev/pts/ devpts 0x0<br>
+allow_mount /proc /proc/ proc 0x0<br>
+allow_mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
+allow_mount none /data/ tmpfs 0xE<br>
+allow_mount none /dev/shm/ tmpfs 0xE<br>
+allow_mount /dev/hdc /var/www/ ext2 0xF<br>
+allow_mount any / --remount 0x0</p>
+
+<h3><a name="domain_policy_allow_unmount">allow_unmount</a></h3>
+<p>アンマウント許可を指定するには、 allow_unmount というキーワードに続けて、アンマウントを許可する正規化されたディレクトリ名を指定します。</p>
+
+<p>（例）<br>
+allow_unmount /mnt/cdrom/</p>
+
+<h3><a name="domain_policy_allow_chroot">allow_chroot</a></h3>
+<p>chroot 許可を指定するには、 allow_chroot というキーワードに続けて、 chroot で移動することを許可したい正規化されたディレクトリ名を指定します。<br>
+通常、 sshd が使用する /var/empty/sshd/ を指定します。 その他に chroot 環境で動かしたいアプリケーションや、 chroot を行うアプリケーション（ vsftpd の場合 /usr/share/empty/ ）が存在する場合は、それらも指定します。</p>
+
+<p>（例）<br>
+allow_chroot /var/empty/sshd/<br>
+allow_chroot /usr/share/empty/<br>
+allow_chroot /var/www/html/<br>
+allow_chroot /</p>
+
+<h3><a name="domain_policy_allow_pivot_root">allow_pivot_root</a></h3>
+<p>pivot_root 許可を指定するには、 allow_pivot_root というキーワードに続けて、新しいルートとなる正規化されたディレクトリ名と古いルートディレクトリとなる正規化されたディレクトリ名を指定します。<br>
+通常、このキーワードを使う必要はありません。</p>
 
 <h3><a name="domain_policy_use_profile">use_profile</a></h3>
 
@@ -513,15 +702,19 @@ cat /sys/kernel/security/tomoyo/domain_policy</p>
 
 <h3><a name="domain_policy_quota_exceeded">quota_exceeded</a></h3>
 
-<p>これは、学習モードで動作中にアクセス許可の数が <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a> で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
+<p>これは、学習モードで動作中にアクセス許可の数が <a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a> で指定された値に到達したため、このドメインに対してはアクセス許可を学習しきれなかったことを示しています。チューニングを行うなどしてアクセス許可の数を減らすようにしてください。</p>
 
-<p>関連項目： <a href="#profile_MAX_ACCEPT_ENTRY">MAX_ACCEPT_ENTRY</a></p>
+<p>関連項目： <a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></p>
 
 <h3><a name="domain_policy_transition_failed">transition_failed</a></h3>
 
-<p>これは、プログラムの実行時にドメインを新規作成しようと試みたが、「新規作成されるドメインのドメイン名が長すぎる」または「カーネルがメモリを割り当てることができなかった」という理由により、ドメイン遷移を行わないままプログラムの実行を許可したことを示しています。このドメインに対して <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+<p>これは、このドメインに属しているプロセスが、プログラムの実行時にドメイン遷移をすることができなかったことを示しています。</p>
 
-<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_quota">ポリシーに割り当てられるメモリ量を制限</a></p>
+<p>このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルが割り当てられていた場合、プログラムの実行要求は拒否されます。</p>
+
+<p>そうではない場合、プログラムの実行要求は拒否されません。そのため、ドメイン遷移をせずにプログラムが実行されます。ドメイン遷移が失敗した理由は「遷移先ドメインのドメイン名が長すぎる」または「遷移先ドメインのためのメモリを割り当てることができなかった」のどちらかであるため、このドメインに対して <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>=enforcing のプロファイルを割り当てる予定がある場合には、「ドメイン遷移を抑制する」または「メモリ割り当て量を増やす」ようにしてください。</p>
+
+<p>関連項目： <a href="#exception_policy_keep_domain">keep_domain</a> <a href="#memory_usage_infomation">メモリ使用量に関する情報</a></p>
 
 <h2><a name="exception_policy">/sys/kernel/security/tomoyo/exception_policy</a></h2>
 
@@ -538,7 +731,53 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 <p>パス名のパターン化を指示するには、 file_pattern というキーワードに続けて、パス名のパターンを指定します。パス名は正規化されたパス名でなければなりません。このキーワードは実行許可を与える場合とドメイン定義には適用されません。<br>
 例えば、プロセスＩＤを含む正規化されたパス名（ /proc/PID/ ）は、アクセス制御が正しく行われるようにグループ化されなければなりません。</p>
 
-<p>学習モード（ <a href="#profile_MAC_FOR_FILE">MAC_FOR_FILE</a> が learning に設定されている状態）でパス名に対するアクセスを行うと、自動的にパターン化された状態で学習されます。学習モード以外には影響しません。この構文は、既知のパターンをテンプレート化することによって、後でチューニングを行うときの手間を軽減するためだけに使われます。</p>
+<h3><a name="exception_policy_path_group">path_group</a></h3>
+
+<p>パス名のグループを定義するには、 path_group というキーワードに続けて、グループ名とパス名のパターンを指定します。<br>
+　例えば、ホームディレクトリ以下の全ファイルをまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-DIR-FILE /home/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*<br>
+path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメインポリシーのファイルに対するアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+allow_read @HOME-DIR-FILE
+</td></tr>
+</table>
+
+<p>のように指定できます。</p>
+
+<h3><a name="exception_policy_number_group">number_group</a></h3>
+
+<p>数値のグループを定義するには、 number_group というキーワードに続けて、グループ名と数値の範囲を指定します。<br>
+　例えば、 0644 と 0664 をまとめたい場合、</p>
+
+<table border="1">
+<tr><td>
+number_group CREATE_MODES 0644<br>
+number_group CREATE_MODES 0664
+</td></tr>
+</table>
+
+<p>のように定義しておくことで、ドメインポリシーのアクセス許可を指定する際に</p>
+
+<table border="1">
+<tr><td>
+allow_create /tmp/file @CREATE_MODES
+</td></tr>
+</table>
+
+<p>のように指定できます。</p>
 
 <h3><a name="exception_policy_allow_read">allow_read</a></h3>
 
@@ -552,10 +791,11 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>関連項目： <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
 
-<h3><a name="exception_policy_alias">alias</a></h3>
+<h3><a name="exception_policy_aggregator">aggregator</a></h3>
 
-<p>シンボリックリンクを解決した名前ではなくシンボリックリンクの名前のまま実行させるプログラムを指定するには、 alias というキーワードに続けてシンボリックリンクを解決したパス名とシンボリックリンクを解決する前のパス名を指定します。このキーワードの目的は、実行時の名前によって異なる振る舞いをするプログラムが、ハードリンクではなくシンボリックリンクで参照される場合に、シンボリックリンクの名前でドメインを遷移できるようにすることです。</p>
-<p>例えば /sbin/pidof は /sbin/killall5 へのシンボリックリンクであるため、通常は /sbin/pidof を実行すると /sbin/killall5 が実行されたものとしてドメインが定義されます。しかし、 alias /sbin/killall5 /sbin/pidof という指定をすることで、 /sbin/pidof を実行すると /sbin/pidof が実行されたものとしてドメインが定義されるようにできます。</p>
+<p>複数のプログラムを単一のプログラム名で扱うには、 aggregator というキーワードに続けて集約前のプログラム名と集約後のプログラム名を指定します。このキーワードの目的は、同様のプログラムを集約することです。</p>
+<p>例えば、 /usr/bin/tac と /bin/cat は似ているので、 aggregator /usr/bin/tac /bin/cat という指定をすることで /usr/bin/tac を /bin/cat のドメインで実行することができるようになります。</p>
+<p>例えば、 Fedora Core 3 の /usr/sbin/logrotate は /tmp/logrotate.\?\?\?\?\?\? というパターンのプログラムを作成して実行するが、 TOMOYO Linux では安全上の理由からプログラムの実行許可を与える場合とドメインを定義する場合にパターンを使用することを認めていません。しかし、 aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp という指定をすることで /tmp/logrotate.\?\?\?\?\?\? を /tmp/logrotate.tmp のドメインで実行することができるようになります。</p>
 
 <p>関連項目： <a href="#domain_policy_allow_execute">allow_execute</a></p>
 
@@ -578,6 +818,7 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 <h3><a name="exception_policy_no_initialize_domain">no_initialize_domain</a></h3>
 
 <p>initialize_domain の効力を打ち消すには、 no_initialize_domain というキーワードを指定します。</p>
+
 <ul>
 <li>no_initialize_domain プログラム名 from ドメイン名
 <li>no_initialize_domain プログラム名 from ドメイン名の最後のプログラム名
@@ -620,6 +861,10 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <p>関連項目：<a href="#domain_transition">ドメイン遷移</a> <a href="#exception_policy_keep_domain">keep_domain</a></p>
 
+<h2><a name="query">/sys/kernel/security/tomoyo/query</a></h2>
+
+<p>強制モードで動作中にポリシー違反が発生した場合に、そのアクセス要求を個別に許可するかどうかの指定を行うために使用します。強制モードでポリシー違反が発生した場合、 tomoyo-queryd を用いて対話的に諾否を指定できます。</p>
+
 <h2><a name="manager">/sys/kernel/security/tomoyo/manager</a></h2>
 
 <p>ポリシーの読み書きを行えるプログラムまたはドメインの一覧を取得または追加します。</p>
@@ -630,7 +875,7 @@ cat /sys/kernel/security/tomoyo/exception_policy</p>
 
 <h2><a name=".domain_status">/sys/kernel/security/tomoyo/.domain_status</a></h2>
 
-<p>tomoyo-setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
+<p>setprofile コマンドが行単位での処理を行いやすくするために domain_policy の内容からプロファイル番号とドメイン名の部分だけを抽出したもの。ＤＢＭＳのビューに相当する機能を提供します。</p>
 
 <h2><a name="meminfo">/sys/kernel/security/tomoyo/meminfo</a></h2>
 
@@ -690,30 +935,11 @@ chown -R demo /sys/kernel/security/tomoyo/
 <table border="1">
 <tr><td>
 # chmod 755 /etc/tomoyo/tomoyo-post-init<br>
-# chown -R demo /etc/tomoyo/<br>
+# chown -R demo /etc/tomoyo/
 </td></tr>
 </table>
 
 <p>を実行することで demo ユーザがポリシーのあるディレクトリへのアクセスとポリシーを編集するためのプログラムを実行できるようになります。</p>
-
-<h2>6.2 <a name="memory_quota">ポリシーに割り当てられるメモリ量を制限</a></h2>
-
-<p>/etc/tomoyo/tomoyo-post-init から以下のように /sys/kernel/security/tomoyo/meminfo に書き込みを行うことで設定できます。</p>
-
-<p>カーネル 2.6.33 以前の場合</p>
-<table border="1">
-<tr><td>
-echo Shared: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo<br>
-echo Private: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
-</td></tr>
-</table>
-
-<p>カーネル 2.6.34 以降の場合</p>
-<table border="1">
-<tr><td>
-echo Policy: 2097152 &gt; /sys/kernel/security/tomoyo/meminfo
-</td></tr>
-</table>
 
 <hr>
 

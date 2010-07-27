@@ -8,32 +8,30 @@
 </head>
 <body>
 <p style="text-align:right;"><a href="initialize.html.ja">Japanese Page</a></p>
-<p style="text-align:right;">Last modified: $Date: 2009-07-14 16:54:09 +0900 (Tue, 14 Jul 2009) $</p>
+<p style="text-align:right;">Last modified: $Date: 2010-07-07 15:00:08 +0900 (Wed, 07 Jul 2010) $</p>
 <h1>Phase 2: Initializing TOMOYO Linux.</h1>
 
-<p>This page describes basic operations needed for using TOMOYO.</p>
+<p>This page describes basic operations needed for using TOMOYO Linux.</p>
 
 <hr>
 
 <h2>Step 1: Initializing Policy</h2>
 
-<p>To initialize policy, run</p>
+<p>Run below command in order to initialize policy.</p>
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# /usr/lib/tomoyo/tomoyo_init_policy
+[root@tomoyo ~]# /usr/lib/tomoyo/init_policy
 </td></tr>
 </table>
 
-<p>This will take several minutes.</p>
-
-<p>TOMOYO's policy files will be saved in /etc/tomoyo/ directory.</p>
+<p>TOMOYO Linux's policy files will be saved in /etc/tomoyo/ directory.</p>
 
 <hr>
 
-<h2>Step 2: Learning how to use TOMOYO's policy editor</h2>
+<h2>Step 2: Learning how to use TOMOYO Linux's policy editor</h2>
 
-<p>Run TOMOYO's policy editor "tomoyo-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
+<p>Run TOMOYO Linux's policy editor "tomoyo-editpolicy" with "/etc/tomoyo/" option, and you will see a picture shown below.</p>
 
 <table border="1">
 <tr><td>
@@ -43,7 +41,7 @@
 
 <p><img src="editpolicy-domain-list1.png" width="720" height="400"></p>
 
-<p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined. But as the system runs, TOMOYO will create domains and add them to the tree. The example picture shown below has many domains.</p>
+<p>This picture describes the domain tree. As of now, only "&lt;kernel&gt;" domain is defined. But as the system runs, TOMOYO Linux will create domains and add them to the tree. The example picture shown below has many domains.</p>
 
 <p><img src="editpolicy-domain-list2.png" width="720" height="400"></p>
 
@@ -61,40 +59,47 @@
 
 <p>Press "p" key, and you will see the list of profiles.</p>
 
-<p>You will see entries shown in below picture.</p>
-
-<p><img src="editpolicy-profile-list-file-only.png" width="720" height="400"></p>
-
-<p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
+<p><img src="editpolicy-profile-list.png" width="720" height="400"></p>
 
 <table border="1">
-<tr><td>Name</td><td>Control</td><td>Default value</td><td>Learning mode supported</td></tr>
+<tr><td>Name</td><td>Control</td></tr>
+<tr>
+<td>PREFERENCE::learning</td>
+<td>Configuration of learning mode.</td>
+</tr>
+<tr>
+<td>PREFERENCE::permissive</td>
+<td>Configuration of permissive mode.</td>
+</tr>
+<tr>
+<td>PREFERENCE::enforcing</td>
+<td>Configuration of enforcing mode.</td>
+</tr>
 <tr>
 <td>COMMENT</td>
 <td>A line of text that describes the content of the profile.</td>
-<td></td>
-<td>-</td>
 </tr>
 <tr>
-<td>MAC_FOR_FILE</td>
-<td>Enable Mandatory Access Control(MAC) for files.</td>
-<td>disabled</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>MAX_ACCEPT_ENTRY</td>
-<td>Limits the max number of ACL entries that are automatically appended during learning mode.</td>
-<td>2048</td>
-<td>-</td>
-</tr>
-<tr>
-<td>TOMOYO_VERBOSE</td>
-<td>Dump domain policy violation messages to syslog.</td>
-<td>enabled</td>
-<td>-</td>
+<td>CONFIG</td>
+<td>Configuratiof of Mandatory Access Control(MAC) level.</td>
 </tr>
 </table>
-<p>You can give the following values for MAC_FOR_FILE.</p>
+<p>You can give the following values for verbose= parameter of PREFERENCE::learning PREFERENCE::permissive PREFERENCE::enforcing .</p>
+<table border="1">
+<tr>
+<td>Value</td>
+<td>Meaning</td>
+</tr>
+<tr>
+<td>no</td>
+<td>Don't dump policy violation messages.</td>
+</tr>
+<tr>
+<td>yes</td>
+<td>Dump policy violation messages.</td>
+</tr>
+</table>
+<p>You can give the following values for mode= parameter of CONFIG line.</p>
 <table border="1">
 <tr>
 <td>Value</td>
@@ -117,26 +122,12 @@
 <td>Enforcing mode. Rejected if the request violates policy.</td>
 </tr>
 </table>
-<p>You can give any integer greater or equals to 0 for MAX_ACCEPT_ENTRY.</p>
-<p>You can give the following values for TOMOYO_VERBOSE</p>
-<table border="1">
-<tr>
-<td>Value</td>
-<td>Meaning</td>
-</tr>
-<tr>
-<td>disabled</td>
-<td>Don't dump domain policy violation messages.</td>
-</tr>
-<tr>
-<td>enabled</td>
-<td>Dump domain policy violation messages.</td>
-</tr>
-</table>
 
 <p>Press "w" key, then press "e" key, and you will see the picture shown below.</p>
 
 <p><img src="editpolicy-exception-list1.png" width="720" height="400"></p>
+
+<p>You can scroll this window using arrow keys and/or Home/End/PageUp/PageDown keys.</p>
 
 <p>This screen contains the following types of exceptions.</p>
 
@@ -161,7 +152,15 @@ The following is the guideline.</p>
 
 <p>TOMOYO Linux needs more patterned pathnames depending on the applications installed and their configurations. You can add missing patterned pathnames after running the system.</p>
 </td></tr><tr><td>
-(2) Unconditionally readable files
+(2) Pathname group
+</td><td>
+<p>Register pathname groups using the "path_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple pathnames using group names. An example usage is shown later.</p>
+</td></tr><tr><td>
+(3) Number group
+</td><td>
+<p>Register number groups using the "number_group" directive. This is a macro to reduce the amount of domain policy by grouping multiple numbers using group names. An example usage is shown later.</p>
+</td></tr><tr><td>
+(4) Unconditionally readable files
 </td><td>
 <p>Register files that are allowed to be read by all programs using the "allow_read" directive. Patterns are allowed. When a file open request for reading is issued and the requested pathname matches a pathname registered with "allow_read" directive, the open request for read access is granted even if the pathname is not explicitly permitted by the domain policy.<br>
 The following is the guideline.</p>
@@ -175,7 +174,7 @@ The following is the guideline.</p>
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for read access.</p>
 
 </td></tr><tr><td>
-(3) Non-rewritable files
+(5) Non-rewritable files
 </td><td>
 <p>Register files that you don't want to allow overwriting existing contents (like log files) using "deny_rewrite" directive. Patterns are allowed. Files registered with "deny_rewrite" directive are (as long as it is not explicitly given by "allow_rewrite" directive in domain policy) forbidden to "open for writing but not append mode" and "truncate".<br>
 The following is the guideline.</p>
@@ -187,18 +186,12 @@ The following is the guideline.</p>
 <p>You may find more files depending on applications in your system or configurations. Add missing files after observing which files are used for append-only access.</p>
 
 </td></tr><tr><td>
-(4) Programs invocable via symbolic links
-</td><td>
-<p>Basically, TOMOYO Linux checks execute permissions using the dereferenced pathname if the requested program is a symbolic link. But to handle programs that behave differently depending on the name of invocation, you may define domains using the name of symbolic links.<br>
-To allow executing programs using the name of symbolic links, use alias directive followed by dereferenced pathname and reference pathname. No patterns are allowed.<br>
-For example, /sbin/pidof is a symbolic link to /sbin/killall5 . In normal case, if /sbin/pidof is executed, the domain is defined as if /sbin/killall5 is executed. By specifying "alias /sbin/killall5 /sbin/pidof", you can run /sbin/pidof in the domain for /sbin/pidof .</p>
-</td></tr><tr><td>
-(5) Program aggregations
+(6) Program aggregations
 </td><td>
 <p>To deal multiple programs as a single program, use aggregator directive followed by name of original program and aggregated program. Patterns are allowed for name of original program.<br>
 For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
 </td></tr><tr><td>
-(6) Programs that cause domain transition initialization
+(7) Programs that cause domain transition initialization
 </td><td>
 <p>Register programs that initializes the domain transition history using the "initialize_domain" directive. No patterns allowed. When a program that is registered with "initialize_domain" directive is executed, the program runs just under the  &lt;kernel&gt; domain.<br>
 The following is the guideline.</p>
@@ -244,16 +237,16 @@ allow_read /etc/fstab
 </td></tr>
 </table>
 </td></tr><tr><td>
-(7) Programs that prevent domain transition initialization
+(8) Programs that prevent domain transition initialization
 </td><td>
 <p>To deny the effect of "initialize_domain" directive under specific conditions, use "no_initialize_domain" directive.</p>
 </td></tr><tr><td>
-(8) Domains that prevent domain transition
+(9) Domains that prevent domain transition
 </td><td>
 <p>To declare domain keepers, use "keep_domain" directive followed by domain definition.<br>
 For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, any process that belongs to "&lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" domain stays at that domain unless any program registered with "initialize_domain" directive is executed.</p>
 </td></tr><tr><td>
-(9) Domains that cause domain transition
+(10) Domains that cause domain transition
 </td><td>
 <p>To deny the effect of "keep_domain" directive under specific conditions, use "no_keep_domain" directive.</p>
 </td></tr>
@@ -265,7 +258,23 @@ For example, if "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh" is given, 
 
 <hr>
 
-<h2>Step 3: Reboot the system</h2>
+<h2><a name="configure_notify_daemon">Step 3: Configure to mail TOMOYO Linux's policy violation events (Optional)</a></h2>
+
+<p>TOMOYO Linux can report the occurrence of policy violation in enforcing mode, if you have set up a mean to notify (e.g. mail).</p>
+
+<p>You can use cron daemon for notifying. For example, to notify root@example.com via mail, once per an hour, add</p>
+
+<table border="1">
+<tr><td>
+00 * * * * root /usr/lib/tomoyo/tomoyo-notifyd 0 'mail root@example.com'
+</td></tr>
+</table>
+
+<p>to /etc/crontab .</p>
+
+<hr>
+
+<h2>Step 4: Reboot the system</h2>
 
 <p>Now, reboot with TOMOYO Linux kernel.</p>
 
