@@ -33,8 +33,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  security/Makefile         |    3 +++
  31 files changed, 237 insertions(+), 10 deletions(-)
 
---- linux-2.6.32-37.el6.orig/fs/compat.c
-+++ linux-2.6.32-37.el6/fs/compat.c
+--- linux-2.6.32-44.1.el6.orig/fs/compat.c
++++ linux-2.6.32-44.1.el6/fs/compat.c
 @@ -54,6 +54,7 @@
  #include <asm/mmu_context.h>
  #include <asm/ioctls.h>
@@ -52,8 +52,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-37.el6.orig/fs/compat_ioctl.c
-+++ linux-2.6.32-37.el6/fs/compat_ioctl.c
+--- linux-2.6.32-44.1.el6.orig/fs/compat_ioctl.c
++++ linux-2.6.32-44.1.el6/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -71,9 +71,9 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-37.el6.orig/fs/exec.c
-+++ linux-2.6.32-37.el6/fs/exec.c
-@@ -61,6 +61,7 @@
+--- linux-2.6.32-44.1.el6.orig/fs/exec.c
++++ linux-2.6.32-44.1.el6/fs/exec.c
+@@ -60,6 +60,7 @@
  #include <asm/mmu_context.h>
  #include <asm/tlb.h>
  #include "internal.h"
@@ -81,7 +81,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  int core_uses_pid;
  char core_pattern[CORENAME_MAX_SIZE] = "core";
-@@ -1382,7 +1383,7 @@ int do_execve(char * filename,
+@@ -1378,7 +1379,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -90,8 +90,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-37.el6.orig/fs/fcntl.c
-+++ linux-2.6.32-37.el6/fs/fcntl.c
+--- linux-2.6.32-44.1.el6.orig/fs/fcntl.c
++++ linux-2.6.32-44.1.el6/fs/fcntl.c
 @@ -23,6 +23,7 @@
  #include <asm/poll.h>
  #include <asm/siginfo.h>
@@ -110,8 +110,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	/* O_NOATIME can only be set by the owner or superuser */
  	if ((arg & O_NOATIME) && !(filp->f_flags & O_NOATIME))
  		if (!is_owner_or_cap(inode))
---- linux-2.6.32-37.el6.orig/fs/ioctl.c
-+++ linux-2.6.32-37.el6/fs/ioctl.c
+--- linux-2.6.32-44.1.el6.orig/fs/ioctl.c
++++ linux-2.6.32-44.1.el6/fs/ioctl.c
 @@ -18,6 +18,7 @@
  #include <linux/falloc.h>
  
@@ -129,9 +129,9 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-37.el6.orig/fs/namei.c
-+++ linux-2.6.32-37.el6/fs/namei.c
-@@ -37,6 +37,8 @@
+--- linux-2.6.32-44.1.el6.orig/fs/namei.c
++++ linux-2.6.32-44.1.el6/fs/namei.c
+@@ -39,6 +39,8 @@
  
  #define ACC_MODE(x) ("\000\004\002\006"[(x)&O_ACCMODE])
  
@@ -140,7 +140,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  /* [Feb-1997 T. Schoebel-Theuer]
   * Fundamental changes in the pathname lookup mechanisms (namei)
   * were necessary because of omirr.  The reason is that omirr needs
-@@ -1603,6 +1605,11 @@ int may_open(struct path *path, int acc_
+@@ -1605,6 +1607,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -152,7 +152,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1653,6 +1660,9 @@ static int __open_namei_create(struct na
+@@ -1648,6 +1655,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -162,7 +162,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -1805,7 +1815,9 @@ do_last:
+@@ -1800,7 +1810,9 @@ do_last:
  		error = mnt_want_write(nd.path.mnt);
  		if (error)
  			goto exit_mutex_unlock;
@@ -172,7 +172,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (error) {
  			mnt_drop_write(nd.path.mnt);
  			goto exit;
-@@ -1864,7 +1876,9 @@ ok:
+@@ -1862,7 +1874,9 @@ ok:
  		if (error)
  			goto exit;
  	}
@@ -182,7 +182,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error) {
  		if (will_truncate)
  			mnt_drop_write(nd.path.mnt);
-@@ -2114,6 +2128,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
+@@ -2108,6 +2122,9 @@ SYSCALL_DEFINE4(mknodat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -192,7 +192,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	switch (mode & S_IFMT) {
-@@ -2189,6 +2206,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
+@@ -2183,6 +2200,9 @@ SYSCALL_DEFINE3(mkdirat, int, dfd, const
  	if (error)
  		goto out_dput;
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -202,7 +202,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2303,6 +2323,9 @@ static long do_rmdir(int dfd, const char
+@@ -2297,6 +2317,9 @@ static long do_rmdir(int dfd, const char
  	if (error)
  		goto exit3;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -212,7 +212,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto exit4;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2392,6 +2415,9 @@ static long do_unlinkat(int dfd, const c
+@@ -2386,6 +2409,9 @@ static long do_unlinkat(int dfd, const c
  		if (error)
  			goto exit2;
  		error = security_path_unlink(&nd.path, dentry);
@@ -222,7 +222,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (error)
  			goto exit3;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2477,6 +2503,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
+@@ -2471,6 +2497,9 @@ SYSCALL_DEFINE3(symlinkat, const char __
  	if (error)
  		goto out_dput;
  	error = security_path_symlink(&nd.path, dentry, from);
@@ -232,7 +232,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from);
-@@ -2577,6 +2606,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
+@@ -2571,6 +2600,10 @@ SYSCALL_DEFINE5(linkat, int, olddfd, con
  	if (error)
  		goto out_dput;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -243,7 +243,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto out_drop_write;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -2818,6 +2851,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
+@@ -2812,6 +2845,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, c
  		goto exit5;
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -254,8 +254,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error)
  		goto exit6;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32-37.el6.orig/fs/namespace.c
-+++ linux-2.6.32-37.el6/fs/namespace.c
+--- linux-2.6.32-44.1.el6.orig/fs/namespace.c
++++ linux-2.6.32-44.1.el6/fs/namespace.c
 @@ -33,6 +33,7 @@
  #include <asm/unistd.h>
  #include "pnode.h"
@@ -300,17 +300,17 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32-37.el6.orig/fs/open.c
-+++ linux-2.6.32-37.el6/fs/open.c
-@@ -30,6 +30,7 @@
- #include <linux/audit.h>
+--- linux-2.6.32-44.1.el6.orig/fs/open.c
++++ linux-2.6.32-44.1.el6/fs/open.c
+@@ -31,6 +31,7 @@
  #include <linux/falloc.h>
  #include <linux/fs_struct.h>
+ #include <linux/ima.h>
 +#include <linux/ccsecurity.h>
  
- int vfs_statfs(struct dentry *dentry, struct kstatfs *buf)
- {
-@@ -275,6 +276,8 @@ static long do_sys_truncate(const char _
+ #include "internal.h"
+ 
+@@ -278,6 +279,8 @@ static long do_sys_truncate(const char _
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
  		error = security_path_truncate(&path, length, 0);
@@ -319,7 +319,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (!error) {
  		vfs_dq_init(inode);
  		error = do_truncate(path.dentry, length, 0, NULL);
-@@ -334,6 +337,8 @@ static long do_sys_ftruncate(unsigned in
+@@ -337,6 +340,8 @@ static long do_sys_ftruncate(unsigned in
  		error = security_path_truncate(&file->f_path, length,
  					       ATTR_MTIME|ATTR_CTIME);
  	if (!error)
@@ -328,7 +328,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		error = do_truncate(dentry, length, ATTR_MTIME|ATTR_CTIME, file);
  out_putf:
  	fput(file);
-@@ -587,6 +592,8 @@ SYSCALL_DEFINE1(chroot, const char __use
+@@ -590,6 +595,8 @@ SYSCALL_DEFINE1(chroot, const char __use
  	error = -EPERM;
  	if (!capable(CAP_SYS_CHROOT))
  		goto dput_and_out;
@@ -337,7 +337,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	set_fs_root(current->fs, &path);
  	error = 0;
-@@ -616,6 +623,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -619,6 +626,9 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	err = mnt_want_write_file(file);
  	if (err)
  		goto out_putf;
@@ -347,7 +347,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -623,6 +633,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
+@@ -626,6 +636,7 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	err = notify_change(dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -355,7 +355,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	mnt_drop_write(file->f_path.mnt);
  out_putf:
  	fput(file);
-@@ -645,6 +656,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -648,6 +659,9 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto dput_and_out;
@@ -365,7 +365,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	mutex_lock(&inode->i_mutex);
  	if (mode == (mode_t) -1)
  		mode = inode->i_mode;
-@@ -652,6 +666,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
+@@ -655,6 +669,7 @@ SYSCALL_DEFINE3(fchmodat, int, dfd, cons
  	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
  	error = notify_change(path.dentry, &newattrs);
  	mutex_unlock(&inode->i_mutex);
@@ -373,7 +373,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	mnt_drop_write(path.mnt);
  dput_and_out:
  	path_put(&path);
-@@ -700,6 +715,8 @@ SYSCALL_DEFINE3(chown, const char __user
+@@ -703,6 +718,8 @@ SYSCALL_DEFINE3(chown, const char __user
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -382,7 +382,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -725,6 +742,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
+@@ -728,6 +745,8 @@ SYSCALL_DEFINE5(fchownat, int, dfd, cons
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -391,7 +391,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -744,6 +763,8 @@ SYSCALL_DEFINE3(lchown, const char __use
+@@ -747,6 +766,8 @@ SYSCALL_DEFINE3(lchown, const char __use
  	error = mnt_want_write(path.mnt);
  	if (error)
  		goto out_release;
@@ -400,7 +400,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	error = chown_common(path.dentry, user, group);
  	mnt_drop_write(path.mnt);
  out_release:
-@@ -767,6 +788,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
+@@ -770,6 +791,8 @@ SYSCALL_DEFINE3(fchown, unsigned int, fd
  		goto out_fput;
  	dentry = file->f_path.dentry;
  	audit_inode(NULL, dentry);
@@ -409,7 +409,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	error = chown_common(dentry, user, group);
  	mnt_drop_write(file->f_path.mnt);
  out_fput:
-@@ -1160,6 +1183,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1164,6 +1187,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -418,8 +418,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32-37.el6.orig/fs/proc/version.c
-+++ linux-2.6.32-37.el6/fs/proc/version.c
+--- linux-2.6.32-44.1.el6.orig/fs/proc/version.c
++++ linux-2.6.32-44.1.el6/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -427,12 +427,12 @@ This is TOMOYO Linux patch for CentOS 6.0.
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32-37.el6 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.32-44.1.el6 2010/07/27\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32-37.el6.orig/include/linux/init_task.h
-+++ linux-2.6.32-37.el6/include/linux/init_task.h
+--- linux-2.6.32-44.1.el6.orig/include/linux/init_task.h
++++ linux-2.6.32-44.1.el6/include/linux/init_task.h
 @@ -115,6 +115,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -456,8 +456,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  }
  
  
---- linux-2.6.32-37.el6.orig/include/linux/sched.h
-+++ linux-2.6.32-37.el6/include/linux/sched.h
+--- linux-2.6.32-44.1.el6.orig/include/linux/sched.h
++++ linux-2.6.32-44.1.el6/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -468,7 +468,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	int sched_priority;
  };
 @@ -1554,6 +1556,10 @@ struct task_struct {
- 	unsigned long stack_start;
+ #endif /* CONFIG_TRACING */
  	/* reserved for Red Hat */
  	unsigned long rh_reserved[2];
 +#ifdef CONFIG_CCSECURITY
@@ -478,8 +478,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.32-37.el6.orig/include/net/ip.h
-+++ linux-2.6.32-37.el6/include/net/ip.h
+--- linux-2.6.32-44.1.el6.orig/include/net/ip.h
++++ linux-2.6.32-44.1.el6/include/net/ip.h
 @@ -30,6 +30,7 @@
  #include <net/inet_sock.h>
  #include <net/snmp.h>
@@ -497,8 +497,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.32-37.el6.orig/kernel/compat.c
-+++ linux-2.6.32-37.el6/kernel/compat.c
+--- linux-2.6.32-44.1.el6.orig/kernel/compat.c
++++ linux-2.6.32-44.1.el6/kernel/compat.c
 @@ -27,6 +27,7 @@
  #include <linux/ptrace.h>
  
@@ -516,8 +516,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32-37.el6.orig/kernel/kexec.c
-+++ linux-2.6.32-37.el6/kernel/kexec.c
+--- linux-2.6.32-44.1.el6.orig/kernel/kexec.c
++++ linux-2.6.32-44.1.el6/kernel/kexec.c
 @@ -39,6 +39,7 @@
  #include <asm/system.h>
  #include <asm/sections.h>
@@ -535,8 +535,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.32-37.el6.orig/kernel/kmod.c
-+++ linux-2.6.32-37.el6/kernel/kmod.c
+--- linux-2.6.32-44.1.el6.orig/kernel/kmod.c
++++ linux-2.6.32-44.1.el6/kernel/kmod.c
 @@ -160,6 +160,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -549,8 +549,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.32-37.el6.orig/kernel/module.c
-+++ linux-2.6.32-37.el6/kernel/module.c
+--- linux-2.6.32-44.1.el6.orig/kernel/module.c
++++ linux-2.6.32-44.1.el6/kernel/module.c
 @@ -56,6 +56,7 @@
  #include <linux/percpu.h>
  #include <linux/kmemleak.h>
@@ -577,8 +577,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32-37.el6.orig/kernel/ptrace.c
-+++ linux-2.6.32-37.el6/kernel/ptrace.c
+--- linux-2.6.32-44.1.el6.orig/kernel/ptrace.c
++++ linux-2.6.32-44.1.el6/kernel/ptrace.c
 @@ -23,6 +23,7 @@
  #include <linux/syscalls.h>
  #include <linux/uaccess.h>
@@ -605,8 +605,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.32-37.el6.orig/kernel/sched.c
-+++ linux-2.6.32-37.el6/kernel/sched.c
+--- linux-2.6.32-44.1.el6.orig/kernel/sched.c
++++ linux-2.6.32-44.1.el6/kernel/sched.c
 @@ -74,6 +74,7 @@
  
  #include <asm/tlb.h>
@@ -615,7 +615,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  #include "sched_cpupri.h"
  
-@@ -6087,6 +6088,8 @@ int can_nice(const struct task_struct *p
+@@ -6222,6 +6223,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -624,8 +624,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32-37.el6.orig/kernel/signal.c
-+++ linux-2.6.32-37.el6/kernel/signal.c
+--- linux-2.6.32-44.1.el6.orig/kernel/signal.c
++++ linux-2.6.32-44.1.el6/kernel/signal.c
 @@ -35,6 +35,7 @@
  #include <asm/unistd.h>
  #include <asm/siginfo.h>
@@ -679,8 +679,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32-37.el6.orig/kernel/sys.c
-+++ linux-2.6.32-37.el6/kernel/sys.c
+--- linux-2.6.32-44.1.el6.orig/kernel/sys.c
++++ linux-2.6.32-44.1.el6/kernel/sys.c
 @@ -45,6 +45,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -727,8 +727,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32-37.el6.orig/kernel/sysctl.c
-+++ linux-2.6.32-37.el6/kernel/sysctl.c
+--- linux-2.6.32-44.1.el6.orig/kernel/sysctl.c
++++ linux-2.6.32-44.1.el6/kernel/sysctl.c
 @@ -54,6 +54,7 @@
  
  #include <asm/uaccess.h>
@@ -747,8 +747,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32-37.el6.orig/kernel/time.c
-+++ linux-2.6.32-37.el6/kernel/time.c
+--- linux-2.6.32-44.1.el6.orig/kernel/time.c
++++ linux-2.6.32-44.1.el6/kernel/time.c
 @@ -41,6 +41,7 @@
  
  #include <asm/uaccess.h>
@@ -775,8 +775,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.32-37.el6.orig/kernel/time/ntp.c
-+++ linux-2.6.32-37.el6/kernel/time/ntp.c
+--- linux-2.6.32-44.1.el6.orig/kernel/time/ntp.c
++++ linux-2.6.32-44.1.el6/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -801,8 +801,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32-37.el6.orig/net/ipv4/raw.c
-+++ linux-2.6.32-37.el6/net/ipv4/raw.c
+--- linux-2.6.32-44.1.el6.orig/net/ipv4/raw.c
++++ linux-2.6.32-44.1.el6/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -829,8 +829,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32-37.el6.orig/net/ipv4/udp.c
-+++ linux-2.6.32-37.el6/net/ipv4/udp.c
+--- linux-2.6.32-44.1.el6.orig/net/ipv4/udp.c
++++ linux-2.6.32-44.1.el6/net/ipv4/udp.c
 @@ -105,6 +105,7 @@
  #include <net/checksum.h>
  #include <net/xfrm.h>
@@ -868,8 +868,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		UDP_INC_STATS_USER(sock_net(sk), UDP_MIB_INERRORS, is_udplite);
  	release_sock(sk);
  
---- linux-2.6.32-37.el6.orig/net/ipv6/raw.c
-+++ linux-2.6.32-37.el6/net/ipv6/raw.c
+--- linux-2.6.32-44.1.el6.orig/net/ipv6/raw.c
++++ linux-2.6.32-44.1.el6/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -896,8 +896,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32-37.el6.orig/net/ipv6/udp.c
-+++ linux-2.6.32-37.el6/net/ipv6/udp.c
+--- linux-2.6.32-44.1.el6.orig/net/ipv6/udp.c
++++ linux-2.6.32-44.1.el6/net/ipv6/udp.c
 @@ -48,6 +48,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -935,8 +935,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (is_udp4)
  			UDP_INC_STATS_USER(sock_net(sk),
  					UDP_MIB_INERRORS, is_udplite);
---- linux-2.6.32-37.el6.orig/net/socket.c
-+++ linux-2.6.32-37.el6/net/socket.c
+--- linux-2.6.32-44.1.el6.orig/net/socket.c
++++ linux-2.6.32-44.1.el6/net/socket.c
 @@ -98,6 +98,8 @@
  #include <net/sock.h>
  #include <linux/netfilter.h>
@@ -946,7 +946,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  static int sock_no_open(struct inode *irrelevant, struct file *dontcare);
  static ssize_t sock_aio_read(struct kiocb *iocb, const struct iovec *iov,
  			 unsigned long nr_segs, loff_t pos);
-@@ -570,6 +572,8 @@ static inline int __sock_sendmsg(struct 
+@@ -563,6 +565,8 @@ static inline int __sock_sendmsg(struct 
  	si->size = size;
  
  	err = security_socket_sendmsg(sock, msg, size);
@@ -955,7 +955,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (err)
  		return err;
  
-@@ -1211,6 +1215,8 @@ static int __sock_create(struct net *net
+@@ -1204,6 +1208,8 @@ static int __sock_create(struct net *net
  	}
  
  	err = security_socket_create(family, type, protocol, kern);
@@ -964,7 +964,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (err)
  		return err;
  
-@@ -1459,6 +1465,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
+@@ -1432,6 +1438,11 @@ SYSCALL_DEFINE3(bind, int, fd, struct so
  						   (struct sockaddr *)&address,
  						   addrlen);
  			if (!err)
@@ -976,7 +976,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  				err = sock->ops->bind(sock,
  						      (struct sockaddr *)
  						      &address, addrlen);
-@@ -1488,6 +1499,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
+@@ -1461,6 +1472,8 @@ SYSCALL_DEFINE2(listen, int, fd, int, ba
  
  		err = security_socket_listen(sock, backlog);
  		if (!err)
@@ -985,7 +985,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  			err = sock->ops->listen(sock, backlog);
  
  		fput_light(sock->file, fput_needed);
-@@ -1525,6 +1538,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1498,6 +1511,7 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (!sock)
  		goto out;
  
@@ -993,7 +993,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	err = -ENFILE;
  	if (!(newsock = sock_alloc()))
  		goto out_put;
-@@ -1557,6 +1571,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1526,6 +1540,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -1005,7 +1005,7 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
-@@ -1623,6 +1642,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
+@@ -1587,6 +1606,9 @@ SYSCALL_DEFINE3(connect, int, fd, struct
  
  	err =
  	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
@@ -1015,8 +1015,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  	if (err)
  		goto out_put;
  
---- linux-2.6.32-37.el6.orig/net/unix/af_unix.c
-+++ linux-2.6.32-37.el6/net/unix/af_unix.c
+--- linux-2.6.32-44.1.el6.orig/net/unix/af_unix.c
++++ linux-2.6.32-44.1.el6/net/unix/af_unix.c
 @@ -114,6 +114,7 @@
  #include <linux/mount.h>
  #include <net/checksum.h>
@@ -1036,8 +1036,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
---- linux-2.6.32-37.el6.orig/security/Kconfig
-+++ linux-2.6.32-37.el6/security/Kconfig
+--- linux-2.6.32-44.1.el6.orig/security/Kconfig
++++ linux-2.6.32-44.1.el6/security/Kconfig
 @@ -165,5 +165,7 @@ source security/tomoyo/Kconfig
  
  source security/integrity/ima/Kconfig
@@ -1046,8 +1046,8 @@ This is TOMOYO Linux patch for CentOS 6.0.
 +
  endmenu
  
---- linux-2.6.32-37.el6.orig/security/Makefile
-+++ linux-2.6.32-37.el6/security/Makefile
+--- linux-2.6.32-44.1.el6.orig/security/Makefile
++++ linux-2.6.32-44.1.el6/security/Makefile
 @@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
