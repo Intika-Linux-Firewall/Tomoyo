@@ -194,7 +194,6 @@ static unsigned char revalidate_path(const char *path)
 	return type;
 }
 
-static _Bool file_only_profile = 0;
 static FILE *filp = NULL;
 
 static inline void echo(const char *str)
@@ -1346,7 +1345,6 @@ static void make_manager(void)
 
 static void make_profile(void)
 {
-	static const char *file_only = "";
 	FILE *fp;
 	if (chdir(policy_dir) || !access("profile.conf", R_OK))
 		return;
@@ -1356,25 +1354,19 @@ static void make_profile(void)
 		return;
 	}
 	fprintf(stderr, "Creating default profile... ");
-	if (file_only_profile)
-		file_only = "::file";
 	fprintf(fp,
 		"PROFILE_VERSION=20090903\n"
-		"PREFERENCE::audit={ max_grant_log=1024 "
-		"max_reject_log=1024 task_info=yes path_info=yes }\n"
-		"PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"PREFERENCE::learning={ verbose=no max_entry=2048 "
-		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
+		"PREFERENCE::enforcing={ verbose=yes }\n"
+		"PREFERENCE::learning={ verbose=no max_entry=2048 }\n"
 		"PREFERENCE::permissive={ verbose=yes }\n"
 		"0-COMMENT=-----Disabled Mode-----\n"
-		"0-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
+		"0-CONFIG={ mode=disabled }\n"
 		"1-COMMENT=-----Learning Mode-----\n"
-		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
+		"1-CONFIG={ mode=learning }\n"
 		"2-COMMENT=-----Permissive Mode-----\n"
-		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
+		"2-CONFIG={ mode=permissive }\n"
 		"3-COMMENT=-----Enforcing Mode-----\n"
-		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n",
-		file_only, file_only, file_only, file_only);
+		"3-CONFIG={ mode=enforcing }\n");
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
 		fprintf(stderr, "OK\n");
@@ -1419,33 +1411,10 @@ static void make_meminfo(void)
 	fprintf(stderr, "Creating memory quota policy... ");
 	fprintf(fp, "# Memory quota (byte). 0 means no quota.\n");
 	fprintf(fp, "Policy:            0\n");
-	fprintf(fp, "Audit logs: 16777216\n");
 	fprintf(fp, "Query lists: 1048576\n");
 	fclose(fp);
 	if (!chdir(policy_dir) &&
 	    !rename("meminfo.tmp", "meminfo.conf"))
-		fprintf(stderr, "OK\n");
-	else
-		fprintf(stderr, "failed.\n");
-}
-
-static void make_module_loader(void)
-{
-	FILE *fp;
-	if (chdir(policy_dir) || !access("tomoyo-load-module", X_OK))
-		return;
-	fp = fopen("tomoyo-load-module.tmp", "w");
-	if (!fp) {
-		fprintf(stderr, "ERROR: Can't create module loader.\n");
-		return;
-	}
-	fprintf(stderr, "Creating module loader... ");
-	fprintf(fp, "#! /bin/sh\n");
-	fprintf(fp, "exec modprobe tomoyoecurity\n");
-	fclose(fp);
-	if (!chdir(policy_dir) &&
-	    !chmod("tomoyo-load-module.tmp", 0700) &&
-	    !rename("tomoyo-load-module.tmp", "tomoyo-load-module"))
 		fprintf(stderr, "OK\n");
 	else
 		fprintf(stderr, "failed.\n");
@@ -1465,10 +1434,6 @@ int main(int argc, char *argv[])
 			}
 		} else if (!strncmp(arg, "policy_dir=", 11)) {
 			dir = arg + 11;
-		} else if (!strcmp(arg, "--file-only-profile")) {
-			file_only_profile = 1;
-		} else if (!strcmp(arg, "--full-profile")) {
-			file_only_profile = 0;
 		} else {
 			fprintf(stderr, "Unknown option: '%s'\n", arg);
 			return 1;
@@ -1484,6 +1449,5 @@ int main(int argc, char *argv[])
 	make_manager();
 	make_profile();
 	make_meminfo();
-	make_module_loader();
 	return 0;
 }
