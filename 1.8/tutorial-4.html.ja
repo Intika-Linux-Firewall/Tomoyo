@@ -1,0 +1,313 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux の世界　第４回：「ポリシーをチューニングしてみよう」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-4.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux の世界<br>第４回：「ポリシーをチューニングしてみよう」</h1>
+
+<h2>今回の内容</h2>
+
+<p>今回のテーマは， TOMOYO Linux を使いこなすうえで必須のポリシーのチューニングと，それを支援する機能についてです．</p>
+
+<h2>ポリシーの修正を支援する機能について</h2>
+
+<p>セキュアOSを導入していれば，プロセスを乗っ取られたり，管理者権限を不正に奪われたりしてもそれがただちに致命的被害にはつながりません．システムのアップデートについて，標準のOSほど神経を使わなくても良くなりますが過信は禁物です．アップデートを適用しシステムを万全な状態に維持しましょう．強制アクセス制御機能を搭載しているOSでは，管理者が定義したポリシーにより振る舞いが制限されます．そのため，ソフトウェアのアップデートなどによりプログラムの依存関係などが変化した場合，ポリシーを修正してやらないと正常に動作できなくなってしまう可能性があります．管理者が自らポリシーを作成するという考え方を持つTOMOYO Linuxでは，ポリシーの修正も自力で行わなければいけません．今回は，ソフトウェアのアップデートに伴って必要となる，ポリシーの修正作業を支援する機能について紹介します．</p>
+
+<p>TOMOYO Linux では，強制モードで運用中にポリシー違反が発生しても，そのアクセス要求を直ちに拒否する（図１）のではなく，管理者による対話的な操作によりそのアクセス要求の諾否を指示する（図２）ことができます．この機能は，強制モードでの動作確認中にポリシー違反が発生した場合や，ソフトウェアのアップデートなどによりポリシーの微調整が必要になった場合に役に立ちます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１　ポリシーに違反する要求はすぐに拒否<br>
+<img src="tutorial/fig-4-1-ja.png" alt="fig-4-1-ja.png" width="800" height="480">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　ポリシーに違反する要求は対話的に処理<br>
+<img src="tutorial/fig-4-2-ja.png" alt="fig-4-2-ja.png" width="800" height="480">
+</td></tr>
+</table>
+
+<h3>使用するプログラム</h3>
+
+<p>TOMOYO Linux では，ポリシーの修正を支援するためのツールとして，図３のプログラムを提供しています．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　TOMOYO Linux の管理を行うためのプログラム<br>
+<table border="1" summary="fig">
+<tr><td>プログラム名</td><td>役割</td></tr>
+<tr><td>ccs-queryd</td><td>アクセス要求を対話的に許可する</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h3>コンソールでの操作例</h3>
+
+<p>まずはログイン後の操作を制限する場合の例で説明します．操作を間違えてロックアウトされてしまわないようにするため，この連載では example というユーザを作成して作業することにします．また， example ユーザと root ユーザの作業をコンソールウィンドウの切り替えを行いながら進めることにします．コンソールウィンドウの切り替えは「 ALT 」＋「 F1 」～「 F6 」で行います．「 ALT 」＋「 F1 」でウィンドウ１を開き， root ユーザと example ユーザのシェルを異なるものに設定してください．これは，ログインシェルを異なるものにすることによって，ログインシェルのドメインを異なるものにし，特定のログインシェルのドメインだけでアクセス制御を有効にするためです．本連載では root ユーザのシェルは /bin/bash の場合で説明しているので， example ユーザには /bin/tcsh を割り当てます（図４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図４　example ユーザに /bin/tcsh を割り当てる
+<pre>
+# usermod -s /bin/tcsh example
+</pre>
+</td></tr>
+</table>
+
+<p>次に「 ALT 」＋「 F2 」でウィンドウ２を開き， example ユーザとしてログインしてください． CentOS 5.5 の場合，コンソールからログインしたドメインは「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh 」となるはずです．（ /usr/sbin/sshd からログインした場合は「 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh 」となるはずです．）ウィンドウ１に切り替えて，このドメインに対して強制モード用のプロファイル（プロファイル３）を割り当てます（図５）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図５　example ユーザのシェル（ウィンドウ２）のドメインに強制モード用プロファイルを割り当て
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh'
+</pre>
+</td></tr>
+</table>
+
+<p>これにより， example ユーザのシェル（ウィンドウ２）からは，ほとんど何もできない状態になります（図６）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図６　図５の適用結果を確認
+<pre>
+$ ls
+/bin/ls: Operation not permitted.
+$ cat /etc/passwd
+/bin/cat: Operation not permitted.
+</pre>
+</td></tr>
+</table>
+
+<p>ccs-queryd というプログラムを使用する（図７）と，強制モードで動作中のプロセスがポリシーに違反する内容のアクセス要求を行った場合でも，ただちに拒否するのではなく，システム管理者の指示を仰ぐようにすることができます．このモードは， SELinux や AppArmor には存在しない， TOMOYO Linux 特有の機能です．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　ccs-queryd の実行
+<pre>
+# /usr/sbin/ccs-queryd
+</pre>
+</td></tr>
+</table>
+
+<p>ウィンドウ２に切り替えて， /bin/ls コマンドの実行を要求してみましょう（図８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　ls コマンドを実行
+<pre>
+$ /bin/ls
+</pre>
+</td></tr>
+</table>
+
+<p>先ほどはただちに拒否されてしまいましたが，今度は拒否されずに止まっています．この状態のままウィンドウ１に切り替えてみましょう．すると，図９のようなプロンプトが表示されているはずです．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　図８実行後，ウィンドウ１に表示されるプロンプト
+<pre>
+#2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
+allow_execute /bin/ls
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+</td></tr>
+</table>
+
+<p>１行目にはポリシーに違反するアクセス要求を行ったプロセスの情報とアクセスしようとしているファイルの情報が，２行目にはポリシーに違反するアクセス要求を行ったプロセスが属しているドメインのドメイン名が，３行目にはアクセス要求の内容が表示されています．このように，ドメイン用ポリシーと同じ構文で要求内容が表示されます．ここで，「 Y 」を押すと，そのアクセス要求を許可することができます．また，「 N 」を押すと，そのアクセス要求を拒否することができます．「 Y 」キーを押した場合， /bin/ls の実行が許可されますが，ドメイン用ポリシーの中には /bin/ls を実行するためのドメインがまだ作成されていません．そのため，図１０のようなプロンプトが表示されます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１０　ドメイン作成の許可を求めるプロンプト
+<pre>
+#2010-05-13 15:29:40# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
+# wants to create domain
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
+Allow? ('Y'es/'N'o/'R'etry):
+</pre>
+</td></tr>
+</table>
+
+<p>「 Y 」を押した場合， /bin/ls 用のドメインが作成されるので， /bin/ls は先に進むことができます．「 N 」を押した場合，ドメインが見つからないという理由で /bin/ls の実行要求は拒否されます． /bin/ls のドメインの作成を許可すると，図１１のように聞かれます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　ドメイン作成を許可した際のプロンプト
+<pre>
+#2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
+allow_read /etc/selinux/config
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</pre>
+</td></tr>
+</table>
+
+<p>/bin/ls のドメインは作成されたばかりですから，何もアクセス許可が与えられていません．表示されている内容を見ながら，許可するかどうかを慎重に判断して回答してください．「 A 」を押すと，必要に応じてアクセス許可の内容を編集してポリシーに追加してから再試行することができます．たとえば /etc/passwd だけでなく， /etc/\*shadow\* 以外の /etc/\* に一致するファイルへのアクセスを許可したい場合には， /etc/passwd という内容を /etc/\*\-\*shadow\* に書き換えてから「 Enter 」を押してください．</p>
+
+<p>ccs-querydを終了させるには「CTRL」＋「C」を押してください．</p>
+
+<h3>ccs-queryd 利用時の注意点</h3>
+
+<p>ccs-queryd を利用するうえで注意すべき点が２つあります．１つは，無条件にアクセス要求を許可してはいけない点です．ポリシー違反の原因が悪意あるユーザによる攻撃である可能性があるからです．もし，悪意あるユーザによる攻撃によって発生したアクセス要求に対してアクセスを許可してしまった場合，強制アクセス制御による保護が無意味になってしまいます．もう１つは， ccs-queryd が動作している間は，ポリシー違反が発生しても管理者が応答するまでそのアクセス要求は保留状態となる点です．そのため， ccs-queryd を動作させたまま席を外したりログアウトしたりしないでください．</p>
+
+<h3>共有ライブラリの扱い</h3>
+
+<p>TOMOYO Linux のインストール時に実行した init_policy により， /etc/ld.so.cache に登録されている共有ライブラリ（ /sbin/ldconfig -NXp により確認できます）に関しては例外ポリシーで allow_read （無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーに allow_read という指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
+
+<p>先に説明した ccs-queryd により検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的に allow_read という指定を更新してくれたほうが便利でしょう．そのため， ccs-queryd はポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである /etc/ld.so.cache の変化を監視し，自動的に allow_read を例外ポリシーに追加するようになっています．</p>
+
+<h3>実際のサービスに対する操作例</h3>
+
+<p><a href="http://tomoyo.sourceforge.jp/1.7/enforcing.html.ja#using_interactive_mode">ソフトウェアのアップデート時に発生するポリシー違反を処理する</a>を参照してください．</p>
+
+<h2>ポリシーのゴミを除去する機能について</h2>
+
+<h3>使用するプログラム</h3>
+
+<p>TOMOYO Linux では，ポリシーに含まれる不要なアクセス許可の削除を支援するためのツールとして，図１２のプログラムを提供しています．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　TOMOYO Linux の管理を行うためのプログラム<br>
+<table border="1" summary="fig">
+<tr><td>プログラム名</td><td>役割</td></tr>
+<tr><td>ccs-findtemp</td><td>存在しないパス名を検出する</td></tr>
+<tr><td>ccs-domainmatch</td><td>アクセス許可が与えられているドメインを検索する</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>これらを使うことで，パターン化する前のテンポラリファイルやソフトウェアのアップデートにより削除されたライブラリファイルなどの余計なアクセス許可を検出して除去することができます．</p>
+
+<h3>コンソールでの操作例</h3>
+
+<p>簡単に試してもらうために，コンソールで説明することにします．学習モードの状態で図１３の操作を行ってみてください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　学習モードで行う操作
+<pre>
+# touch /tmp/abc12345
+# rm -f /tmp/abc12345
+</pre>
+</td></tr>
+</table>
+
+<p>この操作により touch と rm の /tmp/abc12345 に対するアクセスが学習されましたが， /tmp/abc12345 というファイル自体はもう存在しません．この操作が本来不要なものであればポリシーに使われないアクセス許可が残されたことになります．このように，ポリシーには記録されていても存在しないパス名は，テンポラリファイルとして使用されていたか，アップデートにより削除された可能性が高いと言えます． ccs-findtemp コマンドを実行すると，ポリシーには記録されていても存在しないパス名を表示することができます．なお，図１４の実行例では /tmp/abc12345 というパス名しか表示されていませんが，実際には他のパス名も表示されるはずです．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１４　ccs-findtemp の実行例
+<pre>
+# /usr/sbin/ccs-findtemp &lt; /proc/ccs/domain_policy
+/tmp/abc12345
+# /usr/sbin/ccs-findtemp --with-domainname &lt; /proc/ccs/domain_policy
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
+/tmp/abc12345
+/tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
+/tmp/abc12345
+# /usr/sbin/ccs-domainmatch /tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
+allow_create /tmp/abc12345
+allow_write /tmp/abc12345
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
+allow_unlink /tmp/abc12345
+</pre>
+</td></tr>
+</table>
+
+<p>ccs-findtemp により表示されたパス名を引数として ccs-domainmatch コマンドを実行すると，引数で指定されたパス名に対するアクセス許可を含んでいるドメインが表示されます．不要だと判断した場合には， ccs-editpolicy を起動して，当該するドメインへ移動し，不要なアクセス許可を削除します．</p>
+
+<h2>アクセスログを保存する</h2>
+
+<p>TOMOYO Linux では，「ポリシーに違反しなかったアクセス要求のログ」（アクセス許可ログ）と「ポリシーに違反したアクセス要求のログ」（アクセス拒否ログ）を取得することができます．アクセス許可ログとアクセス拒否ログをカーネルから読み出してファイルに保存するために， ccs-auditd というデーモンプログラムを利用できます．</p>
+
+<h3>アクセスログを保存してみよう</h3>
+
+<p>まず，アクセスログを保存するディレクトリを作成します（図１５）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１５　アクセスログ保存用のディレクトリを作成
+<pre>
+# mkdir -p /var/log/tomoyo
+</pre>
+</td></tr>
+</table>
+
+<p>次に， /etc/rc.d/rc.local に図１６の行を追加します．１番目の引数が「アクセス許可ログ」の保存場所で，２番目の引数が「アクセス拒否ログ」の保存場所です．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１６　/etc/rc.d/rc.local を修正
+<pre>
+/usr/sbin/ccs-auditd /dev/null /var/log/tomoyo/reject_log.txt
+</pre>
+</td></tr>
+</table>
+
+<p>次に， logrotate によるローテーションを行わせるために，図１７のような内容のファイルを /etc/logrotate.d/tomoyo として作成してください．なお， nocreate オプションを必ず指定してください． nocreate オプションを忘れると，最初のローテーションが実行されて以降のログが保存されなくなってしまいます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１７　logrotate によるローテーションの設定（ /etc/logrotate.d/tomoyo ）
+<pre>
+/var/log/tomoyo/reject_log.txt {
+    weekly
+    rotate 9
+    missingok
+    notifempty
+    nocreate
+}
+</pre>
+</td></tr>
+</table>
+
+<p>アクセス許可ログを保存する必要がない場合は，プロファイルで「 PREFERENCE::audit={ max_grant_log=0 } 」という指定をして，アクセス許可ログの保存場所として /dev/null を指定することができます． ccs-auditd にはフィルタリング機能がありませんので，アクセス許可ログを保存する場合はディスク容量に注意してください．アクセス拒否ログを保存する必要がない場合は，プロファイルで「 PREFERENCE::audit={ max_reject_log=0 } 」という指定をして，アクセス拒否ログの保存場所として /dev/null を指定することができます．アクセス拒否ログは保存しておくことを推奨します．アクセス許可ログ／アクセス拒否ログのどちらも保存しない場合には ccs-auditd を実行する必要はありません．また，プロファイルで「 PREFERENCE::audit={ max_grant_log=0 max_reject_log=0 } 」を指定しておくことで，消費メモリの節約と応答速度の向上が期待できます．</p>
+
+<h3>アクセスログを閲覧してみよう</h3>
+
+<p>アクセスログは，そのまま /etc/ccs/domain_policy.conf に追記可能な形式になっています（図１８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　アクセスログの内容例（ /var/log/tomoyo/reject_log.txt ）
+<pre>
+# cat /var/log/tomoyo/reject_log.txt
+#2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile2
+
+#2010-05-13 15:36:36# profile=3 mode=enforcing (global-pid=4518) task={ pid=4518 ppid=4480 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=500 gid=500 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
+&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
+allow_read /tmp/testfile1
+</pre>
+</td></tr>
+</table>
+
+<p>アクセスログの中にはプロセスのユーザＩＤなどの情報も記録されています．これらの情報は次回説明する条件付きアクセス許可で使用することができます．</p>
+
+<h2>次回予告</h2>
+
+<p>今回はポリシーのチューニング方法について紹介しました．次回は，条件付きアクセス許可について紹介していきます．どうぞお楽しみに．</p>
+
+<p><a href="tutorial-3.html.ja">第３回へ戻る</a>　<a href="tutorial-5.html.ja">第５回へ進む</a></p>
+
+<hr>
+
+<p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
