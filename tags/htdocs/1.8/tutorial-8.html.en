@@ -1,0 +1,281 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The eighth installment: "Let's restrict login sessions. (First part)"</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-8.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The eighth installment: "Let's restrict login sessions. (First part)"</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>In this installment, I explain steps for restricting operations after logging into a Linux system.</p>
+
+<p>SELinux is currently migrating to reference policy. Before reference policy is provided, two types of policy configurations were provided as default policy configuration. One is called "strict policy" which applies mandatory access control to all processes including login sessions. The other is called "targeted policy" which applies mandatory access control to frequently attacked services. From the point of view of "improving security", literally strict "strict policy" is more effective. But if "strict policy" is not properly configured, it even happens that nobody can login to a SELinux enabled system. Therefore, many users who are using SELinux enabled are probably customizing policy configuration based on "targeted policy". According to opinions from Russell Coker and SELinux developers in LKML, they SELinux developers consider that "System administrators who can't figure out SELinux's policy should not modify SELinux's policy configuration. Use default policy configuration without modification provided by us because we are SELinux's professional." On the contrary, TOMOYO Linux developers consider that "System administrators creates policy configuration by themselves." What do you think about this?</p>
+
+<p>By the way, this series explains TOMOYO Linux. Thus, let's restrict operations in login sessions using "do it yourself" TOMOYO Linux.</p>
+
+<h2>Let's restrict login sessions</h2>
+
+<h3>Why restricting login sessions?</h3>
+
+<p>When you use Linux as a server, you might want to restrict operations of users who logged into the system. For example, "I want to prevent administrator from getting out database files which contain customer's information", "I want to allow logged in users nothing but to change password", "I want to delegate tasks for restarting WWW servers and updating WWW contents while forbidding all other operations", "I want to prevent logged in users from installing backdoors for sniffing passwords", "I want to use Linux as a gateway server for accessing corporate networks from Internet". You can easily handle such demands by using TOMOYO Linux because TOMOYO Linux manages domains for per process's invocation history basis.</p>
+
+<h3>Basic steps</h3>
+
+<p>There are 4 general phases for protecting login sessions.</p>
+
+<ol>
+<li>Firstly, determine commands you want to allow execution in login sessions (e.g. allow execution of /bin/cat command for browsing files, allow execution of /usr/bin/passwd command for changing passwords).</li>
+<li>Next, determine files you want to allow access in login sessions (e.g. allow reading and writing files under the user's home directory as a rule).</li>
+<li>Then, determine networks you want to allow communication in login sessions (e.g. allow communication with only DNS server, HTTP server, FTP server and SSH server).</li>
+<li>After giving permissions determined above, append missing permissions using learning mode.</li>
+</ol>
+
+<p>Keywords which appear in above steps are listed in Fig. 1.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Keywords<br>
+<table border="1" summary="fig">
+<tr><td>Keyword</td><td>Meaning</td></tr>
+<tr><td>path_group</td><td>Grouping program files and files under home directories.</td></tr>
+<tr><td>keep_domain</td><td>Suppress domain transitions</td></tr>
+<tr><td>no_keep_domain</td><td>Resume domain transitions</td></tr>
+<tr><td>exec.argv[0]</td><td>Prevent illegal program execution using symbolic links</td></tr>
+<tr><td>address_group</td><td>Grouping network addresses</td></tr>
+<tr><td>if</td><td>Allow accessing files owned by the user</td></tr>
+</table>
+</td></tr>
+</table>
+
+<h2>Step 1: Determine commands you want to allow</h2>
+
+<h3>Determining programs</h3>
+
+<p>To prevent users who logged in the system from executing malicious programs, it is an effective solution to forbid execution of programs which are not installed in the system beforehand. In this series, I assume commands listed in Fig. 2 (from commands installed in the system beforehand) are permitted in the login session.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Programs permitted in login session<br>
+<table border="1" summary="fig">
+<tr><td>/bin/basename /bin/bash /bin/cat /bin/egrep /bin/grep /bin/hostname /bin/ln /bin/ls /bin/mkdir /bin/mv /bin/rm /bin/rmdir /bin/sed /bin/touch /sbin/consoletype /usr/bin/clear /usr/bin/dircolors /usr/bin/emacs /usr/bin/id /usr/bin/passwd /usr/bin/perl /usr/bin/ssh /usr/bin/ssh-keygen /usr/bin/wget /usr/bin/which</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>Let's group these commands using "path_group" keyword in exception policy. (Fig. 3) But do not use "path_group" keyword for programs which behaves differently depending on invocation name (a.k.a. argv[0]) and specify such programs individually (e.g. allow_execute /usr/bin/passwd if exec.argv[0]="passwd") using "if exec.argv[0]" conditions.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Grouping commands
+<pre>
+path_group COMMANDS_FOR_LOGIN_SESSION /bin/basename
+path_group COMMANDS_FOR_LOGIN_SESSION /bin/bash
+(...snipped...)
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/wget
+path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/which
+</pre>
+</td></tr>
+</table>
+
+<p>You can use "which" command or "type" command for finding the location of commands. (Fig. 4)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Finding the location of commands
+<pre>
+# which perl sed grep
+/usr/bin/perl
+/bin/sed
+/bin/grep
+</pre>
+</td></tr>
+</table>
+
+<p>You might wonder that "Do I need to allow execution of programs like /sbin/consoletype and /usr/bin/dircolors ?" But many commands are automatically executed by scripts (e.g. ~/.bashrc for /bin/bash ) where users are not aware. To know what operations are done by such commands, login to the system running with TOMOYO Linux kernels and then logout. And you can learn what commands are automatically executed by scripts as a child domain of login shell. Moreover, if you do so with a profile with "CONFIG::file={ mode=learning }" (i.e. learning mode) assigned to the domain for login shell, you can learn not only programs executed but also files accessed.</p>
+
+<h3>Designing domain transition tree</h3>
+
+<p>As I explained in this series by now, as a rule, TOMOYO Linux performs domain transition whenever a program is executed. Therefore, /bin/cat command will belong to a child domain of shell programs in Fig. 5 and /bin/cat command will belong to a child domain of /usr/bin/xargs command in Fig. 6.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Executing /bin/cat command from shell
+<pre>
+# /bin/cat /etc/*.conf
+</pre>
+</td><td>
+&diams; Fig. 6&nbsp;&nbsp;Executing /bin/cat command from xargs command
+<pre>
+# echo /etc/*.conf | xargs /bin/cat --
+</pre>
+</td></tr>
+</table>
+
+<p>But, there would be no difference from the point of view of security  and it would be convenient for users that /bin/cat belongs to the same domain in both cases. Since it is difficult to predict what commands do users executes in what order in login session, as a rule you can suppress domain transitions in login session. If login shell is /bin/bash , the domain which login shell executed from /usr/sbin/sshd belongs to is "&lt;kernel&gt; /usr/sbin/sshd /bin/bash". Thus, you can specify "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" in exception policy in order to suppress domain transition. However, you want to allow accessing /etc/shadow (i.e. password file) by /usr/bin/passwd command for changing password but you don't want to allow accessing /etc/shadow using /bin/cat command for browsing password. In that case, you can specify "no_keep_domain /usr/bin/passwd from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" in exception policy in order to let /usr/bin/passwd command run in "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/passwd" domain. Similarly, you can specify "no_keep_domain /usr/bin/ssh from &lt;kernel&gt; /usr/sbin/sshd /bin/bash" in order to let /usr/bin/ssh command run in a different domain because you want to allow /usr/bin/ssh command to access ~/.ssh/ directory (where files like SSH secret key are stored) but you don't want to allow /bin/cat command to access ~/.ssh/ directory.</p>
+
+<h2>Step 1: Determine files you want to allow reading and writing</h2>
+
+<h3>The threat of hard links and countermeasure</h3>
+
+<p>In TOMOYO Linux, both source and destination pathnames are checked when creating hard links, both old and new pathnames are checked when renaming. I explain the reason why TOMOYO Linux does so. Login to a system (no need to be running with TOMOYO Linux kernels) and do commands listed in Fig. 7. (The command will fail if /etc/ directory and /tmp/ directory are on different partitions. In that case, use a directory which is on the same partition (e.g. /root/ directory) instead of /tmp/ directory.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Accessing password files via hard link
+<pre>
+# ln /etc/shadow /tmp/shadow
+# cat /tmp/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>This means that by creating hard link of /etc/shadow (which contains login passwords) under /tmp/ directory, you can access the login passwords via /tmp/shadow . You might think that "No administrators will create hard link of /etc/shadow as /tmp/shadow .", but creation of hard link of /etc/shadow is permitted for non "root" users. A non "root" user might create hard link of /etc/shadow into /tmp/ directory (where non "root" users can write) and access the password file (i.e. /tmp/shadow ) by gaining "root" privileges via permitted commands (e.g. /usr/bin/sudo command). Therefore, TOMOYO Linux checks both source and destination pathnames in order to minimize the risk of creating such hard links. (If you actually created /tmp/shadow , be sure to delete /tmp/shadow before reading on! If the link count of /etc/shadow is larger than 1, hard links remain somewhere on the same partition. (Fig. 8))</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Delete hard link of /etc/shadow
+<pre>
+# ls -l /etc/shadow
+-r-------- 2 root root 946 May 29 18:14 /etc/shadow
+# unlink /tmp/shadow
+# ls -l /etc/shadow
+-r-------- 1 root root 946 May 29 18:14 /etc/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>Same for renaming operation.  You can strictly restrict reading and/or writing /etc/shadow , but you cannot strictly restrict reading and/or writing files under /tmp/ directory. But, it is not desirable for you that users can do operations like Fig. 9. (If /etc/ directory and /tmp/ directory are on different partition, you can prevent moving from /etc/shadow to /tmp/shadow by forbidding reading and writing /etc/shadow because rename operations which cross mount point are not supported.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Accessing password files after renaming
+<pre>
+# mv /etc/shadow /tmp/shadow
+# cat /tmp/shadow
+# mv /tmp/shadow /etc/shadow
+</pre>
+</td></tr>
+</table>
+
+<p>Therefore, TOMOYO Linux checks both old and new pathnames in order to minimize the risk of such renaming. Access restrictions based on pathnames will allow unexpected access if you are not careful. Thus, be careful when giving permissions for creating hard links or renaming using TOMOYO Linux in order to minimize accessible ranges. (Although this characteristic is a disadvantage of pathname based access control when dealing "whether one can read and/or write and/or execute the file", this characteristic is an advantage of pathname based access control when dealing "how one uses the file if one can read and/or write and/or execute the file".)</p>
+
+<h3>Restricting access to files under home directory</h3>
+
+<p>Domain transition is used for switching permissions. Not doing domain transition for login sessions as a rule means we don't distinguish files which are permitted to read and/or write in login session. Basically, you don't need to create or rewrite programs in login session. Thus, you will give permissions for mainly reading and writing files under user's home directory. In order to group files under user's home directory, specify groups listed in Fig. 10 in exception policy.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Grouping files under home directory
+<pre>
+path_group HOME_FILE /home/\{\*\}/\*
+path_group HOME_DIR /home/\{\*\}/\*/
+</pre>
+</td></tr>
+</table>
+
+<p>By grouping like Fig. 10, you can treat files under user's home directory equally.</p>
+
+<h3>Excluding specific pathnames</h3>
+
+<p>But you have files you want to forbid browsing via e.g. /bin/cat command (e.g. files under ~/.ssh/ directory) within files in user's home directory. Therefore, you can exclude pathnames in .ssh directory by specifying "\*\-.ssh". Namely, modify groups like Fig. 11.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Exclude .ssh directory from home directory
+<pre>
+path_group HOME_FILE /home/\{\*\-.ssh\}/\*
+path_group HOME_DIR /home/\{\*\-.ssh\}/
+</pre>
+</td></tr>
+</table>
+
+<p>Now, users can no longer access /home/\*/.ssh/\* via /bin/cat command or rename /home/\*/.ssh/ to /home/\*/ssh/ via /bin/mv command.</p>
+
+<h3>Giving permissions beforehandく</h3>
+
+<p>Give permissions listed in Fig. 12 to the domain for login session (i.e. "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Give permissions beforehand
+<pre>
+allow_execute @COMMANDS_FOR_LOGIN
+allow_read/write @HOME_FILE
+allow_create @HOME_FILE 00-0666
+allow_unlink @HOME_FILE
+allow_symlink @HOME_FILE
+allow_link @HOME_FILE @HOME_FILE
+allow_rename @HOME_FILE @HOME_FILE
+allow_truncate @HOME_FILE
+allow_rewrite @HOME_FILE
+allow_mkdir @HOME_DIR 00-0777
+allow_rmdir @HOME_DIR
+allow_rename @HOME_DIR @HOME_DIR
+</pre>
+</td></tr>
+</table>
+
+<p>Sequentially from the top, they mean</p>
+
+<ul>
+<li>Allow execution of programs specified in COMMANDS_FOR_LOGIN group</li>
+<li>Allow opening files under user's home directory for reading and/or writing </li>
+<li>Allow creating files under user's home directory</li>
+<li>Allow deleting files under user's home directory</li>
+<li>Allow creating symbolic links under user's home directory</li>
+<li>Allow creating hard links if both source and destination pathnames are under user's home directory</li>
+<li>Allow renaming files if both old and new pathnames are under user's home directory</li>
+<li>Allow truncating files under user's home directory</li>
+<li>Allow overwriting files under user's home directory</li>
+<li>Allow creating directories under user's home directory</li>
+<li>Allow deleting directories under user's home directory</li>
+<li>Allow renaming directories if both old and new pathnames are under user's home directory</li>
+</ul>
+
+<p>Note that by modification in Fig. 11, "user's home directory" does not include ~/.ssh/ and ~/.ssh/\* . Above example does not check symbolic link's targets when creating symbolic links. TOMOYO Linux restricts reading and/or writing files based on dereferenced pathnames. Thus, the symbolic link's pathname does not matter. When executing programs, users can set arbitrary values to argv[0]. But "if exec.argv[0]" should be specified if programs in COMMANDS_FOR_LOGIN group are affected by argv[0]. Thus, users cannot execute arbitrary commands by creating symbolic links of hard links of busybox command. Users can create hard links only if files are under user's home directory. Thus, users cannot create hard link of /etc/shadow in order to access password file via user's home directory. Same for rename.</p>
+
+<h3>Allow accessing only owned files</h3>
+
+<p>By changing user's home directory's permission to 0700, you can prevent other users from accessing your home directory. But sometimes you have to loosen home directory's permission in order to allow Apache to access ~/public_html/ directory. In that case, you can forbid accesses which cannot be prevented by home directory's permissions by adding "if task.uid=path1.uid" condition to individual permissions. Namely, replace Fig. 12 by Fig. 13.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Allowing accessing files owned by the user
+<pre>
+allow_execute @COMMANDS_FOR_LOGIN
+allow_read/write @HOME_FILE if task.uid=path1.uid
+allow_create @HOME_FILE 00-0666 if task.uid=path1.parent.uid
+allow_unlink @HOME_FILE if task.uid=path1.uid
+allow_symlink @HOME_FILE if task.uid=path1.parent.uid
+allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+allow_truncate @HOME_FILE if task.uid=path1.uid
+allow_rewrite @HOME_FILE if task.uid=path1.uid
+allow_mkdir @HOME_DIR 00-0777 if task.uid=path1.parent.uid
+allow_rmdir @HOME_DIR if task.uid=path1.uid
+allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+</pre>
+</td></tr>
+</table>
+
+<p>"task.uid" is the user ID of the process requesting this access (i.e. the user ID of user who logged in the system), "path1.uid" is the owner ID of the first pathname (for example, /dev/null for "allow_read/write /dev/null" and /tmp/source for "allow_link /tmp/source /tmp/dest"). "path1.parent.uid" is the owner ID of the first pathname's parent directory (for example, /dev/ for "allow_read/write /dev/null"). "path2.uid" is the owner ID of the second pathname (for example, /home/ for "allow_mount /dev/sda2 /home/ ext3 0". But you cannot specify "path2.uid" for "allow_rename" keyword and "allow_link" keyword because the second pathname is not accessible as of permission checks. "path2.parent.uid" is the owner ID of the second pathname's parent directory (for example, /tmp/ for "allow_link /tmp/source /tmp/dest").</p>
+
+<h2>Trailer</h2>
+
+<p>In this installment, I explained access control on files from steps for restricting operations in login sessions. In the next installment, I explain rest of steps and actual operation procedure.</p>
+
+<p><a href="tutorial-7.html.en">Go back to the seventh installment.</a>&nbsp;&nbsp;<a href="tutorial-9.html.en">Proceed to the ninth installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

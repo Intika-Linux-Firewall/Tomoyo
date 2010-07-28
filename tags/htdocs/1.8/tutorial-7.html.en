@@ -1,0 +1,527 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>The world of TOMOYO Linux&nbsp;&nbsp;The seventh installment: "Let's try various functionalities."</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-7.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>The world of TOMOYO Linux<br>The seventh installment: "Let's try various functionalities."</h1>
+
+<h2>Contents of this installment.</h2>
+
+<p>By now in this series, I explained access control on files. Access control on files prevents accessing unnecessary programs and data files and plays basic role for improving security using secure OS. But access control on files alone is not sufficient. In this installment, I explain major access controls which TOMOYO Linux provides, mainly access control on networks.</p>
+
+<h2>About access control on networks</h2>
+
+<p>By default, Linux provides iptables for doing packet filtering. TOMOYO Linux provides similar functionality, but TOMOYO Linux's access control on networks can perform packet filtering for per TOMOYO Linux's domain and per user ID basis, and easy to configure. You can use TOMOYO Linux's access control on networks even if iptables is too difficult for you to configure. (But note that there are functionalities which iptables can provide but TOMOYO Linux can't provide, for TOMOYO Linux is independent with iptables.)</p>
+
+<h3>Coverage of access control on networks</h3>
+
+<p>Coverage of TOMOYO Linux's access control on networks is shown in Fig. 1.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 1&nbsp;&nbsp;Coverage of access control on networks
+<pre>
+TCP protocol / UDP protocol / IP protocol
+IPv4 network address / IPv6 network address
+Port number (for TCP and UDP) / Protocol number (for IP)
+</pre>
+</td></tr>
+</table>
+
+<p>By using TOMOYO Linux's access control on networks, you can allow, for example, svn command which is executed by a user whose user ID is 500 and who logged in via /usr/sbin/sshd can communicate with port 80 on host 202.221.179.21 using TCP protocol. I explain steps to configure in following sections.</p>
+
+<h3>Preparation</h3>
+
+<p>You can specify access control on networks for per a domain basis like access control on files. For this installment, I create 3 profiles for "a profile for learning mode for network only" "a profile for permissive mode for network only" "a profile for enforcing mode for network only".</p>
+
+<h4>(1) Creating profiles</h4>
+
+<p>As a preparation for access control on network, create profile 5 to 7. Append lines listed in Fig. 2 to the bottom of /etc/ccs/profile.conf .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 2&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
+<pre>
+5-COMMENT=Learning Mode (Network Only)
+5-CONFIG::network={ mode=learning }
+6-COMMENT=Permissive Mode (Network Only)
+6-CONFIG::network={ mode=permissive }
+7-COMMENT=Enforcing Mode (Network Only)
+7-CONFIG::network={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>Save the file and then reflect the changes by doing command in Fig. 3.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 3&nbsp;&nbsp;Reflect the changes
+<pre>
+# /usr/sbin/ccs-loadpolicy p
+</pre>
+</td></tr>
+</table>
+
+<h4>(2) Determining target domains</h4>
+
+<p>Target domains for applying access control on network are arbitrary. In this installment, I choose domains under currently operating shell sessions as target domains. You can see the domain which current process belongs to by doing "/bin/cat &lt; /proc/ccs/self_domain". If the domain which currently operating shell sessions belong is specified using "keep_domain" keyword, delete the "keep_domain" keyword for this section using policy editor. (This is just for making it easier for you to understand. You don't need to delete "keep_domain" keyword when you apply on actual environment.) Note that the IP addresses and port numbers learned may differ depending on your environment.</p>
+
+<h3>Let TOMOYO Linux learn the permissions</h3>
+
+<h4>(1) Examples for client applications</h4>
+
+<p>Change a domain which current process belongs to and its descendent domains to learning mode by doing commands listed in Fig. 4. (You may specify actual domainname as string parameter instead of redirection.)</p>
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 4&nbsp;&nbsp;Change a domain which current process belongs to and its descendent domains to learning mode
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 5 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>As an example command that uses networks, let's access http://www.sourceforge.jp/ using /usr/bin/curl command. (Fig. 5)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 5&nbsp;&nbsp;Execute /usr/bin/curl command
+<pre>
+# curl http://www.sourceforge.jp/ &gt; /dev/null
+</pre>
+</td></tr>
+</table>
+
+<p>If /usr/bin/curl command is not available, you can use other commands like /usr/bin/wget command or /usr/kerberos/bin/telnet command. Run the policy editor and browse permissions for the domain for /usr/bin/curl command. (Fig. 6)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 6&nbsp;&nbsp;Policy configuration for a domain for /usr/bin/curl command<br>
+<img src="tutorial/fig-7-6.png" alt="fig-7-6.png" width="508" height="146">
+</td></tr>
+</table>
+
+<p>Lines starting with "allow_network" keyword are permissions for access control on networks. "allow_network UDP connect 192.168.1.2 53" allows communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "allow_network TCP connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
+
+<h4>(2) Examples for server applications</h4>
+
+<p>In this section, let's login to SSH service using /usr/bin/ssh command. (If you don't have SSH service, you can use other services like HTTP.) If "initialize_domain /usr/sbin/sshd" is specified in the exception policy (it should be specified by init_policy command which I executed in the first installment of this series), /usr/sbin/sshd runs in the "&lt;kernel&gt; /usr/sbin/sshd" domain. Thus, assign a profile for learning mode to the "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 7)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 7&nbsp;&nbsp;Assign a profile for learning mode to "&lt;kernel&gt; /usr/sbin/sshd" domain
+<pre>
+# /usr/sbin/ccs-setprofile 5 '&lt;kernel&gt; /usr/sbin/sshd'
+</pre>
+</td></tr>
+</table>
+
+<p>Then, login to localhost using ssh command (Fig. 8) and run the policy editor and browse permissions for "&lt;kernel&gt; /usr/sbin/sshd" domain. (Fig. 9)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 8&nbsp;&nbsp;Login to localhost using ssh command
+<pre>
+# ssh localhost
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 9&nbsp;&nbsp;Policy configuration for "&lt;kernel&gt; /usr/sbin/sshd" domain<br>
+<img src="tutorial/fig-7-9.png" alt="fig-7-9.png" width="508" height="226">
+</td></tr>
+</table>
+
+<p>"allow_network TCP accept 0:0:0:0:0:ffff:7f00:1 34561" allows accepting TCP connections from port 34561 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
+
+<p>You can apply conditions to permissions for access control on networks as well as permissions for access control on files. For example, you can restrict remote server's IP addresses based on user ID by using process's user ID as conditions. (Fig. 10)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 10&nbsp;&nbsp;Restricting remote servers based on user ID
+<pre>
+allow_network TCP connect 202.221.179.21 80 if task.uid=500
+allow_network TCP connect 66.35.250.203 80 if task.uid=501
+</pre>
+</td></tr>
+</table>
+
+<p>Regarding IP sockets, you specify protocol number instead of port number. I explain using ping command as an example. Execute command in Fig. 11 and then execute the policy editor and browse permissions for the domain for ping command. (Fig. 12)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 11&nbsp;&nbsp;Executing ping command
+<pre>
+# ping -c 4 www.sourceforge.jp
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 12&nbsp;&nbsp;Policy configuration for the domain for ping command<br>
+<img src="tutorial/fig-7-12.png" alt="fig-7-12.png" width="508" height="162">
+</td></tr>
+</table>
+
+<p>You can see a line "allow_network RAW connect 202.221.179.21 1". Fig 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
+
+<h3>Let's tune policy</h3>
+
+<p>After you let TOMOYO Linux learn permissions, verify the permissions using permissive mode. Assign profile 6 to change to permissive mode. (Fig. 13)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 13&nbsp;&nbsp;Change to permissive mode by assigning profile 6
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 6 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<h4>(1) Patternizing IP addresses</h4>
+
+<p>You need to patternize IP address ranges for doing access control on networks as well as you patternized file's pathnames for doing access control on files. To patternize IP addresses, specify address ranges using "StartAddress-EndAddress" format like Fig. 14. No space is permitted around "-".</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 14&nbsp;&nbsp;Specifying IPv4 address ranges
+<pre>
+xxx.xxx.xxx.xxx-yyy.yyy.yyy.yyy
+</pre>
+</td></tr>
+</table>
+
+<p>You can specify IPv6 address as well as IPv4 address. But "::" and "." are not supported for IPv6 address. You need to specify IPv6 address using format like Fig. 15. Also, be sure to specify all possible IP addresses if target servers has multiple IP addresses (e.g. load balancing).</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 15&nbsp;&nbsp;Specifying IPv6 address
+<pre>
+xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx
+</pre>
+</td></tr>
+</table>
+
+<h4>(2) Patternizing port numbers</h4>
+
+<p>Generally, the port number which servers use for accepting connections from  clients are fixed, but the port number which clients use for establishing connections with servers are not fixed. Therefore, you need to specify possible port number ranges which clients might use when giving permissions to server side programs. To patternize, specify port number ranges using "StartPort-Endport" format like Fig. 16. No space is permitted around "-". Three patterns listed in Fig. 17 are port number ranges frequently used.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 16&nbsp;&nbsp;Specifying port number ranges
+<pre>
+xxxxx-yyyyy
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 17&nbsp;&nbsp;Frequently used port number ranges
+<pre>
+1024-65535
+32768-61000
+600-1023
+</pre>
+</td></tr>
+</table>
+
+<p>The first pattern is for port numbers which normal client programs choose when establishing connections with server programs, and you likely specify this range for server programs. The second pattern is for port numbers which are specified in /proc/sys/net/ipv4/ip_local_port_range . Normal client programs choose an unused port from this range when establishing connections with server programs, and you likely specify this range for client programs. Check /proc/sys/net/ipv4/ip_local_port_range when determining the second pattern.</p>
+
+<p>The last pattern is for port numbers used by programs like portmap command which require privileged port numbers (port numbers smaller than 1024) for communication. The actual port numbers required by such programs may be different. The easy way for determining whether patternizing port numbers are necessary or not is to execute programs for several times. For example, permissions with contiguous port numbers like Fig. 18 will be appended by learning mode. Thus, guess required port number ranges from the result of learning mode.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 18&nbsp;&nbsp;Example of permissions with contiguous port numbers
+<pre>
+allow_network TCP bind 127.0.0.1 610
+allow_network TCP bind 127.0.0.1 611
+allow_network TCP bind 127.0.0.1 612
+allow_network TCP bind 127.0.0.1 613
+</pre>
+</td></tr>
+</table>
+
+<p>If you find permissions in Fig. 18, you likely need permissions in Fig. 19.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 19&nbsp;&nbsp;Patternized permissions based on Fig. 18
+<pre>
+allow_network TCP bind 127.0.0.1 600-1023
+</pre>
+</td></tr>
+</table>
+
+<p>If you find permissions in Fig. 20, you likely need permissions in Fig. 21 or Fig. 22.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 20&nbsp;&nbsp;Example of permissions with contiguous port numbers
+<pre>
+allow_network TCP accept 127.0.0.1 32780
+allow_network TCP accept 127.0.0.1 32781
+allow_network TCP accept 127.0.0.1 32782
+allow_network TCP accept 127.0.0.1 32783
+allow_network TCP accept 127.0.0.1 32784
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 21&nbsp;&nbsp;Patternized permissions based on Fig. 20
+<pre>
+allow_network TCP accept 127.0.0.1 1024-65535
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 22&nbsp;&nbsp;Patternized permissions based on Fig. 20
+<pre>
+allow_network TCP accept 127.0.0.1 32768-61000
+</pre>
+</td></tr>
+</table>
+
+<h3>Let's enforce access control on networks</h3>
+
+<p>When you became sure that you gave enough permission, let's enforce access control on networks. Assign profile 7 to change to enforcing mode. (Fig. 23)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 23&nbsp;&nbsp;Change to enforcing mode by assigning profile 7
+<pre>
+xargs -0 /usr/sbin/ccs-setprofile -r 7 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>Note that profile 5 to 7 does not perform access control on files. By using ccs-queryd which I explained in the fourth installment of this series, you can interactively append missing permissions. I think you understood that you can break access control on networks provided by iptables by using TOMOYO Linux.</p>
+
+<h2>About access control on capabilities</h2>
+
+<p>Linux kernel 2.2 and later supports POSIX capabilities. Capabilities realize secure OS's basic concept "least privileges" and are used for restricting use of various privileged operations for per a process basis. You can find list of capabilities which Linux supports in /usr/include/linux/capability.h . However, since CAP_SYS_ADMIN privilege is used for various purposes, we cannot expect fine grained restriction. Therefore, TOMOYO Linux defined and uses original capabilities. (Hereafter, capabilities refers to TOMOYO Linux's capabilities rather than POSIX's capabilities.)</p>
+
+<p>While TOMOYO Linux uses original capabilities that are not compatible with POSIX capabilities, TOMOYO Linux's capabilities are not visible from userland applications. Thus, you don't need to modify userland programs. TOMOYO Linux 1.7.2 uses capabilities listed in Fig. 24.</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 24&nbsp;&nbsp;Capabilities defined in TOMOYO Linux 1.7.2<br>
+<table border="1" summary="fig">
+<tr><td>Type</td><td>Meaning</td></tr>
+<tr><td>inet_tcp_create</td><td>Permit creation of TCP sockets.</td></tr>
+<tr><td>inet_tcp_listen</td><td>Permit TCP socket's listen operation.</td></tr>
+<tr><td>inet_tcp_connect</td><td>Permit TCP socket's connect operation.</td></tr>
+<tr><td>use_inet_udp</td><td>Permit use of UDP sockets.</td></tr>
+<tr><td>use_inet_ip</td><td>Permit use of RAW sockets.</td></tr>
+<tr><td>use_route</td><td>Permit use of ROUTE sockets.</td></tr>
+<tr><td>use_packet</td><td>Permit use of PACKET sockets.</td></tr>
+<tr><td>use_kernel_module</td><td>Permit use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
+<tr><td>create_fifo</td><td>Permit creation of FIFO using mknod(2) syscall.</td></tr>
+<tr><td>create_block_dev</td><td>Permit creation of block device using mknod(2) syscall.</td></tr>
+<tr><td>create_char_dev</td><td>Permit creation of character device using mknod(2) syscall.</td></tr>
+<tr><td>create_unix_socket</td><td>Permit creation of UNIX domain sockets using mknod(2) syscall.</td></tr>
+<tr><td>SYS_MOUNT</td><td>Permit use of mount(2) syscall.</td></tr>
+<tr><td>SYS_UMOUNT</td><td>Permit use of umount(2) syscall.</td></tr>
+<tr><td>SYS_REBOOT</td><td>Permit use of reboot(2) syscall.</td></tr>
+<tr><td>SYS_CHROOT</td><td>Permit use of chroot(2) syscall.</td></tr>
+<tr><td>SYS_KILL</td><td>Permit use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</td></tr>
+<tr><td>SYS_VHANGUP</td><td>Permit use of vhangup(2) syscall.</td></tr>
+<tr><td>SYS_TIME</td><td>Permit use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
+<tr><td>SYS_NICE</td><td>Permit use of nice(2) setpriority(2) syscall.</td></tr>
+<tr><td>SYS_SETHOSTNAME</td><td>Permit use of sethostname(2) setdomainname(2) syscall.</td></tr>
+<tr><td>SYS_LINK</td><td>Permit use of link(2) syscall.</td></tr>
+<tr><td>SYS_SYMLINK</td><td>Permit use of symlink(2) syscall.</td></tr>
+<tr><td>SYS_RENAME</td><td>Permit use of rename(2) syscall.</td></tr>
+<tr><td>SYS_UNLINK</td><td>Permit use of unlink(2) syscall.</td></tr>
+<tr><td>SYS_CHMOD</td><td>Permit use of chmod(2) fchmod(2) syscall.</td></tr>
+<tr><td>SYS_CHOWN</td><td>Permit use of chown(2) fchown(2) lchown(2) syscall.</td></tr>
+<tr><td>SYS_IOCTL</td><td>Permit use of ioctl(2) compat_sys_ioctl(2) syscall.</td></tr>
+<tr><td>SYS_KEXEC_LOAD</td><td>Permit use of kexec_load(2) syscall.</td></tr>
+<tr><td>SYS_PIVOT_ROOT</td><td>Permit use of pivot_root(2) syscall.</td></tr>
+<tr><td>SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
+<tr><td>conceal_mount</td><td>Permit use of mount(2) syscall that will hide existing mounts.</td></tr>
+</table>
+</td></tr>
+</table>
+
+<p>In this section, I explain about privilege for doing mount operation (i.e. SYS_MOUNT ) as an example. Since TOMOYO Linux performs access control using pathnames, it is an absolutely important assumption that filesystems are mounted as the administrator intended. It is annoying thing if any processes running as "root" user can freely mount filesystems. Thus, by using capabilities, you can restrict domains which can do mount operations. Steps for doing access control on capabilities are the same with doing access control on networks. Firstly, specify capabilities you want to control in the profiles. Append lines listed in Fig. 25 to the bottom of /etc/ccs/profile.conf .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 25&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
+<pre>
+9-CONFIG::capability::SYS_MOUNT={ mode=learning }
+10-CONFIG::capability::SYS_MOUNT={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>Unlike files and networks, capabilities do not have operands. All necessary capabilities are given by simply using learning mode. Thus, a profile for permissive mode is omitted in Fig. 25. Save the file and then reflect the changes by doing command in Fig. 3.</p>
+
+<p>For explanation, I firstly use a profile for enforcing mode. (Fig. 26)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 26&nbsp;&nbsp;Assign a profile for enforcing mode
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 10 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>Then, mount tmpfs somewhere. (Fig. 27)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 27&nbsp;&nbsp;Mounting tmpfs
+<pre>
+# mount -t tmpfs none /tmp/
+mount: permission denied
+</pre>
+</td></tr>
+</table>
+
+<p>The mount operation was rejected. This is because the domain which mount command belongs to was not given a capability for doing mount operation. Next, assign a profile for learning mode. (Fig. 28)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 28&nbsp;&nbsp;Assign a profile for learning mode
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 9 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>Again, mount tmpfs somewhere. (Fig. 29)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 29&nbsp;&nbsp;Mounting tmpfs
+<pre>
+# mount -t tmpfs none /tmp/
+</pre>
+</td></tr>
+</table>
+
+<p>This time, the mount operation succeeded. Run the policy editor and find the domain for mount command and browse permissions for that domain. (Fig. 30)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 30&nbsp;&nbsp;Permission "allow_capability SYS_MOUNT" was learned<br>
+<img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
+</td></tr>
+</table>
+
+<p>You can find that a permission "allow_capability SYS_MOUNT" was learned. Now, you can forbid mount operations from domains without SYS_MOUNT capability by assigning a profile for enforcing mode.</p>
+
+<p>You might notice that it is not sufficient to restrict whether mount operation is permitted or not , for the process can do arbitrary mount operations if mount operation is permitted. In fact, that is true. TOMOYO Linux's access control on files includes ability to restrict the combination of mount device and mount point and filesystem type and mount flags. Thus, if you do operations listed in Fig. 29 with a profile for learning mode for access control on files, "allow_mount none /tmp/ tmpfs 0" will appear in Fig. 30.</p>
+
+<h2>About access control on signals</h2>
+
+<p>TOMOYO Linux can do access control on signal numbers and signal targets. Steps for doing access control on signals are the same with doing access control on networks. Append lines listed in Fig. 31 to the bottom of /etc/ccs/profile.conf .</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 31&nbsp;&nbsp;Lines to be appended to /etc/ccs/profile.conf
+<pre>
+11-CONFIG::ipc::signal={ mode=learning }
+12-CONFIG::ipc::signal={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<p>Save the file and then reflect the changes by doing command in Fig. 3.</p>
+
+<p>I assume below operations are done from "&lt;kernel&gt; /usr/sbin/sshd /bin/bash" domain (i.e. login shell executed by /usr/sbin/sshd ). Make sure that "keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash" is not specified in the exception policy. Firstly, execute /bin/sleep command. (Fig. 32)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 32&nbsp;&nbsp;Execute /bin/sleep
+<pre>
+# sleep 100
+</pre>
+</td></tr>
+</table>
+
+<p>At this state, open another window and login to the system. For explanation, I firstly use a profile for enforcing mode. (Fig. 33)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 33&nbsp;&nbsp;Assign a profile for enforcing mode
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 12 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<p>Then, get the process ID of running /bin/sleep command and send a signal to that process ID. (Fig. 34. Use external /bin/kill command rather than shell's built-in kill command.)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 34&nbsp;&nbsp;Send signal to process ID of /bin/sleep command
+<pre>
+# pidof sleep
+4649
+# /bin/kill -15 4649
+kill 4649: Operation not permitted
+</pre>
+</td></tr>
+</table>
+
+<p>The kill operation was rejected. This is because the domain which /bin/kill command belongs to was not given permission for sending signals. Next, assign a profile for learning mode (Fig. 35) and resend the signal. (Fig. 36)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 35&nbsp;&nbsp;Assign a profile for learning mode
+<pre>
+# xargs -0 /usr/sbin/ccs-setprofile -r 11 &lt; /proc/ccs/self_domain
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 36&nbsp;&nbsp;Send signal to process ID of /bin/sleep command again
+<pre>
+# /bin/kill -15 4649
+</pre>
+</td></tr>
+</table>
+
+<p>This time, signal operation succeeded. Run the policy editor and find the domain for kill command and browse permissions for that domain. (Fig. 37)</p>
+
+<table border="1" summary="fig">
+<tr><td>
+&diams; Fig. 37&nbsp;&nbsp;Permissions given to the domain for kill command<br>
+<img src="tutorial/fig-7-37.png" alt="fig-7-37.png" width="572" height="130">
+</td></tr>
+</table>
+
+<p>You can find a permission "allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" was learned. This permission allows sending signal 15 (i.e. SIGTERM) to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" domain and its descendent domains. Since TOMOYO Linux's domains forms hierarchal structure starting with "&lt;kernel&gt;", "allow_signal 15 &lt;kernel&gt;" will allow sending signal 15 to any processes. Also, as exceptions, sending signals to the same domain (e.g. threads in current process) is always permitted, and sending signal 0 is always permitted.</p>
+
+<h2>Trailer</h2>
+
+<p>In this installment, I explained mainly access control on networks. I think you understood that you can restrict domains that can use networks and apply powerful and flexible access controls using TOMOYO Linux. In the next installment, I explain steps for restricting login sessions. Don't miss it!</p>
+
+<p><a href="tutorial-6.html.en">Go back to the sixth installment.</a>&nbsp;&nbsp;<a href="tutorial-8.html.en">Proceed to the eighth installment.</a></p>
+
+<hr>
+
+<p><a href="index.html.en#tutorial">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

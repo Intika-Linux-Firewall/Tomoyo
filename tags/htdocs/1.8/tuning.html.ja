@@ -1,0 +1,310 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux 導入手順書</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tuning.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>第４章：ポリシーのチューニング</h1>
+
+<p>このページでは、 TOMOYO Linux のポリシーをチューニングする方法について説明します。</p>
+
+<hr>
+
+<h2>ステップ１：ファイルのパス名をパターン化する</h2>
+
+<p>WWW サーバがアクセスするコンテンツのように、学習モードでは必ずしもアクセスされないファイルに対するアクセス許可を追加します。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/index.html<br>
+allow_read /var/www/html/blog/index.html<br>
+allow_read /var/www/html/blog/page1.html<br>
+allow_read /var/www/html/blog/page2.html<br>
+allow_read /var/www/html/blog/page3.html<br>
+allow_read /var/www/html/blog/image1.jpg<br>
+allow_read /var/www/html/blog/image2.jpg
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read /var/www/html/\*.html<br>
+allow_read /var/www/html/\*/\*.html<br>
+allow_read /var/www/html/\*/\*.jpg<br>
+<br>
+<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+path_group WEB-CONTENTS /var/www/html/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.html<br>
+path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
+</td></tr>
+</table>
+
+<p>という path_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_read @WEB-CONTENTS
+</td></tr>
+</table>
+
+<p>のように指定することもできます。</p>
+
+<p>与えられたパターンと一致するディスク上のパス名を一覧表示する ccs-pathmatch コマンドを用いて、パターン化することでアクセス可能になる範囲を確認できます。</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-pathmatch '/var/log/samba/\*.log'<br>
+/var/log/samba/host1.log /var/log/samba/host2.log /var/log/samba/host3.log /var/log/samba/host4.log /var/log/samba/host5.log
+</td></tr>
+</table>
+
+<hr>
+
+<h2>ステップ２：数値パラメータをパターン化する</h2>
+
+<p>ファイル作成時のパーミッションやネットワークに関するアクセス許可のポート番号のような数値で指定するパラメータのパターン化を行います。<br>
+以下の例では、 /usr/sbin/httpd に対してポート 1024 ～ 65535 からの接続要求を許可しています。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+number_group WEB-CLIENT-PORTS 1024-65535
+</td></tr>
+</table>
+
+<p>という number_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
+</td></tr>
+</table>
+
+<p>のように指定することもできます。</p>
+
+<hr>
+
+<h2>ステップ３：ネットワークのアドレスをパターン化する</h2>
+
+<p>同様にＩＰアドレスについてもパターン化を行います。以下の設定をそのままコピーしないようにしてください。</a>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.200 @WEB-CLIENT-PORTS
+</td><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
+allow_network TCP accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
+<br>
+<br>
+</td></tr>
+</table>
+
+<p>上記の指定は</p>
+
+<table border="1">
+<tr><td>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:0:0:1<br>
+address_group WEB-CLIENT-ADDRESS 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff<br>
+address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
+</td></tr>
+</table>
+
+<p>という address_group を例外ポリシーで定義しておくことにより、</p>
+
+<table border="1">
+<tr><td>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
+</td></tr>
+</table>
+
+<p>のように指定することができます。</p>
+
+<hr>
+
+<h2>ステップ４：アクセス許可に条件を付与（省略可）</h2>
+
+<p>個々のアクセス許可に対して必要に応じて条件を付けることができます。これにより、システムアカウントのユーザＩＤに基づくアクセス制御が可能です。</p>
+
+<p>例外ポリシーで以下のように path_group が定義されていると仮定します。</p>
+
+<table border="1">
+<tr><td>
+path_group HOME-FTP-FILE /home/\*/ftp/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*<br>
+path_group HOME-FTP-FILE /home/\*/ftp/\*/\*/\*/\*<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/<br>
+path_group HOME-FTP-DIR  /home/\*/ftp/\*/\*/\*/<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*<br>
+path_group HOME-SMB-FILE /home/\*/samba/\*/\*/\*/\*<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/<br>
+path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
+</td></tr>
+</table>
+
+<p>匿名ではない FTP サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を FTP でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある ftp ディレクトリ以下だけのアクセスを認めます。 vsftpd を用いる場合、例えば以下のように許可を与えます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+<br>
+allow_read/write @HOME-FTP-FILE<br>
+allow_mkdir @HOME-FTP-DIR 0755<br>
+allow_rmdir @HOME-FTP-DIR<br>
+allow_create @HOME-FTP-FILE 0644<br>
+allow_truncate @HOME-FTP-FILE<br>
+allow_unlink @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/vsftpd<br>
+<br>
+allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
+allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
+allow_create @HOME-FTP-FILE 0644 if task.uid=path1.parent.uid<br>
+allow_truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
+allow_rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=path2.parent.uid
+</td></tr>
+</table>
+
+<p>Samba サーバを保護する場合、以下のように条件を付けることで、当該ユーザのホームディレクトリ以外へのアクセスを禁止することができるようになります。ホームディレクトリ以下全部を Samba でアクセス可能にすることは、侵入された場合に被害が大きくなるため、自分のホームディレクトリにある samba ディレクトリ以下だけのアクセスを認めます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+<br>
+allow_read/write @HOME-SMB-FILE<br>
+allow_mkdir @HOME-SMB-DIR 0755<br>
+allow_rmdir @HOME-SMB-DIR<br>
+allow_create @HOME-SMB-FILE 0644<br>
+allow_truncate @HOME-SMB-FILE<br>
+allow_unlink @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
+</td><td>
+&lt;kernel&gt; /usr/sbin/smbd<br>
+<br>
+allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
+allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
+allow_create @HOME-SMB-FILE 0644 if task.euid=path1.parent.uid<br>
+allow_truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
+allow_rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+</td></tr>
+</table>
+
+<p>SSH サーバを保護する場合、以下のように条件を付けることで、 root ユーザとしてログインすることを禁止できます。</p>
+
+<table border="1">
+<tr><td>修正前</td><td>修正後</td></tr>
+<tr><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+<br>
+allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
+</td><td>
+&lt;kernel&gt; /usr/sbin/sshd<br>
+<br>
+allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
+</td></tr>
+</table>
+
+<p>その他にも様々な条件を指定することができます。詳しくは<a href="policy-reference.html.ja#conditional_acl">条件付きアクセス許可の指定</a>を参照ください。</p>
+
+<p>もしアクセスログの設定を<a href="initialize.html.ja#configure_audit_daemon">第２章： TOMOYO Linux の初期化</a>で行っていた場合は、アクセスログを ccs-sortpolicy に通す前に convert-audit-log に通すことにより、条件付きのアクセス許可を生成することができます。ただし、このようにして生成されたアクセス許可は厳密すぎて使えない（例えばプロセスＩＤやｉノード番号などは毎回変わるため、指定しない方が良い）ので、必要に応じて条件を緩めてから利用してください。</p>
+
+<table border="1">
+<tr><td>
+# grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/lib/ccs/convert-audit-log | /usr/sbin/ccs-sortpolicy<br>
+&lt;kernel&gt; /usr/sbin/httpd<br>
+<br>
+allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1507 if task.pid=3039 task.ppid=3034 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+<br>
+allow_execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
+<br>
+allow_env LANG if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env LANGUAGE if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env PATH if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env PWD if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env SHLVL if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env TERM if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_env _ if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+allow_read /etc/group if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330196 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+allow_read /etc/nsswitch.conf if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=329303 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+allow_read /etc/passwd if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330197 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+allow_read /etc/selinux/config if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=328251 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327965 path1.parent.perm=0755<br>
+allow_read /proc/filesystems if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=4026531844 path1.major=0 path1.minor=3 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1 path1.parent.perm=0555<br>
+allow_read /selinux/mls if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=12 path1.major=0 path1.minor=15 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=463 path1.parent.perm=0755<br>
+allow_read /usr/lib/locale/locale-archive if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=605586 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589842 path1.parent.perm=0755
+</td></tr>
+</table>
+
+<hr>
+
+<p><a href="index.html.ja">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

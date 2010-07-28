@@ -1,0 +1,273 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="enforcing.html.ja">Japanese Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+<h1>Phase 5: Restricting your system's behavior.</h1>
+
+<p>This page describes how to use TOMOYO Linux's enforcing mode and how to handle policy violations which arises in enforcing mode.</p>
+
+<hr>
+
+<h2><a name="using_enforcing_mode">Step 1: Enabling enforcing mode</a></h2>
+
+<p>After you came to think you have done everything, run the policy editor and change the profile number to 3.</p>
+
+<p>Run the policy editor. Choose target domains and press 's' key and enter '3' and press 'Enter' key.</p>
+
+<p><img src="editpolicy-httpd-set-profile3.png" width="720" height="400"></p>
+
+<p>Now the profile number of the /usr/sbin/httpd and descendant has changed to 3.</p>
+
+<p><img src="editpolicy-httpd-profile3.png" width="720" height="400"></p>
+
+<p>Press '@' key to switch to process list. Verify that /usr/sbin/httpd processes and descendant are assigned profile number 3.</p>
+
+<p><img src="editpolicy-httpd-process3.png" width="720" height="400"></p>
+
+<p>And now, /usr/sbin/httpd processes and descendant are protected by MAC, for the profile 3 was configured for enforcing mode.</p>
+
+<p><img src="editpolicy-profile-list-enforcing.png" width="720" height="400"></p>
+
+<p>Press 'q' key to quit the policy editor.</p>
+
+<p>Let's try an operation which is permitted by policy.</p>
+
+<p><img src="operation-permitted.png" width="688" height="933"></p>
+
+<p>The operation was successfully completed, for sending mail is permitted by policy.</p>
+
+<p>Let's try an operation which is not permitted by policy.</p>
+
+<p><img src="unix-penguin.png" width="688" height="933"></p>
+
+<p>The operation was rejected. (Seemingly, it looks like it was successfully completed. But actually, the execution of /bin/cat was rejected as you can see warning message by /bin/mail that the input was empty.)</p>
+
+<p><img src="unix-penguin-rejected.png" width="688" height="623"></p>
+
+<p>If the profile is configured as "PREFERENCE::enforcing={ verbose=yes }" (this is default), the "ERROR:" messages will be printed to the console when policy violation occurs.</p>
+
+<p><img src="enforcing-error.png" width="720" height="400"></p>
+
+<p>If you have configured audit logs at <a href="initialize.html.en#configure_audit_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you can pick up rejected requests from audit logs using "grep".</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# grep -A 3 -F 'profile=3 mode=enforcing' /var/log/tomoyo/reject_log.conf<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /bin/cat<br>
+<br>
+--<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_read /bin/cat
+</td></tr>
+</table>
+
+<p>The first log reports that execution of /bin/cat was requested by /bin/sh which was invoked by /usr/sbin/httpd , and the command line argument was "cat /etc/passwd". As its first line has "mode=enforcing", this request was rejected.</p>
+
+<p>The second log reports that opening /bin/cat for reading requested by /bin/sh which was invoked by /usr/sbin/httpd was rejected. This is because that /bin/sh tries to open the requested program for reading when that program was not executed.</p>
+
+<p>If you have configured notification daemon at <a href="initialize.html.en#configure_notify_daemon">Phase 2: Initializing TOMOYO Linux.</a>, you will receive mails sent by "ccs-notifyd" program. The content of mail is identical to the audit logs, except that it has serial numbers in the header.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# mail<br>
+Mail version 8.1 6/6/93.  Type ? for help.<br>
+"/var/spool/mail/root": 1 message 1 unread<br>
+&gt;U  1 root@localhost.local  Tue Jan 12 16:19  18/1234<br>
+&amp;<br>
+Message 1:<br>
+From root@localhost.localdomain  Tue Jan 12 16:19:17 2010<br>
+Date: Tue, 12 Jan 2010 16:19:17 +0900<br>
+From: root &lt;root@localhost.localdomain&gt;<br>
+To: root@localhost.localdomain<br>
+<br>
+Q0-0<br>
+#2010-01-12 16:19:17# profile=3 mode=enforcing (global-pid=4836) task={ pid=4836 ppid=4835 uid=48 gid=48 euid=48 egid=48 suid=48 sgid=48 fsuid=48 fsgid=48 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=917520 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=917505 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=7 argv[]={ "cat" "/etc/passwd" } envp[]={ "TERM=linux" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "_=/bin/cat" "PWD=/usr/share/horde/admin" "LANG=en_US.UTF-8" "SHLVL=3" "LANGUAGE=en_US.UTF-8" } }<br>
+&lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
+allow_execute /bin/cat
+</td></tr>
+</table>
+
+<p>If the profile is configured as "PREFERENCE::enforcing={ penalty=1 }", you can make the process which violated policy in enforcing mode sleep for 0.1 second. This feature is useful for avoiding that the CPU usage remains 100% when policy violation occurs in an infinite loop. Below video demonstrates a hijacked Samba server process is consuming CPU by repeating request that is not permitted by policy.<br>
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/7OE-ySG8fME&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/7OE-ySG8fME&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+
+<h2><a name="using_interactive_mode">Step 2: Handling policy violation arising in during software updates</a></h2>
+
+<p>Since the behavior of the system is restricted by policy, you may need to update policy when you update packages.</p>
+
+<p>You need to update policy in the following cases.</p>
+
+<ul>
+<li>The pathname of files has changed.
+<li>The dependency of files has changed.
+<li>The access permissions required has increased.
+</ul>
+
+<p>The ideal way to update policy is to rebuild from the scratch using learning mode. But it is not desirable to change from enforcing mode to other mode if the system has once entered in production state. Suppose MAC could support per-application enforcing mode, the MAC becomes useless if an application that is not running in enforcing mode was cracked. For example, the whole system becomes vulnerable if only HTTP server application is running in learning mode to rebuild policy for the application. So, in TOMOYO Linux, updating policy is done while the system is running in enforcing mode.</p>
+
+<p>TOMOYO Linux includes tools that help administrators update policy while the system is running in enforcing mode. By using these tools, you can continue running the system without rebuilding from the scratch using learning mode if the modification is trivial. But note that these tools cannot always support every cases and the result of updated policy is not always the optimized.</p>
+
+<h3>Operation example</h3>
+
+<p>Below video demonstrates operation example.<br>
+<object width="425" height="344"><param name="movie" value="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/b9q1Jo25LPA&amp;hl=en_US&amp;fs=1" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="425" height="344"></embed></object></p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-queryd<br>
+Monitoring /proc/ccs/query and /etc/ld.so.cache . Press Ctrl-C to terminate.<br>
+<br>
+#2010-01-10 12:27:10# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):s<br>
+# select global-pid=4210<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+use_profile 3<br>
+<br>
+allow_read /bin/bash<br>
+allow_read/write /dev/tty<br>
+allow_capability SYS_IOCTL<br>
+allow_read/write /dev/pts/\$<br>
+allow_read /usr/lib/locale/locale-archive<br>
+allow_read /etc/nsswitch.conf<br>
+allow_read /etc/passwd<br>
+allow_read /etc/rc.d/init.d/sshd<br>
+allow_read /etc/rc.d/init.d/functions<br>
+allow_execute /sbin/consoletype if exec.realpath="/sbin/consoletype" exec.argv[0]="/sbin/consoletype"<br>
+allow_read /etc/profile.d/lang.sh<br>
+allow_read /etc/sysconfig/i18n<br>
+allow_read /etc/sysconfig/init<br>
+allow_execute /sbin/runlevel if exec.realpath="/sbin/runlevel" exec.argv[0]="runlevel"<br>
+allow_execute /bin/cp if exec.realpath="/bin/cp" exec.argv[0]="cp"<br>
+allow_execute /usr/sbin/sshd if exec.realpath="/usr/sbin/sshd" exec.argv[0]="/usr/sbin/sshd"<br>
+allow_execute /bin/touch if exec.realpath="/bin/touch" exec.argv[0]="touch"<br>
+allow_read/write /dev/console<br>
+allow_execute /bin/unicode_start if exec.realpath="/bin/unicode_start" exec.argv[0]="/bin/unicode_start"<br>
+allow_read /var/run/sshd.pid<br>
+allow_write /dev/null<br>
+allow_capability SYS_KILL<br>
+allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd<br>
+allow_execute /bin/usleep if exec.realpath="/bin/usleep" exec.argv[0]="usleep"<br>
+allow_execute /bin/rm if exec.realpath="/bin/rm" exec.argv[0]="rm"<br>
+allow_execute /usr/bin/killall if exec.realpath="/usr/bin/killall" exec.argv[0]="killall"<br>
+allow_execute /usr/bin/rhgb-client if exec.realpath="/usr/bin/rhgb-client" exec.argv[0]="/usr/bin/rhgb-client"<br>
+allow_execute /bin/sleep if exec.realpath="/bin/sleep" exec.argv[0]="sleep"<br>
+allow_signal 1 &lt;kernel&gt; /usr/sbin/sshd<br>
+allow_ioctl /dev/console 0x5401<br>
+allow_ioctl /etc/rc.d/init.d/sshd 0x5401<br>
+allow_ioctl /var/run/sshd.pid 0x5401<br>
+allow_ioctl /dev/pts/\$ 0x5401<br>
+<br>
+<br>
+#2010-01-10 12:27:20# profile=3 mode=enforcing (global-pid=4210) task={ pid=4210 ppid=4205 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1766 major=0 minor=17 perm=0666 type=char dev_major=1 dev_minor=3 } path1.parent={ uid=0 gid=0 ino=962 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/sshd<br>
+allow_ioctl /dev/null 0x5401<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_ioctl /dev/null 0x5401<br>
+Added 'allow_ioctl /dev/null 0x5401'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.6.3 was created. Appended to globally readable file.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"<br>
+Added 'allow_execute /bin/sleep if exec.argc=2 exec.argv[1]="1"'.<br>
+<br>
+#2010-01-10 12:29:55# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+# wants to create domain<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry):y<br>
+<br>
+#2010-01-10 12:29:58# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=707247 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=688142 perm=0755 }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups /bin/sleep<br>
+allow_read /usr/lib/locale/locale-archive<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_read /usr/lib/locale/locale-archive<br>
+Added 'allow_read /usr/lib/locale/locale-archive'.<br>
+<br>
+----------------------------------------<br>
+#2010-01-10 12:30:10# profile=3 mode=enforcing (global-pid=4630) task={ pid=4630 ppid=4629 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=955698 major=8 minor=1 perm=0666 type=socket } path1.parent={ uid=0 gid=0 ino=950312 perm=0755 }<br>
+&lt;kernel&gt; /usr/sbin/acpid<br>
+allow_unlink /var/run/acpid.socket<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):a<br>
+Enter new entry&gt; allow_unlink /var/run/acpid.socket if path1.type=socket<br>
+Added 'allow_unlink /var/run/acpid.socket if path1.type=socket'.<br>
+<br>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.<br>
+<br>
+The pathname /usr/lib/libpurple-client.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>The "ccs-queryd" automatically appends shared libraries to exception policy using "allow_read" directive when the location of shared libraries in /etc/ld.so.cache has changed. The line</p>
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.6.3 was created. Appended to globally readable file.
+</td></tr>
+</table>
+
+<p>indicates that the pathname /usr/lib/libpurple.so.0.6.3 was appended to exception policy because it was created and was registered to /etc/ld.so.cache .</p>
+
+<p>Also, the "ccs-queryd" automatically removes the pathname registered as globally readable files in exception policy when it was deleted. The line</p>
+
+<table border="1">
+<tr><td>
+The pathname /usr/lib/libpurple.so.0.5.9 was deleted. Deleted from globally readable file.
+</td></tr>
+</table>
+
+<p>indicates that the pathname /usr/lib/libpurple.so.0.5.9 was removed from exception policy because it was deleted.</p>
+
+<p>Policy violation might occur while updating packages due to unusual behavior such as restarting daemons. When a policy violation occurs, a prompt appears in the "ccs-queryd". The lines</p>
+
+<table border="1">
+<tr><td>
+#2010-01-10 12:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/sleep" argc=2 envc=6 argv[]={ "sleep" "1" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/sleep" } }<br>
+&lt;kernel&gt; /etc/rc.d/init.d/cups<br>
+allow_execute /bin/sleep<br>
+Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
+</td></tr>
+</table>
+
+<p>indicates that a process which belongs to the domain "&lt;kernel&gt; /etc/rc.d/init.d/cups" attempted to execute /bin/sleep in order to process the commandline "sleep 1" but the attempt was denied by policy, and the kernel is asking for your decision.
+Validate whether or not to permit the request and tell the kernel your decision. You can press "Y" to grant the request. You can press "N" to reject the request. You can press "R" to retry the request. You can press "S" to show domain policy for the process. You can press "A" to edit and append to domain policy and then retry the request.</p>
+
+<p>Never grant access requests unconditionally. The cause of policy violation is not always updating packages, but may be malicious requests by attackers. If you grant access requests caused by malicious requests by attackers, the system gets intruded.</p>
+
+<p>If "ccs-queryd" is running, the access requests that violated policy are kept pending. To avoid sleeping forever because of pending access requests, never logout (for example, detaching from screen(1)) while "ccs-queryd" is running.</p>
+
+<p>Do a series of operations to confirm that programs that are protected by MAC can run properly. If some access permissions are missing, the messages will be printed to "ccs-queryd", so don't forget to monitor "ccs-queryd".</p>
+
+<p>Note that "ccs-queryd" directly edits the policy currently loaded into the kernel. Thus, the changes made by "ccs-queryd" are lost by the system's shutdown. Be sure to run "ccs-savepolicy" to save the latest policy.</p>
+
+<table border="1">
+<tr><td>
+[root@tomoyo ~]# /usr/sbin/ccs-savepolicy
+</td></tr>
+</table>
+
+<p>You have finished updating policies. Close the console or terminal you executed "ccs-queryd".</p>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>

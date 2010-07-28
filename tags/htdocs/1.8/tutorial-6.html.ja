@@ -1,0 +1,491 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linuxの世界　第６回：「不正ログインを撲滅しよう」</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<p style="text-align:right;"><a href="tutorial-6.html.en">English Page</a></p>
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux の世界<br>第６回：「不正ログインを撲滅しよう」</h1>
+
+<h2>今回の内容</h2>
+
+<p>セキュアＯＳを使えばサービスに不要な資源へのアクセスを禁止することができます．これにより，バッファオーバーフローなどによって制御を奪われた場合の被害を限定することが可能となります．</p>
+
+<p>では，正規の手続き（ユーザ認証）を経てログインした場合はどうでしょうか．当然ながら本来の（正規の）管理者は意図したとおりにシステムを操作できなければいけません．ということは，ログイン認証を突破されてしまうとセキュアＯＳであったとしても壊滅的な被害は免れないということです．正規の管理者の操作を可能としながら，ログイン認証を強化することが課題となります．</p>
+
+<p>TOMOYO Linux ではドメイン遷移を応用することにより，正規の手続きを経てログインされた場合でも被害を限定することができます．今回は，無料で構築できる不正ログイン撃退システムと，管理者権限を分割する手法について紹介します．</p>
+
+<h2>不正ログイン撃退システムについて</h2>
+
+<h3>踏み台にされるのを防ぎたい！</h3>
+
+<p>パスワードブルートフォース攻撃によるＳＳＨサービスへの不正侵入が増加しています．侵入された結果，フィッシングサイトとして悪用されたり，他のホストへ侵入するための攻撃プログラムを設置されたりするといった被害が発生しています．</p>
+
+<p>管理者権限がなくとも攻撃プログラムの設置と実行は可能です．「公開情報しか置いていないサーバだからログインされたって平気だよ」とか「管理者権限でのログインさえ防げれば大丈夫だよ」などと言ってはいられません．インターネットにつながっているサーバは，自分が被害者になるのと同時に加害者にもなってしまうと考えて，予防策を講じることが大切です．</p>
+
+<h3>機密情報を保護したい！</h3>
+
+<p>すべての Linux/UNIX のシステムはログイン認証に対応しています． PAM （ Pluggable Authentication Modules ）や公開鍵認証のような認証を強化する手段は存在していますが，ログイン認証自体の考え方は基本的に同一です．考えてみると個人利用のサーバでもエンタープライズ用途のサーバでも同一の認証で良いのか疑問になってきます．</p>
+
+<p>ログイン認証についても，用途ごとにその用途に適したレベルで設定したいと思いませんか？できれば追加の費用をかけたりしないで…．そのネガイ， TOMOYO Linux が叶えましょう．</p>
+
+<h3>ログイン認証は複数回できるか？</h3>
+
+<p>従来の不正ログイン対策は，「ログイン認証は１回限り．突破されたらおしまい」というのが常識でした．そのため，１回しかないチャンスで少しでも安全な認証を実現するために，公開鍵認証やバイオメトリクス認証の導入が始まっています．これは，セキュアＯＳを使っていても変わりません．</p>
+
+<p>ところが， TOMOYO Linux の場合は事情が違います． TOMOYO Linux であれば，「ログイン認証は何回でも強制可能．だから突破される心配は無用」を実現することが可能です．そのため， TOMOYO Linux では従来どおりの認証方式でログインしてもらうことができます．</p>
+
+<h3>どうして複数回できるの？</h3>
+
+<p>TOMOYO Linux ではログイン認証専用の機構を備えているわけではありませんが，これまで連載で説明してきたドメインに基づく強制アクセス制御の応用によりログイン認証の強化が可能です．</p>
+
+<p>TOMOYO Linux では，ログイン後に行える操作を「追加のユーザ認証を行うためのプログラムを実行すること」だけに限定することがとても簡単に実現できます．しかも追加のユーザ認証プログラムで利用する認証方式に制限はありませんし，国際的に標準化された規格に従う必要もありません．</p>
+
+<p>要件はただ１つ，何かの条件を満たしたら次のプログラム（通常はシェル）を起動するということだけです．強制アクセス制御により，ポリシーで許可されていない資源へのアクセスは禁止されているので，迂回されることはありません．</p>
+
+<p>たとえば，図１のようなスクリプトでも利用可能です．「スクリプト自体にパスワードを埋め込んでいたら誰でも読めてしまって意味がない」と思われるかもしれませんが，強制アクセス制御によりスクリプトの内容を読めないようにすることができます（心配ならパスワードだけ外部のファイルに分離したり，Ｃ言語で記述しても結構です）．</p>
+
+<p>図１のスクリプトを例に解説します．この内容を /bin/auth1 という名前で保存して，「 chmod 755 /bin/auth1 」により実行可能な状態にしておいてください．なお，これはあくまで例であり，実際のシステムに導入する場合は，自分の好きな方法で認証方式を作成してください．侵入者が思いもよらないような認証方式であればあるほど，破ることが困難な防御を実現できます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１　追加認証用のサンプルスクリプト<br>
+<pre>
+#! /bin/sh -p
+for i in 1 2 3
+do
+  echo -n 'Password: '
+  read -r -s passwd
+  echo
+  [ "$passwd" = "SAKURA" ] &amp;&amp; exec $SHELL
+done
+echo 'Incorrect password.'
+</pre>
+</td></tr>
+</table>
+
+<h3>構築してみよう</h3>
+
+<p>例として，ＳＳＨ経由でログインするシステムを保護する場合で説明します．ログインシェルとして /bin/bash が指定されているものと仮定します．</p>
+
+<h4>●準備</h4>
+
+<p>「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」（ /usr/sbin/sshd からログインした場合のログインシェルのドメイン）に対してアクセス制御を有効にし，ポリシーで許可されたプログラムしか実行できない状態にします（「 &lt;kernel&gt; /usr/sbin/sshd 」（ /usr/sbin/sshd のドメイン）にもアクセス制御を適用しないと， /usr/sbin/sshd から /bin/tcsh などを実行することで回避されてしまうので注意してください．）．</p>
+
+<p>まず，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインが keep_domain に指定されていないことを確認してください（ keep_domain については連載第３回で紹介しました）．もし， keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash という指定がされていた場合はポリシーエディタを使用して削除してください．</p>
+
+<p>また，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン（追加の認証を通過後のドメイン）から先にアクセス制御を適用しない場合には，ドメインを遷移させる必要がないのでポリシーエディタを使用して keep_domain &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash という指定を追加してください（図２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２　認証を強化するためのドメインの状態<br>
+<img src="tutorial/fig-6-2.png" alt="fig-6-2.png" width="800" height="600">
+</td></tr>
+</table>
+
+<h4>●学習</h4>
+
+<p>この連載の２回目で図３のプロファイルを定義しましたので，今回も同じプロファイルを使用します． /usr/sbin/sshd からログインしたドメインを学習モードにします．コンソールから図４のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図３　今回使用するプロファイル<br>
+<pre>
+PROFILE_VERSION=20090903
+PREFERENCE::learning={ verbose=no }
+PREFERENCE::permissive={ verbose=yes }
+PREFERENCE::enforcing={ verbose=yes }
+0-CONFIG::file={ mode=disabled }
+1-CONFIG::file={ mode=learning }
+2-CONFIG::file={ mode=permissive }
+3-CONFIG::file={ mode=enforcing }
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図４　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインを学習モードにする
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>/usr/sbin/sshd からログインして， /bin/auth1 を実行します．パスワードを尋ねられるので SAKURA と入力して Enter を押します．認証が成功し， $SHELL に指定されている /bin/bash が起動されます（図５）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図５　/bin/auth1 の認証に成功し， /bin/bash が起動するまでを学習させる
+<pre>
+# /bin/auth1
+Password: SAKURA
+#
+</pre>
+</td></tr>
+</table>
+
+<p>以上で追加の認証を行うのに必要なアクセス許可が学習されました． exit コマンドを２回実行して /usr/sbin/sshd からログアウトしてください．</p>
+
+<h4>●確認と強制</h4>
+
+<p>「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を確認モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにします．コンソールから図６のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図６　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を確認モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにする
+<pre>
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth1 を実行します．エラーメッセージが表示されないことを確認してください．確認したら，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにします．コンソールから図７のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図７　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードにする
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>これで完成です．簡単だと思いませんか？</p>
+
+<h4>●試してみよう</h4>
+
+<p>ブルートフォース攻撃によりパスワードを割り出された，あるいはバッファオーバーフローなどにより認証を経ずにログインに成功されてしまったという想定で効果を確認してみましょう（図８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図８　auth1 以外のコマンドは拒否される
+<pre>
+Last login: Tue Feb 27 17:12:10 2007
+# whoami
+-bash: /usr/bin/whoami: Operation not permitted
+# /bin/auth1
+Password: password
+Password: root
+Password: guest
+Incorrect password.
+# exec 4&lt;/bin/auth1; while read -u 4; do echo $REPLY; done
+-bash: /bin/auth1: Operation not permitted
+-bash: read: 4: invalid file descriptor: Bad file descriptor
+# exit
+</pre>
+</td></tr>
+</table>
+
+<p>せっかく /usr/sbin/sshd からログインしましたが，侵入者には何が許可されているかはわかりません（ポリシーを参照するためのポリシーが定義されていないからです）．思いつくままにさまざまなコマンドを実行しても，もちろん auth1 以外のコマンドは拒否されます．もし侵入者がセキュアＯＳのことを知らなかったらさぞや驚くことでしょう．</p>
+
+<p>侵入者は結局ログアウトするしかありません．仮に侵入者が /bin/auth1 というプログラムを実行できるということに気が付いたとしても，そのスクリプトの処理内容を読めませんからその処理の内容を知ることはできません（ただし，シェルスクリプトの場合，環境変数 SHELLOPTS に verbose:noexec が定義されていると /bin/auth1 を実行することでプログラムの内容が丸見えになってしまいますので，実際のシステムに適用する場合には環境変数の影響を受けない言語で作成することを推奨します．）．やはりログアウトするしかありません．</p>
+
+<p>正規の利用者であれば，何が許可されているかを知っているはずなので，すぐに /bin/auth1 を実行し，正しいパスワードを入力して先に進むことができます（図９）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図９　/bin/auth1 を実行して正しいパスワードを入力する
+<pre>
+Last login: Tue Feb 27 17:14:10 2007
+# /bin/auth1
+Password: SAKURA
+# whoami
+root
+# exec 4&lt;/bin/auth1; while read -u 4; do echo $REPLY; done
+#! /bin/sh
+for i in 1 2 3
+do
+  echo -n 'Password: '
+  read -r -s passwd
+  echo
+  [ "$passwd" = "SAKURA" ] &amp;&amp; exec $SHELL
+done
+echo 'Incorrect password.'
+#
+</pre>
+</td></tr>
+</table>
+
+<p>/bin/auth1 だけでは心配だという人は， /bin/auth2 や /bin/auth3 も作成して直列に並べて，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash /bin/auth2 /bin/bash /bin/auth3 /bin/bash 」ドメインまで到達できたらアクセス制御が適用されなくなるというようにすることもできます． TOMOYO Linux のポリシーはこのような階層的な処理の記述に適していることに注目ください．</p>
+
+<h3>本方法が適用できない場合</h3>
+
+<p>上で紹介した追加認証による防御は，ＳＳＨやＴｅｌｎｅｔやコンソールログインのようにプロセスとユーザの対応付けを維持でき，任意のコマンドを実行できるシェルが提供されている場合にのみ利用可能です．毎回ＴＣＰコネクションを切断してしまうＨＴＴＰによるログインや，シェルが提供されないＦＴＰによるログインなどには適用できません．</p>
+
+<p>scp や sftp などのようにログインシェルから直接起動されるプログラムに対してこの手法を使うには， TOMOYO Linux が提供する execute_handler 機能を利用します．（ execute_handler 機能については後述します．）さらに，セキュアＯＳの持つ強制アクセス制御によりアクセス可能な資源を限定することもできます．たとえばホームディレクトリ直下の scp というディレクトリ以下だけアクセスできるようにすることができます． scp や sftp はログインシェルから直接起動されるため，それらの動作するドメインは「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp 」や「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/libexec/openssh/sftp-server 」のようになりますので，ポリシーのイメージとしては図１０のようになります（ライブラリファイルなどは省略しています）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１０　scp 用のポリシー<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
+use_profile 3
+allow_create /home/\*/scp/\* 0-0666
+allow_create /home/\*/scp/\{\*\}/\* 0-0666
+allow_unlink /home/\*/scp/\*
+allow_unlink /home/\*/scp/\{\*\}/\*
+allow_read/write /home/\*/scp/\*
+allow_read/write /home/\*/scp/\{\*\}/\*
+</pre>
+</td></tr>
+</table>
+
+<p>パス名をグループ化するための path_group という構文を用いて例外ポリシーで図１１のように定義しておくことによりドメインポリシーを図１２のようにシンプルに見通し良く記述できます．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１１　scp 用のファイルをグループ化する<br>
+<pre>
+path_group SCP_FILE /home/\*/scp/\*
+path_group SCP_FILE /home/\*/scp/\{\*\}/\*
+</pre>
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１２　図１１を利用したポリシー<br>
+<pre>
+&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
+use_profile 3
+allow_create @SCP_FILE 0-0666
+allow_unlink @SCP_FILE
+allow_read/write @SCP_FILE
+</pre>
+</td></tr>
+</table>
+
+<p>必要に応じて、 if path1.uid=task.uid などの条件を付与することができます．</p>
+
+<p>ＳＳＨは通信内容を暗号化しますが，ファイル自体を暗号化してくれるわけではありません．より安全を求める場合は， scp や sftp で送受信するファイルをあらかじめ gpg などで暗号化しておけば， scp や sftp がアクセス可能なディレクトリに置かれているファイルを保護することができます．</p>
+
+<h2>管理者権限を分割する方法について</h2>
+
+<h3>従来の権限分割手法</h3>
+
+<p>従来の権限分割手法は， sudo コマンドで実行できるコマンドを制限するなどといったアプリケーションレベルでの手法でした．しかし，アプリケーションレベルでの手法には，コマンドインジェクションが可能な脆弱性がしばしば発見されるなど，抜け道が心配という問題があります．</p>
+
+<h3>セキュアＯＳによる権限分割手法</h3>
+
+<p>セキュアＯＳの多くは， RBAC （ Role Based Access Control ：役割ベースのアクセス制御）機能を備えています．この機能を使うと，ロール（役割）に基づいて実行可能なコマンドや読み書きできるファイルを制限することができ，実際の運用で重宝する機能です．</p>
+
+<h3>TOMOYO Linux による権限分割手法</h3>
+
+<p>TOMOYO Linux は RBAC のための機能を備えていませんが，ドメイン遷移を使えば RBAC と同様の制御を行うことができます．</p>
+
+<p>SELinux では，複数のドメインをまとめてグループ化したものをロールとして定義し，それをユーザに割り当てます．ユーザが属しているロールに含まれていないドメインへ遷移する必要が生じた場合には，ユーザは目的のドメインが含まれているロールに切り替えるという操作を行います．</p>
+
+<p>TOMOYO Linux にはロールという概念はありませんが，実はドメインこそが各時点におけるロールに相当します（しかも，ロールの存在を意識する必要はありません）．ドメインを割り当てるのと同時にロールを割り当てていることにもなります．</p>
+
+<h3>構築してみよう</h3>
+
+<p>例として，Ｗｅｂサーバの管理（Ｗｅｂサーバの再起動やＷｅｂコンテンツの更新）だけを別の人に委託したい場合で説明します．ログインシェルとして /bin/bash が指定されているものと仮定します．</p>
+
+<p>実際に構築するのに必要な手法はすでに説明済みです．不正ログイン対策では認証を直列に配置したのに対し，管理者権限の分割では認証を並列に配置すれば実現できます（図１３，図１４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１３　管理者権限の分割前のドメインの状態<br>
+<img src="tutorial/fig-6-13-ja.png" alt="fig-6-13-ja.png" width="800" height="600">
+</td></tr>
+</table>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１４　管理者権限の分割後のドメインの状態<br>
+<img src="tutorial/fig-6-14-ja.png" alt="fig-6-14-ja.png" width="800" height="600">
+</td></tr>
+</table>
+
+<p>ただし，認証を通過後のドメインにもアクセス制御を行うプロファイル（この連載ではプロファイル３）を割り当てなければいけない点に注意してください．アクセス制御が行われないプロファイルが割り当てられたドメインに一度でも到達することができれば，そこから先の行動を制限できなくなるので，管理者権限の分割になりません．</p>
+
+<h4>●準備</h4>
+
+<p>まず，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインが keep_domain に指定されていないことを確認してください．また，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン（ /bin/auth1 を通過後のドメイン）と「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメイン（ /bin/auth2 を通過後のドメイン）をそれぞれ keep_domain に指定してください．</p>
+
+<p>全権を持つ自分を認証するためのプログラムとして /bin/auth1 を，Ｗｅｂサーバの管理権限だけを持つ別の人を認証するためのプログラムとして /bin/auth2 を使うものとします．</p>
+
+<h4>●学習</h4>
+
+<p>学習方法は不正ログイン対策の場合と同様です．</p>
+
+<p>コンソールから図１５のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１５　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメインを学習モードする
+<pre>
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth1 と /bin/auth2 を実行します．認証に成功すると，それぞれ「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメインと「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインが作成され，必要なアクセス許可が学習されます．</p>
+
+<p>確認したら，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメイン以下を学習モードにします．コンソールから図１６のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１６　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash 」ドメイン以下を強制モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash 」ドメイン以下を無効モードに，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメイン以下を学習モードにする
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash'
+# /usr/sbin/ccs-setprofile -r 0 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth1 /bin/bash'
+# /usr/sbin/ccs-setprofile -r 1 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>この状態で /usr/sbin/sshd からログインして， /bin/auth2 を実行します．認証に成功すると「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインに遷移します．このドメインは keep_domain に指定されているので，これ以上遷移することはありません．</p>
+
+<p>ここで，Ｗｅｂサーバを再起動させるのに必要なアクセス許可を学習させてみましょう（図１７）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１７　Ｗｅｂサーバの再起動に必要なアクセス許可を学習させる
+<pre>
+# service httpd start
+# service httpd stop
+# service httpd restart
+</pre>
+</td></tr>
+</table>
+
+<p>scp や sftp でアップロードしたコンテンツを /var/www/html/ ディレクトリ以下に展開するかもしれません．その操作に必要なアクセス許可も学習させてみましょう（図１８）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１８　アップロードしたコンテンツを展開する操作のアクセス許可を学習させる
+<pre>
+# cd /var/www/html/
+# tar -zxf /home/demo/scp/web-contents.tar.gz
+</pre>
+</td></tr>
+</table>
+
+<p>Ｗｅｂコンテンツの更新のためにエディタを必要とするかもしれません．エディタに必要なアクセス許可も学習させてみましょう（図１９）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図１９　エディタを起動し，アクセス許可を学習させる
+<pre>
+# emacs
+</pre>
+</td></tr>
+</table>
+
+<p>他にも必要な操作があれば学習させます．また，パス名をパターン化する必要があるかもしれません．パス名をパターン化する方法はこの連載の２回目で紹介しました．</p>
+
+<h4>●確認と強制</h4>
+
+<p>許可したい操作に必要なアクセス許可を学習させたら，不足がないかどうか確認します．「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインを確認モードに変更します．コンソールから図２０のコマンドを実行してください．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２０　「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash 」ドメインを確認モードに変更
+<pre>
+# /usr/sbin/ccs-setprofile -r 2 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<p>アクセス許可の不足がないことを確認したら，強制モードに変更します．コンソールから図２１のコマンドを実行してください．これで完成です．許可したい操作を学習させる必要があるとはいえ，さほど時間はかかりません．そして効果は絶大です．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２１　「&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash」ドメインを強制モードに変更
+<pre>
+# /usr/sbin/ccs-setprofile -r 3 '&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/auth2 /bin/bash'
+</pre>
+</td></tr>
+</table>
+
+<h2>より高度な使い方</h2>
+
+<p>最後にいくつか Tips を紹介します．</p>
+
+<h3>ログインシェル</h3>
+
+<p>ログインシェルとして使われる /bin/bash などは豊富な内部コマンドを備えています．たとえば（次回紹介する CONFIG::ipc::signal による制限を有効にしていない場合は）内部コマンドの kill を用いて任意のプロセスを強制終了させてしまうなどといった悪事を働くことができてしまいます．</p>
+
+<p>このような事態を避けるために， TOMOYO Linux ツールの中に含まれている falsh をログインシェルとして使用することができます（図２２）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２２　falsh を /bin/ 以下に移動
+<pre>
+# mv /usr/lib/ccs/misc/falsh /bin/
+</pre>
+</td></tr>
+</table>
+
+<p>ログインシェルを /bin/falsh に変更するには図２３のようにします．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２３　ログインシェルを /bin/falsh に変更
+<pre>
+# usermod -s /bin/falsh root
+</pre>
+</td></tr>
+</table>
+
+<h3>サーバ自身のネットワークの制限</h3>
+
+<p>/usr/sbin/sshd にはポート転送などＴＣＰコネクションを中継する機能があります． /usr/sbin/sshd のドメイン（ &lt;kernel&gt; /usr/sbin/sshd ドメイン）に対して次回紹介する CONFIG::network による制限を行うことで，より強固な防御を行うことができるようになります．</p>
+
+<p>サーバからクライアントへ向けてＴＣＰコネクションを確立する必要のないサーバの場合， CONFIG::network による制限をしておくことで，ワームやウィルスなどにより他のサーバへ攻撃するための踏み台として利用されてしまうのを防ぐ効果もあります．</p>
+
+<p>使う必要がないことがわかっている機能であれば，強制アクセス制御により明示的に使わせないようにしておく価値があります．</p>
+
+<h3>公開鍵認証によるバッチ処理</h3>
+
+<p>公開鍵認証を用いて /usr/sbin/sshd から自動ログインしてバッチ処理を行う場合があります．そのような場合にも今回紹介した手法が役に立ちます．</p>
+
+<p>バッチ処理のためのアカウントで使うログインシェルを，対話的処理のためのアカウントで使うログインシェル（この連載では /bin/bash を使用しています）とは異なるシェル（たとえば /bin/tcsh ）にするだけで，「 &lt;kernel&gt; /usr/sbin/sshd /bin/tcsh 」のようにドメインを分離することができるようになります（図２４）．</p>
+
+<table border="1" summary="fig">
+<tr><td>
+■図２４　ドメインを分離する<br>
+<img src="tutorial/fig-6-24-ja.png" alt="fig-6-24-ja.png" width="800" height="340">
+</td></tr>
+</table>
+
+<h2>参考情報</h2>
+
+<p>NTT データでは，今回の連載で説明したログイン認証の強化方法について，２００６年１０月にプレスリリースを行っています．リリースの説明はできるだけ平易に記述したつもりですが，セキュアＯＳについて予備知識がない方にはやや難しかったかもしれません．本稿を読まれた方であれば，その原理と利点（価値）について十分にご理解いただけると思います．</p>
+
+<p><a href="http://www.nttdata.co.jp/release/2006/101300.html">セキュアＯＳ「TOMOYO Linux」を用いた柔軟かつ強固な利用者認証方式のプロトタイプを開発（NTTデータプレスリリース）</a></p>
+
+<p>さらに詳しい内容に興味を持たれた方は，ぜひ２００５年９月に愛知県立大学情報学ワークショップ２００５で発表した論文，「セキュリティ強化ＯＳによるログイン認証の強化手法」をご参照ください．</p>
+
+<p><a href="http://sourceforge.jp/projects/tomoyo/document/winf2005.pdf">「セキュリティ強化ＯＳによるログイン認証の強化手法」／原田季栄，松本隆明／静岡大学『情報学研究』第１１巻，９３～１０２頁／２００５年</a></p>
+
+<p>execute_handler の利用例については以下のチュートリアルをご参照ください．</p>
+
+<ul>
+<li><a href="ssh-split-administrative-tasks.html.ja">ＳＳＨサービスでシステム管理者の操作を制限する</a></li>
+<li><a href="ssh-protection-using-environment.html.ja">環境変数を用いたＳＳＨサービスのブルートフォース対策</a></li>
+<li><a href="sftp-protection-using-environment-variable.html.ja">環境変数を用いてダウンロード専用ＳＦＴＰとアップロードも可能なＳＦＴＰを単一アカウントで実現する</a></li>
+<li><a href="ssh-recording-cmdline.html.ja">シェルセッションのコマンドラインを記録する</a></li>
+</ul>
+
+<h2>次回予告</h2>
+
+<p>次回は，ファイル以外のアクセス制御について紹介します．</p>
+
+<p><a href="tutorial-5.html.ja">第５回へ戻る</a>　<a href="tutorial-7.html.ja">第７回へ進む</a></p>
+
+<hr>
+
+<p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
