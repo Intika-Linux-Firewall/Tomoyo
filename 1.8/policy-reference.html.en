@@ -63,46 +63,26 @@
 <li><a href="#profile_CONFIG::file::umount">CONFIG::file::umount</a></li>
 <li><a href="#profile_CONFIG::file::pivot_root">CONFIG::file::pivot_root</a></li>
 <li><a href="#profile_CONFIG::misc::env">CONFIG::misc::env</a></li>
-<li><a href="#profile_CONFIG::capability::inet_tcp_create">CONFIG::capability::inet_tcp_create</a></li>
-<li><a href="#profile_CONFIG::capability::inet_tcp_listen">CONFIG::capability::inet_tcp_listen</a></li>
-<li><a href="#profile_CONFIG::capability::inet_tcp_connect">CONFIG::capability::inet_tcp_connect</a></li>
-<li><a href="#profile_CONFIG::capability::use_inet_udp">CONFIG::capability::use_inet_udp</a></li>
-<li><a href="#profile_CONFIG::capability::use_inet_ip">CONFIG::capability::use_inet_ip</a></li>
 <li><a href="#profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></li>
 <li><a href="#profile_CONFIG::capability::use_packet">CONFIG::capability::use_packet</a></li>
 <li><a href="#profile_CONFIG::capability::use_kernel_module">CONFIG::capability::use_kernel_module</a></li>
-<li><a href="#profile_CONFIG::capability::create_fifo">CONFIG::capability::create_fifo</a></li>
-<li><a href="#profile_CONFIG::capability::create_block_dev">CONFIG::capability::create_block_dev</a></li>
-<li><a href="#profile_CONFIG::capability::create_char_dev">CONFIG::capability::create_char_dev</a></li>
-<li><a href="#profile_CONFIG::capability::create_unix_socket">CONFIG::capability::create_unix_socket</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_MOUNT">CONFIG::capability::SYS_MOUNT</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_UMOUNT">CONFIG::capability::SYS_UMOUNT</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_CHROOT">CONFIG::capability::SYS_CHROOT</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_KILL">CONFIG::capability::SYS_KILL</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_TIME">CONFIG::capability::SYS_TIME</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_NICE">CONFIG::capability::SYS_NICE</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_SETHOSTNAME">CONFIG::capability::SYS_SETHOSTNAME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_LINK">CONFIG::capability::SYS_LINK</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_SYMLINK">CONFIG::capability::SYS_SYMLINK</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_RENAME">CONFIG::capability::SYS_RENAME</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_UNLINK">CONFIG::capability::SYS_UNLINK</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_CHMOD">CONFIG::capability::SYS_CHMOD</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_CHOWN">CONFIG::capability::SYS_CHOWN</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_IOCTL">CONFIG::capability::SYS_IOCTL</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></li>
-<li><a href="#profile_CONFIG::capability::SYS_PIVOT_ROOT">CONFIG::capability::SYS_PIVOT_ROOT</a></li>
 <li><a href="#profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></li>
-<li><a href="#profile_CONFIG::capability::conceal_mount">CONFIG::capability::conceal_mount</a></li>
 <li><a href="#profile_CONFIG::network::inet_udp_bind">CONFIG::network::inet_udp_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_udp_connect">CONFIG::network::inet_udp_connect</a></li>
+<li><a href="#profile_CONFIG::network::inet_udp_send">CONFIG::network::inet_udp_send</a></li>
+<li><a href="#profile_CONFIG::network::inet_udp_recv">CONFIG::network::inet_udp_recv</a></li>
 <li><a href="#profile_CONFIG::network::inet_tcp_bind">CONFIG::network::inet_tcp_bind</a></li>
 <li><a href="#profile_CONFIG::network::inet_tcp_listen">CONFIG::network::inet_tcp_listen</a></li>
 <li><a href="#profile_CONFIG::network::inet_tcp_connect">CONFIG::network::inet_tcp_connect</a></li>
 <li><a href="#profile_CONFIG::network::inet_tcp_accept">CONFIG::network::inet_tcp_accept</a></li>
 <li><a href="#profile_CONFIG::network::inet_raw_bind">CONFIG::network::inet_raw_bind</a></li>
-<li><a href="#profile_CONFIG::network::inet_raw_connect">CONFIG::network::inet_raw_connect</a></li>
+<li><a href="#profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></li>
+<li><a href="#profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></li>
 <li><a href="#profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></li>
 <li><a href="#profile_PREFERENCE::audit">PREFERENCE::audit</a></li>
 <li><a href="#profile_PREFERENCE::learning">PREFERENCE::learning</a></li>
@@ -113,6 +93,7 @@
 <p>Used by /proc/ccs/exception_policy and /etc/ccs/exception_policy.conf</p>
 
 <ul>
+<li><a href="#exception_policy_acl_group">acl_group</a></li>
 <li><a href="#exception_policy_aggregator">aggregator</a></li>
 <li><a href="#exception_policy_initialize_domain">initialize_domain</a></li>
 <li><a href="#exception_policy_no_initialize_domain">no_initialize_domain</a></li>
@@ -122,45 +103,40 @@
 <li><a href="#exception_policy_path_group">path_group</a></li>
 <li><a href="#exception_policy_number_group">number_group</a></li>
 <li><a href="#exception_policy_address_group">address_group</a></li>
-<li><a href="#exception_policy_allow_read">allow_read</a></li>
-<li><a href="#exception_policy_allow_env">allow_env</a></li>
-<li><a href="#exception_policy_deny_rewrite">deny_rewrite</a></li>
 <li><a href="#exception_policy_deny_autobind">deny_autobind</a></li>
 </ul>
 
 <p>Used by /proc/ccs/domain_policy and /etc/ccs/domain_policy.conf</p>
 
 <ul>
-<li><a href="#domain_policy_allow_execute">allow_execute</a></li>
-<li><a href="#domain_policy_allow_transit">allow_transit</a></li>
-<li><a href="#domain_policy_allow_read">allow_read</a></li>
-<li><a href="#domain_policy_allow_write">allow_write</a></li>
-<li><a href="#domain_policy_allow_read/write">allow_read/write</a></li>
-<li><a href="#domain_policy_allow_create">allow_create</a></li>
-<li><a href="#domain_policy_allow_unlink">allow_unlink</a></li>
-<li><a href="#domain_policy_allow_mkdir">allow_mkdir</a></li>
-<li><a href="#domain_policy_allow_rmdir">allow_rmdir</a></li>
-<li><a href="#domain_policy_allow_mkfifo">allow_mkfifo</a></li>
-<li><a href="#domain_policy_allow_mksock">allow_mksock</a></li>
-<li><a href="#domain_policy_allow_mkblock">allow_mkblock</a></li>
-<li><a href="#domain_policy_allow_mkchar">allow_mkchar</a></li>
-<li><a href="#domain_policy_allow_truncate">allow_truncate</a></li>
-<li><a href="#domain_policy_allow_symlink">allow_symlink</a></li>
-<li><a href="#domain_policy_allow_link">allow_link</a></li>
-<li><a href="#domain_policy_allow_rename">allow_rename</a></li>
-<li><a href="#domain_policy_allow_rewrite">allow_rewrite</a></li>
-<li><a href="#domain_policy_allow_ioctl">allow_ioctl</a></li>
-<li><a href="#domain_policy_allow_mount">allow_mount</a></li>
-<li><a href="#domain_policy_allow_unmount">allow_unmount</a></li>
-<li><a href="#domain_policy_allow_chroot">allow_chroot</a></li>
-<li><a href="#domain_policy_allow_pivot_root">allow_pivot_root</a></li>
-<li><a href="#domain_policy_allow_env">allow_env</a></li>
-<li><a href="#domain_policy_allow_network">allow_network</a></li>
-<li><a href="#domain_policy_allow_capability">allow_capability</a></li>
-<li><a href="#domain_policy_allow_signal">allow_signal</a></li>
+<li><a href="#domain_policy_file_execute">file execute</a></li>
+<li><a href="#domain_policy_file_transit">file transit</a></li>
+<li><a href="#domain_policy_file_read">file read</a></li>
+<li><a href="#domain_policy_file_write">file write</a></li>
+<li><a href="#domain_policy_file_append">file append</a></li>
+<li><a href="#domain_policy_file_create">file create</a></li>
+<li><a href="#domain_policy_file_unlink">file unlink</a></li>
+<li><a href="#domain_policy_file_mkdir">file mkdir</a></li>
+<li><a href="#domain_policy_file_rmdir">file rmdir</a></li>
+<li><a href="#domain_policy_file_mkfifo">file mkfifo</a></li>
+<li><a href="#domain_policy_file_mksock">file mksock</a></li>
+<li><a href="#domain_policy_file_mkblock">file mkblock</a></li>
+<li><a href="#domain_policy_file_mkchar">file mkchar</a></li>
+<li><a href="#domain_policy_file_truncate">file truncate</a></li>
+<li><a href="#domain_policy_file_symlink">file symlink</a></li>
+<li><a href="#domain_policy_file_link">file link</a></li>
+<li><a href="#domain_policy_file_rename">file rename</a></li>
+<li><a href="#domain_policy_file_ioctl">file ioctl</a></li>
+<li><a href="#domain_policy_file_mount">file mount</a></li>
+<li><a href="#domain_policy_file_unmount">file unmount</a></li>
+<li><a href="#domain_policy_file_chroot">file chroot</a></li>
+<li><a href="#domain_policy_file_pivot_root">file pivot_root</a></li>
+<li><a href="#domain_policy_misc_env">misc env</a></li>
+<li><a href="#domain_policy_network">network</a></li>
+<li><a href="#domain_policy_capability">capability</a></li>
+<li><a href="#domain_policy_ipc_signal">ipc signal</a></li>
 <li><a href="#domain_policy_use_profile">use_profile</a></li>
-<li><a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></li>
-<li><a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></li>
+<li><a href="#domain_policy_use_group">use_group</a></li>
 <li><a href="#domain_policy_execute_handler">execute_handler</a></li>
 <li><a href="#domain_policy_denied_execute_handler">denied_execute_handler</a></li>
 <li><a href="#domain_policy_quota_exceeded">quota_exceeded</a></li>
@@ -254,7 +230,7 @@ TOMOYO Linux follows the rules shown below to represent a word. A word means all
  <li>/\*\-proc\-sys/ for /\*/ other than /proc/ /sys/</li>
  </ul>
 </td></tr>
-<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'. (Valid only in 1.7.1 and later.)</td><td>
+<tr><td>/\{dir\}/</td><td>Recursive directory matching operator which matches '/' + one or more repetitions of 'dir/'.</td><td>
  <ul>
   <li>/var/www/html/\{\*\}/\*.html for /var/www/html/\*/\*.html /var/www/html/\*/\*/\*.html /var/www/html/\*/\*/\*/\*.html etc.</li>
   <li>/home/\*/\{\*\-.\*\}/\* for /home/\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\* /home/\*/\*\-.\*/\*\-.\*/\*\-.\*/\* etc.</li>
@@ -387,8 +363,8 @@ Query lists: 1048576
 <p>Search domain policy for</p>
 
 <ul>
-<li>allow_execute "Candidate"
-<li>allow_execute @"a pathname group containing Candidate"
+<li>file execute "Candidate"
+<li>file execute @"a pathname group containing Candidate"
 </ul>
 
 <p>and deny the execute request if not found one.</p>
@@ -400,7 +376,8 @@ Query lists: 1048576
 <ul>
 <li>no_initialize_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>no_initialize_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>no_initialize_domain "Candidate"
+<li>no_initialize_domain "Candidate" from any
+<li>no_initialize_domain any from any
 </ul>
 
 <p>and if found one, jump to (3).</p>
@@ -410,7 +387,8 @@ Query lists: 1048576
 <ul>
 <li>initialize_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>initialize_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>initialize_domain "Candidate"
+<li>initialize_domain "Candidate" from any
+<li>initialize_domain any from any
 </ul>
 
 <p>and if found one, concatenate "the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;)" and "Candidate" and keep the result as destination domain, then jump to (6).</p>
@@ -420,8 +398,9 @@ Query lists: 1048576
 <ul>
 <li>no_keep_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>no_keep_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>no_keep_domain "the name of the domain the current process belongs to"
-<li>no_keep_domain "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain any from "the name of the domain the current process belongs to"
+<li>no_keep_domain any from "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain any from any
 </ul>
 
 <p>and if found one, jump to (5).</p>
@@ -431,8 +410,9 @@ Query lists: 1048576
 <ul>
 <li>keep_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>keep_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>keep_domain "the name of the domain the current process belongs to"
-<li>keep_domain "the last part of the name of the domain the current process belongs to"
+<li>keep_domain any from "the name of the domain the current process belongs to"
+<li>keep_domain any from "the last part of the name of the domain the current process belongs to"
+<li>keep_domain any from any
 </ul>
 
 <p>and if found one, set "the name of the domain the current process belongs to" as destination domain, then jump to (6).</p>
@@ -481,7 +461,8 @@ Query lists: 1048576
 <ul>
 <li>no_initialize_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>no_initialize_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>no_initialize_domain "Candidate"
+<li>no_initialize_domain "Candidate" from any
+<li>no_initialize_domain any from any
 </ul>
 
 <p>and if found one, jump to (3).</p>
@@ -491,7 +472,8 @@ Query lists: 1048576
 <ul>
 <li>initialize_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>initialize_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>initialize_domain "Candidate"
+<li>initialize_domain "Candidate" from any
+<li>initialize_domain any from any
 </ul>
 
 <p>and if found one, concatenate "the name of the domain that the kernel belongs to (i.e. &lt;kernel&gt;)" and "Candidate" and keep the result as destination domain, then jump to (6).</p>
@@ -501,8 +483,9 @@ Query lists: 1048576
 <ul>
 <li>no_keep_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>no_keep_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>no_keep_domain "the name of the domain the current process belongs to"
-<li>no_keep_domain "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain any from "the name of the domain the current process belongs to"
+<li>no_keep_domain any from "the last part of the name of the domain the current process belongs to"
+<li>no_keep_domain any from any
 </ul>
 
 <p>and if found one, jump to (5).</p>
@@ -512,8 +495,9 @@ Query lists: 1048576
 <ul>
 <li>keep_domain "Candidate" from "the name of the domain the current process belongs to"
 <li>keep_domain "Candidate" from "the last part of the name of the domain the current process belongs to"
-<li>keep_domain "the name of the domain the current process belongs to"
-<li>keep_domain "the last part of the name of the domain the current process belongs to"
+<li>keep_domain any from "the name of the domain the current process belongs to"
+<li>keep_domain any from "the last part of the name of the domain the current process belongs to"
+<li>keep_domain any from any
 </ul>
 
 <p>and if found one, set "the name of the domain the current process belongs to" as destination domain, then jump to (6).</p>
@@ -540,7 +524,7 @@ Query lists: 1048576
 <tr><td>
 #2010-01-13 21:00:50# profile=1 mode=learning (global-pid=2908) task={ pid=2908 ppid=2879 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=852049 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/cat" argc=2 envc=20 argv[]={ "cat" "/etc/fstab" } envp[]={ "HOSTNAME=tomoyo" "TERM=vt100" "SHELL=/bin/bash" "HISTSIZE=1000" "SSH_CLIENT=192.168.1.2\0402845\04022" "SSH_TTY=/dev/pts/0" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "SSH_CONNECTION=192.168.1.2\0402845\040192.168.1.7\04022" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/cat" } }<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat
+file execute /bin/cat
 </td></tr>
 </table>
 
@@ -552,7 +536,7 @@ allow_execute /bin/cat
 <tr><td>
 #2010-01-13 21:00:50# profile=1 mode=learning (global-pid=2908) task={ pid=2908 ppid=2879 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=901920 major=8 minor=1 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=901121 perm=0755 }<br>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat<br>
-allow_read /etc/fstab
+file read /etc/fstab
 </td></tr>
 </table>
 
@@ -594,7 +578,7 @@ execute_handler /bin/audit-exec-param
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat if exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat" exec.argv[1]="/etc/fstab"
+file execute /bin/cat if exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat" exec.argv[1]="/etc/fstab"
 </td></tr>
 </table>
 
@@ -603,7 +587,7 @@ allow_execute /bin/cat if exec.argc=2 exec.realpath="/bin/cat" exec.argv[0]="cat
 <table border="1">
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash<br>
-allow_execute /bin/cat if exec.realpath="/bin/cat" exec.argv[0]="cat"
+file execute /bin/cat if exec.realpath="/bin/cat" exec.argv[0]="cat"
 </td></tr>
 </table>
 
@@ -651,7 +635,7 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <h3><a name="profile_CONFIG::file::transit">CONFIG::file::transit</a></h3>
 
-<p>Specifies access control level regarding domain transition without program execution. (Valid only in 1.7.2 and later.)</p>
+<p>Specifies access control level regarding domain transition without program execution.</p>
 
 <h3><a name="profile_CONFIG::file::open">CONFIG::file::open</a></h3>
 
@@ -745,26 +729,6 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding environment variable names (a.k.a. envp[]).</p>
 
-<h3><a name="profile_CONFIG::capability::inet_tcp_create">CONFIG::capability::inet_tcp_create</a></h3>
-
-<p>Specifies access control level regarding creation of TCP sockets.</p>
-
-<h3><a name="profile_CONFIG::capability::inet_tcp_listen">CONFIG::capability::inet_tcp_listen</a></h3>
-
-<p>Specifies access control level regarding TCP socket's listen operation.</p>
-
-<h3><a name="profile_CONFIG::capability::inet_tcp_connect">CONFIG::capability::inet_tcp_connect</a></h3>
-
-<p>Specifies access control level regarding TCP socket's connect operation.</p>
-
-<h3><a name="profile_CONFIG::capability::use_inet_udp">CONFIG::capability::use_inet_udp</a></h3>
-
-<p>Specifies access control level regarding use of UDP sockets.</p>
-
-<h3><a name="profile_CONFIG::capability::use_inet_ip">CONFIG::capability::use_inet_ip</a></h3>
-
-<p>Specifies access control level regarding use of RAW sockets.</p>
-
 <h3><a name="profile_CONFIG::capability::use_route">CONFIG::capability::use_route</a></h3>
 
 <p>Specifies access control level regarding use of ROUTE sockets.</p>
@@ -777,41 +741,9 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding use of create_module(2) init_module(2) delete_module(2) syscall.</p>
 
-<h3><a name="profile_CONFIG::capability::create_fifo">CONFIG::capability::create_fifo</a></h3>
-
-<p>Specifies access control level regarding creation of FIFO using mknod(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::create_block_dev">CONFIG::capability::create_block_dev</a></h3>
-
-<p>Specifies access control level regarding creation of block device file using mknod(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::create_char_dev">CONFIG::capability::create_char_dev</a></h3>
-
-<p>Specifies access control level regarding creation of character device file using mknod(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::create_unix_socket">CONFIG::capability::create_unix_socket</a></h3>
-
-<p>Specifies access control level regarding creation of UNIX domain socket using mknod(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_MOUNT">CONFIG::capability::SYS_MOUNT</a></h3>
-
-<p>Specifies access control level regarding use of mount(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_UMOUNT">CONFIG::capability::SYS_UMOUNT</a></h3>
-
-<p>Specifies access control level regarding use of umount(2) syscall.</p>
-
 <h3><a name="profile_CONFIG::capability::SYS_REBOOT">CONFIG::capability::SYS_REBOOT</a></h3>
 
 <p>Specifies access control level regarding use of reboot(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_CHROOT">CONFIG::capability::SYS_CHROOT</a></h3>
-
-<p>Specifies access control level regarding use of chroot(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_KILL">CONFIG::capability::SYS_KILL</a></h3>
-
-<p>Specifies access control level regarding use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</p>
 
 <h3><a name="profile_CONFIG::capability::SYS_VHANGUP">CONFIG::capability::SYS_VHANGUP</a></h3>
 
@@ -829,57 +761,25 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding use of sethostname(2) setdomainname(2) syscall.</p>
 
-<h3><a name="profile_CONFIG::capability::SYS_LINK">CONFIG::capability::SYS_LINK</a></h3>
-
-<p>Specifies access control level regarding use of link(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_SYMLINK">CONFIG::capability::SYS_SYMLINK</a></h3>
-
-<p>Specifies access control level regarding use of symlink(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_RENAME">CONFIG::capability::SYS_RENAME</a></h3>
-
-<p>Specifies access control level regarding use of rename(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_UNLINK">CONFIG::capability::SYS_UNLINK</a></h3>
-
-<p>Specifies access control level regarding use of unlink(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_CHMOD">CONFIG::capability::SYS_CHMOD</a></h3>
-
-<p>Specifies access control level regarding use of chmod(2) fchmod(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_CHOWN">CONFIG::capability::SYS_CHOWN</a></h3>
-
-<p>Specifies access control level regarding use of chown(2) fchown(2) lchown(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_IOCTL">CONFIG::capability::SYS_IOCTL</a></h3>
-
-<p>Specifies access control level regarding use of ioctl(2) compat_sys_ioctl(2) syscall.</p>
-
 <h3><a name="profile_CONFIG::capability::SYS_KEXEC_LOAD">CONFIG::capability::SYS_KEXEC_LOAD</a></h3>
 
 <p>Specifies access control level regarding use of kexec_load(2) syscall.</p>
-
-<h3><a name="profile_CONFIG::capability::SYS_PIVOT_ROOT">CONFIG::capability::SYS_PIVOT_ROOT</a></h3>
-
-<p>Specifies access control level regarding use of pivot_root(2) syscall.</p>
 
 <h3><a name="profile_CONFIG::capability::SYS_PTRACE">CONFIG::capability::SYS_PTRACE</a></h3>
 
 <p>Specifies access control level regarding use of ptrace(2) syscall.<br>
 
-<h3><a name="profile_CONFIG::capability::conceal_mount">CONFIG::capability::conceal_mount</a></h3>
-
-<p>Specifies access control level regarding mount requests that shadow existent mounts.</p>
-
 <h3><a name="profile_CONFIG::network::inet_udp_bind">CONFIG::network::inet_udp_bind</a></h3>
 
 <p>Specifies access control level regarding UDP socket's local address restriction.</p>
 
-<h3><a name="profile_CONFIG::network::inet_udp_connect">CONFIG::network::inet_udp_connect</a></h3>
+<h3><a name="profile_CONFIG::network::inet_udp_send">CONFIG::network::inet_udp_send</a></h3>
 
-<p>Specifies access control level regarding UDP socket's remote address restriction.</p>
+<p>Specifies access control level regarding UDP socket's remote address restriction for outgoing packets.</p>
+
+<h3><a name="profile_CONFIG::network::inet_udp_recv">CONFIG::network::inet_udp_recv</a></h3>
+
+<p>Specifies access control level regarding UDP socket's remote address restriction for incoming packets.</p>
 
 <h3><a name="profile_CONFIG::network::inet_tcp_bind">CONFIG::network::inet_tcp_bind</a></h3>
 
@@ -901,9 +801,13 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>Specifies access control level regarding RAW socket's local address restriction.</p>
 
-<h3><a name="profile_CONFIG::network::inet_raw_connect">CONFIG::network::inet_raw_connect</a></h3>
+<h3><a name="profile_CONFIG::network::inet_raw_send">CONFIG::network::inet_raw_send</a></h3>
 
-<p>Specifies access control level regarding RAW socket's remote address restriction.</p>
+<p>Specifies access control level regarding RAW socket's remote address restriction for outgoing packets.</p>
+
+<h3><a name="profile_CONFIG::network::inet_raw_recv">CONFIG::network::inet_raw_recv</a></h3>
+
+<p>Specifies access control level regarding RAW socket's remote address restriction for incoming packets.</p>
 
 <h3><a name="profile_CONFIG::ipc::signal">CONFIG::ipc::signal</a></h3>
 
@@ -925,11 +829,11 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>"max_entry=" controls the max number of ACL entries that are automatically appended.</p>
 
-<p>"exec.realpath=" controls whether the dereferenced pathname of the requested program should be learned when adding an "allow_execute" entry.</p>
+<p>"exec.realpath=" controls whether the dereferenced pathname of the requested program should be learned when adding an "file execute" entry.</p>
 
-<p>"exec.argv0=" controls whether the invocation name should be learned when adding an "allow_execute" entry.</p>
+<p>"exec.argv0=" controls whether the invocation name should be learned when adding an "file execute" entry.</p>
 
-<p>"symlink.target=" controls whether the content of the symbolic link should be learned when adding an "allow_symlink" entry.</p>
+<p>"symlink.target=" controls whether the content of the symbolic link should be learned when adding an "file symlink" entry.</p>
 
 <h3><a name="profile_PREFERENCE::permissive">PREFERENCE::permissive</a></h3>
 
@@ -955,11 +859,11 @@ echo 1-CONFIG::file::execute=learning | ccs-loadpolicy -p</p>
 
 <p>To read or modify current domain policy, operate like below.</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain will be created if nonexistent.<br>
-printf "&lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
+printf "&lt;kernel&gt; /sbin/init\nfile read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and appending ACLs. The domain won't be created if nonexistent.<br>
-printf "select &lt;kernel&gt; /sbin/init\nallow_read /etc/passwd\n" | ccs-loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\nfile read /etc/passwd\n" | ccs-loadpolicy -d</p>
 <p>(Example) Selecting specific domain and removing ACLs.<br>
-printf "select &lt;kernel&gt; /sbin/init\ndelete allow_read /etc/passwd\ndelete allow_read /etc/shadow\n" | ccs-loadpolicy -d</p>
+printf "select &lt;kernel&gt; /sbin/init\ndelete file read /etc/passwd\ndelete file read /etc/shadow\n" | ccs-loadpolicy -d</p>
 <p>(Example) Deleting specific domain.<br>
 printf "delete &lt;kernel&gt; /sbin/init\n" | ccs-loadpolicy -d</p>
 <p>(Example) Reading current domain policy.<br>
@@ -967,235 +871,188 @@ cat /proc/ccs/domain_policy</p>
 
 <p>See also: <a href="#policy_file_modifiers">Policy File's Modification</a></p>
 
-<h3><a name="domain_policy_allow_execute">allow_execute</a></h3>
-<p>This keyword grants execution of the specified pathname. No wildcards are permitted for the pathname. If you have to use wildcards, use <a href="#exception_policy_aggregator">aggregator</a> keyword before granting execute permission using this keyword.</p>
-<p>(Example) allow_execute /bin/ls</p>
+<h3><a name="domain_policy_file_execute">file execute</a></h3>
+<p>This keyword grants execution of the specified pathname.</p>
+<p>(Example) file execute /bin/ls</p>
 <p>See also: <a href="#domain_transition">Domain Transition</a> <a href="#exception_policy_aggregator">aggregator</a></p>
 
-<h3><a name="domain_policy_allow_transit">allow_transit</a></h3>
-<p>This keyword grants domain transition to the specified pathname without executing program. No wildcards are permitted for the pathname. (Valid only in 1.7.2 and later.)</p>
-<p>(Example) allow_transit //app=cgi1\040id=10000</p>
+<h3><a name="domain_policy_file_transit">file transit</a></h3>
+<p>This keyword grants domain transition to the specified pathname without executing program.</p>
+<p>(Example) file transit //app=cgi1\040id=10000</p>
 
-<h3><a name="domain_policy_allow_write">allow_write</a></h3>
+<h3><a name="domain_policy_file_write">file write</a></h3>
 <p>This keyword grants the specified pathname to be opened for writing.</p>
-<p>(Example) allow_write /dev/null</p>
+<p>(Example) file write /dev/null</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_read">allow_read</a></h3>
+<h3><a name="domain_policy_file_read">file read</a></h3>
 <p>This keyword grants the specified pathname to be opened for reading.</p>
-<p>(Example) allow_read /proc/meminfo</p>
+<p>(Example) file read /proc/meminfo</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_read/write">allow_read/write</a></h3>
-<p>This keyword grants the specified pathname to be opened for reading and writing.</p>
-<p>(Example) allow_read/write /dev/null</p>
+<h3><a name="domain_policy_file_append">file append</a></h3>
+<p>This keyword grants the specified pathname to be opened for appending.</p>
+<p>(Example) file append /dev/null</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_create">allow_create</a></h3>
+<h3><a name="domain_policy_file_create">file create</a></h3>
 <p>This keyword grants the specified pathname to be created.</p>
-<p>(Example) allow_create /var/lock/subsys/crond</p>
+<p>(Example) file create /var/lock/subsys/crond</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_unlink">allow_unlink</a></h3>
+<h3><a name="domain_policy_file_unlink">file unlink</a></h3>
 <p>This keyword grants the specified pathname to be deleted.</p>
-<p>(Example) allow_unlink /var/lock/subsys/crond</p>
+<p>(Example) file unlink /var/lock/subsys/crond</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_mkdir">allow_mkdir</a></h3>
+<h3><a name="domain_policy_file_mkdir">file mkdir</a></h3>
 <p>This keyword grants the specified pathname to be created. The pathname must be a directory.</p>
-<p>(Example) allow_mkdir /tmp/logwatch.\*/</p>
+<p>(Example) file mkdir /tmp/logwatch.\*/</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_rmdir">allow_rmdir</a></h3>
+<h3><a name="domain_policy_file_rmdir">file rmdir</a></h3>
 <p>This keyword grants the specified pathname to be deleted. The pathname must be a directory.</p>
-<p>(Example) allow_rmdir /tmp/logwatch.\*/</p>
+<p>(Example) file rmdir /tmp/logwatch.\*/</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_mkfifo">allow_mkfifo</a></h3>
+<h3><a name="domain_policy_file_mkfifo">file mkfifo</a></h3>
 <p>This keyword grants creation of FIFO by the specified pathname.</p>
-<p>(Example) allow_mkfifo /dev/initctl</p>
+<p>(Example) file mkfifo /dev/initctl</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_mksock">allow_mksock</a></h3>
+<h3><a name="domain_policy_file_mksock">file mksock</a></h3>
 <p>This keyword grants creation of UNIX domain socket by the specified pathname.</p>
-<p>(Example) allow_mksock /dev/log</p>
+<p>(Example) file mksock /dev/log</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_mkblock">allow_mkblock</a></h3>
+<h3><a name="domain_policy_file_mkblock">file mkblock</a></h3>
 <p>This keyword grants creation of block device file by the specified pathname.</p>
-<p>(Example) allow_mkblock /dev/\*</p>
+<p>(Example) file mkblock /dev/\*</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_mkchar">allow_mkchar</a></h3>
+<h3><a name="domain_policy_file_mkchar">file mkchar</a></h3>
 <p>This keyword grants creation of character device file by the specified pathname.</p>
-<p>(Example) allow_mkchar /dev/\*</p>
+<p>(Example) file mkchar /dev/\*</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_truncate">allow_truncate</a></h3>
+<h3><a name="domain_policy_file_truncate">file truncate</a></h3>
 <p>This keyword grants the specified pathname to be truncated or extended.</p>
-<p>(Example) allow_truncate /etc/mtab</p>
+<p>(Example) file truncate /etc/mtab</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_symlink">allow_symlink</a></h3>
+<h3><a name="domain_policy_file_symlink">file symlink</a></h3>
 <p>This keyword grants creation of symbolic link by the specified pathname.</p>
-<p>(Example) allow_symlink /dev/cdrom</p>
+<p>(Example) file symlink /dev/cdrom</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_link">allow_link</a></h3>
+<h3><a name="domain_policy_file_link">file link</a></h3>
 <p>This keyword grants creation of hard link by the specified pathnames.</p>
-<p>(Example) allow_link /etc/mtab~\$ /etc/mtab~</p>
+<p>(Example) file link /etc/mtab~\$ /etc/mtab~</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_rename">allow_rename</a></h3>
+<h3><a name="domain_policy_file_rename">file rename</a></h3>
 <p>This keyword grants renaming of the specified pathnames.</p>
-<p>(Example) allow_rename /etc/mtab.tmp /etc/mtab</p>
+<p>(Example) file rename /etc/mtab.tmp /etc/mtab</p>
 <p>See also:  <a href="#exception_policy_path_group">path_group</a></p>
 
-<h3><a name="domain_policy_allow_rewrite">allow_rewrite</a></h3>
-<p>This keyword grants the specified pathname to be rewritten when the pathname is specified by <a href="#exception_policy_deny_rewrite">deny_rewrite</a> keyword.</p>
-<p>(Example) allow_rewrite /var/log/messages</p>
-<p>See also:  <a href="#exception_policy_path_group">path_group</a> <a href="#exception_policy_deny_rewrite">deny_rewrite</a></p>
-
-<h3><a name="domain_policy_allow_ioctl">allow_ioctl</a></h3>
+<h3><a name="domain_policy_file_ioctl">file ioctl</a></h3>
 
 <p>This keyword grants doing IOCTL request with the specified command numbers and the specified pathnames.</p>
 
 <table border="1">
 <tr><td>Example</td><td>Permitted access</td></tr>
-<tr><td>allow_ioctl socket:[family=2:type=2:protocol=17] 35093</td><td>Allow sockets with protocol family 2, type 2, protocol 17 to do IOCTL request with command number 35093.</td></tr>
-<tr><td>allow_ioctl /dev/null 10000-20000</td><td>Allow /dev/null to do IOCTL request with command number between 10000 and 20000.</td></tr>
+<tr><td>file ioctl socket:[family=2:type=2:protocol=17] 35093</td><td>Allow sockets with protocol family 2, type 2, protocol 17 to do IOCTL request with command number 35093.</td></tr>
+<tr><td>file ioctl /dev/null 10000-20000</td><td>Allow /dev/null to do IOCTL request with command number between 10000 and 20000.</td></tr>
 </table>
 
 <p>Regarding the meaning of IOCTL request's command numbers, please refer manuals provided by each module with IOCTL functionality. For example, IOCTL request with command number 21585 means, on i386 platform, FIOCLEX command which turns on the file's close-on-exec flag. For example, IOCTL request with command number 35088 means SIOCGIFNAME command which retrieves the name of network interface.</p>
 
 <p>See also:  <a href="#conditional_acl">Using conditional ACL.</a></p>
 
-<h3><a name="domain_policy_allow_mount">allow_mount</a></h3>
-<p>To grant mount permission, use allow_mount keyword followed by "$devicefile $mountpoint $filesystem $options". The $devicefile need to be a canonicalized file if the $filesystem requires device file. The $mountpoint must be a canonicalized file. The $options is a hexadecimal integer expression.</p>
+<h3><a name="domain_policy_file_mount">file mount</a></h3>
+<p>To grant mount permission, use file mount keyword followed by "$devicefile $mountpoint $filesystem $options". The $devicefile need to be a canonicalized file if the $filesystem requires device file. The $mountpoint must be a canonicalized file. The $options is a hexadecimal integer expression.</p>
 
-<p>To grant "mount -o remount $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --remount $options".</p>
+<p>To grant "mount -o remount $mountpoint" permission, use file mount keyword followed by "any $mountpoint --remount $options".</p>
 
-<p>To grant "mount --bind $source_dir $dest_dir", use "allow_mount $source_dir $dest_dir --bind $options".<br>
-To grant "mount --move $source_dir $dest_dir" permission, use "allow_mount $source_dir $dest_dir --move $options".<br>
+<p>To grant "mount --bind $source_dir $dest_dir", use "file mount $source_dir $dest_dir --bind $options".<br>
+To grant "mount --move $source_dir $dest_dir" permission, use "file mount $source_dir $dest_dir --move $options".<br>
 The $source_dir and $dest_dir must be canonicalized directory.</p>
 
 <p>Kernel 2.6.15 and later supports "Shared Subtree" functionality.<br>
-To grant "mount --make-unbindable $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-unbindable $options".<br>
-To grant "mount --make-private $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-private $options".<br>
-To grant "mount --make-slave $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-slave $options".<br>
-To grant "mount --make-shared $mountpoint" permission, use allow_mount keyword followed by "any $mountpoint --make-shared $options".</p>
+To grant "mount --make-unbindable $mountpoint" permission, use file mount keyword followed by "any $mountpoint --make-unbindable $options".<br>
+To grant "mount --make-private $mountpoint" permission, use file mount keyword followed by "any $mountpoint --make-private $options".<br>
+To grant "mount --make-slave $mountpoint" permission, use file mount keyword followed by "any $mountpoint --make-slave $options".<br>
+To grant "mount --make-shared $mountpoint" permission, use file mount keyword followed by "any $mountpoint --make-shared $options".</p>
 
 <p>(Example)<br>
-allow_mount none /dev/pts/ devpts 0x0<br>
-allow_mount /proc /proc/ proc 0x0<br>
-allow_mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
-allow_mount none /data/ tmpfs 0xE<br>
-allow_mount none /dev/shm/ tmpfs 0xE<br>
-allow_mount /dev/hdc /var/www/ ext2 0xF<br>
-allow_mount any / --remount 0x0</p>
+file mount none /dev/pts/ devpts 0x0<br>
+file mount /proc /proc/ proc 0x0<br>
+file mount usbdevfs /proc/bus/usb/ usbdevfs 0x0<br>
+file mount none /data/ tmpfs 0xE<br>
+file mount none /dev/shm/ tmpfs 0xE<br>
+file mount /dev/hdc /var/www/ ext2 0xF<br>
+file mount any / --remount 0x0</p>
 
-<h3><a name="domain_policy_allow_unmount">allow_unmount</a></h3>
-<p>To grant unmount request, use allow_unmount keyword followed by a canonicalized directory.</p>
+<h3><a name="domain_policy_file_unmount">file unmount</a></h3>
+<p>To grant unmount request, use file unmount keyword followed by a canonicalized directory.</p>
 
 <p>(Example)<br>
-allow_unmount /mnt/cdrom/</p>
+file unmount /mnt/cdrom/</p>
 
-<h3><a name="domain_policy_allow_chroot">allow_chroot</a></h3>
-<p>To grant chroot permission, use allow_chroot keyword followed by a canonicalized directory.<br>
+<h3><a name="domain_policy_file_chroot">file chroot</a></h3>
+<p>To grant chroot permission, use file chroot keyword followed by a canonicalized directory.<br>
 Usually, grant /var/empty/sshd/ that sshd uses. In addition, if you have applications that runs in the chroot'ed environment or applications that uses chroot (for example, /usr/share/empty/ is used by vsftpd), grant such directories too.</p>
 
 <p>(Example)<br>
-allow_chroot /var/empty/sshd/<br>
-allow_chroot /usr/share/empty/<br>
-allow_chroot /var/www/html/<br>
-allow_chroot /</p>
+file chroot /var/empty/sshd/<br>
+file chroot /usr/share/empty/<br>
+file chroot /var/www/html/<br>
+file chroot /</p>
 
-<h3><a name="domain_policy_allow_pivot_root">allow_pivot_root</a></h3>
-<p>To grant pivot_root permission, use allow_pivot_root keyword followed by the new root's canonicalized directory and the previous root's canonicalized directory.<br>
+<h3><a name="domain_policy_file_pivot_root">file pivot_root</a></h3>
+<p>To grant pivot_root permission, use file pivot_root keyword followed by the new root's canonicalized directory and the previous root's canonicalized directory.<br>
 Usually, you don't need this keyword.</p>
 
-<h3><a name="domain_policy_allow_env">allow_env</a></h3>
+<h3><a name="domain_policy_misc_env">misc env</a></h3>
 
-<p>To restrict the name of environment variables, use allow_env keyword followed by "the name of environment variable".</p>
+<p>To restrict the name of environment variables, use misc env keyword followed by "the name of environment variable".</p>
 
 <p>The execve() system call, which is used to execute a program, accepts filename and argv[] and envp[]. Many programs behave differently depending on envp[].</p>
 <p>The purpose of this keyword is to restrict the environment variables passed to an executed programs.</p>
 
-<p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
+<h3><a name="domain_policy_capability">capability</a></h3>
 
-<h3><a name="domain_policy_allow_capability">allow_capability</a></h3>
-
-<p>To grant capability permission, use allow_capability keyword followed by a capability. The following capabilities are applicable.</p>
+<p>To grant capability permission, use capability keyword followed by a capability. The following capabilities are applicable.</p>
 
 <table border="1">
-<tr><td>allow_capability inet_tcp_create</td><td>Permit creation of TCP sockets.</td></tr>
-<tr><td>allow_capability inet_tcp_listen</td><td>Permit TCP socket's listen operation.</td></tr>
-<tr><td>allow_capability inet_tcp_connect</td><td>Permit TCP socket's connect operation.</td></tr>
-<tr><td>allow_capability use_inet_udp</td><td>Permit use of UDP sockets.</td></tr>
-<tr><td>allow_capability use_inet_ip</td><td>Permit use of RAW sockets.</td></tr>
-<tr><td>allow_capability use_route</td><td>Permit use of ROUTE sockets.</td></tr>
-<tr><td>allow_capability use_packet</td><td>Permit use of PACKET sockets.</td></tr>
-<tr><td>allow_capability use_kernel_module</td><td>Permit use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
-<tr><td>allow_capability create_fifo</td><td>Permit creation of FIFO using mknod(2) syscall.</td></tr>
-<tr><td>allow_capability create_block_dev</td><td>Permit creation of block device using mknod(2) syscall.</td></tr>
-<tr><td>allow_capability create_char_dev</td><td>Permit creation of character device using mknod(2) syscall.</td></tr>
-<tr><td>allow_capability create_unix_socket</td><td>Permit creation of UNIX domain sockets using mknod(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_MOUNT</td><td>Permit use of mount(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_UMOUNT</td><td>Permit use of umount(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_REBOOT</td><td>Permit use of reboot(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_CHROOT</td><td>Permit use of chroot(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>Permit use of kill(2) tkill(2) tgkill(2) syscall with non 0 signal.</td></tr>
-<tr><td>allow_capability SYS_VHANGUP</td><td>Permit use of vhangup(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_TIME</td><td>Permit use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_NICE</td><td>Permit use of nice(2) setpriority(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_SETHOSTNAME</td><td>Permit use of sethostname(2) setdomainname(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_LINK</td><td>Permit use of link(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_SYMLINK</td><td>Permit use of symlink(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_RENAME</td><td>Permit use of rename(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_UNLINK</td><td>Permit use of unlink(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_CHMOD</td><td>Permit use of chmod(2) fchmod(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_CHOWN</td><td>Permit use of chown(2) fchown(2) lchown(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_IOCTL</td><td>Permit use of ioctl(2) compat_sys_ioctl(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_KEXEC_LOAD</td><td>Permit use of kexec_load(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_PIVOT_ROOT</td><td>Permit use of pivot_root(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
-<tr><td>allow_capability conceal_mount</td><td>Permit use of mount(2) syscall that will hide existing mounts.</td></tr>
+<tr><td>capability use_route</td><td>Permit use of ROUTE sockets.</td></tr>
+<tr><td>capability use_packet</td><td>Permit use of PACKET sockets.</td></tr>
+<tr><td>capability use_kernel_module</td><td>Permit use of create_module(2) init_module(2) delete_module(2) syscall.</td></tr>
+<tr><td>capability SYS_REBOOT</td><td>Permit use of reboot(2) syscall.</td></tr>
+<tr><td>capability SYS_VHANGUP</td><td>Permit use of vhangup(2) syscall.</td></tr>
+<tr><td>capability SYS_TIME</td><td>Permit use of stime(2) settimeofday(2) adjtimex(2) syscall.</td></tr>
+<tr><td>capability SYS_NICE</td><td>Permit use of nice(2) setpriority(2) syscall.</td></tr>
+<tr><td>capability SYS_SETHOSTNAME</td><td>Permit use of sethostname(2) setdomainname(2) syscall.</td></tr>
+<tr><td>capability SYS_KEXEC_LOAD</td><td>Permit use of kexec_load(2) syscall.</td></tr>
+<tr><td>capability SYS_PTRACE</td><td>Permit use of ptrace(2) syscall.</td></tr>
 </table>
 
-<p>The purpose of allow_capability keyword is to restrict system calls that a program can call. You can restrict more strictly with other keyword and policy files for some system calls.</p>
+<h3><a name="domain_policy_network">network</a></h3>
 
-<ul>
-<li>You can restrict creation of block device files using <a href="#domain_policy_allow_mkblock">allow_mkblock</a> keyword.
-<li>You can restrict creation of character device files using <a href="#domain_policy_allow_mkchar">allow_mkchar</a> keyword.
-<li>You can restrict creation of FIFOs using <a href="#domain_policy_allow_mkfifo">allow_mkfifo</a> keyword.
-<li>You can restrict creation of UNIX domain sockets using <a href="#domain_policy_allow_mksock">allow_mksock</a> keyword.
-<li>You can restrict creation of symbolic links using <a href="#domain_policy_allow_symlink">allow_symlink</a> keyword.
-<li>You can restrict deletion of non-directories using <a href="#domain_policy_allow_unlink">allow_unlink</a> keyword.
-<li>You can restrict combination of pathnames that can be hard linked using <a href="#domain_policy_allow_link">allow_link</a> keyword.
-<li>You can restrict combination of pathnames that can be renamed using <a href="#domain_policy_allow_rename">allow_rename</a> keyword.
-<li>You can restrict combination of IOCTL's command numbers and pathnames using <a href="#domain_policy_allow_ioctl">allow_ioctl</a> keyword.
-<li>You can restrict IP addresses and ports using <a href="#domain_policy_allow_network">allow_network</a> keyword.
-<li>You can restrict signal numbers and target domain using <a href="#domain_policy_allow_signal">allow_signal</a> keyword.
-<li>You can restrict devices and directories for mount operations using <a href="#domain_policy_allow_mount">allow_mount</a> keyword.
-<li>You can restrict directories that can unmount using <a href="#domain_policy_allow_unmount">allow_unmount</a> keyword.
-<li>You can restrict directories that can chroot to using <a href="#domain_policy_allow_chroot">allow_chroot</a> keyword.
-<li>You can restrict directories that can exchange using <a href="#domain_policy_allow_pivot_root">allow_pivot_root</a> keyword.
-</ul>
-
-<h3><a name="domain_policy_allow_network">allow_network</a></h3>
-
-<p>To grant permission for socket operations, use allow_network keyword followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
+<p>To grant permission for socket operations, use network keyword followed by protocol(TCP or UDP or RAW) and IP address and port number (for TCP or UDP) / protocol number (for RAW). This permission is applicable to IPv4 and IPv6.</p>
 <table border="1">
 <tr><td>Keyword</td><td>Permitted operation</td><td>Example</td></tr>
-<tr><td>allow_network TCP bind</td><td>	Bind to local TCP address/port.</td><td>allow_network TCP bind 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP listen</td><td>Listen to local TCP address/port.</td><td>allow_network TCP listen 0.0.0.0 80</td></tr>
-<tr><td>allow_network TCP accept</td><td>Accept from and communicate with remote TCP address/port.</td><td>allow_network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
-<tr><td>allow_network TCP connect</td><td>Connect to and communicate with remote TCP address/port.</td><td>allow_network TCP connect 127.0.0.1 1024-65535</td></tr>
-<tr><td>allow_network UDP bind</td><td>Bind to local UDP address/port.</td><td>allow_network UDP bind 0.0.0.0 53</td></tr>
+<tr><td>network TCP bind</td><td>	Bind to local TCP address/port.</td><td>network TCP bind 0.0.0.0 80</td></tr>
+<tr><td>network TCP listen</td><td>Listen to local TCP address/port.</td><td>network TCP listen 0.0.0.0 80</td></tr>
+<tr><td>network TCP accept</td><td>Accept from and communicate with remote TCP address/port.</td><td>network TCP accept 10.0.0.0-10.255.255.255 1024-65535</td></tr>
+<tr><td>network TCP connect</td><td>Connect to and communicate with remote TCP address/port.</td><td>network TCP connect 127.0.0.1 1024-65535</td></tr>
+<tr><td>network UDP bind</td><td>Bind to local UDP address/port.</td><td>network UDP bind 0.0.0.0 53</td></tr>
 
-<tr><td>allow_network UDP connect</td><td>Communicate with remote UDP address/port.</td><td>allow_network UDP connect 127.0.0.1 53</td></tr>
-<tr><td>allow_network RAW bind</td><td>Bind to local IP address/protocol.</td><td>allow_network RAW bind 127.0.0.1 255</td></tr>
-<tr><td>allow_network RAW connect</td><td>Communicate with remote IP address/protocol.</td><td>allow_network RAW connect 10.0.0.1 1</td></tr>
+<tr><td>network UDP send</td><td>Sending UDP packets to remote address/port.</td><td>network UDP send 127.0.0.1 53</td></tr>
+<tr><td>network UDP recv</td><td>Receiving UDP packets from remote address/port.</td><td>network UDP recv 127.0.0.1 53</td></tr>
+<tr><td>network RAW bind</td><td>Bind to local IP address/protocol.</td><td>network RAW bind 127.0.0.1 255</td></tr>
+<tr><td>network RAW send</td><td>Sending IP packets to remote address/protocol.</td><td>network RAW send 10.0.0.1 1</td></tr>
+<tr><td>network RAW recv</td><td>Receiving IP packets from remote address/protocol.</td><td>network RAW recv 10.0.0.1 1</td></tr>
 </table>
 <p>Use of "::" for IPv6 address representation is not supported. You need to use "0:0:0:0:0:0:0:1" for "::1".</p>
 
@@ -1203,9 +1060,9 @@ Usually, you don't need this keyword.</p>
 
 <p>See also:  <a href="#exception_policy_address_group">address_group</a></p>
 
-<h3><a name="domain_policy_allow_signal">allow_signal</a></h3>
+<h3><a name="domain_policy_ipc_signal">ipc signal</a></h3>
 
-<p>To grant permissions for signals, use allow_signal keyword followed by signal number and target domain.<br>
+<p>To grant permissions for signals, use ipc signal keyword followed by signal number and target domain.<br>
 There are two exceptions. If signal number is 0, it is always granted. If the target domain and the source domain are the same, it is always granted.</p>
 <p>In other cases, signals are granted only when the signal number matches and the target domain starts with the target domain declared with this keyword.</p>
 <p>If only &lt;kernel&gt; is declared as a target domain, the source domain can send signals to any domain with that signal number.</p>
@@ -1214,17 +1071,9 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>This keyword indicates the profile number currently assigned to this domain. The profile number is an integer between 0 and 255.</p>
 
-<h3><a name="domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></h3>
+<h3><a name="domain_policy_use_group">use_group</a></h3>
 
-<p>This keyword ignores pathnames specified by <a href="#exception_policy_allow_read">allow_read</a> keyword in exception policy. You can use this keyword for domains you want to ignore globally readable files.</p>
-
-<p>See also:  <a href="#exception_policy_allow_read">allow_read</a></p>
-
-<h3><a name="domain_policy_ignore_global_allow_env">ignore_global_allow_env</a></h3>
-
-<p>This keyword ignores environment variables names specified by <a href="#exception_policy_allow_env">allow_env</a> keyword in exception policy. You can use this keyword for domains you want to ignore globally acceptable environment variable names.</p>
-
-<p>See also:  <a href="#exception_policy_allow_env">allow_env</a></p>
+<p>This keyword indicates the group number currently assigned to this domain. The group number is an integer between 0 and 255.</p>
 
 <h3><a name="domain_policy_execute_handler">execute_handler</a></h3>
 
@@ -1232,7 +1081,7 @@ There are two exceptions. If signal number is 0, it is always granted. If the ta
 
 <p>If this keyword is specified, only one program specified by this keyword regardless of the mode specified by <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a>. Thus, if the pathname specified by this program cannot be executed, no programs can be executed from this domain.</p>
 
-<p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>See also:  <a href="#domain_policy_denied_execute_handler">denied_execute_handler</a> <a href="#profile_CONFIG::file::execute">CONFIG::file::execute</a> <a href="#domain_policy_file_execute">file execute</a></p>
 
 <h3><a name="domain_policy_denied_execute_handler">denied_execute_handler</a></h3>
 
@@ -1291,7 +1140,7 @@ path_group HOME-DIR-FILE /home/\*/\*/\*/\*/\*/\*/\*
 
 <table border="1">
 <tr><td>
-allow_read @HOME-DIR-FILE
+file read @HOME-DIR-FILE
 </td></tr>
 </table>
 
@@ -1313,7 +1162,7 @@ number_group CREATE_MODES 0664
 
 <table border="1">
 <tr><td>
-allow_create /tmp/file @CREATE_MODES
+file create /tmp/file @CREATE_MODES
 </td></tr>
 </table>
 
@@ -1336,37 +1185,23 @@ address_group local-address 192.168.0.0-192.168.255.255
 
 <table border="1">
 <tr><td>
-allow_network TCP accept @local-address 1024-65535
+network TCP accept @local-address 1024-65535
 </td></tr>
 </table>
 
 <p>to grant network access permission.</p>
 
-<h3><a name="exception_policy_allow_read">allow_read</a></h3>
+<h3><a name="exception_policy_acl_group">acl_group</a></h3>
 
-<p>To grant unconditionally readable permissions, use allow_read keyword followed by canonicalized file. This keyword is intended to reduce size of domain policy by granting read access to library files such as GLIBC and locale files. Exception is, if ignore_global_allow_read keyword is given to a domain, entries specified by this keyword are ignored.</p>
-
-<p>See also:  <a href="#domain_policy_allow_read">allow_read</a> <a href="#domain_policy_ignore_global_allow_read">ignore_global_allow_read</a></p>
-
-<h3><a name="exception_policy_allow_env">allow_env</a></h3>
-
-<p>To grant unconditionally acceptable environment variables' names, use allow_env keyword followed by the name of environment variables. This keyword is intended to reduce memory usage for commonly granted environment variables (e.g. PATH and HOME). You should not grant dangerous environment variables like LD_PRELOAD . Exception is, if ignore_global_allow_env keyword is given to a domain, entries specified by this keyword are ignored.</p>
-
-<p>See also:  <a href="#domain_policy_ignore_global_allow_env">ignore_global_allow_env</a> <a href="#domain_policy_allow_env">allow_env</a></p>
-
-<h3><a name="exception_policy_deny_rewrite">deny_rewrite</a></h3>
-
-<p>To deny overwriting already written contents of file (such as log files) by default, use deny_rewrite keyword followed by pathname pattern. Files whose pathname match the patterns are not permitted to open for writing without append mode or truncate unless the pathnames are explicitly granted using <a href="#domain_policy_allow_rewrite">allow_rewrite</a> keyword in domain policy.</p>
-
-<p>See also:  <a href="#domain_policy_allow_rewrite">allow_rewrite</a></p>
+<p>To specify group entry which is referenced by domain policy's use_group keyword, use acl_group keyword followed by group number and entry which can be used in domain policy.</p>
+<p>For example, "acl_group 0 file read /dev/null" will allow domains with "use_group 0" to open /dev/null for reading.</p>
 
 <h3><a name="exception_policy_aggregator">aggregator</a></h3>
 
 <p>To deal multiple programs as a single program, use aggregator keyword followed by name of original program and aggregated program. This keyword is intended to aggregate similar programs.</p>
 <p>For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
-<p>For example, /usr/sbin/logrotate for Fedora Core 3 generates programs like /tmp/logrotate.\?\?\?\?\?\? and run them, but TOMOYO Linux doesn't allow using patterns for granting execute permission and defining domains. By specifying "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.</p>
 
-<p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
+<p>See also:  <a href="#domain_policy_file_execute">file execute</a></p>
 
 <h3><a name="exception_policy_initialize_domain">initialize_domain</a></h3>
 
@@ -1375,10 +1210,10 @@ allow_network TCP accept @local-address 1024-65535
 <ul>
 <li>initialize_domain "program" from "domain"
 <li>initialize_domain "program" from "the last program part of domain"
-<li>initialize_domain "program"
+<li>initialize_domain "program" from any
 </ul>
 
-<p>If the part "from" and after is not given, the entry is applied to all domain. If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
+<p>If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
 
 <p>This directive is intended to aggregate domain transitions for daemon program and program that are invoked by the kernel on demand, by transiting to different domain.</p>
 
@@ -1391,7 +1226,7 @@ allow_network TCP accept @local-address 1024-65535
 <ul>
 <li>no_initialize_domain "program" from "domain"
 <li>no_initialize_domain "program" from "the last program part of domain"
-<li>no_initialize_domain "program"
+<li>no_initialize_domain "program" from any
 </ul>
 
 <p>Use this directive when you don't want to initialize domain transition.</p>
@@ -1405,11 +1240,11 @@ allow_network TCP accept @local-address 1024-65535
 <ul>
 <li>keep_domain "program" from "domain"
 <li>keep_domain "program" from "the last program part of domain"
-<li>keep_domain "domain"
-<li>keep_domain "the last program part of domain"
+<li>keep_domain any from "domain"
+<li>keep_domain any from "the last program part of domain"
 </ul>
 
-<p>If the part "from" and before is not given, this entry is applied to all program. If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
+<p>If the "domain" doesn't start with "&lt;kernel&gt;", the entry is applied to all domain whose domainname ends with "the last program part of domain".</p>
 
 <p>This directive is intended to reduce total number of domains and memory usage by suppressing unneeded domain transitions.</p>
 
@@ -1422,8 +1257,8 @@ allow_network TCP accept @local-address 1024-65535
 <ul>
 <li>no_keep_domain "program" from "domain"
 <li>no_keep_domain "program" from "the last program part of domain"
-<li>no_keep_domain "domain"
-<li>no_keep_domain "the last program part of domain"
+<li>no_keep_domain any from "domain"
+<li>no_keep_domain any from "the last program part of domain"
 </ul>
 
 <p>Use this directive when you want to escape from a domain that is kept by "keep_domain" directive.</p>
@@ -1537,13 +1372,13 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>Example</td><td>Meaning</td></tr>
-<tr><td>allow_read /etc/passwd</td><td>Allow opening /etc/passwd for reading.</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is 0.</td></tr>
-<tr><td>allow_read /etc/passwd if task.uid!=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is not 0.</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80</td><td>Allow connecting TCP socket to 10.0.0.1 port 80.</td></tr>
-<tr><td>allow_network TCP connect 10.0.0.1 80 if task.uid=100</td><td>Allow connecting TCP socket to 10.0.0.1 port 80 only if the process's UID is 100.</td></tr>
-<tr><td>allow_capability SYS_KILL</td><td>Allow using kill(2) syscall.</td></tr>
-<tr><td>allow_capability SYS_KILL if task.ppid=1 task.uid=0 task.euid=0</td><td>Allow using kill(2) syscall only if the parent process is /sbin/init and the process's UID is 0 and the process's EUID is 0.</td></tr>
+<tr><td>file read /etc/passwd</td><td>Allow opening /etc/passwd for reading.</td></tr>
+<tr><td>file read /etc/passwd if task.uid=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is 0.</td></tr>
+<tr><td>file read /etc/passwd if task.uid!=0</td><td>Allow opening /etc/passwd for reading only if the process's UID is not 0.</td></tr>
+<tr><td>network TCP connect 10.0.0.1 80</td><td>Allow connecting TCP socket to 10.0.0.1 port 80.</td></tr>
+<tr><td>network TCP connect 10.0.0.1 80 if task.uid=100</td><td>Allow connecting TCP socket to 10.0.0.1 port 80 only if the process's UID is 100.</td></tr>
+<tr><td>capability SYS_PTRACE</td><td>Allow using ptrace(2) syscall.</td></tr>
+<tr><td>capability SYS_PTRACE if task.ppid=1 task.uid=0 task.euid=0</td><td>Allow using ptrace(2) syscall only if the parent process is /sbin/init and the process's UID is 0 and the process's EUID is 0.</td></tr>
 </table>
 
 <p>The following variables are available.</p>
@@ -1571,19 +1406,19 @@ chown -R demo /proc/ccs/
 <tr><td>path2.parent.ino</td><td>i-node number of object's parent directory.</td></tr>
 </table>
 
-<p>"path1" corresponds to the first pathname of operations that requires pathnames, and "path2" corresponds to the second pathname of operations that requires pathnames. For example, the case of "<a href="#domain_policy_allow_rename">allow_rename</a> file1 file2", path1 corresponds to file1 and path2 corresponds to file2.</p>
+<p>"path1" corresponds to the first pathname of operations that requires pathnames, and "path2" corresponds to the second pathname of operations that requires pathnames. For example, the case of "<a href="#domain_policy_file_rename">file rename</a> file1 file2", path1 corresponds to file1 and path2 corresponds to file2.</p>
 
-<p>"path1" except "path1.parent" is not available for pathnames that don't exist. Thus, you can't use when creating pathnames (such as <a href="#domain_policy_allow_create">allow_create</a> keyword).</p>
+<p>"path1" except "path1.parent" is not available for pathnames that don't exist. Thus, you can't use when creating pathnames (such as <a href="#domain_policy_file_create">file create</a> keyword).</p>
 
 <p>"path1.parent" is always available.</p>
 
-<p>"path2.parent" is available only for operations that require 2 pathnames (i.e. <a href="#domain_policy_allow_link">allow_link</a> and <a href="#domain_policy_allow_rename">allow_rename</a> keywords).</p>
+<p>"path2.parent" is available only for operations that require 2 pathnames (i.e. <a href="#domain_policy_file_link">file link</a> and <a href="#domain_policy_file_rename">file rename</a> keywords).</p>
 
 <p>"path2" is available only for mount operations.</p>
 
 <p>"path1" is not supported when accessing via "sysctl" (i.e. accessing files under /proc/sys/ directories using "sysctl" instead for "open").</p>
 
-<h3>The following variables and conditions are available for <a href="#domain_policy_allow_execute">allow_execute</a> keyword.</h3>
+<h3>The following variables and conditions are available for <a href="#domain_policy_file_execute">file execute</a> keyword.</h3>
 
 <table border="1">
 <tr><td>Variable</td><td>Meaning</td></tr>
@@ -1703,12 +1538,12 @@ chown -R demo /proc/ccs/
 <h4>Example:</h4>
 
 <ul>
-<li>allow_read/write /dev/null if path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
+<li>file append /dev/null if path1.type=char path1.major=1 path1.minor=3 path1.perm=0666
 </ul>
 
 <p>will allow opening /dev/null for reading and writing only if /dev/null's type is character device file and /dev/null's major number is 1 and /dev/null's minor number is 3 and /dev/null's permission is 0666.</p>
 
-<h3>The following conditions for <a href="#domain_policy_allow_symlink">allow_symlink</a> keyword are also available.</h3>
+<h3>The following conditions for <a href="#domain_policy_file_symlink">file symlink</a> keyword are also available.</h3>
 
 <table border="1">
 <tr><td>Condition</td><td>Meaning</td></tr>
@@ -1731,11 +1566,11 @@ chown -R demo /proc/ccs/
 
 <table border="1">
 <tr><td>Example</td><td>Meaning</td></tr>
-<tr><td>allow_network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>If a TCP connection is accepted from an IP address included in an address group @TRUSTED_HOSTS, set 1 to state[0].</td></tr>
-<tr><td>allow_network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>If a TCP connection is accepted from an IP address included in an address group @UNTRUSTED_HOSTS, set 0 to state[0].</td></tr>
-<tr><td>allow_execute /bin/bash if task.state[0]=1</td><td>Allow execution of /bin/bash if state[0] is 1.</td></tr>
-<tr><td>allow_execute /sbin/nologin if task.state[0]=0</td><td>Allow execution of /sbin/nologin if state[0] is 0.</td></tr>
-<tr><td>allow_execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>If state[2] is 0, allow opening /etc/passwd for reading and then, set 1 to state[2].</td></tr>
+<tr><td>network TCP accept @TRUSTED_HOSTS 1024-65535 ; set task.state[0]=1</td><td>If a TCP connection is accepted from an IP address included in an address group @TRUSTED_HOSTS, set 1 to state[0].</td></tr>
+<tr><td>network TCP accept @UNTRUSTED_HOSTS 1024-65535 ; set task.state[0]=0</td><td>If a TCP connection is accepted from an IP address included in an address group @UNTRUSTED_HOSTS, set 0 to state[0].</td></tr>
+<tr><td>file execute /bin/bash if task.state[0]=1</td><td>Allow execution of /bin/bash if state[0] is 1.</td></tr>
+<tr><td>file execute /sbin/nologin if task.state[0]=0</td><td>Allow execution of /sbin/nologin if state[0] is 0.</td></tr>
+<tr><td>file execute /etc/passwd if task.state[2]=0 ; set task.state[2]=1</td><td>If state[2] is 0, allow opening /etc/passwd for reading and then, set 1 to state[2].</td></tr>
 </table>
 
 <p>When using the state variables, please be careful with the following points.</p>
@@ -1792,7 +1627,7 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 <tr><td>execute_handler /usr/sbin/check-and-exec</td><td>Whenever a process which belongs to this domain requests execution of a program, execute /usr/sbin/check-and-exec instead for the requested program. /usr/sbin/check-and-exec checks parameters and executes the requested program if /usr/sbin/check-and-exec considers it is appropriate to execute.</td></tr>
 </table>
 
-<p>The program specified by execute_handler keyword receives the following parameters. Compare with allow_execute log described in <a href="#access_logs">Access Logs</a>.</p>
+<p>The program specified by execute_handler keyword receives the following parameters. Compare with file execute log described in <a href="#access_logs">Access Logs</a>.</p>
 
 <ul>
 <li>argv[0] contains the pathname of the program specified by execute_handler keyword.</li>
@@ -1811,7 +1646,7 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 <p>Be careful with the following notes when you use this feature.</p>
 
 <ul>
-<li>You need not to and should not give execute permission (<a href="#domain_policy_allow_execute">allow_execute</a> keyword) to the program specified by execute_handler keyword.</li>
+<li>You need not to and should not give execute permission (<a href="#domain_policy_file_execute">file execute</a> keyword) to the program specified by execute_handler keyword.</li>
 <li>This mechanism can't work if a process cannot access the program specified by execute_handler keyword because the process is running inside a chroot environment. Since it is dangerous to allow execution of programs outside the chroot environment, the program specified by execute_handler keyword is searched from the current process's / directory rather than the current process's namespace's / directory.</li>
 <li>This mechanism can't work if the domain for the program specified for execute_handler keyword doesn't exist. So, you need to prepare domains by (for example) creating a domain for the program specified by execute_handler keyword just under the &lt;kernel&gt; and mark the program specified by execute_handler keyword using <a href="#exception_policy_initialize_domain">initialize_domain</a> keyword.</li>
 <li>The program specified by execute_handler keyword is invoked with all environment variables cleared so that the program won't be affected by some dangerous environment variables (e.g. LD_PRELOAD). This means that even environment variable PATH is not set, so please be careful when executing external programs. Also, I recommend you to assign profile for enforcing mode against the domain for the program specified by execute_handler keyword.</li>
@@ -1824,9 +1659,9 @@ Viewing in this light, there is no guarantee that "the program starts expected b
 
 <p>TOMOYO Linux's approach is "know what programs needs to be executed from what programs beforehand and create policy that permits execution of minimal programs". Thus, you can not only reject unnecessary execution requests but also do different behavior.</p>
 
-<p>By default, if an execute request of a program which is not permitted by allow_execute keyword occurs in enforcing mode, the kernel rejects the execute request. But assuming that you know what programs needs to be executed from what programs beforehand, an execute request of a program which is not permitted by allow_execute keyword will not occur as long as the process is keeping control, and you can regard that the process is not keeping control (in other words, the process already lost control) if such request occurs.</p>
+<p>By default, if an execute request of a program which is not permitted by file execute keyword occurs in enforcing mode, the kernel rejects the execute request. But assuming that you know what programs needs to be executed from what programs beforehand, an execute request of a program which is not permitted by file execute keyword will not occur as long as the process is keeping control, and you can regard that the process is not keeping control (in other words, the process already lost control) if such request occurs.</p>
 
-<p>Attackers steal control of a process by attacking security holes such as buffer overflow and attempt to execute commands such as shells. If the process does not need to execute the shell (in other words, you needn't to give permission like "allow_execute /bin/bash"), it is considered that the process has already lost control at the moment of the execution request of shells.</p>
+<p>Attackers steal control of a process by attacking security holes such as buffer overflow and attempt to execute commands such as shells. If the process does not need to execute the shell (in other words, you needn't to give permission like "file execute /bin/bash"), it is considered that the process has already lost control at the moment of the execution request of shells.</p>
 
 <p>Normally, when execution of a program which is not permitted by the policy is requested, the kernel merely reject the request. But it is unlikely that the process gets back control (in other words, the process resumes proper operations) by just rejecting the request if the request is issued by the process that has lost control.<br>
 In Linux, "execute a program" means that the current process is overwritten by the requested program and transfer control to the requested program. This means that a process gets back control by overwriting the process with different program even if the process has lost control because of buffer overflow.</p>
