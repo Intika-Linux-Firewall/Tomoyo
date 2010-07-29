@@ -83,7 +83,7 @@ LiveCD では何の許可も与えていないポリシーで起動されるの�
 <p><img src="acl_tail.png" width="800" height="600" alt="tail コマンドのアクセス許可" title="tail コマンドのアクセス許可"></p>
 
 <p>それぞれの行の一番左が行番号で、その次に表示されている単語はアクセスの種類を表しています。
-allow_execute が実行を許可、 allow_write が書き込みモードでのオープンを許可、 allow_read が読み込みモードでのオープンを許可、 allow_read/write が読み書きモードでのオープンを許可、 allow_env が環境変数名の受け取り許可を表しています。
+file execute が実行を許可、 file write が書き込みモードでのオープンを許可、 file read が読み込みモードでのオープンを許可、 file read/write が読み書きモードでのオープンを許可、 misc env が環境変数名の受け取り許可を表しています。
 画面から、 tail コマンドがロケールファイルと、 /var/log/tomoyo/reject.log というファイルを読み込んだことが読み取れます。
 これはデスクトップの「 TOMOYO Linux ポリシー違反ログ」というアイコンをダブルクリックして実行した結果学習されたポリシーです。</p>
 
@@ -193,31 +193,31 @@ TOMOYO Linux はシステム起動時から起動されたすべてのプロセ�
 <tr><td>
 #2009-11-16 12:30:15# profile=3 mode=enforcing (global-pid=3782) task={ pid=3782 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=393232 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 } exec={ realpath="/bin/ls" argc=2 envc=34 argv[]={ "ls" "--color=tty" } envp[]={ "SSH_AGENT_PID=3538" "HOSTNAME=livecd.localdomain" "TERM=xterm" "SHELL=/bin/bash" "HISTSIZE=1000" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/centos/.gtkrc-1.2-gnome2" "WINDOWID=24134518" "USER=centos" "LS_COLORS=no=00:fi=00:di=00;34:ln=00;36:pi=40;33:so=00;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=00;32:*.cmd=00;32:*.exe=00;32:*.com=00;32:*.btm=00;32:*.bat=00;32:*.sh=00;32:*.csh=00;32:*.tar=00;31:*.tgz=00;31:*.arj=00;31:*.taz=00;31:*.lzh=00;31:*.zip=00;31:*.z=00;31:*.Z=00;31:*.gz=00;31:*.bz2=00;31:*.bz=00;31:*.tz=00;31:*.rpm=00;31:*.cpio=00;31:*.jpg=00;35:*.gif=00;35:*.bmp=00;35:*.xbm=00;35:*.xpm=00;35:*.png=00;35:*.tif=00;35:" "GNOME_KEYRING_SOCKET=/tmp/keyring-5ioDVO/socket" "SSH_AUTH_SOCK=/tmp/ssh-wshYil3507/agent.3507" "SESSION_MANAGER=local/livecd.localdomain:/tmp/.ICE-unix/3507" "USERNAME=centos" "MAIL=/var/spool/mail/centos" "PATH=/usr/kerberos/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:/home/centos/bin" "DESKTOP_SESSION=default.desktop" "GDM_XSERVER_LOCATION=local" "INPUTRC=/etc/inputrc" "PWD=/home/centos" "XMODIFIERS=@im=none" "LANG=en_US.UTF-8" "GDMSESSION=default.desktop" "SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass" "SHLVL=2" "HOME=/home/centos" "GNOME_DESKTOP_SESSION_ID=Default" "LOGNAME=centos" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-4O4pq7NN3Y,guid=d82df6f7ad0c1759c970d4004b01873b" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "G_BROKEN_FILENAMES=1" "COLORTERM=gnome-terminal" "XAUTHORITY=/tmp/.gdmKFNV3U" "_=/bin/ls" } }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_execute /bin/ls<br>
+file execute /bin/ls<br>
 <br>
 #2009-11-16 12:30:15# profile=3 mode=enforcing (global-pid=3782) task={ pid=3782 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=393232 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_read /bin/ls<br>
+file read /bin/ls<br>
 <br>
 #2009-11-16 12:30:16# profile=3 mode=enforcing (global-pid=3783) task={ pid=3783 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 } exec={ realpath="/bin/ps" argc=1 envc=34 argv[]={ "ps" } envp[]={ "SSH_AGENT_PID=3538" "HOSTNAME=livecd.localdomain" "TERM=xterm" "SHELL=/bin/bash" "HISTSIZE=1000" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/centos/.gtkrc-1.2-gnome2" "WINDOWID=24134518" "USER=centos" "LS_COLORS=no=00:fi=00:di=00;34:ln=00;36:pi=40;33:so=00;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=00;32:*.cmd=00;32:*.exe=00;32:*.com=00;32:*.btm=00;32:*.bat=00;32:*.sh=00;32:*.csh=00;32:*.tar=00;31:*.tgz=00;31:*.arj=00;31:*.taz=00;31:*.lzh=00;31:*.zip=00;31:*.z=00;31:*.Z=00;31:*.gz=00;31:*.bz2=00;31:*.bz=00;31:*.tz=00;31:*.rpm=00;31:*.cpio=00;31:*.jpg=00;35:*.gif=00;35:*.bmp=00;35:*.xbm=00;35:*.xpm=00;35:*.png=00;35:*.tif=00;35:" "GNOME_KEYRING_SOCKET=/tmp/keyring-5ioDVO/socket" "SSH_AUTH_SOCK=/tmp/ssh-wshYil3507/agent.3507" "SESSION_MANAGER=local/livecd.localdomain:/tmp/.ICE-unix/3507" "USERNAME=centos" "MAIL=/var/spool/mail/centos" "PATH=/usr/kerberos/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:/home/centos/bin" "DESKTOP_SESSION=default.desktop" "GDM_XSERVER_LOCATION=local" "INPUTRC=/etc/inputrc" "PWD=/home/centos" "XMODIFIERS=@im=none" "LANG=en_US.UTF-8" "GDMSESSION=default.desktop" "SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass" "SHLVL=2" "HOME=/home/centos" "GNOME_DESKTOP_SESSION_ID=Default" "LOGNAME=centos" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-4O4pq7NN3Y,guid=d82df6f7ad0c1759c970d4004b01873b" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "G_BROKEN_FILENAMES=1" "COLORTERM=gnome-terminal" "XAUTHORITY=/tmp/.gdmKFNV3U" "_=/bin/ps" } }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_execute /bin/ps<br>
+file execute /bin/ps<br>
 <br>
 #2009-11-16 12:30:16# profile=3 mode=enforcing (global-pid=3783) task={ pid=3783 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_read /bin/ps<br>
+file read /bin/ps<br>
 <br>
 #2009-11-16 12:30:24# profile=3 mode=enforcing (global-pid=3784) task={ pid=3784 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=426029 major=253 minor=0 perm=0644 type=file } path1.parent={ uid=0 gid=0 ino=425985 perm=0755 }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash /usr/bin/head<br>
-allow_read /etc/fstab<br>
+file read /etc/fstab<br>
 <br>
 #2009-11-16 12:31:03# profile=3 mode=enforcing (global-pid=3785) task={ pid=3785 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=17220 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=16773 perm=0755 } exec={ realpath="/usr/bin/tail" argc=2 envc=34 argv[]={ "tail" "/etc/passwd" } envp[]={ "SSH_AGENT_PID=3538" "HOSTNAME=livecd.localdomain" "TERM=xterm" "SHELL=/bin/bash" "HISTSIZE=1000" "GTK_RC_FILES=/etc/gtk/gtkrc:/home/centos/.gtkrc-1.2-gnome2" "WINDOWID=24134518" "USER=centos" "LS_COLORS=no=00:fi=00:di=00;34:ln=00;36:pi=40;33:so=00;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=00;32:*.cmd=00;32:*.exe=00;32:*.com=00;32:*.btm=00;32:*.bat=00;32:*.sh=00;32:*.csh=00;32:*.tar=00;31:*.tgz=00;31:*.arj=00;31:*.taz=00;31:*.lzh=00;31:*.zip=00;31:*.z=00;31:*.Z=00;31:*.gz=00;31:*.bz2=00;31:*.bz=00;31:*.tz=00;31:*.rpm=00;31:*.cpio=00;31:*.jpg=00;35:*.gif=00;35:*.bmp=00;35:*.xbm=00;35:*.xpm=00;35:*.png=00;35:*.tif=00;35:" "GNOME_KEYRING_SOCKET=/tmp/keyring-5ioDVO/socket" "SSH_AUTH_SOCK=/tmp/ssh-wshYil3507/agent.3507" "SESSION_MANAGER=local/livecd.localdomain:/tmp/.ICE-unix/3507" "USERNAME=centos" "MAIL=/var/spool/mail/centos" "PATH=/usr/kerberos/bin:/usr/local/bin:/usr/bin:/bin:/usr/X11R6/bin:/home/centos/bin" "DESKTOP_SESSION=default.desktop" "GDM_XSERVER_LOCATION=local" "INPUTRC=/etc/inputrc" "PWD=/home/centos" "XMODIFIERS=@im=none" "LANG=en_US.UTF-8" "GDMSESSION=default.desktop" "SSH_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass" "SHLVL=2" "HOME=/home/centos" "GNOME_DESKTOP_SESSION_ID=Default" "LOGNAME=centos" "DBUS_SESSION_BUS_ADDRESS=unix:abstract=/tmp/dbus-4O4pq7NN3Y,guid=d82df6f7ad0c1759c970d4004b01873b" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "DISPLAY=:0.0" "G_BROKEN_FILENAMES=1" "COLORTERM=gnome-terminal" "XAUTHORITY=/tmp/.gdmKFNV3U" "_=/usr/bin/tail" } }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_execute /usr/bin/tail<br>
+file execute /usr/bin/tail<br>
 <br>
 #2009-11-16 12:31:03# profile=3 mode=enforcing (global-pid=3785) task={ pid=3785 ppid=3734 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=17220 major=253 minor=0 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=16773 perm=0755 }<br>
 &lt;kernel&gt; /sbin/init /etc/X11/prefdm /usr/sbin/gdm /usr/sbin/gdm-binary /etc/X11/xinit/Xsession /usr/bin/ssh-agent /bin/sh /bin/bash /usr/bin/dbus-launch /etc/X11/xinit/Xclients /usr/bin/gnome-session /usr/bin/nautilus /usr/bin/gnome-terminal /bin/bash<br>
-allow_read /usr/bin/tail
+file read /usr/bin/tail
 </td></tr>
 </table>
 
@@ -228,9 +228,9 @@ TOMOYO Linux にはここで紹介した機能以外にもさまざまな機能�
 さらに TOMOYO Linux を使いこなしたいという方は、以下のドキュメントをご参照ください。</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
 <li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験 TOMOYO Linux ！</a>: ThinkIT での TOMOYO Linux 連載。</li>
 </ul>
 

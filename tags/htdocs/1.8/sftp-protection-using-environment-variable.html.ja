@@ -112,17 +112,17 @@ path_group SFTP_FILES /var/sftp/\*
 &lt;kernel&gt; /bin/sftp-shell<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read @SFTP_FILES<br>
+file read @SFTP_FILES<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read/write @SFTP_FILES<br>
-allow_create @SFTP_FILES 0644<br>
-allow_unlink @SFTP_FILES<br>
-allow_mkdir @SFTP_DIRS 0755<br>
-allow_rmdir @SFTP_DIRS<br>
-allow_rename @SFTP_FILES @SFTP_FILES<br>
-allow_rename @SFTP_DIRS @SFTP_DIRS<br>
-allow_truncate @SFTP_FILES
+file read/write @SFTP_FILES<br>
+file create @SFTP_FILES 0644<br>
+file unlink @SFTP_FILES<br>
+file mkdir @SFTP_DIRS 0755<br>
+file rmdir @SFTP_DIRS<br>
+file rename @SFTP_FILES @SFTP_FILES<br>
+file rename @SFTP_DIRS @SFTP_DIRS<br>
+file truncate @SFTP_FILES
 </td></tr>
 </table>
 
@@ -180,7 +180,7 @@ sftp sftp@server
 
 <p>親ドメインが異なる２つの sftp-server 用のドメインを作成し、片方にだけ書き込み許可を与えています。このプログラムはサンプルなので判りやすいキーワードを利用していますが、実際に使用する場合にはパスワードの代わりとなるので推測されないキーワードを利用してください。</p>
 
-<p>共有ライブラリなど例外ポリシーの allow_read で許可されているファイルへのアクセスを制限したい場合、 ignore_global_allow_read という指定を行うことができます。</p>
+<p>共有ライブラリなど例外ポリシーの file read で許可されているファイルへのアクセスを制限したい場合、 ignore_global_file read という指定を行うことができます。</p>
 
 <h2>応用</h2>
 

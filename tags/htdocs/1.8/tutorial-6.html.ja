@@ -228,12 +228,12 @@ echo 'Incorrect password.'
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
 use_profile 3
-allow_create /home/\*/scp/\* 0-0666
-allow_create /home/\*/scp/\{\*\}/\* 0-0666
-allow_unlink /home/\*/scp/\*
-allow_unlink /home/\*/scp/\{\*\}/\*
-allow_read/write /home/\*/scp/\*
-allow_read/write /home/\*/scp/\{\*\}/\*
+file create /home/\*/scp/\* 0-0666
+file create /home/\*/scp/\{\*\}/\* 0-0666
+file unlink /home/\*/scp/\*
+file unlink /home/\*/scp/\{\*\}/\*
+file read/write /home/\*/scp/\*
+file read/write /home/\*/scp/\{\*\}/\*
 </pre>
 </td></tr>
 </table>
@@ -256,9 +256,9 @@ path_group SCP_FILE /home/\*/scp/\{\*\}/\*
 <pre>
 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/bin/scp
 use_profile 3
-allow_create @SCP_FILE 0-0666
-allow_unlink @SCP_FILE
-allow_read/write @SCP_FILE
+file create @SCP_FILE 0-0666
+file unlink @SCP_FILE
+file read/write @SCP_FILE
 </pre>
 </td></tr>
 </table>

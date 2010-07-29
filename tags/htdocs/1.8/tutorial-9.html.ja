@@ -20,7 +20,7 @@
 
 <h3>ネットワークのアクセス制限</h3>
 
-<p>システムにログインしたユーザはファイルへのアクセスだけでなくネットワークにもアクセスすることでしょう．そこで，ログインしたユーザに対してどのサーバへのアクセスを許可するかを設計します．ネットワークに関するアクセス許可の構文は，「 allow_network プロトコル ＩＰアドレス ポート番号」となっています．プロトコルは TCP または UDP または RAW のいずれか，ＩＰアドレスはＩＰｖ４またはＩＰｖ６アドレスを指定します．ＩＰアドレスの部分は前回の記事で説明したファイルのグループ化と同様にグループ化が可能です．ここではＨＴＴＰ，ＤＮＳ，ＦＴＰ，ＳＳＨの設定について説明します．</p>
+<p>システムにログインしたユーザはファイルへのアクセスだけでなくネットワークにもアクセスすることでしょう．そこで，ログインしたユーザに対してどのサーバへのアクセスを許可するかを設計します．ネットワークに関するアクセス許可の構文は，「 network プロトコル ＩＰアドレス ポート番号」となっています．プロトコルは TCP または UDP または RAW のいずれか，ＩＰアドレスはＩＰｖ４またはＩＰｖ６アドレスを指定します．ＩＰアドレスの部分は前回の記事で説明したファイルのグループ化と同様にグループ化が可能です．ここではＨＴＴＰ，ＤＮＳ，ＦＴＰ，ＳＳＨの設定について説明します．</p>
 
 <h4>●ＨＴＴＰ</h4>
 
@@ -40,7 +40,7 @@ address_group HTTP_SERVERS 192.168.1.20
 <tr><td>
 ■図２　ＨＴＴＰサーバと通信するためのアクセス許可
 <pre>
-allow_network TCP connect @HTTP_SERVERS 80
+network TCP connect @HTTP_SERVERS 80
 </pre>
 </td></tr>
 </table>
@@ -53,7 +53,7 @@ allow_network TCP connect @HTTP_SERVERS 80
 <tr><td>
 ■図３　ＤＮＳサーバと通信するためのアクセス許可
 <pre>
-allow_network UDP connect @DNS_SERVERS 53
+network UDP connect @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
@@ -66,7 +66,7 @@ allow_network UDP connect @DNS_SERVERS 53
 <tr><td>
 ■図４　ＦＴＰ制御用のアクセス許可
 <pre>
-allow_network TCP connect @FTP_SERVERS 21
+network TCP connect @FTP_SERVERS 21
 </pre>
 </td></tr>
 </table>
@@ -77,7 +77,7 @@ allow_network TCP connect @FTP_SERVERS 21
 <tr><td>
 ■図５　ＦＴＰデータ（アクティブモード）用のアクセス許可
 <pre>
-allow_network TCP accept @FTP_SERVERS 20
+network TCP accept @FTP_SERVERS 20
 </pre>
 </td></tr>
 </table>
@@ -88,7 +88,7 @@ allow_network TCP accept @FTP_SERVERS 20
 <tr><td>
 ■図６　ＦＴＰデータ（パッシブモード）用のアクセス許可
 <pre>
-allow_network TCP connect @FTP_SERVERS 1024-65535
+network TCP connect @FTP_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -101,7 +101,7 @@ allow_network TCP connect @FTP_SERVERS 1024-65535
 <tr><td>
 ■図７　ＳＳＨサーバと通信するためのアクセス許可
 <pre>
-allow_network TCP connect @SSH_SERVERS 1024-65535
+network TCP connect @SSH_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -213,18 +213,18 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 <tr><td>
 ■図１６　あらかじめ与えておいたアクセス許可
 <pre>
-allow_execute @COMMANDS_FOR_LOGIN
-allow_read/write @HOME_FILE if task.uid=path1.uid
-allow_create @HOME_FILE if task.uid=path1.parent.uid
-allow_unlink @HOME_FILE if task.uid=path1.uid
-allow_symlink @HOME_FILE if task.uid=path1.parent.uid
-allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_truncate @HOME_FILE if task.uid=path1.uid
-allow_rewrite @HOME_FILE if task.uid=path1.uid
-allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
-allow_rmdir @HOME_DIR if task.uid=path1.uid
-allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file execute @COMMANDS_FOR_LOGIN
+file read/write @HOME_FILE if task.uid=path1.uid
+file create @HOME_FILE if task.uid=path1.parent.uid
+file unlink @HOME_FILE if task.uid=path1.uid
+file symlink @HOME_FILE if task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE if task.uid=path1.uid
+file append @HOME_FILE if task.uid=path1.uid
+file mkdir @HOME_DIR if task.uid=path1.parent.uid
+file rmdir @HOME_DIR if task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
 </td></tr>
 </table>
@@ -292,7 +292,7 @@ aggregator /usr/bin/ssh-keygen /usr/bin/ssh
 <tr><td>
 ■図２１　想定していなかったコマンドの実行許可
 <pre>
-allow_execute /usr/bin/xargs
+file execute /usr/bin/xargs
 </pre>
 </td></tr>
 </table>
@@ -310,19 +310,19 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
 
 <h3>ケイパビリティについて</h3>
 
-<p>学習モードで操作を行うと，図２３のように allow_capability で始まる行が学習されたと思います．ケイパビリティは許可する操作種別を指定するだけであるため，操作対象を指定する必要はありません．学習モードで必要だったものは運用中にも必要になるのでそのまま残しておきます．</p>
+<p>学習モードで操作を行うと，図２３のように capability で始まる行が学習されたと思います．ケイパビリティは許可する操作種別を指定するだけであるため，操作対象を指定する必要はありません．学習モードで必要だったものは運用中にも必要になるのでそのまま残しておきます．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図２３　学習されたケイパビリティの例
 <pre>
-allow_capability SYS_CHMOD
-allow_capability SYS_IOCTL
-allow_capability SYS_KILL
-allow_capability SYS_LINK
-allow_capability SYS_RENAME
-allow_capability SYS_SYMLINK
-allow_capability SYS_UNLINK
+capability SYS_CHMOD
+capability SYS_IOCTL
+capability SYS_KILL
+capability SYS_LINK
+capability SYS_RENAME
+capability SYS_SYMLINK
+capability SYS_UNLINK
 </pre>
 </td></tr>
 </table>
@@ -331,7 +331,7 @@ allow_capability SYS_UNLINK
 
 <h3>シグナルについて</h3>
 
-<p>学習モードで操作中に， allow_signal で始まる行が学習されたかもしれません． TOMOYO Linux ではシグナルの送信先を制限することもできます．シグナルを送信する場合には /bin/kill というコマンドを使用します．しかし， /bin/bash などのシェルは，内部コマンドとして kill というコマンドを提供しているため，実際には /bin/bash から /bin/kill を実行することなくシグナルを送信することができます．そのため，シグナルの送信を制限しない場合， COMMANDS_FOR_LOGIN_SESSION に /bin/kill が含まれていないにもかかわらず， root ユーザとしてログインして /bin/bash の内部コマンドとしての kill コマンドを使用することで任意のプロセスを強制終了させてしまうことができてしまいます．シグナルのアクセス制御を行うにはプロファイル中で CONFIG::ipc::signal を有効にします．今回使用しているプロファイルでは有効になっているので，シグナルの送信要求を制限することができます．シグナルに関するアクセス許可の構文は，「 allow_signal シグナル番号 送信先ドメイン名」となっています．シグナルの送信先となるプロセスが属しているドメインのドメイン名が「送信先ドメイン名」で始まる場合に，「シグナル番号」の種類のシグナルを送信できます（いくつか例外がありますが，通常は気にする必要はありません．詳細についてはプロジェクトのＷｅｂページのポリシー仕様書を参照ください）．</p>
+<p>学習モードで操作中に， ipc signal で始まる行が学習されたかもしれません． TOMOYO Linux ではシグナルの送信先を制限することもできます．シグナルを送信する場合には /bin/kill というコマンドを使用します．しかし， /bin/bash などのシェルは，内部コマンドとして kill というコマンドを提供しているため，実際には /bin/bash から /bin/kill を実行することなくシグナルを送信することができます．そのため，シグナルの送信を制限しない場合， COMMANDS_FOR_LOGIN_SESSION に /bin/kill が含まれていないにもかかわらず， root ユーザとしてログインして /bin/bash の内部コマンドとしての kill コマンドを使用することで任意のプロセスを強制終了させてしまうことができてしまいます．シグナルのアクセス制御を行うにはプロファイル中で CONFIG::ipc::signal を有効にします．今回使用しているプロファイルでは有効になっているので，シグナルの送信要求を制限することができます．シグナルに関するアクセス許可の構文は，「 ipc signal シグナル番号 送信先ドメイン名」となっています．シグナルの送信先となるプロセスが属しているドメインのドメイン名が「送信先ドメイン名」で始まる場合に，「シグナル番号」の種類のシグナルを送信できます（いくつか例外がありますが，通常は気にする必要はありません．詳細についてはプロジェクトのＷｅｂページのポリシー仕様書を参照ください）．</p>
 
 <h2>仕上げ</h2>
 

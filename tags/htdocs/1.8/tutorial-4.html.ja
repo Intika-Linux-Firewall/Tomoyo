@@ -118,7 +118,7 @@ $ /bin/ls
 <pre>
 #2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-allow_execute /bin/ls
+file execute /bin/ls
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 </td></tr>
@@ -147,7 +147,7 @@ Allow? ('Y'es/'N'o/'R'etry):
 <pre>
 #2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-allow_read /etc/selinux/config
+file read /etc/selinux/config
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 </td></tr>
@@ -163,13 +163,13 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>共有ライブラリの扱い</h3>
 
-<p>TOMOYO Linux のインストール時に実行した init_policy により， /etc/ld.so.cache に登録されている共有ライブラリ（ /sbin/ldconfig -NXp により確認できます）に関しては例外ポリシーで allow_read （無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーに allow_read という指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
+<p>TOMOYO Linux のインストール時に実行した init_policy により， /etc/ld.so.cache に登録されている共有ライブラリ（ /sbin/ldconfig -NXp により確認できます）に関しては例外ポリシーで file read （無条件に参照を許す）という指定が行われているため，ドメイン用ポリシーで個別に読み込みアクセスの許可を与える必要はありません．しかし，ソフトウェアのアップデートに伴い，共有ライブラリのファイル名が変化した場合，そのままではサービスの再起動に失敗してしまう可能性があります．新しくインストールされたライブラリファイルに関しては，例外ポリシーに file read という指定が行われるよりも前に要求された場合，例外ポリシーにもドメイン用ポリシーにも指定されていないのでポリシー違反と判断されます．</p>
 
-<p>先に説明した ccs-queryd により検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的に allow_read という指定を更新してくれたほうが便利でしょう．そのため， ccs-queryd はポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである /etc/ld.so.cache の変化を監視し，自動的に allow_read を例外ポリシーに追加するようになっています．</p>
+<p>先に説明した ccs-queryd により検出してポリシーに追加していくことは可能ですが，このような場合に限っては，自動的に file read という指定を更新してくれたほうが便利でしょう．そのため， ccs-queryd はポリシー違反の発生を監視するだけではなく，ライブラリファイルの情報を集めたファイルである /etc/ld.so.cache の変化を監視し，自動的に file read を例外ポリシーに追加するようになっています．</p>
 
 <h3>実際のサービスに対する操作例</h3>
 
-<p><a href="http://tomoyo.sourceforge.jp/1.7/enforcing.html.ja#using_interactive_mode">ソフトウェアのアップデート時に発生するポリシー違反を処理する</a>を参照してください．</p>
+<p><a href="http://tomoyo.sourceforge.jp/1.8/enforcing.html.ja#using_interactive_mode">ソフトウェアのアップデート時に発生するポリシー違反を処理する</a>を参照してください．</p>
 
 <h2>ポリシーのゴミを除去する機能について</h2>
 
@@ -220,10 +220,10 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 /tmp/abc12345
 # /usr/sbin/ccs-domainmatch /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-allow_create /tmp/abc12345
-allow_write /tmp/abc12345
+file create /tmp/abc12345
+file write /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-allow_unlink /tmp/abc12345
+file unlink /tmp/abc12345
 </pre>
 </td></tr>
 </table>
@@ -288,11 +288,11 @@ allow_unlink /tmp/abc12345
 # cat /var/log/tomoyo/reject_log.txt
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-allow_read /tmp/testfile2
+file read /tmp/testfile2
 
 #2010-05-13 15:36:36# profile=3 mode=enforcing (global-pid=4518) task={ pid=4518 ppid=4480 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=500 gid=500 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-allow_read /tmp/testfile1
+file read /tmp/testfile1
 </pre>
 </td></tr>
 </table>

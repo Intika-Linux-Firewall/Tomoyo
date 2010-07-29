@@ -112,17 +112,17 @@ path_group SFTP_FILES /var/sftp/\*
 &lt;kernel&gt; /bin/sftp-shell<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/ro-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read @SFTP_FILES<br>
+file read @SFTP_FILES<br>
 <br>
 &lt;kernel&gt; /bin/sftp-shell /bin/rw-sftp /usr/libexec/openssh/sftp-server<br>
-allow_read/write @SFTP_FILES<br>
-allow_create @SFTP_FILES 0644<br>
-allow_unlink @SFTP_FILES<br>
-allow_mkdir @SFTP_DIRS 0755<br>
-allow_rmdir @SFTP_DIRS<br>
-allow_rename @SFTP_FILES @SFTP_FILES<br>
-allow_rename @SFTP_DIRS @SFTP_DIRS<br>
-allow_truncate @SFTP_FILES
+file read/write @SFTP_FILES<br>
+file create @SFTP_FILES 0644<br>
+file unlink @SFTP_FILES<br>
+file mkdir @SFTP_DIRS 0755<br>
+file rmdir @SFTP_DIRS<br>
+file rename @SFTP_FILES @SFTP_FILES<br>
+file rename @SFTP_DIRS @SFTP_DIRS<br>
+file truncate @SFTP_FILES
 </td></tr>
 </table>
 
@@ -180,7 +180,7 @@ sftp sftp@server
 
 <p>We create two domains for sftp-server programs with different parent domain, and we give write permissions to only one domain. Since this program is just an example, we used straightforward environment variables. When you use at real systems, please use unguessable environment variables because these environment variables act as passwords.</p>
 
-<p>If you want to forbid access to files listed using allow_read keyword in the exception policy (e.g. shared libraries), you can specify ignore_global_allow_read directive to the domain policy.</p>
+<p>If you want to forbid access to files listed using file read keyword in the exception policy (e.g. shared libraries), you can specify ignore_global_file read directive to the domain policy.</p>
 
 <h2>Application idea</h2>
 

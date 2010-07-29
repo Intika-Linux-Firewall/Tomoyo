@@ -152,16 +152,14 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の 13 種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の 11 種類の例外が指定されています。</p>
 
 <ol>
 <li>パス名のパターン (file_pattern)</li>
 <li>パス名のグループ (path_group)</li>
 <li>数値のグループ (number_group)</li>
 <li>IPアドレスのグループ (address_group)</li>
-<li>すべてのプログラムに対して参照することを許可するパス名 (allow_read)</li>
-<li>すべてのプログラムに対して渡すことを許可する環境変数名 (allow_env)</li>
-<li>デフォルトで上書きを禁止するパス名 (deny_rewrite)</li>
+<li>アクセス許可のグループ (acl_group)</li>
 <li>1つに集約して扱うプログラムのパス名 (aggregator)</li>
 <li>ドメイン遷移を初期化させるプログラム (initialize_domain)</li>
 <li>ドメイン遷移を初期化させないプログラム (no_initialize_domain)</li>
@@ -345,19 +343,19 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 <blockquote><p>
 #2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" } }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
-allow_execute /usr/bin/tail<br>
+file execute /usr/bin/tail<br>
 <br>
 #2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
-allow_read /usr/bin/tail<br>
+file read /usr/bin/tail<br>
 <br>
 #2010-01-02 20:28:47# profile=3 mode=enforcing (global-pid=2625) task={ pid=2625 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=42 ino=393334 major=8 minor=1 perm=0640 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
-allow_read /etc/shadow<br>
+file read /etc/shadow<br>
 <br>
 #2010-01-02 20:28:57# profile=3 mode=enforcing (global-pid=2629) task={ pid=2629 ppid=2626 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=214328 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=212993 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" } }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
-allow_execute /bin/date
+file execute /bin/date
 </p></blockquote>
 
 <p>このように TOMOYO Linux のファイルに対するアクセス制御を用いれば、</p>
@@ -378,9 +376,9 @@ TOMOYO Linux にはここで紹介した機能以外にもさまざまな機能�
 さらに TOMOYO Linux を使いこなしたいという方は、以下のドキュメントをご参照ください。</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
 <li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験 TOMOYO Linux ！</a>: ThinkIT での TOMOYO Linux 連載。</li>
 </ul>
 

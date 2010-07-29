@@ -108,7 +108,7 @@ Port number (for TCP and UDP) / Protocol number (for IP)
 </td></tr>
 </table>
 
-<p>Lines starting with "allow_network" keyword are permissions for access control on networks. "allow_network UDP connect 192.168.1.2 53" allows communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "allow_network TCP connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
+<p>Lines starting with "network" keyword are permissions for access control on networks. "network UDP connect 192.168.1.2 53" allows communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "network TCP connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
 
 <h4>(2) Examples for server applications</h4>
 
@@ -141,7 +141,7 @@ Port number (for TCP and UDP) / Protocol number (for IP)
 </td></tr>
 </table>
 
-<p>"allow_network TCP accept 0:0:0:0:0:ffff:7f00:1 34561" allows accepting TCP connections from port 34561 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
+<p>"network TCP accept 0:0:0:0:0:ffff:7f00:1 34561" allows accepting TCP connections from port 34561 on host (IPv6 address) 0:0:0:0:0:ffff:7f00:1.</p>
 
 <p>You can apply conditions to permissions for access control on networks as well as permissions for access control on files. For example, you can restrict remote server's IP addresses based on user ID by using process's user ID as conditions. (Fig. 10)</p>
 
@@ -149,8 +149,8 @@ Port number (for TCP and UDP) / Protocol number (for IP)
 <tr><td>
 &diams; Fig. 10&nbsp;&nbsp;Restricting remote servers based on user ID
 <pre>
-allow_network TCP connect 202.221.179.21 80 if task.uid=500
-allow_network TCP connect 66.35.250.203 80 if task.uid=501
+network TCP connect 202.221.179.21 80 if task.uid=500
+network TCP connect 66.35.250.203 80 if task.uid=501
 </pre>
 </td></tr>
 </table>
@@ -173,7 +173,7 @@ allow_network TCP connect 66.35.250.203 80 if task.uid=501
 </td></tr>
 </table>
 
-<p>You can see a line "allow_network RAW connect 202.221.179.21 1". Fig 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
+<p>You can see a line "network RAW connect 202.221.179.21 1". Fig 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
 
 <h3>Let's tune policy</h3>
 
@@ -244,10 +244,10 @@ xxxxx-yyyyy
 <tr><td>
 &diams; Fig. 18&nbsp;&nbsp;Example of permissions with contiguous port numbers
 <pre>
-allow_network TCP bind 127.0.0.1 610
-allow_network TCP bind 127.0.0.1 611
-allow_network TCP bind 127.0.0.1 612
-allow_network TCP bind 127.0.0.1 613
+network TCP bind 127.0.0.1 610
+network TCP bind 127.0.0.1 611
+network TCP bind 127.0.0.1 612
+network TCP bind 127.0.0.1 613
 </pre>
 </td></tr>
 </table>
@@ -258,7 +258,7 @@ allow_network TCP bind 127.0.0.1 613
 <tr><td>
 &diams; Fig. 19&nbsp;&nbsp;Patternized permissions based on Fig. 18
 <pre>
-allow_network TCP bind 127.0.0.1 600-1023
+network TCP bind 127.0.0.1 600-1023
 </pre>
 </td></tr>
 </table>
@@ -269,11 +269,11 @@ allow_network TCP bind 127.0.0.1 600-1023
 <tr><td>
 &diams; Fig. 20&nbsp;&nbsp;Example of permissions with contiguous port numbers
 <pre>
-allow_network TCP accept 127.0.0.1 32780
-allow_network TCP accept 127.0.0.1 32781
-allow_network TCP accept 127.0.0.1 32782
-allow_network TCP accept 127.0.0.1 32783
-allow_network TCP accept 127.0.0.1 32784
+network TCP accept 127.0.0.1 32780
+network TCP accept 127.0.0.1 32781
+network TCP accept 127.0.0.1 32782
+network TCP accept 127.0.0.1 32783
+network TCP accept 127.0.0.1 32784
 </pre>
 </td></tr>
 </table>
@@ -282,7 +282,7 @@ allow_network TCP accept 127.0.0.1 32784
 <tr><td>
 &diams; Fig. 21&nbsp;&nbsp;Patternized permissions based on Fig. 20
 <pre>
-allow_network TCP accept 127.0.0.1 1024-65535
+network TCP accept 127.0.0.1 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -291,7 +291,7 @@ allow_network TCP accept 127.0.0.1 1024-65535
 <tr><td>
 &diams; Fig. 22&nbsp;&nbsp;Patternized permissions based on Fig. 20
 <pre>
-allow_network TCP accept 127.0.0.1 32768-61000
+network TCP accept 127.0.0.1 32768-61000
 </pre>
 </td></tr>
 </table>
@@ -421,14 +421,14 @@ mount: permission denied
 
 <table border="1" summary="fig">
 <tr><td>
-&diams; Fig. 30&nbsp;&nbsp;Permission "allow_capability SYS_MOUNT" was learned<br>
+&diams; Fig. 30&nbsp;&nbsp;Permission "capability SYS_MOUNT" was learned<br>
 <img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
 </td></tr>
 </table>
 
-<p>You can find that a permission "allow_capability SYS_MOUNT" was learned. Now, you can forbid mount operations from domains without SYS_MOUNT capability by assigning a profile for enforcing mode.</p>
+<p>You can find that a permission "capability SYS_MOUNT" was learned. Now, you can forbid mount operations from domains without SYS_MOUNT capability by assigning a profile for enforcing mode.</p>
 
-<p>You might notice that it is not sufficient to restrict whether mount operation is permitted or not , for the process can do arbitrary mount operations if mount operation is permitted. In fact, that is true. TOMOYO Linux's access control on files includes ability to restrict the combination of mount device and mount point and filesystem type and mount flags. Thus, if you do operations listed in Fig. 29 with a profile for learning mode for access control on files, "allow_mount none /tmp/ tmpfs 0" will appear in Fig. 30.</p>
+<p>You might notice that it is not sufficient to restrict whether mount operation is permitted or not , for the process can do arbitrary mount operations if mount operation is permitted. In fact, that is true. TOMOYO Linux's access control on files includes ability to restrict the combination of mount device and mount point and filesystem type and mount flags. Thus, if you do operations listed in Fig. 29 with a profile for learning mode for access control on files, "file mount none /tmp/ tmpfs 0" will appear in Fig. 30.</p>
 
 <h2>About access control on signals</h2>
 
@@ -511,7 +511,7 @@ kill 4649: Operation not permitted
 </td></tr>
 </table>
 
-<p>You can find a permission "allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" was learned. This permission allows sending signal 15 (i.e. SIGTERM) to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" domain and its descendent domains. Since TOMOYO Linux's domains forms hierarchal structure starting with "&lt;kernel&gt;", "allow_signal 15 &lt;kernel&gt;" will allow sending signal 15 to any processes. Also, as exceptions, sending signals to the same domain (e.g. threads in current process) is always permitted, and sending signal 0 is always permitted.</p>
+<p>You can find a permission "ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" was learned. This permission allows sending signal 15 (i.e. SIGTERM) to "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep" domain and its descendent domains. Since TOMOYO Linux's domains forms hierarchal structure starting with "&lt;kernel&gt;", "ipc signal 15 &lt;kernel&gt;" will allow sending signal 15 to any processes. Also, as exceptions, sending signals to the same domain (e.g. threads in current process) is always permitted, and sending signal 0 is always permitted.</p>
 
 <h2>Trailer</h2>
 
