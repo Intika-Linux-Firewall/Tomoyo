@@ -48,7 +48,7 @@
 
 <h3>Preparation</h3>
 
-<p>TOMOYO Linux supports Linux kernel 2.4.30 and later / 2.6.11 and later. Regarding distributions listed in .Fig. 3, <a href="http://tomoyo.sourceforge.jp/1.7/install.html.en#install_from_repository">prebuilt kernel packages and tools packages for i686 architecture</a> are provided.</p>
+<p>TOMOYO Linux supports Linux kernel 2.4.30 and later / 2.6.11 and later. Regarding distributions listed in .Fig. 3, <a href="http://tomoyo.sourceforge.jp/1.8/install.html.en#install_from_repository">prebuilt kernel packages and tools packages for i686 architecture</a> are provided.</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -279,7 +279,7 @@ PROFILE_VERSION=20090903
 
 <p>In Fig. 18, TOMOYO Linux identifies the domain for policy editor as "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" ( /usr/sbin/ccs-editpolicy executed from /bin/bash executed from /bin/login executed from /sbin/mingetty ). ( TOMOYO Linux will identify the domain for policy editor as "&lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/sbin/ccs-editpolicy" if /usr/sbin/ccs-editpolicy is executed from /bin/bash executed from /usr/sbin/sshd .)</p>
 
-<p>To browse permissions for this domain appended by learning mode, press "Enter" key. Then, you will see a screen like Fig. 19. The heading line changed from &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; to &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;. This screen shows permissions for "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" domain and currently 7 entries are listed in this screen. Regarding the fourth and below lines, the first number is the line number. "allow_read/write" means "allow opening file for reading and writing". "allow_read" means "allow opening file for reading". "allow_ioctl" means "allow ioctl with specified command number".</p>
+<p>To browse permissions for this domain appended by learning mode, press "Enter" key. Then, you will see a screen like Fig. 19. The heading line changed from &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; to &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt;. This screen shows permissions for "&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy" domain and currently 7 entries are listed in this screen. Regarding the fourth and below lines, the first number is the line number. "file read/write" means "allow opening file for reading and writing". "file read" means "allow opening file for reading". "file ioctl" means "allow ioctl with specified command number".</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -293,7 +293,7 @@ PROFILE_VERSION=20090903
 <p>Try executing various commands, and see how these commands are identified as domains by TOMOYO Linux, and see how TOMOYO Linux recorded files accessed by these commands. By repeating these operations for several times, you will be naturally able to understand TOMOYO Linux's domain management and learning mode and policy. This lucidity is the TOMOYO Linux's feature.</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.en">How to use Policy Editor</a></li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.en">How to use Policy Editor</a></li>
 </ul>
 
 <h3>Browsing binding of the domains and processes</h3>

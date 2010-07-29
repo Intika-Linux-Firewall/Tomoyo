@@ -149,16 +149,14 @@ The following programs are listed.</p>
 
 <h3>About exception policy</h3>
 
-<p>/etc/ccs/exception_policy.conf contains the following 13 types of exceptions.</p>
+<p>/etc/ccs/exception_policy.conf contains the following 11 types of exceptions.</p>
 
 <ol>
 <li>Pathname's pattern (file_pattern)</li>
 <li>Pathname's group (path_group)</li>
 <li>Numeric value's group (number_group)</li>
 <li>IP address's group (address_group)</li>
-<li>Unconditionally readable files (allow_read)</li>
-<li>Unconditionally usable environment variable names (allow_env)</li>
-<li>Default non-rewritable files (deny_rewrite)</li>
+<li>ACL group (acl_group)</li>
 <li>Program aggregations (aggregator)</li>
 <li>Programs that cause domain transition initialization (initialize_domain)</li>
 <li>Programs that prevent domain transition initialization (no_initialize_domain)</li>
@@ -338,19 +336,19 @@ Operations with blue colored underline are denied.</p>
 <blockquote><p>
 #2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=14 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=1" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tail" } }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
-allow_execute /usr/bin/tail<br>
+file execute /usr/bin/tail<br>
 <br>
 #2010-01-02 20:28:32# profile=3 mode=enforcing (global-pid=2624) task={ pid=2624 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=127647 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=114717 perm=0755 }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash<br>
-allow_read /usr/bin/tail<br>
+file read /usr/bin/tail<br>
 <br>
 #2010-01-02 20:28:47# profile=3 mode=enforcing (global-pid=2625) task={ pid=2625 ppid=2575 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=42 ino=393334 major=8 minor=1 perm=0640 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head<br>
-allow_read /etc/shadow<br>
+file read /etc/shadow<br>
 <br>
 #2010-01-02 20:28:57# profile=3 mode=enforcing (global-pid=2629) task={ pid=2629 ppid=2626 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=214328 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=212993 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=20 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11" "PWD=/root" "LANG=C" "PS1=\\h:\\w\\$\040" "SHLVL=2" "HOME=/root" "LS_OPTIONS=--color=auto" "LOGNAME=root" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" } }<br>
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh<br>
-allow_execute /bin/date
+file execute /bin/date
 </p></blockquote>
 
 <p>As you have seen above, by using TOMOYO Linux's MAC for file accesses functionality, you can monitor</p>
@@ -370,9 +368,9 @@ allow_execute /bin/date
 TOMOYO Linux has many features. Please see the following documents to utilize TOMOYO Linux more effectively.</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.en">How to use Policy Editor</a>: detailed usage of policy editor</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>: reference of TOMOYO Linux functions</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/index.html.en#tutorial">The world of TOMOYO Linux</a>: tutorial covering basic functionalities</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.en">How to use Policy Editor</a>: detailed usage of policy editor</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.en">Policy Specifications of TOMOYO Linux</a>: reference of TOMOYO Linux functions</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.en#tutorial">The world of TOMOYO Linux</a>: tutorial covering basic functionalities</li>
 </ul>
 
 <hr>

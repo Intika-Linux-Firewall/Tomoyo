@@ -118,7 +118,7 @@ $ /bin/ls
 <pre>
 #2010-05-13 15:29:35# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507379 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 } exec={ realpath="/bin/ls" argc=1 envc=6 argv[]={ "ls" } envp[]={ "TERM=xterm" "PATH=/sbin:/usr/sbin:/bin:/usr/bin" "PWD=/" "LANG=en_US.UTF-8" "SHLVL=1" "_=/bin/cat" } }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh
-allow_execute /bin/ls
+file execute /bin/ls
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 </td></tr>
@@ -147,7 +147,7 @@ Allow? ('Y'es/'N'o/'R'etry):
 <pre>
 #2010-05-13 15:29:45# profile=3 mode=enforcing (global-pid=4561) task={ pid=4561 ppid=4557 uid=502 gid=502 euid=502 egid=502 suid=502 sgid=502 fsuid=502 fsgid=502 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1507380 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1507329 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/tcsh /bin/ls
-allow_read /etc/selinux/config
+file read /etc/selinux/config
 Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 </pre>
 </td></tr>
@@ -163,13 +163,13 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 
 <h3>About shared libraries</h3>
 
-<p>Regarding shared libraries which are registered in /etc/ld.so.cache (which you can view by "/sbin/ldconfig -NXp") are specified using "allow_read" keyword in exception policy (i.e. allow read access by any domain) by init_policy command executed upon installing TOMOYO Linux. Therefore, you don't need to specify "allow_read" keyword in each domain in domain policy. But restarting daemon programs after updating software might fail if the filename of shared libraries was changed and the change is not reflected to exception policy. Regarding shared libraries newly installed, read access to these files will be rejected (i.e. policy violated) if these files are requested before reflecting to exception policy or domain policy.</p>
+<p>Regarding shared libraries which are registered in /etc/ld.so.cache (which you can view by "/sbin/ldconfig -NXp") are specified using "file read" keyword in exception policy (i.e. allow read access by any domain) by init_policy command executed upon installing TOMOYO Linux. Therefore, you don't need to specify "file read" keyword in each domain in domain policy. But restarting daemon programs after updating software might fail if the filename of shared libraries was changed and the change is not reflected to exception policy. Regarding shared libraries newly installed, read access to these files will be rejected (i.e. policy violated) if these files are requested before reflecting to exception policy or domain policy.</p>
 
 <p>It is possible to let ccs-queryd command detect read access to shared libraries and append permissions to policy configuration. But in this case, it will be convenient for you to automatically reflect change of shared libraries to exception policy. Therefore, ccs-queryd command monitors not only policy violations but also changes in /etc/ld.so.cache (which contains the list of shared libraries) and reflects to exception policy.</p>
 
 <h3>An operation example for actual service</h3>
 
-<p>Please see <a href="http://tomoyo.sourceforge.jp/1.7/enforcing.html.en#using_interactive_mode">Handling policy violation arising in during software updates</a>.</p>
+<p>Please see <a href="http://tomoyo.sourceforge.jp/1.8/enforcing.html.en#using_interactive_mode">Handling policy violation arising in during software updates</a>.</p>
 
 <h2>About removing garbage from policy configuration</h2>
 
@@ -220,10 +220,10 @@ Allow? ('Y'es/'N'o/'R'etry/'S'how policy/'A'dd to policy and retry):
 /tmp/abc12345
 # /usr/sbin/ccs-domainmatch /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/touch
-allow_create /tmp/abc12345
-allow_write /tmp/abc12345
+file create /tmp/abc12345
+file write /tmp/abc12345
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/rm
-allow_unlink /tmp/abc12345
+file unlink /tmp/abc12345
 </pre>
 </td></tr>
 </table>
@@ -288,11 +288,11 @@ allow_unlink /tmp/abc12345
 # cat /var/log/tomoyo/reject_log.txt
 #2010-05-13 15:36:22# profile=3 mode=enforcing (global-pid=4350) task={ pid=4350 ppid=4312 uid=500 gid=500 euid=500 egid=500 suid=500 sgid=500 fsuid=500 fsgid=500 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=501 gid=501 ino=393251 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-allow_read /tmp/testfile2
+file read /tmp/testfile2
 
 #2010-05-13 15:36:36# profile=3 mode=enforcing (global-pid=4518) task={ pid=4518 ppid=4480 uid=501 gid=501 euid=501 egid=501 suid=501 sgid=501 fsuid=501 fsgid=501 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=500 gid=500 ino=393250 major=253 minor=0 perm=0555 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat
-allow_read /tmp/testfile1
+file read /tmp/testfile1
 </pre>
 </td></tr>
 </table>

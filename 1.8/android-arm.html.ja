@@ -181,7 +181,7 @@ adb emu kill
 
 <h2>ステップ１２：ポリシーの修正</h2>
 
-<p>不足している file_pattern や allow_read などを例外ポリシーに追加します。以下の内容は一例です。ドメインポリシーでは全体をプロファイル１（学習モード）で動作させるように指定しています。マネージャにはエージェントプログラムだけを指定しています。</p>
+<p>不足している file_pattern や file read などを例外ポリシーに追加します。以下の内容は一例です。ドメインポリシーでは全体をプロファイル１（学習モード）で動作させるように指定しています。マネージャにはエージェントプログラムだけを指定しています。</p>
 
 <table border="1">
 <tr><td>
@@ -193,13 +193,13 @@ echo 'initialize_domain /system/bin/app_process'<br>
 echo 'file_pattern /dev/tty\$'<br>
 <br>
 echo 'file_pattern /system/lib/\@.so'<br>
-echo 'allow_read /system/lib/\@.so'<br>
+echo 'file read /system/lib/\@.so'<br>
 echo 'file_pattern /system/framework/\*.jar'<br>
-echo 'allow_read /system/framework/\*.jar'<br>
+echo 'file read /system/framework/\*.jar'<br>
 echo 'file_pattern /system/media/audio/\*/\*'<br>
-echo 'allow_read /system/media/audio/\*/\*'<br>
+echo 'file read /system/media/audio/\*/\*'<br>
 echo 'file_pattern /system/fonts/\*.ttf'<br>
-echo 'allow_read /system/fonts/\*.ttf'<br>
+echo 'file read /system/fonts/\*.ttf'<br>
 echo 'file_pattern /data/tombstones/tombstone_\$'<br>
 <br>
 echo 'file_pattern /data/dalvik-cache/system@framework@\*.jar@classes.dex'<br>
@@ -230,8 +230,8 @@ echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_min'<br>
 echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_def'<br>
 echo 'path_group SYS_FILES /sys/kernel/ipv4/tcp_rmem_max'<br>
 <br>
-echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/ac/online'<br>
-echo 'allow_read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
+echo 'file read /sys/devices/platform/\*battery\*/power_supply/ac/online'<br>
+echo 'file read /sys/devices/platform/\*battery\*/power_supply/battery/\@'<br>
 <br>
 #App. specific data files<br>
 echo 'file_pattern /data/data/com.android.browser/cache/webviewCache/\*'<br>

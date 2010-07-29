@@ -24,19 +24,19 @@
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_read /var/www/html/index.html<br>
-allow_read /var/www/html/blog/index.html<br>
-allow_read /var/www/html/blog/page1.html<br>
-allow_read /var/www/html/blog/page2.html<br>
-allow_read /var/www/html/blog/page3.html<br>
-allow_read /var/www/html/blog/image1.jpg<br>
-allow_read /var/www/html/blog/image2.jpg
+file read /var/www/html/index.html<br>
+file read /var/www/html/blog/index.html<br>
+file read /var/www/html/blog/page1.html<br>
+file read /var/www/html/blog/page2.html<br>
+file read /var/www/html/blog/page3.html<br>
+file read /var/www/html/blog/image1.jpg<br>
+file read /var/www/html/blog/image2.jpg
 </td><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_read /var/www/html/\*.html<br>
-allow_read /var/www/html/\*/\*.html<br>
-allow_read /var/www/html/\*/\*.jpg<br>
+file read /var/www/html/\*.html<br>
+file read /var/www/html/\*/\*.html<br>
+file read /var/www/html/\*/\*.jpg<br>
 <br>
 <br>
 <br>
@@ -60,7 +60,7 @@ path_group WEB-CONTENTS /var/www/html/\*/\*.jpg<br>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_read @WEB-CONTENTS
+file read @WEB-CONTENTS
 </td></tr>
 </table>
 
@@ -87,13 +87,13 @@ The following example permits /usr/sbin/httpd to accept connections from client'
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 3810<br>
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829<br>
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 3829
 </td><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 1024-65535<br>
 <br>
 <br>
 </td></tr>
@@ -113,7 +113,7 @@ number_group WEB-CLIENT-PORTS 1024-65535
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 </td></tr>
 </table>
 
@@ -130,17 +130,17 @@ allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 @WEB-CLIENT-PORTS<br>
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 10.0.0.200 @WEB-CLIENT-PORTS
+network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+network TCP accept 0:0:0:0:0:ffff:a00:1 @WEB-CLIENT-PORTS<br>
+network TCP accept 0:0:0:0:0:ffff:a00:a1 @WEB-CLIENT-PORTS<br>
+network TCP accept 10.0.0.10 @WEB-CLIENT-PORTS<br>
+network TCP accept 10.0.0.200 @WEB-CLIENT-PORTS
 </td><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
-allow_network TCP accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
+network TCP accept 0:0:0:0:0:0:0:1 @WEB-CLIENT-PORTS<br>
+network TCP accept 0:0:0:0:0:ffff:a00:1-0:0:0:0:0:ffff:a00:ff @WEB-CLIENT-PORTS<br>
+network TCP accept 10.0.0.1-10.0.0.255 @WEB-CLIENT-PORTS<br>
 <br>
 <br>
 </td></tr>
@@ -162,7 +162,7 @@ address_group WEB-CLIENT-ADDRESS 10.0.0.1-10.0.0.255
 <tr><td>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
+network TCP accept @WEB-CLIENT-ADDRESS @WEB-CLIENT-PORTS
 </td></tr>
 </table>
 
@@ -202,25 +202,25 @@ path_group HOME-SMB-DIR  /home/\*/samba/\*/\*/\*/
 <tr><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
-allow_read/write @HOME-FTP-FILE<br>
-allow_mkdir @HOME-FTP-DIR 0755<br>
-allow_rmdir @HOME-FTP-DIR<br>
-allow_create @HOME-FTP-FILE 0644<br>
-allow_truncate @HOME-FTP-FILE<br>
-allow_unlink @HOME-FTP-FILE<br>
-allow_rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
-allow_rename @HOME-FTP-DIR @HOME-FTP-DIR
+file read/write @HOME-FTP-FILE<br>
+file mkdir @HOME-FTP-DIR 0755<br>
+file rmdir @HOME-FTP-DIR<br>
+file create @HOME-FTP-FILE 0644<br>
+file truncate @HOME-FTP-FILE<br>
+file unlink @HOME-FTP-FILE<br>
+file rename @HOME-FTP-FILE @HOME-FTP-FILE<br>
+file rename @HOME-FTP-DIR @HOME-FTP-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/vsftpd<br>
 <br>
-allow_read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
-allow_mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
-allow_rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
-allow_create @HOME-FTP-FILE 0644 if task.uid=path1.parent.uid<br>
-allow_truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
-allow_unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
-allow_rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
-allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=path2.parent.uid
+file read/write @HOME-FTP-FILE if task.uid=path1.uid<br>
+file mkdir @HOME-FTP-DIR 0755 if task.uid=path1.parent.uid<br>
+file rmdir @HOME-FTP-DIR if task.uid=path1.uid<br>
+file create @HOME-FTP-FILE 0644 if task.uid=path1.parent.uid<br>
+file truncate @HOME-FTP-FILE if task.uid=path1.uid<br>
+file unlink @HOME-FTP-FILE if task.uid=path1.uid<br>
+file rename @HOME-FTP-FILE @HOME-FTP-FILE if task.uid=path1.parent.uid task.uid=path2.parent.uid<br>
+file rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=path2.parent.uid
 </td></tr>
 </table>
 
@@ -231,25 +231,25 @@ allow_rename @HOME-FTP-DIR @HOME-FTP-DIR if task.uid=path1.parent.uid task.uid=p
 <tr><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
-allow_read/write @HOME-SMB-FILE<br>
-allow_mkdir @HOME-SMB-DIR 0755<br>
-allow_rmdir @HOME-SMB-DIR<br>
-allow_create @HOME-SMB-FILE 0644<br>
-allow_truncate @HOME-SMB-FILE<br>
-allow_unlink @HOME-SMB-FILE<br>
-allow_rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
-allow_rename @HOME-SMB-DIR @HOME-SMB-DIR
+file read/write @HOME-SMB-FILE<br>
+file mkdir @HOME-SMB-DIR 0755<br>
+file rmdir @HOME-SMB-DIR<br>
+file create @HOME-SMB-FILE 0644<br>
+file truncate @HOME-SMB-FILE<br>
+file unlink @HOME-SMB-FILE<br>
+file rename @HOME-SMB-FILE @HOME-SMB-FILE<br>
+file rename @HOME-SMB-DIR @HOME-SMB-DIR
 </td><td>
 &lt;kernel&gt; /usr/sbin/smbd<br>
 <br>
-allow_read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
-allow_mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
-allow_rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
-allow_create @HOME-SMB-FILE 0644 if task.euid=path1.parent.uid<br>
-allow_truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
-allow_unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
-allow_rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
-allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+file read/write @HOME-SMB-FILE if task.euid=path1.uid<br>
+file mkdir @HOME-SMB-DIR 0755 if task.euid=path1.parent.uid<br>
+file rmdir @HOME-SMB-DIR if task.euid=path1.uid<br>
+file create @HOME-SMB-FILE 0644 if task.euid=path1.parent.uid<br>
+file truncate @HOME-SMB-FILE if task.euid=path1.uid<br>
+file unlink @HOME-SMB-FILE if task.euid=path1.uid<br>
+file rename @HOME-SMB-FILE @HOME-SMB-FILE if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
+file rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid=path2.parent.uid<br>
 </td></tr>
 </table>
 
@@ -260,11 +260,11 @@ allow_rename @HOME-SMB-DIR @HOME-SMB-DIR if task.euid=path1.parent.uid task.euid
 <tr><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 <br>
-allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
+file execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash"
 </td><td>
 &lt;kernel&gt; /usr/sbin/sshd<br>
 <br>
-allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
+file execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.uid!=0 task.euid!=0
 </td></tr>
 </table>
 
@@ -277,28 +277,28 @@ allow_execute /bin/bash if exec.realpath="/bin/bash" exec.argv[0]="-bash" task.u
 # grep -A 3 -F 'profile=2 mode=permissive' /var/log/tomoyo/reject_log.conf | /usr/lib/ccs/convert-audit-log | /usr/sbin/ccs-sortpolicy<br>
 &lt;kernel&gt; /usr/sbin/httpd<br>
 <br>
-allow_network TCP accept 0:0:0:0:0:ffff:c0a8:801 1507 if task.pid=3039 task.ppid=3034 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler<br>
+network TCP accept 0:0:0:0:0:ffff:c0a8:801 1507 if task.pid=3039 task.ppid=3034 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler<br>
 <br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh<br>
 <br>
-allow_execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
 <br>
 &lt;kernel&gt; /usr/sbin/httpd /bin/sh /usr/bin/id<br>
 <br>
-allow_env LANG if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env LANGUAGE if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env PATH if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env PWD if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env SHLVL if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env TERM if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_env _ if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
-allow_read /etc/group if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330196 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
-allow_read /etc/nsswitch.conf if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=329303 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
-allow_read /etc/passwd if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330197 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
-allow_read /etc/selinux/config if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=328251 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327965 path1.parent.perm=0755<br>
-allow_read /proc/filesystems if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=4026531844 path1.major=0 path1.minor=3 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1 path1.parent.perm=0555<br>
-allow_read /selinux/mls if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=12 path1.major=0 path1.minor=15 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=463 path1.parent.perm=0755<br>
-allow_read /usr/lib/locale/locale-archive if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=605586 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589842 path1.parent.perm=0755
+misc env LANG if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env LANGUAGE if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env PATH if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env PWD if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env SHLVL if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env TERM if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+misc env _ if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"<br>
+file read /etc/group if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330196 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+file read /etc/nsswitch.conf if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=329303 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+file read /etc/passwd if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=330197 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327681 path1.parent.perm=0755<br>
+file read /etc/selinux/config if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=328251 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=327965 path1.parent.perm=0755<br>
+file read /proc/filesystems if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=4026531844 path1.major=0 path1.minor=3 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=1 path1.parent.perm=0555<br>
+file read /selinux/mls if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=12 path1.major=0 path1.minor=15 path1.perm=0444 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=463 path1.parent.perm=0755<br>
+file read /usr/lib/locale/locale-archive if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=605586 path1.major=8 path1.minor=1 path1.perm=0644 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589842 path1.parent.perm=0755
 </td></tr>
 </table>
 

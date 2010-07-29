@@ -20,7 +20,7 @@
 
 <h3>Restricting network access</h3>
 
-<p>Users who logged into the system can access networks as well as files. Thus, you design what servers does user can access. The permission for allowing network access is "allow_network PROTOCOL IPADDDRESS PORTNUMBER". PROTOCOL is one of TCP or UDP or RAW, IPADDRESS is IPv4 or IPv6 address. You can use group for IPADDRESS like grouping pathnames. In this section, I explain about HTTP, DNS, FTP and SSH services as examples.</p>
+<p>Users who logged into the system can access networks as well as files. Thus, you design what servers does user can access. The permission for allowing network access is "network PROTOCOL IPADDDRESS PORTNUMBER". PROTOCOL is one of TCP or UDP or RAW, IPADDRESS is IPv4 or IPv6 address. You can use group for IPADDRESS like grouping pathnames. In this section, I explain about HTTP, DNS, FTP and SSH services as examples.</p>
 
 <h4>&diams;HTTP</h4>
 
@@ -40,7 +40,7 @@ address_group HTTP_SERVERS 192.168.1.20
 <tr><td>
 &diams; Fig. 2&nbsp;&nbsp;Permissions for communicating with HTTP server
 <pre>
-allow_network TCP connect @HTTP_SERVERS 80
+network TCP connect @HTTP_SERVERS 80
 </pre>
 </td></tr>
 </table>
@@ -53,7 +53,7 @@ allow_network TCP connect @HTTP_SERVERS 80
 <tr><td>
 &diams; Fig. 3&nbsp;&nbsp;Permissions for communicating with DNS server
 <pre>
-allow_network UDP connect @DNS_SERVERS 53
+network UDP connect @DNS_SERVERS 53
 </pre>
 </td></tr>
 </table>
@@ -66,7 +66,7 @@ allow_network UDP connect @DNS_SERVERS 53
 <tr><td>
 &diams; Fig. 4&nbsp;&nbsp;Permission for FTP's control channel
 <pre>
-allow_network TCP connect @FTP_SERVERS 21
+network TCP connect @FTP_SERVERS 21
 </pre>
 </td></tr>
 </table>
@@ -77,7 +77,7 @@ allow_network TCP connect @FTP_SERVERS 21
 <tr><td>
 &diams; Fig. 5&nbsp;&nbsp;Permission for FTP's data channel (for active mode)
 <pre>
-allow_network TCP accept @FTP_SERVERS 20
+network TCP accept @FTP_SERVERS 20
 </pre>
 </td></tr>
 </table>
@@ -88,7 +88,7 @@ allow_network TCP accept @FTP_SERVERS 20
 <tr><td>
 &diams; Fig. 6&nbsp;&nbsp;Permission for FTP's data channel (for passive mode)
 <pre>
-allow_network TCP connect @FTP_SERVERS 1024-65535
+network TCP connect @FTP_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -101,7 +101,7 @@ allow_network TCP connect @FTP_SERVERS 1024-65535
 <tr><td>
 &diams; Fig. 7&nbsp;&nbsp;Permissions for communicating with SSH server
 <pre>
-allow_network TCP connect @SSH_SERVERS 1024-65535
+network TCP connect @SSH_SERVERS 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -213,18 +213,18 @@ $ ls .bashrc | xargs /bin/cat &gt; /dev/null
 <tr><td>
 &diams; Fig. 16&nbsp;&nbsp;Permissions given beforehand
 <pre>
-allow_execute @COMMANDS_FOR_LOGIN
-allow_read/write @HOME_FILE if task.uid=path1.uid
-allow_create @HOME_FILE if task.uid=path1.parent.uid
-allow_unlink @HOME_FILE if task.uid=path1.uid
-allow_symlink @HOME_FILE if task.uid=path1.parent.uid
-allow_link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
-allow_truncate @HOME_FILE if task.uid=path1.uid
-allow_rewrite @HOME_FILE if task.uid=path1.uid
-allow_mkdir @HOME_DIR if task.uid=path1.parent.uid
-allow_rmdir @HOME_DIR if task.uid=path1.uid
-allow_rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file execute @COMMANDS_FOR_LOGIN
+file read/write @HOME_FILE if task.uid=path1.uid
+file create @HOME_FILE if task.uid=path1.parent.uid
+file unlink @HOME_FILE if task.uid=path1.uid
+file symlink @HOME_FILE if task.uid=path1.parent.uid
+file link @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file rename @HOME_FILE @HOME_FILE if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
+file truncate @HOME_FILE if task.uid=path1.uid
+file append @HOME_FILE if task.uid=path1.uid
+file mkdir @HOME_DIR if task.uid=path1.parent.uid
+file rmdir @HOME_DIR if task.uid=path1.uid
+file rename @HOME_DIR @HOME_DIR if task.uid=path1.uid task.uid=path1.parent.uid task.uid=path2.parent.uid
 </pre>
 </td></tr>
 </table>
@@ -292,7 +292,7 @@ aggregator /usr/bin/ssh-keygen /usr/bin/ssh
 <tr><td>
 &diams; Fig. 21&nbsp;&nbsp;Permission for executing unexpected command
 <pre>
-allow_execute /usr/bin/xargs
+file execute /usr/bin/xargs
 </pre>
 </td></tr>
 </table>
@@ -310,19 +310,19 @@ path_group COMMANDS_FOR_LOGIN_SESSION /usr/bin/xargs
 
 <h3>About capabilities</h3>
 
-<p>When you did operations in learning mode, you will find lines starting with "allow_capability" like Fig. 23 in the domain for login shell. Capabilities specify only type of operations and thus no need to specify target of operations. Capabilities needed in learning mode will be needed in enforcing mode. Thus, keep the capabilities unmodified.</p>
+<p>When you did operations in learning mode, you will find lines starting with "capability" like Fig. 23 in the domain for login shell. Capabilities specify only type of operations and thus no need to specify target of operations. Capabilities needed in learning mode will be needed in enforcing mode. Thus, keep the capabilities unmodified.</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 23&nbsp;&nbsp;Example of capabilities appended by learning mode
 <pre>
-allow_capability SYS_CHMOD
-allow_capability SYS_IOCTL
-allow_capability SYS_KILL
-allow_capability SYS_LINK
-allow_capability SYS_RENAME
-allow_capability SYS_SYMLINK
-allow_capability SYS_UNLINK
+capability SYS_CHMOD
+capability SYS_IOCTL
+capability SYS_KILL
+capability SYS_LINK
+capability SYS_RENAME
+capability SYS_SYMLINK
+capability SYS_UNLINK
 </pre>
 </td></tr>
 </table>
@@ -331,7 +331,7 @@ allow_capability SYS_UNLINK
 
 <h3>About signals</h3>
 
-<p>Some lines starting with "allow_signal" might be appended while you operated using learning mode. TOMOYO Linux can restrict destination of signal transmission. To send a signal, you can use /bin/kill command. But since shell programs like /bin/bash provides "kill" as a built-in command, you can send signals without executing /bin/kill command. Thus, if you don't enable access control on signals, "root" user can login to the system and terminate arbitrary processes by using "kill" built-in command even though /bin/kill command is not included in COMMANDS_FOR_LOGIN_SESSION group. To enable access control on signals, enable CONFIG::ipc::signal in the profile. Since the profile which you are using in this installment has CONFIG::ipc::signal enabled, you can restrict signal transmission requests. The permission for sending signals is "allow_signal SIGNALNUMBER DESTINATIONDOMAIN". When the destination process to be signaled belongs to a domain which domainname starts with DESTINATIONDOMAIN, the process which belongs to a domain with this permission can send signal SIGNALNUMBER. (There are some exceptions, but generally you don't need to care exceptions. See policy specification on the project web page for more information.)</p>
+<p>Some lines starting with "ipc signal" might be appended while you operated using learning mode. TOMOYO Linux can restrict destination of signal transmission. To send a signal, you can use /bin/kill command. But since shell programs like /bin/bash provides "kill" as a built-in command, you can send signals without executing /bin/kill command. Thus, if you don't enable access control on signals, "root" user can login to the system and terminate arbitrary processes by using "kill" built-in command even though /bin/kill command is not included in COMMANDS_FOR_LOGIN_SESSION group. To enable access control on signals, enable CONFIG::ipc::signal in the profile. Since the profile which you are using in this installment has CONFIG::ipc::signal enabled, you can restrict signal transmission requests. The permission for sending signals is "ipc signal SIGNALNUMBER DESTINATIONDOMAIN". When the destination process to be signaled belongs to a domain which domainname starts with DESTINATIONDOMAIN, the process which belongs to a domain with this permission can send signal SIGNALNUMBER. (There are some exceptions, but generally you don't need to care exceptions. See policy specification on the project web page for more information.)</p>
 
 <h2>Finishing up</h2>
 

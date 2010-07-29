@@ -796,7 +796,6 @@ allow_create /tmp/file @CREATE_MODES
 
 <p>To deal multiple programs as a single program, use aggregator keyword followed by name of original program and aggregated program. This keyword is intended to aggregate similar programs.</p>
 <p>For example, /usr/bin/tac and /bin/cat are similar. By specifying "aggregator /usr/bin/tac /bin/cat", you can run /usr/bin/tac in the domain for /bin/cat .</p>
-<p>For example, /usr/sbin/logrotate for Fedora Core 3 generates programs like /tmp/logrotate.\?\?\?\?\?\? and run them, but TOMOYO Linux doesn't allow using patterns for granting execute permission and defining domains. By specifying "aggregator /tmp/logrotate.\?\?\?\?\?\? /tmp/logrotate.tmp", you can run /tmp/logrotate.\?\?\?\?\?\? as if /tmp/logrotate.tmp is running.</p>
 
 <p>See also:  <a href="#domain_policy_allow_execute">allow_execute</a></p>
 

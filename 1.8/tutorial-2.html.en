@@ -289,8 +289,8 @@ PREFERENCE::enforcing={ verbose=yes }
 <tr><td>
 &diams; Fig. 18&nbsp;&nbsp;An example for allowing reading under /var/www/html/  directory.
 <pre>
-allow_read /var/www/html/\*
-allow_read /var/www/html/\{\*\}/\*
+file read /var/www/html/\*
+file read /var/www/html/\{\*\}/\*
 </pre>
 </td></tr>
 </table>
@@ -308,14 +308,14 @@ allow_read /var/www/html/\{\*\}/\*
 <tr><td>
 &diams; Fig. 20&nbsp;&nbsp;Temporary files
 <pre>
-allow_read/write /tmp/phpAb9fD1
-allow_read/write /tmp/phpkzqf5p
-allow_read/write /tmp/php3lo7ab
+file read/write /tmp/phpAb9fD1
+file read/write /tmp/phpkzqf5p
+file read/write /tmp/php3lo7ab
 </pre>
 </td></tr>
 </table>
 
-<p>First, press "A" key on the keyboard, and enter "allow_read/write /tmp/php\?\?\?\?\?\?" (this is a patternized entry for entries in Fig. 20). Next, move the cursor to the "allow_read/write /tmp/php\?\?\?\?\?\?" line and press "O" key, and you will see entries included in "allow_read/write /tmp/php\?\?\?\?\?\?" entry are marked with "&amp;". Verify that entries listed in Fig. 20 are marked with "&amp;" and press "D" key on the keyboard, and a prompt "Delete selected entries? ('Y'es/'N'o)" is printed, and press "Y" key on the keyboard.</p>
+<p>First, press "A" key on the keyboard, and enter "file read/write /tmp/php\?\?\?\?\?\?" (this is a patternized entry for entries in Fig. 20). Next, move the cursor to the "file read/write /tmp/php\?\?\?\?\?\?" line and press "O" key, and you will see entries included in "file read/write /tmp/php\?\?\?\?\?\?" entry are marked with "&amp;". Verify that entries listed in Fig. 20 are marked with "&amp;" and press "D" key on the keyboard, and a prompt "Delete selected entries? ('Y'es/'N'o)" is printed, and press "Y" key on the keyboard.</p>
 
 <p>Continue policy tuning using permissive mode until all necessary permissions are given.</p>
 

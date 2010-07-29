@@ -154,16 +154,14 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の 13 種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の 11 種類の例外が指定されています。</p>
 
 <ol>
 <li>パス名のパターン (file_pattern)</li>
 <li>パス名のグループ (path_group)</li>
 <li>数値のグループ (number_group)</li>
 <li>IPアドレスのグループ (address_group)</li>
-<li>すべてのプログラムに対して参照することを許可するパス名 (allow_read)</li>
-<li>すべてのプログラムに対して渡すことを許可する環境変数名 (allow_env)</li>
-<li>デフォルトで上書きを禁止するパス名 (deny_rewrite)</li>
+<li>アクセス許可のグループ (acl_group)</li>
 <li>1つに集約して扱うプログラムのパス名 (aggregator)</li>
 <li>ドメイン遷移を初期化させるプログラム (initialize_domain)</li>
 <li>ドメイン遷移を初期化させないプログラム (no_initialize_domain)</li>
@@ -349,19 +347,19 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 <blockquote><p>
 #2010-01-02 22:19:36# profile=3 mode=enforcing (global-pid=1055) task={ pid=1055 ppid=1023 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=132184 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=131112 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=15 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/root" "LANG=en_US.UTF-8" "SHLVL=1" "HOME=/root" "LOGNAME=root" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "_=/usr/bin/tail" } }
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-allow_execute /usr/bin/tail
+file execute /usr/bin/tail
 
 #2010-01-02 22:19:36# profile=3 mode=enforcing (global-pid=1055) task={ pid=1055 ppid=1023 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=132184 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=131112 perm=0755 }
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash
-allow_read /usr/bin/tail
+file read /usr/bin/tail
 
 #2010-01-02 22:19:47# profile=3 mode=enforcing (global-pid=1057) task={ pid=1057 ppid=1023 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=42 ino=393228 major=8 minor=1 perm=0640 type=file } path1.parent={ uid=0 gid=0 ino=393217 perm=0755 }
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/head
-allow_read /etc/shadow
+file read /etc/shadow
 
 #2010-01-02 22:19:52# profile=3 mode=enforcing (global-pid=1059) task={ pid=1059 ppid=1058 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=335945 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=335873 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=21 argv[]={ "date" } envp[]={ "SHELL=/bin/bash" "TERM=linux" "HUSHLOGIN=FALSE" "USER=root" "LS_COLORS=rs=0:di=01;34:ln=01;36:hl=44;37:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:" "MAIL=/var/mail/root" "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games" "PWD=/root" "LANG=en_US.UTF-8" "SHLVL=2" "HOME=/root" "LOGNAME=root" "LESSOPEN=|\040/usr/bin/lesspipe\040%s" "LESSCLOSE=/usr/bin/lesspipe\040%s\040%s" "_=/usr/bin/tcsh" "HOSTTYPE=i486-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i486" "GROUP=root" "HOST=tomoyo" } }
 &lt;kernel&gt; /sbin/getty /bin/login /bin/bash /usr/bin/tcsh
-allow_execute /bin/date
+file execute /bin/date
 </p></blockquote>
 
 <p>このように TOMOYO Linux のファイルに対するアクセス制御を用いれば、</p>
@@ -382,9 +380,9 @@ TOMOYO Linux にはここで紹介した機能以外にもさまざまな機能�
 さらに TOMOYO Linux を使いこなしたいという方は、以下のドキュメントをご参照ください。</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
 <li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験 TOMOYO Linux ！</a>: ThinkIT での TOMOYO Linux 連載。</li>
 </ul>
 

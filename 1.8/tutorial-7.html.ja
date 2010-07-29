@@ -108,7 +108,7 @@
 </td></tr>
 </table>
 
-<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
+<p>network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
 
 <h4>(2)サーバ側の学習</h4>
 
@@ -141,7 +141,7 @@
 </td></tr>
 </table>
 
-<p>「 allow_network TCP accept 0:0:0:0:0:ffff:7f00:1 34561 」という部分は， 0:0:0:0:0:ffff:7f00:1 というＩＰｖ６アドレスを持つホストのポート 34561 からのＴＣＰコネクションを受け付けることを許可するという意味です．</p>
+<p>「 network TCP accept 0:0:0:0:0:ffff:7f00:1 34561 」という部分は， 0:0:0:0:0:ffff:7f00:1 というＩＰｖ６アドレスを持つホストのポート 34561 からのＴＣＰコネクションを受け付けることを許可するという意味です．</p>
 
 <p>ファイルに対するアクセス許可と同様に，ネットワークに対するアクセス許可にも条件を付与することができます．たとえば，図１０のようにプロセスのユーザＩＤと組み合わせることで，ユーザごとに接続可能なサーバを制限したりすることもできます．</p>
 
@@ -149,8 +149,8 @@
 <tr><td>
 ■図１０　ユーザごとに接続可能なサーバを制限
 <pre>
-allow_network TCP connect 202.221.179.21 80 if task.uid=500
-allow_network TCP connect 66.35.250.203 80 if task.uid=501
+network TCP connect 202.221.179.21 80 if task.uid=500
+network TCP connect 66.35.250.203 80 if task.uid=501
 </pre>
 </td></tr>
 </table>
@@ -173,7 +173,7 @@ allow_network TCP connect 66.35.250.203 80 if task.uid=501
 </td></tr>
 </table>
 
-<p>「 allow_network RAW connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
+<p>「 network RAW connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
 
 <h3>チューニングしてみよう</h3>
 
@@ -244,10 +244,10 @@ xxxxx-yyyyy
 <tr><td>
 ■図１８　ポート番号が連続するアクセス許可の例①
 <pre>
-allow_network TCP bind 127.0.0.1 610
-allow_network TCP bind 127.0.0.1 611
-allow_network TCP bind 127.0.0.1 612
-allow_network TCP bind 127.0.0.1 613
+network TCP bind 127.0.0.1 610
+network TCP bind 127.0.0.1 611
+network TCP bind 127.0.0.1 612
+network TCP bind 127.0.0.1 613
 </pre>
 </td></tr>
 </table>
@@ -258,7 +258,7 @@ allow_network TCP bind 127.0.0.1 613
 <tr><td>
 ■図１９　図１８を元にパターン化したアクセス許可
 <pre>
-allow_network TCP bind 127.0.0.1 600-1023
+network TCP bind 127.0.0.1 600-1023
 </pre>
 </td></tr>
 </table>
@@ -269,11 +269,11 @@ allow_network TCP bind 127.0.0.1 600-1023
 <tr><td>
 ■図２０　ポート番号が連続するアクセス許可の例②
 <pre>
-allow_network TCP accept 127.0.0.1 32780
-allow_network TCP accept 127.0.0.1 32781
-allow_network TCP accept 127.0.0.1 32782
-allow_network TCP accept 127.0.0.1 32783
-allow_network TCP accept 127.0.0.1 32784
+network TCP accept 127.0.0.1 32780
+network TCP accept 127.0.0.1 32781
+network TCP accept 127.0.0.1 32782
+network TCP accept 127.0.0.1 32783
+network TCP accept 127.0.0.1 32784
 </pre>
 </td></tr>
 </table>
@@ -282,7 +282,7 @@ allow_network TCP accept 127.0.0.1 32784
 <tr><td>
 ■図２１　図２０を元にパターン化したアクセス許可
 <pre>
-allow_network TCP accept 127.0.0.1 1024-65535
+network TCP accept 127.0.0.1 1024-65535
 </pre>
 </td></tr>
 </table>
@@ -291,7 +291,7 @@ allow_network TCP accept 127.0.0.1 1024-65535
 <tr><td>
 ■図２２　図２０を元にパターン化したアクセス許可
 <pre>
-allow_network TCP accept 127.0.0.1 32768-61000
+network TCP accept 127.0.0.1 32768-61000
 </pre>
 </td></tr>
 </table>
@@ -421,14 +421,14 @@ mount: permission denied
 
 <table border="1" summary="fig">
 <tr><td>
-■図３０　allow_capability SYS_MOUNT というアクセス許可が学習されている<br>
+■図３０　capability SYS_MOUNT というアクセス許可が学習されている<br>
 <img src="tutorial/fig-7-30.png" alt="fig-7-30.png" width="492" height="130">
 </td></tr>
 </table>
 
-<p>allow_capability SYS_MOUNT というアクセス許可が学習されていることを確認できます．この状態で強制モード用のプロファイルを割り当てれば，許可されていないドメインからマウント操作を行うことを禁止できるようになります．</p>
+<p>capability SYS_MOUNT というアクセス許可が学習されていることを確認できます．この状態で強制モード用のプロファイルを割り当てれば，許可されていないドメインからマウント操作を行うことを禁止できるようになります．</p>
 
-<p>マウント操作の可否だけを制限しても，マウント操作が許可されていれば任意のディレクトリにマウントできてしまうので，不十分だと思われる方がいるかもしれません．実際そのとおりであり， TOMOYO Linux ではマウントを許可するパーティションとマウントポイントの組み合わせを制限する機能も備えています．ファイルに対するアクセス制御も学習モードに設定して図２９の操作を行うと，図３０には allow_mount none /tmp/ tmpfs 0 という結果が学習されるはずです．</p>
+<p>マウント操作の可否だけを制限しても，マウント操作が許可されていれば任意のディレクトリにマウントできてしまうので，不十分だと思われる方がいるかもしれません．実際そのとおりであり， TOMOYO Linux ではマウントを許可するパーティションとマウントポイントの組み合わせを制限する機能も備えています．ファイルに対するアクセス制御も学習モードに設定して図２９の操作を行うと，図３０には file mount none /tmp/ tmpfs 0 という結果が学習されるはずです．</p>
 
 <h2>シグナルに対するアクセス制御機能について</h2>
 
@@ -511,7 +511,7 @@ kill 4649: Operation not permitted
 </td></tr>
 </table>
 
-<p>「 allow_signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」というアクセス許可が学習されていることを確認できます．これは，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」という名前で始まるドメインに属しているプロセスに対して１５番のシグナル（ SIGTERM ）を送信することを許可するという意味です． TOMOYO Linux におけるドメイン名は &lt;kernel&gt; で始まる階層構造であるため， allow_signal 15 &lt;kernel&gt; のように指定した場合，すべてのプロセスに対して１５番のシグナルを送信することが許可されることに注意してください．例外として，シグナルの送信元が送信先と同じドメインの場合はつねに許可されます．また，０番のシグナルもつねに許可されます．</p>
+<p>「 ipc signal 15 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」というアクセス許可が学習されていることを確認できます．これは，「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/sleep 」という名前で始まるドメインに属しているプロセスに対して１５番のシグナル（ SIGTERM ）を送信することを許可するという意味です． TOMOYO Linux におけるドメイン名は &lt;kernel&gt; で始まる階層構造であるため， ipc signal 15 &lt;kernel&gt; のように指定した場合，すべてのプロセスに対して１５番のシグナルを送信することが許可されることに注意してください．例外として，シグナルの送信元が送信先と同じドメインの場合はつねに許可されます．また，０番のシグナルもつねに許可されます．</p>
 
 <h2>次回予告</h2>
 

@@ -179,8 +179,8 @@ This file was created by user2
 <tr><td>
 ■図９　&lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/cat ドメインのアクセス許可
 <pre>
-allow_read /tmp/testfile1
-allow_read /tmp/testfile2
+file read /tmp/testfile1
+file read /tmp/testfile2
 </pre>
 </td></tr>
 </table>
@@ -189,10 +189,10 @@ allow_read /tmp/testfile2
 
 <table border="1" summary="fig">
 <tr><td>
-■図１０　アクセス許可を追加<br>（※これらをまとめて， allow_read /tmp/testfile\+ if task.uid=path1.uid のように入力してもかまいません．）
+■図１０　アクセス許可を追加<br>（※これらをまとめて， file read /tmp/testfile\+ if task.uid=path1.uid のように入力してもかまいません．）
 <pre>
-allow_read /tmp/testfile1 if task.uid=path1.uid
-allow_read /tmp/testfile2 if task.uid=path1.uid
+file read /tmp/testfile1 if task.uid=path1.uid
+file read /tmp/testfile2 if task.uid=path1.uid
 </pre>
 </td></tr>
 </table>
@@ -203,8 +203,8 @@ allow_read /tmp/testfile2 if task.uid=path1.uid
 <tr><td>
 ■図１１　削除する内容
 <pre>
-allow_read /tmp/testfile1
-allow_read /tmp/testfile2
+file read /tmp/testfile1
+file read /tmp/testfile2
 </pre>
 </td></tr>
 </table>
@@ -241,9 +241,9 @@ cat: /tmp/testfile2: Operation not permitted
 ■図１４　root ユーザのログインを禁止する設定
 <pre>
 [修正前]
-allow_execute /bin/bash
+file execute /bin/bash
 [修正後]
-allow_execute /bin/bash if task.uid!=0
+file execute /bin/bash if task.uid!=0
 </pre>
 </td></tr>
 </table>
@@ -255,9 +255,9 @@ allow_execute /bin/bash if task.uid!=0
 ■図１５　ユーザＩＤ 500 以上 1000 以下のユーザのみログインできる設定
 <pre>
 [修正前]
-allow_execute /bin/bash
+file execute /bin/bash
 [修正後]
-allow_execute /bin/bash if task.uid=500-1000
+file execute /bin/bash if task.uid=500-1000
 </pre>
 </td></tr>
 </table>
@@ -465,7 +465,7 @@ WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mod
 <tr><td>
 ■図３１　厳密すぎるアクセス許可
 <pre>
-allow_execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
 </pre>
 </td></tr>
 </table>

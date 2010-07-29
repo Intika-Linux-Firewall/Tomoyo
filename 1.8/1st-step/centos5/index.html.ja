@@ -156,16 +156,14 @@ verbose にはポリシー違反メッセージをコンソールに表示する
 
 <h3>例外ポリシーについて</h3>
 
-<p>/etc/ccs/exception_policy.conf には以下の 13 種類の例外が指定されています。</p>
+<p>/etc/ccs/exception_policy.conf には以下の 11 種類の例外が指定されています。</p>
 
 <ol>
 <li>パス名のパターン (file_pattern)</li>
 <li>パス名のグループ (path_group)</li>
 <li>数値のグループ (number_group)</li>
 <li>IPアドレスのグループ (address_group)</li>
-<li>すべてのプログラムに対して参照することを許可するパス名 (allow_read)</li>
-<li>すべてのプログラムに対して渡すことを許可する環境変数名 (allow_env)</li>
-<li>デフォルトで上書きを禁止するパス名 (deny_rewrite)</li>
+<li>アクセス許可のグループ (acl_group)</li>
 <li>1つに集約して扱うプログラムのパス名 (aggregator)</li>
 <li>ドメイン遷移を初期化させるプログラム (initialize_domain)</li>
 <li>ドメイン遷移を初期化させないプログラム (no_initialize_domain)</li>
@@ -333,19 +331,19 @@ head コマンドの行で Enter キーを押すと、以下の画面が表示�
 <blockquote><p>
 #2010-01-02 21:23:31# profile=3 mode=enforcing (global-pid=2972) task={ pid=2972 ppid=2830 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1676116 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1676072 perm=0755 } exec={ realpath="/usr/bin/tail" argc=3 envc=17 argv[]={ "tail" "-3" "/etc/passwd" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin" "PWD=/root" "LANG=C" "SHLVL=1" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/usr/bin/tail" } }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
-allow_execute /usr/bin/tail<br>
+file execute /usr/bin/tail<br>
 <br>
 #2010-01-02 21:23:32# profile=3 mode=enforcing (global-pid=2972) task={ pid=2972 ppid=2830 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=1676116 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=1676072 perm=0755 }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash<br>
-allow_read /usr/bin/tail<br>
+file read /usr/bin/tail<br>
 <br>
 #2010-01-02 21:23:37# profile=3 mode=enforcing (global-pid=2973) task={ pid=2973 ppid=2830 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=901236 major=8 minor=1 perm=0400 type=file } path1.parent={ uid=0 gid=0 ino=901121 perm=0755 }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/bin/head<br>
-allow_read /etc/shadow<br>
+file read /etc/shadow<br>
 <br>
 #2010-01-02 21:23:42# profile=3 mode=enforcing (global-pid=2995) task={ pid=2995 ppid=2974 uid=0 gid=0 euid=0 egid=0 suid=0 sgid=0 fsuid=0 fsgid=0 state[0]=0 state[1]=0 state[2]=0 type!=execute_handler } path1={ uid=0 gid=0 ino=852065 major=8 minor=1 perm=0755 type=file } path1.parent={ uid=0 gid=0 ino=851969 perm=0755 } exec={ realpath="/bin/date" argc=1 envc=24 argv[]={ "date" } envp[]={ "HOSTNAME=tomoyo" "TERM=linux" "SHELL=/bin/bash" "HISTSIZE=1000" "USER=root" "LS_COLORS=no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=01;05;37;41:mi=01;05;37;41:ex=01;32:*.cmd=01;32:*.exe=01;32:*.com=01;32:*.btm=01;32:*.bat=01;32:*.sh=01;32:*.csh=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.bz=01;31:*.tz=01;31:*.rpm=01;31:*.cpio=01;31:*.jpg=01;35:*.gif=01;35:*.bmp=01;35:*.xbm=01;35:*.xpm=01;35:*.png=01;35:*.tif=01;35:" "MAIL=/var/spool/mail/root" "PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/sbin:/root/bin" "PWD=/root" "LANG=C" "SHLVL=2" "HOME=/root" "LOGNAME=root" "CVS_RSH=ssh" "LESSOPEN=|/usr/bin/lesspipe.sh\040%s" "G_BROKEN_FILENAMES=1" "_=/bin/tcsh" "HOSTTYPE=i386-linux" "VENDOR=intel" "OSTYPE=linux" "MACHTYPE=i386" "GROUP=root" "HOST=tomoyo" "SUPPORTED=ja_JP.UTF-8:ja_JP:ja" } }<br>
 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /bin/tcsh<br>
-allow_execute /bin/date
+file execute /bin/date
 </p></blockquote>
 
 <p>このように TOMOYO Linux のファイルに対するアクセス制御を用いれば、</p>
@@ -366,9 +364,9 @@ TOMOYO Linux にはここで紹介した機能以外にもさまざまな機能�
 さらに TOMOYO Linux を使いこなしたいという方は、以下のドキュメントをご参照ください。</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a>: 上記手順で使用したポリシーエディタの詳細な使い方。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/policy-reference.html.ja">TOMOYO Linux ポリシー解説書</a>: TOMOYO Linux の機能のリファレンス。</li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/index.html.ja#tutorial">TOMOYO Linux の世界</a>: 一通り機能を網羅したチュートリアルになっています。</li>
 <li><a href="http://www.thinkit.co.jp/free/article/0706/17/1/">初体験 TOMOYO Linux ！</a>: ThinkIT での TOMOYO Linux 連載。</li>
 </ul>
 

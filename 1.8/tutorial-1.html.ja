@@ -48,7 +48,7 @@
 
 <h3>準備</h3>
 
-<p>TOMOYO Linux はカーネル 2.4.30 以降および 2.6.11 以降に対応しています．図３のディストリビューションについては<a href="http://tomoyo.sourceforge.jp/1.7/install.html.ja#install_from_repository"> i686 向けのコンパイル済みカーネルとツールのパッケージ</a>を用意しています．</p>
+<p>TOMOYO Linux はカーネル 2.4.30 以降および 2.6.11 以降に対応しています．図３のディストリビューションについては<a href="http://tomoyo.sourceforge.jp/1.8/install.html.ja#install_from_repository"> i686 向けのコンパイル済みカーネルとツールのパッケージ</a>を用意しています．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -279,7 +279,7 @@ PROFILE_VERSION=20090903
 
 <p>図１８では， TOMOYO Linux はポリシーエディタのドメインを「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」（ /sbin/mingetty から起動された /bin/login から起動された /bin/bash から起動された /usr/sbin/ccs-editpolicy ）として認識していることがわかります（ /usr/sbin/sshd から起動された /bin/bash から起動された /usr/sbin/ccs-editpolicy の場合には「 &lt;kernel&gt; /usr/sbin/sshd /bin/bash /usr/sbin/ccs-editpolicy 」として認識します）．</p>
 
-<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「 Enter 」を入力します．すると図１９のような画面になるはずです．画面の最上部の行が「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」になりました．この画面は，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」ドメインのアクセス制御内容で，画面では現在７つの内容が登録されています．４行目以降について，各行の先頭の数字は行番号です． allow_read/write は「読み書きモードでのオープンを許可」， allow_read は「読み込みモードでのオープンを許可」， allow_ioctl は「指定された番号での ioctl 要求を許可」を意味します．</p>
+<p>このドメインに対して，学習されているアクセス制御の内容を見るためには「 Enter 」を入力します．すると図１９のような画面になるはずです．画面の最上部の行が「 &lt;&lt;&lt; Domain Transition Editor &gt;&gt;&gt; 」から「 &lt;&lt;&lt; Domain Policy Editor &gt;&gt;&gt; 」になりました．この画面は，「 &lt;kernel&gt; /sbin/mingetty /bin/login /bin/bash /usr/sbin/ccs-editpolicy 」ドメインのアクセス制御内容で，画面では現在７つの内容が登録されています．４行目以降について，各行の先頭の数字は行番号です． file read/write は「読み書きモードでのオープンを許可」， file read は「読み込みモードでのオープンを許可」， file ioctl は「指定された番号での ioctl 要求を許可」を意味します．</p>
 
 <table border="1" summary="fig">
 <tr><td>
@@ -293,7 +293,7 @@ PROFILE_VERSION=20090903
 <p>さまざまなコマンドを実行し，それがどのようにドメインとして登録され，アクセス制御内容が記録されているかを確認してみてください．何度か操作を行うことにより， TOMOYO Linux のドメイン管理，学習機能，ポリシーについて自然にご理解いただけると思います．このわかりやすさこそが TOMOYO Linux の特徴です．</p>
 
 <ul>
-<li><a href="http://tomoyo.sourceforge.jp/1.7/tool-editpolicy.html.ja">ポリシーエディタの使い方</a></li>
+<li><a href="http://tomoyo.sourceforge.jp/1.8/tool-editpolicy.html.ja">ポリシーエディタの使い方</a></li>
 </ul>
 
 <h3>プロセスとドメインの関係を確認</h3>
