@@ -2441,13 +2441,147 @@ Fix 2010/06/09
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
 
-Fix 2010/07/21
+Fix 2010/07/29
+
+    @ Change keyword syntax.
+
+      I removed "allow_" prefix from directives. New directives for files are
+      prefixed with "file ". For example, "allow_read" changed to "file read",
+      "allow_ioctl" changed to "file ioctl". New directive for "allow_network"
+      is "network". New directive for "allow_env" is "misc env". New directive
+      for "allow_signal" is "ipc signal". New directive for "allow_capability"
+      is "capability". These directives correspond with keywords used by
+      profile's CONFIG lines.
+
+      I removed "deny_rewrite" and "allow_rewrite" directives and introduced
+      "file append" directive. Thus, permission for open(O_WRONLY | O_APPEND)
+      changed from "allow_write" + "allow_rewrite" to "file append".
+
+      I removed "SYS_MOUNT", "SYS_UMOUNT", "SYS_CHROOT", "SYS_KILL",
+      "SYS_LINK", "SYS_SYMLINK", "SYS_RENAME", "SYS_UNLINK", "SYS_CHMOD",
+      "SYS_CHOWN", "SYS_IOCTL", "SYS_PIVOT_ROOT" keywords from capabilities
+      because these permissions can be checked by other directives (e.g.
+      "file mount", "ipc signal").
+
+      I also removed "conceal_mount" keyword from capabilities because this
+      check requires hooks in filesystem part while almost all hooks for
+      filesystem part have moved to LSM by Linux 2.6.34.
+
+    @ Distinguish send() and recv() operations for UDP and IP protocols.
+
+      Until now, it was impossible for UDP and IP protocols to allow either
+      only sending or only receiving because permissions were aggregated with
+      "connect" keyword. I broke "connect" keyword into "send" and "recv"
+      keywords so that you can keep access control for send() operation enabled
+      when you have to turn access control for recv() operation off due to
+      application breakage by filtering incoming datagram.
 
     @ Wait for next connection/datagram if current connection/datagram was
       discarded.
 
-      I was misunderstanding the discussion of post accept()/recvmsg() hook.
-      The kernel is allowed to wait for next connection/datagram unless
-      MSG_DONTWAIT or O_NONBLOCK is set. The kernel is allowed to return
-      -EAGAIN if MSG_DONTWAIT or O_NONBLOCK is set.
-      The change I made on 2009/05/08 was wrong.
+      Regarding "network TCP accept", "network UDP recv", "network RAW recv"
+      keywords, I modified to wait for next connection/datagram if current
+      connection/datagram was discarded. LSM hooks for these keywords are
+      currently missing because this behavior may break applications.
+      If you found applications broken by this behavior, you can set
+      CONFIG::network::inet_tcp_accept and/or CONFIG::network::inet_udp_recv
+      and/or CONFIG::network::inet_raw_recv to mode=disabled in order to
+      disable filtering for incoming connection/datagram.
+
+    @ Allow specifying multiple permissions in a line.
+
+      Until now, only "allow_read/write" can be specified for combination of
+      "allow_read" + "allow_write". Now, you can combine other permissions as
+      long as type of parameters for these permissions is same. For example,
+      "file read/write/append/execute/unlink/truncate /tmp/file" is correct
+      but "file read/write/create /tmp/file" is wrong because "file create"
+      requires create mode whereas "file read" and "file write" do not.
+
+    @ Allow wildcard for execute permission and domainname.
+
+      Until now, to execute programs with temporary names, "aggregator" is
+      needed. To simplify code, I modified to accept wildcards for execute
+      permission and domainname. Now, you can directly specify
+      "file execute /tmp/logrotate.\?\?\?\?\?\?" and use
+      "/tmp/logrotate.\?\?\?\?\?\?" within domainnames.
+
+    @ Change pathname for non-rename()able filesystems.
+
+      LSM version of TOMOYO wants to use /proc/self/ rather than /proc/$PID/ if
+      $PID matches current thread's process ID in order to prevent current
+      thread from accessing other process's information unless needed.
+      But since procfs can be mounted on various locations (e.g. /proc/ /proc2/
+      /p/ /tmp/foo/100/p/ ), LSM version of TOMOYO cannot tell that whether the
+      numeric part in the string returned by __d_path() represents process ID
+      or not.
+
+      Therefore, to be able to convert from $PID to self no matter where procfs
+      is mounted, I changed pathname representations for filesystems which do
+      not support rename() operation (e.g. proc, sysfs, securityfs).
+
+      Now, "/proc/self/mounts" changed to "proc:/self/mounts" and
+      "/sys/kernel/security/" changed to "sys:/kernel/security/" and
+      "/dev/pts/0" changed to "devpts:/0".
+
+    @ Add a new keyword "any" for domain transition control.
+
+      To be able to make it easier to apply execute_handler on each domain,
+      I added "any" keyword to domain transition control keywords. Now,
+      "initialize_domain /usr/sbin/sshd" changed to
+      "initialize_domain /usr/sbin/sshd from any" and
+      "keep_domain <kernel> /usr/sbin/sshd /bin/bash" changed to
+      "keep_domain any from <kernel> /usr/sbin/sshd /bin/bash".
+
+      "keep_domain /path/to/execute_handler from any" will allow you to apply
+      execute_handler for any domains without creating domains for
+      execute_handler.
+
+    @ Change buffering mode for reading policy.
+
+      To be able to read() very very long lines correctly, I changed the way
+      TOMOYO buffers policy for reading.
+
+    @ Introduce "acl_group" keyword.
+
+      Until now, it was possible to specify only "allow_read" and "allow_env"
+      keywords in the exception policy.
+
+      Since some operations like "file read/write/append /dev/null" and
+      "network UDP send/recv @DNS_SERVER 53" are very common and should be
+      permitted to all domains, I introduced "acl_group" keyword for giving
+      such permissions.
+
+      For example, specify "acl_group 0 file read/write/append /dev/null" in
+      the exception policy and specify "use_group 0" from the domains in the
+      domain policy.
+
+      "ignore_global_allow_read" and "ignore_global_allow_env" keywords were
+      removed from domain policy and "use_group" keyword was added.
+
+    @ Allow controlling generation of access granted logs for per an entry
+      basis.
+
+      I added per-entry flag which controls generation of grant logs because
+      Xen and KVM issues ioctl requests so frequently. For example,
+
+        file ioctl /dev/null 0x5401 ; set audit=no
+
+      will suppress /proc/ccs/grant_log even if profile says grant_log=yes .
+
+        file ioctl /dev/null 0x5401 ; set audit=yes
+
+      will generate /proc/ccs/grant_log even if profile says grant_log=no .
+
+        file ioctl /dev/null 0x5401
+
+      will generate /proc/ccs/grant_log only if profile says grant_log=yes .
+
+      This flag is intended for frequently accessed resources like
+
+        file read /var/www/html/\{\*\}/\*.html ; set audit=no
+
+      .
+
+    @ Optimize for object's size.
+
+      I merged similar code in order to reduce object's filesize.
