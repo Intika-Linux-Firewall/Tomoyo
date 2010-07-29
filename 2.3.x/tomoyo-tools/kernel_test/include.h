@@ -286,12 +286,12 @@ static void tomoyo_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
-	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/domain_policy\n");
-	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/exception_policy\n");
-	fprintf(domain_fp, "allow_read/write securityfs:/tomoyo/profile\n");
-	fprintf(domain_fp, "allow_truncate securityfs:/tomoyo/profile\n");
+	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/domain_policy\n");
+	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/domain_policy\n");
+	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/exception_policy\n");
+	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/exception_policy\n");
+	fprintf(domain_fp, "allow_read/write /sys/kernel/security/tomoyo/profile\n");
+	fprintf(domain_fp, "allow_truncate /sys/kernel/security/tomoyo/profile\n");
 }
 
 static void BUG(const char *fmt, ...)
