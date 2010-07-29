@@ -35,7 +35,7 @@ static int ccs_audit_signal_log(struct ccs_request_info *r)
 	return ccs_supervisor(r, "ipc signal %d %s\n", sig, dest_domain);
 }
 
-static bool ccs_check_signal_acl(const struct ccs_request_info *r,
+static bool ccs_check_signal_acl(struct ccs_request_info *r,
 				 const struct ccs_acl_info *ptr)
 {
 	const struct ccs_signal_acl *acl =

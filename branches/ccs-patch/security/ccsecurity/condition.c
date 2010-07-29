@@ -885,8 +885,8 @@ bool ccs_condition(struct ccs_request_info *r,
 			case CCS_SYMLINK_TARGET:
 				symlink = obj ? obj->symlink_target : NULL;
 				if (!symlink ||
-				    ccs_compare_name_union(symlink, ptr)
-				    != match)
+				    !ccs_compare_name_union(symlink, ptr)
+				    == match)
 					goto out;
 				break;
 			case CCS_EXEC_REALPATH:

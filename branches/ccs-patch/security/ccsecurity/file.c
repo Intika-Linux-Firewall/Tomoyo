@@ -128,12 +128,15 @@ bool ccs_compare_number_union(const unsigned long value,
 	return value >= ptr->values[0] && value <= ptr->values[1];
 }
 
-bool ccs_compare_name_union(const struct ccs_path_info *name,
-			    const struct ccs_name_union *ptr)
+const struct ccs_path_info *
+ccs_compare_name_union(const struct ccs_path_info *name,
+		       const struct ccs_name_union *ptr)
 {
 	if (ptr->is_group)
 		return ccs_path_matches_group(name, ptr->group);
-	return ccs_path_matches_pattern(name, ptr->filename);
+	if (ccs_path_matches_pattern(name, ptr->filename))
+		return ptr->filename;
+	return NULL;
 }
 
 static void ccs_add_slash(struct ccs_path_info *buf)
@@ -351,15 +354,20 @@ int ccs_write_pattern(char *data, const bool is_delete)
 	return error;
 }
 
-static bool ccs_check_path_acl(const struct ccs_request_info *r,
+static bool ccs_check_path_acl(struct ccs_request_info *r,
 			       const struct ccs_acl_info *ptr)
 {
 	const struct ccs_path_acl *acl = container_of(ptr, typeof(*acl), head);
-	return (acl->perm & (1 << r->param.path.operation)) &&
-		ccs_compare_name_union(r->param.path.filename, &acl->name);
+	if (acl->perm & (1 << r->param.path.operation)) {
+		r->param.path.matched_path =
+			ccs_compare_name_union(r->param.path.filename,
+					       &acl->name);
+		return r->param.path.matched_path != NULL;
+	}
+	return false;
 }
 
-static bool ccs_check_path_number_acl(const struct ccs_request_info *r,
+static bool ccs_check_path_number_acl(struct ccs_request_info *r,
 				      const struct ccs_acl_info *ptr)
 {
 	const struct ccs_path_number_acl *acl =
@@ -371,7 +379,7 @@ static bool ccs_check_path_number_acl(const struct ccs_request_info *r,
 				       &acl->name);
 }
 
-static bool ccs_check_path2_acl(const struct ccs_request_info *r,
+static bool ccs_check_path2_acl(struct ccs_request_info *r,
 				const struct ccs_acl_info *ptr)
 {
 	const struct ccs_path2_acl *acl =
@@ -382,20 +390,16 @@ static bool ccs_check_path2_acl(const struct ccs_request_info *r,
 					  &acl->name2);
 }
 
-static bool ccs_check_mkdev_acl(const struct ccs_request_info *r,
-					      const struct ccs_acl_info *ptr)
+static bool ccs_check_mkdev_acl(struct ccs_request_info *r,
+				const struct ccs_acl_info *ptr)
 {
 	const struct ccs_mkdev_acl *acl =
 		container_of(ptr, typeof(*acl), head);
 	return (acl->perm & (1 << r->param.mkdev.operation)) &&
-		ccs_compare_number_union(r->param.mkdev.mode,
-					 &acl->mode) &&
-		ccs_compare_number_union(r->param.mkdev.major,
-					 &acl->major) &&
-		ccs_compare_number_union(r->param.mkdev.minor,
-					 &acl->minor) &&
-		ccs_compare_name_union(r->param.mkdev.filename,
-				       &acl->name);
+		ccs_compare_number_union(r->param.mkdev.mode, &acl->mode) &&
+		ccs_compare_number_union(r->param.mkdev.major, &acl->major) &&
+		ccs_compare_number_union(r->param.mkdev.minor, &acl->minor) &&
+		ccs_compare_name_union(r->param.mkdev.filename, &acl->name);
 }
 
 static bool ccs_same_execute_handler(const struct ccs_acl_info *a,

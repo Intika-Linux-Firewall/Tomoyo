@@ -121,24 +121,24 @@ int ccs_write_group(char *data, const bool is_delete, const u8 type)
  * @pathname:        The name of pathname.
  * @group:           Pointer to "struct ccs_path_group".
  *
- * Returns true if @pathname matches pathnames in @group, false otherwise.
+ * Returns matched member's pathname if @pathname matches pathnames in @group,
+ * NULL otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_group *group)
+const struct ccs_path_info *
+ccs_path_matches_group(const struct ccs_path_info *pathname,
+		       const struct ccs_group *group)
 {
 	struct ccs_path_group *member;
-	bool matched = false;
 	list_for_each_entry_rcu(member, &group->member_list, head.list) {
 		if (member->head.is_deleted)
 			continue;
 		if (!ccs_path_matches_pattern(pathname, member->member_name))
 			continue;
-		matched = true;
-		break;
+		return member->member_name;
 	}
-	return matched;
+	return NULL;
 }
 
 /**

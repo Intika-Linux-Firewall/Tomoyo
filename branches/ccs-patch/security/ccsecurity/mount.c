@@ -80,7 +80,7 @@ static int ccs_audit_mount_log(struct ccs_request_info *r)
 			      flags);
 }
 
-static bool ccs_check_mount_acl(const struct ccs_request_info *r,
+static bool ccs_check_mount_acl(struct ccs_request_info *r,
 				const struct ccs_acl_info *ptr)
 {
 	const struct ccs_mount_acl *acl =

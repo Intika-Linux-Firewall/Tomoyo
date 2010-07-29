@@ -556,6 +556,8 @@ struct ccs_request_info {
 	union {
 		struct {
 			const struct ccs_path_info *filename;
+			/* For using wildcards at ccs_find_next_domain(). */
+			const struct ccs_path_info *matched_path;
 			u8 operation;
 		} path;
 		struct {
@@ -961,8 +963,9 @@ void __init ccs_signal_init(void);
 
 bool ccs_address_matches_group(const bool is_ipv6, const u32 *address,
 			       const struct ccs_group *group);
-bool ccs_compare_name_union(const struct ccs_path_info *name,
-			    const struct ccs_name_union *ptr);
+const struct ccs_path_info *
+ccs_compare_name_union(const struct ccs_path_info *name,
+		       const struct ccs_name_union *ptr);
 bool ccs_compare_number_union(const unsigned long value,
 			      const struct ccs_number_union *ptr);
 bool ccs_condition(struct ccs_request_info *r,
@@ -981,8 +984,9 @@ bool ccs_number_matches_group(const unsigned long min, const unsigned long max,
 			      const struct ccs_group *group);
 bool ccs_parse_name_union(const char *filename, struct ccs_name_union *ptr);
 bool ccs_parse_number_union(char *data, struct ccs_number_union *num);
-bool ccs_path_matches_group(const struct ccs_path_info *pathname,
-			    const struct ccs_group *group);
+const struct ccs_path_info *
+ccs_path_matches_group(const struct ccs_path_info *pathname,
+		       const struct ccs_group *group);
 bool ccs_path_matches_pattern(const struct ccs_path_info *filename,
 			      const struct ccs_path_info *pattern);
 bool ccs_permstr(const char *string, const char *keyword);
@@ -1059,7 +1063,7 @@ struct ccs_profile *ccs_profile(const u8 profile);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
 void *ccs_commit_ok(void *data, const unsigned int size);
 void ccs_check_acl(struct ccs_request_info *r,
-		   bool (*check_entry) (const struct ccs_request_info *,
+		   bool (*check_entry) (struct ccs_request_info *,
 					const struct ccs_acl_info *));
 void ccs_fill_path_info(struct ccs_path_info *ptr);
 void ccs_get_attributes(struct ccs_obj_info *obj);

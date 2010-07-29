@@ -30,7 +30,7 @@ static int ccs_audit_capability_log(struct ccs_request_info *r)
 	return ccs_supervisor(r, "capability %s\n", operation);
 }
 
-static bool ccs_check_capability_acl(const struct ccs_request_info *r,
+static bool ccs_check_capability_acl(struct ccs_request_info *r,
 				     const struct ccs_acl_info *ptr)
 {
 	const struct ccs_capability_acl *acl =

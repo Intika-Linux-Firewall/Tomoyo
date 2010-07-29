@@ -183,7 +183,7 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 }
 
 void ccs_check_acl(struct ccs_request_info *r,
-		   bool (*check_entry) (const struct ccs_request_info *,
+		   bool (*check_entry) (struct ccs_request_info *,
 					const struct ccs_acl_info *))
 {
 	const struct ccs_domain_info *domain = ccs_current_domain();
@@ -547,6 +547,19 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 			goto retry;
 		if (retval < 0)
 			goto out;
+		/*
+		 * To be able to specify domainnames with wildcards, use the
+		 * pathname specified in the policy (which may contain
+		 * wildcard) rather than the pathname passed to execve()
+		 * (which never contains wildcard).
+		 */
+		if (r->param.path.matched_path) {
+			if (need_kfree)
+				kfree(rn.name);
+			need_kfree = false;
+			/* This is OK because it is read only. */
+			rn = *r->param.path.matched_path;
+		}
 	}
 
 	/* Calculate domain to transit to. */

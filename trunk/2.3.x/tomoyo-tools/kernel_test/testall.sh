@@ -10,8 +10,6 @@ newns tomoyo_file_test
 newns tomoyo_rewrite_test
 newns tomoyo_new_file_test
 newns tomoyo_new_test
-newns tomoyo_network_test
-newns tomoyo_new_network_test
 echo
 echo
 echo
@@ -21,8 +19,6 @@ newns tomoyo_filesystem_test | grep -vF OK | grep -F '('
 newns tomoyo_file_test | grep -vF OK | grep -F '('
 newns tomoyo_rewrite_test | grep -vF OK | grep -F '('
 newns tomoyo_new_test | grep -vF OK
-newns tomoyo_network_test | grep -vF OK
-newns tomoyo_new_network_test | grep -vF OK
 echo
 echo
 echo
