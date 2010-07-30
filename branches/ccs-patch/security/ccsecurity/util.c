@@ -883,26 +883,28 @@ const char *ccs_get_exe(void)
 }
 
 /**
- * ccs_get_mode - Get MAC mode.
+ * ccs_get_config - Get config.
  *
  * @profile: Profile number.
  * @index:   Index number of functionality.
  *
- * Returns mode.
+ * Returns config.
  */
-int ccs_get_mode(const u8 profile, const u8 index)
+u8 ccs_get_config(const u8 profile, const u8 index)
 {
-	u8 mode;
-	const u8 category = ccs_index2category[index] + CCS_MAX_MAC_INDEX
-		+ CCS_MAX_CAPABILITY_INDEX;
+	u8 config;
+	const struct ccs_profile *p; 
 	if (!ccs_policy_loaded)
 		return CCS_CONFIG_DISABLED;
-	mode = ccs_profile(profile)->config[index];
-	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->config[category];
-	if (mode == CCS_CONFIG_USE_DEFAULT)
-		mode = ccs_profile(profile)->default_config;
-	return mode & 3;
+	p = ccs_profile(profile);
+	config = p->config[index];
+	if (config == CCS_CONFIG_USE_DEFAULT)
+		config = p->config[ccs_index2category[index]
+				   + CCS_MAX_MAC_INDEX
+				   + CCS_MAX_CAPABILITY_INDEX];
+	if (config == CCS_CONFIG_USE_DEFAULT)
+		config = p->default_config;
+	return config;
 }
 
 /**
@@ -949,21 +951,8 @@ void ccs_warn_log(struct ccs_request_info *r, const char *fmt, ...)
 	va_list args;
 	char *buffer;
 	const struct ccs_domain_info * const domain = ccs_current_domain();
-	const struct ccs_profile *profile = ccs_profile(domain->profile);
-	switch (r->mode) {
-	case CCS_CONFIG_ENFORCING:
-		if (!profile->enforcing->enforcing_verbose)
-			return;
-		break;
-	case CCS_CONFIG_PERMISSIVE:
-		if (!profile->permissive->permissive_verbose)
-			return;
-		break;
-	case CCS_CONFIG_LEARNING:
-		if (!profile->learning->learning_verbose)
-			return;
-		break;
-	}
+	if (!(ccs_get_config(domain->profile, r->type) & CCS_CONFIG_VERBOSE))
+		return;
 	buffer = kmalloc(4096, CCS_GFP_FLAGS);
 	if (!buffer)
 		return;
@@ -1032,7 +1021,8 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 			if (perm & (1 << i))
 				count++;
 	}
-	if (count < ccs_profile(domain->profile)->learning->learning_max_entry)
+	if (count < ccs_profile(domain->profile)->preference.
+	    learning_max_entry)
 		return true;
 	if (!domain->flags[CCS_DIF_QUOTA_WARNED]) {
 		domain->flags[CCS_DIF_QUOTA_WARNED] = true;

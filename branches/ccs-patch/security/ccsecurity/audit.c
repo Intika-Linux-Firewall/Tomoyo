@@ -170,7 +170,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		       "#timestamp=%lu profile=%u mode=%s "
 		       "(global-pid=%u)", tv.tv_sec, r->profile,
 		       ccs_mode[r->mode], gpid);
-	if (ccs_profile(r->profile)->audit->audit_task_info) {
+	if (ccs_profile(r->profile)->preference.audit_task_info) {
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
 				" task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
 				" egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
@@ -185,7 +185,7 @@ static char *ccs_print_header(struct ccs_request_info *r)
 				(u8) (ccs_flags >> 8), ccs_flags &
 				CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
 	}
-	if (!obj || !ccs_profile(r->profile)->audit->audit_path_info)
+	if (!obj || !ccs_profile(r->profile)->preference.audit_path_info)
 		goto no_obj_info;
 	if (!obj->validate_done) {
 		ccs_get_attributes(obj);
@@ -415,7 +415,7 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	struct ccs_log *entry;
 	bool quota_exceeded = false;
 	struct ccs_preference *pref =
-		ccs_profile(ccs_current_domain()->profile)->audit;
+		&ccs_profile(ccs_current_domain()->profile)->preference;
 	const bool is_granted = r->granted;
 	if (is_granted)
 		len = pref->audit_max_grant_log;

@@ -13,10 +13,6 @@
 #include "internal.h"
 
 static struct ccs_profile ccs_default_profile = {
-	.learning = &ccs_default_profile.preference,
-	.permissive = &ccs_default_profile.preference,
-	.enforcing = &ccs_default_profile.preference,
-	.audit = &ccs_default_profile.preference,
 #ifdef CONFIG_CCSECURITY_AUDIT
 	.preference.audit_max_grant_log = CONFIG_CCSECURITY_MAX_GRANT_LOG,
 	.preference.audit_max_reject_log = CONFIG_CCSECURITY_MAX_REJECT_LOG,
@@ -24,13 +20,10 @@ static struct ccs_profile ccs_default_profile = {
 	.preference.audit_task_info = true,
 	.preference.audit_path_info = true,
 	.preference.enforcing_penalty = 0,
-	.preference.enforcing_verbose = true,
 	.preference.learning_max_entry = CONFIG_CCSECURITY_MAX_ACCEPT_ENTRY,
-	.preference.learning_verbose = false,
 	.preference.learning_exec_realpath = true,
 	.preference.learning_exec_argv0 = true,
 	.preference.learning_symlink_target = true,
-	.preference.permissive_verbose = true
 };
 
 /* Profile version. Currently only 20090903 is defined. */
@@ -308,11 +301,8 @@ static struct ccs_profile *ccs_assign_profile(const unsigned int profile)
 	ptr = ccs_profile_ptr[profile];
 	if (!ptr && ccs_memory_ok(entry, sizeof(*entry))) {
 		ptr = entry;
-		ptr->audit = &ccs_default_profile.preference;
-		ptr->learning = &ccs_default_profile.preference;
-		ptr->permissive = &ccs_default_profile.preference;
-		ptr->enforcing = &ccs_default_profile.preference;
 		ptr->default_config = CCS_CONFIG_DISABLED |
+			CCS_CONFIG_VERBOSE |
 			CCS_CONFIG_WANT_GRANT_LOG | CCS_CONFIG_WANT_REJECT_LOG;
 		memset(ptr->config, CCS_CONFIG_USE_DEFAULT,
 		       sizeof(ptr->config));
@@ -398,16 +388,9 @@ static void ccs_set_uint(unsigned int *i, const char *string, const char *find)
 }
 
 static void ccs_set_pref(const char *name, const char *value,
-			 const bool use_default, struct ccs_profile *profile)
+			 struct ccs_profile *profile)
 {
-	struct ccs_preference **pref;
-	bool *verbose;
 	if (!strcmp(name, "audit")) {
-		if (use_default) {
-			pref = &profile->audit;
-			goto set_default;
-		}
-		profile->audit = &profile->preference;
 #ifdef CONFIG_CCSECURITY_AUDIT
 		ccs_set_uint(&profile->preference.audit_max_grant_log, value,
 			     "max_grant_log");
@@ -421,31 +404,11 @@ static void ccs_set_pref(const char *name, const char *value,
 		return;
 	}
 	if (!strcmp(name, "enforcing")) {
-		if (use_default) {
-			pref = &profile->enforcing;
-			goto set_default;
-		}
-		profile->enforcing = &profile->preference;
 		ccs_set_uint(&profile->preference.enforcing_penalty, value,
 			     "penalty");
-		verbose = &profile->preference.enforcing_verbose;
-		goto set_verbose;
-	}
-	if (!strcmp(name, "permissive")) {
-		if (use_default) {
-			pref = &profile->permissive;
-			goto set_default;
-		}
-		profile->permissive = &profile->preference;
-		verbose = &profile->preference.permissive_verbose;
-		goto set_verbose;
+		return;
 	}
 	if (!strcmp(name, "learning")) {
-		if (use_default) {
-			pref = &profile->learning;
-			goto set_default;
-		}
-		profile->learning = &profile->preference;
 		ccs_set_uint(&profile->preference.learning_max_entry, value,
 			     "max_entry");
 		ccs_set_bool(&profile->preference.learning_exec_realpath,
@@ -454,18 +417,11 @@ static void ccs_set_pref(const char *name, const char *value,
 			     "exec.argv0");
 		ccs_set_bool(&profile->preference.learning_symlink_target,
 			     value, "symlink.target");
-		verbose = &profile->preference.learning_verbose;
-		goto set_verbose;
+		return;
 	}
-	return;
- set_default:
-	*pref = &ccs_default_profile.preference;
-	return;
- set_verbose:
-	ccs_set_bool(verbose, value, "verbose");
 }
 
-static int ccs_set_mode(char *name, const char *value, const bool use_default,
+static int ccs_set_mode(char *name, const char *value,
 			struct ccs_profile *profile)
 {
 	u8 i;
@@ -489,7 +445,7 @@ static int ccs_set_mode(char *name, const char *value, const bool use_default,
 	} else {
 		return -EINVAL;
 	}
-	if (use_default) {
+	if (strstr(value, "use_default")) {
 		config = CCS_CONFIG_USE_DEFAULT;
 	} else {
 		u8 mode;
@@ -500,8 +456,16 @@ static int ccs_set_mode(char *name, const char *value, const bool use_default,
 				 * 'config' from 'CCS_CONFIG_USE_DEAFULT'.
 				 */
 				config = (config & ~7) | mode;
-#ifdef CONFIG_CCSECURITY_AUDIT
 		if (config != CCS_CONFIG_USE_DEFAULT) {
+			switch (ccs_find_yesno(value, "verbose")) {
+			case 1:
+				config |= CCS_CONFIG_VERBOSE;
+				break;
+			case 0:
+				config &= ~CCS_CONFIG_VERBOSE;
+				break;
+			}
+#ifdef CONFIG_CCSECURITY_AUDIT
 			switch (ccs_find_yesno(value, "grant_log")) {
 			case 1:
 				config |= CCS_CONFIG_WANT_GRANT_LOG;
@@ -518,8 +482,8 @@ static int ccs_set_mode(char *name, const char *value, const bool use_default,
 				config &= ~CCS_CONFIG_WANT_REJECT_LOG;
 				break;
 			}
-		}
 #endif
+		}
 	}
 	if (i < CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
 	    + CCS_MAX_MAC_CATEGORY_INDEX)
@@ -540,63 +504,43 @@ static int ccs_write_profile(struct ccs_io_buffer *head)
 {
 	char *data = head->write_buf;
 	unsigned int i;
-	bool use_default = false;
 	char *cp;
 	struct ccs_profile *profile;
 	if (sscanf(data, "PROFILE_VERSION=%u", &ccs_profile_version) == 1)
 		return 0;
 	i = simple_strtoul(data, &cp, 10);
-	if (data == cp) {
-		profile = &ccs_default_profile;
-	} else {
-		if (*cp != '-')
-			return -EINVAL;
-		data = cp + 1;
-		profile = ccs_assign_profile(i);
-		if (!profile)
-			return -EINVAL;
-	}
+	if (*cp != '-')
+		return -EINVAL;
+	data = cp + 1;
+	profile = ccs_assign_profile(i);
+	if (!profile)
+		return -EINVAL;
 	cp = strchr(data, '=');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	if (profile != &ccs_default_profile)
-		use_default = strstr(cp, "use_default") != NULL;
 	if (ccs_str_starts(&data, "PREFERENCE::")) {
-		ccs_set_pref(data, cp, use_default, profile);
+		ccs_set_pref(data, cp, profile);
 		return 0;
 	}
-	if (profile == &ccs_default_profile)
-		return -EINVAL;
 	if (!strcmp(data, "COMMENT")) {
 		const struct ccs_path_info *old_comment = profile->comment;
 		profile->comment = ccs_get_name(cp);
 		ccs_put_name(old_comment);
 		return 0;
 	}
-	return ccs_set_mode(data, cp, use_default, profile);
+	return ccs_set_mode(data, cp, profile);
 }
 
-static void ccs_print_preference(struct ccs_io_buffer *head, const int idx)
+static void ccs_print_preference(struct ccs_io_buffer *head, const int index)
 {
-	struct ccs_preference *pref = &ccs_default_profile.preference;
-	const struct ccs_profile *profile = idx >= 0 ?
-		ccs_profile_ptr[idx] : NULL;
-	char buffer[16] = "";
-	if (profile) {
-		buffer[sizeof(buffer) - 1] = '\0';
-		snprintf(buffer, sizeof(buffer) - 1, "%u-", idx);
-	}
-	if (profile) {
-		pref = profile->audit;
-		if (pref == &ccs_default_profile.preference)
-			goto skip0;
-	}
-	ccs_io_printf(head, "%sPREFERENCE::%s={ "
+	struct ccs_profile *profile = ccs_profile_ptr[index];
+	struct ccs_preference *pref = &profile->preference;
+	ccs_io_printf(head, "%u-PREFERENCE::%s={ "
 #ifdef CONFIG_CCSECURITY_AUDIT
 		      "max_grant_log=%u max_reject_log=%u "
 #endif
-		      "task_info=%s path_info=%s }\n", buffer,
+		      "task_info=%s path_info=%s }\n", index,
 		      "audit",
 #ifdef CONFIG_CCSECURITY_AUDIT
 		      pref->audit_max_grant_log,
@@ -604,45 +548,22 @@ static void ccs_print_preference(struct ccs_io_buffer *head, const int idx)
 #endif
 		      ccs_yesno(pref->audit_task_info),
 		      ccs_yesno(pref->audit_path_info));
- skip0:
-	if (profile) {
-		pref = profile->learning;
-		if (pref == &ccs_default_profile.preference)
-			goto skip1;
-	}
-	ccs_io_printf(head, "%sPREFERENCE::%s={ "
-		      "verbose=%s max_entry=%u exec.realpath=%s "
+	ccs_io_printf(head, "%u-PREFERENCE::%s={ "
+		      "max_entry=%u exec.realpath=%s "
 		      "exec.argv0=%s symlink.target=%s }\n",
-		      buffer, "learning",
-		      ccs_yesno(pref->learning_verbose),
+		      index, "learning",
 		      pref->learning_max_entry,
 		      ccs_yesno(pref->learning_exec_realpath),
 		      ccs_yesno(pref->learning_exec_argv0),
 		      ccs_yesno(pref->learning_symlink_target));
- skip1:
-	if (profile) {
-		pref = profile->permissive;
-		if (pref == &ccs_default_profile.preference)
-			goto skip2;
-	}
-	ccs_io_printf(head, "%sPREFERENCE::%s={ verbose=%s }\n",
-		      buffer, "permissive",
-		      ccs_yesno(pref->permissive_verbose));
- skip2:
-	if (profile) {
-		pref = profile->enforcing;
-		if (pref == &ccs_default_profile.preference)
-			return;
-	}
-	ccs_io_printf(head, "%sPREFERENCE::%s={ verbose=%s "
-		      "penalty=%u }\n", buffer, "enforcing",
-		      ccs_yesno(pref->enforcing_verbose),
-		      pref->enforcing_penalty);
+	ccs_io_printf(head, "%u-PREFERENCE::%s={ penalty=%u }\n", index,
+		      "enforcing", pref->enforcing_penalty);
 }
 
 static void ccs_print_config(struct ccs_io_buffer *head, const u8 config)
 {
-	ccs_io_printf(head, "={ mode=%s", ccs_mode[config & 3]);
+	ccs_io_printf(head, "={ mode=%s verbose=%s", ccs_mode[config & 3],
+		      ccs_yesno(config & CCS_CONFIG_VERBOSE));
 #ifdef CONFIG_CCSECURITY_AUDIT
 	ccs_io_printf(head, " grant_log=%s reject_log=%s",
 		      ccs_yesno(config & CCS_CONFIG_WANT_GRANT_LOG),
@@ -666,7 +587,6 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	switch (head->r.step) {
 	case 0:
 		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
-		ccs_print_preference(head, -1);
 		head->r.step++;
 		break;
 	case 1:
@@ -1938,7 +1858,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		header = ccs_init_log(&len, r);
 		if (!header)
 			return 0;
-		pref = ccs_profile(r->profile)->learning;
+		pref = &ccs_profile(r->profile)->preference;
 		/* strstr() will return NULL if ordering is wrong. */
 		if (r->param_type == CCS_TYPE_PATH_ACL &&
 		    r->param.path.operation == CCS_TYPE_EXECUTE) {
@@ -2001,7 +1921,7 @@ int ccs_supervisor(struct ccs_request_info *r, const char *fmt, ...)
 		int i;
 		if (current->ccs_flags & CCS_DONT_SLEEP_ON_ENFORCE_ERROR)
 			return -EPERM;
-		for (i = 0; i < ccs_profile(domain->profile)->enforcing->
+		for (i = 0; i < ccs_profile(domain->profile)->preference.
 			     enforcing_penalty; i++) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(HZ / 10);

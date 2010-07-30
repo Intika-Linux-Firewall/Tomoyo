@@ -352,7 +352,6 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_PREFERENCE_AUDIT          "PREFERENCE::audit"
 #define CCS_KEYWORD_PREFERENCE_ENFORCING      "PREFERENCE::enforcing"
 #define CCS_KEYWORD_PREFERENCE_LEARNING       "PREFERENCE::learning"
-#define CCS_KEYWORD_PREFERENCE_PERMISSIVE     "PREFERENCE::permissive"
 #define CCS_KEYWORD_NUMBER_GROUP              "number_group "
 #define CCS_KEYWORD_SELECT                    "select "
 #define CCS_KEYWORD_USE_PROFILE               "use_profile "
@@ -387,6 +386,7 @@ enum ccs_mode_value {
 	CCS_CONFIG_PERMISSIVE,
 	CCS_CONFIG_ENFORCING,
 	CCS_CONFIG_MAX_MODE,
+	CCS_CONFIG_VERBOSE         =  32,
 	CCS_CONFIG_WANT_REJECT_LOG =  64,
 	CCS_CONFIG_WANT_GRANT_LOG  = 128,
 	CCS_CONFIG_USE_DEFAULT     = 255
@@ -928,20 +928,13 @@ struct ccs_preference {
 	unsigned int enforcing_penalty;
 	bool audit_task_info;
 	bool audit_path_info;
-	bool enforcing_verbose;
-	bool learning_verbose;
 	bool learning_exec_realpath;
 	bool learning_exec_argv0;
 	bool learning_symlink_target;
-	bool permissive_verbose;
 };
 
 struct ccs_profile {
 	const struct ccs_path_info *comment;
-	struct ccs_preference *audit;
-	struct ccs_preference *learning;
-	struct ccs_preference *permissive;
-	struct ccs_preference *enforcing;
 	struct ccs_preference preference;
 	u8 default_config;
 	u8 config[CCS_MAX_MAC_INDEX + CCS_MAX_CAPABILITY_INDEX
@@ -1004,7 +997,6 @@ const struct in6_addr *ccs_get_ipv6_address(const struct in6_addr *addr);
 int ccs_close_control(struct file *file);
 int ccs_delete_domain(char *data);
 int ccs_env_perm(struct ccs_request_info *r, const char *env);
-int ccs_get_mode(const u8 profile, const u8 index);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
 int ccs_lock(void);
@@ -1060,6 +1052,7 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
 struct ccs_profile *ccs_profile(const u8 profile);
+u8 ccs_get_config(const u8 profile, const u8 index);
 u8 ccs_parse_ulong(unsigned long *result, char **str);
 void *ccs_commit_ok(void *data, const unsigned int size);
 void ccs_check_acl(struct ccs_request_info *r,
@@ -1237,6 +1230,11 @@ static inline struct ccs_domain_info *ccs_current_domain(void)
 	if (!task->ccs_domain_info)
 		task->ccs_domain_info = &ccs_kernel_domain;
 	return task->ccs_domain_info;
+}
+
+static inline u8 ccs_get_mode(const u8 profile, const u8 index)
+{
+	return ccs_get_config(profile, index) & (CCS_CONFIG_MAX_MODE - 1);
 }
 
 #if defined(CONFIG_SLOB)
