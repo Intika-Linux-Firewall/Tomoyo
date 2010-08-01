@@ -871,7 +871,7 @@ struct ccs_name {
 	struct ccs_path_info entry;
 };
 
-#define CCS_MAX_IO_READ_QUEUE 64
+#define CCS_MAX_IO_READ_QUEUE 32
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {

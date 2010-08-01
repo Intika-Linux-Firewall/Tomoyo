@@ -770,8 +770,8 @@ static void ccs_read_generic_policy(void)
 		case CCS_SCREEN_EXCEPTION_LIST:
 		case CCS_SCREEN_ACL_LIST:
 			directive = ccs_find_directive(true, line);
-			if (directive == CCS_DIRECTIVE_NONE)
-				continue;
+			//if (directive == CCS_DIRECTIVE_NONE)
+			//continue;
 			break;
 		case CCS_SCREEN_PROFILE_LIST:
 			cp = strchr(line, '-');
@@ -912,6 +912,19 @@ static int ccs_add_path_group_entry(const char *group_name, const char *member_n
 	return 0;
 }
 
+static _Bool ccs_has_execute(char *line)
+{
+	char *cp = strchr(line, ' ');
+	if (!cp)
+		return false;
+	*cp++ = '\0';
+	if (strstr(line, "execute")) {
+		memmove(line, cp, strlen(cp) + 1);
+		return true;
+	}
+	return false;
+}
+
 static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 {
 	FILE *fp;
@@ -966,7 +979,7 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 		}
 		if (ccs_str_starts(line, "execute_handler ") ||
 		    ccs_str_starts(line, "denied_execute_handler ") ||
-		    ccs_str_starts(line, "file execute ")) {
+		    (ccs_str_starts(line, "file ") && ccs_has_execute(line))) {
 			char *cp = strchr(line, ' ');
 			if (cp)
 				*cp = '\0';
@@ -1018,7 +1031,7 @@ no_domain:
 				line = cp + 1;
 			if (ccs_str_starts(line, "execute_handler ") ||
 			    ccs_str_starts(line, "denied_execute_handler ") ||
-			    ccs_str_starts(line, "file execute ")) {
+			    (ccs_str_starts(line, "file ") && ccs_has_execute(line))) {
 				cp = strchr(line, ' ');
 				if (cp)
 					*cp = '\0';

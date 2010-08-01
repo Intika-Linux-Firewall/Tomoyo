@@ -1162,46 +1162,26 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 	return false;
 }
 
+/**
+ * ccs_fns - Find next set bit.
+ *
+ * @perm: 8 bits value.
+ * @bit:  First bit to find.
+ *
+ * Returns next set bit on success, 8 otherwise.
+ */
+static u8 ccs_fns(const u8 perm, u8 bit)
+{
+	for ( ; bit < 8; bit++)
+		if (perm & (1 << bit))
+			break;
+	return bit;
+}
+
 static void ccs_set_group(struct ccs_io_buffer *head)
 {
 	if (head->type == CCS_EXCEPTIONPOLICY)
 		ccs_io_printf(head, "acl_group %u ", head->r.group_index);
-}
-
-static void ccs_print_bits(struct ccs_io_buffer *head, const u16 perm,
-			   const char *keywords[]) {
-	u8 bit;
-	bool first = true;
-	for (bit = 0; bit < 16; bit++) {
-		if (!(perm & (1 << bit)))
-			continue;
-		if (!first)
-			ccs_set_string(head, "/");
-		first = false;
-		ccs_set_string(head, keywords[bit]);
-	}
-}
-
-static bool ccs_print_file_bits(struct ccs_io_buffer *head, const u16 perm,
-				const char *keywords[]) {
-	if (!perm)
-		return false;
-	ccs_set_group(head);
-	ccs_set_string(head, "file ");
-	ccs_print_bits(head, perm, keywords);
-	return true;
-}
-
-static bool ccs_print_network_bits(struct ccs_io_buffer *head,
-				   const char *protocol, const u8 perm) {
-	if (!perm)
-		return false;
-	ccs_set_group(head);
-	ccs_set_string(head, "network ");
-	ccs_set_string(head, protocol);
-	ccs_set_space(head);
-	ccs_print_bits(head, perm, ccs_net_keyword);
-	return true;
 }
 
 /**
@@ -1216,21 +1196,32 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			    const struct ccs_acl_info *acl)
 {
 	const u8 acl_type = acl->type;
+	u8 bit;
 	if (head->r.print_cond_part)
 		goto print_cond_part;
 	if (acl->is_deleted)
 		return true;
+ next:
+	bit = head->r.bit;
 	if (!ccs_flush(head))
 		return false;
 	else if (acl_type == CCS_TYPE_PATH_ACL) {
 		struct ccs_path_acl *ptr
 			= container_of(acl, typeof(*ptr), head);
-		u16 perm = ptr->perm;
-		if (head->r.print_execute_only)
-			perm &= (1 << CCS_TYPE_EXECUTE) |
-				(1 << CCS_TYPE_TRANSIT);
-		if (!ccs_print_file_bits(head, perm, ccs_path_keyword))
+		const u16 perm = ptr->perm;
+		for ( ; bit < CCS_MAX_PATH_OPERATION; bit++) {
+			if (!(perm & (1 << bit)))
+				continue;
+			if (head->r.print_execute_only &&
+			    bit != CCS_TYPE_EXECUTE && bit != CCS_TYPE_TRANSIT)
+				continue;
+			break;
+		}
+		if (bit >= CCS_MAX_PATH_OPERATION)
 			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 	} else if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
 		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
@@ -1247,8 +1238,12 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_MKDEV_ACL) {
 		struct ccs_mkdev_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		if (!ccs_print_file_bits(head, ptr->perm, ccs_mkdev_keyword))
+		bit = ccs_fns(ptr->perm, bit);
+		if (bit >= CCS_MAX_MKDEV_OPERATION)
 			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_mkdev_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->mode);
 		ccs_print_number_union(head, &ptr->major);
@@ -1256,16 +1251,23 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_PATH2_ACL) {
 		struct ccs_path2_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		if (!ccs_print_file_bits(head, ptr->perm, ccs_path2_keyword))
+		bit = ccs_fns(ptr->perm, bit);
+		if (bit >= CCS_MAX_PATH2_OPERATION)
 			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path2_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name1);
 		ccs_print_name_union(head, &ptr->name2);
 	} else if (acl_type == CCS_TYPE_PATH_NUMBER_ACL) {
 		struct ccs_path_number_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		if (!ccs_print_file_bits(head, ptr->perm,
-					 ccs_path_number_keyword))
+		bit = ccs_fns(ptr->perm, bit);
+		if (bit >= CCS_MAX_PATH_NUMBER_OPERATION)
 			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "file ");
+		ccs_set_string(head, ccs_path_number_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 		ccs_print_number_union(head, &ptr->number);
 	} else if (acl_type == CCS_TYPE_ENV_ACL) {
@@ -1283,10 +1285,14 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
 		struct ccs_ip_network_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
-		if (!ccs_print_network_bits(head,
-					    ccs_net_protocol_keyword
-					    [ptr->protocol], ptr->perm))
+		bit = ccs_fns(ptr->perm, bit);
+		if (bit >= CCS_MAX_NETWORK_OPERATION)
 			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "network ");
+		ccs_set_string(head, ccs_net_protocol_keyword[ptr->protocol]);
+		ccs_set_space(head);
+		ccs_set_string(head, ccs_net_keyword[bit]);
 		ccs_set_space(head);
 		switch (ptr->address_type) {
 			char buf[128];
@@ -1324,6 +1330,7 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		ccs_print_name_union(head, &ptr->fs_type);
 		ccs_print_number_union(head, &ptr->flags);
 	}
+	head->r.bit = bit + 1;
 	if (acl->cond) {
 		head->r.print_cond_part = true;
 		head->r.cond_step = 0;
@@ -1336,7 +1343,16 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	} else {
 		ccs_set_lf(head);
 	}
+	switch (acl_type) {
+	case CCS_TYPE_PATH_ACL:
+	case CCS_TYPE_MKDEV_ACL:
+	case CCS_TYPE_PATH2_ACL:
+	case CCS_TYPE_PATH_NUMBER_ACL:
+	case CCS_TYPE_IP_NETWORK_ACL:
+		goto next;
+	}
  done:
+	head->r.bit = 0;
 	return true;
 }
 
