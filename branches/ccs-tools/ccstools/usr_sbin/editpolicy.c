@@ -848,7 +848,7 @@ static int ccs_add_transition_control_entry(const char *domainname,
 		if (!ptr->program)
 			ccs_out_of_memory();
 	}
-	if (domainname) {
+	if (domainname && strcmp(domainname, "any")) {
 		ptr->domainname = ccs_savename(domainname);
 		if (!ptr->domainname)
 			ccs_out_of_memory();
