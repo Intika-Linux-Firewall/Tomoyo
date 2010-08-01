@@ -45,7 +45,7 @@ static int ccs_max_eat_col[CCS_MAXSCREEN];
 static int ccs_eat_col = 0;
 static int ccs_max_col = 0;
 static int ccs_list_indent = 0;
-static int ccs_acl_sort_type = 1;
+static int ccs_acl_sort_type = 0;
 static char *ccs_last_error = NULL;
 
 /* Prototypes */
@@ -258,11 +258,10 @@ static int ccs_domainname_attribute_compare(const void *a, const void *b)
 }
 
 static const char *ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_INITIALIZE] = CCS_KEYWORD_INITIALIZE_DOMAIN,
-	[CCS_TRANSITION_CONTROL_NO_INITIALIZE]
-	= CCS_KEYWORD_NO_INITIALIZE_DOMAIN,
-	[CCS_TRANSITION_CONTROL_KEEP] = CCS_KEYWORD_KEEP_DOMAIN,
-	[CCS_TRANSITION_CONTROL_NO_KEEP] = CCS_KEYWORD_NO_KEEP_DOMAIN
+	[CCS_TRANSITION_CONTROL_INITIALIZE] = "initialize_domain ",
+	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
+	[CCS_TRANSITION_CONTROL_KEEP] = "keep_domain ",
+	[CCS_TRANSITION_CONTROL_NO_KEEP] = "no_keep_domain ",
 };
 
 static int ccs_show_domain_line(struct ccs_domain_policy *dp, const int index)
@@ -759,8 +758,7 @@ static void ccs_read_generic_policy(void)
 				continue;
 			}
 			if (!flag || !line[0] ||
-			    !strncmp(line, CCS_KEYWORD_USE_PROFILE,
-				     CCS_KEYWORD_USE_PROFILE_LEN))
+			    !strncmp(line, "use_profile ", 12))
 				continue;
 		} else {
 			if (!line[0])
@@ -770,8 +768,8 @@ static void ccs_read_generic_policy(void)
 		case CCS_SCREEN_EXCEPTION_LIST:
 		case CCS_SCREEN_ACL_LIST:
 			directive = ccs_find_directive(true, line);
-			//if (directive == CCS_DIRECTIVE_NONE)
-			//continue;
+			if (directive == CCS_DIRECTIVE_NONE)
+				continue;
 			break;
 		case CCS_SCREEN_PROFILE_LIST:
 			cp = strchr(line, '-');
@@ -1010,19 +1008,19 @@ no_domain:
 		char *line = ccs_freadline(fp);
 		if (!line)
 			break;
-		if (ccs_str_starts(line, CCS_KEYWORD_INITIALIZE_DOMAIN))
+		if (ccs_str_starts(line, "initialize_domain "))
 			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_INITIALIZE);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NO_INITIALIZE_DOMAIN))
+		else if (ccs_str_starts(line, "no_initialize_domain "))
 			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_INITIALIZE);
-		else if (ccs_str_starts(line, CCS_KEYWORD_KEEP_DOMAIN))
+		else if (ccs_str_starts(line, "keep_domain "))
 			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_KEEP);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NO_KEEP_DOMAIN))
+		else if (ccs_str_starts(line, "no_keep_domain "))
 			ccs_add_transition_control_policy(line, CCS_TRANSITION_CONTROL_NO_KEEP);
-		else if (ccs_str_starts(line, CCS_KEYWORD_PATH_GROUP))
+		else if (ccs_str_starts(line, "path_group "))
 			ccs_add_path_group_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_ADDRESS_GROUP))
+		else if (ccs_str_starts(line, "address_group "))
 			ccs_add_address_group_policy(line, false);
-		else if (ccs_str_starts(line, CCS_KEYWORD_NUMBER_GROUP))
+		else if (ccs_str_starts(line, "number_group "))
 			ccs_add_number_group_policy(line, false);
 		else if (sscanf(line, "acl_group %u", &group) == 1
 			 && group < 256) {
@@ -1031,7 +1029,8 @@ no_domain:
 				line = cp + 1;
 			if (ccs_str_starts(line, "execute_handler ") ||
 			    ccs_str_starts(line, "denied_execute_handler ") ||
-			    (ccs_str_starts(line, "file ") && ccs_has_execute(line))) {
+			    (ccs_str_starts(line, "file ") &&
+			     ccs_has_execute(line))) {
 				cp = strchr(line, ' ');
 				if (cp)
 					*cp = '\0';
@@ -1738,15 +1737,15 @@ static void ccs_set_profile(struct ccs_domain_policy *dp, const int current)
 		for (index = 0; index < dp->list_len; index++) {
 			if (!dp->list_selected[index])
 				continue;
-			fprintf(fp, "select domain=%s\n" CCS_KEYWORD_USE_PROFILE
-				"%s\n", ccs_domain_name(dp, index), line);
+			fprintf(fp, "select domain=%s\n" "use_profile %s\n",
+				ccs_domain_name(dp, index), line);
 		}
 	} else {
 		for (index = 0; index < ccs_task_list_len; index++) {
 			if (!ccs_task_list[index].selected)
 				continue;
-			fprintf(fp, "select pid=%u\n" CCS_KEYWORD_USE_PROFILE
-				"%s\n", ccs_task_list[index].pid, line);
+			fprintf(fp, "select pid=%u\n" "use_profile %s\n",
+				ccs_task_list[index].pid, line);
 		}
 	}
 	ccs_close_write(fp);

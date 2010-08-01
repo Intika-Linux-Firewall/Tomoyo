@@ -1248,8 +1248,8 @@ int ccs_write_domain_policy(struct ccs_domain_policy *dp, const int fd)
 		if (dp->list[i].profile_assigned) {
 			char buf[128];
 			memset(buf, 0, sizeof(buf));
-			snprintf(buf, sizeof(buf) - 1, CCS_KEYWORD_USE_PROFILE
-				 "%u\n\n", dp->list[i].profile);
+			snprintf(buf, sizeof(buf) - 1, "use_profile %u\n\n",
+				 dp->list[i].profile);
 			write(fd, buf, strlen(buf));
 		} else
 			write(fd, "\n", 1);
@@ -1378,7 +1378,7 @@ void ccs_handle_domain_policy(struct ccs_domain_policy *dp, FILE *fp, _Bool is_w
 		}
 		if (index == EOF || !line[0])
 			continue;
-		if (sscanf(line, CCS_KEYWORD_USE_PROFILE "%u", &profile) == 1) {
+		if (sscanf(line, "use_profile %u", &profile) == 1) {
 			dp->list[index].profile = (u8) profile;
 			dp->list[index].profile_assigned = 1;
 		} else if (is_delete)
@@ -1395,8 +1395,7 @@ read_policy:
 		const int string_count = dp->list[i].string_count;
 		fprintf(fp, "%s\n", ccs_domain_name(dp, i));
 		if (dp->list[i].profile_assigned)
-			fprintf(fp, CCS_KEYWORD_USE_PROFILE "%u\n",
-				dp->list[i].profile);
+			fprintf(fp, "use_profile %u\n", dp->list[i].profile);
 		fprintf(fp, "\n");
 		for (j = 0; j < string_count; j++)
 			fprintf(fp, "%s\n", string_ptr[j]->name);

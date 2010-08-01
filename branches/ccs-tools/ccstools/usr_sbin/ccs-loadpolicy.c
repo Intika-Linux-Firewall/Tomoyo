@@ -136,7 +136,7 @@ not_found:
 		for (i = 0; i < file_string_count; i++)
 			fprintf(proc_fp, "%s\n", file_string_ptr[i]->name);
 		if (file_policy->list[file_index].profile_assigned)
-			fprintf(proc_fp, CCS_KEYWORD_USE_PROFILE "%u\n",
+			fprintf(proc_fp, "use_profile %u\n",
 				file_policy->list[file_index].profile);
 	}
 	/* Delete all domains that are not defined in disk policy. */

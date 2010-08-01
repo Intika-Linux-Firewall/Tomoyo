@@ -224,25 +224,21 @@ static void disable_profile(void)
 
 static void disable_verbose(void)
 {
-	unsigned int i;
-	FILE *fp = fopen(proc_profile, "w");
-	if (!fp)
+	FILE *fp_out = fopen(proc_profile, "w");
+	FILE *fp_in = fopen(proc_profile, "r");
+	if (!fp_in || !fp_out)
 		panic();
-	scan_used_profile_index();
-	fprintf(fp, "PREFERENCE::learning={ verbose=disabled }\n");
-	fprintf(fp, "PREFERENCE::permissive={ verbose=disabled }\n");
-	fprintf(fp, "PREFERENCE::enforcing={ verbose=disabled }\n");
-	for (i = 0; i < 256; i++) {
-		if (!profile_used[i])
+	while (memset(buffer, 0, sizeof(buffer)),
+	       fgets(buffer, sizeof(buffer) - 1, fp_in)) {
+		char *cp = strchr(buffer, '=');
+		if (!cp)
 			continue;
-		fprintf(fp, "%u-PREFERENCE::learning={ verbose=disabled }\n",
-			i);
-		fprintf(fp, "%u-PREFERENCE::permissive={ verbose=disabled }\n",
-			i);
-		fprintf(fp, "%u-PREFERENCE::enforcing={ verbose=disabled }\n",
-			i);
+		*cp = '\0';
+		if (strstr(buffer, "-CONFIG"))
+			fprintf(fp_out, "%s={ verbose=no }\n", buffer);
 	}
-	fclose(fp);
+	fclose(fp_in);
+	fclose(fp_out);
 }
 
 static void show_domain_usage(void)

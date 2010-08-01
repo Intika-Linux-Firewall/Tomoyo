@@ -10,40 +10,12 @@
  */
 #include "ccstools.h"
 
-#define CCS_KEYWORD_AGGREGATOR               "aggregator "
-#define CCS_KEYWORD_CAPABILITY         "capability "
-#define CCS_KEYWORD_FILE_CHGRP              "file chgrp "
-#define CCS_KEYWORD_FILE_CHMOD              "file chmod "
-#define CCS_KEYWORD_FILE_CHOWN              "file chown "
-#define CCS_KEYWORD_FILE_CHROOT             "file chroot "
-#define CCS_KEYWORD_MISC_ENV                "misc env "
-#define CCS_KEYWORD_FILE_IOCTL              "file ioctl "
-#define CCS_KEYWORD_FILE_MOUNT              "file mount "
-#define CCS_KEYWORD_NETWORK            "network "
-#define CCS_KEYWORD_FILE_PIVOT_ROOT         "file pivot_root "
-#define CCS_KEYWORD_IPC_SIGNAL             "ipc signal "
-#define CCS_KEYWORD_FILE_UNMOUNT            "file unmount "
-#define CCS_KEYWORD_DENY_AUTOBIND            "deny_autobind "
-#define CCS_KEYWORD_FILE_PATTERN             "file_pattern "
-#define CCS_KEYWORD_SELECT                   "select "
-
 #define CCS_MAX_PATHNAME_LEN             4000
 
 enum ccs_policy_type {
 	CCS_POLICY_TYPE_UNKNOWN,
 	CCS_POLICY_TYPE_DOMAIN_POLICY,
 	CCS_POLICY_TYPE_EXCEPTION_POLICY,
-};
-
-enum ccs_socket_operation_type {
-	CCS_NETWORK_ACL_UDP_BIND,
-	CCS_NETWORK_ACL_UDP_CONNECT,
-	CCS_NETWORK_ACL_TCP_BIND,
-	CCS_NETWORK_ACL_TCP_LISTEN,
-	CCS_NETWORK_ACL_TCP_CONNECT,
-	CCS_NETWORK_ACL_TCP_ACCEPT,
-	CCS_NETWORK_ACL_RAW_BIND,
-	CCS_NETWORK_ACL_RAW_CONNECT
 };
 
 #define CCS_VALUE_TYPE_DECIMAL     1
@@ -421,8 +393,6 @@ static void ccs_check_env_policy(char *data)
 
 static void ccs_check_network_policy(char *data)
 {
-	int sock_type;
-	int operation;
 	u16 min_address[8];
 	u16 max_address[8];
 	unsigned int min_port;
@@ -434,33 +404,17 @@ static void ccs_check_network_policy(char *data)
 	if (!cp1)
 		goto out;
 	cp1++;
-	if (!strncmp(data, "TCP ", 4))
-		sock_type = SOCK_STREAM;
-	else if (!strncmp(data, "UDP ", 4))
-		sock_type = SOCK_DGRAM;
-	else if (!strncmp(data, "RAW ", 4))
-		sock_type = SOCK_RAW;
-	else
+	if (strncmp(data, "TCP ", 4) && strncmp(data, "UDP ", 4) &&
+	    strncmp(data, "RAW ", 4))
 		goto out;
 	cp2 = strchr(cp1, ' ');
 	if (!cp2)
 		goto out;
 	cp2++;
-	if (!strncmp(cp1, "bind ", 5)) {
-		operation = (sock_type == SOCK_STREAM) ? CCS_NETWORK_ACL_TCP_BIND :
-			(sock_type == SOCK_DGRAM) ? CCS_NETWORK_ACL_UDP_BIND :
-			CCS_NETWORK_ACL_RAW_BIND;
-	} else if (!strncmp(cp1, "connect ", 8)) {
-		operation = (sock_type == SOCK_STREAM) ?
-			CCS_NETWORK_ACL_TCP_CONNECT : (sock_type == SOCK_DGRAM) ?
-			CCS_NETWORK_ACL_UDP_CONNECT : CCS_NETWORK_ACL_RAW_CONNECT;
-	} else if (sock_type == SOCK_STREAM && !strncmp(cp1, "listen ", 7)) {
-		operation = CCS_NETWORK_ACL_TCP_LISTEN;
-	} else if (sock_type == SOCK_STREAM && !strncmp(cp1, "accept ", 7)) {
-		operation = CCS_NETWORK_ACL_TCP_ACCEPT;
-	} else {
+	if (strncmp(cp1, "bind ", 5) && strncmp(cp1, "connect ", 8) &&
+	    strncmp(cp1, "listen ", 7) && strncmp(cp1, "accept ", 7) &&
+	    strncmp(cp1, "send ", 5) && strncmp(cp1, "recv ", 5))
 		goto out;
-	}
 	cp1 = strchr(cp2, ' ');
 	if (!cp1)
 		goto out;
@@ -618,7 +572,8 @@ static void ccs_check_file_policy(char *data)
 	ccs_errors++;
 	return;
 out:
-	printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data, filename);
+	printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data,
+	       filename);
 	ccs_errors++;
 }
 
@@ -644,54 +599,26 @@ out:
 	ccs_errors++;
 }
 
-static void ccs_check_domain_initializer_entry(const char *domainname,
-					       const char *program)
+static void ccs_check_domain_transition_policy(char *program)
 {
-	if (!ccs_correct_path(program)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
+	char *domainname = strstr(program, " from ");
+	if (!domainname) {
+		printf("%u: ERROR: Too few parameters.\n", ccs_line);
+		ccs_errors++;
+		return;
+	}
+	*domainname = '\0';
+	domainname += 6;
+	if (strcmp(program, "any") && !ccs_correct_path(program)) {
+		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line,
+		       program);
 		ccs_errors++;
 	}
-	if (domainname && !ccs_correct_path(domainname) &&
+	if (strcmp(domainname, "any") && !ccs_correct_path(domainname) &&
 	    !ccs_correct_domain(domainname)) {
 		printf("%u: ERROR: '%s' is a bad domainname.\n",
 		       ccs_line, domainname);
 		ccs_errors++;
-	}
-}
-
-static void ccs_check_domain_initializer_policy(char *data)
-{
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		ccs_check_domain_initializer_entry(cp + 6, data);
-	} else {
-		ccs_check_domain_initializer_entry(NULL, data);
-	}
-}
-
-static void ccs_check_domain_keeper_entry(const char *domainname,
-					  const char *program)
-{
-	if (!ccs_correct_path(domainname) && !ccs_correct_domain(domainname)) {
-		printf("%u: ERROR: '%s' is a bad domainname.\n",
-		       ccs_line, domainname);
-		ccs_errors++;
-	}
-	if (program && !ccs_correct_path(program)) {
-		printf("%u: ERROR: '%s' is a bad pathname.\n", ccs_line, program);
-		ccs_errors++;
-	}
-}
-
-static void ccs_check_domain_keeper_policy(char *data)
-{
-	char *cp = strstr(data, " from ");
-	if (cp) {
-		*cp = '\0';
-		ccs_check_domain_keeper_entry(cp + 6, data);
-	} else {
-		ccs_check_domain_keeper_entry(data, NULL);
 	}
 }
 
@@ -783,9 +710,9 @@ static void ccs_check_domain_policy(char *policy)
 	static int domain = EOF;
 	_Bool is_delete = false;
 	_Bool is_select = false;
-	if (ccs_str_starts(policy, CCS_KEYWORD_DELETE))
+	if (ccs_str_starts(policy, "delete "))
 		is_delete = true;
-	else if (ccs_str_starts(policy, CCS_KEYWORD_SELECT))
+	else if (ccs_str_starts(policy, "select "))
 		is_select = true;
 	if (!strncmp(policy, "<kernel>", 8)) {
 		if (!ccs_correct_domain(policy) ||
@@ -807,7 +734,7 @@ static void ccs_check_domain_policy(char *policy)
 		printf("%u: WARNING: '%s' is unprocessed because domain is not "
 		       "selected.\n", ccs_line, policy);
 		ccs_warnings++;
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_USE_PROFILE)) {
+	} else if (ccs_str_starts(policy, "use_profile ")) {
 		unsigned int profile;
 		if (sscanf(policy, "%u", &profile) != 1 ||
 		    profile >= 256) {
@@ -832,13 +759,13 @@ static void ccs_check_domain_policy(char *policy)
 		char *cp = ccs_find_condition_part(policy);
 		if (cp && !ccs_check_condition(cp))
 			return;
-		if (ccs_str_starts(policy, CCS_KEYWORD_CAPABILITY))
+		if (ccs_str_starts(policy, "capability "))
 			ccs_check_capability_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_NETWORK))
+		else if (ccs_str_starts(policy, "network "))
 			ccs_check_network_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_IPC_SIGNAL))
+		else if (ccs_str_starts(policy, "ipc signal "))
 			ccs_check_signal_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_MISC_ENV))
+		else if (ccs_str_starts(policy, "misc env "))
 			ccs_check_env_policy(policy);
 		else
 			ccs_check_file_policy(policy);
@@ -847,22 +774,19 @@ static void ccs_check_domain_policy(char *policy)
 
 static void ccs_check_exception_policy(char *policy)
 {
-	ccs_str_starts(policy, CCS_KEYWORD_DELETE);
-	if (ccs_str_starts(policy, CCS_KEYWORD_INITIALIZE_DOMAIN)) {
-		ccs_check_domain_initializer_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_NO_INITIALIZE_DOMAIN)) {
-		ccs_check_domain_initializer_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_KEEP_DOMAIN)) {
-		ccs_check_domain_keeper_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_NO_KEEP_DOMAIN)) {
-		ccs_check_domain_keeper_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_PATH_GROUP)) {
+	ccs_str_starts(policy, "delete ");
+	if (ccs_str_starts(policy, "initialize_domain ") ||
+	    ccs_str_starts(policy, "no_initialize_domain ") ||
+	    ccs_str_starts(policy, "keep_domain ") ||
+	    ccs_str_starts(policy, "no_keep_domain ")) {
+		ccs_check_domain_transition_policy(policy);
+	} else if (ccs_str_starts(policy, "path_group ")) {
 		ccs_check_path_group_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_NUMBER_GROUP)) {
+	} else if (ccs_str_starts(policy, "number_group ")) {
 		ccs_check_number_group_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_ADDRESS_GROUP)) {
+	} else if (ccs_str_starts(policy, "address_group ")) {
 		ccs_check_address_group_policy(policy);
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_AGGREGATOR)) {
+	} else if (ccs_str_starts(policy, "aggregator ")) {
 		char *cp = strchr(policy, ' ');
 		if (!cp) {
 			printf("%u: ERROR: Too few parameters.\n", ccs_line);
@@ -880,21 +804,22 @@ static void ccs_check_exception_policy(char *policy)
 				ccs_errors++;
 			}
 		}
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_FILE_PATTERN)) {
+	} else if (ccs_str_starts(policy, "file_pattern ")) {
 		if (!ccs_correct_word(policy)) {
 			printf("%u: ERROR: '%s' is a bad pattern.\n",
 			       ccs_line, policy);
 			ccs_errors++;
 		}
-	} else if (ccs_str_starts(policy, CCS_KEYWORD_DENY_AUTOBIND)) {
+	} else if (ccs_str_starts(policy, "deny_autobind ")) {
 		ccs_check_reserved_port_policy(policy);
 	} else if (ccs_str_starts(policy, "acl_group ")) {
 		unsigned int group;
 		char *cp = strchr(policy, ' ');
 		if (cp && sscanf(policy, "%u", &group) == 1 && group < 256) {
-			ccs_check_domain_policy(cp + 1 + 1);
+			ccs_check_domain_policy(cp + 1);
 		} else {
-			printf("%u: ERROR: Bad group '%s'.\n", ccs_line, policy);
+			printf("%u: ERROR: Bad group '%s'.\n", ccs_line,
+			       policy);
 			ccs_errors++;
 		}
 	} else {

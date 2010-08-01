@@ -57,7 +57,7 @@ usage:
 		/* This domain was added. */
 		printf("%s\n\n", domainname->name);
 		if (new_policy.list[new_index].profile_assigned)
-			printf(CCS_KEYWORD_USE_PROFILE "%u\n",
+			printf("use_profile %u\n",
 			       new_policy.list[new_index].profile);
 		new_string_ptr = new_policy.list[new_index].string_ptr;
 		new_string_count = new_policy.list[new_index].string_count;
@@ -106,7 +106,7 @@ usage:
 				printf("%s\n\n", domainname->name);
 			first = false;
 			if (old_policy.list[old_index].profile_assigned)
-				printf(CCS_KEYWORD_USE_PROFILE "%u\n",
+				printf("use_profile %u\n",
 				       old_policy.list[old_index].profile);
 		}
 		if (!first)

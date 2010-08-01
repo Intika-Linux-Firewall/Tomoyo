@@ -297,7 +297,7 @@ static void ccs_handle_update(const int check_update, const int fd)
 		return;
 	if (check_update == CCS_GLOBALLY_READABLE_FILES_UPDATE_AUTO) {
 		if (pathname[0] == '-')
-			fprintf(fp, CCS_KEYWORD_DELETE);
+			fprintf(fp, "delete ");
 		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
 		fflush(fp);
 		ccs_printw("The pathname %s was %s globally readable file.\n\n",
@@ -317,7 +317,7 @@ static void ccs_handle_update(const int check_update, const int fd)
 	ccs_printw("%c\n", c);
 	if (c == 'Y' || c == 'y') {
 		if (pathname[0] == '-')
-			fprintf(fp, CCS_KEYWORD_DELETE);
+			fprintf(fp, "delete ");
 		fprintf(fp, "acl_group 0 file read %s\n", pathname + 1);
 		fflush(fp);
 	}

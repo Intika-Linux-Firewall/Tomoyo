@@ -40,22 +40,6 @@
 
 /***** CONSTANTS DEFINITION START *****/
 
-#define CCS_KEYWORD_ADDRESS_GROUP            "address_group "
-#define CCS_KEYWORD_FILE_EXECUTE            "file execute "
-#define CCS_KEYWORD_FILE_READ               "file read "
-#define CCS_KEYWORD_DELETE                   "delete "
-#define CCS_KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
-#define CCS_KEYWORD_EXECUTE_HANDLER          "execute_handler "
-#define CCS_KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
-#define CCS_KEYWORD_KEEP_DOMAIN              "keep_domain "
-#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN     "no_initialize_domain"
-#define CCS_KEYWORD_NO_KEEP_DOMAIN           "no_keep_domain"
-#define CCS_KEYWORD_NUMBER_GROUP             "number_group "
-#define CCS_KEYWORD_PATH_GROUP               "path_group "
-#define CCS_KEYWORD_USE_PROFILE              "use_profile "
-#define CCS_KEYWORD_USE_PROFILE_LEN          (sizeof(CCS_KEYWORD_USE_PROFILE) - 1)
-#define CCS_KEYWORD_USE_GROUP                "use_group "
-
 #define CCS_ROOT_NAME                    "<kernel>"
 #define CCS_ROOT_NAME_LEN                (sizeof(CCS_ROOT_NAME) - 1)
 

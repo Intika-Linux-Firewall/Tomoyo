@@ -77,7 +77,7 @@ static void ccs_update_ld_list(int argc, char *argv[], FILE *fp_policy)
 		ccs_entry_list[ccs_entry_list_count].pathname = pathname;
 		ccs_entry_list[ccs_entry_list_count++].real_pathname = real_pathname;
 		printf("Added %s : %s\n", pathname, real_pathname);
-		fprintf(fp_policy, CCS_KEYWORD_FILE_READ);
+		fprintf(fp_policy, "file read ");
 		ccs_fprintf_encoded(fp_policy, real_pathname);
 		fprintf(fp_policy, "\n");
 		fflush(fp_policy);
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 				printf("Changed %s : %s -> %s\n",
 				       ptr->pathname, ptr->real_pathname,
 				       real_pathname);
-				fprintf(fp_policy, CCS_KEYWORD_FILE_READ);
+				fprintf(fp_policy, "file read ");
 				ccs_fprintf_encoded(fp_policy, real_pathname);
 				fprintf(fp_policy, "\n");
 				fflush(fp_policy);
