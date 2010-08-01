@@ -114,8 +114,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>Download and apply TOMOYO Linux patch.</p>
 
 <pre>
-# wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz
-# tar -zxf ccs-patch-1.7.2-20100604.tar.gz
+# wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
+# tar -zxf ccs-patch.tar.gz --strip 1
 # patch -p1 &lt; patches/ccs-patch-2.6.15-cat-760.diff
 </pre>
 
@@ -145,7 +145,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre>
 # cd
-# wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -
+# wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -
 </pre>
 
 <p>Do cross compilation for CAT760. Cross compiled programs are installed under /home/ebihara/tmp/sbin/ directory and /home/ebihara/tmp/usr/ directory.</p>
