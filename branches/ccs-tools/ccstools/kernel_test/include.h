@@ -3,9 +3,9 @@
  *
  * Common functions for testing TOMOYO Linux's kernel.
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #include <errno.h>
@@ -286,6 +286,7 @@ static void BUG(const char *fmt, ...)
 
 static void BUG(const char *fmt, ...)
 {
+	int i;
 	va_list args;
 	printf("BUG: ");
 	va_start(args, fmt);
@@ -293,17 +294,61 @@ static void BUG(const char *fmt, ...)
 	va_end(args);
 	putchar('\n');
 	fflush(stdout);
+	for (i = 0; i < 1024; i++)
+		close(i);
 	while (1)
 		sleep(100);
+}
+
+static _Bool policy_match(char *buffer, char *policy)
+{
+	char *buffer_start = buffer;
+	char *policy_start = policy;
+	while (*buffer && *policy) {
+		char *cp1;
+		char *cp2;
+		if (*buffer++ == *policy++)
+			continue;
+		buffer--;
+		policy--;
+		cp1 = strchr(buffer, ' ');
+		cp2 = strchr(policy, ' ');
+		if (!cp1 || !cp2 || strcmp(cp1, cp2))
+			return 0;
+		*cp1 = '\0';
+		*cp2 = '\0';
+		while (buffer > buffer_start && *(buffer - 1) != ' ')
+			buffer--;
+		while (policy > policy_start && *(policy - 1) != ' ')
+			policy--;
+		/* fprintf(stderr, "Find '%s' in '%s'\n", policy, buffer); */
+		while (1) {
+			cp1 = strchr(policy, '/');
+			if (cp1)
+				*cp1 = '\0';
+			cp2 = strstr(buffer, policy);
+			if (!cp2)
+				return 0;
+			if (cp2 > buffer && *(cp2 - 1) != '/')
+				return 0;
+			if (!cp1)
+				return 1;
+			policy = cp1 + 1;
+		}
+	}
+	return !*buffer && !*policy;
 }
 
 static int write_domain_policy(const char *policy, int is_delete)
 {
 	FILE *fp = fopen(proc_policy_domain_policy, "r");
 	char buffer[8192];
+	char tmp_policy[8192];
 	int domain_found = 0;
 	int policy_found = 0;
 	memset(buffer, 0, sizeof(buffer));
+	memset(tmp_policy, 0, sizeof(tmp_policy));
+	strncpy(tmp_policy, policy, sizeof(tmp_policy) - 1);
 	if (!fp) {
 		BUG("Can't read %s", proc_policy_domain_policy);
 		return 0;
@@ -320,18 +365,16 @@ static int write_domain_policy(const char *policy, int is_delete)
 		if (!domain_found)
 			continue;
 		/* printf("<%s>\n", buffer); */
-		if (strcmp(buffer, policy))
+		strncpy(tmp_policy, policy, sizeof(tmp_policy) - 1);
+		if (!policy_match(buffer, tmp_policy))
 			continue;
 		policy_found = 1;
 		break;
 	}
 	fclose(fp);
 	if (policy_found == is_delete) {
-		if (!strstr(policy, "read/write")) {
-			BUG("Can't %s %s", is_delete ? "delete" : "append",
-			    policy);
-			return 0;
-		}
+		BUG("Can't %s %s", is_delete ? "delete" : "append", policy);
+		return 0;
 	}
 	errno = 0;
 	return 1;

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/04/06
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #include "ccstools.h"
@@ -1487,7 +1487,7 @@ _Bool ccs_check_remote_host(void)
 	FILE *fp = ccs_open_read("version");
 	if (!fp ||
 	    fscanf(fp, "%u.%u.%u", &major, &minor, &rev) < 2 ||
-	    major != 1 || minor != 7) {
+	    major != 1 || minor != 8) {
 		const u32 ip = ntohl(ccs_network_ip);
 		fprintf(stderr, "Can't connect to %u.%u.%u.%u:%u\n",
 			(u8) (ip >> 24), (u8) (ip >> 16),

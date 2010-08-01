@@ -5,24 +5,24 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/04/06
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #include "ccstools.h"
 
 #define CCS_KEYWORD_AGGREGATOR               "aggregator "
-#define CCS_KEYWORD_ALLOW_CAPABILITY         "capability "
-#define CCS_KEYWORD_ALLOW_CHGRP              "file chgrp "
-#define CCS_KEYWORD_ALLOW_CHMOD              "file chmod "
-#define CCS_KEYWORD_ALLOW_CHOWN              "file chown "
-#define CCS_KEYWORD_ALLOW_CHROOT             "file chroot "
-#define CCS_KEYWORD_ALLOW_ENV                "misc env "
-#define CCS_KEYWORD_ALLOW_IOCTL              "file ioctl "
-#define CCS_KEYWORD_ALLOW_MOUNT              "file mount "
-#define CCS_KEYWORD_ALLOW_NETWORK            "network "
-#define CCS_KEYWORD_ALLOW_PIVOT_ROOT         "file pivot_root "
-#define CCS_KEYWORD_ALLOW_SIGNAL             "ipc signal "
-#define CCS_KEYWORD_ALLOW_UNMOUNT            "file unmount "
+#define CCS_KEYWORD_CAPABILITY         "capability "
+#define CCS_KEYWORD_FILE_CHGRP              "file chgrp "
+#define CCS_KEYWORD_FILE_CHMOD              "file chmod "
+#define CCS_KEYWORD_FILE_CHOWN              "file chown "
+#define CCS_KEYWORD_FILE_CHROOT             "file chroot "
+#define CCS_KEYWORD_MISC_ENV                "misc env "
+#define CCS_KEYWORD_FILE_IOCTL              "file ioctl "
+#define CCS_KEYWORD_FILE_MOUNT              "file mount "
+#define CCS_KEYWORD_NETWORK            "network "
+#define CCS_KEYWORD_FILE_PIVOT_ROOT         "file pivot_root "
+#define CCS_KEYWORD_IPC_SIGNAL             "ipc signal "
+#define CCS_KEYWORD_FILE_UNMOUNT            "file unmount "
 #define CCS_KEYWORD_DENY_AUTOBIND            "deny_autobind "
 #define CCS_KEYWORD_FILE_PATTERN             "file_pattern "
 #define CCS_KEYWORD_SELECT                   "select "
@@ -832,13 +832,13 @@ static void ccs_check_domain_policy(char *policy)
 		char *cp = ccs_find_condition_part(policy);
 		if (cp && !ccs_check_condition(cp))
 			return;
-		if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_CAPABILITY))
+		if (ccs_str_starts(policy, CCS_KEYWORD_CAPABILITY))
 			ccs_check_capability_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_NETWORK))
+		else if (ccs_str_starts(policy, CCS_KEYWORD_NETWORK))
 			ccs_check_network_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_SIGNAL))
+		else if (ccs_str_starts(policy, CCS_KEYWORD_IPC_SIGNAL))
 			ccs_check_signal_policy(policy);
-		else if (ccs_str_starts(policy, CCS_KEYWORD_ALLOW_ENV))
+		else if (ccs_str_starts(policy, CCS_KEYWORD_MISC_ENV))
 			ccs_check_env_policy(policy);
 		else
 			ccs_check_file_policy(policy);

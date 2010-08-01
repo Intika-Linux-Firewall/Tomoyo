@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/04/06
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #include "ccstools.h"
@@ -227,33 +227,33 @@ int main(int argc, char *argv[])
 					cp = strsep(&sp, " ");
 					if (!cp)
 						break;
-					if (!strcmp(cp, "read") ||
-					    !strcmp(cp, "write") ||
-					    !strcmp(cp, "append") ||
-					    !strcmp(cp, "unlink") ||
-					    !strcmp(cp, "rmdir") ||
-					    !strcmp(cp, "truncate") ||
-					    !strcmp(cp, "symlink") ||
-					    !strcmp(cp, "rewrite") ||
-					    !strcmp(cp, "chroot") ||
-					    !strcmp(cp, "unmount")) {
+					if (strstr(cp, "execute")  ||
+					    strstr(cp, "read")     ||
+					    strstr(cp, "write")    ||
+					    strstr(cp, "append")   ||
+					    strstr(cp, "unlink")   ||
+					    strstr(cp, "rmdir")    ||
+					    strstr(cp, "truncate") ||
+					    strstr(cp, "symlink")  ||
+					    strstr(cp, "chroot")   ||
+					    strstr(cp, "unmount")) {
 						path_count = 1;
-					} else if (!strcmp(cp, "link") ||
-						   !strcmp(cp, "rename") ||
-						   !strcmp(cp, "pivot_root")) {
+					} else if (strstr(cp, "link")   ||
+						   strstr(cp, "rename") ||
+						   strstr(cp, "pivot_root")) {
 						path_count = 2;
-					} else if (!strcmp(cp, "create") ||
-						   !strcmp(cp, "mkdir") ||
-						   !strcmp(cp, "mkfifo") ||
-						   !strcmp(cp, "mksock") ||
-						   !strcmp(cp, "ioctl") ||
-						   !strcmp(cp, "chmod") ||
-						   !strcmp(cp, "chown") ||
-						   !strcmp(cp, "chgrp")) {
+					} else if (strstr(cp, "create") ||
+						   strstr(cp, "mkdir")  ||
+						   strstr(cp, "mkfifo") ||
+						   strstr(cp, "mksock") ||
+						   strstr(cp, "ioctl")  ||
+						   strstr(cp, "chmod")  ||
+						   strstr(cp, "chown")  ||
+						   strstr(cp, "chgrp")) {
 						path_count = 1;
 						number_count = 1;
-					} else if (!strcmp(cp, "mkblock") ||
-						   !strcmp(cp, "mkchar")) {
+					} else if (strstr(cp, "mkblock") ||
+						   strstr(cp, "mkchar")) {
 						path_count = 1;
 						number_count = 3;
 					} else if (!strcmp(cp, "mount")) {

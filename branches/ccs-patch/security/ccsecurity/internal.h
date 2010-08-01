@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/06/04
+ * Version: 1.8.0-pre   2010/08/01
  *
  * This file is applicable to both 2.4.30 and 2.6.11 and later.
  * See README.ccs for ChangeLog.
@@ -871,7 +871,7 @@ struct ccs_name {
 	struct ccs_path_info entry;
 };
 
-#define CCS_MAX_IO_READ_QUEUE 32
+#define CCS_MAX_IO_READ_QUEUE 64
 
 /* Structure for reading/writing policy via /proc interfaces. */
 struct ccs_io_buffer {

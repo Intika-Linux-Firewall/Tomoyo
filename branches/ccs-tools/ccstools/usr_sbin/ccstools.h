@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/04/06
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 
@@ -41,15 +41,15 @@
 /***** CONSTANTS DEFINITION START *****/
 
 #define CCS_KEYWORD_ADDRESS_GROUP            "address_group "
-#define CCS_KEYWORD_ALLOW_EXECUTE            "file execute "
-#define CCS_KEYWORD_ALLOW_READ               "file read "
+#define CCS_KEYWORD_FILE_EXECUTE            "file execute "
+#define CCS_KEYWORD_FILE_READ               "file read "
 #define CCS_KEYWORD_DELETE                   "delete "
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER   "denied_execute_handler "
 #define CCS_KEYWORD_EXECUTE_HANDLER          "execute_handler "
 #define CCS_KEYWORD_INITIALIZE_DOMAIN        "initialize_domain "
 #define CCS_KEYWORD_KEEP_DOMAIN              "keep_domain "
-#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN     "no_" CCS_KEYWORD_INITIALIZE_DOMAIN
-#define CCS_KEYWORD_NO_KEEP_DOMAIN           "no_" CCS_KEYWORD_KEEP_DOMAIN
+#define CCS_KEYWORD_NO_INITIALIZE_DOMAIN     "no_initialize_domain"
+#define CCS_KEYWORD_NO_KEEP_DOMAIN           "no_keep_domain"
 #define CCS_KEYWORD_NUMBER_GROUP             "number_group "
 #define CCS_KEYWORD_PATH_GROUP               "path_group "
 #define CCS_KEYWORD_USE_PROFILE              "use_profile "

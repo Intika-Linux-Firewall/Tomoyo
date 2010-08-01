@@ -4,9 +4,9 @@
  * A tiny shell without built-in commands.
  * ( http://sourceforge.jp/projects/tomoyo/document/winf2005-en.pdf )
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.0   2009/09/03
+ * Version: 1.8.0-pre   2010/08/01
  *
  * This program is intended to provide a login shell
  * to allow users do extra authentications (CERBERUS) safely.

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2+   2010/04/06
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #include "ccstools.h"
@@ -243,49 +243,49 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			struct ccs_path_info darg;
 			char c;
 			int len;
-		case CCS_DIRECTIVE_ALLOW_MKBLOCK:
-		case CCS_DIRECTIVE_ALLOW_MKCHAR:
+		case CCS_DIRECTIVE_FILE_MKBLOCK:
+		case CCS_DIRECTIVE_FILE_MKCHAR:
 			if (!ccs_compare_number(s[3], d[3]) ||
 			    !ccs_compare_number(s[2], d[2]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_ALLOW_CREATE:
-		case CCS_DIRECTIVE_ALLOW_MKDIR:
-		case CCS_DIRECTIVE_ALLOW_MKFIFO:
-		case CCS_DIRECTIVE_ALLOW_MKSOCK:
-		case CCS_DIRECTIVE_ALLOW_IOCTL:
-		case CCS_DIRECTIVE_ALLOW_CHMOD:
-		case CCS_DIRECTIVE_ALLOW_CHOWN:
-		case CCS_DIRECTIVE_ALLOW_CHGRP:
+		case CCS_DIRECTIVE_FILE_CREATE:
+		case CCS_DIRECTIVE_FILE_MKDIR:
+		case CCS_DIRECTIVE_FILE_MKFIFO:
+		case CCS_DIRECTIVE_FILE_MKSOCK:
+		case CCS_DIRECTIVE_FILE_IOCTL:
+		case CCS_DIRECTIVE_FILE_CHMOD:
+		case CCS_DIRECTIVE_FILE_CHOWN:
+		case CCS_DIRECTIVE_FILE_CHGRP:
 			if (!ccs_compare_number(s[1], d[1]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_ALLOW_EXECUTE:
-		case CCS_DIRECTIVE_ALLOW_READ:
-		case CCS_DIRECTIVE_ALLOW_WRITE:
-		case CCS_DIRECTIVE_ALLOW_UNLINK:
-		case CCS_DIRECTIVE_ALLOW_RMDIR:
-		case CCS_DIRECTIVE_ALLOW_TRUNCATE:
-		case CCS_DIRECTIVE_ALLOW_APPEND:
-		case CCS_DIRECTIVE_ALLOW_UNMOUNT:
-		case CCS_DIRECTIVE_ALLOW_CHROOT:
-		case CCS_DIRECTIVE_ALLOW_SYMLINK:
+		case CCS_DIRECTIVE_FILE_EXECUTE:
+		case CCS_DIRECTIVE_FILE_READ:
+		case CCS_DIRECTIVE_FILE_WRITE:
+		case CCS_DIRECTIVE_FILE_UNLINK:
+		case CCS_DIRECTIVE_FILE_RMDIR:
+		case CCS_DIRECTIVE_FILE_TRUNCATE:
+		case CCS_DIRECTIVE_FILE_APPEND:
+		case CCS_DIRECTIVE_FILE_UNMOUNT:
+		case CCS_DIRECTIVE_FILE_CHROOT:
+		case CCS_DIRECTIVE_FILE_SYMLINK:
 			if (!ccs_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
-		case CCS_DIRECTIVE_ALLOW_MOUNT:
+		case CCS_DIRECTIVE_FILE_MOUNT:
 			if (!ccs_compare_number(s[3], d[3]) ||
 			    !ccs_compare_path(s[2], d[2], d_index))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_ALLOW_LINK:
-		case CCS_DIRECTIVE_ALLOW_RENAME:
-		case CCS_DIRECTIVE_ALLOW_PIVOT_ROOT:
+		case CCS_DIRECTIVE_FILE_LINK:
+		case CCS_DIRECTIVE_FILE_RENAME:
+		case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
 			if (!ccs_compare_path(s[1], d[1], d_index) ||
 			    !ccs_compare_path(s[0], d[0], d_index))
 				continue;
 			break;
-		case CCS_DIRECTIVE_ALLOW_SIGNAL:
+		case CCS_DIRECTIVE_IPC_SIGNAL:
 			/* Signal number component. */
 			if (strcmp(s[0], d[0]))
 				continue;
@@ -297,13 +297,13 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			if (c && c != ' ')
 				continue;
 			break;
-		case CCS_DIRECTIVE_ALLOW_NETWORK:
+		case CCS_DIRECTIVE_NETWORK:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
 			    !ccs_compare_address(s[2], d[2]) ||
 			    !ccs_compare_number(s[3], d[3]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_ALLOW_ENV:
+		case CCS_DIRECTIVE_MISC_ENV:
 			/* An environemnt variable name component. */
 			sarg.name = s[0];
 			ccs_fill_path_info(&sarg);

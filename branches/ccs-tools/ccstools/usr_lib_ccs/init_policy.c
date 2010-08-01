@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.2   2010/04/01
+ * Version: 1.8.0-pre   2010/08/01
  *
  */
 #define _FILE_OFFSET_BITS 64
@@ -1360,20 +1360,19 @@ static void make_profile(void)
 		file_only = "::file";
 	fprintf(fp,
 		"PROFILE_VERSION=20090903\n"
-		"PREFERENCE::audit={ max_grant_log=1024 "
+		"0-PREFERENCE::audit={ max_grant_log=1024 "
 		"max_reject_log=1024 task_info=yes path_info=yes }\n"
-		"PREFERENCE::enforcing={ verbose=yes penalty=0 }\n"
-		"PREFERENCE::learning={ verbose=no max_entry=2048 "
+		"0-PREFERENCE::enforcing={ penalty=0 }\n"
+		"0-PREFERENCE::learning={ max_entry=2048 "
 		"exec.realpath=yes exec.argv0=yes symlink.target=yes }\n"
-		"PREFERENCE::permissive={ verbose=yes }\n"
 		"0-COMMENT=-----Disabled Mode-----\n"
-		"0-CONFIG%s={ mode=disabled grant_log=yes reject_log=yes }\n"
+		"0-CONFIG%s={ mode=disabled verbose=no grant_log=no reject_log=no }\n"
 		"1-COMMENT=-----Learning Mode-----\n"
-		"1-CONFIG%s={ mode=learning grant_log=yes reject_log=yes }\n"
+		"1-CONFIG%s={ mode=learning verbose=no grant_log=no reject_log=yes }\n"
 		"2-COMMENT=-----Permissive Mode-----\n"
-		"2-CONFIG%s={ mode=permissive grant_log=yes reject_log=yes }\n"
+		"2-CONFIG%s={ mode=permissive verbose=yes grant_log=no reject_log=yes }\n"
 		"3-COMMENT=-----Enforcing Mode-----\n"
-		"3-CONFIG%s={ mode=enforcing grant_log=yes reject_log=yes }\n",
+		"3-CONFIG%s={ mode=enforcing verbose=yes grant_log=no reject_log=yes }\n",
 		file_only, file_only, file_only, file_only);
 	fclose(fp);
 	if (!chdir(policy_dir) && !rename("profile.tmp", "profile.conf"))
