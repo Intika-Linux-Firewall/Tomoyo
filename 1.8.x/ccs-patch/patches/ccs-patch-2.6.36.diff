@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testing/linux-2.6.35-rc6.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.35-rc6-next-20100723.bz2
+Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-2.6.35.tar.bz2 + http://www.kernel.org/pub/linux/kernel/v2.6/next/patch-v2.6.35-next-20100802.bz2
 ---
  fs/compat.c               |    2 
  fs/exec.c                 |    2 
@@ -70,7 +70,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.35-rc6-next-20100723 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.35-next-20100802 2010/08/02\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -110,7 +110,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  struct sched_param {
  	int sched_priority;
  };
-@@ -1492,6 +1494,10 @@ struct task_struct {
+@@ -1493,6 +1495,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -381,7 +381,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2689,6 +2692,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2691,6 +2694,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -660,8 +660,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  					  &len, 2) < 0) {
 --- linux-2.6.36.orig/security/Kconfig
 +++ linux-2.6.36/security/Kconfig
-@@ -181,5 +181,7 @@ config DEFAULT_SECURITY
- 	default "yama" if DEFAULT_SECURITY_YAMA
+@@ -187,5 +187,7 @@ config DEFAULT_SECURITY
+ 	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
  
 +source security/ccsecurity/Kconfig
@@ -670,7 +670,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  
 --- linux-2.6.36.orig/security/Makefile
 +++ linux-2.6.36/security/Makefile
-@@ -26,3 +26,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+@@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
  obj-$(CONFIG_IMA)			+= integrity/ima/built-in.o
