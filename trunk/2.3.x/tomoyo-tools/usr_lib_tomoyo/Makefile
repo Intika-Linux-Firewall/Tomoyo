@@ -5,9 +5,8 @@ all: $(BUILD_FILES)
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/tomoyo
 	chmod 755 $(INSTALLDIR)/usr/lib/tomoyo
-	chmod 755 $(BUILD_FILES) init_policy.sh
 	chown -R root:root .
-	cp -af --remove-destination $(BUILD_FILES) tomoyotools.conf init_policy.sh ../README.tomoyo ../COPYING.tomoyo $(INSTALLDIR)/usr/lib/tomoyo/
+	cp -af --remove-destination $(BUILD_FILES) tomoyotools.conf ../README.tomoyo ../COPYING.tomoyo $(INSTALLDIR)/usr/lib/tomoyo/
 
 .c:
 	$(CC) $(CFLAGS) -o $@ $<
