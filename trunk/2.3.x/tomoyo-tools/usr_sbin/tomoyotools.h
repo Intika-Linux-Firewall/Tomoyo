@@ -30,6 +30,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <sched.h>
+#include <sys/mount.h>
 
 #define s8 __s8
 #define u8 __u8
@@ -179,6 +181,7 @@ void tomoyo_out_of_memory(void);
 void tomoyo_put(void);
 void tomoyo_read_domain_policy(struct tomoyo_domain_policy *dp, const char *filename);
 void tomoyo_read_process_list(_Bool show_all);
+void tomoyo_mount_securityfs(void);
 
 extern _Bool tomoyo_network_mode;
 extern u32 tomoyo_network_ip;

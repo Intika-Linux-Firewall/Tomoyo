@@ -17,6 +17,9 @@
 #include <sys/file.h>
 #include <syslog.h>
 #include <time.h>
+#define _GNU_SOURCE
+#include <sched.h>
+#include <sys/mount.h>
 
 int main(int argc, char *argv[])
 {
@@ -49,6 +52,14 @@ int main(int argc, char *argv[])
 		printf("        Reject the request immediately. The occurrence "
 		       "is notified by executing curl command.\n\n");
 		return 0;
+	}
+	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
+		if (unshare(CLONE_NEWNS) ||
+		    mount("none", "/sys/kernel/security/", "securityfs", 0,
+			  NULL)) {
+			fprintf(stderr, "Please mount securityfs on "
+				"/sys/kernel/security/ .\n");
+		}
 	}
 	time_to_wait = atoi(argv[1]);
 	action_to_take = argv[2];

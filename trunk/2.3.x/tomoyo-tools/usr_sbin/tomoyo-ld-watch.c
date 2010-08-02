@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
 	FILE *fp_policy;
 	if (argc > 1 && !strcmp(argv[1], "--help"))
 		goto usage;
+	tomoyo_mount_securityfs();
 	{
 		const int fd = open(CCS_PROC_POLICY_EXCEPTION_POLICY, O_RDWR);
 		if (fd == EOF) {

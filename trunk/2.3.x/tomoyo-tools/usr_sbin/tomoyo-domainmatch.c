@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 		printf("%s string_to_find\n\n", argv[0]);
 		return 0;
 	}
+	tomoyo_mount_securityfs();
 	fp = fopen(CCS_PROC_POLICY_DOMAIN_POLICY, "r");
 	if (!fp) {
 		fprintf(stderr,
