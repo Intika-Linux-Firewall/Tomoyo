@@ -1,4 +1,4 @@
-BUILD_FILES = tomoyo-auditd tomoyo-queryd tomoyo-pstree tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch tomoyo-loadpolicy tomoyo-pathmatch tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy tomoyo-diffpolicy tomoyo-selectpolicy
+BUILD_FILES = tomoyo-domainmatch tomoyo-queryd tomoyo-pstree tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch tomoyo-loadpolicy tomoyo-pathmatch tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy tomoyo-diffpolicy tomoyo-selectpolicy
 
 all: libtomoyotools.so $(BUILD_FILES)
 
@@ -22,7 +22,7 @@ libtomoyotools.so: tomoyotools.c tomoyotools.h
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
-	cp -af --remove-destination $(BUILD_FILES) tomoyo-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
 	cp -ad --remove-destination libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/
 	ln -sf libtomoyotools.so.1.0.0 $(INSTALLDIR)/usr/lib/libtomoyotools.so.1
 
