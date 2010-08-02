@@ -58,6 +58,8 @@ usage:
 			return 0;
 		}
 	}
+	if (!tomoyo_network_mode)
+		tomoyo_mount_securityfs();
 	tomoyo_read_process_list(show_all);
 	if (!tomoyo_task_list_len) {
 		if (tomoyo_network_mode) {

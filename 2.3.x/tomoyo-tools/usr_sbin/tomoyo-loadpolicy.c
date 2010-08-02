@@ -219,6 +219,8 @@ int main(int argc, char *argv[])
 	    load_domain_policy + load_profile + load_manager +
 	    load_meminfo == 0)
 		goto usage;
+	if (!tomoyo_network_mode)
+		tomoyo_mount_securityfs();
 	if (!read_from_stdin && chdir(tomoyo_policy_dir)) {
 		printf("Directory %s doesn't exist.\n", tomoyo_policy_dir);
 		return 1;

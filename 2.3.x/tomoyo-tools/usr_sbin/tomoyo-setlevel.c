@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
 	int i;
 	int fd;
 	char c;
+	tomoyo_mount_securityfs();
 	if (access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr, "You can't use this command for this "
 			"kernel.\n");

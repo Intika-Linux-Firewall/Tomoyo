@@ -2371,6 +2371,7 @@ usage:
 		tomoyo_copy_file(CCS_DISK_POLICY_PROFILE, CCS_PROC_POLICY_PROFILE);
 		tomoyo_copy_file(CCS_DISK_POLICY_MANAGER, CCS_PROC_POLICY_MANAGER);
 	} else if (!tomoyo_network_mode) {
+		tomoyo_mount_securityfs();
 		if (chdir(CCS_PROC_POLICY_DIR)) {
 			fprintf(stderr,
 				"You can't use this editor for this kernel.\n");

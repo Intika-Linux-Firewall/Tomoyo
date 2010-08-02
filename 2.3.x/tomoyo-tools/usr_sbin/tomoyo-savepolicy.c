@@ -62,6 +62,8 @@ int main(int argc, char *argv[])
 			argv[i] = "";
 		}
 	}
+	if (!tomoyo_network_mode)
+		tomoyo_mount_securityfs();
 	if (!tomoyo_network_mode && access(CCS_PROC_POLICY_DIR, F_OK)) {
 		fprintf(stderr,
 			"You can't run this program for this kernel.\n");
