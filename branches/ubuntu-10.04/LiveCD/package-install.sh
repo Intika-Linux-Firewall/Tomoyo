@@ -24,7 +24,7 @@ mount -t tmpfs none /var/run/
 mount -t tmpfs none /var/lock/
 mount -t tmpfs none /lib/init/rw/
 
-wget -O - 'http://pgp.nic.ad.jp/pks/lookup?op=get&search=0x4B975A98' | apt-key add - || die "Can't install key."
+wget -O - http://I-love.SAKURA.ne.jp/kumaneko-key | apt-key add - || die "Can't install key."
 echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' >> /etc/apt/sources.list
 echo 'deb http://osdn.dl.sourceforge.jp/tomoyo/47128/ ./' >> /sources.list
 apt-get -y -o Dir::Etc::SourceList=/sources.list update || die "apt-get update failed. Try again later."
