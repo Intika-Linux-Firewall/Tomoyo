@@ -10,14 +10,14 @@ Autoreqprov: no
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Conflicts: tomoyo-tools < 2.3.0-1
 
-Source0: tomoyo-tools.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/?????/tomoyo-tools-2.3.0-20100802.tar.gz
 
 %description
 This is TOMOYO Linux tools.
 
 %prep
 
-%setup -q -n tomoyotools
+%setup -q -n tomoyo-tools
 
 %build
 
@@ -34,12 +34,19 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /sbin/tomoyo-init
-/usr/lib/
+/usr/lib/tomoyo/
 /usr/sbin/
 /usr/share/man/
-%attr(4755,root,root) /usr/lib/tomoyo/force-logout
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
 
 %changelog
-* Fri Jun 04 2010 2.3.0-0
-- This is a private release for testing.
+* Mon Aug 02 2010 2.3.0-1
+- Rebased using ccs-tools package.
+- Various enhancements were added to kernel 2.6.36.
+
+* Thu Feb 25 2010 2.2.0-2
+- Recursive directory matching operator support was added to kernel 2.6.33.
+- Restriction for ioctl/chmod/chown/chgrp/mount/unmount/chroot/pivot_root was added to kernel 2.6.34.
+
+* Mon Jul 27 2009 2.2.0-1
+- Separated from ccs-tools package.

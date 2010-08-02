@@ -1,9 +1,9 @@
 /*
  * tomoyo_policy_io_test.c
  *
- * Copyright (C) 2005-2009  NTT DATA CORPORATION
+ * Copyright (C) 2005-2010  NTT DATA CORPORATION
  *
- * Version: 1.7.1   2009/11/11
+ * Version: 2.3.0   2010/08/02
  *
  */
 #include "include.h"

@@ -1,4 +1,4 @@
-BUILD_FILES = ccs-auditd ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
+BUILD_FILES = ccs-auditd ccs-domainmatch ccs-queryd ccs-pstree ccs-checkpolicy ccs-editpolicy ccs-findtemp ccs-ld-watch ccs-loadpolicy ccs-pathmatch ccs-patternize ccs-savepolicy ccs-setlevel ccs-setprofile ccs-sortpolicy ccs-diffpolicy ccs-selectpolicy
 
 all: libccstools.so $(BUILD_FILES)
 
@@ -22,7 +22,7 @@ libccstools.so: ccstools.c ccstools.h
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/sbin $(INSTALLDIR)/usr/lib
-	cp -af --remove-destination $(BUILD_FILES) ccs-domainmatch $(INSTALLDIR)/usr/sbin/
+	cp -af --remove-destination $(BUILD_FILES) $(INSTALLDIR)/usr/sbin/
 	cp -ad --remove-destination libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/
 	ln -sf libccstools.so.1.0.0 $(INSTALLDIR)/usr/lib/libccstools.so.1
 
