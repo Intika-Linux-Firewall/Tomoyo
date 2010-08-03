@@ -1,0 +1,1161 @@
+Index: trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-suse11.1-2.6.27.sh	(working copy)
+@@ -67,16 +67,11 @@
+ rpm -ivh kernel-source-2.6.27.48-0.1.1.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.6.8-20100726.diff ]
+-then
+-    wget -O ccs-patch-1.6.8-20100726.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?revision=3850&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+ cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -113,8 +108,8 @@
+  
+  cd linux-2.6.27
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100726.diff
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
+ +cat config.ccs >> .config
+  cp .config .config.orig
+  %if %{tolerate_unknown_new_config_options}
+Index: trunk/1.6.x/ccs-patch/specs/build-f11-2.6.30.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-f11-2.6.30.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-f11-2.6.30.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't install source package."
+ 
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+@@ -80,7 +80,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.30-fedora-11.diff
+ +
+  %endif
+Index: trunk/1.6.x/ccs-patch/specs/build-c4-2.6.9.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-c4-2.6.9.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-c4-2.6.9.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.9-89.0.25.EL.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -60,7 +60,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.9-centos-4.8.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-debian_etch.sh	(working copy)
+@@ -19,9 +19,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -32,7 +32,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6-2.6.18.dfsg.1 || die "Can't chdir to linux-2.6-2.6.18.dfsg.1/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.18-debian-etch.diff || die "Can't apply patch."
+ cat /boot/config-2.6.18-6-686 config.ccs > .config || die "Can't create config."
+ yes | make -s oldconfig > /dev/null
+Index: trunk/1.6.x/ccs-patch/specs/build-ax3-2.6.18.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ax3-2.6.18.sh	(revision 3884)
++++ trunk/1.6.x/ccs-patch/specs/build-ax3-2.6.18.sh	(working copy)
+@@ -18,16 +18,11 @@
+ rpm -ivh kernel-2.6.18-194.3.AXS3.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.6.8-20100706.diff ]
+-then
+-    wget -O ccs-patch-1.6.8-20100706.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.6.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=3799&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+ cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -66,8 +61,8 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.6.8-20100706.diff
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
+ +
+  cp %{SOURCE10} Documentation/
+  
+Index: trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-debian_lenny.sh	(working copy)
+@@ -19,9 +19,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -32,7 +32,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
+ cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
+ make -s oldconfig
+Index: trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-c3-2.4.21.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -50,7 +50,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.4.21-centos-3.9.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.10.sh	(working copy)
+@@ -20,9 +20,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -36,7 +36,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.27/ || die "Can't chdir to linux-2.6.27/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.27-ubuntu-8.10.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+Index: trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-ubuntu_8.04.sh	(working copy)
+@@ -20,9 +20,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -41,7 +41,7 @@
+ mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
+ mkdir -p ccs-patch/ || die "Can't create directory."
+ cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ cp -p patches/ccs-patch-2.6.24-ubuntu-8.04.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch || die "Can't copy patch."
+ rm -fR specs/ patches/ || die "Can't delete directory."
+ for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
+Index: trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-ubuntu_6.06.sh	(working copy)
+@@ -38,9 +38,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -53,7 +53,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
+ cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
+ awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
+Index: trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-ubuntu_9.04.sh	(working copy)
+@@ -20,9 +20,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -36,7 +36,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.28/ || die "Can't chdir to linux-2.6.28/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.6.8-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.28-ubuntu-9.04.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+Index: trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-vl4.2-2.6.16.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.16-76.55vl4.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -60,7 +60,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-vl5.0-2.6.27.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-vl5.0-2.6.27.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-vl5.0-2.6.27.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.27-57vl5.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -60,7 +60,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.27-vine-linux-5.0.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-c5-2.6.18.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-c5-2.6.18.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-c5-2.6.18.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.18-194.8.1.el5.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -60,7 +60,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.5.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-ax2-2.6.9.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-ax2-2.6.9.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-ax2-2.6.9.sh	(working copy)
+@@ -17,9 +17,9 @@
+ rpm -ivh kernel-2.6.9-89.12.AXS2.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -60,7 +60,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.9-asianux-2.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh
+===================================================================
+--- trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh	(revision 3883)
++++ trunk/1.6.x/ccs-patch/specs/build-suse11.0-2.6.25.sh	(working copy)
+@@ -67,9 +67,9 @@
+ rpm -ivh kernel-source-2.6.25.20-0.7.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
+-if [ ! -r ccs-patch-1.6.8-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.6.8-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/30297/ccs-patch-1.6.8-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -104,7 +104,7 @@
+  
+  cd linux-2.6.25
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.6.8-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.6.8-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
+ +cat config.ccs >> .config
+  cp .config .config.orig
+Index: trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 3883)
++++ trunk/1.7.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -3,7 +3,7 @@
+  *
+  * Copyright (C) 2005-2010  NTT DATA CORPORATION
+  *
+- * Version: 1.7.2+   2010/06/04
++ * Version: 1.7.2+   2010/08/04
+  *
+  * This file is applicable to both 2.4.30 and 2.6.11 and later.
+  * See README.ccs for ChangeLog.
+@@ -305,7 +305,7 @@
+ 	if (ccs_profile_version != 20090903)
+ 		panic("Profile version %u is not supported.\n",
+ 		      ccs_profile_version);
+-	printk(KERN_INFO "CCSecurity: 1.7.2+   2010/06/04\n");
++	printk(KERN_INFO "CCSecurity: 1.7.2+   2010/08/04\n");
+ 	printk(KERN_INFO "Mandatory Access Control activated.\n");
+ }
+ 
+Index: trunk/1.7.x/ccs-patch/specs/build-suse11.1-2.6.27.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-suse11.1-2.6.27.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-suse11.1-2.6.27.sh	(working copy)
+@@ -68,16 +68,11 @@
+ rpm -ivh kernel-source-2.6.27.48-0.1.1.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.7.2-20100726.diff ]
+-then
+-    wget -O ccs-patch-1.7.2-20100726.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.27-suse-11.1.diff?revision=3850&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+ cp -p /usr/src/packages/SOURCES/kernel-default.spec . || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -96,7 +91,7 @@
+  Summary:        The Standard Kernel
+  Version:        2.6.27.48
+ -Release:        0.1.1
+-+Release:        0.1.1_tomoyo_1.7.2p1
+++Release:        0.1.1_tomoyo_1.7.2p2
+  License:        GPL v2 only
+  Group:          System/Kernel
+  Url:            http://www.kernel.org/
+@@ -114,8 +109,8 @@
+  
+  cd linux-2.6.27
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100726.diff
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.27-suse-11.1.diff
+ +cat config.ccs >> .config
+  cp .config .config.orig
+  %if %{tolerate_unknown_new_config_options}
+Index: trunk/1.7.x/ccs-patch/specs/build-f11-2.6.30.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-f11-2.6.30.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-f11-2.6.30.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.30.10-105.2.23.fc11.src.rpm || die "Can't install source package."
+ 
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+@@ -33,7 +33,7 @@
+  # by setting the define to ".local" or ".bz123456"
+  #
+ -# % define buildid .local
+-+%define buildid _tomoyo_1.7.2p1
+++%define buildid _tomoyo_1.7.2p2
+  
+  # fedora_build defines which build revision of this kernel version we're
+  # building. Rather than incrementing forever, as with the prior versioning
+@@ -81,7 +81,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.30-fedora-11.diff
+ +
+  %endif
+Index: trunk/1.7.x/ccs-patch/specs/build-f12-2.6.32.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-f12-2.6.32.sh	(revision 3886)
++++ trunk/1.7.x/ccs-patch/specs/build-f12-2.6.32.sh	(working copy)
+@@ -18,16 +18,11 @@
+ rpm -ivh kernel-2.6.32.16-150.fc12.src.rpm || die "Can't install source package."
+ 
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.7.2-20100714.diff ]
+-then
+-    wget -O ccs-patch-1.7.2-20100714.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-fedora-12.diff?revision=3820&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -38,7 +33,7 @@
+  #
+  # (Uncomment the '#' and the first two spaces below to set buildid.)
+ -# % define buildid .local
+-+%define buildid _tomoyo_1.7.2p1
+++%define buildid _tomoyo_1.7.2p2
+  ###################################################################
+  
+  # The buildid can also be specified on the rpmbuild command line
+@@ -86,8 +81,8 @@
+  %endif
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100714.diff
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.32-fedora-12.diff
+ +
+  # Any further pre-build tree manipulations happen here.
+  
+Index: trunk/1.7.x/ccs-patch/specs/build-c4-2.6.9.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-c4-2.6.9.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-c4-2.6.9.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.9-89.0.25.EL.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  # adding some text to the end of the version number.
+  #
+ -%define release 89.0.25.EL
+-+%define release 89.0.25.EL_tomoyo_1.7.2p1
+++%define release 89.0.25.EL_tomoyo_1.7.2p2
+  %define sublevel 9
+  %define kversion 2.6.%{sublevel}
+  %define rpmversion 2.6.%{sublevel}
+@@ -61,7 +61,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.9-centos-4.8.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-f13-2.6.33.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-f13-2.6.33.sh	(revision 3886)
++++ trunk/1.7.x/ccs-patch/specs/build-f13-2.6.33.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.33.6-147.2.4.fc13.src.rpm || die "Can't install source package."
+ 
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+@@ -33,7 +33,7 @@
+  # (Uncomment the '#' and both spaces below to set the buildid.)
+  #
+ -# % define buildid .local
+-+%define buildid _tomoyo_1.7.2p1
+++%define buildid _tomoyo_1.7.2p2
+  ###################################################################
+  
+  # buildid can also be specified on the rpmbuild command line
+@@ -72,7 +72,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.33-fedora-13.diff
+ +
+  %endif
+Index: trunk/1.7.x/ccs-patch/specs/build-ax3-2.6.18.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ax3-2.6.18.sh	(revision 3884)
++++ trunk/1.7.x/ccs-patch/specs/build-ax3-2.6.18.sh	(working copy)
+@@ -18,16 +18,11 @@
+ rpm -ivh kernel-2.6.18-194.3.AXS3.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.7.2-20100706.diff ]
+-then
+-    wget -O ccs-patch-1.7.2-20100706.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.18-asianux-3.diff?revision=3799&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+ cp -p /usr/src/asianux/SPECS/kernel-2.6.spec . || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -38,7 +33,7 @@
+  %define rpmversion 2.6.%{sublevel}
+  # %dist is defined in Asianux VPBS
+ -%define release 194.3%{?dist}
+-+%define release 194.3%{?dist}_tomoyo_1.7.2p1
+++%define release 194.3%{?dist}_tomoyo_1.7.2p2
+  %define signmodules 0
+  %define xen_hv_cset 15502
+  %define xen_abi_ver 3.1
+@@ -66,8 +61,8 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100706.diff
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.18-asianux-3.diff
+ +
+  cp %{SOURCE10} Documentation/
+  
+Index: trunk/1.7.x/ccs-patch/specs/build-debian_etch.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-debian_etch.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-debian_etch.sh	(working copy)
+@@ -30,9 +30,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -43,7 +43,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6-2.6.18.dfsg.1 || die "Can't chdir to linux-2.6-2.6.18.dfsg.1/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.18-debian-etch.diff || die "Can't apply patch."
+ cat /boot/config-2.6.18-6-686 config.ccs > .config || die "Can't create config."
+ yes | make -s oldconfig > /dev/null
+Index: trunk/1.7.x/ccs-patch/specs/build-c3-2.4.21.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-c3-2.4.21.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-c3-2.4.21.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.4.21-63.EL.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  # adding some text to the end of the version number.
+  #
+ -%define release 63.EL
+-+%define release 63.EL_tomoyo_1.7.2p1
+++%define release 63.EL_tomoyo_1.7.2p2
+  %define sublevel 21
+  %define kversion 2.4.%{sublevel}
+  # /usr/src/%{kslnk} -> /usr/src/linux-%{KVERREL}
+@@ -51,7 +51,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.4.21-centos-3.9.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-debian_lenny.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-debian_lenny.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-debian_lenny.sh	(working copy)
+@@ -30,9 +30,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -43,7 +43,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6-2.6.26 || die "Can't chdir to linux-2.6-2.6.26/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.26-debian-lenny.diff || die "Can't apply patch."
+ cat /boot/config-2.6.26-2-686 config.ccs > .config || die "Can't create config."
+ make -s oldconfig
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.10.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.10.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.10.sh	(working copy)
+@@ -21,9 +21,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -37,7 +37,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.27/ || die "Can't chdir to linux-2.6.27/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.27-ubuntu-8.10.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.10.sh	(working copy)
+@@ -21,9 +21,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -35,7 +35,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.31/ || die "Can't chdir to linux-2.6.31/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.31-ubuntu-9.10.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.04.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.04.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_8.04.sh	(working copy)
+@@ -21,9 +21,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -42,7 +42,7 @@
+ mkdir -p debian/binary-custom.d/ccs/patchset || die "Can't create debian/binary-custom.d/ccs/patchset ."
+ mkdir -p ccs-patch/ || die "Can't create directory."
+ cd ccs-patch/ || die "Can't chdir to ccs-patch/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ cp -p patches/ccs-patch-2.6.24-ubuntu-8.04.diff ../debian/binary-custom.d/ccs/patchset/ubuntu-8.04.patch || die "Can't copy patch."
+ rm -fR specs/ patches/ || die "Can't delete directory."
+ for i in `find . -type f`; do diff -u /dev/null $i; done > ../debian/binary-custom.d/ccs/patchset/ccs.patch
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.06.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.06.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_6.06.sh	(working copy)
+@@ -38,9 +38,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -53,7 +53,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-source-2.6.15-2.6.15/ || die "Can't chdir to linux-source-2.6.15-2.6.15/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.15-ubuntu-6.06.diff || die "Can't apply patch."
+ cat debian/config/i386/config.686 config.ccs > debian/config/i386/config.686-ccs || die "Can't create config."
+ awk ' BEGIN { flag = 0; print ""; } { if ( $1 == "Package:") { if ( index($2, "-686") > 0) { flag = 1; $2 = $2 "-ccs"; } else flag = 0; }; if (flag) print $0; } ' debian/control.stub > debian/control.stub.tmp || die "Can't create file."
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.04.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.04.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_9.04.sh	(working copy)
+@@ -21,9 +21,9 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /usr/src/rpm/SOURCES/
+ cd /usr/src/rpm/SOURCES/ || die "Can't chdir to /usr/src/rpm/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ # Install kernel source packages.
+@@ -37,7 +37,7 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.28/ || die "Can't chdir to linux-2.6.28/ ."
+-tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
++tar -zxf /usr/src/rpm/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
+ patch -p1 < patches/ccs-patch-2.6.28-ubuntu-9.04.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic*'`; do cp -p $i `echo $i | sed -e 's/generic/ccs/g'`; done
+Index: trunk/1.7.x/ccs-patch/specs/build-vl4.2-2.6.16.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-vl4.2-2.6.16.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-vl4.2-2.6.16.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.16-76.55vl4.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  %define kversion 2.6.%{sublevel}
+  %define rpmversion 2.6.%{sublevel}
+ -%define release 76.55%{_dist_release}
+-+%define release 76.55%{_dist_release}_tomoyo_1.7.2p1
+++%define release 76.55%{_dist_release}_tomoyo_1.7.2p2
+  
+  %define make_target bzImage
+  
+@@ -61,7 +61,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.16-vine-linux-4.2.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-c6-2.6.32.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-c6-2.6.32.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-c6-2.6.32.sh	(working copy)
+@@ -18,16 +18,11 @@
+ rpm -ivh kernel-2.6.32-37.el6.src.rpm || die "Can't install source package."
+ 
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.7.2-20100704.diff ]
+-then
+-    wget -O ccs-patch-1.7.2-20100704.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3792&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
+ patch << "EOF" || die "Can't patch spec file."
+@@ -38,7 +33,7 @@
+  # by setting the define to ".local" or ".bz123456"
+  #
+ -# % define buildid .local
+-+%define buildid _tomoyo_1.7.2p1
+++%define buildid _tomoyo_1.7.2p2
+  
+  %define rhel 1
+  %if %{rhel}
+@@ -74,8 +69,8 @@
+  ApplyOptionalPatch linux-kernel-test.patch
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100704.diff
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+++patch -sp1 < patches/ccs-patch-2.6.32-centos-6.0.diff
+ +
+  # Any further pre-build tree manipulations happen here.
+  
+Index: trunk/1.7.x/ccs-patch/specs/build-vl5.0-2.6.27.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-vl5.0-2.6.27.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-vl5.0-2.6.27.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.27-57vl5.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  %define kversion 2.6.%{sublevel}
+  %define rpmversion 2.6.%{sublevel}
+ -%define release 57%{?_dist_release}
+-+%define release 57%{?_dist_release}_tomoyo_1.7.2p1
+++%define release 57%{?_dist_release}_tomoyo_1.7.2p2
+  
+  %define make_target bzImage
+  %define hdrarch %_target_cpu
+@@ -61,7 +61,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.27-vine-linux-5.0.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-c5-2.6.18.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-c5-2.6.18.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-c5-2.6.18.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.18-194.8.1.el5.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  # by setting the define to ".local" or ".bz123456"
+  #
+ -#% define buildid
+-+%define buildid _tomoyo_1.7.2p1
+++%define buildid _tomoyo_1.7.2p2
+  #
+  %define sublevel 18
+  %define kversion 2.6.%{sublevel}
+@@ -61,7 +61,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.5.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.04.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.04.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ubuntu_10.04.sh	(working copy)
+@@ -21,16 +21,11 @@
+ # Download TOMOYO Linux patches.
+ mkdir -p /root/rpmbuild/SOURCES/
+ cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+-if [ ! -r ccs-patch-1.7.2-20100725.diff ]
+-then
+-    wget -O ccs-patch-1.7.2-20100725.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-ubuntu-10.04.diff?revision=3846&root=tomoyo' || die "Can't download patch."
+-fi
+-
+ # Install kernel source packages.
+ cd /usr/src/ || die "Can't chdir to /usr/src/ ."
+ apt-get install fakeroot build-essential || die "Can't install packages."
+@@ -40,8 +35,8 @@
+ 
+ # Apply patches and create kernel config.
+ cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
+-tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100604.tar.gz || die "Can't extract patch."
+-patch -p1 < /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100725.diff || die "Can't apply patch."
++tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.7.2-20100804.tar.gz || die "Can't extract patch."
++patch -p1 < patches/ccs-patch-2.6.32-ubuntu-10.04.diff || die "Can't apply patch."
+ rm -fR patches/ specs/ || die "Can't delete patch."
+ for i in `find debian.master/ -type f -name '*generic-pae*'`; do cp -p $i `echo $i | sed -e 's/generic-pae/ccs/g'`; done
+ for i in debian.master/config/*/config.common.*; do cat config.ccs >> $i; done
+Index: trunk/1.7.x/ccs-patch/specs/build-ax2-2.6.9.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-ax2-2.6.9.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-ax2-2.6.9.sh	(working copy)
+@@ -18,9 +18,9 @@
+ rpm -ivh kernel-2.6.9-89.12.AXS2.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -33,7 +33,7 @@
+  # adding some text to the end of the version number.
+  #
+ -%define release 89.12%{?dist}
+-+%define release 89.12%{?dist}_tomoyo_1.7.2p1
+++%define release 89.12%{?dist}_tomoyo_1.7.2p2
+  %define sublevel 9
+  %define kversion 2.6.%{sublevel}
+  %define rpmversion 2.6.%{sublevel}
+@@ -61,7 +61,7 @@
+  # END OF PATCH APPLICATIONS
+  
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.9-asianux-2.diff
+ +
+  cp %{SOURCE10} Documentation/
+Index: trunk/1.7.x/ccs-patch/specs/build-suse11.2-2.6.31.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-suse11.2-2.6.31.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-suse11.2-2.6.31.sh	(working copy)
+@@ -75,9 +75,9 @@
+ rpm -ivh kernel-default-2.6.31.12-0.2.1.nosrc.rpm || die "Can't install source package."
+ 
+ cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -94,7 +94,7 @@
+  Summary:        The Standard Kernel
+  Version:        2.6.31.12
+ -Release:        0.2.1
+-+Release:        0.2.1_tomoyo_1.7.2p1
+++Release:        0.2.1_tomoyo_1.7.2p2
+  %if %using_buildservice
+  %else
+  %endif
+@@ -103,7 +103,7 @@
+      >>../apply-patches.sh
+  bash -ex ../apply-patches.sh
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.31-suse-11.2.diff
+ +cat config.ccs >> ../config/%cpu_arch_flavor
+  
+Index: trunk/1.7.x/ccs-patch/specs/build-suse11.0-2.6.25.sh
+===================================================================
+--- trunk/1.7.x/ccs-patch/specs/build-suse11.0-2.6.25.sh	(revision 3883)
++++ trunk/1.7.x/ccs-patch/specs/build-suse11.0-2.6.25.sh	(working copy)
+@@ -68,9 +68,9 @@
+ rpm -ivh kernel-source-2.6.25.20-0.7.src.rpm || die "Can't install source package."
+ 
+ cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
+-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
++if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
+ then
+-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
++    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+ fi
+ 
+ cd /tmp/ || die "Can't chdir to /tmp/ ."
+@@ -87,7 +87,7 @@
+  Summary:        The Standard Kernel for both Uniprocessor and Multiprocessor Systems
+  Version:        2.6.25.20
+ -Release: 0.7
+-+Release: 0.7_tomoyo_1.7.2p1
+++Release: 0.7_tomoyo_1.7.2p2
+  License:        GPL v2 or later
+  Group:          System/Kernel
+  Url:            http://www.kernel.org/
+@@ -105,7 +105,7 @@
+  
+  cd linux-2.6.25
+ +# TOMOYO Linux
+-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
+++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
+ +patch -sp1 < patches/ccs-patch-2.6.25-suse-11.0.diff
+ +cat config.ccs >> .config
+  cp .config .config.orig
