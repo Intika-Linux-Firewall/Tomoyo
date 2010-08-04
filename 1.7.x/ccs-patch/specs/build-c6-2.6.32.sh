@@ -18,14 +18,9 @@ rpm --checksig kernel-2.6.32-37.el6.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.32-37.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
-fi
-
-if [ ! -r ccs-patch-1.7.2-20100704.diff ]
-then
-    wget -O ccs-patch-1.7.2-20100704.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.32-centos-6.0.diff?revision=3792&root=tomoyo' || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -38,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # by setting the define to ".local" or ".bz123456"
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.7.2p1
++%define buildid _tomoyo_1.7.2p2
  
  %define rhel 1
  %if %{rhel}
@@ -74,8 +69,8 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
-+patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100704.diff
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
++patch -sp1 < patches/ccs-patch-2.6.32-centos-6.0.diff
 +
  # Any further pre-build tree manipulations happen here.
  
