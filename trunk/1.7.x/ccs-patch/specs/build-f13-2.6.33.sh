@@ -18,9 +18,9 @@ rpm --checksig kernel-2.6.33.6-147.2.4.fc13.src.rpm || die "Can't verify signatu
 rpm -ivh kernel-2.6.33.6-147.2.4.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.2-20100604.tar.gz ]
+if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
 then
-    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100604.tar.gz || die "Can't download patch."
+    wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  # (Uncomment the '#' and both spaces below to set the buildid.)
  #
 -# % define buildid .local
-+%define buildid _tomoyo_1.7.2p1
++%define buildid _tomoyo_1.7.2p2
  ###################################################################
  
  # buildid can also be specified on the rpmbuild command line
@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.2-20100604.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.33-fedora-13.diff
 +
  %endif
