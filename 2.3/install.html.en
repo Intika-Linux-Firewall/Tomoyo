@@ -26,7 +26,7 @@
 <li>ncurses</li>
 </ul>
 
-<p>Download source code from "<a href="http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=summary">linux-next git tree</a>" and extract it.</p>
+<p>Download source code from "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=summary">linux-2.6 git tree</a>" and extract it.</p>
 
 <p>Next, create a kernel config with TOMOYO Linux enabled.</p>
 
@@ -57,7 +57,7 @@
 
 <p>Create initrd if you need.</p>
 
-<p>Edit /boot/grub/grub.conf or /boot/grub/menu.lst to add security=tomoyo to the kernel command line parameters.</p>
+<p>If your kernel config does not contain CONFIG_DEFAULT_SECURITY_TOMOYO=y line, edit /boot/grub/grub.conf or /boot/grub/menu.lst (or edit /etc/default/grub and execute update-grub command) in order to add security=tomoyo to the kernel command line parameters.</p>
 
 <hr>
 
@@ -72,6 +72,8 @@
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
 </table>
+
+<p>Note that there is no compatibility between tools package for TOMOYO 2.2 and tools package for TOMOYO 2.3. Therefore, you need to install tools package for TOMOYO 2.3 even if you already have tools package for TOMOYO 2.2 installed in your system.</p>
 
 <hr>
 
