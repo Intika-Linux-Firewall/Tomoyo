@@ -26,7 +26,7 @@
 <li>ncurses</li>
 </ul>
 
-<p>カーネルのソースを "<a href="http://git.kernel.org/?p=linux/kernel/git/next/linux-next.git;a=summary">linux-next git tree</a>" からダウンロードして展開してください。</p>
+<p>カーネルのソースを "<a href="http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=summary">linux-2.6 git tree</a>" からダウンロードして展開してください。</p>
 
 <p>次に、 TOMOYO Linux を有効にしたカーネルコンフィグを作成します。</p>
 
@@ -57,7 +57,7 @@
 
 <p>必要であれば initrd を作成してください。</p>
 
-<p>security=tomoyo というパラメータをカーネルのコマンドラインに追加するために /boot/grub/grub.conf または /boot/grub/menu.lst を編集してください。</p>
+<p>カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合には、 security=tomoyo というパラメータをカーネルのコマンドラインに追加するために /boot/grub/grub.conf または /boot/grub/menu.lst を編集（または /etc/default/grub を編集して update-grub コマンドを実行）してください。</p>
 
 <hr>
 
@@ -72,6 +72,8 @@
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
 </table>
+
+<p>TOMOYO 2.2 用のツールと TOMOYO 2.3 用のツールとの間には互換性がありません。既に TOMOYO 2.2 用のツールをインストール済みであっても、 TOMOYO 2.3 用のツールをインストールする必要があります。</p>
 
 <hr>
 
