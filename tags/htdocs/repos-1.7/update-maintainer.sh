@@ -1,5 +1,6 @@
 #! /bin/sh
 export LANG=C
+[ `id -u` -ne 0 ] && exit 1
 [ -r $1 ] || exit 1
 mkdir tmp || exit 1
 mkdir tmp/DEBIAN || exit 1

@@ -16,6 +16,7 @@ update_maintainer() {
 }
 
 export LANG=C
+[ `id -u` -ne 0 ] && exit 1
 for i in *.deb
   do
   update_maintainer $i
