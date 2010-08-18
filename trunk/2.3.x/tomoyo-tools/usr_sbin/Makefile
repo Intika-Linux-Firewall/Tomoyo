@@ -1,4 +1,4 @@
-BUILD_FILES = tomoyo-domainmatch tomoyo-queryd tomoyo-pstree tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch tomoyo-loadpolicy tomoyo-pathmatch tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy tomoyo-diffpolicy tomoyo-selectpolicy
+BUILD_FILES = tomoyo-domainmatch tomoyo-queryd tomoyo-pstree tomoyo-checkpolicy tomoyo-editpolicy tomoyo-findtemp tomoyo-ld-watch tomoyo-loadpolicy tomoyo-patternize tomoyo-savepolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy tomoyo-diffpolicy tomoyo-selectpolicy
 
 all: libtomoyotools.so $(BUILD_FILES)
 
