@@ -81,8 +81,8 @@ int diffpolicy_main(int argc, char *argv[])
 	const char *new = NULL;
 	if (argc != 3)
 		goto usage;
-	new = argv[1];
-	old = argv[2];
+	old = argv[1];
+	new = argv[2];
 	if (!strcmp(new, "-"))
 		new = NULL;
 	if (!strcmp(old, "-"))
