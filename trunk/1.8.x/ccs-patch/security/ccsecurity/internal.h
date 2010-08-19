@@ -1155,7 +1155,22 @@ static inline void ccs_read_unlock(const int idx)
 }
 #endif
 
-#ifdef D_PATH_DISCONNECT
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+
+#include <linux/lglock.h>
+DECLARE_BRLOCK(vfsmount_lock);
+static inline void ccs_realpath_lock(void)
+{
+	spin_lock(&dcache_lock);
+	br_read_lock(vfsmount_lock);
+}
+static inline void ccs_realpath_unlock(void)
+{
+	br_read_unlock(vfsmount_lock);
+	spin_unlock(&dcache_lock);
+}
+
+#elif defined(D_PATH_DISCONNECT)
 
 static inline void ccs_realpath_lock(void)
 {

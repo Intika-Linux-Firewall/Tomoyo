@@ -45,7 +45,7 @@ struct ccsecurity_exports {
 	void (*put_filesystem) (struct file_system_type *fs);
 	asmlinkage long (*sys_getppid) (void);
 	asmlinkage long (*sys_getpid) (void);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0) && LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
 	spinlock_t *vfsmount_lock;
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
