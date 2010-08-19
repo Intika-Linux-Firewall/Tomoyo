@@ -224,3 +224,22 @@ static inline void path_put(struct path *path)
 }
 
 #endif
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35)
+
+#include <linux/fs_struct.h>
+
+static inline void get_fs_root(struct fs_struct *fs, struct path *root)
+{
+	read_lock(&fs->lock);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+	*root = fs->root;
+	path_get(root);
+#else
+	root->dentry = dget(fs->root);
+	root->mnt = mntget(fs->rootmnt);
+#endif
+	read_unlock(&fs->lock);
+}
+
+#endif
