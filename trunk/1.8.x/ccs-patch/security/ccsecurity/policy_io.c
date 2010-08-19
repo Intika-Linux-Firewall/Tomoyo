@@ -918,7 +918,7 @@ static int ccs_write_domain(struct ccs_io_buffer *head)
 		else if (is_select)
 			domain = ccs_find_domain(data);
 		else
-			domain = ccs_assign_domain(data, 0, 0);
+			domain = ccs_assign_domain(data, 0, 0, false);
 		head->w.domain = domain;
 		return 0;
 	}
