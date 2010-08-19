@@ -38,39 +38,6 @@ struct list_head ccs_group_list[CCS_MAX_GROUP];
 struct list_head ccs_shared_list[CCS_MAX_LIST];
 
 /**
- * ccs_audit_execute_handler_log - Audit execute_handler log.
- *
- * @ee:         Pointer to "struct ccs_execve".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_audit_execute_handler_log(struct ccs_execve *ee)
-{
-	struct ccs_request_info *r = &ee->r;
-	const char *handler = ee->handler->name;
-	r->type = CCS_MAC_FILE_EXECUTE;
-	r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
-	r->granted = true;
-	return ccs_write_log(r, "%s %s\n", ee->handler_type ==
-			     CCS_TYPE_DENIED_EXECUTE_HANDLER ?
-			     CCS_KEYWORD_DENIED_EXECUTE_HANDLER :
-			     CCS_KEYWORD_EXECUTE_HANDLER, handler);
-}
-
-/**
- * ccs_audit_domain_creation_log - Audit domain creation log.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_audit_domain_creation_log(void)
-{
-	struct ccs_request_info r;
-	ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
-	r.granted = false;
-	return ccs_write_log(&r, "use_profile %u\n", r.profile);
-}
-
-/**
  * ccs_update_policy - Update an entry for exception policy.
  *
  * @new_entry:       Pointer to "struct ccs_acl_info".
@@ -438,17 +405,23 @@ int ccs_delete_domain(char *domainname)
  * @domainname: The name of domain.
  * @profile:    Profile number to assign if the domain was newly created.
  * @group:      Group number to assign if the domain was newly created.
+ * @transit:    True if transit to domain found or created.
  *
  * Returns pointer to "struct ccs_domain_info" on success, NULL otherwise.
+ *
+ * Caller holds ccs_read_lock().
  */
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const u8 profile, const u8 group)
+					  const u8 profile, const u8 group,
+					  const bool transit)
 {
 	struct ccs_domain_info e = { };
-	struct ccs_domain_info *entry = NULL;
-	bool found = false;
-
-	if (!ccs_correct_domain(domainname))
+	struct ccs_domain_info *entry = ccs_find_domain(domainname);
+	bool created = false;
+	if (entry)
+		goto out;
+	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
+	    !ccs_correct_domain(domainname))
 		return NULL;
 	e.profile = profile;
 	e.group = group;
@@ -457,25 +430,28 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 		return NULL;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		goto out;
-	list_for_each_entry_rcu(entry, &ccs_domain_list, list) {
-		if (entry->is_deleted ||
-		    ccs_pathcmp(e.domainname, entry->domainname))
-			continue;
-		found = true;
-		break;
-	}
-	if (!found) {
+	entry = ccs_find_domain(domainname);
+	if (!entry) {
 		entry = ccs_commit_ok(&e, sizeof(e));
 		if (entry) {
 			INIT_LIST_HEAD(&entry->acl_info_list);
 			list_add_tail_rcu(&entry->list, &ccs_domain_list);
-			found = true;
+			created = true;
 		}
 	}
 	mutex_unlock(&ccs_policy_lock);
  out:
 	ccs_put_name(e.domainname);
-	return found ? entry : NULL;
+	if (entry && transit) {
+		current->ccs_domain_info = entry;
+		if (created) {
+			struct ccs_request_info r;
+			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+			r.granted = false;
+			ccs_write_log(&r, "use_profile %u\n", r.profile);
+		}
+	}
+	return entry;
 }
 
 /**
@@ -499,7 +475,6 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
-	bool domain_created = false;
  retry:
 	current->ccs_flags = ccs_flags;
 	r->cond = NULL;
@@ -525,6 +500,13 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 			}
 			goto out;
 		}
+		r->type = CCS_MAC_FILE_EXECUTE;
+		r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
+		r->granted = true;
+		ccs_write_log(r, "%s %s\n", ee->handler_type ==
+			      CCS_TYPE_DENIED_EXECUTE_HANDLER ?
+			      CCS_KEYWORD_DENIED_EXECUTE_HANDLER :
+			      CCS_KEYWORD_EXECUTE_HANDLER, handler->name);
 	} else {
 		struct ccs_aggregator *ptr;
 		/* Check 'aggregator' directive. */
@@ -589,37 +571,6 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 		}
 		break;
 	}
-	if (domain || strlen(ee->tmp) >= CCS_EXEC_TMPSIZE - 10)
-		goto done;
-	domain = ccs_find_domain(ee->tmp);
-	if (domain)
-		goto done;
-	if (r->mode == CCS_CONFIG_ENFORCING) {
-		int error = ccs_supervisor(r, "# wants to create domain\n"
-					   "%s\n", ee->tmp);
-		if (error == CCS_RETRY_REQUEST)
-			goto retry;
-		if (error < 0)
-			goto done;
-	}
-	domain = ccs_assign_domain(ee->tmp, r->profile, old_domain->group);
-	if (domain)
-		domain_created = true;
- done:
-	if (!domain) {
-		retval = (r->mode == CCS_CONFIG_ENFORCING) ? -EPERM : 0;
-		if (!old_domain->flags[CCS_DIF_TRANSITION_FAILED]) {
-			old_domain->flags[CCS_DIF_TRANSITION_FAILED] = true;
-			r->granted = false;
-			ccs_write_log(r, CCS_KEYWORD_TRANSITION_FAILED "\n");
-			printk(KERN_WARNING
-			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
-		}
-	} else {
-		retval = 0;
-	}
-	if (!retval && handler)
-		ccs_audit_execute_handler_log(ee);
 	/*
 	 * Tell GC that I started execve().
 	 * Also, tell open_exec() to check read permission.
@@ -636,10 +587,23 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	 * But it is better than being unable to reach via PID in interactive
 	 * enforcing mode.
 	 */
+	if (!domain)
+		domain = ccs_assign_domain(ee->tmp, r->profile,
+					   old_domain->group, true);
 	if (domain)
-		task->ccs_domain_info = domain;
-	if (domain_created)
-		ccs_audit_domain_creation_log();
+		retval = 0;
+	else if (r->mode == CCS_CONFIG_ENFORCING)
+		retval = -ENOMEM;
+	else {
+		retval = 0;
+		if (!old_domain->flags[CCS_DIF_TRANSITION_FAILED]) {
+			old_domain->flags[CCS_DIF_TRANSITION_FAILED] = true;
+			r->granted = false;
+			ccs_write_log(r, CCS_KEYWORD_TRANSITION_FAILED "\n");
+			printk(KERN_WARNING
+			       "ERROR: Domain '%s' not defined.\n", ee->tmp);
+		}
+	}
  out:
 	if (need_kfree)
 		kfree(rn.name);
@@ -1181,50 +1145,6 @@ static void ccs_finish_execve(int retval, struct ccs_execve *ee)
 	kfree(ee->tmp);
 	kfree(ee->dump.data);
 	kfree(ee);
-}
-
-/**
- * ccs_may_transit - Check permission and do domain transition without execve().
- *
- * @domainname: Domainname to transit to.
- * @pathname: Pathname to check.
- *
- * Returns 0 on success, negative value otherwise.
- *
- * Caller holds ccs_read_lock().
- */
-int ccs_may_transit(const char *domainname, const char *pathname)
-{
-	struct ccs_path_info name;
-	struct ccs_request_info r;
-	struct ccs_domain_info *domain;
-	int error;
-	bool domain_created = false;
-	name.name = pathname;
-	ccs_fill_path_info(&name);
-	/* Check "file transit" permission. */
-	ccs_init_request_info(&r, CCS_MAC_FILE_TRANSIT);
-	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
-	if (error)
-		return error;
-	/* Check destination domain. */
-	domain = ccs_find_domain(domainname);
-	if (!domain && r.mode != CCS_CONFIG_ENFORCING &&
-	    strlen(domainname) < CCS_EXEC_TMPSIZE - 10) {
-		domain = ccs_assign_domain(domainname, r.profile,
-					   ccs_current_domain()->group);
-		if (domain)
-			domain_created = true;
-	}
-	if (domain) {
-		error = 0;
-		current->ccs_domain_info = domain;
-		if (domain_created)
-			ccs_audit_domain_creation_log();
-	} else {
-		error = -ENOENT;
-	}
-	return error;
 }
 
 static int __ccs_search_binary_handler(struct linux_binprm *bprm,

@@ -19,6 +19,34 @@
 #include "internal.h"
 
 /**
+ * ccs_may_transit - Check permission and do domain transition without execve().
+ *
+ * @domainname: Domainname to transit to.
+ * @pathname:   Pathname to check.
+ *
+ * Returns 0 on success, negative value otherwise.
+ *
+ * Caller holds ccs_read_lock().
+ */
+static int ccs_may_transit(const char *domainname, const char *pathname)
+{
+	struct ccs_path_info name;
+	struct ccs_request_info r;
+	int error;
+	name.name = pathname;
+	ccs_fill_path_info(&name);
+	/* Check "file transit" permission. */
+	ccs_init_request_info(&r, CCS_MAC_FILE_TRANSIT);
+	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
+	if (error)
+		return error;
+	/* Check destination domain. */
+	return ccs_assign_domain(domainname, r.profile,
+				 ccs_current_domain()->group, true) ?
+		0 : -ENOENT;
+}
+
+/**
  * ccs_write_transition - write() for /proc/ccs/.transition interface.
  *
  * @file:  Pointer to "struct file".

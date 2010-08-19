@@ -1000,7 +1000,6 @@ int ccs_env_perm(struct ccs_request_info *r, const char *env);
 int ccs_get_path(const char *pathname, struct path *path);
 int ccs_init_request_info(struct ccs_request_info *r, const u8 index);
 int ccs_lock(void);
-int ccs_may_transit(const char *domainname, const char *pathname);
 int ccs_open_control(const u8 type, struct file *file);
 int ccs_parse_ip_address(char *address, u16 *min, u16 *max);
 int ccs_path_permission(struct ccs_request_info *r, u8 operation,
@@ -1048,7 +1047,8 @@ int ccs_write_transition_control(char *data, const bool is_delete,
 size_t ccs_del_condition(struct list_head *element);
 struct ccs_condition *ccs_get_condition(char *condition);
 struct ccs_domain_info *ccs_assign_domain(const char *domainname,
-					  const u8 profile, const u8 group);
+					  const u8 profile, const u8 group,
+					  const bool transit);
 struct ccs_domain_info *ccs_find_domain(const char *domainname);
 struct ccs_group *ccs_get_group(const char *group_name, const u8 idx);
 struct ccs_profile *ccs_profile(const u8 profile);
