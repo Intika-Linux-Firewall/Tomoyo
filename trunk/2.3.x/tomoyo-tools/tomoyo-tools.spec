@@ -34,7 +34,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 /sbin/tomoyo-init
-/usr/lib/tomoyo/
+/usr/lib/
 /usr/sbin/
 /usr/share/man/
 %config(noreplace) /usr/lib/tomoyo/tomoyotools.conf
