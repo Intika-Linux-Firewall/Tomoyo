@@ -1,7 +1,11 @@
-all:
-	mkdir -p man8
-	chmod 755 tomoyo-* init_policy
-	for i in tomoyo-* init_policy; do ./$$i; done
+SRC = init_policy tomoyo-checkpolicy tomoyo-diffpolicy tomoyo-domainmatch tomoyo-editpolicy tomoyo-editpolicy-agent tomoyo-findtemp tomoyo-init tomoyo-ld-watch tomoyo-loadpolicy tomoyo-notifyd tomoyo-patternize tomoyo-pstree tomoyo-queryd tomoyo-savepolicy tomoyo-selectpolicy tomoyo-setlevel tomoyo-setprofile tomoyo-sortpolicy
+
+man8/%.8.gz : %
+	@mkdir -p man8
+	@chmod 755 $^
+	./$^
+
+all: $(patsubst %,man8/%.8.gz,$(SRC))
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/share/man/man8
