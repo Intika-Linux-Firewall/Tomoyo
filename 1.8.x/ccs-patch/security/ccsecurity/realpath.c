@@ -300,25 +300,27 @@ int ccs_symlink_path(const char *pathname, struct ccs_path_info *name)
 }
 
 /**
- * ccs_encode: Encode binary string to ascii string.
+ * ccs_encode2: Encode binary string to ascii string.
  *
- * @str: String in binary format.
+ * @str:     String in binary format.
+ * @str_len: Size of @str in byte.
  *
  * Returns pointer to @str in ascii format on success, NULL otherwise.
  *
  * This function uses kzalloc(), so caller must kfree() if this function
  * didn't return NULL.
  */
-char *ccs_encode(const char *str)
+char *ccs_encode2(const char *str, int str_len)
 {
+	int i;
 	int len = 0;
 	const char *p = str;
 	char *cp;
 	char *cp0;
 	if (!p)
 		return NULL;
-	while (*p) {
-		const unsigned char c = *p++;
+	for (i = 0; i < str_len; i++) {
+		const unsigned char c = p[i];
 		if (c == '\\')
 			len += 2;
 		else if (c > ' ' && c < 127)
@@ -333,8 +335,8 @@ char *ccs_encode(const char *str)
 		return NULL;
 	cp0 = cp;
 	p = str;
-	while (*p) {
-		const unsigned char c = *p++;
+	for (i = 0; i < str_len; i++) {
+		const unsigned char c = p[i];
 		if (c == '\\') {
 			*cp++ = '\\';
 			*cp++ = '\\';
@@ -348,6 +350,21 @@ char *ccs_encode(const char *str)
 		}
 	}
 	return cp0;
+}
+
+/**
+ * ccs_encode: Encode binary string to ascii string.
+ *
+ * @str: String in binary format.
+ *
+ * Returns pointer to @str in ascii format on success, NULL otherwise.
+ *
+ * This function uses kzalloc(), so caller must kfree() if this function
+ * didn't return NULL.
+ */
+char *ccs_encode(const char *str)
+{
+	return str ? ccs_encode2(str, strlen(str)) : NULL;
 }
 
 /**

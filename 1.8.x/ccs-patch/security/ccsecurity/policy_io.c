@@ -92,26 +92,48 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::transit",
 	[CCS_MAC_ENVIRON]
 	= "misc::env",
-	[CCS_MAC_NETWORK_TCP_BIND]
+	[CCS_MAC_NETWORK_INET_TCP_BIND]
 	= "network::inet_tcp_bind",
-	[CCS_MAC_NETWORK_TCP_LISTEN]
+	[CCS_MAC_NETWORK_INET_TCP_LISTEN]
 	= "network::inet_tcp_listen",
-	[CCS_MAC_NETWORK_TCP_CONNECT]
+	[CCS_MAC_NETWORK_INET_TCP_CONNECT]
 	= "network::inet_tcp_connect",
-	[CCS_MAC_NETWORK_TCP_ACCEPT]
+	[CCS_MAC_NETWORK_INET_TCP_ACCEPT]
 	= "network::inet_tcp_accept",
-	[CCS_MAC_NETWORK_UDP_BIND]
+	[CCS_MAC_NETWORK_INET_UDP_BIND]
 	= "network::inet_udp_bind",
-	[CCS_MAC_NETWORK_UDP_SEND]
+	[CCS_MAC_NETWORK_INET_UDP_CONNECT]
+	= "network::inet_udp_connect",
+	[CCS_MAC_NETWORK_INET_UDP_SEND]
 	= "network::inet_udp_send",
-	[CCS_MAC_NETWORK_UDP_RECV]
+	[CCS_MAC_NETWORK_INET_UDP_RECV]
 	= "network::inet_udp_recv",
-	[CCS_MAC_NETWORK_RAW_BIND]
+	[CCS_MAC_NETWORK_INET_RAW_BIND]
 	= "network::inet_raw_bind",
-	[CCS_MAC_NETWORK_RAW_SEND]
+	[CCS_MAC_NETWORK_INET_RAW_CONNECT]
+	= "network::inet_raw_connect",
+	[CCS_MAC_NETWORK_INET_RAW_SEND]
 	= "network::inet_raw_send",
-	[CCS_MAC_NETWORK_RAW_RECV]
+	[CCS_MAC_NETWORK_INET_RAW_RECV]
 	= "network::inet_raw_recv",
+	[CCS_MAC_NETWORK_UNIX_STREAM_BIND]
+	= "network::unix_stream_bind",
+	[CCS_MAC_NETWORK_UNIX_STREAM_LISTEN]
+	= "network::unix_stream_listen",
+	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]
+	= "network::unix_stream_connect",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]
+	= "network::unix_dgram_bind",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_CONNECT]
+	= "network::unix_dgram_connect",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]
+	= "network::unix_dgram_send",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]
+	= "network::unix_seqpacket_bind",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]
+	= "network::unix_seqpacket_listen",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT]
+	= "network::unix_seqpacket_connect",
 	[CCS_MAC_SIGNAL]
 	= "ipc::signal",
 	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
@@ -854,8 +876,9 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		const char *keyword;
 		int (*write) (char *, struct ccs_domain_info *,
 			      struct ccs_condition *, const bool);
-	} ccs_callback[4] = {
-		{ "network ", ccs_write_network },
+	} ccs_callback[5] = {
+		{ "network inet ", ccs_write_inet_network },
+		{ "network unix ", ccs_write_unix_network },
 		{ "misc ", ccs_write_misc },
 		{ "capability ", ccs_write_capability },
 		{ "ipc ", ccs_write_ipc },
@@ -871,7 +894,7 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		if (!cond)
 			return -EINVAL;
 	}
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 5; i++) {
 		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
 			continue;
 		write = ccs_callback[i].write;
@@ -1284,15 +1307,15 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		ccs_set_group(head);
 		ccs_set_string(head, "capability ");
 		ccs_set_string(head, ccs_cap2keyword(ptr->operation));
-	} else if (acl_type == CCS_TYPE_IP_NETWORK_ACL) {
-		struct ccs_ip_network_acl *ptr =
+	} else if (acl_type == CCS_TYPE_INET_ACL) {
+		struct ccs_inet_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
 		bit = ccs_fns(ptr->perm, bit);
 		if (bit >= CCS_MAX_NETWORK_OPERATION)
 			goto done;
 		ccs_set_group(head);
-		ccs_set_string(head, "network ");
-		ccs_set_string(head, ccs_net_protocol_keyword[ptr->protocol]);
+		ccs_set_string(head, "network inet ");
+		ccs_set_string(head, ccs_inet_keyword[ptr->protocol]);
 		ccs_set_space(head);
 		ccs_set_string(head, ccs_net_keyword[bit]);
 		ccs_set_space(head);
@@ -1315,6 +1338,18 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			break;
 		}
 		ccs_print_number_union(head, &ptr->port);
+	} else if (acl_type == CCS_TYPE_UNIX_ACL) {
+		struct ccs_unix_acl *ptr =
+			container_of(acl, typeof(*ptr), head);
+		bit = ccs_fns(ptr->perm, bit);
+		if (bit >= CCS_MAX_NETWORK_OPERATION)
+			goto done;
+		ccs_set_group(head);
+		ccs_set_string(head, "network unix ");
+		ccs_set_string(head, ccs_unix_keyword[ptr->protocol]);
+		ccs_set_space(head);
+		ccs_set_string(head, ccs_net_keyword[bit]);
+		ccs_print_name_union(head, &ptr->name);
 	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *ptr =
 			container_of(acl, typeof(*ptr), head);
@@ -1350,7 +1385,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 	case CCS_TYPE_MKDEV_ACL:
 	case CCS_TYPE_PATH2_ACL:
 	case CCS_TYPE_PATH_NUMBER_ACL:
-	case CCS_TYPE_IP_NETWORK_ACL:
+	case CCS_TYPE_INET_ACL:
+	case CCS_TYPE_UNIX_ACL:
 		goto next;
 	}
  done:
