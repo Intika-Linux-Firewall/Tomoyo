@@ -52,8 +52,7 @@ static _Bool ccs_path_contains_pattern(const char *filename)
 				e = *filename++;
 				if (e < '0' || e > '7')
 					break;
-				if (c != '0' || d != '0' || e != '0')
-					continue; /* pattern is not \000 */
+				continue;
 			}
 			return true;
 		}

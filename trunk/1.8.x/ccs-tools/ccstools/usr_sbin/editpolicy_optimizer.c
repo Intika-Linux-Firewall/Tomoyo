@@ -309,7 +309,7 @@ void ccs_editpolicy_try_optimize(struct ccs_domain_policy *dp, const int current
 			if (c && c != ' ')
 				continue;
 			break;
-		case CCS_DIRECTIVE_NETWORK:
+		case CCS_DIRECTIVE_NETWORK_INET:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
 			    !ccs_compare_address(s[2], d[2]) ||
 			    !ccs_compare_number(s[3], d[3]))

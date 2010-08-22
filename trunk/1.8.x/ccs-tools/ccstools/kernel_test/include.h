@@ -158,12 +158,15 @@ static void clear_status(void)
 		"network::inet_raw_bind",
 		"network::inet_raw_send",
 		"network::inet_raw_recv",
+		"network::unix_stream_bind",
+		"network::unix_stream_listen",
+		"network::unix_stream_connect",
+		"network::unix_dgram_bind",
+		"network::unix_dgram_send",
+		"network::unix_seqpacket_bind",
+		"network::unix_seqpacket_listen",
+		"network::unix_seqpacket_connect",
 		"ipc::signal",
-		"capability::inet_tcp_create",
-		"capability::inet_tcp_listen",
-		"capability::inet_tcp_connect",
-		"capability::use_inet_udp",
-		"capability::use_inet_ip",
 		"capability::use_route",
 		"capability::use_packet",
 		"capability::SYS_REBOOT",
@@ -172,10 +175,6 @@ static void clear_status(void)
 		"capability::SYS_NICE",
 		"capability::SYS_SETHOSTNAME",
 		"capability::use_kernel_module",
-		"capability::create_fifo",
-		"capability::create_block_dev",
-		"capability::create_char_dev",
-		"capability::create_unix_socket",
 		"capability::SYS_KEXEC_LOAD",
 		"capability::SYS_PTRACE",
 		NULL
@@ -188,9 +187,8 @@ static void clear_status(void)
 		exit(1);
 	}
 	for (i = 0; keywords[i]; i++)
-		fprintf(profile_fp,
-			"255-CONFIG::%s=disabled grant_log=no reject_log=no\n",
-			keywords[i]);
+		fprintf(profile_fp, "255-CONFIG::%s=disabled verbose=no "
+			"grant_log=no reject_log=no\n", keywords[i]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 10, fp)) {
 		const char *mode;
@@ -220,11 +218,13 @@ static void clear_status(void)
 	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=yes\n");
 	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=yes\n");
 	*/
-	fprintf(profile_fp, "255-PREFERENCE::learning= verbose=no\n");
-	fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=no\n");
-	fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=no\n");
-	fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=no\n");
-	fprintf(profile_fp, "255-PREFERENCE::learning= max_entry=2048\n");
+	/*
+	  fprintf(profile_fp, "255-PREFERENCE::learning= verbose=no\n");
+	  fprintf(profile_fp, "255-PREFERENCE::enforcing= verbose=no\n");
+	  fprintf(profile_fp, "255-PREFERENCE::permissive= verbose=no\n");
+	  fprintf(profile_fp, "255-PREFERENCE::disabled= verbose=no\n");
+	  fprintf(profile_fp, "255-PREFERENCE::learning= max_entry=2048\n");
+	*/
 	fflush(profile_fp);
 	fclose(fp);
 }

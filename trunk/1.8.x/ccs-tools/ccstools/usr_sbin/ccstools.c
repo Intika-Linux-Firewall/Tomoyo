@@ -266,9 +266,9 @@ _Bool ccs_decode(const char *ascii, char *bin)
 				f = (u8) ((c - '0') << 6) +
 					(((u8) (d - '0')) << 3) +
 					(((u8) (e - '0')));
-				if (f && (f <= ' ' || f >= 127)) {
+				if (f <= ' ' || f >= 127) {
 					*(bin - 1) = f;
-					continue; /* pattern is not \000 */
+					continue;
 				}
 			}
 			return false;
@@ -331,8 +331,8 @@ static _Bool ccs_correct_word2(const char *string, size_t len)
 				if (d < '0' || d > '7' || e < '0' || e > '7')
 					break;
 				c = ccs_make_byte(c, d, e);
-				if (c && (c <= ' ' || c >= 127))
-					continue; /* pattern is not \000 */
+				if (c <= ' ' || c >= 127)
+					continue;
 			}
 			goto out;
 		} else if (in_repetition && c == '/') {

@@ -75,7 +75,8 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_MOUNT_ACL,
 	CCS_TYPE_ENV_ACL,
 	CCS_TYPE_CAPABILITY_ACL,
-	CCS_TYPE_IP_NETWORK_ACL,
+	CCS_TYPE_INET_ACL,
+	CCS_TYPE_UNIX_ACL,
 	CCS_TYPE_SIGNAL_ACL,
 	CCS_TYPE_EXECUTE_HANDLER,
 	CCS_TYPE_DENIED_EXECUTE_HANDLER
@@ -121,20 +122,27 @@ enum ccs_path_number_acl_index {
 	CCS_MAX_PATH_NUMBER_OPERATION
 };
 
-enum ccs_network_protocol_index {
-	CCS_NETWORK_TCP_PROTOCOL,
-	CCS_NETWORK_UDP_PROTOCOL,
-	CCS_NETWORK_RAW_PROTOCOL,
-	CCS_MAX_NETWORK_PROTOCOL
+enum ccs_network_inet_protocol_index {
+	CCS_NETWORK_INET_TCP_PROTOCOL,
+	CCS_NETWORK_INET_UDP_PROTOCOL,
+	CCS_NETWORK_INET_RAW_PROTOCOL,
+	CCS_MAX_INET_PROTOCOL
+};
+
+enum ccs_network_unix_protocol_index {
+	CCS_NETWORK_UNIX_STREAM_PROTOCOL,
+	CCS_NETWORK_UNIX_DGRAM_PROTOCOL,
+	CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL,
+	CCS_MAX_UNIX_PROTOCOL
 };
 
 enum ccs_network_acl_index {
-	CCS_NETWORK_BIND,    /* TCP/UDP/IP's bind() operation. */
-	CCS_NETWORK_LISTEN,  /* TCP's listen() operation. */
-	CCS_NETWORK_CONNECT, /* TCP/UDP/IP's connect() operation. */
-	CCS_NETWORK_ACCEPT,  /* TCP's accept() operation. */
-	CCS_NETWORK_SEND,    /* UDP/IP's send() operation. */
-	CCS_NETWORK_RECV,    /* UDP/IP's recv() operation. */
+	CCS_NETWORK_BIND,    /* bind() operation. */
+	CCS_NETWORK_LISTEN,  /* listen() operation. */
+	CCS_NETWORK_CONNECT, /* connect() operation. */
+	CCS_NETWORK_ACCEPT,  /* accept() operation. */
+	CCS_NETWORK_SEND,    /* send() operation. */
+	CCS_NETWORK_RECV,    /* recv() operation. */
 	CCS_MAX_NETWORK_OPERATION
 };
 
@@ -185,16 +193,27 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
 	CCS_MAC_FILE_TRANSIT,
-	CCS_MAC_NETWORK_TCP_BIND,
-	CCS_MAC_NETWORK_TCP_LISTEN,
-	CCS_MAC_NETWORK_TCP_CONNECT,
-	CCS_MAC_NETWORK_TCP_ACCEPT,
-	CCS_MAC_NETWORK_UDP_BIND,
-	CCS_MAC_NETWORK_UDP_SEND,
-	CCS_MAC_NETWORK_UDP_RECV,
-	CCS_MAC_NETWORK_RAW_BIND,
-	CCS_MAC_NETWORK_RAW_SEND,
-	CCS_MAC_NETWORK_RAW_RECV,
+	CCS_MAC_NETWORK_INET_TCP_BIND,
+	CCS_MAC_NETWORK_INET_TCP_LISTEN,
+	CCS_MAC_NETWORK_INET_TCP_CONNECT,
+	CCS_MAC_NETWORK_INET_TCP_ACCEPT,
+	CCS_MAC_NETWORK_INET_UDP_BIND,
+	CCS_MAC_NETWORK_INET_UDP_CONNECT,
+	CCS_MAC_NETWORK_INET_UDP_SEND,
+	CCS_MAC_NETWORK_INET_UDP_RECV,
+	CCS_MAC_NETWORK_INET_RAW_BIND,
+	CCS_MAC_NETWORK_INET_RAW_CONNECT,
+	CCS_MAC_NETWORK_INET_RAW_SEND,
+	CCS_MAC_NETWORK_INET_RAW_RECV,
+	CCS_MAC_NETWORK_UNIX_STREAM_BIND,
+	CCS_MAC_NETWORK_UNIX_STREAM_LISTEN,
+	CCS_MAC_NETWORK_UNIX_STREAM_CONNECT,
+	CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
+	CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
+	CCS_MAC_NETWORK_UNIX_DGRAM_CONNECT,
+	CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
+	CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
+	CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
 	CCS_MAC_ENVIRON,
 	CCS_MAC_SIGNAL,
 	CCS_MAX_MAC_INDEX
@@ -584,7 +603,12 @@ struct ccs_request_info {
 			u8 protocol;
 			u8 operation;
 			bool is_ipv6;
-		} network;
+		} inet_network;
+		struct {
+			const struct ccs_path_info *address;
+			u8 protocol;
+			u8 operation;
+		} unix_network;
 		struct {
 			const struct ccs_path_info *name;
 		} environ;
@@ -830,10 +854,11 @@ struct ccs_ipv6addr {
 	struct in6_addr addr;
 };
 
-/* Structure for "network" directive. */
-struct ccs_ip_network_acl {
-	struct ccs_acl_info head; /* type = CCS_TYPE_IP_NETWORK_ACL */
-	u8 protocol; /* One of values in "enum_ccs_network_protocol_index" "*/
+/* Structure for "network inet" directive. */
+struct ccs_inet_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
+	/* One of values in "enum ccs_network_inet_protocol_index" */
+	u8 protocol;
 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	/*
 	 * address_type takes one of the following constants.
@@ -862,6 +887,15 @@ struct ccs_ip_network_acl {
 		struct ccs_group *group;
 	} address;
 	struct ccs_number_union port;
+};
+
+/* Structure for "network unix" directive. */
+struct ccs_unix_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_UNIX_ACL */
+	/* One of values in "enum ccs_network_unix_protocol_index" "*/
+	u8 protocol;
+	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
+	struct ccs_name_union name;
 };
 
 /* Structure for string data. */
@@ -986,6 +1020,7 @@ bool ccs_permstr(const char *string, const char *keyword);
 bool ccs_str_starts(char **src, const char *find);
 bool ccs_tokenize(char *buffer, char *w[], size_t size);
 char *ccs_encode(const char *str);
+char *ccs_encode2(const char *str, int str_len);
 char *ccs_init_log(int *len, struct ccs_request_info *r);
 char *ccs_realpath_from_path(struct path *path);
 const char *ccs_cap2keyword(const u8 operation);
@@ -1038,8 +1073,12 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 int ccs_write_memory_quota(struct ccs_io_buffer *head);
 int ccs_write_misc(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete);
-int ccs_write_network(char *data, struct ccs_domain_info *domain,
-		      struct ccs_condition *condition, const bool is_delete);
+int ccs_write_inet_network(char *data, struct ccs_domain_info *domain,
+			   struct ccs_condition *condition,
+			   const bool is_delete);
+int ccs_write_unix_network(char *data, struct ccs_domain_info *domain,
+			   struct ccs_condition *condition,
+			   const bool is_delete);
 int ccs_write_pattern(char *data, const bool is_delete);
 int ccs_write_reserved_port(char *data, const bool is_delete);
 int ccs_write_transition_control(char *data, const bool is_delete,
@@ -1122,7 +1161,8 @@ extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
 extern const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION];
-extern const char *ccs_net_protocol_keyword[CCS_MAX_NETWORK_PROTOCOL];
+extern const char *ccs_inet_keyword[CCS_MAX_INET_PROTOCOL];
+extern const char *ccs_unix_keyword[CCS_MAX_UNIX_PROTOCOL];
 extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];

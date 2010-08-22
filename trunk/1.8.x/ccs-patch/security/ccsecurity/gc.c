@@ -234,9 +234,9 @@ static size_t ccs_del_acl(struct list_head *element)
 			ccs_put_number_union(&entry->flags);
 		}
 		break;
-	case CCS_TYPE_IP_NETWORK_ACL:
+	case CCS_TYPE_INET_ACL:
 		{
-			struct ccs_ip_network_acl *entry;
+			struct ccs_inet_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			switch (entry->address_type) {
@@ -249,6 +249,14 @@ static size_t ccs_del_acl(struct list_head *element)
 				break;
 			}
 			ccs_put_number_union(&entry->port);
+		}
+		break;
+	case CCS_TYPE_UNIX_ACL:
+		{
+			struct ccs_unix_acl *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name_union(&entry->name);
 		}
 		break;
 	case CCS_TYPE_ENV_ACL:

@@ -168,8 +168,8 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 				if (e < '0' || e > '7')
 					break;
 				c = ccs_make_byte(c, d, e);
-				if (c && (c <= ' ' || c >= 127))
-					continue; /* pattern is not \000 */
+				if (c <= ' ' || c >= 127)
+					continue;
 			}
 			goto out;
 		} else if (in_repetition && c == '/') {
