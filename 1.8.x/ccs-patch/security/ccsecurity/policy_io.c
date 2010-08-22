@@ -102,16 +102,12 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "network::inet_tcp_accept",
 	[CCS_MAC_NETWORK_INET_UDP_BIND]
 	= "network::inet_udp_bind",
-	[CCS_MAC_NETWORK_INET_UDP_CONNECT]
-	= "network::inet_udp_connect",
 	[CCS_MAC_NETWORK_INET_UDP_SEND]
 	= "network::inet_udp_send",
 	[CCS_MAC_NETWORK_INET_UDP_RECV]
 	= "network::inet_udp_recv",
 	[CCS_MAC_NETWORK_INET_RAW_BIND]
 	= "network::inet_raw_bind",
-	[CCS_MAC_NETWORK_INET_RAW_CONNECT]
-	= "network::inet_raw_connect",
 	[CCS_MAC_NETWORK_INET_RAW_SEND]
 	= "network::inet_raw_send",
 	[CCS_MAC_NETWORK_INET_RAW_RECV]
@@ -122,18 +118,22 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "network::unix_stream_listen",
 	[CCS_MAC_NETWORK_UNIX_STREAM_CONNECT]
 	= "network::unix_stream_connect",
+	[CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT]
+	= "network::unix_stream_accept",
 	[CCS_MAC_NETWORK_UNIX_DGRAM_BIND]
 	= "network::unix_dgram_bind",
-	[CCS_MAC_NETWORK_UNIX_DGRAM_CONNECT]
-	= "network::unix_dgram_connect",
 	[CCS_MAC_NETWORK_UNIX_DGRAM_SEND]
 	= "network::unix_dgram_send",
+	[CCS_MAC_NETWORK_UNIX_DGRAM_RECV]
+	= "network::unix_dgram_recv",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND]
 	= "network::unix_seqpacket_bind",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN]
 	= "network::unix_seqpacket_listen",
 	[CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT]
 	= "network::unix_seqpacket_connect",
+	[CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT]
+	= "network::unix_seqpacket_accept",
 	[CCS_MAC_SIGNAL]
 	= "ipc::signal",
 	[CCS_MAX_MAC_INDEX + CCS_USE_ROUTE_SOCKET]
