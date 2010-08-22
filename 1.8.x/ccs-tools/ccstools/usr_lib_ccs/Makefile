@@ -5,10 +5,9 @@ all: $(BUILD_FILES)
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
-	chmod 755 $(BUILD_FILES) init_policy.sh
 	chmod 4711 force-logout
 	chown -R root:root .
-	cp -af --remove-destination $(BUILD_FILES) ccstools.conf init_policy.sh ../README.ccs ../COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
+	cp -af --remove-destination $(BUILD_FILES) ccstools.conf ../README.ccs ../COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 
 /usr/include/curses.h:
 	@echo "/usr/include/curses.h is missing."
