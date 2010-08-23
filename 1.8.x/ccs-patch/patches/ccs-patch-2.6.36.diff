@@ -23,10 +23,11 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  net/ipv6/raw.c            |   11 ++-
  net/ipv6/udp.c            |    8 ++
  net/socket.c              |    6 ++
+ net/unix/af_unix.c        |    3 +
  security/Kconfig          |    2 
  security/Makefile         |    3 +
  security/security.c       |  136 ++++++++++++++++++++++++++++++++++++++--------
- 24 files changed, 260 insertions(+), 56 deletions(-)
+ 25 files changed, 263 insertions(+), 56 deletions(-)
 
 --- linux-2.6.36-rc1-git4.orig/fs/compat.c
 +++ linux-2.6.36-rc1-git4/fs/compat.c
@@ -658,6 +659,18 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/testin
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
+--- linux-2.6.36-rc1-git4.orig/net/unix/af_unix.c
++++ linux-2.6.36-rc1-git4/net/unix/af_unix.c
+@@ -1701,6 +1701,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.36-rc1-git4.orig/security/Kconfig
 +++ linux-2.6.36-rc1-git4/security/Kconfig
 @@ -181,5 +181,7 @@ config DEFAULT_SECURITY

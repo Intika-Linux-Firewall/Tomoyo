@@ -35,10 +35,10 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   21 +++++++++++++++++----
  net/socket.c                    |   23 ++++++++++++++++++++++-
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 276 insertions(+), 16 deletions(-)
+ 36 files changed, 279 insertions(+), 16 deletions(-)
 
 --- linux-2.6.18-194.3AXS3.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.3AXS3/arch/alpha/kernel/ptrace.c
@@ -526,7 +526,7 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-194.3AXS3 2010/08/03\n");
++	printk(KERN_INFO "Hook version: 2.6.18-194.3AXS3 2010/08/23\n");
  }
 --- linux-2.6.18-194.3AXS3.orig/include/linux/init_task.h
 +++ linux-2.6.18-194.3AXS3/include/linux/init_task.h
@@ -1222,6 +1222,16 @@ Source code for this patch is http://ftp.miraclelinux.com/pub/Asianux/Server/3.0
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+@@ -1599,6 +1603,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.18-194.3AXS3.orig/security/Kconfig
 +++ linux-2.6.18-194.3AXS3/security/Kconfig
 @@ -123,5 +123,7 @@ config LSM_MMAP_MIN_ADDR

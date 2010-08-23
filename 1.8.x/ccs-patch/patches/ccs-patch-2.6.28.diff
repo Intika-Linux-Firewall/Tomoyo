@@ -31,10 +31,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 248 insertions(+), 11 deletions(-)
+ 32 files changed, 251 insertions(+), 11 deletions(-)
 
 --- linux-2.6.28.10.orig/fs/compat.c
 +++ linux-2.6.28.10/fs/compat.c
@@ -452,7 +452,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.28.10 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.28.10 2010/08/23\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -1081,6 +1081,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
  		mnt_drop_write(nd.path.mnt);
  		if (err)
+@@ -1658,6 +1662,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.28.10.orig/security/Kconfig
 +++ linux-2.6.28.10/security/Kconfig
 @@ -126,5 +126,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR

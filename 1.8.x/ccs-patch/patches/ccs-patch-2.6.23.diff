@@ -42,10 +42,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   10 +++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 43 files changed, 272 insertions(+), 11 deletions(-)
+ 43 files changed, 275 insertions(+), 11 deletions(-)
 
 --- linux-2.6.23.17.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.23.17/arch/alpha/kernel/ptrace.c
@@ -627,7 +627,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  			entry->proc_fops = &proc_sysrq_trigger_operations;
  	}
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.23.17 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.23.17 2010/08/23\n");
  }
 --- linux-2.6.23.17.orig/include/linux/init_task.h
 +++ linux-2.6.23.17/include/linux/init_task.h
@@ -1274,6 +1274,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+@@ -1644,6 +1648,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.23.17.orig/security/Kconfig
 +++ linux-2.6.23.17/security/Kconfig
 @@ -95,5 +95,7 @@ config SECURITY_ROOTPLUG

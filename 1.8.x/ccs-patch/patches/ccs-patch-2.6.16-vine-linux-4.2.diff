@@ -40,10 +40,10 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   14 +++++++++++++-
  net/socket.c                    |   23 ++++++++++++++++++++---
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 290 insertions(+), 18 deletions(-)
+ 41 files changed, 293 insertions(+), 18 deletions(-)
 
 --- linux-2.6.16-76.55vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/arch/alpha/kernel/ptrace.c
@@ -632,7 +632,7 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.16-76.55vl4 2010/08/23\n");
  }
 --- linux-2.6.16-76.55vl4.orig/include/linux/init_task.h
 +++ linux-2.6.16-76.55vl4/include/linux/init_task.h
@@ -1311,6 +1311,16 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+@@ -1570,6 +1574,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.16-76.55vl4.orig/security/Kconfig
 +++ linux-2.6.16-76.55vl4/security/Kconfig
 @@ -101,5 +101,7 @@ config SECURITY_SECLVL

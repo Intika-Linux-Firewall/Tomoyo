@@ -31,10 +31,10 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 248 insertions(+), 11 deletions(-)
+ 32 files changed, 251 insertions(+), 11 deletions(-)
 
 --- linux-2.6.28-19.64.orig/fs/compat.c
 +++ linux-2.6.28-19.64/fs/compat.c
@@ -1081,6 +1081,16 @@ Source code for this patch is "apt-get install linux-source-2.6.28"
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, nd.path.mnt,
  				mode, 0);
  		mnt_drop_write(nd.path.mnt);
+@@ -1661,6 +1665,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.28-19.64.orig/security/Kconfig
 +++ linux-2.6.28-19.64/security/Kconfig
 @@ -142,5 +142,7 @@ source security/selinux/Kconfig

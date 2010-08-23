@@ -40,10 +40,10 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   14 +++++++++++++-
  net/socket.c                    |   24 ++++++++++++++++++++++--
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 289 insertions(+), 16 deletions(-)
+ 41 files changed, 292 insertions(+), 16 deletions(-)
 
 --- linux-2.6.18-26etch2.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-26etch2/arch/alpha/kernel/ptrace.c
@@ -628,7 +628,7 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  	if (entry)
  		entry->proc_fops = &proc_sysrq_trigger_operations;
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.18-26etch2 2010/08/23\n");
  }
 --- linux-2.6.18-26etch2.orig/include/linux/init_task.h
 +++ linux-2.6.18-26etch2/include/linux/init_task.h
@@ -1308,6 +1308,16 @@ Source code for this patch is "apt-get install linux-source-2.6.18"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+@@ -1580,6 +1584,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.18-26etch2.orig/security/Kconfig
 +++ linux-2.6.18-26etch2/security/Kconfig
 @@ -107,5 +107,7 @@ config SECURITY_SECLVL
