@@ -495,8 +495,8 @@ static inline int ccs_search_binary_handler(struct linux_binprm *bprm,
 	return ccsecurity_ops.search_binary_handler(bprm, regs);
 }
 
-/* for net/ipv4/raw.c and net/ipv6/raw.c */
-#if defined(_RAW_H) || defined(_NET_RAWV6_H)
+/* for net/ipv4/raw.c and net/ipv6/raw.c and net/unix/af_unix.c */
+#if defined(_RAW_H) || defined(_NET_RAWV6_H) || defined(__LINUX_NET_AFUNIX_H)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 static inline void skb_kill_datagram(struct sock *sk, struct sk_buff *skb,
 				     unsigned int flags)

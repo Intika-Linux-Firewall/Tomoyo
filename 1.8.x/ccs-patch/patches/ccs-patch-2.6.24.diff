@@ -40,10 +40,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   10 +++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 268 insertions(+), 11 deletions(-)
+ 41 files changed, 270 insertions(+), 11 deletions(-)
 
 --- linux-2.6.24.7.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24.7/arch/ia64/ia32/sys_ia32.c
@@ -1233,13 +1233,22 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1649,6 +1653,9 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1636,6 +1640,7 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	mutex_lock(&u->readlock);
+ 
++retry:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb) {
+ 		unix_state_lock(sk);
+@@ -1649,6 +1654,10 @@ static int unix_dgram_recvmsg(struct kio
  
  	wake_up_interruptible_sync(&u->peer_wait);
  
-+	err = ccs_socket_post_recvmsg_permission(sk, skb);
-+	if (err)
-+		goto out_free;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		skb_kill_datagram(sk, skb, flags);
++		goto retry;
++	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  

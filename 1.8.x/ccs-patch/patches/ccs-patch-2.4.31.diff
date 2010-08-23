@@ -47,8 +47,8 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  net/ipv6/tcp_ipv6.c          |    3 +++
  net/ipv6/udp.c               |   19 +++++++++++++++++--
  net/socket.c                 |   23 +++++++++++++++++++++--
- net/unix/af_unix.c           |    7 +++++++
- 46 files changed, 332 insertions(+), 14 deletions(-)
+ net/unix/af_unix.c           |    9 +++++++++
+ 46 files changed, 334 insertions(+), 14 deletions(-)
 
 --- linux-2.4.31.orig/Makefile
 +++ linux-2.4.31/Makefile
@@ -1475,13 +1475,21 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.4/linux-
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1411,6 +1415,9 @@ static int unix_dgram_recvmsg(struct soc
+@@ -1405,12 +1409,17 @@ static int unix_dgram_recvmsg(struct soc
+ 
+ 	down(&sk->protinfo.af_unix.readsem);
+ 
++retry:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out_unlock;
  
  	wake_up_interruptible(&sk->protinfo.af_unix.peer_wait);
  
-+	err = ccs_socket_post_recvmsg_permission(sk, skb);
-+	if (err)
-+		goto out_free;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		skb_kill_datagram(sk, skb, flags);
++		goto retry;
++	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
