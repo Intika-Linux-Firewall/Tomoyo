@@ -35,10 +35,10 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   21 +++++++++++++++++----
  net/socket.c                    |   23 ++++++++++++++++++++++-
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 36 files changed, 279 insertions(+), 16 deletions(-)
+ 36 files changed, 281 insertions(+), 16 deletions(-)
 
 --- linux-2.6.18-194.11.1.el5.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.18-194.11.1.el5/arch/alpha/kernel/ptrace.c
@@ -1222,13 +1222,21 @@ Source code for this patch is http://mirrors.kernel.org/centos/5.5/updates/SRPMS
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1599,6 +1603,9 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1593,12 +1597,17 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	mutex_lock(&u->readlock);
+ 
++retry:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out_unlock;
  
  	wake_up_interruptible(&u->peer_wait);
  
-+	err = ccs_socket_post_recvmsg_permission(sk, skb);
-+	if (err)
-+		goto out_free;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		skb_kill_datagram(sk, skb, flags);
++		goto retry;
++	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  

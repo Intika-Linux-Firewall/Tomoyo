@@ -40,10 +40,10 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   14 +++++++++++++-
  net/socket.c                    |   23 ++++++++++++++++++++---
- net/unix/af_unix.c              |    7 +++++++
+ net/unix/af_unix.c              |    9 +++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 293 insertions(+), 18 deletions(-)
+ 41 files changed, 295 insertions(+), 18 deletions(-)
 
 --- linux-2.6.16-76.55vl4.orig/arch/alpha/kernel/ptrace.c
 +++ linux-2.6.16-76.55vl4/arch/alpha/kernel/ptrace.c
@@ -1311,13 +1311,21 @@ Source code for this patch is http://updates.vinelinux.org/Vine-4.2/updates/SRPM
  		err = vfs_mknod(nd.dentry->d_inode, dentry, mode, 0);
  		if (err)
  			goto out_mknod_dput;
-@@ -1570,6 +1574,9 @@ static int unix_dgram_recvmsg(struct kio
+@@ -1564,12 +1568,17 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	down(&u->readsem);
+ 
++retry:
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out_unlock;
  
  	wake_up_interruptible(&u->peer_wait);
  
-+	err = ccs_socket_post_recvmsg_permission(sk, skb);
-+	if (err)
-+		goto out_free;
++	if (ccs_socket_post_recvmsg_permission(sk, skb)) {
++		skb_kill_datagram(sk, skb, flags);
++		goto retry;
++	}
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
