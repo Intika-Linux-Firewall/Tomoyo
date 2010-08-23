@@ -31,10 +31,10 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    5 +++++
+ net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 233 insertions(+), 11 deletions(-)
+ 32 files changed, 236 insertions(+), 11 deletions(-)
 
 --- linux-2.6.32-24.41.orig/fs/compat.c
 +++ linux-2.6.32-24.41/fs/compat.c
@@ -1024,6 +1024,16 @@ Source code for this patch is "apt-get install linux-source-2.6.32"
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+@@ -1674,6 +1679,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.32-24.41.orig/security/Kconfig
 +++ linux-2.6.32-24.41/security/Kconfig
 @@ -203,5 +203,7 @@ config DEFAULT_SECURITY

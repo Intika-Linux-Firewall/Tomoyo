@@ -40,10 +40,10 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |   10 +++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 41 files changed, 266 insertions(+), 11 deletions(-)
+ 41 files changed, 269 insertions(+), 11 deletions(-)
 
 --- linux-2.6.24-28.75.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.24-28.75/arch/ia64/ia32/sys_ia32.c
@@ -1234,6 +1234,16 @@ Source code for this patch is "apt-get install linux-source-2.6.24"
  		err = vfs_mknod(nd.dentry->d_inode, dentry, nd.mnt, mode, 0);
  		if (err)
  			goto out_mknod_dput;
+@@ -1670,6 +1674,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.24-28.75.orig/security/Kconfig
 +++ linux-2.6.24-28.75/security/Kconfig
 @@ -122,5 +122,7 @@ config LSM_MMAP_MIN_ADDR

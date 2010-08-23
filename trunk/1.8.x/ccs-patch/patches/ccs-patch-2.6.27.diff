@@ -33,10 +33,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 245 insertions(+), 10 deletions(-)
+ 34 files changed, 248 insertions(+), 10 deletions(-)
 
 --- linux-2.6.27.52.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27.52/arch/ia64/ia32/sys_ia32.c
@@ -489,7 +489,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27.52 2010/08/21\n");
++	printk(KERN_INFO "Hook version: 2.6.27.52 2010/08/23\n");
  }
 --- linux-2.6.27.52.orig/include/linux/init_task.h
 +++ linux-2.6.27.52/include/linux/init_task.h
@@ -1115,6 +1115,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
  		mnt_drop_write(nd.path.mnt);
  		if (err)
+@@ -1661,6 +1665,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.27.52.orig/security/Kconfig
 +++ linux-2.6.27.52/security/Kconfig
 @@ -98,5 +98,7 @@ config SECURITY_ROOTPLUG

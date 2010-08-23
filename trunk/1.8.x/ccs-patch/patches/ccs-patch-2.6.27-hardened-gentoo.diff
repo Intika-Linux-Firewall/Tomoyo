@@ -33,10 +33,10 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    4 ++++
+ net/unix/af_unix.c              |    7 +++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 34 files changed, 243 insertions(+), 10 deletions(-)
+ 34 files changed, 246 insertions(+), 10 deletions(-)
 
 --- linux-2.6.27-hardened-r8.orig/arch/ia64/ia32/sys_ia32.c
 +++ linux-2.6.27-hardened-r8/arch/ia64/ia32/sys_ia32.c
@@ -473,7 +473,7 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  #ifdef CONFIG_MAGIC_SYSRQ
  	proc_create("sysrq-trigger", S_IWUSR, NULL, &proc_sysrq_trigger_operations);
  #endif
-+	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.27-hardened-r8 2010/08/23\n");
  }
 --- linux-2.6.27-hardened-r8.orig/include/linux/init_task.h
 +++ linux-2.6.27-hardened-r8/include/linux/init_task.h
@@ -1099,6 +1099,16 @@ Source code for this patch is "emerge =sys-kernel/hardened-sources-2.6.27-r8"
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
  		mnt_drop_write(nd.path.mnt);
  		if (err)
+@@ -1684,6 +1688,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.27-hardened-r8.orig/security/Kconfig
 +++ linux-2.6.27-hardened-r8/security/Kconfig
 @@ -559,5 +559,7 @@ config SECURITY_DEFAULT_MMAP_MIN_ADDR

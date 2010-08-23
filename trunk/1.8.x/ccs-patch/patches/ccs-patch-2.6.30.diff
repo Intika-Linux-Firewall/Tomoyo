@@ -31,10 +31,10 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  net/ipv6/raw.c                  |   12 +++++++++---
  net/ipv6/udp.c                  |    9 ++++++++-
  net/socket.c                    |   22 ++++++++++++++++++++++
- net/unix/af_unix.c              |    5 +++++
+ net/unix/af_unix.c              |    8 ++++++++
  security/Kconfig                |    2 ++
  security/Makefile               |    3 +++
- 32 files changed, 240 insertions(+), 11 deletions(-)
+ 32 files changed, 243 insertions(+), 11 deletions(-)
 
 --- linux-2.6.30.10.orig/fs/compat.c
 +++ linux-2.6.30.10/fs/compat.c
@@ -430,7 +430,7 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.30.10 2010/07/26\n");
++	printk(KERN_INFO "Hook version: 2.6.30.10 2010/08/23\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
@@ -1059,6 +1059,16 @@ Source code for this patch is http://www.kernel.org/pub/linux/kernel/v2.6/linux-
  		if (err)
  			goto out_mknod_drop_write;
  		err = vfs_mknod(nd.path.dentry->d_inode, dentry, mode, 0);
+@@ -1669,6 +1674,9 @@ static int unix_dgram_recvmsg(struct kio
+ 
+ 	wake_up_interruptible_sync(&u->peer_wait);
+ 
++	err = ccs_socket_post_recvmsg_permission(sk, skb);
++	if (err)
++		goto out_free;
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
 --- linux-2.6.30.10.orig/security/Kconfig
 +++ linux-2.6.30.10/security/Kconfig
 @@ -119,5 +119,7 @@ source security/tomoyo/Kconfig
