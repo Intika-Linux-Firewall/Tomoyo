@@ -575,15 +575,23 @@ static bool ccs_check_inet_address(const struct sockaddr *addr,
 	return false;
 }
 
-static void ccs_check_unix_address(struct sockaddr *addr,
+static bool ccs_check_unix_address(struct sockaddr *addr,
 				   const unsigned int addr_len,
 				   struct ccs_unix_addr_info *address)
 {
+	if (addr->sa_family != AF_UNIX)
+		return false;
 	address->addr = ((struct sockaddr_un *) addr)->sun_path;
 	address->addr_len = addr_len;
+	/*
+	 * Terminate pathname with '\0' like unix_mkname() does.
+	 * This is needed because pathname was copied by move_addr_to_kernel()
+	 * but not yet terminated by unix_mkname().
+	 */
 	if (address->addr[0] && addr_len > sizeof(short) &&
 	    addr_len <= sizeof(struct sockaddr_un))
                 ((char *) addr)[addr_len] = '\0';
+	return true;
 }
 
 static bool ccs_kernel_service(void)
@@ -640,9 +648,9 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
 		else
 			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
-		ccs_check_unix_address((struct sockaddr *) &addr, addr_len,
-				       &address.unix0);
-		error = ccs_unix_entry(&address);
+		if (ccs_check_unix_address((struct sockaddr *) &addr, addr_len,
+					   &address.unix0))
+			error = ccs_unix_entry(&address);
  	} else {
 		address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
 		if (ccs_check_inet_address((struct sockaddr *) &addr, addr_len,
@@ -678,8 +686,8 @@ static int __ccs_socket_connect_permission(struct socket *sock,
 		default:
 			return 0;
 		}
-		ccs_check_unix_address(addr, addr_len, &address.unix0);
-		error = ccs_unix_entry(&address);
+		if (ccs_check_unix_address(addr, addr_len, &address.unix0))
+			error = ccs_unix_entry(&address);
 	} else {
 		switch (type) {
 		case SOCK_STREAM:
@@ -730,8 +738,8 @@ static int __ccs_socket_bind_permission(struct socket *sock,
 		default:
 			return 0;
 		}
-		ccs_check_unix_address(addr, addr_len, &address.unix0);
-		error = ccs_unix_entry(&address);
+		if (ccs_check_unix_address(addr, addr_len, &address.unix0))
+			error = ccs_unix_entry(&address);
 	} else {
 		switch (type) {
 		case SOCK_STREAM:
@@ -770,9 +778,9 @@ static int __ccs_socket_sendmsg_permission(struct socket *sock,
 		if (type != SOCK_DGRAM)
 			return 0;
 		address.protocol = CCS_NETWORK_UNIX_DGRAM_PROTOCOL;
-		ccs_check_unix_address((struct sockaddr *) msg->msg_name,
-				       msg->msg_namelen, &address.unix0);
-		error = ccs_unix_entry(&address);
+		if (ccs_check_unix_address((struct sockaddr *) msg->msg_name,
+					   msg->msg_namelen, &address.unix0))
+			error = ccs_unix_entry(&address);
 	} else {
 		switch (type) {
 		case SOCK_DGRAM:
@@ -818,9 +826,9 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
 		else
 			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
-		ccs_check_unix_address((struct sockaddr *) &addr, addr_len,
-				       &address.unix0);
-		error = ccs_unix_entry(&address);
+		if (ccs_check_unix_address((struct sockaddr *) &addr, addr_len,
+					   &address.unix0))
+			error = ccs_unix_entry(&address);
 	} else {
 		address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
 		if (ccs_check_inet_address((struct sockaddr *) &addr, addr_len,
