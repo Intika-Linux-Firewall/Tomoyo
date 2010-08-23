@@ -1210,19 +1210,6 @@ static inline void ccs_realpath_unlock(void)
 	spin_unlock(&dcache_lock);
 }
 
-#elif defined(D_PATH_DISCONNECT)
-
-static inline void ccs_realpath_lock(void)
-{
-	spin_lock(ccsecurity_exports.vfsmount_lock);
-	spin_lock(&dcache_lock);
-}
-static inline void ccs_realpath_unlock(void)
-{
-	spin_unlock(&dcache_lock);
-	spin_unlock(ccsecurity_exports.vfsmount_lock);
-}
-
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 
 static inline void ccs_realpath_lock(void)
