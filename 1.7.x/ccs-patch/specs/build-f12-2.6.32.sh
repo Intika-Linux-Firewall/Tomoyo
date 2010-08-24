@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32.16-150.fc12.src.rpm ]
+if [ ! -r kernel-2.6.32.19-163.fc12.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.16-150.fc12.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/12/SRPMS/kernel-2.6.32.19-163.fc12.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32.16-150.fc12.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32.16-150.fc12.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32.19-163.fc12.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32.19-163.fc12.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -430,6 +430,11 @@
+@@ -429,6 +429,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +49,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -465,7 +470,7 @@
+@@ -464,7 +469,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -58,7 +58,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut >= 002 xorg-x11-drv-ati-firmware
  %else
-@@ -501,7 +506,7 @@
+@@ -500,7 +505,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -956,7 +961,7 @@
+@@ -946,7 +951,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -76,7 +76,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1571,6 +1576,10 @@
+@@ -1559,6 +1564,10 @@
  # END OF PATCH APPLICATIONS ====================================================
  %endif
  
@@ -87,7 +87,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -1595,6 +1604,9 @@
+@@ -1585,6 +1594,9 @@
  for i in *.config
  do
    mv $i .config
