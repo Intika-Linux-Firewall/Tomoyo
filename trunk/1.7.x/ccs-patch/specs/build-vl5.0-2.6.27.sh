@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for VineLinux 5.0's 2.6.27 kernel.
+# This is a kernel build script for VineLinux 5.1's 2.6.27 kernel.
 #
 
 die () {
@@ -10,17 +10,22 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.27-57vl5.src.rpm ]
+if [ ! -r kernel-2.6.27-59vl5.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-5.0/updates/SRPMS/kernel-2.6.27-57vl5.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-5.1/updates/SRPMS/kernel-2.6.27-59vl5.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.27-57vl5.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.27-57vl5.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.27-59vl5.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.27-59vl5.src.rpm || die "Can't install source package."
 
 cd /usr/src/vine/SOURCES/ || die "Can't chdir to /usr/src/vine/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
 then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+fi
+
+if [ ! -r ccs-patch-1.7.2-20100824.diff ]
+then
+    wget -O ccs-patch-1.7.2-20100824.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.27-vine-linux-5.1.diff?revision=3921&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -29,11 +34,11 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel-2.6-vl.spec
 +++ kernel-2.6-vl.spec
 @@ -27,7 +27,7 @@
- %define patchlevel 46
+ %define patchlevel 51
  %define kversion 2.6.%{sublevel}
  %define rpmversion 2.6.%{sublevel}
--%define release 57%{?_dist_release}
-+%define release 57%{?_dist_release}_tomoyo_1.7.2p2
+-%define release 59%{?_dist_release}
++%define release 59%{?_dist_release}_tomoyo_1.7.2p2
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -62,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.27-vine-linux-5.0.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100824.diff
 +
  cp %{SOURCE10} Documentation/
  
