@@ -78,8 +78,10 @@ enum ccs_acl_entry_type_index {
 	CCS_TYPE_INET_ACL,
 	CCS_TYPE_UNIX_ACL,
 	CCS_TYPE_SIGNAL_ACL,
-	CCS_TYPE_EXECUTE_HANDLER,
-	CCS_TYPE_DENIED_EXECUTE_HANDLER
+	CCS_TYPE_AUTO_EXECUTE_HANDLER,
+	CCS_TYPE_DENIED_EXECUTE_HANDLER,
+	CCS_TYPE_AUTO_TASK_ACL,
+	CCS_TYPE_MANUAL_TASK_ACL,
 };
 
 enum ccs_path_acl_index {
@@ -93,7 +95,7 @@ enum ccs_path_acl_index {
 	CCS_TYPE_SYMLINK,
 	CCS_TYPE_CHROOT,
 	CCS_TYPE_UMOUNT,
-	CCS_TYPE_TRANSIT,
+	//CCS_TYPE_TRANSIT,
 	CCS_MAX_PATH_OPERATION
 };
 
@@ -192,7 +194,7 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MOUNT,
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
-	CCS_MAC_FILE_TRANSIT,
+	//CCS_MAC_FILE_TRANSIT,
 	CCS_MAC_NETWORK_INET_TCP_BIND,
 	CCS_MAC_NETWORK_INET_TCP_LISTEN,
 	CCS_MAC_NETWORK_INET_TCP_CONNECT,
@@ -241,9 +243,6 @@ enum ccs_conditions_index {
 	CCS_TASK_PPID,            /* sys_getppid()  */
 	CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
 	CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-	CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
-	CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
-	CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
 	CCS_TYPE_IS_SOCKET,       /* S_IFSOCK */
 	CCS_TYPE_IS_SYMLINK,      /* S_IFLNK */
 	CCS_TYPE_IS_FILE,         /* S_IFREG */
@@ -377,7 +376,7 @@ enum ccs_policy_id {
 #define CCS_KEYWORD_USE_GROUP                 "use_group "
 #define CCS_KEYWORD_QUOTA_EXCEEDED            "quota_exceeded"
 #define CCS_KEYWORD_TRANSITION_FAILED         "transition_failed"
-#define CCS_KEYWORD_EXECUTE_HANDLER           "execute_handler"
+#define CCS_KEYWORD_AUTO_EXECUTE_HANDLER      "auto_execute_handler"
 #define CCS_KEYWORD_DENIED_EXECUTE_HANDLER    "denied_execute_handler"
 
 /* A domain definition starts with <kernel>. */
@@ -411,13 +410,12 @@ enum ccs_mode_value {
 	CCS_CONFIG_USE_DEFAULT     = 255
 };
 
-#define CCS_OPEN_FOR_READ_TRUNCATE        4
-#define CCS_OPEN_FOR_IOCTL_ONLY           8
-#define CCS_TASK_IS_IN_EXECVE            16
-#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR  32
-#define CCS_TASK_IS_EXECUTE_HANDLER      64
-#define CCS_TASK_IS_MANAGER             128
-/* Highest 24 bits are reserved for task.state[] conditions. */
+#define CCS_OPEN_FOR_READ_TRUNCATE        1
+#define CCS_OPEN_FOR_IOCTL_ONLY           2
+#define CCS_TASK_IS_IN_EXECVE             4
+#define CCS_DONT_SLEEP_ON_ENFORCE_ERROR   8
+#define CCS_TASK_IS_EXECUTE_HANDLER      16
+#define CCS_TASK_IS_MANAGER              32
 
 #define CCS_RETRY_REQUEST 1 /* Retry this request. */
 
@@ -540,7 +538,7 @@ struct ccs_condition_element {
 	bool equals;
 };
 
-/* Structure for " if " and "; set" part. */
+/* Structure for " if " part. */
 struct ccs_condition {
 	struct ccs_shared_acl_head head;
 	u32 size;
@@ -549,7 +547,8 @@ struct ccs_condition {
 	u16 names_count;
 	u16 argc;
 	u16 envc;
-	u8 post_state[5];
+	u8 audit;
+	const struct ccs_path_info *transit; /* This may be NULL. */
 	/*
 	 * struct ccs_condition_element condition[condc];
 	 * struct ccs_number_union values[numbers_count];
@@ -626,16 +625,19 @@ struct ccs_request_info {
 			unsigned long flags;
 			int need_dev;
 		} mount;
+		struct {
+			const struct ccs_path_info *domainname;
+		} task;
 	} param;
 	u8 param_type;
 	bool granted;
 	/*
-	 * For updating current->ccs_flags at ccs_update_task_state().
+	 * For updating current->ccs_domain_info at ccs_update_task_domain().
 	 * Initialized to NULL at ccs_init_request_info().
-	 * Matching "struct ccs_acl_info"->cond is copied if access request was
-	 * granted. Re-initialized to NULL at ccs_update_task_state().
+	 * Matching "struct ccs_acl_info" is copied if access request was
+	 * granted. Re-initialized to NULL at ccs_update_task_domain().
 	 */
-	struct ccs_condition *cond;
+	struct ccs_acl_info *matched_acl;
 	/*
 	 * For counting number of retries made for this request.
 	 * This counter is incremented whenever ccs_supervisor() returned
@@ -681,8 +683,6 @@ struct ccs_execve {
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
 	char *handler_path; /* = kstrdup(handler->name, CCS_GFP_FLAGS) */
-	u8 handler_type; /* = CCS_TYPE_EXECUTE_HANDLER or
-			    CCS_TYPE_DENIED_EXECUTE_HANDLER */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
 	/* For temporary use. */
@@ -692,7 +692,7 @@ struct ccs_execve {
 /* Structure for domain information. */
 struct ccs_domain_info {
 	struct list_head list;
-	struct list_head acl_info_list;
+	struct list_head acl_info_list[2];
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
 	u8 profile;        /* Profile number to use. */
@@ -756,14 +756,13 @@ struct ccs_envp {
 };
 
 /*
- * Structure for "execute_handler" and "denied_execute_handler" directive.
- * These directives can exist only one entry in a domain.
+ * Structure for "auto_execute_handler" and "denied_execute_handler" directive.
  *
- * If "execute_handler" directive exists and the current process is not
+ * If "auto_execute_handler" directive exists and the current process is not
  * an execute handler, all execve() requests are replaced by execve() requests
- * of a program specified by "execute_handler" directive.
+ * of a program specified by "auto_execute_handler" directive.
  * If the current process is an execute handler,
- * "execute_handler" and "denied_execute_handler" directives are ignored.
+ * "auto_execute_handler" and "denied_execute_handler" directives are ignored.
  * The program specified by "execute_handler" validates execve() parameters
  * and executes the original execve() requests if appropriate.
  *
@@ -773,9 +772,19 @@ struct ccs_envp {
  * to do (e.g. silently terminate, change firewall settings,
  * redirect the user to honey pot etc.).
  */
-struct ccs_execute_handler {
-	struct ccs_acl_info head;        /* type = CCS_TYPE_*EXECUTE_HANDLER */
+struct ccs_handler_acl {
+	struct ccs_acl_info head;       /* type = CCS_TYPE_*_EXECUTE_HANDLER */
 	const struct ccs_path_info *handler; /* Pointer to single pathname.  */
+};
+
+/*
+ * Structure for "task auto_domain_transition" and
+ * "task manual_domain_transition" directive.
+ */
+struct ccs_task_acl {
+	struct ccs_acl_info head; /* type = CCS_TYPE_*_TASK_ACL */
+	/* Pointer to domainname. */
+	const struct ccs_path_info *domainname;
 };
 
 /*

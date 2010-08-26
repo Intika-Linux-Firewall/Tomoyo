@@ -282,13 +282,22 @@ static size_t ccs_del_acl(struct list_head *element)
 			ccs_put_name(entry->domainname);
 		}
 		break;
-	case CCS_TYPE_EXECUTE_HANDLER:
+	case CCS_TYPE_AUTO_EXECUTE_HANDLER:
 	case CCS_TYPE_DENIED_EXECUTE_HANDLER:
 		{
-			struct ccs_execute_handler *entry;
+			struct ccs_handler_acl *entry;
 			size = sizeof(*entry);
 			entry = container_of(acl, typeof(*entry), head);
 			ccs_put_name(entry->handler);
+		}
+		break;
+	case CCS_TYPE_AUTO_TASK_ACL:
+	case CCS_TYPE_MANUAL_TASK_ACL:
+		{
+			struct ccs_task_acl *entry;
+			size = sizeof(*entry);
+			entry = container_of(acl, typeof(*entry), head);
+			ccs_put_name(entry->domainname);
 		}
 		break;
 	default:
@@ -311,6 +320,7 @@ static inline size_t ccs_del_domain(struct list_head *element)
 		container_of(element, typeof(*domain), list);
 	struct ccs_acl_info *acl;
 	struct ccs_acl_info *tmp;
+	u8 i;
 	/*
 	 * We need to recheck domain at this point.
 	 *
@@ -330,9 +340,12 @@ static inline size_t ccs_del_domain(struct list_head *element)
 	 */
 	if (ccs_used_by_task(domain))
 		return 0;
-	list_for_each_entry_safe(acl, tmp, &domain->acl_info_list, list) {
-		size_t size = ccs_del_acl(&acl->list);
-		ccs_memory_free(acl, size);
+	for (i = 0; i < 2; i++) {
+		list_for_each_entry_safe(acl, tmp, &domain->acl_info_list[i],
+					 list) {
+			size_t size = ccs_del_acl(&acl->list);
+			ccs_memory_free(acl, size);
+		}
 	}
 	ccs_put_name(domain->domainname);
 	return sizeof(*domain);
@@ -465,6 +478,7 @@ size_t ccs_del_condition(struct list_head *element)
 		ccs_put_name(envp->name);
 		ccs_put_name(envp->value);
 	}
+	ccs_put_name(cond->transit);
 	return cond->size;
 }
 
@@ -568,11 +582,14 @@ static bool ccs_collect_member(struct list_head *member_list, int id)
 static bool ccs_collect_acl(struct ccs_domain_info *domain)
 {
 	struct ccs_acl_info *acl;
-	list_for_each_entry(acl, &domain->acl_info_list, list) {
-		if (!acl->is_deleted)
-			continue;
-		if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
-			return false;
+	u8 i;
+	for (i = 0; i < 2; i++) {
+		list_for_each_entry(acl, &domain->acl_info_list[i], list) {
+			if (!acl->is_deleted)
+				continue;
+			if (!ccs_add_to_gc(CCS_ID_ACL, &acl->list))
+				return false;
+		}
 	}
 	return true;
 }

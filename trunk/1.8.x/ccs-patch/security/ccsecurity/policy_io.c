@@ -88,8 +88,6 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::umount",
 	[CCS_MAC_FILE_PIVOT_ROOT]
 	= "file::pivot_root",
-	[CCS_MAC_FILE_TRANSIT]
-	= "file::transit",
 	[CCS_MAC_ENVIRON]
 	= "misc::env",
 	[CCS_MAC_NETWORK_INET_TCP_BIND]
@@ -806,10 +804,16 @@ static bool ccs_manager(void)
 static char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
-	if (!cp)
-		cp = strstr(data, " ; set ");
-	if (cp)
-		*cp++ = '\0';
+	if (cp) {
+		while (1) {
+			char *cp2 = strstr(cp + 3, " if ");
+			if (!cp2)
+				break;
+			cp = cp2;
+		}
+		*cp = '\0';
+		cp += 4;
+	}
 	return cp;
 }
 
@@ -869,6 +873,80 @@ static bool ccs_select_one(struct ccs_io_buffer *head, const char *data)
 	return true;
 }
 
+static bool ccs_same_handler_acl(const struct ccs_acl_info *a,
+				 const struct ccs_acl_info *b)
+{
+	const struct ccs_handler_acl *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_handler_acl *p2 = container_of(b, typeof(*p2), head);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		p1->handler == p2->handler;
+}
+
+static bool ccs_same_task_acl(const struct ccs_acl_info *a,
+			      const struct ccs_acl_info *b)
+{
+	const struct ccs_task_acl *p1 = container_of(a, typeof(*p1), head);
+	const struct ccs_task_acl *p2 = container_of(b, typeof(*p2), head);
+	return ccs_same_acl_head(&p1->head, &p2->head) &&
+		p1->domainname == p2->domainname;
+}
+
+/**
+ * ccs_write_task - Update task related list.
+ *
+ * @data:      String to parse.
+ * @domain:    Pointer to "struct ccs_domain_info".
+ * @condition: Pointer to "struct ccs_condition". Maybe NULL.
+ * @is_delete: True if it is a delete request.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_write_task(char *data, struct ccs_domain_info *domain,
+			  struct ccs_condition *condition,
+			  const bool is_delete)
+{
+	int error;
+	const bool is_auto = ccs_str_starts(&data, "auto_domain_transition ");
+	if (!is_auto && !ccs_str_starts(&data, "manual_domain_transition ")) {
+		struct ccs_handler_acl e = {
+			.head.cond = condition,
+		};
+		if (ccs_str_starts(&data, "auto_execute_handler "))
+			e.head.type = CCS_TYPE_AUTO_EXECUTE_HANDLER;
+		else if (ccs_str_starts(&data, "denied_execute_handler "))
+			e.head.type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
+		else
+			return -EINVAL;
+		if (!ccs_correct_path(data))
+			return -EINVAL;
+		e.handler = ccs_get_name(data);
+		if (!e.handler)
+			return -ENOMEM;
+		if (e.handler->is_patterned)
+			error = -EINVAL; /* No patterns allowed. */
+		else
+			error = ccs_update_domain(&e.head, sizeof(e),
+						  is_delete, domain,
+						  ccs_same_handler_acl, NULL);
+		ccs_put_name(e.handler);
+	} else {
+		struct ccs_task_acl e = {
+			.head.type = is_auto ?
+			CCS_TYPE_AUTO_TASK_ACL : CCS_TYPE_MANUAL_TASK_ACL,
+			.head.cond = condition,
+		};
+		if (!ccs_correct_domain(data))
+			return -EINVAL;
+		e.domainname = ccs_get_name(data);
+		if (!e.domainname)
+			return -ENOMEM;
+		error = ccs_update_domain(&e.head, sizeof(e), is_delete,
+					  domain, ccs_same_task_acl, NULL);
+		ccs_put_name(e.domainname);
+	}
+	return error;
+}
+
 static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 			     const bool is_delete)
 {
@@ -876,16 +954,16 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		const char *keyword;
 		int (*write) (char *, struct ccs_domain_info *,
 			      struct ccs_condition *, const bool);
-	} ccs_callback[5] = {
+	} ccs_callback[7] = {
+		{ "file ", ccs_write_file },
 		{ "network inet ", ccs_write_inet_network },
 		{ "network unix ", ccs_write_unix_network },
 		{ "misc ", ccs_write_misc },
 		{ "capability ", ccs_write_capability },
 		{ "ipc ", ccs_write_ipc },
+		{ "task ", ccs_write_task },
 	};
-	int (*write) (char *, struct ccs_domain_info *, struct ccs_condition *,
-		      const bool) = ccs_write_file;
-	int error;
+	int error = -EINVAL;
 	u8 i;
 	struct ccs_condition *cond = NULL;
 	char *cp = ccs_find_condition_part(data);
@@ -894,13 +972,12 @@ static int ccs_write_domain2(char *data, struct ccs_domain_info *domain,
 		if (!cond)
 			return -EINVAL;
 	}
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < 7; i++) {
 		if (!ccs_str_starts(&data, ccs_callback[i].keyword))
 			continue;
-		write = ccs_callback[i].write;
+		error = ccs_callback[i].write(data, domain, cond, is_delete);
 		break;
 	}
-	error = write(data, domain, cond, is_delete);
 	if (cond)
 		ccs_put_condition(cond);
 	return error;
@@ -1054,8 +1131,7 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 	switch (head->r.cond_step) {
 	case 0:
 		{ 
-			if (cond->condc)
-				ccs_set_string(head, " if");
+			ccs_set_string(head, " if");
 			head->r.cond_index = 0;
 			head->r.cond_step++;
 		}
@@ -1167,19 +1243,13 @@ static bool ccs_print_condition(struct ccs_io_buffer *head,
 		head->r.cond_step++;
 		/* fall through */
 	case 3:
-		{
-			u8 j;
-			const u8 i = cond->post_state[3];
-			if (i)
-				ccs_set_string(head, " ; set");
-			for (j = 0; j < 3; j++)
-				if ((i & (1 << j)))
-					ccs_io_printf(head, 
-						      " task.state[%u]=%u", j,
-						      cond->post_state[j]);
-			if (i & (1 << 4))
-				ccs_io_printf(head, " audit=%s",
-					      ccs_yesno(cond->post_state[4]));
+		if (cond->audit)
+			ccs_io_printf(head, " audit=%s",
+				      ccs_yesno(cond->audit == 2));
+		if (cond->transit) {
+			ccs_set_string(head, " auto_domain_transitition=\"");
+			ccs_set_string(head, cond->transit->name);
+			ccs_set_string(head, "\"");
 		}
 		ccs_set_lf(head);
 		return true;
@@ -1238,7 +1308,8 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			if (!(perm & (1 << bit)))
 				continue;
 			if (head->r.print_execute_only &&
-			    bit != CCS_TYPE_EXECUTE && bit != CCS_TYPE_TRANSIT)
+			    bit != CCS_TYPE_EXECUTE
+			    /* && bit != CCS_TYPE_TRANSIT */)
 				continue;
 			break;
 		}
@@ -1248,16 +1319,26 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 		ccs_set_string(head, "file ");
 		ccs_set_string(head, ccs_path_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
-	} else if (acl_type == CCS_TYPE_EXECUTE_HANDLER ||
+	} else if (acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
 		   acl_type == CCS_TYPE_DENIED_EXECUTE_HANDLER) {
-		struct ccs_execute_handler *ptr
+		struct ccs_handler_acl *ptr
 			= container_of(acl, typeof(*ptr), head);
 		ccs_set_group(head);
-		ccs_io_printf(head, "%s ",
-			      acl_type == CCS_TYPE_EXECUTE_HANDLER ?
-			      CCS_KEYWORD_EXECUTE_HANDLER :
-			      CCS_KEYWORD_DENIED_EXECUTE_HANDLER);
+		ccs_set_string(head, "task ");
+		ccs_set_string(head, acl_type == CCS_TYPE_AUTO_EXECUTE_HANDLER
+			       ? "auto_execute_handler " :
+			       "denied_execute_handler ");
 		ccs_set_string(head, ptr->handler->name);
+	} else if (acl_type == CCS_TYPE_AUTO_TASK_ACL ||
+		   acl_type == CCS_TYPE_MANUAL_TASK_ACL) {
+		struct ccs_task_acl *ptr =
+			container_of(acl, typeof(*ptr), head);
+		ccs_set_group(head);
+		ccs_set_string(head, "task ");
+		ccs_set_string(head, acl_type == CCS_TYPE_AUTO_TASK_ACL ?
+			       "auto_domain_transition " :
+			       "manual_domain_transition ");
+		ccs_set_string(head, ptr->domainname->name);
 	} else if (head->r.print_execute_only) {
 		return true;
 	} else if (acl_type == CCS_TYPE_MKDEV_ACL) {
@@ -1399,15 +1480,17 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
  *
  * @head:   Pointer to "struct ccs_io_buffer".
  * @domain: Pointer to "struct ccs_domain_info".
+ * @index:  Index number.
  *
  * Caller holds ccs_read_lock().
  *
  * Returns true on success, false otherwise.
  */
 static bool ccs_read_domain2(struct ccs_io_buffer *head,
-			     struct ccs_domain_info *domain)
+			     struct ccs_domain_info *domain,
+			     const u8 index)
 {
-	list_for_each_cookie(head->r.acl, &domain->acl_info_list) {
+	list_for_each_cookie(head->r.acl, &domain->acl_info_list[index]) {
 		struct ccs_acl_info *ptr =
 			list_entry(head->r.acl, typeof(*ptr), list);
 		if (!ccs_print_entry(head, ptr))
@@ -1451,13 +1534,18 @@ static void ccs_read_domain(struct ccs_io_buffer *head)
 			ccs_set_lf(head);
 			/* fall through */
 		case 1:
-			if (!ccs_read_domain2(head, domain))
+			if (!ccs_read_domain2(head, domain, 0))
+				return;
+			head->r.step++;
+			/* fall through */
+		case 2:
+			if (!ccs_read_domain2(head, domain, 1))
 				return;
 			head->r.step++;
 			if (!ccs_set_lf(head))
 				return;
 			/* fall through */
-		case 2:
+		case 3:
 			head->r.step = 0;
 			if (head->r.print_this_domain_only)
 				goto done;
@@ -1597,15 +1685,11 @@ static void ccs_read_pid(struct ccs_io_buffer *head)
 		ccs_io_printf(head, "%u %u ", pid, domain->profile);
 		ccs_set_string(head, domain->domainname->name);
 	} else {
-		ccs_io_printf(head, "%u manager=%s execute_handler=%s "
-			      "state[0]=%u state[1]=%u state[2]=%u", pid,
+		ccs_io_printf(head, "%u manager=%s execute_handler=%s ", pid,
 			      ccs_yesno(ccs_flags &
 					CCS_TASK_IS_MANAGER),
 			      ccs_yesno(ccs_flags &
-					CCS_TASK_IS_EXECUTE_HANDLER),
-			      (u8) (ccs_flags >> 24),
-			      (u8) (ccs_flags >> 16),
-			      (u8) (ccs_flags >> 8));
+					CCS_TASK_IS_EXECUTE_HANDLER));
 	}
 }
 
@@ -1819,11 +1903,12 @@ static void ccs_read_exception(struct ccs_io_buffer *head)
 	if (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP)
 		return;
 	while (head->r.step < CCS_MAX_POLICY + CCS_MAX_GROUP
-	       + CCS_MAX_ACL_GROUPS) {
-		head->r.group_index = head->r.step - CCS_MAX_POLICY
-			- CCS_MAX_GROUP;
+	       + CCS_MAX_ACL_GROUPS * 2) {
+		head->r.group_index = (head->r.step - CCS_MAX_POLICY
+				       - CCS_MAX_GROUP) / 2;
 		if (!ccs_read_domain2(head,
-				      &ccs_acl_group[head->r.group_index]))
+				      &ccs_acl_group[head->r.group_index],
+				      head->r.step & 1))
 			return;
 		head->r.step++;
 	}

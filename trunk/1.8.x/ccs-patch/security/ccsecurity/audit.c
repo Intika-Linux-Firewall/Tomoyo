@@ -174,15 +174,12 @@ static char *ccs_print_header(struct ccs_request_info *r)
 		pos += snprintf(buffer + pos, ccs_buffer_len - 1 - pos,
 				" task={ pid=%u ppid=%u uid=%u gid=%u euid=%u"
 				" egid=%u suid=%u sgid=%u fsuid=%u fsgid=%u"
-				" state[0]=%u state[1]=%u state[2]=%u"
 				" type%s=execute_handler }",
 				(pid_t) ccsecurity_exports.sys_getpid(),
 				(pid_t) ccsecurity_exports.sys_getppid(),
 				current_uid(), current_gid(), current_euid(),
 				current_egid(), current_suid(), current_sgid(),
-				current_fsuid(), current_fsgid(),
-				(u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
-				(u8) (ccs_flags >> 8), ccs_flags &
+				current_fsuid(), current_fsgid(), ccs_flags &
 				CCS_TASK_IS_EXECUTE_HANDLER ? "" : "!");
 	}
 	if (!obj || !ccs_profile(r->profile)->preference.audit_path_info)
@@ -292,39 +289,39 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
 }
 
 /**
- * ccs_update_task_state - Update task's state.
+ * ccs_update_task_domain - Update task's domain.
  *
  * @r: Pointer to "struct ccs_request_info".
  */
-static void ccs_update_task_state(struct ccs_request_info *r)
+static void ccs_update_task_domain(struct ccs_request_info *r)
 {
-	/*
-	 * Don't change the lowest byte because it is reserved for
-	 * CCS_TASK_IS_IN_EXECVE / CCS_DONT_SLEEP_ON_ENFORCE_ERROR /
-	 * CCS_TASK_IS_EXECUTE_HANDLER / CCS_TASK_IS_MANAGER.
-	 */
-	const struct ccs_condition *ptr = r->cond;
-	if (ptr) {
-		const u8 flags = ptr->post_state[3];
-		if (flags & 7) {
-			struct task_struct *task = current;
-			u32 ccs_flags = task->ccs_flags;
-			if (flags & 1) {
-				ccs_flags &= ~0xFF000000;
-				ccs_flags |= ptr->post_state[0] << 24;
-			}
-			if (flags & 2) {
-				ccs_flags &= ~0x00FF0000;
-				ccs_flags |= ptr->post_state[1] << 16;
-			}
-			if (flags & 4) {
-				ccs_flags &= ~0x0000FF00;
-				ccs_flags |= ptr->post_state[2] << 8;
-			}
-			task->ccs_flags = ccs_flags;
-		}
-		r->cond = NULL;
+	static char ccs_transition_buf[CCS_EXEC_TMPSIZE];
+	static DEFINE_MUTEX(ccs_transition_mutex);
+	const struct ccs_domain_info *domain;
+	char *buf;
+	const struct ccs_acl_info *acl = r->matched_acl;
+	r->matched_acl = NULL;
+	if (!acl || !acl->cond || !acl->cond->transit)
+		return;
+	buf = kmalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+	if (!buf) {
+		if (mutex_lock_interruptible(&ccs_transition_mutex))
+			goto out;
+		buf = ccs_transition_buf;
 	}
+	domain = ccs_current_domain();
+	snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s", domain->domainname->name,
+		 acl->cond->transit->name);
+	if (!ccs_assign_domain(buf, r->profile, domain->group, true)) {
+ out:
+		printk(KERN_WARNING
+		       "ERROR: Unable to transit to '%s' domain.\n", buf);
+		force_sig(SIGKILL, current);
+	}
+	if (buf != ccs_transition_buf)
+		kfree(buf);
+	else
+		mutex_unlock(&ccs_transition_mutex);
 }
 
 #ifndef CONFIG_CCSECURITY_AUDIT
@@ -339,7 +336,7 @@ static void ccs_update_task_state(struct ccs_request_info *r)
  */
 int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 {
-	ccs_update_task_state(r);
+	ccs_update_task_domain(r);
 	return 0;
 }
 
@@ -377,7 +374,7 @@ static unsigned int ccs_log_count[2];
  * Returns mode.
  */
 static bool ccs_get_audit(const u8 profile, const u8 index,
-			  const struct ccs_condition *cond,
+			  const struct ccs_acl_info *matched_acl,
 			  const bool is_granted)
 {
 	u8 mode;
@@ -385,8 +382,9 @@ static bool ccs_get_audit(const u8 profile, const u8 index,
 		+ CCS_MAX_CAPABILITY_INDEX;
 	if (!ccs_policy_loaded)
 		return false;
-	if (is_granted && cond && (cond->post_state[3] & (1 << 4)))
-		return cond->post_state[4];
+	if (is_granted && matched_acl && matched_acl->cond &&
+	    matched_acl->cond->audit)
+		return matched_acl->cond->audit == 2;
 	mode = ccs_profile(profile)->config[index];
 	if (mode == CCS_CONFIG_USE_DEFAULT)
 		mode = ccs_profile(profile)->config[category];
@@ -422,7 +420,7 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	else
 		len = pref->audit_max_reject_log;
 	if (ccs_log_count[is_granted] >= len ||
-	    !ccs_get_audit(r->profile, r->type, r->cond, is_granted))
+	    !ccs_get_audit(r->profile, r->type, r->matched_acl, is_granted))
 		goto out;
 	va_start(args, fmt);
 	len = vsnprintf((char *) &pos, sizeof(pos) - 1, fmt, args) + 32;
@@ -463,7 +461,7 @@ int ccs_write_log(struct ccs_request_info *r, const char *fmt, ...)
 	wake_up(&ccs_log_wait[is_granted]);
 	error = 0;
  out:
-	ccs_update_task_state(r);
+	ccs_update_task_domain(r);
 	return error;
 }
 

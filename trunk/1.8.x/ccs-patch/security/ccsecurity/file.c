@@ -41,7 +41,7 @@ const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_SYMLINK]    = "symlink",
 	[CCS_TYPE_CHROOT]     = "chroot",
 	[CCS_TYPE_UMOUNT]     = "unmount",
-	[CCS_TYPE_TRANSIT]    = "transit",
+	//[CCS_TYPE_TRANSIT]    = "transit",
 };
 
 const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION] = {
@@ -77,7 +77,7 @@ static const u8 ccs_p2mac[CCS_MAX_PATH_OPERATION] = {
 	[CCS_TYPE_SYMLINK]    = CCS_MAC_FILE_SYMLINK,
 	[CCS_TYPE_CHROOT]     = CCS_MAC_FILE_CHROOT,
 	[CCS_TYPE_UMOUNT]     = CCS_MAC_FILE_UMOUNT,
-	[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
+	//[CCS_TYPE_TRANSIT]    = CCS_MAC_FILE_TRANSIT,
 };
 
 static const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION] = {
@@ -400,48 +400,6 @@ static bool ccs_check_mkdev_acl(struct ccs_request_info *r,
 		ccs_compare_number_union(r->param.mkdev.major, &acl->major) &&
 		ccs_compare_number_union(r->param.mkdev.minor, &acl->minor) &&
 		ccs_compare_name_union(r->param.mkdev.filename, &acl->name);
-}
-
-static bool ccs_same_execute_handler(const struct ccs_acl_info *a,
-				     const struct ccs_acl_info *b)
-{
-	const struct ccs_execute_handler *p1 = container_of(a, typeof(*p1),
-							    head);
-	const struct ccs_execute_handler *p2 = container_of(b, typeof(*p2),
-							    head);
-	return ccs_same_acl_head(&p1->head, &p2->head) &&
-		p1->handler == p2->handler;
-}
-
-/**
- * ccs_update_execute_handler - Update "struct ccs_execute_handler" list.
- *
- * @type:      Type of execute handler.
- * @filename:  Pathname to the execute handler.
- * @domain:    Pointer to "struct ccs_domain_info".
- * @is_delete: True if it is a delete request.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_update_execute_handler(const u8 type, const char *filename,
-				      struct ccs_domain_info * const domain,
-				      const bool is_delete)
-{
-	struct ccs_execute_handler e = { .head.type = type };
-	int error;
-	if (!ccs_correct_path(filename))
-		return -EINVAL;
-	e.handler = ccs_get_name(filename);
-	if (!e.handler)
-		return -ENOMEM;
-	if (e.handler->is_patterned)
-		error = -EINVAL; /* No patterns allowed. */
-	else
-		error = ccs_update_domain(&e.head, sizeof(e), is_delete,
-					  domain, ccs_same_execute_handler,
-					  NULL);
-	ccs_put_name(e.handler);
-	return error;
 }
 
 static bool ccs_same_path_acl(const struct ccs_acl_info *a,
@@ -1268,52 +1226,41 @@ static int __ccs_umount_permission(struct vfsmount *mnt, int flags)
 int ccs_write_file(char *data, struct ccs_domain_info *domain,
 		   struct ccs_condition *condition, const bool is_delete)
 {
-	char *w[6];
+	char *w[5];
 	u16 perm = 0;
 	u8 type;
-
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[1][0])
 		return -EINVAL;
-	if (strcmp(w[0], "file")) {
-		if (!strcmp(w[0], CCS_KEYWORD_EXECUTE_HANDLER))
-			type = CCS_TYPE_EXECUTE_HANDLER;
-		else if (!strcmp(w[0], CCS_KEYWORD_DENIED_EXECUTE_HANDLER))
-			type = CCS_TYPE_DENIED_EXECUTE_HANDLER;
-		else
-			goto out;
-		return ccs_update_execute_handler(type, w[1], domain,
-						  is_delete);
-	}
 	for (type = 0; type < CCS_MAX_PATH_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_path_keyword[type]))
+		if (ccs_permstr(w[0], ccs_path_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path_acl(perm, w[2], domain, condition,
+		return ccs_update_path_acl(perm, w[1], domain, condition,
 					   is_delete);
-	if (!w[3][0])
+	if (!w[2][0])
 		goto out;
 	for (type = 0; type < CCS_MAX_PATH2_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_path2_keyword[type]))
+		if (ccs_permstr(w[0], ccs_path2_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path2_acl(perm, w[2], w[3], domain,
+		return ccs_update_path2_acl(perm, w[1], w[2], domain,
 					    condition, is_delete);
 	for (type = 0; type < CCS_MAX_PATH_NUMBER_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_path_number_keyword[type]))
+		if (ccs_permstr(w[0], ccs_path_number_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_path_number_acl(perm, w[2], w[3], domain,
+		return ccs_update_path_number_acl(perm, w[1], w[2], domain,
 						  condition, is_delete);
-	if (!w[4][0] || !w[5][0])
+	if (!w[3][0] || !w[4][0])
 		goto out;
 	for (type = 0; type < CCS_MAX_MKDEV_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_mkdev_keyword[type]))
+		if (ccs_permstr(w[0], ccs_mkdev_keyword[type]))
 			perm |= 1 << type;
 	if (perm)
-		return ccs_update_mkdev_acl(perm, w[2], w[3], w[4], w[5],
+		return ccs_update_mkdev_acl(perm, w[1], w[2], w[3], w[4],
 					    domain, condition, is_delete);
-	if (ccs_permstr(w[1], "mount"))
-		return ccs_update_mount_acl(w[2], w[3], w[4], w[5], domain,
+	if (ccs_permstr(w[0], "mount"))
+		return ccs_update_mount_acl(w[1], w[2], w[3], w[4], domain,
 					    condition, is_delete);
  out:
 	return -EINVAL;
