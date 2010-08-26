@@ -227,88 +227,6 @@ static void stage_open_test(void)
 			 buffer, O_RDONLY, 1);
 		try_open("file read proc:/\\@\\*\\$\\@\\*/\\@\\*mounts\\@\\*",
 			 buffer, O_RDONLY, 1);
-
-		snprintf(buffer, sizeof(buffer) - 1, "/etc/fstab");
-		try_open("file read /etc/fstab ; set task.state[0]=1", buffer,
-			 O_RDONLY, 1);
-		try_open("file read /etc/fstab "
-			 "if task.state[0]=0-2 ; set task.state[1]=3", buffer,
-			 O_RDONLY, 1);
-		try_open("file read /etc/fstab "
-			 "if task.state[0]=1 task.state[1]=3 "
-			 "; set task.state[1]=5", buffer, O_RDONLY, 1);
-		try_open("file read /etc/fstab if task.state[0]!=1 "
-			 "; set task.state[2]=254", buffer, O_RDONLY, 0);
-		try_open("file read /etc/fstab "
-			 "if task.state[0]!=2-255 task.state[1]=5-7 "
-			 "; set task.state[2]=10", buffer, O_RDONLY, 1);
-		try_open("file read /etc/fstab "
-			 "if task.state[0]=4-255 task.state[1]=5-7 "
-			 "; set task.state[2]=0", buffer, O_RDONLY, 0);
-		try_open("file read /etc/fstab "
-			 "if task.state[0]=1 task.state[1]=0-10 "
-			 "task.state[2]!=0-9 ; set task.state[0]=0 "
-			 "task.state[1]=0 task.state[2]=0", buffer, O_RDONLY,
-			 1);
-	}
-}
-
-static void try_signal(const char *condition, const unsigned char s0,
-		       const unsigned char s1, const unsigned char s2) {
-	char buffer[8192];
-	int err = 0;
-	int fd = open(proc_policy_process_status, O_RDWR);
-	char *cp;
-	int sig = (rand() % 10000) + 100;
-	memset(buffer, 0, sizeof(buffer));
-	fprintf(domain_fp, "select pid=%d\n", pid);
-	snprintf(buffer, sizeof(buffer) - 1, "ipc signal %d <kernel> %s",
-		 sig, condition);
-	printf("%s: ", buffer);
-	fprintf(domain_fp, "%s\n", buffer);
-	errno = 0;
-	kill(1, sig);
-	err = errno;
-	fprintf(domain_fp, "delete %s\n", buffer);
-	memset(buffer, 0, sizeof(buffer));
-	snprintf(buffer, sizeof(buffer) - 1, "info %d\n", pid);
-	write(fd, buffer, strlen(buffer));
-	buffer[0] = '\0';
-	read(fd, buffer, sizeof(buffer) - 1);
-	close(fd);
-	cp = strstr(buffer, " state[0]=");
-	if (!cp || atoi(cp + 10) != s0)
-		goto out;
-	cp = strstr(buffer, " state[1]=");
-	if (!cp || atoi(cp + 10) != s1)
-		goto out;
-	cp = strstr(buffer, " state[2]=");
-	if (!cp || atoi(cp + 10) != s2)
-		goto out;
-	if (err == EINVAL)
-		printf("OK. State changed.\n");
-	else
-		printf("BUG: failed (%d)\n", err);
-	return;
- out:
-	printf("BUG: state change failed: %s\n", buffer);
-}
-
-static void stage_signal_test(void)
-{
-	int i;
-	for (i = 0; i < 5; i++) {
-		try_signal("; set task.state[0]=0 task.state[1]=0 "
-			   "task.state[2]=1", 0, 0, 1);
-		try_signal("if task.state[0]=0 ; set task.state[0]=1", 1, 0, 1);
-		try_signal("if task.state[0]=1 ; set task.state[0]=10", 10, 0,
-			   1);
-		try_signal("if task.state[0]=10 ; set task.state[0]=100", 100,
-			   0, 1);
-		try_signal("if task.state[0]=100 ; set task.state[1]=100", 100,
-			   100, 1);
-		try_signal("if task.state[1]=100 ; set task.state[2]=200", 100,
-			   100, 200);
 	}
 }
 
@@ -362,9 +280,6 @@ int main(int argc, char *argv[])
 	set_profile(0, "file::mount");
 	set_profile(0, "file::umount");
 	set_profile(0, "file::pivot_root");
-	set_profile(3, "ipc::signal");
-	stage_signal_test();
-	set_profile(0, "ipc::signal");
 	clear_status();
 	return 0;
 }

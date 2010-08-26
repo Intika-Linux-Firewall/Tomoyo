@@ -242,6 +242,10 @@ static void printf_encoded(const char *str, const unsigned int flags)
 	}
 	if (keyword)
 		fprintf(filp, "%s ", keyword);
+	if (!strncmp(str, "/proc/", 6)) {
+		fprintf(filp, "proc:");
+		str += 5;
+	}
 	while (1) {
 		const char c = *str++;
 		if (!c)
@@ -267,6 +271,8 @@ static void printf_encoded(const char *str, const unsigned int flags)
 				((c >> 3) & 7) + '0', (c & 7) + '0');
 		}
 	}
+	if (keyword && !strcmp(keyword, "initialize_domain"))
+		fprintf(filp, " from any");
 	if (keyword)
 		fputc('\n', filp);
 }
@@ -568,16 +574,10 @@ static void make_patterns_for_crontab(void)
 {
 	/* Make patterns for crontab(1). */
 	const char *exe;
-	if (fgrep("Red Hat Linux", "/etc/issue"))
-		echo("file_pattern /tmp/crontab.\\$");
-	if (fgrep("Fedora Core", "/etc/issue"))
-		echo("file_pattern /tmp/crontab.XXXX\\?\\?\\?\\?\\?\\?");
-	if (fgrep("Debian", "/etc/issue")) {
-		echo("file_pattern "
-		     "/tmp/crontab.\\?\\?\\?\\?\\?\\?/");
-		echo("file_pattern "
-		     "/tmp/crontab.\\?\\?\\?\\?\\?\\?/crontab");
-	}
+	echo("file_pattern /tmp/crontab.\\$");
+	echo("file_pattern /tmp/crontab.XXXX\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/crontab.\\?\\?\\?\\?\\?\\?/");
+	echo("file_pattern /tmp/crontab.\\?\\?\\?\\?\\?\\?/crontab");
 	exe = which("crontab");
 	if (!exe)
 		return;
@@ -593,8 +593,8 @@ static void make_globally_readable_files(void)
 {
 	/* Allow reading some data files. */
 	static const char *files[] = {
-		"/etc/ld.so.cache", "/proc/meminfo",
-		"/proc/sys/kernel/version", "/etc/localtime",
+		"/etc/ld.so.cache", "proc:/meminfo",
+		"proc:/sys/kernel/version", "/etc/localtime",
 		"/usr/lib/gconv/gconv-modules.cache",
 		"/usr/lib32/gconv/gconv-modules.cache",
 		"/usr/lib64/gconv/gconv-modules.cache",
@@ -825,14 +825,8 @@ static void make_patterns_for_udev(void)
 	struct stat buf;
 	if (!lstat("/dev/.udev", &buf) && S_ISDIR(buf.st_mode)) {
 		echo("file_pattern /dev/.udev/\\*");
-		echo("file_pattern /dev/.udev/\\*/");
-		echo("file_pattern /dev/.udev/\\*/\\*");
-		echo("file_pattern /dev/.udev/\\*/\\*/");
-		echo("file_pattern /dev/.udev/\\*/\\*/\\*");
-		echo("file_pattern /dev/.udev/\\*/\\*/\\*/");
-		echo("file_pattern /dev/.udev/\\*/\\*/\\*/\\*");
-		echo("file_pattern /dev/.udev/\\*/\\*/\\*/\\*/");
-		echo("file_pattern /dev/.udev/\\*/\\*/\\*/\\*/\\*");
+		echo("file_pattern /dev/.udev/\\{\\*\\}/");
+		echo("file_pattern /dev/.udev/\\{\\*\\}/\\*");
 	}
 	if (!lstat("/dev/.udevdb", &buf) && S_ISDIR(buf.st_mode))
 		echo("file_pattern /dev/.udevdb/\\*");
@@ -1064,36 +1058,26 @@ static void make_patterns_for_misc(void)
 {
 	/* Miscellaneous patterns. */
 	struct stat buf;
-	if (fgrep("Red Hat Linux", "/etc/issue")) {
-		if (!lstat("/var/log/sa", &buf) && S_ISDIR(buf.st_mode))
-			echo("file_pattern /var/log/sa/sa\\*");
-		echo("file_pattern /tmp/man.\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /tmp/file.\\?\\?\\?\\?\\?\\?");
-	}
-	if (fgrep("Fedora Core", "/etc/issue") ||
-	    fgrep("CentOS", "/etc/issue")) {
-		echo("file_pattern /etc/.fstab.hal.\\?");
-		echo("file_pattern /tmp/file\\?\\?\\?\\?\\?\\?");
-	}
-	if (fgrep("Debian", "/etc/issue")) {
-		echo("file_pattern /tmp/ex4\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /tmp/tmpf\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /tmp/zcat\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /tmp/zman\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /var/cache/man/\\$");
-		echo("file_pattern /var/cache/man/\\*/\\$");
-		echo("file_pattern /root/mbox.XXXX\\?\\?\\?\\?\\?\\?");
-	}
-	if (fgrep("SUSE LINUX 10", "/etc/issue")) {
-		echo("file_pattern /tmp/used_interface_names.\\*");
-		echo("file_pattern /var/run/fence\\?\\?\\?\\?\\?\\?");
-		echo("file_pattern /dev/shm/sysconfig/tmp/if-lo.\\$");
-		echo("file_pattern /dev/shm/sysconfig/tmp/if-lo.\\$.tmp");
-		echo("file_pattern /dev/shm/sysconfig/tmp/if-eth0.\\$");
-		echo("file_pattern /dev/shm/sysconfig/tmp/if-eth0.\\$.tmp");
-		echo("file_pattern /var/run/nscd/db\\?\\?\\?\\?\\?\\?");
-	}
-
+	if (!lstat("/var/log/sa", &buf) && S_ISDIR(buf.st_mode))
+		echo("file_pattern /var/log/sa/sa\\*");
+	echo("file_pattern /tmp/man.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/file.\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /etc/.fstab.hal.\\?");
+	echo("file_pattern /tmp/file\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/ex4\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/tmpf\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/zcat\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/zman\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /var/cache/man/\\$");
+	echo("file_pattern /var/cache/man/\\*/\\$");
+	echo("file_pattern /root/mbox.XXXX\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /tmp/used_interface_names.\\*");
+	echo("file_pattern /var/run/fence\\?\\?\\?\\?\\?\\?");
+	echo("file_pattern /dev/shm/sysconfig/tmp/if-lo.\\$");
+	echo("file_pattern /dev/shm/sysconfig/tmp/if-lo.\\$.tmp");
+	echo("file_pattern /dev/shm/sysconfig/tmp/if-eth0.\\$");
+	echo("file_pattern /dev/shm/sysconfig/tmp/if-eth0.\\$.tmp");
+	echo("file_pattern /var/run/nscd/db\\?\\?\\?\\?\\?\\?");
 	if (!lstat("/var/lib/init.d", &buf) && S_ISDIR(buf.st_mode)) {
 		echo("file_pattern /var/lib/init.d/mtime-test.\\$");
 		echo("file_pattern /var/lib/init.d/exclusive/\\*.\\$");
@@ -1103,6 +1087,7 @@ static void make_patterns_for_misc(void)
 		     "/var/lib/init.d/treecache.\\?\\?\\?\\?\\?\\?\\?");
 	}
 
+	echo("file_pattern /tmp/vte\\?\\?\\?\\?\\?\\?");
 	echo("file_pattern /etc/group.\\$");
 	echo("file_pattern /etc/gshadow.\\$");
 	echo("file_pattern /etc/passwd.\\$");
@@ -1116,9 +1101,7 @@ static void make_patterns_for_misc(void)
 		echo("file_pattern /var/run/hald/acl-list.\\?\\?\\?\\?\\?\\?");
 	if (!lstat("/usr/share/zoneinfo", &buf) && S_ISDIR(buf.st_mode)) {
 		echo("file_pattern /usr/share/zoneinfo/\\*");
-		echo("file_pattern /usr/share/zoneinfo/\\*/\\*");
-		echo("file_pattern /usr/share/zoneinfo/\\*/\\*/\\*");
-		echo("file_pattern /usr/share/zoneinfo/\\*/\\*/\\*/\\*");
+		echo("file_pattern /usr/share/zoneinfo/\\{\\*\\}/\\*");
 	}
 	if (!lstat("/tmp/.ICE-unix", &buf) && S_ISDIR(buf.st_mode))
 		echo("file_pattern /tmp/.ICE-unix/\\$");

@@ -88,7 +88,7 @@ int main(int raw_argc, char *raw_argv[])
 	if (!cp)
 		return 1;
 	cp++;
-	fprintf(domain_fp, "execute_handler %s\n", cp);
+	fprintf(domain_fp, "task auto_execute_handler %s\n", cp);
 	fprintf(domain_fp, "%s %s\n", self_domain, cp);
 	fprintf(domain_fp, "use_profile 0\n");
 	fflush(domain_fp);
@@ -107,8 +107,8 @@ int main(int raw_argc, char *raw_argv[])
 		printf("BUG: execute handler failed\n");
 		fflush(stdout);
 	}
-	fprintf(domain_fp, "delete execute_handler %s\n", cp);
-	fprintf(domain_fp, "denied_execute_handler %s\n", cp);
+	fprintf(domain_fp, "delete task auto_execute_handler %s\n", cp);
+	fprintf(domain_fp, "task denied_execute_handler %s\n", cp);
 	fprintf(domain_fp, "delete file execute /bin/echo\n");
 	set_profile(3, "file::execute");
 	set_profile(3, "file::open");
@@ -127,7 +127,7 @@ int main(int raw_argc, char *raw_argv[])
 		fflush(stdout);
 	}
 	set_profile(0, "file::execute");
-	fprintf(domain_fp, "delete denied_execute_handler %s\n", cp);
+	fprintf(domain_fp, "delete task denied_execute_handler %s\n", cp);
 	clear_status();
 	return 0;
 }
