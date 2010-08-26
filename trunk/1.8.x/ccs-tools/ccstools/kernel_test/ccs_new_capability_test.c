@@ -20,13 +20,6 @@
  */
 #include "include.h"
 
-static int child(void *arg)
-{
-	errno = 0;
-	pivot_root("/proc", proc_policy_dir);
-	return errno;
-}
-
 static const char *capability = "";
 
 static int write_policy(void)

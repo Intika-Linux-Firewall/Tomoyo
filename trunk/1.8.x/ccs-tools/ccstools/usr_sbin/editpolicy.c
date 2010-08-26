@@ -987,8 +987,8 @@ static void ccs_read_domain_and_exception_policy(struct ccs_domain_policy *dp)
 		} else if (index == EOF) {
 			continue;
 		}
-		if (ccs_str_starts(line, "execute_handler ") ||
-		    ccs_str_starts(line, "denied_execute_handler ") ||
+		if (ccs_str_starts(line, "task auto_execute_handler ") ||
+		    ccs_str_starts(line, "task denied_execute_handler ") ||
 		    (ccs_str_starts(line, "file ") && ccs_has_execute(line))) {
 			char *cp = strchr(line, ' ');
 			if (cp)
@@ -1039,8 +1039,10 @@ no_domain:
 			char *cp = strchr(line + 10, ' ');
 			if (cp)
 				line = cp + 1;
-			if (ccs_str_starts(line, "execute_handler ") ||
-			    ccs_str_starts(line, "denied_execute_handler ") ||
+			if (ccs_str_starts(line,
+					   "task auto_execute_handler ") ||
+			    ccs_str_starts(line,
+					   "task denied_execute_handler ") ||
 			    (ccs_str_starts(line, "file ") &&
 			     ccs_has_execute(line))) {
 				cp = strchr(line, ' ');

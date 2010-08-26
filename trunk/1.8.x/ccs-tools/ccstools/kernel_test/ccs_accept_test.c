@@ -22,28 +22,29 @@
 
 static void set_level(const int i)
 {
-	set_profile(i, "file::execute");
-	set_profile(i, "file::open");
-	set_profile(i, "file::create");
-	set_profile(i, "file::unlink");
-	set_profile(i, "file::mkdir");
-	set_profile(i, "file::rmdir");
-	set_profile(i, "file::mkfifo");
-	set_profile(i, "file::mksock");
-	set_profile(i, "file::truncate");
-	set_profile(i, "file::symlink");
-	set_profile(i, "file::mkblock");
-	set_profile(i, "file::mkchar");
-	set_profile(i, "file::link");
-	set_profile(i, "file::rename");
+	set_profile(i, "file::chgrp");
 	set_profile(i, "file::chmod");
 	set_profile(i, "file::chown");
-	set_profile(i, "file::chgrp");
-	set_profile(i, "file::ioctl");
 	set_profile(i, "file::chroot");
+	set_profile(i, "file::create");
+	set_profile(i, "file::execute");
+	set_profile(i, "file::ioctl");
+	set_profile(i, "file::link");
+	set_profile(i, "file::mkblock");
+	set_profile(i, "file::mkchar");
+	set_profile(i, "file::mkdir");
+	set_profile(i, "file::mkfifo");
+	set_profile(i, "file::mksock");
 	set_profile(i, "file::mount");
-	set_profile(i, "file::umount");
+	set_profile(i, "file::open");
 	set_profile(i, "file::pivot_root");
+	set_profile(i, "file::rename");
+	set_profile(i, "file::rmdir");
+	set_profile(i, "file::symlink");
+	//set_profile(i, "file::transit");
+	set_profile(i, "file::truncate");
+	set_profile(i, "file::umount");
+	set_profile(i, "file::unlink");
 }
 
 static void test(int rw_loop, int truncate_loop, int append_loop,
@@ -56,7 +57,6 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 	static const int append_flags[2] = { 0, O_APPEND };
 	int level;
 	int flags;
-	int i;
 	int fd;
 	static char buffer[1024];
 	memset(buffer, 0, sizeof(buffer));
@@ -64,9 +64,9 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		 append_loop, truncate_loop, create_loop, rw_loop);
 	flags = rw_flags[rw_loop] | truncate_flags[truncate_loop] |
 		append_flags[append_loop] | create_flags[create_loop];
-	fprintf(domain_fp, "delete file read %s\n", buffer);
-	fprintf(domain_fp, "delete file write %s\n", buffer);
-	fprintf(domain_fp, "delete file execute %s\n", buffer);
+	fprintf(domain_fp,
+		"delete file read/write/append/execute/truncate %s\n", buffer);
+	fprintf(domain_fp, "delete file create %s 0644\n", buffer);
 	for (level = 0; level < 4; level++) {
 		set_level(0);
 		if (create_loop == 1)
@@ -95,11 +95,8 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 		  fprintf(stderr, "%d: open(%04o) failed\n", level, flags);
 		*/
 	}
-	fprintf(domain_fp, "delete file read %s\n", buffer);
-	fprintf(domain_fp, "delete file write %s\n", buffer);
-	fprintf(domain_fp, "delete file append %s\n", buffer);
-	fprintf(domain_fp, "delete file execute %s\n", buffer);
-	fprintf(domain_fp, "delete file truncate %s\n", buffer);
+	fprintf(domain_fp,
+		"delete file read/write/append/execute/truncate %s\n", buffer);
 	fprintf(domain_fp, "delete file create %s 0644\n", buffer);
 	fd = open(buffer, flags, 0644);
 	if (fd != EOF) {
@@ -111,10 +108,6 @@ static void test(int rw_loop, int truncate_loop, int append_loop,
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(profile_fp, "255-PREFERENCE::learning={ verbose=no }\n");
-	fprintf(profile_fp, "255-PREFERENCE::enforcing={ verbose=no }\n");
-	fprintf(profile_fp, "255-PREFERENCE::permissive={ verbose=no }\n");
-	fprintf(profile_fp, "255-PREFERENCE::disabled={ verbose=no }\n");
 	set_profile(0, "file");
 	fprintf(profile_fp, "255-PREFERENCE::learning={ max_entry=2048 }\n");
 	{
@@ -135,7 +128,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	fprintf(profile_fp, "255-CONFIG::file=disabled\n");
+	fprintf(profile_fp, "255-CONFIG::file={ mode=disabled }\n");
 	printf("Done\n");
 	clear_status();
 	return 0;

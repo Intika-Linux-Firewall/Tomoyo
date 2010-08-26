@@ -395,7 +395,7 @@ static int set_profile(const int mode, const char *name)
 		BUG("Can't read %s", proc_policy_profile);
 		return 0;
 	}
-	fprintf(profile_fp, "255-CONFIG::%s=%s\n", name, modes[mode]);
+	fprintf(profile_fp, "255-CONFIG::%s={ mode=%s }\n", name, modes[mode]);
 	while (memset(buffer, 0, sizeof(buffer)),
 	       fgets(buffer, sizeof(buffer) - 1, fp)) {
 		char *cp = strchr(buffer, '\n');
@@ -411,7 +411,7 @@ static int set_profile(const int mode, const char *name)
 	}
 	fclose(fp);
 	if (!policy_found) {
-		BUG("Can't change profile to 255-CONFIG::%s=%s",
+		BUG("Can't change profile to 255-CONFIG::%s={ mode=%s }",
 		    name, modes[mode]);
 		return 0;
 	}

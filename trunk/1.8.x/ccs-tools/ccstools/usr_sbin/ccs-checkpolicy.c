@@ -60,10 +60,16 @@ static int ccs_parse_ulong(unsigned long *result, char **str)
 static char *ccs_find_condition_part(char *data)
 {
 	char *cp = strstr(data, " if ");
-	if (!cp)
-		cp = strstr(data, " ; set ");
-	if (cp)
-		*cp++ = '\0';
+	if (cp) {
+		while (1) {
+			char *cp2 = strstr(cp + 3, " if ");
+			if (!cp2)
+				break;
+			cp = cp2;
+		}
+		*cp = '\0';
+		cp += 4;
+	}
 	return cp;
 }
 
@@ -86,9 +92,6 @@ static _Bool ccs_check_condition(char *condition)
 		CCS_TASK_PPID,            /* sys_getppid()  */
 		CCS_EXEC_ARGC,            /* "struct linux_binprm *"->argc */
 		CCS_EXEC_ENVC,            /* "struct linux_binprm *"->envc */
-		CCS_TASK_STATE_0,         /* (u8) (current->ccs_flags >> 24) */
-		CCS_TASK_STATE_1,         /* (u8) (current->ccs_flags >> 16) */
-		CCS_TASK_STATE_2,         /* (u8) (task->ccs_flags >> 8)     */
 		CCS_TYPE_IS_SOCKET,       /* S_IFSOCK */
 		CCS_TYPE_IS_SYMLINK,      /* S_IFLNK */
 		CCS_TYPE_IS_FILE,         /* S_IFREG */
@@ -158,9 +161,6 @@ static _Bool ccs_check_condition(char *condition)
 		[CCS_TASK_PPID]            = "task.ppid",
 		[CCS_EXEC_ARGC]            = "exec.argc",
 		[CCS_EXEC_ENVC]            = "exec.envc",
-		[CCS_TASK_STATE_0]         = "task.state[0]",
-		[CCS_TASK_STATE_1]         = "task.state[1]",
-		[CCS_TASK_STATE_2]         = "task.state[2]",
 		[CCS_TYPE_IS_SOCKET]       = "socket",
 		[CCS_TYPE_IS_SYMLINK]      = "symlink",
 		[CCS_TYPE_IS_FILE]         = "file",
@@ -211,53 +211,19 @@ static _Bool ccs_check_condition(char *condition)
 		[CCS_PATH2_PARENT_INO]     = "path2.parent.ino",
 		[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 	};
-	char *const start = condition;
+	//char *const start = condition;
 	char *pos = condition;
 	u8 left;
 	u8 right;
-	int i;
+	//int i;
 	unsigned long left_min = 0;
 	unsigned long left_max = 0;
 	unsigned long right_min = 0;
 	unsigned long right_max = 0;
-	u8 post_state[4] = { 0, 0, 0, 0 };
-	condition = strstr(condition, "; set ");
-	if (condition) {
-		*condition = '\0';
-		condition += 6;
-		while (true) {
-			while (*condition == ' ')
-				condition++;
-			if (!*condition)
-				break;
-			pos = condition;
-			if (!strncmp(condition, "task.state[0]=", 14))
-				i = 0;
-			else if (!strncmp(condition, "task.state[1]=", 14))
-				i = 1;
-			else if (!strncmp(condition, "task.state[2]=", 14))
-				i = 2;
-			else
-				goto out;
-			condition += 14;
-			if (post_state[3] & (1 << i))
-				goto out;
-			post_state[3] |= 1 << i;
-			if (!ccs_parse_ulong(&right_min, &condition) ||
-			    right_min > 255)
-				goto out;
-			post_state[i] = (u8) right_min;
-		}
-	}
-	condition = start;
 	if (*condition && condition[strlen(condition) - 1] == ' ')
 		condition[strlen(condition) - 1] = '\0';
 	if (!*condition)
 		return true;
-	if (strncmp(condition, "if ", 3))
-		goto out;
-	condition += 3;
-
 	pos = condition;
 	while (pos) {
 		char *eq;
@@ -355,15 +321,9 @@ out:
 static void ccs_check_capability_policy(char *data)
 {
 	static const char *capability_keywords[] = {
-		"inet_tcp_create", "inet_tcp_listen", "inet_tcp_connect",
-		"use_inet_udp", "use_inet_ip", "use_route", "use_packet",
-		"SYS_MOUNT", "SYS_UMOUNT", "SYS_REBOOT", "SYS_CHROOT",
-		"SYS_KILL", "SYS_VHANGUP", "SYS_TIME", "SYS_NICE",
-		"SYS_SETHOSTNAME", "use_kernel_module", "create_fifo",
-		"create_block_dev", "create_char_dev", "create_unix_socket",
-		"SYS_LINK", "SYS_SYMLINK", "SYS_RENAME", "SYS_UNLINK",
-		"SYS_CHMOD", "SYS_CHOWN", "SYS_IOCTL", "SYS_KEXEC_LOAD",
-		"SYS_PIVOT_ROOT", "SYS_PTRACE", "conceal_mount", NULL
+		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
+		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
+		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
 	};
 	int i;
 	for (i = 0; capability_keywords[i]; i++) {
@@ -403,7 +363,7 @@ static void ccs_check_env_policy(char *data)
 	}
 }
 
-static void ccs_check_network_policy(char *data)
+static void ccs_check_inet_network_policy(char *data)
 {
 	u16 min_address[8];
 	u16 max_address[8];
@@ -490,31 +450,31 @@ static void ccs_check_file_policy(char *data)
 		const char * const keyword;
 		const int paths;
 	} acl_type_array[] = {
-		{ "execute",    1 },
-		{ "transit",    1 },
-		{ "read",       1 },
-		{ "write",      1 },
 		{ "append",     1 },
-		{ "create",     2 },
-		{ "unlink",     1 },
-		{ "mkdir",      2 },
-		{ "rmdir",      1 },
-		{ "mkfifo",     2 },
-		{ "mksock",     2 },
-		{ "mkblock",    4 },
-		{ "mkchar",     4 },
-		{ "truncate",   1 },
-		{ "symlink",    1 },
-		{ "link",       2 },
-		{ "rename",     2 },
+		{ "chgrp",      2 },
 		{ "chmod",      2 },
 		{ "chown",      2 },
-		{ "chgrp",      2 },
-		{ "ioctl",      2 },
-		{ "mount",      4 },
-		{ "unmount",    1 },
 		{ "chroot",     1 },
+		{ "create",     2 },
+		{ "execute",    1 },
+		{ "ioctl",      2 },
+		{ "link",       2 },
+		{ "mkblock",    4 },
+		{ "mkchar",     4 },
+		{ "mkdir",      2 },
+		{ "mkfifo",     2 },
+		{ "mksock",     2 },
+		{ "mount",      4 },
 		{ "pivot_root", 2 },
+		{ "read",       1 },
+		{ "rename",     2 },
+		{ "rmdir",      1 },
+		{ "symlink",    1 },
+		{ "transit",    1 },
+		{ "truncate",   1 },
+		{ "unlink",     1 },
+		{ "unmount",    1 },
+		{ "write",      1 },
 		{ NULL, 0 }
 	};
 	char *filename = strchr(data, ' ');
@@ -526,9 +486,6 @@ static void ccs_check_file_policy(char *data)
 		return;
 	}
 	*filename++ = '\0';
-	if (strncmp(data, "file ", 5))
-		goto out;
-	data += 5;
 	for (type = 0; acl_type_array[type].keyword; type++) {
 		if (strcmp(data, acl_type_array[type].keyword))
 			continue;
@@ -580,12 +537,8 @@ static void ccs_check_file_policy(char *data)
 		return;
 	}
 	if (!acl_type_array[type].keyword)
-		goto out;
-	ccs_errors++;
-	return;
-out:
-	printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data,
-	       filename);
+		printf("%u: ERROR: Invalid permission '%s %s'\n", ccs_line, data,
+		       filename);
 	ccs_errors++;
 }
 
@@ -717,6 +670,25 @@ static void ccs_check_address_group_policy(char *data)
 	ccs_errors++;
 }
 
+static void ccs_check_task_policy(char *data)
+{
+	if (ccs_str_starts(data, "auto_execute_handler ") ||
+	    ccs_str_starts(data, "denied_execute_handler ")) {
+		if (!ccs_correct_path(data)) {
+			printf("%u: ERROR: '%s' is a bad pathname.\n",
+			       ccs_line, data);
+			ccs_errors++;
+		}
+	} else if (ccs_str_starts(data, "auto_domain_transition ") ||
+		   ccs_str_starts(data, "manual_domain_transition ")) {
+		if (!ccs_correct_domain(data)) {
+			printf("%u: ERROR: '%s' is a bad domainname.\n",
+			       ccs_line, data);
+			ccs_errors++;
+		}
+	}
+}
+
 static void ccs_check_domain_policy(char *policy)
 {
 	static int domain = EOF;
@@ -754,15 +726,6 @@ static void ccs_check_domain_policy(char *policy)
 			       ccs_line, policy);
 			ccs_errors++;
 		}
-	} else if (!strcmp(policy, "ignore_global")) {
-		/* Nothing to do. */
-	} else if (ccs_str_starts(policy, "execute_handler ") ||
-		   ccs_str_starts(policy, "denied_execute_handler")) {
-		if (!ccs_correct_path(policy)) {
-			printf("%u: ERROR: '%s' is a bad pathname.\n",
-			       ccs_line, policy);
-			ccs_errors++;
-		}
 	} else if (!strcmp(policy, "transition_failed")) {
 		/* Nothing to do. */
 	} else if (!strcmp(policy, "quota_exceeded")) {
@@ -771,16 +734,25 @@ static void ccs_check_domain_policy(char *policy)
 		char *cp = ccs_find_condition_part(policy);
 		if (cp && !ccs_check_condition(cp))
 			return;
-		if (ccs_str_starts(policy, "capability "))
-			ccs_check_capability_policy(policy);
-		else if (ccs_str_starts(policy, "network "))
-			ccs_check_network_policy(policy);
-		else if (ccs_str_starts(policy, "ipc signal "))
-			ccs_check_signal_policy(policy);
+		if (ccs_str_starts(policy, "file "))
+			ccs_check_file_policy(policy);
+		else if (ccs_str_starts(policy, "network inet "))
+			ccs_check_inet_network_policy(policy);
+		//else if (ccs_str_starts(policy, "network unix "))
+		//ccs_check_unix_network_policy(policy);
 		else if (ccs_str_starts(policy, "misc env "))
 			ccs_check_env_policy(policy);
-		else
-			ccs_check_file_policy(policy);
+		else if (ccs_str_starts(policy, "capability "))
+			ccs_check_capability_policy(policy);
+		else if (ccs_str_starts(policy, "ipc signal "))
+			ccs_check_signal_policy(policy);
+		else if (ccs_str_starts(policy, "task "))
+			ccs_check_task_policy(policy);
+		else {
+			printf("%u: ERROR: Invalid permission '%s'\n",
+			       ccs_line, policy);
+			ccs_errors++;
+		}
 	}
 }
 
