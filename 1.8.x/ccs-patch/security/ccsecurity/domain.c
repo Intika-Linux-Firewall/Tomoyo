@@ -77,15 +77,6 @@ int ccs_update_policy(struct ccs_acl_head *new_entry, const int size,
 	return error;
 }
 
-static void ccs_delete_type(struct ccs_domain_info *domain, u8 type)
-{
-	struct ccs_acl_info *ptr;
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		if (ptr->type == type)
-			ptr->is_deleted = true;
-	}
-}
-
 /**
  * ccs_update_domain - Update an entry for domain policy.
  *
@@ -110,21 +101,15 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 {
 	int error = is_delete ? -ENOENT : -ENOMEM;
 	struct ccs_acl_info *entry;
-	/*
-	 * Only one "execute_handler" and "denied_execute_handler" can exist
-	 * in a domain.
-	 */
 	const u8 type = new_entry->type;
-	const bool exclusive = !is_delete &&
-		(type == CCS_TYPE_EXECUTE_HANDLER ||
-		 type == CCS_TYPE_DENIED_EXECUTE_HANDLER);
+	const u8 i = type == CCS_TYPE_AUTO_EXECUTE_HANDLER ||
+		type == CCS_TYPE_DENIED_EXECUTE_HANDLER ||
+		type == CCS_TYPE_AUTO_TASK_ACL;
 	if (mutex_lock_interruptible(&ccs_policy_lock))
 		return error;
-	list_for_each_entry_rcu(entry, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(entry, &domain->acl_info_list[i], list) {
 		if (!check_duplicate(entry, new_entry))
 			continue;
-		if (exclusive)
-			ccs_delete_type(domain, type);
 		if (merge_duplicate)
 			entry->is_deleted = merge_duplicate(entry, new_entry,
 							    is_delete);
@@ -136,12 +121,10 @@ int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 	if (error && !is_delete) {
 		entry = ccs_commit_ok(new_entry, size);
 		if (entry) {
-			if (exclusive)
-				ccs_delete_type(domain, type);
 			if (entry->cond)
 				atomic_inc(&entry->cond->head.users);
 			list_add_tail_rcu(&entry->list,
-					  &domain->acl_info_list);
+					  &domain->acl_info_list[i]);
 			error = 0;
 		}
 	}
@@ -156,15 +139,20 @@ void ccs_check_acl(struct ccs_request_info *r,
 	const struct ccs_domain_info *domain = ccs_current_domain();
 	struct ccs_acl_info *ptr;
 	bool retried = false;
+	const u8 i = !check_entry;
  retry:
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		if (ptr->is_deleted || ptr->type != r->param_type)
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list[i], list) {
+		if (ptr->is_deleted)
 			continue;
-		if (check_entry(r, ptr) && ccs_condition(r, ptr->cond)) {
-			r->cond = ptr->cond;
-			r->granted = true;
-			return;
-		}
+		if (ptr->type != r->param_type)
+			continue;
+		if (check_entry && !check_entry(r, ptr))
+			continue;
+		if (!ccs_condition(r, ptr->cond))
+			continue;
+		r->matched_acl = ptr;
+		r->granted = true;
+		return;
 	}
 	if (!retried) {
 		retried = true;
@@ -434,7 +422,8 @@ struct ccs_domain_info *ccs_assign_domain(const char *domainname,
 	if (!entry) {
 		entry = ccs_commit_ok(&e, sizeof(e));
 		if (entry) {
-			INIT_LIST_HEAD(&entry->acl_info_list);
+			INIT_LIST_HEAD(&entry->acl_info_list[0]);
+			INIT_LIST_HEAD(&entry->acl_info_list[1]);
 			list_add_tail_rcu(&entry->list, &ccs_domain_list);
 			created = true;
 		}
@@ -471,13 +460,11 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 	struct ccs_domain_info * const old_domain = ccs_current_domain();
 	struct linux_binprm *bprm = ee->bprm;
 	struct task_struct *task = current;
-	const u32 ccs_flags = task->ccs_flags;
 	struct ccs_path_info rn = { }; /* real name */
 	int retval;
 	bool need_kfree = false;
  retry:
-	current->ccs_flags = ccs_flags;
-	r->cond = NULL;
+	r->matched_acl = NULL;
 	if (need_kfree) {
 		kfree(rn.name);
 		need_kfree = false;
@@ -500,13 +487,6 @@ static int ccs_find_next_domain(struct ccs_execve *ee)
 			}
 			goto out;
 		}
-		r->type = CCS_MAC_FILE_EXECUTE;
-		r->mode = ccs_get_mode(r->profile, CCS_MAC_FILE_EXECUTE);
-		r->granted = true;
-		ccs_write_log(r, "%s %s\n", ee->handler_type ==
-			      CCS_TYPE_DENIED_EXECUTE_HANDLER ?
-			      CCS_KEYWORD_DENIED_EXECUTE_HANDLER :
-			      CCS_KEYWORD_EXECUTE_HANDLER, handler->name);
 	} else {
 		struct ccs_aggregator *ptr;
 		/* Check 'aggregator' directive. */
@@ -772,7 +752,7 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 	 *    = 0
 	 *
 	 * modified bprm->argv[0]
-	 *    = the program's name specified by execute_handler
+	 *    = the program's name specified by *_execute_handler
 	 * modified bprm->argv[1]
 	 *    = ccs_current_domain()->domainname->name
 	 * modified bprm->argv[2]
@@ -843,17 +823,13 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 
 	/* Set argv[3] */
 	{
-		const u32 ccs_flags = task->ccs_flags;
 		snprintf(ee->tmp, CCS_EXEC_TMPSIZE - 1,
 			 "pid=%d uid=%d gid=%d euid=%d egid=%d suid=%d "
-			 "sgid=%d fsuid=%d fsgid=%d state[0]=%u "
-			 "state[1]=%u state[2]=%u",
+			 "sgid=%d fsuid=%d fsgid=%d",
 			 (pid_t) ccsecurity_exports.sys_getpid(),
 			 current_uid(), current_gid(), current_euid(),
 			 current_egid(), current_suid(), current_sgid(),
-			 current_fsuid(), current_fsgid(),
-			 (u8) (ccs_flags >> 24), (u8) (ccs_flags >> 16),
-			 (u8) (ccs_flags >> 8));
+			 current_fsuid(), current_fsgid());
 		retval = ccs_copy_argv(ee->tmp, bprm);
 		if (retval < 0)
 			goto out;
@@ -974,32 +950,19 @@ static int ccs_try_alt_exec(struct ccs_execve *ee)
 static bool ccs_find_execute_handler(struct ccs_execve *ee, const u8 type)
 {
 	struct ccs_request_info *r = &ee->r;
-	const struct ccs_domain_info *domain = ccs_current_domain();
-	struct ccs_acl_info *ptr;
-	bool retried = false;
 	/*
 	 * To avoid infinite execute handler loop, don't use execute handler
 	 * if the current process is marked as execute handler .
 	 */
 	if (current->ccs_flags & CCS_TASK_IS_EXECUTE_HANDLER)
 		return false;
- retry:
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
-		struct ccs_execute_handler *acl;
-		if (ptr->type != type || !ccs_condition(r, ptr->cond))
-			continue;
-		acl = container_of(ptr, struct ccs_execute_handler, head);
-		ee->handler = acl->handler;
-		ee->handler_type = type;
-		r->cond = ptr->cond;
-		return true;
-	}
-	if (!retried) {
-		retried = true;
-		domain = &ccs_acl_group[domain->group];
-		goto retry;
-	}
-	return false;
+	r->param_type = type;
+	ccs_check_acl(r, NULL);
+	if (!r->granted)
+		return false;
+	ee->handler = container_of(r->matched_acl, struct ccs_handler_acl,
+				   head)->handler;
+	return true;
 }
 
 #ifdef CONFIG_MMU
@@ -1097,7 +1060,7 @@ static int ccs_start_execve(struct linux_binprm *bprm,
 	 * No need to call ccs_environ() for execute handler because envp[] is
 	 * moved to argv[].
 	 */
-	if (ccs_find_execute_handler(ee, CCS_TYPE_EXECUTE_HANDLER))
+	if (ccs_find_execute_handler(ee, CCS_TYPE_AUTO_EXECUTE_HANDLER))
 		return ccs_try_alt_exec(ee);
 	retval = ccs_find_next_domain(ee);
 	if (retval == -EPERM) {

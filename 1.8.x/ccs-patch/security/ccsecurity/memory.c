@@ -240,9 +240,12 @@ void __init ccs_mm_init(void)
 	int idx;
 	for (idx = 0; idx < CCS_MAX_HASH; idx++)
 		INIT_LIST_HEAD(&ccs_name_list[idx]);
-	for (idx = 0; idx < CCS_MAX_ACL_GROUPS; idx++)
-		INIT_LIST_HEAD(&ccs_acl_group[idx].acl_info_list);
-	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list);
+	for (idx = 0; idx < CCS_MAX_ACL_GROUPS; idx++) {
+		INIT_LIST_HEAD(&ccs_acl_group[idx].acl_info_list[0]);
+		INIT_LIST_HEAD(&ccs_acl_group[idx].acl_info_list[1]);
+	}
+	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[0]);
+	INIT_LIST_HEAD(&ccs_kernel_domain.acl_info_list[1]);
 	ccs_kernel_domain.domainname = ccs_get_name(CCS_ROOT_NAME);
 	list_add_tail_rcu(&ccs_kernel_domain.list, &ccs_domain_list);
 	idx = ccs_read_lock();

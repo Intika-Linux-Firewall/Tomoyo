@@ -393,9 +393,6 @@ const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_TASK_PPID]            = "task.ppid",
 	[CCS_EXEC_ARGC]            = "exec.argc",
 	[CCS_EXEC_ENVC]            = "exec.envc",
-	[CCS_TASK_STATE_0]         = "task.state[0]",
-	[CCS_TASK_STATE_1]         = "task.state[1]",
-	[CCS_TASK_STATE_2]         = "task.state[2]",
 	[CCS_TYPE_IS_SOCKET]       = "socket",
 	[CCS_TYPE_IS_SYMLINK]      = "symlink",
 	[CCS_TYPE_IS_FILE]         = "file",
@@ -447,60 +444,6 @@ const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 	[CCS_PATH2_PARENT_PERM]    = "path2.parent.perm",
 };
 
-/**
- * ccs_parse_post_condition - Parse post-condition part.
- *
- * @condition:  String to parse.
- * @post_state: Buffer to store post-condition part.
- *
- * Returns true on success, false otherwise.
- */
-static bool ccs_parse_post_condition(char * const condition, u8 post_state[5])
-{
-	char *start = strstr(condition, "; set ");
-	if (!start)
-		return true;
-	*start = '\0';
-	start += 6;
-	while (1) {
-		static const char *ccs_state[4] = {
-			"task.state[0]=",
-			"task.state[1]=",
-			"task.state[2]=",
-			"audit="
-		};
-		unsigned int i;
-		while (*start == ' ')
-			start++;
-		if (!*start)
-			break;
-		for (i = 0; i < 4; i++)
-			if (ccs_str_starts(&start, ccs_state[i]))
-				break;
-		if (i == 4)
-			goto out;
-		if (post_state[3] & (1 << i))
-			goto out;
-		post_state[3] |= 1 << i;
-		if (i < 3) {
-			unsigned long value;
-			if (!ccs_parse_ulong(&value, &start) || value > 255)
-				goto out;
-			post_state[i] = (u8) value;
-		} else {
-			if (ccs_str_starts(&start, "yes"))
-				post_state[4] = 1;
-			else if (ccs_str_starts(&start, "no"))
-				post_state[4] = 0;
-			else
-				goto out;
-		}
-	}
-	return true;
- out:
-	return false;
-}
-
 static inline bool ccs_same_condition(const struct ccs_condition *p1,
 				      const struct ccs_condition *p2)
 {
@@ -508,11 +451,7 @@ static inline bool ccs_same_condition(const struct ccs_condition *p1,
 		p1->numbers_count == p2->numbers_count &&
 		p1->names_count == p2->names_count &&
 		p1->argc == p2->argc && p1->envc == p2->envc &&
-		p1->post_state[0] == p2->post_state[0] &&
-		p1->post_state[1] == p2->post_state[1] &&
-		p1->post_state[2] == p2->post_state[2] &&
-		p1->post_state[3] == p2->post_state[3] &&
-		p1->post_state[4] == p2->post_state[4] &&
+		p1->audit == p2->audit && p1->transit == p2->transit &&
 		!memcmp(p1 + 1, p2 + 1, p1->size - sizeof(*p1));
 }
 
@@ -591,11 +530,7 @@ struct ccs_condition *ccs_get_condition(char *condition)
 	struct ccs_envp *envp = NULL;
 	struct ccs_condition e = { };
 	bool dry_run = true;
-	char *end_of_string;
-	if (!ccs_parse_post_condition(condition, e.post_state) ||
-	    (*condition && !ccs_str_starts(&condition, "if ")))
-		return NULL;
-	end_of_string = condition + strlen(condition);
+	char *end_of_string = condition + strlen(condition);
  rerun:
 	start = condition;
 	while (1) {
@@ -615,6 +550,30 @@ struct ccs_condition *ccs_get_condition(char *condition)
 			start = "";
 		}
 		dprintk(KERN_WARNING "%u: <%s>\n", __LINE__, word);
+		if (!strncmp(word, "audit=", 6)) {
+			if (!dry_run) {
+				word += 6;
+				if (entry->audit)
+					goto out;
+				else if (!strcmp(word, "yes"))
+					entry->audit = 2;
+				else if (!strcmp(word, "no"))
+					entry->audit = 1;
+				else
+					goto out;
+			}
+			continue;
+		} else if (!strncmp(word, "auto_domain_transition=", 23)) {
+			if (!dry_run) {
+				word += 23;
+				if (entry->transit)
+					goto out;
+				entry->transit = ccs_get_dqword(word);
+				if (!entry->transit)
+					goto out;
+			}
+			continue;
+		}
 		if (!strncmp(word, "exec.argv[", 10)) {
 			if (dry_run) {
 				e.argc++;
@@ -999,15 +958,6 @@ bool ccs_condition(struct ccs_request_info *r,
 				if (!bprm)
 					goto out;
 				value = bprm->envc;
-				break;
-			case CCS_TASK_STATE_0:
-				value = (u8) (ccs_flags >> 24);
-				break;
-			case CCS_TASK_STATE_1:
-				value = (u8) (ccs_flags >> 16);
-				break;
-			case CCS_TASK_STATE_2:
-				value = (u8) (ccs_flags >> 8);
 				break;
 			case CCS_TASK_TYPE:
 				value = ((u8) ccs_flags)

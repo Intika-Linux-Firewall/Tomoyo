@@ -221,11 +221,8 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 				  void *data_page)
 {
 	struct ccs_request_info r;
-	int error;
+	int error = 0;
 	int idx;
-	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
-	    == CCS_CONFIG_DISABLED)
-		return 0;
 	if ((flags & MS_MGC_MSK) == MS_MGC_VAL)
 		flags &= ~MS_MGC_MSK;
 	if (flags & MS_REMOUNT) {
@@ -259,7 +256,9 @@ static int __ccs_mount_permission(char *dev_name, struct path *path,
 	if (!type)
 		type = "<NULL>";
 	idx = ccs_read_lock();
-	error = ccs_mount_acl(&r, dev_name, path, type, flags);
+	if (ccs_init_request_info(&r, CCS_MAC_FILE_MOUNT)
+	    != CCS_CONFIG_DISABLED)
+		error = ccs_mount_acl(&r, dev_name, path, type, flags);
 	ccs_read_unlock(idx);
 	return error;
 }

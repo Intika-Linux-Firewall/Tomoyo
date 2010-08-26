@@ -928,12 +928,28 @@ u8 ccs_get_config(const u8 profile, const u8 index)
  */
 int ccs_init_request_info(struct ccs_request_info *r, const u8 index)
 {
-	const u8 profile = ccs_current_domain()->profile;
-	memset(r, 0, sizeof(*r));
-	r->profile = profile;
-	r->type = index;
-	r->mode = ccs_get_mode(profile, index);
-	return r->mode;
+	u8 i;
+	const char *buf;
+	for (i = 0; i < 255; i++) {
+		struct ccs_domain_info *domain = ccs_current_domain();
+		const u8 profile = domain->profile;
+		memset(r, 0, sizeof(*r));
+		r->profile = profile;
+		r->type = index;
+		r->mode = ccs_get_mode(profile, index);
+		r->param_type = CCS_TYPE_AUTO_TASK_ACL;
+		ccs_check_acl(r, NULL);
+		if (!r->granted)
+			return r->mode;
+		buf = container_of(r->matched_acl, typeof(struct ccs_task_acl),
+				   head)->domainname->name;
+		if (!ccs_assign_domain(buf, profile, domain->group, true))
+			break;
+	}
+	printk(KERN_WARNING "ERROR: Unable to transit to '%s' domain.\n",
+	       buf);
+	force_sig(SIGKILL, current);
+	return CCS_CONFIG_DISABLED;
 }
 
 /**
@@ -995,7 +1011,7 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		return false;
 	if (!domain)
 		return true;
-	list_for_each_entry_rcu(ptr, &domain->acl_info_list, list) {
+	list_for_each_entry_rcu(ptr, &domain->acl_info_list[0], list) {
 		u16 perm;
 		u8 i;
 		if (ptr->is_deleted)
@@ -1008,10 +1024,6 @@ bool ccs_domain_quota_ok(struct ccs_request_info *r)
 		case CCS_TYPE_PATH2_ACL:
 			perm = container_of(ptr, struct ccs_path2_acl,
 					    head)->perm;
-			break;
-		case CCS_TYPE_EXECUTE_HANDLER:
-		case CCS_TYPE_DENIED_EXECUTE_HANDLER:
-			perm = 0;
 			break;
 		case CCS_TYPE_PATH_NUMBER_ACL:
 			perm = container_of(ptr, struct ccs_path_number_acl,

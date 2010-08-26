@@ -18,28 +18,35 @@
 #include <linux/version.h>
 #include "internal.h"
 
+static bool ccs_check_task_acl(struct ccs_request_info *r,
+			       const struct ccs_acl_info *ptr)
+{
+	const struct ccs_task_acl *acl = container_of(ptr, typeof(*acl), head);
+	return !ccs_pathcmp(r->param.task.domainname, acl->domainname);
+}
+
 /**
- * ccs_may_transit - Check permission and do domain transition without execve().
+ * ccs_may_transit - Check permission and do domain transition.
  *
  * @domainname: Domainname to transit to.
- * @pathname:   Pathname to check.
  *
  * Returns 0 on success, negative value otherwise.
  *
  * Caller holds ccs_read_lock().
  */
-static int ccs_may_transit(const char *domainname, const char *pathname)
+static int ccs_may_transit(const char *domainname)
 {
 	struct ccs_path_info name;
 	struct ccs_request_info r;
-	int error;
-	name.name = pathname;
+	name.name = domainname;
 	ccs_fill_path_info(&name);
-	/* Check "file transit" permission. */
-	ccs_init_request_info(&r, CCS_MAC_FILE_TRANSIT);
-	error = ccs_path_permission(&r, CCS_TYPE_TRANSIT, &name);
-	if (error)
-		return error;
+	/* Check "task manual_transit" permission. */
+	ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+	r.param_type = CCS_TYPE_MANUAL_TASK_ACL;
+	r.param.task.domainname = &name;
+	ccs_check_acl(&r, ccs_check_task_acl);
+	if (!r.granted)
+		return -EPERM;
 	/* Check destination domain. */
 	return ccs_assign_domain(domainname, r.profile,
 				 ccs_current_domain()->group, true) ?
@@ -59,14 +66,9 @@ static int ccs_may_transit(const char *domainname, const char *pathname)
 static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
-	const char *self_domain = ccs_current_domain()->domainname->name;
-	const int self_domain_len = strlen(self_domain);
 	char *data;
-	int data_len;
-	char *tmp;
-	int idx;
 	int error = -ENOMEM;
-	if (!count || count + self_domain_len >= CCS_EXEC_TMPSIZE - 10)
+	if (!count || count >= CCS_EXEC_TMPSIZE - 10)
 		return -ENOMEM;
 	data = kmalloc(count, CCS_GFP_FLAGS);
 	if (!data)
@@ -75,30 +77,15 @@ static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
 		error = -EFAULT;
 		goto out;
 	}
-	if (memchr(data, '\0', count) != data + count - 1) {
-		error = -EINVAL;
+	error = -EINVAL;
+	if (memchr(data, '\n', count) != data + count - 1)
 		goto out;
+	ccs_normalize_line(data);
+	if (ccs_correct_domain(data)) {
+		const int idx = ccs_read_lock();
+		error = ccs_may_transit(data);
+		ccs_read_unlock(idx);
 	}
-	tmp = ccs_encode(data);
-	kfree(data);
-	data = tmp;
-	if (!data)
-		goto out;
-	data_len = strlen(data);
-	tmp = kzalloc(self_domain_len + data_len + 5, CCS_GFP_FLAGS);
-	if (!tmp)
-		goto out;
-	/*
-	 * Add "//" prefix to requested name in order to distinguish domain
-	 * transitions with execve().
-	 */
-	snprintf(tmp, self_domain_len + data_len + 4, "%s //%s", self_domain,
-		 data);
-	kfree(data);
-	data = tmp;
-	idx = ccs_read_lock();
-	error = ccs_may_transit(data, data + self_domain_len + 1);
-	ccs_read_unlock(idx);
  out:
 	kfree(data);
 	return error ? error : count;
