@@ -370,28 +370,21 @@ static void ccs_check_inet_network_policy(char *data)
 	unsigned int min_port;
 	unsigned int max_port;
 	int count;
-	char *cp1 = NULL;
-	char *cp2 = NULL;
-	cp1 = strchr(data, ' ');
-	if (!cp1)
+	static const char *types[3] = { "stream ", "dgram ", "raw " };
+	static const char *ops[6] = { "bind ", "connect ", "listen ",
+				      "accept ", "send ", "recv " };
+	int i;
+	for (i = 0; i < 3; i++)
+		if (ccs_str_starts(data, types[i]))
+			break;
+	if (i == 3)
 		goto out;
-	cp1++;
-	if (strncmp(data, "TCP ", 4) && strncmp(data, "UDP ", 4) &&
-	    strncmp(data, "RAW ", 4))
+	for (i = 0; i < 6; i++)
+		if (ccs_str_starts(data, ops[i]))
+			break;
+	if (i == 6)
 		goto out;
-	cp2 = strchr(cp1, ' ');
-	if (!cp2)
-		goto out;
-	cp2++;
-	if (strncmp(cp1, "bind ", 5) && strncmp(cp1, "connect ", 8) &&
-	    strncmp(cp1, "listen ", 7) && strncmp(cp1, "accept ", 7) &&
-	    strncmp(cp1, "send ", 5) && strncmp(cp1, "recv ", 5))
-		goto out;
-	cp1 = strchr(cp2, ' ');
-	if (!cp1)
-		goto out;
-	cp1++;
-	count = sscanf(cp2, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
+	count = sscanf(data, "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx-"
 		       "%hx:%hx:%hx:%hx:%hx:%hx:%hx:%hx",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &min_address[4], &min_address[5],
@@ -399,46 +392,51 @@ static void ccs_check_inet_network_policy(char *data)
 		       &max_address[1], &max_address[2], &max_address[3],
 		       &max_address[4], &max_address[5], &max_address[6],
 		       &max_address[7]);
-	if (count == 8 || count == 16) {
-		int i;
-		for (i = 0; i < 8; i++) {
-			min_address[i] = htons(min_address[i]);
-			max_address[i] = htons(max_address[i]);
-		}
-		if (count == 8)
-			memmove(max_address, min_address, sizeof(min_address));
+	if (count == 8 || count == 16)
 		goto next;
-	}
-	count = sscanf(cp2, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
+	count = sscanf(data, "%hu.%hu.%hu.%hu-%hu.%hu.%hu.%hu",
 		       &min_address[0], &min_address[1], &min_address[2],
 		       &min_address[3], &max_address[0], &max_address[1],
 		       &max_address[2], &max_address[3]);
-	if (count == 4 || count == 8) {
-		u32 ip = htonl((((u8) min_address[0]) << 24) +
-			       (((u8) min_address[1]) << 16) +
-			       (((u8) min_address[2]) << 8) +
-			       (u8) min_address[3]);
-		memmove(min_address, &ip, sizeof(ip));
-		if (count == 8)
-			ip = htonl((((u8) max_address[0]) << 24) +
-				   (((u8) max_address[1]) << 16) +
-				   (((u8) max_address[2]) << 8) +
-				   (u8) max_address[3]);
-		memmove(max_address, &ip, sizeof(ip));
+	if (count == 4 || count == 8)
 		goto next;
-	}
-	if (*cp2 != '@') /* Don't reject address_group. */
+	if (*data != '@') /* Don't reject address_group. */
 		goto out;
-next:
-	if (strchr(cp1, ' '))
+ next:
+	data = strchr(data, ' ');
+	if (!data)
 		goto out;
-	count = sscanf(cp1, "%u-%u", &min_port, &max_port);
+	count = sscanf(data, "%u-%u", &min_port, &max_port);
 	if (count == 1 || count == 2) {
 		if (count == 1)
 			max_port = min_port;
 		if (min_port <= max_port && max_port < 65536)
 			return;
 	}
+out:
+	printf("%u: ERROR: Bad network address.\n", ccs_line);
+	ccs_errors++;
+}
+
+static void ccs_check_unix_network_policy(char *data)
+{
+	static const char *types[3] = { "stream ", "dgram ", "seqpaket " };
+	static const char *ops[6] = { "bind ", "connect ", "listen ",
+				      "accept ", "send ", "recv " };
+	int i;
+	for (i = 0; i < 3; i++)
+		if (ccs_str_starts(data, types[i]))
+			break;
+	if (i == 3)
+		goto out;
+	for (i = 0; i < 6; i++)
+		if (ccs_str_starts(data, ops[i]))
+			break;
+	if (i == 6)
+		goto out;
+	if (*data == '@' || ccs_correct_path(data))
+		/* Don't reject path_group. */
+		return;
 out:
 	printf("%u: ERROR: Bad network address.\n", ccs_line);
 	ccs_errors++;
@@ -738,8 +736,8 @@ static void ccs_check_domain_policy(char *policy)
 			ccs_check_file_policy(policy);
 		else if (ccs_str_starts(policy, "network inet "))
 			ccs_check_inet_network_policy(policy);
-		//else if (ccs_str_starts(policy, "network unix "))
-		//ccs_check_unix_network_policy(policy);
+		else if (ccs_str_starts(policy, "network unix "))
+			ccs_check_unix_network_policy(policy);
 		else if (ccs_str_starts(policy, "misc env "))
 			ccs_check_env_policy(policy);
 		else if (ccs_str_starts(policy, "capability "))

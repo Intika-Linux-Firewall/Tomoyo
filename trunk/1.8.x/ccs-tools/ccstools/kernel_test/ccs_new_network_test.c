@@ -99,7 +99,7 @@ static void stage_network_test(void)
 {
 	int i;
 
-	{ /* IPv4 TCP */
+	{ /* IPv4 stream */
 		char buffer[1024];
 		struct sockaddr_in saddr;
 		struct sockaddr_in caddr;
@@ -116,7 +116,7 @@ static void stage_network_test(void)
 		saddr.sin_port = htons(0);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind 127.0.0.1 0-1");
+			 "network inet stream bind 127.0.0.1 0-1");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -128,7 +128,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP listen 127.0.0.0-127.255.255.255 "
+			 "network inet stream listen 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(saddr.sin_port) - 1,
 			 ntohs(saddr.sin_port) + 1);
 		errno = 0;
@@ -139,7 +139,7 @@ static void stage_network_test(void)
 		}
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP connect 127.0.0.1 %u-%u",
+			 "network inet stream connect 127.0.0.1 %u-%u",
 			 ntohs(saddr.sin_port) - 1, ntohs(saddr.sin_port) + 1);
 		errno = 0;
 		show_result(connect(fd2, (struct sockaddr *) &saddr,
@@ -152,7 +152,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP accept 127.0.0.1 %u-%u",
+			 "network inet stream accept 127.0.0.1 %u-%u",
 			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
 		errno = 0;
@@ -165,7 +165,7 @@ static void stage_network_test(void)
 		close(fd2);
 		fd2 = socket(PF_INET, SOCK_STREAM, 0);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP connect 127.0.0.0-127.255.255.255 "
+			 "network inet stream connect 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(saddr.sin_port) - 1,
 			 ntohs(saddr.sin_port) + 1);
 		if (write_policy()) {
@@ -175,7 +175,7 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP accept 127.0.0.0-127.255.255.255 "
+			 "network inet stream accept 127.0.0.0-127.255.255.255 "
 			 "%u-%u", ntohs(caddr.sin_port) - 1,
 			 ntohs(caddr.sin_port) + 1);
 		if (write_policy()) {
@@ -207,7 +207,7 @@ static void stage_network_test(void)
 		saddr.sin_port = htons(10001);
 		fprintf(exception_fp, "address_group TESTADDRESS 127.0.0.1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind @TESTADDRESS 10001");
+			 "network inet stream bind @TESTADDRESS 10001");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -222,7 +222,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"127.0.0.0-127.0.0.2\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind @TESTADDRESS 20002");
+			 "network inet stream bind @TESTADDRESS 20002");
 		errno = 0;
 		show_result(bind(fd2, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -246,7 +246,7 @@ static void stage_network_test(void)
 		return;
 	close(i);
 
-	{ /* IPv6 TCP */
+	{ /* IPv6 stream */
 		char buffer[1024];
 		struct sockaddr_in6 saddr, caddr;
 		socklen_t size = sizeof(saddr);
@@ -262,7 +262,7 @@ static void stage_network_test(void)
 		saddr.sin6_port = htons(0);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind 0:0:0:0:0:0:0:1 0-1");
+			 "network inet stream bind 0:0:0:0:0:0:0:1 0-1");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -274,7 +274,7 @@ static void stage_network_test(void)
 		getsockname(fd1, (struct sockaddr *) &saddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP listen "
+			 "network inet stream listen "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
@@ -286,7 +286,7 @@ static void stage_network_test(void)
 		}
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP connect 0:0:0:0:0:0:0:1 %u-%u",
+			 "network inet stream connect 0:0:0:0:0:0:0:1 %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
 		errno = 0;
@@ -300,7 +300,7 @@ static void stage_network_test(void)
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP accept 0:0:0:0:0:0:0:1 %u-%u",
+			 "network inet stream accept 0:0:0:0:0:0:0:1 %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
 		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
@@ -313,7 +313,7 @@ static void stage_network_test(void)
 
 		close(fd2);
 		fd2 = socket(PF_INET6, SOCK_STREAM, 0);
-		snprintf(buffer, sizeof(buffer) - 1, "network inet TCP "
+		snprintf(buffer, sizeof(buffer) - 1, "network inet stream "
 			 "connect 0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(saddr.sin6_port) - 1,
 			 ntohs(saddr.sin6_port) + 1);
@@ -324,7 +324,7 @@ static void stage_network_test(void)
 		}
 		getsockname(fd2, (struct sockaddr *) &caddr, &size);
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP accept "
+			 "network inet stream accept "
 			 "0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
@@ -360,7 +360,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:1\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind @TESTADDRESS 30003");
+			 "network inet stream bind @TESTADDRESS 30003");
 		errno = 0;
 		show_result(bind(fd1, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -375,7 +375,7 @@ static void stage_network_test(void)
 		fprintf(exception_fp, "address_group TESTADDRESS "
 			"0:0:0:0:0:0:0:0-0:0:0:0:0:0:0:2\n");
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "network inet TCP bind @TESTADDRESS 40004");
+			 "network inet stream bind @TESTADDRESS 40004");
 		errno = 0;
 		show_result(bind(fd2, (struct sockaddr *) &saddr,
 				 sizeof(saddr)), 0);
@@ -399,13 +399,13 @@ static void stage_network_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	set_profile(3, "network::inet_tcp_bind");
-	set_profile(3, "network::inet_tcp_listen");
-	set_profile(3, "network::inet_tcp_connect");
-	set_profile(3, "network::inet_tcp_accept");
-	set_profile(3, "network::inet_udp_bind");
-	set_profile(3, "network::inet_udp_send");
-	set_profile(3, "network::inet_udp_recv");
+	set_profile(3, "network::inet_stream_bind");
+	set_profile(3, "network::inet_stream_listen");
+	set_profile(3, "network::inet_stream_connect");
+	set_profile(3, "network::inet_stream_accept");
+	set_profile(3, "network::inet_dgram_bind");
+	set_profile(3, "network::inet_dgram_send");
+	set_profile(3, "network::inet_dgram_recv");
 	set_profile(3, "network::inet_raw_bind");
 	set_profile(3, "network::inet_raw_send");
 	set_profile(3, "network::inet_raw_recv");
