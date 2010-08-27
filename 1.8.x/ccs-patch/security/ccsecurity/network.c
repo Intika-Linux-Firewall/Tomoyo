@@ -40,19 +40,14 @@ struct ccs_addr_info {
 	struct ccs_unix_addr_info unix0;
 };
 
-const char *ccs_inet_keyword[CCS_MAX_INET_PROTOCOL] = {
-	[CCS_NETWORK_INET_TCP_PROTOCOL] = "TCP",
-	[CCS_NETWORK_INET_UDP_PROTOCOL] = "UDP",
-	[CCS_NETWORK_INET_RAW_PROTOCOL] = "RAW",
+const char *ccs_proto_keyword[CCS_SOCK_MAX] = {
+	[SOCK_STREAM]    = "stream",
+	[SOCK_DGRAM]     = "dgram",
+	[SOCK_RAW]       = "raw",
+	[SOCK_SEQPACKET] = "seqpacket",
 };
 
-const char *ccs_unix_keyword[CCS_MAX_UNIX_PROTOCOL] = {
-	[CCS_NETWORK_UNIX_STREAM_PROTOCOL]    = "stream",
-	[CCS_NETWORK_UNIX_DGRAM_PROTOCOL]     = "dgram",
-	[CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL] = "seqpacket",
-};
-
-const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
+const char *ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION] = {
 	[CCS_NETWORK_BIND]    = "bind",
 	[CCS_NETWORK_LISTEN]  = "listen",
 	[CCS_NETWORK_CONNECT] = "connect",
@@ -60,6 +55,21 @@ const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
 	[CCS_NETWORK_SEND]    = "send",
 	[CCS_NETWORK_RECV]    = "recv",
 };
+
+static int ccs_audit_net_log(struct ccs_request_info *r, const char *family,
+			     const u8 proto, const u8 ope, const char *address)
+{
+	const char *protocol = ccs_proto_keyword[proto];
+	const char *operation = ccs_socket_keyword[ope];
+	ccs_write_log(r, "network %s %s %s %s\n", family,
+		      protocol, operation, address);
+	if (r->granted)
+		return 0;
+	ccs_warn_log(r, "network %s %s %s %s", family, protocol, operation,
+		     address);
+	return ccs_supervisor(r, "network %s %s %s %s\n", family, protocol,
+			      operation, address);
+}
 
 /**
  * ccs_audit_inet_log - Audit INET network log.
@@ -71,25 +81,19 @@ const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION] = {
 static int ccs_audit_inet_log(struct ccs_request_info *r)
 {
 	char buf[128];
-	const char *protocol =
-		ccs_inet_keyword[r->param.inet_network.protocol];
-	const char *operation = ccs_net_keyword[r->param.inet_network.operation];
+	int len;
 	const u32 *address = r->param.inet_network.address;
-	const u16 port = r->param.inet_network.port;
 	if (r->param.inet_network.is_ipv6)
 		ccs_print_ipv6(buf, sizeof(buf), (const struct in6_addr *)
 			       address, (const struct in6_addr *) address);
 	else
 		ccs_print_ipv4(buf, sizeof(buf), r->param.inet_network.ip,
 			       r->param.inet_network.ip);
-	ccs_write_log(r, "network inet %s %s %s %u\n", protocol, operation,
-		      buf, port);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "network inet %s %s %s %u", protocol, operation, buf,
-		     port);
-	return ccs_supervisor(r, "network inet %s %s %s %u\n", protocol,
-			      operation, buf, port);
+	len = strlen(buf);
+	snprintf(buf + len, sizeof(buf) - len, " %u",
+		 r->param.inet_network.port); 
+	return ccs_audit_net_log(r, "inet", r->param.inet_network.protocol,
+				 r->param.inet_network.operation, buf);
 }
 
 /**
@@ -101,18 +105,9 @@ static int ccs_audit_inet_log(struct ccs_request_info *r)
  */
 static int ccs_audit_unix_log(struct ccs_request_info *r)
 {
-	const char *protocol =
-		ccs_unix_keyword[r->param.unix_network.protocol];
-	const char *operation =
-		ccs_net_keyword[r->param.unix_network.operation];
-	const char *address = r->param.unix_network.address->name;
-	ccs_write_log(r, "network unix %s %s %s\n", protocol, operation,
-		      address);
-	if (r->granted)
-		return 0;
-	ccs_warn_log(r, "network unix %s %s %s", protocol, operation, address);
-	return ccs_supervisor(r, "network unix %s %s %s\n", protocol,
-			      operation, address);
+	return ccs_audit_net_log(r, "unix", r->param.unix_network.protocol,
+				 r->param.unix_network.operation,
+				 r->param.unix_network.address->name);
 }
 
 /**
@@ -249,19 +244,19 @@ static bool ccs_check_unix_acl(struct ccs_request_info *r,
 }
 
 static const u8
-ccs_inet2mac[CCS_MAX_INET_PROTOCOL][CCS_MAX_NETWORK_OPERATION] = {
-	[CCS_NETWORK_INET_TCP_PROTOCOL] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_TCP_BIND,
-		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_INET_TCP_LISTEN,
-		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_INET_TCP_CONNECT,
-		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_INET_TCP_ACCEPT,
+ccs_inet2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
+	[SOCK_STREAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_STREAM_BIND,
+		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_INET_STREAM_LISTEN,
+		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_INET_STREAM_CONNECT,
+		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_INET_STREAM_ACCEPT,
 	},
-	[CCS_NETWORK_INET_UDP_PROTOCOL] = {
-		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_UDP_BIND,
-		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_UDP_SEND,
-		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_UDP_RECV,
+	[SOCK_DGRAM] = {
+		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_DGRAM_BIND,
+		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_DGRAM_SEND,
+		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_DGRAM_RECV,
 	},
-	[CCS_NETWORK_INET_RAW_PROTOCOL]    = {
+	[SOCK_RAW]    = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_INET_RAW_BIND,
 		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_INET_RAW_SEND,
 		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_INET_RAW_RECV,
@@ -269,116 +264,25 @@ ccs_inet2mac[CCS_MAX_INET_PROTOCOL][CCS_MAX_NETWORK_OPERATION] = {
 };
 
 static const u8
-ccs_unix2mac[CCS_MAX_UNIX_PROTOCOL][CCS_MAX_NETWORK_OPERATION] = {
-	[CCS_NETWORK_UNIX_STREAM_PROTOCOL] = {
+ccs_unix2mac[CCS_SOCK_MAX][CCS_MAX_NETWORK_OPERATION] = {
+	[SOCK_STREAM] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_STREAM_BIND,
 		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_STREAM_LISTEN,
 		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_STREAM_CONNECT,
 		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_STREAM_ACCEPT,
 	},
-	[CCS_NETWORK_UNIX_DGRAM_PROTOCOL] = {
+	[SOCK_DGRAM] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_DGRAM_BIND,
 		[CCS_NETWORK_SEND]    = CCS_MAC_NETWORK_UNIX_DGRAM_SEND,
 		[CCS_NETWORK_RECV]    = CCS_MAC_NETWORK_UNIX_DGRAM_RECV,
 	},
-	[CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL] = {
+	[SOCK_SEQPACKET] = {
 		[CCS_NETWORK_BIND]    = CCS_MAC_NETWORK_UNIX_SEQPACKET_BIND,
 		[CCS_NETWORK_LISTEN]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_LISTEN,
 		[CCS_NETWORK_CONNECT] = CCS_MAC_NETWORK_UNIX_SEQPACKET_CONNECT,
 		[CCS_NETWORK_ACCEPT]  = CCS_MAC_NETWORK_UNIX_SEQPACKET_ACCEPT,
 	},
 };
-
-/**
- * ccs_inet_entry - Check permission for INET network operation.
- *
- * @address: Pointer to "struct ccs_addr_info".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_inet_entry(const struct ccs_addr_info *address)
-{
-	const int idx = ccs_read_lock();
-	struct ccs_request_info r;
-	int error = 0;
-	const u8 type = ccs_inet2mac[address->protocol][address->operation];
-	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
-		struct task_struct * const task = current;
-		const bool no_sleep = address->operation == CCS_NETWORK_ACCEPT
-			|| address->operation == CCS_NETWORK_RECV;
-		r.param_type = CCS_TYPE_INET_ACL;
-		r.param.inet_network.protocol = address->protocol;
-		r.param.inet_network.operation = address->operation;
-		r.param.inet_network.is_ipv6 = address->inet.is_ipv6;
-		r.param.inet_network.address = address->inet.address;
-		r.param.inet_network.port = ntohs(address->inet.port);
-		/* use host byte order to allow u32 comparison than memcmp().*/
-		r.param.inet_network.ip = ntohl(*address->inet.address);
-		if (no_sleep)
-			task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		do {
-			ccs_check_acl(&r, ccs_check_inet_acl);
-			error = ccs_audit_inet_log(&r);
-		} while (error == CCS_RETRY_REQUEST);
-		if (no_sleep)
-			task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-	}
-	ccs_read_unlock(idx);
-	return error;
-}
-
-/**
- * ccs_unix_entry - Check permission for UNIX network operation.
- *
- * @address: Pointer to "struct ccs_addr_info".
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_unix_entry(const struct ccs_addr_info *address)
-{
-	const int idx = ccs_read_lock();
-	struct ccs_request_info r;
-	int error = 0;
-	const u8 type = ccs_unix2mac[address->protocol][address->operation];
-	if (type && address->unix0.addr_len > sizeof(sa_family_t) &&
-	    ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
-		char *buf;
-		if (address->unix0.addr[0])
-			buf = ccs_encode(address->unix0.addr);
-		else
-			buf = ccs_encode2(address->unix0.addr,
-					  address->unix0.addr_len
-					  - sizeof(sa_family_t));
-		if (buf) {
-			struct task_struct * const task = current;
-			const bool no_sleep =
-				address->operation == CCS_NETWORK_ACCEPT ||
-				address->operation == CCS_NETWORK_RECV;
-			struct ccs_path_info addr;
-			addr.name = buf;
-			ccs_fill_path_info(&addr);
-			r.param_type = CCS_TYPE_UNIX_ACL;
-			r.param.unix_network.protocol = address->protocol;
-			r.param.unix_network.operation = address->operation;
-			r.param.unix_network.address = &addr;
-			if (no_sleep)
-				task->ccs_flags |=
-					CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-		
-			do {
-				ccs_check_acl(&r, ccs_check_unix_acl);
-				error = ccs_audit_unix_log(&r);
-			} while (error == CCS_RETRY_REQUEST);
-			if (no_sleep)
-				task->ccs_flags &=
-					~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
-			kfree(buf);
-		} else
-			error = -ENOMEM;
-	}
-	ccs_read_unlock(idx);
-	return error;
-}
 
 static bool ccs_same_inet_acl(const struct ccs_acl_info *a,
 				      const struct ccs_acl_info *b)
@@ -455,17 +359,17 @@ int ccs_write_inet_network(char *data, struct ccs_domain_info *domain,
 	u16 min_address[8];
 	u16 max_address[8];
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	u8 type;
 	char *w[4];
+	u8 type;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[3][0])
 		return -EINVAL;
-	for (e.protocol = 0; e.protocol < CCS_MAX_INET_PROTOCOL; e.protocol++)
-		if (!strcmp(w[0], ccs_inet_keyword[e.protocol]))
+	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
+		if (!strcmp(w[0], ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_net_keyword[type]))
+		if (ccs_permstr(w[1], ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
-	if (e.protocol == CCS_MAX_INET_PROTOCOL || !e.perm)
+	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
 	switch (ccs_parse_ip_address(w[2], min_address, max_address)) {
 	case CCS_IP_ADDRESS_TYPE_IPv6:
@@ -526,17 +430,17 @@ int ccs_write_unix_network(char *data, struct ccs_domain_info *domain,
 		.head.cond = condition,
 	};
 	int error = is_delete ? -ENOENT : -ENOMEM;
-	u8 type;
 	char *w[3];
+	u8 type;
 	if (!ccs_tokenize(data, w, sizeof(w)) || !w[2][0])
 		return -EINVAL;
-	for (e.protocol = 0; e.protocol < CCS_MAX_UNIX_PROTOCOL; e.protocol++)
-		if (!strcmp(w[0], ccs_unix_keyword[e.protocol]))
+	for (e.protocol = 0; e.protocol < CCS_SOCK_MAX; e.protocol++)
+		if (!strcmp(w[0], ccs_proto_keyword[e.protocol]))
 			break;
 	for (type = 0; type < CCS_MAX_NETWORK_OPERATION; type++)
-		if (ccs_permstr(w[1], ccs_net_keyword[type]))
+		if (ccs_permstr(w[1], ccs_socket_keyword[type]))
 			e.perm |= 1 << type;
-	if (e.protocol == CCS_MAX_UNIX_PROTOCOL || !e.perm)
+	if (e.protocol == CCS_SOCK_MAX || !e.perm)
 		return -EINVAL;
 	if (!ccs_parse_name_union(w[2], &e.name))
                 return -EINVAL;
@@ -550,9 +454,51 @@ int ccs_write_unix_network(char *data, struct ccs_domain_info *domain,
 
 void __init ccs_network_init(void)
 {
+	u8 i;
+	for (i = 0; i < CCS_SOCK_MAX; i++)
+		if (!ccs_proto_keyword[i])
+			ccs_proto_keyword[i] = "unknown";
 }
 
 #else
+
+/**
+ * ccs_inet_entry - Check permission for INET network operation.
+ *
+ * @address: Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_inet_entry(const struct ccs_addr_info *address)
+{
+	const int idx = ccs_read_lock();
+	struct ccs_request_info r;
+	int error = 0;
+	const u8 type = ccs_inet2mac[address->protocol][address->operation];
+	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
+		struct task_struct * const task = current;
+		const bool no_sleep = address->operation == CCS_NETWORK_ACCEPT
+			|| address->operation == CCS_NETWORK_RECV;
+		r.param_type = CCS_TYPE_INET_ACL;
+		r.param.inet_network.protocol = address->protocol;
+		r.param.inet_network.operation = address->operation;
+		r.param.inet_network.is_ipv6 = address->inet.is_ipv6;
+		r.param.inet_network.address = address->inet.address;
+		r.param.inet_network.port = ntohs(address->inet.port);
+		/* use host byte order to allow u32 comparison than memcmp().*/
+		r.param.inet_network.ip = ntohl(*address->inet.address);
+		if (no_sleep)
+			task->ccs_flags |= CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		do {
+			ccs_check_acl(&r, ccs_check_inet_acl);
+			error = ccs_audit_inet_log(&r);
+		} while (error == CCS_RETRY_REQUEST);
+		if (no_sleep)
+			task->ccs_flags &= ~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+	}
+	ccs_read_unlock(idx);
+	return error;
+}
 
 static int ccs_check_inet_address(const struct sockaddr *addr,
 				  const unsigned int addr_len, const u16 port,
@@ -578,14 +524,66 @@ static int ccs_check_inet_address(const struct sockaddr *addr,
 	default:
 		goto skip;
 	}
-	if (address->protocol == CCS_NETWORK_INET_RAW_PROTOCOL)
+	if (address->protocol == SOCK_RAW)
 		i->port = htons(port);
 	return ccs_inet_entry(address);
  skip:
 	return 0;
 }
 
-static int ccs_unix_entry(const struct ccs_addr_info *address);
+/**
+ * ccs_unix_entry - Check permission for UNIX network operation.
+ *
+ * @address: Pointer to "struct ccs_addr_info".
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_unix_entry(const struct ccs_addr_info *address)
+{
+	const int idx = ccs_read_lock();
+	struct ccs_request_info r;
+	int error = 0;
+	const u8 type = ccs_unix2mac[address->protocol][address->operation];
+	if (type && ccs_init_request_info(&r, type) != CCS_CONFIG_DISABLED) {
+		char *buf;
+		if (address->unix0.addr_len <= sizeof(sa_family_t))
+			buf = ccs_encode2("anonymous", 9);			
+		else if (address->unix0.addr[0])
+			buf = ccs_encode(address->unix0.addr);
+		else
+			buf = ccs_encode2(address->unix0.addr,
+					  address->unix0.addr_len
+					  - sizeof(sa_family_t));
+		if (buf) {
+			struct task_struct * const task = current;
+			const bool no_sleep =
+				address->operation == CCS_NETWORK_ACCEPT ||
+				address->operation == CCS_NETWORK_RECV;
+			struct ccs_path_info addr;
+			addr.name = buf;
+			ccs_fill_path_info(&addr);
+			r.param_type = CCS_TYPE_UNIX_ACL;
+			r.param.unix_network.protocol = address->protocol;
+			r.param.unix_network.operation = address->operation;
+			r.param.unix_network.address = &addr;
+			if (no_sleep)
+				task->ccs_flags |=
+					CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+		
+			do {
+				ccs_check_acl(&r, ccs_check_unix_acl);
+				error = ccs_audit_unix_log(&r);
+			} while (error == CCS_RETRY_REQUEST);
+			if (no_sleep)
+				task->ccs_flags &=
+					~CCS_DONT_SLEEP_ON_ENFORCE_ERROR;
+			kfree(buf);
+		} else
+			error = -ENOMEM;
+	}
+	ccs_read_unlock(idx);
+	return error;
+}
 
 static int ccs_check_unix_address(struct sockaddr *addr,
 				  const unsigned int addr_len,
@@ -615,14 +613,15 @@ static bool ccs_kernel_service(void)
 
 static u8 ccs_sock_family(struct sock *sk)
 {
+	u8 family;
 	if (ccs_kernel_service())
 		return 0;
-	switch (sk->sk_family) {
+	family = sk->sk_family;
+	switch (family) {
 	case PF_INET:
 	case PF_INET6:
-		return 1;
 	case PF_UNIX:
-		return 2;
+		return family;
 	default:
 		return 0;
 	}
@@ -656,16 +655,11 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 		if (error)
 			return error;
 	}
+	address.protocol = type;
 	address.operation = CCS_NETWORK_LISTEN;
-	if (family == 2) {
-		if (type == SOCK_STREAM)
-			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
-		else
-			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
+	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *) &addr,
 					      addr_len, &address);
-	}
-	address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
 	return ccs_check_inet_address((struct sockaddr *) &addr, addr_len, 0,
 				      &address);
 }
@@ -679,39 +673,21 @@ static int __ccs_socket_connect_permission(struct socket *sock,
 	const unsigned int type = sock->type;
 	if (!family)
 		return 0;
-	address.operation = CCS_NETWORK_CONNECT;
-	if (family == 2) {
-		switch (type) {
-		case SOCK_STREAM:
-			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
-			break;
-		case SOCK_DGRAM:
-			address.protocol = CCS_NETWORK_UNIX_DGRAM_PROTOCOL;
-			address.operation = CCS_NETWORK_SEND;
-			break;
-		case SOCK_SEQPACKET:
-			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
-			break;
-		default:
-			return 0;
-		}
-		return ccs_check_unix_address(addr, addr_len, &address);
-	}
+	address.protocol = type;
 	switch (type) {
-	case SOCK_STREAM:
-		address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
-		break;
 	case SOCK_DGRAM:
-		address.protocol = CCS_NETWORK_INET_UDP_PROTOCOL;
+	case SOCK_RAW:
 		address.operation = CCS_NETWORK_SEND;
 		break;
-	case SOCK_RAW:
-		address.protocol = CCS_NETWORK_INET_RAW_PROTOCOL;
-		address.operation = CCS_NETWORK_SEND;
+	case SOCK_STREAM:
+	case SOCK_SEQPACKET:
+		address.operation = CCS_NETWORK_CONNECT;
 		break;
 	default:
 		return 0;
 	}
+	if (family == PF_UNIX)
+		return ccs_check_unix_address(addr, addr_len, &address);
 	return ccs_check_inet_address(addr, addr_len, sock->sk->sk_protocol,
 				      &address);
 }
@@ -725,68 +701,39 @@ static int __ccs_socket_bind_permission(struct socket *sock,
 	const unsigned int type = sock->type;
 	if (!family)
 		return 0;
-	address.operation = CCS_NETWORK_BIND;
-	if (family == 2) {
-		switch (type) {
-		case SOCK_STREAM:
-			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
-			break;
-		case SOCK_DGRAM:
-			address.protocol = CCS_NETWORK_UNIX_DGRAM_PROTOCOL;
-			break;
-		case SOCK_SEQPACKET:
-			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
-			break;
-		default:
-			return 0;
-		}
-		return ccs_check_unix_address(addr, addr_len, &address);
-	}
 	switch (type) {
 	case SOCK_STREAM:
-		address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
-		break;
 	case SOCK_DGRAM:
-		address.protocol = CCS_NETWORK_INET_UDP_PROTOCOL;
-		break;
 	case SOCK_RAW:
-		address.protocol = CCS_NETWORK_INET_RAW_PROTOCOL;
+	case SOCK_SEQPACKET:
+		address.protocol = type;
+		address.operation = CCS_NETWORK_BIND;
 		break;
 	default:
 		return 0;
 	}
+	if (family == PF_UNIX)
+		return ccs_check_unix_address(addr, addr_len, &address);
 	return ccs_check_inet_address(addr, addr_len, sock->sk->sk_protocol,
 				      &address);
 }
 
-/* Check permission for sending a datagram via a UDP or RAW socket. */
+/* Check permission for sending a datagram. */
 static int __ccs_socket_sendmsg_permission(struct socket *sock,
 					   struct msghdr *msg, int size)
 {
 	struct ccs_addr_info address;
 	const u8 family = ccs_sock_family(sock->sk);
 	const unsigned int type = sock->type;
-	if (!msg->msg_name || !family)
+	if (!msg->msg_name || !family ||
+	    (type != SOCK_DGRAM && type != SOCK_RAW))
 		return 0;
+	address.protocol = type;
 	address.operation = CCS_NETWORK_SEND;
-	if (family == 2) {
-		if (type != SOCK_DGRAM)
-			return 0;
-		address.protocol = CCS_NETWORK_UNIX_DGRAM_PROTOCOL;
+	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *)
 					      msg->msg_name, msg->msg_namelen,
 					      &address);
-	}
-	switch (type) {
-	case SOCK_DGRAM:
-		address.protocol = CCS_NETWORK_INET_UDP_PROTOCOL;
-		break;
-	case SOCK_RAW:
-		address.protocol = CCS_NETWORK_INET_RAW_PROTOCOL;
-		break;
-	default:
-		return 0;
-	}
 	return ccs_check_inet_address((struct sockaddr *) msg->msg_name,
 				      msg->msg_namelen, sock->sk->sk_protocol,
 				      &address);
@@ -810,16 +757,11 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 		if (error)
 			return error;
 	}
+	address.protocol = type;
 	address.operation = CCS_NETWORK_ACCEPT;
-	if (family == 2) {
-		if (type == SOCK_STREAM)
-			address.protocol = CCS_NETWORK_UNIX_STREAM_PROTOCOL;
-		else
-			address.protocol = CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL;
+	if (family == PF_UNIX)
 		return ccs_check_unix_address((struct sockaddr *) &addr,
 					      addr_len, &address);
-	}
-	address.protocol = CCS_NETWORK_INET_TCP_PROTOCOL;
 	return ccs_check_inet_address((struct sockaddr *) &addr, addr_len, 0,
 				      &address);
 }
@@ -859,38 +801,17 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 		return 0;
 	switch (type) {
 	case SOCK_DGRAM:
-		if (family == 2)
-			address.protocol = CCS_NETWORK_UNIX_DGRAM_PROTOCOL;
-		else
-			address.protocol = CCS_NETWORK_INET_UDP_PROTOCOL;
-		break;
 	case SOCK_RAW:
-		address.protocol = CCS_NETWORK_INET_RAW_PROTOCOL;
+		address.protocol = type;
 		break;
 	default:
 		return 0;
 	}
 	address.operation = CCS_NETWORK_RECV;
-	if (family == 2) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
-		struct unix_address *u = unix_sk(skb->sk)->addr;
-#else
-		struct unix_address *u = skb->sk->protinfo.af_unix.addr;
-#endif
-		unsigned int addr_len;
-		if (!u)
-			return 0;
-		addr_len = u->len;
-		if (addr_len >= sizeof(addr))
-			return 0;
-		memcpy(&addr, u->name, addr_len);
-		return ccs_check_unix_address((struct sockaddr *) &addr,
-					      addr_len, &address);
-	} else {
-		struct in6_addr *sin6 = (struct in6_addr *) &addr;
-		struct in_addr *sin4 = (struct in_addr *) &addr;
-		switch (sk->sk_family) {
-		case PF_INET6:
+	switch (family) {
+	case PF_INET6:
+		{
+			struct in6_addr *sin6 = (struct in6_addr *) &addr;
 			address.inet.is_ipv6 = true;
 			if (type == SOCK_DGRAM &&
 			    skb->protocol == htons(ETH_P_IP))
@@ -899,24 +820,46 @@ static int __ccs_socket_post_recvmsg_permission(struct sock *sk,
 			else
 				ipv6_addr_copy(sin6, &ipv6_hdr(skb)->saddr);
 			break;
-		case PF_INET:
+		}
+	case PF_INET:
+		{
+			struct in_addr *sin4 = (struct in_addr *) &addr;
 			address.inet.is_ipv6 = false; 
 			sin4->s_addr = ip_hdr(skb)->saddr;
 			break;
-		default:
-			return 0;
 		}
-		address.inet.address = (u32 *) &addr;
-		if (type == SOCK_DGRAM)
-			address.inet.port = udp_hdr(skb)->source;
-		else
-			address.inet.port = htons(sk->sk_protocol);
-		return ccs_inet_entry(&address);
+	default: /* == PF_UNIX */
+		{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
+			struct unix_address *u = unix_sk(skb->sk)->addr;
+#else
+			struct unix_address *u = skb->sk->protinfo.af_unix.addr;
+#endif
+			unsigned int addr_len;
+			if (!u)
+				return 0;
+			addr_len = u->len;
+			if (addr_len >= sizeof(addr))
+				return 0;
+			memcpy(&addr, u->name, addr_len);
+			return ccs_check_unix_address((struct sockaddr *) &addr,
+						      addr_len, &address);
+		}
 	}
+	address.inet.address = (u32 *) &addr;
+	if (type == SOCK_DGRAM)
+		address.inet.port = udp_hdr(skb)->source;
+	else
+		address.inet.port = htons(sk->sk_protocol);
+	return ccs_inet_entry(&address);
 }
 
 void __init ccs_network_init(void)
 {
+	u8 i;
+	for (i = 0; i < CCS_SOCK_MAX; i++)
+		if (!ccs_proto_keyword[i])
+			ccs_proto_keyword[i] = "unknown";
 	ccsecurity_ops.socket_create_permission =
 		__ccs_socket_create_permission;
 	ccsecurity_ops.socket_listen_permission =

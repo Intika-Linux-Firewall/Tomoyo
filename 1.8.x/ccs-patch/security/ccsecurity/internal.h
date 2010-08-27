@@ -124,20 +124,6 @@ enum ccs_path_number_acl_index {
 	CCS_MAX_PATH_NUMBER_OPERATION
 };
 
-enum ccs_network_inet_protocol_index {
-	CCS_NETWORK_INET_TCP_PROTOCOL,
-	CCS_NETWORK_INET_UDP_PROTOCOL,
-	CCS_NETWORK_INET_RAW_PROTOCOL,
-	CCS_MAX_INET_PROTOCOL
-};
-
-enum ccs_network_unix_protocol_index {
-	CCS_NETWORK_UNIX_STREAM_PROTOCOL,
-	CCS_NETWORK_UNIX_DGRAM_PROTOCOL,
-	CCS_NETWORK_UNIX_SEQPACKET_PROTOCOL,
-	CCS_MAX_UNIX_PROTOCOL
-};
-
 enum ccs_network_acl_index {
 	CCS_NETWORK_BIND,    /* bind() operation. */
 	CCS_NETWORK_LISTEN,  /* listen() operation. */
@@ -195,13 +181,13 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_UMOUNT,
 	CCS_MAC_FILE_PIVOT_ROOT,
 	//CCS_MAC_FILE_TRANSIT,
-	CCS_MAC_NETWORK_INET_TCP_BIND,
-	CCS_MAC_NETWORK_INET_TCP_LISTEN,
-	CCS_MAC_NETWORK_INET_TCP_CONNECT,
-	CCS_MAC_NETWORK_INET_TCP_ACCEPT,
-	CCS_MAC_NETWORK_INET_UDP_BIND,
-	CCS_MAC_NETWORK_INET_UDP_SEND,
-	CCS_MAC_NETWORK_INET_UDP_RECV,
+	CCS_MAC_NETWORK_INET_STREAM_BIND,
+	CCS_MAC_NETWORK_INET_STREAM_LISTEN,
+	CCS_MAC_NETWORK_INET_STREAM_CONNECT,
+	CCS_MAC_NETWORK_INET_STREAM_ACCEPT,
+	CCS_MAC_NETWORK_INET_DGRAM_BIND,
+	CCS_MAC_NETWORK_INET_DGRAM_SEND,
+	CCS_MAC_NETWORK_INET_DGRAM_RECV,
 	CCS_MAC_NETWORK_INET_RAW_BIND,
 	CCS_MAC_NETWORK_INET_RAW_SEND,
 	CCS_MAC_NETWORK_INET_RAW_RECV,
@@ -310,6 +296,8 @@ enum ccs_stat_index {
 
 #define CCS_HASH_BITS 8
 #define CCS_MAX_HASH (1 << CCS_HASH_BITS)
+
+#define CCS_SOCK_MAX 6
 
 enum ccs_shared_acl_id {
 	CCS_CONDITION_LIST,
@@ -866,7 +854,6 @@ struct ccs_ipv6addr {
 /* Structure for "network inet" directive. */
 struct ccs_inet_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_INET_ACL */
-	/* One of values in "enum ccs_network_inet_protocol_index" */
 	u8 protocol;
 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	/*
@@ -901,7 +888,6 @@ struct ccs_inet_acl {
 /* Structure for "network unix" directive. */
 struct ccs_unix_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_UNIX_ACL */
-	/* One of values in "enum ccs_network_unix_protocol_index" "*/
 	u8 protocol;
 	u8 perm; /* Bitmask of values in "enum ccs_network_acl_index" */
 	struct ccs_name_union name;
@@ -1169,9 +1155,8 @@ extern struct ccs_domain_info ccs_kernel_domain;
 extern const char *ccs_mode[CCS_CONFIG_MAX_MODE];
 extern const char *ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD];
 extern const char *ccs_mkdev_keyword[CCS_MAX_MKDEV_OPERATION];
-extern const char *ccs_net_keyword[CCS_MAX_NETWORK_OPERATION];
-extern const char *ccs_inet_keyword[CCS_MAX_INET_PROTOCOL];
-extern const char *ccs_unix_keyword[CCS_MAX_UNIX_PROTOCOL];
+extern const char *ccs_socket_keyword[CCS_MAX_NETWORK_OPERATION];
+extern const char *ccs_proto_keyword[CCS_SOCK_MAX];
 extern const char *ccs_path_keyword[CCS_MAX_PATH_OPERATION];
 extern const char *ccs_path_number_keyword[CCS_MAX_PATH_NUMBER_OPERATION];
 extern const char *ccs_path2_keyword[CCS_MAX_PATH2_OPERATION];

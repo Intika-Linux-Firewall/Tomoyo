@@ -90,20 +90,20 @@ static const char *ccs_mac_keywords[CCS_MAX_MAC_INDEX +
 	= "file::pivot_root",
 	[CCS_MAC_ENVIRON]
 	= "misc::env",
-	[CCS_MAC_NETWORK_INET_TCP_BIND]
-	= "network::inet_tcp_bind",
-	[CCS_MAC_NETWORK_INET_TCP_LISTEN]
-	= "network::inet_tcp_listen",
-	[CCS_MAC_NETWORK_INET_TCP_CONNECT]
-	= "network::inet_tcp_connect",
-	[CCS_MAC_NETWORK_INET_TCP_ACCEPT]
-	= "network::inet_tcp_accept",
-	[CCS_MAC_NETWORK_INET_UDP_BIND]
-	= "network::inet_udp_bind",
-	[CCS_MAC_NETWORK_INET_UDP_SEND]
-	= "network::inet_udp_send",
-	[CCS_MAC_NETWORK_INET_UDP_RECV]
-	= "network::inet_udp_recv",
+	[CCS_MAC_NETWORK_INET_STREAM_BIND]
+	= "network::inet_stream_bind",
+	[CCS_MAC_NETWORK_INET_STREAM_LISTEN]
+	= "network::inet_stream_listen",
+	[CCS_MAC_NETWORK_INET_STREAM_CONNECT]
+	= "network::inet_stream_connect",
+	[CCS_MAC_NETWORK_INET_STREAM_ACCEPT]
+	= "network::inet_stream_accept",
+	[CCS_MAC_NETWORK_INET_DGRAM_BIND]
+	= "network::inet_dgram_bind",
+	[CCS_MAC_NETWORK_INET_DGRAM_SEND]
+	= "network::inet_dgram_send",
+	[CCS_MAC_NETWORK_INET_DGRAM_RECV]
+	= "network::inet_dgram_recv",
 	[CCS_MAC_NETWORK_INET_RAW_BIND]
 	= "network::inet_raw_bind",
 	[CCS_MAC_NETWORK_INET_RAW_SEND]
@@ -1396,9 +1396,9 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "network inet ");
-		ccs_set_string(head, ccs_inet_keyword[ptr->protocol]);
+		ccs_set_string(head, ccs_proto_keyword[ptr->protocol]);
 		ccs_set_space(head);
-		ccs_set_string(head, ccs_net_keyword[bit]);
+		ccs_set_string(head, ccs_socket_keyword[bit]);
 		ccs_set_space(head);
 		switch (ptr->address_type) {
 			char buf[128];
@@ -1427,9 +1427,9 @@ static bool ccs_print_entry(struct ccs_io_buffer *head,
 			goto done;
 		ccs_set_group(head);
 		ccs_set_string(head, "network unix ");
-		ccs_set_string(head, ccs_unix_keyword[ptr->protocol]);
+		ccs_set_string(head, ccs_proto_keyword[ptr->protocol]);
 		ccs_set_space(head);
-		ccs_set_string(head, ccs_net_keyword[bit]);
+		ccs_set_string(head, ccs_socket_keyword[bit]);
 		ccs_print_name_union(head, &ptr->name);
 	} else if (acl_type == CCS_TYPE_SIGNAL_ACL) {
 		struct ccs_signal_acl *ptr =
