@@ -84,29 +84,20 @@ static void show_result3(int result)
 static void set_enforce(int flag)
 {
 	is_enforce = flag;
-	if (flag) {
-		set_profile(3, "network::inet_tcp_bind");
-		set_profile(3, "network::inet_tcp_listen");
-		set_profile(3, "network::inet_tcp_connect");
-		set_profile(3, "network::inet_tcp_accept");
-		set_profile(3, "network::inet_udp_bind");
-		set_profile(3, "network::inet_udp_send");
-		set_profile(3, "network::inet_udp_recv");
-		set_profile(3, "network::inet_raw_bind");
-		set_profile(3, "network::inet_raw_send");
-		set_profile(3, "network::inet_raw_recv");
-	} else {
-		set_profile(2, "network::inet_tcp_bind");
-		set_profile(2, "network::inet_tcp_listen");
-		set_profile(2, "network::inet_tcp_connect");
-		set_profile(2, "network::inet_tcp_accept");
-		set_profile(2, "network::inet_udp_bind");
-		set_profile(2, "network::inet_udp_send");
-		set_profile(2, "network::inet_udp_recv");
-		set_profile(2, "network::inet_raw_bind");
-		set_profile(2, "network::inet_raw_send");
-		set_profile(2, "network::inet_raw_recv");
-	}
+	if (flag)
+		flag = 3;
+	else
+		flag = 2;
+	set_profile(flag, "network::inet_stream_bind");
+	set_profile(flag, "network::inet_stream_listen");
+	set_profile(flag, "network::inet_stream_connect");
+	set_profile(flag, "network::inet_stream_accept");
+	set_profile(flag, "network::inet_dgram_bind");
+	set_profile(flag, "network::inet_dgram_send");
+	set_profile(flag, "network::inet_dgram_recv");
+	set_profile(flag, "network::inet_raw_bind");
+	set_profile(flag, "network::inet_raw_send");
+	set_profile(flag, "network::inet_raw_recv");
 }
 
 static void stage_network_test(void)
