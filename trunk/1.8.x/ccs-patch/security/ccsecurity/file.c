@@ -1409,7 +1409,7 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 	buffer = kmalloc(PAGE_SIZE, CCS_GFP_FLAGS);
 	if (!buffer)
 		goto out;
-	snprintf(buffer, PAGE_SIZE - 1, "/proc/sys");
+	snprintf(buffer, PAGE_SIZE - 1, "proc:/sys");
  repeat:
 	if (!nlen) {
 		error = -ENOTDIR;
@@ -1449,44 +1449,44 @@ static int __ccs_parse_table(int __user *name, int nlen, void __user *oldval,
 			if (!memchr(buffer, '\0', PAGE_SIZE - 2))
 				goto out;
 		}
-		if (table->child) {
+		if (!table->child)
+			goto no_child;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 21)
-			if (table->strategy) {
-				/* printk("sysctl='%s'\n", buffer); */
-				buf.name = ccs_encode(buffer);
-				if (buf.name) {
-					ccs_fill_path_info(&buf);
-					if (op & MAY_READ)
-						error = ccs_path_permission(&r,
-									    CCS_TYPE_READ,
-									    &buf);
-					if (!error && (op & MAY_WRITE))
-						error = ccs_path_permission(&r,
-									    CCS_TYPE_WRITE,
-									    &buf);
-					kfree(buf.name);
-				}
-				if (error)
-					goto out;
-			}
-#endif
-			name++;
-			nlen--;
-			table = table->child;
-			goto repeat;
-		}
+		if (!table->strategy)
+			goto no_strategy;
 		/* printk("sysctl='%s'\n", buffer); */
 		buf.name = ccs_encode(buffer);
-		if (buf.name) {
-			ccs_fill_path_info(&buf);
-			if (op & MAY_READ)
-				error = ccs_path_permission(&r, CCS_TYPE_READ,
-							    &buf);
-			if (!error && (op & MAY_WRITE))
-				error = ccs_path_permission(&r, CCS_TYPE_WRITE,
-							    &buf);
-			kfree(buf.name);
-		}
+		if (!buf.name)
+			goto out;
+		ccs_fill_path_info(&buf);
+		if (op & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		else
+			error = 0;
+		if (!error && (op & MAY_WRITE))
+			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
+		kfree(buf.name);
+		if (error)
+			goto out;
+no_strategy:
+#endif
+		name++;
+		nlen--;
+		table = table->child;
+		goto repeat;
+no_child:
+		/* printk("sysctl='%s'\n", buffer); */
+		buf.name = ccs_encode(buffer);
+		if (!buf.name)
+			goto out;
+		ccs_fill_path_info(&buf);
+		if (op & MAY_READ)
+			error = ccs_path_permission(&r, CCS_TYPE_READ, &buf);
+		else
+			error = 0;
+		if (!error && (op & MAY_WRITE))
+			error = ccs_path_permission(&r, CCS_TYPE_WRITE, &buf);
+		kfree(buf.name);
 		goto out;
 	}
 	error = -ENOTDIR;
