@@ -2441,17 +2441,18 @@ Fix 2010/06/09
       permissions (e.g. allow_env PATH if symlink.target="/"), it triggered
       NULL pointer dereference.
 
-Fix 2010/07/29
+Fix 2010/09/01
 
-    @ Change keyword syntax.
+    @ Change directives.
 
       I removed "allow_" prefix from directives. New directives for files are
       prefixed with "file ". For example, "allow_read" changed to "file read",
-      "allow_ioctl" changed to "file ioctl". New directive for "allow_network"
-      is "network". New directive for "allow_env" is "misc env". New directive
-      for "allow_signal" is "ipc signal". New directive for "allow_capability"
-      is "capability". These directives correspond with keywords used by
-      profile's CONFIG lines.
+      "allow_ioctl" changed to "file ioctl". New directive for "allow_network
+      TCP" is "network inet stream", "allow_network UDP" is "network inet
+      dgram", "allow_network RAW" is "network inet raw". New directive for
+      "allow_env" is "misc env". New directive for "allow_signal" is "ipc
+      signal". New directive for "allow_capability" is "capability". These new
+      directives correspond with keywords used by profile's CONFIG lines.
 
       I removed "deny_rewrite" and "allow_rewrite" directives and introduced
       "file append" directive. Thus, permission for open(O_WRONLY | O_APPEND)
@@ -2467,26 +2468,37 @@ Fix 2010/07/29
       check requires hooks in filesystem part while almost all hooks for
       filesystem part have moved to LSM by Linux 2.6.34.
 
-    @ Distinguish send() and recv() operations for UDP and IP protocols.
+      New directive for "execute_handler" is "task auto_execute_handler",
+      "denied_execute_handler" is "task denied_execute_handler".
 
-      Until now, it was impossible for UDP and IP protocols to allow either
+    @ Distinguish send() and recv() operations.
+
+      Until now, it was impossible for UDP and IP sockets to allow either
       only sending or only receiving because permissions were aggregated with
       "connect" keyword. I broke "connect" keyword into "send" and "recv"
       keywords so that you can keep access control for send() operation enabled
-      when you have to turn access control for recv() operation off due to
-      application breakage by filtering incoming datagram.
+      when you have to disable access control for recv() operation due to
+      application breakage by discarding incoming datagram.
 
     @ Wait for next connection/datagram if current connection/datagram was
       discarded.
 
-      Regarding "network TCP accept", "network UDP recv", "network RAW recv"
-      keywords, I modified to wait for next connection/datagram if current
-      connection/datagram was discarded. LSM hooks for these keywords are
-      currently missing because this behavior may break applications.
-      If you found applications broken by this behavior, you can set
-      CONFIG::network::inet_tcp_accept and/or CONFIG::network::inet_udp_recv
-      and/or CONFIG::network::inet_raw_recv to mode=disabled in order to
-      disable filtering for incoming connection/datagram.
+      Regarding "network inet stream accept", "network inet dgram recv",
+      "network inet raw recv" directives, I modified to wait for next
+      connection/datagram if current connection/datagram was discarded.
+      LSM hooks for these directives are currently missing because this
+      behavior may break applications. If you found applications broken by
+      this behavior, you can set CONFIG::network::inet_stream_accept and/or
+      CONFIG::network::inet_dgram_recv and/or CONFIG::network::inet_raw_recv
+      to mode=disabled in order to only disable filtering for incoming
+      connection/datagram.
+
+    @ Add Unix domain socket restriction support.
+
+      Until now, it was possible to restrict only inet domain sockets (i.e.
+      TCP/UDP/RAW). I added restriction for Unix domain sockets (i.e. stream/
+      dgram/seqpacket). New directive "network unix" is added as well as
+      "network inet" directive.
 
     @ Allow specifying multiple permissions in a line.
 
@@ -2525,16 +2537,16 @@ Fix 2010/07/29
 
     @ Add a new keyword "any" for domain transition control.
 
-      To be able to make it easier to apply execute_handler on each domain,
-      I added "any" keyword to domain transition control keywords. Now,
+      To be able to make it easier to apply auto_execute_handler on each
+      domain, I added "any" keyword to domain transition control keywords. Now,
       "initialize_domain /usr/sbin/sshd" changed to
       "initialize_domain /usr/sbin/sshd from any" and
       "keep_domain <kernel> /usr/sbin/sshd /bin/bash" changed to
       "keep_domain any from <kernel> /usr/sbin/sshd /bin/bash".
 
-      "keep_domain /path/to/execute_handler from any" will allow you to apply
-      execute_handler for any domains without creating domains for
-      execute_handler.
+      "keep_domain /path/to/auto_execute_handler from any" will allow you to
+      apply auto_execute_handler for any domains without creating domains for
+      auto_execute_handler.
 
     @ Change buffering mode for reading policy.
 
@@ -2555,7 +2567,7 @@ Fix 2010/07/29
       the exception policy and specify "use_group 0" from the domains in the
       domain policy.
 
-      "ignore_global_allow_read" and "ignore_global_allow_env" keywords were
+      "ignore_global_allow_read" and "ignore_global_allow_env" directives were
       removed from domain policy and "use_group" keyword was added.
 
     @ Allow controlling generation of access granted logs for per an entry
@@ -2564,11 +2576,11 @@ Fix 2010/07/29
       I added per-entry flag which controls generation of grant logs because
       Xen and KVM issues ioctl requests so frequently. For example,
 
-        file ioctl /dev/null 0x5401 ; set audit=no
+        file ioctl /dev/null 0x5401 if audit=no
 
       will suppress /proc/ccs/grant_log even if profile says grant_log=yes .
 
-        file ioctl /dev/null 0x5401 ; set audit=yes
+        file ioctl /dev/null 0x5401 if audit=yes
 
       will generate /proc/ccs/grant_log even if profile says grant_log=no .
 
@@ -2578,10 +2590,77 @@ Fix 2010/07/29
 
       This flag is intended for frequently accessed resources like
 
-        file read /var/www/html/\{\*\}/\*.html ; set audit=no
+        file read /var/www/html/\{\*\}/\*.html if audit=no
 
       .
+
+    @ Change profile structure.
+
+      To make it clear that preferences can be specified by per-profile basis,
+      I removed global preference ("PREFERENCE::"). Now, you need to explicitly
+      specify per-profile preference ("$profilenumber-PREFERENCE::").
+      
+      I changed default mode for access grant logs from "yes" to "no".
+      You may change mode to "yes" if you want all grant logs to be generated.
+      You may override mode using "if audit=yes" if you want specific grant
+      logs to be generated.
+
+      Since printing all warning/error messages to console is noisy,
+      I changed verbose mode control from per-preference basis to
+      per-functionality basis. Now, you can selectively print warning/error
+      messages.
+
+    @ Automatically create domain by execve() even if enforcing mode.
+
+      Until now, new domains are not created if the domain was not defined and
+      current domain is enforcing mode ("CONFIG::file::execute=enforcing").
+
+      To be able to restrict shell session without using "keep_domain",
+      I changed to create new domains automatically even if current domain is
+      enforcing mode.
+
+    @ Replace "task.state" with "auto_domain_transition".
+
+      task.state is difficult to use. Thus, I replaced task.state with
+      auto_domain_transition which performs domain transition instead of
+      changing current process's state variables.
+
+      If domain transition failed, current process will be killed by SIGKILL
+      signal. This should not happen in normal circumstances, for you know the
+      domain to transit to and thereby you will define the domain beforehand
+      when you use "auto_domain_transition" keyword.
+
+    @ Replace "allow_transit" with "task manual_domain_transition".
+
+      I changed this directive to specify absolute domainname (e.g.
+      "<kernel> /usr/sbin/httpd //app=cgi1\040id=10000") rather than virtual
+      pathname (e.g. "//app=cgi1\040id=10000") because you know the domain to
+      transit to and thereby you will define the domain beforehand when you use
+      "task manual_domain_transition" directive.
+
+      This change allows you to jump to arbitrary domain.
+
+    @ Add "task auto_domain_transition".
+
+      This is similar to "task manual_domain_transition", but is automatically
+      applied if conditions are met. For example,
+
+        task auto_domain_transition <kernel> //./non-root if task.uid!=0
+
+      will automatically jump to "<kernel> //./non-root" domain if current
+      process's UID is not 0 whereas
+
+        task manual_domain_transition <kernel> //./non-root if task.uid!=0
+
+      will jump to "<kernel> //./non-root" domain if current process's UID is
+      not 0 and current process wrote "<kernel> //./non-root" + '\n' to
+      /proc/ccs/.transition interface.
+
+      If domain transition failed, current process will be killed by SIGKILL
+      signal.
 
     @ Optimize for object's size.
 
       I merged similar code in order to reduce object's filesize.
+
+Version 1.8.0 2010/XX/XX   Feature enhancement release.
