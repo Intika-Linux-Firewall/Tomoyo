@@ -80,6 +80,7 @@ static ssize_t ccs_write_transition(struct file *file, const char __user *buf,
 	error = -EINVAL;
 	if (memchr(data, '\n', count) != data + count - 1)
 		goto out;
+	data[count - 1] = '\0';
 	ccs_normalize_line(data);
 	if (ccs_correct_domain(data)) {
 		const int idx = ccs_read_lock();
