@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 13's 2.6.33 kernel.
+# This is a kernel build script for Fedora 13's 2.6.34 kernel.
 #
 
 die () {
@@ -10,17 +10,22 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.33.8-149.fc13.src.rpm ]
+if [ ! -r kernel-2.6.34.6-47.fc13.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.8-149.fc13.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.34.6-47.fc13.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.33.8-149.fc13.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.33.8-149.fc13.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.34.6-47.fc13.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.34.6-47.fc13.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.2-20100804.tar.gz ]
 then
     wget http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.2-20100804.tar.gz || die "Can't download patch."
+fi
+
+if [ ! -r ccs-patch-1.7.2-20100901.diff ]
+then
+    wget -O ccs-patch-1.7.2-20100901.diff 'http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/*checkout*/trunk/1.7.x/ccs-patch/patches/ccs-patch-2.6.34-fedora-13.diff?revision=3932&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -36,8 +41,8 @@ patch << "EOF" || die "Can't patch spec file."
 +%define buildid _tomoyo_1.7.2p2
  ###################################################################
  
- # buildid can also be specified on the rpmbuild command line
-@@ -426,6 +426,11 @@
+ # The buildid can also be specified on the rpmbuild command line
+@@ -409,6 +409,11 @@
  # to versions below the minimum
  #
  
@@ -49,7 +54,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -502,7 +507,7 @@
+@@ -471,7 +476,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -58,7 +63,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -960,7 +965,7 @@
+@@ -868,7 +873,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -67,18 +72,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1574,6 +1579,10 @@
+@@ -1426,6 +1431,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.7.2-20100804.tar.gz
-+patch -sp1 < patches/ccs-patch-2.6.33-fedora-13.diff
++patch -sp1 < %_sourcedir/ccs-patch-1.7.2-20100901.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1600,6 +1609,9 @@
+@@ -1454,6 +1463,9 @@
  for i in *.config
  do
    mv $i .config

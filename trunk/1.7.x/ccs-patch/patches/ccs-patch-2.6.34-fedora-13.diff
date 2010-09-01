@@ -1,18 +1,18 @@
 This is TOMOYO Linux patch for Fedora 13.
 
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.33.8-149.fc13.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/kernel-2.6.34.6-47.fc13.src.rpm
 ---
  fs/compat.c                     |    2 
  fs/compat_ioctl.c               |    4 +
  fs/exec.c                       |    2 
  fs/ioctl.c                      |    2 
- fs/namei.c                      |   10 ++
+ fs/namei.c                      |    6 +
  fs/namespace.c                  |    9 ++
  fs/open.c                       |    2 
- fs/proc/version.c               |    7 +
+ fs/proc/version.c               |    7 ++
  include/linux/init_task.h       |    9 ++
  include/linux/sched.h           |    6 +
- include/linux/security.h        |   55 ++++++++------
+ include/linux/security.h        |   55 +++++++++-------
  kernel/kexec.c                  |    3 
  kernel/kmod.c                   |    5 +
  kernel/module.c                 |    5 +
@@ -30,12 +30,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  net/socket.c                    |    5 +
  security/Kconfig                |    2 
  security/Makefile               |    3 
- security/security.c             |  155 +++++++++++++++++++++++++++++++---------
- 29 files changed, 278 insertions(+), 57 deletions(-)
+ security/security.c             |  135 +++++++++++++++++++++++++++++++++-------
+ 29 files changed, 264 insertions(+), 47 deletions(-)
 
---- linux-2.6.33.8-149.fc13.orig/fs/compat.c
-+++ linux-2.6.33.8-149.fc13/fs/compat.c
-@@ -1526,7 +1526,7 @@ int compat_do_execve(char * filename,
+--- linux-2.6.34.6-47.fc13.orig/fs/compat.c
++++ linux-2.6.34.6-47.fc13/fs/compat.c
+@@ -1551,7 +1551,7 @@ int compat_do_execve(char * filename,
  	if (retval < 0)
  		goto out;
  
@@ -44,9 +44,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.33.8-149.fc13.orig/fs/compat_ioctl.c
-+++ linux-2.6.33.8-149.fc13/fs/compat_ioctl.c
-@@ -1726,6 +1726,10 @@ asmlinkage long compat_sys_ioctl(unsigne
+--- linux-2.6.34.6-47.fc13.orig/fs/compat_ioctl.c
++++ linux-2.6.34.6-47.fc13/fs/compat_ioctl.c
+@@ -1723,6 +1723,10 @@ asmlinkage long compat_sys_ioctl(unsigne
  		/*FALL THROUGH*/
  
  	default:
@@ -57,9 +57,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  		if (filp->f_op && filp->f_op->compat_ioctl) {
  			error = filp->f_op->compat_ioctl(filp, cmd, arg);
  			if (error != -ENOIOCTLCMD)
---- linux-2.6.33.8-149.fc13.orig/fs/exec.c
-+++ linux-2.6.33.8-149.fc13/fs/exec.c
-@@ -1382,7 +1382,7 @@ int do_execve(char * filename,
+--- linux-2.6.34.6-47.fc13.orig/fs/exec.c
++++ linux-2.6.34.6-47.fc13/fs/exec.c
+@@ -1383,7 +1383,7 @@ int do_execve(char * filename,
  		goto out;
  
  	current->flags &= ~PF_KTHREAD;
@@ -68,8 +68,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.33.8-149.fc13.orig/fs/ioctl.c
-+++ linux-2.6.33.8-149.fc13/fs/ioctl.c
+--- linux-2.6.34.6-47.fc13.orig/fs/ioctl.c
++++ linux-2.6.34.6-47.fc13/fs/ioctl.c
 @@ -41,6 +41,8 @@ static long vfs_ioctl(struct file *filp,
  
  	if (!filp->f_op)
@@ -79,9 +79,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	if (filp->f_op->unlocked_ioctl) {
  		error = filp->f_op->unlocked_ioctl(filp, cmd, arg);
---- linux-2.6.33.8-149.fc13.orig/fs/namei.c
-+++ linux-2.6.33.8-149.fc13/fs/namei.c
-@@ -1513,6 +1513,11 @@ int may_open(struct path *path, int acc_
+--- linux-2.6.34.6-47.fc13.orig/fs/namei.c
++++ linux-2.6.34.6-47.fc13/fs/namei.c
+@@ -1466,6 +1466,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -93,37 +93,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -1568,6 +1573,7 @@ out_unlock:
- 	return may_open(&nd->path, 0, flag & ~O_TRUNC);
+@@ -1521,6 +1526,7 @@ out_unlock:
+ 	return may_open(&nd->path, 0, open_flag & ~O_TRUNC);
  }
  
 +#include <linux/ccsecurity_vfs.h>
  /*
   * Note that while the flag value (low two bits) for sys_open means:
   *	00 - read-only
-@@ -1736,7 +1742,9 @@ do_last:
- 		error = mnt_want_write(nd.path.mnt);
- 		if (error)
- 			goto exit_mutex_unlock;
-+		ccs_save_open_mode(open_flag);
- 		error = __open_namei_create(&nd, &path, flag, mode);
-+		ccs_clear_open_mode();
- 		if (error) {
- 			mnt_drop_write(nd.path.mnt);
- 			goto exit;
-@@ -1798,7 +1806,9 @@ ok:
- 		if (error)
- 			goto exit;
- 	}
-+	ccs_save_open_mode(open_flag);
- 	error = may_open(&nd.path, acc_mode, flag);
-+	ccs_clear_open_mode();
- 	if (error) {
- 		if (will_truncate)
- 			mnt_drop_write(nd.path.mnt);
---- linux-2.6.33.8-149.fc13.orig/fs/namespace.c
-+++ linux-2.6.33.8-149.fc13/fs/namespace.c
-@@ -1476,6 +1476,9 @@ static int do_loopback(struct path *path
+--- linux-2.6.34.6-47.fc13.orig/fs/namespace.c
++++ linux-2.6.34.6-47.fc13/fs/namespace.c
+@@ -1506,6 +1506,9 @@ static int do_loopback(struct path *path
  
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
@@ -133,7 +113,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	err = -ENOMEM;
  	if (recurse)
-@@ -1591,6 +1594,9 @@ static int do_move_mount(struct path *pa
+@@ -1621,6 +1624,9 @@ static int do_move_mount(struct path *pa
  	if (!check_mnt(path->mnt) || !check_mnt(old_path.mnt))
  		goto out;
  
@@ -142,8 +122,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +		goto out;
  	err = -ENOENT;
  	mutex_lock(&path->dentry->d_inode->i_mutex);
- 	if (IS_DEADDIR(path->dentry->d_inode))
-@@ -1698,6 +1704,9 @@ int do_add_mount(struct vfsmount *newmnt
+ 	if (cant_mount(path->dentry))
+@@ -1728,6 +1734,9 @@ int do_add_mount(struct vfsmount *newmnt
  	err = -EINVAL;
  	if (S_ISLNK(newmnt->mnt_root->d_inode->i_mode))
  		goto unlock;
@@ -153,9 +133,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	newmnt->mnt_flags = mnt_flags;
  	if ((err = graft_tree(newmnt, path)))
---- linux-2.6.33.8-149.fc13.orig/fs/open.c
-+++ linux-2.6.33.8-149.fc13/fs/open.c
-@@ -1176,6 +1176,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-2.6.34.6-47.fc13.orig/fs/open.c
++++ linux-2.6.34.6-47.fc13/fs/open.c
+@@ -1173,6 +1173,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -164,8 +144,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.33.8-149.fc13.orig/fs/proc/version.c
-+++ linux-2.6.33.8-149.fc13/fs/proc/version.c
+--- linux-2.6.34.6-47.fc13.orig/fs/proc/version.c
++++ linux-2.6.34.6-47.fc13/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -173,13 +153,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.33.8-149.fc13 2010/08/24\n");
++	printk(KERN_INFO "Hook version: 2.6.34.6-47.fc13 2010/09/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.33.8-149.fc13.orig/include/linux/init_task.h
-+++ linux-2.6.33.8-149.fc13/include/linux/init_task.h
-@@ -111,6 +111,14 @@ extern struct cred init_cred;
+--- linux-2.6.34.6-47.fc13.orig/include/linux/init_task.h
++++ linux-2.6.34.6-47.fc13/include/linux/init_task.h
+@@ -103,6 +103,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
  
@@ -194,7 +174,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -180,6 +188,7 @@ extern struct cred init_cred;
+@@ -172,6 +180,7 @@ extern struct cred init_cred;
  	INIT_FTRACE_GRAPH						\
  	INIT_TRACE_RECURSION						\
  	INIT_TASK_RCU_PREEMPT(tsk)					\
@@ -202,8 +182,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  
---- linux-2.6.33.8-149.fc13.orig/include/linux/sched.h
-+++ linux-2.6.33.8-149.fc13/include/linux/sched.h
+--- linux-2.6.34.6-47.fc13.orig/include/linux/sched.h
++++ linux-2.6.34.6-47.fc13/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -213,7 +193,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1580,6 +1582,10 @@ struct task_struct {
+@@ -1517,6 +1519,10 @@ struct task_struct {
  		unsigned long memsw_bytes; /* uncharged mem+swap usage */
  	} memcg_batch;
  #endif
@@ -224,17 +204,17 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.33.8-149.fc13.orig/include/linux/security.h
-+++ linux-2.6.33.8-149.fc13/include/linux/security.h
+--- linux-2.6.34.6-47.fc13.orig/include/linux/security.h
++++ linux-2.6.34.6-47.fc13/include/linux/security.h
 @@ -35,6 +35,7 @@
  #include <linux/xfrm.h>
- #include <linux/gfp.h>
+ #include <linux/slab.h>
  #include <net/flow.h>
 +#include <linux/ccsecurity.h>
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -2014,7 +2015,10 @@ static inline int security_syslog(int ty
+@@ -2018,7 +2019,10 @@ static inline int security_syslog(int ty
  
  static inline int security_settime(struct timespec *ts, struct timezone *tz)
  {
@@ -246,7 +226,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_vm_enough_memory(long pages)
-@@ -2092,7 +2096,7 @@ static inline int security_sb_mount(char
+@@ -2096,7 +2100,7 @@ static inline int security_sb_mount(char
  				    char *type, unsigned long flags,
  				    void *data)
  {
@@ -255,7 +235,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_sb_check_sb(struct vfsmount *mnt,
-@@ -2103,7 +2107,7 @@ static inline int security_sb_check_sb(s
+@@ -2107,7 +2111,7 @@ static inline int security_sb_check_sb(s
  
  static inline int security_sb_umount(struct vfsmount *mnt, int flags)
  {
@@ -264,7 +244,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline void security_sb_umount_close(struct vfsmount *mnt)
-@@ -2123,7 +2127,7 @@ static inline void security_sb_post_addm
+@@ -2127,7 +2131,7 @@ static inline void security_sb_post_addm
  static inline int security_sb_pivotroot(struct path *old_path,
  					struct path *new_path)
  {
@@ -273,7 +253,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline void security_sb_post_pivotroot(struct path *old_path,
-@@ -2321,7 +2325,7 @@ static inline void security_file_free(st
+@@ -2325,7 +2329,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -282,7 +262,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -2348,7 +2352,7 @@ static inline int security_file_lock(str
+@@ -2352,7 +2356,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -291,7 +271,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2737,7 +2741,7 @@ static inline int security_unix_may_send
+@@ -2741,7 +2745,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -300,7 +280,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2752,19 +2756,19 @@ static inline int security_socket_bind(s
+@@ -2756,19 +2760,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -323,7 +303,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2776,7 +2780,7 @@ static inline int security_socket_accept
+@@ -2780,7 +2784,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -332,7 +312,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2987,43 +2991,48 @@ int security_path_chroot(struct path *pa
+@@ -2991,43 +2995,48 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -388,7 +368,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -3031,24 +3040,26 @@ static inline int security_path_rename(s
+@@ -3035,24 +3044,26 @@ static inline int security_path_rename(s
  				       struct path *new_dir,
  				       struct dentry *new_dentry)
  {
@@ -419,8 +399,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-2.6.33.8-149.fc13.orig/kernel/kexec.c
-+++ linux-2.6.33.8-149.fc13/kernel/kexec.c
+--- linux-2.6.34.6-47.fc13.orig/kernel/kexec.c
++++ linux-2.6.34.6-47.fc13/kernel/kexec.c
 @@ -39,6 +39,7 @@
  #include <asm/io.h>
  #include <asm/system.h>
@@ -428,7 +408,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +#include <linux/ccsecurity.h>
  
  /* Per cpu memory for storing cpu states in case of system crash. */
- note_buf_t* crash_notes;
+ note_buf_t __percpu *crash_notes;
 @@ -945,6 +946,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT))
@@ -438,8 +418,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-2.6.33.8-149.fc13.orig/kernel/kmod.c
-+++ linux-2.6.33.8-149.fc13/kernel/kmod.c
+--- linux-2.6.34.6-47.fc13.orig/kernel/kmod.c
++++ linux-2.6.34.6-47.fc13/kernel/kmod.c
 @@ -160,6 +160,11 @@ static int ____call_usermodehelper(void 
  	 */
  	set_user_nice(current, 0);
@@ -452,8 +432,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	retval = kernel_execve(sub_info->path, sub_info->argv, sub_info->envp);
  
  	/* Exec failed? */
---- linux-2.6.33.8-149.fc13.orig/kernel/module.c
-+++ linux-2.6.33.8-149.fc13/kernel/module.c
+--- linux-2.6.34.6-47.fc13.orig/kernel/module.c
++++ linux-2.6.34.6-47.fc13/kernel/module.c
 @@ -55,6 +55,7 @@
  #include <linux/async.h>
  #include <linux/percpu.h>
@@ -462,7 +442,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -651,6 +652,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -718,6 +719,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -471,7 +451,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -2443,6 +2446,8 @@ SYSCALL_DEFINE3(init_module, void __user
+@@ -2508,6 +2511,8 @@ SYSCALL_DEFINE3(init_module, void __user
  	/* Must have permission */
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -480,9 +460,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.33.8-149.fc13.orig/kernel/ptrace.c
-+++ linux-2.6.33.8-149.fc13/kernel/ptrace.c
-@@ -194,6 +194,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-2.6.34.6-47.fc13.orig/kernel/ptrace.c
++++ linux-2.6.34.6-47.fc13/kernel/ptrace.c
+@@ -236,6 +236,8 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -491,7 +471,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
-@@ -263,6 +265,8 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -305,6 +307,8 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -500,9 +480,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/*
  	 * This lock_kernel fixes a subtle race with suid exec
---- linux-2.6.33.8-149.fc13.orig/kernel/sched.c
-+++ linux-2.6.33.8-149.fc13/kernel/sched.c
-@@ -6187,6 +6187,8 @@ int can_nice(const struct task_struct *p
+--- linux-2.6.34.6-47.fc13.orig/kernel/sched.c
++++ linux-2.6.34.6-47.fc13/kernel/sched.c
+@@ -4383,6 +4383,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -511,9 +491,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.33.8-149.fc13.orig/kernel/signal.c
-+++ linux-2.6.33.8-149.fc13/kernel/signal.c
-@@ -2296,6 +2296,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-2.6.34.6-47.fc13.orig/kernel/signal.c
++++ linux-2.6.34.6-47.fc13/kernel/signal.c
+@@ -2313,6 +2313,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -522,7 +502,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2364,6 +2366,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2381,6 +2383,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -531,7 +511,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2376,6 +2380,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2393,6 +2397,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -540,7 +520,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2393,6 +2399,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2410,6 +2416,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
  	if (info.si_code >= 0)
  		return -EPERM;
  	info.si_signo = sig;
@@ -549,7 +529,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, &info, pid);
-@@ -2409,6 +2417,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
+@@ -2426,6 +2434,8 @@ long do_rt_tgsigqueueinfo(pid_t tgid, pi
  	if (info->si_code >= 0)
  		return -EPERM;
  	info->si_signo = sig;
@@ -558,9 +538,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.33.8-149.fc13.orig/kernel/sys.c
-+++ linux-2.6.33.8-149.fc13/kernel/sys.c
-@@ -154,6 +154,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-2.6.34.6-47.fc13.orig/kernel/sys.c
++++ linux-2.6.34.6-47.fc13/kernel/sys.c
+@@ -156,6 +156,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -571,7 +551,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -380,6 +384,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -382,6 +386,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -580,7 +560,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	/* Instead of trying to make the power_off code look like
  	 * halt when pm_power_off is not set do it the easy way.
-@@ -1140,6 +1146,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1202,6 +1208,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -589,7 +569,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1189,6 +1197,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1251,6 +1259,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -598,8 +578,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.33.8-149.fc13.orig/kernel/time/ntp.c
-+++ linux-2.6.33.8-149.fc13/kernel/time/ntp.c
+--- linux-2.6.34.6-47.fc13.orig/kernel/time/ntp.c
++++ linux-2.6.34.6-47.fc13/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -624,8 +604,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.33.8-149.fc13.orig/net/ipv4/inet_connection_sock.c
-+++ linux-2.6.33.8-149.fc13/net/ipv4/inet_connection_sock.c
+--- linux-2.6.34.6-47.fc13.orig/net/ipv4/inet_connection_sock.c
++++ linux-2.6.34.6-47.fc13/net/ipv4/inet_connection_sock.c
 @@ -111,6 +111,8 @@ again:
  			head = &hashinfo->bhash[inet_bhashfn(net, rover,
  					hashinfo->bhash_size)];
@@ -635,8 +615,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  			inet_bind_bucket_for_each(tb, node, &head->chain)
  				if (net_eq(ib_net(tb), net) && tb->port == rover) {
  					if (tb->fastreuse > 0 &&
---- linux-2.6.33.8-149.fc13.orig/net/ipv4/inet_hashtables.c
-+++ linux-2.6.33.8-149.fc13/net/ipv4/inet_hashtables.c
+--- linux-2.6.34.6-47.fc13.orig/net/ipv4/inet_hashtables.c
++++ linux-2.6.34.6-47.fc13/net/ipv4/inet_hashtables.c
 @@ -456,6 +456,8 @@ int __inet_hash_connect(struct inet_time
  		local_bh_disable();
  		for (i = 1; i <= remaining; i++) {
@@ -646,9 +626,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  			head = &hinfo->bhash[inet_bhashfn(net, port,
  					hinfo->bhash_size)];
  			spin_lock(&head->lock);
---- linux-2.6.33.8-149.fc13.orig/net/ipv4/raw.c
-+++ linux-2.6.33.8-149.fc13/net/ipv4/raw.c
-@@ -680,6 +680,9 @@ static int raw_recvmsg(struct kiocb *ioc
+--- linux-2.6.34.6-47.fc13.orig/net/ipv4/raw.c
++++ linux-2.6.34.6-47.fc13/net/ipv4/raw.c
+@@ -679,6 +679,9 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -658,9 +638,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.33.8-149.fc13.orig/net/ipv4/udp.c
-+++ linux-2.6.33.8-149.fc13/net/ipv4/udp.c
-@@ -232,6 +232,7 @@ int udp_lib_get_port(struct sock *sk, un
+--- linux-2.6.34.6-47.fc13.orig/net/ipv4/udp.c
++++ linux-2.6.34.6-47.fc13/net/ipv4/udp.c
+@@ -233,6 +233,7 @@ int udp_lib_get_port(struct sock *sk, un
  			 */
  			do {
  				if (low <= snum && snum <= high &&
@@ -668,7 +648,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  				    !test_bit(snum >> udptable->log, bitmap))
  					goto found;
  				snum += rand;
-@@ -1136,6 +1137,9 @@ try_again:
+@@ -1137,6 +1138,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -677,10 +657,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +		goto out;
  
  	ulen = skb->len - sizeof(struct udphdr);
- 	copied = len;
---- linux-2.6.33.8-149.fc13.orig/net/ipv6/raw.c
-+++ linux-2.6.33.8-149.fc13/net/ipv6/raw.c
-@@ -463,6 +463,9 @@ static int rawv6_recvmsg(struct kiocb *i
+ 	if (len > ulen)
+--- linux-2.6.34.6-47.fc13.orig/net/ipv6/raw.c
++++ linux-2.6.34.6-47.fc13/net/ipv6/raw.c
+@@ -464,6 +464,9 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -690,9 +670,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.33.8-149.fc13.orig/net/ipv6/udp.c
-+++ linux-2.6.33.8-149.fc13/net/ipv6/udp.c
-@@ -339,6 +339,9 @@ try_again:
+--- linux-2.6.34.6-47.fc13.orig/net/ipv6/udp.c
++++ linux-2.6.34.6-47.fc13/net/ipv6/udp.c
+@@ -340,6 +340,9 @@ try_again:
  				  &peeked, &err);
  	if (!skb)
  		goto out;
@@ -701,10 +681,10 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +		goto out;
  
  	ulen = skb->len - sizeof(struct udphdr);
- 	copied = len;
---- linux-2.6.33.8-149.fc13.orig/net/socket.c
-+++ linux-2.6.33.8-149.fc13/net/socket.c
-@@ -1520,6 +1520,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+ 	if (len > ulen)
+--- linux-2.6.34.6-47.fc13.orig/net/socket.c
++++ linux-2.6.34.6-47.fc13/net/socket.c
+@@ -1521,6 +1521,11 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -716,8 +696,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-2.6.33.8-149.fc13.orig/security/Kconfig
-+++ linux-2.6.33.8-149.fc13/security/Kconfig
+--- linux-2.6.34.6-47.fc13.orig/security/Kconfig
++++ linux-2.6.34.6-47.fc13/security/Kconfig
 @@ -175,5 +175,7 @@ config DEFAULT_SECURITY
  	default "tomoyo" if DEFAULT_SECURITY_TOMOYO
  	default "" if DEFAULT_SECURITY_DAC
@@ -726,8 +706,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +
  endmenu
  
---- linux-2.6.33.8-149.fc13.orig/security/Makefile
-+++ linux-2.6.33.8-149.fc13/security/Makefile
+--- linux-2.6.34.6-47.fc13.orig/security/Makefile
++++ linux-2.6.34.6-47.fc13/security/Makefile
 @@ -24,3 +24,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
@@ -735,9 +715,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-2.6.33.8-149.fc13.orig/security/security.c
-+++ linux-2.6.33.8-149.fc13/security/security.c
-@@ -210,7 +210,10 @@ int security_syslog(int type)
+--- linux-2.6.34.6-47.fc13.orig/security/security.c
++++ linux-2.6.34.6-47.fc13/security/security.c
+@@ -217,7 +217,10 @@ int security_syslog(int type, bool from_
  
  int security_settime(struct timespec *ts, struct timezone *tz)
  {
@@ -749,7 +729,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_vm_enough_memory(long pages)
-@@ -296,7 +299,11 @@ int security_sb_statfs(struct dentry *de
+@@ -303,7 +306,11 @@ int security_sb_statfs(struct dentry *de
  int security_sb_mount(char *dev_name, struct path *path,
                         char *type, unsigned long flags, void *data)
  {
@@ -762,7 +742,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_sb_check_sb(struct vfsmount *mnt, struct path *path)
-@@ -306,7 +313,10 @@ int security_sb_check_sb(struct vfsmount
+@@ -313,7 +320,10 @@ int security_sb_check_sb(struct vfsmount
  
  int security_sb_umount(struct vfsmount *mnt, int flags)
  {
@@ -774,7 +754,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  void security_sb_umount_close(struct vfsmount *mnt)
-@@ -331,7 +341,10 @@ void security_sb_post_addmount(struct vf
+@@ -338,7 +348,10 @@ void security_sb_post_addmount(struct vf
  
  int security_sb_pivotroot(struct path *old_path, struct path *new_path)
  {
@@ -786,19 +766,14 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  void security_sb_post_pivotroot(struct path *old_path, struct path *new_path)
-@@ -389,88 +402,143 @@ int security_inode_init_security(struct 
- EXPORT_SYMBOL(security_inode_init_security);
- 
- #ifdef CONFIG_SECURITY_PATH
--int security_path_mknod(struct path *path, struct dentry *dentry, int mode,
-+int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
+@@ -399,85 +412,140 @@ EXPORT_SYMBOL(security_inode_init_securi
+ int security_path_mknod(struct path *dir, struct dentry *dentry, int mode,
  			unsigned int dev)
  {
--	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
 +	int error;
-+	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
  		return 0;
--	return security_ops->path_mknod(path, dentry, mode, dev);
+-	return security_ops->path_mknod(dir, dentry, mode, dev);
 +	error = security_ops->path_mknod(dir, dentry, mode, dev);
 +	if (!error)
 +		error = ccs_mknod_permission(dir->dentry->d_inode, dentry,
@@ -807,14 +782,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  EXPORT_SYMBOL(security_path_mknod);
  
--int security_path_mkdir(struct path *path, struct dentry *dentry, int mode)
-+int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
+ int security_path_mkdir(struct path *dir, struct dentry *dentry, int mode)
  {
--	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
 +	int error;
-+	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
  		return 0;
--	return security_ops->path_mkdir(path, dentry, mode);
+-	return security_ops->path_mkdir(dir, dentry, mode);
 +	error = security_ops->path_mkdir(dir, dentry, mode);
 +	if (!error)
 +		error = ccs_mkdir_permission(dir->dentry->d_inode, dentry,
@@ -822,14 +795,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +	return error;
  }
  
--int security_path_rmdir(struct path *path, struct dentry *dentry)
-+int security_path_rmdir(struct path *dir, struct dentry *dentry)
+ int security_path_rmdir(struct path *dir, struct dentry *dentry)
  {
--	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
 +	int error;
-+	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
  		return 0;
--	return security_ops->path_rmdir(path, dentry);
+-	return security_ops->path_rmdir(dir, dentry);
 +	error = security_ops->path_rmdir(dir, dentry);
 +	if (!error)
 +		error = ccs_rmdir_permission(dir->dentry->d_inode, dentry,
@@ -837,14 +808,12 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +	return error;
  }
  
--int security_path_unlink(struct path *path, struct dentry *dentry)
-+int security_path_unlink(struct path *dir, struct dentry *dentry)
+ int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
--	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
 +	int error;
-+	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
  		return 0;
--	return security_ops->path_unlink(path, dentry);
+-	return security_ops->path_unlink(dir, dentry);
 +	error = security_ops->path_unlink(dir, dentry);
 +	if (!error)
 +		error = ccs_unlink_permission(dir->dentry->d_inode, dentry,
@@ -852,15 +821,13 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
 +	return error;
  }
  
--int security_path_symlink(struct path *path, struct dentry *dentry,
-+int security_path_symlink(struct path *dir, struct dentry *dentry,
+ int security_path_symlink(struct path *dir, struct dentry *dentry,
  			  const char *old_name)
  {
--	if (unlikely(IS_PRIVATE(path->dentry->d_inode)))
 +	int error;
-+	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
+ 	if (unlikely(IS_PRIVATE(dir->dentry->d_inode)))
  		return 0;
--	return security_ops->path_symlink(path, dentry, old_name);
+-	return security_ops->path_symlink(dir, dentry, old_name);
 +	error = security_ops->path_symlink(dir, dentry, old_name);
 +	if (!error)
 +		error = ccs_symlink_permission(dir->dentry->d_inode, dentry,
@@ -952,7 +919,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  #endif
  
-@@ -670,7 +738,10 @@ void security_file_free(struct file *fil
+@@ -677,7 +745,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -964,7 +931,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_file_mmap(struct file *file, unsigned long reqprot,
-@@ -698,7 +769,10 @@ int security_file_lock(struct file *file
+@@ -705,7 +776,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -976,7 +943,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -1052,7 +1126,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1059,7 +1133,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -988,7 +955,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1064,17 +1141,26 @@ int security_socket_post_create(struct s
+@@ -1071,17 +1148,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -1018,7 +985,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/13/SRPMS/
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1084,7 +1170,10 @@ int security_socket_accept(struct socket
+@@ -1091,7 +1177,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
