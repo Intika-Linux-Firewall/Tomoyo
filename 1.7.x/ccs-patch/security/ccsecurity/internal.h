@@ -1236,7 +1236,7 @@ extern unsigned int ccs_quota_for_query;
 
 #include <linux/dcache.h>
 
-#ifdef D_PATH_DISCONNECT
+#if defined(D_PATH_DISCONNECT) && !defined(CONFIG_SUSE_KERNEL)
 
 static inline void ccs_realpath_lock(void)
 {
