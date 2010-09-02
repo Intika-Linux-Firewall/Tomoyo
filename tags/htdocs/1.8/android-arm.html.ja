@@ -151,7 +151,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h2>ステップ１０：必要なファイルのコピー</h2>
 
-<p>/sbin/ccs-init の動作に必要なライブラリをＲＡＭディスクにコピーします。なお、ステップ７で ccs-init をスタティックリンクした場合には、ステップ１０は不要です。</p>
+<p>/sbin/ccs-init の動作に必要なファイルをＲＡＭディスクにコピーします。 Android 環境では、ダイナミックリンクライブラリをロードするために /system/bin/loader が使われます。しかし、 /sbin/ccs-init が実行される時点では /system/ パーティションはまだマウントされていません。そのため、 /system/ パーティションの中にある /bin/loader をＲＡＭディスク内の /system/bin/ ディレクトリにコピーしておく必要があります。同様に、 /system/ パーティションの中にある /lib/libc.so と /lib/libm.so をＲＡＭディスク内の /lib/ ディレクトリにコピーしておく必要があります。</p>
 
 <table border="1">
 <tr><td>
