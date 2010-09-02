@@ -303,7 +303,7 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 	r->matched_acl = NULL;
 	if (!acl || !acl->cond || !acl->cond->transit)
 		return;
-	buf = kmalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+	buf = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
 	if (!buf) {
 		if (mutex_lock_interruptible(&ccs_transition_mutex))
 			goto out;
