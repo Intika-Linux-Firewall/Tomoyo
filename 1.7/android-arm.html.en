@@ -153,7 +153,7 @@ emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysd
 
 <h2>Step 10: Pull files needed for policy loader.</h2>
 
-<p>Copy files needed by /sbin/ccs-init . If you compiled ccs-init as statically linked program at step 7, step 10 is not needed.</p>
+<p>Copy files needed by /sbin/ccs-init . On Android environment, /system/bin/loader is used for loading dynamically linked library files. But /system/ partition is not yet mounted when /sbin/ccs-init is executed. Therefore, you need to copy /bin/loader in the /system/ partition to /system/bin/ directory in the ramdisk's image. Likewise, you need to copy /lib/libc.so and /lib/libm.so in the /system/ partition to /lib/ directory in the ramdisk's image.</p>
 
 <table border="1">
 <tr><td>
