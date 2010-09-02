@@ -911,7 +911,7 @@ extern struct ccs_domain_info ccs_kernel_domain;
 #include <linux/dcache.h>
 extern spinlock_t vfsmount_lock;
 
-#ifdef D_PATH_DISCONNECT
+#if defined(D_PATH_DISCONNECT) && !defined(CONFIG_SUSE_KERNEL)
 
 static inline void ccs_realpath_lock(void)
 {

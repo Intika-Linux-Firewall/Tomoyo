@@ -1204,7 +1204,7 @@ static inline void ccs_realpath_unlock(void)
 	spin_unlock(&dcache_lock);
 }
 
-#elif defined(D_PATH_DISCONNECT)
+#elif defined(D_PATH_DISCONNECT) && !defined(CONFIG_SUSE_KERNEL)
 
 static inline void ccs_realpath_lock(void)
 {
