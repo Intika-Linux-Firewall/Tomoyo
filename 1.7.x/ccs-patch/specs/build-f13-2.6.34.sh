@@ -106,7 +106,7 @@ sleep 30
 patch << "EOF" || die "Can't patch spec file."
 --- /root/rpmbuild/SPECS/ccs-kernel.spec
 +++ /root/rpmbuild/SPECS/ccs-kernel.spec
-@@ -226,7 +226,7 @@
+@@ -221,7 +221,7 @@
  
  # kernel-PAE is only built on i686.
  %ifarch i686
