@@ -54,6 +54,11 @@
 #define KERN_CONT ""
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 25)
+#define fatal_signal_pending(p) (signal_pending(p) &&			\
+				 sigismember(&p->pending.signal, SIGKILL))
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 16)
 #define mutex semaphore
 #define mutex_init(mutex) init_MUTEX(mutex)
