@@ -1,0 +1,357 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en-US">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<title>TOMOYO Linux Install manual</title>
+<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+</head>
+<body>
+<!--<p style="text-align:right;"><a href="meego-x86.html.ja">Japanese Page</a></p>-->
+<p style="text-align:right;">Last modified: $Date$</p>
+
+<h1>TOMOYO Linux on MeeGo 1.1</h1>
+
+<p>This page describes how to run TOMOYO Linux on <a href="http://meego.com/">MeeGo</a>.</p>
+
+<hr>
+
+<ul>
+<li><a href="#step_1">Step 1: Setting up environment for emulator</a></li>
+<li><a href="#step_2">Step 2: Compiling kernel and tools</a></li>
+<li><a href="#step_3">Step 3: Initializing TOMOYO Linux</a></li>
+<li><a href="#step_4">Step 4: Analyzing MeeGo environment</a></li>
+</ul>
+
+<h2><a name="step_1">Step 1: Setting up environment for emulator</a></h2>
+
+<p>Download and extract a MeeGo image file.</p>
+
+<pre>
+# cd
+# wget http://download3.meego.com/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2
+# tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2 --strip 1
+</pre>
+
+<p>If you are going to use this image file on QEMU emulator, download and install qemu-gl package. Below steps assumes Ubuntu 10.04 environment.</p>
+
+<pre>
+# wget http://download3.meego.com/qemu-gl_0.12.4-3_i386.deb
+# dpkg -i qemu-gl_0.12.4-3_i386.deb
+# wget http://download3.meego.com/qemugl_cmd.sh
+# chmod 755 qemugl_cmd.sh
+</pre>
+
+<p>You can boot QEMU like below</p>
+
+<pre>
+# ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw
+</pre>
+
+<p>You can login to the MeeGo environment via SSH using password "meego".</p>
+
+<pre>
+# ssh root@127.0.0.1 -p 6666
+</pre>
+
+<p>If your system boots and desktop environment shows up correctly, there is nothing more to do in this step.</p>
+
+<p>If you are going to use this image file on VMware environment, you need to modify this image file a bit.</p>
+
+<p>First, create a VMware virtual machine with 4GB of virtual hard disk.</p>
+
+<p>Next, boot the virtual machine using LiveCD. The LiveCD must contain some network programs for retrieving this image file.</p>
+
+<p>Retrieve this image file using ssh (or curl or wget or whatever) and write to virtual hard disk. You can check the virtual hard disk's device name using "fdisk -l". Below case assumes that /dev/sda is the virtual hard disk. Substitute below vmwarehost with VMware host's IP address.</p>
+
+<pre>
+# ssh root@vmwarehost 'cat ~/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw' &gt; /dev/sda
+</pre>
+
+<p>Then, mount the first partition of the virtual hard disk on somewhere.</p>
+
+<pre>
+# mount /dev/sda1 /mnt/
+</pre>
+
+<p>Open /etc/X11/xorg.conf in that partition using a text editor.</p>
+
+<pre>
+# gedit /mnt/etc/X11/xorg.conf
+</pre>
+
+<p>Comment out Driver and BusID lines in the Device section. A diff output is shown below.</p>
+
+<pre>
+--- a/etc/X11/xorg.conf
++++ b/etc/X11/xorg.conf
+@@ -32,10 +32,10 @@
+         #Option     "DefaultRefresh"     	# [<bool>]
+         #Option     "ModeSetClearScreen" 	# [<bool>]
+ 	Identifier  "Card0"
+-	Driver      "vesa"
++	#Driver      "vesa"
+ 	VendorName  "Technical Corp."
+ 	BoardName   "Unknown Board"
+-	BusID       "PCI:0:2:0"
++	#BusID       "PCI:0:2:0"
+ EndSection
+ 
+ Section "Screen"
+</pre>
+
+<p>Save the file and quit the text editor.</p>
+
+<p>Check your IP address. You will need this IP address when logging into MeeGo environment via SSH. Hereafter, I use "meeegohost" for referring this IP address.</p>
+
+<pre>
+# ifconfig eth0
+</pre>
+
+<p>Unmount the hard disk and reboot the system.</p>
+
+<pre>
+# umount /mnt/
+# reboot
+</pre>
+
+<p>If your system boots and desktop environment shows up correctly, there is nothing more to do in this step. If desktop environment does not show up, do below steps.</p>
+
+<p>Login to the MeeGo environment via SSH using password "meego".</p>
+
+<pre>
+# ssh root@meegohost
+</pre>
+
+<p>Then, check /var/log/Xorg.log.0 for (EE) lines. If you found "ioctl EVIOCGNAME failed: Inappropriate ioctl for device" line like below, you might need to let X ignore that device.</p>
+
+<pre>
+[    35.030] (II) XKB: reuse xkmfile /var/lib/xkb/server-D378AD8F86E560F712A83EE36E4E5E92C595B9BD.xkm
+[    35.093] (II) config/udev: Adding input device AT Translated Set 2 keyboard (/dev/input/event1)
+[    35.094] (**) AT Translated Set 2 keyboard: Applying InputClass "default"
+[    35.094] (**) AT Translated Set 2 keyboard: always reports core events
+[    35.094] (**) AT Translated Set 2 keyboard: Device: "/dev/input/event1"
+[    35.094] (II) AT Translated Set 2 keyboard: Found keys
+[    35.094] (II) AT Translated Set 2 keyboard: Configuring as keyboard
+[    35.094] (II) XINPUT: Adding extended input device "AT Translated Set 2 keyboard" (type: KEYBOARD)
+[    35.094] (**) Option "xkb_rules" "evdev"
+[    35.094] (**) Option "xkb_model" "evdev"
+[    35.094] (**) Option "xkb_layout" "us"
+[    35.096] (II) config/udev: Adding input device ImPS/2 Generic Wheel Mouse (/dev/input/event2)
+[    35.096] (**) ImPS/2 Generic Wheel Mouse: Applying InputClass "default"
+[    35.096] (**) ImPS/2 Generic Wheel Mouse: always reports core events
+[    35.096] (**) ImPS/2 Generic Wheel Mouse: Device: "/dev/input/event2"
+[    35.096] (II) ImPS/2 Generic Wheel Mouse: Found 3 mouse buttons
+[    35.096] (II) ImPS/2 Generic Wheel Mouse: Found scroll wheel(s)
+[    35.096] (II) ImPS/2 Generic Wheel Mouse: Found relative axes
+[    35.096] (II) ImPS/2 Generic Wheel Mouse: Found x and y relative axes
+[    35.096] (II) ImPS/2 Generic Wheel Mouse: Configuring as mouse
+[    35.097] (**) ImPS/2 Generic Wheel Mouse: YAxisMapping: buttons 4 and 5
+[    35.097] (**) ImPS/2 Generic Wheel Mouse: EmulateWheelButton: 4, EmulateWheelInertia: 10, EmulateWheelTimeout: 200
+[    35.097] (II) XINPUT: Adding extended input device "ImPS/2 Generic Wheel Mouse" (type: MOUSE)
+[    35.098] (**) ImPS/2 Generic Wheel Mouse: (accel) keeping acceleration scheme 1
+[    35.098] (**) ImPS/2 Generic Wheel Mouse: (accel) acceleration profile 0
+[    35.098] (**) ImPS/2 Generic Wheel Mouse: (accel) acceleration factor: 2.000
+[    35.098] (**) ImPS/2 Generic Wheel Mouse: (accel) acceleration threshold: 4
+[    35.098] (II) ImPS/2 Generic Wheel Mouse: initialized for relative axes.
+[    35.099] (II) config/udev: Adding input device ImPS/2 Generic Wheel Mouse (/dev/input/mouse0)
+[    35.100] (**) ImPS/2 Generic Wheel Mouse: Applying InputClass "default"
+[    35.100] (**) ImPS/2 Generic Wheel Mouse: always reports core events
+[    35.100] (**) ImPS/2 Generic Wheel Mouse: Device: "/dev/input/mouse0"
+[    35.100] (EE) ioctl EVIOCGNAME failed: Inappropriate ioctl for device
+[    35.100] (II) UnloadModule: "evdev"
+[    35.100] (EE) PreInit returned NULL for "ImPS/2 Generic Wheel Mouse"
+</pre>
+
+<p>To let X ignore a device ("ImPS/2 Generic Wheel Mouse (/dev/input/mouse0)" in above case), add a section like below.</p>
+
+<pre>
+--- a/etc/X11/xorg.conf
++++ b/etc/X11/xorg.conf
+@@ -23,6 +23,13 @@
+ 	ModelName    "Monitor Model"
+ EndSection
+ 
++Section "InputClass"
++	Identifier "ImPS/2 Generic Wheel Mouse"
++	MatchProduct "ImPS/2 Generic Wheel Mouse"
++	MatchDevicePath "/dev/input/mouse0"
++	Option "Ignore" "on"
++EndSection
++
+ Section "Device"
+         ### Available Driver options are:-
+         ### Values: &lt;i&gt;: integer, &lt;f&gt;: float, &lt;bool&gt;: "True"/"False",
+</pre>
+
+<p>Do troubleshooting now before proceeding to next step.</p>
+
+<h2><a name="step_2">Step 2: Compiling kernel and tools</a></h2>
+
+<p>Set up environment for compiling kernel and tools. This section assumes Fedora 13 in order to use "rpmbuild" command.</p>
+
+<p>First, download a kernel source package.</p>
+
+<pre>
+# cd
+# wget http://repo.meego.com/MeeGo/builds/trunk/1.0.90.0.20100831.1/core/repos/source/kernel-2.6.35.3-5.2.src.rpm
+</pre>
+
+<p>Next, install the package and run preparation stage.</p>
+
+<pre>
+# rpm -ivh kernel-2.6.35.3-5.2.src.rpm
+# rpmbuild -bp /root/rpmbuild/SPECS/kernel.spec
+# cd /root/rpmbuild/BUILD/kernel-2.6.35/linux-2.6.35/
+</pre>
+
+<p>If you are going to use this kernel on QEMU environment, download and apply kernel patch. If you are going to use this kernel on VMware environment, you don't need to do this.</p>
+
+<pre>
+# wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-x86/blobs/raw/master/linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
+# patch -p1 &lt; linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
+</pre>
+
+<p>Next, create a kernel config file. You can pull it from the MeeGo environment on QEMU
+by doing</p>
+
+<pre>
+# scp -p -P 6666 root@127.0.0.1:/boot/config-\* .config
+</pre>
+
+<p>or from the MeeGo environment on VMware by doing</p>
+
+<pre>
+# scp -p root@meegohost:/boot/config-\* .config
+</pre>
+
+<p>Now, update the kernel config file. If you are going to use this kernel on QEMU environment, be sure to answer "y" or "m" to "Virtio userspace memory transport".</p>
+
+<pre>
+# make -s oldconfig
+</pre>
+
+<p>MeeGo kernel is using writeback mode for mounting ext3 filesystem image. But use of writeback mode will corrupt files (e.g. data from deleted files is implicitly imported to previously written files) when QEMU or VMware is suddenly terminated. Change kernel config like below if you want to use ordered mode for mounting ext3 filesystem image.</p>
+
+<pre>
+# sed -i -e 's/CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set/CONFIG_EXT3_DEFAULTS_TO_ORDERED=y/ -- .config
+</pre>
+
+<p>If you don't mean to debug kernel, you can save compilation time and disk space. Change kernel config like below if you don't mean to debug kernel.</p>
+
+<pre>
+# sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
+</pre>
+
+<p>Next, download and apply TOMOYO Linux kernel patch.</p>
+
+<pre>
+# wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
+# tar -zxf ccs-patch.tar.gz --strip 1
+# patch -p1 &lt; patches/ccs-patch-2.6.35.diff
+# cat config.ccs &gt;&gt; .config
+</pre>
+
+<p>Now, build the kernel.</p>
+
+<pre>
+# make -s
+</pre>
+
+<p>Create a directory for temporarily holding kernel and tools.</p>
+
+<pre>
+# mkdir -p ~/tmp/boot/
+</pre>
+
+<p>Install the kernel and kernel modules to that directory.</p>
+
+<pre>
+# INSTALL_MOD_PATH=~/tmp/ make -s modules_install vdso_install
+# INSTALL_PATH=~/tmp/boot/ make -s install
+</pre>
+
+<p>Download and build the tools.</p>
+
+<pre>
+# cd /root/rpmbuild/BUILD/
+# wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+# make -C ccstools/ INSTALLDIR=~/tmp/ install
+</pre>
+
+<p>Copy the kernel and tools. You can push them to the MeeGo environment on QEMU by doing</p>
+
+<pre>
+# cd ~/tmp/
+# tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
+</pre>
+
+<p>or to the MeeGo environment on VMware by doing</p>
+
+<pre>
+# cd ~/tmp/
+# tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
+</pre>
+
+<h2><a name="step_3">Step 3: Initializing TOMOYO Linux</a></h2>
+
+<p>Log in to the MeeGo environment via SSH.</p>
+
+<p>Initialize TOMOYO Linux's configuration.</p>
+
+<pre>
+# /usr/lib/ccs/init_policy
+# echo "use_profile 1" &gt;&gt; /etc/ccs/domain_policy.conf
+</pre>
+
+<p>Change bootloader configuration.</p>
+
+<pre>
+# cd /boot/extlinux/
+# cp ../vmlinuz-2.6.35.3 .
+# vi extlinux.conf
+</pre>
+
+<p>Edit extlinux.conf like below.</p>
+
+<pre>
+--- extlinux.conf
++++ extlinux.conf
+@@ -18,7 +18,7 @@
+ menu color timeout 0 #ffffffff #00000000
+ menu color cmdline 0 #ffffffff #00000000
+ label meego0
+-	menu label MeeGo (2.6.35~rc6-134.1-qemu)
+-	kernel vmlinuz-2.6.35~rc6-134.1-qemu
+-	append ro root=/dev/sda1 quiet vga=current quiet
++	menu label MeeGo (2.6.35.3)
++	kernel vmlinuz-2.6.35.3
++	append ro root=/dev/sda1 vga=current
+ 	menu default
+</pre>
+
+<p>Save the file and reboot the MeeGo environment.</p>
+
+<pre>
+# reboot
+</pre>
+
+<h2><a name="step_4">Step 4: Analyzing MeeGo environment</a></h2>
+
+<p>You can operate from SSH session. You can switch to console screen by pressing Alt+F1 key and switch back to graphical screen by Alt+F2 key if you removed "quiet" options from /boot/extlinux/extlinux.conf . Also, you may locate xterm window on graphical screen by doing</p>
+
+<pre>
+# export DISPLAY=:0
+# xterm -into `xwininfo -root -tree -int | awk ' { if ( index($2, "duihome") > 0) print $1; } '`
+</pre>
+
+<p>Below movie demonstrates how you can use TOMOYO Linux for analyzing the MeeGo environment.</p>
+
+<object width="640" height="385"><param name="movie" value="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=en_US&amp;rel=0"></param><param name="allowFullScreen" value="true"></param><param name="allowscriptaccess" value="always"></param><embed src="http://www.youtube.com/v/H9aZv49d2iw?fs=1&amp;hl=en_US&amp;rel=0" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="640" height="385"></embed></object>
+
+<hr>
+
+<p><a href="index.html.en">Return to index page.</a></p>
+<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="SourceForge.jp"></a></p>
+</body>
+</html>
