@@ -295,19 +295,19 @@ char *ccs_init_log(int *len, struct ccs_request_info *r)
  */
 static void ccs_update_task_domain(struct ccs_request_info *r)
 {
-	static char ccs_transition_buf[CCS_EXEC_TMPSIZE];
-	static DEFINE_MUTEX(ccs_transition_mutex);
 	const struct ccs_domain_info *domain;
 	char *buf;
 	const struct ccs_acl_info *acl = r->matched_acl;
 	r->matched_acl = NULL;
 	if (!acl || !acl->cond || !acl->cond->transit)
 		return;
-	buf = kzalloc(CCS_EXEC_TMPSIZE, GFP_KERNEL);
-	if (!buf) {
-		if (mutex_lock_interruptible(&ccs_transition_mutex))
+	while (1) {
+		buf = kzalloc(CCS_EXEC_TMPSIZE, CCS_GFP_FLAGS);
+		if (buf)
+			break;
+		ssleep(1);
+		if (fatal_signal_pending(current))
 			goto out;
-		buf = ccs_transition_buf;
 	}
 	domain = ccs_current_domain();
 	snprintf(buf, CCS_EXEC_TMPSIZE - 1, "%s %s", domain->domainname->name,
@@ -318,10 +318,7 @@ static void ccs_update_task_domain(struct ccs_request_info *r)
 		       "ERROR: Unable to transit to '%s' domain.\n", buf);
 		force_sig(SIGKILL, current);
 	}
-	if (buf != ccs_transition_buf)
-		kfree(buf);
-	else
-		mutex_unlock(&ccs_transition_mutex);
+	kfree(buf);
 }
 
 #ifndef CONFIG_CCSECURITY_AUDIT
