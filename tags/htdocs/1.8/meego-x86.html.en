@@ -242,107 +242,115 @@ $ ssh root@meegohost
 
 <p>Set up environment for compiling kernel and tools. This section assumes Fedora 13 in order to use "rpmbuild" command.</p>
 
-<p>First, download a kernel source package.</p>
+<p>First, install packages needed for compiling.</p>
 
 <pre>
-# cd
-# wget http://repo.meego.com/MeeGo/builds/trunk/1.0.90.0.20100831.1/core/repos/source/kernel-2.6.35.3-5.2.src.rpm
+$ su -
+# yum -y install wget gcc rpm-build elfutils-libelf-devel binutils-devel newt-devel ncurses-devel readline-devel help2man
+# exit
+</pre>
+
+<p>Next, download a kernel source package.</p>
+
+<pre>
+$ cd
+$ wget http://repo.meego.com/MeeGo/builds/trunk/1.0.90.0.20100831.1/core/repos/source/kernel-2.6.35.3-5.2.src.rpm
 </pre>
 
 <p>Next, install the package and run preparation stage.</p>
 
 <pre>
-# rpm -ivh kernel-2.6.35.3-5.2.src.rpm
-# rpmbuild -bp ~/rpmbuild/SPECS/kernel.spec
-# cd ~/rpmbuild/BUILD/kernel-2.6.35/linux-2.6.35/
+$ rpm -ivh kernel-2.6.35.3-5.2.src.rpm
+$ rpmbuild -bp ~/rpmbuild/SPECS/kernel.spec
+$ cd ~/rpmbuild/BUILD/kernel-2.6.35.3/linux-2.6.35/
 </pre>
 
 <p>If you are going to use this kernel on QEMU, download and apply kernel patch. If you are going to use this kernel on VMware, you don't need to do this.</p>
 
 <pre>
-# wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-x86/blobs/raw/master/linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
-# patch -p1 &lt; linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
+$ wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-x86/blobs/raw/master/linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
+$ patch -p1 &lt; linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
 </pre>
 
 <p>Next, create a kernel config file. You can pull it from the MeeGo environment on QEMU
 by doing</p>
 
 <pre>
-# scp -p -P 6666 root@127.0.0.1:/boot/config-\* .config
+$ scp -p -P 6666 root@127.0.0.1:/boot/config-\* .config
 </pre>
 
 <p>or from the MeeGo environment on VMware by doing</p>
 
 <pre>
-# scp -p root@meegohost:/boot/config-\* .config
+$ scp -p root@meegohost:/boot/config-\* .config
 </pre>
 
 <p>Now, update the kernel config file. If you are going to use this kernel on QEMU, be sure to answer "y" or "m" to "Virtio userspace memory transport".</p>
 
 <pre>
-# make -s oldconfig
+$ make -s oldconfig
 </pre>
 
 <p>MeeGo kernel is using writeback mode for mounting ext3 filesystem image. But use of writeback mode will corrupt files (e.g. data from deleted files is implicitly imported to previously written files) when QEMU or VMware is suddenly terminated. Change kernel config like below if you want to use ordered mode for mounting ext3 filesystem image.</p>
 
 <pre>
-# sed -i -e 's/CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set/CONFIG_EXT3_DEFAULTS_TO_ORDERED=y/ -- .config
+$ sed -i -e 's/# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set/CONFIG_EXT3_DEFAULTS_TO_ORDERED=y/' -- .config
 </pre>
 
 <p>If you don't mean to debug kernel, you can save compilation time and disk space. Change kernel config like below if you don't mean to debug kernel.</p>
 
 <pre>
-# sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
+$ sed -i -e 's/CONFIG_DEBUG_INFO=y/# CONFIG_DEBUG_INFO is not set/' -- .config
 </pre>
 
 <p>Next, download and apply TOMOYO Linux kernel patch.</p>
 
 <pre>
-# wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
-# tar -zxf ccs-patch.tar.gz --strip 1
-# patch -p1 &lt; patches/ccs-patch-2.6.35.diff
-# cat config.ccs &gt;&gt; .config
+$ wget -O ccs-patch.tar.gz 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch.tar.gz?root=tomoyo&amp;view=tar'
+$ tar -zxf ccs-patch.tar.gz --strip 1
+$ patch -p1 &lt; patches/ccs-patch-2.6.35.diff
+$ cat config.ccs &gt;&gt; .config
 </pre>
 
 <p>Now, build the kernel.</p>
 
 <pre>
-# make -s
-</pre>
-
-<p>Create a directory for temporarily holding kernel and tools.</p>
-
-<pre>
-# mkdir -p ~/tmp/boot/
-</pre>
-
-<p>Install the kernel and kernel modules to that directory.</p>
-
-<pre>
-# INSTALL_MOD_PATH=~/tmp/ make -s modules_install vdso_install
-# INSTALL_PATH=~/tmp/boot/ make -s install
+$ make -s
 </pre>
 
 <p>Download and build the tools.</p>
 
 <pre>
-# cd ~/rpmbuild/BUILD/
-# wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&view=tar' | tar -zxf -
-# make -C ccstools/ INSTALLDIR=~/tmp/ install
+$ cd ~/rpmbuild/BUILD/
+$ wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+$ make -sC ccstools/
+</pre>
+
+<p>Create a directory for temporarily holding kernel and tools and copy them.</p>
+
+<pre>
+$ su
+# mkdir -p /tmp/meego/boot/extlinux/
+# make -sC ccstools/ INSTALLDIR=/tmp/meego/ install
+# cd kernel-2.6.35.3/linux-2.6.35/
+# make -s INSTALL_MOD_PATH=/tmp/meego/ modules_install vdso_install
+# make -s INSTALL_PATH=/tmp/meego/boot/extlinux/ install
+# chown -R root:root /tmp/meego/
+# exit
 </pre>
 
 <p>Copy the kernel and tools. You can push them to the MeeGo environment on QEMU by doing</p>
 
 <pre>
-# cd ~/tmp/
-# tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
+$ cd /tmp/meego/
+$ tar -zcf - | ssh root@127.0.0.1 -p 6666  'cd / && tar -zxf -'
 </pre>
 
 <p>or to the MeeGo environment on VMware by doing</p>
 
 <pre>
-# cd ~/tmp/
-# tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
+$ cd /tmp/meego/
+$ tar -zcf - | ssh root@meegohost 'cd / && tar -zxf -'
 </pre>
 
 <h2><a name="step_3">Step 3: Initializing TOMOYO Linux</a></h2>
@@ -359,9 +367,7 @@ by doing</p>
 <p>Change bootloader configuration.</p>
 
 <pre>
-# cd /boot/extlinux/
-# cp ../vmlinuz-2.6.35.3 .
-# vi extlinux.conf
+# vi /boot/extlinux/extlinux.conf
 </pre>
 
 <p>Edit extlinux.conf like below.</p>
