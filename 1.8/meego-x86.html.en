@@ -25,66 +25,105 @@
 
 <h2><a name="step_1">Step 1: Setting up environment for emulator</a></h2>
 
-<p>Download and extract a MeeGo image file.</p>
+<p>Download and extract a MeeGo handset UI image file.</p>
 
 <pre>
-# cd
-# wget http://download3.meego.com/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2
-# tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2 --strip 1
+$ cd
+$ wget http://download3.meego.com/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2
+$ tar -jxf meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.tar.bz2 --strip 1
 </pre>
 
-<p>If you are going to use this image file on QEMU emulator, download and install qemu-gl package. Below steps assumes Ubuntu 10.04 environment.</p>
+<p>"root" user's password for this image file is "meego".</p>
+
+<p>If you are going to use this image file on QEMU, download and install qemu-gl package as shown in <a href="http://wiki.meego.com/MeeGo_SDK_with_QEMU">http://wiki.meego.com/MeeGo_SDK_with_QEMU</a> .</p>
 
 <pre>
-# wget http://download3.meego.com/qemu-gl_0.12.4-3_i386.deb
-# dpkg -i qemu-gl_0.12.4-3_i386.deb
-# wget http://download3.meego.com/qemugl_cmd.sh
-# chmod 755 qemugl_cmd.sh
+$ wget http://download3.meego.com/qemu-gl_0.12.4-3_i386.deb
+$ sudo dpkg -i qemu-gl_0.12.4-3_i386.deb
+$ wget http://download3.meego.com/qemugl_cmd.sh
+$ chmod 755 qemugl_cmd.sh
 </pre>
 
-<p>You can boot QEMU like below</p>
+<p>You can boot QEMU like below.</p>
 
 <pre>
-# ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw
+$ ./qemugl_cmd.sh meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw
 </pre>
 
-<p>You can login to the MeeGo environment via SSH using password "meego".</p>
+<p>If the MeeGo environment shows up correctly, you can proceed to <a href="#step_2">step 2</a>.</p>
 
-<pre>
-# ssh root@127.0.0.1 -p 6666
-</pre>
-
-<p>If your system boots and desktop environment shows up correctly, there is nothing more to do in this step.</p>
-
-<p>If you are going to use this image file on VMware environment, you need to modify this image file a bit.</p>
+<p>If you are going to use this image file on VMware, you need to modify this image file a bit.</p>
 
 <p>First, create a VMware virtual machine with 4GB of virtual hard disk.</p>
 
-<p>Next, boot the virtual machine using LiveCD. The LiveCD must contain some network programs for retrieving this image file.</p>
+<p>Next, boot the virtual machine using LiveCD. For example, you can use <a href="http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso">http://releases.ubuntu.com/lucid/ubuntu-10.04.1-desktop-i386.iso</a> (MD5: 9a95ed6f6ec38fb58c446dba1add6a08). If you booted using this ISO file, start the gnome terminal and become "root".</p>
 
-<p>Retrieve this image file using ssh (or curl or wget or whatever) and write to virtual hard disk. You can check the virtual hard disk's device name using "fdisk -l". Below case assumes that /dev/sda is the virtual hard disk. Substitute below vmwarehost with VMware host's IP address.</p>
+<pre>
+$ sudo bash
+</pre>
+
+<p>Check the virtual hard disk's device name. Below case shows that /dev/sda is the virtual hard disk.</p>
+
+<pre>
+# fdisk -l
+
+Disk /dev/sda: 4294 MB, 4294967296 bytes
+255 heads, 63 sectors/track, 522 cylinders
+Units = cylinders of 16065 * 512 = 8225280 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+Disk /dev/sda doesn't contain a valid partition table
+</pre>
+
+<p>Retrieve this image file using ssh (or curl or wget or whatever) and write to virtual hard disk. Substitute below vmwarehost with VMware host's IP address.</p>
 
 <pre>
 # ssh root@vmwarehost 'cat ~/meego-handset-ia32-1.0.80.9.20100706.1-sdk-pre0729.raw' &gt; /dev/sda
+# fdisk /dev/sda
+
+WARNING: DOS-compatible mode is deprecated. It's strongly recommended to
+         switch off the mode (command 'c') and change display units to
+         sectors (command 'u').
+
+Command (m for help): w
+The partition table has been altered!
+
+Calling ioctl() to re-read partition table.
+Syncing disks.
 </pre>
 
-<p>Then, mount the first partition of the virtual hard disk on somewhere.</p>
+<p>Then, mount the first partition of the virtual hard disk on /mnt/ .</p>
 
 <pre>
+# fdisk -l
+
+Disk /dev/sda: 4294 MB, 4294967296 bytes
+186 heads, 61 sectors/track, 739 cylinders
+Units = cylinders of 11346 * 512 = 5809152 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00097211
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *           1         517     2929687+  83  Linux
+Partition 1 has different physical/logical endings:
+     phys=(364, 185, 61) logical=(516, 79, 21)
 # mount /dev/sda1 /mnt/
 </pre>
 
-<p>Open /etc/X11/xorg.conf in that partition using a text editor.</p>
+<p>Open /etc/X11/xorg.conf-handset in that partition using a text editor.</p>
 
 <pre>
-# gedit /mnt/etc/X11/xorg.conf
+# gedit /mnt/etc/X11/xorg.conf-handset
 </pre>
 
 <p>Comment out Driver and BusID lines in the Device section. A diff output is shown below.</p>
 
 <pre>
---- a/etc/X11/xorg.conf
-+++ b/etc/X11/xorg.conf
+--- a/etc/X11/xorg.conf-handset
++++ b/etc/X11/xorg.conf-handset
 @@ -32,10 +32,10 @@
          #Option     "DefaultRefresh"     	# [<bool>]
          #Option     "ModeSetClearScreen" 	# [<bool>]
@@ -100,27 +139,40 @@
  Section "Screen"
 </pre>
 
-<p>Save the file and quit the text editor.</p>
-
-<p>Check your IP address. You will need this IP address when logging into MeeGo environment via SSH. Hereafter, I use "meeegohost" for referring this IP address.</p>
-
-<pre>
-# ifconfig eth0
-</pre>
-
-<p>Unmount the hard disk and reboot the system.</p>
+<p>Save the file and quit the text editor. Then, unmount the partition.</p>
 
 <pre>
 # umount /mnt/
+</pre>
+
+<p>Check your IP address. You will need this IP address when logging into MeeGo environment via SSH. Hereafter, I use "meegohost" for referring this IP address.</p>
+
+<pre>
+# ifconfig eth0
+eth0      Link encap:Ethernet  HWaddr 00:0c:29:99:19:08
+          inet addr:192.168.1.2  Bcast:192.168.1.255  Mask:255.255.255.0
+          inet6 addr: 2001:c90:301:ba9:20c:29ff:fe99:1908/64 Scope:Global
+          inet6 addr: fe80::20c:29ff:fe99:1908/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:2210718 errors:39 dropped:40 overruns:0 frame:0
+          TX packets:270495 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:3299820248 (3.2 GB)  TX bytes:19256240 (19.2 MB)
+          Interrupt:19 Base address:0x2000
+</pre>
+
+<p>Reboot the system.</p>
+
+<pre>
 # reboot
 </pre>
 
-<p>If your system boots and desktop environment shows up correctly, there is nothing more to do in this step. If desktop environment does not show up, do below steps.</p>
+<p>If the MeeGo environment shows up correctly, you can proceed to <a href="#step_2">step 2</a>. If it doesn't, check below things.</p>
 
 <p>Login to the MeeGo environment via SSH using password "meego".</p>
 
 <pre>
-# ssh root@meegohost
+$ ssh root@meegohost
 </pre>
 
 <p>Then, check /var/log/Xorg.log.0 for (EE) lines. If you found "ioctl EVIOCGNAME failed: Inappropriate ioctl for device" line like below, you might need to let X ignore that device.</p>
@@ -163,11 +215,11 @@
 [    35.100] (EE) PreInit returned NULL for "ImPS/2 Generic Wheel Mouse"
 </pre>
 
-<p>To let X ignore a device ("ImPS/2 Generic Wheel Mouse (/dev/input/mouse0)" in above case), add a section like below.</p>
+<p>To let X ignore a device ("ImPS/2 Generic Wheel Mouse (/dev/input/mouse0)" in above case), add a section like below and reboot the system.</p>
 
 <pre>
---- a/etc/X11/xorg.conf
-+++ b/etc/X11/xorg.conf
+--- a/etc/X11/xorg.conf-handset
++++ b/etc/X11/xorg.conf-handset
 @@ -23,6 +23,13 @@
  	ModelName    "Monitor Model"
  EndSection
@@ -201,11 +253,11 @@
 
 <pre>
 # rpm -ivh kernel-2.6.35.3-5.2.src.rpm
-# rpmbuild -bp /root/rpmbuild/SPECS/kernel.spec
-# cd /root/rpmbuild/BUILD/kernel-2.6.35/linux-2.6.35/
+# rpmbuild -bp ~/rpmbuild/SPECS/kernel.spec
+# cd ~/rpmbuild/BUILD/kernel-2.6.35/linux-2.6.35/
 </pre>
 
-<p>If you are going to use this kernel on QEMU environment, download and apply kernel patch. If you are going to use this kernel on VMware environment, you don't need to do this.</p>
+<p>If you are going to use this kernel on QEMU, download and apply kernel patch. If you are going to use this kernel on VMware, you don't need to do this.</p>
 
 <pre>
 # wget http://meego.gitorious.org/meego-developer-tools/meego-emulator-virtiogl-x86/blobs/raw/master/linux-2.6.35-virtio-for-qemu-gl-acceleration.patch
@@ -225,7 +277,7 @@ by doing</p>
 # scp -p root@meegohost:/boot/config-\* .config
 </pre>
 
-<p>Now, update the kernel config file. If you are going to use this kernel on QEMU environment, be sure to answer "y" or "m" to "Virtio userspace memory transport".</p>
+<p>Now, update the kernel config file. If you are going to use this kernel on QEMU, be sure to answer "y" or "m" to "Virtio userspace memory transport".</p>
 
 <pre>
 # make -s oldconfig
@@ -274,7 +326,7 @@ by doing</p>
 <p>Download and build the tools.</p>
 
 <pre>
-# cd /root/rpmbuild/BUILD/
+# cd ~/rpmbuild/BUILD/
 # wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-tools/ccstools.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 # make -C ccstools/ INSTALLDIR=~/tmp/ install
 </pre>
