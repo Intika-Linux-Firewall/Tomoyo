@@ -1354,7 +1354,7 @@ static void make_profile(void)
 	if (file_only_profile)
 		file_only = "::file";
 	fprintf(fp,
-		"PROFILE_VERSION=20090903\n"
+		"PROFILE_VERSION=20100903\n"
 		"0-COMMENT=-----Disabled Mode-----\n"
 		"0-CONFIG%s={ mode=disabled verbose=no grant_log=no "
 		"reject_log=no }\n"
