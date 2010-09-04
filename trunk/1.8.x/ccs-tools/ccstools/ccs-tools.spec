@@ -37,7 +37,6 @@ rm -rf $RPM_BUILD_ROOT
 /usr/lib/
 /usr/sbin/
 /usr/share/man/
-%attr(4755,root,root) /usr/lib/ccs/force-logout
 %config(noreplace) /usr/lib/ccs/ccstools.conf
 
 %changelog

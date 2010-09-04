@@ -1,11 +1,10 @@
-BUILD_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd force-logout audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
+BUILD_FILES = candy chaplet checktoken gettoken groovy honey mailauth proxy timeauth falsh ccs-notifyd audit-exec-param convert-exec-param convert-audit-log ccs-editpolicy-agent init_policy
 
 all: $(BUILD_FILES)
 
 install: all
 	mkdir -p $(INSTALLDIR)/usr/lib/ccs
 	chmod 755 $(INSTALLDIR)/usr/lib/ccs
-	chmod 4711 force-logout
 	chown -R root:root .
 	cp -af --remove-destination $(BUILD_FILES) ccstools.conf ../README.ccs ../COPYING.ccs $(INSTALLDIR)/usr/lib/ccs/
 
