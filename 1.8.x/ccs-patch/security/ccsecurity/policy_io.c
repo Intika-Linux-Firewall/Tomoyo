@@ -26,7 +26,7 @@ static struct ccs_profile ccs_default_profile = {
 	.preference.learning_symlink_target = true,
 };
 
-/* Profile version. Currently only 20090903 is defined. */
+/* Profile version. Currently only 20100903 is defined. */
 static unsigned int ccs_profile_version;
 
 /* Profile table. Memory is allocated as needed. */
@@ -352,7 +352,7 @@ static void ccs_check_profile(void)
 		      profile, domain->domainname->name);
 	}
 	ccs_read_unlock(idx);
-	if (ccs_profile_version != 20090903)
+	if (ccs_profile_version != 20100903)
 		panic("Profile version %u is not supported.\n",
 		      ccs_profile_version);
 	printk(KERN_INFO "CCSecurity: 1.8.0-pre   2010/09/01\n");
@@ -606,7 +606,7 @@ static void ccs_read_profile(struct ccs_io_buffer *head)
 	profile = ccs_profile_ptr[index];
 	switch (head->r.step) {
 	case 0:
-		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20090903");
+		ccs_io_printf(head, "PROFILE_VERSION=%s\n", "20100903");
 		head->r.step++;
 		break;
 	case 1:
