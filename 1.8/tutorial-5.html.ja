@@ -38,9 +38,6 @@
 <tr><td>task.pid</td><td>呼び出したプロセスのプロセスＩＤ</td></tr>
 <tr><td>task.ppid</td><td>呼び出したプロセスの親プロセスのプロセスＩＤ</td></tr>
 <tr><td>task.type</td><td>呼び出したプロセスの種類（ execute_handler か否か）</td></tr>
-<tr><td>task.state[0]</td><td>呼び出したプロセスの状態変数0</td></tr>
-<tr><td>task.state[1]</td><td>呼び出したプロセスの状態変数1</td></tr>
-<tr><td>task.state[2]</td><td>呼び出したプロセスの状態変数2</td></tr>
 <tr><td>path1.uid</td><td>１つめのパス名の所有者ＩＤ</td></tr>
 <tr><td>path1.gid</td><td>１つめのパス名のグループＩＤ</td></tr>
 <tr><td>path1.ino</td><td>１つめのパス名のiノード番号</td></tr>
@@ -465,7 +462,7 @@ WARNING: Domain 'ドメイン名' has so many ACLs to hold. Stopped learning mod
 <tr><td>
 ■図３１　厳密すぎるアクセス許可
 <pre>
-file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.state[0]=0 task.state[1]=0 task.state[2]=0 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
+file execute /usr/bin/id if task.pid=4641 task.ppid=4637 task.uid=48 task.gid=48 task.euid=48 task.egid=48 task.suid=48 task.sgid=48 task.fsuid=48 task.fsgid=48 task.type!=execute_handler path1.uid=0 path1.gid=0 path1.ino=603159 path1.major=8 path1.minor=1 path1.perm=0755 path1.type=file path1.parent.uid=0 path1.parent.gid=0 path1.parent.ino=589834 path1.parent.perm=0755 exec.realpath="/usr/bin/id" exec.argc=1 exec.envc=7 exec.argv[0]="id" exec.envp["TERM"]="linux" exec.envp["PATH"]="/sbin:/usr/sbin:/bin:/usr/bin" exec.envp["PWD"]="/usr/share/horde/admin" exec.envp["LANG"]="en_US.UTF-8" exec.envp["SHLVL"]="3" exec.envp["LANGUAGE"]="en_US.UTF-8" exec.envp["_"]="/usr/bin/id"
 </pre>
 </td></tr>
 </table>
